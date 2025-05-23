@@ -104,6 +104,7 @@ export const DefaultMeta = ({
   isSectionsCard,
   showTopics,
   icon_src,
+  refinedCardsLayout,
 }) => {
   const shouldHaveThumbs =
     !isListCard &&
@@ -112,37 +113,39 @@ export const DefaultMeta = ({
     mayHaveThumbsUpDown;
   const shouldHaveFooterSection =
     isSectionsCard && (shouldHaveThumbs || showTopics);
+
   return (
     <div className="meta">
       <div className="info-wrap">
-        {ctaButtonVariant !== "variant-b" && format !== "rectangle" && (
-          <DSSource
-            source={source}
-            timeToRead={timeToRead}
-            newSponsoredLabel={newSponsoredLabel}
-            context={context}
-            sponsor={sponsor}
-            sponsored_by_override={sponsored_by_override}
-            icon_src={icon_src}
-          />
-        )}
-        {format !== "rectangle" && (
-          <>
-            <h3 className="title clamp">{title}</h3>
-            {excerpt && <p className="excerpt clamp">{excerpt}</p>}
-          </>
-        )}
-        {format === "rectangle" && (
-          <h3
-            className="title clamp"
-            data-l10n-id="newtab-label-sponsored-fixed"
-          />
+        {ctaButtonVariant !== "variant-b" &&
+          format !== "rectangle" &&
+          !refinedCardsLayout && (
+            <DSSource
+              source={source}
+              timeToRead={timeToRead}
+              newSponsoredLabel={newSponsoredLabel}
+              context={context}
+              sponsor={sponsor}
+              sponsored_by_override={sponsored_by_override}
+              icon_src={icon_src}
+            />
+          )}
+        <h3 className="title clamp">
+          {format === "rectangle" ? "Sponsored" : title}
+        </h3>
+        {format === "rectangle" ? (
+          <p className="excerpt clamp">
+            Sponsored content supports our mission to build a better web.
+          </p>
+        ) : (
+          excerpt && <p className="excerpt clamp">{excerpt}</p>
         )}
       </div>
       {!isListCard &&
         format !== "rectangle" &&
         !mayHaveSectionsCards &&
-        mayHaveThumbsUpDown && (
+        mayHaveThumbsUpDown &&
+        !refinedCardsLayout && (
           <DSThumbsUpDownButtons
             onThumbsDownClick={onThumbsDownClick}
             onThumbsUpClick={onThumbsUpClick}
@@ -151,9 +154,22 @@ export const DefaultMeta = ({
             isThumbsUpActive={state.isThumbsUpActive}
           />
         )}
-      {shouldHaveFooterSection && (
+      {(shouldHaveFooterSection || refinedCardsLayout) && (
         <div className="sections-card-footer">
-          {shouldHaveThumbs && (
+          {refinedCardsLayout &&
+            format !== "rectangle" &&
+            format !== "spoc" && (
+              <DSSource
+                source={source}
+                timeToRead={timeToRead}
+                newSponsoredLabel={newSponsoredLabel}
+                context={context}
+                sponsor={sponsor}
+                sponsored_by_override={sponsored_by_override}
+                icon_src={icon_src}
+              />
+            )}
+          {(shouldHaveThumbs || refinedCardsLayout) && (
             <DSThumbsUpDownButtons
               onThumbsDownClick={onThumbsDownClick}
               onThumbsUpClick={onThumbsUpClick}
@@ -889,6 +905,7 @@ export class _DSCard extends React.PureComponent {
               format={format}
               topic={this.props.topic}
               icon_src={faviconEnabled && this.props.icon_src}
+              refinedCardsLayout={refinedCardsLayout}
             />
           )}
         </SafeAnchor>

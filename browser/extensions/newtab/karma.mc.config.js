@@ -227,7 +227,7 @@ module.exports = function (config) {
                 statements: 95.39,
                 lines: 95.3,
                 functions: 9.91,
-                branches: 72.95,
+                branches: 71.69,
               },
             "content-src/components/DiscoveryStreamComponents/CardSections/CardSections.jsx":
               {

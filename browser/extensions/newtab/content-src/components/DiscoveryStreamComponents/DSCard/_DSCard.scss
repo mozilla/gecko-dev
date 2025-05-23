@@ -62,7 +62,12 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       inset-inline-start: -100%;
       height: 100%;
       width: 100%;
-      background: linear-gradient(90deg, rgba(255, 255, 255, 0%) 0%, var(--newtab-background-color-secondary) 50%, rgba(255, 255, 255, 0%) 100%);
+      background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0%) 0%,
+        var(--newtab-background-color-secondary) 50%,
+        rgba(255, 255, 255, 0%) 100%
+      );
       z-index: 2;
 
       @media (prefers-reduced-motion: no-preference) {
@@ -76,7 +81,8 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       }
 
       // We apply the same frame from 50-100% to account for a delay in a repeating animation.
-      50%, 100% {
+      50%,
+      100% {
         inset-inline-start: 100%;
       }
     }
@@ -85,12 +91,6 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
   .img-wrapper {
     width: 100%;
     position: relative;
-  }
-
-  &.refined-cards {
-    .card-stp-button-hover-background {
-      height: 172px;
-    }
   }
 
   .card-stp-button-hover-background {
@@ -108,7 +108,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     .card-stp-button-position-wrapper {
       position: absolute;
       inset-inline-end: 10px;
-      top: 10px;
+      inset-block-start: 10px;
       display: flex;
       justify-content: end;
       align-items: center;
@@ -249,11 +249,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
     .excerpt {
       // show only 3 lines of copy
-      @include limit-visible-lines(
-        3,
-        $excerpt-line-height,
-        $excerpt-font-size
-      );
+      @include limit-visible-lines(3, $excerpt-line-height, $excerpt-font-size);
     }
 
     .source-wrapper {
@@ -309,7 +305,11 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
   &.ds-card-image-gradient {
     img {
-      mask-image: linear-gradient(to top, $ds-card-image-gradient-fade, $ds-card-image-gradient-solid 40px);
+      mask-image: linear-gradient(
+        to top,
+        $ds-card-image-gradient-fade,
+        $ds-card-image-gradient-solid 40px
+      );
     }
 
     .meta {
@@ -534,6 +534,53 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
       .img-wrapper .ds-image img {
         box-shadow: 0 2px 14px 0 var(--newtab-section-card-box-shadow-color);
+      }
+    }
+  }
+}
+
+.refined-cards {
+  .sections-card-footer {
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+    max-width: 230px;
+
+    .source-wrapper {
+      margin-block-end: 0;
+      margin-inline-end: var(--space-xxsmall);
+      max-width: 175px;
+    }
+
+    .card-stp-thumbs-buttons-wrapper {
+      // remove absolute positioning
+      position: static;
+      inset-block-start: 0;
+      transform: translateY(0);
+    }
+  }
+
+  .card-stp-button-hover-background {
+    height: 100%;
+    padding-block-start: 0;
+    background: linear-gradient(to bottom,
+    $black-40 0,
+    $black-40 148px,
+    transparent 148px,
+    transparent 100%);
+
+    .card-stp-button-position-wrapper {
+      inset-block-start: unset;
+      // this value needs to equal the current padding of the card
+      inset-block-end: var(--space-small);
+      inset-inline-end: var(--space-large);
+    }
+  }
+
+  &:hover {
+    .sections-card-footer {
+      .source {
+        display: block;
       }
     }
   }
