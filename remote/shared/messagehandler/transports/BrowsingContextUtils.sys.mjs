@@ -9,6 +9,36 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PollPromise: "chrome://remote/content/shared/Sync.sys.mjs",
 });
 
+/**
+ * A browsing context might be replaced before reaching the parent process,
+ * instead we serialize enough information to retrieve the navigable in the
+ * parent process.
+ *
+ * If the browsing context is top level, then the browserId can be used to
+ * find the browser element and the new browsing context.
+ * Otherwise (frames) the browsing context should not be replaced and the
+ * browsing context id should be enough to find the browsing context.
+ *
+ * Should be used when preparing an event payload from the content to the
+ * parent process.
+ *
+ * @param {BrowsingContext} browsingContext
+ *     The browsing context for which we want to get details.
+ * @returns {object}
+ *     An object that returns the following properties:
+ *       - browserId: browser id for this browsing context
+ *       - browsingContextId: browsing context id
+ *       - isTopBrowsingContext: flag that indicates if the browsing context is
+ *         top level
+ */
+export function getBrowsingContextDetails(browsingContext) {
+  return {
+    browserId: browsingContext.browserId,
+    browsingContextId: browsingContext.id,
+    isTopBrowsingContext: browsingContext.parent === null,
+  };
+}
+
 function isExtensionContext(browsingContext) {
   let principal;
   try {

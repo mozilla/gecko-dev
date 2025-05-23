@@ -5,6 +5,8 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  getBrowsingContextDetails:
+    "chrome://remote/content/shared/messagehandler/transports/BrowsingContextUtils.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
 });
@@ -63,33 +65,6 @@ export class WebProgressListenerChild extends JSWindowActorChild {
    */
   receiveMessage() {}
 
-  /**
-   * A browsing context might be replaced before reaching the parent process,
-   * instead we serialize enough information to retrieve the navigable in the
-   * parent process.
-   *
-   * If the browsing context is top level, then the browserId can be used to
-   * find the browser element and the new browsing context.
-   * Otherwise (frames) the browsing context should not be replaced and the
-   * browsing context id should be enough to find the browsing context.
-   *
-   * @param {BrowsingContext} browsingContext
-   *     The browsing context for which we want to get details.
-   * @returns {object}
-   *     An object that returns the following properties:
-   *       - browserId: browser id for this browsing context
-   *       - browsingContextId: browsing context id
-   *       - isTopBrowsingContext: flag that indicates if the browsing context is
-   *         top level
-   */
-  #getBrowsingContextDetails(browsingContext) {
-    return {
-      browserId: browsingContext.browserId,
-      browsingContextId: browsingContext.id,
-      isTopBrowsingContext: browsingContext.parent === null,
-    };
-  }
-
   #getTargetURI(request) {
     try {
       return request.QueryInterface(Ci.nsIChannel).originalURI;
@@ -103,7 +78,7 @@ export class WebProgressListenerChild extends JSWindowActorChild {
       const context = progress.browsingContext;
 
       const payload = {
-        contextDetails: this.#getBrowsingContextDetails(context),
+        contextDetails: lazy.getBrowsingContextDetails(context),
         url: location.spec,
       };
 
@@ -158,7 +133,7 @@ export class WebProgressListenerChild extends JSWindowActorChild {
     try {
       if (isStart) {
         this.sendAsyncMessage("WebProgressListenerChild:navigationStarted", {
-          contextDetails: this.#getBrowsingContextDetails(context),
+          contextDetails: lazy.getBrowsingContextDetails(context),
           url: targetURI?.spec,
         });
 
@@ -170,7 +145,7 @@ export class WebProgressListenerChild extends JSWindowActorChild {
         // browsing context + process change and we should get the real stop state
         // change from the correct process later.
         this.sendAsyncMessage("WebProgressListenerChild:navigationStopped", {
-          contextDetails: this.#getBrowsingContextDetails(context),
+          contextDetails: lazy.getBrowsingContextDetails(context),
           status,
           url: targetURI?.spec,
         });
