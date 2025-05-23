@@ -1814,6 +1814,12 @@ saveToPocket:
   owner: sdowne@mozilla.com
   hasExposure: false
   variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: extensions.pocket.enabled
+      description: Enabled save to Pocket feature.
     emailButton:
       type: boolean
       setPref:
