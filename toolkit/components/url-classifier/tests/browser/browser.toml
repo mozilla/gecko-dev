@@ -1,8 +1,11 @@
 [DEFAULT]
 support-files = [
+  "head.js",
   "page.html",
   "raptor.jpg",
 ]
+
+["browser_antifraud_annotation.js"]
 
 ["browser_consentmanager_annotation.js"]
 
