@@ -314,13 +314,16 @@ void EarlyHintPreloader::MaybeCreateAndInsertPreload(
   // processing we have not yet created a document where we would normally store
   // the CSP.
 
-  // First we will create a load info,
-  // nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK
-  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = new LoadInfo(
+  // First we will create a load info.
+  Result<nsCOMPtr<nsILoadInfo>, nsresult> maybeLoadInfo = LoadInfo::Create(
       aPrincipal,  // loading principal
       aPrincipal,  // triggering principal
       nullptr /* aLoadingContext node */,
       nsILoadInfo::SEC_ONLY_FOR_EXPLICIT_CONTENTSEC_CHECK, contentPolicyType);
+  if (NS_WARN_IF(maybeLoadInfo.isErr())) {
+    return;
+  }
+  nsCOMPtr<nsILoadInfo> secCheckLoadInfo = maybeLoadInfo.unwrap();
 
   if (aCSPHeader.Length() != 0) {
     // If the CSP header is present then create a new CSP and apply the header
