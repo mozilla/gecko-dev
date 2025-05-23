@@ -980,6 +980,7 @@ skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/non-iso-cal
 skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic.js
 skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic-rgsa.js
 skip-if(release_or_beta) script test262/staging/Intl402/Temporal/old/islamic-calendars-islamic-umalqura.js
+skip-if(release_or_beta) script test262/intl402/Temporal/PlainMonthDay/from/constrain-to-leap-day.js
 
 # Try re-enabling when Bug 1954138 or Bug 1955545 are fixed.
 skip script test262/staging/Intl402/Temporal/old/non-iso-calendars-islamic.js
