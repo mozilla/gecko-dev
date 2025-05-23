@@ -448,6 +448,18 @@ malloc_size_of_is_0!(f32, f64);
 malloc_size_of_is_0!(std::sync::atomic::AtomicBool);
 malloc_size_of_is_0!(std::sync::atomic::AtomicIsize);
 malloc_size_of_is_0!(std::sync::atomic::AtomicUsize);
+malloc_size_of_is_0!(
+    std::sync::atomic::AtomicU8,
+    std::sync::atomic::AtomicU16,
+    std::sync::atomic::AtomicU32,
+    std::sync::atomic::AtomicU64
+);
+malloc_size_of_is_0!(
+    std::sync::atomic::AtomicI8,
+    std::sync::atomic::AtomicI16,
+    std::sync::atomic::AtomicI32,
+    std::sync::atomic::AtomicI64
+);
 
 malloc_size_of_is_0!(std::num::NonZeroUsize);
 malloc_size_of_is_0!(std::num::NonZeroU32);
