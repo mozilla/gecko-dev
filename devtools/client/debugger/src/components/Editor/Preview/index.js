@@ -13,7 +13,6 @@ import {
   getSelectedTraceIndex,
 } from "../../../selectors/index";
 import actions from "../../../actions/index";
-import { features } from "../../../utils/prefs";
 
 const EXCEPTION_MARKER = "mark-text-exception";
 
@@ -38,40 +37,21 @@ class Preview extends PureComponent {
   }
 
   componentDidMount() {
-    if (features.codemirrorNext) {
-      this.props.editor.on("tokenenter", this.onTokenEnter);
-      this.props.editor.addEditorDOMEventListeners({
-        mouseup: this.onMouseUp,
-        mousedown: this.onMouseDown,
-        scroll: this.onScroll,
-      });
-    } else {
-      const { codeMirror } = this.props.editor;
-      const codeMirrorWrapper = codeMirror.getWrapperElement();
-      codeMirror.on("tokenenter", this.onTokenEnter);
-      codeMirror.on("scroll", this.onScroll);
-      codeMirrorWrapper.addEventListener("mouseup", this.onMouseUp);
-      codeMirrorWrapper.addEventListener("mousedown", this.onMouseDown);
-    }
+    this.props.editor.on("tokenenter", this.onTokenEnter);
+    this.props.editor.addEditorDOMEventListeners({
+      mouseup: this.onMouseUp,
+      mousedown: this.onMouseDown,
+      scroll: this.onScroll,
+    });
   }
 
   componentWillUnmount() {
-    if (features.codemirrorNext) {
-      this.props.editor.off("tokenenter", this.onTokenEnter);
-      this.props.editor.removeEditorDOMEventListeners({
-        mouseup: this.onMouseUp,
-        mousedown: this.onMouseDown,
-        scroll: this.onScroll,
-      });
-    } else {
-      const { codeMirror } = this.props.editor;
-      const codeMirrorWrapper = codeMirror.getWrapperElement();
-
-      codeMirror.off("tokenenter", this.onTokenEnter);
-      codeMirror.off("scroll", this.onScroll);
-      codeMirrorWrapper.removeEventListener("mouseup", this.onMouseUp);
-      codeMirrorWrapper.removeEventListener("mousedown", this.onMouseDown);
-    }
+    this.props.editor.off("tokenenter", this.onTokenEnter);
+    this.props.editor.removeEditorDOMEventListeners({
+      mouseup: this.onMouseUp,
+      mousedown: this.onMouseDown,
+      scroll: this.onScroll,
+    });
   }
 
   componentDidUpdate(_prevProps, prevState) {
