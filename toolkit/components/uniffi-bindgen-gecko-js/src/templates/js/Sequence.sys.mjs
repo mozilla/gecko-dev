@@ -1,10 +1,10 @@
 // Export the FFIConverter object to make external types work.
-export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
+export class {{ sequence|ffi_converter }} extends FfiConverterArrayBuffer {
     static read(dataStream) {
         const len = dataStream.readInt32();
         const arr = [];
         for (let i = 0; i < len; i++) {
-            arr.push({{ inner_type.ffi_converter() }}.read(dataStream));
+            arr.push({{ sequence.inner|read_fn }}(dataStream));
         }
         return arr;
     }
@@ -12,7 +12,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
     static write(dataStream, value) {
         dataStream.writeInt32(value.length);
         value.forEach((innerValue) => {
-            {{ inner_type.ffi_converter() }}.write(dataStream, innerValue);
+            {{ sequence.inner|write_fn }}(dataStream, innerValue);
         })
     }
 
@@ -20,7 +20,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
         // The size of the length
         let size = 4;
         for (const innerValue of value) {
-            size += {{ inner_type.ffi_converter() }}.computeSize(innerValue);
+            size += {{ sequence.inner|compute_size_fn }}(innerValue);
         }
         return size;
     }
@@ -31,7 +31,7 @@ export class {{ ffi_converter }} extends FfiConverterArrayBuffer {
         }
         value.forEach((innerValue, idx) => {
             try {
-                {{ inner_type.ffi_converter() }}.checkType(innerValue);
+                {{ sequence.inner|check_type_fn }}(innerValue);
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
                     e.addItemDescriptionPart(`[${idx}]`);

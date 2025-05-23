@@ -1,7 +1,6 @@
 import {
-  {{ ffi_converter }},
-  {{ name }},
-} from "{{ self.external_type_module(module_path) }}";
+  {{ external|ffi_converter }},
+} from "./{{ external.module_name }}.sys.mjs";
 
 // Export the FFIConverter object to make external types work.
-export { {{ ffi_converter }}, {{ name }} };
+export { {{ external|ffi_converter }} };
