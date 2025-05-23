@@ -62,11 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        Το %1$s διαγράφει το ιστορικό αναζητήσεων και περιήγησης των ιδιωτικών καρτελών όταν κλείνετε αυτές ή την εφαρμογή. Αυτό δεν σας παρέχει ανωνυμία σε ιστοτόπους ή στον πάροχο υπηρεσιών διαδικτύου σας, αλλά σας βοηθά να προστατέψετε το απόρρητό σας από τους άλλους χρήστες αυτής της συσκευής.</string>
-  <string name="private_browsing_common_myths">
-       Συνήθεις παρανοήσεις σχετικά με την ιδιωτική περιήγηση
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032Το %1$s διαγράφει το ιστορικό αναζητήσεων και περιήγησης των ιδιωτικών καρτελών όταν κλείνετε αυτές ή την εφαρμογή. Αυτό δεν σας παρέχει ανωνυμία σε ιστοτόπους ή στον πάροχο υπηρεσιών διαδικτύου σας, αλλά σας βοηθά να προστατέψετε το απόρρητό σας από τους άλλους χρήστες αυτής της συσκευής.</string>
+  <string name="private_browsing_common_myths">\u0032Συνήθεις παρανοήσεις σχετικά με την ιδιωτική περιήγηση\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -644,7 +641,7 @@
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">Σημείωση απορρήτου</string>
   <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
-  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Για τη βελτίωση του προγράμματος περιήγησης, το Firefox στέλνει δεδομένα διάγνωσης και  αλληλεπίδρασης στη Mozilla. %1$s</string>
+  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Για τη βελτίωση του προγράμματος περιήγησης, το Firefox στέλνει δεδομένα διάγνωσης και αλληλεπίδρασης στη Mozilla. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">Διαχείριση</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->

@@ -265,7 +265,7 @@
   <!-- Preference for account settings -->
   <string name="preferences_account_settings">اکاؤنٹ کی سیٹنگز</string>
   <!-- Preference for enabling url autocomplete -->
-  <string name="preferences_enable_autocomplete_urls">خودکار تکميلURLs </string>
+  <string name="preferences_enable_autocomplete_urls">خودکار تکميلURLs\u0032</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">ایپس میں ربط کھولیں</string>
   <!-- Preference for open download with an external download manager app -->
@@ -470,7 +470,7 @@
   <!-- Option for always opening the user's last-open tab when re-opening the app -->
   <string name="opening_screen_last_tab">آخری ٹیب</string>
   <!-- Option for always opening the homepage when re-opening the app after four hours of inactivity -->
-  <string name="opening_screen_after_four_hours_of_inactivity">چار گھنٹے کی غیرفعالیت کے بعد  ابتدائی صفحہ</string>
+  <string name="opening_screen_after_four_hours_of_inactivity">چار گھنٹے کی غیرفعالیت کے بعد ابتدائی صفحہ</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to manual close -->
   <string name="close_tabs_manually_summary">دستی طور پر بند کریں</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day -->
@@ -1100,7 +1100,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to copy a password in logins -->
   <string name="saved_logins_copy_password">پاس ورڈ نقل کریں</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear a password while editing a login -->
-  <string name="saved_logins_clear_password">پاس ورڈ صاف کریں </string>
+  <string name="saved_logins_clear_password">پاس ورڈ صاف کریں\u0032</string>
   <!-- Content Description (for screenreaders etc) read for the button to copy a username in logins -->
   <string name="saved_login_copy_username">صارف نام نقل کریں</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear a username while editing a login -->
@@ -1128,7 +1128,7 @@
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
   <string name="preferences_credit_cards_sync_cards_across_devices">اپنے آلات کے مابین کارڈز سنک کریں</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
-  <string name="preferences_credit_cards_sync_cards">کارڈ سنک کریں </string>
+  <string name="preferences_credit_cards_sync_cards">کارڈ سنک کریں\u0032</string>
   <!-- Title of the "Add card" screen -->
   <string name="credit_cards_add_card">کارڈ شامل کریں</string>
   <!-- Title of the "Edit card" screen -->

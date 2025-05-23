@@ -62,11 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s ሲዘጉ ወይም መተግበሪያውን ሲያቆሙ የፍለጋ እና የአሰሳ ታሪክዎን ከግል ትሮች ያጸዳል። ይህ እርስዎን ለድር ጣቢያዎች ወይም የበይነመረብ አገልግሎት አቅራቢዎ ስም-አልባ ባያደርግም፣ በመስመር ላይ የሚያደርጉትን ይህን መሳሪያ ከሚጠቀም ከማንኛውም ሰው የግል ማድረግን ቀላል ያደርገዋል።</string>
-  <string name="private_browsing_common_myths">
-       ስለግል አሰሳ የተለመዱ አፈ ታሪኮች
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s ሲዘጉ ወይም መተግበሪያውን ሲያቆሙ የፍለጋ እና የአሰሳ ታሪክዎን ከግል ትሮች ያጸዳል። ይህ እርስዎን ለድር ጣቢያዎች ወይም የበይነመረብ አገልግሎት አቅራቢዎ ስም-አልባ ባያደርግም፣ በመስመር ላይ የሚያደርጉትን ይህን መሳሪያ ከሚጠቀም ከማንኛውም ሰው የግል ማድረግን ቀላል ያደርገዋል።</string>
+  <string name="private_browsing_common_myths">\u0032ስለግል አሰሳ የተለመዱ አፈ ታሪኮች\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -910,7 +907,7 @@
   <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
   <string name="link_sharing_toggle_title">በWhatsApp ማጋራቶች ላይ %1$s የማውረድ አገናኝ ያካትቱ</string>
   <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
-  <string name="link_sharing_toggle_body">በWhatsApp ላይ አገናኝ ባጋሩ ቁጥር ጓደኞችዎን ፈጣኑን እና  ደህንነቱ የተጠበቀ አሰሳ  በ%1$s እንዲሞክሩ ይጋብዙ።</string>
+  <string name="link_sharing_toggle_body">በWhatsApp ላይ አገናኝ ባጋሩ ቁጥር ጓደኞችዎን ፈጣኑን እና ደህንነቱ የተጠበቀ አሰሳ በ%1$s እንዲሞክሩ ይጋብዙ።</string>
   <!-- Snackbar message shown when user shares a link -->
   <string name="link_shared_snackbar_message">አገናኝ ተጋርቷል</string>
   <!-- Snackbar action label shown when user shares a link -->
@@ -1460,7 +1457,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s ተወግዷል</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2">"%1$s" ተሰርዟል</string>
+  <string name="download_delete_single_item_snackbar_2">\"%1$s\" ተሰርዟል</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">ማውረድ በሂደት ላይ…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -2134,7 +2131,7 @@
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">የአሰሳ ውሂብን በመሰረዝ ላይ…</string>
   <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
-  <string name="delete_all_history_group_prompt_message">በ "%s" ውስጥ ያሉትን ሁሉንም ድረ-ገፆች ሰርዝ</string>
+  <string name="delete_all_history_group_prompt_message">በ \"%s\" ውስጥ ያሉትን ሁሉንም ድረ-ገፆች ሰርዝ</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">ተወው</string>
   <!-- Text for the allow button for the history group dialog -->
@@ -2340,7 +2337,7 @@
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">አቅራቢ</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
-  <string name="preference_doh_provider_custom_dialog_error_https">URL በ "https://" መጀመር አለበት</string>
+  <string name="preference_doh_provider_custom_dialog_error_https">URL በ \"https://\" መጀመር አለበት</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">ልክ ያልሆነ URL</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2430,8 +2427,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">የተቀመጡ የይለፍ ቃላት</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">ከ%s ጋር ያስቀመጧቸው ወይም ያሰናሰሏቸው የይለፍ ቃሎች እዚህ ይዘረዘራሉ። የሚያስቀምጡት ሁሉም የይለፍ ቃሎች የተመሰጠሩ ናቸው።
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">ከ%s ጋር ያስቀመጧቸው ወይም ያሰናሰሏቸው የይለፍ ቃሎች እዚህ ይዘረዘራሉ። የሚያስቀምጡት ሁሉም የይለፍ ቃሎች የተመሰጠሩ ናቸው።\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">ስለ ማሰናሰል የበለጠ ይረዱ</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2629,7 +2625,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">ለፍለጋ የሚጠቀሙት URL</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">ጥያቄውን በ "%s" ይተኩ። ምሳሌ፡- \nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">ጥያቄውን በ \"%s\" ይተኩ። ምሳሌ፡- \nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">ብጁ የፍለጋ ፍርግም ዝርዝር ማብራሪያዎች</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2643,11 +2639,11 @@
   <!-- Text shown when a user leaves the name field empty -->
   <string name="search_add_custom_engine_error_empty_name">የፍለጋ ፍርግም ስም ያስገቡ</string>
   <!-- Text shown when a user leaves the search string field empty -->
-  <string name="search_add_custom_engine_error_empty_search_string">የፍለጋ ሕብረቁምፊ  ያስገቡ</string>
+  <string name="search_add_custom_engine_error_empty_search_string">የፍለጋ ሕብረቁምፊ ያስገቡ</string>
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">የፍለጋ ሕብረቁምፊ ና የምሳሌ ቅርጸት እንደ ሚመሳሰሉ ያረጋግጡ</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">ከ "%s" ጋር መገናኘት ላይ ስህተት</string>
+  <string name="search_add_custom_engine_error_cannot_reach">ከ \"%s\" ጋር መገናኘት ላይ ስህተት</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s ተፈጠረ</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2671,7 +2667,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">ኩኪዎች እና የድረ-ገፅ ውሂብ ያጽዱ</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data"> የ&lt;b&gt;%s&lt;/b&gt; ድረ-ገፅን ሁሉንም ኩኪዎች እና ውሂቦች ማጽዳት እንደሚፈልጉ እርግጠኛ ነዎት?</string>
+  <string name="confirm_clear_site_data">\u0032የ&lt;b&gt;%s&lt;/b&gt; ድረ-ገፅን ሁሉንም ኩኪዎች እና ውሂቦች ማጽዳት እንደሚፈልጉ እርግጠኛ ነዎት?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">እርግጠኛ ነዎት በሁሉም ድረ-ገፆች ላይ ያሉትን ሁሉንም ፈቃዶች ማጽዳት ይፈልጋሉ?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2732,7 +2728,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">የድር አድራሻ "https://" ወይም "http://" መያዝ አለበት</string>
+  <string name="add_login_hostname_invalid_text_3">የድር አድራሻ \"https://\" ወይም \"http://\" መያዝ አለበት</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">ትክክለኛ የአስተናጋጅ ስም ያስፈልጋል</string>
   <!--
@@ -2829,7 +2825,7 @@
   -->
   <string name="trending_searches_header_2">በ%s ላይ በመታየት ላይ ያለ</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
-  <string name="google_search_engine_suggestion_header"> የጉግል ፍለጋ</string>
+  <string name="google_search_engine_suggestion_header">\u0032የጉግል ፍለጋ</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s ፍለጋ</string>
   <!-- Title for recent search suggestions. -->

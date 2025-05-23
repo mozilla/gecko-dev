@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s izbriše zgodovino iskanja in brskanja zasebnih zavihkov, ko jih zaprete ali zaprete aplikacijo. Čeprav to ne pomeni, da ste za spletna mesta ali ponudnike internetnih storitev anonimni, vam omogoča uporabo spleta v zasebnosti, skrito pred očmi ostalih uporabnikov te naprave.</string>
-  <string name="private_browsing_common_myths">
-       Pogoste zmote o zasebnem brskanju
-    </string>
+  <string name="private_browsing_common_myths">\u0032Pogoste zmote o zasebnem brskanju\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -233,7 +231,7 @@
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Za uporabo jih omogočite v nastavitvah ali z izbiro "%s" spodaj.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Za uporabo jih omogočite v nastavitvah ali z izbiro \"%s\" spodaj.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more">Več o tem</string>
   <!-- Browser menu button that opens the extensions manager -->
@@ -773,7 +771,7 @@
   <!-- Preference for adding private browsing shortcut -->
   <string name="preferences_add_private_browsing_shortcut">Dodaj bližnjico zasebnega brskanja</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
-  <string name="preferences_https_only_title">Način "samo HTTPS"</string>
+  <string name="preferences_https_only_title">Način \"samo HTTPS\"</string>
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">Uporabite zaklepanje zaslona za skrivanje zavihkov v zasebnem brskanju</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
@@ -1507,7 +1505,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s odstranjen</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2">"%1$s" izbrisana</string>
+  <string name="download_delete_single_item_snackbar_2">\"%1$s\" izbrisana</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Prenos poteka …</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1706,7 +1704,7 @@
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">Dodaj mapo</string>
   <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
-  <string name="bookmark_saved_in_folder_snackbar">Shranjeno v "%s"</string>
+  <string name="bookmark_saved_in_folder_snackbar">Shranjeno v \"%s\"</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">UREDI</string>
   <!-- Bookmark menu move button -->
@@ -2183,7 +2181,7 @@
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">Brisanje podatkov brskanja …</string>
   <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
-  <string name="delete_all_history_group_prompt_message">Izbriši vsa spletna mesta skupine "%s"</string>
+  <string name="delete_all_history_group_prompt_message">Izbriši vsa spletna mesta skupine \"%s\"</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Prekliči</string>
   <!-- Text for the allow button for the history group dialog -->
@@ -2419,7 +2417,7 @@
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Ponudnik</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
-  <string name="preference_doh_provider_custom_dialog_error_https">Naslov URL se mora začeti s "https://"</string>
+  <string name="preference_doh_provider_custom_dialog_error_https">Naslov URL se mora začeti s \"https://\"</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">Neveljaven URL</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2709,7 +2707,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">URL za uporabo pri iskanju</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Zamenjajte poizvedbo z "%s". Primer: \nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Zamenjajte poizvedbo z \"%s\". Primer: \nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Podrobnosti iskalnika po meri</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2717,7 +2715,7 @@
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">URL API-ja za predloge iskanja</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Iskano poizvedbo zamenjajte s "%s". Primer:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Iskano poizvedbo zamenjajte s \"%s\". Primer:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">Shrani</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2727,7 +2725,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Prepričajte se, da se iskalni niz ujema z obliko primera</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Napaka pri povezovanju z "%s"</string>
+  <string name="search_add_custom_engine_error_cannot_reach">Napaka pri povezovanju z \"%s\"</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Ustvarjeno %s</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2812,7 +2810,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Spletni naslov mora vsebovati "https://" ali "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Spletni naslov mora vsebovati \"https://\" ali \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Zahtevano je veljavno ime domene</string>
   <!--
@@ -2844,7 +2842,7 @@
   -->
   <string name="shortcut_max_limit_title">Doseženo je največje število bližnjic</string>
   <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
-  <string name="shortcut_max_limit_content">Če želite dodati novo bližnjico, eno odstranite. Podržite prst na njej in izberite "Odstrani".</string>
+  <string name="shortcut_max_limit_content">Če želite dodati novo bližnjico, eno odstranite. Podržite prst na njej in izberite \"Odstrani\".</string>
   <!-- Confirmation dialog button text when top sites limit is reached. -->
   <string name="top_sites_max_limit_confirmation_button">V redu, razumem</string>
   <!-- Label for the preference to show the shortcuts for the most visited top sites on the homepage -->
@@ -3122,7 +3120,7 @@
   -->
   <string name="never_translate_site_toolbar_title_preference">Nikoli ne prevajaj teh spletnih mest</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-  <string name="never_translate_site_header_preference">Za dodajanje novega spletnega mesta: obiščite ga in v meniju prevajalnika izberite "Nikoli ne prevajaj tega spletnega mesta".</string>
+  <string name="never_translate_site_header_preference">Za dodajanje novega spletnega mesta: obiščite ga in v meniju prevajalnika izberite \"Nikoli ne prevajaj tega spletnega mesta\".</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")

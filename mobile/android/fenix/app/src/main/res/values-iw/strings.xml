@@ -1090,7 +1090,7 @@
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="extension_process_crash_dialog_message">הרחבה אחת או יותר הפסיקו לעבוד, מה שהפך את המערכת שלך לבלתי יציבה. %1$s ניסתה להפעיל מחדש את ההרחבות ללא הצלחה.\\n\\nהרחבות לא יופעלו מחדש במהלך ההפעלה הנוכחית שלך.\\n\\nהסרה או השבתה של הרחבות עשויה לפתור בעיה זו.</string>
+  <string name="extension_process_crash_dialog_message">הרחבה אחת או יותר הפסיקו לעבוד, מה שהפך את המערכת שלך לבלתי יציבה. %1$s ניסתה להפעיל מחדש את ההרחבות ללא הצלחה.\n\nהרחבות לא יופעלו מחדש במהלך ההפעלה הנוכחית שלך.\n\nהסרה או השבתה של הרחבות עשויה לפתור בעיה זו.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">לנסות להפעיל מחדש את ההרחבות</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1912,7 +1912,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">תפריט אוסף</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">לאסוף את הדברים החשובים לך.\\nניתן לקבץ חיפושים, אתרים ולשוניות דומים יחד כדי לגשת אליהם מהר יותר בהמשך.</string>
+  <string name="no_collections_description2">לאסוף את הדברים החשובים לך.\nניתן לקבץ חיפושים, אתרים ולשוניות דומים יחד כדי לגשת אליהם מהר יותר בהמשך.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">בחירת לשוניות</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -2013,9 +2013,9 @@
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">חיבור מכשיר נוסף…</string>
   <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
-  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">‏%1$s\\n\\nנשלח מ־%2$s 🦊 נסו את הדפדפן הנייד: %3$s</string>
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">‏%1$s\n\nנשלח מ־%2$s 🦊 נסו את הדפדפן הנייד: %3$s</string>
   <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
-  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">‏%1$s\\n\\nנשלח מ־%2$s 🦊 ‏%3$s</string>
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">‏%1$s\n\nנשלח מ־%2$s 🦊 ‏%3$s</string>
   <!--
     Notifications
 
@@ -2703,7 +2703,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">כתובת URL לשימוש לחיפוש</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">יש להחליף את השאילתה עם ״%s״. לדוגמה:\\nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">יש להחליף את השאילתה עם ״%s״. לדוגמה:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">פרטי מנוע חיפוש מותאם אישית</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2711,7 +2711,7 @@
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">כתובת ה־API להצעות חיפוש</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">יש להחליף את השאילתה ב־״%s״. לדוגמה:\\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">יש להחליף את השאילתה ב־״%s״. לדוגמה:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">שמירה</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2806,7 +2806,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">כתובת האתר חייבת להכיל \\\"https://‎\\\" או \\\"http://‎\\\"</string>
+  <string name="add_login_hostname_invalid_text_3">כתובת האתר חייבת להכיל \"https://‎\" או \"http://‎\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">דרוש שם מארח תקין</string>
   <!--

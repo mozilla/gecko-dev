@@ -666,7 +666,7 @@
   <!-- Preference for adding private browsing shortcut -->
   <string name="preferences_add_private_browsing_shortcut">Dodaj prečac za privatno pregledavanje</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
-  <string name="preferences_https_only_title">Način rada "Samo HTTPS"</string>
+  <string name="preferences_https_only_title">Način rada \"Samo HTTPS\"</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Blokiranje dijaloga kolačića</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -2353,7 +2353,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Web-adresa mora sadržavati "https://" ili "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Web-adresa mora sadržavati \"https://\" ili \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Valjana domena je potrebna</string>
   <!--

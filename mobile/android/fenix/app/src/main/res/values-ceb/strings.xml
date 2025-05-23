@@ -40,11 +40,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        Ang %1$s moclear sa imong search ug browsing history sa private tabs kung i-sara o i-quit ang app. Bisan dili kini mohimo kanimo nga anonymous sa mga website ug sa imong internet service provider, gipasayon niini ang pagkapribado sa imong mga gihimo online gikan sa ubang gagamit niining device.</string>
-  <string name="private_browsing_common_myths">
-       Mga tinuohan bahin sa private browsing
-     </string>
+  <string name="private_browsing_placeholder_description_2">\u0032Ang %1$s moclear sa imong search ug browsing history sa private tabs kung i-sara o i-quit ang app. Bisan dili kini mohimo kanimo nga anonymous sa mga website ug sa imong internet service provider, gipasayon niini ang pagkapribado sa imong mga gihimo online gikan sa ubang gagamit niining device.</string>
+  <string name="private_browsing_common_myths">\u0032Mga tinuohan bahin sa private browsing\u0032</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Salamat na lang</string>
   <!-- Text for the positive action button -->
@@ -64,7 +61,7 @@
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
   <string name="tab_tray_close_tabs_banner_negative_button_text">i-Dismiss</string>
   <!-- Text for the banner message to tell users about our inactive tabs feature. -->
-  <string name="tab_tray_inactive_onboarding_message">Ang mga tab nga wala nimo malantaw sulod sa duha ka-semana mabutang dinhi. </string>
+  <string name="tab_tray_inactive_onboarding_message">Ang mga tab nga wala nimo malantaw sulod sa duha ka-semana mabutang dinhi.\u0032</string>
   <!-- Text for the action link to go to Settings for inactive tabs. -->
   <string name="tab_tray_inactive_onboarding_button_text">i-Off sulod sa settings</string>
   <!--
@@ -183,7 +180,7 @@
   <!-- Search suggestion onboarding hint title text -->
   <string name="search_suggestions_onboarding_title">i-Allow ang search suggestions sulod sa private sessions?</string>
   <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
-  <string name="search_suggestions_onboarding_text">Ang %s magbutyag sa tanan nimo gitype sulod sa address bar gamit imong default nga search engine. </string>
+  <string name="search_suggestions_onboarding_text">Ang %s magbutyag sa tanan nimo gitype sulod sa address bar gamit imong default nga search engine.\u0032</string>
   <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">Pangitaon %1$s</string>
   <!-- Search engine suggestion description text -->

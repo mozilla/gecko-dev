@@ -62,11 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        Inaalis ng %1$s ang iyong bakas sa paghahanap at pag-browse sa mga pribadong tab kapag isinara mo sila o umalis sa app. Bagaman makikilala ka pa rin ng mga website o internet service provider mo, nakatutulong pa rin ito para mapanatiling pribado ang mga gawain mo online mula sa ibang gagamit ng device na ito.</string>
-  <string name="private_browsing_common_myths">
-       Mga karaniwang pamahiin tungkol sa pribadong pag-browse
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032Inaalis ng %1$s ang iyong bakas sa paghahanap at pag-browse sa mga pribadong tab kapag isinara mo sila o umalis sa app. Bagaman makikilala ka pa rin ng mga website o internet service provider mo, nakatutulong pa rin ito para mapanatiling pribado ang mga gawain mo online mula sa ibang gagamit ng device na ito.</string>
+  <string name="private_browsing_common_myths">\u0032Mga karaniwang pamahiin tungkol sa pribadong pag-browse\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -1534,7 +1531,7 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • natitirang %3$s </string>
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • natitirang %3$s\u0032</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">nakatigil</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2710,7 +2707,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Naberipika ng: %1$s </string>
+  <string name="certificate_info_verified_by">Naberipika ng: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Burahin</string>
   <!-- Login overflow menu edit button -->

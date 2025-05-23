@@ -2524,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Elimina tutte le eccezioni</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Cerca nelle password</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Indietro</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Sito</string>
   <!-- The header for the username for a login -->

@@ -2434,8 +2434,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Contrasenyes desades</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Les contrasenyes que deseu o sincronitzeu amb el %s es mostraran aquí. Totes les contrasenyes que deseu estan xifrades.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Les contrasenyes que deseu o sincronitzeu amb el %s es mostraran aquí. Totes les contrasenyes que deseu estan xifrades.\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Més informació sobre la sincronització</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->

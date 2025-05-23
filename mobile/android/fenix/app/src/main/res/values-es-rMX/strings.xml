@@ -1959,7 +1959,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Eliminar datos de navegación al salir</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Eliminar automáticamente los datos de navegación cuando selecciones  \"Salir\" en el menú principal</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Eliminar automáticamente los datos de navegación cuando selecciones \"Salir\" en el menú principal</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Salir</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2479,7 +2479,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">URL a utilizar para la búsqueda</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Reemplazar la consulta con “%s”. Ejemplo:\n https://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Reemplazar la consulta con “%s”. Ejemplo:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Detalles del motor de búsqueda personalizado</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2580,7 +2580,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">La dirección web debe contener "https://" o "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">La dirección web debe contener \"https://\" o \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Se requiere nombre de servidor válido</string>
   <!--

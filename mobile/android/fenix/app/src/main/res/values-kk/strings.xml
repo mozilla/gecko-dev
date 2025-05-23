@@ -130,7 +130,7 @@
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">Беттерді ауыстыру үшін құралдар тақтасын солға немесе оңға сырғытыңыз.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
-  <string name="camera_permissions_needed_message">Камера рұқсаты керек. Android баптауларына өтіп, Рұқсаттарды ашып, "Рұқсат ету" таңдаңыз.</string>
+  <string name="camera_permissions_needed_message">Камера рұқсаты керек. Android баптауларына өтіп, Рұқсаттарды ашып, \"Рұқсат ету\" таңдаңыз.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
   <string name="camera_permissions_needed_positive_button_text">Баптауларға өту</string>
   <!-- Text for the negative action button to dismiss the dialog. -->
@@ -231,7 +231,7 @@
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Кеңейтулерді пайдалану үшін оларды бапауларда немесе төменде "%s" таңдау арқылы іске қосыңыз.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Кеңейтулерді пайдалану үшін оларды бапауларда немесе төменде \"%s\" таңдау арқылы іске қосыңыз.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more">Көбірек білу</string>
   <!-- Browser menu button that opens the extensions manager -->
@@ -272,7 +272,7 @@
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
   <string name="browser_menu_add_app_to_homescreen_2">Қолданбаны үй экранына қосу…</string>
   <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
-  <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi құрылғыларына негізгі экранға жарлықтарды қосу үшін  қосымша рұқсаттар қажет болуы мүмкін. Баптауларды тексеріңіз.</string>
+  <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi құрылғыларына негізгі экранға жарлықтарды қосу үшін қосымша рұқсаттар қажет болуы мүмкін. Баптауларды тексеріңіз.</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
   <string name="resync_button_content_description">Қайта синхрондау</string>
   <!-- Browser menu button that opens the find in page menu -->
@@ -1012,9 +1012,9 @@
   <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
   <string name="wallpaper_artist_series_title">Суретшілер сериясы</string>
   <!-- Description text for the artist series wallpapers with learn more link. %s is a learn more link using wallpaper_learn_more as text. "Independent voices" is the name of the wallpaper collection -->
-  <string name="wallpaper_artist_series_description_with_learn_more">"Тәуелсіз дауыстар" топтамасы. %s</string>
+  <string name="wallpaper_artist_series_description_with_learn_more">\"Тәуелсіз дауыстар\" топтамасы. %s</string>
   <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
-  <string name="wallpaper_artist_series_description">"Тәуелсіз дауыстар" топтамасы.</string>
+  <string name="wallpaper_artist_series_description">\"Тәуелсіз дауыстар\" топтамасы.</string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">Түстер шашырауын қолданып көріңіз</string>
   <!-- Wallpaper onboarding dialog body text. -->
@@ -1656,7 +1656,7 @@
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">Буманы қосу</string>
   <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
-  <string name="bookmark_saved_in_folder_snackbar">"%s" ішінде сақталды</string>
+  <string name="bookmark_saved_in_folder_snackbar">\"%s\" ішінде сақталды</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">ТҮЗЕТУ</string>
   <!-- Bookmark menu move button -->
@@ -2033,7 +2033,7 @@
   <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
   <string name="snackbar_num_tabs_closed">Жабылған беттер: %1$s</string>
   <!-- Text shown in snackbar when user bookmarks a list of tabs. %s is the name of the folder the bookmark was saved into. -->
-  <string name="snackbar_message_bookmarks_saved_in">Бетбелгілер "%s" ішіне сақталды!</string>
+  <string name="snackbar_message_bookmarks_saved_in">Бетбелгілер \"%s\" ішіне сақталды!</string>
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">Жарлықтарға қосылды!</string>
   <!-- Text shown in snackbar when user closes a private tab -->
@@ -2133,7 +2133,7 @@
   <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
   <string name="deleting_browsing_data_in_progress">Шолу деректерін өшіру…</string>
   <!-- Dialog message to the user asking to delete all history items inside the opened group. %s is a history group name. -->
-  <string name="delete_all_history_group_prompt_message">"%s" ішіндегі барлық сайттарды өшіру</string>
+  <string name="delete_all_history_group_prompt_message">\"%s\" ішіндегі барлық сайттарды өшіру</string>
   <!-- Text for the cancel button for the history group deletion dialog -->
   <string name="delete_history_group_prompt_cancel">Бас тарту</string>
   <!-- Text for the allow button for the history group dialog -->
@@ -2369,7 +2369,7 @@
   <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_textfield">Провайдер</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
-  <string name="preference_doh_provider_custom_dialog_error_https">URL адресі "https://" деп басталуы керек</string>
+  <string name="preference_doh_provider_custom_dialog_error_https">URL адресі \"https://\" деп басталуы керек</string>
   <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
   <string name="preference_doh_provider_custom_dialog_error_invalid">Жарамсыз URL</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -2659,7 +2659,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">Іздеу үшін пайдаланылатын URL</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Сұранымды "%s" жолымен алмастырыңыз. Мысалы:\nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Сұранымды \"%s\" жолымен алмастырыңыз. Мысалы:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Таңдауыңызша іздеу жүйесінің ақпараты</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2667,7 +2667,7 @@
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">Іздеу ұсыныстарының API URL адресі</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Сұранымды "%s" мәнімен алмастырыңыз. Мысалы\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Сұранымды \"%s\" мәнімен алмастырыңыз. Мысалы\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">Сақтау</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2677,7 +2677,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Іздеу жолы мысал пішіміне сай келетінін тексеріңіз</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">"%s" адресіне байланысу қатесі</string>
+  <string name="search_add_custom_engine_error_cannot_reach">\"%s\" адресіне байланысу қатесі</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s қосылды</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2762,7 +2762,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Веб-адресте "https://" немесе "http://" болуы тиіс</string>
+  <string name="add_login_hostname_invalid_text_3">Веб-адресте \"https://\" немесе \"http://\" болуы тиіс</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Жарамды хост атауы керек</string>
   <!--
@@ -3046,7 +3046,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">Автоматты аударма</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">"әрқашан аудару" және "ешқашан аудармау" баптауларды басқару үшін тілді таңдаңыз.</string>
+  <string name="automatic_translation_header_preference">\"әрқашан аудару\" және \"ешқашан аудармау\" баптауларды басқару үшін тілді таңдаңыз.</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">Тілдерді жүктеу мүмкін емес. Кейінірек қайта тексеріңіз.</string>
   <!--
@@ -3072,7 +3072,7 @@
   -->
   <string name="never_translate_site_toolbar_title_preference">Бұл сайттарды ешқашан аудармау</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-  <string name="never_translate_site_header_preference">Жаңа сайтты қосу үшін: Оны шолып, аударма мәзірінен "Бұл сайтты ешқашан аудармау" таңдаңыз.</string>
+  <string name="never_translate_site_header_preference">Жаңа сайтты қосу үшін: Оны шолып, аударма мәзірінен \"Бұл сайтты ешқашан аудармау\" таңдаңыз.</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")

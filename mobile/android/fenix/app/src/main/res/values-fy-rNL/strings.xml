@@ -63,11 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s wisket jo syk- en browserskiednis sa gau as jo de tapassing ôfslute of alle priveeljepblêden slute. Hoewol dit jo net anonym makket foar websites of jo ynternetprovider, makket dit it makliker om wat jo online dogge privee te hâlden tsjinoer oaren dy’t dit apparaat brûke.</string>
-  <string name="private_browsing_common_myths">
-
-       Faaks hearde myten oer priveenavigaasje
-
-    </string>
+  <string name="private_browsing_common_myths">\u0032Faaks hearde myten oer priveenavigaasje\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -1142,7 +1138,7 @@
     %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
     and %3$s is the device model.
   -->
-  <string name="default_device_name_2">%1$s op %2$s  %3$s</string>
+  <string name="default_device_name_2">%1$s op %2$s %3$s</string>
   <!-- Preference for syncing payment methods -->
   <string name="preferences_sync_credit_cards_2">Betellingsmetoaden</string>
   <!-- Preference for syncing addresses -->
@@ -2243,7 +2239,7 @@
   <!-- Preference summary for enhanced tracking protection settings on/off switch -->
   <string name="preference_enhanced_tracking_protection_summary">No mei Totale cookiebeskerming, ús krêftichste barriêre oant no ta tsjin cross-sitetrackers.</string>
   <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
-  <string name="preference_enhanced_tracking_protection_explanation_2">%s beskermet jo tsjin in protte fan de meast foarkommende trackers dy\’t folgje wat jo online dogge.  </string>
+  <string name="preference_enhanced_tracking_protection_explanation_2">%s beskermet jo tsjin in protte fan de meast foarkommende trackers dy\\’t folgje wat jo online dogge.\u0032</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
   <string name="preference_enhanced_tracking_protection_explanation_learn_more">Mear ynfo</string>
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
@@ -2515,8 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Bewarre wachtwurden</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">De wachtwurden dy’t jo bewarje of syngronisearje mei %s sille hjir fermeld wurde. Alle wachtwurden dy’t jo bewarje binne fersifere.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">De wachtwurden dy’t jo bewarje of syngronisearje mei %s sille hjir fermeld wurde. Alle wachtwurden dy’t jo bewarje binne fersifere.\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Mear ynfo oer syngronisaasje</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2538,7 +2533,7 @@
   <!-- Shown in snackbar to tell user that the password has been copied -->
   <string name="logins_password_copied">Wachtwurd nei klamboerd kopiearre</string>
   <!-- Shown in snackbar to tell user that the username has been copied -->
-  <string name="logins_username_copied">Brûkersnamme nei klamboerd kopiearre </string>
+  <string name="logins_username_copied">Brûkersnamme nei klamboerd kopiearre\u0032</string>
   <!-- Content Description (for screenreaders etc) read for the button to copy a password in logins -->
   <string name="saved_logins_copy_password">Wachtwurd kopiearje</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear a password while editing a login -->
@@ -2775,7 +2770,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Ferifiearre troch: %1$s </string>
+  <string name="certificate_info_verified_by">Ferifiearre troch: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Fuortsmite</string>
   <!-- Login overflow menu edit button -->
@@ -3338,7 +3333,7 @@
   <!-- The error message of the text field in the tab creation tool when the text field is empty -->
   <string name="debug_drawer_tab_tools_tab_quantity_empty_error">Tekstfjild is leech</string>
   <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
-  <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Fier  allinnich positive hiele getallen yn</string>
+  <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Fier allinnich positive hiele getallen yn</string>
   <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
   <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Fier in getal grutter dan nul yn</string>
   <!--

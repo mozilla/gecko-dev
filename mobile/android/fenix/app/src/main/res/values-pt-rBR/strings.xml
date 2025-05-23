@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">O %1$s limpa o histórico de pesquisa e navegação de abas privativas quando você as fecha ou sai do aplicativo. Apesar disso não tornar você anônimo em sites ou no seu provedor de internet, facilita manter o que você faz online privativo de qualquer outra pessoa que use este dispositivo.</string>
-  <string name="private_browsing_common_myths">
-       Lendas comuns sobre navegação privativa
-    </string>
+  <string name="private_browsing_common_myths">\u0032Lendas comuns sobre navegação privativa\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -2722,7 +2720,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Homologado por: %1$s </string>
+  <string name="certificate_info_verified_by">Homologado por: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Excluir</string>
   <!-- Login overflow menu edit button -->
@@ -2764,7 +2762,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">O endereço web deve conter "https://" ou "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">O endereço web deve conter \"https://\" ou \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Nome de servidor válido é obrigatório</string>
   <!--
@@ -2955,8 +2953,7 @@
   <!-- Title for the translation dialog that allows a user to translate the webpage when a user uses the translation feature the first time. %1$s is the name of the app (for example "Firefox"). -->
   <string name="translations_bottom_sheet_title_first_time">Experimente tradução privativa no %1$s</string>
   <!-- Additional information on the translation dialog that appears when a user uses the translation feature the first time. %1$s is a link using translations_bottom_sheet_info_message_learn_more as text. -->
-  <string name="translations_bottom_sheet_info_message">Para sua privacidade, o texto de tradução nunca sai do seu dispositivo. Novos idiomas e melhorias em breve! %1$s
-</string>
+  <string name="translations_bottom_sheet_info_message">Para sua privacidade, o texto de tradução nunca sai do seu dispositivo. Novos idiomas e melhorias em breve! %1$s\u0032</string>
   <!-- Text that links to additional information about the Firefox translations feature. -->
   <string name="translations_bottom_sheet_info_message_learn_more">Saiba mais</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->

@@ -62,11 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s al nete la cronologjie di ricercje e di navigazion des tôs schedis privadis cuant che tu lis sieris o tu jessis de aplicazion. Ancje se chest no ti rint anonim sui sîts web o al to furnidôr di servizis internet, al rint plui sempliç tignî privât ce che tu fasis in rêt, a chei altris che a doprin chest dispositîf.</string>
-  <string name="private_browsing_common_myths">
-       Falsis crodincis su la navigazion privade
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s al nete la cronologjie di ricercje e di navigazion des tôs schedis privadis cuant che tu lis sieris o tu jessis de aplicazion. Ancje se chest no ti rint anonim sui sîts web o al to furnidôr di servizis internet, al rint plui sempliç tignî privât ce che tu fasis in rêt, a chei altris che a doprin chest dispositîf.</string>
+  <string name="private_browsing_common_myths">\u0032Falsis crodincis su la navigazion privade\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -618,7 +615,7 @@
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_title">Mande in automatic i rapuarts sui colàs</string>
   <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_crash_reporting_description">Lis segnalazions sui colàs nus permetin di fâ une diagnosi e comedâ i problemis cul navigadôr. Lis segnalazions a puedin includi dâts personâi o sensibii. </string>
+  <string name="onboarding_preferences_dialog_crash_reporting_description">Lis segnalazions sui colàs nus permetin di fâ une diagnosi e comedâ i problemis cul navigadôr. Lis segnalazions a puedin includi dâts personâi o sensibii.\u0032</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Plui informazions</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
@@ -834,7 +831,7 @@
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">Acessibilitât</string>
   <!-- Preference to override the Mozilla account server -->
-  <string name="preferences_override_account_server">Servidôr di account Mozilla personalizât </string>
+  <string name="preferences_override_account_server">Servidôr di account Mozilla personalizât\u0032</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">Servidôr personalizât par Sync</string>
   <!-- Preference category for account information -->
@@ -2433,8 +2430,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Passwords salvadis</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lis passwords salvadis o sincronizadis su %s a vignaran listadis achì. Dutis lis passwords che tu salvis a vegnin cifradis.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lis passwords salvadis o sincronizadis su %s a vignaran listadis achì. Dutis lis passwords che tu salvis a vegnin cifradis.\u0032</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Plui informazions su la sincronizazion</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->

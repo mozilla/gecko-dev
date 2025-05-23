@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s omopotĩ nde jeheka ha kundahára rembiasakue tendayke ñemiguápe emboty térã esẽenguévo ko tembiporu’ígui. Kóva nande kuaukáiramo jepe ñanduti rendápe térã ne ñanduti me’ẽhárape, nombohasýi eime ñemi hag̃ua opaite tapicha oiporúva ko mba’e’oka renondépe.</string>
-  <string name="private_browsing_common_myths">
-       Mombe’ugua’u kundahára ñemi rehegua
-    </string>
+  <string name="private_browsing_common_myths">\u0032Mombe’ugua’u kundahára ñemi rehegua\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -929,7 +927,7 @@
   <!-- Preference for notifications -->
   <string name="preferences_notifications">Ñemomarandu</string>
   <!-- Summary for notification preference indicating notifications are allowed -->
-  <string name="notifications_allowed_summary">Moneĩmbyre </string>
+  <string name="notifications_allowed_summary">Moneĩmbyre\u0032</string>
   <!-- Summary for notification preference indicating notifications are not allowed -->
   <string name="notifications_not_allowed_summary">Oñemoneĩ’ỹva</string>
   <!--
@@ -1808,7 +1806,7 @@
   <!-- Label that indicates that a permission must be blocked -->
   <string name="preference_option_phone_feature_blocked">Jokopyre</string>
   <!-- Label that indicates that a permission must be allowed -->
-  <string name="preference_option_phone_feature_allowed">Moneĩmbyre </string>
+  <string name="preference_option_phone_feature_allowed">Moneĩmbyre\u0032</string>
   <!-- Label that indicates a permission is by the Android OS -->
   <string name="phone_feature_blocked_by_android">Android ojokopyre</string>
   <!-- Preference for showing a list of websites that the default configurations won't apply to them -->
@@ -2105,7 +2103,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Emboguete kundahára mba’ekuaarã esẽvo</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Embogue ijehegui kundahára mba’ekuaarã eiporavóvo "Ñesẽ" pe jeporavorã guasúpe</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Embogue ijehegui kundahára mba’ekuaarã eiporavóvo \"Ñesẽ\" pe jeporavorã guasúpe</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Ñesẽ</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2758,7 +2756,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Ñanduti kundaharape orekova’erã "https://" térã "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Ñanduti kundaharape orekova’erã \"https://\" térã \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Mohendahavusu réra oikóva jerurepyre</string>
   <!--

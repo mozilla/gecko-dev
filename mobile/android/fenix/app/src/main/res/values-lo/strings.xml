@@ -62,8 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s ຈະລຶບລ້າງປະຫວັດການຊອກຫາ ແລະການຊອກຫາຂອງທ່ານອອກຈາກແຖບສ່ວນຕົວ ເມື່ອທ່ານປິດພວກມັນ ຫຼືອອກຈາກແອັບ. ໃນຂະນະທີ່ນີ້ບໍ່ໄດ້ເຮັດໃຫ້ທ່ານບໍ່ເປີດເຜີຍຊື່ກັບເວັບໄຊທ໌ ຫຼືຜູ້ໃຫ້ບໍລິການອິນເຕີເນັດຂອງທ່ານ, ມັນເຮັດໃຫ້ມັນງ່າຍຂຶ້ນທີ່ຈະຮັກສາສິ່ງທີ່ທ່ານເຮັດອອນໄລນ໌ເປັນສ່ວນຕົວຈາກຜູ້ອື່ນທີ່ໃຊ້ອຸປະກອນນີ້.</string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s ຈະລຶບລ້າງປະຫວັດການຊອກຫາ ແລະການຊອກຫາຂອງທ່ານອອກຈາກແຖບສ່ວນຕົວ ເມື່ອທ່ານປິດພວກມັນ ຫຼືອອກຈາກແອັບ. ໃນຂະນະທີ່ນີ້ບໍ່ໄດ້ເຮັດໃຫ້ທ່ານບໍ່ເປີດເຜີຍຊື່ກັບເວັບໄຊທ໌ ຫຼືຜູ້ໃຫ້ບໍລິການອິນເຕີເນັດຂອງທ່ານ, ມັນເຮັດໃຫ້ມັນງ່າຍຂຶ້ນທີ່ຈະຮັກສາສິ່ງທີ່ທ່ານເຮັດອອນໄລນ໌ເປັນສ່ວນຕົວຈາກຜູ້ອື່ນທີ່ໃຊ້ອຸປະກອນນີ້.</string>
   <string name="private_browsing_common_myths">ຄວາມເຂົ້າໃຈຜິດທີ່ມັກພົບຕະລອດກ່ຽວກັບການທ່ອງເວັບແບບສ່ວນຕົວ</string>
   <!--
     True Private Browsing Mode
@@ -930,7 +929,7 @@
   <!-- Preference for extensions -->
   <string name="preferences_extensions">ສ່ວນຂະຫຍາຍ</string>
   <!-- Preference for installing a local extension -->
-  <string name="preferences_install_local_extension">ຕິດຕັ້ງສ່ວນຂະຫຍາຍຈາກໄຟລ໌       </string>
+  <string name="preferences_install_local_extension">ຕິດຕັ້ງສ່ວນຂະຫຍາຍຈາກໄຟລ໌\u0032</string>
   <!-- Preference for notifications -->
   <string name="preferences_notifications">ການແຈ້ງເຕືອນ</string>
   <!-- Summary for notification preference indicating notifications are allowed -->
@@ -1011,7 +1010,7 @@
   <!-- Text for classic wallpapers title. %s is the name of the app (for example "Firefox"). -->
   <string name="wallpaper_classic_title">ຄລາດສິກ %s</string>
   <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
-  <string name="wallpaper_artist_series_title">ຊຸດສິນລະປິນ       </string>
+  <string name="wallpaper_artist_series_title">ຊຸດສິນລະປິນ\u0032</string>
   <!-- Description text for the artist series wallpapers with learn more link. %s is a learn more link using wallpaper_learn_more as text. "Independent voices" is the name of the wallpaper collection -->
   <string name="wallpaper_artist_series_description_with_learn_more">ການເກັບກໍາສຽງເອກະລາດ. %s</string>
   <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
@@ -1551,8 +1550,7 @@
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">ຄົ້ນຫາການດາວໂຫຼດ</string>
   <!-- Text to indicate that no downloads match the search query. -->
-  <string name="download_search_no_results_found">ບໍ່ພົບຜົນການຄົ້ນຫາ
-</string>
+  <string name="download_search_no_results_found">ບໍ່ພົບຜົນການຄົ້ນຫາ\u0032</string>
   <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
   <string name="download_select_all_items">ເລືອກ​ທັງ​ຫມົດ</string>
   <!--
@@ -2658,7 +2656,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">ທີ່ຢູ່ເວັບຈະຕ້ອງປະກອບມີ "https://" ຫລື "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">ທີ່ຢູ່ເວັບຈະຕ້ອງປະກອບມີ \"https://\" ຫລື \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">ຕ້ອງການຊື່ໂຮສທທີ່ຖືກຕ້ອງ</string>
   <!--
@@ -2748,7 +2746,7 @@
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox ແນະນໍາ</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
-  <string name="google_search_engine_suggestion_header">ຄົ້ນ​ຫາ Google </string>
+  <string name="google_search_engine_suggestion_header">ຄົ້ນ​ຫາ Google\u0032</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s ຄົ້ນຫາ</string>
   <!-- Default browser card text -->

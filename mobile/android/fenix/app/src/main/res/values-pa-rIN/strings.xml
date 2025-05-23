@@ -62,12 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-         ਜਦੋਂ ਤੁਸੀਂ ਸਾਰੀਆਂ ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ ਨੂੰ ਬੰਦ ਕਰਦੇ ਹੋ ਜਾਂ ਐਪ ਤੋਂ ਬਾਹਰ ਜਾਂਦੇ ਹੋ ਤਾਂ %1$s ਤੁਹਾਡੀ ਖੋਜ ਅਤੇ ਬਰਾਊਜ਼ਿੰਗ ਅਤੀਤ ਨੂੰ ਸਾਫ ਕਰਦਾ ਹੈ। ਹਾਲਾਂਕਿ ਇਹ ਤੁਹਾਨੂੰ ਵੈਬਸਾਈਟਾਂ ਜਾਂ ਤੁਹਾਡੇ ਇੰਟਰਨੈੱਟ ਦੇਣ ਵਾਲੇ ਲਈ ਅਣਪਛਾਤਾ ਨਹੀਂ ਬਣਾਉਂਦਾ, ਪਰ ਇਸ ਨਾਲ
-ਇਸ ਡਿਵਾਈਸ ਨੂੰ ਵਰਤੇ ਵਾਲੇ ਕਿਸੇ ਤੋਂ ਵੀ ਤੁਹਾਡੇ ਵਲੋਂ ਆਨਲਾਈਨ ਕੀਤੇ ਨੂੰ ਪ੍ਰਾਈਵੇਟ ਰੱਖਣਾ ਹੋਰ ਸੌਖਾ ਹੋ ਜਾਂਦਾ ਹੈ।</string>
-  <string name="private_browsing_common_myths">
-       ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ ਬਾਰੇ ਆਮ ਫ਼ਰਜ਼ੀ ਗੱਲਾਂ
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032ਜਦੋਂ ਤੁਸੀਂ ਸਾਰੀਆਂ ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ ਨੂੰ ਬੰਦ ਕਰਦੇ ਹੋ ਜਾਂ ਐਪ ਤੋਂ ਬਾਹਰ ਜਾਂਦੇ ਹੋ ਤਾਂ %1$s ਤੁਹਾਡੀ ਖੋਜ ਅਤੇ ਬਰਾਊਜ਼ਿੰਗ ਅਤੀਤ ਨੂੰ ਸਾਫ ਕਰਦਾ ਹੈ। ਹਾਲਾਂਕਿ ਇਹ ਤੁਹਾਨੂੰ ਵੈਬਸਾਈਟਾਂ ਜਾਂ ਤੁਹਾਡੇ ਇੰਟਰਨੈੱਟ ਦੇਣ ਵਾਲੇ ਲਈ ਅਣਪਛਾਤਾ ਨਹੀਂ ਬਣਾਉਂਦਾ, ਪਰ ਇਸ ਨਾਲ ਇਸ ਡਿਵਾਈਸ ਨੂੰ ਵਰਤੇ ਵਾਲੇ ਕਿਸੇ ਤੋਂ ਵੀ ਤੁਹਾਡੇ ਵਲੋਂ ਆਨਲਾਈਨ ਕੀਤੇ ਨੂੰ ਪ੍ਰਾਈਵੇਟ ਰੱਖਣਾ ਹੋਰ ਸੌਖਾ ਹੋ ਜਾਂਦਾ ਹੈ।</string>
+  <string name="private_browsing_common_myths">\u0032ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ ਬਾਰੇ ਆਮ ਫ਼ਰਜ਼ੀ ਗੱਲਾਂ\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -120,7 +116,7 @@
   -->
   <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">ਨਵੀਂ ਨੈਵੀਗੇਸ਼ਨ ਨਾਲ ਵੱਧ ਤੇਜ਼ੀ ਨਾਲ ਬਰਾਊਜ਼ ਕਰੋ</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources"> ਵੈੱਬਸਾਈਟ ਉੱਤੇ ਵਾਧੂ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਥਾਂ ਬਣਾਉਣ ਵਾਸਤੇ ਸਕਰੋਲ ਕਰਨ ਦੇ ਦੌਰਾਨ ਇਸ ਪੱਟੀ ਨੂੰ ਪਾਸੇ ਕਰ ਦਿੱਤਾ ਜਾਂਦਾ ਹੈ।</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">\u0032ਵੈੱਬਸਾਈਟ ਉੱਤੇ ਵਾਧੂ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਥਾਂ ਬਣਾਉਣ ਵਾਸਤੇ ਸਕਰੋਲ ਕਰਨ ਦੇ ਦੌਰਾਨ ਇਸ ਪੱਟੀ ਨੂੰ ਪਾਸੇ ਕਰ ਦਿੱਤਾ ਜਾਂਦਾ ਹੈ।</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">ਇਸ ਟੈਬ ਦੇ ਅਤੀਤ ਵਿਚਲੇ ਸਫ਼ਿਆਂ ਵਿੱਚ ਜਾਣ ਲਈ ਤੀਰ ਦੇ ਨਿਸ਼ਾਨਾਂ ਨੂੰ ਛੂਹ ਕੇ ਰੱਖੋ।</string>
   <!--
@@ -134,15 +130,13 @@
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
   <string name="address_bar_swipe_cfr_message_2">ਟੈਬਾਂ ਬਦਲਣ ਲਈ ਟੂਲਬਾਰ ਨੂੰ ਖੱਬੇ ਜਾਂ ਸੱਜੇ ਕਰੋ।</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
-  <string name="camera_permissions_needed_message">ਕੈਮਰੇ ਲਈ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ। Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ, ਇਜਾਜ਼ਤਾਂ ਨੂੰ
-ਛੂਹੋ ਅਤੇ ਇਜਾਜ਼ਤ ਨੂੰ ਛੂਹੋ।</string>
+  <string name="camera_permissions_needed_message">ਕੈਮਰੇ ਲਈ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ। Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ, ਇਜਾਜ਼ਤਾਂ ਨੂੰ ਛੂਹੋ ਅਤੇ ਇਜਾਜ਼ਤ ਨੂੰ ਛੂਹੋ।</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
   <string name="camera_permissions_needed_positive_button_text">ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ</string>
   <!-- Text for the negative action button to dismiss the dialog. -->
   <string name="camera_permissions_needed_negative_button_text">ਖ਼ਾਰਜ ਕਰੋ</string>
   <!-- Text for the banner message to tell users about our auto close feature. -->
-  <string name="tab_tray_close_tabs_banner_message">ਖੋਲ੍ਹੀਆਂ ਟੈਬਾਂ ਨੂੰ ਆਪਣੇ-ਆਪ ਬੰਦ ਕਰਨਾ ਨਿਯਤ ਕਰੋ, ਜੋ ਕਿ ਪਿਛਲੇ ਦਿਨ, ਹਫ਼ਤੇ ਜਾਂ ਮਹੀਨੇ ਵਿੱਚ
-ਵੇਖੀਆਂ ਗਈਆਂ।</string>
+  <string name="tab_tray_close_tabs_banner_message">ਖੋਲ੍ਹੀਆਂ ਟੈਬਾਂ ਨੂੰ ਆਪਣੇ-ਆਪ ਬੰਦ ਕਰਨਾ ਨਿਯਤ ਕਰੋ, ਜੋ ਕਿ ਪਿਛਲੇ ਦਿਨ, ਹਫ਼ਤੇ ਜਾਂ ਮਹੀਨੇ ਵਿੱਚ ਵੇਖੀਆਂ ਗਈਆਂ।</string>
   <!-- Text for the positive action button to go to Settings for auto close tabs. -->
   <string name="tab_tray_close_tabs_banner_positive_button_text">ਚੋਣਾਂ ਵੇਖੋ</string>
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
@@ -1120,7 +1114,7 @@
   -->
   <string name="fxa_tabs_closed_notification_title">%1$s ਟੈਬਾਂ ਬੰਦ ਕੀਤੀਆਂ: %2$d</string>
   <!-- The body for a "closed synced tabs" notification. -->
-  <string name="fxa_tabs_closed_text"> ਤਾਜ਼ਾ ਬੰਦ ਕੀਤੀਆਂ ਟੈਬਾਂ ਨੂੰ ਵੇਖੋ</string>
+  <string name="fxa_tabs_closed_text">\u0032ਤਾਜ਼ਾ ਬੰਦ ਕੀਤੀਆਂ ਟੈਬਾਂ ਨੂੰ ਵੇਖੋ</string>
   <!--
     Advanced Preferences
 
@@ -1205,7 +1199,7 @@
 
     Preferences for using pull to refresh in a webpage
   -->
-  <string name="preference_gestures_website_pull_to_refresh">ਤਾਜ਼ਾ  ਕਰਨ ਲਈ ਖਿੱਚੋ</string>
+  <string name="preference_gestures_website_pull_to_refresh">ਤਾਜ਼ਾ ਕਰਨ ਲਈ ਖਿੱਚੋ</string>
   <!-- Preference for using the dynamic toolbar -->
   <string name="preference_gestures_dynamic_toolbar">ਟੂਲਬਾਰ ਲੁਕਾਉਣ ਲਈ ਸਕਰੋਲ ਕਰੋ</string>
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
@@ -1356,7 +1350,7 @@
     Title for the list of tabs in the current private session used by a11y services
     The %1$s will be replaced by the number of opened private tabs
   -->
-  <string name="tabs_header_private_tabs_counter_title"> ਖੁੱਲ੍ਹੀਆਂ ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ: %1$s। ਟੈਬਾਂ ਬਦਲਣ ਲਈ ਛੂਹੋ।</string>
+  <string name="tabs_header_private_tabs_counter_title">\u0032ਖੁੱਲ੍ਹੀਆਂ ਪ੍ਰਾਈਵੇਟ ਟੈਬਾਂ: %1$s। ਟੈਬਾਂ ਬਦਲਣ ਲਈ ਛੂਹੋ।</string>
   <!--
     Title for the list of tabs in the synced tabs used by a11y services
     The %1$s will be replaced by the number of opened synced tabs
@@ -1463,7 +1457,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s ਹਟਾਏ</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2"> “%1$s” ਨੂੰ ਹਟਾਇਆ</string>
+  <string name="download_delete_single_item_snackbar_2">\u0032“%1$s” ਨੂੰ ਹਟਾਇਆ</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">ਡਾਊਨਲੋਡ ਜਾਰੀ ਹੈ…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1870,8 +1864,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">ਭੰਡਾਰ ਮੇਨੂ</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">ਚੀਜ਼ਾਂ, ਜੋ ਤੁਹਾਡੇ ਲਈ ਅਰਥ ਰੱਖਦੀਆਂ ਹਨ, ਨੂੰ ਇਕੱਤਰ ਕਰੋ।\nਬਾਅਦ ਚ ਫ਼ੌਰੀ ਤੌਰ ਉੱਤੇ ਲੱਭਣ
-ਲਈ ਇੱਕੋ ਜੇਹੀਆਂ ਖੋਜਾਂ, ਸਾਈਟਾਂ ਤੇ ਟੈਬਾਂ ਦਾ ਗਰੁੱਪ ਬਣਾਓ।</string>
+  <string name="no_collections_description2">ਚੀਜ਼ਾਂ, ਜੋ ਤੁਹਾਡੇ ਲਈ ਅਰਥ ਰੱਖਦੀਆਂ ਹਨ, ਨੂੰ ਇਕੱਤਰ ਕਰੋ।\nਬਾਅਦ ਚ ਫ਼ੌਰੀ ਤੌਰ ਉੱਤੇ ਲੱਭਣ ਲਈ ਇੱਕੋ ਜੇਹੀਆਂ ਖੋਜਾਂ, ਸਾਈਟਾਂ ਤੇ ਟੈਬਾਂ ਦਾ ਗਰੁੱਪ ਬਣਾਓ।</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">ਟੈਬਾਂ ਚੁਣੋ</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -1972,7 +1965,7 @@
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">…ਹੋਰ ਡਿਵਾਈਸ ਨਾਲ ਕਨੈਕਟ ਕਰੋ</string>
   <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
-  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n%2$s  🦊  ਤੋਂ ਭੇਜਿਆ। ਮੋਬਾਈਲ ਬਰਾਊਜ਼ ਅਜ਼ਮਾ ਕੇ ਵੇਖੋ: %3$s</string>
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\n%2$s 🦊 ਤੋਂ ਭੇਜਿਆ। ਮੋਬਾਈਲ ਬਰਾਊਜ਼ ਅਜ਼ਮਾ ਕੇ ਵੇਖੋ: %3$s</string>
   <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
   <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\n%2$s 🦊 ਤੋਂ ਭੇਜਿਆ, %3$s</string>
   <!--
@@ -2285,7 +2278,7 @@
   -->
   <string name="etp_back_button_content_description">ਪਿੱਛੇ ਵੱਲ ਜਾਓ</string>
   <!-- About page link text to open what's new link. %s is the name of the app (for example "Firefox"). -->
-  <string name="about_whats_new">%s ‘ਚ  ਨਵਾਂ ਕੀ ਹੈ</string>
+  <string name="about_whats_new">%s ‘ਚ ਨਵਾਂ ਕੀ ਹੈ</string>
   <!--
     Open source licenses page title
     %s is the name of the app (for example "Firefox")
@@ -2442,14 +2435,13 @@
   <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
   <string name="add_to_homescreen_text_placeholder">ਸ਼ਾਰਟਕੱਟ ਨਾਂ</string>
   <!-- Describes the add to homescreen functionality -->
-  <string name="add_to_homescreen_description_2">ਤੁਸੀਂ ਇਸ ਵੈੱਬਸਾਈਟ ਨੂੰ ਫ਼ੌਰੀ ਤੌਰ ਉੱਤੇ ਵਰਤਣ ਤੇ ਐਪ ਵਾਂਗ ਤੇਜ਼ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਸੌਖੀ ਤਰ੍ਹਾਂ
-ਮੁੱਖ ਸਕਰੀਨ ਉੱਤੇ ਸੌਖੀ ਤਰ੍ਹਾਂ ਜੋੜ ਸਕਦੇ ਹੋ।</string>
+  <string name="add_to_homescreen_description_2">ਤੁਸੀਂ ਇਸ ਵੈੱਬਸਾਈਟ ਨੂੰ ਫ਼ੌਰੀ ਤੌਰ ਉੱਤੇ ਵਰਤਣ ਤੇ ਐਪ ਵਾਂਗ ਤੇਜ਼ ਬਰਾਊਜ਼ ਕਰਨ ਲਈ ਸੌਖੀ ਤਰ੍ਹਾਂ ਮੁੱਖ ਸਕਰੀਨ ਉੱਤੇ ਸੌਖੀ ਤਰ੍ਹਾਂ ਜੋੜ ਸਕਦੇ ਹੋ।</string>
   <!-- Preference for managing the settings for logins and passwords in Fenix -->
   <string name="preferences_passwords_logins_and_passwords_2">ਪਾਸਵਰਡ</string>
   <!-- Preference for managing the saving of logins and passwords in Fenix -->
   <string name="preferences_passwords_save_logins_2">ਪਾਸਵਰਡਾਂ ਨੂੰ ਸੰਭਾਲੋ</string>
   <!-- Preference option for asking to save passwords in Fenix -->
-  <string name="preferences_passwords_save_logins_ask_to_save"> ਸੰਭਾਲਣ ਲਈ ਪੁੱਛੋ</string>
+  <string name="preferences_passwords_save_logins_ask_to_save">\u0032ਸੰਭਾਲਣ ਲਈ ਪੁੱਛੋ</string>
   <!-- Preference option for never saving passwords in Fenix -->
   <string name="preferences_passwords_save_logins_never_save">ਕਦੇ ਨਾ ਸੰਭਾਲੋ</string>
   <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
@@ -2770,7 +2762,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">ਵੈੱਬ ਸਿਰਨਾਵੇਂ ਵਿੱਚ "https://" ਜਾਂ "http://" ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ</string>
+  <string name="add_login_hostname_invalid_text_3">ਵੈੱਬ ਸਿਰਨਾਵੇਂ ਵਿੱਚ \"https://\" ਜਾਂ \"http://\" ਹੋਣਾ ਚਾਹੀਦਾ ਹੈ</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">ਵਾਜਬ ਹੋਸਟ-ਨਾਂ ਚਾਹੀਦਾ ਹੈ</string>
   <!--
@@ -3054,7 +3046,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">ਆਪਣੇ-ਆਪ ਉਲੱਥਾ</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">”ਹਮੇਸ਼ਾ ਟਰਾਂਸਲੇਟ ਕਰੋ“ ਅਤੇ "ਕਦੇ ਟਰਾਂਸਲੇਟ ਨਾ ਕਰੋ" ਪਸੰਦਾਂ ਦਾ ਇੰਤਜ਼ਾਮ ਕਰਨ ਲਈ ਭਾਸ਼ਾ ਚੁਣੋ।</string>
+  <string name="automatic_translation_header_preference">”ਹਮੇਸ਼ਾ ਟਰਾਂਸਲੇਟ ਕਰੋ“ ਅਤੇ \"ਕਦੇ ਟਰਾਂਸਲੇਟ ਨਾ ਕਰੋ\" ਪਸੰਦਾਂ ਦਾ ਇੰਤਜ਼ਾਮ ਕਰਨ ਲਈ ਭਾਸ਼ਾ ਚੁਣੋ।</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">ਭਾਸ਼ਾਵਾਂ ਨੂੰ ਲੋਡ ਨਹੀਂ ਕੀਤਾ ਜਾ ਸਕਿਆ। ਬਾਅਦ ਵਿੱਚ ਮੁੜ ਜਾਂਚੋ।</string>
   <!--

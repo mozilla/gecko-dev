@@ -481,7 +481,7 @@
     %s is the search engine name (for example: DuckDuckGo).
     The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
   -->
-  <string name="search_engine_selector_content_description">%s: søgetjenestevælger </string>
+  <string name="search_engine_selector_content_description">%s: søgetjenestevælger\u0032</string>
   <!--
     Home onboarding
 
@@ -899,7 +899,7 @@
     Preference title for switch preference to show Firefox Suggest search suggestions for web content.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="preferences_show_nonsponsored_suggestions">Forslag fra  %1$s</string>
+  <string name="preferences_show_nonsponsored_suggestions">Forslag fra %1$s</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">Få forslag fra nettet relateret til din søgning</string>
   <!-- Preference for link sharing -->
@@ -1012,15 +1012,65 @@
   <!-- Text for artist series wallpapers title. "Artist series" represents a collection of artist collaborated wallpapers. -->
   <string name="wallpaper_artist_series_title">Kunstnerserie</string>
   <!-- Description text for the artist series wallpapers with learn more link. %s is a learn more link using wallpaper_learn_more as text. "Independent voices" is the name of the wallpaper collection -->
-  <string name="wallpaper_artist_series_description_with_learn_more">Kollektionen "Uafhængige stemmer". %s</string>
+  <string name="wallpaper_artist_series_description_with_learn_more">Kollektionen \"Uafhængige stemmer\". %s</string>
   <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
-  <string name="wallpaper_artist_series_description">Kollektionen "Uafhængige stemmer".</string>
+  <string name="wallpaper_artist_series_description">Kollektionen \"Uafhængige stemmer\".</string>
   <!-- Wallpaper onboarding dialog header text. -->
   <string name="wallpapers_onboarding_dialog_title_text">Tilføj lidt farve</string>
   <!-- Wallpaper onboarding dialog body text. -->
   <string name="wallpapers_onboarding_dialog_body_text">Vælg en baggrund, der taler til dig.</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">Udforsk flere baggrunde</string>
+  <!--
+    Icon picker
+
+    Title for the "Default" alternative app icon variant in the icon picker screen.
+  -->
+  <string name="alternative_app_icon_option_default">Standard</string>
+  <!-- Title for the "Light" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_light">Lys</string>
+  <!-- Title for the "Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_dark">Mørk</string>
+  <!-- Title for the "Red" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_red">Rød</string>
+  <!-- Title for the "Green" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_green">Grøn</string>
+  <!-- Title for the "Blue" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_blue">Blå</string>
+  <!-- Title for the "Purple" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple">Lilla</string>
+  <!-- Title for the "Purple Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple_dark">Mørk lilla</string>
+  <!-- Title for the "Sunrise" gradient alternative app icon variant in the icon picker screen. The app icon features a soft yellow-to-blue gradient background, resembling the colors of early morning light. -->
+  <string name="alternative_app_icon_option_gradient_sunrise">Solopgang</string>
+  <!-- Title for the "Golden Hour" gradient alternative app icon variant in the icon picker screen. The app icon features a warm golden-to-pink gradient background, resembling the colors of the sunlight shortly before sunset. -->
+  <string name="alternative_app_icon_option_gradient_golden_hour">Gyldne time</string>
+  <!-- Title for the "Sunset" gradient alternative app icon variant in the icon picker screen. The app icon has a rich red-to-purple gradient background, resembling the tones of a sunset sky. -->
+  <string name="alternative_app_icon_option_gradient_sunset">Solnedgang</string>
+  <!-- Title for the "Blue Hour" gradient alternative app icon variant in the icon picker screen. The app icon has a cool blue gradient background, resembling the sky color around the time just after sunset or before sunrise. -->
+  <string name="alternative_app_icon_option_gradient_blue_hour">Blå time</string>
+  <!-- Title for the "Twilight" gradient alternative app icon variant in the icon picker screen. The app icon has a purple-toned gradient background, resembling the sky color during twilight. -->
+  <string name="alternative_app_icon_option_gradient_twilight">Tusmørke</string>
+  <!-- Title for the "Midnight" gradient alternative app icon variant in the icon picker screen. The app icon features a dark gradient background, resembling the deep tones of the night sky. -->
+  <string name="alternative_app_icon_option_gradient_midnight">Midnat</string>
+  <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
+  <string name="alternative_app_icon_option_gradient_northern_lights">Nordlys</string>
+  <!-- Title for the "Retro 2004" themed alternative app icon variant in the icon picker screen. This app icon uses the classic Firefox logo from 2004. -->
+  <string name="alternative_app_icon_option_retro_2004">Retro 2004</string>
+  <!-- Title for the "Retro 2017" themed alternative app icon variant in the icon picker screen. This app icon uses the Firefox logo from 2017, with a more modernized design. -->
+  <string name="alternative_app_icon_option_retro_2017">Retro 2017</string>
+  <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
+  <string name="alternative_app_icon_option_pixelated">Pixeleret</string>
+  <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
+  <string name="alternative_app_icon_option_minimal">Minimalistisk</string>
+  <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
+  <string name="alternative_app_icon_option_pride">Pride</string>
+  <!-- Title for the "Cute" themed alternative app icon variant in the icon picker screen. The app icon features a playful design with an adorable aesthetic. -->
+  <string name="alternative_app_icon_option_cute">Nuttet</string>
+  <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo">Momo</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">Skabt af @heyheymomodraws</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -2109,7 +2159,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Slet browserdata, når programmet afsluttes</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Sletter automatisk browserdata, når du vælger  \"Afslut\" i hovedmenuen</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Sletter automatisk browserdata, når du vælger \"Afslut\" i hovedmenuen</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Afslut</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2461,8 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Gemte adgangskoder</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Adgangskoderne, du gemmer i eller synkroniserer med %s vil blive vist her. Alle dine gemte adgangskoder bliver krypteret.
-</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Adgangskoderne, du gemmer i eller synkroniserer med %s vil blive vist her. Alle dine gemte adgangskoder bliver krypteret.\n</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Læs mere om synkronisering</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2506,7 +2555,7 @@
   <!-- Title of warning dialog if users have no device authentication set up -->
   <string name="logins_warning_dialog_title_2">Gør dine gemte adgangskoder sikre</string>
   <!-- Message of warning dialog if users have no device authentication set up -->
-  <string name="logins_warning_dialog_message_2">Indstil en pinkode, en adgangskode eller et låsemønster på din enhed for at forhindre, at andre mennesker får adgang til dine gemte  adgangskoder, hvis de har adgang til din enhed.</string>
+  <string name="logins_warning_dialog_message_2">Indstil en pinkode, en adgangskode eller et låsemønster på din enhed for at forhindre, at andre mennesker får adgang til dine gemte adgangskoder, hvis de har adgang til din enhed.</string>
   <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
   <string name="logins_warning_dialog_later">Senere</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -2763,7 +2812,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.eksempel.dk</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Webadressen skal indeholde \“https://\“ eller \“http://\“</string>
+  <string name="add_login_hostname_invalid_text_3">Webadressen skal indeholde “https://“ eller “http://“</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Gyldigt værtsnavn påkrævet</string>
   <!--
@@ -3073,7 +3122,7 @@
   -->
   <string name="never_translate_site_toolbar_title_preference">Oversæt aldrig disse websteder</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-  <string name="never_translate_site_header_preference">For at tilføje et nyt websted: Besøg webstedet og vælg "Oversæt aldrig dette websted" fra oversættelsesmenuen.</string>
+  <string name="never_translate_site_header_preference">For at tilføje et nyt websted: Besøg webstedet og vælg \"Oversæt aldrig dette websted\" fra oversættelsesmenuen.</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")

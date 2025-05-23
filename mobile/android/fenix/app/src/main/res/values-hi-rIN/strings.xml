@@ -1003,7 +1003,7 @@
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">क्रिप्टोमाइनर</string>
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cryptominers_description">डिजिटल मुद्रा का पता लगाने में  दुर्भावनापूर्ण लिपियों को आपके डिवाइस के ऐक्सेस से रोकता हैं</string>
+  <string name="etp_cryptominers_description">डिजिटल मुद्रा का पता लगाने में दुर्भावनापूर्ण लिपियों को आपके डिवाइस के ऐक्सेस से रोकता हैं</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">ट्रैकिंग सामग्री</string>
   <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1157,7 +1157,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">जाँचें कि खोज स्ट्रिंग उदाहरण संरूप से मेल खाती है</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">"%s" से संपर्क में त्रुटि</string>
+  <string name="search_add_custom_engine_error_cannot_reach">\"%s\" से संपर्क में त्रुटि</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s बनाया गया</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -1208,7 +1208,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">वेब पते में "https://" या "http://" होना चाहिए</string>
+  <string name="add_login_hostname_invalid_text_3">वेब पते में \"https://\" या \"http://\" होना चाहिए</string>
   <!--
     Synced Tabs
 

@@ -62,8 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s fjernar søk- og nettlesarhistorikken frå private nettlesingsfaner når du lèt dei att eller avsluttar appen. Sjølv om dette ikkje gjer deg anonym for nettstadar eller internett-leverandøren din, vil det gjere det lettare
-        å behalde det du gjer på nettet privat frå alle andre som brukar denne eininga.</string>
+  <string name="private_browsing_placeholder_description_2">%1$s fjernar søk- og nettlesarhistorikken frå private nettlesingsfaner når du lèt dei att eller avsluttar appen. Sjølv om dette ikkje gjer deg anonym for nettstadar eller internett-leverandøren din, vil det gjere det lettare å behalde det du gjer på nettet privat frå alle andre som brukar denne eininga.</string>
   <string name="private_browsing_common_myths">Vanlege mytar om privat nettlesing</string>
   <!--
     True Private Browsing Mode
@@ -2811,7 +2810,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Nettadressa må innehalde "https://" eller "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Nettadressa må innehalde \"https://\" eller \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Gyldig servernamn påkravd</string>
   <!--

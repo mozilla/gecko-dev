@@ -13,7 +13,7 @@
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing_button">نجی براؤزنگ فعال کرو</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
-  <string name="content_description_disable_private_browsing_button">نجی براؤزنگ  غیرفعال کرو</string>
+  <string name="content_description_disable_private_browsing_button">نجی براؤزنگ غیرفعال کرو</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_private_browsing">نجی براؤزنگ</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
@@ -62,11 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s نجی ٹیب نال تہاݙے ڳولݨ تے براؤزنگ دی تاریخ کوں صاف کریندے جہڑے ویلے تساں انہاں کوں بند کریندے ہو یا ایپ کوں چھوڑ ݙیندے ہو۔ ڄݙاں جو ایہ تہاکوں ویب سائٹاں یا انٹرنیٹ سروس فراہم کرݨ آلیاں کیتے گمنام کائنی بݨیندا، تساں ایندے نال جو کجھ وی آن لائن کریندے ہو، اوں کوں ایہ ڈیوائس ورتݨ آلے کہیں وی ٻئے کنوں نجی رکھݨ سوکھا بݨیندے۔</string>
-  <string name="private_browsing_common_myths">
-        نجی براؤزنگ بارے عام فرضی قصے
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s نجی ٹیب نال تہاݙے ڳولݨ تے براؤزنگ دی تاریخ کوں صاف کریندے جہڑے ویلے تساں انہاں کوں بند کریندے ہو یا ایپ کوں چھوڑ ݙیندے ہو۔ ڄݙاں جو ایہ تہاکوں ویب سائٹاں یا انٹرنیٹ سروس فراہم کرݨ آلیاں کیتے گمنام کائنی بݨیندا، تساں ایندے نال جو کجھ وی آن لائن کریندے ہو، اوں کوں ایہ ڈیوائس ورتݨ آلے کہیں وی ٻئے کنوں نجی رکھݨ سوکھا بݨیندے۔</string>
+  <string name="private_browsing_common_myths">\u0032نجی براؤزنگ بارے عام فرضی قصے\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -119,7 +116,7 @@
   -->
   <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">نویں نیویگیشݨ نال تکھیرا براؤز کرو</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">ہک ویب سائٹ تے، ڄݙݨ  تساں وادھو براؤزنگ دی جاء تے  ہیٹھاں سکرول کریندے ہو تاں ایہ بار دور تھی ویندا ہے۔</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">ہک ویب سائٹ تے، ڄݙݨ تساں وادھو براؤزنگ دی جاء تے ہیٹھاں سکرول کریندے ہو تاں ایہ بار دور تھی ویندا ہے۔</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">ٹیب دی تاریخ دے ورقیاں دے وچکار ٹپ مارݨ کیتے تیراں تے انگل لاؤ تے روکو۔</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
@@ -168,7 +165,7 @@
   <!-- Button text for showing all the tabs in the tabs tray -->
   <string name="recent_tabs_show_all">سارے ݙکھاؤ</string>
   <!-- Content description for the button which navigates the user to show all recent tabs in the tabs tray. -->
-  <string name="recent_tabs_show_all_content_description_2">سارے حالیہ ٹیب بٹݨ  ݙکھاؤ</string>
+  <string name="recent_tabs_show_all_content_description_2">سارے حالیہ ٹیب بٹݨ ݙکھاؤ</string>
   <!-- Text for button in synced tab card that opens synced tabs tray -->
   <string name="recent_tabs_see_all_synced_tabs_button_text">ساریاں ہم وقت تھیاں ٹیباں ݙیکھو</string>
   <!-- Accessibility description for device icon used for recent synced tab -->
@@ -217,7 +214,7 @@
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">ایکسٹینشناں تہاݙی براؤزنگ کوں اُچے لیول دا کریندیاں ہن، %s دے نظر آوݨ تے کارکردگی  تبدیل کرݨ توں گھن کے رازداری تے حفاظت ودھاوݨ تائیں۔</string>
+  <string name="browser_menu_extensions_banner_onboarding_body">ایکسٹینشناں تہاݙی براؤزنگ کوں اُچے لیول دا کریندیاں ہن، %s دے نظر آوݨ تے کارکردگی تبدیل کرݨ توں گھن کے رازداری تے حفاظت ودھاوݨ تائیں۔</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more">ٻیا سِکھو</string>
   <!-- Browser menu button that opens the extensions manager -->
@@ -438,7 +435,7 @@
   <!-- Home onboarding dialog sign into sync screen title text. -->
   <string name="onboarding_home_sync_title_3">سکریناں سوئچ کرݨ ہݨ پہلے کنوں ٻہوں سوکھا ہے</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">آپݨے مکھ پنّے تے ٻئی ڈیوائساں دے  ٹیباں نال  اُتھاؤں شروع کرو جتھوں تساں چھوڑیا ہائی۔</string>
+  <string name="onboarding_home_sync_description">آپݨے مکھ پنّے تے ٻئی ڈیوائساں دے ٹیباں نال اُتھاؤں شروع کرو جتھوں تساں چھوڑیا ہائی۔</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_get_started_button">شروع کرو</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
@@ -508,7 +505,7 @@
     Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
   -->
-  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">تُہاݙی ہوم سکرین اُتے فائر فاکس دے نال، تُہاکوں رازداری-پہلاں براؤزر تئیں سَوکھی رسائی حاصل تھی ویسی جہڑا کراس سائٹ ٹریکراں کوں روکین٘دا ہِے۔ </string>
+  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">تُہاݙی ہوم سکرین اُتے فائر فاکس دے نال، تُہاکوں رازداری-پہلاں براؤزر تئیں سَوکھی رسائی حاصل تھی ویسی جہڑا کراس سائٹ ٹریکراں کوں روکین٘دا ہِے۔\u0032</string>
   <!--
     Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
@@ -561,7 +558,7 @@
   <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
   <string name="preferences_category_engines_in_search_menu">ڳویڑی مینیو اُتے انجن ݙِکھالے وین٘دے ہِن</string>
   <!-- Preference for settings related to changing the default search engine -->
-  <string name="preferences_default_search_engine">طےشدہ  ڳولݨ انجݨ</string>
+  <string name="preferences_default_search_engine">طےشدہ ڳولݨ انجݨ</string>
   <!-- Preference for settings related to Search -->
   <string name="preferences_search">ڳولو</string>
   <!-- Preference for settings related to Search engines -->
@@ -642,7 +639,7 @@
   <!-- Summary of https only preference if https only is set to on in all tabs -->
   <string name="preferences_https_only_on_all">ساریاں ٹیباں وچ تے</string>
   <!-- Summary of https only preference if https only is set to on in private tabs only -->
-  <string name="preferences_https_only_on_private">نجی ٹیباں وچ  تے</string>
+  <string name="preferences_https_only_on_private">نجی ٹیباں وچ تے</string>
   <!-- Text displayed that links to website containing documentation about "HTTPS-Only" mode -->
   <string name="preferences_http_only_learn_more">ٻیا سِکھو</string>
   <!-- Option for the https only setting -->
@@ -654,7 +651,7 @@
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
   <string name="errorpage_httpsonly_message_title">غالباً، ویب سائٹ سادگی نال ایچ ٹی ٹی پی ایس کوں سہارا کائنی ݙیندی۔</string>
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
-  <string name="errorpage_httpsonly_message_summary">تاہم، ایہ وی ممکن ہے جو کوئی حملہ آور ملوث ہووے۔ جے تساں ویب سائٹ کوں جاری رکھدے ہو، تاں تہاکوں کوئی حساس معلومات درج کائنی کرݨی چاہیدی ہے۔ جے تساں جاری رکھدے ہو، تاں سائٹ کیتے HTTPS-صرف موڈ کوں عارضی طور تے  بند کر ݙتا ویسی۔</string>
+  <string name="errorpage_httpsonly_message_summary">تاہم، ایہ وی ممکن ہے جو کوئی حملہ آور ملوث ہووے۔ جے تساں ویب سائٹ کوں جاری رکھدے ہو، تاں تہاکوں کوئی حساس معلومات درج کائنی کرݨی چاہیدی ہے۔ جے تساں جاری رکھدے ہو، تاں سائٹ کیتے HTTPS-صرف موڈ کوں عارضی طور تے بند کر ݙتا ویسی۔</string>
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">رسائیت</string>
   <!-- Preference to override the Mozilla account server -->
@@ -698,7 +695,7 @@
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">کلپ بورڈ تجویزاں ݙکھاؤ</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
-  <string name="preferences_search_browsing_history">براؤزنگ تاریخ  ڳولو</string>
+  <string name="preferences_search_browsing_history">براؤزنگ تاریخ ڳولو</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">نشانیاں ڳولو</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
@@ -791,7 +788,7 @@
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2">فکر انگیز کہاݨیاں</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary"> %s ولوں تکڑے تھئے مضمون</string>
+  <string name="customize_toggle_pocket_summary">\u0032%s ولوں تکڑے تھئے مضمون</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">سپانسر تھیاں کہاݨیاں</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -851,7 +848,7 @@
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="extension_process_crash_dialog_message">ہِک یا ودھ ایکسٹنشناں نے تُہاݙے سِسٹم کوں غیر مستحکم بݨین٘دے ہوئے کَم کرݨ چھوڑ ݙِتّا۔ %1$s نے ایکسٹنشناں(ایس) کوں وَلا شروع کرݨ دی نا کام کوشِش کِیتی۔ \n\n ایکسٹنشناں کُوں تُہاݙے موجودہ سیشن دے وِچالے وَلا شروع نہ کِیتا ویسی۔ \n\n ایکسٹنشناں کوں مُکاوݨ یا غیر فعال کرݨ اِیں مسئلے کوں ٹھیک کر سڳدا ہِے۔</string>
+  <string name="extension_process_crash_dialog_message">ہِک یا ودھ ایکسٹنشناں نے تُہاݙے سِسٹم کوں غیر مستحکم بݨین٘دے ہوئے کَم کرݨ چھوڑ ݙِتّا۔ %1$s نے ایکسٹنشناں(ایس) کوں وَلا شروع کرݨ دی نا کام کوشِش کِیتی۔ \n\nایکسٹنشناں کُوں تُہاݙے موجودہ سیشن دے وِچالے وَلا شروع نہ کِیتا ویسی۔ \n\nایکسٹنشناں کوں مُکاوݨ یا غیر فعال کرݨ اِیں مسئلے کوں ٹھیک کر سڳدا ہِے۔</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">ایکسٹنشناں کوں وَلا شروع کرݨ دی کوشِش کرو</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1487,7 +1484,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">مجموعہ مینیو</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">او شئیں جمع کرو جہڑیاں تہاݙے کیتے اہم ہن۔ \n بعد وچ فوری رسائی کیتے ایں طرحاں دیاں ڳولاں، سائٹاں تے ٹیباں کوں گروپ وچ کٹھا کرو۔</string>
+  <string name="no_collections_description2">او شئیں جمع کرو جہڑیاں تہاݙے کیتے اہم ہن۔ \nبعد وچ فوری رسائی کیتے ایں طرحاں دیاں ڳولاں، سائٹاں تے ٹیباں کوں گروپ وچ کٹھا کرو۔</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">ٹیباں چݨو</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -1566,7 +1563,7 @@
   <!-- An option from the three dot menu to sync and save data -->
   <string name="sync_menu_sync_and_save_data">ڈیٹا ہم وقت کرو تے محفوظ کرو</string>
   <!-- An option from the share dialog to send link to all other sync devices -->
-  <string name="sync_send_to_all">ساریاں ڈیوائساں  تے بھیڄو</string>
+  <string name="sync_send_to_all">ساریاں ڈیوائساں تے بھیڄو</string>
   <!-- An option from the share dialog to reconnect to sync -->
   <string name="sync_reconnect">ہم وقت کرݨ کیتے ولدا کنکٹ کرو</string>
   <!-- Text displayed when sync is offline and cannot be accessed -->
@@ -1726,7 +1723,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">بند کرݨ تے براؤزنگ ڈیٹا مٹاؤ</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">جہڑے ویلے تساں مین مینیو وچوں  \"چھوڑو\" کوں چُݨدے ہو تاں براؤزنگ دا ڈیٹا خودبخود مٹ ویندا ہے</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">جہڑے ویلے تساں مین مینیو وچوں \"چھوڑو\" کوں چُݨدے ہو تاں براؤزنگ دا ڈیٹا خودبخود مٹ ویندا ہے</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">نکل ون٘ڄو</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -1806,7 +1803,7 @@
   <!-- Preference summary for enhanced tracking protection settings on/off switch -->
   <string name="preference_enhanced_tracking_protection_summary">ہݨ پوری کوکی حفاظت دی خاصیت، کراس سائٹ ٹریکراں دے خلاف ساݙی سب کنوں تکڑی رکاوٹ۔</string>
   <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
-  <string name="preference_enhanced_tracking_protection_explanation_2">%s تہاکوں ٻہوں سارے ݙاڈھے عام ٹریکراں کنوں بچیندے، جہڑے  تہاݙے آن لائن کم کوں فالو کریندن۔</string>
+  <string name="preference_enhanced_tracking_protection_explanation_2">%s تہاکوں ٻہوں سارے ݙاڈھے عام ٹریکراں کنوں بچیندے، جہڑے تہاݙے آن لائن کم کوں فالو کریندن۔</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
   <string name="preference_enhanced_tracking_protection_explanation_learn_more">ٻیا سِکھو</string>
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
@@ -1872,7 +1869,7 @@
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_description">کوکیاں کوں بلاک کریندا ہے جہڑا اشتہاری نیٹ ورکس تے تجزیاتی کمپنیاں تہاݙے براؤزنگ ڈیٹا کوں کئی سائٹاں تے مرتب کرݨ کیتے ورتیندیاں ہن۔</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_description_2">کُل کوکی حفاظت کوکیاں کوں  تہاݙی سائٹ کنوں انج کر ݙیندے تاں جو ٹریکراں وانگوں مشہوری نیٹ ورک تہاݙیاں سائٹاں وچ تہاکوں فالو کرݨ کیتے انہاں کوں نہ ورت سڳن۔</string>
+  <string name="etp_cookies_description_2">کُل کوکی حفاظت کوکیاں کوں تہاݙی سائٹ کنوں انج کر ݙیندے تاں جو ٹریکراں وانگوں مشہوری نیٹ ورک تہاݙیاں سائٹاں وچ تہاکوں فالو کرݨ کیتے انہاں کوں نہ ورت سڳن۔</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">کریپٹومینرز</string>
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
@@ -1882,7 +1879,7 @@
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">ٹریکنگ مواد</string>
   <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_tracking_content_description">ٹریکنگ کوڈ تے مشتمل اشتہارات ، ویڈیوز تے بئے مواد کوں لوڈ تھیوݨ کنوں روکیندا ہے۔  ویب سائٹ دی فعالیت کوں کجھ متاثر کر سڳدا ہے۔</string>
+  <string name="etp_tracking_content_description">ٹریکنگ کوڈ تے مشتمل اشتہارات ، ویڈیوز تے بئے مواد کوں لوڈ تھیوݨ کنوں روکیندا ہے۔ ویب سائٹ دی فعالیت کوں کجھ متاثر کر سڳدا ہے۔</string>
   <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
   <string name="etp_panel_on">ایں سائٹ کیتے حفاظتاں چالو ہن۔</string>
   <!-- Enhanced Tracking Protection message that protection is currently off for this site -->
@@ -1915,7 +1912,7 @@
     Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
     as we use it on the UI to indicate which trackers have been partially unblocked.
   -->
-  <string name="preference_etp_smartblock_description"> ہیٹھاں کجھ نشان زدہ ٹریکرز کوں ایں ورقے تے  جزوی طور تے اݨ بلاک کر ݙتا ڳئے کیوں جو تساں انہاں نال تعامل کیتے*۔</string>
+  <string name="preference_etp_smartblock_description">\u0032ہیٹھاں کجھ نشان زدہ ٹریکرز کوں ایں ورقے تے جزوی طور تے اݨ بلاک کر ݙتا ڳئے کیوں جو تساں انہاں نال تعامل کیتے*۔</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">ٻیا سِکھو</string>
   <!--
@@ -1964,7 +1961,7 @@
   <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
   <string name="add_to_homescreen_text_placeholder">شارٹ کٹ ناں</string>
   <!-- Describes the add to homescreen functionality -->
-  <string name="add_to_homescreen_description_2">تساں ایں ویب سائٹ کوں آسانی نال آپݨی ڈیوائس دی ہوم سکرین وچ شامل کر سڳدے ہو  تاں جو  فوری رسائی حاصل تھیوے تے  ایپ جیہے تجربے نال  تیزی نال براؤز کرو۔</string>
+  <string name="add_to_homescreen_description_2">تساں ایں ویب سائٹ کوں آسانی نال آپݨی ڈیوائس دی ہوم سکرین وچ شامل کر سڳدے ہو تاں جو فوری رسائی حاصل تھیوے تے ایپ جیہے تجربے نال تیزی نال براؤز کرو۔</string>
   <!-- Preference for managing the settings for logins and passwords in Fenix -->
   <string name="preferences_passwords_logins_and_passwords_2">پاس ورڈز</string>
   <!-- Preference for managing the saving of logins and passwords in Fenix -->
@@ -1976,7 +1973,7 @@
   <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
   <string name="preferences_passwords_autofill2">%1$s وچ خود بخود بھرو</string>
   <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
-  <string name="preferences_passwords_autofill_description">%1$s ورتݨ دے دوران ویب سائٹاں وچ ورتݨ  ناں تے پاس ورڈ بھرو تے محفوظ کرو۔</string>
+  <string name="preferences_passwords_autofill_description">%1$s ورتݨ دے دوران ویب سائٹاں وچ ورتݨ ناں تے پاس ورڈ بھرو تے محفوظ کرو۔</string>
   <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
   <string name="preferences_android_autofill">ٻیاں ایپاں وچ آٹوفل کرو</string>
   <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
@@ -2188,17 +2185,15 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">ڳولݨ دے ورتݨ کیتے یوآرایل</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false"> “%s” نال سوال وٹاؤ۔
-مثال:\nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">\u0032“%s” نال سوال وٹاؤ۔ مثال:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
-  <string name="search_add_custom_engine_form_description">من پسند ڳولݨ انجݨ  تفصیلاں</string>
+  <string name="search_add_custom_engine_form_description">من پسند ڳولݨ انجݨ تفصیلاں</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
   <string name="search_add_custom_engine_suggest_url_label">ڳولݨ تجویز اے پی آئی (اختیاری)</string>
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">ڳولݨ تجویز اے پی آئی یو آر ایل</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">استفسار کوں “%s” نال بدلو۔
-مثال: \nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">استفسار کوں “%s” نال بدلو۔ مثال: \nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">محفوظ</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2208,7 +2203,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">پڑتال کرو جو ڳولݨ تند مثال دے نمونے مطابق ہے</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">”%s“ نال رابطہ کرݨ وچ  خرابی</string>
+  <string name="search_add_custom_engine_error_cannot_reach">”%s“ نال رابطہ کرݨ وچ خرابی</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s بݨ ڳیا</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2222,13 +2217,13 @@
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">٢. &lt;b&gt;اجازتاں&lt;/b&gt; تے دباؤ</string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; کوں چالو کرݨ  کیتے  ٹوگل کرو</string>
+  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; کوں چالو کرݨ کیتے ٹوگل کرو</string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">کنکشن محفوظ ہے۔</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">کنکشن محفوظ کائنی۔</string>
   <!-- Label to clear site data -->
-  <string name="clear_site_data">کوکیاں تے سائٹ ڈیٹا صاف کرو </string>
+  <string name="clear_site_data">کوکیاں تے سائٹ ڈیٹا صاف کرو\u0032</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
   <string name="confirm_clear_site_data">بھلا تہاکوں پک ہے جو تساں سائٹ &lt;b&gt;%s&lt;/b&gt; کیتے ساریاں کوکیاں تے ڈیٹا صاف کرݨ چاہندے ہو؟</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
@@ -2291,7 +2286,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">ویب پتے وچ "https://" یا "http://" ہووݨ ضروری ہے</string>
+  <string name="add_login_hostname_invalid_text_3">ویب پتے وچ \"https://\" یا \"http://\" ہووݨ ضروری ہے</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">ٹھیک ہوسٹ ناں ضروری ہے</string>
   <!--
@@ -2311,7 +2306,7 @@
   <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
   <string name="synced_tabs_sign_in_button">ہم وقت کرݨ کیتے سائن ان تھیوو</string>
   <!-- The text displayed when a synced device has no tabs to show in the list of Synced Tabs. -->
-  <string name="synced_tabs_no_open_tabs">کوئی کھلے ٹیب  کائنی</string>
+  <string name="synced_tabs_no_open_tabs">کوئی کھلے ٹیب کائنی</string>
   <!-- Content description for expanding a group of synced tabs. -->
   <string name="synced_tabs_expand_group">ٹیباں کوں ہم وقت کرݨ کیتے گروپ کھنڈاؤ</string>
   <!-- Content description for collapsing a group of synced tabs. -->
@@ -2375,7 +2370,7 @@
   <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
   <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">خود بخود بند کرݨ چالو کرو</string>
   <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
-  <string name="inactive_tabs_auto_close_message_snackbar">آپݨے آپ  بند تھیوݨ فعال تھی ڳیا</string>
+  <string name="inactive_tabs_auto_close_message_snackbar">آپݨے آپ بند تھیوݨ فعال تھی ڳیا</string>
   <!--
     Awesome bar suggestion's headers
 
@@ -2568,7 +2563,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">خود بخود ترجمہ</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">"ہمیشاں ترجمہ کرو" اَتے "کݙان٘ہیں ترجمہ نہ کرو" ترجیحاں دا نظم کرݨ کِیتے ہِک ٻولی چُݨو۔</string>
+  <string name="automatic_translation_header_preference">\"ہمیشاں ترجمہ کرو\" اَتے \"کݙان٘ہیں ترجمہ نہ کرو\" ترجیحاں دا نظم کرݨ کِیتے ہِک ٻولی چُݨو۔</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">زباناں لوڈ کائنی کر سڳا، سوہݨا، ولدا بعد وچ چیک کرو۔</string>
   <!--
@@ -2594,7 +2589,7 @@
   -->
   <string name="never_translate_site_toolbar_title_preference">انہاں سائٹاں دا کݙاہیں ترجمہ نہ کرو</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
-  <string name="never_translate_site_header_preference">ہِک نویں سائٹ شامل کرݨ کِیتے: اِین٘دے اُتّے ون٘ڄو اَتے ترجمہ مینو وِچوں "اِیں سائٹ دا کݙان٘ہیں ترجمہ نہ کرو" کوں چُݨو۔</string>
+  <string name="never_translate_site_header_preference">ہِک نویں سائٹ شامل کرݨ کِیتے: اِین٘دے اُتّے ون٘ڄو اَتے ترجمہ مینو وِچوں \"اِیں سائٹ دا کݙان٘ہیں ترجمہ نہ کرو\" کوں چُݨو۔</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")
@@ -2666,7 +2661,7 @@
     The dialog will be presented when the user requests deletion of a language.
     %1$s is the name of the language, for example, "Spanish" and %2$s is the size in kilobytes or megabytes of the language file.
   -->
-  <string name="delete_language_file_dialog_title"> %1$s (%2$s) مٹاؤں؟</string>
+  <string name="delete_language_file_dialog_title">\u0032%1$s (%2$s) مٹاؤں؟</string>
   <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_file_dialog_message">ڄیکر تُساں اِیں ٻولی کوں حذف کرین٘دے ہِیوے، تاں %1$s تُہاݙے ترجمہ کرݨ ویلے تُہاݙے کیشے وِچ جزوی ٻولیاں ڈاؤن لوڈ کر ݙیسی۔</string>
   <!--
@@ -2739,13 +2734,13 @@
     quantity greater than the max tabs. %1$s is the maximum number of tabs
     that can be generated in one operation.
   -->
-  <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">ہک آپریشن وچ تیار کیتے ون٘ڄ سڳݨ آلے ٹیباں دی  ودھ کنوں ودھ تعداد (%1$s) کنوں ودھ ڳئی ہے۔</string>
+  <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">ہک آپریشن وچ تیار کیتے ون٘ڄ سڳݨ آلے ٹیباں دی ودھ کنوں ودھ تعداد (%1$s) کنوں ودھ ڳئی ہے۔</string>
   <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
   <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">فعال ٹیباں وچ شامل کرو</string>
   <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
   <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_inactive">غیر فعال ٹیباں وچ شامل کرو</string>
   <!-- The button text to add tabs to the private tab group in the tab creation tool. -->
-  <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">نجی ٹیب  وچ شامل کرو</string>
+  <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_private">نجی ٹیب وچ شامل کرو</string>
   <!--
     Microsurvey
 

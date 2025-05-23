@@ -62,11 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-  ඔබ පෞද්. පටිති වසා දැමූ විට හෝ යෙදුමෙන් ඉවත් වූ විට %1$s ඔබගේ සෙවුම් සහ පිරික්සුම් ඉතිහාසය හිස් කරයි, නමුත් ඔබව අඩවි වලින් හෝ අන්තර්ජාල සැපයුම්කරුගෙන් නිර්නාමික නොකරයි. මෙය ඔබ මාර්ගගතව කරන දෑ මෙම උපාංගය භාවිතා කරන වෙනත් අයගෙන් පෞද්ගලිකව තබා ගැනීම පහසු කරයි.</string>
-  <string name="private_browsing_common_myths">
-  පෞද්ගලික පිරික්සීම පිළිබඳව සුලබ මිථ්‍යා
-  </string>
+  <string name="private_browsing_placeholder_description_2">\u0032ඔබ පෞද්. පටිති වසා දැමූ විට හෝ යෙදුමෙන් ඉවත් වූ විට %1$s ඔබගේ සෙවුම් සහ පිරික්සුම් ඉතිහාසය හිස් කරයි, නමුත් ඔබව අඩවි වලින් හෝ අන්තර්ජාල සැපයුම්කරුගෙන් නිර්නාමික නොකරයි. මෙය ඔබ මාර්ගගතව කරන දෑ මෙම උපාංගය භාවිතා කරන වෙනත් අයගෙන් පෞද්ගලිකව තබා ගැනීම පහසු කරයි.</string>
+  <string name="private_browsing_common_myths">\u0032පෞද්ගලික පිරික්සීම පිළිබඳව සුලබ මිථ්‍යා\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -642,7 +639,7 @@
   <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">%1$s සඳහා දත්තකඩ පතාක අවහිරය අක්‍රිය කරන්නද?</string>
   <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s මඟින්  මෙම අඩවියේ දත්තකඩ ඉල්ලීම් ස්වයංක්‍රීයව ඉවතලීමට නොහැක. ඉදිරියේ දී මෙම අඩවිය සඳහා සහාය දැක්වීමට ඉල්ලීමක් යැවීමට හැකිය.</string>
+  <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s මඟින් මෙම අඩවියේ දත්තකඩ ඉල්ලීම් ස්වයංක්‍රීයව ඉවතලීමට නොහැක. ඉදිරියේ දී මෙම අඩවිය සඳහා සහාය දැක්වීමට ඉල්ලීමක් යැවීමට හැකිය.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">අක්‍රිය කරන්න සහ %1$s දත්තකඩ මකා මෙම අඩවිය නැවත පූරණය කරනු ඇත. මෙය ඔබව නික්මවීමට හෝ බඩු කරත්ත හිස් කිරීමට ඉඩ ඇත.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
@@ -2257,7 +2254,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">ලිපිනයෙහි "https://" හෝ "http://" අඩංගු විය යුතුය</string>
+  <string name="add_login_hostname_invalid_text_3">ලිපිනයෙහි \"https://\" හෝ \"http://\" අඩංගු විය යුතුය</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">වලංගු සත්කාරක නාමයක් අවශ්‍යයි</string>
   <!--

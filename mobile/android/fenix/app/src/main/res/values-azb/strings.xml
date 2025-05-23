@@ -60,11 +60,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s گیزلی تاغلاری باغلادیغینیز زامان ویا اپ‌دن چیخدیغینیز زامان آختاریش و مورور گئچمیشی پوزولار. بو سیزی سایتلارا ویا اینترنت خیدمت وئرنلره گیزلی ائتمه‌سه‌ده، بو جهازدان ایستیفاده ائدن هرکسدن آنلاین اولاراق نه ائتدیگینیزی گیزلی ساخلاماغی آسانلاشدیریر.</string>
-  <string name="private_browsing_common_myths">
-       گیزلی مورور حاقیندا یایقین اینانجلار
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s گیزلی تاغلاری باغلادیغینیز زامان ویا اپ‌دن چیخدیغینیز زامان آختاریش و مورور گئچمیشی پوزولار. بو سیزی سایتلارا ویا اینترنت خیدمت وئرنلره گیزلی ائتمه‌سه‌ده، بو جهازدان ایستیفاده ائدن هرکسدن آنلاین اولاراق نه ائتدیگینیزی گیزلی ساخلاماغی آسانلاشدیریر.</string>
+  <string name="private_browsing_common_myths">\u0032گیزلی مورور حاقیندا یایقین اینانجلار\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -215,7 +212,7 @@
     Browser menu banner body text for extensions onboarding.
     %s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_extensions_banner_onboarding_body">اوزانتی‌لار، %s نین گؤرونوشو و عملکردینی دگیشمکدن گیزلیلیک و گؤونلیگی آرتیرماغا کیمی مروروزو یوخاریا آپاریر  </string>
+  <string name="browser_menu_extensions_banner_onboarding_body">اوزانتی‌لار، %s نین گؤرونوشو و عملکردینی دگیشمکدن گیزلیلیک و گؤونلیگی آرتیرماغا کیمی مروروزو یوخاریا آپاریر\u0032</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more">آرتیق بیلین</string>
   <!-- Browser menu button that opens the extensions manager -->
@@ -294,7 +291,7 @@
   <!-- Browser menu label to sign back in to sync on the device when the user's account needs to be reauthenticated -->
   <string name="browser_menu_sign_back_in_to_sync">دؤنگل اوچون گئنه گیرین</string>
   <!-- Browser menu caption label for the "Sign back in to sync" browser menu item described in `browser_menu_sign_back_in_to_sync` when there is an error in syncing -->
-  <string name="browser_menu_syncing_paused_caption">   دؤنگل دایاندیریلدی</string>
+  <string name="browser_menu_syncing_paused_caption">\u0032دؤنگل دایاندیریلدی</string>
   <!-- Browser menu label that creates a private tab -->
   <string name="browser_menu_new_private_tab">یئنی گیزلی تاغ</string>
   <!-- Browser menu label that navigates to the Password screen -->
@@ -804,7 +801,7 @@
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="extension_process_crash_dialog_message">بیر و یا نئچه اوزانتیْ ایشی دایاندیریلدیْ، بوُدا سیستمیزی ثابیتسیز ائله‌دی. %1$s اوزانتیْ‌یی(لاریْ) یئنی‌دن باشلاتماغا باشاریْسیز اوْلدو. \n\n اوزانتیْ‌لار ایندیکی اوتورومونوزدا یئنی‌دن ایشه سالیْنمیاجاق. \n\n اوزانتیْ‌یی(لار)ین سیلینمه‌سی و یا گوجدن سالینماسیْ بو موُشکولو حل ائلیه بیلر.</string>
+  <string name="extension_process_crash_dialog_message">بیر و یا نئچه اوزانتیْ ایشی دایاندیریلدیْ، بوُدا سیستمیزی ثابیتسیز ائله‌دی. %1$s اوزانتیْ‌یی(لاریْ) یئنی‌دن باشلاتماغا باشاریْسیز اوْلدو. \n\nاوزانتیْ‌لار ایندیکی اوتورومونوزدا یئنی‌دن ایشه سالیْنمیاجاق. \n\nاوزانتیْ‌یی(لار)ین سیلینمه‌سی و یا گوجدن سالینماسیْ بو موُشکولو حل ائلیه بیلر.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">اوزانتی‌لاریْ یئنی‌دن باشلاتماغا چالیشین</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1006,7 +1003,7 @@
   -->
   <string name="recently_closed_tab">%d تاغ</string>
   <!-- Recently closed tabs screen message when there are no recently closed tabs -->
-  <string name="recently_closed_empty_message">بو  یاخین زاماندا باغلانان تاغ یوخ</string>
+  <string name="recently_closed_empty_message">بو یاخین زاماندا باغلانان تاغ یوخ</string>
   <!--
     Tab Management
 
@@ -1364,7 +1361,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">مجموعه‌لر منوسو</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">سیزین اوچون اؤنملی اولان شئی‌لری یئغین. \n داها سوْنرا یئیین گیریش اوچون اوْخشار آختاریش‌لاریْ، سایتلاریْ و تاغ‌لاریْ قروُپلاشدیرین.</string>
+  <string name="no_collections_description2">سیزین اوچون اؤنملی اولان شئی‌لری یئغین. \nداها سوْنرا یئیین گیریش اوچون اوْخشار آختاریش‌لاریْ، سایتلاریْ و تاغ‌لاریْ قروُپلاشدیرین.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">تاغ‌لاری سئچین</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -1873,7 +1870,7 @@
   <!-- Preference to access list of login exceptions that we never save logins for -->
   <string name="preferences_passwords_exceptions">آیریْ توتمالار</string>
   <!-- Empty description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_exceptions_description_empty_2">%s بورادا لیست اوْلان سایتلار اوچون رمزلری  یاددا ساخلامیاجاق.</string>
+  <string name="preferences_passwords_exceptions_description_empty_2">%s بورادا لیست اوْلان سایتلار اوچون رمزلری یاددا ساخلامیاجاق.</string>
   <!-- Description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_exceptions_description_2">%s بو سایتلار اوچون رمزلری یاددا ساخلامیاجاق.</string>
   <!-- Text on button to remove all saved login exceptions -->
@@ -1989,7 +1986,7 @@
   <!-- Title of the "Saved cards" screen -->
   <string name="credit_cards_saved_cards">یاددا ساخلانان کارتلار</string>
   <!-- Error message for card number validation -->
-  <string name="credit_cards_number_validation_error_message_2"> بیر گئچرلی کارت شماره‌سی وئر</string>
+  <string name="credit_cards_number_validation_error_message_2">\u0032بیر گئچرلی کارت شماره‌سی وئر</string>
   <!-- Error message for card name on card validation -->
   <string name="credit_cards_name_on_card_validation_error_message_2">بیر آد وئر</string>
   <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
@@ -2124,7 +2121,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">دوغرولایان: %1$s </string>
+  <string name="certificate_info_verified_by">دوغرولایان: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">سیل</string>
   <!-- Login overflow menu edit button -->
@@ -2166,7 +2163,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">وب آدرسینده "https://" یا "http://" اولمالی‌دیر</string>
+  <string name="add_login_hostname_invalid_text_3">وب آدرسینده \"https://\" یا \"http://\" اولمالی‌دیر</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">گئچرلی هاست آدیْ لازم</string>
   <!--
@@ -2296,7 +2293,7 @@
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">اسپانسرلی</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
-  <string name="experiments_snackbar"> دیتا گؤندرمک اوچون تل متری‌یی گوجلندیر.</string>
+  <string name="experiments_snackbar">\u0032دیتا گؤندرمک اوچون تل متری‌یی گوجلندیر.</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">تنظیم‌لره گئدین</string>
   <!--

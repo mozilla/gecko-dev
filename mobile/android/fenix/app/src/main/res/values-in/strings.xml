@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s menghapus riwayat pencarian dan penjelajahan dari tab privat ketika Anda menutupnya atau keluar dari aplikasi. Ketika hal ini tidak membuat Anda jadi anonim pada situs Web atau penyedia jasa Internet Anda, ini akan mempermudah dalam menjaga apa yang Anda lakukan daring secara privat dari orang lain yang menggunakan peranti ini.</string>
-  <string name="private_browsing_common_myths">
-       Mitos umum tentang penjelajahan privat
-    </string>
+  <string name="private_browsing_common_myths">\u0032Mitos umum tentang penjelajahan privat\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -2060,7 +2058,7 @@
   <!-- Title for the cookies and site data items in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cookies_and_site_data">Kuki dan data situs</string>
   <!-- Subtitle for the cookies item in Delete browsing data -->
-  <string name="preferences_delete_browsing_data_cookies_subtitle">Anda\ akan keluar dari sebagian besar situs</string>
+  <string name="preferences_delete_browsing_data_cookies_subtitle">Anda\\ akan keluar dari sebagian besar situs</string>
   <!-- Title for the cached images and files item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cached_files">Gambar dan berkas dalam tembolok</string>
   <!-- Subtitle for the cached images and files item in Delete browsing data -->
@@ -2727,7 +2725,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Alamat web harus berisi "https://" atau "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Alamat web harus berisi \"https://\" atau \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Nama host yang valid diperlukan</string>
   <!--
@@ -3011,7 +3009,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">Terjemahan otomatis</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">Pilih bahasa untuk mengelola preferensi "selalu terjemahkan" dan "jangan terjemahkan".</string>
+  <string name="automatic_translation_header_preference">Pilih bahasa untuk mengelola preferensi \"selalu terjemahkan\" dan \"jangan terjemahkan\".</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">Tidak bisa memuat bahasa. Silakan periksa lagi nanti.</string>
   <!--
@@ -3410,7 +3408,7 @@
   <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">Kesempatan terakhir untuk mempertahankan Firefox Anda</string>
   <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
-  <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Versi Firefox Anda tidak akan berfungsi dengan semestinya pada 14 Maret karena sebuah sertifikat root  kedaluwarsa.</string>
+  <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">Versi Firefox Anda tidak akan berfungsi dengan semestinya pada 14 Maret karena sebuah sertifikat root kedaluwarsa.</string>
   <!-- Push notification title about old Firefox version. "Update" is a noun. -->
   <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">Pembaruan disarankan</string>
   <!-- Push notification message about old Firefox version -->

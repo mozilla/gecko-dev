@@ -60,11 +60,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s lìmpiat sa cronologia de chirca e de navigatzione tuas dae is ischedas privadas cando ddas serras o essis de s’aplicatzione. Non ti faghet abarrare in anònimu pro is sitos web e su frunidore de servìtzios de internet tuo, però t’agiudat a cunservare in privadu su chi ses faghende in lìnia dae àtera gente chi imperat custu dispositivu.</string>
-  <string name="private_browsing_common_myths">
-       Mitos fitianos subra de sa navigatzione privada
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s lìmpiat sa cronologia de chirca e de navigatzione tuas dae is ischedas privadas cando ddas serras o essis de s’aplicatzione. Non ti faghet abarrare in anònimu pro is sitos web e su frunidore de servìtzios de internet tuo, però t’agiudat a cunservare in privadu su chi ses faghende in lìnia dae àtera gente chi imperat custu dispositivu.</string>
+  <string name="private_browsing_common_myths">\u0032Mitos fitianos subra de sa navigatzione privada\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -1025,7 +1022,7 @@
     Message to warn users that a large number of tabs will be opened
     %s will be replaced by app name.
   -->
-  <string name="open_all_warning_message">A abèrrere tropu ischedas podet rallentare %s in sa càrriga de is pàginas.  Seguru chi boles sighire?</string>
+  <string name="open_all_warning_message">A abèrrere tropu ischedas podet rallentare %s in sa càrriga de is pàginas. Seguru chi boles sighire?</string>
   <!-- Dialog button text for confirming open all tabs -->
   <string name="open_all_warning_confirm">Ischedas abertas</string>
   <!-- Dialog button text for canceling open all tabs -->
@@ -2179,7 +2176,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.esempru.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">S’indiritzu web depet cuntènnere  «https://» o «http://»</string>
+  <string name="add_login_hostname_invalid_text_3">S’indiritzu web depet cuntènnere «https://» o «http://»</string>
   <!--
     Synced Tabs
 

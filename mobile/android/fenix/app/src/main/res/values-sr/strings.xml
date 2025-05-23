@@ -1770,7 +1770,7 @@
     Subtitle for the data and history items in delete browsing data, %d is the
     number of history items the user has
   -->
-  <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d  адреса</string>
+  <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d адреса</string>
   <!-- Title for the cookies and site data items in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cookies_and_site_data">Колачићи и подаци сајта</string>
   <!-- Subtitle for the cookies item in Delete browsing data -->
@@ -2351,7 +2351,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.primer.rs</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Веб адресе морају садржати "https://" или "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Веб адресе морају садржати \"https://\" или \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Потребно је ваљано име машине</string>
   <!--

@@ -63,9 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">A %1$s törli a keresési és böngészési előzményeit a privát lapokból, ha bezárja őket vagy kilép az alkalmazásból. Ugyan ez nem teszi névtelenné a weboldalak vagy a szolgáltatója felé, könnyebbé teszi, hogy bizalmasan kezelje az online tevékenységét, és más ne tudjon róla, aki ezt az eszközt használja.</string>
-  <string name="private_browsing_common_myths">
-       Gyakori tévhitek a privát böngészésről
-    </string>
+  <string name="private_browsing_common_myths">\u0032Gyakori tévhitek a privát böngészésről\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -2722,7 +2720,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Ellenőrizte: %1$s </string>
+  <string name="certificate_info_verified_by">Ellenőrizte: %1$s\u0032</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Törlés</string>
   <!-- Login overflow menu edit button -->
@@ -3555,8 +3553,7 @@
   <!-- The title of the sign-in task for the setup checklist -->
   <string name="setup_checklist_task_account_sync">Bejelentkezés a fiókjába</string>
   <!-- The title of the theme selection task for the setup checklist -->
-  <string name="setup_checklist_task_theme_selection">Téma kiválasztása
-</string>
+  <string name="setup_checklist_task_theme_selection">Téma kiválasztása\u0032</string>
   <!-- The title of the toolbar selection task for the setup checklist -->
   <string name="setup_checklist_task_toolbar_selection">Eszköztár elhelyezésének kiválasztása</string>
   <!-- The title of the explore extensions task for the setup checklist -->

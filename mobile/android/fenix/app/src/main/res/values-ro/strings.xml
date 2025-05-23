@@ -339,7 +339,7 @@
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">Afișează în sesiuni private</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
-  <string name="preferences_show_clipboard_suggestions">Afișează  sugestii din clipboard</string>
+  <string name="preferences_show_clipboard_suggestions">Afișează sugestii din clipboard</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">Caută în istoricul de navigare</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
@@ -897,7 +897,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Șterge datele de navigare la ieșire</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Șterge automat datele de navigare când selectezi \„Închide\” în meniul principal</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Șterge automat datele de navigare când selectezi \\„Închide\\” în meniul principal</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Închide</string>
   <!-- Dialog message to the user asking to delete browsing data. %s is the name of the app (for example "Firefox"). -->

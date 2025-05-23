@@ -60,7 +60,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s nuyüj ri akanoxik chuqa\' runatab\'al awokem pa k\'amaya\'l toq yatel pa ri chokoy o ri  ichinan taq wi\'. Estape\' re re\' man yatrewaj ta pan ajk\'amaya\'l o chuwäch ri niya\'on ak\'amaya\'l, yatruto\' richin nichinäx ronojel ri nab\'än pan k\'amab\'ey chuwäch jun chik winäq nrokisaj ri awokisab\'al.</string>
+  <string name="private_browsing_placeholder_description_2">%1$s nuyüj ri akanoxik chuqa\' runatab\'al awokem pa k\'amaya\'l toq yatel pa ri chokoy o ri ichinan taq wi\'. Estape\' re re\' man yatrewaj ta pan ajk\'amaya\'l o chuwäch ri niya\'on ak\'amaya\'l, yatruto\' richin nichinäx ronojel ri nab\'än pan k\'amab\'ey chuwäch jun chik winäq nrokisaj ri awokisab\'al.</string>
   <string name="private_browsing_common_myths">Ch\'ob\'on taq tzij chi rij ri ichinan okem pa k\'amaya\'l</string>
   <!--
     True Private Browsing Mode
@@ -520,7 +520,7 @@
   <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">¿La nichup ri ruq\'atoj kitzijol taq cookie richin %1$s?</string>
   <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2"> Man yeruq\'ät ta ri %1$s pa ruyonil ri taq kik\'utuj taq cookie pa re ruxaq re\'. Yatikïr natäq un k\'utuj richin nito\' re ruxaq re\' ri chwa\'q kab\'ij.</string>
+  <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">\u0032Man yeruq\'ät ta ri %1$s pa ruyonil ri taq kik\'utuj taq cookie pa re ruxaq re\'. Yatikïr natäq un k\'utuj richin nito\' re ruxaq re\' ri chwa\'q kab\'ij.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">Toq nitzij, ri %1$s xtutojtob\'ej xkeruxutuj pa ruyonil ri taq kitzijol taq cookie pa re ruxaq re\'.</string>
   <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
@@ -540,7 +540,7 @@
   <!-- Option for the https only setting -->
   <string name="preferences_https_only_in_private_tabs">Ketzij xa xe\' pan ichinan taq ruwi\'</string>
   <!-- Title shown in the error page for when trying to access a http website while https only mode is enabled. -->
-  <string name="errorpage_httpsonly_title">Man k\'o ta ri jikil ruxaq </string>
+  <string name="errorpage_httpsonly_title">Man k\'o ta ri jikil ruxaq\u0032</string>
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
   <string name="errorpage_httpsonly_message_title">Rik\'in jub\'a\' chi ri ajk\'amaya\'l ruxaq xa man nuk\'äm ta ri\' rik\'in ri HTTPS.</string>
   <!-- Preference for accessibility -->
@@ -690,7 +690,7 @@
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">Kekanöx ch\'aqa\' rupam ruwäch</string>
   <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here -->
-  <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Ke\'awila\'  +100 k\'ak\'a\' taq k\'amal ri nikiya\' q\'ij chawe\' nawichinaj Firefox.</string>
+  <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Ke\'awila\' +100 k\'ak\'a\' taq k\'amal ri nikiya\' q\'ij chawe\' nawichinaj Firefox.</string>
   <!--
     Account Preferences
 
@@ -1185,7 +1185,7 @@
   <!-- Label that indicates that video and audio autoplay is only allowed over Wi-Fi -->
   <string name="preference_option_autoplay_allowed_wifi_only2">Keq\'at k\'oxom chuqa\' silowäch xa xe rik\'in kitzij selular</string>
   <!-- Subtext that explains 'autoplay on Wi-Fi only' option -->
-  <string name="preference_option_autoplay_allowed_wifi_subtext">Ri  k\'oxom chuqa\' silowäch xketzij rik\'in Wi-Fi</string>
+  <string name="preference_option_autoplay_allowed_wifi_subtext">Ri k\'oxom chuqa\' silowäch xketzij rik\'in Wi-Fi</string>
   <!-- Label for global setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
   <string name="preference_option_autoplay_block_audio2">Xa xe tiq\'at k\'oxom</string>
   <!-- Label for site specific setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
@@ -1521,7 +1521,7 @@
   <!-- Preference title for enhanced tracking protection settings -->
   <string name="preference_enhanced_tracking_protection">Utzirisan Chajinïk chuwäch Ojqanem</string>
   <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
-  <string name="preference_enhanced_tracking_protection_explanation_2"> %s yaruchajij chi kiwäch relik ojqanela\', ri nikoqaj ri nab\'än pa k\'amab\'ey.</string>
+  <string name="preference_enhanced_tracking_protection_explanation_2">\u0032%s yaruchajij chi kiwäch relik ojqanela\', ri nikoqaj ri nab\'än pa k\'amab\'ey.</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
   <string name="preference_enhanced_tracking_protection_explanation_learn_more">Tetamäx ch\'aqa\' chik</string>
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
@@ -1852,8 +1852,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">URL xtokisäx richin ri kanoxïk</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Tik\'ex k\'ulb\'enïk rik\'in “%s”.
-Achi\'el: \nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Tik\'ex k\'ulb\'enïk rik\'in “%s”. Achi\'el: \nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Rub\'anikil ichinan kanob\'äl</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
@@ -1936,7 +1935,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Ri web ochochib\'äl k\'o chi ruk\'wan "https://" or "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Ri web ochochib\'äl k\'o chi ruk\'wan \"https://\" or \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Najowäx okel rub\'i\' ruk\'u\'x k\'amab\'ey</string>
   <!--

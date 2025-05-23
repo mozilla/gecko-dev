@@ -48,8 +48,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s သည် သင် ပိတ်လိုက်သောအခါ (သို့မဟုတ်) အက်ပ်မှ ထွက်သောအခါ သင်၏ သီးသန့် တပ်ဗ်များမှ ရှာဖွေမှု မှတ်တမ်းများအား ရှင်းပစ်သည်။ ၎င်းသည် ၀က်ဘ်ဆိုက်များ (သို့မဟုတ်) သင်၏ အင်တာနက် ၀န်ဆောင်မှုပေးသူ ထံတွင် သင့်အား အမည်မဖော်လိုသူ အဖြစ် မထားပေးနိုင်သော်လည်း ဤစက်ကိရိယာကို သုံးသော အခြားသူများထံမှ သင် အွန်လိုင်း ပေါ်တွင် လုပ်ဆောင်လိုက်သည်များကို သီးသန့်ထားရန် ပိုမို လွယ်ကူစေသည်။ </string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s သည် သင် ပိတ်လိုက်သောအခါ (သို့မဟုတ်) အက်ပ်မှ ထွက်သောအခါ သင်၏ သီးသန့် တပ်ဗ်များမှ ရှာဖွေမှု မှတ်တမ်းများအား ရှင်းပစ်သည်။ ၎င်းသည် ၀က်ဘ်ဆိုက်များ (သို့မဟုတ်) သင်၏ အင်တာနက် ၀န်ဆောင်မှုပေးသူ ထံတွင် သင့်အား အမည်မဖော်လိုသူ အဖြစ် မထားပေးနိုင်သော်လည်း ဤစက်ကိရိယာကို သုံးသော အခြားသူများထံမှ သင် အွန်လိုင်း ပေါ်တွင် လုပ်ဆောင်လိုက်သည်များကို သီးသန့်ထားရန် ပိုမို လွယ်ကူစေသည်။\u0032</string>
   <string name="private_browsing_common_myths">ပုဂ္ဂလိက browsing ဆိုင်ရာ အမြင်မှားများ</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">နေပါစေ</string>
@@ -377,7 +376,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">&lt;b&gt;firefox.com/pair&lt;/b&gt; တွင်ပြနေသော QR  ကုဒ်ကို ဖတ်ပါ</string>
+  <string name="pair_instructions_2">&lt;b&gt;firefox.com/pair&lt;/b&gt; တွင်ပြနေသော QR ကုဒ်ကို ဖတ်ပါ</string>
   <!--
     Toolbar Preferences
 
@@ -447,7 +446,7 @@
   -->
   <string name="recently_closed_tab">%d တက်ဗ်</string>
   <!-- Recently closed tabs screen message when there are no recently closed tabs -->
-  <string name="recently_closed_empty_message">လတ်တလော  ပိတ်ခဲ့သည့် တက်ဗ် မရှိ</string>
+  <string name="recently_closed_empty_message">လတ်တလော ပိတ်ခဲ့သည့် တက်ဗ် မရှိ</string>
   <!--
     Tab Management
 
@@ -741,7 +740,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">စုဆောင်းခြင်းမီနူး</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">သင့် အတွက် အရေးပါသည့် အရာများကို စုဆောင်းပါ။ နောက်ပိုင်းတွင် အမြန် ရှာဖွေနိုင်ဖို့ အလားတူ ရှာဖွေမှုများ၊ ဆိုက်များ နှင့် တပ်ဗ်များကို စုစည်းပါ။ </string>
+  <string name="no_collections_description2">သင့် အတွက် အရေးပါသည့် အရာများကို စုဆောင်းပါ။ နောက်ပိုင်းတွင် အမြန် ရှာဖွေနိုင်ဖို့ အလားတူ ရှာဖွေမှုများ၊ ဆိုက်များ နှင့် တပ်ဗ်များကို စုစည်းပါ။\u0032</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">တက်ပ်များကိုရွေးပါ</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -942,7 +941,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">အီးမေးလ်အစား</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">အကောင့် မရှိဘူးလား? &lt;u&gt; သုံးစွဲသည့် ကိရိယာများ အကြား Firefox ကို တစ်ပြေးညီတည်း ချိန်ညှိရန် &lt;/u&gt; တစ်ခု ဖန်တီးပါ။ </string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">အကောင့် မရှိဘူးလား? &lt;u&gt; သုံးစွဲသည့် ကိရိယာများ အကြား Firefox ကို တစ်ပြေးညီတည်း ချိန်ညှိရန် &lt;/u&gt; တစ်ခု ဖန်တီးပါ။\u0032</string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s သည် အကောင့်နှင့် အချက်အလက်များ ထပ်တူပြုခြင်းကို ရပ်တန့်ပါမည်။ သို့သော် ယခု ကိရိယာရှိ သင်၏ မည်သည့် အချက်အလက် ကိုမျှ ဖျက်ပစ်မည် မဟုတ်ပါ။</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1092,7 +1091,7 @@
   <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
   <string name="preferences_passwords_autofill_description">%1$s ကို သုံးနေစဉ် ၀က်ဆိုက်များတွင် အသုံးပြုသူအမည် နှင့် စကားဝှက်များကို ဖြည့်ပြီး သိမ်းဆည်းပါ</string>
   <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
-  <string name="preferences_android_autofill">အခြား အက်ပ်များတွင် အလိုအလျောက် ဖြည့်ပါ </string>
+  <string name="preferences_android_autofill">အခြား အက်ပ်များတွင် အလိုအလျောက် ဖြည့်ပါ\u0032</string>
   <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
   <string name="preferences_android_autofill_description">သင့် စက် ရှိ အခြားသော အက်ပ်များတွင် အသုံးပြုသူအမည်များ နှင့် စကားဝှက်များကို ဖြည့်ပါ။</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -1184,7 +1183,7 @@
   <!-- Text for the menu button to delete a search engine -->
   <string name="search_engine_delete">ဖျက်ပါ</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">စုံစမ်းမှုကို “%s” ဖြင့်အစားထိုးပါ။ ဥပမာ။ \n https://www.google.com/search?q= %s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">စုံစမ်းမှုကို “%s” ဖြင့်အစားထိုးပါ။ ဥပမာ။ \nhttps://www.google.com/search?q= %s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">ရှာဖွေအင်ဂျင်အသေးစိတ်ကိုစိတ်ကြိုက်ပြင်ဆင်ပါ။</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -1245,7 +1244,7 @@
   <!-- Text displayed asking user to re-authenticate -->
   <string name="synced_tabs_reauth">ကျေးဇူးပြု၍ ပြန်လည် အတည်ပြုပါ။</string>
   <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
-  <string name="synced_tabs_enable_tab_syncing">ကျေးဇူးပြ၍ တပ်ဗ် ထပ်တူတစ်ပြေးတည်း ဖြစ်စေရန် ဖွင့်ပါ </string>
+  <string name="synced_tabs_enable_tab_syncing">ကျေးဇူးပြ၍ တပ်ဗ် ထပ်တူတစ်ပြေးတည်း ဖြစ်စေရန် ဖွင့်ပါ\u0032</string>
   <!-- Text displayed when user has no tabs that have been synced -->
   <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">သင့် အခြား စက်ပစ္စည်းများတွင် Firefox ၌ ဖွင့်ထားသော တပ်ဗ်များ မရှိပါ</string>
   <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
@@ -1265,9 +1264,9 @@
 
     Title text displayed in the tabs tray when a tab has been unused for 14 days.
   -->
-  <string name="inactive_tabs_title">လှုပ်ရှားမှုမရှိသော တပ်ဗ်များ </string>
+  <string name="inactive_tabs_title">လှုပ်ရှားမှုမရှိသော တပ်ဗ်များ\u0032</string>
   <!-- Default browser card text -->
-  <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Firefox တွင် ဝက်ဘ်ဆိုက်များ၊ အီးမေးလ်များ နှင့် မက်ဆေ့ခ်ျများမှ လင့်ခ်များ အလိုအလျောက် ပွင့်ရန်  သတ်မှတ်ပါ။</string>
+  <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Firefox တွင် ဝက်ဘ်ဆိုက်များ၊ အီးမေးလ်များ နှင့် မက်ဆေ့ခ်ျများမှ လင့်ခ်များ အလိုအလျောက် ပွင့်ရန် သတ်မှတ်ပါ။</string>
   <!-- Content description for close button in collection placeholder. -->
   <string name="remove_home_collection_placeholder_content_description">ဖယ်ရှားပါ</string>
   <!-- Content description radio buttons with a link to more information -->

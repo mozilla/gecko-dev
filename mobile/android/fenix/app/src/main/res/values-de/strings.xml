@@ -63,10 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s leert die eingegebenen Suchbegriffe und besuchten Webseiten aller privaten Tabs wenn Sie diese schließen oder die App beenden. Das macht Sie gegenüber Website-Betreibern und Internetanbietern nicht anonym, aber erleichtert es Ihnen, dass andere Nutzer dieses Geräts Ihre Aktivitäten nicht einsehen können.</string>
-  <string name="private_browsing_common_myths">
-
-
-    Häufige Missverständnisse über das Surfen im Privaten Modus</string>
+  <string name="private_browsing_common_myths">\u0032Häufige Missverständnisse über das Surfen im Privaten Modus</string>
   <!--
     True Private Browsing Mode
 
@@ -234,7 +231,7 @@
     Browser menu banner body text for extensions onboarding when all installed extensions have been disabled.
     %s is the label of the button that opens the extension manager (for example "Manage extensions").
   -->
-  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Um Erweiterungen zu verwenden, aktivieren Sie diese in den Einstellungen oder indem Sie  unten „%s“ auswählen.</string>
+  <string name="browser_menu_disabled_extensions_banner_onboarding_body">Um Erweiterungen zu verwenden, aktivieren Sie diese in den Einstellungen oder indem Sie unten „%s“ auswählen.</string>
   <!-- Browser menu banner link text for learning more about extensions -->
   <string name="browser_menu_extensions_banner_learn_more">Weitere Informationen</string>
   <!-- Browser menu button that opens the extensions manager -->
@@ -566,7 +563,7 @@
     Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
   -->
-  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Mit Firefox auf Ihrem Startbildschirm haben Sie einfachen Zugriff auf den Browser, für den  Ihre Privatsphäre an erster Stelle steht, der seitenübergreifende Tracker blockiert.</string>
+  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Mit Firefox auf Ihrem Startbildschirm haben Sie einfachen Zugriff auf den Browser, für den Ihre Privatsphäre an erster Stelle steht, der seitenübergreifende Tracker blockiert.</string>
   <!--
     Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
@@ -2527,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Alle Ausnahmen löschen</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Passwörter durchsuchen</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Zurück</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Website</string>
   <!-- The header for the username for a login -->

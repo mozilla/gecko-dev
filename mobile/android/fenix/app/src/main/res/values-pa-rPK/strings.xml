@@ -60,11 +60,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-         جدوں تسیں ساریاں نجی ٹیباں نوں بند کردے او یا ایپ توں باہر جاندے او تاں %1$s تہاڈی کھوج تے ورتوں دی تاریخ نوں ساف کردا اے۔ حالاں‌کہ ایہہ تہانوں سائٹاں یا تہاڈے اینٹرنیٹ دیݨ والے لئی اݨپچھاتا نہیں بݨاوندا، پر ایس نال ایس فون نوں ورتے والے کسے توں وی تہاڈے ولوں آن‌لائین کیتے نوں نجی رکھݨا ہور سوکھا ہو جاندا اے۔</string>
-  <string name="private_browsing_common_myths">
-       نجی ورتوں بارے عام فرضی گلاں
-    </string>
+  <string name="private_browsing_placeholder_description_2">\u0032جدوں تسیں ساریاں نجی ٹیباں نوں بند کردے او یا ایپ توں باہر جاندے او تاں %1$s تہاڈی کھوج تے ورتوں دی تاریخ نوں ساف کردا اے۔ حالاں‌کہ ایہہ تہانوں سائٹاں یا تہاڈے اینٹرنیٹ دیݨ والے لئی اݨپچھاتا نہیں بݨاوندا، پر ایس نال ایس فون نوں ورتے والے کسے توں وی تہاڈے ولوں آن‌لائین کیتے نوں نجی رکھݨا ہور سوکھا ہو جاندا اے۔</string>
+  <string name="private_browsing_common_myths">\u0032نجی ورتوں بارے عام فرضی گلاں\u0032</string>
   <!--
     True Private Browsing Mode
 
@@ -239,8 +236,7 @@
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">مکھ سکرین تے جوڑو</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
-  <string name="browser_menu_add_to_homescreen_2">ہوم سکرین تے جوڑو
-</string>
+  <string name="browser_menu_add_to_homescreen_2">ہوم سکرین تے جوڑو\u0032</string>
   <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
   <string name="resync_button_content_description">مڑ جوڑ کرو</string>
   <!-- Browser menu button that opens the find in page menu -->
@@ -315,8 +311,7 @@
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
   -->
-  <string name="browser_menu_save">سنبھالو
-</string>
+  <string name="browser_menu_save">سنبھالو\u0032</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">بک‌مارک، شارٹ‌کٹ، مکھ صفحہ، بھنڈار، PDF جوڑو</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
@@ -553,7 +548,7 @@
   <!-- Will inform the user of the risk of activating Allow screenshots in private browsing option -->
   <string name="preferences_screenshots_in_private_mode_disclaimer">جے اجازت دتی تاں نجی ٹیباں اودوں وی دکھائی دیݨ‌گیاں، جدوں کئی ایپاں کھلھیاں ہندیاں ہن</string>
   <!-- Preference for adding private browsing shortcut -->
-  <string name="preferences_add_private_browsing_shortcut"> نجی براؤز کرن شارٹ‌کٹ جوڑو</string>
+  <string name="preferences_add_private_browsing_shortcut">\u0032نجی براؤز کرن شارٹ‌کٹ جوڑو</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">سرف HTTPS ڈھنگ</string>
   <!-- Label for cookie banner section in quick settings panel. -->
@@ -748,8 +743,7 @@
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary">%s ولوں تیار کیتے لیکھ</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
-  <string name="customize_toggle_pocket_sponsored">حمایت کیتیاں کہاݨیاں
-</string>
+  <string name="customize_toggle_pocket_sponsored">حمایت کیتیاں کہاݨیاں\u0032</string>
   <!-- Title for the opening wallpaper settings screen -->
   <string name="customize_wallpapers">والپیپر</string>
   <!-- Title for the customize home screen section with sponsored shortcuts. -->
@@ -807,10 +801,9 @@
     The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="extension_process_crash_dialog_message">اک جاں ودھ پھیلاواں کم نہیں کر رہیاں، جس نال تہاڈا سسٹم استھر ہو رہا اے۔ %1$s نے پھیلاواں نوں مڑ چالو کرن دی اسپھل کوشش کیتی سی۔ \n\n تہاڈے موجودہ سیشن دے دوران پھیلاؤ مڑ شروع نہیں ہووےگی۔ \n\n پھیلاواں نوں ہٹاوݨ جاں اسمرتھ کرن نال ایہہ مسئلہ ٹھیک ہو سکدا اے۔</string>
+  <string name="extension_process_crash_dialog_message">اک جاں ودھ پھیلاواں کم نہیں کر رہیاں، جس نال تہاڈا سسٹم استھر ہو رہا اے۔ %1$s نے پھیلاواں نوں مڑ چالو کرن دی اسپھل کوشش کیتی سی۔ \n\nتہاڈے موجودہ سیشن دے دوران پھیلاؤ مڑ شروع نہیں ہووےگی۔ \n\nپھیلاواں نوں ہٹاوݨ جاں اسمرتھ کرن نال ایہہ مسئلہ ٹھیک ہو سکدا اے۔</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
-  <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">پھیلاواں نوں مڑ چالو کرکے ویکھو
-</string>
+  <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">پھیلاواں نوں مڑ چالو کرکے ویکھو\u0032</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
   <string name="extension_process_crash_dialog_disable_extensions_button_text">پھیلاواں نوں بند کرکے جاری رکھو</string>
   <!--
@@ -822,8 +815,7 @@
   <!-- Summary of the preference for managing your account via accounts.firefox.com. -->
   <string name="preferences_manage_account_summary">آپݨا پاس‌ورڈ بدلو، ڈیٹا اکتر کرن دا انتظام کرو جاں آپݨے کھاتے نوں ہٹاؤ</string>
   <!-- Preference for triggering sync -->
-  <string name="preferences_sync_now">ہݨے ہم وقت کرو
-</string>
+  <string name="preferences_sync_now">ہݨے ہم وقت کرو\u0032</string>
   <!-- Preference category for sync -->
   <string name="preferences_sync_category">چݨو کہ کیہہ ہم وقت کرنا اے</string>
   <!-- Preference for syncing history -->
@@ -999,8 +991,7 @@
   <!-- Option in library for Recently Closed Tabs -->
   <string name="library_recently_closed_tabs">تازہ بند کیتیاں ٹیباں</string>
   <!-- Option in library to open Recently Closed Tabs page -->
-  <string name="recently_closed_show_full_history">پوری تاریخ نوں دکھاؤ
-</string>
+  <string name="recently_closed_show_full_history">پوری تاریخ نوں دکھاؤ\u0032</string>
   <!--
     Text to show users they have multiple tabs saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected.
@@ -1050,13 +1041,11 @@
   <!-- Option for always opening the homepage when re-opening the app after four hours of inactivity -->
   <string name="opening_screen_after_four_hours_of_inactivity">چار گھنٹیاں دی غیرفعالت دے بعد مکھ صفحہ</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to manual close -->
-  <string name="close_tabs_manually_summary">خود بند کرو
-</string>
+  <string name="close_tabs_manually_summary">خود بند کرو\u0032</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day -->
   <string name="close_tabs_after_one_day_summary">اک دن بعد بند کرو</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one week -->
-  <string name="close_tabs_after_one_week_summary">اک ہفتے بعد بند کرو
-</string>
+  <string name="close_tabs_after_one_week_summary">اک ہفتے بعد بند کرو\u0032</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month -->
   <string name="close_tabs_after_one_month_summary">اک مہینے بعد بند کرو</string>
   <!-- Summary for homepage preference indicating always opening the homepage when re-opening the app -->
@@ -1270,8 +1259,7 @@
   <!-- Text for the button to search all bookmarks -->
   <string name="bookmark_search">کھوج دی لکھت پایو</string>
   <!-- Content description for the bookmark navigation bar back button -->
-  <string name="bookmark_navigate_back_button_content_description">واپس کرو
-</string>
+  <string name="bookmark_navigate_back_button_content_description">واپس کرو\u0032</string>
   <!-- Content description for the bookmark list new folder navigation bar button -->
   <string name="bookmark_add_new_folder_button_content_description">نواں فولڈر جوڑو</string>
   <!-- Content description for bookmark search floating action button -->
@@ -1347,8 +1335,7 @@
   <!-- Label that indicates that video and audio autoplay is only allowed over Wi-Fi -->
   <string name="preference_option_autoplay_allowed_wifi_only2">صرف موبائیل ڈیٹے توں آڈیو تے ویڈیو تے روک لاؤ</string>
   <!-- Subtext that explains 'autoplay on Wi-Fi only' option -->
-  <string name="preference_option_autoplay_allowed_wifi_subtext">وائی‌فائی تے آڈیو تے ویڈیو چلائے جاݨ‌گے
-</string>
+  <string name="preference_option_autoplay_allowed_wifi_subtext">وائی‌فائی تے آڈیو تے ویڈیو چلائے جاݨ‌گے\u0032</string>
   <!-- Label for global setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
   <string name="preference_option_autoplay_block_audio2">صرف آڈیو تے پابندی لاؤ</string>
   <!-- Label for site specific setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
@@ -1374,7 +1361,7 @@
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">بھنڈار مینو</string>
   <!-- Label to describe what collections are to a new user without any collections -->
-  <string name="no_collections_description2">چیزاں، جو تہاڈے لئی معنی رکھدیاں ہن، نوں اکتر کرو۔ \n بعد چ فوری طور تے لبھݨ لئی اکو جیہیاں کھوجاں، سائیٹاں تے ٹیباں دا گرپ بݨاؤ۔</string>
+  <string name="no_collections_description2">چیزاں، جو تہاڈے لئی معنی رکھدیاں ہن، نوں اکتر کرو۔ \nبعد چ فوری طور تے لبھݨ لئی اکو جیہیاں کھوجاں، سائیٹاں تے ٹیباں دا گرپ بݨاؤ۔</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">ٹیباں چݨو</string>
   <!-- Title for the "select collection" step of the collection creator -->

@@ -48,7 +48,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">మీరు  అంతరంగిక ట్యాబులను మూసివేసినప్పుడు లేదా అనువర్తనం నుండి నిష్క్రమించినప్పుడు  మీ వెతుకుడు, విహరణ చరిత్రను %1$s తుడిచివేస్తుంది. ఇది మిమ్మల్ని వెబ్‌సైట్లకు లేదా మీ ఇంటర్నెట్ సర్వీస్ ప్రొవైడర్‌కు అనామకంగా చేయనప్పటికీ, ఈ పరికరాన్ని వాడే ఇతరుల నుండి మీ  ఆన్‌లైన్ కార్యకలాపాన్ని అంతరంగికంగా ఉంచుకోవడంలో తోడ్పడుతుంది.</string>
+  <string name="private_browsing_placeholder_description_2">మీరు అంతరంగిక ట్యాబులను మూసివేసినప్పుడు లేదా అనువర్తనం నుండి నిష్క్రమించినప్పుడు మీ వెతుకుడు, విహరణ చరిత్రను %1$s తుడిచివేస్తుంది. ఇది మిమ్మల్ని వెబ్‌సైట్లకు లేదా మీ ఇంటర్నెట్ సర్వీస్ ప్రొవైడర్‌కు అనామకంగా చేయనప్పటికీ, ఈ పరికరాన్ని వాడే ఇతరుల నుండి మీ ఆన్‌లైన్ కార్యకలాపాన్ని అంతరంగికంగా ఉంచుకోవడంలో తోడ్పడుతుంది.</string>
   <string name="private_browsing_common_myths">అంతరంగిక విహారణ గురించి సామాన్య అపోహలు</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ఫరవాలేదు వద్దు</string>
@@ -1377,7 +1377,7 @@
   <!-- Heading for the instructions to allow a permission -->
   <string name="phone_feature_blocked_intro">దీనిని అనుమతించడానికి:</string>
   <!-- First step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_settings">1. ఆండ్రాయిడ్  అమరికలకు వెళ్లండి</string>
+  <string name="phone_feature_blocked_step_settings">1. ఆండ్రాయిడ్ అమరికలకు వెళ్లండి</string>
   <!-- Second step for the allowing a permission -->
   <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;అనుమతులు&lt;/b&gt;ను తాకండి</string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->

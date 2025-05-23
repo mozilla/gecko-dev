@@ -683,7 +683,7 @@
   <!-- Preference for settings related to visual options -->
   <string name="preferences_customize">خصّص</string>
   <!-- Preference description for banner about signing in -->
-  <string name="preferences_sign_in_description_2">لِج لمزامنة ألسنتك و علاماتك و كلمات السر والمزيد.</string>
+  <string name="preferences_sign_in_description_2">لِج لمزامنة ألسنتك و علاماتك و كلمات السر والمزيد.</string>
   <!-- Preference shown instead of account display name while account profile information isn't available yet. -->
   <string name="preferences_account_default_name_2">حساب Mozilla</string>
   <!-- Preference text for account title when there was an error syncing FxA -->
@@ -1233,7 +1233,7 @@
   <!-- Screen title for adding a bookmarks folder -->
   <string name="bookmark_add_folder">أضِف مجلدًا</string>
   <!-- Snackbar title that confirms a bookmark was saved into a folder. %s is the name of the folder the bookmark was saved into. -->
-  <string name="bookmark_saved_in_folder_snackbar">حُفِظ في "%s"</string>
+  <string name="bookmark_saved_in_folder_snackbar">حُفِظ في \"%s\"</string>
   <!-- Snackbar edit button shown after a bookmark has been created. -->
   <string name="edit_bookmark_snackbar_action">حرّر</string>
   <!-- Bookmark overflow menu edit button -->
@@ -2069,7 +2069,7 @@
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">الاتصال غير آمن</string>
   <!-- Label to clear site data -->
-  <string name="clear_site_data">امسح الكعكات و بيانات المواقع</string>
+  <string name="clear_site_data">امسح الكعكات و بيانات المواقع</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
   <string name="confirm_clear_site_data">أمتأكد من مسح كل الكعكات والبيانات للموقع &lt;b&gt;%s&lt;/b&gt;؟</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->

@@ -62,8 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">
-        %1$s-ը մաքրում է որոնման և դիտարկման պատմությունը, երբ փակում եք ներդիրը կամ դուրս եք գալիս հավելվածից: Չնայած դա ձեզ անանուն չի դարձնում կայքերի կամ ձեր համացանցի ծառայություններ մատուցողի համար, այն ավելի հեշտ է դարձնում ձեր առցանց ակտիվության գաղտնիությունը այն դեպքում, եթե մեկ ուրիշը ևս օգտագործում է տվյալ սարքը:</string>
+  <string name="private_browsing_placeholder_description_2">\u0032%1$s-ը մաքրում է որոնման և դիտարկման պատմությունը, երբ փակում եք ներդիրը կամ դուրս եք գալիս հավելվածից: Չնայած դա ձեզ անանուն չի դարձնում կայքերի կամ ձեր համացանցի ծառայություններ մատուցողի համար, այն ավելի հեշտ է դարձնում ձեր առցանց ակտիվության գաղտնիությունը այն դեպքում, եթե մեկ ուրիշը ևս օգտագործում է տվյալ սարքը:</string>
   <string name="private_browsing_common_myths">Տարածված առասպելներ գաղտնի դիտարկման վերաբերյալ</string>
   <!--
     True Private Browsing Mode
@@ -525,7 +524,7 @@
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Ավելի քան 100 միլիոն մարդ պաշտպանում է իր գաղտնիությունը՝ ընտրելով ոչ առևտրային կազմակերպության կողմից աջակցվող զննիչ:</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-  <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Հայտնի հետագծիչնե՞ր: Ինքնաշխատ  արգելափակվում են: Ընդլայնումնե՞ր; Փորձե՞ք բոլոր 700-ը։ PDF ֆայլե՞ր: Մեր ներկառուցված ընթերցողը հեշտացնում է դրանց կառավարումը:</string>
+  <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">Հայտնի հետագծիչնե՞ր: Ինքնաշխատ արգելափակվում են: Ընդլայնումնե՞ր; Փորձե՞ք բոլոր 700-ը։ PDF ֆայլե՞ր: Մեր ներկառուցված ընթերցողը հեշտացնում է դրանց կառավարումը:</string>
   <!-- Text for the button to set firefox as default browser on the device -->
   <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">Կայել որպես սկզբնադիր դիտարկիչ</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -1591,7 +1590,7 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • մնացել է՝ %3$s </string>
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • մնացել է՝ %3$s\u0032</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">դադարի մեջ</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2160,7 +2159,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Ջնջել դիտարկման տվյալները լքելիս</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Ինքնաբար ջնջում է դիտարկման տվյալները, երբ հիմնական ցանկից ընտրում եք \«Փակել»\:</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Ինքնաբար ջնջում է դիտարկման տվյալները, երբ հիմնական ցանկից ընտրում եք \\«Փակել»\\:</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Փակել</string>
   <!-- Title text of a delete browsing data dialog. -->
@@ -2586,7 +2585,7 @@
   <!-- Preference for saving and autofilling credit cards -->
   <string name="preferences_credit_cards_save_and_autofill_cards_2">Պահել և լրացնել վճարամիջոցները</string>
   <!-- Preference summary for saving and autofilling payment method data. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s-ը գաղտնագրում է ձեր պահած  բոլոր վճարամիջոցները</string>
+  <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s-ը գաղտնագրում է ձեր պահած բոլոր վճարամիջոցները</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
   <string name="preferences_credit_cards_sync_cards_across_devices">Համաժամեցնել քարտերը սարքերի միջև</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
@@ -2710,7 +2709,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">Որոնման համար օգտագործվող URL-ն</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">Փոխարինել հարցումը «%s»-ով։ Օրինակ՝\n https://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">Փոխարինել հարցումը «%s»-ով։ Օրինակ՝\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Հարմարեցված որոնիչի մանրամասներ</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2718,7 +2717,7 @@
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">Որոնել առաջարկի API-ի URL</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Փոխարինել հարցումը «%s»-ով։ Օրինակ՝\n https://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Փոխարինել հարցումը «%s»-ով։ Օրինակ՝\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">Պահել</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -2813,7 +2812,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Վեբ հասցեն պետք է պարունակի "https://" կամ "http://"</string>
+  <string name="add_login_hostname_invalid_text_3">Վեբ հասցեն պետք է պարունակի \"https://\" կամ \"http://\"</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Վավեր հոսթի անուն է պահանջվում</string>
   <!--
@@ -3528,7 +3527,7 @@
   <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">Դուք օգտագործում եք Firefox֊ի հին տարբերակը</string>
   <!-- Push notification message about old Firefox version. "Update" is a verb. -->
-  <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Արդիացրեք  մինչև մարտի 14-ը, որպեսզի շարունակեք օգտագործել հավելումներ և այլ գործառույթներ:</string>
+  <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">Արդիացրեք մինչև մարտի 14-ը, որպեսզի շարունակեք օգտագործել հավելումներ և այլ գործառույթներ:</string>
   <!-- Push notification message about old Firefox version -->
   <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">Որոշ գործառույթներ կդադարեն գործել վաղը:</string>
   <!--
