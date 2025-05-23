@@ -15,6 +15,7 @@ import buildconfig
 # localized.
 NON_CHROME = set(
     [
+        "**/crashreporter*.ini",
         "dictionaries",
         "defaultagent_localized.ini",
         "defaults/profile",

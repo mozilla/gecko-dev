@@ -4317,6 +4317,25 @@ int XREMain::XRE_mainInit(bool* aExitFlag) {
             getter_AddRefs(userAppDataDir)))) {
       CrashReporter::SetupExtraData(userAppDataDir,
                                     nsDependentCString(mAppData->buildID));
+
+      // see if we have a crashreporter-override.ini in the application
+      // directory
+      nsCOMPtr<nsIFile> overrideini;
+      if (NS_SUCCEEDED(
+              mDirProvider.GetAppDir()->Clone(getter_AddRefs(overrideini))) &&
+          NS_SUCCEEDED(
+              overrideini->AppendNative("crashreporter-override.ini"_ns))) {
+#ifdef XP_WIN
+        nsAutoString overridePathW;
+        overrideini->GetPath(overridePathW);
+        NS_ConvertUTF16toUTF8 overridePath(overridePathW);
+#else
+        nsAutoCString overridePath;
+        overrideini->GetNativePath(overridePath);
+#endif
+
+        SaveWordToEnv("MOZ_CRASHREPORTER_STRINGS_OVERRIDE", overridePath);
+      }
     }
   } else {
     // We might have registered a runtime exception module very early in process
