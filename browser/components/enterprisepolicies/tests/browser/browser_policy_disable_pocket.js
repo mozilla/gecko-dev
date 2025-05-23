@@ -5,6 +5,13 @@
 
 const PREF_POCKET = "extensions.pocket.enabled";
 
+add_setup(async () => {
+  // Bug 1968055 - Temporarily enabled pocket pref while we remove the pref entirely
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.pocket.enabled", true]],
+  });
+});
+
 async function checkPocket(shouldBeEnabled) {
   return BrowserTestUtils.waitForCondition(() => {
     return (
