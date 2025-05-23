@@ -210,6 +210,7 @@ def make_task_description(config, jobs):
             )
         elif "macosx" in build_platform:
             # iscript overrides
+            task["worker"]["implementation"] = "iscript"
             task["worker"]["mac-behavior"] = "mac_sign_and_pkg"
 
             worker_type_alias_map = {

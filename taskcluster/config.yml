@@ -748,12 +748,12 @@ workers:
                     staging: '{trust-domain}-t-signing'
         mac-depsigning:
             provisioner: scriptworker-prov-v1
-            implementation: scriptworker-signing
+            implementation: iscript
             os: macosx
             worker-type: depsigning-mac-v1
         mac-signing:
             provisioner: scriptworker-prov-v1
-            implementation: scriptworker-signing
+            implementation: iscript
             os: macosx
             worker-type:
                 by-release-level:
