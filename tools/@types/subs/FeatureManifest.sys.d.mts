@@ -225,10 +225,7 @@ export const FeatureManifest: {
             };
             mdnFeatureGate: {
                 type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
+                fallbackPref: string;
                 description: string;
             };
             merinoClientVariants: {
@@ -427,7 +424,15 @@ export const FeatureManifest: {
                 };
                 description: string;
             };
-            suggestSemanticHistory: {
+            semanticHistoryCompletionThreshold: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+            semanticHistoryDistanceThreshold: {
                 type: string;
                 setPref: {
                     branch: string;
@@ -479,6 +484,11 @@ export const FeatureManifest: {
                 description: string;
             };
             yelpFeatureGate: {
+                type: string;
+                fallbackPref: string;
+                description: string;
+            };
+            yelpServiceResultDistinction: {
                 type: string;
                 fallbackPref: string;
                 description: string;
@@ -895,22 +905,6 @@ export const FeatureManifest: {
         owner: string;
         hasExposure: boolean;
         variables: {
-            variantA: {
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-                description: string;
-            };
-            variantB: {
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-                description: string;
-            };
             leaderboard: {
                 type: string;
                 setPref: {
@@ -1270,14 +1264,6 @@ export const FeatureManifest: {
                 };
                 description: string;
             };
-            personalizationInferredPosition: {
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-                description: string;
-            };
             localeSectionstConfig: {
                 type: string;
                 setPref: {
@@ -1310,6 +1296,46 @@ export const FeatureManifest: {
                 };
                 description: string;
             };
+            sectionsContextualAdsEnabled: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+            regionSectionsContextualAdsConfig: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+            localeSectionsContextualAdsConfig: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+            contextualSpocPlacements: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+            contextualSpocCounts: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
         };
     };
     newtabPrivatePing: {
@@ -1318,6 +1344,22 @@ export const FeatureManifest: {
         hasExposure: boolean;
         variables: {
             privatePingEnabled: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+            redactNewtabPing: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+            includeInferredInterests: {
                 type: string;
                 setPref: {
                     branch: string;
@@ -1339,6 +1381,51 @@ export const FeatureManifest: {
             };
             payload: {
                 type: string;
+                description: string;
+            };
+        };
+    };
+    newtabMerinoOhttp: {
+        description: string;
+        owner: string;
+        hasExposure: boolean;
+        variables: {
+            enabled: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+        };
+    };
+    newtabMarsOhttp: {
+        description: string;
+        owner: string;
+        hasExposure: boolean;
+        variables: {
+            enabled: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+        };
+    };
+    newtabRefinedCardsLayout: {
+        description: string;
+        owner: string;
+        hasExposure: boolean;
+        variables: {
+            enabled: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
                 description: string;
             };
         };
@@ -1495,14 +1582,6 @@ export const FeatureManifest: {
                 description: string;
             };
             wallpapers: {
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-                description: string;
-            };
-            wallpapersV2: {
                 type: string;
                 setPref: {
                     branch: string;
@@ -3982,6 +4061,14 @@ export const FeatureManifest: {
                     pref: string;
                 };
             };
+            nursery_max_time_goal_ms: {
+                description: string;
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+            };
         };
     };
     jsParallelParsing: {
@@ -4075,87 +4162,6 @@ export const FeatureManifest: {
         hasExposure: boolean;
         variables: {
             enabled: {
-                description: string;
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-            };
-        };
-    };
-    shopping2023: {
-        description: string;
-        owner: string;
-        hasExposure: boolean;
-        exposureDescription: string;
-        variables: {
-            enabled: {
-                description: string;
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-            };
-            control: {
-                description: string;
-                type: string;
-                fallbackPref: string;
-            };
-            integratedSidebar: {
-                description: string;
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-            };
-            adsEnabled: {
-                description: string;
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-            };
-            adsExposure: {
-                description: string;
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-            };
-            surveyEnabled: {
-                description: string;
-                type: string;
-                fallbackPref: string;
-            };
-            autoOpenEnabled: {
-                description: string;
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-            };
-        };
-    };
-    shoppingOHTTP: {
-        description: string;
-        owner: string;
-        hasExposure: boolean;
-        variables: {
-            ohttpRelayURL: {
-                description: string;
-                type: string;
-                setPref: {
-                    branch: string;
-                    pref: string;
-                };
-            };
-            ohttpConfigURL: {
                 description: string;
                 type: string;
                 setPref: {
@@ -5273,6 +5279,29 @@ export const FeatureManifest: {
             ctaCopyVariant: {
                 description: string;
                 type: string;
+            };
+        };
+    };
+    contextID: {
+        description: string;
+        owner: string;
+        hasExposure: boolean;
+        variables: {
+            rotationPeriodInDays: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
+            };
+            rustBackendEnabled: {
+                type: string;
+                setPref: {
+                    branch: string;
+                    pref: string;
+                };
+                description: string;
             };
         };
     };

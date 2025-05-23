@@ -66,6 +66,7 @@ export namespace Targets {
     let WebGPUIsFallbackAdapter: number;
     let WebGPUSubgroupSizes: number;
     let JSLocalePrompt: number;
+    let ScreenAvailToResolution: number;
     let IsAlwaysEnabledForPrecompute: number;
     let AllTargets: number;
 }
