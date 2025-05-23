@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -56,6 +57,7 @@ abstract class BasePage(
             when (step) {
                 is NavigationStep.Click -> mozClick(step.selector)
                 is NavigationStep.Swipe -> mozSwipeTo(step.selector, step.direction)
+                is NavigationStep.OpenNotificationsTray -> mozOpenNotificationsTray()
             }
         }
 
@@ -179,6 +181,12 @@ abstract class BasePage(
         throw AssertionError("❌ Element '${selector.description}' not found after $maxSwipes swipe(s)")
     }
 
+    fun mozOpenNotificationsTray(): BasePage {
+        mDevice.openNotification()
+
+        return this
+    }
+
     private fun performSwipe(direction: SwipeDirection) {
         val height = mDevice.displayHeight
         val width = mDevice.displayWidth
@@ -218,6 +226,15 @@ abstract class BasePage(
                 }
             }
 
+            SelectorStrategy.COMPOSE_BY_CONTENT_DESCRIPTION -> {
+                try {
+                    composeRule.onNodeWithContentDescription(selector.value)
+                } catch (e: Exception) {
+                    Log.i("mozGetElement", "Compose node not found for content description: ${selector.value}")
+                    null
+                }
+            }
+
             SelectorStrategy.ESPRESSO_BY_ID -> {
                 val resId = selector.toResourceId()
                 if (resId == 0) {
@@ -249,9 +266,23 @@ abstract class BasePage(
                 } else { obj }
             }
 
-            SelectorStrategy.UIAUTOMATOR2_BY_RES_ID -> {
-                val fullResId = "$packageName:${selector.value}"
-                val obj = mDevice.findObject(UiSelector().resourceId(fullResId))
+            SelectorStrategy.UIAUTOMATOR_WITH_RES_ID -> {
+                val obj = mDevice.findObject(UiSelector().resourceId(packageName + ":id/" + selector.value))
+                if (!obj.exists()) null else obj
+            }
+
+            SelectorStrategy.UIAUTOMATOR_WITH_TEXT -> {
+                val obj = mDevice.findObject(UiSelector().text(selector.value))
+                if (!obj.exists()) null else obj
+            }
+
+            SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS -> {
+                val obj = mDevice.findObject(UiSelector().textContains(selector.value))
+                if (!obj.exists()) null else obj
+            }
+
+            SelectorStrategy.UIAUTOMATOR_WITH_DESCRIPTION_CONTAINS -> {
+                val obj = mDevice.findObject(UiSelector().descriptionContains(selector.value))
                 if (!obj.exists()) null else obj
             }
         }

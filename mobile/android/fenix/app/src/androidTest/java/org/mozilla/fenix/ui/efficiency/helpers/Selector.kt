@@ -27,6 +27,7 @@ enum class SelectorStrategy {
     /**
      * Supported strategies for locating UI elements.
      */
+    COMPOSE_BY_CONTENT_DESCRIPTION,
     COMPOSE_BY_TAG,
     COMPOSE_BY_TEXT,
     ESPRESSO_BY_ID,
@@ -35,5 +36,8 @@ enum class SelectorStrategy {
     UIAUTOMATOR2_BY_RES,
     UIAUTOMATOR2_BY_CLASS,
     UIAUTOMATOR2_BY_TEXT,
-    UIAUTOMATOR2_BY_RES_ID,
+    UIAUTOMATOR_WITH_TEXT_CONTAINS,
+    UIAUTOMATOR_WITH_RES_ID,
+    UIAUTOMATOR_WITH_TEXT,
+    UIAUTOMATOR_WITH_DESCRIPTION_CONTAINS,
 }

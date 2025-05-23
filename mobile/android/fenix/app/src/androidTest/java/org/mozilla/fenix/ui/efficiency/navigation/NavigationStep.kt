@@ -10,4 +10,5 @@ import org.mozilla.fenix.ui.efficiency.helpers.SwipeDirection
 sealed class NavigationStep {
     data class Click(val selector: Selector) : NavigationStep()
     data class Swipe(val selector: Selector, val direction: SwipeDirection = SwipeDirection.UP) : NavigationStep()
+    data class OpenNotificationsTray(val openNotificationsTrayAction: () -> Unit) : NavigationStep()
 }

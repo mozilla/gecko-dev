@@ -1,5 +1,8 @@
 package org.mozilla.fenix.ui.efficiency.selectors
 
+import org.mozilla.fenix.R
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
+import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.ui.efficiency.helpers.Selector
 import org.mozilla.fenix.ui.efficiency.helpers.SelectorStrategy
 
@@ -67,6 +70,83 @@ object SettingsSelectors {
         groups = listOf("requiredForPage"),
     )
 
+    val ABOUT_BUTTON = Selector(
+        strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT,
+        value = "About $appName",
+        description = "the About button",
+        groups = listOf("swipeRequired"),
+    )
+
+    val DATA_COLLECTION_BUTTON = Selector(
+        strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
+        value = "Data collection",
+        description = "the Data Collection button",
+        groups = listOf("swipeRequired"),
+    )
+
+    val DELETE_BROWSING_DATA_ON_QUIT_BUTTON = Selector(
+        strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
+        value = "Delete browsing data on quit",
+        description = "the Delete browsing data on quit button",
+        groups = listOf("swipeRequired"),
+    )
+
+    val DELETE_BROWSING_DATA_BUTTON = Selector(
+        strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
+        value = "Delete browsing data",
+        description = "the Delete browsing data button",
+        groups = listOf("swipeRequired"),
+    )
+
+    val ENHANCED_TRACKING_PROTECTION_BUTTON = Selector(
+        strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
+        value = "Enhanced Tracking Protection",
+        description = "the Enhanced tracking protection button",
+        groups = listOf("swipeRequired"),
+    )
+
+    val HTTPS_ONLY_MODE_BUTTON = Selector(
+        strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
+        value = getStringResource(R.string.preferences_https_only_title),
+        description = "the HTTPS only mode button",
+        groups = listOf("swipeRequired"),
+    )
+
+    val LANGUAGE_BUTTON = Selector(
+        strategy = SelectorStrategy.ESPRESSO_BY_TEXT,
+        value = getStringResource(R.string.preferences_language),
+        description = "the Language button",
+        groups = listOf("requiredForPage"),
+    )
+
+    val OPEN_LINKS_IN_APPS_BUTTON = Selector(
+        strategy = SelectorStrategy.ESPRESSO_BY_TEXT,
+        value = "Open links in apps",
+        description = "the Open links in apps button",
+        groups = listOf("swipeRequired"),
+    )
+
+    val PRIVATE_BROWSING_BUTTON = Selector(
+        strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
+        value = "Private browsing",
+        description = "the Private browsing button",
+        groups = listOf("swipeRequired"),
+    )
+
+    val TRANSLATIONS_BUTTON = Selector(
+        strategy = SelectorStrategy.UIAUTOMATOR_WITH_TEXT_CONTAINS,
+        value = "Translations",
+        description = "the Private browsing button",
+        groups = listOf("translations"),
+    )
+
+    val SYNC_AND_SAVE_YOUR_DATA_BUTTON = Selector(
+        strategy = SelectorStrategy.ESPRESSO_BY_TEXT,
+        value = "Sync and save your data",
+        description = "the Sync and save your data button",
+        groups = listOf("requiredForPage"),
+    )
+
     val all = listOf(
         GO_BACK_BUTTON,
         GENERAL_HEADING,
@@ -77,5 +157,16 @@ object SettingsSelectors {
         CUSTOMIZE_BUTTON,
         HOMEPAGE_BUTTON,
         PASSWORDS_BUTTON,
+        ABOUT_BUTTON,
+        DATA_COLLECTION_BUTTON,
+        DELETE_BROWSING_DATA_ON_QUIT_BUTTON,
+        DELETE_BROWSING_DATA_BUTTON,
+        ENHANCED_TRACKING_PROTECTION_BUTTON,
+        HTTPS_ONLY_MODE_BUTTON,
+        LANGUAGE_BUTTON,
+        OPEN_LINKS_IN_APPS_BUTTON,
+        PRIVATE_BROWSING_BUTTON,
+        TRANSLATIONS_BUTTON,
+        SYNC_AND_SAVE_YOUR_DATA_BUTTON,
     )
 }

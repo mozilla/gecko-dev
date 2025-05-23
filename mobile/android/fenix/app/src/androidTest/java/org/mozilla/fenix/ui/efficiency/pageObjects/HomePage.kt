@@ -7,6 +7,7 @@ import org.mozilla.fenix.ui.efficiency.helpers.Selector
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationRegistry
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationStep
 import org.mozilla.fenix.ui.efficiency.selectors.HomeSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.MainMenuSelectors
 
 class HomePage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) : BasePage(composeRule) {
 
@@ -21,41 +22,41 @@ class HomePage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *
 
         NavigationRegistry.register(
             from = pageName,
-            to = "ThreeDotMenu",
-            steps = listOf(NavigationStep.Click(HomeSelectors.THREE_DOT_MENU)),
+            to = "MainMenuPage",
+            steps = listOf(NavigationStep.Click(HomeSelectors.MAIN_MENU_BUTTON)),
         )
 
         NavigationRegistry.register(
-            from = "ThreeDotMenu",
+            from = "MainMenuPage",
             to = "BookmarksPage",
-            steps = listOf(NavigationStep.Click(HomeSelectors.TDM_BOOKMARKS_BUTTON)),
+            steps = listOf(NavigationStep.Click(MainMenuSelectors.BOOKMARKS_BUTTON)),
         )
 
         NavigationRegistry.register(
-            from = "ThreeDotMenu",
+            from = "MainMenuPage",
             to = "SettingsPage",
             steps = listOf(
-                NavigationStep.Swipe(HomeSelectors.TDM_SETTINGS_BUTTON_COMPOSE),
-                NavigationStep.Click(HomeSelectors.TDM_SETTINGS_BUTTON_COMPOSE),
+                NavigationStep.Swipe(MainMenuSelectors.SETTINGS_BUTTON),
+                NavigationStep.Click(MainMenuSelectors.SETTINGS_BUTTON),
             ),
         )
 
         NavigationRegistry.register(
-            from = "ThreeDotMenu",
+            from = "MainMenuPage",
             to = "HistoryPage",
-            steps = listOf(NavigationStep.Click(HomeSelectors.TDM_HISTORY_BUTTON)),
+            steps = listOf(NavigationStep.Click(MainMenuSelectors.HISTORY_BUTTON)),
         )
 
         NavigationRegistry.register(
-            from = "ThreeDotMenu",
+            from = "MainMenuPage",
             to = "DownloadsPage",
-            steps = listOf(NavigationStep.Click(HomeSelectors.TDM_DOWNLOADS_BUTTON)),
+            steps = listOf(NavigationStep.Click(MainMenuSelectors.DOWNLOADS_BUTTON)),
         )
 
         NavigationRegistry.register(
-            from = "ThreeDotMenu",
+            from = "MainMenuPage",
             to = "PasswordsPage",
-            steps = listOf(NavigationStep.Click(HomeSelectors.TDM_PASSWORDS_BUTTON)),
+            steps = listOf(NavigationStep.Click(MainMenuSelectors.PASSWORDS_BUTTON)),
         )
     }
 

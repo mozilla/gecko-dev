@@ -6,7 +6,7 @@ import org.mozilla.fenix.ui.efficiency.helpers.BasePage
 import org.mozilla.fenix.ui.efficiency.helpers.Selector
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationRegistry
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationStep
-import org.mozilla.fenix.ui.efficiency.selectors.HomeSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.MainMenuSelectors
 import org.mozilla.fenix.ui.efficiency.selectors.SettingsSelectors
 
 class SettingsPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) : BasePage(composeRule) {
@@ -14,9 +14,9 @@ class SettingsPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRul
 
     init {
         NavigationRegistry.register(
-            from = "ThreeDotMenu",
+            from = "MainMenuPage",
             to = pageName,
-            steps = listOf(NavigationStep.Click(HomeSelectors.TDM_SETTINGS_BUTTON)),
+            steps = listOf(NavigationStep.Click(MainMenuSelectors.SETTINGS_BUTTON)),
         )
         NavigationRegistry.register(
             from = pageName,

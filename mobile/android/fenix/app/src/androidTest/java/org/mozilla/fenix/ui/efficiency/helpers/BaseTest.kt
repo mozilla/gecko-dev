@@ -14,7 +14,7 @@ import org.mozilla.fenix.helpers.TestSetup
 
 abstract class BaseTest(
     private val skipOnboarding: Boolean = true,
-    private val isMenuRedesignEnabled: Boolean = true,
+    private val isMenuRedesignEnabled: Boolean = false,
     private val isMenuRedesignCFREnabled: Boolean = false,
     private val isPageLoadTranslationsPromptEnabled: Boolean = false,
 ) : TestSetup() {
