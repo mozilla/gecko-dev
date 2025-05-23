@@ -59,10 +59,6 @@ class OnboardingPreferencesMiddleware(
                         .OnboardingPreferenceUpdate(action.selected.toOnboardingPreference()),
                 )
             }
-
-            // no-ops
-            is OnboardingAction.OnboardingAddOnsAction.UpdateStatus -> {}
-            is OnboardingAction.OnboardingAddOnsAction.UpdateAddons -> {}
         }
     }
 

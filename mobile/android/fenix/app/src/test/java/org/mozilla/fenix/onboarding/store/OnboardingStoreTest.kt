@@ -2,10 +2,7 @@ package org.mozilla.fenix.onboarding.store
 
 import mozilla.components.support.test.ext.joinBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Test
-import org.mozilla.fenix.R
-import org.mozilla.fenix.onboarding.view.OnboardingAddOn
 import org.mozilla.fenix.onboarding.view.ThemeOptionType
 import org.mozilla.fenix.onboarding.view.ToolbarOptionType
 
@@ -14,86 +11,13 @@ class OnboardingStoreTest {
     @Test
     fun `WHEN init action is dispatched THEN state is updated as expected`() {
         val store = OnboardingStore()
-        val addOns: List<OnboardingAddOn> = emptyList()
 
         store.dispatch(OnboardingAction.Init).joinBlocking()
 
         val expected = OnboardingState(
-            addOns = addOns,
-            addOnInstallationInProcess = false,
             toolbarOptionSelected = ToolbarOptionType.TOOLBAR_TOP,
         )
         assertEquals(expected, store.state)
-    }
-
-    @Test
-    fun `WHEN the update addons action is dispatched THEN addOns and installationInProcess state is updated`() {
-        val store = OnboardingStore()
-        val addOns: List<OnboardingAddOn> = listOf(
-            OnboardingAddOn(
-                id = "add-on-1",
-                iconRes = R.drawable.ic_extensions_onboarding,
-                name = "test add-on 1",
-                description = "test 1 add-on description",
-                averageRating = "4.5",
-                reviewCount = "134",
-                installUrl = "url1",
-                status = OnboardingAddonStatus.NOT_INSTALLED,
-            ),
-            OnboardingAddOn(
-                id = "add-on-2",
-                iconRes = R.drawable.ic_extensions_onboarding,
-                name = "test add-on 2",
-                description = "test 2 add-on description",
-                averageRating = "4.5",
-                reviewCount = "1,234",
-                installUrl = "url2",
-                status = OnboardingAddonStatus.NOT_INSTALLED,
-            ),
-        )
-
-        store.dispatch(OnboardingAction.OnboardingAddOnsAction.UpdateAddons(addOns)).joinBlocking()
-
-        assertEquals(
-            addOns,
-            store.state.addOns,
-        )
-        assertFalse(store.state.addOnInstallationInProcess)
-
-        store.dispatch(
-            OnboardingAction.OnboardingAddOnsAction.UpdateStatus(
-                addOnId = "add-on-1",
-                status = OnboardingAddonStatus.INSTALLED,
-            ),
-        ).joinBlocking()
-
-        assertFalse(store.state.addOnInstallationInProcess)
-
-        assertEquals(
-            listOf(
-                OnboardingAddOn(
-                    id = "add-on-1",
-                    iconRes = R.drawable.ic_extensions_onboarding,
-                    name = "test add-on 1",
-                    description = "test 1 add-on description",
-                    averageRating = "4.5",
-                    reviewCount = "134",
-                    installUrl = "url1",
-                    status = OnboardingAddonStatus.INSTALLED,
-                ),
-                OnboardingAddOn(
-                    id = "add-on-2",
-                    iconRes = R.drawable.ic_extensions_onboarding,
-                    name = "test add-on 2",
-                    description = "test 2 add-on description",
-                    averageRating = "4.5",
-                    reviewCount = "1,234",
-                    installUrl = "url2",
-                    status = OnboardingAddonStatus.NOT_INSTALLED,
-                ),
-            ),
-            store.state.addOns,
-        )
     }
 
     @Test

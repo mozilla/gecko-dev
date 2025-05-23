@@ -320,7 +320,7 @@ class OnboardingMapperTest {
         val imageRes = R.drawable.ic_extensions_onboarding
         val title = "Terms of service card title"
         val description = "Terms of service card body"
-        val primaryButtonLabel = "add-ons card primary button text"
+        val primaryButtonLabel = "onboarding card primary button text"
 
         val lineOneText = "By continuing, you agree to the %1\$s."
         val lineOneLinkText = "Firefox Terms of Use"

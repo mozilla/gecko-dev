@@ -16,7 +16,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.verify
-import org.mockito.Mockito.verifyNoInteractions
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations
@@ -87,20 +86,5 @@ class OnboardingPreferencesMiddlewareTest {
                 ),
             )
             verifyNoMoreInteractions(repository)
-        }
-
-    @Test
-    fun `GIVEN no op actions with WHEN middleware is invoked THEN nothing happens`() =
-        runTestOnMain {
-            middleware.invoke(
-                context = context,
-                next = {},
-                action = OnboardingAction.OnboardingAddOnsAction.UpdateStatus(
-                    addOnId = "test",
-                    status = OnboardingAddonStatus.INSTALLED,
-                ),
-            )
-
-            verifyNoInteractions(repository)
         }
 }

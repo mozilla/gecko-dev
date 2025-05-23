@@ -6,7 +6,6 @@ package org.mozilla.fenix.onboarding.view
 
 import androidx.annotation.DrawableRes
 import org.mozilla.fenix.compose.LinkTextState
-import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 /**
  * Model containing data for [OnboardingPage].
@@ -17,7 +16,6 @@ import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
  * @property privacyCaption Optional privacy caption to show and allow user to view the privacy policy.
  * @property primaryButton [Action] for the primary button.
  * @property secondaryButton Optional [Action] for the secondary button.
- * @property addOns Optional list of add-ons to install during onboarding.
  * @property themeOptions Optional list of theme customizing options during onboarding.
  * @property termsOfService Optional term of service page data.
  * @property toolbarOptions Optional list of toolbar selection options.
@@ -31,7 +29,6 @@ data class OnboardingPageState(
     val privacyCaption: Caption? = null,
     val primaryButton: Action,
     val secondaryButton: Action? = null,
-    val addOns: List<OnboardingAddOn>? = null,
     val themeOptions: List<ThemeOption>? = null,
     val termsOfService: OnboardingTermsOfService? = null,
     val toolbarOptions: List<ToolbarOption>? = null,
@@ -53,20 +50,6 @@ data class Action(
 data class Caption(
     val text: String,
     val linkTextState: LinkTextState,
-)
-
-/**
- * Model containing data for an add-on that's installable during onboarding.
- */
-data class OnboardingAddOn(
-    val id: String,
-    @DrawableRes val iconRes: Int,
-    val name: String,
-    val description: String,
-    val averageRating: String,
-    val reviewCount: String,
-    val installUrl: String,
-    val status: OnboardingAddonStatus,
 )
 
 /**

@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.onboarding.view
 
-import org.mozilla.fenix.nimbus.AddOnData
 import org.mozilla.fenix.nimbus.CustomizationThemeData
 import org.mozilla.fenix.nimbus.CustomizationToolbarData
 import org.mozilla.fenix.nimbus.MarketingData
@@ -13,7 +12,6 @@ import org.mozilla.fenix.nimbus.OnboardingCardType
 import org.mozilla.fenix.nimbus.TermsOfServiceData
 import org.mozilla.fenix.nimbus.ThemeType
 import org.mozilla.fenix.nimbus.ToolbarType
-import org.mozilla.fenix.onboarding.store.OnboardingAddonStatus
 
 /**
  * Returns a list of all the required Nimbus 'cards' that have been converted to [OnboardingPageUiData].
@@ -108,7 +106,6 @@ private fun OnboardingCardData.toPageUiData(privacyCaption: Caption?) = Onboardi
     primaryButtonLabel = primaryButtonLabel,
     secondaryButtonLabel = secondaryButtonLabel.ifEmpty { null },
     privacyCaption = privacyCaption,
-    addOns = extraData?.addOnsData?.takeIf { it.isNotEmpty() }?.toOnboardingAddOns(),
     toolbarOptions = extraData?.customizationToolbarData
         ?.takeIf { it.isNotEmpty() }
         ?.toOnboardingToolbarOptions(),
@@ -130,8 +127,6 @@ private fun OnboardingCardType.toPageUiDataType() = when (this) {
     OnboardingCardType.MARKETING_DATA -> OnboardingPageUiData.Type.MARKETING_DATA
 }
 
-private fun List<AddOnData>.toOnboardingAddOns() = map { it.toOnboardingAddOn() }
-
 private fun List<CustomizationToolbarData>.toOnboardingToolbarOptions() = map { it.toOnboardingCustomizeToolbar() }
 
 private fun TermsOfServiceData.toOnboardingTermsOfService() = with(this) {
@@ -152,19 +147,6 @@ private fun MarketingData.toOnboardingMarketingData() = OnboardingMarketingData(
     bodyOneLinkText = bodyLineOneLinkText,
     bodyTwoText = bodyLineTwoText,
 )
-
-private fun AddOnData.toOnboardingAddOn() = with(this) {
-    OnboardingAddOn(
-        id = id,
-        iconRes = iconRes.resourceId,
-        name = name,
-        description = description,
-        averageRating = averageRating,
-        reviewCount = reviewCount,
-        installUrl = installUrl,
-        status = OnboardingAddonStatus.NOT_INSTALLED,
-    )
-}
 
 private fun CustomizationToolbarData.toOnboardingCustomizeToolbar() = with(this) {
     ToolbarOption(
@@ -277,7 +259,6 @@ private fun createOnboardingPageState(
         Action(it, onNegativeButtonClick)
     },
     privacyCaption = onboardingPageUiData.privacyCaption,
-    addOns = onboardingPageUiData.addOns,
     themeOptions = onboardingPageUiData.themeOptions,
     toolbarOptions = onboardingPageUiData.toolbarOptions,
     termsOfService = onboardingPageUiData.termsOfService,
