@@ -50,28 +50,3 @@ class CustomError extends Error {}
   assertArrayEq(disposed, ['a']);
   assertEq(catchCalled, false);
 }
-
-{
-  const disposed = [];
-  let catchCalled = false;
-  function testDisposalErrorIsNotCaughtByNonEnclosingTryWhenSwitchCase() {
-    switch (1) {
-      case 1:
-        using x = {
-          [Symbol.dispose]() {
-            disposed.push('a');
-            throw new CustomError("dispose error");
-          }
-        }
-        try {
-          break;
-        } catch {
-          catchCalled = true;
-        }
-    }
-  }
-
-  assertThrowsInstanceOf(testDisposalErrorIsNotCaughtByNonEnclosingTryWhenSwitchCase, CustomError);
-  assertArrayEq(disposed, ['a']);
-  assertEq(catchCalled, false);
-}

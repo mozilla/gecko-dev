@@ -2565,8 +2565,8 @@ bool GeneralParser<ParseHandler, Unit>::matchOrInsertSemicolon(
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
     if (options().explicitResourceManagement() &&
-        !this->pc_->isUsingSyntaxAllowed() &&
-        anyChars.currentToken().type == TokenKind::Using) {
+        anyChars.currentToken().type == TokenKind::Using &&
+        !this->pc_->isUsingSyntaxAllowed()) {
       error(JSMSG_USING_OUTSIDE_BLOCK_OR_MODULE);
       return false;
     }

@@ -783,6 +783,9 @@ skip script test262/language/expressions/class/decorator/syntax/class-valid/deco
 # https://github.com/tc39/test262/issues/4359
 skip script test262/staging/sm/WeakMap/symbols.js
 
+# https://github.com/rbuckton/ecma262/pull/14
+skip script test262/staging/explicit-resource-management/call-dispose-methods.js
+skip script test262/staging/explicit-resource-management/await-using-in-switch-case-block.js
 
 ##############################################
 # Enable Iterator Helpers tests in the shell #
