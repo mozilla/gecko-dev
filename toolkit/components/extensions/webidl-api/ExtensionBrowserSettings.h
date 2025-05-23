@@ -69,6 +69,7 @@ class ExtensionBrowserSettings final : public nsISupports,
   ExtensionSetting* UseDocumentFonts();
   ExtensionSetting* ZoomFullPage();
   ExtensionSetting* ZoomSiteSpecific();
+  ExtensionSetting* VerticalTabs();
 
   ExtensionBrowserSettingsColorManagement*
   GetExtensionBrowserSettingsColorManagement();
@@ -99,6 +100,7 @@ class ExtensionBrowserSettings final : public nsISupports,
   RefPtr<ExtensionSetting> mUseDocumentFontsSetting;
   RefPtr<ExtensionSetting> mZoomFullPageSetting;
   RefPtr<ExtensionSetting> mZoomSiteSpecificSetting;
+  RefPtr<ExtensionSetting> mVerticalTabsSetting;
   RefPtr<ExtensionBrowserSettingsColorManagement> mColorManagementNamespace;
 };
 
