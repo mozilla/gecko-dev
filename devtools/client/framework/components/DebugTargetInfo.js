@@ -184,7 +184,13 @@ class DebugTargetInfo extends PureComponent {
       console.error(ex);
     }
 
-    this.props.toolbox.commands.targetCommand.navigateTo(url);
+    // Do not waitForLoad as we don't wait navigateTo to resolve anyway.
+    // Bug 1968023: navigateTo is flaky and sometimes never catches the
+    // STATE_STOP notification necessary for waitForLoad=true.
+    this.props.toolbox.commands.targetCommand.navigateTo(
+      url,
+      false /* waitForLoad */
+    );
   }
 
   shallRenderConnection() {
