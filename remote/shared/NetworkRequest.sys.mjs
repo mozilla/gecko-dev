@@ -10,7 +10,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://devtools/shared/network-observer/NetworkUtils.sys.mjs",
 
   Log: "chrome://remote/content/shared/Log.sys.mjs",
-  NavigationState: "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifyNavigationStarted:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
@@ -511,7 +510,7 @@ export class NetworkRequest {
     // `onBeforeRequestSent` might be too early for the NavigationManager.
     // If there is no ongoing navigation, create one ourselves.
     // TODO: Bug 1835704 to detect navigations earlier and avoid this.
-    if (!navigation || navigation.state !== lazy.NavigationState.Started) {
+    if (!navigation || navigation.state !== "started") {
       navigation = lazy.notifyNavigationStarted({
         contextDetails: { context: browsingContext },
         url: this.serializedURL,
