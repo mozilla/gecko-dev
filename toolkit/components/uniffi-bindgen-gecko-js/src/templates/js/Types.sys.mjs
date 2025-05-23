@@ -1,11 +1,13 @@
+{%- if !ci.callback_interface_definitions().is_empty() %}
+{%- include "CallbackInterfaceRuntime.sys.mjs" %}
+
+{% endif %}
 
 
-{%- for type_def in type_definitions %}
-{% match type_def %}
+{%- for type_ in ci.iter_local_types() %}
+{%- let ffi_converter = type_.ffi_converter() %}
+{%- match type_ %}
 
-{%- when TypeDefinition::Simple(type_node) %}
-{%- let ffi_converter = type_node.ffi_converter %}
-{%- match type_node.ty %}
 {%- when Type::Boolean %}
 {%- include "Boolean.sys.mjs" %}
 
@@ -39,58 +41,63 @@
 {%- when Type::Float64 %}
 {%- include "Float64.sys.mjs" %}
 
+{%- when Type::Record { name, module_path } %}
+{%- include "Record.sys.mjs" %}
+
+{%- when Type::Optional { inner_type } %}
+{%- include "Optional.sys.mjs" %}
+
 {%- when Type::String %}
 {%- include "String.sys.mjs" %}
 
 {%- when Type::Bytes %}
 {%- include "Bytes.sys.mjs" %}
 
-{%- else %}
-
-throw("Unexpected type in `TypeDefinition::Simple` {{ "{type_node:?}"|format }}")
-
-{%- endmatch %}
-
-{%- when TypeDefinition::Optional(optional) %}
-{%- include "Optional.sys.mjs" %}
-
-
-{%- when TypeDefinition::Sequence(sequence) %}
+{%- when Type::Sequence { inner_type } %}
 {%- include "Sequence.sys.mjs" %}
 
-{%- when TypeDefinition::Map(map) %}
+{%- when Type::Map { key_type, value_type } %}
 {%- include "Map.sys.mjs" %}
 
-
-{%- when TypeDefinition::Record(record) %}
-{%- include "Record.sys.mjs" %}
-
-{%- when TypeDefinition::Enum(e) %}
+{%- when Type::Enum { name, module_path } %}
+{%- let e = ci.get_enum_definition(name).unwrap() %}
 {# For enums, there are either an error *or* an enum, they can't be both. #}
-{%- if e.self_type.is_used_as_error %}
+{%- if ci.is_name_used_as_error(name) %}
 {%- let error = e %}
 {%- include "Error.sys.mjs" %}
 {%- else %}
 {%- let enum_ = e %}
 {%- include "Enum.sys.mjs" %}
-{%- endif %}
+{% endif %}
 
+{%- when Type::Object { name, imp, module_path } %}
+{%- include "Object.sys.mjs" %}
 
-{%- when TypeDefinition::Interface(int) %}
-{%- include "Interface.sys.mjs" %}
-
-{%- when TypeDefinition::Custom(custom) %}
+{%- when Type::Custom { name, builtin, module_path } %}
 {%- include "CustomType.sys.mjs" %}
 
-{%- when TypeDefinition::CallbackInterface(cbi) %}
+{%- when Type::CallbackInterface { name, module_path } %}
 {%- include "CallbackInterface.sys.mjs" %}
-
-{%- when TypeDefinition::External(external) %}
-{%- include "ExternalType.sys.mjs" %}
 
 {%- else %}
 {#- TODO implement the other types #}
 
 {%- endmatch %}
 
+{% endfor %}
+
+{%- for type_ in ci.iter_external_types() %}
+{%- let ffi_converter = type_.ffi_converter() %}
+{%- let name = type_.name().expect("External type without name") %}
+{%- let module_path = type_.module_path().expect("External type without module path") %}
+{%- include "ExternalType.sys.mjs" %}
 {%- endfor %}
+
+
+{%- if !ci.callback_interface_definitions().is_empty() %}
+// Define callback interface handlers, this must come after the type loop since they reference the FfiConverters defined above.
+
+{% for cbi in ci.callback_interface_definitions() %}
+{%- include "CallbackInterfaceHandler.sys.mjs" %}
+{% endfor %}
+{% endif %}

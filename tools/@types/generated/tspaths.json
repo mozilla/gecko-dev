@@ -6392,6 +6392,9 @@
       "resource://gre/modules/Troubleshoot.sys.mjs": [
         "toolkit/modules/Troubleshoot.sys.mjs"
       ],
+      "resource://gre/modules/UniFFI.sys.mjs": [
+        "toolkit/components/uniffi-js/js/UniFFI.sys.mjs"
+      ],
       "resource://gre/modules/UninstallPing.sys.mjs": [
         "toolkit/components/telemetry/pings/UninstallPing.sys.mjs"
       ],
