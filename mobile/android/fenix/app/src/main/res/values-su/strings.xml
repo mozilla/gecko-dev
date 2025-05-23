@@ -321,7 +321,7 @@
   -->
   <string name="browser_menu_save">Teundeun</string>
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
-  <string name="browser_menu_save_description">Tambahan tetengger, Panarabas, Imah, Koléksi, PDF\u0032</string>
+  <string name="browser_menu_save_description">Tambahan tetengger, Panarabas, Imah, Koléksi, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page">Markahkeun ieu kaca</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -345,7 +345,7 @@
     Browser menu label for the Delete browsing data on quit feature.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="browser_menu_delete_browsing_data_on_quit">Eureun %1$s\u0032</string>
+  <string name="browser_menu_delete_browsing_data_on_quit">Eureun %1$s</string>
   <!--
     Menu "contextual feature recommendation" (CFR)
 
@@ -353,7 +353,7 @@
   -->
   <string name="menu_cfr_title">Anyar: ménu nu diutamakeun</string>
   <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
-  <string name="menu_cfr_body">Manggihkeun kabutuhan anjeun leuwih ganjang, ti panyungsian privat nepi ka nyimpen.\u0032</string>
+  <string name="menu_cfr_body">Manggihkeun kabutuhan anjeun leuwih ganjang, ti panyungsian privat nepi ka nyimpen.</string>
   <!--
     Extensions management fragment
 
@@ -378,7 +378,7 @@
     %1$s is the name of the language that is displayed in the original page. (For example: English)
     %2$s is the name of the language which the page was translated to. (For example: French)
   -->
-  <string name="browser_toolbar_translated_successfully">Kaca ditarjamahkeun ti %1$s ka %2$s.\u0032</string>
+  <string name="browser_toolbar_translated_successfully">Kaca ditarjamahkeun ti %1$s ka %2$s.</string>
   <!--
     Locale Settings Fragment
 
@@ -445,9 +445,9 @@
   -->
   <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Téang iber naha mangyuta jalma resep Firefox</string>
   <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
-  <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Panyungsian aman jeung réa pilihan\u0032</string>
+  <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Panyungsian aman jeung réa pilihan</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
-  <string name="juno_onboarding_default_browser_description_nimbus_3">Browser anu dirojong kalawan nirlaba urang nulungan pikeun mahing pausahaan ngukuntit anjuen dina wéb.\u0032</string>
+  <string name="juno_onboarding_default_browser_description_nimbus_3">Browser anu dirojong kalawan nirlaba urang nulungan pikeun mahing pausahaan ngukuntit anjuen dina wéb.</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">Leuwih ti 100 juta jalma ngajaga privasina ku milih browser anu dirojong ku nirlaba.</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -586,7 +586,7 @@
   <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Rekés dukungan dikirim</string>
   <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-  <string name="reduce_cookie_banner_unsupported_site">Kiwari loka teu didukung\u0032</string>
+  <string name="reduce_cookie_banner_unsupported_site">Kiwari loka teu didukung</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Hurungkeun Pameungpeuk Spanduk Réréméh pikeun %1$s?</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
@@ -1726,7 +1726,7 @@
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
   <string name="preference_enhanced_tracking_protection_standard_default_1">Baku (bawaan)</string>
   <!-- Preference description for enhanced tracking protection for the standard protection settings -->
-  <string name="preference_enhanced_tracking_protection_standard_description_5">Kaca loka bakal muka sakumaha biasa, ngan meungpeuk leuwih saeutik palacak.\u0032</string>
+  <string name="preference_enhanced_tracking_protection_standard_description_5">Kaca loka bakal muka sakumaha biasa, ngan meungpeuk leuwih saeutik palacak.</string>
   <!-- Accessibility text for the Standard protection information icon -->
   <string name="preference_enhanced_tracking_protection_standard_info_button">Naon anu dipeungpeuk ku perlindungan pelacakan baku</string>
   <!-- Preference for enhanced tracking protection for the strict protection settings -->
@@ -1822,7 +1822,7 @@
   <!-- Preference for fingerprinting protection for the custom protection settings -->
   <string name="etp_suspected_fingerprinters_title">Sidik ramo anu dicurigaan</string>
   <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
-  <string name="etp_suspected_fingerprinters_description">Hurungkeun panyalindung sidik ramo pikeun nulak sidik ramo anu dicurigaan\u0032</string>
+  <string name="etp_suspected_fingerprinters_description">Hurungkeun panyalindung sidik ramo pikeun nulak sidik ramo anu dicurigaan</string>
   <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_known_fingerprinters_title">Sidik ramo nu dipiwanoh</string>
   <!--
@@ -2255,7 +2255,7 @@
   <!-- Label text displayed for a sponsored top site. -->
   <string name="top_sites_sponsored_label">Disponsoran</string>
   <!-- Text for the menu item to edit a top site. -->
-  <string name="top_sites_edit_top_site">Ropéa\u0032</string>
+  <string name="top_sites_edit_top_site">Ropéa</string>
   <!-- Text for the dialog title to edit a top site. -->
   <string name="top_sites_edit_dialog_title">Ropéa panarabas</string>
   <!-- Button caption to confirm the edit of the top site. -->
@@ -2446,7 +2446,7 @@
   <!-- Toggle switch description that will appear under the "Never translate these sites" settings toggle switch to provide more information on how this setting interacts with other settings. -->
   <string name="translation_option_bottom_sheet_switch_never_translate_site_description">Timpah sakabéh setelan séjén</string>
   <!-- Toggle switch description that will appear under the "Never translate" and "Always translate" toggle switch settings to provide more information on how these  settings interacts with other settings. -->
-  <string name="translation_option_bottom_sheet_switch_description">Timpah tawaran pikeun narjamahkeun\u0032</string>
+  <string name="translation_option_bottom_sheet_switch_description">Timpah tawaran pikeun narjamahkeun</string>
   <!-- Button text for the button that will take the user to the translation settings dialog. -->
   <string name="translation_option_bottom_sheet_translation_settings">Setélan tarjamahan</string>
   <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. %1$s is the name of the app (for example "Firefox"). -->
@@ -2701,7 +2701,7 @@
   <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan Firefox bisa nyitak leuwih hadé. Ngan perlu sakolépat</string>
   <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
-  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan panyungsi Firefox leuwih hadé. Ngan perlu samenit baé.\u0032</string>
+  <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan panyungsi Firefox leuwih hadé. Ngan perlu samenit baé.</string>
   <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
   <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan singkronisasi Firefox leuwih hadé. Ngan perlu samenit baé</string>
   <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2741,7 +2741,7 @@
 
     The title of the CFR Tools feature in the Debug Drawer
   -->
-  <string name="debug_drawer_cfr_tools_title">Pakakas CFR\u0032</string>
+  <string name="debug_drawer_cfr_tools_title">Pakakas CFR</string>
   <!-- The title of the reset CFR section in CFR Tools -->
   <string name="debug_drawer_cfr_tools_reset_cfr_title">Atur deui CFRs</string>
   <!--

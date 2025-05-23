@@ -2961,9 +2961,9 @@
   -->
   <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">Assegniamo alle recensioni di ogni prodotto un &lt;b&gt;voto in lettere&lt;/b&gt; dalla A alla F.</string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">La &lt;b&gt;valutazione rettificata&lt;/b&gt; si basa esclusivamente su recensioni che riteniamo affidabili.</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">La &lt;b&gt;valutazione rettificata&lt;/b&gt; si basa esclusivamente su recensioni che riteniamo attendibili.</string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">Gli elementi &lt;b&gt;in evidenza&lt;/b&gt; provengono dalle recensioni su %s degli ultimi 80 giorni che riteniamo affidabili.</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">Gli elementi &lt;b&gt;in evidenza&lt;/b&gt; provengono dalle recensioni su %s degli ultimi 80 giorni che riteniamo attendibili.</string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 

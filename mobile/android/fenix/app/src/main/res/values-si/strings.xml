@@ -62,8 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">\u0032ඔබ පෞද්. පටිති වසා දැමූ විට හෝ යෙදුමෙන් ඉවත් වූ විට %1$s ඔබගේ සෙවුම් සහ පිරික්සුම් ඉතිහාසය හිස් කරයි, නමුත් ඔබව අඩවි වලින් හෝ අන්තර්ජාල සැපයුම්කරුගෙන් නිර්නාමික නොකරයි. මෙය ඔබ මාර්ගගතව කරන දෑ මෙම උපාංගය භාවිතා කරන වෙනත් අයගෙන් පෞද්ගලිකව තබා ගැනීම පහසු කරයි.</string>
-  <string name="private_browsing_common_myths">\u0032පෞද්ගලික පිරික්සීම පිළිබඳව සුලබ මිථ්‍යා\u0032</string>
+  <string name="private_browsing_placeholder_description_2">ඔබ පෞද්. පටිති වසා දැමූ විට හෝ යෙදුමෙන් ඉවත් වූ විට %1$s ඔබගේ සෙවුම් සහ පිරික්සුම් ඉතිහාසය හිස් කරයි, නමුත් ඔබව අඩවි වලින් හෝ අන්තර්ජාල සැපයුම්කරුගෙන් නිර්නාමික නොකරයි. මෙය ඔබ මාර්ගගතව කරන දෑ මෙම උපාංගය භාවිතා කරන වෙනත් අයගෙන් පෞද්ගලිකව තබා ගැනීම පහසු කරයි.</string>
+  <string name="private_browsing_common_myths">පෞද්ගලික පිරික්සීම පිළිබඳව සුලබ මිථ්‍යා</string>
   <!--
     True Private Browsing Mode
 

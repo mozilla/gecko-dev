@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s omopotĩ nde jeheka ha kundahára rembiasakue tendayke ñemiguápe emboty térã esẽenguévo ko tembiporu’ígui. Kóva nande kuaukáiramo jepe ñanduti rendápe térã ne ñanduti me’ẽhárape, nombohasýi eime ñemi hag̃ua opaite tapicha oiporúva ko mba’e’oka renondépe.</string>
-  <string name="private_browsing_common_myths">\u0032Mombe’ugua’u kundahára ñemi rehegua\u0032</string>
+  <string name="private_browsing_common_myths">Mombe’ugua’u kundahára ñemi rehegua</string>
   <!--
     True Private Browsing Mode
 
@@ -927,7 +927,7 @@
   <!-- Preference for notifications -->
   <string name="preferences_notifications">Ñemomarandu</string>
   <!-- Summary for notification preference indicating notifications are allowed -->
-  <string name="notifications_allowed_summary">Moneĩmbyre\u0032</string>
+  <string name="notifications_allowed_summary">Moneĩmbyre</string>
   <!-- Summary for notification preference indicating notifications are not allowed -->
   <string name="notifications_not_allowed_summary">Oñemoneĩ’ỹva</string>
   <!--
@@ -1806,7 +1806,7 @@
   <!-- Label that indicates that a permission must be blocked -->
   <string name="preference_option_phone_feature_blocked">Jokopyre</string>
   <!-- Label that indicates that a permission must be allowed -->
-  <string name="preference_option_phone_feature_allowed">Moneĩmbyre\u0032</string>
+  <string name="preference_option_phone_feature_allowed">Moneĩmbyre</string>
   <!-- Label that indicates a permission is by the Android OS -->
   <string name="phone_feature_blocked_by_android">Android ojokopyre</string>
   <!-- Preference for showing a list of websites that the default configurations won't apply to them -->

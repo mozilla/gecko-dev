@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s usuwa historię wyszukiwania i przeglądania w prywatnych kartach po ich zamknięciu lub wyłączeniu aplikacji. Chociaż nie czyni to użytkownika anonimowym wobec stron internetowych ani dostawcy Internetu, to ułatwia zachowanie prywatności przed pozostałymi użytkownikami tego urządzenia.</string>
-  <string name="private_browsing_common_myths">\u0032Popularne mity na temat przeglądania prywatnego\u0032</string>
+  <string name="private_browsing_common_myths">Popularne mity na temat przeglądania prywatnego</string>
   <!--
     True Private Browsing Mode
 

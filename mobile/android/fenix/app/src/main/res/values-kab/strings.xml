@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s iseffeḍ amazray-ik n unadi d tunigin seg waccaren n tunigin tusligin mi ara tent-tmeḍleḍ neɣ mi ara teffɣeḍ seg usnas. Ɣas wama aya ur yettarra ara d udrig deg yismal web neɣ deg usaǧǧaw-ik n unekcum Internet, aya ad k-yeǧǧ ad tḥarzeḍ tabaḍnit n urmud-ik srid i wid yesseqdacen ibenk-ik.</string>
-  <string name="private_browsing_common_myths">\u0032Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara\u0032</string>
+  <string name="private_browsing_common_myths">Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara</string>
   <!--
     True Private Browsing Mode
 
@@ -2324,7 +2324,7 @@
     Open source licenses page title
     %s is the name of the app (for example "Firefox")
   -->
-  <string name="open_source_licenses_title">%s | timkerḍiyin OSS\u0032</string>
+  <string name="open_source_licenses_title">%s | timkerḍiyin OSS</string>
   <!-- Category of trackers (redirect trackers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_redirect_trackers_title">Welleh i yineḍfaren</string>
   <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
@@ -2501,6 +2501,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Kkes akk tisuraf</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Nadi awalen uffiren</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Ɣer deffir</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Asmel web</string>
   <!-- The header for the username for a login -->
@@ -2983,7 +2985,7 @@
   <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
   <string name="translations_bottom_sheet_translate_to">Suqqel ɣer</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
-  <string name="translations_bottom_sheet_translate_from_unsupported_language">Ɛreḍ tutlayt taɣbalut niḍen\u0032</string>
+  <string name="translations_bottom_sheet_translate_from_unsupported_language">Ɛreḍ tutlayt taɣbalut niḍen</string>
   <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
   <string name="translations_bottom_sheet_negative_button">Mačči tura</string>
   <!-- Button text on the translations dialog to restore the translated website back to the original untranslated version. -->

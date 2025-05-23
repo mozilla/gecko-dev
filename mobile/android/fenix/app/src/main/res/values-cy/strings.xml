@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">Mae %1$s yn clirio’ch hanes chwilio a phori o dabiau preifat pan fyddwch yn eu cau neu’n gadael yr ap. Er nad yw hyn yn eich gwneud chi’n anhysbys i wefannau neu’ch darparwr gwasanaeth rhyngrwyd, mae’n ei gwneud hi’n haws cadw’r hyn rydych chi’n ei wneud ar-lein yn breifat rhag unrhyw un arall sy’n defnyddio’r ddyfais hon.</string>
-  <string name="private_browsing_common_myths">\u0032Mythau cyffredin am bori preifat\u0032</string>
+  <string name="private_browsing_common_myths">Mythau cyffredin am bori preifat</string>
   <!--
     True Private Browsing Mode
 
@@ -1321,7 +1321,7 @@
   -->
   <string name="recently_closed_tab">%d tab</string>
   <!-- Recently closed tabs screen message when there are no recently closed tabs -->
-  <string name="recently_closed_empty_message">Dim tabiau wedi’u cau yn ddiweddar yma\u0032</string>
+  <string name="recently_closed_empty_message">Dim tabiau wedi’u cau yn ddiweddar yma</string>
   <!--
     Tab Management
 
@@ -2339,7 +2339,7 @@
   <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_redirect_trackers_description">Yn clirio cwcis wedi’u gosod i ailgyfeirio i wefannau tracio hysbys.</string>
   <!-- Preference for fingerprinting protection for the custom protection settings -->
-  <string name="etp_suspected_fingerprinters_title">Amheuaeth o Fysbrintwyr\u0032</string>
+  <string name="etp_suspected_fingerprinters_title">Amheuaeth o Fysbrintwyr</string>
   <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
   <string name="etp_suspected_fingerprinters_description">Yn galluogi diogelu rhag bysbrintio er mwyn atal bysbrintwyr posib.</string>
   <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
@@ -2511,7 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Cyfrineiriau wedi\'u cadw</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Bydd y cyfrineiriau rydych yn eu cadw neu eu cydweddu i %s yn cael eu rhestru yma. Mae\'r holl gyfrineiriau rydych chi\'n eu cadw wedi\'u hamgryptio.\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Bydd y cyfrineiriau rydych yn eu cadw neu eu cydweddu i %s yn cael eu rhestru yma. Mae\'r holl gyfrineiriau rydych chi\'n eu cadw wedi\'u hamgryptio.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Dysgwch fwy am gydweddu</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->

@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s جست‌وجوها و تاریخچهٔ مرور شما را هنگام خروج از برنامه یا بستن زبانه‌های خصوصی پاک می‌کند. در حالی که این کار شما را برای وبگاه‌ها یا فراهم‌کنندگان اینترنت ناشناس نمی‌کند، این کار مخفی کردن فعالیت‌های برخط شما را برای هرکس دیگری که از این افزاره استفاده می‌کند را ساده‌تر می‌کند.</string>
-  <string name="private_browsing_common_myths">\u0032باورهای غلط و رایج در مورد مرور خصوصی\u0032</string>
+  <string name="private_browsing_common_myths">باورهای غلط و رایج در مورد مرور خصوصی</string>
   <!--
     True Private Browsing Mode
 
@@ -530,7 +530,7 @@
   <!-- Text for the button dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_default_browser_negative_button" tools:ignore="UnusedResources">اکنون نه</string>
   <!-- Title for sign in to sync screen. -->
-  <string name="juno_onboarding_sign_in_title_2">وقتی از دستگاه های مختلف استفاده می‌کنید رمزگذاری بمانید.\u0032</string>
+  <string name="juno_onboarding_sign_in_title_2">وقتی از دستگاه های مختلف استفاده می‌کنید رمزگذاری بمانید.</string>
   <!--
     Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
@@ -2353,7 +2353,7 @@
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">استثناها</string>
   <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
-  <string name="preference_doh_exceptions_summary">\u0032%1$s در این وبگاه‌ها و زیردامنه‌هایشان از ساناد امن استفاده نمی‌کند.</string>
+  <string name="preference_doh_exceptions_summary">%1$s در این وبگاه‌ها و زیردامنه‌هایشان از ساناد امن استفاده نمی‌کند.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">افزودن وبگاه</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->

@@ -62,8 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">\u0032Το %1$s διαγράφει το ιστορικό αναζητήσεων και περιήγησης των ιδιωτικών καρτελών όταν κλείνετε αυτές ή την εφαρμογή. Αυτό δεν σας παρέχει ανωνυμία σε ιστοτόπους ή στον πάροχο υπηρεσιών διαδικτύου σας, αλλά σας βοηθά να προστατέψετε το απόρρητό σας από τους άλλους χρήστες αυτής της συσκευής.</string>
-  <string name="private_browsing_common_myths">\u0032Συνήθεις παρανοήσεις σχετικά με την ιδιωτική περιήγηση\u0032</string>
+  <string name="private_browsing_placeholder_description_2">Το %1$s διαγράφει το ιστορικό αναζητήσεων και περιήγησης των ιδιωτικών καρτελών όταν κλείνετε αυτές ή την εφαρμογή. Αυτό δεν σας παρέχει ανωνυμία σε ιστοτόπους ή στον πάροχο υπηρεσιών διαδικτύου σας, αλλά σας βοηθά να προστατέψετε το απόρρητό σας από τους άλλους χρήστες αυτής της συσκευής.</string>
+  <string name="private_browsing_common_myths">Συνήθεις παρανοήσεις σχετικά με την ιδιωτική περιήγηση</string>
   <!--
     True Private Browsing Mode
 

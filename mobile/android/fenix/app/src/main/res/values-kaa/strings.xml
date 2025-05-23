@@ -51,7 +51,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s izlew hám kóriw tariyxın jeke betlerdi japqanıńızda yamasa baǵdarlamadan shıqqanıńızda óshiredi. Bul sizdi veb-saytlar yamasa internet-provayderlar ushın anonim qılmaydı, tek ǵana usı qurılmanı qollanatuǵın basqa adamlardan óz háreketlerińizdiń internet tarmaǵında qupıyalıǵıńızdı saqlawdı jeńillestiredi.</string>
-  <string name="private_browsing_common_myths">\u0032Jeke kóriw haqqında tarqalǵan jalǵanlar\u0032</string>
+  <string name="private_browsing_common_myths">Jeke kóriw haqqında tarqalǵan jalǵanlar</string>
   <!--
     Private mode shortcut "contextual feature recommendation" (CFR)
 
@@ -309,7 +309,7 @@
     Preference linking to about page for Fenix
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="preferences_about">%1$s haqqında\u0032</string>
+  <string name="preferences_about">%1$s haqqında</string>
   <!-- Preference for settings related to changing the default browser -->
   <string name="preferences_set_as_default_browser">Tiykarǵi brauzer retinde ornatıw</string>
   <!-- Preference category for advanced settings -->
@@ -946,7 +946,7 @@
   <!-- Preference for altering the storage access setting for all websites -->
   <string name="preference_phone_feature_cross_origin_storage_access">Saytlar aralıq cookielar</string>
   <!-- Preference for altering the EME access for all websites -->
-  <string name="preference_phone_feature_media_key_system_access">\u0032Avtor huqıqları menen qorǵalǵan kontent</string>
+  <string name="preference_phone_feature_media_key_system_access">Avtor huqıqları menen qorǵalǵan kontent</string>
   <!-- Label that indicates that a permission must be asked always -->
   <string name="preference_option_phone_feature_ask_to_allow">Ruqsat beriwdi sorań</string>
   <!-- Label that indicates that a permission must be blocked -->
@@ -1368,7 +1368,7 @@
   <!-- About page link text to open privacy notice link -->
   <string name="about_privacy_notice">Qupıyalıq esletpeleri</string>
   <!-- About page link text to open know your rights link -->
-  <string name="about_know_your_rights">Huqıqlarıńızdı biliń\u0032</string>
+  <string name="about_know_your_rights">Huqıqlarıńızdı biliń</string>
   <!-- About page link text to open licensing information link -->
   <string name="about_licensing_information">Licenziya maǵlıwmatları</string>
   <!-- About page link text to open a screen with libraries that are used -->

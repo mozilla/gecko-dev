@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s limpia tu historial de búsqueda y navegación cuando sales de la aplicación o cierras todas las pestañas privadas. Si bien esto no te hace anónimo en los sitios web o con tu proveedor de servicios de Internet, facilita el mantener privado lo que haces en línea para cualquier otra persona que use este dispositivo.</string>
-  <string name="private_browsing_common_myths">\u0032Mitos comunes sobre la navegación privada\u0032</string>
+  <string name="private_browsing_common_myths">Mitos comunes sobre la navegación privada</string>
   <!--
     True Private Browsing Mode
 
@@ -2524,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Eliminar todas las excepciones</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Buscar contraseñas</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Atrás</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Sitio</string>
   <!-- The header for the username for a login -->

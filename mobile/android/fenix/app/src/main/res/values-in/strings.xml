@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s menghapus riwayat pencarian dan penjelajahan dari tab privat ketika Anda menutupnya atau keluar dari aplikasi. Ketika hal ini tidak membuat Anda jadi anonim pada situs Web atau penyedia jasa Internet Anda, ini akan mempermudah dalam menjaga apa yang Anda lakukan daring secara privat dari orang lain yang menggunakan peranti ini.</string>
-  <string name="private_browsing_common_myths">\u0032Mitos umum tentang penjelajahan privat\u0032</string>
+  <string name="private_browsing_common_myths">Mitos umum tentang penjelajahan privat</string>
   <!--
     True Private Browsing Mode
 

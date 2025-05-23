@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s는 사생활 보호 탭을 닫거나 앱을 종료할 때 사생활 보호 탭으로부터 검색과 방문 기록을 지웁니다. 이것이 사용자를 웹 사이트나 인터넷 서비스 제공자로부터 익명으로 만들지는 않지만, 사용자가 온라인에서 한 일을 이 기기를 사용하는 다른 사용자로부터 보호 할 수 있게 합니다.</string>
-  <string name="private_browsing_common_myths">\u0032사생활 보호 모드에 관한 흔한 오해\u0032</string>
+  <string name="private_browsing_common_myths">사생활 보호 모드에 관한 흔한 오해</string>
   <!--
     True Private Browsing Mode
 
@@ -1070,7 +1070,7 @@
   <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo">모모</string>
   <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
-  <string name="alternative_app_icon_option_momo_subtitle">\u0064heyheymomodraws 제작</string>
+  <string name="alternative_app_icon_option_momo_subtitle">\u0040heyheymomodraws 제작</string>
   <!--
     Add-ons general availability nimbus message
 

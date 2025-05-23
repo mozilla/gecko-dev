@@ -262,7 +262,7 @@
   <!-- Browser menu toggle that requests a desktop site -->
   <string name="browser_menu_desktop_site">Desktop stranica</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
-  <string name="browser_menu_open_in_regular_tab">Otvori u standardnom tabu\u0032</string>
+  <string name="browser_menu_open_in_regular_tab">Otvori u standardnom tabu</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen">Dodaj na Početni ekran</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
@@ -2511,7 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Sačuvane lozinke</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lozinke koje sačuvate ili sinhronizujete sa %s će biti navedene ovdje. Sve lozinke koje sačuvate su šifrovane.\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lozinke koje sačuvate ili sinhronizujete sa %s će biti navedene ovdje. Sve lozinke koje sačuvate su šifrovane.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Saznajte više o sinhronizaciji</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->

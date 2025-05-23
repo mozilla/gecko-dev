@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s, gizli sekmeleri kapattığınızda veya uygulamadan çıktığınızda gizli sekmelerdeki arama ve gezinti geçmişinizi temizler. Bu işlem, web sitelerinin ve internet servis sağlayıcınızın sizi tanımamasını sağlamaz ama bu cihazı kullanan başkaları varsa internette yaptıklarınızı onlardan gizlemenizi sağlar.</string>
-  <string name="private_browsing_common_myths">\u0032Gizli gezinti ile ilgili yaygın efsaneler\u0032</string>
+  <string name="private_browsing_common_myths">Gizli gezinti ile ilgili yaygın efsaneler</string>
   <!--
     True Private Browsing Mode
 
@@ -1162,7 +1162,7 @@
     open on this device from another device that's signed in to the same Mozilla account.
     %1$s is a placeholder for the app name; %2$d is the number of tabs closed.
   -->
-  <string name="fxa_tabs_closed_notification_title">%2$d %1$s sekmesi kapatıldı\u0032</string>
+  <string name="fxa_tabs_closed_notification_title">%2$d %1$s sekmesi kapatıldı</string>
   <!-- The body for a "closed synced tabs" notification. -->
   <string name="fxa_tabs_closed_text">Son kapatılan sekmeleri göster</string>
   <!--
@@ -2770,7 +2770,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Doğrulayan: %1$s\u0032</string>
+  <string name="certificate_info_verified_by">Doğrulayan: %1$s</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Sil</string>
   <!-- Login overflow menu edit button -->

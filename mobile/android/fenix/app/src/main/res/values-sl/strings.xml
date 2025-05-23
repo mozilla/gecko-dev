@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s izbriše zgodovino iskanja in brskanja zasebnih zavihkov, ko jih zaprete ali zaprete aplikacijo. Čeprav to ne pomeni, da ste za spletna mesta ali ponudnike internetnih storitev anonimni, vam omogoča uporabo spleta v zasebnosti, skrito pred očmi ostalih uporabnikov te naprave.</string>
-  <string name="private_browsing_common_myths">\u0032Pogoste zmote o zasebnem brskanju\u0032</string>
+  <string name="private_browsing_common_myths">Pogoste zmote o zasebnem brskanju</string>
   <!--
     True Private Browsing Mode
 
@@ -2522,6 +2522,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Izbriši vse izjeme</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Iskanje gesel</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Nazaj</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Stran</string>
   <!-- The header for the username for a login -->

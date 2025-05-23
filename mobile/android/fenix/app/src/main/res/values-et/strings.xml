@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">\u0032%1$s kustutab privaatsete kaartide otsimise ja lehitsemise ajaloo, kui väljud rakendusest või sulged privaatsed kaardid. Kuigi see ei muuda sind külastatavate veebilehtede või internetiteenuse pakkuja ees anonüümseks, kaitseb see siiski sinu privaatsust teiste selle seadme kasutajate eest.</string>
+  <string name="private_browsing_placeholder_description_2">%1$s kustutab privaatsete kaartide otsimise ja lehitsemise ajaloo, kui väljud rakendusest või sulged privaatsed kaardid. Kuigi see ei muuda sind külastatavate veebilehtede või internetiteenuse pakkuja ees anonüümseks, kaitseb see siiski sinu privaatsust teiste selle seadme kasutajate eest.</string>
   <string name="private_browsing_common_myths">Levinumad müüdid privaatse veebilehitsemise kohta</string>
   <!--
     True Private Browsing Mode

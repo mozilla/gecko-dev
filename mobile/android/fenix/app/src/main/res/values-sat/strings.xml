@@ -493,7 +493,7 @@
   <!-- Home onboarding dialog sign into sync screen title text. -->
   <string name="onboarding_home_sync_title_3">ᱯᱚᱨᱫᱟ ᱵᱚᱫᱚᱞ ᱫᱚ ᱱᱤᱛᱚᱜ ᱟᱹᱰᱤ ᱤᱫᱤᱜ ᱠᱟᱱᱟ</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">ᱚᱲᱟᱜ ᱥᱟᱦᱴᱟ ᱨᱮ ᱱᱤᱛᱚᱜ ᱡᱟᱦᱟᱸ ᱠᱷᱚᱱ ᱮᱢ ᱟᱲᱟᱜ ᱞᱮᱜᱼᱟ ᱮᱴᱟᱜ ᱥᱟᱫᱷᱚᱱ ᱨᱮᱭᱟᱜ ᱴᱮᱵᱽ ᱠᱷᱚᱱ ᱯᱟᱧᱡᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾\u0032</string>
+  <string name="onboarding_home_sync_description">ᱚᱲᱟᱜ ᱥᱟᱦᱴᱟ ᱨᱮ ᱱᱤᱛᱚᱜ ᱡᱟᱦᱟᱸ ᱠᱷᱚᱱ ᱮᱢ ᱟᱲᱟᱜ ᱞᱮᱜᱼᱟ ᱮᱴᱟᱜ ᱥᱟᱫᱷᱚᱱ ᱨᱮᱭᱟᱜ ᱴᱮᱵᱽ ᱠᱷᱚᱱ ᱯᱟᱧᱡᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
   <string name="onboarding_home_get_started_button">ᱫᱮᱞᱟ ᱮᱛᱦᱚᱵ ᱞᱮᱜᱮ ᱵᱚᱱ</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
@@ -799,7 +799,7 @@
   <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">%1$s ᱞᱟᱹᱜᱤᱫ ᱠᱩᱠᱤ ᱵᱮᱱᱚᱨ ᱟᱠᱚᱴᱤᱭᱟᱹ ᱵᱚᱸᱫᱚ ᱪᱷᱚᱭ ᱢᱮ?</string>
   <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">ᱱᱚᱶᱟ ᱥᱟᱭᱤᱴ ᱨᱮ %1$s ᱫᱚ ᱟᱡ ᱛᱮ ᱠᱩᱠᱤ ᱱᱚᱦᱚᱨ ᱵᱟᱝ ᱢᱟᱱᱟ ᱫᱟᱲᱮᱭᱟᱜ ᱠᱟᱱᱟᱭ ᱾ ᱵᱷᱚᱵᱤᱥᱚᱛ ᱨᱮ ᱱᱚᱶᱟ ᱥᱟᱭᱤᱴ ᱜᱚᱲᱚ ᱮᱢ ᱞᱟᱹᱜᱤᱫ ᱱᱮᱦᱚᱨ ᱵᱷᱮᱡᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾\u0032</string>
+  <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">ᱱᱚᱶᱟ ᱥᱟᱭᱤᱴ ᱨᱮ %1$s ᱫᱚ ᱟᱡ ᱛᱮ ᱠᱩᱠᱤ ᱱᱚᱦᱚᱨ ᱵᱟᱝ ᱢᱟᱱᱟ ᱫᱟᱲᱮᱭᱟᱜ ᱠᱟᱱᱟᱭ ᱾ ᱵᱷᱚᱵᱤᱥᱚᱛ ᱨᱮ ᱱᱚᱶᱟ ᱥᱟᱭᱤᱴ ᱜᱚᱲᱚ ᱮᱢ ᱞᱟᱹᱜᱤᱫ ᱱᱮᱦᱚᱨ ᱵᱷᱮᱡᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
   <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">ᱵᱚᱸᱫᱚᱭ ᱢᱮ ᱟᱨ %1$s ᱫᱚ ᱠᱩᱠᱤ ᱠᱚ ᱢᱮᱴᱟᱣ ᱠᱟᱛᱮ ᱱᱚᱣᱟ ᱥᱟᱦᱴᱟ ᱨᱤᱞᱚᱰ ᱟ ᱾ ᱱᱚᱶᱟ ᱫᱚ ᱟᱢ ᱵᱟᱦᱨᱮ ᱩᱰᱩᱠ ᱢᱮᱭᱟᱭ ᱥᱮ ᱠᱤᱨᱤᱧ ᱠᱟᱨᱴ ᱠᱷᱟᱹᱞᱤ ᱟ ᱾</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
@@ -1040,7 +1040,7 @@
   <!-- Preference for triggering sync -->
   <string name="preferences_sync_now">ᱱᱤᱛᱚᱜ ᱥᱭᱝᱠ ᱢᱮ</string>
   <!-- Preference category for sync -->
-  <string name="preferences_sync_category">ᱚᱠᱟ ᱥᱭᱝᱠ ᱨᱮᱭᱟᱜ ᱛᱟᱦᱮᱸᱱᱟ ᱵᱟᱪᱷᱟᱣ ᱢᱮ\u0032</string>
+  <string name="preferences_sync_category">ᱚᱠᱟ ᱥᱭᱝᱠ ᱨᱮᱭᱟᱜ ᱛᱟᱦᱮᱸᱱᱟ ᱵᱟᱪᱷᱟᱣ ᱢᱮ</string>
   <!-- Preference for syncing history -->
   <string name="preferences_sync_history">ᱱᱟᱜᱟᱢ</string>
   <!-- Preference for syncing bookmarks -->
@@ -1270,7 +1270,7 @@
   <!-- Option for always opening the homepage when re-opening the app after four hours of inactivity -->
   <string name="opening_screen_after_four_hours_of_inactivity">ᱯᱩᱱ ᱴᱟᱲᱟᱝ ᱵᱤᱱᱟᱹ ᱠᱟᱹᱢᱤ ᱞᱟᱦᱟ ᱨᱮ ᱚᱲᱟᱜ ᱥᱟᱦᱴᱟ</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to manual close -->
-  <string name="close_tabs_manually_summary">ᱱᱤᱡᱮ ᱛᱮ ᱵᱚᱸᱫᱽ ᱢᱮ\u0032</string>
+  <string name="close_tabs_manually_summary">ᱱᱤᱡᱮ ᱛᱮ ᱵᱚᱸᱫᱽ ᱢᱮ</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day -->
   <string name="close_tabs_after_one_day_summary">ᱢᱤᱫᱽ ᱫᱤᱱ ᱛᱟᱭᱚᱢ ᱛᱮ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one week -->
@@ -2098,7 +2098,7 @@
   <!-- Preference description for enhanced tracking protection for the strict protection settings -->
   <string name="preference_enhanced_tracking_protection_custom_description_2">ᱵᱟᱪᱷᱟᱣ ᱢᱮ ᱚᱠᱟ ᱯᱟᱧᱡᱟ ᱫᱟᱱᱟᱲ ᱠᱚ ᱟᱨ ᱥᱠᱨᱤᱯᱴ ᱞᱚ ᱵᱞᱚᱠ ᱠᱚᱣᱟ ᱾</string>
   <!-- Accessibility text for the Strict protection information icon -->
-  <string name="preference_enhanced_tracking_protection_custom_info_button">ᱠᱚᱥᱴᱚᱢ ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱯᱨᱚᱴᱮᱠᱥᱚᱱ ᱛᱮ ᱪᱮᱫ ᱵᱞᱚᱠ ᱟᱹᱠᱟᱱᱟ\u0032</string>
+  <string name="preference_enhanced_tracking_protection_custom_info_button">ᱠᱚᱥᱴᱚᱢ ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱯᱨᱚᱴᱮᱠᱥᱚᱱ ᱛᱮ ᱪᱮᱫ ᱵᱞᱚᱠ ᱟᱹᱠᱟᱱᱟ</string>
   <!--
     Header for categories that are being blocked by current Enhanced Tracking Protection settings
 
@@ -2136,7 +2136,7 @@
   <!-- Category of trackers (social media trackers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_social_media_trackers_title">ᱥᱟᱸᱣᱛᱟ ᱢᱤᱰᱤᱭᱟ ᱯᱟᱧᱡᱟ ᱫᱟᱱᱟᱲ ᱠᱚ</string>
   <!-- Description of social media trackers that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_social_media_trackers_description">ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱠᱟᱹᱢᱤ ᱠᱚ ᱮᱢᱟᱱ ᱥᱚᱥᱤᱭᱟᱹᱢ ᱢᱮᱰᱤᱭᱟ ᱱᱮᱴᱣᱟᱨᱠ ᱨᱮ ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱠᱚ ᱣᱮᱵᱽ ᱨᱮ ᱞᱤᱢᱤᱴ ᱛᱟᱢᱟᱭ ᱾\u0032</string>
+  <string name="etp_social_media_trackers_description">ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱠᱟᱹᱢᱤ ᱠᱚ ᱮᱢᱟᱱ ᱥᱚᱥᱤᱭᱟᱹᱢ ᱢᱮᱰᱤᱭᱟ ᱱᱮᱴᱣᱟᱨᱠ ᱨᱮ ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱠᱚ ᱣᱮᱵᱽ ᱨᱮ ᱞᱤᱢᱤᱴ ᱛᱟᱢᱟᱭ ᱾</string>
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title">ᱠᱨᱚᱥᱼᱥᱟᱭᱤᱴ ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱠᱩᱠᱤ ᱠᱚ</string>
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
@@ -2693,7 +2693,7 @@
   -->
   <string name="default_browser_experiment_card_title">ᱟᱢᱟᱜ ᱢᱩᱞ ᱵᱽᱨᱟᱣᱡᱚᱨ ᱛᱮ ᱩᱪᱟᱹᱲᱚᱜ ᱢᱮ</string>
   <!-- Default browser card text -->
-  <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Firefox ᱟᱡ ᱛᱮ ᱠᱷᱩᱞᱟᱹ ᱪᱷᱚ ᱞᱟᱹᱜᱤᱫ ᱣᱮᱵᱥᱟᱭᱤᱴ, ᱤᱢᱮᱞ, ᱟᱨ ᱢᱮᱥᱮᱡᱽ ᱨᱮᱭᱟᱜ ᱞᱤᱝᱠ ᱥᱮᱴ ᱢᱮ ᱾\u0032</string>
+  <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Firefox ᱟᱡ ᱛᱮ ᱠᱷᱩᱞᱟᱹ ᱪᱷᱚ ᱞᱟᱹᱜᱤᱫ ᱣᱮᱵᱥᱟᱭᱤᱴ, ᱤᱢᱮᱞ, ᱟᱨ ᱢᱮᱥᱮᱡᱽ ᱨᱮᱭᱟᱜ ᱞᱤᱝᱠ ᱥᱮᱴ ᱢᱮ ᱾</string>
   <!-- Content description for close button in collection placeholder. -->
   <string name="remove_home_collection_placeholder_content_description">ᱚᱪᱟᱜ</string>
   <!-- Content description radio buttons with a link to more information -->
@@ -2918,7 +2918,7 @@
   -->
   <string name="download_languages_translations_toolbar_title_preference">ᱯᱟᱹᱨᱥᱤᱠᱚ ᱰᱟᱣᱱᱞᱚᱰ ᱢᱮ</string>
   <!-- Screen header presenting the download language preference feature. It will appear under the toolbar. %1$s is a link using download_languages_header_learn_more_preference as text ("Learn more"). Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="download_languages_header_preference">ᱞᱚᱜᱚᱱ ᱛᱚᱨᱡᱚᱢᱟ ᱟᱨ ᱚᱯᱷᱞᱟᱭᱤᱱ ᱛᱚᱨᱡᱚᱢᱟ ᱞᱟᱹᱜᱤᱫ ᱯᱩᱨᱟᱹ ᱯᱟᱹᱨᱥᱠᱚ ᱰᱟᱣᱩᱱᱞᱚᱰ ᱢᱮ ᱾%1$s\u0032</string>
+  <string name="download_languages_header_preference">ᱞᱚᱜᱚᱱ ᱛᱚᱨᱡᱚᱢᱟ ᱟᱨ ᱚᱯᱷᱞᱟᱭᱤᱱ ᱛᱚᱨᱡᱚᱢᱟ ᱞᱟᱹᱜᱤᱫ ᱯᱩᱨᱟᱹ ᱯᱟᱹᱨᱥᱠᱚ ᱰᱟᱣᱩᱱᱞᱚᱰ ᱢᱮ ᱾%1$s</string>
   <!-- Clickable text from the screen header that links to a website. -->
   <string name="download_languages_header_learn_more_preference">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
   <!-- The subhead of the download language preference screen will appear above the pivot language. -->

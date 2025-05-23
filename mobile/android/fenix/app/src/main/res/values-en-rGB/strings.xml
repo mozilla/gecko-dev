@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s clears your search and browsing history from private tabs when you close them or quit the app. While this doesn’t make you anonymous to web sites or your internet service provider, it makes it easier to keep what you do online private from anyone else who uses this device.</string>
-  <string name="private_browsing_common_myths">\u0032Common myths about private browsing\u0032</string>
+  <string name="private_browsing_common_myths">Common myths about private browsing</string>
   <!--
     True Private Browsing Mode
 

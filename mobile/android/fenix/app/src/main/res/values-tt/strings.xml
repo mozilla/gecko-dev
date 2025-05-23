@@ -56,7 +56,7 @@
   <string name="home_bookmarks_menu_item_remove">Бетерү</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s Mozilla тарафыннан җитештерелә.</string>
-  <string name="private_browsing_common_myths">\u0032Хосусый гизү турында киң таралган мифлар\u0032</string>
+  <string name="private_browsing_common_myths">Хосусый гизү турында киң таралган мифлар</string>
   <!--
     True Private Browsing Mode
 
@@ -90,7 +90,7 @@
   <!-- Text for the negative action button to dismiss the dialog. -->
   <string name="camera_permissions_needed_negative_button_text">Яшерү</string>
   <!-- Text for the positive action button to go to Settings for auto close tabs. -->
-  <string name="tab_tray_close_tabs_banner_positive_button_text">Опцияләрне карау\u0032</string>
+  <string name="tab_tray_close_tabs_banner_positive_button_text">Опцияләрне карау</string>
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
   <string name="tab_tray_close_tabs_banner_negative_button_text">Яшерү</string>
   <!-- Text for the banner message to tell users about our inactive tabs feature. -->
@@ -338,7 +338,7 @@
 
     Content description for tick mark on selected language
   -->
-  <string name="a11y_selected_locale_content_description">Сайланган тел\u0032</string>
+  <string name="a11y_selected_locale_content_description">Сайланган тел</string>
   <!-- Text for default locale item -->
   <string name="default_locale_text">Җиһаз теленә иярү</string>
   <!-- Placeholder text shown in the search bar before a user enters text -->
@@ -934,7 +934,7 @@
   <!-- Option in library for Recently Closed Tabs -->
   <string name="library_recently_closed_tabs">Күптән түгел ябылган таблар</string>
   <!-- Option in library to open Recently Closed Tabs page -->
-  <string name="recently_closed_show_full_history">Тулы тарихны күрсәтү\u0032</string>
+  <string name="recently_closed_show_full_history">Тулы тарихны күрсәтү</string>
   <!--
     Text to show users they have multiple tabs saved in the Recently Closed Tabs section of history.
     %d is a placeholder for the number of tabs selected.
@@ -1016,7 +1016,7 @@
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">Таб өстәү</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
-  <string name="add_private_tab">Хосусый таб өстәү\u0032</string>
+  <string name="add_private_tab">Хосусый таб өстәү</string>
   <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
   <string name="tab_drawer_fab_content">Хосусый</string>
   <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
@@ -1809,7 +1809,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to copy a password in logins -->
   <string name="saved_logins_copy_password">Серсүзне күчереп алу</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear a password while editing a login -->
-  <string name="saved_logins_clear_password">Серсүзне чистарту\u0032</string>
+  <string name="saved_logins_clear_password">Серсүзне чистарту</string>
   <!-- Content Description (for screenreaders etc) read for the button to copy a username in logins -->
   <string name="saved_login_copy_username">Кулланучы исемен күчереп алу</string>
   <!-- Content Description (for screenreaders etc) read for the button to clear a username while editing a login -->
@@ -1817,7 +1817,7 @@
   <!-- Content Description (for screenreaders etc) read for the button to clear the hostname field while creating a login -->
   <string name="saved_login_clear_hostname">Сервер исемен чистарту</string>
   <!-- Content Description (for screenreaders etc) read for the button to open a site in logins -->
-  <string name="saved_login_open_site">Сайтны браузерда ачу\u0032</string>
+  <string name="saved_login_open_site">Сайтны браузерда ачу</string>
   <!-- Content Description (for screenreaders etc) read for the button to reveal a password in logins -->
   <string name="saved_login_reveal_password">Серсүзне күрсәтү</string>
   <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
