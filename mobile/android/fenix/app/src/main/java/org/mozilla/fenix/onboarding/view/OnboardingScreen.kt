@@ -69,7 +69,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param onAddFirefoxWidgetClick Invoked when positive button on add search widget page is clicked.
  * @param onSkipFirefoxWidgetClick Invoked when negative button on add search widget page is clicked.
  * @param onboardingStore The store which contains all the state related to the add-ons onboarding screen.
- * @param onAddOnsButtonClick Invoked when the primary button on add-ons page is clicked.
  * @param onInstallAddOnButtonClick Invoked when a button for installing an add-on is clicked.
  * @param termsOfServiceEventHandler Invoked when the primary button on the terms of service page is clicked.
  * @param onCustomizeToolbarClick Invoked when positive button customize toolbar page is clicked.
@@ -95,7 +94,6 @@ fun OnboardingScreen(
     onAddFirefoxWidgetClick: () -> Unit,
     onSkipFirefoxWidgetClick: () -> Unit,
     onboardingStore: OnboardingStore? = null,
-    onAddOnsButtonClick: () -> Unit,
     onInstallAddOnButtonClick: (AddOn) -> Unit,
     termsOfServiceEventHandler: OnboardingTermsOfServiceEventHandler,
     onCustomizeToolbarClick: () -> Unit,
@@ -234,7 +232,6 @@ fun OnboardingScreen(
         },
         onAddOnsButtonClick = {
             scrollToNextPageOrDismiss()
-            onAddOnsButtonClick()
         },
         onInstallAddOnButtonClick = onInstallAddOnButtonClick,
         onCustomizeToolbarButtonClick = {

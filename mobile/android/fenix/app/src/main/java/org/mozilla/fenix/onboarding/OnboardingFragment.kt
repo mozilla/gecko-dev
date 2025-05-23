@@ -254,12 +254,6 @@ class OnboardingFragment : Fragment() {
                     pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.ADD_SEARCH_WIDGET),
                 )
             },
-            onAddOnsButtonClick = {
-                telemetryRecorder.onAddOnsButtonClick(
-                    pagesToDisplay.telemetrySequenceId(),
-                    pagesToDisplay.sequencePosition(OnboardingPageUiData.Type.ADD_ONS),
-                )
-            },
             onFinish = {
                 onFinish(it)
                 enableSearchBarCFRForNewUser()
@@ -327,7 +321,6 @@ class OnboardingFragment : Fragment() {
             installationMethod = InstallationMethod.ONBOARDING,
             onSuccess = { addon ->
                 logger.info("Extension installed successfully")
-                telemetryRecorder.onAddOnInstalled(addon.id)
                 onboardingStore.dispatch(
                     OnboardingAddOnsAction.UpdateStatus(
                         addOnId = addOn.id,
