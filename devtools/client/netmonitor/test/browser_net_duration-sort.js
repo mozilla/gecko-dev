@@ -15,10 +15,10 @@ add_task(async function () {
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
   store.dispatch(Actions.batchEnable(false));
 
-  const delay1 = 100;
+  const delay1 = 50;
   const delay2 = 500;
   const delay3 = 1500;
-  const delay4 = 2000;
+  const delay4 = 2500;
 
   info("Starting test... ");
   info("Sending initial requests.");
@@ -82,14 +82,14 @@ add_task(async function () {
     { type: "click" },
     document.querySelector("#requests-list-duration-button")
   );
-  await testResolvedContents([0, 1, 2, 3, 4, 5]);
+  await testResolvedContents([0, 1, 2, 3, 4]);
 
   info("Testing resolved items duration sort, descending.");
   EventUtils.sendMouseEvent(
     { type: "click" },
     document.querySelector("#requests-list-duration-button")
   );
-  await testResolvedContents([5, 4, 3, 2, 1, 0]);
+  await testResolvedContents([4, 3, 2, 1, 0]);
 
   return teardown(monitor);
 
@@ -153,38 +153,36 @@ add_task(async function () {
     );
   }
 
-  async function testResolvedContents([a, b, c, d, e, f]) {
+  async function testResolvedContents([a, b, c, d, e]) {
     const requestItems = [
       ...document.querySelectorAll(".request-list-item .requests-list-url"),
-    ].map(el => el.innerText);
+    ]
+      .map(el => el.innerText)
+      // Filter out the unblock request which might take a random time to resolve
+      .filter(text => !text.endsWith("sjs_long-polling-server.sjs?unblock"));
 
     is(
       requestItems[a],
-      "https://example.com/browser/devtools/client/netmonitor/test/sjs_long-polling-server.sjs?unblock",
-      "Unblock request sorted correctly."
-    );
-    is(
-      requestItems[b],
       DELAY_SJS + `?delay=${delay1}`,
       `${delay1}ms request sorted correctly.`
     );
     is(
-      requestItems[c],
+      requestItems[b],
       DELAY_SJS + `?delay=${delay2}`,
       `${delay2}ms request sorted correctly.`
     );
     is(
-      requestItems[d],
+      requestItems[c],
       DELAY_SJS + `?delay=${delay3}`,
       `${delay3}ms request sorted correctly.`
     );
     is(
-      requestItems[e],
+      requestItems[d],
       DELAY_SJS + `?delay=${delay4}`,
       `${delay4}ms request sorted correctly.`
     );
     is(
-      requestItems[f],
+      requestItems[e],
       "https://example.com/browser/devtools/client/netmonitor/test/sjs_long-polling-server.sjs",
       "Long polling request sorted correctly."
     );
