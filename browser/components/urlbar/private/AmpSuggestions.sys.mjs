@@ -15,6 +15,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   rawSuggestionUrlMatches:
     "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
@@ -276,6 +277,9 @@ export class AmpSuggestions extends SuggestProvider {
 
     let allPingData = {
       pingType,
+      // Suggest initialization awaits `Region.init()`, so safe to assume it's
+      // already been initialized here.
+      country: lazy.Region.home,
       ...pingData,
       matchType: result.isBestMatch ? "best-match" : "firefox-suggest",
       // Always use lowercase to make the reporting consistent.

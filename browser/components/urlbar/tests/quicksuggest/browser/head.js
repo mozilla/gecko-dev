@@ -14,6 +14,7 @@ ChromeUtils.defineESModuleGetters(this, {
   CONTEXTUAL_SERVICES_PING_TYPES:
     "resource:///modules/PartnerLinkAttribution.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UrlbarProviderQuickSuggest:
     "resource:///modules/UrlbarProviderQuickSuggest.sys.mjs",
@@ -176,6 +177,18 @@ async function doQuickSuggestPingTest({
       fireInputEvent: true,
     }),
 }) {
+  Assert.ok(Region.home, "Sanity check: Region should be non-null/empty");
+
+  let allExpectedPings = [
+    impressionOnly,
+    ...click,
+    ...commands.map(({ pings }) => pings),
+  ].flat();
+
+  for (let ping of allExpectedPings) {
+    ping.country = Region.home;
+  }
+
   await doImpressionOnlyTest({
     index,
     suggestion,
@@ -567,6 +580,7 @@ function watchQuickSuggestPings(pings) {
 function assertQuickSuggestPing(expectedPing) {
   let expectedKeys = [
     "pingType",
+    "country",
     "matchType",
     "advertiser",
     "blockId",

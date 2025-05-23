@@ -835,6 +835,25 @@ quick_suggest:
     send_in_pings:
       - quick-suggest
 
+  country:
+    type: string
+    description: >
+      Records the home region of the user as determined by `Region.sys.mjs` and
+      the `browser.search.region` pref.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968154
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968154
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+      - disco-team@mozilla.com
+      - ads-eng@mozilla.com
+    expires: never
+    send_in_pings:
+      - quick-suggest
+
   position:
     type: quantity
     unit: QuickSuggest position
