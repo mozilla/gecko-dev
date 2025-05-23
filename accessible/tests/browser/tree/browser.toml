@@ -7,6 +7,7 @@ support-files = [
   "!/accessible/tests/mochitest/moz.png",
 ]
 prefs = [
+  "dom.viewTransition.enabled=true",
   "layout.css.content.alt-text.enabled=true",
 ]
 
@@ -41,3 +42,5 @@ skip-if = [
 ["browser_shadowdom.js"]
 
 ["browser_test_nsIAccessibleDocument_URL.js"]
+
+["browser_view_transition.js"]
