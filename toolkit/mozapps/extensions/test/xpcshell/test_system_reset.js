@@ -71,7 +71,7 @@ async function setupOverrideBuiltinsApp3() {
     {
       addon_id: "system2@tests.mozilla.org",
       addon_version: "1.0",
-      res_url: `resource://app3-builtin-system3/`,
+      res_url: `resource://app3-builtin-system2/`,
     },
     {
       addon_id: "system5@tests.mozilla.org",
@@ -435,9 +435,25 @@ async function test_bad_app_cert() {
   await setupOverrideBuiltinsApp3();
   await promiseStartupManager();
 
-  // Since we updated the app version, the system addon set should be reset as well.
+  // Since we updated the app version, the system addons set got for the previous app
+  // version is compared with the new set of builtin add-ons versions and the system-signed
+  // add-ons are kept if the app has a matching builtin add-ons with an older version
+  // (on the contrary system-signed xpi files are uninstalled if older then the builtin
+  // addon version or if there isn't a matching built-in addon).
   let addonSet = Services.prefs.getCharPref(PREF_SYSTEM_ADDON_SET);
-  Assert.equal(addonSet, `{"schema":1,"addons":{}}`);
+  let oldAddonSet = JSON.parse(addonSet);
+  Assert.equal(
+    addonSet,
+    JSON.stringify({
+      schema: 1,
+      directory: oldAddonSet.directory,
+      addons: {
+        "system1@tests.mozilla.org": {
+          version: "2.0",
+        },
+      },
+    })
+  );
 
   // Add-on will still be present
   let addon = await promiseAddonByID("system1@tests.mozilla.org");

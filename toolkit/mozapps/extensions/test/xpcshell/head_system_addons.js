@@ -131,6 +131,51 @@ function getSystemAddonXPI(num, version) {
   return _systemXPIs.get(key);
 }
 
+async function promiseUpdateSystemAddonsSet(systemAddonUpdates) {
+  const waitForStartupIDs = new Set();
+
+  let promises = [];
+  let updates = [];
+  for (const { id, version, waitForStartup = true } of systemAddonUpdates) {
+    let xpi = AddonTestUtils.createTempWebExtensionFile({
+      manifest: {
+        version,
+        browser_specific_settings: {
+          gecko: { id },
+        },
+      },
+    });
+    updates.push({ id, version, xpi, path: xpi.leafName });
+
+    if (waitForStartup) {
+      waitForStartupIDs.add(id);
+    } else {
+      // If we're not expecting a startup we need to wait for install to end.
+      promises.push(
+        AddonTestUtils.promiseAddonEvent(
+          "onInstalled",
+          addon => addon.id === id
+        )
+      );
+    }
+  }
+
+  let xml = buildSystemAddonUpdates(updates);
+  promises.push(installSystemAddons(xml, Array.from(waitForStartupIDs)));
+  return Promise.all(promises);
+}
+
+async function promiseUpdateSystemAddon(id, version, waitForStartup = true) {
+  const ADDON_ID = "updates@test";
+  return promiseUpdateSystemAddonsSet([
+    {
+      id: id ?? ADDON_ID,
+      version,
+      waitForStartup,
+    },
+  ]);
+}
+
 async function getSystemBuiltin(num, addon_version, res_url) {
   const id = `system${num}@tests.mozilla.org`;
   const version = addon_version ?? "1.0";
@@ -420,6 +465,21 @@ async function setupSystemAddonConditions(setup, distroDir) {
   // Make sure the initial state is correct
   info("Checking initial state.");
   await checkInstalledSystemAddons(setup.initialState, distroDir);
+}
+
+// Verifies the add-ons listed in the extensions.systemAddonSet pref.
+function verifySystemAddonSetPref(expectedAddons) {
+  let addonSet = Services.prefs.getCharPref(PREF_SYSTEM_ADDON_SET);
+  let addonSetDir = JSON.parse(addonSet).directory;
+  Assert.equal(
+    addonSet,
+    JSON.stringify({
+      schema: 1,
+      directory: addonSetDir,
+      addons: expectedAddons,
+    }),
+    "Got the expected addons listed in the extensions.systemAddonSet pref"
+  );
 }
 
 /**
