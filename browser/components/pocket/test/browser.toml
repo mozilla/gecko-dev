@@ -4,6 +4,10 @@ support-files = [
   "test.html",
 ]
 
+prefs = [
+  "extensions.pocket.enabled=true",
+]
+
 ["browser_pocket_button_icon_state.js"]
 
 ["browser_pocket_context_menu_action.js"]
