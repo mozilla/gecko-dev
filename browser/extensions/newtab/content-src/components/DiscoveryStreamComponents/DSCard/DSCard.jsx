@@ -790,7 +790,8 @@ export class _DSCard extends React.PureComponent {
           {this.props.showTopics &&
             !this.props.mayHaveSectionsCards &&
             this.props.topic &&
-            !isListCard && (
+            !isListCard &&
+            !refinedCardsLayout && (
               <span
                 className="ds-card-topic"
                 data-l10n-id={`newtab-topic-label-${this.props.topic}`}
@@ -879,7 +880,7 @@ export class _DSCard extends React.PureComponent {
               onThumbsDownClick={this.onThumbsDownClick}
               state={this.state}
               isListCard={isListCard}
-              showTopics={this.props.showTopics}
+              showTopics={!refinedCardsLayout && this.props.showTopics}
               isSectionsCard={
                 this.props.mayHaveSectionsCards &&
                 this.props.topic &&
