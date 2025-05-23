@@ -13,7 +13,7 @@ from voluptuous import Optional
 
 from gecko_taskgraph.transforms.task import task_description_schema
 from gecko_taskgraph.util.attributes import copy_attributes_from_dependent_job
-from gecko_taskgraph.util.scriptworker import get_signing_type
+from gecko_taskgraph.util.scriptworker import get_signing_cert_scope
 
 release_generate_checksums_signing_schema = Schema(
     {
@@ -79,7 +79,7 @@ def make_release_generate_checksums_signing_description(config, jobs):
             }
         ]
 
-        signing_type = get_signing_type(config)
+        signing_cert_scope = get_signing_cert_scope(config)
 
         task = {
             "label": label,
@@ -87,10 +87,12 @@ def make_release_generate_checksums_signing_description(config, jobs):
             "worker-type": "linux-signing",
             "worker": {
                 "implementation": "scriptworker-signing",
-                "signing-type": signing_type,
                 "upstream-artifacts": upstream_artifacts,
                 "max-run-time": 3600,
             },
+            "scopes": [
+                signing_cert_scope,
+            ],
             "dependencies": dependencies,
             "attributes": attributes,
             "run-on-projects": dep_job.attributes.get("run_on_projects"),

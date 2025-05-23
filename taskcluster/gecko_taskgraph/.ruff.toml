@@ -1,4 +1,4 @@
 extend = "../../pyproject.toml"
 
-[lint.isort]
+[isort]
 known-first-party = ["gecko_taskgraph"]

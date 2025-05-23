@@ -12,6 +12,7 @@ from voluptuous import Optional
 
 from gecko_taskgraph.transforms.task import task_description_schema
 from gecko_taskgraph.util.attributes import copy_attributes_from_dependent_job
+from gecko_taskgraph.util.scriptworker import add_scope_prefix
 
 geckodriver_notarization_description_schema = Schema(
     {
@@ -63,7 +64,7 @@ def geckodriver_mac_notarization(config, jobs):
 
         build_platform = dep_job.attributes.get("build_platform")
 
-        job["worker"]["signing-type"] = "release-apple-notarization"
+        scopes = [add_scope_prefix(config, "signing:cert:release-apple-notarization")]
 
         platform = build_platform.rsplit("-", 1)[0]
 
@@ -72,6 +73,7 @@ def geckodriver_mac_notarization(config, jobs):
             "description": description,
             "worker-type": job["worker-type"],
             "worker": job["worker"],
+            "scopes": scopes,
             "dependencies": dependencies,
             "attributes": attributes,
             "treeherder": treeherder,

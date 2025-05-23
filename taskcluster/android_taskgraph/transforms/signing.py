@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-from gecko_taskgraph.util.scriptworker import get_signing_type
+from gecko_taskgraph.util.scriptworker import get_signing_cert_scope
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.util.schema import resolve_keyed_by
 
@@ -84,8 +84,8 @@ def set_signing_format(config, tasks):
 
 
 @transforms.add
-def add_signing_type(config, tasks):
-    signing_type = get_signing_type(config)
+def add_signing_cert_scope(config, tasks):
+    signing_cert_scope = get_signing_cert_scope(config)
     for task in tasks:
-        task["worker"]["signing-type"] = signing_type
+        task.setdefault("scopes", []).append(signing_cert_scope)
         yield task

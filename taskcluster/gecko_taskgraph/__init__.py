@@ -4,10 +4,7 @@
 
 import os
 
-from android_taskgraph import register as register_android_taskgraph
-from mozilla_taskgraph import register as register_mozilla_taskgraph
 from taskgraph import config as taskgraph_config
-from taskgraph import generator
 from taskgraph import morph as taskgraph_morph
 from taskgraph.util import schema
 from taskgraph.util import taskcluster as tc_util
@@ -48,32 +45,30 @@ def register(graph_config):
     Args:
         graph_config: The graph configuration object.
     """
-    from taskgraph.optimize.base import registry
-    from taskgraph.transforms.task import payload_builders
-
-    from gecko_taskgraph import (  # noqa
-        filter_tasks,
-        morph,
-        target_tasks,  # trigger target task method registration
-    )
-    from gecko_taskgraph.parameters import register_parameters
-    from gecko_taskgraph.util import (
-        dependencies,  # noqa - trigger group_by registration
-    )
-    from gecko_taskgraph.util.verify import verifications
+    import android_taskgraph
+    from taskgraph import generator
 
     # TODO: Remove along with
     # `gecko_taskgraph.optimize.strategies.SkipUnlessChanged`
     # (see comment over there)
+    from taskgraph.optimize.base import registry
+
     del registry["skip-unless-changed"]
 
-    # TODO: Remove when payload_builders are consolidated
-    del payload_builders["beetmover"]
-    del payload_builders["docker-worker"]
-    del payload_builders["generic-worker"]
+    from gecko_taskgraph import (  # noqa
+        # trigger target task method registration
+        morph,  # noqa
+        filter_tasks,
+        target_tasks,
+    )
 
-    register_mozilla_taskgraph(graph_config)
-    register_android_taskgraph(graph_config)
+    android_taskgraph.register(graph_config)
+
+    from gecko_taskgraph.parameters import register_parameters
+
+    # trigger group_by registration
+    from gecko_taskgraph.util import dependencies  # noqa
+    from gecko_taskgraph.util.verify import verifications
 
     # Don't use the upstream verifications, and replace them with our own.
     # TODO Investigate merging our verifications with upstream.
