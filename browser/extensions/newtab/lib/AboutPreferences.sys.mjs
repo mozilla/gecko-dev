@@ -50,21 +50,45 @@ const PREFS_BEFORE_SECTIONS = () => [
       feed: "feeds.topsites",
       titleString: "home-prefs-shortcuts-header",
       descString: "home-prefs-shortcuts-description",
-      get nestedPrefs() {
-        return Services.prefs.getBoolPref("browser.topsites.useRemoteSetting")
-          ? [
-              {
-                name: "showSponsoredTopSites",
-                titleString: "home-prefs-shortcuts-by-option-sponsored",
-                eventSource: "SPONSORED_TOP_SITES",
-              },
-            ]
-          : [];
-      },
+      nestedPrefs: [
+        {
+          name: "showSponsoredTopSites",
+          titleString: "home-prefs-shortcuts-by-option-sponsored",
+          eventSource: "SPONSORED_TOP_SITES",
+          // Hide this nested pref if "Support Firefox" checkbox is enabled
+          shouldHidePref: Services.prefs.getBoolPref(
+            "browser.newtabpage.activity-stream.sponsoredCheckboxes.group",
+            false
+          ),
+        },
+      ],
     },
     maxRows: 4,
     rowsPref: "topSitesRows",
     eventSource: "TOP_SITES",
+  },
+  {
+    id: "support-firefox",
+    pref: {
+      feed: "showSponsoredCheckboxes",
+      titleString: "home-prefs-support-firefox-header",
+      nestedPrefs: [
+        {
+          name: "showSponsoredTopSites",
+          titleString: "home-prefs-shortcuts-by-option-sponsored",
+          eventSource: "SPONSORED_TOP_SITES",
+        },
+        {
+          name: "showSponsored",
+          titleString: "home-prefs-recommended-by-option-sponsored-stories",
+          eventSource: "POCKET_SPOCS",
+        },
+      ],
+    },
+    shouldHidePref: !Services.prefs.getBoolPref(
+      "browser.newtabpage.activity-stream.sponsoredCheckboxes.group",
+      false
+    ),
   },
 ];
 
@@ -265,22 +289,33 @@ export class AboutPreferences {
 
     // Add a checkbox pref for any nested preferences
     nestedPrefs.forEach(nested => {
-      const subcheck = this.createAppend(document, "checkbox", detailVbox);
-      // Set up a user event if we have an event source for this pref.
-      if (nested.eventSource) {
-        this.setupUserEvent(subcheck, nested.eventSource);
+      if (nested.shouldHidePref !== true) {
+        const subcheck = this.createAppend(document, "checkbox", detailVbox);
+        // Set up a user event if we have an event source for this pref.
+        if (nested.eventSource) {
+          this.setupUserEvent(subcheck, nested.eventSource);
+        }
+        subcheck.classList.add("indent");
+        document.l10n.setAttributes(subcheck, nested.titleString);
+
+        linkPref(subcheck, nested.name, "bool");
+
+        subChecks.push(subcheck);
+        subcheck.disabled = !pref._value;
+        subcheck.hidden = nested.hidden;
       }
-      subcheck.classList.add("indent");
-      document.l10n.setAttributes(subcheck, nested.titleString);
-      linkPref(subcheck, nested.name, "bool");
-      subChecks.push(subcheck);
-      subcheck.disabled = !pref._value;
-      subcheck.hidden = nested.hidden;
     });
 
-    // Disable any nested checkboxes if the parent pref is not enabled.
     pref.on("change", () => {
       subChecks.forEach(subcheck => {
+        // Update child preferences for the "Support Firefox" checkbox group
+        // so that they're turned on and off at the same time.
+        if (id === "support-firefox") {
+          const subPref = Preferences.get(subcheck.getAttribute("preference"));
+          subPref.value = pref.value;
+        }
+
+        // Disable any nested checkboxes if the parent pref is not enabled.
         subcheck.disabled = !pref._value;
       });
     });
