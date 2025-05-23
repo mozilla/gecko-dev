@@ -227,7 +227,7 @@ const DOMAPIs = [
     expression: `myPolicy.createHTML("hello")`,
     prefs: [["dom.security.trusted_types.enabled", true]],
   },
-  {
+  { 
     context: CONTEXTS.PAGE,
     expression: `myPolicy.createScript("const hello = 'world'")`
   },
@@ -246,7 +246,7 @@ const DOMAPIs = [
       formData;
     `,
   },
-  /* midi API requires https (See Bug 1967917)
+  /* midi API requires https
   {
     context: CONTEXTS.PAGE,
     expression: `

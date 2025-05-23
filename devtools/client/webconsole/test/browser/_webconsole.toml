@@ -588,8 +588,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_webconsole_persist.js"]
 skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
 
-["browser_webconsole_previewers_https.js"]
-
 ["browser_webconsole_previewers.js"]
 support-files = ["browser_webconsole_previewers.snapshot.mjs"]
 https_first_disabled = true # JS HttpServer doesn't support https
