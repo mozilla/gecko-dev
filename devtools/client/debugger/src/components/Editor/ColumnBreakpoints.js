@@ -2,14 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
-import React, { Component } from "devtools/client/shared/vendor/react";
-import { div } from "devtools/client/shared/vendor/react-dom-factories";
+import { Component } from "devtools/client/shared/vendor/react";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
 
-import { features } from "../../utils/prefs";
 const classnames = require("resource://devtools/client/shared/classnames.js");
-
-import ColumnBreakpoint from "./ColumnBreakpoint";
 
 import {
   getSelectedSource,
@@ -19,7 +15,6 @@ import {
 import actions from "../../actions/index";
 import { markerTypes } from "../../constants";
 import { connect } from "devtools/client/shared/vendor/react-redux";
-import { makeBreakpointId } from "../../utils/breakpoint/index";
 
 const breakpointButton = document.createElement("button");
 const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -54,11 +49,6 @@ class ColumnBreakpoints extends Component {
 
   componentDidUpdate() {
     const { selectedSource, columnBreakpoints, editor } = this.props;
-
-    // Only for codemirror 6
-    if (!features.codemirrorNext) {
-      return;
-    }
 
     if (!selectedSource || !editor) {
       return;
@@ -155,44 +145,7 @@ class ColumnBreakpoints extends Component {
   };
 
   render() {
-    const {
-      editor,
-      columnBreakpoints,
-      selectedSource,
-      showEditorCreateBreakpointContextMenu,
-      showEditorEditBreakpointContextMenu,
-      toggleDisabledBreakpoint,
-      removeBreakpoint,
-      addBreakpoint,
-      setSkipPausing,
-    } = this.props;
-
-    if (features.codemirrorNext) {
-      return null;
-    }
-
-    if (!selectedSource || columnBreakpoints.length === 0) {
-      return null;
-    }
-
-    let breakpoints;
-    editor.codeMirror.operation(() => {
-      breakpoints = columnBreakpoints.map(columnBreakpoint =>
-        React.createElement(ColumnBreakpoint, {
-          key: makeBreakpointId(columnBreakpoint.location),
-          columnBreakpoint,
-          editor,
-          source: selectedSource,
-          showEditorCreateBreakpointContextMenu,
-          showEditorEditBreakpointContextMenu,
-          toggleDisabledBreakpoint,
-          removeBreakpoint,
-          addBreakpoint,
-          setSkipPausing,
-        })
-      );
-    });
-    return div(null, breakpoints);
+    return null;
   }
 }
 
