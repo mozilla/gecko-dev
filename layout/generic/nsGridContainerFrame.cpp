@@ -8301,7 +8301,7 @@ nscoord nsGridContainerFrame::ReflowRowsInFragmentainer(
   FrameHashtable overflowIncompleteItems;
   Maybe<nsTArray<nscoord>> masonryAxisPos;
   const auto rowCount = aGridRI.mRows.mSizes.Length();
-  nscoord masonryAxisGap;
+  nscoord masonryAxisGap = 0;
   const auto wm = aGridRI.mWM;
   const bool isColMasonry = IsMasonry(LogicalAxis::Inline);
   if (isColMasonry) {
