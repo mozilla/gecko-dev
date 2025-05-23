@@ -27,4 +27,5 @@ support-files = ["green.png"]
 ["test_texteditor_keyevent_handling.html"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Fails delete key on linux
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Fails delete key on linux
 ]

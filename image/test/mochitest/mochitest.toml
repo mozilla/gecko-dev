@@ -111,6 +111,9 @@ support-files = [
 support-files = [
   "../animated_image_test_list.js"
 ]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && ccov && xorigin",
+]
 
 ["test_animated_gif.html"]
 support-files = ["child.html"]

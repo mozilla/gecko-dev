@@ -96,15 +96,24 @@ fail-if = ["os == 'linux'"]
 
 ["generated/test_2_conformance2__renderbuffers__multisample-draws-between-blits.html"]
 # "whole thing" and more
-fail-if = ["os == 'linux'"]
+fail-if = [
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
+]
 
 ["generated/test_2_conformance2__rendering__framebuffer-to-texture.html"]
 # checkFramebufferStatus expected: FRAMEBUFFER_COMPLETE. Was FRAMEBUFFER_INCOMPLETE_ATTACHMENT
-fail-if = ["os == 'linux'"]
+fail-if = [
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
+]
 
 ["generated/test_2_conformance2__rendering__multisampling-depth-resolve.html"]
 # multisampling-depth-resolve: outer pixels should be red
-fail-if = ["os == 'linux'"]
+fail-if = [
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
+]
 
 ["generated/test_2_conformance2__transform_feedback__transform_feedback.html"]
 # Linux: Assertion failure: [GFX1]: void mozilla::gl::GLContext::fTransformFeedbackVaryings(GLuint, GLsizei, const GLchar *const *, GLenum): Generated unexpected GL_INVALID_OPERATION error
@@ -116,7 +125,10 @@ skip-if = [
 
 ["generated/test_2_conformance__context__context-attributes-alpha-depth-stencil-antialias.html"]
 # contextAttribs.antialias should be true. Was false
-fail-if = ["os == 'linux'"]
+fail-if = [
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
+]
 
 ["generated/test_2_conformance2__extensions__webgl-multi-draw-instanced-base-vertex-base-instance.html"]
 # instid_prog: Expected [0,0,0,0], was [0,1,1,1]. desc: {"name":"drawArraysInstanced","base_vert":0,"vert_count":1,"base_inst":0,"inst_count":1,"first_vert":1}
@@ -209,6 +221,9 @@ fail-if = ["os == 'win'"]
 
 ["generated/test_conformance__rendering__gl-scissor-test.html"]
 fail-if = ["display == 'wayland'"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug TBD
+]
 
 
 ####################
@@ -600,7 +615,7 @@ skip-if = ["os == 'linux' && asan"]
 ["generated/test_conformance__glsl__bugs__sampler-array-using-loop-index.html"]
 # Testfail on Linux after removing SH_UNROLL_FOR_LOOP_WITH_SAMPLER_ARRAY_INDEX.
 # Only happen on tryserver
-fail-if = ["os == 'linux' && display != 'wayland'"]
+fail-if = ["os == 'linux' && os_version == '18.04' && display != 'wayland'"]
 
 ["generated/test_conformance__misc__type-conversion-test.html"]
 fail-if = ["os == 'linux'"]
@@ -1396,24 +1411,37 @@ fail-if = ["os == 'linux'"]
 ["generated/test_2_conformance2__context__context-attributes-depth-stencil-antialias-obeyed.html"]
 fail-if = [
   "os == 'android'",
-  "os == 'linux'",
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
 ]
 
 ["generated/test_2_conformance2__rendering__blitframebuffer-multisampled-readbuffer.html"]
-fail-if = ["os == 'linux'"]
+fail-if = [
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
+]
 
 ["generated/test_2_conformance2__rendering__clipping-wide-points.html"]
 fail-if = ["os == 'linux'"]
 
 ["generated/test_2_conformance2__state__gl-get-calls.html"]
-fail-if = ["os == 'linux'"]
+fail-if = [
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
+]
 
 ["generated/test_2_conformance__glsl__bugs__sampler-array-using-loop-index.html"]
-fail-if = ["os == 'linux' && display != 'wayland'"]
+fail-if = ["os == 'linux' && os_version == '18.04' && display != 'wayland'"]
 
 ["generated/test_conformance__rendering__line-rendering-quality.html"]
 # Found 0 lines, looking in the vertical direction, expected 2
-fail-if = ["os == 'linux' && display != 'wayland'"]
+fail-if = ["os == 'linux' && os_version == '18.04' && display != 'wayland'"]
+
+["generated/test_2_conformance2__query__occlusion-query-scissor.html"]
+skip-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'"]
+
+["generated/test_2_conformance__rendering__gl-scissor-test.html"]
+fail-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'"]
 
 ["generated/test_conformance__rendering__blending.html"]
 # Android 13.0 Pixel5 AArch64
@@ -1424,17 +1452,23 @@ fail-if = ["os == 'android'"]
 fail-if = ["os == 'android'"]
 
 ["generated/test_2_conformance2__glsl3__valid-invariant.html"]
-fail-if = ["os == 'linux' && display != 'wayland'"]
+fail-if = ["os == 'linux' && os_version == '18.04' && display != 'wayland'"]
 # [unexpected link status] vertex shader with invariant varying and fragment shader with variant varying must succeed
 # [unexpected link status] vertex shader with invariant (global setting) varying and fragment shader with variant varying must succeed
 # [unexpected link status] vertex shader with invariant (separately set) varying and fragment shader with variant varying must succeed
 
 ["generated/test_2_conformance__rendering__line-rendering-quality.html"]
-fail-if = ["os == 'linux'"]
+fail-if = [
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
+]
 # Found 0 lines, looking in the vertical direction, expected 2
 
 ["generated/test_2_conformance2__rendering__line-rendering-quality.html"]
-fail-if = ["os == 'linux'"]
+fail-if = [
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
+]
 # Found 0 lines, looking in the vertical direction, expected 2
 
 ["generated/test_2_conformance2__textures__misc__copy-texture-cube-map-bug.html"]
@@ -1511,7 +1545,8 @@ fail-if = [
 
 ["generated/test_2_conformance2__rendering__blitframebuffer-filter-srgb.html"]
 fail-if = [
-  "os == 'linux'",
+  "os == 'linux' && os_version == '18.04'",
+  "os == 'linux' && os_version == '22.04'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",

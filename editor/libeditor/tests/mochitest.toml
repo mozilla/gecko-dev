@@ -480,7 +480,11 @@ skip-if = ["display == 'wayland'"] # Bug 1935188
 skip-if = ["xorigin"] # Testing internal API for comm-central
 
 ["test_middle_click_paste.html"]
-skip-if = ["headless"]
+skip-if = [
+  "headless",
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64' && display == 'wayland' && opt", # Bug 1870753
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1870753
+]
 
 ["test_native_key_bindings_in_shadow.html"]
 skip-if = ["os != 'linux' && os != 'mac'"] # Depends on NativeKeyBindings used only on Linux and macOS

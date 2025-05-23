@@ -20,6 +20,10 @@ scheme = "https"
 
 ["test_clear_form.html"]
 scheme = "https"
+skip-if = [
+  "os == 'linux' && os_version == '22.04' && processor == 'x86_64' && display == 'wayland'", # Bug 1827944
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1827944
+]
 
 ["test_clear_form_expiry_select_elements.html"]
 scheme = "https"

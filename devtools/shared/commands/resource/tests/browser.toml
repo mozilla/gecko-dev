@@ -82,6 +82,7 @@ support-files = [
 skip-if = [
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1767771
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1767771
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1767771
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1767771
 ]
 
@@ -96,6 +97,7 @@ skip-if = [
 ["browser_resources_sources.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1744565
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1744565
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1932913
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1767772
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1767772
@@ -125,4 +127,7 @@ skip-if = [
 ["browser_resources_watch_unwatch_multiple.js"]
 
 ["browser_resources_websocket.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]

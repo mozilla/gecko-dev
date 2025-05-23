@@ -191,6 +191,8 @@ skip-if = [
   "os == 'android' && debug", # bug 1348241
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http2", # Bug 1927732
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1927732
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http2", # Bug 1927732
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1927732
 ]
 
 ["test_ext_contentscript_canvas.html"]

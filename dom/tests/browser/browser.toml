@@ -35,7 +35,10 @@ https_first_disabled = true
 ["browser_bug1004814.js"]
 
 ["browser_bug1236512.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
+]
 
 ["browser_bug1316330.js"]
 

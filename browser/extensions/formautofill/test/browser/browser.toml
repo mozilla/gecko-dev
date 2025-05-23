@@ -98,6 +98,7 @@ skip-if = [
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1916287
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1916287
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && swgl", # Bug 1916287
 ]
 
 ["browser_iframe_capture.js"]

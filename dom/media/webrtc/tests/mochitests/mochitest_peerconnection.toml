@@ -407,6 +407,7 @@ skip-if = [
 ["test_peerConnection_stats_jitter.html"]
 
 ["test_peerConnection_stats_oneway.html"]
+skip-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_e10s"] # Bug 1798188
 
 ["test_peerConnection_stats_relayProtocol.html"]
 skip-if = [

@@ -62,6 +62,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1665011
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1665011
 ]
 
 ["browser_animation_animation-target_select.js"]
@@ -93,6 +94,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_animation_indication-bar.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bugs 1858041 and 1849028 for causing intermittent a11y_checks results
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1858041 and 1849028 for causing intermittent a11y_checks results
 ]
 
 ["browser_animation_infinity-duration_current-time-scrubber.js"]
@@ -149,6 +151,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_animation_logic_mutations_fast.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1567800
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1567800
 ]
 
 ["browser_animation_logic_mutations_properties.js"]
@@ -156,6 +159,7 @@ skip-if = [
 ["browser_animation_logic_overflowed_delay_end-delay.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1480027
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1480027
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && debug", # Bug 1480027
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1480027
 ]

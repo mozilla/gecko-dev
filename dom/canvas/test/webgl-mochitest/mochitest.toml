@@ -60,6 +60,7 @@ fail-if = ["os == 'linux'  && os_version == '18.04' && processor == 'x86_64'"]
 ["ensure-exts/test_OVR_multiview2.html"]
 fail-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
   "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
@@ -97,6 +98,7 @@ fail-if = [
 fail-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
   "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
@@ -112,6 +114,7 @@ fail-if = [
   "os == 'android'",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
   "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
@@ -135,6 +138,7 @@ fail-if = [
   "os == 'android'",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
   "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
 ]
 
 ["ensure-exts/test_common.html"]
@@ -178,6 +182,7 @@ support-files = ["../captureStream_common.js"]
 fail-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
   "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",

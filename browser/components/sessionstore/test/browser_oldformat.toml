@@ -135,7 +135,10 @@ skip-if = ["true"]
 ["browser_467409-backslashplosion.js"]
 
 ["browser_477657.js"]
-skip-if = ["os == 'linux' && os_version == '18.04'"] # bug 1610668 for ubuntu 18.04
+skip-if = [
+  "os == 'linux' && os_version == '18.04'", # bug 1610668 for ubuntu 18.04
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1610668
+]
 
 ["browser_480893.js"]
 

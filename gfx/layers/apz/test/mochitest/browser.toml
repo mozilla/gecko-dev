@@ -26,15 +26,11 @@ support-files = ["helper_background_tab_scroll.html"]
 support-files = ["helper_content_response_timeout.html"]
 
 ["browser_test_contextmenu_in_popup.js"]
-skip-if = [
-  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
-]
+run-if = ["os != 'mac'"] # On Mac popup windows having no remote content doesn't have the compositor
 
 ["browser_test_displayport_in_popup.js"]
 support-files = ["helper_popup_menu_in_parent_process-1.html"]
-skip-if = [
-  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
-]
+run-if = ["os != 'mac'"] # On Mac popup windows having no remote content doesn't have the compositor
 
 ["browser_test_key_press_in_popup.js"]
 support-files = [
@@ -46,9 +42,7 @@ skip-if = ["display == 'wayland' && os_version == '22.04'"]  # Bug 1857059
 
 ["browser_test_paint_skip_in_popup.js"]
 support-files = ["helper_paint_skip_in_popup.html"]
-skip-if = [
-  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
-]
+run-if = ["os != 'mac'"] # On Mac popup windows having no remote content doesn't have the compositor
 
 ["browser_test_popup_menu_in_parent_process.js"]
 support-files = [
@@ -58,12 +52,13 @@ support-files = [
 
 ["browser_test_popup_menu_in_position_fixed.js"]
 support-files = ["helper_popup_menu_in_parent_process-1.html"]
-skip-if = [
-  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
-]
+run-if = ["os != 'mac'"] # On Mac popup windows having no remote content doesn't have the compositor
 
 ["browser_test_position_sticky.js"]
 support-files = ["helper_position_sticky_flicker.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && a11y_checks", # bug 1924676
+]
 
 ["browser_test_reset_scaling_zoom.js"]
 support-files = ["helper_test_reset_scaling_zoom.html"]
@@ -96,10 +91,10 @@ skip-if = [
 ]
 
 ["browser_test_tab_drag_event_counts.js"]
-skip-if = ["os == 'linux' && os_version == '18.04'"] # No native key event support on Linux at this time (bug 1770143)
 support-files = [
   "helper_test_tab_drag_event_counts.html"
 ]
+run-if = ["os != 'linux'"] # No native key event support on Linux at this time (bug 1770143)
 
 ["browser_test_tab_drag_zoom.js"]
 run-if = ["os != 'win'"] # Our Windows touch injection test code doesn't support pinch gestures (bug 1495580)
@@ -109,6 +104,4 @@ support-files = ["helper_test_tab_drag_zoom.html"]
 support-files = [
   "!/testing/mochitest/tests/SimpleTest/paint_listener.js",
 ]
-skip-if = [
-  "os == 'mac'", # On Mac popup windows having no remote content doesn't have the compositor
-]
+run-if = ["os != 'mac'"] # On Mac popup windows having no remote content doesn't have the compositor

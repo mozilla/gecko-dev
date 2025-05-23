@@ -95,6 +95,7 @@ skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1607713
 ["browser_bfcache_copycommand.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1730593
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl", # Bug 1730593
   "win11_2009", # Bug 1775931
 ]
 
@@ -336,7 +337,8 @@ support-files = ["file_replace_state_during_navigation.html"]
 
 ["browser_tab_replace_while_loading.js"]
 skip-if = [
-  "os == 'linux' && bits == 64 && os_version == '18.04'", # Bug 1604237
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1604237
+  "os == 'linux'&& os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan", # Bug 1604237
   "os == 'win'", # Bug 1671794
 ]
 

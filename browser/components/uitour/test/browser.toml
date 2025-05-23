@@ -10,6 +10,7 @@ support-files = [
 ["browser_UITour.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04'", # Intermittent failures, bug 951965
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 951965
   "verify",
 ]
 

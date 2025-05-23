@@ -14,4 +14,6 @@ run-if = ["os == 'linux'"] # Results should be platform agnostic - only run on l
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug",
 ]

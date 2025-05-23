@@ -111,6 +111,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-pretty-print-sourcemap.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1817966
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1817966
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1817966
 ]
 
@@ -143,6 +144,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 .threads-pane .thread is not accessible
 ["browser_dbg-preview-switch.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1849028 .theme-twisty is inconsistently not accessible
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1849028 .theme-twisty is inconsistently not accessible
 ]
 
 ["browser_dbg-preview-wrapped-lines.js"]
@@ -170,6 +172,7 @@ skip-if = [
 ["browser_dbg-reloading.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
@@ -220,6 +223,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 # Bug 1441545, 1536253 - very slow on debug
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bugs 1858041 and 1849028 intermittent results (fails on Try, passes on Autoland)
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent results (fails on Try, passes on Autoland)
 ]
 
 ["browser_dbg-sourcemapped-stepping.js"]
@@ -287,6 +291,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-watchpoints.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1814093
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1814093
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1814093
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1814093
 ]

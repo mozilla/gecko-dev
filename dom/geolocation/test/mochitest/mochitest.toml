@@ -58,22 +58,30 @@ skip-if = [
 support-files = ["test_geolocation_is_undefined_when_pref_is_off_iframe.html"]
 
 ["test_hidden.html"]
-skip-if = [
-  "os == 'android'", # test uses popup windows
-  "condprof",
-]  #: timed out
 support-files = ["popup.html"]
+skip-if = [
+  "condprof",
+  "os == 'android'", # test uses popup windows
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1823283
+]
 
 ["test_manyCurrentConcurrent.html"]
-skip-if = ["condprof"]  #: timed out
+skip-if = [
+  "condprof", # : timed out
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1823283
+]
 
 ["test_manyCurrentSerial.html"]
 skip-if = [
-  "condprof", #: timed out
+  "condprof", # : timed out
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1823283
 ]
 
 ["test_manyWatchConcurrent.html"]
-skip-if = ["condprof"] #: timed out
+skip-if = [
+  "condprof", # : timed out
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1823283
+]
 
 ["test_manyWatchSerial.html"]
 

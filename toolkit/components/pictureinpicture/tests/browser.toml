@@ -74,6 +74,9 @@ prefs = [
 ["browser_contextMenu.js"]
 
 ["browser_controlsHover.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && socketprocess_networking", # bug 1784652
+]
 
 ["browser_cornerSnapping.js"]
 run-if = ["os == 'mac'"]
@@ -99,6 +102,9 @@ skip-if = [
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && socketprocess_networking", # Bug 1775867
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl", # Bug 1775867
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && swgl", # Bug 1775867
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan && swgl", # Bug 1775867
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1775867
 ]
 
 ["browser_fullscreen.js"]
@@ -147,12 +153,18 @@ support-files = ["test-page-with-nan-video-duration.html"]
 ["browser_removeVideoElement.js"]
 
 ["browser_resizeVideo.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1594223
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1594223
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1594223
+]
 
 ["browser_reversePiP.js"]
 
 ["browser_saveLastPiPLoc.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1673465
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1673465
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1594223
+]
 
 ["browser_shortcutsAfterFocus.js"]
 

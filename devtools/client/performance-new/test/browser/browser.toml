@@ -10,7 +10,10 @@ support-files = [
   "webchannel-favicons.html",
   "webchannel-open-script-in-debugger_assets/*",
 ]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan"] # Bug 1804081, timeouts and data races in various tests
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1804081, timeouts and data races in various tests
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan", # Bug 1804081
+]
 
 ["browser_aboutprofiling-entries.js"]
 

@@ -85,12 +85,13 @@ support-files = [
 support-files = ["helper_scrollbar_colors.html"]
 
 ["browser_test_swipe_gesture.js"]
-skip-if = [
-  "verify", # Bug 1800022
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1784772
-]
 support-files = [
   "helper_swipe_gesture.html",
   "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
   "!/gfx/layers/apz/test/mochitest/apz_test_utils.js",
+]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1784772
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1784772
+  "verify", # Bug 1800022
 ]

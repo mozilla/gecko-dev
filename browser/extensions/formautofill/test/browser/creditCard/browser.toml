@@ -82,15 +82,21 @@ skip-if = ["true"]
 ["browser_creditCard_fill_cancel_login.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan",
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan",
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && swgl",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan && swgl",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt",
 ]
 
 ["browser_creditCard_heuristics.js"]
 skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"] # Bug 1714221
 
 ["browser_creditCard_osAuth.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
+]
 
 ["browser_creditCard_submission_autodetect_type.js"]
 skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"]
@@ -104,8 +110,10 @@ support-files = ["browser_telemetry_utils.js"]
 ["browser_creditCard_telemetry_manage.js"]
 support-files = ["browser_telemetry_utils.js"]
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1960313
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1960313
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1960313
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && swgl", # Bug 1960313
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1960313
 ]
 
 ["browser_creditCard_telemetry_popup.js"]

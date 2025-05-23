@@ -24,6 +24,7 @@ support-files = [
 ["browser_about_logging.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1804081 # Bug 1869961
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan", # Bug 1804081 # Bug 1869961
 ]
 support-files = ["browser_about_logging_server.sjs"]
 
@@ -42,6 +43,7 @@ fail-if = ["a11y_checks"] # Bug 1854538 clicked browser may not be focusable
 ["browser_bug295977_autoscroll_overflow.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl", # Bug 1710788 # Bug 1869961
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl", # Bug 1710788 # Bug 1869961
   "os == 'win' && os_version == '11.2009' && processor == 'x86_64'",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug",

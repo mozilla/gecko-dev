@@ -91,9 +91,15 @@ support-files = ["head_disco.js"]
 ["browser_html_discover_view_prefs.js"]
 
 ["browser_html_list_view.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl", # Bug 1781893
+]
 
 ["browser_html_list_view_recommendations.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl"] # Bug 1858037 to investigate intermittent a11y_checks results for .popup-notification-primary-button.primary.footer-button
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl", # Bug 1858037 to investigate intermittent a11y_checks results for .popup-notification-primary-button.primary.footer-button
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl", # Bug 1858037 to investigate intermittent a11y_checks results for .popup-notification-primary-button.primary.footer-button
+]
 
 ["browser_html_mlmodel_addons.js"]
 
@@ -123,6 +129,7 @@ https_first_disabled = true
 ["browser_installssl.js"]
 
 ["browser_installtrigger_install.js"]
+skip-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl"] # Bug 1861339
 
 ["browser_local_install.js"]
 
@@ -141,6 +148,9 @@ https_first_disabled = true
 ["browser_page_options_updates.js"]
 
 ["browser_permission_prompt.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl", # Bug 1964764
+]
 
 ["browser_permission_prompt_userScripts.js"]
 

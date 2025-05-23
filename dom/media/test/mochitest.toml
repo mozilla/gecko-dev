@@ -855,12 +855,13 @@ tags = "hls"
 ["test_played.html"]
 skip-if = [
   "os == 'android' && is_emulator", # Times out on android-em, Bug 1613946
+  "os == 'android' && processor == 'aarch64'", # Bug 1110922
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1110922
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1110922
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1110922
-  "os == 'win'", # Bug 1110922
-  "os == 'android' && processor == 'aarch64'", # Bug 1110922
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && mda_gpu", # Bug 1929426
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && socketprocess_e10s", # Bug 1929426
+  "os == 'win'", # Bug 1110922
 ]
 
 ["test_replay_metadata.html"]
@@ -899,7 +900,10 @@ skip-if = ["os == 'android'"] # Android has black frames issue.
 
 ["test_setSinkId_after_loop.html"]
 scheme = "https"
-skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug"] # Bug 1961557
+skip-if = [
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && debug", # Bug 1961557
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && !fission",
+]
 
 ["test_temporary_file_blob_video_plays.html"]
 skip-if = ["os == 'android'"] # bug 1533534 # android(bug 1232305)

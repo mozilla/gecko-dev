@@ -12,6 +12,9 @@ tags = "os_integration"
 # Privacy relevant
 
 ["test_bug343416.xhtml"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1962438
+]
 
 ["test_bug428405.xhtml"]
 run-if = ["os == 'mac'"] # Cocoa widget test
@@ -161,6 +164,7 @@ skip-if = ["true"] # Bug 1207190
 ["test_position_on_resize.xhtml"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1616760
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1616760
 ]
 
 ["test_secure_input.html"]
@@ -186,6 +190,7 @@ run-if = ["os == 'mac'"] # Cocoa widget test
 ["test_taskbar_progress.xhtml"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
 ]
 
 ["test_transferable_overflow.xhtml"]

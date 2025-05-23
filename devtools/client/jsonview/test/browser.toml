@@ -29,7 +29,10 @@ support-files = [
 
 ["browser_jsonview_chunked_json.js"]
 support-files = ["chunked_json.sjs"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_jsonview_content_type.js"]
 
@@ -77,7 +80,10 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 
 ["browser_jsonview_save_json.js"]
 support-files = ["!/toolkit/content/tests/browser/common/mockTransfer.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1829298
+]
 
 ["browser_jsonview_serviceworker.js"]
 

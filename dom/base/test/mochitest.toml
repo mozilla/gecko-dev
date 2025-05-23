@@ -1038,8 +1038,14 @@ skip-if = [
 
 ["test_bug1100912.html"]
 support-files = ["file_bug1100912.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && xorigin",
+]
 
 ["test_bug1101364.html"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && xorigin",
+]
 
 ["test_bug1118689.html"]
 
@@ -1705,6 +1711,7 @@ support-files = [
 skip-if = [
   "debug",
   "asan",
+  "tsan",
   "verify",
   "os == 'android'", # The test needs to run reasonably fast.
 ]

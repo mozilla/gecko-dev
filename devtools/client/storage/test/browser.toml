@@ -3,6 +3,7 @@ tags = "devtools"
 subsuite = "devtools"
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Many tests relying on test1/test2.example.org
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Many tests relying on test1/test2.example.org
 ]
 support-files = [
   "storage-blank.html",
@@ -87,6 +88,7 @@ https_first_disabled = true
 ["browser_storage_cookies_sort.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1858037 to investigate intermittent a11y_checks results (fails on Autoland, passes on Try)
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1858037 to investigate intermittent a11y_checks results (fails on Autoland, passes on Try)
 ]
 
 ["browser_storage_cookies_tab_navigation.js"]
@@ -136,6 +138,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_storage_indexeddb_hide_internal_dbs.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1591064
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan", # Bug 1591064
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1929421
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1591064
 ]
@@ -145,6 +148,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1781497
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1781497
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1781497
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks",
 ]
 
 ["browser_storage_indexeddb_overflow.js"]

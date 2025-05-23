@@ -196,7 +196,10 @@ prefs = [
 
 ["browser_webconsole_allow_mixedcontent_securityerrors.js"]
 tags = "mcb"
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_async_stack.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -207,7 +210,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_block_mixedcontent_securityerrors.js"]
 tags = "mcb"
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_cached_messages.js"]
 
@@ -219,7 +225,10 @@ https_first_disabled = true
 ["browser_webconsole_cached_messages_no_duplicate.js"]
 
 ["browser_webconsole_certificate_messages.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_checkloaduri_errors.js"]
 
@@ -228,21 +237,33 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 ["browser_webconsole_click_function_to_mapped_source.js"]
 https_first_disabled = true
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_click_function_to_prettyprinted_source.js"]
 https_first_disabled = true
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_click_function_to_source.js"]
 https_first_disabled = true
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_clickable_urls.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_close_groups_after_navigation.js"]
 
@@ -278,7 +299,10 @@ skip-if = [
 ["browser_webconsole_console_table.js"]
 https_first_disabled = true
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_console_table_fallback.js"]
 
@@ -290,7 +314,10 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 
 ["browser_webconsole_console_trace_duplicates.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_context_menu_copy_entire_message.js"]
 
@@ -300,6 +327,7 @@ skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan", # Bug 1473120
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1473120
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan", # Bug 1473120
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
 ]
 
 ["browser_webconsole_context_menu_copy_message_with_async_stacktrace.js"]
@@ -315,7 +343,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_context_menu_open_url.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_context_menu_reveal_in_inspector.js"]
 
@@ -323,11 +354,17 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 
 ["browser_webconsole_cors_errors.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_csp_ignore_reflected_xss_message.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_csp_too_many_reports.js"]
 
@@ -335,7 +372,10 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 
 ["browser_webconsole_cspro.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_css_error_impacted_elements.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -379,7 +419,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_webconsole_execution_scope.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_external_script_errors.js"]
 
@@ -395,7 +438,10 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 
 ["browser_webconsole_filter_navigation_marker.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_filter_scroll.js"]
 
@@ -421,10 +467,16 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_webconsole_insecure_passwords_about_blank_web_console_warning.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_insecure_passwords_web_console_warning.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_inspect_cross_domain_object.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -460,6 +512,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_webconsole_longstring_getter.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bugs 1849028 and 1858041 clicked BUTTON.arrow is inconsistently not focusable
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bugs 1849028 and 1858041 clicked BUTTON.arrow is inconsistently not focusable
 ]
 
 ["browser_webconsole_message_categories.js"]
@@ -494,7 +547,10 @@ skip-if = [
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_webconsole_network_requests_from_chrome.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_network_reset_filter.js"]
 
@@ -529,7 +585,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 support-files = ["browser_webconsole_object_inspector_entries.snapshot.mjs"]
 https_first_disabled = true # JS HttpServer doesn't support https
-skip-if = ["http3"] # JS HttpServer doesn't support http3
+skip-if = [
+  "http3", # JS HttpServer doesn't support http3
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1965340
+]
 
 ["browser_webconsole_object_inspector_getters.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
@@ -586,7 +645,10 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_webconsole_output_trimmed.js"]
 
 ["browser_webconsole_persist.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_previewers.js"]
 support-files = ["browser_webconsole_previewers.snapshot.mjs"]
@@ -643,7 +705,10 @@ skip-if = ["verify"]
 ["browser_webconsole_sidebar_scroll.js"]
 
 ["browser_webconsole_sourcemap_css.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_sourcemap_error.js"]
 
@@ -652,6 +717,7 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 ["browser_webconsole_sourcemap_nosource.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
   "verify",
 ]
 
@@ -680,7 +746,10 @@ skip-if = [
 ["browser_webconsole_stubs_evaluation_result.js"]
 
 ["browser_webconsole_stubs_network_event.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_webconsole_stubs_page_error.js"]
 
@@ -732,6 +801,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_webconsole_warning_group_storage_isolation.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1765369
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1765369
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1765369
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1765369
 ]

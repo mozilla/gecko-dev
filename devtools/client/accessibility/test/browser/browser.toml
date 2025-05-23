@@ -31,6 +31,7 @@ https_first_disabled = true
 ["browser_accessibility_panel_toolbar_pref_scroll.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1674060
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1674060
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1674060
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1674060
 ]
@@ -50,6 +51,7 @@ skip-if = [
 ["browser_accessibility_simulation.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1674060
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1674060
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1674060
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1674060
 ]
