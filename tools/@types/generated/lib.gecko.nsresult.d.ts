@@ -673,6 +673,11 @@ interface nsIXPCComponents_Results {
 
   /** The existing UserChoice Hash was verified, but we're on an older, unsupported Windows build, so do not attempt to update the UserChoice hash. */
   NS_ERROR_WDBA_BUILD: 0x80720004;
+
+  // Codes related to QuotaManager
+
+  /** Client initialization attempted before origin has been initialized. */
+  NS_ERROR_DOM_QM_CLIENT_INIT_ORIGIN_UNINITIALIZED: 0x80730001;
 }
 
 type nsIXPCComponents_Values = nsIXPCComponents_Results[keyof nsIXPCComponents_Results];
