@@ -255,8 +255,6 @@ Environment variables used internally
 - ``MOZ_CRASHREPORTER_RESTART_XUL_APP_FILE`` - If a XUL app file was specified
   when starting the app it has to be stored in this variable so that the crash
   reporter client can restart the application.
-- ``MOZ_CRASHREPORTER_STRINGS_OVERRIDE`` - Overrides the path used to load the
-  .ini file holding the strings used in the crash reporter client UI.
 
 Environment variables used for development
 ------------------------------------------
