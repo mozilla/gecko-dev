@@ -3651,24 +3651,20 @@ class SystemAddonInstaller extends DirectoryInstaller {
   }
 
   /**
-   * Tests whether the loaded add-on information matches what is expected
-   * and returns the list of add-on ids of the ones detected as invalid
-   * (e.g. addon version not matching the expected version included in the
-   * addonSet about:config pref).
+   * Tests whether the loaded add-on information matches what is expected.
    *
    * @param {Map<string, AddonInternal>} aAddons
    *        The set of add-ons to check.
-   * @returns {Array<string>}
-   *        Add-ons ids of the system-signed addons detected as invalid.
+   * @returns {boolean}
+   *        True if all of the given add-ons are valid.
    */
-  getInvalidAddonIds(aAddons) {
-    const invalidAddonIds = [];
+  isValid(aAddons) {
     for (let id of Object.keys(this._addonSet.addons)) {
       if (!aAddons.has(id)) {
         logger.warn(
           `Expected add-on ${id} is missing from the system add-on location.`
         );
-        continue;
+        return false;
       }
 
       let addon = aAddons.get(id);
@@ -3676,59 +3672,15 @@ class SystemAddonInstaller extends DirectoryInstaller {
         logger.warn(
           `Expected system add-on ${id} to be version ${this._addonSet.addons[id].version} but was ${addon.version}.`
         );
-        invalidAddonIds.push(id);
-        continue;
+        return false;
       }
 
       if (!this.isValidAddon(addon)) {
-        invalidAddonIds.push(id);
-        continue;
-      }
-    }
-
-    return invalidAddonIds;
-  }
-
-  async updateAddonSetOnAppVersionChanged(builtInsMap) {
-    let addonSet = this._addonSet;
-
-    if (!addonSet.directory) {
-      // Nothing to do if there aren't any system-signed updates.
-      return;
-    }
-
-    if (!builtInsMap.size) {
-      // If the builtin map is completely empty, we would uninstall
-      // all system-signed updates like resetAddonSet method would.
-      await this.resetAddonSet();
-      return;
-    }
-
-    logger.info("Re-validate system add-on upgrades on app version changed.");
-
-    const systemUpdateIsBuiltInUpgrade = (id, systemUpdateVersion) => {
-      if (!builtInsMap.has(id)) {
         return false;
       }
-      const builtInVersion = builtInsMap.get(id).builtin.addon_version;
-      return Services.vc.compare(systemUpdateVersion, builtInVersion) > 0;
-    };
-    for (const id of Object.keys(this._addonSet.addons)) {
-      const { version } = this._addonSet.addons[id];
-      if (systemUpdateIsBuiltInUpgrade(id, version)) {
-        logger.info(
-          `SystemAddonInstaller: keep system-signed update for built-in addon ${id}`
-        );
-        continue;
-      }
-
-      logger.info(
-        `SystemAddonInstaller: uninstalling system-signed addon ${id}`
-      );
-      uninstallAddonFromLocation(id, this.location);
-      delete this._addonSet.addons[id];
     }
-    SystemAddonInstaller._saveAddonSet(this._addonSet);
+
+    return true;
   }
 
   /**

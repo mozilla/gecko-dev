@@ -1236,11 +1236,10 @@ class SystemAddonLocation extends DirectoryLocation {
    *        The directory for the install location.
    * @param {integer} scope
    *        The scope of add-ons installed in this location.
-   * @param {boolean} appChanged
-   *        True if the app version has changed from the one that has
-   *        last run on the current profile.
+   * @param {boolean} resetSet
+   *        True to throw away the current add-on set
    */
-  constructor(name, dir, scope, appChanged) {
+  constructor(name, dir, scope, resetSet) {
     let addonSet = SystemAddonLocation._loadAddonSet();
     let directory = null;
 
@@ -1259,25 +1258,8 @@ class SystemAddonLocation extends DirectoryLocation {
     this._addonSet = addonSet;
     this._baseDir = dir;
 
-    // Resetting system-signed addon set got from Balrog on:
-    // - a startup detected as an application version downgrade
-    // - a startup detected as an application version upgrade where there is a builtin addon version
-    //   higher than the addon version part of the system-signed addon set.
-    const isAppVersionDowngrade =
-      appChanged &&
-      Services.appinfo.lastAppVersion &&
-      Services.vc.compare(
-        Services.appinfo.version,
-        Services.appinfo.lastAppVersion
-      ) < 0;
-    if (isAppVersionDowngrade) {
-      logger.info(
-        "SystemAddonLocation directory reset on detected application downgrade"
-      );
+    if (resetSet) {
       this.installer.resetAddonSet();
-    } else if (appChanged && addonSet.directory) {
-      const builtInsMap = SystemBuiltInLocation.readAddons();
-      this.installer.updateAddonSetOnAppVersionChanged(builtInsMap);
     }
   }
 
@@ -2515,7 +2497,7 @@ export var XPIProvider = {
       } catch (e) {
         return null;
       }
-      return new SystemAddonLocation(aName, dir, aScope, aAppChanged);
+      return new SystemAddonLocation(aName, dir, aScope, aAppChanged !== false);
     }
 
     function RegistryLoc(aName, aScope, aKey) {

@@ -3162,27 +3162,24 @@ export const XPIDatabaseReconcile = {
    *
    * @param {Map<String, AddonInternal>} addonMap
    *        The add-on map to flatten.
-   * @param {function(string, string): boolean} [hideAddonCb]
-   *        An optional callback used to determine if any of the addons
-   *        in addonMap should be hidden based on their location name and
-   *        addon id (e.g. system addons that are determined to be invalid
-   *        by XPIDatabaseReconcile.processFileChanges are disabled through
-   *        this callback).
+   * @param {string?} [hideLocation]
+   *        An optional location from which to hide any add-ons.
    * @returns {Map<string, AddonInternal>}
    */
-  flattenByID(addonMap, hideAddonCb) {
+  flattenByID(addonMap, hideLocation) {
     let map = new Map();
 
     for (let loc of XPIExports.XPIInternal.XPIStates.locations()) {
+      if (loc.name == hideLocation) {
+        continue;
+      }
+
       let locationMap = addonMap.get(loc.name);
       if (!locationMap) {
         continue;
       }
 
       for (let [id, addon] of locationMap) {
-        if (hideAddonCb?.(loc.name, id)) {
-          continue;
-        }
         if (!map.has(id)) {
           map.set(id, addon);
         }
@@ -3797,31 +3794,26 @@ export const XPIDatabaseReconcile = {
     }
 
     // Validate the updated system add-ons
-    let hideAddonCb;
+    let hideLocation;
     {
       let systemAddonLocation = XPIExports.XPIInternal.XPIStates.getLocation(
         KEY_APP_SYSTEM_ADDONS
       );
       let addons = currentAddons.get(systemAddonLocation.name);
-      let invalidAddonIds =
-        systemAddonLocation.installer.getInvalidAddonIds(addons);
-      if (invalidAddonIds?.length) {
+
+      if (!systemAddonLocation.installer.isValid(addons)) {
+        // Hide the system add-on updates if any are invalid.
         logger.info(
-          `Detected invalid system-signed addons to be disabled: ${invalidAddonIds.join(", ")}`
+          "One or more updated system add-ons invalid, falling back to defaults."
         );
-        // Set the callback passed to flattenByID, this callback
-        // should return true if both the location name and addon id
-        // match one that should be disabled.
-        hideAddonCb = (locName, addonId) =>
-          locName === systemAddonLocation.name &&
-          invalidAddonIds?.includes(addonId);
+        hideLocation = systemAddonLocation.name;
       }
     }
 
     // Apply startup changes to any currently-visible add-ons, and
     // uninstall any which were previously visible, but aren't anymore.
     let previousVisible = this.getVisibleAddons(previousAddons);
-    let currentVisible = this.flattenByID(currentAddons, hideAddonCb);
+    let currentVisible = this.flattenByID(currentAddons, hideLocation);
 
     for (let addon of XPIDatabase.orphanedAddons.splice(0)) {
       if (addon.visible) {
