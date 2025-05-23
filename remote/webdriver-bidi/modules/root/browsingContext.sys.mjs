@@ -198,6 +198,10 @@ class BrowsingContextModule extends RootBiDiModule {
       "fragment-navigated",
       this.#onFragmentNavigated
     );
+    this.#navigationListener.on(
+      "navigation-committed",
+      this.#onNavigationCommitted
+    );
     this.#navigationListener.on("navigation-failed", this.#onNavigationFailed);
     this.#navigationListener.on(
       "navigation-started",
@@ -224,6 +228,10 @@ class BrowsingContextModule extends RootBiDiModule {
     this.#navigationListener.off(
       "fragment-navigated",
       this.#onFragmentNavigated
+    );
+    this.#navigationListener.off(
+      "navigation-committed",
+      this.#onNavigationCommitted
     );
     this.#navigationListener.off("navigation-failed", this.#onNavigationFailed);
     this.#navigationListener.off(
@@ -2039,6 +2047,24 @@ class BrowsingContextModule extends RootBiDiModule {
     }
   };
 
+  #onNavigationCommitted = async (eventName, data) => {
+    const { navigableId, navigationId, url, contextId } = data;
+
+    if (this.#subscribedEvents.has("browsingContext.navigationCommitted")) {
+      const eventPayload = {
+        context: navigableId,
+        navigation: navigationId,
+        timestamp: Date.now(),
+        url,
+      };
+      this.#emitContextEventForBrowsingContext(
+        contextId,
+        "browsingContext.navigationCommitted",
+        eventPayload
+      );
+    }
+  };
+
   #onNavigationFailed = async (eventName, data) => {
     const { navigableId, navigationId, url, contextId } = data;
 
@@ -2131,6 +2157,7 @@ class BrowsingContextModule extends RootBiDiModule {
         break;
       }
       case "browsingContext.fragmentNavigated":
+      case "browsingContext.navigationCommitted":
       case "browsingContext.navigationFailed":
       case "browsingContext.navigationStarted": {
         this.#navigationListener.startListening();
@@ -2154,6 +2181,7 @@ class BrowsingContextModule extends RootBiDiModule {
         break;
       }
       case "browsingContext.fragmentNavigated":
+      case "browsingContext.navigationCommitted":
       case "browsingContext.navigationFailed":
       case "browsingContext.navigationStarted": {
         this.#stopListeningToNavigationEvent(event);
@@ -2282,6 +2310,7 @@ class BrowsingContextModule extends RootBiDiModule {
       "browsingContext.domContentLoaded",
       "browsingContext.fragmentNavigated",
       "browsingContext.load",
+      "browsingContext.navigationCommitted",
       "browsingContext.navigationFailed",
       "browsingContext.navigationStarted",
       "browsingContext.userPromptClosed",

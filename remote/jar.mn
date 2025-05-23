@@ -56,6 +56,11 @@ remote.jar:
   content/shared/listeners/ParentWebProgressListener.sys.mjs (shared/listeners/ParentWebProgressListener.sys.mjs)
   content/shared/listeners/PromptListener.sys.mjs (shared/listeners/PromptListener.sys.mjs)
 
+  # JSProcessActors
+  content/shared/js-process-actors/WebDriverDocumentInsertedActor.sys.mjs (shared/js-process-actors/WebDriverDocumentInsertedActor.sys.mjs)
+  content/shared/js-process-actors/WebDriverDocumentInsertedChild.sys.mjs (shared/js-process-actors/WebDriverDocumentInsertedChild.sys.mjs)
+  content/shared/js-process-actors/WebDriverDocumentInsertedParent.sys.mjs (shared/js-process-actors/WebDriverDocumentInsertedParent.sys.mjs)
+
   # JSWindowActors
   content/shared/js-window-actors/WebProgressListenerActor.sys.mjs (shared/js-window-actors/WebProgressListenerActor.sys.mjs)
   content/shared/js-window-actors/WebProgressListenerChild.sys.mjs (shared/js-window-actors/WebProgressListenerChild.sys.mjs)
