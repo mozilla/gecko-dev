@@ -329,6 +329,13 @@ add_task(async function testDownloadsButtonPress() {
   DownloadsButton.hide();
 });
 
+// Bug 1968055 - Temporarily enabled pocket pref while we remove the pref entirely
+add_setup(async function setPref() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.pocket.enabled", true]],
+  });
+});
+
 // Test activation of the Save to Pocket button from the keyboard.
 // This is a customizable widget button which shows an popup panel
 // with a browser element to embed the pocket UI into it.
