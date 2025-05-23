@@ -22,6 +22,7 @@ exclude: true
 - Added [`getSameDocumentNavigationOverridesLoadType`][140.9], [`setSameDocumentNavigationOverridesLoadType`][140.10], [`getSameDocumentNavigationOverridesLoadTypeForceDisable`][140.11], [`setSameDocumentNavigationOverridesLoadTypeForceDisable`][140.12] to get the runtime settings for same document navigation overriding the load type.
 - ⚠️ Deprecated a [`GeckoSession.PromptDelegate.CertificateRequest`][140.13] constructor in favor of one that takes an array of acceptable issuers.
 - Added support for controlling `network.android_doh.autoselect_enabled` via [`GeckoRuntimeSettings.setDohAutoselectEnabled`][140.14]
+- Added support for controlling `network.security.ports.banned` via [`GeckoRuntimeSettings.setBannedPorts`][140.15]
 
 [140.1]: {{javadoc_uri}}/GeckoPreferenceController.html
 [140.2]: {{javadoc_uri}}/GeckoPreferenceController.Observer.Delegate.html
@@ -37,6 +38,7 @@ exclude: true
 [140.12]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setSameDocumentNavigationOverridesLoadTypeForceDisable(java.lang.String)
 [140.13]: {{javadoc_uri}}/GeckoSession.PromptDelegate.CertificateRequest.html#<init>(java.lang.String,org.mozilla.geckoview.GeckoSession.PromptDelegate.BasePrompt.Observer,java.lang.String)
 [140.14]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setDohAutoselectEnabled
+[140.15]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBannedPorts
 
 ## v139
 - ⚠️ Removed deprecated [`GeckoSession.requestAnalysis`][118.4], [`GeckoSession.requestCreateAnalysis`][122.2], [`GeckoSession.requestAnalysisStatus`][137.1], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.pollForAnalysisCompleted`][137.2], [`GeckoSession.sendClickAttributionEvent`][121.4], [`GeckoSession.sendImpressionAttributionEvent`][121.5], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.requestRecommendations`][118.5], [`GeckoSession.reportBackInStock`][122.1], `AnalysisStatusResponse`, [`ReviewAnalysis`][120.2] and [`Recommendation`][120.3].
@@ -1742,4 +1744,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: f6dce67ceb30b4634facdeacff1651b7007819fe
+[api-version]: 6d93b98aed14f546f7db741f766e52adef92dc07

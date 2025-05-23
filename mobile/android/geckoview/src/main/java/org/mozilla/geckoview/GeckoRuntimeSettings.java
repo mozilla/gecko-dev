@@ -750,6 +750,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
   /* package */ final Pref<String> mSameDocumentNavigationOverridesLoadTypeForceDisable =
       new Pref<String>(
           "docshell.shistory.sameDocumentNavigationOverridesLoadType.forceDisable", "");
+  /* package */ final Pref<String> mBannedPorts =
+      new Pref<String>("network.security.ports.banned", "");
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
   /* package */ boolean mForceEnableAccessibility;
@@ -2126,6 +2128,26 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     final Boolean tlsEnabled = mPostQuantumKeyExchangeTLSEnabled.get();
     final Boolean h3Enabled = mPostQuantumKeyExchangeHttp3Enabled.get();
     return (tlsEnabled != null && tlsEnabled) && (h3Enabled != null && h3Enabled);
+  }
+
+  /**
+   * Set the preference that controls which destination ports Firefox should refuse to connect to.
+   *
+   * @param portList Comma separated list of ports
+   * @return This GeckoRuntimeSettings instance
+   */
+  public @NonNull GeckoRuntimeSettings setBannedPorts(final @NonNull String portList) {
+    mBannedPorts.commit(portList);
+    return this;
+  }
+
+  /**
+   * Get the list of banned ports as a comma separated string
+   *
+   * @return a String containing the list of banned ports
+   */
+  public @NonNull String getBannedPorts() {
+    return mBannedPorts.get();
   }
 
   // For internal use only

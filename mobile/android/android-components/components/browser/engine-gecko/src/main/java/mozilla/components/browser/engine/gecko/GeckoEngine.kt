@@ -1479,6 +1479,10 @@ class GeckoEngine(
         override var dohAutoselectEnabled: Boolean
             get() = runtime.settings.dohAutoselectEnabled
             set(value) { runtime.settings.setDohAutoselectEnabled(value) }
+
+        override var bannedPorts: String
+            get() = runtime.settings.bannedPorts
+            set(value) { runtime.settings.setBannedPorts(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1522,6 +1526,7 @@ class GeckoEngine(
             this.certificateTransparencyMode = it.certificateTransparencyMode
             this.postQuantumKeyExchangeEnabled = it.postQuantumKeyExchangeEnabled
             this.dohAutoselectEnabled = it.dohAutoselectEnabled
+            this.bannedPorts = it.bannedPorts
         }
     }
 
