@@ -18,6 +18,8 @@ add_setup(async function () {
     set: [
       ["browser.urlbar.showSearchTerms.featureGate", true],
       ["browser.urlbar.scotchBonnet.enableOverride", true],
+      // Bug 1968055 - Temporarily enabled pocket pref while we remove the pref entirely
+      ["extensions.pocket.enabled", true],
     ],
   });
   let cleanup = await installPersistTestEngines();
