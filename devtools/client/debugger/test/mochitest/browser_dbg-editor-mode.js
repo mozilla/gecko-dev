@@ -14,9 +14,5 @@ add_task(async function () {
   is(getEditorFileMode(dbg), "javascript", "Mode is correct");
 
   await selectSource(dbg, "doc-scripts.html");
-  is(
-    getEditorFileMode(dbg),
-    isCm6Enabled ? "javascript" : "htmlmixed",
-    "Mode is correct"
-  );
+  is(getEditorFileMode(dbg), "javascript", "Mode is correct");
 });

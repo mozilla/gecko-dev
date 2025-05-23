@@ -45,7 +45,6 @@ add_task(async function () {
     selectSource,
     assertTextContentOnLine,
     getEditorContent,
-    isCm6Enabled,
     getCMEditor,
   });
 

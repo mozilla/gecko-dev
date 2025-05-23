@@ -35,9 +35,7 @@ add_task(async function () {
   is(
     getSearchSelection(dbg).line,
     26,
-    `The line of first check occurence in long.js is selected (this is ${
-      isCm6Enabled ? "one" : "zero"
-    }-based)`
+    "The line of first check occurence in long.js is selected (this is one-based)"
   );
   // The column is the end of "check", so after 'k'
   is(

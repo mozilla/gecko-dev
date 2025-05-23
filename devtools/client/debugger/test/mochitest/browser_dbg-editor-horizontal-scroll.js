@@ -8,11 +8,6 @@
 "use strict";
 
 add_task(async function testHorizontalScrolling() {
-  if (!isCm6Enabled) {
-    ok(true, "This test is disabled on CM5");
-    return;
-  }
-
   // Ensure having the default fixed height, as it can impact the number of displayed lines
   await pushPref("devtools.toolbox.footer.height", 250);
 

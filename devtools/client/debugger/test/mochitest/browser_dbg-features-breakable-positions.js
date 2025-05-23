@@ -240,9 +240,7 @@ async function assertBreakablePositions(
     }
 
     const tokenElement = await getTokenFromPosition(dbg, { line });
-    const lineElement = tokenElement.closest(
-      isCm6Enabled ? ".cm-line" : ".CodeMirror-line"
-    );
+    const lineElement = tokenElement.closest(".cm-line");
     // Those are the breakpoint chevron we click on to set a breakpoint on a given column
     const columnMarkers = [
       ...lineElement.querySelectorAll(".column-breakpoint"),
@@ -272,9 +270,7 @@ async function assertBreakablePositions(
       );
 
       const onSetBreakpoint = waitForDispatch(dbg.store, "SET_BREAKPOINT");
-      let marker = isCm6Enabled
-        ? getColumnMarker(lineElement, columnMarkerIndex)
-        : columnMarkers[columnMarkerIndex];
+      let marker = getColumnMarker(lineElement, columnMarkerIndex);
       marker.click();
       await onSetBreakpoint;
       ok(
@@ -286,10 +282,7 @@ async function assertBreakablePositions(
         dbg.store,
         "REMOVE_BREAKPOINT"
       );
-      if (isCm6Enabled) {
-        // Get the marker again as the column marker has re rendered
-        marker = getColumnMarker(lineElement, columnMarkerIndex);
-      }
+      marker = getColumnMarker(lineElement, columnMarkerIndex);
       marker.click();
       await onRemoveBreakpoint;
 

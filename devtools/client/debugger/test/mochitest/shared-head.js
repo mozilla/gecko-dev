@@ -65,10 +65,6 @@ const DEBUGGER_L10N = new LocalizationHelper(
   "devtools/client/locales/debugger.properties"
 );
 
-const isCm6Enabled = Services.prefs.getBoolPref(
-  "devtools.debugger.features.codemirror-next"
-);
-
 /**
  * Waits for `predicate()` to be true. `state` is the redux app state.
  *
@@ -353,7 +349,7 @@ function assertHighlightLocation(dbg, source, line) {
 
   ok(isVisibleInEditor(dbg, lineEl), "Highlighted line is visible");
 
-  const lineInfo = getCMEditor(dbg).lineInfo(isCm6Enabled ? line : line - 1);
+  const lineInfo = getCMEditor(dbg).lineInfo(line);
   ok(lineInfo.wrapClass.includes("highlight-line"), "Line is highlighted");
 }
 
@@ -372,7 +368,7 @@ async function _assertDebugLine(dbg, line, column) {
   // Check the debug line
   // cm6 lines are 1-based, while cm5 are 0-based, to keep compatibility with
   // .lineInfo usage in other locations.
-  const lineInfo = getCMEditor(dbg).lineInfo(isCm6Enabled ? line : line - 1);
+  const lineInfo = getCMEditor(dbg).lineInfo(line);
   const sourceTextContent = dbg.selectors.getSelectedSourceTextContent();
   if (source && !sourceTextContent) {
     const url = source.url;
@@ -412,36 +408,18 @@ async function _assertDebugLine(dbg, line, column) {
 
   ok(isVisibleInEditor(dbg, pausedLine), "debug line is visible");
 
-  if (isCm6Enabled) {
-    const editorLineEl = getCMEditor(dbg).getElementAtLine(line);
-    const pauseLocationMarker = editorLineEl.querySelector(".paused-location");
-    is(
-      pauseLocationMarker.cmView.widget.line,
-      line,
-      "The paused caret is at the right line"
-    );
-    is(
-      pauseLocationMarker.cmView.widget.column,
-      column,
-      "The paused caret is at the right column"
-    );
-  } else {
-    const markedSpans = lineInfo.handle.markedSpans;
-    if (markedSpans && markedSpans.length && !isWasmBinarySource(source)) {
-      const hasExpectedDebugLine = markedSpans.some(
-        span =>
-          span.marker.className?.includes("debug-expression") &&
-          // When a precise column is expected, ensure that we have at least
-          // one "debug line" for the column we expect.
-          // (See the React Component: DebugLine.setDebugLine)
-          (!column || span.from == column)
-      );
-      ok(
-        hasExpectedDebugLine,
-        "Got the expected DebugLine. i.e. got the right marker in codemirror visualizing the breakpoint"
-      );
-    }
-  }
+  const editorLineEl = getCMEditor(dbg).getElementAtLine(line);
+  const pauseLocationMarker = editorLineEl.querySelector(".paused-location");
+  is(
+    pauseLocationMarker.cmView.widget.line,
+    line,
+    "The paused caret is at the right line"
+  );
+  is(
+    pauseLocationMarker.cmView.widget.column,
+    column,
+    "The paused caret is at the right column"
+  );
   info(`Paused on line ${line}`);
 }
 
@@ -1591,21 +1569,6 @@ function isVisible(outerEl, innerEl) {
   return visible;
 }
 
-/**
- * Get the element in the editor gutter at the specified line
- * @param {Object} dbg
- * @param {Number} line
- * @returns
- */
-async function getEditorLineGutter(dbg, line) {
-  let el = await codeMirrorGutterElement(dbg, line);
-  while (el && !el.matches(".CodeMirror-code > div")) {
-    el = el.parentElement;
-  }
-
-  return el;
-}
-
 // Handles virtualization scenarios
 async function scrollAndGetEditorLineGutterElement(dbg, line) {
   const editor = getCMEditor(dbg);
@@ -1619,9 +1582,7 @@ async function scrollAndGetEditorLineGutterElement(dbg, line) {
 
   const els = findAllElementsWithSelector(
     dbg,
-    isCm6Enabled
-      ? ".cm-gutter.cm-lineNumbers .cm-gutterElement"
-      : ".CodeMirror-code .CodeMirror-linenumber"
+    ".cm-gutter.cm-lineNumbers .cm-gutterElement"
   );
   return [...els].find(el => el.innerText == line);
 }
@@ -1633,13 +1594,8 @@ async function scrollAndGetEditorLineGutterElement(dbg, line) {
  * @returns {Element} DOM Element
  */
 async function getNodeAtEditorLine(dbg, line) {
-  if (isCm6Enabled) {
-    // To handle virtualized lines accurately, lets use the
-    // cm6 utility here.
-    await scrollEditorIntoView(dbg, line, 0);
-    return getCMEditor(dbg).getElementAtLine(line);
-  }
-  return getEditorLineGutter(dbg, line);
+  await scrollEditorIntoView(dbg, line, 0);
+  return getCMEditor(dbg).getElementAtLine(line);
 }
 
 /**
@@ -1649,34 +1605,21 @@ async function getNodeAtEditorLine(dbg, line) {
  * @returns {Element} DOM Element
  */
 async function getNodeAtEditorGutterLine(dbg, line) {
-  if (isCm6Enabled) {
-    return scrollAndGetEditorLineGutterElement(dbg, line);
-  }
-  // Note: In CM5 both the line gutter elements and the
-  // line content elements are within the editor line.
-  return getEditorLineGutter(dbg, line);
+  return scrollAndGetEditorLineGutterElement(dbg, line);
 }
 
 async function getConditionalPanelAtLine(dbg, line) {
   info(`Get conditional panel at line ${line}`);
-  let el = await getNodeAtEditorLine(dbg, line);
-  if (isCm6Enabled) {
-    // In CM6 the conditional panel for a specific line
-    // is injected in a sibling node just after.
-    el = el.nextSibling;
-  }
-  return el.querySelector(".conditional-breakpoint-panel");
+  const el = await getNodeAtEditorLine(dbg, line);
+  return el.nextSibling.querySelector(".conditional-breakpoint-panel");
 }
 
 async function waitForConditionalPanelFocus(dbg) {
-  if (isCm6Enabled) {
-    return waitFor(
-      () =>
-        dbg.win.document.activeElement.classList.contains("cm-content") &&
-        dbg.win.document.activeElement.closest(".conditional-breakpoint-panel")
-    );
-  }
-  return waitFor(() => dbg.win.document.activeElement.tagName === "TEXTAREA");
+  return waitFor(
+    () =>
+      dbg.win.document.activeElement.classList.contains("cm-content") &&
+      dbg.win.document.activeElement.closest(".conditional-breakpoint-panel")
+  );
 }
 
 /**
@@ -1761,7 +1704,7 @@ async function assertIgnoredStyleInSourceLines(
  * @param {String} expectedTextContent
  */
 function assertTextContentOnLine(dbg, line, expectedTextContent) {
-  const lineInfo = getCMEditor(dbg).lineInfo(isCm6Enabled ? line : line - 1);
+  const lineInfo = getCMEditor(dbg).lineInfo(line);
   const textContent = lineInfo.text.trim();
   is(textContent, expectedTextContent, `Expected text content on line ${line}`);
 }
@@ -1778,9 +1721,7 @@ function assertTextContentOnLine(dbg, line, expectedTextContent) {
 async function assertNoBreakpoint(dbg, line) {
   const el = await getNodeAtEditorGutterLine(dbg, line);
 
-  const exists = el.classList.contains(
-    isCm6Enabled ? "cm6-gutter-breakpoint" : "new-breakpioint"
-  );
+  const exists = el.classList.contains("cm6-gutter-breakpoint");
   ok(!exists, `Breakpoint doesn't exists on line ${line}`);
 }
 
@@ -1794,21 +1735,19 @@ async function assertNoBreakpoint(dbg, line) {
  * @static
  */
 async function assertBreakpoint(dbg, line) {
-  let el = await getNodeAtEditorGutterLine(dbg, line);
-  el = isCm6Enabled ? el.firstChild : el;
-
+  const el = await getNodeAtEditorGutterLine(dbg, line);
   ok(
-    el.classList.contains(selectors.gutterBreakpoint),
+    el.firstChild.classList.contains(selectors.gutterBreakpoint),
     `Breakpoint exists on line ${line}`
   );
 
-  const hasConditionClass = el.classList.contains("has-condition");
+  const hasConditionClass = el.firstChild.classList.contains("has-condition");
   ok(
     !hasConditionClass,
     `Regular breakpoint doesn't have condition on line ${line}`
   );
 
-  const hasLogClass = el.classList.contains("has-log");
+  const hasLogClass = el.firstChild.classList.contains("has-log");
   ok(!hasLogClass, `Regular breakpoint doesn't have log on line ${line}`);
 }
 
@@ -1821,18 +1760,17 @@ async function assertBreakpoint(dbg, line) {
  * @static
  */
 async function assertConditionBreakpoint(dbg, line) {
-  let el = await getNodeAtEditorGutterLine(dbg, line);
-  el = isCm6Enabled ? el.firstChild : el;
+  const el = await getNodeAtEditorGutterLine(dbg, line);
 
   ok(
-    el.classList.contains(selectors.gutterBreakpoint),
+    el.firstChild.classList.contains(selectors.gutterBreakpoint),
     `Breakpoint exists on line ${line}`
   );
 
-  const hasConditionClass = el.classList.contains("has-condition");
+  const hasConditionClass = el.firstChild.classList.contains("has-condition");
   ok(hasConditionClass, `Conditional breakpoint on line ${line}`);
 
-  const hasLogClass = el.classList.contains("has-log");
+  const hasLogClass = el.firstChild.classList.contains("has-log");
   ok(
     !hasLogClass,
     `Conditional breakpoint doesn't have log breakpoint on line ${line}`
@@ -1848,21 +1786,19 @@ async function assertConditionBreakpoint(dbg, line) {
  * @static
  */
 async function assertLogBreakpoint(dbg, line) {
-  let el = await getNodeAtEditorGutterLine(dbg, line);
-  el = isCm6Enabled ? el.firstChild : el;
-
+  const el = await getNodeAtEditorGutterLine(dbg, line);
   ok(
-    el.classList.contains(selectors.gutterBreakpoint),
+    el.firstChild.classList.contains(selectors.gutterBreakpoint),
     `Breakpoint exists on line ${line}`
   );
 
-  const hasConditionClass = el.classList.contains("has-condition");
+  const hasConditionClass = el.firstChild.classList.contains("has-condition");
   ok(
     !hasConditionClass,
     `Log breakpoint doesn't have condition on line ${line}`
   );
 
-  const hasLogClass = el.classList.contains("has-log");
+  const hasLogClass = el.firstChild.classList.contains("has-log");
   ok(hasLogClass, `Log breakpoint on line ${line}`);
 }
 
@@ -1901,12 +1837,8 @@ const selectors = {
     removeOthers: "#node-menu-delete-other",
     removeCondition: "#node-menu-remove-condition",
   },
-  blackboxedLines: isCm6Enabled
-    ? ".cm-content > .blackboxed-line"
-    : ".CodeMirror-code .blackboxed-line",
-  codeLines: isCm6Enabled
-    ? ".cm-content > .cm-line"
-    : ".CodeMirror-code .CodeMirror-line",
+  blackboxedLines: ".cm-content > .blackboxed-line",
+  codeLines: ".cm-content > .cm-line",
   editorContextMenu: {
     continueToHere: "#node-menu-continue-to-here",
   },
@@ -1921,17 +1853,12 @@ const selectors = {
     `.frames div[role=listbox] .location-async-cause:nth-child(${i})`,
   frame: i => `.frames div[role=listbox] .frame:nth-child(${i})`,
   frames: ".frames [role='listbox'] .frame",
-  gutterBreakpoint: isCm6Enabled ? "breakpoint-marker" : "new-breakpoint",
+  gutterBreakpoint: "breakpoint-marker",
   // This is used to trigger events (click etc) on the gutter
   gutterElement: i =>
-    isCm6Enabled
-      ? `.cm-gutter.cm-lineNumbers .cm-gutterElement:nth-child(${i + 1})`
-      : `.CodeMirror-code *:nth-child(${i}) .CodeMirror-linenumber`,
-  gutters: isCm6Enabled ? `.cm-gutters` : `.CodeMirror-gutters`,
-  line: i =>
-    isCm6Enabled
-      ? `.cm-content > div.cm-line:nth-child(${i})`
-      : `.CodeMirror-code div:nth-child(${i}) .CodeMirror-line`,
+    `.cm-gutter.cm-lineNumbers .cm-gutterElement:nth-child(${i + 1})`,
+  gutters: `.cm-gutters`,
+  line: i => `.cm-content > div.cm-line:nth-child(${i})`,
   addConditionItem:
     "#node-menu-add-condition, #node-menu-add-conditional-breakpoint",
   editConditionItem:
@@ -1939,16 +1866,12 @@ const selectors = {
   addLogItem: "#node-menu-add-log-point",
   editLogItem: "#node-menu-edit-log-point",
   disableItem: "#node-menu-disable-breakpoint",
-  breakpoint: isCm6Enabled
-    ? ".cm-gutter > .cm6-gutter-breakpoint"
-    : ".CodeMirror-code > .new-breakpoint",
-  highlightLine: isCm6Enabled
-    ? ".cm-content > .highlight-line"
-    : ".CodeMirror-code > .highlight-line",
+  breakpoint: ".cm-gutter > .cm6-gutter-breakpoint",
+  highlightLine: ".cm-content > .highlight-line",
   pausedLine: ".paused-line",
   tracedLine: ".traced-line",
   debugErrorLine: ".new-debug-line-error",
-  codeMirror: isCm6Enabled ? ".cm-editor" : ".CodeMirror",
+  codeMirror: ".cm-editor",
   resume: ".resume.active",
   pause: ".pause.active",
   sourceTabs: ".source-tabs",
@@ -1977,12 +1900,8 @@ const selectors = {
     `.outline-list__element:nth-child(${i}) .function-signature`,
   outlineItems: ".outline-list__element",
   conditionalPanel: ".conditional-breakpoint-panel",
-  conditionalPanelInput: `.conditional-breakpoint-panel  ${
-    isCm6Enabled ? ".cm-content" : "textarea"
-  }`,
-  logPanelInput: `.conditional-breakpoint-panel.log-point ${
-    isCm6Enabled ? ".cm-content" : "textarea"
-  }`,
+  conditionalPanelInput: `.conditional-breakpoint-panel .cm-content`,
+  logPanelInput: `.conditional-breakpoint-panel.log-point .cm-content`,
   conditionalBreakpointInSecPane: ".breakpoint.is-conditional",
   logPointPanel: ".conditional-breakpoint-panel.log-point",
   logPointInSecPane: ".breakpoint.is-log",
@@ -2002,11 +1921,9 @@ const selectors = {
   threadsPaneItems: ".threads-pane .thread",
   threadsPaneItem: i => `.threads-pane .thread:nth-child(${i})`,
   threadsPaneItemPause: i => `${selectors.threadsPaneItem(i)}.paused`,
-  CodeMirrorLines: isCm6Enabled ? ".cm-content" : ".CodeMirror-lines",
-  CodeMirrorCode: isCm6Enabled ? ".cm-content" : ".CodeMirror-code",
-  inlinePreview: isCm6Enabled
-    ? ".cm-content .inline-preview"
-    : ".CodeMirror-code .CodeMirror-widget",
+  CodeMirrorLines: ".cm-content",
+  CodeMirrorCode: ".cm-content",
+  inlinePreview: ".cm-content .inline-preview",
   inlinePreviewLabels: ".inline-preview .inline-preview-label",
   inlinePreviewValues: ".inline-preview .inline-preview-value",
   inlinePreviewOpenInspector: ".inline-preview-value button.open-inspector",
@@ -2141,16 +2058,12 @@ async function clearElement(dbg, elementName) {
 }
 
 async function clickGutter(dbg, line) {
-  const el = await (isCm6Enabled
-    ? scrollAndGetEditorLineGutterElement(dbg, line)
-    : codeMirrorGutterElement(dbg, line));
+  const el = await scrollAndGetEditorLineGutterElement(dbg, line);
   clickDOMElement(dbg, el);
 }
 
 async function cmdClickGutter(dbg, line) {
-  const el = await (isCm6Enabled
-    ? scrollAndGetEditorLineGutterElement(dbg, line)
-    : codeMirrorGutterElement(dbg, line));
+  const el = await scrollAndGetEditorLineGutterElement(dbg, line);
   clickDOMElement(dbg, el, cmdOrCtrl);
 }
 
@@ -2248,11 +2161,8 @@ async function typeInPanel(dbg, text, inLogPanel = false) {
   pressKey(dbg, "End");
 
   type(dbg, text);
-  // Wait for any possible CM6 scroll actions in the conditional panel editor
-  // to complete
-  if (isCm6Enabled) {
-    await wait(1000);
-  }
+  // Wait for any possible scroll actions in the conditional panel editor to complete
+  await wait(1000);
   pressKey(dbg, "Enter");
 }
 
@@ -2339,10 +2249,7 @@ function getCMEditor(dbg) {
 }
 
 function wasmOffsetToLine(dbg, offset) {
-  if (isCm6Enabled) {
-    return getCMEditor(dbg).wasmOffsetToLine(offset) + 1;
-  }
-  return dbg.wasmOffsetToLine(offset) + 1;
+  return getCMEditor(dbg).wasmOffsetToLine(offset) + 1;
 }
 
 // Gets the number of lines in the editor
@@ -2362,9 +2269,7 @@ function waitForSearchState(dbg) {
  * to completely load (for CM6 only)
  */
 function waitForDocumentLoadComplete(dbg) {
-  return waitFor(() =>
-    isCm6Enabled ? getCMEditor(dbg).codeMirror.isDocumentLoadComplete : true
-  );
+  return waitFor(() => getCMEditor(dbg).codeMirror.isDocumentLoadComplete);
 }
 
 /**
@@ -2372,10 +2277,8 @@ function waitForDocumentLoadComplete(dbg) {
  * to completely load (for CM6 only)
  */
 function waitForInPanelDocumentLoadComplete(dbg, panelName) {
-  return waitFor(() =>
-    isCm6Enabled
-      ? getCodeMirrorInstance(dbg, panelName).isDocumentLoadComplete
-      : true
+  return waitFor(
+    () => getCodeMirrorInstance(dbg, panelName).isDocumentLoadComplete
   );
 }
 
@@ -2431,8 +2334,7 @@ function setEditorCursorAt(dbg, line, column) {
  */
 async function scrollEditorIntoView(dbg, line, column, yAlign) {
   const onScrolled = waitForScrolling(dbg);
-  line = isCm6Enabled ? line + 1 : line;
-  getCMEditor(dbg).scrollTo(line, column, yAlign);
+  getCMEditor(dbg).scrollTo(line + 1, column, yAlign);
   // Ensure the line is visible with margin because the bar at the bottom of
   // the editor overlaps into what the editor thinks is its own space, blocking
   // the click event below.
@@ -2448,8 +2350,7 @@ async function scrollEditorIntoView(dbg, line, column, yAlign) {
  * @returns
  */
 function isScrolledPositionVisible(dbg, line, column = 0) {
-  // CodeMirror 6 uses 1-based lines whereas 5 uses 0-based.
-  line = isCm6Enabled ? line : line - 1;
+  // CodeMirror 6 uses 1-based lines.
   return getCMEditor(dbg).isPositionVisible(line, column);
 }
 
@@ -2480,21 +2381,7 @@ function getCoordsFromPosition(dbg, line, ch) {
 async function getTokenFromPosition(dbg, { line, column = 0 }) {
   info(`Get token at ${line}:${column}`);
   await scrollEditorIntoView(dbg, line, column);
-  line = isCm6Enabled ? line : line - 1;
-  column = isCm6Enabled ? column : column - 1;
-
-  if (isCm6Enabled) {
-    return getCMEditor(dbg).getElementAtPos(line, column);
-  }
-
-  const { left, top } = getCoordsFromPosition(dbg, line, column);
-
-  // Adds a vertical offset due to increased line height
-  // https://github.com/firefox-devtools/debugger/pull/7934
-  const lineHeightOffset = 3;
-
-  // Note that we might end up retrieving any popup if one is still shown over the expected token
-  return dbg.win.document.elementFromPoint(left, top + lineHeightOffset);
+  return getCMEditor(dbg).getElementAtPos(line, column);
 }
 /**
  * Waits for the currently triggered scroll to complete
@@ -2508,47 +2395,11 @@ async function getTokenFromPosition(dbg, { line, column = 0 }) {
 async function waitForScrolling(dbg, { useTimeoutFallback = true } = {}) {
   return new Promise(resolve => {
     const editor = getCMEditor(dbg);
-    if (isCm6Enabled) {
-      editor.once("cm-editor-scrolled", resolve);
-    } else {
-      function onScroll() {
-        editor.codeMirror.off("scroll", onScroll);
-        resolve();
-      }
-      editor.codeMirror.on("scroll", onScroll);
-    }
+    editor.once("cm-editor-scrolled", resolve);
     if (useTimeoutFallback) {
       setTimeout(resolve, 500);
     }
   });
-}
-
-async function codeMirrorGutterElement(dbg, line) {
-  info(`CodeMirror line ${line}`);
-
-  await scrollEditorIntoView(dbg, line, 0);
-  line = isCm6Enabled ? line : line - 1;
-
-  const coords = getCoordsFromPosition(dbg, line);
-
-  const { left, top } = coords;
-
-  // Adds a vertical offset due to increased line height
-  // https://github.com/firefox-devtools/debugger/pull/7934
-  const lineHeightOffset = 3;
-
-  // Click in the center of the line/breakpoint
-  const leftOffset = 10;
-
-  const tokenEl = dbg.win.document.elementFromPoint(
-    left - leftOffset,
-    top + lineHeightOffset
-  );
-
-  if (!tokenEl) {
-    throw new Error(`Failed to find element for line ${line}`);
-  }
-  return tokenEl;
 }
 
 async function clickAtPos(dbg, pos) {
@@ -2563,20 +2414,7 @@ async function clickAtPos(dbg, pos) {
     `Clicking on token ${tokenEl.innerText} in line ${tokenEl.parentNode.innerText}`
   );
   // TODO: Unify the usage for CM6 and CM5 Bug 1919694
-  if (isCm6Enabled) {
-    EventUtils.synthesizeMouseAtCenter(tokenEl, {}, dbg.win);
-  } else {
-    tokenEl.dispatchEvent(
-      new PointerEvent("click", {
-        bubbles: true,
-        cancelable: true,
-        view: dbg.win,
-        // Shift by one as we might be on the edge of the element and click on previous line/column
-        clientX: left + 1,
-        clientY: top + 1,
-      })
-    );
-  }
+  EventUtils.synthesizeMouseAtCenter(tokenEl, {}, dbg.win);
 }
 
 async function rightClickAtPos(dbg, pos) {
@@ -2585,10 +2423,8 @@ async function rightClickAtPos(dbg, pos) {
     return;
   }
   // In CM6 when clicking in the editor an extra click is needed
-  // TODO: Investiaget and remove Bug 1919693
-  if (isCm6Enabled) {
-    EventUtils.synthesizeMouseAtCenter(el, {}, dbg.win);
-  }
+  // TODO: Investiage and remove Bug 1919693
+  EventUtils.synthesizeMouseAtCenter(el, {}, dbg.win);
   rightClickEl(dbg, el);
 }
 
@@ -2786,27 +2622,10 @@ async function tryHoverToken(dbg, tokenEl, elementName) {
  */
 async function getTokenElAtLine(dbg, expression, line, column = 0) {
   info(`Search for <${expression}> token on ${line}:${column}`);
-  let editorLineEl;
-  if (isCm6Enabled) {
-    // Get the related editor line
-    editorLineEl = getCMEditor(dbg).getElementAtLine(line);
-  } else {
-    // Get the line gutter element matching the passed line
-    const lineGutterEl = [
-      ...dbg.win.document.querySelectorAll(".CodeMirror-linenumber"),
-    ].find(el => el.textContent === `${line}`);
-
-    // Get the related editor line
-    editorLineEl = lineGutterEl
-      .closest(".CodeMirror-gutter-wrapper")
-      .parentElement.querySelector(".CodeMirror-line");
-  }
+  // Get the related editor line
+  const tokenParent = getCMEditor(dbg).getElementAtLine(line);
 
   // Lookup for the token matching the passed expression
-  const tokenParent = isCm6Enabled
-    ? editorLineEl
-    : editorLineEl.querySelector(".CodeMirror-line > span");
-
   const tokenElements = [...tokenParent.childNodes];
   let currentColumn = 1;
   return tokenElements.find(el => {
