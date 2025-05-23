@@ -1,0 +1,16 @@
+mozilla_taskgraph/__init__.py,sha256=jSSdaEi9nBFL32g-ZL42wfU70QbUtta4BFG0IHy0BiU,958
+mozilla_taskgraph/config.py,sha256=FxfAkb9hjPwSHY_Y29HEGyNj4HvvygPRm4DuhWnjjr0,784
+mozilla_taskgraph/version.py,sha256=OhrT5f_1ZBo-dCP2CSiyepxzyFv3Fm4ld71o7pD6EYs,229
+mozilla_taskgraph/worker_types.py,sha256=NPQMbBuKiNc0WSyW0EKoP9g2g18iNw5hlpxRkwf3x44,6642
+mozilla_taskgraph/actions/__init__.py,sha256=c6ZapbOoYSD9vrYqkyBz2uylsoTGsx4c6KH_FfL6CiU,1478
+mozilla_taskgraph/actions/release_promotion.py,sha256=YdcXDxiLJcAyyTZz4NE1Tb7SbjAxJwxyZq86B8VwmlM,6064
+mozilla_taskgraph/transforms/__init__.py,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+mozilla_taskgraph/transforms/scriptworker/__init__.py,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+mozilla_taskgraph/transforms/scriptworker/release_artifacts.py,sha256=yOO7wSggP-2CWvn9N7ubb3-uUKgS5tMlRrbJJ4obJTI,1993
+mozilla_taskgraph/transforms/scriptworker/shipit/__init__.py,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+mozilla_taskgraph/transforms/scriptworker/shipit/mark_as_shipped.py,sha256=tx3OI6veKByRlxYKGJPv4IunPqMyyxPKxNm0uhya_zQ,2688
+mozilla_taskgraph/util/signed_artifacts.py,sha256=5dI1sOE6nocXjAmwZQ7WgnhBgAM8wjX1Y1Q00qW62_w,702
+mozilla_taskgraph-3.1.2.dist-info/METADATA,sha256=qy228I2LlsYtBgChE55ETrF7vBslE2LK8VffO0bDkBE,2006
+mozilla_taskgraph-3.1.2.dist-info/WHEEL,sha256=qtCwoSJWgHk21S1Kb4ihdzI2rlJ1ZKaIurTj_ngOhyQ,87
+mozilla_taskgraph-3.1.2.dist-info/licenses/LICENSE,sha256=HyVuytGSiAUQ6ErWBHTqt1iSGHhLmlC8fO7jTCuR8dU,16725
+mozilla_taskgraph-3.1.2.dist-info/RECORD,,
