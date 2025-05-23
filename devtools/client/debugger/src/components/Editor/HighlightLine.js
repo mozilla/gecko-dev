@@ -13,12 +13,7 @@
 
 import { Component } from "devtools/client/shared/vendor/react";
 import PropTypes from "devtools/client/shared/vendor/react-prop-types";
-import {
-  toEditorLine,
-  endOperation,
-  startOperation,
-} from "../../utils/editor/index";
-import { getDocument, hasDocument } from "../../utils/editor/source-documents";
+import { toEditorLine } from "../../utils/editor/index";
 
 import { connect } from "devtools/client/shared/vendor/react-redux";
 import {
@@ -29,7 +24,6 @@ import {
   getCurrentThread,
   getShouldHighlightSelectedLocation,
 } from "../../selectors/index";
-import { features } from "../../utils/prefs";
 import { markerTypes } from "../../constants";
 
 function isDebugLine(selectedFrame, selectedLocation) {
@@ -82,11 +76,7 @@ export class HighlightLine extends Component {
       selectedLocation.line
     );
 
-    if (
-      !selectedLocation ||
-      !selectedSourceTextContent ||
-      (!features.codemirrorNext && !hasDocument(selectedLocation.source.id))
-    ) {
+    if (!selectedLocation || !selectedSourceTextContent) {
       return false;
     }
 
@@ -103,17 +93,11 @@ export class HighlightLine extends Component {
       this.isStepping = true;
     }
 
-    if (!features.codemirrorNext) {
-      startOperation();
-    }
     if (prevProps) {
       this.clearHighlightLine(prevProps);
     }
     if (shouldHighlightSelectedLocation) {
       this.setHighlightLine();
-    }
-    if (!features.codemirrorNext) {
-      endOperation();
     }
   }
 
@@ -124,7 +108,6 @@ export class HighlightLine extends Component {
     }
 
     this.isStepping = false;
-    const sourceId = selectedLocation.source.id;
     const editorLine = toEditorLine(
       selectedLocation.source,
       selectedLocation.line
@@ -138,16 +121,11 @@ export class HighlightLine extends Component {
       return;
     }
 
-    if (features.codemirrorNext) {
-      editor.setLineContentMarker({
-        id: markerTypes.HIGHLIGHT_LINE_MARKER,
-        lineClassName: "highlight-line",
-        lines: [{ line: editorLine }],
-      });
-    } else {
-      const doc = getDocument(sourceId);
-      doc.addLineClass(editorLine, "wrap", "highlight-line");
-    }
+    editor.setLineContentMarker({
+      id: markerTypes.HIGHLIGHT_LINE_MARKER,
+      lineClassName: "highlight-line",
+      lines: [{ line: editorLine }],
+    });
     this.clearHighlightLineAfterDuration();
   }
 
@@ -173,25 +151,11 @@ export class HighlightLine extends Component {
       return;
     }
 
-    if (features.codemirrorNext) {
-      const { editor } = this.props;
-      if (editor) {
-        editor.removeLineContentMarker("highlight-line-marker");
-      }
+    const { editor } = this.props;
+    if (!editor) {
       return;
     }
-
-    if (!hasDocument(selectedLocation.source.id)) {
-      return;
-    }
-
-    const sourceId = selectedLocation.source.id;
-    const editorLine = toEditorLine(
-      selectedLocation.source,
-      selectedLocation.line
-    );
-    const doc = getDocument(sourceId);
-    doc.removeLineClass(editorLine, "wrap", "highlight-line");
+    editor.removeLineContentMarker("highlight-line-marker");
   }
 
   render() {
