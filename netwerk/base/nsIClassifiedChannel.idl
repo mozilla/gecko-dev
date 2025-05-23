@@ -93,14 +93,14 @@ interface nsIClassifiedChannel : nsISupports
     /**
      * The resource is on the fingerprinting list.
      */
-    CLASSIFIED_FINGERPRINTING = 0x0001,
-    CLASSIFIED_FINGERPRINTING_CONTENT = 0x0080,
+    CLASSIFIED_FINGERPRINTING = 0x00000001,
+    CLASSIFIED_FINGERPRINTING_CONTENT = 0x00000002,
 
     /**
      * The resource is on the cryptomining list.
      */
-    CLASSIFIED_CRYPTOMINING = 0x0002,
-    CLASSIFIED_CRYPTOMINING_CONTENT = 0x0100,
+    CLASSIFIED_CRYPTOMINING = 0x00000004,
+    CLASSIFIED_CRYPTOMINING_CONTENT = 0x00000008,
 
     /**
      * The following are about tracking annotation and are available only
@@ -108,30 +108,36 @@ interface nsIClassifiedChannel : nsISupports
      * CLASSIFIED_TRACKING is set if we are not able to identify the
      * type of classification.
      */
-    CLASSIFIED_TRACKING = 0x0004,
-    CLASSIFIED_TRACKING_AD = 0x0008,
-    CLASSIFIED_TRACKING_ANALYTICS = 0x0010,
-    CLASSIFIED_TRACKING_SOCIAL = 0x0020,
-    CLASSIFIED_TRACKING_CONTENT = 0x0040,
+    CLASSIFIED_TRACKING = 0x00000010,
+    CLASSIFIED_TRACKING_AD = 0x00000020,
+    CLASSIFIED_TRACKING_ANALYTICS = 0x00000040,
+    CLASSIFIED_TRACKING_SOCIAL = 0x00000080,
+    CLASSIFIED_TRACKING_CONTENT = 0x00000100,
 
     /**
      * The following are about social tracking.
      */
-    CLASSIFIED_SOCIALTRACKING = 0x0200,
-    CLASSIFIED_SOCIALTRACKING_FACEBOOK = 0x0400,
-    CLASSIFIED_SOCIALTRACKING_LINKEDIN = 0x0800,
-    CLASSIFIED_SOCIALTRACKING_TWITTER = 0x1000,
+    CLASSIFIED_SOCIALTRACKING = 0x00000200,
+    CLASSIFIED_SOCIALTRACKING_FACEBOOK = 0x00000400,
+    CLASSIFIED_SOCIALTRACKING_LINKEDIN = 0x00000800,
+    CLASSIFIED_SOCIALTRACKING_TWITTER = 0x00001000,
 
     /**
      * The following are about email tracking.
      */
-    CLASSIFIED_EMAILTRACKING = 0x2000,
-    CLASSIFIED_EMAILTRACKING_CONTENT = 0x4000,
+    CLASSIFIED_EMAILTRACKING = 0x00002000,
+    CLASSIFIED_EMAILTRACKING_CONTENT = 0x00004000,
 
     /**
      * The following are about consent managers.
      */
-    CLASSIFIED_CONSENTMANAGER = 0x8000,
+    CLASSIFIED_CONSENTMANAGER = 0x00008000,
+
+    /**
+     * The following are about anti fraud.
+     */
+    CLASSIFIED_ANTIFRAUD = 0x00010000,
+
     /**
      * This is exposed to help to identify tracking classification using the
      * basic lists.
