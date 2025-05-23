@@ -236,7 +236,7 @@ nsWindowMediator::GetMostRecentWindow(const char16_t* inType,
 
   // Find the most window with the highest time stamp that matches
   // the requested type
-  nsWindowInfo* info = MostRecentWindowInfo(inType, false);
+  nsWindowInfo* info = MostRecentWindowInfo(inType, WindowMediatorFilter::None);
   if (info && info->mWindow) {
     nsCOMPtr<nsPIDOMWindowOuter> DOMWindow;
     if (NS_SUCCEEDED(GetDOMWindow(info->mWindow, DOMWindow))) {
@@ -278,7 +278,31 @@ nsWindowMediator::GetMostRecentNonPBWindow(const char16_t* aType,
   NS_ENSURE_ARG_POINTER(aWindow);
   *aWindow = nullptr;
 
-  nsWindowInfo* info = MostRecentWindowInfo(aType, true);
+  nsWindowInfo* info =
+      MostRecentWindowInfo(aType, WindowMediatorFilter::SkipPrivateBrowsing |
+                                      WindowMediatorFilter::SkipClosed);
+  nsCOMPtr<nsPIDOMWindowOuter> domWindow;
+  if (info && info->mWindow) {
+    GetDOMWindow(info->mWindow, domWindow);
+  }
+
+  if (!domWindow) {
+    return NS_ERROR_FAILURE;
+  }
+
+  domWindow.forget(aWindow);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindowMediator::GetMostRecentWindowBy(const char16_t* aType, uint8_t aFilter,
+                                        mozIDOMWindowProxy** aWindow) {
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
+  NS_ENSURE_ARG_POINTER(aWindow);
+  *aWindow = nullptr;
+
+  nsWindowInfo* info =
+      MostRecentWindowInfo(aType, static_cast<WindowMediatorFilter>(aFilter));
   nsCOMPtr<nsPIDOMWindowOuter> domWindow;
   if (info && info->mWindow) {
     GetDOMWindow(info->mWindow, domWindow);
@@ -293,7 +317,7 @@ nsWindowMediator::GetMostRecentNonPBWindow(const char16_t* aType,
 }
 
 nsWindowInfo* nsWindowMediator::MostRecentWindowInfo(
-    const char16_t* inType, bool aSkipPrivateBrowsingOrClosed) {
+    const char16_t* inType, WindowMediatorFilter aFilter) {
   int32_t lastTimeStamp = -1;
   nsAutoString typeString(inType);
   bool allWindows = !inType || typeString.IsEmpty();
@@ -315,16 +339,30 @@ nsWindowInfo* nsWindowMediator::MostRecentWindowInfo(
     if (!searchInfo->mWindow) {
       continue;
     }
-    if (aSkipPrivateBrowsingOrClosed) {
+    if (aFilter != WindowMediatorFilter::None) {
       nsCOMPtr<nsIDocShell> docShell;
       searchInfo->mWindow->GetDocShell(getter_AddRefs(docShell));
       nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(docShell);
-      if (!loadContext || loadContext->UsePrivateBrowsing()) {
+      if (!loadContext) {
+        continue;
+      }
+
+      if ((aFilter & WindowMediatorFilter::SkipNonPrivateBrowsing) &&
+          !loadContext->UsePrivateBrowsing()) {
+        continue;
+      }
+
+      if ((aFilter & WindowMediatorFilter::SkipPrivateBrowsing) &&
+          loadContext->UsePrivateBrowsing()) {
         continue;
       }
 
       nsCOMPtr<nsPIDOMWindowOuter> piwindow = docShell->GetWindow();
-      if (!piwindow || piwindow->Closed()) {
+      if (!piwindow) {
+        continue;
+      }
+
+      if ((aFilter & WindowMediatorFilter::SkipClosed) && piwindow->Closed()) {
         continue;
       }
     }

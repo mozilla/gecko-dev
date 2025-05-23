@@ -121,6 +121,7 @@ class nsPresContext;
 class nsTextFragment;
 class nsView;
 class nsWrapperCache;
+enum class WindowMediatorFilter : uint8_t;
 
 struct JSContext;
 struct nsPoint;
@@ -2296,6 +2297,11 @@ class nsContentUtils {
   // Returns the browser window with the most recent time stamp that is
   // not in private browsing mode.
   static already_AddRefed<nsPIDOMWindowOuter> GetMostRecentNonPBWindow();
+
+  // Returns the browser window with the most recent time stamp, filtered by the
+  // parameter.
+  static already_AddRefed<nsPIDOMWindowOuter> GetMostRecentWindowBy(
+      WindowMediatorFilter aFilter);
 
   /**
    * Call this function if !IsSafeToRunScript() and we fail to run the script

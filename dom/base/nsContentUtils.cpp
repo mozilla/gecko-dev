@@ -6859,6 +6859,20 @@ nsContentUtils::GetMostRecentNonPBWindow() {
 }
 
 /* static */
+already_AddRefed<nsPIDOMWindowOuter> nsContentUtils::GetMostRecentWindowBy(
+    WindowMediatorFilter aFilter) {
+  nsCOMPtr<nsIWindowMediator> wm = do_GetService(NS_WINDOWMEDIATOR_CONTRACTID);
+
+  nsCOMPtr<mozIDOMWindowProxy> window;
+  wm->GetMostRecentWindowBy(u"navigator:browser", static_cast<uint8_t>(aFilter),
+                            getter_AddRefs(window));
+  nsCOMPtr<nsPIDOMWindowOuter> pwindow;
+  pwindow = do_QueryInterface(window);
+
+  return pwindow.forget();
+}
+
+/* static */
 void nsContentUtils::WarnScriptWasIgnored(Document* aDocument) {
   nsAutoString msg;
   bool privateBrowsing = false;

@@ -23,6 +23,7 @@
 #include "nsIBrowser.h"
 #include "nsIWebProgress.h"
 #include "nsIWebProgressListener.h"
+#include "nsIWindowMediator.h"
 #include "nsIWindowWatcher.h"
 #include "nsIXPConnect.h"
 #include "nsNetUtil.h"
@@ -214,8 +215,14 @@ void OpenWindow(const ClientOpenWindowArgsParsed& aArgsValidated,
   // [[6.1 Open Window]]
 
   // Find the most recent browser window and open a new tab in it.
+  WindowMediatorFilter filter = WindowMediatorFilter::SkipClosed;
+  if (aArgsValidated.principal->GetIsInPrivateBrowsing()) {
+    filter |= WindowMediatorFilter::SkipNonPrivateBrowsing;
+  } else {
+    filter |= WindowMediatorFilter::SkipPrivateBrowsing;
+  }
   nsCOMPtr<nsPIDOMWindowOuter> browserWindow =
-      nsContentUtils::GetMostRecentNonPBWindow();
+      nsContentUtils::GetMostRecentWindowBy(filter);
   if (!browserWindow) {
     // It is possible to be running without a browser window on Mac OS, so
     // we need to open a new chrome window.

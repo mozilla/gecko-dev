@@ -13,6 +13,15 @@
 
 #define NS_WINDOWMEDIATOR_CONTRACTID \
   "@mozilla.org/appshell/window-mediator;1"
+
+enum class WindowMediatorFilter : uint8_t {
+  None = 0,
+  SkipPrivateBrowsing = 1 << 0,
+  SkipClosed = 1 << 1,
+  SkipNonPrivateBrowsing = 1 << 2,
+};
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(WindowMediatorFilter)
 %}
 
 interface mozIDOMWindow;
@@ -78,6 +87,14 @@ interface nsIWindowMediator: nsISupports
    * windows.
    */
   mozIDOMWindowProxy getMostRecentNonPBWindow(in wstring aWindowType);
+
+  /**
+   * Same as getMostRecentWindow, but filters out based on the parameter.
+   * @param aFilter The value based on the enum WindowMediatorFilter.
+   *
+   * (Not using WindowMediatorFilter directly it requires [builtinclass])
+   */
+  mozIDOMWindowProxy getMostRecentWindowBy(in wstring aWindowType, in uint8_t aFilter);
 
   /**
    * Return the outer window with the given ID, if any.  Can return null.

@@ -50,8 +50,9 @@ class nsWindowMediator : public nsIWindowMediator,
  private:
   void AddEnumerator(nsAppShellWindowEnumerator* inEnumerator);
   int32_t RemoveEnumerator(nsAppShellWindowEnumerator* inEnumerator);
+
   nsWindowInfo* MostRecentWindowInfo(const char16_t* inType,
-                                     bool aSkipPrivateBrowsingOrClosed = false);
+                                     WindowMediatorFilter aFilter);
 
   nsresult UnregisterWindow(nsWindowInfo* inInfo);
   nsWindowInfo* GetInfoFor(nsIAppWindow* aWindow);
