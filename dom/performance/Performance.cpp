@@ -713,6 +713,41 @@ void Performance::MaybeEmitExternalProfilerMarker(
   fflush(sMarkerFile);
 }
 
+void MOZ_ALWAYS_INLINE Performance::MaybeAddProfileMarker(
+    const nsAString& aName,
+    const Maybe<const PerformanceMeasureOptions&>& options,
+    const Maybe<const nsAString&>& aStartMark,
+    const Optional<nsAString>& aEndMark) {
+  if (profiler_thread_is_being_profiled_for_markers()) {
+    AddProfileMarker(aName, options, aStartMark, aEndMark);
+  }
+}
+
+void MOZ_NEVER_INLINE Performance::AddProfileMarker(
+    const nsAString& aName,
+    const Maybe<const PerformanceMeasureOptions&>& options,
+    const Maybe<const nsAString&>& aStartMark,
+    const Optional<nsAString>& aEndMark) {
+  ErrorResult rv;
+  auto [startTimeStamp, endTimeStamp] =
+      GetTimeStampsForMarker(aStartMark, aEndMark, options, rv);
+
+  Maybe<nsString> endMark;
+  if (aEndMark.WasPassed()) {
+    endMark.emplace(aEndMark.Value());
+  }
+
+  Maybe<uint64_t> innerWindowId;
+  if (nsGlobalWindowInner* owner = GetOwnerWindow()) {
+    innerWindowId = Some(owner->WindowID());
+  }
+  profiler_add_marker("UserTiming", geckoprofiler::category::DOM,
+                      {MarkerTiming::Interval(startTimeStamp, endTimeStamp),
+                       MarkerInnerWindowId(innerWindowId)},
+                      UserTimingMarker{}, aName, /* aIsMeasure */ true,
+                      aStartMark, endMark);
+}
+
 already_AddRefed<PerformanceMeasure> Performance::Measure(
     JSContext* aCx, const nsAString& aName,
     const StringOrPerformanceMeasureOptions& aStartOrMeasureOptions,
@@ -810,25 +845,7 @@ already_AddRefed<PerformanceMeasure> Performance::Measure(
 
   MaybeEmitExternalProfilerMarker(aName, options, startMark, aEndMark);
 
-  if (profiler_thread_is_being_profiled_for_markers()) {
-    auto [startTimeStamp, endTimeStamp] =
-        GetTimeStampsForMarker(startMark, aEndMark, options, aRv);
-
-    Maybe<nsString> endMark;
-    if (aEndMark.WasPassed()) {
-      endMark.emplace(aEndMark.Value());
-    }
-
-    Maybe<uint64_t> innerWindowId;
-    if (nsGlobalWindowInner* owner = GetOwnerWindow()) {
-      innerWindowId = Some(owner->WindowID());
-    }
-    profiler_add_marker("UserTiming", geckoprofiler::category::DOM,
-                        {MarkerTiming::Interval(startTimeStamp, endTimeStamp),
-                         MarkerInnerWindowId(innerWindowId)},
-                        UserTimingMarker{}, aName, /* aIsMeasure */ true,
-                        startMark, endMark);
-  }
+  MaybeAddProfileMarker(aName, options, startMark, aEndMark);
 
   return performanceMeasure.forget();
 }
