@@ -861,6 +861,7 @@ input::-moz-search-clear-button,
 input::-moz-reveal {
   display: block;
   cursor: default;
+  -moz-user-focus: none;
   width: 1em;
   height: 1em;
   margin-inline: 1px;
@@ -868,15 +869,14 @@ input::-moz-reveal {
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
+  -moz-context-properties: fill;
+  fill: currentColor;
 }
 
 input::-moz-search-clear-button {
   background-size: 1em;
   padding: 0.35em;
   border-radius: 4px;
-  -moz-context-properties: fill;
-  fill: currentColor;
-  -moz-user-focus: none;
   margin-inline: 1px;
 }
 
