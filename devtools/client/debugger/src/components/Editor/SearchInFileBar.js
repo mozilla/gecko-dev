@@ -30,10 +30,8 @@ import {
   find,
   findNext,
   findPrev,
-  removeOverlay,
 } from "../../utils/editor/index";
 import { isFulfilled } from "../../utils/async-value";
-import { features } from "../../utils/prefs";
 
 function getSearchShortcut() {
   return L10N.getStr("sourceSearch.search.key2");
@@ -94,7 +92,7 @@ class SearchInFileBar extends Component {
     ) {
       // Do not scroll to the search location, if we just switched a new source
       // and debugger is already paused on a selelcted line.
-      this.doSearch(query, false, !nextProps.isPaused);
+      this.doSearch(query, !nextProps.isPaused);
     }
   }
 
@@ -123,13 +121,8 @@ class SearchInFileBar extends Component {
     if (!editor) {
       return;
     }
-    if (features.codemirrorNext) {
-      editor.clearSearchMatches();
-      editor.removePositionContentMarker("active-selection-marker");
-      return;
-    }
-    const ctx = { editor, cm: editor.codeMirror };
-    removeOverlay(ctx);
+    editor.clearSearchMatches();
+    editor.removePositionContentMarker("active-selection-marker");
   };
 
   closeSearch = e => {
@@ -168,7 +161,7 @@ class SearchInFileBar extends Component {
     }
   };
 
-  doSearch = async (query, focusFirstResult = true, shouldScroll = true) => {
+  doSearch = async (query, shouldScroll = true) => {
     const { editor, modifiers, selectedSourceTextContent } = this.props;
     if (
       !editor ||
@@ -198,7 +191,6 @@ class SearchInFileBar extends Component {
 
     const matches = await this.props.querySearchWorker(query, text, modifiers);
     const results = find(ctx, query, true, modifiers, {
-      focusFirstResult,
       shouldScroll,
     });
     this.setSearchResults(results, matches);
@@ -259,11 +251,7 @@ class SearchInFileBar extends Component {
       return false;
     });
 
-    // The cursor location is set differently for CM5
-    if (features.codemirrorNext) {
-      this.setCursorLocation(line, ch, matchContent);
-    }
-
+    this.setCursorLocation(line, ch, matchContent);
     this.setState({
       results: {
         matches,

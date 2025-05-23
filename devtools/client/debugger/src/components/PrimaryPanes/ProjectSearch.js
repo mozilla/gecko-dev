@@ -151,12 +151,7 @@ export class ProjectSearch extends Component {
       this.tooltip = tooltip;
       return;
     }
-    this.props.doSearchForHighlight(
-      this.state.query,
-      getEditor(),
-      matchItem.location.line,
-      matchItem.location.column
-    );
+    this.props.doSearchForHighlight(this.state.query, getEditor());
   };
 
   highlightMatches = lineMatch => {

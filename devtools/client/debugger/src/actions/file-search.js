@@ -11,14 +11,14 @@ import {
 
 import { closeActiveSearch, clearHighlightLineRange } from "./ui";
 
-export function doSearchForHighlight(query, editor, line, ch) {
+export function doSearchForHighlight(query, editor) {
   return async ({ getState, dispatch }) => {
     const sourceTextContent = getSelectedSourceTextContent(getState());
     if (!sourceTextContent) {
       return;
     }
 
-    dispatch(searchContentsForHighlight(query, editor, line, ch));
+    dispatch(searchContentsForHighlight(query, editor));
   };
 }
 
@@ -29,7 +29,7 @@ export function querySearchWorker(query, text, modifiers) {
   };
 }
 
-export function searchContentsForHighlight(query, editor, line, ch) {
+export function searchContentsForHighlight(query, editor) {
   return async ({ getState }) => {
     const modifiers = getSearchOptions(getState(), "file-search");
     const sourceTextContent = getSelectedSourceTextContent(getState());
@@ -39,7 +39,7 @@ export function searchContentsForHighlight(query, editor, line, ch) {
     }
 
     const ctx = { editor, cm: editor.codeMirror };
-    searchSourceForHighlight(ctx, false, query, true, modifiers, line, ch);
+    searchSourceForHighlight(ctx, false, query, true, modifiers);
   };
 }
 
