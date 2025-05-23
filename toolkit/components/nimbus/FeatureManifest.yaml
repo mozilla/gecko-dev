@@ -2688,6 +2688,18 @@ networkingSendOnDataFinished:
         branch: default
         pref: "network.send_OnDataFinished.cssLoader"
 
+networkingBannedPorts:
+  description: "Networking (Necko) Banned Ports"
+  owner: vgosu@mozilla.com
+  hasExposure: false
+  variables:
+    bannedPortList:
+      description: A comma-separated list of ports that Firefox will refuse to connect to. These ports will be appended to nsIOService gBadPortList
+      type: string
+      setPref:
+        branch: default
+        pref: "network.security.ports.banned"
+
 essentialFallbackDomains:
   description: "Whether to retry failing system requests with a backup domain"
   owner: vgosu@mozilla.com
