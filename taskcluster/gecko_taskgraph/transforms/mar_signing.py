@@ -18,7 +18,7 @@ from gecko_taskgraph.util.attributes import (
     sorted_unique_list,
 )
 from gecko_taskgraph.util.partials import get_partials_artifacts_from_params
-from gecko_taskgraph.util.scriptworker import get_signing_cert_scope_per_platform
+from gecko_taskgraph.util.scriptworker import get_signing_type_per_platform
 
 logger = logging.getLogger(__name__)
 
@@ -114,11 +114,9 @@ def make_task_description(config, jobs):
         is_shippable = job.get(
             "shippable", dep_job.attributes.get("shippable")  # First check current job
         )  # Then dep job for 'shippable'
-        signing_cert_scope = get_signing_cert_scope_per_platform(
+        signing_type = get_signing_type_per_platform(
             build_platform, is_shippable, config
         )
-
-        scopes = [signing_cert_scope]
 
         task = {
             "label": label,
@@ -128,12 +126,12 @@ def make_task_description(config, jobs):
             "worker-type": job.get("worker-type", "linux-signing"),
             "worker": {
                 "implementation": "scriptworker-signing",
+                "signing-type": signing_type,
                 "upstream-artifacts": upstream_artifacts,
                 "max-run-time": 3600,
             },
             "dependencies": dependencies,
             "attributes": attributes,
-            "scopes": scopes,
             "run-on-projects": job.get(
                 "run-on-projects", dep_job.attributes.get("run_on_projects")
             ),

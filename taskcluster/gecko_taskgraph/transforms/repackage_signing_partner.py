@@ -14,7 +14,7 @@ from voluptuous import Optional
 from gecko_taskgraph.transforms.task import task_description_schema
 from gecko_taskgraph.util.attributes import copy_attributes_from_dependent_job
 from gecko_taskgraph.util.partners import get_partner_config_by_kind
-from gecko_taskgraph.util.scriptworker import get_signing_cert_scope_per_platform
+from gecko_taskgraph.util.scriptworker import get_signing_type_per_platform
 
 transforms = TransformSequence()
 
@@ -80,10 +80,9 @@ def make_repackage_signing_description(config, jobs):
         attributes = copy_attributes_from_dependent_job(dep_job)
         attributes["repackage_type"] = "repackage-signing"
 
-        signing_cert_scope = get_signing_cert_scope_per_platform(
+        signing_type = get_signing_type_per_platform(
             build_platform, is_shippable, config
         )
-        scopes = [signing_cert_scope]
 
         if "win" in build_platform:
             upstream_artifacts = [
@@ -151,10 +150,10 @@ def make_repackage_signing_description(config, jobs):
             "worker-type": "linux-signing",
             "worker": {
                 "implementation": "scriptworker-signing",
+                "signing-type": signing_type,
                 "upstream-artifacts": upstream_artifacts,
                 "max-run-time": 3600,
             },
-            "scopes": scopes,
             "dependencies": dependencies,
             "attributes": attributes,
             "run-on-projects": dep_job.attributes.get("run_on_projects"),

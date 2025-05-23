@@ -15,7 +15,7 @@ from gecko_taskgraph.transforms.task import task_description_schema
 from gecko_taskgraph.util.attributes import copy_attributes_from_dependent_job
 from gecko_taskgraph.util.scriptworker import (
     add_scope_prefix,
-    get_signing_cert_scope_per_platform,
+    get_signing_type_per_platform,
 )
 
 transforms = TransformSequence()
@@ -107,7 +107,6 @@ def make_task_description(config, jobs):
         assert dep_job
         attributes = dep_job.attributes
 
-        signing_format_scopes = []
         formats = set()
         for artifacts in job["upstream-artifacts"]:
             for f in artifacts["formats"]:
@@ -172,7 +171,7 @@ def make_task_description(config, jobs):
             # Used for l10n attribute passthrough
             attributes["chunk_locales"] = dep_job.attributes.get("chunk_locales")
 
-        signing_cert_scope = get_signing_cert_scope_per_platform(
+        signing_type = get_signing_type_per_platform(
             build_platform, is_shippable, config
         )
         worker_type_alias = "linux-signing" if is_shippable else "linux-depsigning"
@@ -181,10 +180,10 @@ def make_task_description(config, jobs):
             "description": description,
             "worker": {
                 "implementation": "scriptworker-signing",
+                "signing-type": signing_type,
                 "upstream-artifacts": job["upstream-artifacts"],
                 "max-run-time": job.get("max-run-time", 3600),
             },
-            "scopes": [signing_cert_scope] + signing_format_scopes,
             "dependencies": job["dependencies"],
             "attributes": attributes,
             "run-on-projects": dep_job.attributes.get("run_on_projects"),
@@ -198,6 +197,7 @@ def make_task_description(config, jobs):
 
         # build-mac-{signing,notarization} uses signingscript instead of iscript
         if "macosx" in build_platform and config.kind.endswith("-mac-notarization"):
+            task["worker"]["signing-type"] = "release-apple-notarization"
             task["scopes"] = [
                 add_scope_prefix(config, "signing:cert:release-apple-notarization")
             ]

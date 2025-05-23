@@ -16,6 +16,7 @@ import re
 import time
 
 from mozbuild.util import memoize
+from mozilla_taskgraph.util.signed_artifacts import get_signed_artifacts
 from taskcluster.utils import fromNow
 from taskgraph import MAX_DEPENDENCIES
 from taskgraph.transforms.base import TransformSequence
@@ -41,7 +42,6 @@ from gecko_taskgraph.util.chunking import TEST_VARIANTS
 from gecko_taskgraph.util.hash import hash_path
 from gecko_taskgraph.util.partners import get_partners_to_be_published
 from gecko_taskgraph.util.scriptworker import BALROG_ACTIONS, get_release_config
-from gecko_taskgraph.util.signed_artifacts import get_signed_artifacts
 from gecko_taskgraph.util.workertypes import get_worker_type, worker_type_implementation
 
 RUN_TASK = os.path.join(GECKO, "taskcluster", "scripts", "run-task")
@@ -810,50 +810,9 @@ def build_generic_worker_payload(config, task, task_def):
 
 
 @payload_builder(
-    "scriptworker-signing",
-    schema={
-        # the maximum time to run, in seconds
-        Required("max-run-time"): int,
-        # list of artifact URLs for the artifacts that should be signed
-        Required("upstream-artifacts"): [
-            {
-                # taskId of the task with the artifact
-                Required("taskId"): taskref_or_string,
-                # type of signing task (for CoT)
-                Required("taskType"): str,
-                # Paths to the artifacts to sign
-                Required("paths"): [str],
-                # Signing formats to use on each of the paths
-                Required("formats"): [str],
-                Optional("singleFileGlobs"): [str],
-            }
-        ],
-    },
-)
-def build_scriptworker_signing_payload(config, task, task_def):
-    worker = task["worker"]
-
-    task_def["payload"] = {
-        "maxRunTime": worker["max-run-time"],
-        "upstreamArtifacts": worker["upstream-artifacts"],
-    }
-
-    artifacts = set(task.setdefault("attributes", {}).get("release_artifacts", []))
-    for upstream_artifact in worker["upstream-artifacts"]:
-        for path in upstream_artifact["paths"]:
-            artifacts.update(
-                get_signed_artifacts(
-                    input=path,
-                    formats=upstream_artifact["formats"],
-                    behavior=worker.get("mac-behavior"),
-                )
-            )
-    task["attributes"]["release_artifacts"] = sorted(list(artifacts))
-
-
-@payload_builder(
     "iscript",
     schema={
+        Required("signing-type"): str,
         # the maximum time to run, in seconds
         Required("max-run-time"): int,
         # list of artifact URLs for the artifacts that should be signed
@@ -918,6 +877,12 @@ def build_iscript_payload(config, task, task_def):
         ):
             if worker.get(attribute):
                 task_def["payload"][attribute] = worker[attribute]
+
+    # Set scopes
+    scope_prefix = config.graph_config["scriptworker"]["scope-prefix"]
+    scopes = set(task_def.get("scopes", []))
+    scopes.add(f"{scope_prefix}:signing:cert:{worker['signing-type']}")
+    task_def["scopes"] = sorted(scopes)
 
     artifacts = set(task.setdefault("attributes", {}).get("release_artifacts", []))
     for upstream_artifact in worker["upstream-artifacts"]:
