@@ -172,13 +172,7 @@ class EmitterScope : public Nestable<EmitterScope> {
   // a lexical scope and a module scope.
   [[nodiscard]] bool prepareForDisposableScopeBody(BytecodeEmitter* bce);
 
-  [[nodiscard]] bool emitSwitchBlockEndForDisposableScopeBodyEnd(
-      BytecodeEmitter* bce);
-
   [[nodiscard]] bool emitDisposableScopeBodyEnd(BytecodeEmitter* bce);
-
-  [[nodiscard]] bool emitDisposableScopeBodyEndForNonLocalJump(
-      BytecodeEmitter* bce);
 
  public:
   [[nodiscard]] bool prepareForModuleDisposableScopeBody(BytecodeEmitter* bce);

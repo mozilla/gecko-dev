@@ -20,7 +20,6 @@ class EmitterScope;
 // use case of this is for disposal related code to special case the handling of
 // disposals in different blocks.
 enum class BlockKind : uint8_t {
-  Switch,
   ForOf,
 
   // Other here refers to any generic block which doesnt require any

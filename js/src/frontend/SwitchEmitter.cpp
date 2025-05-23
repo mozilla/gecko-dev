@@ -125,12 +125,7 @@ bool SwitchEmitter::emitLexical(LexicalScope::ParserData* bindings) {
 
   tdzCacheLexical_.emplace(bce_);
   emitterScope_.emplace(bce_);
-  if (!emitterScope_->enterLexical(bce_, ScopeKind::Lexical, bindings
-#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-                                   ,
-                                   BlockKind::Switch
-#endif
-                                   )) {
+  if (!emitterScope_->enterLexical(bce_, ScopeKind::Lexical, bindings)) {
     return false;
   }
 
