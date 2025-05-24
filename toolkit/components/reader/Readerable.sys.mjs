@@ -6,4 +6,4 @@
 #include readability/Readability-readerable.js
 #include Readerable.js
 
-export { Readerable };
+export { Readerable, isProbablyReaderable };

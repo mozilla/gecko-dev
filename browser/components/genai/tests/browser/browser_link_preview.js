@@ -10,6 +10,15 @@ const { Region } = ChromeUtils.importESModule(
 const { LinkPreviewModel } = ChromeUtils.importESModule(
   "moz-src:///browser/components/genai/LinkPreviewModel.sys.mjs"
 );
+
+const { LinkPreviewChild } = ChromeUtils.importESModule(
+  "resource:///actors/LinkPreviewChild.sys.mjs"
+);
+
+const { Readerable } = ChromeUtils.importESModule(
+  "resource://gre/modules/Readerable.sys.mjs"
+);
+
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -501,6 +510,64 @@ add_task(async function test_link_preview_panel_shown() {
   panel.remove();
   stub.restore();
   LinkPreview.keyboardComboActive = false;
+});
+
+/**
+ * Test that LinkPreview blocks pages on domains that don't support Reader Mode
+ */
+add_task(async function test_reader_mode_blocked_domains() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", true]],
+  });
+
+  const fetchHTML = async url => {
+    const response = await fetch(url, { method: "GET" });
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return await response.text(); // returns raw HTML as string
+  };
+
+  const stub = sinon
+    .stub(LinkPreviewChild.prototype, "fetchHTML")
+    .callsFake(async _ => {
+      return fetchHTML(
+        "https://example.com/browser/browser/components/genai/tests/browser/data/readableEn.html"
+      );
+    });
+
+  const actor =
+    window.browsingContext.currentWindowContext.getActor("LinkPreview");
+
+  let result;
+
+  Assert.greaterOrEqual(
+    Readerable._blockedHosts.length,
+    2,
+    "we have enough in blockedHosts"
+  );
+
+  for (const url of Readerable._blockedHosts) {
+    if (url === "github.com") {
+      continue;
+    }
+    result = await actor.fetchPageData(url);
+    Assert.deepEqual(
+      result.article,
+      {},
+      `article should be empty for url ${url}`
+    );
+    ok(result.meta, "meta should be populated");
+
+    is(
+      result.rawMetaInfo["html:title"],
+      "Article title",
+      "title from raw metainfo should be correct"
+    );
+  }
+
+  stub.restore();
+  Services.prefs.clearUserPref("browser.ml.linkPreview.enabled");
 });
 
 /**

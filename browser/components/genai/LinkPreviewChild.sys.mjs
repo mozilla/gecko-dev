@@ -6,6 +6,8 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
+  Readerable: "resource://gre/modules/Readerable.sys.mjs",
+  isProbablyReaderable: "resource://gre/modules/Readerable.sys.mjs",
 });
 
 /**
@@ -143,7 +145,10 @@ export class LinkPreviewChild extends JSWindowActorChild {
       const doc = parser.parseFromString(htmlCode, "text/html");
       ret.rawMetaInfo = this.parseMetaTagsFromDoc(doc);
 
-      if (!this.isProbablyReaderable(doc)) {
+      if (
+        !lazy.Readerable.shouldCheckUri(lazy.NetUtil.newURI(url)) ||
+        !lazy.isProbablyReaderable(doc)
+      ) {
         // Add normalized metadata even if the document isn't reader-able
         ret.meta = this.extractNormalizedMetadata(ret.rawMetaInfo);
         return ret;
@@ -318,112 +323,5 @@ export class LinkPreviewChild extends JSWindowActorChild {
     }
 
     return {};
-  }
-
-  /**
-   * Decides whether or not the document is reader-able without parsing the whole thing.
-   *
-   * @param {Document} doc - The document to check for readability
-   * @param {object} [options={}] Configuration object.
-   * @param {number} [options.minContentLength=140] The minimum node content length used to decide if the document is readerable.
-   * @param {number} [options.minScore=20] The minumum cumulated 'score' used to determine if the document is readerable.
-   * @param {Function} [options.visibilityChecker=isNodeVisible] The function used to determine if a node is visible.
-   * @returns {boolean} Whether or not we suspect Readability.parse() will suceeed at returning an article object.
-   */
-  isProbablyReaderable(doc, options = {}) {
-    // For backward compatibility reasons 'options' can either be a configuration object or the function used
-    // to determine if a node is visible.
-    if (typeof options == "function") {
-      options = { visibilityChecker: options };
-    }
-
-    var defaultOptions = {
-      minScore: 20,
-      minContentLength: 140,
-      visibilityChecker: this.isNodeVisible,
-    };
-    options = Object.assign(defaultOptions, options);
-
-    var nodes = doc.querySelectorAll("p, pre, article");
-
-    // Get <div> nodes which have <br> node(s) and append them into the `nodes` variable.
-    // Some articles' DOM structures might look like
-    // <div>
-    //   Sentences<br>
-    //   <br>
-    //   Sentences<br>
-    // </div>
-    var brNodes = doc.querySelectorAll("div > br");
-    if (brNodes.length) {
-      var set = new Set(nodes);
-      [].forEach.call(brNodes, function (node) {
-        set.add(node.parentNode);
-      });
-      nodes = Array.from(set);
-    }
-
-    var score = 0;
-    // This is a little cheeky, we use the accumulator 'score' to decide what to return from
-    // this callback:
-    return [].some.call(nodes, function (node) {
-      if (!options.visibilityChecker(node)) {
-        return false;
-      }
-
-      var REGEXPS = {
-        // NOTE: These two regular expressions are duplicated in
-        // Readability.js. Please keep both copies in sync.
-        unlikelyCandidates:
-          /-ad-|ai2html|banner|breadcrumbs|combx|comment|community|cover-wrap|disqus|extra|footer|gdpr|header|legends|menu|related|remark|replies|rss|shoutbox|sidebar|skyscraper|social|sponsor|supplemental|ad-break|agegate|pagination|pager|popup|yom-remote/i,
-        okMaybeItsACandidate: /and|article|body|column|content|main|shadow/i,
-      };
-      var matchString = node.className + " " + node.id;
-      if (
-        REGEXPS.unlikelyCandidates.test(matchString) &&
-        !REGEXPS.okMaybeItsACandidate.test(matchString)
-      ) {
-        return false;
-      }
-
-      if (node.matches("li p")) {
-        return false;
-      }
-
-      var textContentLength = node.textContent.trim().length;
-      if (textContentLength < options.minContentLength) {
-        return false;
-      }
-
-      score += Math.sqrt(textContentLength - options.minContentLength);
-
-      if (score > options.minScore) {
-        return true;
-      }
-      return false;
-    });
-  }
-  /**
-   * Determines whether a node is visible in the document.
-   *
-   * @param {Node} node - The DOM node to check for visibility
-   * @returns {boolean} True if the node is considered visible, false otherwise
-   *
-   * This method checks several visibility attributes:
-   * - Verifies the node's display style is not 'none'
-   * - Checks that the node doesn't have a 'hidden' attribute
-   * - Ensures the aria-hidden attribute is not 'true' (with an exception for fallback images)
-   */
-  isNodeVisible(node) {
-    // Have to null-check node.style and node.className.includes to deal with SVG and MathML nodes.
-    return (
-      (!node.style || node.style.display != "none") &&
-      !node.hasAttribute("hidden") &&
-      //check for "fallback-image" so that wikimedia math images are displayed
-      (!node.hasAttribute("aria-hidden") ||
-        node.getAttribute("aria-hidden") != "true" ||
-        (node.className &&
-          node.className.includes &&
-          node.className.includes("fallback-image")))
-    );
   }
 }
