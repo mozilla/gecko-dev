@@ -342,7 +342,7 @@ const previewers = {
 
       grip.preview = {
         kind: "ArrayLike",
-        length: length,
+        length,
       };
 
       if (depth > 1) {
@@ -462,7 +462,7 @@ const previewers = {
 
       grip.preview = {
         kind: "MapLike",
-        size: size,
+        size,
       };
 
       if (depth > 1) {
@@ -908,7 +908,7 @@ function GenericObject(objectActor, grip, depth) {
   const privatePropertiesSymbols = ObjectUtils.getSafePrivatePropertiesSymbols(
     obj
   );
-  if (privatePropertiesSymbols.length > 0) {
+  if (privatePropertiesSymbols.length) {
     preview.privatePropertiesLength = privatePropertiesSymbols.length;
     preview.privateProperties = [];
 
@@ -945,7 +945,7 @@ function GenericObject(objectActor, grip, depth) {
   }
 
   const symbols = ObjectUtils.getSafeOwnPropertySymbols(obj);
-  if (symbols.length > 0) {
+  if (symbols.length) {
     preview.ownSymbolsLength = symbols.length;
     preview.ownSymbols = [];
 
@@ -1244,7 +1244,7 @@ previewers.Object = [
       const privatePropertiesSymbols = ObjectUtils.getSafePrivatePropertiesSymbols(
         obj
       );
-      if (privatePropertiesSymbols.length > 0) {
+      if (privatePropertiesSymbols.length) {
         preview.privatePropertiesLength = privatePropertiesSymbols.length;
       }
     } else if (className == "Attr") {

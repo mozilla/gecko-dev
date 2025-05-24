@@ -15,7 +15,9 @@ import { createSelector } from "devtools/client/shared/vendor/reselect";
 export const getSelectedFrame = createSelector(
   (state, thread) => state.pause.threads[thread || getCurrentThread(state)],
   threadPauseState => {
-    if (!threadPauseState) return null;
+    if (!threadPauseState) {
+      return null;
+    }
     const { selectedFrameId, frames } = threadPauseState;
     if (frames) {
       return frames.find(frame => frame.id == selectedFrameId);

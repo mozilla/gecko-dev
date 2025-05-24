@@ -299,7 +299,7 @@ function enumMapEntries(objectActor, depth) {
   const entries = getMapEntries(objectActor);
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const [key, value] of entries) {
         yield [key, value].map(val => gripFromEntry(objectActor, val, depth));
       }
@@ -335,7 +335,7 @@ function enumStorageEntries(objectActor, depth) {
     keys.push(rawObj.key(i));
   }
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const key of keys) {
         const value = rawObj.getItem(key);
         yield [key, value].map(val => gripFromEntry(objectActor, val, depth));
@@ -366,7 +366,7 @@ function enumURLSearchParamsEntries(objectActor, depth) {
   const entries = [...waiveXrays(URLSearchParams.prototype.entries.call(objectActor.rawObj))];
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const [key, value] of entries) {
         yield [key, value];
       }
@@ -398,7 +398,7 @@ function enumFormDataEntries(objectActor, depth) {
   const entries = [...waiveXrays(FormData.prototype.entries.call(objectActor.rawObj))];
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const [key, value] of entries) {
         yield [key, value];
       }
@@ -428,7 +428,7 @@ function enumHeadersEntries(objectActor, depth) {
   const entries = [...waiveXrays(Headers.prototype.entries.call(objectActor.rawObj))];
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const [key, value] of entries) {
         yield [key, value];
       }
@@ -454,7 +454,7 @@ function enumHighlightRegistryEntries(objectActor, depth) {
     : [];
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const [key, value] of entries) {
         yield [key, gripFromEntry(objectActor, value, depth)];
       }
@@ -470,7 +470,7 @@ function enumHighlightRegistryEntries(objectActor, depth) {
         value: {
           type: "highlightRegistryEntry",
           preview: {
-            key: key,
+            key,
             value: gripFromEntry(objectActor, value, depth),
           },
         },
@@ -488,7 +488,7 @@ function enumMidiInputMapEntries(objectActor, depth) {
   );
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const [key, value] of entries) {
         yield [key, gripFromEntry(objectActor, value, depth)];
       }
@@ -515,7 +515,7 @@ function enumMidiOutputMapEntries(objectActor, depth) {
   );
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const [key, value] of entries) {
         yield [key, gripFromEntry(objectActor, value, depth)];
       }
@@ -553,7 +553,7 @@ function enumWeakMapEntries(objectActor, depth) {
   const entries = getWeakMapEntries(objectActor.rawObj);
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (let i = 0; i < entries.length; i++) {
         yield entries[i].map(val => gripFromEntry(objectActor, val, depth));
       }
@@ -601,7 +601,7 @@ function enumSetEntries(objectActor, depth) {
   );
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const item of values) {
         yield gripFromEntry(objectActor, item, depth);
       }
@@ -638,7 +638,7 @@ function enumWeakSetEntries(objectActor, depth) {
   const keys = getWeakSetEntries(objectActor.rawObj);
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const item of keys) {
         yield gripFromEntry(objectActor, item, depth);
       }
@@ -658,7 +658,7 @@ function enumWeakSetEntries(objectActor, depth) {
 }
 
 function enumCustomStateSetEntries(objectActor, depth) {
-  let { rawObj } = objectActor;
+  const { rawObj } = objectActor;
   // We need to waive `rawObj` as we can't get the iterator from the Xray for SetLike (See Bug 1173651).
   // We also need to waive Xrays on the result of the call to `values` as we don't have
   // Xrays to Iterator objects (see Bug 1023984)
@@ -667,7 +667,7 @@ function enumCustomStateSetEntries(objectActor, depth) {
   );
 
   return {
-    [Symbol.iterator]: function*() {
+    *[Symbol.iterator]() {
       for (const item of values) {
         yield gripFromEntry(objectActor, item, depth);
       }

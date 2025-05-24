@@ -497,7 +497,7 @@ function makeDefaultPropsBucket(propertiesNames, parent, ownProperties) {
     ownProperties
   );
 
-  if (defaultProperties.length > 0) {
+  if (defaultProperties.length) {
     const defaultPropertiesNode = createNode({
       parent,
       name: "<default properties>",

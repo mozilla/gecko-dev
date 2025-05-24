@@ -178,7 +178,12 @@ export default [
     },
   },
   {
-    files: ["client/framework/**"],
+    files: [
+      // Bug 1467784 - Fix these instances to have strict enabled.
+      "client/framework/**",
+      "client/shared/components/object-inspector/**",
+      "client/shared/components/test/node/stubs/object-inspector/",
+    ],
     rules: {
       strict: "off",
     },

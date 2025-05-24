@@ -53,7 +53,7 @@ function reducer(state = initialOIState(), action = {}) {
         path,
         updateObject(obj, property, null)
       ),
-      watchpoints: watchpoints,
+      watchpoints,
     });
   }
 

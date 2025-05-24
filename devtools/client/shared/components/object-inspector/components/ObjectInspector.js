@@ -195,7 +195,7 @@ class ObjectInspector extends Component {
     const length = roots.length;
 
     for (let i = 0; i < length; i++) {
-      let rootItem = roots[i];
+      const rootItem = roots[i];
 
       if (evaluations.has(rootItem.path)) {
         roots[i] = getEvaluatedItem(rootItem, evaluations);
@@ -371,7 +371,7 @@ const OI = connect(mapStateToProps, actions)(ObjectInspector);
 module.exports = props => {
   const { roots, standalone = false } = props;
 
-  if (roots.length == 0) {
+  if (!roots.length) {
     return null;
   }
 

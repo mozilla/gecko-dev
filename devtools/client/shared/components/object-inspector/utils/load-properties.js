@@ -106,11 +106,11 @@ function mergeResponses(responses) {
       data.ownProperties = { ...data.ownProperties, ...response.ownProperties };
     }
 
-    if (response.privateProperties && response.privateProperties.length > 0) {
+    if (response.privateProperties && response.privateProperties.length) {
       data.privateProperties = response.privateProperties;
     }
 
-    if (response.ownSymbols && response.ownSymbols.length > 0) {
+    if (response.ownSymbols && response.ownSymbols.length) {
       data.ownSymbols = response.ownSymbols;
     }
 

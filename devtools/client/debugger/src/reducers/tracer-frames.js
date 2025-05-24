@@ -196,7 +196,9 @@ function update(state = initialState(), action) {
     case "SET_SELECTED_LOCATION": {
       // Traces are reference to the generated location only, so ignore any original source being selected
       // and wait for SET_GENERATED_SELECTED_LOCATION instead.
-      if (action.location.source.isOriginal) return state;
+      if (action.location.source.isOriginal) {
+        return state;
+      }
 
       // Ignore if the currently selected trace matches the new location.
       if (

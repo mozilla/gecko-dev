@@ -488,7 +488,9 @@ function findSourceInThreadItem(source, threadItem) {
   const groupItem = threadItem.children.find(item => {
     return item.groupName == group;
   });
-  if (!groupItem) return null;
+  if (!groupItem) {
+    return null;
+  }
 
   const parentPath = path.substring(0, path.lastIndexOf("/"));
 
@@ -503,7 +505,9 @@ function findSourceInThreadItem(source, threadItem) {
   const directoryItem = groupItem._allGroupDirectoryItems.find(item => {
     return item.type == "directory" && item.path == parentPath;
   });
-  if (!directoryItem) return null;
+  if (!directoryItem) {
+    return null;
+  }
 
   return directoryItem.children.find(item => {
     return item.type == "source" && item.source == source;
