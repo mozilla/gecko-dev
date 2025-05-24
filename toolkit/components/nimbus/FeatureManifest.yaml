@@ -275,7 +275,9 @@ urlbar:
         ping's description for more.
     mdnFeatureGate:
       type: boolean
-      fallbackPref: browser.urlbar.mdn.featureGate
+      setPref:
+        branch: default
+        pref: browser.urlbar.mdn.featureGate
       description: >-
         Feature gate that controls whether all aspects of the mdn suggestion
         feature are exposed to the user.
