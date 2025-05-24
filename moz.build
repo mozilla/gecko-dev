@@ -29,6 +29,9 @@ with Files("docs/**"):
     BUG_COMPONENT = ("Developer Infrastructure", "Source Documentation")
     SCHEDULES.exclusive = ["docs"]
 
+with Files("eslint*"):
+    BUG_COMPONENT = ("Developer Infrastructure", "Lint and Formatting")
+
 with Files("mach*"):
     BUG_COMPONENT = ("Firefox Build System", "Mach Core")
 

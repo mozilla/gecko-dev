@@ -29,7 +29,8 @@ avoid-blacklist-and-whitelist:
         - java
         - kt
     exclude:
-        - '**/.eslintrc-rollouts.js'
+        - eslint-rollouts.config.mjs
+        - eslint-file-globals.config.mjs
         - browser/app/profile/firefox.js
         - browser/app/winlauncher/LauncherProcessWin.cpp
         - browser/base/content/browser.js

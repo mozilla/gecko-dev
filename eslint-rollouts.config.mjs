@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+import eslintPluginImport from "eslint-plugin-import";
+import mozilla from "eslint-plugin-mozilla";
+import sdl from "@microsoft/eslint-plugin-sdl";
 
 /**
  * This is the current list of rollouts for ESLint rules in mozilla-central. The
@@ -15,8 +17,9 @@
  * See https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint/enabling-rules.html#enabling-a-new-rule
  * for more information about roll-outs.
  */
-const rollouts = [
+export default [
   {
+    name: "rollout-import-no-unresolved",
     files: [
       // Bug 1773475 - For now, turn off no-unresolved on some paths where we import
       // from node_modules, as the ESLint setup only installs modules at the
@@ -24,12 +27,14 @@ const rollouts = [
       "devtools/shared/compatibility/**",
       "browser/components/storybook/**",
     ],
+    plugins: { import: eslintPluginImport },
     rules: {
       "import/no-unresolved": "off",
     },
   },
   {
-    files: ["*.html", "*.xhtml", "*.xml"],
+    name: "rollout-curly",
+    files: ["**/*.html", "**/*.xhtml"],
     rules: {
       // Curly brackets are required for all the tree via recommended.js,
       // however these files aren't auto-fixable at the moment.
@@ -38,7 +43,8 @@ const rollouts = [
   },
   {
     // TODO: Bug 1515949. Enable no-undef for gfx/
-    files: "gfx/layers/apz/test/mochitest/**",
+    name: "rollout-gfx-no-undef",
+    files: ["gfx/layers/apz/test/mochitest/**"],
     rules: {
       "no-undef": "off",
     },
@@ -47,6 +53,7 @@ const rollouts = [
     // Bug 881389 - Complete switching to console.createInstance from custom
     // modules. To support the gradual switch, we log these as warnings until
     // they have been transitioned.
+    name: "rollout-use-console-createInstance",
     files: [
       "browser/base/content/browser-data-submission-info-bar.js",
       "browser/base/content/browser-sync.js",
@@ -93,12 +100,14 @@ const rollouts = [
       "toolkit/mozapps/extensions/**",
       "toolkit/mozapps/update/**",
     ],
+    plugins: { mozilla },
     rules: {
       "mozilla/use-console-createInstance": "off",
     },
   },
   {
     // Bug 1881270 - Gradually roll-out no-case-declarations to more areas.
+    name: "rollout-no-case-declarations",
     files: [
       "accessible/tests/mochitest/promisified-events.js",
       "browser/actors/**",
@@ -154,6 +163,7 @@ const rollouts = [
   },
   {
     // Bug 1881268 - Gradually roll-out no-constant-condition to more areas.
+    name: "rollout-no-constant-condition",
     files: [
       "accessible/tests/browser/mac/browser_attributed_text.js",
       "accessible/tests/mochitest/text.js",
@@ -242,6 +252,7 @@ const rollouts = [
     rules: { "no-constant-condition": "warn" },
   },
   {
+    name: "rollout-no-console",
     files: [
       "browser/actors/AboutPocketParent.sys.mjs",
       "browser/actors/SpeechDispatcherParent.sys.mjs",
@@ -298,18 +309,21 @@ const rollouts = [
   {
     // Bug 877389 - Gradually migrate from Cu.reportError to console.error.
     // Enable these as we fix more areas.
+    name: "rollout-no-cu-reportError",
     files: [
       "browser/components/extensions/**",
       "toolkit/components/extensions/**",
       "toolkit/mozapps/extensions/**",
     ],
+    plugins: { mozilla },
     rules: {
       "mozilla/no-cu-reportError": "off",
     },
   },
   {
-    files: ["**"],
-    excludedFiles: [
+    name: "rollout-valid-jsdoc",
+    files: [`**/*.{${mozilla.allFileExtensions.join(",")}}`],
+    ignores: [
       "accessible/tests/**",
       "browser/actors/**",
       "browser/base/content/**",
@@ -374,16 +388,16 @@ const rollouts = [
       "toolkit/components/pdfjs/**",
       "toolkit/components/pictureinpicture/**",
       "toolkit/components/places/**",
-      "toolkit/components/printing/content/print*.*",
+      "toolkit/components/printing/content/**",
       "toolkit/components/processtools/tests/browser/browser_test_powerMetrics.js",
-      "toolkit/components/promiseworker/**/PromiseWorker.*",
+      "toolkit/components/promiseworker/worker/PromiseWorker.template.worker.js",
       "toolkit/components/prompts/**",
       "toolkit/components/reader/**",
       "toolkit/components/reputationservice/test/unit/test_app_rep_windows.js",
-      "toolkit/components/taskscheduler/TaskScheduler*.*",
+      "toolkit/components/taskscheduler/TaskScheduler*.sys.mjs",
       "toolkit/components/telemetry/**",
       "toolkit/components/thumbnails/**",
-      "toolkit/components/timermanager/UpdateTimerManager.*",
+      "toolkit/components/timermanager/UpdateTimerManager.sys.mjs",
       "toolkit/components/url-classifier/**",
       "toolkit/components/utils/**",
       "toolkit/components/viewsource/**",
@@ -406,11 +420,12 @@ const rollouts = [
       "uriloader/**",
       "widget/tests/window_composition_text_querycontent.xhtml",
     ],
-    extends: ["plugin:mozilla/valid-jsdoc"],
+    ...mozilla.configs["flat/valid-jsdoc"],
   },
   {
-    files: ["**"],
-    excludedFiles: [
+    name: "rollout-require-jsdoc",
+    files: [`**/*.{${mozilla.allFileExtensions.join(",")}}`],
+    ignores: [
       "accessible/tests/**",
       "browser/actors/**",
       "browser/base/content/**",
@@ -528,10 +543,10 @@ const rollouts = [
       "toolkit/components/pdfjs/**",
       "toolkit/components/pictureinpicture/**",
       "toolkit/components/places/**",
-      "toolkit/components/printing/content/print*.*",
+      "toolkit/components/printing/content/**",
       "toolkit/components/printing/tests/head.js",
       "toolkit/components/processtools/tests/browser/browser_test_powerMetrics.js",
-      "toolkit/components/promiseworker/**/PromiseWorker.*",
+      "toolkit/components/promiseworker/**/PromiseWorker.template.worker.js",
       "toolkit/components/prompts/**",
       "toolkit/components/reader/**",
       "toolkit/components/remotebrowserutils/RemoteWebNavigation.sys.mjs",
@@ -540,10 +555,10 @@ const rollouts = [
       "toolkit/components/resistfingerprinting/**",
       "toolkit/components/satchel/**",
       "toolkit/components/shopping/content/ShoppingProduct.mjs",
-      "toolkit/components/taskscheduler/TaskScheduler*.*",
+      "toolkit/components/taskscheduler/TaskScheduler*.sys.mjs",
       "toolkit/components/telemetry/**",
       "toolkit/components/thumbnails/**",
-      "toolkit/components/timermanager/UpdateTimerManager.*",
+      "toolkit/components/timermanager/UpdateTimerManager.sys.mjs",
       "toolkit/components/translations/**",
       "toolkit/components/uniffi-bindgen-gecko-js/fixtures/tests/xpcshell/test_callbacks.js",
       "toolkit/components/uniffi-js/js/UniFFI.sys.mjs",
@@ -573,11 +588,13 @@ const rollouts = [
       "widget/tests/file*.js",
       "widget/tests/window_composition_text_querycontent.xhtml",
     ],
-    extends: ["plugin:mozilla/require-jsdoc"],
+    ...mozilla.configs["flat/valid-jsdoc"],
   },
   {
+    name: "rollout-layout",
     files: ["layout/**"],
-    excludedFiles: ["layout/tools/reftest/**"],
+    ignores: ["layout/tools/reftest/**"],
+    plugins: { mozilla },
     rules: {
       "object-shorthand": "off",
       "mozilla/avoid-removeChild": "off",
@@ -615,9 +632,10 @@ const rollouts = [
     },
   },
   {
+    name: "rollout-dom",
     files: [
       "dom/animation/test/**",
-      "dom/base/test/*.*",
+      "dom/base/test/**",
       "dom/base/test/jsmodules/**",
       "dom/canvas/test/**",
       "dom/events/test/**",
@@ -639,6 +657,7 @@ const rollouts = [
       "dom/webauthn/tests/**",
       "dom/workers/test/**",
     ],
+    plugins: { mozilla },
     rules: {
       "mozilla/avoid-removeChild": "off",
       "mozilla/no-compare-against-boolean-literals": "off",
@@ -669,9 +688,10 @@ const rollouts = [
   {
     // Bug 1792693: Gradually enable no-undef and no-unused-vars on these
     // directories.
+    name: "rollout-no-undef-no-unused-vars-for-dom",
     files: [
       "dom/animation/test/**",
-      "dom/base/test/*.*",
+      "dom/base/test/**",
       "dom/base/test/unit/test_serializers_entities*.js",
       "dom/base/test/jsmodules/**",
       "dom/canvas/test/**",
@@ -706,6 +726,7 @@ const rollouts = [
   {
     // Exempt all components and test files that explicitly want to test http urls from 'no-insecure-url' rule.
     // Gradually change test cases such that this list gets smaller and more precisely. Bug 1758951
+    name: "rollout-no-insecure-url",
     files: [
       // Exempt tests that set https_first_disable to true Bug 1758951
       "browser/components/downloads/test/browser/browser_image_mimetype_issues.js",
@@ -1116,6 +1137,7 @@ const rollouts = [
       "devtools/client/framework/test/allocations/browser_allocations_reload_no_devtools.js",
       "devtools/client/framework/test/allocations/reload-test.js",
       "devtools/client/framework/test/browser_toolbox_error_count_reset_on_navigation.js",
+      "devtools/client/framework/test/node/components/debug-target-info.test.js",
       "devtools/client/inspector/markup/test/browser_markup_tag_edit_05.js",
       "devtools/client/inspector/shared/test/browser_styleinspector_output-parser.js",
       "devtools/client/inspector/shared/test/head.js",
@@ -1885,13 +1907,16 @@ const rollouts = [
       "uriloader/exthandler/tests/mochitest/head.js",
       "xpfe/appshell/test/test_windowlessBrowser.xhtml",
     ],
+    plugins: { "@microsoft/sdl": sdl },
     rules: {
       "@microsoft/sdl/no-insecure-url": "off",
     },
   },
   {
+    name: "rollout-no-browser-refs-in-toolkit",
     files: ["toolkit/**"],
-    excludedFiles: ["toolkit/**/test/**", "toolkit/**/tests/**"],
+    ignores: ["toolkit/**/test/**", "toolkit/**/tests/**"],
+    plugins: { mozilla },
     rules: {
       "mozilla/no-browser-refs-in-toolkit": "warn",
     },
@@ -1899,6 +1924,7 @@ const rollouts = [
   {
     // TODO: Bug TBD - Finish enabling no-shadow with builtinGlobals: true
     // for system modules.
+    name: "rollout-no-shadow-system-modules",
     files: [
       "browser/components/extensions/Extension*.sys.mjs",
       "devtools/client/shared/components/reps/reps/**.mjs",
@@ -1939,6 +1965,7 @@ const rollouts = [
   },
   {
     // TODO: Bug TBD - Finish enabling no-shadow for all files.
+    name: "rollout-no-shadow-everywhere",
     files: [
       "browser/components/extensions/**",
       "docshell/test/**",
@@ -1977,7 +2004,7 @@ const rollouts = [
       "tools/profiler/tests/**",
       "tools/tryselect/selectors/chooser/static/filter.js",
     ],
-    excludedFiles: [
+    ignores: [
       "**/*.sys.mjs",
       "toolkit/components/narrate/**",
       "toolkit/components/reader/**",
@@ -1987,5 +2014,3 @@ const rollouts = [
     },
   },
 ];
-
-module.exports = { rollouts };

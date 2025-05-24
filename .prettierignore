@@ -23,7 +23,8 @@ toolkit/components/extensions/types/ext-tabs-base.d.ts
 !browser/components/preferences/tests/chrome/*.html
 
 # This should be re-enabled in bug 1827456.
-js/src/builtin
+js/src/builtin/**/*.*
+!js/src/builtin/.eslintrc.mjs
 
 # Don't format README files.
 README

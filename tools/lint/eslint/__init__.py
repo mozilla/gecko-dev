@@ -92,8 +92,6 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
                 binary,
                 os.path.join(module_path, "node_modules", "eslint", "bin", "eslint.js"),
                 # This keeps ext as a single argument.
-                "--ext",
-                "[{}]".format(",".join(config["extensions"])),
                 "--format",
                 "json",
                 "--no-error-on-unmatched-pattern",
