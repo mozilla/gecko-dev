@@ -544,6 +544,7 @@ function makeNodesForOwnProps(propertiesNames, parent, ownProperties) {
   });
 }
 
+// eslint-disable-next-line complexity
 function makeNodesForProperties(objProps, parent) {
   const {
     ownProperties = {},

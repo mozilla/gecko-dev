@@ -24,14 +24,6 @@ loader.lazyRequireGetter(
   true
 );
 
-
-loader.lazyRequireGetter(
-  this,
-  "EnvironmentActor",
-  "resource://devtools/server/actors/environment.js",
-  true
-);
-
 /**
  * Get thisDebugger.Object referent's `promiseState`.
  *

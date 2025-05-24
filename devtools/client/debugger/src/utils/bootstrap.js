@@ -58,6 +58,7 @@ export function bootstrapStore(client, workers, panel, initialState) {
   registerStoreObserver(store, updatePrefs);
 
   const actions = bindActionCreators(
+    // eslint-disable-next-line mozilla/reject-relative-requires
     require("../actions/index").default,
     store.dispatch
   );

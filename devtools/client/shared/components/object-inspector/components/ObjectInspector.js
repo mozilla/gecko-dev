@@ -80,7 +80,7 @@ class ObjectInspector extends Component {
   static defaultProps = {
     autoReleaseObjectActors: true
   };
-  constructor(props) {
+  constructor(_props) {
     super();
     this.cachedNodes = new Map();
 
@@ -358,7 +358,7 @@ class ObjectInspector extends Component {
   }
 }
 
-function mapStateToProps(state, props) {
+function mapStateToProps(state, _props) {
   return {
     expandedPaths: getExpandedPaths(state),
     loadedProperties: getLoadedProperties(state),
@@ -368,6 +368,7 @@ function mapStateToProps(state, props) {
 
 const OI = connect(mapStateToProps, actions)(ObjectInspector);
 
+// eslint-disable-next-line react/display-name
 module.exports = props => {
   const { roots, standalone = false } = props;
 

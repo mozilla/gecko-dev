@@ -11,7 +11,7 @@ const {
   nodeIsBucket,
   getFront,
 } = require("resource://devtools/client/shared/components/object-inspector/utils/node.js");
-const { getLoadedProperties, getWatchpoints } = require("resource://devtools/client/shared/components/object-inspector/reducer.js");
+const { getLoadedProperties } = require("resource://devtools/client/shared/components/object-inspector/reducer.js");
 
 /**
  * This action is responsible for expanding a given node, which also means that
@@ -194,7 +194,7 @@ async function releaseActors(client, oldRoots, newRoots = []) {
 }
 
 function invokeGetter(node, receiverId) {
-  return async ({ dispatch, client, getState }) => {
+  return async ({ dispatch, client, _getState }) => {
     try {
       const objectFront =
         getParentFront(node) ||

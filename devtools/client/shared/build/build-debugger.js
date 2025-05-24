@@ -4,6 +4,7 @@
 
 "use strict";
 
+// eslint-disable-next-line mozilla/reject-relative-requires
 const Babel = require("./babel");
 const _path = require("path");
 

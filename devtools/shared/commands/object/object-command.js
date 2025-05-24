@@ -9,9 +9,10 @@
  * of all inspected JavaScript objects.
  */
 class ObjectCommand {
-  constructor({ commands, descriptorFront, watcherFront }) {
+  constructor({ commands, _descriptorFront, _watcherFront }) {
     this.#commands = commands;
   }
+  // eslint-disable-next-line no-unused-private-class-members
   #commands = null;
 
   /**

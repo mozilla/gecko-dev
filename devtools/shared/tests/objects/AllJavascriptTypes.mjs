@@ -3,6 +3,7 @@
 
 /* eslint-disable object-shorthand */
 
+// eslint-disable-next-line mozilla/reject-import-system-module-from-non-system
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
 // Try replicating real world environment, by using
@@ -495,6 +496,7 @@ const Errors = [
     prefs: [
       ["javascript.options.experimental.explicit_resource_management", true],
     ],
+    // eslint-disable-next-line no-constant-binary-expression
     disabled: true || !AppConstants.ENABLE_EXPLICIT_RESOURCE_MANAGEMENT,
   },
 ];

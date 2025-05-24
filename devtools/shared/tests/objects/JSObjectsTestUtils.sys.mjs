@@ -112,7 +112,6 @@ function loadExpectedValues(expectedValuesFileName) {
     gExpectedValuesFilePath = Services.io.newURI(resHandler.resolveURI(resURL)).QueryInterface(Ci.nsIFileURL).file.path;
   }
 
-  let expectedValues;
   if (!isUpdate) {
     dump(`Loading test data file: ${url}\n`);
     return ChromeUtils.importESModule(url).default;
@@ -225,7 +224,6 @@ async function runTest(expectedValuesFileName, testFunction) {
       "`More info in https://firefox-source-docs.mozilla.org/devtools/tests/js-object-tests.html\n";
 
     const isMochitest = "gTestPath" in gTestScope;
-    const isXpcshell = !isMochitest;
 
     // If we aren't in "update" mode, we are reading assertion values from $EXPECTED_VALUES_FILE
     // and will assert the current returned values against these values
@@ -236,7 +234,7 @@ async function runTest(expectedValuesFileName, testFunction) {
       } catch(e) {
         // deepEqual only throws in case of differences when running in XPCShell tests. Mochitest won't throw and keep running.
         // XPCShell will stop at the first failing assertion, so ensure showing our failure message and ok() will throw and stop the test.
-        if (isXpcshell) {
+        if (!isMochitest) {
           gTestScope.Assert.ok(false, failureMessage);
         }
         throw e;

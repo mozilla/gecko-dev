@@ -289,4 +289,15 @@ export default [
     files: ["**/node/**"],
     languageOptions: { globals: globals.jest },
   },
+  {
+    // Bug 1967461 - Fix the files and re-enable these rules.
+    files: [
+      "client/shared/components/object-inspector/components/ObjectInspector.js",
+      "client/shared/components/object-inspector/components/ObjectInspectorItem.js",
+    ],
+    rules: {
+      "react/prop-types": "off",
+      "react/sort-comp": "off",
+    },
+  },
 ];

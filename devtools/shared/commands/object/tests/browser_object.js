@@ -11,8 +11,6 @@ add_task(async function testObjectRelease() {
   const commands = await CommandsFactory.forTab(tab);
   await commands.targetCommand.startListening();
 
-  const { objectCommand } = commands;
-
   const evaluationResponse = await commands.scriptCommand.execute(
     "window.foo"
   );
@@ -72,8 +70,6 @@ add_task(async function testMultiTargetObjectRelease() {
   const [,iframeTarget] = commands.targetCommand.getAllTargets(commands.targetCommand.ALL_TYPES);
   is(iframeTarget.url, "data:text/html,bar");
 
-  const { objectCommand } = commands;
-
   const evaluationResponse1 = await commands.scriptCommand.execute(
     "window"
   );
@@ -106,8 +102,6 @@ add_task(async function testWorkerObjectRelease() {
 
   const [,workerTarget] = commands.targetCommand.getAllTargets(commands.targetCommand.ALL_TYPES);
   is(workerTarget.url, workerUrl);
-
-  const { objectCommand } = commands;
 
   const evaluationResponse = await commands.scriptCommand.execute(
     "foo", {
