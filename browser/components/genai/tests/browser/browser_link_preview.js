@@ -53,8 +53,9 @@ add_task(async function test_skip_generate_if_non_eng() {
   );
   XULBrowserWindow.setOverLink(TEST_LINK_URL_FR);
 
-  let panel = await TestUtils.waitForCondition(() =>
-    document.getElementById("link-preview-panel")
+  let panel = await TestUtils.waitForCondition(
+    () => document.getElementById("link-preview-panel"),
+    "On first attempt, timed out waiting for link-preview-panel to be created for French link"
   );
   ok(panel, "Panel created for link preview");
 
@@ -77,8 +78,9 @@ add_task(async function test_skip_generate_if_non_eng() {
     set: [["browser.ml.linkPreview.allowedLanguages", ""]],
   });
   XULBrowserWindow.setOverLink(TEST_LINK_URL_FR);
-  panel = await TestUtils.waitForCondition(() =>
-    document.getElementById("link-preview-panel")
+  panel = await TestUtils.waitForCondition(
+    () => document.getElementById("link-preview-panel"),
+    "On second attempt, timed out waiting for link-preview-panel to be created with French allowed"
   );
   await BrowserTestUtils.waitForEvent(panel, "popupshown");
 

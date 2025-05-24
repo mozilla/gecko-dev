@@ -14,6 +14,23 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
+const TEST_LINK_URL_EN =
+  "https://example.com/browser/browser/components/genai/tests/browser/data/readableEn.html";
+const TEST_LINK_URL_FR =
+  "https://example.com/browser/browser/components/genai/tests/browser/data/readableFr.html";
+
+function clearOverlink() {
+  // Clear the state by setting it to the FR URL
+  XULBrowserWindow.setOverLink(TEST_LINK_URL_FR);
+}
+
+async function waitForPanelOpen(message = "waiting for preview panel to open") {
+  return await TestUtils.waitForCondition(() => {
+    const panel = document.getElementById("link-preview-panel");
+    return panel?.state == "open" ? panel : null;
+  }, message);
+}
+
 add_task(async function test_default_telemetry() {
   Services.fog.testResetFOG();
 
@@ -27,6 +44,11 @@ add_task(async function test_default_telemetry() {
     Glean.genaiLinkpreview.keyPointsToggle.testGetValue(),
     null,
     "No keyPointsToggle events"
+  );
+  Assert.equal(
+    Glean.genaiLinkpreview.onboardingCard.testGetValue(),
+    null,
+    "No onboardingCard events initially"
   );
 });
 
@@ -56,11 +78,7 @@ add_task(async function test_link_preview_ai_consent_continue_ui_interaction() {
   LinkPreview.keyboardComboActive = true;
   XULBrowserWindow.setOverLink(READABLE_PAGE_URL, {});
 
-  const panel = await TestUtils.waitForCondition(() =>
-    document.getElementById("link-preview-panel")
-  );
-  await BrowserTestUtils.waitForEvent(panel, "popupshown");
-
+  const panel = await waitForPanelOpen();
   const card = panel.querySelector("link-preview-card");
   ok(card, "card created for link preview");
 
@@ -127,11 +145,7 @@ add_task(async function test_link_preview_ai_consent_cancel_ui_interaction() {
   LinkPreview.keyboardComboActive = true;
   XULBrowserWindow.setOverLink(READABLE_PAGE_URL, {});
 
-  const panel = await TestUtils.waitForCondition(() =>
-    document.getElementById("link-preview-panel")
-  );
-  await BrowserTestUtils.waitForEvent(panel, "popupshown");
-
+  const panel = await waitForPanelOpen();
   const card = panel.querySelector("link-preview-card");
   ok(card, "card created for link preview");
 
@@ -200,11 +214,7 @@ add_task(async function test_toggle_expand_collapse_telemetry() {
   LinkPreview.keyboardComboActive = true;
   XULBrowserWindow.setOverLink(READABLE_PAGE_URL, {});
 
-  const panel = await TestUtils.waitForCondition(() =>
-    document.getElementById("link-preview-panel")
-  );
-  await BrowserTestUtils.waitForEvent(panel, "popupshown");
-
+  const panel = await waitForPanelOpen();
   const card = panel.querySelector("link-preview-card");
   ok(card, "Card created for link preview");
 
@@ -278,11 +288,7 @@ add_task(
     LinkPreview.keyboardComboActive = true;
     XULBrowserWindow.setOverLink(READABLE_PAGE_URL, {});
 
-    const panel = await TestUtils.waitForCondition(() =>
-      document.getElementById("link-preview-panel")
-    );
-    await BrowserTestUtils.waitForEvent(panel, "popupshown");
-
+    const panel = await waitForPanelOpen();
     const card = panel.querySelector("link-preview-card");
     ok(card, "card created for link preview");
 
@@ -327,3 +333,92 @@ add_task(
     LinkPreview.keyboardComboActive = false;
   }
 );
+
+/**
+ * Tests that telemetry is recorded when the onboarding close button is clicked.
+ */
+add_task(async function test_onboarding_close_button_telemetry() {
+  Services.fog.testResetFOG();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.linkPreview.enabled", true],
+      ["browser.ml.linkPreview.onboardingTimes", ""],
+    ],
+  });
+
+  Assert.equal(
+    Glean.genaiLinkpreview.onboardingCard.testGetValue(),
+    null,
+    "No onboardingCard events initially"
+  );
+
+  XULBrowserWindow.setOverLink(TEST_LINK_URL_EN);
+
+  const panel = await waitForPanelOpen("wait for onboarding panel");
+  ok(panel, "Panel created for onboarding");
+
+  const onboarding_card = panel.querySelector("link-preview-card-onboarding");
+  ok(onboarding_card, "onboarding element is present");
+
+  const closeButton = onboarding_card.shadowRoot.querySelector(
+    "#onboarding-close-button"
+  );
+  closeButton.click();
+
+  const events = Glean.genaiLinkpreview.onboardingCard.testGetValue();
+  Assert.equal(events.length, 2, "Two onboardingCard event recorded");
+  Assert.equal(events[0].extra.action, "view", "View action recorded");
+  Assert.equal(events[1].extra.action, "close", "Closed action recorded");
+
+  // Cleanup
+  panel.remove();
+});
+
+/**
+ * Tests that telemetry is recorded when the onboarding try it now button is clicked.
+ */
+add_task(async function test_try_it_now_button_telemetry() {
+  Services.fog.testResetFOG();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.linkPreview.enabled", true],
+      ["browser.ml.linkPreview.onboardingTimes", ""],
+    ],
+  });
+
+  Assert.equal(
+    Glean.genaiLinkpreview.onboardingCard.testGetValue(),
+    null,
+    "No onboardingCard events initially"
+  );
+
+  clearOverlink();
+  XULBrowserWindow.setOverLink(TEST_LINK_URL_EN);
+
+  const panel = await waitForPanelOpen("wait for onboarding panel");
+  ok(panel, "Panel created for onboarding");
+
+  const onboarding_card = panel.querySelector("link-preview-card-onboarding");
+  ok(onboarding_card, "onboarding element is present");
+
+  let events = Glean.genaiLinkpreview.onboardingCard.testGetValue();
+  Assert.equal(events.length, 1, "One onboardingCard events recorded");
+  Assert.equal(events[0].extra.action, "view", "view action recorded");
+  const tryItNowButton = onboarding_card.shadowRoot.querySelector(
+    "moz-button[data-l10n-id='link-preview-onboarding-button']"
+  );
+  tryItNowButton.click();
+
+  events = Glean.genaiLinkpreview.onboardingCard.testGetValue();
+  Assert.equal(events.length, 2, "Two onboardingCard events recorded");
+  Assert.equal(
+    events[1].extra.action,
+    "try_it_now",
+    "try_it_now action recorded"
+  );
+
+  events = Glean.genaiLinkpreview.start.testGetValue();
+  Assert.equal(events.length, 1, "One genaiLinkpreview card events recorded");
+  // Cleanup
+  panel.remove();
+});

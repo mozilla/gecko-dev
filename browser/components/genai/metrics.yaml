@@ -858,6 +858,26 @@ genai.linkpreview:
         type: boolean
         description: New/current state is enabled
 
+  onboarding_card:
+    type: event
+    description: >
+      Recorded when the link preview onboarding is displayed and how the user interacts with it.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1961212
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D249855
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      action:
+        type: string
+        description: User's action on the dialogue - "view" (impression), "try_it_now", "close"
+
   start:
     type: event
     description: >
@@ -879,4 +899,4 @@ genai.linkpreview:
         description: Reusing existing panel
       source:
         type: string
-        description: Entrypoint shortcut (longpress, shift, shift-alt) or context
+        description: Entrypoint shortcut (longpress, shift, shift-alt), context, onboarding

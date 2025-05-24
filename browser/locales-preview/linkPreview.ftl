@@ -47,3 +47,15 @@ link-preview-optin-title-download = Setting up link previews…
 
 # Message displayed during first-time download of AI model
 link-preview-optin-message-download = This may take a moment.
+
+# Onboarding card title
+link-preview-onboarding-title = New: Press shift (⇧) as you hover to preview links
+
+# Onboarding card description
+link-preview-onboarding-description = See a short description, reading time, and more to decide if the link is worth the click. Also available on right-click.
+
+# Onboarding card Try button
+link-preview-onboarding-button = Try it now
+
+# Onboarding card Close button
+link-preview-onboarding-close = Close

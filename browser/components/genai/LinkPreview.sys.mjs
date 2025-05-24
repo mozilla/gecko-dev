@@ -52,6 +52,37 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "onboardingCooldownPeriodMs",
+  "browser.ml.linkPreview.onboardingCooldownPeriodMs",
+  7 * 24 * 60 * 60 * 1000 // Constant for onboarding reactivation cooldown period (7 days in milliseconds)
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "onboardingHoverLinkMs",
+  "browser.ml.linkPreview.onboardingHoverLinkMs",
+  500
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "onboardingMaxShowFreq",
+  "browser.ml.linkPreview.onboardingMaxShowFreq",
+  2
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "onboardingTimes",
+  "browser.ml.linkPreview.onboardingTimes",
+  "", // default (when PREF_INVALID)
+  null, // no onUpdate callback
+  rawValue => {
+    if (!rawValue) {
+      return [];
+    }
+    return rawValue.split(",").map(Number);
+  }
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "optin",
   "browser.ml.linkPreview.optin",
   null,
@@ -100,6 +131,18 @@ export const LinkPreview = {
 
   get canShowPreferences() {
     return lazy.enabled;
+  },
+
+  get showOnboarding() {
+    const timesArray = lazy.onboardingTimes;
+
+    const lastValidTime = timesArray.at(-1) || 0;
+    const timeSinceLastOnboarding = Date.now() - lastValidTime;
+
+    return (
+      timesArray.length < lazy.onboardingMaxShowFreq &&
+      timeSinceLastOnboarding >= lazy.onboardingCooldownPeriodMs
+    );
   },
 
   shouldShowContextMenu(nsContextMenu) {
@@ -198,6 +241,12 @@ export const LinkPreview = {
     if (!win.customElements.get("link-preview-card")) {
       win.ChromeUtils.importESModule(
         "chrome://browser/content/genai/content/link-preview-card.mjs",
+        { global: "current" }
+      );
+    }
+    if (!win.customElements.get("link-preview-card-onboarding")) {
+      win.ChromeUtils.importESModule(
+        "chrome://browser/content/genai/content/link-preview-card-onboarding.mjs",
         { global: "current" }
       );
     }
@@ -330,9 +379,146 @@ export const LinkPreview = {
       url.endsWith("#") || url.startsWith("javascript:") ? "" : url;
     this.overLinkTime = Date.now();
 
+    // If the keyboard combo is active, always check for link preview
+    // regardless of whether it's the same URL.
     if (this.keyboardComboActive) {
       this._maybeLinkPreview(win);
+    } else if (this.showOnboarding) {
+      this._maybeOnboard(win, url, stateObject);
     }
+  },
+
+  _maybeOnboard(win, url, stateObject) {
+    if (!url) {
+      return;
+    }
+
+    const panel = win.document.getElementById(this.linkPreviewPanelId);
+    const isPanelOpen = panel && panel.state !== "closed";
+
+    // If panel is open or it's the same URL as last hover, don't start
+    // hover-based onboarding timer.
+    if (isPanelOpen || url === stateObject.lastHoveredUrl) {
+      return;
+    }
+
+    // Clear any existing timer when moving to a new link
+    if (stateObject.hoverTimerId) {
+      win.clearTimeout(stateObject.hoverTimerId);
+      stateObject.hoverTimerId = null;
+    }
+
+    // Update last hovered URL
+    stateObject.lastHoveredUrl = url;
+    stateObject.hoverTimerId = win.setTimeout(() => {
+      // Only show if we're still hovering the same URL
+      if (stateObject.overLink === url) {
+        this.renderOnboardingPanel(win, url);
+      }
+      stateObject.lastHoveredUrl = "";
+      stateObject.hoverTimerId = null;
+    }, lazy.onboardingHoverLinkMs);
+  },
+
+  /**
+   * Renders the onboarding panel for link preview.
+   * Updates onboardingTimes and renders onboarding card
+   *
+   * @param {Window} win - The browser window context.
+   * @param {string} url - The URL of the link to be previewed.
+   */
+  async renderOnboardingPanel(win, url) {
+    // Append the current time to onboarding times.
+    Services.prefs.setStringPref("browser.ml.linkPreview.onboardingTimes", [
+      ...lazy.onboardingTimes,
+      Date.now(),
+    ]);
+
+    // Telemetry for onboarding card view
+    Glean.genaiLinkpreview.onboardingCard.record({ action: "view" });
+
+    // Now show the preview as an "onboarding" source
+    const panel = this.initOrResetPreviewPanel(win, "onboarding");
+
+    const doc = win.document;
+    const onboardingCard = doc.createElement("link-preview-card-onboarding");
+    onboardingCard.style.width = "100%";
+    onboardingCard.addEventListener(
+      "LinkPreviewCard:onboardingComplete",
+      () => {
+        Glean.genaiLinkpreview.onboardingCard.record({
+          action: "try_it_now",
+        });
+        this.renderLinkPreviewPanel(win, url, "onboarding");
+      }
+    );
+    onboardingCard.addEventListener("LinkPreviewCard:onboardingClose", () => {
+      panel.hidePopup();
+    });
+
+    panel.append(onboardingCard);
+    panel.openPopupNearMouse();
+  },
+
+  /**
+   * Initializes a new link preview panel or resets an existing one.
+   * Ensures the panel is ready to display content.
+   *
+   * @param {Window} win - The browser window context.
+   * @param {string} cardType - The trigger source for the panel initialization
+   * @returns {Panel} The initialized or reset panel element.
+   */
+  initOrResetPreviewPanel(win, cardType) {
+    const doc = win.document;
+    let panel = doc.getElementById(this.linkPreviewPanelId);
+
+    // If it already exists, hide any open popup and clear out old content.
+    if (panel) {
+      // Transitioning from onboarding reuses the panel without hiding.
+      if (panel.cardType == "linkpreview") {
+        panel.hidePopup();
+      }
+      panel.replaceChildren();
+    } else {
+      panel = doc
+        .getElementById("mainPopupSet")
+        .appendChild(doc.createXULElement("panel"));
+      panel.className = "panel-no-padding";
+      panel.id = this.linkPreviewPanelId;
+      panel.setAttribute("noautofocus", true);
+      panel.setAttribute("type", "arrow");
+      panel.style.width = "362px";
+      panel.style.setProperty("--og-padding", "var(--space-xlarge)");
+      // Match the radius of the image extended out by the padding.
+      panel.style.setProperty(
+        "--panel-border-radius",
+        "calc(var(--border-radius-small) + var(--og-padding))"
+      );
+
+      const openPopup = () => {
+        const { _x: x, _y: y } = win.MousePosTracker;
+        // Open near the mouse offsetting so link in the card can be clicked.
+        panel.openPopup(doc.documentElement, "overlap", x - 20, y - 160);
+        panel.openTime = Date.now();
+      };
+      panel.openPopupNearMouse = openPopup;
+
+      // Add a single, unified popuphidden listener once on panel init. This
+      // listener will check panel.cardType to determine the correct Glean call.
+      panel.addEventListener("popuphidden", () => {
+        if (panel.cardType === "onboarding") {
+          Glean.genaiLinkpreview.onboardingCard.record({
+            action: "close",
+          });
+        } else if (panel.cardType === "linkpreview") {
+          Glean.genaiLinkpreview.cardClose.record({
+            duration: Date.now() - panel.openTime,
+          });
+        }
+      });
+    }
+    panel.cardType = cardType;
+    return panel;
   },
 
   /**
@@ -544,50 +730,34 @@ export const LinkPreview = {
    * @param {string} source - Optional trigging behavior.
    */
   async renderLinkPreviewPanel(win, url, source = "shortcut") {
+    // If link preview is used once not via onboarding, stop onboarding.
+    if (source !== "onboarding") {
+      const maxFreq = lazy.onboardingMaxShowFreq;
+      // Fill the times array up to maxFreq with an array of 0 timestamps.
+      Services.prefs.setStringPref(
+        "browser.ml.linkPreview.onboardingTimes",
+        [...lazy.onboardingTimes, ...Array(maxFreq).fill("0")].slice(0, maxFreq)
+      );
+    }
+
+    // Transition from onboarding to preview content with transparency.
     const doc = win.document;
     let panel = doc.getElementById(this.linkPreviewPanelId);
-    const openPopup = () => {
-      const { _x: x, _y: y } = win.MousePosTracker;
-      // Open near the mouse offsetting so link in the card can be clicked.
-      panel.openPopup(doc.documentElement, "overlap", x - 20, y - 160);
-      panel.openTime = Date.now();
-    };
-
-    // Reuse the existing panel if the url is the same.
-    if (panel) {
-      if (panel.previewUrl == url) {
-        if (panel.state == "closed") {
-          openPopup();
-          Glean.genaiLinkpreview.start.record({ cached: true, source });
-        }
-        return;
-      }
-
-      // Hide and remove previous in preparation for new url data.
-      panel.hidePopup();
-      panel.replaceChildren();
-    } else {
-      panel = doc
-        .getElementById("mainPopupSet")
-        .appendChild(doc.createXULElement("panel"));
-      panel.className = "panel-no-padding";
-      panel.id = this.linkPreviewPanelId;
-      panel.setAttribute("noautofocus", true);
-      panel.setAttribute("type", "arrow");
-      panel.style.width = "362px";
-      panel.style.setProperty("--og-padding", "var(--space-xlarge)");
-      // Match the radius of the image extended out by the padding.
-      panel.style.setProperty(
-        "--panel-border-radius",
-        "calc(var(--border-radius-small) + var(--og-padding))"
-      );
-      panel.addEventListener("popuphidden", () => {
-        Glean.genaiLinkpreview.cardClose.record({
-          duration: Date.now() - panel.openTime,
-        });
-      });
+    if (source == "onboarding") {
+      panel.style.setProperty("opacity", "0");
     }
+
+    // Reuse or initialize panel.
+    if (panel && panel.previewUrl == url) {
+      if (panel.state == "closed") {
+        panel.openPopupNearMouse();
+        Glean.genaiLinkpreview.start.record({ cached: true, source });
+      }
+      return;
+    }
+    panel = this.initOrResetPreviewPanel(win, "linkpreview");
     panel.previewUrl = url;
+
     Glean.genaiLinkpreview.start.record({ cached: false, source });
 
     // TODO we want to immediately add a card as a placeholder to have UI be
@@ -612,6 +782,7 @@ export const LinkPreview = {
     if (skipped) {
       return;
     }
+
     const ogCard = this.createOGCard(doc, pageData);
     panel.append(ogCard);
     ogCard.addEventListener("LinkPreviewCard:dismiss", event => {
@@ -631,7 +802,11 @@ export const LinkPreview = {
       this._handleKeyPointsGenerationEvent(ogCard, "generate");
     });
 
-    openPopup();
+    // Make sure panel is visible if previously showing onboarding.
+    panel.style.setProperty("opacity", "1");
+    if (source !== "onboarding") {
+      panel.openPopupNearMouse();
+    }
   },
 
   /**

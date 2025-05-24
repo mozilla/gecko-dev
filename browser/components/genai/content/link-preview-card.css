@@ -28,6 +28,7 @@
 }
 
 .og-card-title {
+    color: var(--panel-color);
     font-size: var(--og-main-font-size);
     font-weight: var(--font-weight-bold);
     margin: 0;
@@ -36,6 +37,7 @@
 }
 
 .og-card-description {
+    color: var(--panel-color);
     font-size: var(--og-main-font-size);
     margin: 0;
     overflow: hidden;
