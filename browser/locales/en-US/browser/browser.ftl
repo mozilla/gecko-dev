@@ -771,6 +771,10 @@ urlbar-group-recent-searches =
 urlbar-group-trending =
   .label = Trending on { $engine }
 
+# Label shown above sponsored suggestions in the urlbar results.
+urlbar-group-sponsored =
+  .label = Sponsored
+
 # The result menu labels shown next to trending results.
 urlbar-result-menu-trending-dont-show =
     .label = Don’t show trending searches

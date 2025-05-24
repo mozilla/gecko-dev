@@ -49,10 +49,6 @@ urlbar-group-pocket =
 urlbar-group-local =
   .label = Local recommendations
 
-# Label shown above sponsored suggestions in the urlbar results.
-urlbar-group-sponsored =
-  .label = Sponsored
-
 # A message that replaces a result when the user dismisses a single suggestion.
 firefox-suggest-dismissal-acknowledgment-one = Thanks for your feedback. You won’t see this suggestion again.
 
