@@ -405,6 +405,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_inspector_search-suggests-ids-and-classes.js"]
 
+["browser_inspector_search-suggests-pseudo.js"]
+
 ["browser_inspector_search_keyboard_shortcut_conflict.js"]
 
 ["browser_inspector_search_keyboard_trap.js"]
