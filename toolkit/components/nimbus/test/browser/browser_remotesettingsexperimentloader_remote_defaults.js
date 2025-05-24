@@ -356,7 +356,7 @@ add_task(async function test_finalizeRemoteConfigs_cleanup() {
     "Pref was cleared"
   );
 
-  await fooCleanup();
+  fooCleanup();
   // This will also remove the inactive recipe from the store
   // the previous update (from recipe not seen code path)
   // only sets the recipe as inactive
@@ -445,8 +445,6 @@ add_task(async function remote_defaults_active_remote_defaults() {
   await featureUpdate;
 
   Assert.ok(fooFeature.getVariable("enabled"), "Targeting should match");
-
-  await NimbusTestUtils.cleanupManager(["foo", "bar"]);
   ExperimentAPI.manager.store._deleteForTests("foo");
   ExperimentAPI.manager.store._deleteForTests("bar");
 
@@ -515,7 +513,7 @@ add_task(async function remote_defaults_variables_storage() {
     "Test types are returned correctly"
   );
 
-  await doCleanup();
+  doCleanup();
 
   Assert.equal(
     Services.prefs.getIntPref(`${SYNC_DEFAULTS_PREF_BRANCH}bar.storage`, -1),

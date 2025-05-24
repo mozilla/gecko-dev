@@ -60,8 +60,6 @@ add_task(async function test_unenroll_opt_out() {
 
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, false);
 
-  await NimbusTestUtils.waitForInactiveEnrollment(experiment.slug);
-
   Assert.equal(
     manager.store.get(experiment.slug).active,
     false,
@@ -121,8 +119,6 @@ add_task(async function test_unenroll_rollout_opt_out() {
 
   Services.prefs.setBoolPref(STUDIES_OPT_OUT_PREF, false);
 
-  await NimbusTestUtils.waitForInactiveEnrollment(rollout.slug);
-
   Assert.equal(
     manager.store.get(rollout.slug).active,
     false,
@@ -174,8 +170,6 @@ add_task(async function test_unenroll_uploadPref() {
   );
 
   Services.prefs.setBoolPref(UPLOAD_ENABLED_PREF, false);
-
-  await NimbusTestUtils.waitForInactiveEnrollment(recipe.slug);
 
   Assert.equal(
     manager.store.get(recipe.slug).active,

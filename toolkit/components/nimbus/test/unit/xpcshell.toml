@@ -1,5 +1,5 @@
 [DEFAULT]
-head = "../../../../../toolkit/profile/test/xpcshell/head.js ../../../../../browser/components/profiles/tests/unit/head.js head.js"
+head = "head.js"
 tags = "nimbus"
 firefox-appdir = "browser"
 support-files = ["reference_aboutwelcome_experiment_content.json"]
