@@ -47,6 +47,6 @@ void URLExtraData::Shutdown() {
 URLExtraData::~URLExtraData() = default;
 
 StaticRefPtr<URLExtraData>
-    URLExtraData::sShared[size_t(UserAgentStyleSheetID::Count)];
+    URLExtraData::sShared[size_t(BuiltInStyleSheet::Count)];
 
 }  // namespace mozilla

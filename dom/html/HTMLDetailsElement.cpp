@@ -101,20 +101,7 @@ void HTMLDetailsElement::SetupShadowTree() {
   nsNodeInfoManager* nim = OwnerDoc()->NodeInfoManager();
   RefPtr<NodeInfo> slotNodeInfo = nim->GetNodeInfo(
       nsGkAtoms::slot, nullptr, kNameSpaceID_XHTML, nsINode::ELEMENT_NODE);
-  {
-    RefPtr<NodeInfo> linkNodeInfo = nim->GetNodeInfo(
-        nsGkAtoms::link, nullptr, kNameSpaceID_XHTML, nsINode::ELEMENT_NODE);
-    RefPtr<nsGenericHTMLElement> link =
-        NS_NewHTMLLinkElement(linkNodeInfo.forget());
-    if (NS_WARN_IF(!link)) {
-      return;
-    }
-    link->SetAttr(nsGkAtoms::rel, u"stylesheet"_ns, IgnoreErrors());
-    link->SetAttr(nsGkAtoms::href,
-                  u"resource://content-accessible/details.css"_ns,
-                  IgnoreErrors());
-    sr->AppendChildTo(link, kNotify, IgnoreErrors());
-  }
+  sr->AppendBuiltInStyleSheet(BuiltInStyleSheet::Details);
   {
     RefPtr<nsGenericHTMLElement> slot =
         NS_NewHTMLSlotElement(do_AddRef(slotNodeInfo));

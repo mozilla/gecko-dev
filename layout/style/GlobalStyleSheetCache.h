@@ -10,11 +10,11 @@
 #include "nsIMemoryReporter.h"
 #include "nsIObserver.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/BuiltInStyleSheets.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PreferenceSheet.h"
 #include "mozilla/NotNull.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/UserAgentStyleSheetID.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/ipc/SharedMemoryHandle.h"
 #include "mozilla/ipc/SharedMemoryMapping.h"
@@ -43,10 +43,14 @@ class GlobalStyleSheetCache final : public nsIObserver,
 
   static GlobalStyleSheetCache* Singleton();
 
-#define STYLE_SHEET(identifier_, url_, shared_) \
-  NotNull<StyleSheet*> identifier_##Sheet();
-#include "mozilla/UserAgentStyleSheetList.h"
+#define STYLE_SHEET(identifier_, url_, flags_)           \
+  NotNull<StyleSheet*> identifier_##Sheet() {            \
+    return BuiltInSheet(BuiltInStyleSheet::identifier_); \
+  }
+#include "mozilla/BuiltInStyleSheetList.h"
 #undef STYLE_SHEET
+
+  NotNull<StyleSheet*> BuiltInSheet(BuiltInStyleSheet);
 
   StyleSheet* GetUserContentSheet();
   StyleSheet* GetUserChromeSheet();
@@ -87,7 +91,7 @@ class GlobalStyleSheetCache final : public nsIObserver,
   struct Header {
     static constexpr uint32_t kMagic = 0x55415353;
     uint32_t mMagic;  // Must be set to kMagic.
-    const StyleLockedCssRules* mSheets[size_t(UserAgentStyleSheetID::Count)];
+    const StyleLockedCssRules* mSheets[size_t(BuiltInStyleSheet::Count)];
     uint8_t mBuffer[1];
   };
 
@@ -97,25 +101,25 @@ class GlobalStyleSheetCache final : public nsIObserver,
   void InitFromProfile();
   void InitSharedSheetsInParent();
   void InitMemoryReporter();
-  RefPtr<StyleSheet> LoadSheetURL(const char* aURL,
+  RefPtr<StyleSheet> LoadSheetURL(const nsACString& aURL,
                                   css::SheetParsingMode aParsingMode,
                                   css::FailureAction aFailureAction);
   RefPtr<StyleSheet> LoadSheetFile(nsIFile* aFile,
                                    css::SheetParsingMode aParsingMode);
   RefPtr<StyleSheet> LoadSheet(nsIURI* aURI, css::SheetParsingMode aParsingMode,
                                css::FailureAction aFailureAction);
-  void LoadSheetFromSharedMemory(const char* aURL, RefPtr<StyleSheet>* aSheet,
+  void LoadSheetFromSharedMemory(const nsACString& aURL,
+                                 RefPtr<StyleSheet>* aSheet,
                                  css::SheetParsingMode, const Header*,
-                                 UserAgentStyleSheetID);
+                                 BuiltInStyleSheet);
 
   static StaticRefPtr<GlobalStyleSheetCache> gStyleCache;
   static StaticRefPtr<css::Loader> gCSSLoader;
   static StaticRefPtr<nsIURI> gUserContentSheetURL;
 
-#define STYLE_SHEET(identifier_, url_, shared_) \
-  RefPtr<StyleSheet> m##identifier_##Sheet;
-#include "mozilla/UserAgentStyleSheetList.h"
-#undef STYLE_SHEET
+  EnumeratedArray<BuiltInStyleSheet, RefPtr<StyleSheet>,
+                  size_t(BuiltInStyleSheet::Count)>
+      mBuiltIns;
 
   RefPtr<StyleSheet> mUserChromeSheet;
   RefPtr<StyleSheet> mUserContentSheet;

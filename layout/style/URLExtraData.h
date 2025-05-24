@@ -12,7 +12,7 @@
 #include <utility>
 
 #include "mozilla/StaticPtr.h"
-#include "mozilla/UserAgentStyleSheetID.h"
+#include "mozilla/BuiltInStyleSheets.h"
 #include "nsCOMPtr.h"
 #include "nsIPrincipal.h"
 #include "nsIReferrerInfo.h"
@@ -66,8 +66,7 @@ struct URLExtraData {
 
   // URLExtraData objects that shared style sheets use a sheet ID index to
   // refer to.
-  static StaticRefPtr<URLExtraData>
-      sShared[size_t(UserAgentStyleSheetID::Count)];
+  static StaticRefPtr<URLExtraData> sShared[size_t(BuiltInStyleSheet::Count)];
 
  private:
   ~URLExtraData();
