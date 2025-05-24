@@ -203,6 +203,7 @@ toolkit/content/vendor/react/
 toolkit/content/widgets/vendor/lit.all.mjs
 toolkit/crashreporter/breakpad-client/
 toolkit/crashreporter/google-breakpad/
+toolkit/modules/third_party/
 tools/fuzzing/libfuzzer/
 tools/profiler/core/vtune/
 xpcom/build/mach_override.c
