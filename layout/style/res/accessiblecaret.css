@@ -10,59 +10,6 @@
   z-index: 2147483647;
 }
 
-#image,
-#text-overlay {
-  width: 100%;
-
-  /* Override this property in moz-custom-content-container to make dummy touch
-   * listener work. */
-  pointer-events: auto;
-}
-
-#image {
-  background-position: center top;
-  background-size: 100%;
-  background-repeat: no-repeat;
-  background-origin: content-box;
-}
-
-:host(.normal) #image {
-  background-image: image-set(
-    url("resource://gre-resources/accessiblecaret-normal@1x.png"),
-    url("resource://gre-resources/accessiblecaret-normal@1.5x.png") 1.5x,
-    url("resource://gre-resources/accessiblecaret-normal@2x.png") 2x,
-    url("resource://gre-resources/accessiblecaret-normal@2.25x.png") 2.25x
-  );
-}
-
-:host(.left) #image,
-:host(.left) #text-overlay {
-  margin-left: -39%;
-}
-
-:host(.left) > #image {
-  background-image: image-set(
-    url("resource://gre-resources/accessiblecaret-tilt-left@1x.png"),
-    url("resource://gre-resources/accessiblecaret-tilt-left@1.5x.png") 1.5x,
-    url("resource://gre-resources/accessiblecaret-tilt-left@2x.png") 2x,
-    url("resource://gre-resources/accessiblecaret-tilt-left@2.25x.png") 2.25x
-  );
-}
-
-:host(.right) #image,
-:host(.right) #text-overlay {
-  margin-left: 41%;
-}
-
-:host(.right) #image {
-  background-image: image-set(
-    url("resource://gre-resources/accessiblecaret-tilt-right@1x.png"),
-    url("resource://gre-resources/accessiblecaret-tilt-right@1.5x.png") 1.5x,
-    url("resource://gre-resources/accessiblecaret-tilt-right@2x.png") 2x,
-    url("resource://gre-resources/accessiblecaret-tilt-right@2.25x.png") 2.25x
-  );
-}
-
 :host(.none) {
   display: none;
 }
@@ -71,38 +18,79 @@
   visibility: hidden;
 }
 
-@media (-moz-platform: android) {
-  #image,
-  #text-overlay {
+#image,
+#text-overlay {
+  width: 100%;
+
+  /* Override this property in moz-custom-content-container to make dummy touch
+   * listener work. */
+  pointer-events: auto;
+
+  @media (-moz-platform: android) {
     /* border: 0.1px solid red; */ /* Uncomment border to see the touch target. */
     padding-left: 59%; /* Enlarge the touch area. ((48-22)/2)px / 22px ~= 59% */
     padding-right: 59%; /* Enlarge the touch area. */
     margin-left: -59%;
   }
 
-  #image {
+  :host(.left) > & {
+    margin-left: -39%;
+    @media (-moz-platform: android) {
+      margin-left: -109%;
+    }
+  }
+
+  :host(.right) > & {
+    margin-left: 41%;
+    @media (-moz-platform: android) {
+      margin-left: -12%;
+    }
+  }
+}
+
+#image {
+  background-position: center top;
+  background-size: 100%;
+  background-repeat: no-repeat;
+  background-origin: content-box;
+
+  @media (-moz-platform: android) {
     padding-bottom: 59%; /* Enlarge the touch area. */
   }
 
-  :host(.normal) #image {
-    background-image: url("resource://gre-resources/accessiblecaret-normal.svg");
+  :host(.normal) > & {
+    background-image: image-set(
+      url("resource://gre-resources/accessiblecaret-normal@1x.png"),
+      url("resource://gre-resources/accessiblecaret-normal@1.5x.png") 1.5x,
+      url("resource://gre-resources/accessiblecaret-normal@2x.png") 2x,
+      url("resource://gre-resources/accessiblecaret-normal@2.25x.png") 2.25x
+    );
+    @media (-moz-platform: android) {
+      background-image: url("resource://gre-resources/accessiblecaret-normal.svg");
+    }
   }
 
-  :host(.left) #image,
-  :host(.left) #text-overlay {
-    margin-left: -109%;
+  :host(.left) > & {
+    background-image: image-set(
+      url("resource://gre-resources/accessiblecaret-tilt-left@1x.png"),
+      url("resource://gre-resources/accessiblecaret-tilt-left@1.5x.png") 1.5x,
+      url("resource://gre-resources/accessiblecaret-tilt-left@2x.png") 2x,
+      url("resource://gre-resources/accessiblecaret-tilt-left@2.25x.png") 2.25x
+    );
+    @media (-moz-platform: android) {
+      background-image: url("resource://gre-resources/accessiblecaret-tilt-left.svg");
+    }
   }
 
-  :host(.left) #image {
-    background-image: url("resource://gre-resources/accessiblecaret-tilt-left.svg");
-  }
-
-  :host(.right) #image,
-  :host(.right) #text-overlay {
-    margin-left: -12%;
-  }
-
-  :host(.right) #image {
-    background-image: url("resource://gre-resources/accessiblecaret-tilt-right.svg");
+  :host(.right) > & {
+    background-image: image-set(
+      url("resource://gre-resources/accessiblecaret-tilt-right@1x.png"),
+      url("resource://gre-resources/accessiblecaret-tilt-right@1.5x.png") 1.5x,
+      url("resource://gre-resources/accessiblecaret-tilt-right@2x.png") 2x,
+      url("resource://gre-resources/accessiblecaret-tilt-right@2.25x.png") 2.25x
+    );
+    @media (-moz-platform: android) {
+      background-image: url("resource://gre-resources/accessiblecaret-tilt-right.svg");
+    }
   }
 }
