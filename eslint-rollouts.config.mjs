@@ -322,8 +322,7 @@ export default [
   },
   {
     name: "rollout-valid-jsdoc",
-    files: [`**/*.{${mozilla.allFileExtensions.join(",")}}`],
-    ignores: [
+    files: [
       "accessible/tests/**",
       "browser/actors/**",
       "browser/base/content/**",
@@ -420,12 +419,11 @@ export default [
       "uriloader/**",
       "widget/tests/window_composition_text_querycontent.xhtml",
     ],
-    ...mozilla.configs["flat/valid-jsdoc"],
+    rules: mozilla.turnOff(mozilla.configs["flat/valid-jsdoc"].rules),
   },
   {
     name: "rollout-require-jsdoc",
-    files: [`**/*.{${mozilla.allFileExtensions.join(",")}}`],
-    ignores: [
+    files: [
       "accessible/tests/**",
       "browser/actors/**",
       "browser/base/content/**",
@@ -588,7 +586,7 @@ export default [
       "widget/tests/file*.js",
       "widget/tests/window_composition_text_querycontent.xhtml",
     ],
-    ...mozilla.configs["flat/valid-jsdoc"],
+    rules: mozilla.turnOff(mozilla.configs["flat/require-jsdoc"].rules),
   },
   {
     name: "rollout-layout",

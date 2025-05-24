@@ -55,6 +55,9 @@ function wrapPathsWithAllExts(paths, excludedExts = []) {
     if (p.endsWith("/")) {
       return p + `**/*.{${extensions.join(",")}}`;
     }
+    if (p.endsWith("*")) {
+      return p + `.{${extensions.join(",")}}`;
+    }
     return p;
   });
 }
@@ -357,6 +360,16 @@ let config = [
     rules: {
       "@microsoft/sdl/no-insecure-url": "off",
     },
+  },
+  {
+    name: "mozilla/valid-jsdoc",
+    files: wrapPathsWithAllExts(["**"]),
+    ...mozilla.configs["flat/valid-jsdoc"],
+  },
+  {
+    name: "mozilla/require-jsdoc",
+    files: wrapPathsWithAllExts(["**"]),
+    ...mozilla.configs["flat/valid-jsdoc"],
   },
 
   ...wrapPathsInConfig(subdirConfigs),
