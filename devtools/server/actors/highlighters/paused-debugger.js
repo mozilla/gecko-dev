@@ -228,6 +228,9 @@ class PausedDebuggerOverlay {
     // document's setSuppressedEventListener interface to still be able to act on mouse
     // events (they'll be handled by the `handleEvent` method)
     this.env.window.document.setSuppressedEventListener(this);
+    // Ensure layout is initialized so that we show the highlighter no matter what,
+    // even if the page is not done loading, see bug 1580394.
+    this.env.window.document.documentElement?.getBoundingClientRect();
     return true;
   }
 

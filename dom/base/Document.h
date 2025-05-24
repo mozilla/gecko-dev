@@ -3609,17 +3609,17 @@ class Document : public nsINode,
   void SetStyleSheetChangeEventsEnabled(bool aValue) {
     mStyleSheetChangeEventsEnabled = aValue;
   }
-
   bool StyleSheetChangeEventsEnabled() const {
     return mStyleSheetChangeEventsEnabled;
   }
-
   void SetDevToolsAnonymousAndShadowEventsEnabled(bool aValue) {
     mDevToolsAnonymousAndShadowEventsEnabled = aValue;
   }
   bool DevToolsAnonymousAndShadowEventsEnabled() const {
     return mDevToolsAnonymousAndShadowEventsEnabled;
   }
+  void SetPausedByDevTools(bool aValue) { mPausedByDevTools = aValue; }
+  bool PausedByDevTools() const { return mPausedByDevTools; }
 
   already_AddRefed<Promise> BlockParsing(Promise& aPromise,
                                          const BlockParsingOptions& aOptions,
@@ -4888,6 +4888,10 @@ class Document : public nsINode,
   // Whether shadowrootattached/anonymousnodecreated/anonymousnoderemoved events
   // will be dispatched for this document.
   bool mDevToolsAnonymousAndShadowEventsEnabled : 1;
+
+  // Whether DevTools is pausing the page (in which case we don't really want to
+  // stop rendering).
+  bool mPausedByDevTools : 1;
 
   // Whether the document was created by a srcdoc iframe.
   bool mIsSrcdocDocument : 1;

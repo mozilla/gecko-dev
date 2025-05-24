@@ -197,6 +197,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-scroll-run-to-completion.js"]
+skip-if = ["true"] # See bug 1968387
 
 ["browser_dbg-scrolling-with-search.js"]
 

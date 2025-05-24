@@ -89,8 +89,7 @@ class EventLoop {
     // - exiting this EventLoop unblocks its "enter" method and moves lastNestRequestor to the next requestor (if any)
     // - we go back to the first step, and attempt to exit the new lastNestRequestor if it is resolved, etc...
     if (xpcInspector.eventLoopNestLevel > 0) {
-      const { resolved } = xpcInspector.lastNestRequestor;
-      if (resolved) {
+      if (xpcInspector.lastNestRequestor.resolved) {
         xpcInspector.exitNestedEventLoop();
       }
     }
@@ -198,29 +197,40 @@ class EventLoop {
    * Prepare to enter a nested event loop by disabling debuggee events.
    */
   preEnter() {
-    const docShells = [];
+    const preEnterData = [];
     // Disable events in all open windows.
     for (const window of this.getAllWindowDebuggees()) {
-      const { windowUtils } = window;
+      const { windowUtils, document } = window;
+      const wasPaused = !!document?.pausedByDevTools;
+      if (document) {
+        document.pausedByDevTools = true;
+      }
       windowUtils.suppressEventHandling(true);
       windowUtils.suspendTimeouts();
-      docShells.push(window.docShell);
+      preEnterData.push({
+        docShell: window.docShell,
+        wasPaused,
+      });
     }
-    return docShells;
+    return preEnterData;
   }
 
   /**
    * Prepare to exit a nested event loop by enabling debuggee events.
    */
-  postExit(pausedDocShells) {
+  postExit(preEnterData) {
     // Enable events in all window paused in preEnter
-    for (const docShell of pausedDocShells) {
+    for (const { docShell, wasPaused } of preEnterData) {
       // Do not try to resume documents which are in destruction
       // as resume methods would throw
       if (docShell.isBeingDestroyed()) {
         continue;
       }
-      const { windowUtils } = docShell.domWindow;
+      const window = docShell.domWindow;
+      const { windowUtils, document } = window;
+      if (document) {
+        document.pausedByDevTools = wasPaused;
+      }
       windowUtils.resumeTimeouts();
       windowUtils.suppressEventHandling(false);
     }

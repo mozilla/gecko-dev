@@ -1408,6 +1408,7 @@ Document::Document(const char* aContentType)
       mHasHadDefaultView(false),
       mStyleSheetChangeEventsEnabled(false),
       mDevToolsAnonymousAndShadowEventsEnabled(false),
+      mPausedByDevTools(false),
       mIsSrcdocDocument(false),
       mHasDisplayDocument(false),
       mFontFaceSetDirty(true),
@@ -7415,7 +7416,8 @@ bool Document::IsRenderingSuppressed() const {
   }
   // The user agent believes that updating the rendering of doc's node navigable
   // would have no visible effect.
-  if (!IsEventHandlingEnabled() && !IsBeingUsedAsImage() && !mDisplayDocument) {
+  if (!IsEventHandlingEnabled() && !IsBeingUsedAsImage() && !mDisplayDocument &&
+      !mPausedByDevTools) {
     return true;
   }
   if (!mPresShell || !mPresShell->DidInitialize()) {
