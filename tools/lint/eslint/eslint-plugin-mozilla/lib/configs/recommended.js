@@ -5,6 +5,7 @@
 "use strict";
 
 const js = require("@eslint/js");
+const { allFileExtensions } = require("../helpers.js");
 
 /**
  * The configuration is based on eslint:recommended config. It defines the
@@ -345,6 +346,7 @@ const legacyConfig = {
 // needing to import them multiple times for different configs.
 const flatConfig = [
   {
+    files: [`**/*.{${allFileExtensions.join(",")}}`],
     languageOptions: {
       // If this changes, ensure the version in `legacyConfig` is updated, as well
       // as the return value of `helpers.getECMAVersion()`.

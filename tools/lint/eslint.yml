@@ -4,7 +4,8 @@ eslint:
     # ESLint infra handles its own path filtering, so just include cwd
     include: ['.']
     exclude: []
-    # When adding to this list, consider updating hooks_js_format.py as well.
+    # When adding to this list, consider updating hooks_js_format.py and
+    # tools/lint/eslint/eslint-plugin-mozilla/lib/helpers.js as well.
     extensions: ['mjs', 'js', 'json', 'jsx', 'html', 'sjs', 'xhtml', '.ts']
     support-files:
         - '**/.eslintrc.js'

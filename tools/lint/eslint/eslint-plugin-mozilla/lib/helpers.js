@@ -20,6 +20,31 @@ var directoryManifests = new Map();
 let xpidlData;
 
 module.exports = {
+  /**
+   * The list of file extensions that we support when linting. This should be
+   * kept in sync with the list in tools/lint/eslint.yml.
+   *
+   * TypeScript (ts) is not listed here, as we currently only format that with
+   * Prettier.
+   */
+  allFileExtensions: ["mjs", "js", "json", "jsx", "html", "sjs", "xhtml"],
+
+  /**
+   * Can be used to change a group of rules or globals, so that all the items
+   * are turned off.
+   *
+   * @param {{[key: string]: string}} items
+   */
+  turnOff(items) {
+    /** @type {{[key: string]: string}} */
+    let result = {};
+
+    for (let key of Object.keys(items)) {
+      result[key] = "off";
+    }
+    return result;
+  },
+
   get servicesData() {
     return require("./services.json");
   },
