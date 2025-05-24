@@ -28,7 +28,6 @@ add_task(async () => {
     [
       {
         suggestion: "div",
-        count: 3, // Matches the two <div> in the top document and the one in the iframe
         type: "tag",
       },
     ]
@@ -43,7 +42,6 @@ add_task(async () => {
     [
       {
         suggestion: "#iframe",
-        count: 1,
         type: "id",
       },
     ]
@@ -58,7 +56,6 @@ add_task(async () => {
     [
       {
         suggestion: ".foo",
-        count: 1,
         type: "class",
       },
     ]
@@ -73,12 +70,10 @@ add_task(async () => {
     [
       {
         suggestion: ".bar",
-        count: 1,
         type: "class",
       },
       {
         suggestion: ".foo",
-        count: 1,
         type: "class",
       },
     ]
@@ -112,13 +107,12 @@ async function assertSuggestion(
   for (let i = 0; i < expectedSuggestions.length; i++) {
     info(` ## Asserting suggestion #${i}:`);
     const expectedSuggestion = expectedSuggestions[i];
-    const [suggestion, count, type] = suggestions[i];
+    const [suggestion, type] = suggestions[i];
     is(
       suggestion,
       expectedSuggestion.suggestion,
       "The suggested string is valid"
     );
-    is(count, expectedSuggestion.count, "The number of matches is valid");
     is(type, expectedSuggestion.type, "The type of match is valid");
   }
 }

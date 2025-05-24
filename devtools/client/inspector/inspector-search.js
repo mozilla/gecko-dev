@@ -406,15 +406,17 @@ class SelectorAutocompleter extends EventEmitter {
   /**
    * Populates the suggestions list and show the suggestion popup.
    *
+   * @param {Array} suggestions: List of suggestions
+   * @param {String|null} popupState: One of SelectorAutocompleter.States
    * @return {Promise} promise that will resolve when the autocomplete popup is fully
    * displayed or hidden.
    */
-  #showPopup(list, popupState) {
+  #showPopup(suggestions, popupState) {
     let total = 0;
     const query = this.searchBox.value;
     const items = [];
 
-    for (let [value, , state] of list) {
+    for (let [value, state] of suggestions) {
       if (query.match(/[\s>+~]$/)) {
         // for cases like 'div ', 'div >', 'div+' or 'div~'
         value = query + value;

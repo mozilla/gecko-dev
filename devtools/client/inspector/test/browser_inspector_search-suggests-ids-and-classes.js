@@ -9,95 +9,29 @@
 // The various states of the inspector: [key, suggestions array]
 // [
 //  what key to press,
-//  suggestions array with count [
-//    [suggestion1, count1], [suggestion2] ...
-//  ] count can be left to represent 1
+//  suggestions  [
+//    suggestion1,
+//    suggestion2,
+//    …
+//  ]
 // ]
 const KEY_STATES = [
-  [
-    "s",
-    [
-      ["span", 1],
-      [".span", 1],
-      ["#span", 1],
-    ],
-  ],
-  [
-    "p",
-    [
-      ["span", 1],
-      [".span", 1],
-      ["#span", 1],
-    ],
-  ],
-  [
-    "a",
-    [
-      ["span", 1],
-      [".span", 1],
-      ["#span", 1],
-    ],
-  ],
-  [
-    "n",
-    [
-      ["span", 1],
-      [".span", 1],
-      ["#span", 1],
-    ],
-  ],
-  [" ", [["span div", 1]]],
+  ["s", ["span", ".span", "#span"]],
+  ["p", ["span", ".span", "#span"]],
+  ["a", ["span", ".span", "#span"]],
+  ["n", ["span", ".span", "#span"]],
+  [" ", ["span div"]],
   // mixed tag/class/id suggestions only work for the first word
-  ["d", [["span div", 1]]],
-  ["VK_BACK_SPACE", [["span div", 1]]],
-  [
-    "VK_BACK_SPACE",
-    [
-      ["span", 1],
-      [".span", 1],
-      ["#span", 1],
-    ],
-  ],
-  [
-    "VK_BACK_SPACE",
-    [
-      ["span", 1],
-      [".span", 1],
-      ["#span", 1],
-    ],
-  ],
-  [
-    "VK_BACK_SPACE",
-    [
-      ["span", 1],
-      [".span", 1],
-      ["#span", 1],
-    ],
-  ],
-  [
-    "VK_BACK_SPACE",
-    [
-      ["span", 1],
-      [".span", 1],
-      ["#span", 1],
-    ],
-  ],
+  ["d", ["span div"]],
+  ["VK_BACK_SPACE", ["span div"]],
+  ["VK_BACK_SPACE", ["span", ".span", "#span"]],
+  ["VK_BACK_SPACE", ["span", ".span", "#span"]],
+  ["VK_BACK_SPACE", ["span", ".span", "#span"]],
+  ["VK_BACK_SPACE", ["span", ".span", "#span"]],
   ["VK_BACK_SPACE", []],
   // Test that mixed tags, classes and ids are grouped by types, sorted by
   // count and alphabetical order
-  [
-    "b",
-    [
-      ["button", 3],
-      ["body", 1],
-      [".bc", 3],
-      [".ba", 1],
-      [".bb", 1],
-      ["#ba", 1],
-      ["#bb", 1],
-      ["#bc", 1],
-    ],
-  ],
+  ["b", ["body", "button", ".ba", ".bb", ".bc", "#ba", "#bb", "#bc"]],
 ];
 
 const TEST_URL = `<span class="span" id="span">
@@ -136,7 +70,9 @@ add_task(async function () {
     info("Waiting for the suggestions to be retrieved");
     await onSearchProcessingDone;
 
-    const actualSuggestions = popup.getItems();
+    const actualSuggestions = Array.from(popup.list.querySelectorAll("li")).map(
+      li => li.textContent
+    );
     is(
       popup.isOpen ? actualSuggestions.length : 0,
       expectedSuggestions.length,
@@ -145,8 +81,8 @@ add_task(async function () {
 
     for (let i = 0; i < expectedSuggestions.length; i++) {
       is(
-        expectedSuggestions[i][0],
-        actualSuggestions[i].label,
+        actualSuggestions[i],
+        expectedSuggestions[i],
         "The suggestion at " + i + "th index is correct."
       );
     }

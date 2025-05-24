@@ -899,10 +899,19 @@ class CSSCompleter {
       return [];
     }
 
-    result = result.suggestions;
+    const { suggestions } = result;
     const query = this.selector;
     const completion = [];
-    for (let [value, count, state] of result) {
+
+    // @backward-compat { version 140 } The shape of the returned value from getSuggestionsForQuery
+    // changed in 140. This variable should be removed and considered as true when 140 hits release
+    const suggestionNewShape =
+      this.walker.traits.getSuggestionsForQueryWithoutCount;
+
+    for (const suggestion of suggestions) {
+      let value = suggestion[0];
+      const state = suggestionNewShape ? suggestion[1] : suggestion[2];
+
       switch (this.selectorState) {
         case CSSCompleter.CSS_SELECTOR_STATE_ID:
         case CSSCompleter.CSS_SELECTOR_STATE_CLASS:
@@ -932,7 +941,6 @@ class CSSCompleter {
         label: value,
         preLabel: query,
         text: value,
-        score: count,
       };
 
       // In case the query's state is tag and the item's state is id or class

@@ -132,37 +132,36 @@ const IMMEDIATE_MUTATIONS = ["pseudoClassLock"];
 
 const HIDDEN_CLASS = "__fx-devtools-hide-shortcut__";
 
-// The possible completions to a ':' with added score to give certain values
-// some preference.
+// The possible completions to a ':'
 const PSEUDO_SELECTORS = [
-  [":active", 1],
-  [":hover", 1],
-  [":focus", 1],
-  [":visited", 0],
-  [":link", 0],
-  [":first-letter", 0],
-  [":first-child", 2],
-  [":before", 2],
-  [":after", 2],
-  [":lang(", 0],
-  [":not(", 3],
-  [":first-of-type", 0],
-  [":last-of-type", 0],
-  [":only-of-type", 0],
-  [":only-child", 2],
-  [":nth-child(", 3],
-  [":nth-last-child(", 0],
-  [":nth-of-type(", 0],
-  [":nth-last-of-type(", 0],
-  [":last-child", 2],
-  [":root", 0],
-  [":empty", 0],
-  [":target", 0],
-  [":enabled", 0],
-  [":disabled", 0],
-  [":checked", 1],
-  ["::selection", 0],
-  ["::marker", 0],
+  "::marker",
+  "::selection",
+  ":active",
+  ":after",
+  ":before",
+  ":checked",
+  ":disabled",
+  ":empty",
+  ":enabled",
+  ":first-child",
+  ":first-letter",
+  ":first-of-type",
+  ":focus",
+  ":hover",
+  ":lang(",
+  ":last-child",
+  ":last-of-type",
+  ":link",
+  ":not(",
+  ":nth-child(",
+  ":nth-last-child(",
+  ":nth-last-of-type(",
+  ":nth-of-type(",
+  ":only-child",
+  ":only-of-type",
+  ":root",
+  ":target",
+  ":visited",
 ];
 
 const HELPER_SHEET =
@@ -343,7 +342,11 @@ class WalkerActor extends Actor {
         "CSSPrefersColorScheme",
         null
       ),
-      traits: {},
+      traits: {
+        // @backward-compat { version 140 } The shape of the returned value from getSuggestionsForQuery
+        // changed in 140. This trait can be removed when 140 hits release
+        getSuggestionsForQueryWithoutCount: true,
+      },
     };
   }
 
@@ -1197,19 +1200,23 @@ class WalkerActor extends Actor {
   // eslint-disable-next-line complexity
   getSuggestionsForQuery(query, completing, selectorState) {
     const sugs = {
-      classes: new Map(),
-      tags: new Map(),
-      ids: new Map(),
+      classes: new Set(),
+      tags: new Set(),
+      ids: new Set(),
     };
     let result = [];
     let nodes = null;
-    // Filtering and sorting the results so that protocol transfer is miminal.
+    // Filtering and sorting the results so that protocol transfer is minimal.
     switch (selectorState) {
-      case "pseudo":
-        result = PSEUDO_SELECTORS.filter(item => {
-          return item[0].startsWith(":" + completing);
-        });
+      case "pseudo": {
+        const colonPrefixedCompleting = ":" + completing;
+        for (const pseudo of PSEUDO_SELECTORS) {
+          if (pseudo.startsWith(colonPrefixedCompleting)) {
+            result.push([pseudo]);
+          }
+        }
         break;
+      }
 
       case "class":
         if (!query) {
@@ -1219,14 +1226,14 @@ class WalkerActor extends Actor {
         }
         for (const node of nodes) {
           for (const className of node.classList) {
-            sugs.classes.set(className, (sugs.classes.get(className) | 0) + 1);
+            sugs.classes.add(className);
           }
         }
         sugs.classes.delete("");
         sugs.classes.delete(HIDDEN_CLASS);
-        for (const [className, count] of sugs.classes) {
+        for (const className of sugs.classes) {
           if (className.startsWith(completing)) {
-            result.push(["." + CSS.escape(className), count, selectorState]);
+            result.push(["." + CSS.escape(className), selectorState]);
           }
         }
         break;
@@ -1238,11 +1245,11 @@ class WalkerActor extends Actor {
           nodes = this._multiFrameQuerySelectorAll(query);
         }
         for (const node of nodes) {
-          sugs.ids.set(node.id, (sugs.ids.get(node.id) | 0) + 1);
+          sugs.ids.add(node.id);
         }
-        for (const [id, count] of sugs.ids) {
+        for (const id of sugs.ids) {
           if (id.startsWith(completing) && id !== "") {
-            result.push(["#" + CSS.escape(id), count, selectorState]);
+            result.push(["#" + CSS.escape(id), selectorState]);
           }
         }
         break;
@@ -1255,11 +1262,11 @@ class WalkerActor extends Actor {
         }
         for (const node of nodes) {
           const tag = node.localName;
-          sugs.tags.set(tag, (sugs.tags.get(tag) | 0) + 1);
+          sugs.tags.add(tag);
         }
-        for (const [tag, count] of sugs.tags) {
+        for (const tag of sugs.tags) {
           if (new RegExp("^" + completing + ".*", "i").test(tag)) {
-            result.push([tag, count, selectorState]);
+            result.push([tag, selectorState]);
           }
         }
 
@@ -1279,32 +1286,28 @@ class WalkerActor extends Actor {
       case "null":
         nodes = this._multiFrameQuerySelectorAll(query);
         for (const node of nodes) {
-          sugs.ids.set(node.id, (sugs.ids.get(node.id) | 0) + 1);
+          sugs.ids.add(node.id);
           const tag = node.localName;
-          sugs.tags.set(tag, (sugs.tags.get(tag) | 0) + 1);
+          sugs.tags.add(tag);
           for (const className of node.classList) {
-            sugs.classes.set(className, (sugs.classes.get(className) | 0) + 1);
+            sugs.classes.add(className);
           }
         }
-        for (const [tag, count] of sugs.tags) {
-          tag && result.push([tag, count]);
+        for (const tag of sugs.tags) {
+          tag && result.push([tag]);
         }
-        for (const [id, count] of sugs.ids) {
-          id && result.push(["#" + id, count]);
+        for (const id of sugs.ids) {
+          id && result.push(["#" + id]);
         }
         sugs.classes.delete("");
         sugs.classes.delete(HIDDEN_CLASS);
-        for (const [className, count] of sugs.classes) {
-          className && result.push(["." + className, count]);
+        for (const className of sugs.classes) {
+          className && result.push(["." + className]);
         }
     }
 
-    // Sort by count (desc) and name (asc)
+    // Sort by type (id, class, tag) and name (asc)
     result = result.sort((a, b) => {
-      // Computed a sortable string with first the inverted count, then the name
-      let sortA = 10000 - a[1] + a[0];
-      let sortB = 10000 - b[1] + b[0];
-
       // Prefixing ids, classes and tags, to group results
       const firstA = a[0].substring(0, 1);
       const firstB = b[0].substring(0, 1);
@@ -1319,8 +1322,8 @@ class WalkerActor extends Actor {
         return "0";
       };
 
-      sortA = getSortKeyPrefix(firstA) + sortA;
-      sortB = getSortKeyPrefix(firstB) + sortB;
+      const sortA = getSortKeyPrefix(firstA) + a[0];
+      const sortB = getSortKeyPrefix(firstB) + b[0];
 
       // String compare
       return sortA.localeCompare(sortB);

@@ -17,64 +17,58 @@ const { tests } = JSON.parse(read(TESTS_URI));
 
 const TEST_URI =
   "data:text/html;charset=UTF-8," +
-  encodeURIComponent(
-    [
-      "<!DOCTYPE html>",
-      "<html>",
-      " <head>",
-      "  <title>CSS State machine tests.</title>",
-      "  <style type='text/css'>",
-      "#progress {",
-      "  width: 500px; height: 30px;",
-      "  border: 1px solid black;",
-      "  position: relative",
-      "}",
-      "#progress div {",
-      "  width: 0%; height: 100%;",
-      "  background: green;",
-      "  position: absolute;",
-      "  z-index: -1; top: 0",
-      "}",
-      "#progress.failed div {",
-      "  background: red !important;",
-      "}",
-      "#progress.failed:after {",
-      "  content: 'Some tests failed';",
-      "  color: white",
-      "}",
-      "#progress:before {",
-      "  content: 'Running test ' attr(data-progress) ' of " +
-        tests.length +
-        "';",
-      "  color: white;",
-      "  text-shadow: 0 0 2px darkgreen;",
-      "}",
-      "  </style>",
-      " </head>",
-      " <body>",
-      "  <h2>State machine tests for CSS autocompleter.</h2><br>",
-      "  <div id='progress' data-progress='0'>",
-      "   <div></div>",
-      "  </div>",
-      "  <div id='devtools-menu' class='devtools-toolbarbutton'></div>",
-      "  <div id='devtools-toolbarbutton' class='devtools-menulist'></div>",
-      "  <div id='devtools-anotherone'></div>",
-      "  <div id='devtools-yetagain'></div>",
-      "  <div id='devtools-itjustgoeson'></div>",
-      "  <div id='devtools-okstopitnow'></div>",
-      "  <div class='hidden-labels-box devtools-toolbarbutton devtools-menulist'></div>",
-      "  <div class='devtools-menulist'></div>",
-      "  <div class='devtools-menulist'></div>",
-      /* eslint-disable max-len */
-      "  <tabs class='devtools-toolbarbutton'><tab></tab><tab></tab><tab></tab></tabs><tabs></tabs>",
-      /* eslint-enable max-len */
-      "  <button class='category-name visible'></button>",
-      "  <div class='devtools-toolbarbutton' label='true'>",
-      "   <hbox class='toolbarbutton-menubutton-button'></hbox></div>",
-      " </body>",
-      " </html>",
-    ].join("\n")
-  );
+  encodeURIComponent(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>CSS State machine tests.</title>
+        <style>
+          #progress {
+            width: 500px; height: 30px;
+            border: 1px solid black;
+            position: relative
+          }
+          #progress div {
+            width: 0%; height: 100%;
+            background: green;
+            position: absolute;
+            z-index: -1; top: 0
+          }
+          #progress.failed div {
+            background: red !important;
+          }
+          #progress.failed:after {
+            content: 'Some tests failed';
+            color: white
+          }
+          #progress:before {
+            content: 'Running test ' attr(data-progress) ' of ${tests.length}';
+              color: white;
+              text-shadow: 0 0 2px darkgreen;
+            }
+        </style>
+      </head>
+      <body>
+        <h2>State machine tests for CSS autocompleter.</h2><br>
+        <div id='progress' data-progress='0'>
+          <div></div>
+        </div>
+        <div id='devtools-menu' class='devtools-toolbarbutton'></div>
+        <div id='devtools-toolbarbutton' class='devtools-menulist'></div>
+        <div id='devtools-anotherone'></div>
+        <div id='devtools-yetagain'></div>
+        <div id='devtools-itjustgoeson'></div>
+        <div id='devtools-okstopitnow'></div>
+        <div class='hidden-labels-box devtools-toolbarbutton devtools-menulist'></div>
+        <div class='devtools-menulist'></div>
+        <div class='devtools-menulist'></div>",
+        <tabs class='devtools-toolbarbutton'><tab></tab><tab></tab><tab></tab></tabs><tabs></tabs>
+        <button class='category-name visible'></button>
+        <div class='devtools-toolbarbutton' label='true'>
+        <hbox class='toolbarbutton-menubutton-button'></hbox></div>
+      </body>
+    </html>
+  `);
 
 let browser;
 let index = 0;
