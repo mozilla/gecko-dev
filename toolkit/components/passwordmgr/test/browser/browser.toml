@@ -128,8 +128,10 @@ support-files = [
 skip-if = [
   "os == 'linux' && os_version == '18.04'", # Bug 1729196
   "win11_2009 && bits == 64", # Bug 1729196
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1729196
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug", # Bug 1729196
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug", # Bug 1729196
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt", # Bug 1729196
 ]
 
 ["browser_doorhanger_httpsUpgrade.js"]
