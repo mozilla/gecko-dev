@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+import extensionsConfig from "../../components/extensions/.eslintrc.mjs";
 
-module.exports = {
-  extends: "../../components/extensions/.eslintrc.js",
-};
+export default [...extensionsConfig];

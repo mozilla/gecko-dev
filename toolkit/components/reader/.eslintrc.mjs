@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
-
-module.exports = {
-  rules: {
-    "no-inner-declarations": "error",
-    "no-unused-vars": ["error", { vars: "all", argsIgnorePattern: "^_" }],
+export default [
+  {
+    rules: {
+      "no-inner-declarations": "error",
+      "no-unused-vars": ["error", { vars: "all", argsIgnorePattern: "^_" }],
+    },
   },
-};
+];
