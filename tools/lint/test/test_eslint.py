@@ -15,6 +15,7 @@ def eslint(lint):
         kwargs["extra_args"] = [
             "--no-ignore",
             "--ignore-path=tools/lint/test/files/eslint/testprettierignore",
+            "--config=tools/lint/test/files/eslint/test-eslint.config.mjs",
         ]
         return lint(*args, **kwargs)
 
@@ -35,7 +36,9 @@ def test_no_files_to_lint(eslint, config, paths):
 
     # Errors still show up even when a directory with no files is passed in.
     results = eslint(paths("nolint", "subdir/bad.js"), root=build.topsrcdir)
-    assert len(results) == 1
+    # This will fail for ESLint, with 'foo' is assigned a value but never used,
+    # and for Prettier, as it needs formatting.
+    assert len(results) == 2
 
 
 def test_bad_import(eslint, config, paths):
@@ -43,6 +46,9 @@ def test_bad_import(eslint, config, paths):
     assert results == 1
 
 
+@pytest.mark.skip(
+    reason="Bug 1967219. --no-ignore doesn't seem to work properly with flat config and v8."
+)
 def test_eslint_rule(eslint, config, create_temp_file):
     contents = """var re = /foo   bar/;
 var re = new RegExp("foo   bar");
@@ -55,6 +61,9 @@ var re = new RegExp("foo   bar");
     assert len(results) == 2
 
 
+@pytest.mark.skip(
+    reason="Bug 1967219. --no-ignore doesn't seem to work properly with flat config and v8."
+)
 def test_eslint_fix(eslint, config, create_temp_file):
     contents = """/*eslint no-regex-spaces: "error"*/
 
@@ -74,6 +83,9 @@ var re = new RegExp("foo   bar");
     assert fixed == 1
 
 
+@pytest.mark.skip(
+    reason="Bug 1967219. --no-ignore doesn't seem to work properly with flat config and v8."
+)
 def test_prettier_rule(eslint, config, create_temp_file):
     contents = """var re = /foobar/;
     var re = "foo";
@@ -84,6 +96,9 @@ def test_prettier_rule(eslint, config, create_temp_file):
     assert len(results) == 1
 
 
+@pytest.mark.skip(
+    reason="Bug 1967219. --no-ignore doesn't seem to work properly with flat config and v8."
+)
 def test_prettier_fix(eslint, config, create_temp_file):
     contents = """var re = /foobar/;
     var re = "foo";

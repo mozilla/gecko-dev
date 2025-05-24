@@ -9,7 +9,7 @@ def test_lint_license(lint, paths):
     print(results)
     assert len(results) == 3
 
-    assert ".eslintrc.js" in results[0].relpath
+    assert ".eslintrc.mjs" in results[0].relpath
 
     assert "No matching license strings" in results[1].message
     assert results[1].level == "error"

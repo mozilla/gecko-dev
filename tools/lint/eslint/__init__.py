@@ -97,7 +97,8 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
                 "--no-error-on-unmatched-pattern",
             ]
             + rules
-            + extra_args
+            # Flat configuration doesn't understand --ignore-path, though Prettier does.
+            + list(filter(lambda x: not x.startswith("--ignore-path"), extra_args))
             + exclude_args
             + paths
         )
@@ -122,7 +123,9 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
             "--list-different",
             "--no-error-on-unmatched-pattern",
         ]
-        + extra_args
+        # Don't pass the configuration to Prettier as well, as it doesn't understand
+        # the ESLint configuration.
+        + list(filter(lambda x: not x.startswith("--config"), extra_args))
         # Prettier does not support exclude arguments.
         # + exclude_args
         + paths
