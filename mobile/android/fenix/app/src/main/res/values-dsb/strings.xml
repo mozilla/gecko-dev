@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s wašu pytańsku a pśeglědowańsku historjiu z priwatnych rejtarikow wuproznijo, gaž je zacynjaśo abo nałoženje kóńcyśo. Pšez to se wólažcyjo, pśed drugimi, kótarež toś to licadło wužywaju, schowaś, což online gótujośo, lěcrownož to was za websedła abo wašogo póbitowarja internetneje słužby njeanonymizěrujo.</string>
-  <string name="private_browsing_common_myths">\u0032Ceste myty wó priwatnem modusu\u0032</string>
+  <string name="private_browsing_common_myths">Ceste myty wó priwatnem modusu</string>
   <!--
     True Private Browsing Mode
 
@@ -549,7 +549,7 @@
     Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
   -->
-  <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Rozesćełajśo rejtariki mjazy swójimi rědami a namakajśo druge funkcije priwatnosći w Firefox.\u0032</string>
+  <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Rozesćełajśo rejtariki mjazy swójimi rědami a namakajśo druge funkcije priwatnosći w Firefox.</string>
   <!-- Text for the button to request notification permission on the device -->
   <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Powěźeńki zmóžniś</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -589,7 +589,7 @@
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Juwel pśeśiwnego slědowanja. Stopujśo njewidobne pśeslědowaki a spioněrujuce wabjenje.\u0032</string>
+  <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Juwel pśeśiwnego slědowanja. Stopujśo njewidobne pśeslědowaki a spioněrujuce wabjenje.</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Pó wobrazu pytaś</string>
   <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -2772,7 +2772,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Pśeglědany wót: %1$s\u0032</string>
+  <string name="certificate_info_verified_by">Pśeglědany wót: %1$s</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Lašowaś</string>
   <!-- Login overflow menu edit button -->

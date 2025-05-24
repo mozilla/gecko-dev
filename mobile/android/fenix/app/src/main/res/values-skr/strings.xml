@@ -62,8 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">\u0032%1$s نجی ٹیب نال تہاݙے ڳولݨ تے براؤزنگ دی تاریخ کوں صاف کریندے جہڑے ویلے تساں انہاں کوں بند کریندے ہو یا ایپ کوں چھوڑ ݙیندے ہو۔ ڄݙاں جو ایہ تہاکوں ویب سائٹاں یا انٹرنیٹ سروس فراہم کرݨ آلیاں کیتے گمنام کائنی بݨیندا، تساں ایندے نال جو کجھ وی آن لائن کریندے ہو، اوں کوں ایہ ڈیوائس ورتݨ آلے کہیں وی ٻئے کنوں نجی رکھݨ سوکھا بݨیندے۔</string>
-  <string name="private_browsing_common_myths">\u0032نجی براؤزنگ بارے عام فرضی قصے\u0032</string>
+  <string name="private_browsing_placeholder_description_2">%1$s نجی ٹیب نال تہاݙے ڳولݨ تے براؤزنگ دی تاریخ کوں صاف کریندے جہڑے ویلے تساں انہاں کوں بند کریندے ہو یا ایپ کوں چھوڑ ݙیندے ہو۔ ڄݙاں جو ایہ تہاکوں ویب سائٹاں یا انٹرنیٹ سروس فراہم کرݨ آلیاں کیتے گمنام کائنی بݨیندا، تساں ایندے نال جو کجھ وی آن لائن کریندے ہو، اوں کوں ایہ ڈیوائس ورتݨ آلے کہیں وی ٻئے کنوں نجی رکھݨ سوکھا بݨیندے۔</string>
+  <string name="private_browsing_common_myths">نجی براؤزنگ بارے عام فرضی قصے</string>
   <!--
     True Private Browsing Mode
 
@@ -505,7 +505,7 @@
     Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
   -->
-  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">تُہاݙی ہوم سکرین اُتے فائر فاکس دے نال، تُہاکوں رازداری-پہلاں براؤزر تئیں سَوکھی رسائی حاصل تھی ویسی جہڑا کراس سائٹ ٹریکراں کوں روکین٘دا ہِے۔\u0032</string>
+  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">تُہاݙی ہوم سکرین اُتے فائر فاکس دے نال، تُہاکوں رازداری-پہلاں براؤزر تئیں سَوکھی رسائی حاصل تھی ویسی جہڑا کراس سائٹ ٹریکراں کوں روکین٘دا ہِے۔</string>
   <!--
     Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
@@ -788,7 +788,7 @@
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2">فکر انگیز کہاݨیاں</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">\u0032%s ولوں تکڑے تھئے مضمون</string>
+  <string name="customize_toggle_pocket_summary">%s ولوں تکڑے تھئے مضمون</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">سپانسر تھیاں کہاݨیاں</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1912,7 +1912,7 @@
     Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
     as we use it on the UI to indicate which trackers have been partially unblocked.
   -->
-  <string name="preference_etp_smartblock_description">\u0032ہیٹھاں کجھ نشان زدہ ٹریکرز کوں ایں ورقے تے جزوی طور تے اݨ بلاک کر ݙتا ڳئے کیوں جو تساں انہاں نال تعامل کیتے*۔</string>
+  <string name="preference_etp_smartblock_description">ہیٹھاں کجھ نشان زدہ ٹریکرز کوں ایں ورقے تے جزوی طور تے اݨ بلاک کر ݙتا ڳئے کیوں جو تساں انہاں نال تعامل کیتے*۔</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">ٻیا سِکھو</string>
   <!--
@@ -2185,7 +2185,7 @@
   <!-- Placeholder text shown in the Search String TextField before a user enters text -->
   <string name="search_add_custom_engine_search_string_hint_2">ڳولݨ دے ورتݨ کیتے یوآرایل</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
-  <string name="search_add_custom_engine_search_string_example" formatted="false">\u0032“%s” نال سوال وٹاؤ۔ مثال:\nhttps://www.google.com/search?q=%s</string>
+  <string name="search_add_custom_engine_search_string_example" formatted="false">“%s” نال سوال وٹاؤ۔ مثال:\nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">من پسند ڳولݨ انجݨ تفصیلاں</string>
   <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
@@ -2223,7 +2223,7 @@
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">کنکشن محفوظ کائنی۔</string>
   <!-- Label to clear site data -->
-  <string name="clear_site_data">کوکیاں تے سائٹ ڈیٹا صاف کرو\u0032</string>
+  <string name="clear_site_data">کوکیاں تے سائٹ ڈیٹا صاف کرو</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
   <string name="confirm_clear_site_data">بھلا تہاکوں پک ہے جو تساں سائٹ &lt;b&gt;%s&lt;/b&gt; کیتے ساریاں کوکیاں تے ڈیٹا صاف کرݨ چاہندے ہو؟</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
@@ -2661,7 +2661,7 @@
     The dialog will be presented when the user requests deletion of a language.
     %1$s is the name of the language, for example, "Spanish" and %2$s is the size in kilobytes or megabytes of the language file.
   -->
-  <string name="delete_language_file_dialog_title">\u0032%1$s (%2$s) مٹاؤں؟</string>
+  <string name="delete_language_file_dialog_title">%1$s (%2$s) مٹاؤں؟</string>
   <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
   <string name="delete_language_file_dialog_message">ڄیکر تُساں اِیں ٻولی کوں حذف کرین٘دے ہِیوے، تاں %1$s تُہاݙے ترجمہ کرݨ ویلے تُہاݙے کیشے وِچ جزوی ٻولیاں ڈاؤن لوڈ کر ݙیسی۔</string>
   <!--

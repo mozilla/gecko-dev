@@ -2461,7 +2461,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">保存的密码</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">保存和同步到 %s 的密码会显示在这里，所有密码均已加密保存。\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">保存和同步到 %s 的密码会显示在这里，所有密码均已加密保存。</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">详细了解同步功能</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->

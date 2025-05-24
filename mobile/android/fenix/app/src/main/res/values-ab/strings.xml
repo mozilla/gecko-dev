@@ -61,7 +61,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s иаԥнахуеит уԥшаарақәеи уԥшаарақәеи рҭоурых хатә ҭаӡҩырақәа рҿы урҭ аныркыло ма апрограма уаналҵуа. Уи асаитқәа рҿы ма уи-интернет-провайдер рҿаԥхьа анонимны уҟанаҵом, аха уара узы еиҳа имариахоит уара уинтернеттә усура егьырҭ ауаа рҟынтәи уи маӡаны рыхьчара.</string>
-  <string name="private_browsing_common_myths">\u0032Ахатә ԥшаара иазку еицырзеиԥшу амифқәа\u0032</string>
+  <string name="private_browsing_common_myths">Ахатә ԥшаара иазку еицырзеиԥшу амифқәа</string>
   <!--
     True Private Browsing Mode
 

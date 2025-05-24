@@ -50,8 +50,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">\u0032%1$s ôprōżnio historyjo wyszukowanio i przeglōndanio ze prywatnych kart, jak zawrzisz je abo aplikacyjo. Skuli tego niy je sie anonimowym do strōn ani dostowcōw necowych usug. Snadnij ale możesz skryć swoja aktywność w internecie przed inkszymi, co używajōm tyj masziny.</string>
-  <string name="private_browsing_common_myths">\u0032Czynste mity ô prywatnym przeglōndaniu\u0032</string>
+  <string name="private_browsing_placeholder_description_2">%1$s ôprōżnio historyjo wyszukowanio i przeglōndanio ze prywatnych kart, jak zawrzisz je abo aplikacyjo. Skuli tego niy je sie anonimowym do strōn ani dostowcōw necowych usug. Snadnij ale możesz skryć swoja aktywność w internecie przed inkszymi, co używajōm tyj masziny.</string>
+  <string name="private_browsing_common_myths">Czynste mity ô prywatnym przeglōndaniu</string>
   <!--
     Private mode shortcut "contextual feature recommendation" (CFR)
 
@@ -67,7 +67,7 @@
 
     Text for the info message. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="open_in_app_cfr_info_message_2">Możesz nastawić aplikacyjo %1$s, coby autōmatycznie ôtwiyrała linki w aplikacyjach.\u0032</string>
+  <string name="open_in_app_cfr_info_message_2">Możesz nastawić aplikacyjo %1$s, coby autōmatycznie ôtwiyrała linki w aplikacyjach.</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">Idź do sztalōnkōw</string>
   <!-- Text for the negative action button -->
@@ -79,7 +79,7 @@
   <!-- Text for the negative action button to dismiss the dialog. -->
   <string name="camera_permissions_needed_negative_button_text">Ôdkoż</string>
   <!-- Text for the banner message to tell users about our auto close feature. -->
-  <string name="tab_tray_close_tabs_banner_message">Nastow, coby ôtwarte karty autōmatycznie sie zawiyrały, jak bez ôstatni dziyń, tydziyń abo rok niy były nawiedzōne.\u0032</string>
+  <string name="tab_tray_close_tabs_banner_message">Nastow, coby ôtwarte karty autōmatycznie sie zawiyrały, jak bez ôstatni dziyń, tydziyń abo rok niy były nawiedzōne.</string>
   <!-- Text for the positive action button to go to Settings for auto close tabs. -->
   <string name="tab_tray_close_tabs_banner_positive_button_text">Pokoż ôpcyje</string>
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
@@ -373,7 +373,7 @@
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
   <string name="errorpage_httpsonly_message_title">Zdowo sie, że to strōna niy ôbsuguje HTTPS.</string>
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
-  <string name="errorpage_httpsonly_message_summary">Może ale tyż sie rozchodzić ô jaki atak. Jak przyńdziesz na strōna, to niy ôstawiej na nij żodnych prywatnych informacyji. Jak na nia pudziesz, tryb \"Ino HTTPS\" czasowo sie wyłōnczy do tyj strōny.\u0032</string>
+  <string name="errorpage_httpsonly_message_summary">Może ale tyż sie rozchodzić ô jaki atak. Jak przyńdziesz na strōna, to niy ôstawiej na nij żodnych prywatnych informacyji. Jak na nia pudziesz, tryb \"Ino HTTPS\" czasowo sie wyłōnczy do tyj strōny.</string>
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">Dostympność</string>
   <!-- Preference to override the Sync token server -->
@@ -1361,7 +1361,7 @@
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">Elymynty, co fedrujōm kryptopiniōndze</string>
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cryptominers_description">Niy dowo ôszydnym skryptōm fedrować cyfrowych piniyndzy na twojij maszinie.\u0032</string>
+  <string name="etp_cryptominers_description">Niy dowo ôszydnym skryptōm fedrować cyfrowych piniyndzy na twojij maszinie.</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">Śledzōnco zawartość</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->

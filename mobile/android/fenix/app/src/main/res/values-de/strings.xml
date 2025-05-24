@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s leert die eingegebenen Suchbegriffe und besuchten Webseiten aller privaten Tabs wenn Sie diese schließen oder die App beenden. Das macht Sie gegenüber Website-Betreibern und Internetanbietern nicht anonym, aber erleichtert es Ihnen, dass andere Nutzer dieses Geräts Ihre Aktivitäten nicht einsehen können.</string>
-  <string name="private_browsing_common_myths">\u0032Häufige Missverständnisse über das Surfen im Privaten Modus</string>
+  <string name="private_browsing_common_myths">Häufige Missverständnisse über das Surfen im Privaten Modus</string>
   <!--
     True Private Browsing Mode
 

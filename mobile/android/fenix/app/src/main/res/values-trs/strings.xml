@@ -650,7 +650,7 @@
   -->
   <string name="open_all_warning_message">Si nā’nï̄nt gā’ì nej rakïj ñanj nī gā’hue nāhuin nāj %s. Gān’ānjt ne’ ñāan aj.</string>
   <!-- Dialog button text for confirming open all tabs -->
-  <string name="open_all_warning_confirm">Na\'nïn nej rakïj ñanj\u0032</string>
+  <string name="open_all_warning_confirm">Na\'nïn nej rakïj ñanj</string>
   <!-- Dialog button text for canceling open all tabs -->
   <string name="open_all_warning_cancel">Dūyichin\'</string>
   <!--
@@ -1161,7 +1161,7 @@
   -->
   <string name="notification_re_engagement_A_text">Riña aché nun huìt riña %1$s nitāj si na’nḯn sà’aj nej nuguan’ huā rayi’ît.</string>
   <!-- Title B shown in the notification that pops up to re-engage the user -->
-  <string name="notification_re_engagement_B_title">Gāyi’ì nānà’huì’t\u0032</string>
+  <string name="notification_re_engagement_B_title">Gāyi’ì nānà’huì’t</string>
   <!-- Text B shown in the notification that pops up to re-engage the user -->
   <string name="notification_re_engagement_B_text">Narì’ ‘ngō sa huin nīchrù’un. Asi nārì’ ‘ngō sa gī’hiaj nāhuin nīhià’ ruhuât.</string>
   <!--
@@ -1376,7 +1376,7 @@
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
   <string name="preference_enhanced_tracking_protection_custom_cookies_4">Daran\' nej kokî (ga\'ue dūre\'ej dā\'āj sîtio)</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
-  <string name="preference_enhanced_tracking_protection_custom_cookies_5">Gi’hiaj anêj nej kôki riña nej sitio\u0032</string>
+  <string name="preference_enhanced_tracking_protection_custom_cookies_5">Gi’hiaj anêj nej kôki riña nej sitio</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
   <string name="preference_enhanced_tracking_protection_custom_tracking_content">Sa nīkāj sa naga\'nāj a</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->

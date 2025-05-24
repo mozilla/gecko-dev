@@ -62,8 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">\u0032%1$s elimina tu historial de búsqueda y navegación cuando salís de la aplicación o cerrás todas las pestañas privadas. Si bien esto no te hace anónimo en los sitios web o con tu proveedor de servicios de Internet, resulta más fácil mantener privado lo que hacés en línea respecto de cualquier otra persona que use este dispositivo.</string>
-  <string name="private_browsing_common_myths">\u0032Mitos comunes sobre la navegación privada\u0032</string>
+  <string name="private_browsing_placeholder_description_2">%1$s elimina tu historial de búsqueda y navegación cuando salís de la aplicación o cerrás todas las pestañas privadas. Si bien esto no te hace anónimo en los sitios web o con tu proveedor de servicios de Internet, resulta más fácil mantener privado lo que hacés en línea respecto de cualquier otra persona que use este dispositivo.</string>
+  <string name="private_browsing_common_myths">Mitos comunes sobre la navegación privada</string>
   <!--
     True Private Browsing Mode
 
@@ -1505,7 +1505,7 @@
   -->
   <string name="download_delete_multiple_items_snackbar_2">Elementos eliminados: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s eliminado\u0032</string>
+  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s eliminado</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Se eliminó “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -2731,7 +2731,7 @@
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_error_cannot_reach">Error al conectarse con \"%s\"</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_success_message">%s creado\u0032</string>
+  <string name="search_add_custom_engine_success_message">%s creado</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
   <string name="search_edit_custom_engine_success_message">%s guardado</string>
   <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->

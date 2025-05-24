@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s limpa o seu histórico de pesquisa e de navegação dos separadores privados quando os fecha ou sai da aplicação. Enquanto isto não o torna anónimo nos websites ou no seu provedor de serviços da Internet, este torna mais fácil em manter privado o que você faz online de qualquer pessoa que utiliza este dispositivo.</string>
-  <string name="private_browsing_common_myths">\u0032Mitos comuns sobre a navegação privada\u0032</string>
+  <string name="private_browsing_common_myths">Mitos comuns sobre a navegação privada</string>
   <!--
     True Private Browsing Mode
 
@@ -2511,7 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Palavras-passe guardadas</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">As palavras-passe que guardar ou sincronizar com o %s serão listadas aqui. Todas as palavras-passe que guarda são encriptadas.\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">As palavras-passe que guardar ou sincronizar com o %s serão listadas aqui. Todas as palavras-passe que guarda são encriptadas.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Saber mais sobre a sincronização</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -3617,7 +3617,7 @@
 
     The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="setup_checklist_group_essentials">O essencial do %1$s\u0032</string>
+  <string name="setup_checklist_group_essentials">O essencial do %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">Personalize o seu %1$s</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->

@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s стирає вашу історію пошуку та перегляду для приватних вкладок, коли ви закриваєте їх чи виходите з програми. Це не робить вас анонімними для вебсайтів чи вашого провайдера, але дозволяє приховати вашу діяльність в інтернеті від будь-кого іншого, хто використовує цей пристрій.</string>
-  <string name="private_browsing_common_myths">\u0032Поширені міфи про приватний перегляд\u0032</string>
+  <string name="private_browsing_common_myths">Поширені міфи про приватний перегляд</string>
   <!--
     True Private Browsing Mode
 

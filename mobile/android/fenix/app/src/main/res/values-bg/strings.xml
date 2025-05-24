@@ -2311,7 +2311,7 @@
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_description">Предотвратява зловредни скриптове, придобиващи достъп до устройството ви, с цел добив на цифрова валута.</string>
   <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_known_fingerprinters_description">Предотвратява събирането на уникални данни за обратно установяване, които могат да бъдат използвани за проследяване.\u0032</string>
+  <string name="etp_known_fingerprinters_description">Предотвратява събирането на уникални данни за обратно установяване, които могат да бъдат използвани за проследяване.</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_tracking_content_title">Проследяващо съдържание</string>
   <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -2511,7 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Запазени пароли</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Паролите, които запазите или синхронизирате с %s ще бъдат изброени тук. Всички запазени пароли са шифровани.\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Паролите, които запазите или синхронизирате с %s ще бъдат изброени тук. Всички запазени пароли са шифровани.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Научете повече за синхронизирането</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->

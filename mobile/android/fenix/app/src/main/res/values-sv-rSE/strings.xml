@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s rensar din sök- och surfhistorik när du stänger appen eller stänger alla privata flikar. Även om detta inte gör dig anonym för webbplatser eller din internetleverantör, gör det det lättare att hålla vad du gör online privat från alla andra som använder den här enheten.</string>
-  <string name="private_browsing_common_myths">\u0032Vanliga myter om privat surfning\u0032</string>
+  <string name="private_browsing_common_myths">Vanliga myter om privat surfning</string>
   <!--
     True Private Browsing Mode
 
@@ -2511,7 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Sparade lösenord</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lösenorden du sparar eller synkroniserar till %s kommer att listas här. Alla lösenord du sparar är krypterade.\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lösenorden du sparar eller synkroniserar till %s kommer att listas här. Alla lösenord du sparar är krypterade.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Läs mer om synkronisering</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2772,7 +2772,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Verifierad av: %1$s\u0032</string>
+  <string name="certificate_info_verified_by">Verifierad av: %1$s</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Ta bort</string>
   <!-- Login overflow menu edit button -->

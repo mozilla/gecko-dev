@@ -481,7 +481,7 @@
     %s is the search engine name (for example: DuckDuckGo).
     The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
   -->
-  <string name="search_engine_selector_content_description">%s: søgetjenestevælger\u0032</string>
+  <string name="search_engine_selector_content_description">%s: søgetjenestevælger</string>
   <!--
     Home onboarding
 

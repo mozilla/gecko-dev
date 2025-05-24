@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s удаляет историю поиска и просмотра страниц в приватных вкладках, когда вы закрываете их или выходите из приложения. Хотя это не делает вас анонимными для веб-сайтов или вашего Интернет-провайдера, вам будет легче сохранить конфиденциальность ваших действий в Интернете от других людей, которые используют это устройство.</string>
-  <string name="private_browsing_common_myths">\u0032Распространённые мифы о приватном просмотре\u0032</string>
+  <string name="private_browsing_common_myths">Распространённые мифы о приватном просмотре</string>
   <!--
     True Private Browsing Mode
 
@@ -2461,7 +2461,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Сохранённые пароли</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Пароли, которые вы сохраните или синхронизируете в %s, будут показаны здесь. Все сохраняемые вами пароли зашифрованы.\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Пароли, которые вы сохраните или синхронизируете в %s, будут показаны здесь. Все сохраняемые вами пароли зашифрованы.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Узнайте больше о синхронизации</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2720,7 +2720,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Подтверждено: %1$s\u0032</string>
+  <string name="certificate_info_verified_by">Подтверждено: %1$s</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Удалить</string>
   <!-- Login overflow menu edit button -->

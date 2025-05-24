@@ -62,8 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">\u0032· %1$s squassa e vostre cronolugie di ricerca è di navigazione da l’unghjette private quandu vò chjuditele o chitate l’appiecazione. Benchè quessu ùn vi rende micca anonimu nant’à i siti web nè da u vostru furnidore d’accessu à internet, vi permette di cunservà sicreta a vostra attività in linea per tutte l’altre persone chì impiegherianu u vostru apparechju.</string>
-  <string name="private_browsing_common_myths">\u0032Idee precuncepite apprupositu di a navigazione privata\u0032</string>
+  <string name="private_browsing_placeholder_description_2">· %1$s squassa e vostre cronolugie di ricerca è di navigazione da l’unghjette private quandu vò chjuditele o chitate l’appiecazione. Benchè quessu ùn vi rende micca anonimu nant’à i siti web nè da u vostru furnidore d’accessu à internet, vi permette di cunservà sicreta a vostra attività in linea per tutte l’altre persone chì impiegherianu u vostru apparechju.</string>
+  <string name="private_browsing_common_myths">Idee precuncepite apprupositu di a navigazione privata</string>
   <!--
     True Private Browsing Mode
 
@@ -3601,7 +3601,7 @@
   <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
   <string name="pbm_authentication_lock_device_feature_disabled">Cunfigurà l’ammarchjunata di u screnu per piattà l’unghjette</string>
   <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
-  <string name="private_tab_cfr_title">Impiegà l’ammarchjunata di u screnu per piattà l’unghjette private\u0032</string>
+  <string name="private_tab_cfr_title">Impiegà l’ammarchjunata di u screnu per piattà l’unghjette private</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">Innò, vi ringraziu</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->

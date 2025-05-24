@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s מנקה את היסטוריית החיפוש והגלישה שלך מלשוניות פרטיות בעת סגירתן או כשהיישומון נסגר. פעולה זו אמנם לא הופכת אותך לאלמוני כלפי אתרים או ספק האינטרנט שלך, אבל כן מקלה עליך בשמירה על הפעולות המקוונות שלך מפני כל מי שמשתמש במכשיר זה.</string>
-  <string name="private_browsing_common_myths">\u0032מיתוסים נפוצים על גלישה פרטית\u0032</string>
+  <string name="private_browsing_common_myths">מיתוסים נפוצים על גלישה פרטית</string>
   <!--
     True Private Browsing Mode
 
@@ -2520,6 +2520,8 @@
   <string name="preferences_passwords_exceptions_remove_all">מחיקת כל החריגות</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">חיפוש ססמאות</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">חזרה</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">אתר</string>
   <!-- The header for the username for a login -->
@@ -2764,7 +2766,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">אומת על־ידי %1$s\u0032</string>
+  <string name="certificate_info_verified_by">אומת על־ידי %1$s</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">מחיקה</string>
   <!-- Login overflow menu edit button -->

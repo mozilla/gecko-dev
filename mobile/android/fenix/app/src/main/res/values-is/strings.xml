@@ -62,8 +62,8 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">\u0032· %1$s hreinsar leitar- og vafraferilinn þinn þegar þú lokar forritinu eða lokar öllum huliðsflipum og gluggum. Þó að þetta sé ekki nafnlaust gagnvart vefsíðum eða þjónustuveitanda þínum, þá gerir þetta þér auðveldara að halda því sem þú gerir á netinu huldu gagnvart öðrum þeim sem nota þetta tæki.</string>
-  <string name="private_browsing_common_myths">\u0032Algengar mýtur um huliðsvafur</string>
+  <string name="private_browsing_placeholder_description_2">· %1$s hreinsar leitar- og vafraferilinn þinn þegar þú lokar forritinu eða lokar öllum huliðsflipum og gluggum. Þó að þetta sé ekki nafnlaust gagnvart vefsíðum eða þjónustuveitanda þínum, þá gerir þetta þér auðveldara að halda því sem þú gerir á netinu huldu gagnvart öðrum þeim sem nota þetta tæki.</string>
+  <string name="private_browsing_common_myths">Algengar mýtur um huliðsvafur</string>
   <!--
     True Private Browsing Mode
 
@@ -2511,7 +2511,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Vistuð lykilorð</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lykilorðin sem þú vistar eða samstillir við %s verða skráð hér. Öll lykilorð sem þú vistar eru dulrituð.\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">Lykilorðin sem þú vistar eða samstillir við %s verða skráð hér. Öll lykilorð sem þú vistar eru dulrituð.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Frekari upplýsingar um samstillingu</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2524,6 +2524,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Eyða öllum undantekningum</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Leita að lykilorðum</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Til baka</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Vefsvæði</string>
   <!-- The header for the username for a login -->

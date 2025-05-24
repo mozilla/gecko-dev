@@ -63,7 +63,7 @@
     %1$s is the name of the app (for example "Firefox").
   -->
   <string name="private_browsing_placeholder_description_2">%1$s(e)k fitxa pribatuetako zure bilaketa- eta nabigatze-historia garbitzen du hauek ixtean edo aplikaziotik irtetean. Honek ez zaitu anonimo egiten webguneen edo zure interneteko zerbitzu-hornitzailearen aurrean baina erraztu egiten du ordenagailu hau erabiltzen duten beste erabiltzaileengandik online duzun jarduera pribatu mantentzen.</string>
-  <string name="private_browsing_common_myths">\u0032Nabigatze pribatuari buruzko ohiko mitoak\u0032</string>
+  <string name="private_browsing_common_myths">Nabigatze pribatuari buruzko ohiko mitoak</string>
   <!--
     True Private Browsing Mode
 
@@ -615,7 +615,7 @@
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_title">Bidali automatikoki hutsegite-txostenak</string>
   <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
-  <string name="onboarding_preferences_dialog_crash_reporting_description">Hutsegite-txostenek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digute. Txostenek datu pertsonal edo kontuzkoak izan litzakete.\u0032</string>
+  <string name="onboarding_preferences_dialog_crash_reporting_description">Hutsegite-txostenek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digute. Txostenek datu pertsonal edo kontuzkoak izan litzakete.</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Argibide gehiago</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
@@ -1149,7 +1149,7 @@
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">Bidali automatikoki hutsegite-txostenak</string>
   <!-- Preference switch description for automatically submitting crash reports -->
-  <string name="preferences_automatically_send_crashes_description">Hauek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digu honek. Txostenek datu pertsonal edo kontuzkoak izan litzakete.\u0032</string>
+  <string name="preferences_automatically_send_crashes_description">Hauek nabigatzailearen arazoak diagnostikatu eta konpontzen laguntzen digu honek. Txostenek datu pertsonal edo kontuzkoak izan litzakete.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Hutsegite-txostenei buruzko argibide gehiago</string>
   <!-- Title for studies preferences -->
@@ -2434,7 +2434,7 @@
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Gordetako pasahitzak</string>
   <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_saved_logins_description_empty_text_2">%s(e)n gordetzen edo sinkronizatzen dituzun pasahitzak hemen agertuko dira. Gordetzen dituzun pasahitz guztiak zifratuta daude.\u0032</string>
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">%s(e)n gordetzen edo sinkronizatzen dituzun pasahitzak hemen agertuko dira. Gordetzen dituzun pasahitz guztiak zifratuta daude.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">Sinkronizazioari buruzko argibide gehiago</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
@@ -2693,7 +2693,7 @@
     text shown before the issuer name to indicate who its verified by, %1$s is the name of
     the certificate authority that verified the ticket
   -->
-  <string name="certificate_info_verified_by">Egiaztatzailea: %1$s\u0032</string>
+  <string name="certificate_info_verified_by">Egiaztatzailea: %1$s</string>
   <!-- Login overflow menu delete button -->
   <string name="login_menu_delete_button">Ezabatu</string>
   <!-- Login overflow menu edit button -->
