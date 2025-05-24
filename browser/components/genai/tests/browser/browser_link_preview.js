@@ -170,6 +170,10 @@ add_task(async function test_link_preview_with_long_press() {
 
   is(LinkPreview.cancelLongPress, null, "long press not started");
 
+  window.dispatchEvent(new MouseEvent("mousedown", { button: 1 }));
+
+  is(LinkPreview.cancelLongPress, null, "long press ignore non-primary button");
+
   window.dispatchEvent(new MouseEvent("mousedown"));
 
   ok(LinkPreview.cancelLongPress, "long press timer started");
@@ -244,6 +248,49 @@ add_task(async function test_link_preview_with_typing() {
 
   stub.restore();
   LinkPreview.recentTyping = 0;
+});
+
+/**
+ * Tests that certain behaviors do not trigger unexpectedly.
+ */
+add_task(async function test_link_preview_no_trigger() {
+  const stub = sinon.stub(LinkPreview, "renderLinkPreviewPanel");
+
+  LinkPreview.keyboardComboActive = true;
+  XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
+
+  ok(LinkPreview.overLinkTime, "have some time");
+  is(stub.callCount, 1, "preview shown");
+
+  LinkPreview.overLinkTime -= 10000;
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      shiftKey: true,
+    })
+  );
+
+  is(stub.callCount, 1, "ignored for stale link");
+
+  XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
+
+  is(stub.callCount, 2, "shown again");
+
+  XULBrowserWindow.setOverLink(TEST_LINK_URL, {});
+
+  is(stub.callCount, 3, "and again");
+
+  XULBrowserWindow.setOverLink(TEST_LINK_URL + "#", {});
+
+  is(stub.callCount, 3, "ignored single page #");
+
+  XULBrowserWindow.setOverLink("javascript:void(0)", {});
+
+  is(stub.callCount, 3, "ignored single page javascript:");
+
+  stub.restore();
 });
 
 /**

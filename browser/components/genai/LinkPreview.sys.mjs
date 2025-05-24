@@ -32,6 +32,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "ignoreMs",
+  "browser.ml.linkPreview.ignoreMs"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "longPress",
   "browser.ml.linkPreview.longPress"
 );
@@ -80,6 +85,7 @@ export const LinkPreview = {
 
   cancelLongPress: null,
   keyboardComboActive: false,
+  overLinkTime: 0,
   recentTyping: 0,
   _windowStates: new Map(),
   linkPreviewPanelId: "link-preview-panel",
@@ -317,9 +323,12 @@ export const LinkPreview = {
     const win = event.currentTarget;
     const url = event.detail.url;
 
-    // Store the current overLink in the per-window state object.
+    // Store the current overLink in the per-window state object filtering out
+    // links common for dynamic single page apps.
     const stateObject = this._windowStates.get(win);
-    stateObject.overLink = url;
+    stateObject.overLink =
+      url.endsWith("#") || url.startsWith("javascript:") ? "" : url;
+    this.overLinkTime = Date.now();
 
     if (this.keyboardComboActive) {
       this._maybeLinkPreview(win);
@@ -336,10 +345,10 @@ export const LinkPreview = {
       return;
     }
 
-    // Check for the start of a long press on a link.
+    // Check for the start of a long primary button press on a link.
     const win = event.currentTarget;
     const stateObject = this._windowStates.get(win);
-    if (event.type == "mousedown" && stateObject.overLink) {
+    if (event.type == "mousedown" && !event.button && stateObject.overLink) {
       // Detect events to cancel the long press.
       win.addEventListener("dragstart", this, true);
       win.addEventListener("mouseup", this, true);
@@ -636,9 +645,13 @@ export const LinkPreview = {
     const stateObject = this._windowStates.get(win);
     const url = stateObject.overLink;
     // Render preview if we have url, keyboard combo and not recently typing.
+    // Ignore check intends to avoid cases where mouse happens to be over a
+    // link, e.g., after navigating then using an in-page keyboard shortcut or
+    // typing characters that require shift.
     if (
       url &&
       this.keyboardComboActive &&
+      Date.now() - this.overLinkTime <= lazy.ignoreMs &&
       Date.now() - this.recentTyping >= lazy.recentTypingMs
     ) {
       this.renderLinkPreviewPanel(win, url, this.keyboardComboActive);
