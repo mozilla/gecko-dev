@@ -9,8 +9,17 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   LinkPreviewModel:
     "moz-src:///browser/components/genai/LinkPreviewModel.sys.mjs",
+  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
+  PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
   Region: "resource://gre/modules/Region.sys.mjs",
 });
+
+export const LABS_STATE = Object.freeze({
+  NOT_ENROLLED: 0,
+  ENROLLED: 1,
+  ROLLOUT_ENDED: 2,
+});
+
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "allowedLanguages",
@@ -37,6 +46,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "labs",
+  "browser.ml.linkPreview.labs",
+  LABS_STATE.NOT_ENROLLED
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "longPress",
   "browser.ml.linkPreview.longPress"
 );
@@ -44,6 +59,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "longPressMs",
   "browser.ml.linkPreview.longPressMs"
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "nimbus",
+  "browser.ml.linkPreview.nimbus"
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -126,7 +146,7 @@ export const LinkPreview = {
   },
 
   get canShowLegacy() {
-    return true;
+    return lazy.labs != LABS_STATE.NOT_ENROLLED;
   },
 
   get canShowPreferences() {
@@ -180,6 +200,8 @@ export const LinkPreview = {
 
     Glean.genaiLinkpreview.enabled.set(enabled);
     Glean.genaiLinkpreview.labsCheckbox.record({ enabled });
+
+    this.handleNimbusPrefs();
   },
 
   /**
@@ -227,6 +249,61 @@ export const LinkPreview = {
   },
 
   /**
+   * Handles Nimbus preferences, e.g., migrating, restoring, setting.
+   */
+  handleNimbusPrefs() {
+    // For those who turned on via labs with enabled setPref variable, persist
+    // the pref and allow using shift-alt matching labs copy.
+    if (
+      lazy.NimbusFeatures.linkPreviews.getVariable("enabled") &&
+      lazy.labs == LABS_STATE.NOT_ENROLLED
+    ) {
+      Services.prefs.setIntPref(
+        "browser.ml.linkPreview.labs",
+        LABS_STATE.ENROLLED
+      );
+      Services.prefs.setBoolPref("browser.ml.linkPreview.shiftAlt", true);
+    }
+    // Restore pref once if previously enabled via labs assuming rollout ended.
+    else if (!lazy.enabled && lazy.labs == LABS_STATE.ENROLLED) {
+      Services.prefs.setIntPref(
+        "browser.ml.linkPreview.labs",
+        LABS_STATE.ROLLOUT_ENDED
+      );
+      Services.prefs.setBoolPref("browser.ml.linkPreview.enabled", true);
+    }
+
+    // Handle nimbus feature pref setting
+    if (this._nimbusRegistered) {
+      return;
+    }
+    this._nimbusRegistered = true;
+    const featureId = "linkPreviews";
+    lazy.NimbusFeatures[featureId].onUpdate(() => {
+      const enrollment = lazy.NimbusFeatures[featureId].getEnrollmentMetadata();
+      if (!enrollment) {
+        return;
+      }
+
+      // Set prefs on any branch if we have a new enrollment slug, otherwise
+      // only set default branch as those only last for the session
+      const slug = enrollment.slug + ":" + enrollment.branch;
+      const anyBranch = slug != lazy.nimbus;
+      const setPref = ([pref, { branch = "user", value = null }]) => {
+        if (anyBranch || branch == "default") {
+          lazy.PrefUtils.setPref("browser.ml.linkPreview." + pref, value, {
+            branch,
+          });
+        }
+      };
+      setPref(["nimbus", { value: slug }]);
+      Object.entries(
+        lazy.NimbusFeatures[featureId].getVariable("prefs") ?? []
+      ).forEach(setPref);
+    });
+  },
+
+  /**
    * Handles startup tasks such as telemetry and adding listeners.
    *
    * @param {Window} win - The window context used to add event listeners.
@@ -250,6 +327,8 @@ export const LinkPreview = {
         { global: "current" }
       );
     }
+
+    this.handleNimbusPrefs();
 
     if (lazy.enabled) {
       this._addEventListeners(win);

@@ -4490,6 +4490,12 @@ linkPreviews:
         branch: user
         pref: browser.ml.linkPreview.enabled
       description: If true, will show previews when over link and keyboard shortcut is pressed
+    prefs:
+      type: json
+      description: >-
+        The prefs to set under browser.ml.linkPreview.* with object keys as the
+        sub-pref and values objects indicating the desired branch and value
+        defaulting to clearing the user branch value.
 
 sidebar:
   description: Sidebar feature configuration

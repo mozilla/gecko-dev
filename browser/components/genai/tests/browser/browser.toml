@@ -30,6 +30,8 @@ support-files = [
   "data/readableEn.html"
 ]
 
+["browser_link_preview_nimbus.js"]
+
 ["browser_link_preview_optin.js"]
 support-files = [
   "data/readableFr.html",
