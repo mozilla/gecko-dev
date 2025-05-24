@@ -2,45 +2,45 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+export default [
+  {
+    rules: {
+      // Enforce return statements in callbacks of array methods.
+      "array-callback-return": "error",
 
-module.exports = {
-  rules: {
-    // Enforce return statements in callbacks of array methods.
-    "array-callback-return": "error",
+      // Require default case in switch statements.
+      "default-case": "error",
 
-    // Require default case in switch statements.
-    "default-case": "error",
+      // Disallow use of alert(), confirm(), and prompt().
+      "no-alert": "error",
 
-    // Disallow use of alert(), confirm(), and prompt().
-    "no-alert": "error",
+      // Disallow likely erroneous `switch` scoped lexical declarations in
+      // case/default clauses.
+      "no-case-declarations": "error",
 
-    // Disallow likely erroneous `switch` scoped lexical declarations in
-    // case/default clauses.
-    "no-case-declarations": "error",
+      // Disallow constant expressions in conditions (except for loops).
+      "no-constant-condition": ["error", { checkLoops: false }],
 
-    // Disallow constant expressions in conditions (except for loops).
-    "no-constant-condition": ["error", { checkLoops: false }],
+      // Disallow extending of native objects.
+      "no-extend-native": "error",
 
-    // Disallow extending of native objects.
-    "no-extend-native": "error",
+      // Disallow use of assignment in return statement.
+      "no-return-assign": ["error", "always"],
 
-    // Disallow use of assignment in return statement.
-    "no-return-assign": ["error", "always"],
+      // Disallow template literal placeholder syntax in regular strings.
+      "no-template-curly-in-string": "error",
 
-    // Disallow template literal placeholder syntax in regular strings.
-    "no-template-curly-in-string": "error",
+      // Disallow unmodified loop conditions.
+      "no-unmodified-loop-condition": "error",
 
-    // Disallow unmodified loop conditions.
-    "no-unmodified-loop-condition": "error",
+      // No expressions where a statement is expected
+      "no-unused-expressions": "error",
 
-    // No expressions where a statement is expected
-    "no-unused-expressions": "error",
+      // Require "use strict" to be defined globally in the script.
+      strict: ["error", "global"],
 
-    // Require "use strict" to be defined globally in the script.
-    strict: ["error", "global"],
-
-    // Disallow Yoda conditions.
-    yoda: ["error", "never"],
+      // Disallow Yoda conditions.
+      yoda: ["error", "never"],
+    },
   },
-};
+];

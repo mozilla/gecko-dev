@@ -3,19 +3,12 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-"use strict";
+import globals from "globals";
 
-module.exports = {
-  env: {
-    worker: true,
-  },
-
-  overrides: [
-    {
-      files: ["head.js"],
-      env: {
-        worker: true,
-      },
+export default [
+  {
+    languageOptions: {
+      globals: globals.worker,
     },
-  ],
-};
+  },
+];

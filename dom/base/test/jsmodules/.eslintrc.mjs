@@ -1,15 +1,15 @@
-"use strict";
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-module.exports = {
-  overrides: [
-    {
-      // eslint-plugin-html doesn't automatically detect module sections in
-      // html files. Enable these as a module here. JavaScript files can use
-      // the mjs extension.
-      files: ["*.html"],
-      parserOptions: {
-        sourceType: "module",
-      },
+export default [
+  {
+    // eslint-plugin-html doesn't automatically detect module sections in
+    // html files. Enable these as a module here. JavaScript files can use
+    // the mjs extension.
+    files: ["**/*.html"],
+    languageOptions: {
+      sourceType: "module",
     },
-  ],
-};
+  },
+];

@@ -2,35 +2,107 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+import spidermonkeyJS from "eslint-plugin-spidermonkey-js";
+import mozilla from "eslint-plugin-mozilla";
+import globals from "globals";
 
-module.exports = {
-  plugins: ["spidermonkey-js"],
+export default [
+  {
+    plugins: { "spidermonkey-js": spidermonkeyJS },
+    files: ["**/*.js"],
+    processor: "spidermonkey-js/processor",
 
-  overrides: [
-    {
-      files: ["*.js"],
-      excludedFiles: ".eslintrc.js",
-      processor: "spidermonkey-js/processor",
-      env: {
-        // Disable all built-in environments.
-        node: false,
-        browser: false,
-        builtin: false,
+    rules: {
+      // We should fix those at some point, but we use this to detect NaNs.
+      "no-self-compare": "off",
+      "no-lonely-if": "off",
+      // Disabled until we can use let/const to fix those erorrs, and undefined
+      // names cause an exception and abort during runtime initialization.
+      "no-redeclare": "off",
+      // Disallow use of |void 0|. Instead use |undefined|.
+      "no-void": ["error", { allowAsStatement: true }],
+      // Disallow loose equality because of objects with the [[IsHTMLDDA]]
+      // internal slot, aka |document.all|, aka "objects emulating undefined".
+      eqeqeq: "error",
+      // All self-hosted code is implicitly strict mode, so there's no need to
+      // add a strict-mode directive.
+      strict: ["error", "never"],
+      // Disallow syntax not supported in self-hosted code.
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ClassDeclaration",
+          message: "Class declarations are not allowed",
+        },
+        {
+          selector: "ClassExpression",
+          message: "Class expressions are not allowed",
+        },
+        {
+          selector: "Literal[regex]",
+          message: "Regular expression literals are not allowed",
+        },
+        {
+          selector: "CallExpression > MemberExpression.callee",
+          message:
+            "Direct method calls are not allowed, use callFunction() or callContentFunction()",
+        },
+        {
+          selector: "NewExpression > MemberExpression.callee",
+          message:
+            "Direct method calls are not allowed, use constructContentFunction()",
+        },
+        {
+          selector: "YieldExpression[delegate=true]",
+          message:
+            "yield* is not allowed because it can run user-modifiable iteration code",
+        },
+        {
+          selector: "ForOfStatement > :not(CallExpression).right",
+          message:
+            "for-of loops must use allowContentIter(), allowContentIterWith(), or allowContentIterWithNext()",
+        },
+        {
+          selector:
+            "ForOfStatement > CallExpression.right > :not(Identifier[name='allowContentIter'], Identifier[name='allowContentIterWith'], Identifier[name='allowContentIterWithNext']).callee",
+          message:
+            "for-of loops must use allowContentIter(), allowContentIterWith(), or allowContentIterWithNext",
+        },
+        {
+          selector:
+            "CallExpression[callee.name='TO_PROPERTY_KEY'] > :not(Identifier).arguments:first-child",
+          message:
+            "TO_PROPERTY_KEY macro must be called with a simple identifier",
+        },
+        {
+          selector: "Identifier[name='arguments']",
+          message:
+            "'arguments' is disallowed, use ArgumentsLength(), GetArgument(n), or rest-parameters",
+        },
+        {
+          selector: "VariableDeclaration[kind='let']",
+          message:
+            "'let' declarations are disallowed to avoid TDZ checks, use 'var' instead",
+        },
+        {
+          selector: "VariableDeclaration[kind='const']",
+          message:
+            "'const' declarations are disallowed to avoid TDZ checks, use 'var' instead",
+        },
+      ],
+      // Method signatures are important in builtins so disable unused argument errors.
+      "no-unused-vars": [
+        "error",
+        {
+          args: "none",
+          vars: "local",
+        },
+      ],
+    },
 
-        // We need to explicitly disable the default environments added from
-        // "tools/lint/eslint/eslint-plugin-mozilla/lib/configs/recommended.js".
-        es2021: false,
-        "mozilla/privileged": false,
-        "mozilla/specific": false,
-
-        // Enable SpiderMonkey's self-hosted environment.
-        "spidermonkey-js/environment": true,
-      },
-
+    languageOptions: {
       parserOptions: {
         ecmaVersion: "latest",
-        sourceType: "script",
 
         // Self-hosted code defaults to strict mode.
         ecmaFeatures: {
@@ -45,93 +117,22 @@ module.exports = {
         },
       },
 
-      rules: {
-        // We should fix those at some point, but we use this to detect NaNs.
-        "no-self-compare": "off",
-        "no-lonely-if": "off",
-        // Disabled until we can use let/const to fix those erorrs, and undefined
-        // names cause an exception and abort during runtime initialization.
-        "no-redeclare": "off",
-        // Disallow use of |void 0|. Instead use |undefined|.
-        "no-void": ["error", { allowAsStatement: true }],
-        // Disallow loose equality because of objects with the [[IsHTMLDDA]]
-        // internal slot, aka |document.all|, aka "objects emulating undefined".
-        eqeqeq: "error",
-        // All self-hosted code is implicitly strict mode, so there's no need to
-        // add a strict-mode directive.
-        strict: ["error", "never"],
-        // Disallow syntax not supported in self-hosted code.
-        "no-restricted-syntax": [
-          "error",
-          {
-            selector: "ClassDeclaration",
-            message: "Class declarations are not allowed",
-          },
-          {
-            selector: "ClassExpression",
-            message: "Class expressions are not allowed",
-          },
-          {
-            selector: "Literal[regex]",
-            message: "Regular expression literals are not allowed",
-          },
-          {
-            selector: "CallExpression > MemberExpression.callee",
-            message:
-              "Direct method calls are not allowed, use callFunction() or callContentFunction()",
-          },
-          {
-            selector: "NewExpression > MemberExpression.callee",
-            message:
-              "Direct method calls are not allowed, use constructContentFunction()",
-          },
-          {
-            selector: "YieldExpression[delegate=true]",
-            message:
-              "yield* is not allowed because it can run user-modifiable iteration code",
-          },
-          {
-            selector: "ForOfStatement > :not(CallExpression).right",
-            message:
-              "for-of loops must use allowContentIter(), allowContentIterWith(), or allowContentIterWithNext()",
-          },
-          {
-            selector:
-              "ForOfStatement > CallExpression.right > :not(Identifier[name='allowContentIter'], Identifier[name='allowContentIterWith'], Identifier[name='allowContentIterWithNext']).callee",
-            message:
-              "for-of loops must use allowContentIter(), allowContentIterWith(), or allowContentIterWithNext",
-          },
-          {
-            selector:
-              "CallExpression[callee.name='TO_PROPERTY_KEY'] > :not(Identifier).arguments:first-child",
-            message:
-              "TO_PROPERTY_KEY macro must be called with a simple identifier",
-          },
-          {
-            selector: "Identifier[name='arguments']",
-            message:
-              "'arguments' is disallowed, use ArgumentsLength(), GetArgument(n), or rest-parameters",
-          },
-          {
-            selector: "VariableDeclaration[kind='let']",
-            message: "'let' declarations are disallowed to avoid TDZ checks, use 'var' instead",
-          },
-          {
-            selector: "VariableDeclaration[kind='const']",
-            message: "'const' declarations are disallowed to avoid TDZ checks, use 'var' instead",
-          },
-        ],
-        // Method signatures are important in builtins so disable unused argument errors.
-        "no-unused-vars": [
-          "error",
-          {
-            args: "none",
-            vars: "local",
-          },
-        ],
-      },
-
+      sourceType: "script",
       globals: {
+        // Disable all built-in environments.
+        ...mozilla.turnOff(globals.node),
+        ...mozilla.turnOff(globals.browser),
+        ...mozilla.turnOff(globals.builtin),
+
+        // We need to explicitly disable the default environments added from
+        // "tools/lint/eslint/eslint-plugin-mozilla/lib/configs/recommended.js".
+        ...mozilla.turnOff(globals.es2021),
+        ...mozilla.turnOff(mozilla.environments.privileged.globals),
+        ...mozilla.turnOff(mozilla.environments.specific.globals),
+
+        // Enable SpiderMonkey's self-hosted environment.
+        ...spidermonkeyJS.environments.environment.globals,
+
         // The bytecode compiler special-cases these identifiers.
         ArgumentsLength: "readonly",
         allowContentIter: "readonly",
@@ -173,5 +174,5 @@ module.exports = {
         Tuple: "off",
       },
     },
-  ],
-};
+  },
+];

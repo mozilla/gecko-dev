@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+import eslintPlugin from "eslint-plugin-eslint-plugin";
+import globals from "globals";
 
-module.exports = {
-  plugins: ["eslint-plugin"],
-  extends: ["plugin:eslint-plugin/recommended"],
-  env: {
-    browser: false,
-    node: true,
+export default [
+  {
+    plugins: { "eslint-plugin": eslintPlugin },
+    ...eslintPlugin.configs["flat/recommended"],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+    },
+    rules: {
+      "no-console": "off",
+      strict: ["error", "global"],
+    },
   },
-  rules: {
-    "no-console": "off",
-    strict: ["error", "global"],
-  },
-};
+];
