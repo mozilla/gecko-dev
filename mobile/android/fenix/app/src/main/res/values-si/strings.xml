@@ -798,9 +798,9 @@
   -->
   <string name="customize_toggle_recently_visited">මෑතදී ගොඩවැදුණු</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">සිතුවිලි අවුස්සන කතා</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">සිතුවිලි අවුස්සන කතා</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">%s මගින් ලිපි බලගැන්වේ</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">%s මගින් ලිපි බලගැන්වේ</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">අනුග්‍රහය ලද කතා</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -960,7 +960,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">&lt;b&gt;firefox.com/pair&lt;/b&gt; හි පෙන්වන QR කේතය සුපිරික්සන්න</string>
+  <string name="pair_instructions_2"><![CDATA[<b>firefox.com/pair</b> හි පෙන්වන QR කේතය සුපිරික්සන්න]]></string>
   <!--
     Toolbar Preferences
 
@@ -1250,15 +1250,15 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">අඩවිය මන්දගාමී හෝ වැඩ නොකරයි</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">අඩවිය මන්දගාමී හෝ වැඩ නොකරයි</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">රූප හෝ දෘශ්‍යක</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">රූප හෝ දෘශ්‍යක</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">බොත්තම්, සබැඳි සහ වෙනත් අන්තර්ගත</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">බොත්තම්, සබැඳි සහ වෙනත් අන්තර්ගත</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">පිවිසීම හෝ නික්මීම</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">පිවිසීම හෝ නික්මීම</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">දැන්වීම් අවහිරකය</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">දැන්වීම් අවහිරකය</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">වෙනත් යමක්</string>
   <!--
@@ -1779,7 +1779,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">කේතය සුපිරික්සන්න</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">පරිගණකයෙහි ෆයර්ෆොක්ස් විවෘත කර &lt;b&gt;https://firefox.com/pair&lt;/b&gt; වෙත යන්න</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[පරිගණකයෙහි ෆයර්ෆොක්ස් විවෘත කර <b>https://firefox.com/pair</b> වෙත යන්න]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">පරිලෝකනයට ඔබන්න</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1787,7 +1787,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">වි-තැපෑල යොදාගන්න</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">ගිණුමක් නැද්ද? උපාංග අතර ෆයර්ෆොක්ස් සමමුහූර්තයට &lt;u&gt;එකක් සාදන්න&lt;/u&gt;</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[ගිණුමක් නැද්ද? උපාංග අතර ෆයර්ෆොක්ස් සමමුහූර්තයට <u>එකක් සාදන්න</u>]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s ඔබගේ ගිණුම සමග සමමුහූර්ත වීම නවත්වනු ඇත, නමුත් මෙම උපාංගයෙහි ඔබගේ පිරික්සුම් දත්ත කිසිවක් මකා නොදමනු ඇත.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2179,7 +2179,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">සෙවුම් තන්තු උදාහරණ ආකෘතියට ගැළපෙන බව පරීක්‍ෂා කරන්න</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">“%s” වෙත සම්බන්ධ වීමේ දෝෂයකි</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">“%s” වෙත සම්බන්ධ වීමේ දෝෂයකි</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s සෑදිණි</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2191,9 +2191,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. ඇන්ඩ්‍රොයිඩ් සැකසුම් වෙත යන්න</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;අවසර&lt;/b&gt; තට්ටු කරන්න</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>අවසර</b> තට්ටු කරන්න]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; සබල කරන්න</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> සබල කරන්න]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">සම්බන්‍ධතාව ආරක්‍ෂිතයි</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2201,7 +2201,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">දත්තකඩ හා අඩවි දත්ත මකන්න</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">&lt;b&gt;%s&lt;/b&gt; අඩවිය සඳහා සමස්ත දත්තකඩ හා වෙනත් දත්ත හිස් කිරීමට වුවමනා ද?</string>
+  <string name="confirm_clear_site_data"><![CDATA[<b>%s</b> අඩවිය සඳහා සමස්ත දත්තකඩ හා වෙනත් දත්ත හිස් කිරීමට වුවමනා ද?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">ඔබට සියළුම අඩවි සඳහා සියළු අවසර හිස් කිරීමට වුවමනා ද?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2370,17 +2370,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">සිතුවිලි අවුස්සන කතා</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">සිතුවිලි අවුස්සන කතා</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">මාතෘකාව අනුව කතා</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">තව සොයා ගන්න</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">%s මගින් බලගැන්වේ.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">%s මගින් බලගැන්වේ.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">ෆයර්ෆොක්ස් පවුලේ කොටසකි. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">ෆයර්ෆොක්ස් පවුලේ කොටසකි. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">තව දැනගන්න</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">තව දැනගන්න</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">අනුග්‍රහය ලද</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
@@ -2398,7 +2398,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">ලිපිය කියවන්න</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">තව දැන ගැනීමට සබැඳිය අරින්න</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">තව දැන ගැනීමට සබැඳිය අරින්න</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
   <string name="a11y_links_title">සබැඳි</string>
   <!-- Additional content description for text bodies that contain urls. -->

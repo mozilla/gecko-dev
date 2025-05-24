@@ -728,7 +728,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">কোডটি স্ক্যান করুন</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">আপনার কম্পিউটারে Firefox খুলুন এবং &lt;b&gt;https://firefox.com/pair&lt;/b&gt; এ যান</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[আপনার কম্পিউটারে Firefox খুলুন এবং <b>https://firefox.com/pair</b> এ যান]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">স্ক্যান করতে প্রস্তুত</string>
   <!-- Text shown for settings option for sign with pairing -->

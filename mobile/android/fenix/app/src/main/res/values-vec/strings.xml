@@ -598,7 +598,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Scansiona el còdexe</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Vèrxi Firefox so el computer e và so &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Vèrxi Firefox so el computer e và so <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Pronto par ƚa scansion</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -769,7 +769,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Verificare che ƚa stringa de reserca corisponda al formato de exenpio</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Erore de conesion a “%s”</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Erore de conesion a “%s”</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s creà</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -781,9 +781,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Vèrxii ƚe inpostasioni de Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Toca &lt;b&gt;Autorixasion&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Toca <b>Autorixasion</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Inposta &lt;b&gt;%1$s&lt;/b&gt; so Consenti</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Inposta <b>%1$s</b> so Consenti]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Scanseƚare i parmesi par tuti i siti?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->

@@ -366,7 +366,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">&lt;b&gt;firefox.com/pair&lt;/b&gt; پر دیے گئے QR کوڈ کو سکین کریں</string>
+  <string name="pair_instructions_2"><![CDATA[<b>firefox.com/pair</b> پر دیے گئے QR کوڈ کو سکین کریں]]></string>
   <!--
     Toolbar Preferences
 
@@ -939,7 +939,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">کوڈ کو اسکین کریں</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">اپنے کمپیوٹر پر Firefox کھولیں اور &lt;b&gt;https://firefox.com/pair&lt;/b&gt; پر جائیں</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[اپنے کمپیوٹر پر Firefox کھولیں اور <b>https://firefox.com/pair</b> پر جائیں]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">سکین کرنے کے لئے تیار</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1182,7 +1182,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">چیک کریں کہ سرچ سٹرنگ مثال کی شکل سے میل کھاتا ہے</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">”%s“ سے رابطہ کرنے میں خرابی</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">”%s“ سے رابطہ کرنے میں خرابی</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s بنایا گیا</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -1194,9 +1194,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Android کی سیٹنگز پر جائیں</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;اجازتوں&lt;/b&gt; پر دبایں</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>اجازتوں</b> پر دبایں]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; کو چالو کرنے کے لئے ٹو گل کریں</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> کو چالو کرنے کے لئے ٹو گل کریں]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">کنکشن محفوظ ہے۔</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -1287,14 +1287,14 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">فکر انگیز کہانیاں</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">فکر انگیز کہانیاں</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">موضوع کے لحاظ سے کہانیاں</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">مزید تلاش کریں</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">%s کے خاندان کا حصہ</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">%s کے خاندان کا حصہ</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">مزید سیکھیں</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">مزید سیکھیں</string>
   <!-- Translations feature -->
 </resources>

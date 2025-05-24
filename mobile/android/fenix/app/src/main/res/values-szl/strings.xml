@@ -462,9 +462,9 @@
   -->
   <string name="customize_toggle_recently_visited">Niydowno nawiedzōne</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">Historyje do pōmedykowanio</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Historyje do pōmedykowanio</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">Historyje z usugi %s</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Historyje z usugi %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Spōnsorowane nowiny</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -578,7 +578,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Skanuj kod pokozany na &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[Skanuj kod pokozany na <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1267,7 +1267,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Skanuj kod</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Ôdewrzij Firefoxa na kōmputrze i idź na strōna &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Ôdewrzij Firefoxa na kōmputrze i idź na strōna <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Fertich, coby skanować</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1275,7 +1275,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Użyj lepij emaila</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Niy mosz kōnta? &lt;u&gt;Zrychtuj je&lt;/u&gt;, coby synchrōnizować Firefoxa miyndzy maszinami.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Niy mosz kōnta? <u>Zrychtuj je</u>, coby synchrōnizować Firefoxa miyndzy maszinami.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s skōńczy sie synchrōnizować ze twojim kōntym, ale niy skasuje żodnych danych przeglōndanio na tyj maszinie.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->

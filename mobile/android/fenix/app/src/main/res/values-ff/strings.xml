@@ -876,7 +876,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Niiwto kod oo</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">E ordinateer maa, uddit Firefox e yah to &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[E ordinateer maa, uddit Firefox e yah to <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Hebiima niiwtaade</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -884,7 +884,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Huutoro ɗoo iimeel</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">A alaa konte? &lt;u&gt;Sos konte&lt;/u&gt; ngam sanngoɗinde Firefox hakkunde kaɓirɗi.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[A alaa konte? <u>Sos konte</u> ngam sanngoɗinde Firefox hakkunde kaɓirɗi.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">Maa %s dartin jahdingol e konte maa, kono momtataa hay wootere e keɓe banngogol maa e ngal kaɓirgal gal.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->

@@ -175,9 +175,9 @@
   <!-- The tile of the notification, this will be shown to the user when an add-on needs new permissions, to be updated. %1$s is the name of the add-ons -->
   <string name="mozac_feature_addons_updater_notification_title">%1$s ورۊ رسۊوی نۊ داره</string>
   <!-- The content of the notification, this will be shown when an add-on needs new permissions, to be updated. %1$d is the amount of new permissions -->
-  <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d موجوزا نۊ ن اخو</string>
+  <string name="mozac_feature_addons_updater_notification_content" tools:ignore="PluralsCandidate">%1$d موجوزا نۊ ن الن اخو</string>
   <!-- The content of the notification displayed when an add-on needs a new permission -->
-  <string name="mozac_feature_addons_updater_notification_content_singular">ی موجوز نۊ اخو</string>
+  <string name="mozac_feature_addons_updater_notification_content_singular">ی موجوز نۊ الن اخو</string>
   <!-- Name of the "notification channel" used for displaying a notification for updating an extension. See https://developer.android.com/training/notify-user/channels -->
   <string name="mozac_feature_addons_updater_notification_channel_2">ورۊ رسۊوی وردنی</string>
   <!-- Name of the "notification channel" used for displaying a notification for new supported add-ons. See https://developer.android.com/training/notify-user/channels -->

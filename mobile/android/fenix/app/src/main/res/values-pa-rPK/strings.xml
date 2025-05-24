@@ -739,9 +739,9 @@
   -->
   <string name="customize_toggle_recently_visited">حال دے کھولھیاں گئیاں</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">سوچݨ لئی مجبور کرن والے لیکھ</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">سوچݨ لئی مجبور کرن والے لیکھ</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">%s ولوں تیار کیتے لیکھ</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">%s ولوں تیار کیتے لیکھ</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">حمایت کیتیاں کہاݨیاں</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -905,7 +905,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">&lt;b&gt;firefox.com/pair&lt;/b&gt; تے وکھائے QR کوڈ نوں سکین کرو</string>
+  <string name="pair_instructions_2"><![CDATA[<b>firefox.com/pair</b> تے وکھائے QR کوڈ نوں سکین کرو]]></string>
   <!--
     Toolbar Preferences
 
@@ -1573,7 +1573,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">کوڈ سکین کرو</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">آپݨے کمپیوٹر تے فائرفاکس کھولھو تے &lt;b&gt;https://firefox.com/pair&lt;/b&gt; تے جاؤ</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[آپݨے کمپیوٹر تے فائرفاکس کھولھو تے <b>https://firefox.com/pair</b> تے جاؤ]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">سکین کرن لئی تیار</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1581,7 +1581,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">ایس دی بجائے ای‌میل ورتوں</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">کھاتا نہیں اے؟ &lt;u&gt;ڈوائیساں وچالے&lt;/u&gt; فائرفاکس ہم وقت کرن لئی بݨاؤ۔</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[کھاتا نہیں اے؟ <u>ڈوائیساں وچالے</u> فائرفاکس ہم وقت کرن لئی بݨاؤ۔]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s تہاڈے کھاتے نال ہم وقت کرن روک دیوےگا، پر ایس ڈوائیس تے تہاڈے براؤز کیتے ڈیٹے نوں ہٹائےگا نہیں۔</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1757,7 +1757,7 @@
   <!-- Content description for privacy content close button -->
   <string name="privacy_content_close_button_content_description">بند کرو</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">ہور جاݨو</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">ہور جاݨو</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">سیٹنگاں نوں جاؤ</string>
   <!-- Translations feature -->

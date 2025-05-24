@@ -376,7 +376,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">&lt;b&gt;firefox.com/pair&lt;/b&gt; တွင်ပြနေသော QR ကုဒ်ကို ဖတ်ပါ</string>
+  <string name="pair_instructions_2"><![CDATA[<b>firefox.com/pair</b> တွင်ပြနေသော QR ကုဒ်ကို ဖတ်ပါ]]></string>
   <!--
     Toolbar Preferences
 
@@ -933,7 +933,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">ကုဒ်ကိုစစ်ဆေးပါ</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">&lt;b&gt;https://firefox.com/pair&lt;/b&gt;ကိုသွားပြီး သင့်ကွန်ပျူတာတွင် Firefox ဖွင့်ပါ။</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[<b>https://firefox.com/pair</b>ကိုသွားပြီး သင့်ကွန်ပျူတာတွင် Firefox ဖွင့်ပါ။]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">စကင်ဖတ်ရန်အဆင်သင့်ဖြစ်သည်</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -941,7 +941,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">အီးမေးလ်အစား</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">အကောင့် မရှိဘူးလား? &lt;u&gt; သုံးစွဲသည့် ကိရိယာများ အကြား Firefox ကို တစ်ပြေးညီတည်း ချိန်ညှိရန် &lt;/u&gt; တစ်ခု ဖန်တီးပါ။</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[အကောင့် မရှိဘူးလား? <u> သုံးစွဲသည့် ကိရိယာများ အကြား Firefox ကို တစ်ပြေးညီတည်း ချိန်ညှိရန် </u> တစ်ခု ဖန်တီးပါ။]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s သည် အကောင့်နှင့် အချက်အလက်များ ထပ်တူပြုခြင်းကို ရပ်တန့်ပါမည်။ သို့သော် ယခု ကိရိယာရှိ သင်၏ မည်သည့် အချက်အလက် ကိုမျှ ဖျက်ပစ်မည် မဟုတ်ပါ။</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1193,7 +1193,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">ရှာဖွေစာကြောင်းကိုဥပမာပုံစံနှင့်ကိုက်ညီသလားစစ်ပါ။</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">“%s” ချိတ်ဆက်မှုအမှားအယွင်း</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">“%s” ချိတ်ဆက်မှုအမှားအယွင်း</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s ဖန်တီးထားသည်</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -1205,9 +1205,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Android ပြင်ဆင်မှုများသို့သွားပါ</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt; ခွင့်ပြုချက်များ &lt;/b&gt; ကိုနှိပ်ပါ။</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b> ခွင့်ပြုချက်များ </b> ကိုနှိပ်ပါ။]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt; %1$s &lt;/b&gt; ကိုဖွင့်ပါ</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b> %1$s </b> ကိုဖွင့်ပါ]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">ဆိုဒ်အားလုံးရှိခွင့်ပြုချက်အားလုံးကိုရှင်းပစ်ရန်သေချာပါသလား။</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->

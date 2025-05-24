@@ -426,7 +426,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Nuskaitykite QR kodą iš &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[Nuskaitykite QR kodą iš <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1015,7 +1015,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Nuskaityti kodą</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Atverkite „Firefox“ savo kompiuteryje, ir eikite į &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Atverkite „Firefox“ savo kompiuteryje, ir eikite į <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Pasiruošti nuskaitymui</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1023,7 +1023,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Naudoti el. paštą</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Neturite paskyros? &lt;u&gt;Susikurkite&lt;/u&gt;, norėdami sinchronizuoti „Firefox“ tarp įrenginių.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Neturite paskyros? <u>Susikurkite</u>, norėdami sinchronizuoti „Firefox“ tarp įrenginių.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">„%s“ nebesinchronizuos duomenų su jūsų paskyra, tačiau šiame įrenginyje esančių naršymo duomenų nepašalins.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1284,7 +1284,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Pasitikrinkite, ar paieškos eilutė atitinka formatą iš pavyzdžio</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Nepavyko prisijungti prie „%s“</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Nepavyko prisijungti prie „%s“</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Sukurta „%s“</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -1296,9 +1296,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Eikite į „Android“ nuostatas</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Bakstelėkite &lt;b&gt;Leidimai&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Bakstelėkite <b>Leidimai</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Įjunkite &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Įjunkite <b>%1$s</b>]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Ryšys yra saugus</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -1306,7 +1306,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">Valyti slapukus ir svetainių duomenis</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">Ar tikrai norite išvalyti visus &lt;b&gt;%s&lt;/b&gt; svetainės slapukus ir duomenis?</string>
+  <string name="confirm_clear_site_data"><![CDATA[Ar tikrai norite išvalyti visus <b>%s</b> svetainės slapukus ir duomenis?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Ar tikrai norite išvalyti visus leidimus visose svetainėse?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -1409,14 +1409,14 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">Susimąstyti verčiančios istorijos</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Susimąstyti verčiančios istorijos</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Straipsniai pagal temas</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Atrasti daugiau</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">„Firefox“ šeimos dalis. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">„Firefox“ šeimos dalis. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Sužinoti daugiau</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Sužinoti daugiau</string>
   <!-- Translations feature -->
 </resources>

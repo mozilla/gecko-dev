@@ -829,9 +829,9 @@
   -->
   <string name="customize_toggle_recently_visited">Air tadhal orra o chionn goirid</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">Sgeulachdan smuainteachail</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Sgeulachdan smuainteachail</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">Artaigealan le cumhachd %s</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Artaigealan le cumhachd %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Sgeulachdan sponsairichte</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -995,7 +995,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Sganaich an còd QR a chì thu aig &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[Sganaich an còd QR a chì thu aig <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1788,7 +1788,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Sganaich an còd</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Fosgail Firefox air a’ choimpiutair agad is tadhail air &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Fosgail Firefox air a’ choimpiutair agad is tadhail air <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Deiseil airson sganadh</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1796,7 +1796,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Cleachd post-d na àite</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Nach eil cunntas agad? &lt;u&gt;Cruthaich fear&lt;/u&gt; airson Firefox a shioncronachadh eadar uidheaman.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Nach eil cunntas agad? <u>Cruthaich fear</u> airson Firefox a shioncronachadh eadar uidheaman.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">Sguiridh %s de shioncronachadh a’ chunntais agad ach cha sguab e às gin dhen dàta brabhsaidh agad air an uidheam seo.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2216,7 +2216,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Dèan cinnteach gu bheil an t-sreang luirg a’ leantainn fòrmat a’ bhuill-eisimpleir</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Mearachd a’ ceangal ri “%s”</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Mearachd a’ ceangal ri “%s”</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Chaidh %s a chruthachadh</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2228,9 +2228,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Tadhail air roghainnean Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Thoir gnogag air &lt;b&gt;Ceadan&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Thoir gnogag air <b>Ceadan</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Cuir &lt;b&gt;%1$s&lt;/b&gt; AIR</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Cuir <b>%1$s</b> AIR]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Tha an ceangal tèarainte</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2238,7 +2238,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">Falamhaich na briosgaidean is dàta na làraich</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">A bheil thu cinnteach gu bheil thu airson brisgaidean is dàta na làraich &lt;b&gt;%s&lt;/b&gt; fhalamhachadh?</string>
+  <string name="confirm_clear_site_data"><![CDATA[A bheil thu cinnteach gu bheil thu airson brisgaidean is dàta na làraich <b>%s</b> fhalamhachadh?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">A bheil thu cinnteach gu bheil thu airson na ceadan air gach làrach fhalamhachadh?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2415,17 +2415,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">Sgeulachdan smuainteachail</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Sgeulachdan smuainteachail</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Sgeulachdan a-rèir cuspair</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Fidir barrachd</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">Le cumhachd %s.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Le cumhachd %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Na phàirt de theaghladh Firefox. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Na phàirt de theaghladh Firefox. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Barrachd fiosrachaidh</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Barrachd fiosrachaidh</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">Sponsairichte</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2437,11 +2437,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">Bheir sinn &lt;b&gt;litir measaidh&lt;/b&gt; dha na lèirmheasach aig gach bathar, eadar A is F.</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Bheir sinn <b>litir measaidh</b> dha na lèirmheasach aig gach bathar, eadar A is F.]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">Tha an &lt;b&gt;rangachadh gleusta&lt;/b&gt; stèidhichte dìreach air lèirmheasan a tha earbsach ’nar beachd.</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Tha an <b>rangachadh gleusta</b> stèidhichte dìreach air lèirmheasan a tha earbsach ’nar beachd.]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">Tha na &lt;b&gt;bàrr-phuingean&lt;/b&gt; o lèirmheasan %s on 80 latha seo chaidh is a tha earbsach ’nar beachd.</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Tha na <b>bàrr-phuingean</b> o lèirmheasan %s on 80 latha seo chaidh is a tha earbsach ’nar beachd.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2459,7 +2459,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">leugh an t-artaigeal</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">fosgail an ceangal airson barrachd fiosrachaidh</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">fosgail an ceangal airson barrachd fiosrachaidh</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s, bann-cinn</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -2663,12 +2663,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">Cha b’ urrainn dhuinn an cànan a leanas a luchdadh a-nuas: &lt;b&gt;%1$s&lt;/b&gt;. Feuch ris a-rithist.</string>
+  <string name="download_languages_error_warning_text"><![CDATA[Cha b’ urrainn dhuinn an cànan a leanas a luchdadh a-nuas: <b>%1$s</b>. Feuch ris a-rithist.]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">Cha b’ urrainn dhuinn an cànan a leanas a sguabadh às: &lt;b&gt;%1$s&lt;/b&gt;. Feuch ris a-rithist.</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[Cha b’ urrainn dhuinn an cànan a leanas a sguabadh às: <b>%1$s</b>. Feuch ris a-rithist.]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.

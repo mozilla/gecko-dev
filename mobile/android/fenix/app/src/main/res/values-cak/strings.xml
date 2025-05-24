@@ -650,9 +650,9 @@
   -->
   <string name="customize_toggle_recently_visited">K\'a b\'a ketz\'et</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">B\'anob\'äl richin yach\'ob\'on</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">B\'anob\'äl richin yach\'ob\'on</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">Taq cholna\'oj ruchilab\'en %s</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Taq cholna\'oj ruchilab\'en %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">To\'on taq b\'anob\'äl</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -780,7 +780,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Titz\'ajwachib\'ëx ri QR b\'itz\'ib\' k\'o pa &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[Titz\'ajwachib\'ëx ri QR b\'itz\'ib\' k\'o pa <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1495,7 +1495,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Titz\'ajwachib\'ëx b\'itz\'ib\'</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Tajaqa\' Firefox pan awoyonib\'al k\'a ri\' jät pa &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Tajaqa\' Firefox pan awoyonib\'al k\'a ri\' jät pa <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Ütz chik nitz\'ajwachib\'ëx</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1503,7 +1503,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Tawokisaj ri taqoya\'l</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">¿La man k\'o ta rub\'i\' ataqoya\'l? &lt;u&gt;Tatz\'uku\' jun&lt;/u&gt; richin naxïm Firefox pa taq okisab\'äl.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[¿La man k\'o ta rub\'i\' ataqoya\'l? <u>Tatz\'uku\' jun</u> richin naxïm Firefox pa taq okisab\'äl.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s Man xtuxïm ta chik ri rub\'i\' ataqoya\'l, man xkeyuj ta ri taq rutzij awokem pa re oyonib\'äl re\'.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1864,7 +1864,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Tinik\'öx chi ri rucholajem ri nikanöx nuk\'äm ri\' rik\'in ri rub\'anikil tz\'etb\'äl</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Xsach toq nok rik\'in “%s”</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Xsach toq nok rik\'in “%s”</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Xtz\'uk %s</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -1876,9 +1876,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Jät pa Runuk\'ulem Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Tachapa\' &lt;b&gt;Taq Ya\'oj Q\'ij&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Tachapa\' <b>Taq Ya\'oj Q\'ij</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Tik\'exlöx &lt;b&gt;%1$s&lt;/b&gt; rik\'in TZIJÏL</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Tik\'exlöx <b>%1$s</b> rik\'in TZIJÏL]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Rujikomal okem</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2015,13 +2015,13 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">B\'anob\'äl richin yach\'ob\'on</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">B\'anob\'äl richin yach\'ob\'on</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Tilitäj ch\'aqa\' chik</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">B\'anon ruma %s.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">B\'anon ruma %s.</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Tetamäx ch\'aqa\' chik</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Tetamäx ch\'aqa\' chik</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">To\'on</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->

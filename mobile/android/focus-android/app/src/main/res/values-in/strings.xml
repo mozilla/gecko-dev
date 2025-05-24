@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s menempatkan Anda dalam kendali.&lt;/p&gt;
-&lt;p&gt;Gunakan sebagai peramban privat:
-  &lt;ul&gt;
-    &lt;li&gt;Cari dan jelajah langsung di dalam aplikasi&lt;/li&gt;
-    &lt;li&gt;Blokir pelacak (atau ubah pengaturan untuk izinkan pelacak)&lt;/li&gt;
-    &lt;li&gt;Hapus kuki termasuk juga pencarian dan riwayat penjelajahan&lt;/li&gt;
-  &lt;/ul&gt;
- &lt;/p&gt;
-&lt;p&gt;%1$s diproduksi oleh Mozilla. Misi kami adalah untuk memelihara Internet yang sehat dan terbuka.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Pelajari lebih lanjut&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s menempatkan Anda dalam kendali.</p> <p>Gunakan sebagai peramban privat: <ul> <li>Cari dan jelajah langsung di dalam aplikasi</li> <li>Blokir pelacak (atau ubah pengaturan untuk izinkan pelacak)</li> <li>Hapus kuki termasuk juga pencarian dan riwayat penjelajahan</li> </ul> </p> <p>%1$s diproduksi oleh Mozilla. Misi kami adalah untuk memelihara Internet yang sehat dan terbuka.<br/> <a href=\"%2$s\">Pelajari lebih lanjut</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privasi &amp; Keamanan</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -488,6 +479,8 @@
   <string name="onboarding_first_screen_privacy_notice_link">Pemberitahuan Privasi.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Setuju dan lanjutkan</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue_2">Lanjutkan</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">Tautan tersedia</string>
   <!--
@@ -676,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Buka Pengaturan Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Ketuk &lt;b&gt;Perizinan&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Ketuk <b>Perizinan</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Buka Pengaturan</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Aktifkan/Nonaktifkan &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Aktifkan/Nonaktifkan <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Kamera</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -765,7 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Situs bertindak tidak terduga?\n Matikan Perlindungan Pelacakan</string>
+  <string name="tip_disable_tracking_protection">Situs bertindak tidak terduga?\nMatikan Perlindungan Pelacakan</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -776,17 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Buka setiap tautan di %1$s\n Atur %1$s sebagai peramban baku</string>
+  <string name="tip_set_default_browser">Buka setiap tautan di %1$s\nAtur %1$s sebagai peramban baku</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Lengkapi otomatis URL untuk situs yang sering dikunjungi\n Ketuk lama URL di bilah alamat</string>
+  <string name="tip_autocomplete_url">Lengkapi otomatis URL untuk situs yang sering dikunjungi\nKetuk lama URL di bilah alamat</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Buka tautan di tab baru\n Tekan lama tautan di laman</string>
+  <string name="tip_open_in_new_tab">Buka tautan di tab baru\nTekan lama tautan di laman</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Nonaktifkan tips ini pada layar mulai</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -867,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Gambar yang disimpan dan dibagikan &lt;b&gt;tidak akan dihapus&lt;/b&gt; ketika Anda menghapus riwayat %1$s.</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Gambar yang disimpan dan dibagikan <b>tidak akan dihapus</b> ketika Anda menghapus riwayat %1$s.]]></string>
   <!--
     Theme Preferences
 
@@ -888,17 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s mencoba menggunakan koneksi HTTPS jika memungkinkan untuk keandalan keamanan.
-     &lt;a href="%2$s"&gt;Pelajari lebih lanjut&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Ubah setelan ini di Setelan &gt; Privasi &amp;amp; Keamanan &gt; Keamanan.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s mencoba menggunakan koneksi HTTPS jika memungkinkan untuk keandalan keamanan. <a href=\"%2$s\">Pelajari lebih lanjut</a> <br/><br/> Ubah setelan ini di Setelan > Privasi &amp; Keamanan > Keamanan.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Sambungan tidak aman</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">Hal ini mungkin terjadi karena masalah pada konfigurasi peladen, atau pihak tertentu mencoba menyamar menjadi peladen yang Anda tuju. &lt;br/&gt;&lt;br/&gt;Jika Anda sebelumnya pernah tersambung dengan peladen ini, kesalahan ini mungkin hanya sementara.</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Hal ini mungkin terjadi karena masalah pada konfigurasi peladen, atau pihak tertentu mencoba menyamar menjadi peladen yang Anda tuju. <br/><br/>Jika Anda sebelumnya pernah tersambung dengan peladen ini, kesalahan ini mungkin hanya sementara.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">&lt;label&gt;Seseorang mungkin berusaha menyamar menyamar laman ini dan sebaiknya Anda tidak melanjutkan.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt; %1$s tidak mempercayai &lt;b&gt;%2$s&lt;/b&gt; karena penerbit sertifikat tidak diketahui, sertifikat ditandatangani sendiri, atau peladen tidak mengirimkan sertifikat perantara yang benar.&lt;/label&gt;</string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Seseorang mungkin berusaha menyamar menyamar laman ini dan sebaiknya Anda tidak melanjutkan.</label> <br><br> <label> %1$s tidak mempercayai <b>%2$s</b> karena penerbit sertifikat tidak diketahui, sertifikat ditandatangani sendiri, atau peladen tidak mengirimkan sertifikat perantara yang benar.</label>]]></string>
   <!--
     Sessions List
 
