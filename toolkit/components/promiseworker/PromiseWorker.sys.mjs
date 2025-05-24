@@ -93,7 +93,7 @@ const EXCEPTION_CONSTRUCTORS = {
  *
  * @param {WorkerOptions} options The option parameter for ChromeWorker.
  *
- * @param {Record<String, function>} functions Functions that the worker can call.
+ * @param {Record<string, Function>} functions Functions that the worker can call.
  *
  * Functions can be synchronous functions or promises and return a value
  * that is sent back to the worker. The function can also send back a
@@ -109,7 +109,7 @@ const EXCEPTION_CONSTRUCTORS = {
  *     );
  *   }
  *
- * @constructor
+ * @class
  */
 export var BasePromiseWorker = function (url, options = {}, functions = {}) {
   if (typeof url != "string") {
@@ -316,7 +316,7 @@ BasePromiseWorker.prototype = {
    * to the worker instead of being copied. If any of the objects is a Promise,
    * it is resolved before posting the message.
    *
-   * @return {promise}
+   * @returns {promise}
    */
   post(fun, args, closure, transfers) {
     return async function postMessage() {
@@ -456,7 +456,7 @@ BasePromiseWorker.prototype = {
 /**
  * An error that has been serialized by the worker.
  *
- * @constructor
+ * @class
  */
 function WorkerError(data) {
   this.data = data;
@@ -473,7 +473,7 @@ function WorkerError(data) {
  * - {Array} transfers An array of objects that should be transferred
  *   instead of being copied.
  *
- * @constructor
+ * @class
  */
 BasePromiseWorker.Meta = function (data, meta) {
   this.data = data;

@@ -1,4 +1,4 @@
-/* global add_heuristic_tests */
+/* global add_autofill_heuristic_tests */
 
 "use strict";
 

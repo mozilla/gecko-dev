@@ -979,6 +979,7 @@ function setupTestCommon(aAppUpdateAutoEnabled = false, aAllowBits = false) {
       gFOS.init(logFile, MODE_WRONLY | MODE_APPEND, PERMS_FILE, 0);
 
       gRealDump = dump;
+      // eslint-disable-next-line no-global-assign
       dump = dumpOverride;
     }
   }
@@ -1234,6 +1235,7 @@ function cleanupTestCommon() {
   debugDump("finish - general test cleanup");
 
   if (gRealDump) {
+    // eslint-disable-next-line no-global-assign
     dump = gRealDump;
     gRealDump = null;
   }
