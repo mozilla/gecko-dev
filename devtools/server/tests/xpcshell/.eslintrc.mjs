@@ -1,9 +1,11 @@
-"use strict";
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-module.exports = {
-  // Extend from the common devtools xpcshell eslintrc config.
-  extends: "../../../.eslintrc.xpcshell.js",
-  rules: {
-    "no-debugger": 0,
+export default [
+  {
+    rules: {
+      "no-debugger": 0,
+    },
   },
-};
+];
