@@ -987,8 +987,8 @@ tools/jprof/README.html
 uriloader/exthandler/tests/mochitest/save_filenames.html
 
 ##############################################################################
-# The list below is copied from .eslintrc-ignores.js. Prettier doesn't currently
-# support multiple ignore files or dynamic ignore configurations.
+# The list below is copied from eslint-ignores.config.mjs. Prettier doesn't
+# currently support multiple ignore files or dynamic ignore configurations.
 # When this is implemented, we'll update the configuration below (bug 1825508)
 ##############################################################################
 

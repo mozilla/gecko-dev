@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
-
 /**
  * Files to exclude from ESLint.
  *
@@ -20,7 +18,7 @@
  *
  * @type {string[]}
  */
-module.exports = [
+export default [
   // Include all js dot files.
   "!.*.js",
 

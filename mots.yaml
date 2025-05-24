@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-05-07T01:05:49.262826+00:00'
+updated_at: '2025-05-21T09:20:14.661913+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3997,7 +3997,7 @@ modules:
     description: Aspects of JavaScript use such as language feature usage, tooling
       such as lint configurations, formatting and naming style.
     includes:
-      - .eslintrc-test-paths.js
+      - eslint*.config.mjs
       - '**/.eslintrc*.js'
       - tools/lint/eslint/**/*
       - .prettier*
@@ -4567,5 +4567,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 3825a00753e2baaf500e62ea796ece96149e6937
-  export: e1e1829b45285c4e3a60c73a99e323a033d64945
+  config: 417f5aa3364f94e036f02a3612a733ab3cc9884a
+  export: f91f79309801aa730bc99a9a1f2bc64db1e64718

@@ -102,7 +102,7 @@ cycle.
 
 * If you really can't match the directory name, e.g. like the
   ``browser/base/content/tests/*``, then you'll need to add a new entry in
-  :searchfox:`.eslintrc-test-paths.js <.eslintrc-test-paths.js>`.
+  :searchfox:`eslint-test-paths.config.mjs <eslint-test-paths.config.mjs>`.
 
 Please do not add new cases of multiple types of tests within a single directory,
 this is `difficult for ESLint to handle`_. Currently this may cause:
@@ -116,7 +116,7 @@ This code should neither be linted nor formatted
 
 * If it is a third-party piece of code, please add it to :searchfox:`ThirdPartyPaths.txt <tools/rewriting/ThirdPartyPaths.txt>`.
 * If it is a generated file, please add it to :searchfox:`Generated.txt <tools/rewriting/Generated.txt>`.
-* If intentionally invalid, please add it to :searchfox:`.eslintrc-ignores.js <.eslintrc-ignores.js>`.
+* If intentionally invalid, please add it to :searchfox:`eslint-ignores.config.mjs <eslint-ignores.config.mjs>`.
 
 This code shouldn't be formatted
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -134,7 +134,7 @@ See the `prettier ignore docs`_ for more information.
 I have valid code that is failing the ``no-undef`` rule or can't be parsed
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-* Please do not add this to :searchfox:`.eslintrc-ignores.js <.eslintrc-ignores.js>`. Generally
+* Please do not add this to :searchfox:`eslint-ignores.config.mjs <eslint-ignores.config.mjs>`. Generally
   this can be fixed, if the following tips don't help, please `seek help`_.
 * If you are adding a new test directory, see the :ref:`section above <adding-tests>`
 

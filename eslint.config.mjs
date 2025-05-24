@@ -16,8 +16,8 @@ import globals from "globals";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import globalIgnores from "./.eslintrc-ignores.js";
-import testPathsConfig from "./.eslintrc-test-paths.js";
+import globalIgnores from "./eslint-ignores.config.mjs";
+import testPathsConfig from "./eslint-test-paths.config.mjs";
 import repositoryGlobals from "./eslint-file-globals.config.mjs";
 import rollouts from "./eslint-rollouts.config.mjs";
 import subdirConfigs from "./eslint-subdirs.config.mjs";

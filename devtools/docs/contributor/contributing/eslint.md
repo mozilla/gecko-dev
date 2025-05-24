@@ -80,7 +80,7 @@ You should see errors and warnings in the gutter as shown in the screenshot belo
       (when (string-match "^\\([a-z]+_\\)" base)
 	(setq-local flycheck-temp-prefix (match-string 1 base))))
     (let ((base-dir (locate-dominating-file (buffer-file-name)
-					    ".eslintrc-ignores.js")))
+					    "eslint-ignores.config.mjs")))
       (when base-dir
 	(let ((eslint (expand-file-name
 		       "tools/lint/eslint/node_modules/.bin/eslint" base-dir)))
