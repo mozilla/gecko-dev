@@ -10,8 +10,6 @@ toolkit.jar:
    res/noframes.css                          (res/noframes.css)
    res/scrollbars.css                        (res/scrollbars.css)
    res/forms.css                             (res/forms.css)
-   res/accessiblecaret.css                   (res/accessiblecaret.css)
-   res/details.css                           (res/details.css)
  #ifdef ANDROID
    res/accessiblecaret-normal.svg            (res/accessiblecaret-normal.svg)
    res/accessiblecaret-tilt-left.svg         (res/accessiblecaret-tilt-left.svg)

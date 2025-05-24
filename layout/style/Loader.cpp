@@ -1510,7 +1510,10 @@ Loader::Completed Loader::ParseSheet(
   }
   AUTO_PROFILER_LABEL_CATEGORY_PAIR_RELEVANT_FOR_JS(LAYOUT_CSSParsing);
 
-  ++mParsedSheetCount;
+  // TODO(emilio): fix browser_css_cache.js to deal with accessiblecaret.css.
+  if (!loadData->mURI || !IsPrivilegedURI(loadData->mURI)) {
+    ++mParsedSheetCount;
+  }
 
   loadData->mIsBeingParsed = true;
 

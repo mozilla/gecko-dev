@@ -75,8 +75,6 @@ EXPORTS.mozilla += [
     "AnimatedPropertyIDSet.h",
     "AnimationCollection.h",
     "AttributeStyles.h",
-    "BuiltInStyleSheetList.h",
-    "BuiltInStyleSheets.h",
     "CachedInheritingStyles.h",
     "ComputedStyle.h",
     "ComputedStyleInlines.h",
@@ -124,6 +122,8 @@ EXPORTS.mozilla += [
     "TimelineCollection.h",
     "TimelineManager.h",
     "URLExtraData.h",
+    "UserAgentStyleSheetID.h",
+    "UserAgentStyleSheetList.h",
 ]
 
 EXPORTS.mozilla.dom += [
@@ -296,7 +296,9 @@ RESOURCE_FILES += [
 
 CONTENT_ACCESSIBLE_FILES += [
     "ImageDocument.css",
+    "res/accessiblecaret.css",
     "res/close-12.svg",
+    "res/details.css",
     "res/plaintext.css",
     "res/viewsource.css",
     "TopLevelImageDocument.css",
