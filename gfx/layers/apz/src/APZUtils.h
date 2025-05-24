@@ -35,7 +35,6 @@ enum CancelAnimationFlags : uint32_t {
   ScrollSnap = 0x2,          /* Snap to snap points */
   TriggeredExternally = 0x4, /* Cancellation was not triggered by APZ in
                                 response to an input event */
-  ExcludeAutoscroll = 0x16   /* Don't cancel overscroll animations */
 };
 
 inline CancelAnimationFlags operator|(CancelAnimationFlags a,
