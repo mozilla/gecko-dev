@@ -597,7 +597,6 @@ support-files = [
 ]
 
 ["test_synthmousemove_after_dnd.html"]
-skip-if = ["os == 'android'"] # Bug 1909020
 
 ["test_transformed_scrolling_repaints.html"]
 

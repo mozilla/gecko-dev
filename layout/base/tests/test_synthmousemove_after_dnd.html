@@ -32,9 +32,19 @@ SimpleTest.waitForFocus(async () => {
     const promiseDrop = new Promise(resolve => {
       target.addEventListener("drop", event => {
         event.preventDefault();
-        target.addEventListener("mouseover", resolve, {once: true});
+        isnot(
+          document.querySelector("span:hover"),
+          target,
+          "The target should not have hover state during the drop event propagation"
+        );
+        info("Waiting for mouseover event after drop event...");
+        target.addEventListener("mouseover", () => {
+          info("Got mouseover event");
+          resolve();
+        }, {once: true});
       }, { once: true });
     });
+    info("Dragging selection is the source element and drop it to the target...");
     getSelection().selectAllChildren(source);
     synthesizePlainDragAndDrop({
       srcSelection: getSelection(),

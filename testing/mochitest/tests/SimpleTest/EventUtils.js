@@ -1465,13 +1465,7 @@ function synthesizeNativeMouseEvent(aParams, aCallback = null) {
   }
 
   const rect = target?.getBoundingClientRect();
-  let resolution = 1.0;
-  try {
-    resolution = _getDOMWindowUtils(win.top).getResolution();
-  } catch (e) {
-    // XXX How to get mobile viewport scale on Fission+xorigin since
-    //     window.top access isn't allowed due to cross-origin?
-  }
+  const resolution = _getTopWindowResolution(win);
   const scaleValue = (() => {
     if (scale === "inScreenPixels") {
       return 1.0;
@@ -1490,15 +1484,7 @@ function synthesizeNativeMouseEvent(aParams, aCallback = null) {
       if (screenX != undefined) {
         return screenX * scaleValue;
       }
-      let winInnerOffsetX = win.mozInnerScreenX;
-      try {
-        winInnerOffsetX =
-          win.top.mozInnerScreenX +
-          (win.mozInnerScreenX - win.top.mozInnerScreenX) * resolution;
-      } catch (e) {
-        // XXX fission+xorigin test throws permission denied since win.top is
-        //     cross-origin.
-      }
+      const winInnerOffsetX = _getScreenXInUnscaledCSSPixels(win);
       return (
         (((atCenter ? rect.width / 2 : offsetX) + rect.left) * resolution +
           winInnerOffsetX) *
@@ -1511,15 +1497,7 @@ function synthesizeNativeMouseEvent(aParams, aCallback = null) {
       if (screenY != undefined) {
         return screenY * scaleValue;
       }
-      let winInnerOffsetY = win.mozInnerScreenY;
-      try {
-        winInnerOffsetY =
-          win.top.mozInnerScreenY +
-          (win.mozInnerScreenY - win.top.mozInnerScreenY) * resolution;
-      } catch (e) {
-        // XXX fission+xorigin test throws permission denied since win.top is
-        //     cross-origin.
-      }
+      const winInnerOffsetY = _getScreenYInUnscaledCSSPixels(win);
       return (
         (((atCenter ? rect.height / 2 : offsetY) + rect.top) * resolution +
           winInnerOffsetY) *
@@ -2247,6 +2225,67 @@ function _getDOMWindowUtils(aWindow = window) {
 
   // TODO: this is assuming we are in chrome space
   return aWindow.windowUtils;
+}
+
+/**
+ * @param {Window} aWindow The window.
+ * @returns The scaling value applied to the top window.
+ */
+function _getTopWindowResolution(aWindow) {
+  let resolution = 1.0;
+  try {
+    resolution = _getDOMWindowUtils(aWindow.top).getResolution();
+  } catch (e) {
+    // XXX How to get mobile viewport scale on Fission+xorigin since
+    //     window.top access isn't allowed due to cross-origin?
+  }
+  return resolution;
+}
+
+/**
+ * @param {Window} aWindow The window which you want to get its x-offset in the
+ * screen.
+ * @returns The screenX of aWindow in the unscaled CSS pixels.
+ */
+function _getScreenXInUnscaledCSSPixels(aWindow) {
+  // XXX mozInnerScreen might be invalid value on mobile viewport (Bug 1701546),
+  //     so use window.top's mozInnerScreen. But this won't work fission+xorigin
+  //     with mobile viewport until mozInnerScreen returns valid value with
+  //     scale.
+  let winInnerOffsetX = aWindow.mozInnerScreenX;
+  try {
+    winInnerOffsetX =
+      aWindow.top.mozInnerScreenX +
+      (aWindow.mozInnerScreenX - aWindow.top.mozInnerScreenX) *
+        _getTopWindowResolution(aWindow);
+  } catch (e) {
+    // XXX fission+xorigin test throws permission denied since win.top is
+    //     cross-origin.
+  }
+  return winInnerOffsetX;
+}
+
+/**
+ * @param {Window} aWindow The window which you want to get its y-offset in the
+ * screen.
+ * @returns The screenY of aWindow in the unscaled CSS pixels.
+ */
+function _getScreenYInUnscaledCSSPixels(aWindow) {
+  // XXX mozInnerScreen might be invalid value on mobile viewport (Bug 1701546),
+  //     so use window.top's mozInnerScreen. But this won't work fission+xorigin
+  //     with mobile viewport until mozInnerScreen returns valid value with
+  //     scale.
+  let winInnerOffsetY = aWindow.mozInnerScreenY;
+  try {
+    winInnerOffsetY =
+      aWindow.top.mozInnerScreenY +
+      (aWindow.mozInnerScreenY - aWindow.top.mozInnerScreenY) *
+        _getTopWindowResolution(aWindow);
+  } catch (e) {
+    // XXX fission+xorigin test throws permission denied since win.top is
+    //     cross-origin.
+  }
+  return winInnerOffsetY;
 }
 
 function _defineConstant(name, value) {
@@ -3127,17 +3166,28 @@ function createDragEventObject(
   aDataTransfer,
   aDragEvent
 ) {
-  var destRect = aDestElement.getBoundingClientRect();
-  var destClientX = destRect.left + destRect.width / 2;
-  var destClientY = destRect.top + destRect.height / 2;
-  var destScreenX = aDestWindow.mozInnerScreenX + destClientX;
-  var destScreenY = aDestWindow.mozInnerScreenY + destClientY;
-  if ("clientX" in aDragEvent && !("screenX" in aDragEvent)) {
-    destScreenX = aDestWindow.mozInnerScreenX + aDragEvent.clientX;
-  }
-  if ("clientY" in aDragEvent && !("screenY" in aDragEvent)) {
-    destScreenY = aDestWindow.mozInnerScreenY + aDragEvent.clientY;
-  }
+  const resolution = _getTopWindowResolution(aDestWindow.top);
+  const destRect = aDestElement.getBoundingClientRect();
+  // If clientX and/or clientY are specified, we should use them.  Otherwise,
+  // use the center of the dest element.
+  const destClientXInCSSPixels =
+    "clientX" in aDragEvent && !("screenX" in aDragEvent)
+      ? aDragEvent.clientX
+      : destRect.left + destRect.width / 2;
+  const destClientYInCSSPixels =
+    "clientY" in aDragEvent && !("screenY" in aDragEvent)
+      ? aDragEvent.clientY
+      : destRect.top + destRect.height / 2;
+
+  const devicePixelRatio = aDestWindow.devicePixelRatio;
+  const destScreenXInDevicePixels =
+    (_getScreenXInUnscaledCSSPixels(aDestWindow) +
+      destClientXInCSSPixels * resolution) *
+    devicePixelRatio;
+  const destScreenYInDevicePixels =
+    (_getScreenYInUnscaledCSSPixels(aDestWindow) +
+      destClientYInCSSPixels * resolution) *
+    devicePixelRatio;
 
   // Wrap only in plain mochitests
   let dataTransfer;
@@ -3151,14 +3201,13 @@ function createDragEventObject(
     // nsContentUtils::SetDataTransferInEvent for actual impl).
     dataTransfer.dropEffect = aDataTransfer.dropEffect;
   }
-
   return Object.assign(
     {
       type: aType,
-      screenX: destScreenX,
-      screenY: destScreenY,
-      clientX: destClientX,
-      clientY: destClientY,
+      screenX: _EU_roundDevicePixels(destScreenXInDevicePixels),
+      screenY: _EU_roundDevicePixels(destScreenYInDevicePixels),
+      clientX: _EU_roundDevicePixels(destClientXInCSSPixels),
+      clientY: _EU_roundDevicePixels(destClientYInCSSPixels),
       dataTransfer,
       _domDispatchOnly: aDragEvent._domDispatchOnly,
     },
