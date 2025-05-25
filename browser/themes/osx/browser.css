@@ -191,28 +191,6 @@
 
 .tabbrowser-tab {
   border: none;
-
-  /* FIXME: Are these styles really needed nowadays? */
-  &:is([visuallyselected], [multiselected]) {
-    /* overriding tabbox.css */
-    text-shadow: inherit;
-
-    @media (prefers-color-scheme: light) {
-      :root:not([lwtheme]) & {
-        /* overriding tabbox.css */
-        color: hsl(240, 5%, 5%);
-      }
-    }
-  }
-}
-
-#tabbrowser-tabs {
-  /* overriding tabbox.css */
-  font: message-box;
-  align-items: stretch;
-  margin-bottom: 0;
-  position: static;
-  z-index: auto;
 }
 
 /* Bookmark drag and drop styles */

@@ -119,6 +119,9 @@
 }
 
 #tabbrowser-tabs {
+  /* Overriding tabbox.css */
+  border: 0;
+
   /* Use a bigger flex value than the searchbar to prevent it from
    * taking all the toolbar space. */
   flex: 1000 1000;
@@ -1572,7 +1575,6 @@ tab-group {
   flex-direction: column;
   align-content: flex-start;
   grid-gap: var(--space-small);
-  padding: 0; /* override tabbox.css on macOS */
 
   &[overflow]::after {
     content: "";

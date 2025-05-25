@@ -1550,12 +1550,6 @@ pub enum Appearance {
     /// A status bar in a main application window.
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Statusbar,
-    /// A single tab in a tab widget.
-    #[parse(condition = "ParserContext::chrome_rules_enabled")]
-    Tab,
-    /// The tab panels container.
-    #[parse(condition = "ParserContext::chrome_rules_enabled")]
-    Tabpanels,
     /// A single toolbar button (with no associated dropdown).
     #[parse(condition = "ParserContext::chrome_rules_enabled")]
     Toolbarbutton,
