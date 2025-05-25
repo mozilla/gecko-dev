@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
   <!--
     Home Fragment
 
@@ -162,6 +162,6 @@
   <!-- label shown when there are not site exceptions to show in the site exception settings -->
   <string name="no_site_exceptions">କୌଣସି ସାଇଟ୍ ବ୍ୟତିକ୍ରମ ହୋଇନାହିଁ</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Firefox ପରିବାରର ଏକ ଅଂଶ। %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Firefox ପରିବାରର ଏକ ଅଂଶ। %s</string>
   <!-- Translations feature -->
 </resources>

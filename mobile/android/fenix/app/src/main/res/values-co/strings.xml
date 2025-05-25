@@ -775,7 +775,7 @@
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">Impiegà l’ammarchjunata di u screnu per piattà l’unghjette in navigazione privata</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
-  <string name="preferences_pbm_lock_screen_summary">Affissà l’unghjette cù l’impronta digitale, a ricunnuscenza faciale o un codice PIN.</string>
+  <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Affissà l’unghjette cù l’impronta digitale, a ricunnuscenza faciale o un codice PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Blucchime di e striscie di cannistrelli</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -980,9 +980,9 @@
   -->
   <string name="customize_toggle_recently_visited">Visitati pocu fà</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">Storie chì facenu riflette</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Storie chì facenu riflette</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">Articuli selezziunati da %s</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Articuli selezziunati da %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Articuli spunsurizati</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1173,7 +1173,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Analizate u codice QR affissatu nant’à &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[Analizate u codice QR affissatu nant’à <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1487,7 +1487,7 @@
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
   -->
-  <string name="download_file_has_not_enough_storage_dialog_message">St’apparechju ùn hà abbastanza spaziu per scaricà &lt;b&gt;%s&lt;/b&gt;.</string>
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[St’apparechju ùn hà abbastanza spaziu per scaricà <b>%s</b>.]]></string>
   <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
@@ -1610,15 +1610,15 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">U situ và pianu o ùn funziuneghja micca</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">U situ và pianu o ùn funziuneghja micca</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">Fiure o filmetti</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Fiure o filmetti</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">Buttoni, liami è altri cuntenuti</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Buttoni, liami è altri cuntenuti</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">Cunnessioni o discunnessioni</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Cunnessioni o discunnessioni</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">Blucchime di publicità</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Blucchime di publicità</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Altre cose</string>
   <!--
@@ -2161,7 +2161,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Numerizà u codice</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Nant’à u vostru urdinatore, aprite Firefox è andate à &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Nant’à u vostru urdinatore, aprite Firefox è andate à <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Prontu à numerizà</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -2169,7 +2169,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Impiegà piuttostu un messaghju elettronicu</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Contu, ùn ne avete ? &lt;u&gt;Createne unu&lt;/u&gt; per sincrunizà Firefox trà i vostri apparechji.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Contu, ùn ne avete ? <u>Createne unu</u> per sincrunizà Firefox trà i vostri apparechji.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s ùn si sincruniserà più cù u vostru contu, ma ùn squasserà alcunu datu di navigazione nant’à st’apparechju.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2677,7 +2677,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Verificate chì a catena di ricerca seguiteghji u furmatu di l’esempiu</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Sbagliu di cunnessione à « %s »</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Sbagliu di cunnessione à « %s »</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s creatu</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2689,9 +2689,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Andate à i parametri Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Tucchate &lt;b&gt;Permessi&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Tucchate <b>Permessi</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Attivate &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Attivate <b>%1$s</b>]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">A cunnessione hè assicurata</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2701,7 +2701,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">Squassà i canistrelli è i dati di siti</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">Vulete veramente squassà tutti i canistrelli è i dati per u situ &lt;b&gt;%s&lt;/b&gt; ?</string>
+  <string name="confirm_clear_site_data"><![CDATA[Vulete veramente squassà tutti i canistrelli è i dati per u situ <b>%s</b> ?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Vulete veramente caccià tutti i permessi per tutti i siti ?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2885,17 +2885,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">Storie chì facenu riflette</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Storie chì facenu riflette</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Storie da l’articulu</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Scoprene di più</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">Funziuneghja grazia à %s.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Funziuneghja grazia à %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Parte di a famiglia Firefox. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Parte di a famiglia Firefox. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Sapene di più</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Sapene di più</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">Spunsurizatu</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2907,11 +2907,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">Demu à ogni avisu di pruduttu una &lt;b&gt;nota alfabetica&lt;/b&gt; da A fine à F.</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Demu à ogni avisu di pruduttu una <b>nota alfabetica</b> da A fine à F.]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">A &lt;b&gt;valutazione rettificata&lt;/b&gt; si basa solu nant’à l’avisi chì no pensemu degni di cunfidenza.</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[A <b>valutazione rettificata</b> si basa solu nant’à l’avisi chì no pensemu degni di cunfidenza.]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">L’elementi &lt;b&gt;messi in lume&lt;/b&gt; sò l’avisi %s durante l’ultimi 80 ghjorni chì no pensemu degni di cunfidenza.</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[L’elementi <b>messi in lume</b> sò l’avisi %s durante l’ultimi 80 ghjorni chì no pensemu degni di cunfidenza.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2929,7 +2929,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">leghje l’articulu</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">apre u liame per sapene di più</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">apre u liame per sapene di più</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s, Titulu</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -3133,12 +3133,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">Ùn si pò micca scaricà &lt;b&gt;%1$s&lt;/b&gt;. Pruvate torna.</string>
+  <string name="download_languages_error_warning_text"><![CDATA[Ùn si pò micca scaricà <b>%1$s</b>. Pruvate torna.]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">Ùn si pò micca squassà &lt;b&gt;%1$s&lt;/b&gt;. Pruvate torna.</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[Ùn si pò micca squassà <b>%1$s</b>. Pruvate torna.]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -3234,7 +3234,7 @@
     Description text for a dialog confirming whether the user wants to delete all data for current site.
     %s is a placeholder for the base domain of website.
   -->
-  <string name="clear_site_data_dialog_description">A squassatura di i canistrelli è di i dati di i siti per &lt;b&gt;%s&lt;/b&gt; puderia discunnettevi è viutà e sporte di cumprera.</string>
+  <string name="clear_site_data_dialog_description"><![CDATA[A squassatura di i canistrelli è di i dati di i siti per <b>%s</b> puderia discunnettevi è viutà e sporte di cumprera.]]></string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">Squassà</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->

@@ -542,7 +542,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Escania\'l códigu QR qu\'apaez en &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[Escania\'l códigu QR qu\'apaez en <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1137,7 +1137,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Escanéu d\'un códigu</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Nun ordenador, abri Firefox y ve a &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Nun ordenador, abri Firefox y ve a <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Yá pues escaniar</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1145,7 +1145,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Usar una direición de corréu</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">¿Nun tienes una cuenta? &lt;u&gt;Créala&lt;/u&gt; pa sincronizar Firefox ente preseos.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[¿Nun tienes una cuenta? <u>Créala</u> pa sincronizar Firefox ente preseos.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s va dexar de sincronizase cola to cuenta mas nun va desaniciar nengún datu d\'esti preséu.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1401,7 +1401,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Comprueba que la cadena de busca concase col formatu del exemplu</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Prodúxose un error al conectase a «%s»</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Prodúxose un error al conectase a «%s»</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Creóse «%s»</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -1411,9 +1411,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Ve a Configuración d\'Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Toca &lt;b&gt;Permisos&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Toca <b>Permisos</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Activa &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Activa <b>%1$s</b>]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">La conexón ye segura</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -1500,11 +1500,11 @@
   <!-- Content description for privacy content close button -->
   <string name="privacy_content_close_button_content_description">Zarrar</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">Cola teunoloxía de: %s.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Cola teunoloxía de: %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Parte de la familia Firefox. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Parte de la familia Firefox. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Saber más</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Saber más</string>
   <!-- Translations feature -->
 
   <!--

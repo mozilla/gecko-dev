@@ -768,7 +768,7 @@
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">Gumamit ng screen lock para maitago ang mga tab sa pribadong pag-browse</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
-  <string name="preferences_pbm_lock_screen_summary">Tingnan ang mga tab gamit ang fingerprint, face unlock, o PIN.</string>
+  <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Tingnan ang mga tab gamit ang fingerprint, face unlock, o PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Cookie Banner Blocker</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -973,7 +973,7 @@
   -->
   <string name="customize_toggle_recently_visited">Binisita kamakailan</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">Mga istoryang mapapaisip ka</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Mga istoryang mapapaisip ka</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Mga na-sponsor na kwento</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1164,7 +1164,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">I-scan ang QR code na ipinapakita sa &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[I-scan ang QR code na ipinapakita sa <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1478,7 +1478,7 @@
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
   -->
-  <string name="download_file_has_not_enough_storage_dialog_message">Walang sapat na espasyo ang device na ito para ma-download ang &lt;b&gt;%s&lt;/b&gt;.</string>
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[Walang sapat na espasyo ang device na ito para ma-download ang <b>%s</b>.]]></string>
   <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
@@ -1601,15 +1601,15 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">Mabagal ang site o hindi gumagana</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Mabagal ang site o hindi gumagana</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">Mga larawan o video</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Mga larawan o video</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">Mga button, link, o iba pang nilalaman</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Mga button, link, o iba pang nilalaman</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">Pag-sign in o pag-sign out</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Pag-sign in o pag-sign out</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">Ad blocker</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Ad blocker</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Iba pa</string>
   <!--
@@ -2150,7 +2150,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">i-Scan ang code</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Buksan ang Firefox sa computer mo at pumunta sa &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Buksan ang Firefox sa computer mo at pumunta sa <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Handa nang mag-scan</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -2158,7 +2158,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Gumamit na lang ng email</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Walang account? &lt;u&gt;Gumawa ng isa&lt;/u&gt; para makapag-sync ng Firefox sa mga device.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Walang account? <u>Gumawa ng isa</u> para makapag-sync ng Firefox sa mga device.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">Titigil na ang %s sa pag-sync sa iyong account, pero hindi nito buburahin ang kahit anong browsing data sa device na ito.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2664,7 +2664,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Siguruhing tugma ang search string sa format ng halimbawa</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Nagkaproblema kumonekta sa “%s”</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Nagkaproblema kumonekta sa “%s”</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Nalikha na ang %s</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2676,9 +2676,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Pumunta sa Android Settings</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. i-Tap ang &lt;b&gt;Mga pahintulot&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. i-Tap ang <b>Mga pahintulot</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. i-Toggle ang &lt;b&gt;%1$s&lt;/b&gt; sa nakabukas</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. i-Toggle ang <b>%1$s</b> sa nakabukas]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Ligtas na koneksyon</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2688,7 +2688,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">Burahin ang mga cookie at site data</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">Sigurado ka bang gusto mong alisin lahat ng mga cookie at data para sa site na &lt;b&gt;%s&lt;/b&gt;?</string>
+  <string name="confirm_clear_site_data"><![CDATA[Sigurado ka bang gusto mong alisin lahat ng mga cookie at data para sa site na <b>%s</b>?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Sigurado ka bang gusto mong alisin lahat ng mga pahintulot sa lahat ng mga site?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2872,17 +2872,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">Mga kagila-gilalas na kwento</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Mga kagila-gilalas na kwento</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Mga kwento ayon sa paksa</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Tumuklas pa</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">Pinatatakbo ng %s.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Pinatatakbo ng %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Parte ng pamilyang Firefox. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Parte ng pamilyang Firefox. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Matuto ng higit pa</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Matuto ng higit pa</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">Naka-sponsor</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2894,11 +2894,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">Ang bawat produkto ay binibigyan namin ng marka &lt;b&gt;gamit ang letra&lt;/b&gt; mula A hanggang F.</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Ang bawat produkto ay binibigyan namin ng marka <b>gamit ang letra</b> mula A hanggang F.]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">Ang &lt;b&gt;adjusted rating&lt;/b&gt; ay base lamang sa mga review na sa tingin namin ay maaasahan.</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Ang <b>adjusted rating</b> ay base lamang sa mga review na sa tingin namin ay maaasahan.]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">Ang &lt;b&gt;Mga Highlight&lt;/b&gt; ay mula sa %s pagsisiyasat sa huling 80 araw na sa tingin namin ay maaasahan.</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Ang <b>Mga Highlight</b> ay mula sa %s pagsisiyasat sa huling 80 araw na sa tingin namin ay maaasahan.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2916,7 +2916,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">basahin ang artikulo</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">buksan ang link para matuto pa</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">buksan ang link para matuto pa</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s, Heading</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -3120,12 +3120,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">Hindi ma-download ang &lt;b&gt;%1$s&lt;/b&gt;. Pakisubukan uli.</string>
+  <string name="download_languages_error_warning_text"><![CDATA[Hindi ma-download ang <b>%1$s</b>. Pakisubukan uli.]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">Hindi mabura ang &lt;b&gt;%1$s&lt;/b&gt;. Pakisubukan uli.</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[Hindi mabura ang <b>%1$s</b>. Pakisubukan uli.]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -3221,7 +3221,7 @@
     Description text for a dialog confirming whether the user wants to delete all data for current site.
     %s is a placeholder for the base domain of website.
   -->
-  <string name="clear_site_data_dialog_description">Maaari kang ma-log out sa mga website at mawala ang shopping cart kapag tinanggal mo ang mga cookie at site data para sa &lt;b&gt;%s&lt;/b&gt;.</string>
+  <string name="clear_site_data_dialog_description"><![CDATA[Maaari kang ma-log out sa mga website at mawala ang shopping cart kapag tinanggal mo ang mga cookie at site data para sa <b>%s</b>.]]></string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">Burahin</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->

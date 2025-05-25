@@ -630,7 +630,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">કોડ સ્કેન કરો</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">તમારા કમ્પ્યુટર પર Firedox ખોલો અને &lt;b&gt;https://firefox.com/pair&lt;/b&gt; પર જાઓ</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[તમારા કમ્પ્યુટર પર Firedox ખોલો અને <b>https://firefox.com/pair</b> પર જાઓ]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">સ્કેન કરવા માટે તૈયાર છે</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -785,7 +785,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">તે તપાસણી કરો કે શોધ શબ્દમાળા ઉદાહરણ ફોર્મેટ સાથે મેળ ખાય છે</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">“%s” થી કનેક્ટ કરવામાં ભૂલ</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">“%s” થી કનેક્ટ કરવામાં ભૂલ</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s બનાવ્યું</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->

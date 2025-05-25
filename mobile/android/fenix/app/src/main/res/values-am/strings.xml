@@ -775,7 +775,7 @@
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">በግል አሰሳ ውስጥ ትሮችን ለመደበቅ የማያ ገጽ መቆለፊያን ይጠቀሙ</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
-  <string name="preferences_pbm_lock_screen_summary">በጣት አሻራ፣ በመልክ መክፈቻ ወይም በፒን ትሮችን ይመልከቱ።</string>
+  <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">በጣት አሻራ፣ በመልክ መክፈቻ ወይም በፒን ትሮችን ይመልከቱ።</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">የኩኪ ባነር ማገጃ</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -980,9 +980,9 @@
   -->
   <string name="customize_toggle_recently_visited">በቅርብ ጊዜ የተጎበኙ</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">አነቃቂ ታሪኮች</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">አነቃቂ ታሪኮች</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">በ%s የተጎላበተ መጣጥፎች</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">በ%s የተጎላበተ መጣጥፎች</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">ስፖንሰር የተደረጉ ታሪኮች</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1173,7 +1173,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">በ&lt;b&gt;firefox.com/pair&lt;/b&gt; ላይ የሚታየውን የQR ኮድ ይቃኙ</string>
+  <string name="pair_instructions_2"><![CDATA[በ<b>firefox.com/pair</b> ላይ የሚታየውን የQR ኮድ ይቃኙ]]></string>
   <!--
     Toolbar Preferences
 
@@ -1487,7 +1487,7 @@
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
   -->
-  <string name="download_file_has_not_enough_storage_dialog_message">ይህ መሳሪያ &lt;b&gt;%s&lt;/b&gt;ን ለማውረድ በቂ ቦታ የለውም።</string>
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[ይህ መሳሪያ <b>%s</b>ን ለማውረድ በቂ ቦታ የለውም።]]></string>
   <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
@@ -1610,15 +1610,15 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">ጣቢያ ቀርፋፋ ወይም አይሰራም</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">ጣቢያ ቀርፋፋ ወይም አይሰራም</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">ምስሎች ወይም ተንቀሳቃሽ-ምስሎች</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">ምስሎች ወይም ተንቀሳቃሽ-ምስሎች</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">አዝራሮች፣ አገናኞች እና ሌሎች ይዘቶች</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">አዝራሮች፣ አገናኞች እና ሌሎች ይዘቶች</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">መግባት ወይም መውጣት</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">መግባት ወይም መውጣት</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">ማስታወቂያ ማገጃ</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">ማስታወቂያ ማገጃ</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">ሌላ ነገር</string>
   <!--
@@ -2159,7 +2159,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">ኮዱን ይቃኙ</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">በኮምፒተርዎ ላይ Firefox ን ይክፈቱ እና ወደ &lt;b&gt;https://firefox.com/pair&lt;/b&gt; ይሂዱ</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[በኮምፒተርዎ ላይ Firefox ን ይክፈቱ እና ወደ <b>https://firefox.com/pair</b> ይሂዱ]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">ለመቃኘት ዝግጁ</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -2167,7 +2167,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">በምትኩ ኢሜይል ተጠቀም</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">መለያ የለም? ፋየርፎክስን በመሳሪያዎች መካከል ለማመሳሰል &lt;u&gt;አንድ ይፍጠሩ&lt;/u&gt;።</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[መለያ የለም? ፋየርፎክስን በመሳሪያዎች መካከል ለማመሳሰል <u>አንድ ይፍጠሩ</u>።]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s ከመለያዎ ጋር ማመሳሰል ያቆማል፣ ነገር ግን በዚህ መሳሪያ ላይ የትኛውንም የአሰሳ ውሂብዎን አይሰርዝም።</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2643,7 +2643,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">የፍለጋ ሕብረቁምፊ ና የምሳሌ ቅርጸት እንደ ሚመሳሰሉ ያረጋግጡ</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">ከ \"%s\" ጋር መገናኘት ላይ ስህተት</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">ከ \"%s\" ጋር መገናኘት ላይ ስህተት</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s ተፈጠረ</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2655,9 +2655,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. ወደ አንድሮይድ መቼቶች ይሂዱ</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;ፍቃዶችን&lt;/b&gt;ን መታ ያድርጉ</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>ፍቃዶችን</b>ን መታ ያድርጉ]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; ን ወደ አብራ ቀይር</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> ን ወደ አብራ ቀይር]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">ግንኙነት ደህንነቱ የተጠበቀ ነው</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2667,7 +2667,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">ኩኪዎች እና የድረ-ገፅ ውሂብ ያጽዱ</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">የ&lt;b&gt;%s&lt;/b&gt; ድረ-ገፅን ሁሉንም ኩኪዎች እና ውሂቦች ማጽዳት እንደሚፈልጉ እርግጠኛ ነዎት?</string>
+  <string name="confirm_clear_site_data"><![CDATA[የ<b>%s</b> ድረ-ገፅን ሁሉንም ኩኪዎች እና ውሂቦች ማጽዳት እንደሚፈልጉ እርግጠኛ ነዎት?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">እርግጠኛ ነዎት በሁሉም ድረ-ገፆች ላይ ያሉትን ሁሉንም ፈቃዶች ማጽዳት ይፈልጋሉ?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2851,17 +2851,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">አነቃቂ ታሪኮች</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">አነቃቂ ታሪኮች</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">ታሪኮች በርዕስ</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">ተጨማሪ ያግኙ</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">በ%s የተጎላበተ።</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">በ%s የተጎላበተ።</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">የፋየርፎክስ ቤተሰብ አካል። %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">የፋየርፎክስ ቤተሰብ አካል። %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">የበለጠ ለማወቅ</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">የበለጠ ለማወቅ</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">ስፖንሰር የተደረገ</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2873,11 +2873,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">የእያንዳንዱን ምርት ግምገማዎች በ&lt;b&gt;ፊደል ደረጃ&lt;/b&gt; ከሀ እስከ ረ እንመድባለን።</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[የእያንዳንዱን ምርት ግምገማዎች በ<b>ፊደል ደረጃ</b> ከሀ እስከ ረ እንመድባለን።]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">የ&lt;b&gt;የተስተካከለ ደረጃ&lt;/b&gt; አስተማማኝ ናቸው ብለን ባመንባቸው ግምገማዎች ላይ ብቻ የተመሰረተ ነው።</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[የ<b>የተስተካከለ ደረጃ</b> አስተማማኝ ናቸው ብለን ባመንባቸው ግምገማዎች ላይ ብቻ የተመሰረተ ነው።]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;ዋና ዋናዎቹ&lt;/b&gt; አስተማማኝ ናቸው ብለን የምናምንባቸው ባለፉት 80 ቀናት ውስጥ ከ%s ግምገማዎች የተገኙ ናቸው።</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>ዋና ዋናዎቹ</b> አስተማማኝ ናቸው ብለን የምናምንባቸው ባለፉት 80 ቀናት ውስጥ ከ%s ግምገማዎች የተገኙ ናቸው።]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2895,7 +2895,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">ጽሑፉን ያንብቡ</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">የበለጠ ለማወቅ አገናኝ ይክፈቱ</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">የበለጠ ለማወቅ አገናኝ ይክፈቱ</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s፣ ርዕስ</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -3099,12 +3099,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt;ን ማውረድ አልተቻለም። እባክዎ እንደገና ይሞክሩ።</string>
+  <string name="download_languages_error_warning_text"><![CDATA[<b>%1$s</b>ን ማውረድ አልተቻለም። እባክዎ እንደገና ይሞክሩ።]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt;ን መሰረዝ አልተቻለም። እባክዎ እንደገና ይሞክሩ።</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[<b>%1$s</b>ን መሰረዝ አልተቻለም። እባክዎ እንደገና ይሞክሩ።]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.

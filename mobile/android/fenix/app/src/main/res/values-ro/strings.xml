@@ -436,7 +436,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Scanează codul QR afișat pe &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[Scanează codul QR afișat pe <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -931,7 +931,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Scananează codul</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Deschide Firefox pe calculator și intră pe &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Deschide Firefox pe calculator și intră pe <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Gata de scanare</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1143,7 +1143,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Verifică dacă șirul de căutare are formatul ca în exemplu</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Eroare de conectare la „%s”</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Eroare de conectare la „%s”</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s creat</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -1155,9 +1155,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Intră în Setările Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Atinge &lt;b&gt;Permisiuni&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Atinge <b>Permisiuni</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Comută &lt;b&gt;%1$s&lt;/b&gt; pe ON</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Comută <b>%1$s</b> pe ON]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Sigur vrei să ștergi toate permisiunile pe toate site-urile?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->

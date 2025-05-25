@@ -769,7 +769,7 @@
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">Eiporu mba’erechaha jokoha eñomi hag̃ua tendayke ñeikundaha ñemiguápe</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
-  <string name="preferences_pbm_lock_screen_summary">Ehecha tendayke kuã hũ ndive, tovara’ãnga joko’oha térã PIN.</string>
+  <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Ehecha tendayke kuã hũ ndive, tovara’ãnga joko’oha térã PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Ejoko Banner kookie rehegua</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -974,9 +974,11 @@
   -->
   <string name="customize_toggle_recently_visited">Ojeikeramohague</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">Tembiasakue nemoakãngetáva</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Tembiasakue nemoakãngetáva</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">Tembiasakue</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">Jehaipy oykekóva %s</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Jehaipy oykekóva %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Tembiasakue jehepyme’ẽguáva</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1015,6 +1017,56 @@
   <string name="wallpapers_onboarding_dialog_body_text">Eiporavo mba’erechaha rugua nde ehecharamóva.</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">Ema’ẽjeyjey mba’erechaha ruguáre</string>
+  <!--
+    Icon picker
+
+    Title for the "Default" alternative app icon variant in the icon picker screen.
+  -->
+  <string name="alternative_app_icon_option_default">Ijypykue</string>
+  <!-- Title for the "Light" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_light">Tesakã</string>
+  <!-- Title for the "Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_dark">Ypytũ</string>
+  <!-- Title for the "Red" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_red">Ñanduti</string>
+  <!-- Title for the "Green" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_green">Hovyũ</string>
+  <!-- Title for the "Blue" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_blue">Hovy</string>
+  <!-- Title for the "Purple" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple">Pytãũ</string>
+  <!-- Title for the "Purple Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple_dark">Pytãũ pytũva</string>
+  <!-- Title for the "Sunrise" gradient alternative app icon variant in the icon picker screen. The app icon features a soft yellow-to-blue gradient background, resembling the colors of early morning light. -->
+  <string name="alternative_app_icon_option_gradient_sunrise">Ko’ẽmbota</string>
+  <!-- Title for the "Golden Hour" gradient alternative app icon variant in the icon picker screen. The app icon features a warm golden-to-pink gradient background, resembling the colors of the sunlight shortly before sunset. -->
+  <string name="alternative_app_icon_option_gradient_golden_hour">Aravo itajúva</string>
+  <!-- Title for the "Sunset" gradient alternative app icon variant in the icon picker screen. The app icon has a rich red-to-purple gradient background, resembling the tones of a sunset sky. -->
+  <string name="alternative_app_icon_option_gradient_sunset">Ka’aruete</string>
+  <!-- Title for the "Blue Hour" gradient alternative app icon variant in the icon picker screen. The app icon has a cool blue gradient background, resembling the sky color around the time just after sunset or before sunrise. -->
+  <string name="alternative_app_icon_option_gradient_blue_hour">Aravo hovy</string>
+  <!-- Title for the "Twilight" gradient alternative app icon variant in the icon picker screen. The app icon has a purple-toned gradient background, resembling the sky color during twilight. -->
+  <string name="alternative_app_icon_option_gradient_twilight">Ko’ẽmbota</string>
+  <!-- Title for the "Midnight" gradient alternative app icon variant in the icon picker screen. The app icon features a dark gradient background, resembling the deep tones of the night sky. -->
+  <string name="alternative_app_icon_option_gradient_midnight">Pyharepyte</string>
+  <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
+  <string name="alternative_app_icon_option_gradient_northern_lights">Pyhare Sakã</string>
+  <!-- Title for the "Retro 2004" themed alternative app icon variant in the icon picker screen. This app icon uses the classic Firefox logo from 2004. -->
+  <string name="alternative_app_icon_option_retro_2004">Retro 2004</string>
+  <!-- Title for the "Retro 2017" themed alternative app icon variant in the icon picker screen. This app icon uses the Firefox logo from 2017, with a more modernized design. -->
+  <string name="alternative_app_icon_option_retro_2017">Retro 2017</string>
+  <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
+  <string name="alternative_app_icon_option_pixelated">Pixeládo</string>
+  <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
+  <string name="alternative_app_icon_option_minimal">Jeporu’ive</string>
+  <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
+  <string name="alternative_app_icon_option_pride">Jevy’a</string>
+  <!-- Title for the "Cute" themed alternative app icon variant in the icon picker screen. The app icon features a playful design with an adorable aesthetic. -->
+  <string name="alternative_app_icon_option_cute">Porã</string>
+  <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo">Momo</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">Omoheñóiva @heyheymomodraws</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1167,7 +1219,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">l,2046Emoha’ãnga QR ayvu ehecháva &lt;b&gt;firefox.com/pair&lt;/b&gt;-pe</string>
+  <string name="pair_instructions_2"><![CDATA[l,2046Emoha’ãnga QR ayvu ehecháva <b>firefox.com/pair</b>-pe]]></string>
   <!--
     Toolbar Preferences
 
@@ -1481,7 +1533,7 @@
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
   -->
-  <string name="download_file_has_not_enough_storage_dialog_message">Ko mba’e’oka ndorekói pa’ũguasu emboguejy hag̃ua &lt;b&gt;%s&lt;/b&gt;.</string>
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[Ko mba’e’oka ndorekói pa’ũguasu emboguejy hag̃ua <b>%s</b>.]]></string>
   <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
@@ -1604,15 +1656,27 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">Tenda imbegue térã ndoikói</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Tenda imbegue térã ndoikói</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">Tenda nomyanyhẽi</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">Nahepyme’ẽkuaái, ndajoguakuaái</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">Ta’ãnga térã ta’ãngamýi</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Ta’ãnga térã ta’ãngamýi</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">Votõnguéra, juajuha ha ambue tetepy</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Votõnguéra, juajuha ha ambue tetepy</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">Eike térã emboty tembiapo</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Eike térã emboty tembiapo</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">Tenda imbegue</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">Ta’ãngamýi ndaipúi ha nahenyhẽi</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">Tetepy oĩ’mbaiỹva</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">Ndaikekuaái ha ñañemboheraguapýi</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">Ñemurã jokoha</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Ñemurã jokoha</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Ambue mba’e</string>
   <!--
@@ -2155,7 +2219,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Emoha’ãnga ayvu</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Ne mohendahápe, eike Firefox-pe ha eho &lt;b&gt;https://firefox.com/pair&lt;/b&gt;-pe</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Ne mohendahápe, eike Firefox-pe ha eho <b>https://firefox.com/pair</b>-pe]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Ikatúma emoha’ãnga</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -2163,7 +2227,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Eiporu ñandutiveve</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">¿Ndererekói mba’ete? &lt;u&gt;Emoheñói&lt;/u&gt; embojuehe hag̃ua Firefox mba’e’oka ndive.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[¿Ndererekói mba’ete? <u>Emoheñói</u> embojuehe hag̃ua Firefox mba’e’oka ndive.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s nombojuehemo’ãvéima ne mba’ete ndive, hákatu nomboguemo’ãi ne kundaha mba’ekuaarã ko mba’e’okápe.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2468,6 +2532,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Emboguete opaite oĩ’ỹva</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Eheka ñe’ẽñemi</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Tapykue</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Tenda</string>
   <!-- The header for the username for a login -->
@@ -2671,7 +2737,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Ehechajey pe jehekaha juajuha ojokupytýpa techapyrã ohechaukáva ndive</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Ojavy eikekuévo “%s” ndive</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Ojavy eikekuévo “%s” ndive</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">Moheñoipyre %s</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2683,9 +2749,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Eho Android ñembohekópe</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Epoko &lt;b&gt;Ñemoneĩ&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Epoko <b>Ñemoneĩ</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Emoambue &lt;b&gt;%1$s&lt;/b&gt; Ijurujávaramo</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Emoambue <b>%1$s</b> Ijurujávaramo]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Jeikekatu</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2695,7 +2761,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">Emboguete kookie ha mba’ekuaarã tendágui</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">¿Añetehápepa emboguetese opaite kookie ha mba’ekuaarã tendágui &lt;b&gt;%s&lt;/b&gt;?</string>
+  <string name="confirm_clear_site_data"><![CDATA[¿Añetehápepa emboguetese opaite kookie ha mba’ekuaarã tendágui <b>%s</b>?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">¿Añetehápe emboguese opaite ñemoneĩ opaite tenda pegua?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2879,17 +2945,19 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">Tembiasakue nemoakãngetáva</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Tembiasakue nemoakãngetáva</string>
+  <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">Tembiasakue</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Tembiasakue téma rehegua</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Ejuhukuaave</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">Omboguatáva %s.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Omboguatáva %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Firefox reheguaite. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Firefox reheguaite. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Kuaave</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Kuaave</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">Pytyvõpyréva</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2901,11 +2969,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">Rome’ẽ marandu’i peteĩteĩva apopyrépe &lt;b&gt;papapy tai ndive&lt;/b&gt; A guive F peve.</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Rome’ẽ marandu’i peteĩteĩva apopyrépe <b>papapy tai ndive</b> A guive F peve.]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;ñeha’ã oikóva&lt;/b&gt; oma’ẽ marandu’i rohecháva ojegueroviaha añoite.</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>ñeha’ã oikóva</b> oma’ẽ marandu’i rohecháva ojegueroviaha añoite.]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">Umi &lt;b&gt;kyta mba’eguasúva&lt;/b&gt; ou marandu’i %s 80 ára ohasaramóvagui ikatuha ejerovia.</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Umi <b>kyta mba’eguasúva</b> ou marandu’i %s 80 ára ohasaramóvagui ikatuha ejerovia.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2923,7 +2991,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">emoñe’ẽ jehaipy</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">embojuruja juajuha eikuaave hag̃ua</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">embojuruja juajuha eikuaave hag̃ua</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s, Moakãha</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -3127,12 +3195,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">Ndaikatúi emboguejy &lt;b&gt;%1$s&lt;/b&gt;. Eha’ã pyahujey.</string>
+  <string name="download_languages_error_warning_text"><![CDATA[Ndaikatúi emboguejy <b>%1$s</b>. Eha’ã pyahujey.]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">Ndaikatúi embogue &lt;b&gt;%1$s&lt;/b&gt;. Eha’ã pyahujey.</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[Ndaikatúi embogue <b>%1$s</b>. Eha’ã pyahujey.]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -3228,7 +3296,7 @@
     Description text for a dialog confirming whether the user wants to delete all data for current site.
     %s is a placeholder for the base domain of website.
   -->
-  <string name="clear_site_data_dialog_description">Embogue kookie tenda mba’ekuaarã &lt;b&gt;%s&lt;/b&gt; omboty hag̃ua jeike ñanduti roguépe ha taipotĩ karro’i jejoguaha.</string>
+  <string name="clear_site_data_dialog_description"><![CDATA[Embogue kookie tenda mba’ekuaarã <b>%s</b> omboty hag̃ua jeike ñanduti roguépe ha taipotĩ karro’i jejoguaha.]]></string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">Mopotĩ</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->

@@ -102,8 +102,17 @@
   <string name="tab_tray_close_tabs_banner_positive_button_text">نیشتن گۊزینه یل</string>
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
   <string name="tab_tray_close_tabs_banner_negative_button_text">رڌ کردن</string>
+  <!-- Text for title for the auto-close dialog of the inactive tabs. -->
+  <string name="tab_tray_inactive_auto_close_title">بسته وابیڌن خوتکار بئڌ ی ما؟</string>
+  <!--
+    Text for the body for the auto-close dialog of the inactive tabs.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="tab_tray_inactive_auto_close_body_2">%1$s تره بلگه یلی ک من ما گوڌشته ننیشتین ن بوونده.</string>
   <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
   <string name="tab_tray_inactive_auto_close_button_content_description">بستن</string>
+  <!-- Text for turn on auto close tabs button in the auto-close dialog of the inactive tabs. -->
+  <string name="tab_tray_inactive_turn_on_auto_close_button_2">فعال کردن بستن خوتکار</string>
   <!--
     Home screen icons - Long press shortcuts
 
@@ -202,6 +211,10 @@
   <string name="browser_menu_desktop_site">وبگه ری میزی</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
   <string name="browser_menu_open_in_regular_tab">گۊشیڌن من بلگه مئمۊلی</string>
+  <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
+  <string name="browser_menu_add_to_homescreen">ٱووردن و بلگه هووه ای</string>
+  <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
+  <string name="browser_menu_add_app_to_homescreen">ٱووردن برنومه و بلگه ٱسلی</string>
   <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
   <string name="browser_menu_add_to_homescreen_2">ٱووردن و بلگه ٱسلی…</string>
   <!-- Browser menu toggle that adds a PWA of the site on the device home screen. -->
@@ -386,6 +399,8 @@
   <string name="search_suggestions_onboarding_do_not_allow_button">نشتن</string>
   <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">پیتینیڌن من %s</string>
+  <!-- Search engine suggestion description text -->
+  <string name="search_engine_suggestions_description">موستقیم ز نوار نشۊوی بپیتین</string>
   <!-- Menu option in the search selector menu to open the search settings -->
   <string name="search_settings_menu_item">سامووا پیتینیڌن</string>
   <!-- Header text for the search selector menu -->
@@ -493,6 +508,8 @@
   <string name="onboarding_add_on_star_rating_content_description">نومره داڌه وابیڌه: %1$s ز 5</string>
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">ایما ن هیاری بڌین Firefox ن بؽڌر کۊنیم</string>
+  <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_title">و هالت خوتکار گوزارشا خراوی ن بفشنین</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">قلوه دووسته بۊین</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">قلوه دووسته بۊین</string>
@@ -504,14 +521,26 @@
   <string name="onboarding_terms_of_service_sub_header_2">گشتن وب زل وو ٱمن</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">قوۊل کردن وو رئڌن وا پؽش</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">رئڌن وا پؽش</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">وا رؽڌن وا پؽش، ایسا %1$s ن قوۊل اکۊنین.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
   <string name="onboarding_term_of_service_line_one_link_text_2" tools:ignore="BrandUsage">شرتا و کار گرؽڌن Firefox</string>
+  <!-- Line two of the terms of service onboarding page. 'Firefox' is intentionally hardcoded. %1$s is replaced by an active link, using onboarding_term_of_service_line_two_link_text as text (“Privacy Notice”). -->
+  <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">Firefox و هریم سیخومی ایسا ٱهمیت اده. قلوه زس من %1$s دووسته بۊین.</string>
+  <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
+  <string name="onboarding_term_of_service_line_two_link_text">نوکات زفت مهرمووه ای</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">دؽوۉداری</string>
+  <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">منه روشد Firefox و ایما هیاری بڌین</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">قوۊل کردن وو ناهاڌن پا گشتن</string>
+  <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
+  <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">نوکته دیندایی</string>
+  <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">پسند جاگه جا گرؽڌن نوار ٱوزار</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">پیتینیڌنا ن من دسرس واڌارنین</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
@@ -579,7 +608,7 @@
   <!-- Preference for settings related to Search engines suggestions -->
   <string name="preferences_search_engines_suggestions">پؽشنهاڌا ز موتورا پیتینیڌن</string>
   <!-- Preference link to Learn more about Firefox Suggest -->
-  <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">قلوه زبار پؽشنهاڌا Firefox دووسته بۊین</string>
+  <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">زبار پؽشنهاڌا Firefox قلوه دووسته بۊین</string>
   <!-- Preference link to rating Fenix on the Play Store -->
   <string name="preferences_rate">نومره داڌن من Google Play</string>
   <!--
@@ -714,6 +743,12 @@
   <string name="notifications_allowed_summary">هشتن</string>
   <!-- Summary for notification preference indicating notifications are not allowed -->
   <string name="notifications_not_allowed_summary">نشتن</string>
+  <!--
+    Add-on Permissions
+
+    The title of the required permissions section from addon's permissions screen
+  -->
+  <string name="addons_permissions_heading_required" tools:ignore="UnusedResources">وا الن بۊوس</string>
   <!-- The title of the optional permissions section from addon's permissions screen -->
   <string name="addons_permissions_heading_optional" tools:ignore="UnusedResources">دل ب خایی</string>
   <!-- The title of the origin permission option allowing a user to enable the extension to run on all sites -->
@@ -922,13 +957,15 @@
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">داده یل هنداگیری کمپین</string>
   <!-- Learn more link for marketing data preference -->
-  <string name="preferences_marketing_data_learn_more">قلوه زبار داده یل بازاریابی دووسته بۊین</string>
+  <string name="preferences_marketing_data_learn_more">زبار داده یل بازاریابی قلوه دووسته بۊین</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preferences_daily_usage_ping_title">پینگ و کار گرؽڌن رۊزووه</string>
   <string name="preferences_daily_usage_ping_description">یو Mozilla ن هیاری اده تا منتورا رۊزووه ن بشماره.</string>
-  <string name="preferences_daily_usage_ping_learn_more">قلوه زبار پینگ و کار گرؽڌن رۊزووه دووسته بۊبن</string>
+  <string name="preferences_daily_usage_ping_learn_more">زبار پینگ و کار گرؽڌن رۊزووه قلوه دووسته بۊبن</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">و هالت خوتکار گوزارشا خراوی ن بفشنین</string>
+  <!-- Learn more link for crash reporting preference -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">زبار گوزارشا خراوی قلوه دووسته بۊین</string>
   <!--
     Turn On Sync Preferences
 
@@ -1052,6 +1089,14 @@
   <string name="opening_screen_homepage">بلگه هووه ای</string>
   <!-- Option for always opening the user's last-open tab when re-opening the app -->
   <string name="opening_screen_last_tab">بلگه دیندایی</string>
+  <!-- Summary for tabs preference when auto closing tabs setting is set to manual close -->
+  <string name="close_tabs_manually_summary">بستن دستی</string>
+  <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day -->
+  <string name="close_tabs_after_one_day_summary">بستن بئڌ 1 رۊز</string>
+  <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one week -->
+  <string name="close_tabs_after_one_week_summary">بستن بئڌ 1 هفته</string>
+  <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month -->
+  <string name="close_tabs_after_one_month_summary">بستن بئڌ 1 ما</string>
   <!-- Summary for homepage preference indicating always opening the homepage when re-opening the app -->
   <string name="opening_screen_homepage_summary">گۊشیڌن من بلگه هووه ای</string>
   <!-- Summary for homepage preference indicating always opening the last-open tab when re-opening the app -->
@@ -1164,6 +1209,8 @@
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">دانلودا پاک وابین</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s پاک وابی</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">«%1$s» پاک وابی</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">جۊزیات</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1187,7 +1234,17 @@
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
   -->
-  <string name="download_file_has_not_enough_storage_dialog_message">ای دسگا جاگه کافی سی دانلود &lt;b&gt;%s&lt;/b&gt; ن نڌاره.</string>
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[ای دسگا جاگه کافی سی دانلود <b>%s</b> ن نڌاره.]]></string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">دؽوۉداری فایلا</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">لقو</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">پاک کردن</string>
   <!-- Content description for the toolbar back button while searching the downloads -->
@@ -1286,11 +1343,17 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">وبگه کوند هڌ یا کار نؽکونه</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">وبگه کوند هڌ یا کار نؽکونه</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">شؽواتا یا فیلما</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">شؽواتا یا فیلما</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">دویمه یل، لینگا وو موئتوا دیر</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">دویمه یل، لینگا وو موئتوا دیر</string>
+  <!--
+    Crashes
+
+    Title text displayed on the tab crash page. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="tab_crash_title_2">وابخشی. %1$s نتره ای بلگه ن بوگوشه.</string>
   <!-- Close tab button text on the tab crash page -->
   <string name="tab_crash_close">بستن بلگه</string>
   <!-- Restore tab button text on the tab crash page -->
@@ -1735,6 +1798,8 @@
   <string name="sync_sent_tabs_snackbar">بلگه یل ن فشناڌ!</string>
   <!-- Text shown in snackbar when one tab has been sent to device -->
   <string name="sync_sent_tab_snackbar">بلگه ن فشناڌ!</string>
+  <!-- Text shown in snackbar for the "retry" action that the user has after sharing tabs failed -->
+  <string name="sync_sent_tab_error_snackbar_action">قپ ریت دووارته</string>
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">اسکن کود</string>
   <!-- Text shown for sign in pairing when ready -->
@@ -1745,6 +1810,14 @@
   <string name="sign_in_with_email">و جا هو ایمیل ن و کار بگر</string>
   <!-- Error message snackbar shown after the user tried to select a default folder which cannot be altered -->
   <string name="bookmark_cannot_edit_root">نترین دوبلگه یل پؽش فرز ن آلشت کۊنین</string>
+  <!-- Preference for enhanced tracking protection for the custom protection settings -->
+  <string name="preference_enhanced_tracking_protection_custom">سفارشی</string>
+  <!--
+    Header for categories that are being blocked by current Enhanced Tracking Protection settings
+
+    Preference for enhanced tracking protection for the custom protection settings for cookies
+  -->
+  <string name="preference_enhanced_tracking_protection_custom_cookies">کۊکیا</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->
   <string name="preference_enhanced_tracking_protection_custom_tracking_content_1">من پوی بلگه یل</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->
@@ -1757,12 +1830,26 @@
   <string name="enhanced_tracking_protection_allowed">هشتسه</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">قلوه دووسته بۊین</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">قلوه دووسته بۊین</string>
+  <!-- Content description for the "Info" button -->
+  <string name="preference_doh_info_description">دووسمندیا</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">ٱووردن وبگه</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">کۊر</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_default">(پؽش فرز)</string>
   <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
   <string name="preference_doh_provider_custom">سفارشی</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">نشۊوی اینترنتی زبال نؽ</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">لقو</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">ٱووردن</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">ٱووردن وبگه</string>
   <!-- About page link text to open support link -->
   <string name="about_support">لادراری</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -1833,6 +1920,12 @@
   <string name="saved_login_reveal_password">نشووݩ داڌن رزم</string>
   <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
   <string name="saved_login_hide_password">بؽڌار کردن رزم</string>
+  <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
+  <string name="logins_warning_dialog_later">دیندا</string>
+  <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
+  <string name="logins_warning_dialog_set_up_now">هیم سکو ر ونین</string>
+  <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their logins -->
+  <string name="logins_biometric_prompt_message_pin">گۊشیڌن رزم دسگا</string>
   <!-- Content description (not visible, for screen readers etc.) -->
   <string name="saved_logins_menu_dropdown_chevron_icon_content_description_2">نومگه کتن کردن رزما</string>
   <!--
@@ -1896,7 +1989,7 @@
   <!-- Title of warning dialog if users have no device authentication set up -->
   <string name="credit_cards_warning_dialog_title_2">ایمن کردن روشا پرداخت زفت وابیڌه ایسا</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
-  <string name="credit_cards_warning_dialog_set_up_now">ر ونی</string>
+  <string name="credit_cards_warning_dialog_set_up_now">هیم سکو ر ونین</string>
   <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
   <string name="credit_cards_warning_dialog_later">دیندا</string>
   <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
@@ -1927,10 +2020,50 @@
   <string name="addresses_phone">تیلیفووݩ</string>
   <!-- The header for the email of an address -->
   <string name="addresses_email">ایمیل</string>
+  <!-- The text for the "Save" button for saving an address -->
+  <string name="addresses_save_button">زفت</string>
+  <!-- The text for the "Cancel" button for cancelling adding, updating or deleting an address -->
+  <string name="addresses_cancel_button">لقو</string>
+  <!-- The text for the "Delete address" button for deleting an address -->
+  <string name="addressess_delete_address_button">پاک کردن نشۊوی</string>
+  <!-- The title for the "Delete address" confirmation dialog -->
+  <string name="addressess_confirm_dialog_message_2">ای نشۊوی پاک بۊ؟</string>
+  <!-- The text for the positive button on "Delete address" dialog -->
+  <string name="addressess_confirm_dialog_ok_button">پاک کردن</string>
+  <!-- The text for the negative button on "Delete address" dialog -->
+  <string name="addressess_confirm_dialog_cancel_button">لقو</string>
+  <!-- The text for the "Save address" menu item for saving an address -->
+  <string name="address_menu_save_address">زفت نشۊوی</string>
+  <!-- The text for the "Delete address" menu item for deleting an address -->
+  <string name="address_menu_delete_address">پاک کردن نشۊوی</string>
+  <!-- Title of the Add search engine screen -->
+  <string name="search_engine_add_custom_search_engine_title">ٱووردن موتور پیتینیڌن</string>
+  <!-- Content description (not visible, for screen readers etc.): Title for the button that navigates to add new engine screen -->
+  <string name="search_engine_add_custom_search_engine_button_content_description">ٱووردن موتور پیتینیڌن نۊ</string>
   <!-- Title of the Edit search engine screen -->
   <string name="search_engine_edit_custom_search_engine_title">آلشت موتور پیتینیڌن</string>
   <!-- Text for the menu button to edit a search engine -->
   <string name="search_engine_edit">آلشت</string>
+  <!-- Text for the menu button to delete a search engine -->
+  <string name="search_engine_delete">پاک کردن</string>
+  <!-- Label for the TextField in which user enters custom search engine name -->
+  <string name="search_add_custom_engine_name_label">نوم</string>
+  <!-- Placeholder text shown in the Search Engine Name text field before a user enters text -->
+  <string name="search_add_custom_engine_name_hint_2">نوم موتور پیتینیڌن</string>
+  <!-- The text for the "Save" button for saving a custom search engine -->
+  <string name="search_custom_engine_save_button">زفت</string>
+  <!-- Text shown when a user leaves the name field empty -->
+  <string name="search_add_custom_engine_error_empty_name">نوم موتور پیتینیڌن ن بزنین</string>
+  <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">ختا من منپیز و “%s”</string>
+  <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
+  <string name="search_add_custom_engine_success_message">%s وورکل وابی</string>
+  <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
+  <string name="search_edit_custom_engine_success_message">%s زفت وابی</string>
+  <!-- Text shown when a user successfully deletes a custom search engine. %s is the url of the custom search engine. -->
+  <string name="search_delete_search_engine_success_message">%s پاک وابی</string>
+  <!-- Heading for the instructions to allow a permission -->
+  <string name="phone_feature_blocked_intro">سی هشتن هو:</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">اخۊی ک پوی دسرسیا ن من پوی وبگه یل پاک کۊنی؟</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -1985,7 +2118,7 @@
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
   <string name="add_login_hostname_invalid_text_3">نشۊوی وا «https://‎» یا «http://‎» ن داشته بۊ</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
-  <string name="add_login_hostname_invalid_text_2">نوم هاستی ک زبال بۊ وا بۊوس</string>
+  <string name="add_login_hostname_invalid_text_2">نوم هاستی ک زبال بۊ وا الن بۊوس</string>
   <!--
     Synced Tabs
 
@@ -2020,10 +2153,26 @@
   <string name="top_sites_edit_top_site">آلشت</string>
   <!-- Text for the dialog title to edit a top site. -->
   <string name="top_sites_edit_dialog_title">آلشت ر نهنگ</string>
+  <!-- Button caption to confirm the edit of the top site. -->
+  <string name="top_sites_edit_dialog_save">زفت</string>
+  <!-- Error message when the user entered an invalid URL -->
+  <string name="top_sites_edit_dialog_url_error">ی نشۊوی اینترنتی ک زبال هڌ بزنین</string>
+  <!-- Label for the URL edit field in the edit top site dialog. -->
+  <string name="top_sites_edit_dialog_url_title">نشۊوی اینترنتی</string>
+  <!--
+    Inactive tabs in the tabs tray
+
+    Title text displayed in the tabs tray when a tab has been unused for 14 days.
+  -->
+  <string name="inactive_tabs_title">بلگه یل قیر فعال</string>
+  <!-- Content description for closing all inactive tabs -->
+  <string name="inactive_tabs_delete_all">بستن پوی بلگه یل قیر فعال</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">جووݩ گرؽڌه ز %s.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">جووݩ گرؽڌه ز %s.</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">هؽزگری وابیڌه</string>
+  <!-- Snackbar button text to navigate to telemetry settings. -->
+  <string name="experiments_snackbar_button">راو و سامووا</string>
   <!-- Current state for elements that can be collapsed if interacting with them. Talkback will dictate this after a state change. -->
   <string name="a11y_state_label_collapsed">کۊتال وابیڌه</string>
   <!-- Action label for elements that can be expanded if interacting with them. Talkback will append this to say "Double tap to expand". -->
@@ -2055,9 +2204,9 @@
   <!-- Text that links to additional information about the Firefox translations feature. -->
   <string name="translations_bottom_sheet_info_message_learn_more">قلوه دووسته بۊین</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
-  <string name="translations_bottom_sheet_translate_from">ولرنیڌه ز</string>
+  <string name="translations_bottom_sheet_translate_from">ولرنیڌن ز</string>
   <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
-  <string name="translations_bottom_sheet_translate_to">ولرنیڌه و</string>
+  <string name="translations_bottom_sheet_translate_to">ولرنیڌن و</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog when the page language is not supported. This selection is to allow the user to select another language, in case we automatically detected the page language incorrectly. -->
   <string name="translations_bottom_sheet_translate_from_unsupported_language">ی زووݩ بونچک دیری ن امتهووݩ کۊنین</string>
   <!-- Button text on the translations dialog to dismiss the dialog and return to the browser. -->
@@ -2122,15 +2271,39 @@
   <!-- Preference option for always translate. Radio button title text. -->
   <string name="automatic_translation_option_always_translate_title_preference">هی ولرن</string>
   <!--
+    Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
+    %1$s is web site url (for example:"wikipedia.com")
+  -->
+  <string name="never_translate_site_item_list_content_description_preference">پاک کردن %1$s</string>
+  <!--
+    The Delete site dialogue title will appear when the user clicks on a list item.
+    %1$s is web site url (for example:"wikipedia.com")
+  -->
+  <string name="never_translate_site_dialog_title_preference">%1$s پاک بۊ؟</string>
+  <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
+  <string name="never_translate_site_dialog_confirm_delete_preference">پاک کردن</string>
+  <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
+  <string name="never_translate_site_dialog_cancel_preference">لقو</string>
+  <!--
+    Download languages preference screen
+
+    Title of the toolbar for the translation feature screen where users may download different languages for translation.
+  -->
+  <string name="download_languages_translations_toolbar_title_preference">دانلود زوونا</string>
+  <!-- Clickable text from the screen header that links to a website. -->
+  <string name="download_languages_header_learn_more_preference">قلوه دووسته بۊین</string>
+  <!-- Text that will appear beside a core or pivot language package name to show that the language is necessary for the translation feature to function. -->
+  <string name="download_languages_default_system_language_require_preference">وا الن بۊوس</string>
+  <!--
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">نترستیم &lt;b&gt;%1$s&lt;/b&gt; ن دانلود کۊنیم. دووارته قپ ریت کۊنین.</string>
+  <string name="download_languages_error_warning_text"><![CDATA[نترستیم <b>%1$s</b> ن دانلود کۊنیم. دووارته قپ ریت کۊنین.]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">نترستیم &lt;b&gt;%1$s&lt;/b&gt; ن پاک کۊنیم. دووارته قپ ریت کۊنین.</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[نترستیم <b>%1$s</b> ن پاک کۊنیم. دووارته قپ ریت کۊنین.]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting all languages file.
     The dialog will be presented when the user requests deletion of all languages file.
@@ -2170,6 +2343,10 @@
   <string name="protection_panel_banner_not_secure_description">منپیز ایسا ایمن نؽ.</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">سامووا هریم سیخومی وو ٱمنیت</string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">پاک کردن</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">لقو</string>
   <!--
     Debug drawer tabs tools
 

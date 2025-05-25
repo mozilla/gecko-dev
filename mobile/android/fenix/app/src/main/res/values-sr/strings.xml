@@ -839,9 +839,9 @@
   -->
   <string name="customize_toggle_recently_visited">Недавно посећено</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">Побуђујуће и поучне приче</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Побуђујуће и поучне приче</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">Чланке обезбеђује %s</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Чланке обезбеђује %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Спонзорисане приче</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1009,7 +1009,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">Скенирајте QR код приказан на &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[Скенирајте QR код приказан на <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1305,15 +1305,15 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">Сајт је спор или не ради</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Сајт је спор или не ради</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">Слике или видеи</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Слике или видеи</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">Тастери, везе и други садржај</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Тастери, везе и други садржај</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">Пријава и одјава</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Пријава и одјава</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">Блокатор огласа</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Блокатор огласа</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Нешто друго</string>
   <!--
@@ -1840,7 +1840,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Скенирај код</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">На вашем рачунару отворите Firefox и посетите страницу &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[На вашем рачунару отворите Firefox и посетите страницу <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Спреман за скенирање</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1848,7 +1848,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">Користи адресу е-поште</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Немате налог? &lt;u&gt;Направите га&lt;/u&gt; за синхронизацију Firefox-а међу уређајима.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Немате налог? <u>Направите га</u> за синхронизацију Firefox-а међу уређајима.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s ће престати са синхронизацијом вашег налога, али неће обрисати ваше податке прегледања на овом уређају.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2268,7 +2268,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Проверите да низ одговара формату примера</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">Грешка приликом повезивања са “%s”</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">Грешка приликом повезивања са “%s”</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s је направљен</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2280,9 +2280,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Идите на Android подешавања</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Додирните &lt;b&gt;Дозволе&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Додирните <b>Дозволе</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. Пребаците &lt;b&gt;%1$s&lt;/b&gt; на УКЉУЧЕНО</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Пребаците <b>%1$s</b> на УКЉУЧЕНО]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Веза је безбедна</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2290,7 +2290,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">Обриши колачиће и податке сајта</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">Да ли сте сигурни да желите очистити колачиће и податке сајта &lt;b&gt;%s&lt;/b&gt;?</string>
+  <string name="confirm_clear_site_data"><![CDATA[Да ли сте сигурни да желите очистити колачиће и податке сајта <b>%s</b>?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Јесте ли сигурни да желите да избришете све дозволе на свим веб страницама?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2467,17 +2467,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">Надахнујуће приче</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Надахнујуће приче</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Приче по теми</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Откријте више</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">Покреће %s.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Покреће %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Део Firefox породице. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Део Firefox породице. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Сазнајте више</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Сазнајте више</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">Спонзорисано</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2489,11 +2489,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">Свакоj рецензији производа додељујемо &lt;b&gt;словну оцену&lt;/b&gt; од А до F.</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Свакоj рецензији производа додељујемо <b>словну оцену</b> од А до F.]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">Ова &lt;b&gt;прилагођена оцена&lt;/b&gt; је заснована само на рецензијама за које верујемо да су поуздане.</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Ова <b>прилагођена оцена</b> је заснована само на рецензијама за које верујемо да су поуздане.]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;Истакнуто&lt;/b&gt; је из %s рецензија у последњих 80 дана за које верујемо да су поуздане.</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>Истакнуто</b> је из %s рецензија у последњих 80 дана за које верујемо да су поуздане.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2511,7 +2511,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">прочитајте чланак</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">отворите везу да сазнате више</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">отворите везу да сазнате више</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s, заглавље</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -2715,12 +2715,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">Преузимање &lt;b&gt;%1$s&lt;/b&gt; није успело. Покушајте поново касније.</string>
+  <string name="download_languages_error_warning_text"><![CDATA[Преузимање <b>%1$s</b> није успело. Покушајте поново касније.]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">Брисање &lt;b&gt;%1$s&lt;/b&gt; није успело. Покушајте поново касније.</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[Брисање <b>%1$s</b> није успело. Покушајте поново касније.]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.

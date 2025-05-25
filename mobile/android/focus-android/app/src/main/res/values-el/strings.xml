@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;Το %1$s σάς δίνει τον έλεγχο.&lt;/p&gt;
-&lt;p&gt;Χρησιμοποιήστε το για:
-  &lt;ul&gt;
-    &lt;li&gt;Αναζήτηση και περιήγηση&lt;/li&gt;
-    &lt;li&gt;Φραγή ιχνηλατών (ή αποδοχή, ενημερώνοντας τις ρυθμίσεις)&lt;/li&gt;
-    &lt;li&gt;Διαγραφή των cookie και του ιστορικού αναζητήσεων και περιήγησης&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;Το %1$s αναπτύσσεται από τη Mozilla. Αποστολή μας είναι ένα υγιές και ανοικτό διαδίκτυο.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Μάθετε περισσότερα&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>Το %1$s σάς δίνει τον έλεγχο.</p> <p>Χρησιμοποιήστε το για: <ul> <li>Αναζήτηση και περιήγηση</li> <li>Φραγή ιχνηλατών (ή αποδοχή, ενημερώνοντας τις ρυθμίσεις)</li> <li>Διαγραφή των cookie και του ιστορικού αναζητήσεων και περιήγησης</li> </ul> </p> <p>Το %1$s αναπτύσσεται από τη Mozilla. Αποστολή μας είναι ένα υγιές και ανοικτό διαδίκτυο.<br/> <a href=\"%2$s\">Μάθετε περισσότερα</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Απόρρητο και ασφάλεια</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -608,7 +599,7 @@
   <!-- String to be read by the accessibility service when focusing the dismiss button in the "find in page" UI -->
   <string name="accessibility_dismiss_find_in_page">Απόρριψη εύρεσης στη σελίδα</string>
   <!-- Checkbox menu item text to request desktop site -->
-  <string name="preference_performance_request_desktop_site">Ιστότοπος υπολογιστή</string>
+  <string name="preference_performance_request_desktop_site">Απαίτηση έκδοσης υπολογιστή</string>
   <!-- Checkbox menu item text to request desktop site -->
   <string name="preference_performance_request_desktop_site2">Έκδοση υπολογιστή</string>
   <!-- Displayed after a user long presses on the URL in a custom tab to copy the URL -->
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Μεταβείτε στις ρυθμίσεις του Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Πατήστε &lt;b&gt;Δικαιώματα&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Πατήστε <b>Δικαιώματα</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Μετάβαση στις ρυθμίσεις</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Ενεργοποιήστε το &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Ενεργοποιήστε το <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Κάμερα</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> Για να λαμβάνετε προτάσεις, το %1$s πρέπει να στέλνει στη μηχανή αναζήτησης ό,τι πληκτρολογείτε στη γραμμή διευθύνσεων.</string>
+  <string name="enable_search_suggestion_description">Για να λαμβάνετε προτάσεις, το %1$s πρέπει να στέλνει στη μηχανή αναζήτησης ό,τι πληκτρολογείτε στη γραμμή διευθύνσεων.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">Οχι</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,8 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Απρόσμενη συμπεριφορά σε ιστότοπο;\n
-    Απενεργοποιήστε την προστασία από καταγραφή</string>
+  <string name="tip_disable_tracking_protection">Απρόσμενη συμπεριφορά σε ιστότοπο;\nΑπενεργοποιήστε την προστασία από καταγραφή</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -779,23 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Άνοιγμα κάθε συνδέσμου στο %1$s\n
-        Ορίστε το %1$s ως προεπιλογή
-    </string>
+  <string name="tip_set_default_browser">Άνοιγμα κάθε συνδέσμου στο %1$s\nΟρίστε το %1$s ως προεπιλογή</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Αυτόματη συμπλήρωση URL για συχνούς ιστοτόπους\n
-        Πατήστε παρατεταμένα οποιοδήποτε URL στη γραμμή διευθύνσεων
-    </string>
+  <string name="tip_autocomplete_url">Αυτόματη συμπλήρωση URL για συχνούς ιστοτόπους\nΠατήστε παρατεταμένα οποιοδήποτε URL στη γραμμή διευθύνσεων</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Άνοιγμα συνδέσμου σε νέα καρτέλα\n
-        Πατήστε παρατεταμένο σε οποιονδήποτε σύνδεσμο μιας σελίδας
-    </string>
+  <string name="tip_open_in_new_tab">Άνοιγμα συνδέσμου σε νέα καρτέλα\nΠατήστε παρατεταμένο σε οποιονδήποτε σύνδεσμο μιας σελίδας</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Απενεργοποίηση συμβουλών αρχικής οθόνης</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -876,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">&lt;b&gt;Δεν&lt;/b&gt; διαγράφονται αποθηκευμένες και κοινόχρηστες εικόνες κατά την απαλοιφή ιστορικού του %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[<b>Δεν</b> διαγράφονται αποθηκευμένες και κοινόχρηστες εικόνες κατά την απαλοιφή ιστορικού του %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -897,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">Το %1$s προσπαθεί να χρησιμοποιεί σύνδεση HTTPS, όποτε αυτό είναι δυνατό, για περισσότερη ασφάλεια.
-     &lt;a href="%2$s"&gt;Μάθετε περισσότερα&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Αλλάξτε αυτήν τη ρύθμιση στις Ρυθμίσεις &gt; Απόρρητο και ασφάλεια &gt; Ασφάλεια.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Το %1$s προσπαθεί να χρησιμοποιεί σύνδεση HTTPS, όποτε αυτό είναι δυνατό, για περισσότερη ασφάλεια. <a href=\"%2$s\">Μάθετε περισσότερα</a> <br/><br/> Αλλάξτε αυτήν τη ρύθμιση στις Ρυθμίσεις > Απόρρητο και ασφάλεια > Ασφάλεια.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Μη ασφαλής σύνδεση</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Ενδέχεται να υπάρχει πρόβλημα με τη διαμόρφωση του διακομιστή ή κάποιος ίσως προσπαθεί να μιμηθεί τον διακομιστή. &lt;br/&gt;&lt;br/&gt;
-    Εάν έχετε συνδεθεί επιτυχώς σε αυτόν τον διακομιστή στο παρελθόν, το σφάλμα είναι μάλλον προσωρινό.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Ενδέχεται να υπάρχει πρόβλημα με τη διαμόρφωση του διακομιστή ή κάποιος ίσως προσπαθεί να μιμηθεί τον διακομιστή. <br/><br/> Εάν έχετε συνδεθεί επιτυχώς σε αυτόν τον διακομιστή στο παρελθόν, το σφάλμα είναι μάλλον προσωρινό.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Κάποιος ίσως προσπαθεί να μιμηθεί τον ιστότοπο και θα ήταν επικίνδυνο να συνεχίσετε.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;Το %1$s δεν εμπιστεύεται το &lt;b&gt;%2$s&lt;/b&gt;, επειδή ο εκδότης του πιστοποιητικού του είναι άγνωστος, το πιστοποιητικό είναι αυτοϋπογεγραμμένο ή ο διακομιστής δεν στέλνει τα σωστά ενδιάμεσα πιστοποιητικά.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Κάποιος ίσως προσπαθεί να μιμηθεί τον ιστότοπο και θα ήταν επικίνδυνο να συνεχίσετε.</label> <br><br> <label>Το %1$s δεν εμπιστεύεται το <b>%2$s</b>, επειδή ο εκδότης του πιστοποιητικού του είναι άγνωστος, το πιστοποιητικό είναι αυτοϋπογεγραμμένο ή ο διακομιστής δεν στέλνει τα σωστά ενδιάμεσα πιστοποιητικά.</label>]]></string>
   <!--
     Sessions List
 

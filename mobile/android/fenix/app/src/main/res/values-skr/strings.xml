@@ -786,9 +786,9 @@
   -->
   <string name="customize_toggle_recently_visited">حالیہ ݙٹھے</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">فکر انگیز کہاݨیاں</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">فکر انگیز کہاݨیاں</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">%s ولوں تکڑے تھئے مضمون</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">%s ولوں تکڑے تھئے مضمون</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">سپانسر تھیاں کہاݨیاں</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -954,7 +954,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">&lt;b&gt;firefox.com/pair&lt;/b&gt; تے ݙتے ہوئے QR کوڈ کوں سکین کرو</string>
+  <string name="pair_instructions_2"><![CDATA[<b>firefox.com/pair</b> تے ݙتے ہوئے QR کوڈ کوں سکین کرو]]></string>
   <!--
     Toolbar Preferences
 
@@ -1248,15 +1248,15 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">سائٹ مٹھی ہے یا کم کائنی کریندی پئی؟</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">سائٹ مٹھی ہے یا کم کائنی کریندی پئی؟</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">تصویراں یا وڈیوز</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">تصویراں یا وڈیوز</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">بٹݨ، لنکس، اَتے ٻِیا مواد</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">بٹݨ، لنکس، اَتے ٻِیا مواد</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">سائن ان یا سائن آؤٹ</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">سائن ان یا سائن آؤٹ</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">اشتہار بلاکر</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">اشتہار بلاکر</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">ایندے علاوہ کجھ ٻیا</string>
   <!--
@@ -1775,7 +1775,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">کوڈ سکین کرو</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">آپݨے کمپیوٹر تے فائرفوکس کھولو تے &lt;b&gt;https://firefox.com/pair&lt;/b&gt; تے ون٘ڄو</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[آپݨے کمپیوٹر تے فائرفوکس کھولو تے <b>https://firefox.com/pair</b> تے ون٘ڄو]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">سکین کرݨ کیتے تیار</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -1783,7 +1783,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">ایندی بجائے ای میل ورتو</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">کھاتہ کائنی؟ ڈیوائساں دے درمیان فائرفوکس ہم وقت کرݨ کیتے&lt;u&gt;ہک کھاتہ بݨاؤ&lt;/u&gt;۔</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[کھاتہ کائنی؟ ڈیوائساں دے درمیان فائرفوکس ہم وقت کرݨ کیتے<u>ہک کھاتہ بݨاؤ</u>۔]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s تہاݙے کھاتے نال ہم وقت تھیوݨ رک ویسی، پر ایں ڈیوائس تے تہاݙے براؤز تھئے ڈیٹا وچوں کجھ نہ مٹیسی۔</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2203,7 +2203,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">پڑتال کرو جو ڳولݨ تند مثال دے نمونے مطابق ہے</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">”%s“ نال رابطہ کرݨ وچ خرابی</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">”%s“ نال رابطہ کرݨ وچ خرابی</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s بݨ ڳیا</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2215,9 +2215,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">١۔ اینڈرائیڈ ترتیباں تے ون٘ڄو</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">٢. &lt;b&gt;اجازتاں&lt;/b&gt; تے دباؤ</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[٢. <b>اجازتاں</b> تے دباؤ]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; کوں چالو کرݨ کیتے ٹوگل کرو</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> کوں چالو کرݨ کیتے ٹوگل کرو]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">کنکشن محفوظ ہے۔</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2225,7 +2225,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">کوکیاں تے سائٹ ڈیٹا صاف کرو</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">بھلا تہاکوں پک ہے جو تساں سائٹ &lt;b&gt;%s&lt;/b&gt; کیتے ساریاں کوکیاں تے ڈیٹا صاف کرݨ چاہندے ہو؟</string>
+  <string name="confirm_clear_site_data"><![CDATA[بھلا تہاکوں پک ہے جو تساں سائٹ <b>%s</b> کیتے ساریاں کوکیاں تے ڈیٹا صاف کرݨ چاہندے ہو؟]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">بھلا تہاکوں پک ہے جو تساں ساریاں سائٹاں کیتے ساریاں اجازتاں مکاوݨ چاہندے ہو؟</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2402,17 +2402,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">فکر انگیز کہاݨیاں</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">فکر انگیز کہاݨیاں</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">موضوع دے لحاظ نال کہاݨیاں</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">ٻیاں لبھو</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">تکڑا تھیا %s ولوں.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">تکڑا تھیا %s ولوں.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">فائرفوکس ٹٻر دا حصہ۔ %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">فائرفوکس ٹٻر دا حصہ۔ %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">ٻیا سِکھو</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">ٻیا سِکھو</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">سپانسر تھئے</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2424,11 +2424,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">اَساں ہر پراڈکٹ دے جائزیاں کوں اے کنوں ایف تئیں &lt;b&gt;اَکّھر دا درجہ&lt;/b&gt; تفویض کرین٘دے ہِسے۔</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[اَساں ہر پراڈکٹ دے جائزیاں کوں اے کنوں ایف تئیں <b>اَکّھر دا درجہ</b> تفویض کرین٘دے ہِسے۔]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;مُرتّب کِیتی ڳئی درجہ بندی&lt;/b&gt; صرف اُنّھاں جائزیاں اُتّے مبنی ہِے جہڑے اَساں قابلِ اعتماد سمجھدے ہِسے۔</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>مُرتّب کِیتی ڳئی درجہ بندی</b> صرف اُنّھاں جائزیاں اُتّے مبنی ہِے جہڑے اَساں قابلِ اعتماد سمجھدے ہِسے۔]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;نمونے&lt;/b&gt; پِچھوکڑ 80 ݙیہاڑیاں دے %s جائزیاں وِچوں ہِن جِنّھاں دے بارے وِچ اَساکوں پَک ہِے۔</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>نمونے</b> پِچھوکڑ 80 ݙیہاڑیاں دے %s جائزیاں وِچوں ہِن جِنّھاں دے بارے وِچ اَساکوں پَک ہِے۔]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2446,7 +2446,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">مضمون پڑھو</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">ٻیا سکھݨ کیتے لنک کھولو</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">ٻیا سکھݨ کیتے لنک کھولو</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s، سرخی</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -2650,12 +2650,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">&lt;b&gt; %1$s &lt;/b&gt; ڈاؤن لوڈ کائنی کر سڳا۔ سوہݨا، ولدا کوشش کرو۔</string>
+  <string name="download_languages_error_warning_text"><![CDATA[<b> %1$s </b> ڈاؤن لوڈ کائنی کر سڳا۔ سوہݨا، ولدا کوشش کرو۔]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">&lt;b&gt; %1$s &lt;/b&gt; کائنی مٹا سڳا۔ سوہݨا، ولدا کوشش کرو۔</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[<b> %1$s </b> کائنی مٹا سڳا۔ سوہݨا، ولدا کوشش کرو۔]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.

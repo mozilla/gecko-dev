@@ -775,7 +775,7 @@
   <!-- Preference title for using the screen lock to hide tabs in private browsing -->
   <string name="preferences_pbm_lock_screen_title">Gizli gezintide sekmeleri gizlemek için ekran kilidini kullan</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
-  <string name="preferences_pbm_lock_screen_summary">Sekmeleri parmak izi, yüz tanıma veya PIN ile görüntüleyebilirsiniz.</string>
+  <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Sekmeleri parmak izi, yüz tanıma veya PIN ile görüntüleyebilirsiniz.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Çerez bildirimi engelleyici</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -980,9 +980,9 @@
   -->
   <string name="customize_toggle_recently_visited">Son bakılanlar</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">Merak uyandıran makaleler</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Merak uyandıran makaleler</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">Makaleler %s tarafından derlenmektedir</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Makaleler %s tarafından derlenmektedir</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">Sponsorlu haberler</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1223,7 +1223,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">&lt;b&gt;firefox.com/pair&lt;/b&gt; adresinde görünen QR kodunu tarayın</string>
+  <string name="pair_instructions_2"><![CDATA[<b>firefox.com/pair</b> adresinde görünen QR kodunu tarayın]]></string>
   <!--
     Toolbar Preferences
 
@@ -1537,7 +1537,7 @@
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
   -->
-  <string name="download_file_has_not_enough_storage_dialog_message">Bu cihazda &lt;b&gt;%s&lt;/b&gt; dosyasını indirmek için yeterli alan yok.</string>
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[Bu cihazda <b>%s</b> dosyasını indirmek için yeterli alan yok.]]></string>
   <!--
     Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
     This button will navigate the user to the device's storage management settings.
@@ -1660,15 +1660,15 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">Site yavaş veya çalışmıyor</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Site yavaş veya çalışmıyor</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">Resimler veya videolar</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Resimler veya videolar</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">Düğmeler, bağlantılar ve diğer içerikler</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Düğmeler, bağlantılar ve diğer içerikler</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">Giriş yapma veya çıkış yapma</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Giriş yapma veya çıkış yapma</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">Reklam engelleyici</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Reklam engelleyici</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Başka bir şey</string>
   <!--
@@ -2211,7 +2211,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">Kodu tarayın</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">Bilgisayarınızda Firefox’u açıp &lt;b&gt;https://firefox.com/pair&lt;/b&gt; adresine gidin</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Bilgisayarınızda Firefox’u açıp <b>https://firefox.com/pair</b> adresine gidin]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">Taramaya hazırım</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -2219,7 +2219,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">E-posta ile giriş yap</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">Hesabınız yok mu? Firefox’u cihazlar arasında eşitlemek için &lt;u&gt;hesap açın&lt;/u&gt;.</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Hesabınız yok mu? Firefox’u cihazlar arasında eşitlemek için <u>hesap açın</u>.]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s artık hesabınızla eşitlenmeyecek ama bu cihazdaki gezinti geçmişiniz silinmeyecek.</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2727,7 +2727,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">Arama dizgisinin örnek biçimle uyumlu olduğundan emin olun</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">“%s” sunucusuna bağlanma hatası</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">“%s” sunucusuna bağlanma hatası</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">%s oluşturuldu</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2739,9 +2739,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Android ayarlarına gidin</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. &lt;b&gt;İzinler&lt;/b&gt;’e dokunun</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. <b>İzinler</b>’e dokunun]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. &lt;b&gt;%1$s&lt;/b&gt; ayarını AÇIK yapın</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. <b>%1$s</b> ayarını AÇIK yapın]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">Bağlantı güvenli</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2751,7 +2751,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">Çerezleri ve site verilerini temizle</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">&lt;b&gt;%s&lt;/b&gt; sitesi için tüm çerezleri ve site verilerini silmek istediğinizden emin misiniz?</string>
+  <string name="confirm_clear_site_data"><![CDATA[<b>%s</b> sitesi için tüm çerezleri ve site verilerini silmek istediğinizden emin misiniz?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">Tüm sitelerdeki tüm izinleri silmek istediğinizden emin misiniz?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2935,17 +2935,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">Merak uyandıran makaleler</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Merak uyandıran makaleler</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Konuya göre makaleler</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">Daha fazlasını keşfedin</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">%s desteğiyle.</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">%s desteğiyle.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Firefox ailesinden. %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Firefox ailesinden. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">Daha fazla bilgi al</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">Daha fazla bilgi al</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">Sponsorlu</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2957,11 +2957,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">Her ürünün değerlendirmelerine A’dan F’ye kadar bir &lt;b&gt;harf notu&lt;/b&gt; veriyoruz.</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[Her ürünün değerlendirmelerine A’dan F’ye kadar bir <b>harf notu</b> veriyoruz.]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;Düzeltilmiş puan&lt;/b&gt; yalnızca güvenilir olduğunu düşündüğümüz değerlendirmelere dayanır.</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>Düzeltilmiş puan</b> yalnızca güvenilir olduğunu düşündüğümüz değerlendirmelere dayanır.]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;Öne çıkanlar&lt;/b&gt; son 80 gün içindeki güvenilir olduğunu düşündüğümüz %s değerlendirmelerinden alınmıştır.</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>Öne çıkanlar</b> son 80 gün içindeki güvenilir olduğunu düşündüğümüz %s değerlendirmelerinden alınmıştır.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2979,7 +2979,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">makaleyi oku</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">bilgi almak için bağlantıyı aç</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">bilgi almak için bağlantıyı aç</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s, Başlık</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -3183,12 +3183,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; indirilemedi. Lütfen yeniden deneyin.</string>
+  <string name="download_languages_error_warning_text"><![CDATA[<b>%1$s</b> indirilemedi. Lütfen yeniden deneyin.]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">&lt;b&gt;%1$s&lt;/b&gt; silinemedi. Lütfen yeniden deneyin.</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[<b>%1$s</b> silinemedi. Lütfen yeniden deneyin.]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -3284,7 +3284,7 @@
     Description text for a dialog confirming whether the user wants to delete all data for current site.
     %s is a placeholder for the base domain of website.
   -->
-  <string name="clear_site_data_dialog_description">&lt;b&gt;%s&lt;/b&gt; sitesinin çerezlerini ve site verilerini temizlerseniz oturumlarınız kapanabilir ve alışveriş sepetleriniz boşalabilir.</string>
+  <string name="clear_site_data_dialog_description"><![CDATA[<b>%s</b> sitesinin çerezlerini ve site verilerini temizlerseniz oturumlarınız kapanabilir ve alışveriş sepetleriniz boşalabilir.]]></string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">Temizle</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->

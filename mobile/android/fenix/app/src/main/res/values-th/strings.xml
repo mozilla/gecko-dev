@@ -974,9 +974,9 @@
   -->
   <string name="customize_toggle_recently_visited">เยี่ยมชมล่าสุด</string>
   <!-- Title for the customize home screen section with Pocket. -->
-  <string name="customize_toggle_pocket_2">เรื่องราวที่จุดประกายความคิด</string>
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">เรื่องราวที่จุดประกายความคิด</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
-  <string name="customize_toggle_pocket_summary">บทความขับเคลื่อนโดย %s</string>
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">บทความขับเคลื่อนโดย %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">เรื่องราวที่ได้รับการสนับสนุน</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1167,7 +1167,7 @@
 
     Instructions on how to access pairing
   -->
-  <string name="pair_instructions_2">สแกนรหัส QR ที่แสดงใน &lt;b&gt;firefox.com/pair&lt;/b&gt;</string>
+  <string name="pair_instructions_2"><![CDATA[สแกนรหัส QR ที่แสดงใน <b>firefox.com/pair</b>]]></string>
   <!--
     Toolbar Preferences
 
@@ -1571,15 +1571,15 @@
 
     Broken site reason text for site slow or not working
   -->
-  <string name="webcompat_reporter_reason_slow">ไซต์ช้าหรือไม่ทำงาน</string>
+  <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">ไซต์ช้าหรือไม่ทำงาน</string>
   <!-- Broken site reason text for images or videos -->
-  <string name="webcompat_reporter_reason_media">รูปภาพหรือวิดีโอ</string>
+  <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">รูปภาพหรือวิดีโอ</string>
   <!-- Broken site reason text for buttons, links, and other content -->
-  <string name="webcompat_reporter_reason_content">ปุ่ม ลิงก์ และเนื้อหาอื่นๆ</string>
+  <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">ปุ่ม ลิงก์ และเนื้อหาอื่นๆ</string>
   <!-- Broken site reason text for sign in or sign out -->
-  <string name="webcompat_reporter_reason_account">ลงชื่อเข้าใช้หรือออกจากระบบ</string>
+  <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">ลงชื่อเข้าใช้หรือออกจากระบบ</string>
   <!-- Broken site reason text for ad blocker -->
-  <string name="webcompat_reporter_reason_ad_blocker">ตัวปิดกั้นโฆษณา</string>
+  <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">ตัวปิดกั้นโฆษณา</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">อื่น ๆ</string>
   <!--
@@ -2118,7 +2118,7 @@
   <!-- Title of QR Pairing Fragment -->
   <string name="sync_scan_code">สแกนรหัส</string>
   <!-- Instructions on how to access pairing -->
-  <string name="sign_in_instructions" tools:ignore="BrandUsage">บนคอมพิวเตอร์ของคุณ ให้เปิด Firefox แล้วไปที่ &lt;b&gt;https://firefox.com/pair&lt;/b&gt;</string>
+  <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[บนคอมพิวเตอร์ของคุณ ให้เปิด Firefox แล้วไปที่ <b>https://firefox.com/pair</b>]]></string>
   <!-- Text shown for sign in pairing when ready -->
   <string name="sign_in_ready_for_scan">พร้อมที่จะสแกน</string>
   <!-- Text shown for settings option for sign with pairing -->
@@ -2126,7 +2126,7 @@
   <!-- Text shown for settings option for sign with email -->
   <string name="sign_in_with_email">ใช้อีเมลแทน</string>
   <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here. -->
-  <string name="sign_in_create_account_text" tools:ignore="BrandUsage">ไม่มีบัญชีใช่หรือไม่? &lt;u&gt;สร้างบัญชี&lt;/u&gt;เพื่อซิงค์ Firefox ระหว่างอุปกรณ์</string>
+  <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[ไม่มีบัญชีใช่หรือไม่? <u>สร้างบัญชี</u>เพื่อซิงค์ Firefox ระหว่างอุปกรณ์]]></string>
   <!-- Text shown in confirmation dialog to sign out of account. %s is the name of the app (for example "Firefox"). -->
   <string name="sign_out_confirmation_message_2">%s จะหยุดซิงค์กับบัญชีของคุณ แต่จะไม่ลบข้อมูลการท่องเว็บใด ๆ ของคุณบนอุปกรณ์นี้</string>
   <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2634,7 +2634,7 @@
   <!-- Text shown when a user leaves out the required template string -->
   <string name="search_add_custom_engine_error_missing_template">ตรวจสอบว่าสตริงการค้นหาตรงกับรูปแบบตัวอย่าง</string>
   <!-- Text shown when we aren't able to validate the custom search query. %s is the url of the custom search engine. -->
-  <string name="search_add_custom_engine_error_cannot_reach">เกิดข้อผิดพลาดในการเชื่อมต่อไปยัง “%s”</string>
+  <string name="search_add_custom_engine_error_cannot_reach" moz:removedIn="140" tools:ignore="UnusedResources">เกิดข้อผิดพลาดในการเชื่อมต่อไปยัง “%s”</string>
   <!-- Text shown when a user creates a new search engine. %s is the url of the custom search engine. -->
   <string name="search_add_custom_engine_success_message">สร้าง %s แล้ว</string>
   <!-- Text shown when a user successfully edits a custom search engine. %s is the url of the custom search engine. -->
@@ -2646,9 +2646,9 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. ไปที่การตั้งค่า Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. แตะ &lt;b&gt;สิทธิอนุญาต&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. แตะ <b>สิทธิอนุญาต</b>]]></string>
   <!-- Third step for the allowing a permission (%1$s is the permission name, for example "Camera"). -->
-  <string name="phone_feature_blocked_step_feature">3. สลับ &lt;b&gt;%1$s&lt;/b&gt; เป็นเปิด</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. สลับ <b>%1$s</b> เป็นเปิด]]></string>
   <!-- Label that indicates a site is using a secure connection -->
   <string name="quick_settings_sheet_secure_connection_2">การเชื่อมต่อปลอดภัย</string>
   <!-- Label that indicates a site is using a insecure connection -->
@@ -2658,7 +2658,7 @@
   <!-- Label to clear site data -->
   <string name="clear_site_data">ล้างคุกกี้และข้อมูลไซต์</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
-  <string name="confirm_clear_site_data">คุณแน่ใจหรือไม่ว่าต้องการล้างคุกกี้และข้อมูลทั้งหมดสำหรับไซต์นี้ &lt;b&gt;%s&lt;/b&gt;?</string>
+  <string name="confirm_clear_site_data"><![CDATA[คุณแน่ใจหรือไม่ว่าต้องการล้างคุกกี้และข้อมูลทั้งหมดสำหรับไซต์นี้ <b>%s</b>?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
   <string name="confirm_clear_permissions_on_all_sites">คุณแน่ใจหรือไม่ว่าต้องการล้างสิทธิอนุญาตทั้งหมดบนไซต์ทั้งหมด?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
@@ -2842,17 +2842,17 @@
 
     Header text for a section on the home screen.
   -->
-  <string name="pocket_stories_header_1">เรื่องราวที่จุดประกายความคิด</string>
+  <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">เรื่องราวที่จุดประกายความคิด</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">เรื่องตามหัวข้อ</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
   <string name="pocket_stories_placeholder_text">ค้นพบสิ่งอื่น</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
-  <string name="pocket_stories_feature_title_2">ขับเคลื่อนโดย %s</string>
+  <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">ขับเคลื่อนโดย %s</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
-  <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">ส่วนหนึ่งของตระกูล Firefox %s</string>
+  <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">ส่วนหนึ่งของตระกูล Firefox %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
-  <string name="pocket_stories_feature_learn_more">เรียนรู้เพิ่มเติม</string>
+  <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">เรียนรู้เพิ่มเติม</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">ได้รับการสนับสนุน</string>
   <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
@@ -2864,11 +2864,11 @@
 
     Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
   -->
-  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources">เรากำหนด&lt;b&gt;เกรดที่เป็นตัวอักษร&lt;/b&gt;ให้กับบทวิจารณ์ของผลิตภัณฑ์แต่ละรายการตั้งแต่ A ถึง F</string>
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[เรากำหนด<b>เกรดที่เป็นตัวอักษร</b>ให้กับบทวิจารณ์ของผลิตภัณฑ์แต่ละรายการตั้งแต่ A ถึง F]]></string>
   <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
-  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;คะแนนที่ปรับปรุงแล้ว&lt;/b&gt;จะขึ้นอยู่กับบทวิจารณ์ที่เราเชื่อว่าน่าเชื่อถือเท่านั้น</string>
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>คะแนนที่ปรับปรุงแล้ว</b>จะขึ้นอยู่กับบทวิจารณ์ที่เราเชื่อว่าน่าเชื่อถือเท่านั้น]]></string>
   <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
-  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources">&lt;b&gt;ไฮไลต์&lt;/b&gt;มาจาก %s บทวิจารณ์ภายใน 80 วันที่ผ่านมา ซึ่งเราเชื่อว่าน่าเชื่อถือ</string>
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>ไฮไลต์</b>มาจาก %s บทวิจารณ์ภายใน 80 วันที่ผ่านมา ซึ่งเราเชื่อว่าน่าเชื่อถือ]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -2886,7 +2886,7 @@
   <!-- Action label for links that point to an article. Talkback will append this to say "Double tap to read the article". -->
   <string name="a11y_action_label_read_article">อ่านบทความ</string>
   <!-- Action label for links to the Firefox Pocket website. Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="a11y_action_label_pocket_learn_more">เปิดลิงก์เพื่อเรียนรู้เพิ่มเติม</string>
+  <string name="a11y_action_label_pocket_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">เปิดลิงก์เพื่อเรียนรู้เพิ่มเติม</string>
   <!-- Content description for headings announced by accessibility service. %s is the text of the heading. Talkback will announce the text and then speak the word "Heading" indicating to the user that this text is a heading for a section. -->
   <string name="a11y_heading">%s หัวเรื่อง</string>
   <!-- Title for dialog displayed when trying to access links present in a text. -->
@@ -3090,12 +3090,12 @@
     The title of the warning card informs the user that an error has occurred at downloading a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_error_warning_text">ไม่สามารถดาวน์โหลดภาษา &lt;b&gt;%1$s&lt;/b&gt; ได้ โปรดลองอีกครั้ง</string>
+  <string name="download_languages_error_warning_text"><![CDATA[ไม่สามารถดาวน์โหลดภาษา <b>%1$s</b> ได้ โปรดลองอีกครั้ง]]></string>
   <!--
     The title of the warning card informs the user that an error has occurred at deleting a language.
     %1$s is the language name, for example, "Spanish".
   -->
-  <string name="download_languages_delete_error_warning_text">ไม่สามารถลบภาษา &lt;b&gt;%1$s&lt;/b&gt; ได้ โปรดลองอีกครั้ง</string>
+  <string name="download_languages_delete_error_warning_text"><![CDATA[ไม่สามารถลบภาษา <b>%1$s</b> ได้ โปรดลองอีกครั้ง]]></string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting a language.
     The dialog will be presented when the user requests deletion of a language.
@@ -3189,7 +3189,7 @@
     Description text for a dialog confirming whether the user wants to delete all data for current site.
     %s is a placeholder for the base domain of website.
   -->
-  <string name="clear_site_data_dialog_description">การเอาคุกกี้และข้อมูลไซต์สำหรับ &lt;b&gt;%s&lt;/b&gt; ออกอาจทำให้คุณออกจากระบบเว็บไซต์และล้างตะกร้าสินค้า</string>
+  <string name="clear_site_data_dialog_description"><![CDATA[การเอาคุกกี้และข้อมูลไซต์สำหรับ <b>%s</b> ออกอาจทำให้คุณออกจากระบบเว็บไซต์และล้างตะกร้าสินค้า]]></string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">ล้าง</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
