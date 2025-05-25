@@ -776,6 +776,8 @@
   <string name="preferences_pbm_lock_screen_title">Seqdec asekkeṛ n ugdil i tuffra n waccaren deg tunigin tusligt</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
   <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Wali accaren s udsil umḍin, tukksa n usekkeṛ s wudem, neɣ s PIN.</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">Wali accaren s udsil-ik⋅im umḍin, PIN neɣtukksa n usekkeṛ s wudem.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Amsewḥel n yiɣarracen n yinagan n tuqqna</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1067,6 +1069,8 @@
   <string name="alternative_app_icon_option_cute">Sser</string>
   <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
   <string name="alternative_app_icon_option_momo">Momo</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">Yettwarna sɣur @heyheymomodraws</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1652,14 +1656,26 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Asmel ẓẓay neɣ ur iteddu ara</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">Asmel ur d-yuli ara</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Tugniwin neɣ tividyutin</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Tiqeffalin, iseɣwan neɣ agbur niḍen</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Qqen neɣ ffeɣ</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">Asmel sellaw</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">Agbur ixuṣṣ</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">Ur yezmir ara ad yeqqen neɣ ijerred</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Amsewḥal n udellel</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Asmel issuter-d ad issens amsewḥel n udellel</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">Iminig ur issefrak neɣ issewḥal</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Ayen niḍen</string>
   <!--

@@ -329,6 +329,17 @@
   <!-- Header text for the search selector menu -->
   <string name="search_header_menu_item_2">Otsi seekord järgneva otsingumootoriga:</string>
   <!--
+    Content description (not visible, for screen readers etc.): Search engine icon.
+    %s is the search engine name (for example: DuckDuckGo).
+  -->
+  <string name="search_engine_icon_content_description_1">Otsingumootor: %s</string>
+  <!--
+    Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    %s is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
+  -->
+  <string name="search_engine_selector_content_description">%s: otsingumootori valija</string>
+  <!--
     Home onboarding
 
     Home onboarding dialog welcome screen title text.
@@ -358,6 +369,8 @@
   <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">Mitte praegu</string>
   <!-- Text for the button to dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Mitte praegu</string>
+  <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
+  <string name="onboarding_customize_toolbar_a11y_action_label_select">valimiseks</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
   <string name="onboarding_customize_theme_a11y_action_label_select">valimiseks</string>
   <!--
@@ -382,10 +395,24 @@
   <string name="preferences_category_general">Üldine</string>
   <!-- Preference category for all links about Fenix -->
   <string name="preferences_category_about">Teave</string>
+  <!-- Preference category for settings related to changing the default search engine -->
+  <string name="preferences_category_select_default_search_engine">Vali üks</string>
+  <!-- Preference for settings related to managing search shortcuts for the quick search menu -->
+  <string name="preferences_manage_search_shortcuts_2">Alternatiivsete otsingumootorite haldamine</string>
+  <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
+  <string name="preferences_category_engines_in_search_menu">Otsingumenüüs nähtavad mootorid</string>
   <!-- Preference for settings related to changing the default search engine -->
   <string name="preferences_default_search_engine">Vaikeotsingumootor</string>
   <!-- Preference for settings related to Search -->
   <string name="preferences_search">Otsimine</string>
+  <!-- Preference for settings related to Search engines -->
+  <string name="preferences_search_engines">Otsingumootorid</string>
+  <!-- Preference for settings related to Search engines suggestions -->
+  <string name="preferences_search_engines_suggestions">Otsingumootorite soovitused</string>
+  <!-- Preference Category for settings related to Search address bar -->
+  <string name="preferences_settings_address_bar">Aadressiriba eelistused</string>
+  <!-- Preference Category for settings to Firefox Suggest -->
+  <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Aadressiriba - Firefox Suggest</string>
   <!-- Preference link to rating Fenix on the Play Store -->
   <string name="preferences_rate">Hinda Google Plays</string>
   <!--
@@ -462,7 +489,7 @@
   <!-- Preference for developers -->
   <string name="preferences_remote_debugging">Remote debugging via USB</string>
   <!-- Preference title for switch preference to show search suggestions -->
-  <string name="preferences_show_search_suggestions">Kuvatakse otsingu soovitusi</string>
+  <string name="preferences_show_search_suggestions">Kuvatakse otsingusoovitusi</string>
   <!-- Preference title for switch preference to show voice search button -->
   <string name="preferences_show_voice_search">Kuvatakse häälotsing</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
@@ -740,6 +767,8 @@
   <string name="close_tabs_after_one_week_summary">Suletakse ühe nädala pärast</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month -->
   <string name="close_tabs_after_one_month_summary">Suletakse ühe kuu pärast</string>
+  <!-- Summary for homepage preference indicating opening the homepage when re-opening the app after four hours of inactivity -->
+  <string name="opening_screen_after_four_hours_of_inactivity_summary">Pärast neljatunnist tegevusetust avatakse avaleht</string>
   <!--
     Inactive tabs
 
@@ -896,6 +925,8 @@
   <string name="download_time_period_last_30_days">Viimased 30 päeva</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Vanemad</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">Vali kõik</string>
   <!--
     Downloads Content Type Filters
 
@@ -986,6 +1017,8 @@
   <string name="bookmark_menu_copy_button">Kopeeri</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Jaga</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Vali kõik</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Ava uuel kaardil</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1656,6 +1689,8 @@
   <string name="credit_cards_cancel_button">Loobu</string>
   <!-- Title of the "Saved cards" screen -->
   <string name="credit_cards_saved_cards">Salvestatud kaardid</string>
+  <!-- Error message for card name on card validation -->
+  <string name="credit_cards_name_on_card_validation_error_message_2">Lisa nimi</string>
   <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
   <string name="credit_cards_biometric_prompt_message">Salvestatud kaartide vaatamiseks ava lukk</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -1706,16 +1741,30 @@
   <string name="address_menu_delete_address">Kustuta aadress</string>
   <!-- Title of the Add search engine screen -->
   <string name="search_engine_add_custom_search_engine_title">Otsingumootori lisamine</string>
+  <!-- Content description (not visible, for screen readers etc.): Title for the button that navigates to add new engine screen -->
+  <string name="search_engine_add_custom_search_engine_button_content_description">Lisa uus otsingumootor</string>
   <!-- Title of the Edit search engine screen -->
   <string name="search_engine_edit_custom_search_engine_title">Otsingumootori muutmine</string>
   <!-- Text for the menu button to edit a search engine -->
   <string name="search_engine_edit">Muuda</string>
   <!-- Text for the menu button to delete a search engine -->
   <string name="search_engine_delete">Kustuta</string>
+  <!-- Label for the TextField in which user enters custom search engine name -->
+  <string name="search_add_custom_engine_name_label">Nimi</string>
+  <!-- Placeholder text shown in the Search Engine Name text field before a user enters text -->
+  <string name="search_add_custom_engine_name_hint_2">Otsingumootori nimi</string>
+  <!-- Placeholder text shown in the Search String TextField before a user enters text -->
+  <string name="search_add_custom_engine_search_string_hint_2">Otsimiseks kasutatav URL</string>
   <!-- Description text for the Search String TextField. The %s is part of the string -->
   <string name="search_add_custom_engine_search_string_example" formatted="false">Päringu asendamiseks kasuta “%s”. Näiteks \nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">Kohandatud otsingumootori üksikasjad</string>
+  <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
+  <string name="search_add_custom_engine_suggest_url_label">Otsingusoovituste API (valikuline)</string>
+  <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
+  <string name="search_add_custom_engine_suggest_string_hint">Otsingusoovituste API URL</string>
+  <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
+  <string name="search_add_custom_engine_suggest_string_example_2" formatted="false">Asenda päring tekstiga „%s“. Näide:\nhttps://suggestqueries.google.com/complete/search?client=firefox&amp;q=%s</string>
   <!-- The text for the "Save" button for saving a custom search engine -->
   <string name="search_custom_engine_save_button">Salvesta</string>
   <!-- Text shown when a user leaves the name field empty -->
@@ -1785,6 +1834,8 @@
   <string name="add_login_2">Lisa parool</string>
   <!-- Error text displayed underneath the password field when it is in an error case. -->
   <string name="saved_login_password_required_2">Sisesta parool</string>
+  <!-- The error message in add login view when username field is blank. -->
+  <string name="saved_login_username_required_2">Sisesta kasutajanimi</string>
   <!-- The error message in add login view when hostname field is blank. -->
   <string name="saved_login_hostname_required" tools:ignore="UnusedResources">Saidi aadress on nõutud</string>
   <!-- Voice search button content description -->
@@ -1869,6 +1920,8 @@
   <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">LÜLITA SISSE AUTOMAATNE SULGEMINE</string>
   <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
   <string name="inactive_tabs_auto_close_message_snackbar">Automaatne sulgemine on lubatud</string>
+  <!-- Title for search suggestions when Google is the default search suggestion engine. -->
+  <string name="google_search_engine_suggestion_header">Google\'i otsing</string>
   <!-- Default browser card text -->
   <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Määra Firefox automaatselt avama linke, e-posti ja sõnumeid.</string>
   <!-- Content description for close button in collection placeholder. -->

@@ -776,6 +776,8 @@
   <string name="preferences_pbm_lock_screen_title">Bruk skjermlås for å skjule faner i privat nettlesing</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
   <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Vis faner med fingeravtrykk, ansiktslås eller PIN-kode.</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">Vis faner med fingeravtrykk, PIN-kode eller ansiktslås.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Blokkering av infokapselbanner</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -981,6 +983,8 @@
   <string name="customize_toggle_recently_visited">Nyleg besøkte</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Tankevekkjande artiklar</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">Historier</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Artiklar levert av %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
@@ -1507,7 +1511,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Fjerna %1$s</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar_2">Sletta “%1$s”</string>
+  <string name="download_delete_single_item_snackbar_2">Sletta «%1$s»</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
   <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Nedlasting i framdrift…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1661,12 +1665,18 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Nettstaden er treg eller fungerer ikkje</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">Nettstaden lastar seg ikkje inn</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">Kan ikkje betale, sjekke ut eller handle</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Bilde eller videoar</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Knappar, lenker og anna innhald</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Logg inn eller logg ut</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">Nettstaden er treg</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Annonseblokkering</string>
   <!-- Broken site reason text for something else -->
@@ -1731,6 +1741,8 @@
   <string name="bookmark_menu_delete_button">Slett</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Lagre</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Sorter etter tilpassa rekkjefølgje</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">Sorter etter nyaste</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3471,7 +3483,7 @@
   <!-- The text field label for overriding current region. -->
   <string name="debug_drawer_override_current_region_label">Overstyr gjeldande region</string>
   <!-- The title of the button for overriding home and current region. -->
-  <string name="debug_drawer_override_region">Overstyr heime-og gjeldande region</string>
+  <string name="debug_drawer_override_region">Overstyr heime- og gjeldande region</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
