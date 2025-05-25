@@ -478,7 +478,7 @@ class ObjectActor extends Actor {
         }
 
         const getterValue = this._evaluateGetter(desc.get);
-        if (getterValue === undefined) {
+        if (getterValue === this._evaluateGetterNoResult) {
           continue;
         }
 
@@ -516,6 +516,8 @@ class ObjectActor extends Actor {
     return safeGetterValues;
   }
 
+  _evaluateGetterNoResult = Symbol();
+
   /**
    * Evaluate the getter function |desc.get|.
    * @param {Object} getter
@@ -523,10 +525,10 @@ class ObjectActor extends Actor {
   _evaluateGetter(getter) {
     const result = getter.call(this.obj);
     if (!result || "throw" in result) {
-      return undefined;
+      return this._evaluateGetterNoResult;
     }
 
-    let getterValue = undefined;
+    let getterValue = this._evaluateGetterNoResult;
     if ("return" in result) {
       getterValue = result.return;
     } else if ("yield" in result) {
