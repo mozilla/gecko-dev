@@ -795,19 +795,6 @@ interface nsIDOMWindowUtils : nsISupports {
                           [optional] in Element aElement);
 
   /**
-   * Cancel any existing touch points or long tap delays. Calling this is safe
-   * even if you're sure there aren't any pointers recorded. You should call
-   * this when tests shut down to reset the digitizer driver. Not doing so can
-   * leave the digitizer in an undetermined state which can screw up subsequent
-   * tests and native input.
-   *
-   * NOTE: The synthesized native event will be fired asynchronously, and upon
-   * completion the observer, if provided, will be notified with a "cleartouch"
-   * topic.
-   */
-  void clearNativeTouchSequence([optional] in nsIObserver aObserver);
-
-  /**
    * Send a native event as if the user double tapped the touchpad with two
    * fingers.
    *

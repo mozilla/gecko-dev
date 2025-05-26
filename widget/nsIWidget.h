@@ -1602,15 +1602,6 @@ class nsIWidget : public nsISupports {
                                             nsIObserver* aObserver) = 0;
 
   /*
-   * Cancels all active simulated touch input points and pending long taps.
-   * Native widgets should track existing points such that they can clear the
-   * digitizer state when this call is made.
-   * @param aObserver The observer that will get notified once the touch
-   * sequence has been cleared.
-   */
-  virtual nsresult ClearNativeTouchSequence(nsIObserver* aObserver);
-
-  /*
    * Send a native event as if the user double tapped the touchpad with two
    * fingers.
    */

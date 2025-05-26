@@ -249,7 +249,6 @@ class PuppetWidget final : public nsBaseWidget,
                                          int32_t aModifierFlags) override;
   nsresult SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint, bool aLongTap,
                                     nsIObserver* aObserver) override;
-  nsresult ClearNativeTouchSequence(nsIObserver* aObserver) override;
   uint32_t GetMaxTouchPoints() const override;
   nsresult SynthesizeNativePenInput(uint32_t aPointerId,
                                     TouchPointerState aPointerState,

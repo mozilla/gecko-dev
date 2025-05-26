@@ -419,7 +419,6 @@ class nsWindow final : public nsBaseWidget,
                                       double aPointerPressure,
                                       uint32_t aPointerOrientation,
                                       nsIObserver* aObserver) override;
-  nsresult ClearNativeTouchSequence(nsIObserver* aObserver) override;
 
   nsresult SynthesizeNativePenInput(uint32_t aPointerId,
                                     TouchPointerState aPointerState,

@@ -1994,18 +1994,6 @@ mozilla::ipc::IPCResult BrowserParent::RecvSynthesizeNativeTouchTap(
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult BrowserParent::RecvClearNativeTouchSequence(
-    const uint64_t& aObserverId) {
-  NS_ENSURE_TRUE(xpc::IsInAutomation(), IPC_FAIL(this, "Unexpected event"));
-
-  AutoSynthesizedEventResponder responder(this, aObserverId, "cleartouch");
-  nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (widget) {
-    widget->ClearNativeTouchSequence(responder.GetObserver());
-  }
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult BrowserParent::RecvSynthesizeNativePenInput(
     const uint32_t& aPointerId, const TouchPointerState& aPointerState,
     const LayoutDeviceIntPoint& aPoint, const double& aPressure,

@@ -534,9 +534,6 @@ class BrowserParent final : public PBrowserParent,
       const LayoutDeviceIntPoint& aPoint, const bool& aLongTap,
       const uint64_t& aObserverId);
 
-  mozilla::ipc::IPCResult RecvClearNativeTouchSequence(
-      const uint64_t& aObserverId);
-
   mozilla::ipc::IPCResult RecvSynthesizeNativePenInput(
       const uint32_t& aPointerId, const TouchPointerState& aPointerState,
       const LayoutDeviceIntPoint& aPoint, const double& aPressure,

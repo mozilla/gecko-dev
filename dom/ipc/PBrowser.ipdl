@@ -495,7 +495,6 @@ parent:
     async SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint,
                                    bool aLongTap,
                                    uint64_t aObserverId);
-    async ClearNativeTouchSequence(uint64_t aObserverId);
     async SynthesizeNativePenInput(uint32_t aPointerId,
                                    TouchPointerState aPointerState,
                                    LayoutDeviceIntPoint aPoint,

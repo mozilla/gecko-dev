@@ -440,15 +440,6 @@ nsresult PuppetWidget::SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint,
   return NS_OK;
 }
 
-nsresult PuppetWidget::ClearNativeTouchSequence(nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "cleartouch");
-  if (!mBrowserChild) {
-    return NS_ERROR_FAILURE;
-  }
-  mBrowserChild->SendClearNativeTouchSequence(notifier.SaveObserver());
-  return NS_OK;
-}
-
 nsresult PuppetWidget::SynthesizeNativePenInput(
     uint32_t aPointerId, TouchPointerState aPointerState,
     LayoutDeviceIntPoint aPoint, double aPressure, uint32_t aRotation,
