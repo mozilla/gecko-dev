@@ -1764,6 +1764,12 @@
   value: false
   mirror: always
 
+# Disable state restoration, allowing the kiosk desktop environment to manage state and position.
+- name: browser.restoreWindowState.disabled
+  type: bool
+  value: false
+  mirror: always
+
 # Communicates the toolbar color to platform (for e.g., prefers-color-scheme).
 #
 # Returns whether the toolbar is dark (0), light (1), or system (2). The
