@@ -4992,18 +4992,16 @@ TEST_F(JsepSessionTest, TestUniqueReceivePayloadTypes) {
   ASSERT_FALSE(IsNull(offerTransceivers[2].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[2].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(offerTransceivers[2].mRecvTrack.GetUniqueReceivePayloadTypes(),
-              UnorderedElementsAre());
+              UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
   ASSERT_THAT(offerTransceivers[2].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109, 97, 99, 103, 105, 120,
-                                   121, 122, 123, 126));
+              UnorderedElementsAre(0, 8, 9, 101, 109));
 
   ASSERT_TRUE(IsNull(offerTransceivers[3].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[3].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(offerTransceivers[3].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
   ASSERT_THAT(offerTransceivers[3].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109, 97, 99, 103, 105, 120,
-                                   121, 122, 123, 126));
+              UnorderedElementsAre());
 
   ASSERT_FALSE(IsNull(answerTransceivers[0].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[0].mRecvTrack.GetNegotiatedDetails());

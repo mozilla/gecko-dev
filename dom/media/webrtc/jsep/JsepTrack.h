@@ -261,6 +261,11 @@ class JsepTrack {
     return mVideoPreferredCodec;
   }
 
+  void ResetReceivePayloadTypes() {
+    mUniqueReceivePayloadTypes.clear();
+    mOtherReceivePayloadTypes.clear();
+  }
+
   const std::vector<uint8_t>& GetUniqueReceivePayloadTypes() const {
     return mUniqueReceivePayloadTypes;
   }

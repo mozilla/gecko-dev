@@ -1896,9 +1896,9 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsAreUnique)
   std::vector tracks{&t1, &t2};
   JsepTrack::SetReceivePayloadTypes(tracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(1));
-  EXPECT_THAT(t1.GetOtherReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t1.GetOtherReceivePayloadTypes(), UnorderedElementsAre(2));
   EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(2));
-  EXPECT_THAT(t2.GetOtherReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t2.GetOtherReceivePayloadTypes(), UnorderedElementsAre(1));
 }
 
 TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsAreDuplicates)
@@ -2035,9 +2035,9 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsOverlap)
   std::vector tracks{&t1, &t2};
   JsepTrack::SetReceivePayloadTypes(tracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(2));
-  EXPECT_THAT(t1.GetOtherReceivePayloadTypes(), UnorderedElementsAre(1));
+  EXPECT_THAT(t1.GetOtherReceivePayloadTypes(), UnorderedElementsAre(1, 3));
   EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(3));
-  EXPECT_THAT(t2.GetOtherReceivePayloadTypes(), UnorderedElementsAre(1));
+  EXPECT_THAT(t2.GetOtherReceivePayloadTypes(), UnorderedElementsAre(1, 2));
 }
 
 TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsDuplicateAfterRenegotiation)
@@ -2109,9 +2109,9 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsDuplicateAfterRenegotiation)
   std::vector tracks{&t1, &t2};
   JsepTrack::SetReceivePayloadTypes(tracks);
   EXPECT_THAT(t1.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(1, 2));
-  EXPECT_THAT(t1.GetOtherReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t1.GetOtherReceivePayloadTypes(), UnorderedElementsAre(3, 4));
   EXPECT_THAT(t2.GetUniqueReceivePayloadTypes(), UnorderedElementsAre(3, 4));
-  EXPECT_THAT(t2.GetOtherReceivePayloadTypes(), UnorderedElementsAre());
+  EXPECT_THAT(t2.GetOtherReceivePayloadTypes(), UnorderedElementsAre(1, 2));
 
   // Second negotiation.
   SipccSdp offer2(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
