@@ -53,6 +53,9 @@ class nsPrefetchService final : public nsIPrefetchService,
   nsresult Prefetch(nsIURI* aURI, nsIReferrerInfo* aReferrerInfo,
                     nsINode* aSource, bool aExplicit);
 
+  nsresult Preload(nsIURI* aURI, nsIReferrerInfo* aReferrerInfo,
+                   nsINode* aSource, nsContentPolicyType aPolicyType);
+
   void AddProgressListener();
   void RemoveProgressListener();
   nsresult EnqueueURI(nsIURI* aURI, nsIReferrerInfo* aReferrerInfo,
@@ -69,6 +72,7 @@ class nsPrefetchService final : public nsIPrefetchService,
   nsTArray<RefPtr<nsPrefetchNode>> mCurrentNodes;
   int32_t mMaxParallelism;
   int32_t mStopCount;
+  bool mHaveProcessed;
   bool mPrefetchDisabled;
 
   // In usual case prefetch does not start until all normal loads are done.
