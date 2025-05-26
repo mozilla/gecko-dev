@@ -6,7 +6,6 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -53,7 +52,6 @@ class DownloadFileTypesTest(fileName: String) : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/251028
     @SmokeTest
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun allFilesAppearInDownloadsMenuTest() {
         downloadRobot {

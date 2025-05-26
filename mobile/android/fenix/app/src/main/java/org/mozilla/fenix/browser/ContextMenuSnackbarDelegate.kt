@@ -20,7 +20,6 @@ class ContextMenuSnackbarDelegate : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         @StringRes text: Int,
-        subText: String?,
         duration: Int,
         isError: Boolean,
         @StringRes action: Int,
@@ -39,7 +38,6 @@ class ContextMenuSnackbarDelegate : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         text: String,
-        subText: String?,
         duration: Int,
         isError: Boolean,
         action: String?,

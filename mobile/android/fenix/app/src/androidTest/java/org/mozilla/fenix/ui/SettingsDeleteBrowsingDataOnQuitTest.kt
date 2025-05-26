@@ -173,7 +173,6 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1243096
     @SmokeTest
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun deleteDownloadsOnQuitTest() {
         val downloadTestPage = "https://storage.googleapis.com/mobile_test_assets/test_app/downloads.html"

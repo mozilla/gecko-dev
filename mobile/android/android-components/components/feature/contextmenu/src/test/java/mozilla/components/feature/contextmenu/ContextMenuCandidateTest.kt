@@ -2131,7 +2131,6 @@ private class TestSnackbarDelegate : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         text: Int,
-        subText: String?,
         duration: Int,
         isError: Boolean,
         action: Int,
@@ -2144,10 +2143,9 @@ private class TestSnackbarDelegate : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         text: String,
-        subText: String?,
         duration: Int,
         isError: Boolean,
         action: String?,
         listener: ((v: View) -> Unit)?,
-    ) = show(snackBarParentView, 0, "", duration, isError, 0, listener)
+    ) = show(snackBarParentView, 0, duration, isError, 0, listener)
 }

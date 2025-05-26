@@ -8,7 +8,6 @@ package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
 import androidx.test.rule.ActivityTestRule
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.IntentReceiverActivity
@@ -123,7 +122,6 @@ class CustomTabsTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334761
     @SmokeTest
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun verifyDownloadInACustomTabTest() {
         val customTabPage = "https://storage.googleapis.com/mobile_test_assets/test_app/downloads.html"

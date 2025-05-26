@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.components.appstate
 
-import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.sync.TabData
 import mozilla.components.feature.tab.collections.TabCollection
@@ -637,38 +636,5 @@ sealed class AppAction : Action {
             val taskType: ChecklistItem.Task.Type,
             val prefValue: Boolean,
         ) : SetupChecklistAction()
-    }
-
-    /**
-     * [AppAction]s related to downloads.
-     */
-    sealed class DownloadAction : AppAction() {
-        /**
-         * Dispatched when a download is in progress.
-         *
-         * @property sessionId The ID of the session associated with the download.
-         */
-        data class DownloadInProgress(val sessionId: String?) : DownloadAction()
-
-        /**
-         * Dispatched when a download has failed.
-         *
-         * @property fileName The name of the file that failed to download.
-         */
-        data class DownloadFailed(val fileName: String?) : DownloadAction()
-
-        /**
-         * Dispatched when a download has completed successfully.
-         *
-         * @property downloadState The state object containing information about the completed download.
-         */
-        data class DownloadCompleted(val downloadState: DownloadState) : DownloadAction()
-
-        /**
-         * Dispatched when there is an error attempting to open a downloaded file.
-         *
-         * @property downloadState The state object containing information about the failed download.
-         */
-        data class CannotOpenFile(val downloadState: DownloadState) : DownloadAction()
     }
 }

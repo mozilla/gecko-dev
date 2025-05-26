@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.components.appstate.snackbar
 
-import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.sync.TabData
 
@@ -127,32 +126,4 @@ sealed class SnackbarState {
     data class CurrentTabClosed(
         val isPrivate: Boolean,
     ) : SnackbarState()
-
-    /**
-     * Display a snackbar when a download is in progress.
-     *
-     * @property sessionId The ID of the session associated with the download.
-     */
-    data class DownloadInProgress(val sessionId: String?) : SnackbarState()
-
-    /**
-     * Display a snackbar when a download has failed.
-     *
-     * @property fileName The name of the file that failed to download.
-     */
-    data class DownloadFailed(val fileName: String?) : SnackbarState()
-
-    /**
-     * Display a snackbar when a download has completed.
-     *
-     * @property downloadState The state object containing information about the completed download.
-     */
-    data class DownloadCompleted(val downloadState: DownloadState) : SnackbarState()
-
-    /**
-     * Display a snackbar when there is an error opening a file.
-     *
-     * @property downloadState The state object containing information about the failed download.
-     */
-    data class CannotOpenFileError(val downloadState: DownloadState) : SnackbarState()
 }

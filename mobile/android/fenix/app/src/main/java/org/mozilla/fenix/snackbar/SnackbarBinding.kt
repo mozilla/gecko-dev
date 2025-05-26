@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.findCustomTabOrSelectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.accounts.push.SendTabUseCases
-import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.helpers.AbstractBinding
 import mozilla.components.ui.widgets.SnackbarDelegate
@@ -26,12 +25,10 @@ import org.mozilla.fenix.GleanMetrics.SentFromFirefox
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.components.AppStore
-import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.ShareAction
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.snackbar.SnackbarState
-import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateWithBreadcrumb
 import org.mozilla.fenix.ext.settings
@@ -39,7 +36,6 @@ import org.mozilla.fenix.ext.tabClosedUndoMessage
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
 
 const val WEBCOMPAT_SNACKBAR_DURATION_MS = 20000
-const val DOWNLOAD_SNACKBAR_DURATION_MS = 20000
 
 /**
  * A binding for observing the [SnackbarState] in the [AppStore] and displaying the snackbar.
@@ -265,68 +261,6 @@ class SnackbarBinding(
                             tabsUseCases.undo()
                         }
 
-                        appStore.dispatch(SnackbarAction.SnackbarShown)
-                    }
-
-                    is SnackbarState.DownloadInProgress -> {
-                        snackbarDelegate.show(
-                            text = context.getString(R.string.download_in_progress_snackbar),
-                            duration = DOWNLOAD_SNACKBAR_DURATION_MS,
-                            action = context.getString(R.string.download_in_progress_snackbar_action_details),
-                        ) {
-                            navController.navigate(
-                                BrowserFragmentDirections.actionGlobalDownloadsFragment(),
-                            )
-                        }
-
-                        appStore.dispatch(SnackbarAction.SnackbarShown)
-                    }
-
-                    is SnackbarState.DownloadFailed -> {
-                        snackbarDelegate.show(
-                            text = context.getString(R.string.download_item_status_failed),
-                            subText = state.fileName,
-                            duration = DOWNLOAD_SNACKBAR_DURATION_MS,
-                            action = context.getString(R.string.download_failed_snackbar_action_details),
-                        ) {
-                            navController.navigate(
-                                BrowserFragmentDirections.actionGlobalDownloadsFragment(),
-                            )
-                        }
-                        appStore.dispatch(SnackbarAction.SnackbarShown)
-                    }
-
-                    is SnackbarState.DownloadCompleted -> {
-                        snackbarDelegate.show(
-                            text = context.getString(R.string.download_completed_snackbar),
-                            subText = state.downloadState.fileName,
-                            duration = DOWNLOAD_SNACKBAR_DURATION_MS,
-                            action = context.getString(R.string.download_completed_snackbar_action_open),
-                        ) {
-                            val fileWasOpened = AbstractFetchDownloadService.openFile(
-                                applicationContext = context.applicationContext,
-                                downloadFileName = state.downloadState.fileName,
-                                downloadFilePath = state.downloadState.filePath,
-                                downloadContentType = state.downloadState.contentType,
-                            )
-
-                            if (!fileWasOpened) {
-                                appStore.dispatch(
-                                    AppAction.DownloadAction.CannotOpenFile(state.downloadState),
-                                )
-                            }
-                        }
-                        appStore.dispatch(SnackbarAction.SnackbarShown)
-                    }
-
-                    is SnackbarState.CannotOpenFileError -> {
-                        snackbarDelegate.show(
-                            text = DynamicDownloadDialog.getCannotOpenFileErrorMessage(
-                                context,
-                                state.downloadState,
-                            ),
-                            duration = DOWNLOAD_SNACKBAR_DURATION_MS,
-                        )
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
 

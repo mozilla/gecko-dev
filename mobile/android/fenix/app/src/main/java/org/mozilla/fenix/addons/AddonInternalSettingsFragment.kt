@@ -8,19 +8,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
-import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.feature.addons.ui.translateName
-import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.databinding.FragmentAddOnInternalSettingsBinding
-import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.showToolbar
-import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
-import org.mozilla.fenix.snackbar.SnackbarBinding
 
 /**
  * A fragment to show the internal settings of an add-on.
@@ -30,7 +24,6 @@ class AddonInternalSettingsFragment : AddonPopupBaseFragment() {
     private val args by navArgs<AddonInternalSettingsFragmentArgs>()
     private var _binding: FragmentAddOnInternalSettingsBinding? = null
     internal val binding get() = _binding!!
-    private val snackbarBinding = ViewBoundFeatureWrapper<SnackbarBinding>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -50,21 +43,6 @@ class AddonInternalSettingsFragment : AddonPopupBaseFragment() {
                 engineSession.loadUrl(it)
             }
         } ?: findNavController().navigateUp()
-
-        snackbarBinding.set(
-            feature = SnackbarBinding(
-                context = requireContext(),
-                browserStore = requireComponents.core.store,
-                appStore = requireComponents.appStore,
-                snackbarDelegate = FenixSnackbarDelegate(provideDynamicSnackbarContainer()),
-                navController = findNavController(),
-                tabsUseCases = requireComponents.useCases.tabsUseCases,
-                sendTabUseCases = SendTabUseCases(requireComponents.backgroundServices.accountManager),
-                customTabSessionId = session?.id,
-            ),
-            owner = this,
-            view = view,
-        )
     }
 
     override fun provideDownloadContainer(): ViewGroup {
@@ -73,10 +51,6 @@ class AddonInternalSettingsFragment : AddonPopupBaseFragment() {
 
     override fun provideDownloadDialogLayoutBinding(): DownloadDialogLayoutBinding {
         return binding.viewDynamicDownloadDialog
-    }
-
-    override fun provideDynamicSnackbarContainer(): ConstraintLayout {
-        return binding.dynamicSnackbarContainer
     }
 
     override fun onResume() {

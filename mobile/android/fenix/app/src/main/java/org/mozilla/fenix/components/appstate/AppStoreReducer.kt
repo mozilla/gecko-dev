@@ -221,28 +221,6 @@ internal object AppStoreReducer {
             action = action,
         )
 
-        is AppAction.DownloadAction.DownloadInProgress -> state.copy(
-            snackbarState = SnackbarState.DownloadInProgress(action.sessionId),
-        )
-
-        is AppAction.DownloadAction.DownloadFailed -> state.copy(
-            snackbarState = SnackbarState.DownloadFailed(
-                action.fileName,
-            ),
-        )
-
-        is AppAction.DownloadAction.DownloadCompleted -> state.copy(
-            snackbarState = SnackbarState.DownloadCompleted(
-                action.downloadState,
-            ),
-        )
-
-        is AppAction.DownloadAction.CannotOpenFile -> state.copy(
-            snackbarState = SnackbarState.CannotOpenFileError(
-                action.downloadState,
-            ),
-        )
-
         is AppAction.PrivateBrowsingLockAction -> PrivateBrowsingLockReducer.reduce(state, action)
     }
 }

@@ -61,7 +61,6 @@ class DownloadTest : TestSetup() {
     val memoryLeaksRule = DetectMemoryLeaksRule()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/243844
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun verifyTheDownloadPromptsTest() {
         downloadRobot {
@@ -92,7 +91,6 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2298616
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun verifyDownloadCompleteNotificationTest() {
         downloadRobot {
@@ -142,7 +140,6 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2301474
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun openDownloadedFileFromDownloadsMenuTest() {
         downloadRobot {
@@ -180,7 +177,6 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2302662
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun deleteMultipleDownloadedFilesTest() {
         val firstDownloadedFile = "smallZip.zip"
@@ -218,7 +214,6 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2301537
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun fileDeletedFromStorageIsDeletedEverywhereTest() {
         downloadRobot {
@@ -347,7 +342,6 @@ class DownloadTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2048448
     // Save edited PDF file from the share overlay
     @SmokeTest
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun saveAsPdfFunctionalityTest() {
         val genericURL =

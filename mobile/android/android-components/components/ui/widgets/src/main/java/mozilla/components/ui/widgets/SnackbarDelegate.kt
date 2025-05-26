@@ -24,7 +24,6 @@ interface SnackbarDelegate {
     fun show(
         snackBarParentView: View,
         text: Int,
-        subText: String? = null,
         duration: Int,
         isError: Boolean = false,
         action: Int = 0,
@@ -46,7 +45,6 @@ interface SnackbarDelegate {
     fun show(
         snackBarParentView: View,
         text: String,
-        subText: String? = null,
         duration: Int,
         isError: Boolean = false,
         action: String? = null,
@@ -61,7 +59,6 @@ class DefaultSnackbarDelegate : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         text: String,
-        subText: String?,
         duration: Int,
         isError: Boolean,
         action: String?,
@@ -83,7 +80,6 @@ class DefaultSnackbarDelegate : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         text: Int,
-        subText: String?,
         duration: Int,
         isError: Boolean,
         action: Int,
@@ -91,7 +87,6 @@ class DefaultSnackbarDelegate : SnackbarDelegate {
     ) = show(
         snackBarParentView = snackBarParentView,
         text = snackBarParentView.context.getString(text),
-        subText = subText,
         duration = duration,
         isError = isError,
         action = if (action == 0) null else snackBarParentView.context.getString(action),

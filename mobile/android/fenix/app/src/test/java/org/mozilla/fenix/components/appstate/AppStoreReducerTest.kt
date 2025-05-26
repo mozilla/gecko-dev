@@ -5,7 +5,6 @@
 package org.mozilla.fenix.components.appstate
 
 import io.mockk.mockk
-import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.lib.crash.Crash.NativeCodeCrash
@@ -253,96 +252,6 @@ class AppStoreReducerTest {
 
         assertEquals(
             SnackbarState.URLCopiedToClipboard,
-            appStore.state.snackbarState,
-        )
-    }
-
-    @Test
-    fun `WHEN download in progress action is dispatched THEN snackbar state is updated`() {
-        val appStore = AppStore()
-
-        appStore.dispatch(
-            AppAction.DownloadAction.DownloadInProgress("id"),
-        ).joinBlocking()
-
-        assertEquals(
-            SnackbarState.DownloadInProgress("id"),
-            appStore.state.snackbarState,
-        )
-    }
-
-    @Test
-    fun `WHEN download failed action is dispatched THEN snackbar state is updated`() {
-        val appStore = AppStore()
-
-        appStore.dispatch(
-            AppAction.DownloadAction.DownloadFailed("fileName"),
-        ).joinBlocking()
-
-        assertEquals(
-            SnackbarState.DownloadFailed("fileName"),
-            appStore.state.snackbarState,
-        )
-    }
-
-    @Test
-    fun `WHEN download completed action is dispatched THEN snackbar state is updated`() {
-        val appStore = AppStore()
-        val downloadState = DownloadState(
-            id = "1",
-            url = "url",
-            fileName = "fileName",
-            contentType = "application/zip",
-            contentLength = 5242880,
-            status = DownloadState.Status.DOWNLOADING,
-            directoryPath = "downloads",
-            destinationDirectory = "Environment.DIRECTORY_MUSIC",
-            private = true,
-            createdTime = 33,
-            etag = "etag",
-        )
-        appStore.dispatch(
-            AppAction.DownloadAction.DownloadCompleted(
-                downloadState,
-            ),
-        ).joinBlocking()
-
-        assertEquals(
-            SnackbarState.DownloadCompleted(
-                downloadState,
-            ),
-            appStore.state.snackbarState,
-        )
-    }
-
-    @Test
-    fun `WHEN can not open file action is dispatched THEN snackbar state is updated`() {
-        val appStore = AppStore()
-
-        val downloadState = DownloadState(
-            id = "1",
-            url = "url",
-            fileName = "fileName",
-            contentType = "application/zip",
-            contentLength = 5242880,
-            status = DownloadState.Status.DOWNLOADING,
-            directoryPath = "downloads",
-            destinationDirectory = "Environment.DIRECTORY_MUSIC",
-            private = true,
-            createdTime = 33,
-            etag = "etag",
-        )
-
-        appStore.dispatch(
-            AppAction.DownloadAction.CannotOpenFile(
-                downloadState,
-            ),
-        ).joinBlocking()
-
-        assertEquals(
-            SnackbarState.CannotOpenFileError(
-                downloadState,
-            ),
             appStore.state.snackbarState,
         )
     }
