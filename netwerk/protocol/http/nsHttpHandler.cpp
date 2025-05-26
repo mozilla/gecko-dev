@@ -2412,9 +2412,20 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
   nsAutoCString username;
   aURI->GetUsername(username);
 
-  RefPtr<nsHttpConnectionInfo> ci =
-      new nsHttpConnectionInfo(host, port, ""_ns, username, nullptr,
-                               originAttributes, aURI->SchemeIs("https"));
+  RefPtr<AltSvcMapping> mapping;
+  if (username.IsEmpty()) {
+    mapping = gHttpHandler->GetAltServiceMapping(
+        scheme, host, port, originAttributes.IsPrivateBrowsing(),
+        originAttributes, true, true);
+  }
+
+  RefPtr<nsHttpConnectionInfo> ci;
+  if (mapping) {
+    mapping->GetConnectionInfo(getter_AddRefs(ci), nullptr, originAttributes);
+  } else {
+    ci = new nsHttpConnectionInfo(host, port, ""_ns, username, nullptr,
+                                  originAttributes, aURI->SchemeIs("https"));
+  }
   ci->SetAnonymous(anonymous);
   if (originAttributes.IsPrivateBrowsing()) {
     ci->SetPrivate(true);
@@ -2443,6 +2454,7 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
     }
   }
 
+  LOG(("MaybeSpeculativeConnectWithHTTPSRR for ci=%s", ci->HashKey().get()));
   // When ech is enabled, always do speculative connect with HTTPS RR.
   return MaybeSpeculativeConnectWithHTTPSRR(ci, aCallbacks, 0,
                                             EchConfigEnabled());
