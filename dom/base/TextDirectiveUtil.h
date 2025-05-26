@@ -517,7 +517,7 @@ template <TextScanDirection direction>
     // Reverse the positions to align with the direction of the search algorithm
     wordBoundaryDistances.Reverse();
   }
-  return wordBoundaryDistances;
+  return std::move(wordBoundaryDistances);
 }
 
 template <TextScanDirection direction>
