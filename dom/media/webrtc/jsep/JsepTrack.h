@@ -261,11 +261,11 @@ class JsepTrack {
     return mVideoPreferredCodec;
   }
 
-  std::vector<uint8_t> GetUniqueReceivePayloadTypes() const {
+  const std::vector<uint8_t>& GetUniqueReceivePayloadTypes() const {
     return mUniqueReceivePayloadTypes;
   }
 
-  std::vector<uint8_t> GetDuplicateReceivePayloadTypes() const {
+  const std::vector<uint8_t>& GetDuplicateReceivePayloadTypes() const {
     return mDuplicateReceivePayloadTypes;
   }
 
