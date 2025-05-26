@@ -252,3 +252,35 @@ add_task(async function test_filter_passwords_and_update_login() {
   LoginTestUtils.clearData();
   SidebarController.hide();
 });
+
+add_task(async function test_filter_passwords_with_urls() {
+  if (!OSKeyStoreTestUtils.canTestOSKeyStoreLogin()) {
+    ok(true, "Cannot test OSAuth.");
+    return;
+  }
+
+  const newLogin = LoginTestUtils.testData.formLogin({
+    username: "jane",
+    password: "pass4",
+    origin: "https://www.example4.com",
+  });
+
+  info("Filter password using full URL as search input.");
+
+  const megalist = await openPasswordsSidebar();
+  await addMockPasswords();
+  info(
+    `Saving login: ${newLogin.username}, ${newLogin.password}, ${newLogin.origin}`
+  );
+  await LoginTestUtils.addLogin(newLogin);
+  await checkAllLoginsRendered(megalist);
+
+  const searchInput = megalist.querySelector(".search");
+  searchInput.value = newLogin.origin;
+  searchInput.dispatchEvent(new Event("input"));
+  await checkSearchResults(1, megalist);
+  ok(true, "Password filtered using full URL.");
+
+  LoginTestUtils.clearData();
+  SidebarController.hide();
+});

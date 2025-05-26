@@ -770,7 +770,7 @@ export class LoginDataSource extends DataSourceBase {
       searchText,
       stats,
       login =>
-        login.displayOrigin.toUpperCase().includes(searchText) ||
+        login.origin.toUpperCase().includes(searchText) ||
         login.username.toUpperCase().includes(searchText) ||
         login.password.toUpperCase().includes(searchText)
     );
