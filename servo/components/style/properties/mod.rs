@@ -554,6 +554,12 @@ impl LonghandId {
         !LonghandIdSet::reset().contains(self)
     }
 
+    /// Returns whether the longhand property is zoom-dependent.
+    #[inline]
+    pub fn zoom_dependent(self) -> bool {
+        LonghandIdSet::zoom_dependent().contains(self)
+    }
+
     /// Returns true if the property is one that is ignored when document
     /// colors are disabled.
     #[inline]

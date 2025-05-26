@@ -529,6 +529,7 @@ class Longhand(Property):
             "LengthPercentage",
             "FontSize",
             "LineHeight",
+            "Size",
             "WordSpacing",
         }
 

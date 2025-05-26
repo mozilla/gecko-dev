@@ -442,14 +442,18 @@
                                 context.rule_cache_conditions.borrow_mut().set_uncacheable();
                             % endif
                             % if property.is_zoom_dependent():
-                                if !context.builder.effective_zoom.is_one() {
+                                if !context.builder.effective_zoom_for_inheritance.is_one() {
+                                    let old_zoom = context.builder.effective_zoom;
+                                    context.builder.effective_zoom = context.builder.effective_zoom_for_inheritance;
                                     let computed = context.builder.inherited_style.clone_${property.ident}();
                                     let specified = ToComputedValue::from_computed_value(&computed);
                                     % if property.boxed:
                                     let specified = Box::new(specified);
                                     % endif
                                     let decl = PropertyDeclaration::${property.camel_case}(specified);
-                                    return cascade_property(&decl, context);
+                                    cascade_property(&decl, context);
+                                    context.builder.effective_zoom = old_zoom;
+                                    return;
                                 }
                             % endif
                             % if property.style_struct.inherited:
