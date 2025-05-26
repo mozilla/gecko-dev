@@ -33,8 +33,9 @@ skip-if = ["verify"]
 
 ["browser_smartblockembeds_mutation.js"]
 skip-if = [
-  "os == 'linux' && asan", # Bug 1858919
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1858919
-]
+  "os == 'linux' && asan"
+  "os == 'linux' && debug"
+  "os == 'mac' && debug"
+] # Bug 1858919, 1960066
 
 ["browser_ua_helpers.js"]
