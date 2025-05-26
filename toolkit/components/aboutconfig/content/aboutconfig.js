@@ -522,7 +522,7 @@ function loadPrefs() {
       event.target.localName != "input"
     ) {
       let row = event.target.closest("tr");
-      return row && row._pref.exists;
+      return row && row._pref.exists && !row._pref.isLocked;
     }
     return false;
   }
