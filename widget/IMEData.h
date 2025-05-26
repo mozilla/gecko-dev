@@ -997,6 +997,23 @@ struct IMENotification final {
       return *this;
     }
 
+    [[nodiscard]] uint32_t ComputeNewOffset(uint32_t aOldOffset) const {
+      // If mStartOffset equals or greater than aOldOffset, the text after
+      // aOldOffset is changed, i.e., the preceding text is not changed.  So,
+      // aOldOffset is not changed.
+      if (mStartOffset >= aOldOffset) {
+        return aOldOffset;
+      }
+      // If mRemovedEndOffset equals or less than aOldOffset, only the preceding
+      // text is changed.  So, add the difference to aOldOffset.
+      if (mRemovedEndOffset <= aOldOffset) {
+        return aOldOffset + Difference();
+      }
+      // If the character at aOldOffset is changed, the new offset should be the
+      // end of the changed text.
+      return mAddedEndOffset;
+    }
+
 #ifdef DEBUG
     void Test();
 #endif  // #ifdef DEBUG

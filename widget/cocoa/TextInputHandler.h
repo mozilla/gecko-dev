@@ -18,6 +18,7 @@
 #include "nsTArray.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/EventForwards.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/TextEventDispatcherListener.h"
 #include "WritingModes.h"
 
@@ -1112,12 +1113,22 @@ class IMEInputHandler : public TextInputHandlerBase {
 
  private:
   // If mIsIMEComposing is true, the composition string is stored here.
-  NSString* mIMECompositionString;
-  // If mIsIMEComposing is true, the start offset of the composition string.
-  uint32_t mIMECompositionStart;
+  NSString* mIMECompositionString = nullptr;
+  // Store the composition start offset which is considered before dispatching
+  // eCompositionStart.
+  Maybe<uint32_t> mIMECompositionStartBeforeStart;
+  // Store the composition start in content.  This may be different from
+  // mIMECompositionBeforeStart if the web app changed the text after
+  // dispatching eCompositionStart.
+  Maybe<uint32_t> mIMECompositionStartInContent;
 
   NSRange mMarkedRange;
   NSRange mSelectedRange;
+
+  // Store the override of mSelectedRange during a composition.  For avoiding
+  // IME to be confused at text changes before the composition, this keeps the
+  // selected range as in the composition string.
+  Maybe<NSRange> mSelectedRangeOverride;
 
   NSRange mRangeForWritingMode;  // range within which mWritingMode applies
   mozilla::WritingMode mWritingMode;
