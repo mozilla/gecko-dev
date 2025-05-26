@@ -423,6 +423,25 @@ section#summary > #confidence-number {
     color: var(--inactive-color);
 }
 
+section#summary.invalid h1,
+section#summary.invalid .gauge,
+section#summary.invalid hr {
+    opacity: 0.2;
+}
+section#summary.invalid #result-number {
+    color: var(--highlight);
+}
+section#summary.invalid .buttons {
+    display: none;
+}
+#invalid-score-text {
+    display: none;
+    text-align: center;
+}
+section#summary.invalid #invalid-score-text {
+    display: block;
+}
+
 section#details {
     --viewport-height: max(600px, 90vh);
     --viewport-width: max(800px, 80vw);

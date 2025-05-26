@@ -321,6 +321,31 @@ function seededHashRandomNumberGenerator(a) {
     };
 }
 
+class WakeLock {
+    #wakeLockSentinel = undefined;
+    async request() {
+        if (!navigator.wakeLock)
+            return;
+        try {
+            this.#wakeLockSentinel = await navigator.wakeLock.request("screen");
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+        }
+    }
+
+    async release() {
+        if (!this.#wakeLockSentinel)
+            return;
+        try {
+            await this.#wakeLockSentinel.release();
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+        } finally {
+            this.#wakeLockSentinel = undefined;
+        }
+    }
+}
+
 export class BenchmarkRunner {
     constructor(suites, client) {
         this._suites = suites;
@@ -332,6 +357,7 @@ export class BenchmarkRunner {
         this._iterationCount = params.iterationCount;
         if (params.shuffleSeed !== "off")
             this._suiteOrderRandomNumberGenerator = seededHashRandomNumberGenerator(params.shuffleSeed);
+        this._wakeLock = new WakeLock();
     }
 
     async runMultipleIterations(iterationCount) {
@@ -339,17 +365,29 @@ export class BenchmarkRunner {
         if (this._client?.willStartFirstIteration)
             await this._client.willStartFirstIteration(iterationCount);
 
+        try {
+            await this._runMultipleIterations();
+        } catch (error) {
+            console.error(error);
+            if (this._client?.handleError) {
+                await this._client.handleError(error);
+                return;
+            }
+        }
+
+        if (this._client?.didFinishLastIteration)
+            await this._client.didFinishLastIteration(this._metrics);
+    }
+
+    async _runMultipleIterations() {
         const iterationStartLabel = "iteration-start";
         const iterationEndLabel = "iteration-end";
-        for (let i = 0; i < iterationCount; i++) {
+        for (let i = 0; i < this._iterationCount; i++) {
             performance.mark(iterationStartLabel);
             await this._runAllSuites();
             performance.mark(iterationEndLabel);
             performance.measure(`iteration-${i}`, iterationStartLabel, iterationEndLabel);
         }
-
-        if (this._client?.didFinishLastIteration)
-            await this._client.didFinishLastIteration(this._metrics);
     }
 
     _removeFrame() {
@@ -382,6 +420,7 @@ export class BenchmarkRunner {
 
     async _runAllSuites() {
         this._measuredValues = { tests: {}, total: 0, mean: NaN, geomean: NaN, score: NaN };
+        await this._wakeLock.request();
 
         const prepareStartLabel = "runner-prepare-start";
         const prepareEndLabel = "runner-prepare-end";
@@ -402,15 +441,21 @@ export class BenchmarkRunner {
                 suites[j] = tmp;
             }
         }
-
         performance.mark(prepareEndLabel);
         performance.measure("runner-prepare", prepareStartLabel, prepareEndLabel);
 
-        for (const suite of suites) {
-            if (!suite.disabled)
-                await this._runSuite(suite);
-        }
+        try {
+            for (const suite of suites) {
+                if (!suite.disabled)
+                    await this._runSuite(suite);
+            }
 
+        } finally {
+            await this._finishRunAllSuites();
+        }
+    }
+
+    async _finishRunAllSuites() {
         const finalizeStartLabel = "runner-finalize-start";
         const finalizeEndLabel = "runner-finalize-end";
 
@@ -420,13 +465,15 @@ export class BenchmarkRunner {
         await this._finalize();
         performance.mark(finalizeEndLabel);
         performance.measure("runner-finalize", finalizeStartLabel, finalizeEndLabel);
+        await this._wakeLock.release();
     }
 
     async _runSuite(suite) {
-        const suitePrepareStartLabel = `suite-${suite.name}-prepare-start`;
-        const suitePrepareEndLabel = `suite-${suite.name}-prepare-end`;
-        const suiteStartLabel = `suite-${suite.name}-start`;
-        const suiteEndLabel = `suite-${suite.name}-end`;
+        const suiteName = suite.name;
+        const suitePrepareStartLabel = `suite-${suiteName}-prepare-start`;
+        const suitePrepareEndLabel = `suite-${suiteName}-prepare-end`;
+        const suiteStartLabel = `suite-${suiteName}-start`;
+        const suiteEndLabel = `suite-${suiteName}-end`;
 
         performance.mark(suitePrepareStartLabel);
         await this._prepareSuite(suite);
@@ -437,8 +484,18 @@ export class BenchmarkRunner {
             await this._runTestAndRecordResults(suite, test);
         performance.mark(suiteEndLabel);
 
-        performance.measure(`suite-${suite.name}-prepare`, suitePrepareStartLabel, suitePrepareEndLabel);
-        performance.measure(`suite-${suite.name}`, suiteStartLabel, suiteEndLabel);
+        performance.measure(`suite-${suiteName}-prepare`, suitePrepareStartLabel, suitePrepareEndLabel);
+        performance.measure(`suite-${suiteName}`, suiteStartLabel, suiteEndLabel);
+        this._validateSuiteTotal(suiteName);
+    }
+
+    _validateSuiteTotal(suiteName) {
+        // When the test is fast and the precision is low (for example with Firefox'
+        // privacy.resistFingerprinting preference), it's possible that the measured
+        // total duration for an entire is 0.
+        const suiteTotal = this._measuredValues.tests[suiteName].total;
+        if (suiteTotal === 0)
+            throw new Error(`Got invalid 0-time total for suite ${suiteName}: ${suiteTotal}`);
     }
 
     async _prepareSuite(suite) {
