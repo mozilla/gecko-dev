@@ -676,7 +676,7 @@ class Browsertime(Perftest):
             (
                 "gecko_profile_entries",
                 "--firefox.geckoProfilerParams.bufferSize",
-                str(13_107_200 * 5),  # ~500mb
+                str(128 * 1024 * 1024),  # 1GiB
             ),
         ):
             # 0 is a valid value. The setting may be present but set to None.
