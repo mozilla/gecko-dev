@@ -2,6 +2,8 @@
 subsuite = "media"
 tags = "autoplay"
 support-files = [
+  "../../../test/1967133.mp4",
+  "../../../test/1967133.mp4^headers^",
   "../../../test/manifest.js",
   "../../../test/avc-2bytes-nalu.mp4",
   "../../../test/bogus.duh",

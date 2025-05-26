@@ -86,6 +86,13 @@ var gSmallTests = [
     height: 320,
     duration: 0.27,
   },
+  {
+    name: "1967133.mp4",
+    type: "video/mp4",
+    width: 1080,
+    height: 1080,
+    duration: 0.512,
+  },
 ];
 
 var gFrameCountTests = [
