@@ -1174,11 +1174,11 @@ class BrowserRobot {
         Log.i(TAG, "clickChooseReasonField: Trying to clicked the \"Choose reason\" field")
     }
 
-    fun clickSiteSlowOrNotWorkingReason(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "clickSiteSlowOrNotWorkingReason: Trying to click the \"Site slow or not working\" reason option")
-        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_reason_slow))
+    fun clickSiteDoesNotLoadReason(composeTestRule: ComposeTestRule) {
+        Log.i(TAG, "clickSiteDoesNotLoadReason: Trying to click the \"Site doesn’t load\" reason option")
+        composeTestRule.onNodeWithText(getStringResource(R.string.webcompat_reporter_reason_load))
             .performClick()
-        Log.i(TAG, "clickSiteSlowOrNotWorkingReason: Clicked the \"Site slow or not working\" reason option")
+        Log.i(TAG, "clickSiteDoesNotLoadReason: Clicked the \"Site doesn’t load\" reason option")
     }
 
     fun clickBrokenSiteFormCancelButton(composeTestRule: ComposeTestRule) {
