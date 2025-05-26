@@ -55,7 +55,7 @@ fun MenuDialogBottomSheet(
     Column(
         modifier = Modifier
             .background(
-                color = FirefoxTheme.colors.layer3,
+                color = FirefoxTheme.colors.layer1,
                 shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
             )
             .nestedScroll(rememberNestedScrollInteropConnection()),

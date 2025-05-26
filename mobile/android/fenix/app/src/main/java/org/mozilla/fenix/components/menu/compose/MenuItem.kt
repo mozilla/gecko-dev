@@ -103,7 +103,12 @@ internal fun MenuItem(
                     this.contentDescription = label
                 }
             }
-            .wrapContentSize(),
+            .wrapContentSize()
+            .background(
+                color = FirefoxTheme.colors.layer3,
+                shape = RoundedCornerShape(4.dp),
+            )
+            .clip(shape = RoundedCornerShape(4.dp)),
         labelModifier = labelModifier,
         labelTextColor = labelTextColor,
         maxLabelLines = 2,

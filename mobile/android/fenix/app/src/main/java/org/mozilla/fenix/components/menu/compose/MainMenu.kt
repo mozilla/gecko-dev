@@ -14,7 +14,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
-import mozilla.components.compose.base.Divider
 import mozilla.components.service.fxa.manager.AccountState
 import mozilla.components.service.fxa.manager.AccountState.Authenticated
 import mozilla.components.service.fxa.manager.AccountState.Authenticating
@@ -162,8 +161,6 @@ fun MainMenu(
                 onClick = onMozillaAccountButtonClick,
             )
 
-            Divider(color = FirefoxTheme.colors.borderSecondary)
-
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_settings),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_settings_24),
@@ -228,8 +225,6 @@ private fun NewTabsMenuGroup(
             onClick = onNewTabMenuClick,
         )
 
-        Divider(color = FirefoxTheme.colors.borderSecondary)
-
         MenuItem(
             label = stringResource(id = R.string.browser_menu_new_private_tab),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_private_mode_circle_fill_24),
@@ -278,15 +273,11 @@ private fun ToolsAndActionsMenuGroup(
                 onClick = onSwitchToDesktopSiteMenuClick,
             )
 
-            Divider(color = FirefoxTheme.colors.borderSecondary)
-
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_find_in_page_2),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_search_24),
                 onClick = onFindInPageMenuClick,
             )
-
-            Divider(color = FirefoxTheme.colors.borderSecondary)
 
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_tools),
@@ -310,8 +301,6 @@ private fun ToolsAndActionsMenuGroup(
                 afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
             )
 
-            Divider(color = FirefoxTheme.colors.borderSecondary)
-
             MenuItem(
                 label = stringResource(id = R.string.browser_menu_save),
                 beforeIconPainter = painterResource(id = R.drawable.mozac_ic_save_24),
@@ -320,8 +309,6 @@ private fun ToolsAndActionsMenuGroup(
                 modifier = Modifier.testTag(MenuDialogTestTag.SAVE),
                 afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
             )
-
-            Divider(color = FirefoxTheme.colors.borderSecondary)
         }
 
         MenuItem(
@@ -358,23 +345,17 @@ private fun LibraryMenuGroup(
             onClick = onBookmarksMenuClick,
         )
 
-        Divider(color = FirefoxTheme.colors.borderSecondary)
-
         MenuItem(
             label = stringResource(id = R.string.library_history),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_history_24),
             onClick = onHistoryMenuClick,
         )
 
-        Divider(color = FirefoxTheme.colors.borderSecondary)
-
         MenuItem(
             label = stringResource(id = R.string.library_downloads),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_download_24),
             onClick = onDownloadsMenuClick,
         )
-
-        Divider(color = FirefoxTheme.colors.borderSecondary)
 
         MenuItem(
             label = stringResource(id = R.string.browser_menu_passwords),
@@ -395,8 +376,6 @@ private fun HomepageMenuGroup(
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_grid_add_24),
             onClick = onCustomizeHomepageMenuClick,
         )
-
-        Divider(color = FirefoxTheme.colors.borderSecondary)
 
         MenuItem(
             label = stringResource(
@@ -465,7 +444,7 @@ private fun MenuDialogPreview() {
     FirefoxTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer3),
+                .background(color = FirefoxTheme.colors.layer1),
         ) {
             MainMenu(
                 accessPoint = MenuAccessPoint.Browser,
@@ -511,7 +490,7 @@ private fun MenuDialogPrivatePreview() {
     FirefoxTheme(theme = Theme.Private) {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer3),
+                .background(color = FirefoxTheme.colors.layer1),
         ) {
             MainMenu(
                 accessPoint = MenuAccessPoint.Home,

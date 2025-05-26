@@ -60,7 +60,7 @@ internal fun MenuScaffold(
                     end = 16.dp,
                     bottom = 32.dp,
                 ),
-            verticalArrangement = Arrangement.spacedBy(32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             content()
         }

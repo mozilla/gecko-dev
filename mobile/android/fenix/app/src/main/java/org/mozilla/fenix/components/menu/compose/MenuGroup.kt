@@ -4,9 +4,8 @@
 
 package org.mozilla.fenix.components.menu.compose
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,11 +16,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import mozilla.components.compose.base.Divider
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 
-private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(12.dp)
+private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(28.dp)
 
 /**
  * A menu group container.
@@ -32,18 +30,8 @@ private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(12.dp)
 internal fun MenuGroup(content: @Composable () -> Unit) {
     Column(
         modifier = Modifier
-            .background(
-                color = FirefoxTheme.colors.layer2,
-                shape = ROUNDED_CORNER_SHAPE,
-            )
-            .border(
-                border = BorderStroke(
-                    width = 0.5.dp,
-                    color = FirefoxTheme.colors.borderPrimary,
-                ),
-                shape = ROUNDED_CORNER_SHAPE,
-            )
             .clip(shape = ROUNDED_CORNER_SHAPE),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         content()
     }
@@ -55,7 +43,7 @@ private fun MenuGroupPreview() {
     FirefoxTheme {
         Column(
             modifier = Modifier
-                .background(color = FirefoxTheme.colors.layer3)
+                .background(color = FirefoxTheme.colors.layer1)
                 .padding(16.dp),
         ) {
             MenuGroup {
@@ -63,8 +51,6 @@ private fun MenuGroupPreview() {
                     label = stringResource(id = R.string.browser_menu_add_to_homescreen),
                     beforeIconPainter = painterResource(id = R.drawable.mozac_ic_plus_24),
                 )
-
-                Divider(color = FirefoxTheme.colors.borderSecondary)
 
                 MenuItem(
                     label = stringResource(id = R.string.browser_menu_add_to_homescreen),
