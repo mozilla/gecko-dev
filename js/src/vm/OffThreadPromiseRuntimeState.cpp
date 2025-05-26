@@ -430,19 +430,18 @@ void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
   AutoLockHelperThreadState lock;
 
   // Cancel all undispatched tasks.
-  // We don't use an iterator here because we're releasing the lock,
-  // and this way we don't have to worry about iterator invalidation.
-  for (OffThreadPromiseTaskSet::Range r = cancellable().all(); !r.empty();
-       r.popFront()) {
-    OffThreadPromiseTask* task = r.front();
+  for (auto iter = cancellable().modIter(); !iter.done(); iter.next()) {
+    OffThreadPromiseTask* task = iter.get();
+    MOZ_ASSERT(task->cancellable_);
+    iter.remove();
 
     // Don't call DestroyUndispatchedTask() with lock held to avoid deadlock.
-    if (task->cancellable_) {
+    {
       AutoUnlockHelperThreadState unlock(lock);
       OffThreadPromiseTask::DestroyUndispatchedTask(task);
     }
   }
-  cancellable().clear();
+  MOZ_ASSERT(cancellable().empty());
 
   // When the shell is using the internal event loop, we must simulate our
   // requirement of the embedding that, before shutdown, all successfully-
