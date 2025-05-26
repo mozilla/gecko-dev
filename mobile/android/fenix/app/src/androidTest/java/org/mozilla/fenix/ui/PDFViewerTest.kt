@@ -6,6 +6,7 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -61,6 +62,7 @@ class PDFViewerTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2145448
     // Download PDF file using the download toolbar button
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun verifyPDFViewerDownloadButtonTest() {
         val genericURL = getGenericAsset(mockWebServer, 3)
@@ -131,6 +133,7 @@ class PDFViewerTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2797677
     // Download PDF file using the download toolbar button
+    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1967423")
     @Test
     fun verifyDownloadedPDFIsOpenedInFirefoxTest() {
         val genericURL = getGenericAsset(mockWebServer, 3)

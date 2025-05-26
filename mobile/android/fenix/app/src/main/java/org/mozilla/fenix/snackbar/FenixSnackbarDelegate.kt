@@ -55,6 +55,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
      * Displays a snackbar.
      *
      * @param text The text to show.
+     * @param subText The optional sub-text to show.
      * @param duration How long to display the message.
      * @param isError Whether the snackbar should be styled as an error.
      * @param action Optional String to display for the action.
@@ -64,6 +65,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
      */
     fun show(
         text: String,
+        subText: String? = null,
         duration: Int = LENGTH_LONG,
         isError: Boolean = false,
         action: String? = null,
@@ -71,6 +73,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
     ) = show(
         snackBarParentView = view,
         text = text,
+        subText = subText,
         duration = duration,
         isError = isError,
         action = action,
@@ -80,6 +83,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         @StringRes text: Int,
+        subText: String?,
         duration: Int,
         isError: Boolean,
         @StringRes action: Int,
@@ -87,6 +91,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
     ) = show(
         snackBarParentView = snackBarParentView,
         text = snackBarParentView.context.getString(text),
+        subText = subText,
         duration = duration,
         isError = isError,
         action = if (action == 0) null else snackBarParentView.context.getString(action),
@@ -96,6 +101,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         text: String,
+        subText: String?,
         duration: Int,
         isError: Boolean,
         action: String?,
@@ -106,6 +112,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
             snackbarState = makeSnackbarState(
                 snackBarParentView = snackBarParentView,
                 text = text,
+                subText = subText,
                 duration = duration,
                 isError = isError,
                 actionText = action,
@@ -133,6 +140,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
     internal fun makeSnackbarState(
         snackBarParentView: View,
         text: String,
+        subText: String? = null,
         duration: Int,
         isError: Boolean,
         actionText: String?,
@@ -151,6 +159,7 @@ class FenixSnackbarDelegate(private val view: View) : SnackbarDelegate {
 
         return SnackbarState(
             message = text,
+            subMessage = subText,
             duration = duration.toSnackbarDuration(),
             type = if (isError) {
                 SnackbarState.Type.Warning

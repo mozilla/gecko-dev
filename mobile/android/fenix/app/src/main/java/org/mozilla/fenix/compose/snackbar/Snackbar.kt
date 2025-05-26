@@ -291,8 +291,7 @@ internal fun Snackbar(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = snackbarState.message,
+                Column(
                     modifier = Modifier
                         .weight(1f)
                         .padding(
@@ -300,11 +299,25 @@ internal fun Snackbar(
                             top = snackbarVerticalPadding,
                             bottom = snackbarVerticalPadding,
                         ),
-                    color = colors.messageTextColor,
-                    overflow = TextOverflow.Ellipsis,
-                    maxLines = 2,
-                    style = FirefoxTheme.typography.headline7,
-                )
+                ) {
+                    Text(
+                        text = snackbarState.message,
+                        color = colors.messageTextColor,
+                        overflow = TextOverflow.Ellipsis,
+                        maxLines = 2,
+                        style = FirefoxTheme.typography.headline7,
+                    )
+
+                    snackbarState.subMessage?.let {
+                        Text(
+                            text = it,
+                            color = colors.messageTextColor,
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                            style = FirefoxTheme.typography.caption,
+                        )
+                    }
+                }
 
                 if (snackbarState.action != null) {
                     Spacer(modifier = Modifier.width(snackbarActionHorizontalSpacing))
@@ -381,6 +394,7 @@ private fun SnackbarHostPreview() {
                         snackbarHostState.showSnackbar(
                             snackbarState = SnackbarState(
                                 message = "Default snackbar",
+                                subMessage = "Default subMessage",
                                 duration = SnackbarState.Duration.Preset.Short,
                                 type = Type.Default,
                                 action = Action(
@@ -405,6 +419,7 @@ private fun SnackbarHostPreview() {
                         snackbarHostState.showSnackbar(
                             snackbarState = SnackbarState(
                                 message = "Warning snackbar",
+                                subMessage = "Default subMessage",
                                 duration = SnackbarState.Duration.Preset.Short,
                                 type = Type.Warning,
                                 action = Action(
