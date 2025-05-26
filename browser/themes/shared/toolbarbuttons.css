@@ -207,25 +207,32 @@ toolbar .toolbaritem-combined-buttons {
     padding-block: calc(var(--toolbarbutton-inner-padding) + (16px - 12px) / 2);
     width: calc(2 * 2px + 12px);
   }
+}
 
+.toolbaritem-combined-buttons {
   > separator {
-    width: 1px;
+    width: 0;
     height: 16px;
-    margin-inline-end: -1px;
-    background-image: linear-gradient(currentColor 0, currentColor 100%);
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 1px 16px;
-    opacity: .2;
+    pointer-events: none;
+
+    /* place the border on a pseudo-element so that
+       the separator doesn't take up any space */
+    &::before {
+      content: "";
+      border-inline-start: 1px solid currentColor;
+    }
   }
 
   &:hover > separator {
-    display: none;
+    opacity: 0;
   }
 }
 
-toolbar[brighttext] .toolbaritem-combined-buttons > separator {
-  opacity: .3;
+toolbar .toolbaritem-combined-buttons > separator {
+  color: light-dark(
+    color-mix(in srgb, currentColor 20%, transparent),
+    color-mix(in srgb, currentColor 30%, transparent)
+  );
 }
 
 /* Toolbar button animations */
