@@ -51,6 +51,11 @@ nsChangeHint XULButtonElement::GetAttributeChangeHint(const nsAtom* aAttribute,
     // type=menu switches to a menu frame.
     return nsChangeHint_ReconstructFrame;
   }
+  if (aAttribute == nsGkAtoms::checked &&
+      IsAnyOfXULElements(nsGkAtoms::menuitem, nsGkAtoms::radio,
+                         nsGkAtoms::checkbox)) {
+    return nsChangeHint_RepaintFrame;
+  }
   return nsXULElement::GetAttributeChangeHint(aAttribute, aModType);
 }
 
