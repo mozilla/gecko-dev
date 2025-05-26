@@ -227,7 +227,7 @@ void OffscreenCanvas::GetContext(
     return;
   }
 
-  Maybe<int32_t> childId;
+  Maybe<mozilla::ipc::ActorId> childId;
 
   MOZ_ASSERT(mCurrentContext);
   switch (mCurrentContextType) {

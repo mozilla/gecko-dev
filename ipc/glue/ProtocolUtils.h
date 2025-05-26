@@ -124,9 +124,7 @@ struct EndpointProcInfo {
 // Used to pass references to protocol actors across the wire.
 // Actors created on the parent-side have a positive ID, and actors
 // allocated on the child side have a negative ID.
-struct ActorHandle {
-  int mId;
-};
+using ActorId = IPC::Message::routeid_t;
 
 enum class LinkStatus : uint8_t {
   // The actor has not established a link yet, or the actor is no longer in use
@@ -194,10 +192,10 @@ class IProtocol : public HasResultCodes {
   const IToplevelProtocol* ToplevelProtocol() const { return mToplevel; }
 
   // Lookup() is forwarded directly to the toplevel protocol.
-  IProtocol* Lookup(int32_t aId);
+  IProtocol* Lookup(ActorId aId);
 
   Shmem CreateSharedMemory(size_t aSize, bool aUnsafe);
-  Shmem::Segment* LookupSharedMemory(int32_t aId);
+  Shmem::Segment* LookupSharedMemory(ActorId aId);
   bool IsTrackingSharedMemory(const Shmem::Segment* aSegment);
   bool DestroySharedMemory(Shmem& aShmem);
 
@@ -213,7 +211,7 @@ class IProtocol : public HasResultCodes {
   ProtocolId GetProtocolId() const { return mProtocolId; }
   const char* GetProtocolName() const { return ProtocolIdToName(mProtocolId); }
 
-  int32_t Id() const { return mId; }
+  ActorId Id() const { return mId; }
   IRefCountedProtocol* Manager() const { return mManager; }
 
   uint32_t AllManagedActorsCount() const;
@@ -232,11 +230,7 @@ class IProtocol : public HasResultCodes {
   }
 
   // Deallocate a managee given its type.
-  virtual void DeallocManagee(int32_t, IProtocol*) = 0;
-
-  Maybe<IProtocol*> ReadActor(IPC::MessageReader* aReader, bool aNullable,
-                              const char* aActorDescription,
-                              int32_t aProtocolTypeId);
+  virtual void DeallocManagee(ProtocolId, IProtocol*) = 0;
 
   virtual Result OnMessageReceived(const Message& aMessage) = 0;
   virtual Result OnMessageReceived(const Message& aMessage,
@@ -255,6 +249,7 @@ class IProtocol : public HasResultCodes {
   friend class ActorLifecycleProxy;
   friend class IPDLResolverInner;
   friend class UntypedManagedEndpoint;
+  friend struct IPC::ParamTraits<IProtocol*>;
 
   // We have separate functions because the accessibility code and BrowserParent
   // manually calls SetManager.
@@ -269,10 +264,11 @@ class IProtocol : public HasResultCodes {
   // its manager, setting up channels for the protocol as well.  Not
   // for use outside of IPDL.
   bool SetManagerAndRegister(IRefCountedProtocol* aManager,
-                             int32_t aId = kNullActorId);
+                             ActorId aId = kNullActorId);
 
   // Helpers for calling `Send` on our underlying IPC channel.
-  bool ChannelSend(UniquePtr<IPC::Message> aMsg, int32_t* aSeqno = nullptr);
+  bool ChannelSend(UniquePtr<IPC::Message> aMsg,
+                   IPC::Message::seqno_t* aSeqno = nullptr);
   bool ChannelSend(UniquePtr<IPC::Message> aMsg,
                    UniquePtr<IPC::Message>* aReply);
 
@@ -311,8 +307,7 @@ class IProtocol : public HasResultCodes {
   // The actor has been freed after this method returns.
   virtual void ActorDealloc() = 0;
 
-  static const int32_t kNullActorId = 0;
-  static const int32_t kFreedActorId = 1;
+  static const ActorId kNullActorId = 0;
 
  private:
 #ifdef DEBUG
@@ -327,7 +322,7 @@ class IProtocol : public HasResultCodes {
   // identify managed actors to destroy when tearing down an actor tree.
   IProtocol* PeekManagedActor() const;
 
-  int32_t mId;
+  ActorId mId;
   const ProtocolId mProtocolId;
   const Side mSide;
   LinkStatus mLinkStatus;
@@ -444,10 +439,10 @@ class IToplevelProtocol : public IRefCountedProtocol {
 
  public:
   // Shadows the method on IProtocol, which will forward to the top.
-  IProtocol* Lookup(int32_t aId);
+  IProtocol* Lookup(Shmem::id_t aId);
 
   Shmem CreateSharedMemory(size_t aSize, bool aUnsafe);
-  Shmem::Segment* LookupSharedMemory(int32_t aId);
+  Shmem::Segment* LookupSharedMemory(Shmem::id_t aId);
   bool IsTrackingSharedMemory(const Shmem::Segment* aSegment);
   bool DestroySharedMemory(Shmem& aShmem);
 
@@ -546,17 +541,17 @@ class IToplevelProtocol : public IRefCountedProtocol {
   GeckoChildID OtherChildIDMaybeInvalid() const { return mOtherChildID; }
 
  private:
-  int32_t NextId();
+  int64_t NextId();
 
   template <class T>
-  using IDMap = nsTHashMap<nsUint32HashKey, T>;
+  using IDMap = nsTHashMap<int64_t, T>;
 
   base::ProcessId mOtherPid;
   GeckoChildID mOtherChildID;
 
   // NOTE NOTE NOTE
   // Used to be on mState
-  int32_t mLastLocalId;
+  int64_t mLastLocalId;
   IDMap<RefPtr<ActorLifecycleProxy>> mActorMap;
   IDMap<RefPtr<Shmem::Segment>> mShmemMap;
 
@@ -761,16 +756,17 @@ class IPDLAsyncReturnsCallbacks : public HasResultCodes {
   // the IPC::MessageReader* argument.
   using Callback =
       mozilla::MoveOnlyFunction<Result(IPC::MessageReader* IProtocol)>;
+  using seqno_t = IPC::Message::seqno_t;
   using msgid_t = IPC::Message::msgid_t;
 
-  void AddCallback(int32_t aSeqno, msgid_t aType, Callback aResolve,
+  void AddCallback(seqno_t aSeqno, msgid_t aType, Callback aResolve,
                    RejectCallback aReject);
   Result GotReply(IProtocol* aActor, const IPC::Message& aMessage);
   void RejectPendingResponses(ResponseRejectReason aReason);
 
  private:
   struct EntryKey {
-    int32_t mSeqno;
+    seqno_t mSeqno;
     msgid_t mType;
 
     bool operator==(const EntryKey& aOther) const;
