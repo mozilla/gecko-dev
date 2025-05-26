@@ -254,6 +254,7 @@ MediaPipeline::MediaPipeline(const std::string& aPc,
       mCallThread(std::move(aCallThread)),
       mStsThread(std::move(aStsThread)),
       INIT_MIRROR(mActive, false),
+      mActiveSts(false),
       mLevel(0),
       mTransportHandler(std::move(aTransportHandler)),
       mRtpPacketsSent(0),
@@ -517,6 +518,10 @@ void MediaPipeline::PacketReceived(const std::string& aTransportId,
                                    const MediaPacket& packet) {
   ASSERT_ON_THREAD(mStsThread);
 
+  if (!mActiveSts) {
+    return;
+  }
+
   if (mTransportId != aTransportId) {
     return;
   }
@@ -711,6 +716,7 @@ MediaPipelineTransmit::MediaPipelineTransmit(
     mListener->SetAudioProxy(mAudioProcessing);
   }
 
+  mWatchManager.Watch(mActive, &MediaPipeline::UpdateActive);
   mWatchManager.Watch(mActive, &MediaPipelineTransmit::UpdateSendState);
   mWatchManager.Watch(mDomTrack, &MediaPipelineTransmit::UpdateSendState);
   mWatchManager.Watch(mSendTrackOverride,
@@ -796,6 +802,14 @@ std::string MediaPipelineTransmit::GenerateDescription() const {
   description << "]";
 
   return description.str();
+}
+
+void MediaPipeline::UpdateActive() {
+  MOZ_ASSERT(NS_IsMainThread());
+  mStsThread->Dispatch(NS_NewRunnableFunction(
+      __func__, [this, self = RefPtr(this), active = mActive.Ref()] {
+        mActiveSts = active;
+      }));
 }
 
 void MediaPipelineTransmit::UpdateSendState() {
@@ -1161,6 +1175,7 @@ MediaPipelineReceive::MediaPipelineReceive(
                     std::move(aCallThread), std::move(aStsThread),
                     std::move(aConduit)),
       mWatchManager(this, AbstractThread::MainThread()) {
+  mWatchManager.Watch(mActive, &MediaPipeline::UpdateActive);
   mWatchManager.Watch(mActive, &MediaPipelineReceive::UpdateListener);
 }
 
