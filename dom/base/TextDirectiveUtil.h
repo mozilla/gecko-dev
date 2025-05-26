@@ -7,6 +7,7 @@
 #ifndef DOM_TEXTDIRECTIVEUTIL_H_
 #define DOM_TEXTDIRECTIVEUTIL_H_
 
+#include "mozilla/dom/Text.h"
 #include "mozilla/Logging.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RefPtr.h"
@@ -174,6 +175,67 @@ class TimeoutWatchdog final {
   TimeStamp mStartTime;
   TimeDuration mDuration;
 };
+
+/**
+ * @brief Iterator for visible text nodes with the same block ancestor.
+ *
+ * Allows to be used in range-based iteration. Returns the next visible text
+ * node (as defined by `TextDirectiveUtil::NodeIsVisibleTextNode()` and
+ * `TextDirectiveUtil::NodeIsPartOfNonSearchableSubTree()`) in the given
+ * direction.
+ *
+ * @tparam direction Either left-to-right or right-to-left.
+ */
+template <TextScanDirection direction>
+class SameBlockVisibleTextNodeIterator final {
+ public:
+  explicit SameBlockVisibleTextNodeIterator(nsINode& aStart)
+      : mCurrent(&aStart),
+        mBlockAncestor(TextDirectiveUtil::GetBlockAncestorForNode(mCurrent)) {
+    while (mCurrent->HasChildNodes()) {
+      nsINode* child = direction == TextScanDirection::Left
+                           ? mCurrent->GetLastChild()
+                           : mCurrent->GetFirstChild();
+      if (TextDirectiveUtil::GetBlockAncestorForNode(child) != mBlockAncestor) {
+        break;
+      }
+      mCurrent = child;
+    }
+  }
+
+  SameBlockVisibleTextNodeIterator& begin() { return *this; }
+
+  std::nullptr_t end() { return nullptr; }
+
+  bool operator!=(std::nullptr_t) const { return !!mCurrent; }
+
+  void operator++() {
+    while (mCurrent) {
+      mCurrent = direction == TextScanDirection::Left ? mCurrent->GetPrevNode()
+                                                      : mCurrent->GetNextNode();
+      if (!mCurrent) {
+        return;
+      }
+      if (TextDirectiveUtil::GetBlockAncestorForNode(mCurrent) !=
+          mBlockAncestor) {
+        mCurrent = nullptr;
+        return;
+      }
+      if (TextDirectiveUtil::NodeIsVisibleTextNode(*mCurrent) &&
+          !TextDirectiveUtil::NodeIsPartOfNonSearchableSubTree(*mCurrent)) {
+        break;
+      }
+    }
+    MOZ_ASSERT_IF(mCurrent, mCurrent->IsText());
+  }
+
+  Text* operator*() { return Text::FromNodeOrNull(mCurrent); }
+
+ private:
+  nsINode* mCurrent = nullptr;
+  nsINode* mBlockAncestor = nullptr;
+};
+
 }  // namespace mozilla::dom
 
 #endif
