@@ -86,3 +86,6 @@ preferences:
             type: string
           value:
             type: string
+    send_in_pings:
+      - metrics
+      - update

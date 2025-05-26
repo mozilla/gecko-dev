@@ -139,6 +139,7 @@ profiles:
     send_in_pings:
       - metrics
       - heartbeat
+      - update
 
   reset_date:
     type: quantity
@@ -158,6 +159,9 @@ profiles:
     notification_emails:
       - dtownsend@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   first_use_date:
     type: quantity
@@ -181,6 +185,7 @@ profiles:
     send_in_pings:
       - metrics
       - heartbeat
+      - update
 
   recovered_from_backup:
     type: quantity
@@ -201,3 +206,6 @@ profiles:
       - mconley@mozilla.com
       - dtownsend@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
