@@ -30,7 +30,7 @@ LazyLogModule gFragmentDirectiveLog("FragmentDirective");
 
 /* static */
 Result<nsString, ErrorResult> TextDirectiveUtil::RangeContentAsString(
-    nsRange* aRange) {
+    AbstractRange* aRange) {
   nsString content;
   if (!aRange || aRange->Collapsed()) {
     return content;

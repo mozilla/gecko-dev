@@ -4859,6 +4859,11 @@
   value: 5
   mirror: always
 
+- name: dom.text_fragments.create_text_fragment.exact_match_max_length
+  type: uint32_t
+  value: 200
+  mirror: always
+
 - name: dom.textMetrics.actualBoundingBox.enabled
   type: RelaxedAtomicBool
   value: true

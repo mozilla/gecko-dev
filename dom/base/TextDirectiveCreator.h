@@ -24,16 +24,17 @@ class ErrorResult;
 namespace mozilla::dom {
 class Document;
 /**
- * @brief Helper class to create a text directive string from a given `nsRange`.
+ * @brief Helper class to create a text directive string from a given `Range`.
  *
  * The class provides a public static creator function which encapsulates all
- * necessary logic. The class itself stores necessary state throughout the
- * steps.
+ * necessary logic.
+ * This class serves as a base class that defines the main algorithm, and is
+ * subclassed twice for exact and range-based matching.
  */
-class TextDirectiveCreator final {
+class TextDirectiveCreator {
  public:
   /**
-   * @brief Static creator function. Takes an `nsRange` and creates a text
+   * @brief Static creator function. Takes a `Range` and creates a text
    *        directive string, if possible.
    *
    * @param aDocument   The document in which `aInputRange` lives.
@@ -44,13 +45,39 @@ class TextDirectiveCreator final {
    *         given range, or an error code.
    */
   static Result<nsCString, ErrorResult> CreateTextDirectiveFromRange(
-      Document& aDocument, nsRange* aInputRange);
+      Document& aDocument, AbstractRange* aInputRange);
 
   virtual ~TextDirectiveCreator() = default;
 
  protected:
   TextDirectiveCreator(Document& aDocument, AbstractRange* aRange);
 
+  /**
+   * @brief Ensures the boundary points of the range point to word boundaries.
+   *
+   * This function always returns a new range.
+   */
+  static Result<RefPtr<AbstractRange>, ErrorResult>
+  ExtendRangeToBlockBoundaries(AbstractRange* aRange);
+
+  /**
+   * @brief Determines whether exact or range-based matching should be used.
+   *
+   * This function searches for a block boundary in `aRange`, which requires
+   * range-based matching. If there is no block boundary, but the range content
+   * is longer than a threshold, range-based matching is used as well.
+   * This threshold is defined by the pref
+   * `dom.text_fragments.create_text_fragment.exact_match_max_length`.
+   *
+   */
+  static Result<bool, ErrorResult> MustUseRangeBasedMatching(
+      AbstractRange* aRange);
+
+  /**
+   * @brief Creates an instance either for exact or range-based matching.
+   */
+  static Result<UniquePtr<TextDirectiveCreator>, ErrorResult> CreateInstance(
+      Document& aDocument, AbstractRange* aRange);
 
   Document& mDocument;
   RefPtr<AbstractRange> mRange;
@@ -63,6 +90,26 @@ class TextDirectiveCreator final {
    * `dom.text_fragments.create_text_fragment.timeout`.
    */
   TimeoutWatchdog mWatchdog;
+};
+
+/**
+ * @brief Creator class which creates a range-based text directive.
+ *
+ */
+class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
+ private:
+  using TextDirectiveCreator::TextDirectiveCreator;
+
+};
+
+/**
+ * @brief Creator class which creates an exact match text directive.
+ *
+ */
+class ExactMatchTextDirectiveCreator : public TextDirectiveCreator {
+ private:
+  using TextDirectiveCreator::TextDirectiveCreator;
+
 };
 }  // namespace mozilla::dom
 #endif

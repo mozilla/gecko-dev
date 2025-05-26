@@ -7,7 +7,9 @@
 #ifndef DOM_TEXTDIRECTIVEUTIL_H_
 #define DOM_TEXTDIRECTIVEUTIL_H_
 
+#include "mozilla/dom/AbstractRange.h"
 #include "mozilla/dom/Text.h"
+#include "mozilla/intl/WordBreaker.h"
 #include "mozilla/Logging.h"
 #include "mozilla/RangeBoundary.h"
 #include "mozilla/RefPtr.h"
@@ -39,7 +41,8 @@ class TextDirectiveUtil final {
     return MOZ_LOG_TEST(gFragmentDirectiveLog, LogLevel::Debug);
   }
 
-  static Result<nsString, ErrorResult> RangeContentAsString(nsRange* aRange);
+  static Result<nsString, ErrorResult> RangeContentAsString(
+      AbstractRange* aRange);
 
   /**
    * @brief Return true if `aNode` is a visible Text node.
@@ -141,6 +144,39 @@ class TextDirectiveUtil final {
   template <TextScanDirection direction>
   static RangeBoundary FindNextBlockBoundary(
       const RangeBoundary& aRangeBoundary);
+
+  template <TextScanDirection direction>
+  static Maybe<RangeBoundary> FindBlockBoundaryInRange(
+      const AbstractRange& aRange);
+
+  /**
+   * @brief Find the next non-whitespace point in given `direction`.
+   *
+   * This algorithm jumps across block boundaries.
+   *
+   * @param aPoint Start point
+   * @return New boundary point which points at the next non-whitespace text in
+   *         `direction`. If no non-whitespace content exists in `direction`,
+   *         return the original boundary point.
+   */
+  template <TextScanDirection direction>
+  static RangeBoundary FindNextNonWhitespacePosition(
+      const RangeBoundary& aPoint);
+
+  /**
+   * @brief Creates a new RangeBoundary at the nearest word boundary.
+   *
+   * Word boundaries are determined using `intl::WordBreaker::FindWord()`.
+   * This algorithm can find word boundaries across node boundaries and stops at
+   * a block boundary.
+   *
+   * @param aRangeBoundary[in] The range boundary that should be moved.
+   *                           Must be set and valid.
+   * @param direction[in]     The direction into which to move.
+   * @return A new `RangeBoundary` which is moved to the nearest word boundary.
+   */
+  template <TextScanDirection direction>
+  static RangeBoundary FindWordBoundary(const RangeBoundary& aRangeBoundary);
 };
 
 class TimeoutWatchdog final {
@@ -232,6 +268,153 @@ template <TextScanDirection direction>
     offset = direction == TextScanDirection::Left ? 0u : current->Length();
   }
   return {current, offset};
+}
+
+template <TextScanDirection direction>
+/* static */ Maybe<RangeBoundary> TextDirectiveUtil::FindBlockBoundaryInRange(
+    const AbstractRange& aRange) {
+  if (aRange.Collapsed()) {
+    return Nothing{};
+  }
+
+  RangeBoundary boundary = FindNextBlockBoundary<direction>(
+      direction == TextScanDirection::Left ? aRange.EndRef()
+                                           : aRange.StartRef());
+
+  Maybe<int32_t> compare =
+      direction == TextScanDirection::Left
+          ? nsContentUtils::ComparePoints(aRange.StartRef(), boundary)
+          : nsContentUtils::ComparePoints(boundary, aRange.EndRef());
+  if (compare && *compare == -1) {
+    // *compare == -1 means that the found boundary is after the range start
+    // when looking left, and before the range end when looking right.
+    // This means that there is a block boundary within the range.
+    return Some(boundary);
+  }
+
+  return Nothing{};
+}
+
+template <TextScanDirection direction>
+/* static */ RangeBoundary TextDirectiveUtil::FindNextNonWhitespacePosition(
+    const RangeBoundary& aPoint) {
+  MOZ_ASSERT(aPoint.IsSetAndValid());
+  nsINode* node = aPoint.GetChildAtOffset();
+  uint32_t offset =
+      direction == TextScanDirection::Left && node ? node->Length() : 0;
+  if (!node) {
+    node = aPoint.GetContainer();
+    offset =
+        *aPoint.Offset(RangeBoundary::OffsetFilter::kValidOrInvalidOffsets);
+  }
+  while (node->HasChildNodes()) {
+    if constexpr (direction == TextScanDirection::Left) {
+      node = node->GetLastChild();
+      MOZ_ASSERT(node);
+      offset = node->Length();
+    } else {
+      node = node->GetFirstChild();
+      offset = 0;
+    }
+  }
+
+  while (node) {
+    const bool nodeIsInvisible =
+        !TextDirectiveUtil::NodeIsVisibleTextNode(*node) ||
+        TextDirectiveUtil::NodeIsPartOfNonSearchableSubTree(*node);
+    const bool offsetIsAtEnd =
+        (direction == TextScanDirection::Left && offset == 0) ||
+        (direction == TextScanDirection::Right && offset == node->Length());
+    if (nodeIsInvisible || offsetIsAtEnd) {
+      if constexpr (direction == TextScanDirection::Left) {
+        node = node->GetPrevNode();
+        if (node) {
+          offset = node->Length();
+        }
+      } else {
+        node = node->GetNextNode();
+        offset = 0;
+      }
+      continue;
+    }
+    const Text* text = Text::FromNode(node);
+    MOZ_ASSERT(text);
+
+    if (!TextDirectiveUtil::IsWhitespaceAtPosition(
+            text, direction == TextScanDirection::Left ? offset - 1 : offset)) {
+      return {node, offset};
+    }
+    offset += int(direction);
+  }
+
+  // If there seems to be no non-whitespace text in the document in
+  // `direction`, it's safest to return the original point.
+  return aPoint;
+}
+
+template <TextScanDirection direction>
+/*static*/ RangeBoundary TextDirectiveUtil::FindWordBoundary(
+    const RangeBoundary& aRangeBoundary) {
+  MOZ_ASSERT(aRangeBoundary.IsSetAndValid());
+  nsINode* node = aRangeBoundary.GetContainer();
+  uint32_t offset = *aRangeBoundary.Offset(
+      RangeBoundary::OffsetFilter::kValidOrInvalidOffsets);
+
+  // Collect text content into this buffer.
+  // The following algorithm pulls in the next text node if required
+  // (if the next word boundary would be at the beginning/end of the text node)
+  nsString textBuffer;
+  for (Text* textNode : SameBlockVisibleTextNodeIterator<direction>(*node)) {
+    if (!textNode) {
+      continue;
+    }
+    nsString data;
+    textNode->GetWholeText(data);
+    const uint32_t bufferLength = textBuffer.Length();
+    if constexpr (direction == TextScanDirection::Left) {
+      textBuffer.Insert(data, 0);
+    } else {
+      textBuffer.Append(data);
+    }
+    if (bufferLength) {
+      auto newOffset =
+          direction == TextScanDirection::Left ? textNode->Length() - 1 : 0u;
+      if (nsContentUtils::IsHTMLWhitespace(data.CharAt(newOffset)) ||
+          mozilla::IsPunctuationForWordSelect(data.CharAt(newOffset))) {
+        break;
+      }
+      offset = newOffset;
+    } else {
+      offset = std::max(std::min(offset, textNode->Length() - 1), 0u);
+    }
+    if constexpr (direction == TextScanDirection::Right) {
+      // if not at the beginning of a word, go left by one character.
+      // Otherwise, if offset is already at the end of the word, the word
+      // breaker will match the whitespace or the next word.
+      if (offset &&
+          !(nsContentUtils::IsHTMLWhitespace(data.CharAt(offset - 1)) ||
+            mozilla::IsPunctuationForWordSelect(data.CharAt(offset - 1)))) {
+        --offset;
+      }
+    } else {
+      if (offset &&
+          (nsContentUtils::IsHTMLWhitespace(data.CharAt(offset)) ||
+           mozilla::IsPunctuationForWordSelect(data.CharAt(offset)))) {
+        --offset;
+      }
+    }
+    const uint32_t pos =
+        direction == TextScanDirection::Left ? offset : bufferLength + offset;
+    const auto [wordStart, wordEnd] =
+        intl::WordBreaker::FindWord(textBuffer, pos);
+    offset = direction == TextScanDirection::Left ? wordStart
+                                                  : wordEnd - bufferLength;
+    node = textNode;
+    if (offset && offset < textNode->Length()) {
+      break;
+    }
+  }
+  return {node, offset};
 }
 
 }  // namespace mozilla::dom
