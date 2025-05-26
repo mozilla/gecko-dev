@@ -216,6 +216,8 @@
   <string name="mozac_feature_addons_extension_failed_to_install_not_signed_error">ای وردنی نتره بپۊره چیناکه تاییڌ نوابیڌه.</string>
   <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
   <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s نتره بپۊره چیناکه وا %2$s %3$s ساز نیاره.</string>
+  <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
+  <string name="mozac_feature_addons_blocklisted_2">%1$s خت مشی یل Mozilla ن زؽر پا انه وو نتره و ری %2$s بپۊره.</string>
   <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_soft_blocked_1">%1$s خت مشی یل Mozilla ن زؽر پا انه وو نتره و ری %2$s بپۊره.</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->

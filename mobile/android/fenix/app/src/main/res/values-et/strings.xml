@@ -203,6 +203,8 @@
   <string name="browser_menu_stop">Peata</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_extensions">Lisad</string>
+  <!-- Browser menu banner link text for learning more about extensions -->
+  <string name="browser_menu_extensions_banner_learn_more">Rohkem teavet</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Konto andmed</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -369,6 +371,9 @@
   <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">Mitte praegu</string>
   <!-- Text for the button to dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Mitte praegu</string>
+  <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Rohkem teavet</string>
+  <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Rohkem teavet</string>
   <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
   <string name="onboarding_customize_toolbar_a11y_action_label_select">valimiseks</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
@@ -482,6 +487,8 @@
   <string name="preferences_account_sync_error">Sünkroniseerimise jätkamiseks loo ühendus uuesti</string>
   <!-- Preference for language -->
   <string name="preferences_language">Keel</string>
+  <!-- Preference for translations -->
+  <string name="preferences_translations">Tõlkimine</string>
   <!-- Preference for data choices -->
   <string name="preferences_data_choices">Saadetavad andmed</string>
   <!-- Preference for data collection -->
@@ -567,6 +574,8 @@
   <string name="wallpaper_updated_snackbar_message">Taustpilt uuendatud!</string>
   <!-- Snackbar label for action to view selected wallpaper -->
   <string name="wallpaper_updated_snackbar_action">Vaata</string>
+  <!-- Text displayed that links to website containing documentation about the "Limited Edition" wallpapers. -->
+  <string name="wallpaper_learn_more">Lisateave</string>
   <!--
     Account Preferences
 
@@ -637,6 +646,8 @@
   <string name="exceptions_empty_message_description">Erandid võimaldavad valitud saitidel jälitamisvastase kaitse keelata.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Rohkem teavet</string>
+  <!-- Preference switch for usage and technical learn more link -->
+  <string name="preference_usage_data_learn_more">Lisateave</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Uuringud</string>
   <!-- Summary for studies preferences -->
@@ -681,6 +692,8 @@
   <string name="preference_gestures_dynamic_toolbar">Kerimisel tööriistariba peidetakse</string>
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">Üles libistamisel avatakse kaarte</string>
+  <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+  <string name="preference_gestures_swipe_toolbar_switch_tabs_2">Aadressiriba küljele libistamisel vahetatakse kaarte</string>
   <!--
     Library
 
@@ -1527,6 +1540,8 @@
   <string name="preference_etp_smartblock_description">Mõned allpool märgitud jälitajad on sellel lehel osaliselt lubatud, sest suhtlesid nendega *.</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">Rohkem teavet</string>
+  <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
+  <string name="preference_doh_learn_more">Rohkem teavet</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">Väljas</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
@@ -1590,13 +1605,17 @@
   <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
   <string name="preferences_android_autofill">Täidetakse automaatselt teistes äppides</string>
   <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
-  <string name="preferences_android_autofill_description">Kasutajanimesid ja paroole täidetakse teisest seadmes olevates äppides.</string>
+  <string name="preferences_android_autofill_description">Kasutajanimesid ja paroole täidetakse teistes seadmes olevates äppides.</string>
   <!-- Preference option for adding a password -->
   <string name="preferences_logins_add_login_2">Lisa parool</string>
+  <!-- Preference for syncing saved passwords in Fenix -->
+  <string name="preferences_passwords_sync_logins_2">Paroole sünkroonitakse</string>
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">Salvestatud paroolid</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->
   <string name="preferences_passwords_exceptions">Erandid</string>
+  <!-- Description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_passwords_exceptions_description_2">%s ei salvesta nende saitide paroole.</string>
   <!-- Text on button to remove all saved login exceptions -->
   <string name="preferences_passwords_exceptions_remove_all">Kustuta kõik erandid</string>
   <!-- Hint for search box in passwords list -->
@@ -1651,10 +1670,18 @@
   <string name="preferences_autofill">Automaatne täitmine</string>
   <!-- Preference and title for managing the settings for addresses -->
   <string name="preferences_addresses">Aadressid</string>
+  <!-- Preference and title for managing the settings for payment methods -->
+  <string name="preferences_credit_cards_2">Makseviisid</string>
+  <!-- Preference summary for saving and autofilling payment method data. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_credit_cards_save_and_autofill_cards_summary_2">%s krüpteerib kõik salvestatud makseviisid</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is not signed into sync -->
   <string name="preferences_credit_cards_sync_cards_across_devices">Sünkroniseeri kaardid seadmete vahel</string>
   <!-- Preference option for syncing credit cards across devices. This is displayed when the user is signed into sync -->
   <string name="preferences_credit_cards_sync_cards">Kaardid sünkroniseeritakse</string>
+  <!-- Preference option for adding a card -->
+  <string name="preferences_credit_cards_add_credit_card_2">Lisa kaart</string>
+  <!-- Preference option for managing saved cards -->
+  <string name="preferences_credit_cards_manage_saved_cards_2">Halda kaarte</string>
   <!-- Preference option for adding an address -->
   <string name="preferences_addresses_add_address">Lisa aadress</string>
   <!-- Preference option for managing saved addresses -->
@@ -1689,6 +1716,8 @@
   <string name="credit_cards_cancel_button">Loobu</string>
   <!-- Title of the "Saved cards" screen -->
   <string name="credit_cards_saved_cards">Salvestatud kaardid</string>
+  <!-- Error message for card number validation -->
+  <string name="credit_cards_number_validation_error_message_2">Sisesta korrektne kaardi number</string>
   <!-- Error message for card name on card validation -->
   <string name="credit_cards_name_on_card_validation_error_message_2">Lisa nimi</string>
   <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their saved credit cards -->
@@ -1966,6 +1995,8 @@
     %2$s is the name of the language that the page was translated to, for example, "English".
   -->
   <string name="translations_bottom_sheet_title_translation_completed">Leht tõlgiti %1$s keelest %2$s keelde</string>
+  <!-- Text that links to additional information about the Firefox translations feature. -->
+  <string name="translations_bottom_sheet_info_message_learn_more">Rohkem teavet</string>
   <!-- Label for the dropdown to select which language to translate from on the translations dialog. Usually the translate from language selected will be the same as the page language. -->
   <string name="translations_bottom_sheet_translate_from">Tõlgitakse keelest</string>
   <!-- Label for the dropdown to select which language to translate to on the translations dialog. Usually the translate to language selected will be the user's preferred language. -->
@@ -1998,12 +2029,78 @@
   <string name="translation_option_bottom_sheet_switch_description">Tühistab tõlkepakkumised</string>
   <!-- Button text for the button that will take the user to the translation settings dialog. -->
   <string name="translation_option_bottom_sheet_translation_settings">Tõlkimise seaded</string>
+  <!--
+    Translation settings dialog
+
+    Title of the translation settings dialog that allows a user to set their preferred translation settings.
+  -->
+  <string name="translation_settings_toolbar_title">Tõlkimine</string>
+  <!-- Toggle switch label that indicates that the browser should signal or indicate when a translation is possible for any page. -->
+  <string name="translation_settings_offer_to_translate">Kui võimalik, pakutakse tõlkimist</string>
+  <!-- Toggle switch label that indicates that downloading files required for translating is permitted when using data saver mode in Android. -->
+  <string name="translation_settings_always_download">Keeled laaditakse alati alla andmemahu säästmise režiimis</string>
+  <!-- Button text for the button that will take the user to the automatic translations settings dialog. On the automatic translations settings dialog, the user can set if translations should occur automatically for a given language. -->
+  <string name="translation_settings_automatic_translation">Automaattõlge</string>
+  <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
+  <string name="translation_settings_automatic_never_translate_sites">Saidid, mida kunagi ei tõlgita</string>
+  <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
+  <string name="translation_settings_download_language">Keelte allalaadimine</string>
+  <!--
+    Automatic translation preference screen
+
+    Title of the automatic translation preference screen that will appear on the toolbar.
+  -->
+  <string name="automatic_translation_toolbar_title_preference">Automaattõlge</string>
+  <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
+  <string name="automatic_translation_header_preference">Vali keel, et hallata eelistusi „Tõlgitakse alati“ ja „Ei tõlgita kunagi“.</string>
+  <!--
+    Automatic translation options preference screen
+
+    Preference option for offering to translate. Radio button title text.
+  -->
+  <string name="automatic_translation_option_offer_to_translate_title_preference">Pakutakse tõlkimist (vaikimisi)</string>
+  <!-- Preference option for offering to translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="automatic_translation_option_offer_to_translate_summary_preference">%1$s pakub selle keele saitide tõlkimist.</string>
+  <!-- Preference option for always translate. Radio button title text. -->
+  <string name="automatic_translation_option_always_translate_title_preference">Tõlgitakse alati</string>
+  <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="automatic_translation_option_always_translate_summary_preference">%1$s tõlgib selle keele lehe laadimisel automaatselt.</string>
+  <!-- Preference option for never translate. Radio button title text. -->
+  <string name="automatic_translation_option_never_translate_title_preference">Ei tõlgita kunagi</string>
+  <!-- Preference option for never translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="automatic_translation_option_never_translate_summary_preference">%1$s ei paku kunagi selle keele saitide tõlkimist.</string>
+  <!--
+    Never translate site preference screen
+
+    Title of the never translate site preference screen that will appear on the toolbar.
+  -->
+  <string name="never_translate_site_toolbar_title_preference">Saidid, mida kunagi ei tõlgita</string>
+  <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
+  <string name="never_translate_site_header_preference">Uue saidi lisamiseks külasta seda ja vali tõlkemenüüst „Ära kunagi seda saiti tõlgi”.</string>
   <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
   <string name="never_translate_site_dialog_cancel_preference">Loobu</string>
+  <!--
+    Download languages preference screen
+
+    Title of the toolbar for the translation feature screen where users may download different languages for translation.
+  -->
+  <string name="download_languages_translations_toolbar_title_preference">Keelte allalaadimine</string>
+  <!-- Screen header presenting the download language preference feature. It will appear under the toolbar. %1$s is a link using download_languages_header_learn_more_preference as text ("Learn more"). Talkback will append this to say "Double tap to open link to learn more". -->
+  <string name="download_languages_header_preference">Kiirema tõlke ja võrguühenduseta tõlkimise jaoks laadi keel alla. %1$s</string>
+  <!-- Clickable text from the screen header that links to a website. -->
+  <string name="download_languages_header_learn_more_preference">Rohkem teavet</string>
   <!-- Text that will appear beside a core or pivot language package name to show that the language is necessary for the translation feature to function. -->
   <string name="download_languages_default_system_language_require_preference">nõutud</string>
+  <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
+  <string name="download_language_header_preference">Keelte allalaadimine</string>
+  <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
+  <string name="download_languages_item_content_description_not_downloaded_state">Laadi alla</string>
   <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
   <string name="delete_language_file_dialog_negative_button_text">Loobu</string>
+  <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
+  <string name="download_language_file_dialog_positive_button_text">Laadi alla</string>
+  <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file and perform a translation. -->
+  <string name="download_language_file_dialog_positive_button_text_all_languages">Laadi alla ja tõlgi</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Loobu</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->

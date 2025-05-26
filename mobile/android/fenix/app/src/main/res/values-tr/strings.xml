@@ -1686,7 +1686,7 @@
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Reklam engelleyici</string>
   <!-- Broken site reason text for site asked to turn off ad blocker -->
-  <string name="webcompat_reporter_reason_turn_off_adblocker">Sitenin reklam engelleyiciyi kapatmamı istiyor</string>
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Site reklam engelleyiciyi kapatmamı istiyor</string>
   <!-- Broken site reason text for browser isn’t supported or blocked -->
   <string name="webcompat_reporter_reason_notsupported">Tarayıcı desteklenmiyor veya engellenmiş</string>
   <!-- Broken site reason text for something else -->

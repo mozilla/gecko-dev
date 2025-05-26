@@ -1677,6 +1677,8 @@
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Logg inn eller logg ut</string>
   <!-- Broken site reason text for site is slow -->
   <string name="webcompat_reporter_reason_slow2">Nettstaden er treg</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">Manglande innhald</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Annonseblokkering</string>
   <!-- Broken site reason text for something else -->
@@ -2534,6 +2536,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Slett alle unntak</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Søk etter passord</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Tilbake</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Nettstad</string>
   <!-- The header for the username for a login -->
@@ -2946,6 +2950,8 @@
     Header text for a section on the home screen.
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Tankevekkjande artiklar</string>
+  <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">Historier</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Artiklar etter emne</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->

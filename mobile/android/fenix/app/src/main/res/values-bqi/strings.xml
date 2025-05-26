@@ -115,6 +115,10 @@
   <string name="tab_tray_close_tabs_banner_positive_button_text">نیشتن گۊزینه یل</string>
   <!-- Text for the negative action button to dismiss the Close Tabs Banner. -->
   <string name="tab_tray_close_tabs_banner_negative_button_text">رڌ کردن</string>
+  <!-- Text for the banner message to tell users about our inactive tabs feature. -->
+  <string name="tab_tray_inactive_onboarding_message">بلگه یلی ک دو هفته هڌ ننیشتین و ایچو جا گورو ابۊن.</string>
+  <!-- Text for the action link to go to Settings for inactive tabs. -->
+  <string name="tab_tray_inactive_onboarding_button_text">کۊر کردن من سامووا</string>
   <!-- Text for title for the auto-close dialog of the inactive tabs. -->
   <string name="tab_tray_inactive_auto_close_title">بسته وابیڌن خوتکار بئڌ ی ما؟</string>
   <!--
@@ -661,6 +665,8 @@
   <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">درخاست لادراری فشناڌه وابی</string>
   <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_unsupported_site">وبگه سکو لادراری نؽبۊ</string>
+  <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
+  <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">مسدۊد کوݩ بنر کۊکی سی %1$s قیر فعال بۊ؟</string>
   <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
   <string name="cookie_banner_cfr_title">%1$s کۊکیا ن سی ایسا رڌ کرد</string>
   <!-- Summary of https only preference if https only is set to off -->
@@ -1371,6 +1377,8 @@
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">شؽواتا یا فیلما</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">دویمه یل، لینگا وو موئتوا دیر</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">وبگه درخاست کرد ک مسدۊد کوݩ تبلیقات ن کۊر کۊنین</string>
   <!--
     Crashes
 
