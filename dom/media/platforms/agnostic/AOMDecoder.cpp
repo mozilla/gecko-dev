@@ -565,13 +565,13 @@ MediaResult AOMDecoder::ReadSequenceHeaderInfo(
       op.mLevel = br.ReadBits(5);    // seq_level_idx[ i ]
       op.mTier = op.mLevel > 7 ? br.ReadBits(1) : 0;
       if (decoder_model_info_present_flag) {
-        if (br.ReadBit()) {// decoder_model_present_for_this_op[ i ]
+        if (br.ReadBit()) {  // decoder_model_present_for_this_op[ i ]
           // begin operating_parameters_info()
           // https://aomediacodec.github.io/av1-spec/#operating-parameters-info-syntax
           uint8_t n = buffer_delay_length_minus_1 + 1;
-          br.ReadBits(n); // decoder_buffer_delay[ op ]
-          br.ReadBits(n); // encoder_buffer_delay[ op ]
-          br.ReadBit();   // low_delay_mode_flag[ op ]
+          br.ReadBits(n);  // decoder_buffer_delay[ op ]
+          br.ReadBits(n);  // encoder_buffer_delay[ op ]
+          br.ReadBit();    // low_delay_mode_flag[ op ]
           // end operating_parameters_info()
         }
       }
@@ -587,8 +587,10 @@ MediaResult AOMDecoder::ReadSequenceHeaderInfo(
   uint8_t frame_width_bits_minus_1 = br.ReadBits(4);
   uint8_t frame_height_bits_minus_1 = br.ReadBits(4);
   uint32_t max_frame_width_minus_1 = br.ReadBits(frame_width_bits_minus_1 + 1);
-  uint32_t max_frame_height_minus_1 = br.ReadBits(frame_height_bits_minus_1 + 1) ;
-  tempInfo.mImage = gfx::IntSize(max_frame_width_minus_1 + 1, max_frame_height_minus_1 + 1);
+  uint32_t max_frame_height_minus_1 =
+      br.ReadBits(frame_height_bits_minus_1 + 1);
+  tempInfo.mImage =
+      gfx::IntSize(max_frame_width_minus_1 + 1, max_frame_height_minus_1 + 1);
 
   if (!reduced_still_picture_header) {
     if (br.ReadBit()) {  // frame_id_numbers_present_flag
@@ -618,7 +620,7 @@ MediaResult AOMDecoder::ReadSequenceHeaderInfo(
     br.ReadBit();  // enable_warped_motion
     br.ReadBit();  // enable_dual_filter
 
-    const bool enable_order_hint  = br.ReadBit();
+    const bool enable_order_hint = br.ReadBit();
     if (enable_order_hint) {
       br.ReadBit();  // enable_jnt_comp
       br.ReadBit();  // enable_ref_frame_mvs
