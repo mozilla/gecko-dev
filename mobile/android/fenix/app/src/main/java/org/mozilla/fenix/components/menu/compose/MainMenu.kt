@@ -106,6 +106,11 @@ fun MainMenu(
     MenuScaffold(
         header = {
             MenuNavHeader(
+                state = if (accessPoint == MenuAccessPoint.Home) {
+                    MenuItemState.DISABLED
+                } else {
+                    MenuItemState.ENABLED
+                },
                 onBackButtonClick = onBackButtonClick,
                 onForwardButtonClick = onForwardButtonClick,
                 onRefreshButtonClick = onRefreshButtonClick,
