@@ -179,6 +179,17 @@ class TextDirectiveUtil final {
   static RangeBoundary FindWordBoundary(const RangeBoundary& aRangeBoundary);
 
   /**
+   * @brief Compares the common substring between a reference string and a text
+   *        node in the given direction.
+   *
+   * This algorithm returns the common substring across same-block visible text
+   * nodes, starting at `aBoundaryPoint`. Whitespace is compressed.
+   */
+  template <TextScanDirection direction>
+  static uint32_t ComputeCommonSubstringLength(
+      const nsAString& aReferenceString, const RangeBoundary& aBoundaryPoint);
+
+  /**
    * @brief Creates a list of all word boundary distances to the base of the
    *        string (beginning for left-to-right, end for right-to-left).
    *
@@ -435,6 +446,49 @@ template <TextScanDirection direction>
 }
 
 template <TextScanDirection direction>
+void LogCommonSubstringLengths(const nsAString& aReferenceString,
+                               const nsTArray<nsString>& aTextContentPieces,
+                               uint32_t aCommonLength) {
+  if (!TextDirectiveUtil::ShouldLog()) {
+    return;
+  }
+  nsString concatenatedTextContents;
+  for (const auto& textContent : aTextContentPieces) {
+    concatenatedTextContents.Append(textContent);
+  }
+  // the algorithm expects `aReferenceString` to be whitespace-compressed,
+  // and ignores leading whitespace when looking at the DOM nodes. So,
+  // whitespace needs to be compressed here as well.
+  concatenatedTextContents.CompressWhitespace();
+  const uint32_t maxLength =
+      std::max(aReferenceString.Length(), concatenatedTextContents.Length());
+  TEXT_FRAGMENT_LOG("Direction: {}.",
+                    direction == TextScanDirection::Left ? "left" : "right");
+
+  if constexpr (direction == TextScanDirection::Left) {
+    TEXT_FRAGMENT_LOG("Ref:    {:>{}}", NS_ConvertUTF16toUTF8(aReferenceString),
+                      maxLength);
+    TEXT_FRAGMENT_LOG("Other:  {:>{}}",
+                      NS_ConvertUTF16toUTF8(concatenatedTextContents),
+                      maxLength);
+    TEXT_FRAGMENT_LOG(
+        "Common: {:>{}} ({} chars)",
+        NS_ConvertUTF16toUTF8(Substring(aReferenceString, aCommonLength)),
+        maxLength, aCommonLength);
+  } else {
+    TEXT_FRAGMENT_LOG("Ref:    {:<{}}", NS_ConvertUTF16toUTF8(aReferenceString),
+                      maxLength);
+    TEXT_FRAGMENT_LOG("Other:  {:<{}}",
+                      NS_ConvertUTF16toUTF8(concatenatedTextContents),
+                      maxLength);
+    TEXT_FRAGMENT_LOG(
+        "Common: {:<{}} ({} chars)",
+        NS_ConvertUTF16toUTF8(Substring(aReferenceString, 0, aCommonLength)),
+        maxLength, aCommonLength);
+  }
+}
+
+template <TextScanDirection direction>
 /*static*/ nsTArray<uint32_t> TextDirectiveUtil::ComputeWordBoundaryDistances(
     const nsAString& aString) {
   // Limit the amount of words to look out for.
@@ -465,6 +519,96 @@ template <TextScanDirection direction>
   }
   return wordBoundaryDistances;
 }
+
+template <TextScanDirection direction>
+/*static*/ uint32_t TextDirectiveUtil::ComputeCommonSubstringLength(
+    const nsAString& aReferenceString, const RangeBoundary& aBoundaryPoint) {
+  MOZ_ASSERT(aBoundaryPoint.IsSetAndValid());
+  if (aReferenceString.IsEmpty()) {
+    return 0;
+  }
+
+  MOZ_ASSERT(!nsContentUtils::IsHTMLWhitespace(aReferenceString.First()));
+  MOZ_ASSERT(!nsContentUtils::IsHTMLWhitespace(aReferenceString.Last()));
+  uint32_t referenceStringPosition =
+      direction == TextScanDirection::Left ? aReferenceString.Length() - 1 : 0;
+
+  // `aReferenceString` is expected to have its whitespace compressed.
+  // The raw text from the DOM nodes does not have compressed whitespace.
+  // Therefore, the algorithm needs to skip multiple whitespace characters.
+  // Setting this flag to true initially makes this algorithm tolerant to
+  // preceding whitespace in the DOM nodes and the reference string.
+  bool isInWhitespace = true;
+  nsTArray<nsString> textContentForLogging;
+  for (Text* text : SameBlockVisibleTextNodeIterator<direction>(
+           *aBoundaryPoint.GetContainer())) {
+    uint32_t offset =
+        direction == TextScanDirection::Left ? text->Length() - 1 : 0;
+    if (text == aBoundaryPoint.GetContainer()) {
+      offset = *aBoundaryPoint.Offset(
+          RangeBoundary::OffsetFilter::kValidOrInvalidOffsets);
+      if (offset && direction == TextScanDirection::Left) {
+        // when looking left, the offset is _behind_ the actual char.
+        // Therefore, the value is decremented, and incremented when returning.
+        --offset;
+      }
+    }
+    if (TextDirectiveUtil::ShouldLog()) {
+      nsString textContent;
+      text->GetWholeText(textContent);
+      if constexpr (direction == TextScanDirection::Left) {
+        if (offset) {
+          textContent = Substring(textContent, 0, offset + 1);
+        } else {
+          textContent.Truncate();
+        }
+      } else {
+        textContent = Substring(textContent, offset);
+      }
+      textContentForLogging.AppendElement(std::move(textContent));
+    }
+    while (offset < text->Length() &&
+           referenceStringPosition < aReferenceString.Length()) {
+      char16_t ch = text->GetText()->CharAt(offset);
+      char16_t refCh = aReferenceString.CharAt(referenceStringPosition);
+      const bool chIsWhitespace = nsContentUtils::IsHTMLWhitespace(ch);
+      const bool refChIsWhitespace = nsContentUtils::IsHTMLWhitespace(refCh);
+      if (chIsWhitespace) {
+        if (refChIsWhitespace) {
+          offset += int(direction);
+          referenceStringPosition += int(direction);
+          isInWhitespace = true;
+          continue;
+        }
+        if (isInWhitespace) {
+          offset += int(direction);
+          continue;
+        }
+      }
+      isInWhitespace = false;
+      if (refCh == ToFoldedCase(ch)) {
+        offset += int(direction);
+        referenceStringPosition += int(direction);
+        continue;
+      }
+      uint32_t commonLength = 0;
+      if constexpr (direction == TextScanDirection::Left) {
+        ++referenceStringPosition;
+        commonLength = aReferenceString.Length() - referenceStringPosition;
+        if (TextDirectiveUtil::ShouldLog()) {
+          textContentForLogging.Reverse();
+        }
+      } else {
+        commonLength = referenceStringPosition;
+      }
+      LogCommonSubstringLengths<direction>(aReferenceString,
+                                           textContentForLogging, commonLength);
+      return commonLength;
+    }
+  }
+  return aReferenceString.Length();
+}
+
 }  // namespace mozilla::dom
 
 #endif

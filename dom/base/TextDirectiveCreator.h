@@ -112,6 +112,36 @@ class TextDirectiveCreator {
    */
   virtual void CollectContextTermWordBoundaryDistances() = 0;
 
+  /**
+   * @brief Searches the document for other occurrences of the target range and
+   *        converts the results into a comparable format.
+   *
+   * This method searches the partial document from the beginning up to the
+   * target range for occurrences of the target range content.
+   * This needs to be done differently based on whether matching is exact or
+   * range-based. For exact matching, the whole text content of the target range
+   * is searched for. For range-based matching, two search runs are required:
+   * One for the minimal `start` term (ie., the first word), which ends at the
+   * beginning of the target range. And one for the minimal `end` term (ie., the
+   * last word), which starts at the beginning of the target range and ends
+   * _before_ its end.
+   * The resulting lists of matching ranges do not exclude the target range.
+   */
+  virtual Result<Ok, ErrorResult> FindAllMatchingCandidates() = 0;
+
+  /**
+   * @brief Find all occurrences of `aSearchQuery` in the partial document.
+   *
+   * This method uses `nsFind` to perform a case-insensitive search for
+   * `aSearchQuery` in the partial document from `aSearchStart` to `aSearchEnd`.
+   *
+   * @return List of `Range`s which have the case-insensitive-same content as
+   *         `aSearchQuery`.
+   */
+  Result<nsTArray<RefPtr<AbstractRange>>, ErrorResult> FindAllMatchingRanges(
+      const nsString& aSearchQuery, const RangeBoundary& aSearchStart,
+      const RangeBoundary& aSearchEnd);
+
   nsString mPrefixContent;
   nsString mPrefixFoldCaseContent;
   nsTArray<uint32_t> mPrefixWordBeginDistances;
@@ -134,6 +164,8 @@ class TextDirectiveCreator {
    * `dom.text_fragments.create_text_fragment.timeout`.
    */
   TimeoutWatchdog mWatchdog;
+
+  nsContentUtils::NodeIndexCache mNodeIndexCache;
 };
 
 /**
@@ -148,11 +180,22 @@ class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
 
   void CollectContextTermWordBoundaryDistances() override;
 
+  Result<Ok, ErrorResult> FindAllMatchingCandidates() override;
+
+  void FindStartMatchCommonSubstringLengths(
+      const nsTArray<RefPtr<AbstractRange>>& aMatchRanges);
+
+  void FindEndMatchCommonSubstringLengths(
+      const nsTArray<RefPtr<AbstractRange>>& aMatchRanges);
+
   nsString mEndContent;
   nsString mEndFoldCaseContent;
 
   nsTArray<uint32_t> mStartWordEndDistances;
   nsTArray<uint32_t> mEndWordBeginDistances;
+
+  nsTArray<std::tuple<uint32_t, uint32_t>> mStartMatchCommonSubstringLengths;
+  nsTArray<std::tuple<uint32_t, uint32_t>> mEndMatchCommonSubstringLengths;
 };
 
 /**
@@ -166,6 +209,13 @@ class ExactMatchTextDirectiveCreator : public TextDirectiveCreator {
   Result<Ok, ErrorResult> CollectContextTerms() override;
 
   void CollectContextTermWordBoundaryDistances() override;
+
+  Result<Ok, ErrorResult> FindAllMatchingCandidates() override;
+
+  void FindCommonSubstringLengths(
+      const nsTArray<RefPtr<AbstractRange>>& aMatchRanges);
+
+  nsTArray<std::tuple<uint32_t, uint32_t>> mCommonSubstringLengths;
 };
 }  // namespace mozilla::dom
 #endif
