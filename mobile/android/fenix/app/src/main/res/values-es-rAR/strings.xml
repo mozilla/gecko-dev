@@ -1682,7 +1682,7 @@
   <!-- Broken site reason text for missing content -->
   <string name="webcompat_reporter_reason_content2">Falta contenido</string>
   <!-- Broken site reason text for can’t sign in or register -->
-  <string name="webcompat_reporter_reason_account2">No podés iniciar sesión o registrarte</string>
+  <string name="webcompat_reporter_reason_account2">No se puede iniciar sesión o registrarse</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Bloqueador de publicidad</string>
   <!-- Broken site reason text for site asked to turn off ad blocker -->

@@ -5,11 +5,11 @@
   <!-- The document title and heading of an error page shown when a website cannot be loaded for an unknown reason. -->
   <string name="mozac_browser_errorpages_generic_title">نتره درخاستته کامل کونه</string>
   <!-- The error message shown when a website cannot be loaded for an unknown reason. -->
-  <string name="mozac_browser_errorpages_generic_message">
-      &lt;p&gt;سکو دووسمندیا قلوه ای زبار ای ایراد یا ختا من دسرس نؽ.&lt;/p&gt;
-    </string>
+  <string name="mozac_browser_errorpages_generic_message"><![CDATA[<p>سکو دووسمندیا قلوه ای زبار ای ایراد یا ختا من دسرس نؽ.</p>]]></string>
   <!-- The document title and heading of the error page shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
   <string name="mozac_browser_errorpages_security_ssl_title">منپیز ٱمن شکست خرد</string>
+  <!-- The error message shown when a website sends back unusual and incorrect credentials for an SSL certificate. -->
+  <string name="mozac_browser_errorpages_security_ssl_message"><![CDATA[<ul> <li>بلگه ای ک قپ ریت اکۊنین تا نیرینس نتره نشووݩ داڌه بۊ، چیناکه تاییڌیه ائتوار داده یل گرؽڌنی ن نڌاره.</li> <li>و ساهاوا ای وبگه زنگ بزنین وو هونووݩ ن من جریان ای موشکل بنین.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website sends has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">منپیز ٱمن شکست خرد</string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website has an invalid SSL certificate. -->
@@ -30,12 +30,12 @@
   <string name="mozac_browser_errorpages_net_timeout_title">موئلت منپیز تموم وابی</string>
   <!-- The document title and heading of the error page shown when a website could not be reached. -->
   <string name="mozac_browser_errorpages_connection_failure_title">نتره منپیز بۊوه</string>
+  <!-- The error message shown when a website could not be reached. -->
+  <string name="mozac_browser_errorpages_connection_failure_message"><![CDATA[<ul> <li>گاشڌ وبگه مووقتن من دسرس نبۊ یا قلوه شۊلۊغ بۊ. ی دمووݩ دی ز نۊ قپ ریت کۊنین.</li> <li>ٱر نترین هیچ بلگه ای ن بۊگۊشین، منپیز داده دسگا یا وای فای خوتووݩ ن واجۊری کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website responds in an unexpected way and the browser cannot continue. -->
   <string name="mozac_browser_errorpages_unknown_socket_type_title">ولوم یهوی ز سرور</string>
   <!-- The error message shown when a website responds in an unexpected way and the browser cannot continue. -->
-  <string name="mozac_browser_errorpages_unknown_socket_type_message">
-      &lt;p&gt;ای وبگه و بارت یهوی و درخاست شبکه ولوم داڌ وو گشت گر نتره روه وا پؽش.&lt;/p&gt;
-    </string>
+  <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[<p>ای وبگه و بارت یهوی و درخاست شبکه ولوم داڌ وو گشت گر نتره روه وا پؽش.</p>]]></string>
   <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
   <string name="mozac_browser_errorpages_redirect_loop_title">ای بلگه و خۊوی آلشت تور نؽڌه</string>
   <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
@@ -47,13 +47,17 @@
   <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
   <string name="mozac_browser_errorpages_unsafe_content_type_title">نوء فایل ٱمن نؽ</string>
   <!-- The error message shown when the browser refuses to load a type of file that is considered unsafe. -->
-  <string name="mozac_browser_errorpages_unsafe_content_type_message">&lt;ul&gt; &lt;li&gt;و ساهاوا وبگه زنگ بزنین تا هونووݩ ن ز بیڌن ای موشکل خور دار کۊنین.&lt;/li&gt; &lt;/ul&gt;</string>
+  <string name="mozac_browser_errorpages_unsafe_content_type_message"><![CDATA[<ul> <li>و ساهاوا وبگه زنگ بزنین تا هونووݩ ن ز بیڌن ای موشکل خور دار کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a file cannot be loaded because of a detected data corruption. -->
   <string name="mozac_browser_errorpages_corrupted_content_title">ختا خراوی موئتوا</string>
+  <!-- The error message shown when shown when a file cannot be loaded because of a detected data corruption. -->
+  <string name="mozac_browser_errorpages_corrupted_content_message"><![CDATA[<p>بلگه ای ک قپ ریت اکۊنین تا نیرینس نتره نشووݩ داڌه بۊ، چیناکه مجال جا گورو کردن دووسمندیا ختایی پؽش ٱووڌ.</p> <ul> <li>و ساهاوا ای وبگه زنگ بزنین وو هونووݩ ن من جریان ای موشکل بنین.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_content_crashed_title">موئتوا خراو وابی</string>
+  <string name="mozac_browser_errorpages_content_crashed_message"><![CDATA[<p>بلگه ای ک قپ ریت اکۊنین تا نیرینس نتره نشووݩ داڌه بۊ، چیناکه مجال جا گورو کردن دووسمندیا ختایی پؽش ٱووڌ.</p> <ul> <li>و ساهاوا ای وبگه زنگ بزنین وو هونووݩ ن من جریان ای موشکل بنین.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_invalid_content_encoding_title">ختا کود ناهاڌن موئتوا</string>
+  <string name="mozac_browser_errorpages_invalid_content_encoding_message"><![CDATA[<p>بلگه ای ک قپ ریت اکۊنین تا نیرینس نتره نشووݩ داڌه بۊ، چیناکه ی نوع نشناخته یا لادراری نوابیڌه ز تپنیڌن ن و کار اگره.</p> <ul> <li>و ساهاوا ای وبگه زنگ بزنین وو هونووݩ ن من جریان ای موشکل بنین.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_unknown_host_title">نشۊوی ن نجوست</string>
   <!-- The document title and heading of an error page. -->
@@ -69,16 +73,14 @@
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_malformed_uri_title_alternative">نشۊوی زبال نؽ</string>
   <!-- This string contains markup. The URL should not be localized. -->
-  <string name="mozac_browser_errorpages_malformed_uri_message_alternative">&lt;ul&gt;
-&lt;li&gt;نشۊویا وبگه مئمۊلن چینووݩ هؽل ابۊن &lt;strong&gt;http://www.example.com/&lt;/strong&gt;&lt;/li&gt;
-&lt;li&gt;ویرتووݩ بۊ مومیزی ک زبال هڌ ن و کار بگیرین (ینی &lt;strong&gt;/&lt;/strong&gt;).&lt;/li&gt;
-&lt;/ul&gt;</string>
+  <string name="mozac_browser_errorpages_malformed_uri_message_alternative"><![CDATA[<ul> <li>نشۊویا وبگه مئمۊلن چینووݩ هؽل ابۊن <strong>http://www.example.com/</strong></li> <li>ویرتووݩ بۊ مومیزی ک زبال هڌ ن و کار بگیرین (ینی <strong>/</strong>).</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_unknown_protocol_title">نشۊوی نشناخته</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_file_not_found_title">فایل ن نجوست</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_file_access_denied_title">دسرسی و ای فایل رڌ ابۊ</string>
+  <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[<ul> <li>گاشڌ پاک،‌ جا گورو وابیڌه یا موجوزاس ز دسرسی جلاوگری اکونه.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_proxy_connection_refused_title">پروکسی سرور ز منپیز خوتکار جلاو گری اکونه</string>
   <!-- The document title and heading of an error page. -->

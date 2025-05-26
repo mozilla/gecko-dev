@@ -63,6 +63,13 @@
   -->
   <string name="felt_privacy_desc_card_title">هیچ توری ری ای دسگا نهلی و جا</string>
   <!--
+    Explanation for private browsing displayed to users on home view when they first enable
+    private mode in our new Total Private Browsing mode.
+    %1$s is the name of the app (for example "Firefox").
+    %2$s is a link using felt_privacy_info_card_subtitle_link_text as text
+  -->
+  <string name="felt_privacy_info_card_subtitle_2">%1$s کۊکیا، ویرگار وو داده یل وبگه ایسا ن هر سا ک پوی بلگه یل سیخومی خوتووݩ ن بووندین، پاک اکونه. %2$s</string>
+  <!--
     Clickable portion of the explanation for private browsing that links the user to our
     about privacy page.
     This string is used in felt_privacy_info_card_subtitle as the text for the link.
@@ -78,6 +85,12 @@
   <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ٱووردن و بلگه هووه ای</string>
   <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
   <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ن ممنووݩ</string>
+  <!--
+    Open in App "contextual feature recommendation" (CFR)
+
+    Text for the info message. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="open_in_app_cfr_info_message_2">ایسا ترین %1$s ن سی گۊشیڌن خوتکار لینگا من برنومه یل، ساموو کۊنین.</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">راو و سامووا</string>
   <!-- Text for the negative action button -->
@@ -648,6 +661,8 @@
   <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">درخاست لادراری فشناڌه وابی</string>
   <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_unsupported_site">وبگه سکو لادراری نؽبۊ</string>
+  <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="cookie_banner_cfr_title">%1$s کۊکیا ن سی ایسا رڌ کرد</string>
   <!-- Summary of https only preference if https only is set to off -->
   <string name="preferences_https_only_off">کۊر</string>
   <!-- Summary of https only preference if https only is set to on in all tabs -->
@@ -656,8 +671,16 @@
   <string name="preferences_https_only_on_private">رۊشن من پوی بلگه یل سیخومی</string>
   <!-- Text displayed that links to website containing documentation about "HTTPS-Only" mode -->
   <string name="preferences_http_only_learn_more">قلوه دووسته بۊین</string>
+  <!-- Option for the https only setting -->
+  <string name="preferences_https_only_in_all_tabs">و کار وندن من پوی بلگه یل</string>
+  <!-- Option for the https only setting -->
+  <string name="preferences_https_only_in_private_tabs">تینا من بلگه یل سیخومی و کار بوۊفته</string>
+  <!-- Title shown in the error page for when trying to access a http website while https only mode is enabled. -->
+  <string name="errorpage_httpsonly_title">وبگه ایمن من دسرس نؽ</string>
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">دسرسی پزیری</string>
+  <!-- Preference to override the Mozilla account server -->
+  <string name="preferences_override_account_server">سرور هساو منتوری سفارشی Mozilla</string>
   <!-- Preference to override the Sync token server -->
   <string name="preferences_override_sync_tokenserver">سرور هوم گوم کردن سفارشی</string>
   <!-- Preference category for account information -->

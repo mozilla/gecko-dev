@@ -82,6 +82,10 @@
   <string name="mozac_feature_addons_permissions_user_scripts_description">Dozvoli neprovjerenim skriptama trećih strana pristup tvojim podacima</string>
   <!-- Description for devtools permission. -->
   <string name="mozac_feature_addons_permissions_devtools_description">Proširi alate za razvojne programere za pristup podacima u otvorenim karticama</string>
+  <!-- Description for text button that expands the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_all_sites">Prikaži sve stranice</string>
+  <!-- Description for text button that hides the majority of the list of domain permissions -->
+  <string name="mozac_feature_addons_permissions_show_fewer_sites">Prikaži manje stranica</string>
   <!-- The version on of add-on. -->
   <string name="mozac_feature_addons_version">Verzija</string>
   <!-- The author of an add-on. -->
