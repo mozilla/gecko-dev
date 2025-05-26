@@ -96,14 +96,32 @@ class TextDirectiveCreator {
    */
   Result<Ok, ErrorResult> CollectSuffixContextTerm();
 
+  /**
+   * @brief Collect the word begin / word end distances for the context terms.
+   *
+   * For start (for range-based matching) and suffix terms, the search direction
+   * is left-to-right. Therefore, the distances are based off the beginning of
+   * the context terms and use the word end boundary.
+   *
+   * For prefix and end (for range-based matching), the search direction is
+   * right-to-left. Therefore, the distances are based off the end of the
+   * context terms and use the word start boundary.
+   *
+   * The distances are always sorted, so that the first entry points to the
+   * nearest word boundary in search direction.
+   */
+  virtual void CollectContextTermWordBoundaryDistances() = 0;
+
   nsString mPrefixContent;
   nsString mPrefixFoldCaseContent;
+  nsTArray<uint32_t> mPrefixWordBeginDistances;
 
   nsString mStartContent;
   nsString mStartFoldCaseContent;
 
   nsString mSuffixContent;
   nsString mSuffixFoldCaseContent;
+  nsTArray<uint32_t> mSuffixWordEndDistances;
 
   Document& mDocument;
   RefPtr<AbstractRange> mRange;
@@ -128,8 +146,13 @@ class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
 
   Result<Ok, ErrorResult> CollectContextTerms() override;
 
+  void CollectContextTermWordBoundaryDistances() override;
+
   nsString mEndContent;
   nsString mEndFoldCaseContent;
+
+  nsTArray<uint32_t> mStartWordEndDistances;
+  nsTArray<uint32_t> mEndWordBeginDistances;
 };
 
 /**
@@ -142,6 +165,7 @@ class ExactMatchTextDirectiveCreator : public TextDirectiveCreator {
 
   Result<Ok, ErrorResult> CollectContextTerms() override;
 
+  void CollectContextTermWordBoundaryDistances() override;
 };
 }  // namespace mozilla::dom
 #endif

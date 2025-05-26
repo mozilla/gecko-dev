@@ -177,6 +177,23 @@ class TextDirectiveUtil final {
    */
   template <TextScanDirection direction>
   static RangeBoundary FindWordBoundary(const RangeBoundary& aRangeBoundary);
+
+  /**
+   * @brief Creates a list of all word boundary distances to the base of the
+   *        string (beginning for left-to-right, end for right-to-left).
+   *
+   * Word boundaries are determined by iterating the string and checking for
+   * word boundaries using the `intl::WordBreaker` algorithm.
+   *
+   * If direction is `Left`, word begin positions are used, and the distances
+   * are based off the end of the string. Otherwise, the word end positions are
+   * used, and the distances are based off the begin of the string.
+   * The returned array is always sorted and contains monotonically increasing
+   * values.
+   */
+  template <TextScanDirection direction>
+  static nsTArray<uint32_t> ComputeWordBoundaryDistances(
+      const nsAString& aString);
 };
 
 class TimeoutWatchdog final {
@@ -417,6 +434,37 @@ template <TextScanDirection direction>
   return {node, offset};
 }
 
+template <TextScanDirection direction>
+/*static*/ nsTArray<uint32_t> TextDirectiveUtil::ComputeWordBoundaryDistances(
+    const nsAString& aString) {
+  // Limit the amount of words to look out for.
+  // If it's not possible to create a text directive because 32 words in _all_
+  // directions are equal, it's reasonable to say that it's not possible to
+  // create a text directive at all. Without this limit, this algorithm could
+  // blow up for extremely large text nodes, such as opening a text file with
+  // megabytes of text.
+  constexpr uint32_t kMaxWordCount = 32;
+  AutoTArray<uint32_t, kMaxWordCount> wordBoundaryDistances;
+  uint32_t pos = 0;
+  while (pos < aString.Length() &&
+         wordBoundaryDistances.Length() < kMaxWordCount) {
+    auto [wordBegin, wordEnd] = intl::WordBreaker::FindWord(aString, pos);
+    if constexpr (direction == TextScanDirection::Left) {
+      // If direction is right-to-left, the distances are relative to the end of
+      // the string, and the array is reversed. This way the distances are
+      // always monotonically increasing.
+      wordBoundaryDistances.AppendElement(aString.Length() - wordBegin);
+    } else {
+      wordBoundaryDistances.AppendElement(wordEnd);
+    }
+    pos = wordEnd + 1;
+  }
+  if constexpr (direction == TextScanDirection::Left) {
+    // Reverse the positions to align with the direction of the search algorithm
+    wordBoundaryDistances.Reverse();
+  }
+  return wordBoundaryDistances;
+}
 }  // namespace mozilla::dom
 
 #endif

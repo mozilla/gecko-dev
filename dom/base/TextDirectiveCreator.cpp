@@ -47,6 +47,7 @@ TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
   return CreateInstance(aDocument, range)
       .andThen([](auto self) -> Result<nsCString, ErrorResult> {
         MOZ_TRY(self->CollectContextTerms());
+        self->CollectContextTermWordBoundaryDistances();
         return VoidCString();
       });
 }
@@ -282,5 +283,40 @@ Result<Ok, ErrorResult> TextDirectiveCreator::CollectSuffixContextTerm() {
   return Ok();
 }
 
+void ExactMatchTextDirectiveCreator::CollectContextTermWordBoundaryDistances() {
+  mPrefixWordBeginDistances =
+      TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Left>(
+          mPrefixContent);
+  TEXT_FRAGMENT_LOG("Word begin distances for prefix term: {}",
+                    mPrefixWordBeginDistances);
+  mSuffixWordEndDistances =
+      TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Right>(
+          mSuffixContent);
+  TEXT_FRAGMENT_LOG("Word end distances for suffix term: {}",
+                    mSuffixWordEndDistances);
+}
+
+void RangeBasedTextDirectiveCreator::CollectContextTermWordBoundaryDistances() {
+  mPrefixWordBeginDistances =
+      TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Left>(
+          mPrefixContent);
+  TEXT_FRAGMENT_LOG("Word begin distances for prefix term: {}",
+                    mPrefixWordBeginDistances);
+  mStartWordEndDistances =
+      TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Right>(
+          mStartContent);
+  TEXT_FRAGMENT_LOG("Word end distances for start term: {}",
+                    mStartWordEndDistances);
+  mEndWordBeginDistances =
+      TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Left>(
+          mEndContent);
+  TEXT_FRAGMENT_LOG("Word begin distances for end term: {}",
+                    mEndWordBeginDistances);
+  mSuffixWordEndDistances =
+      TextDirectiveUtil::ComputeWordBoundaryDistances<TextScanDirection::Right>(
+          mSuffixContent);
+  TEXT_FRAGMENT_LOG("Word end distances for suffix term: {}",
+                    mSuffixWordEndDistances);
+}
 
 }  // namespace mozilla::dom
