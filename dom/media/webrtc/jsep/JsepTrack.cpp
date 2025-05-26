@@ -731,8 +731,8 @@ nsresult JsepTrack::Negotiate(const SdpMediaSection& answer,
 // works, however, if that payload type appeared in only one m-section.
 // We figure that out here.
 /* static */
-void JsepTrack::SetUniqueReceivePayloadTypes(std::vector<JsepTrack*>& tracks,
-                                             bool localOffer) {
+void JsepTrack::SetReceivePayloadTypes(std::vector<JsepTrack*>& tracks,
+                                       bool localOffer) {
   // Maps payload types to all tracks that have negotiated them.
   std::multimap<uint16_t, JsepTrack*> payloadTypeToTracks;
 
