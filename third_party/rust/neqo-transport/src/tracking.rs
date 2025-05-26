@@ -9,12 +9,14 @@
 use std::{
     cmp::min,
     collections::VecDeque,
+    fmt::{self, Display, Formatter},
     time::{Duration, Instant},
 };
 
 use enum_map::{Enum, EnumMap};
 use enumset::{EnumSet, EnumSetType};
-use neqo_common::{qdebug, qinfo, qtrace, qwarn, IpTosEcn};
+use log::{log_enabled, Level};
+use neqo_common::{qdebug, qinfo, qtrace, qwarn, IpTosEcn, MAX_VARINT};
 use neqo_crypto::Epoch;
 use strum::{Display, EnumIter};
 
@@ -151,8 +153,8 @@ impl PacketRange {
     }
 }
 
-impl ::std::fmt::Display for PacketRange {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for PacketRange {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}->{}", self.largest, self.smallest)
     }
 }
@@ -470,7 +472,7 @@ impl RecvdPackets {
         let elapsed = now.duration_since(largest_pn_time);
         // We use the default exponent, so delay is in multiples of 8 microseconds.
         let ack_delay = u64::try_from(elapsed.as_micros() / 8).unwrap_or(u64::MAX);
-        let ack_delay = min((1 << 62) - 1, ack_delay);
+        let ack_delay = min(MAX_VARINT, ack_delay);
         builder.encode_varint(ack_delay);
         let Ok(extra_ranges) = u64::try_from(ranges.len() - 1) else {
             return;
@@ -505,8 +507,8 @@ impl RecvdPackets {
     }
 }
 
-impl ::std::fmt::Display for RecvdPackets {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for RecvdPackets {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Recvd-{}", self.space)
     }
 }
@@ -554,13 +556,13 @@ impl AckTracker {
 
     /// Determine the earliest time that an ACK might be needed.
     pub fn ack_time(&self, now: Instant) -> Option<Instant> {
-        #[cfg(debug_assertions)]
-        for (space, recvd) in &self.spaces {
-            if let Some(recvd) = recvd {
-                qtrace!("ack_time for {space} = {:?}", recvd.ack_time());
+        if log_enabled!(Level::Trace) {
+            for (space, recvd) in &self.spaces {
+                if let Some(recvd) = recvd {
+                    qtrace!("ack_time for {space} = {:?}", recvd.ack_time());
+                }
             }
         }
-
         if self.spaces[PacketNumberSpace::Initial].is_none()
             && self.spaces[PacketNumberSpace::Handshake].is_none()
         {

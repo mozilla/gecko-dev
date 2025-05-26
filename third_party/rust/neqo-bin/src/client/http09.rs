@@ -11,6 +11,7 @@
 use std::{
     cell::RefCell,
     collections::{HashMap, VecDeque},
+    fmt::Display,
     fs::File,
     io::{BufWriter, Write as _},
     net::SocketAddr,
@@ -203,7 +204,7 @@ impl super::Client for Connection {
 
     fn close<S>(&mut self, now: Instant, app_error: neqo_transport::AppError, msg: S)
     where
-        S: AsRef<str> + std::fmt::Display,
+        S: AsRef<str> + Display,
     {
         if !self.state().closed() {
             self.close(now, app_error, msg);

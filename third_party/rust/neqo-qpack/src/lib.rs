@@ -20,6 +20,8 @@ mod static_table;
 mod stats;
 mod table;
 
+use std::fmt::{self, Display, Formatter};
+
 pub use decoder::QPackDecoder;
 pub use encoder::QPackEncoder;
 pub use stats::Stats;
@@ -96,8 +98,8 @@ impl ::std::error::Error for Error {
     }
 }
 
-impl ::std::fmt::Display for Error {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "QPACK error: {self:?}")
     }
 }

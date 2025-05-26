@@ -11,6 +11,7 @@ use std::{
     collections::HashMap,
     fmt::{self, Display},
     rc::Rc,
+    slice,
     time::Instant,
 };
 
@@ -40,8 +41,8 @@ impl HttpServer {
     ) -> Self {
         let mut server = Http3Server::new(
             args.now(),
-            &[args.key.clone()],
-            &[args.shared.alpn.clone()],
+            slice::from_ref(&args.key),
+            slice::from_ref(&args.shared.alpn),
             anti_replay,
             cid_mgr,
             Http3Parameters::default()
@@ -63,8 +64,7 @@ impl HttpServer {
             server
                 .enable_ech(random::<1>()[0], "public.example", &sk, &pk)
                 .unwrap();
-            let cfg = server.ech_config();
-            qinfo!("ECHConfigList: {}", hex(cfg));
+            qinfo!("ECHConfigList: {}", hex(server.ech_config()));
         }
         Self {
             server,

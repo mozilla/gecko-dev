@@ -4673,15 +4673,15 @@ dependencies = [
  "rustc-hash 1.999.999",
  "serde",
  "spirv",
- "strum 0.27.1",
+ "strum",
  "thiserror 2.0.9",
  "unicode-ident",
 ]
 
 [[package]]
 name = "neqo-bin"
-version = "0.13.2"
-source = "git+https://github.com/mozilla/neqo?tag=v0.13.2#847a5989f20d30eb3675d1435180fd48a8c6a3ad"
+version = "0.13.4"
+source = "git+https://github.com/mozilla/neqo?tag=v0.13.4#c3179d9f363bf92a908d90e4240b315b9ff72516"
 dependencies = [
  "clap",
  "clap-verbosity-flag",
@@ -4702,21 +4702,21 @@ dependencies = [
 
 [[package]]
 name = "neqo-common"
-version = "0.13.2"
-source = "git+https://github.com/mozilla/neqo?tag=v0.13.2#847a5989f20d30eb3675d1435180fd48a8c6a3ad"
+version = "0.13.4"
+source = "git+https://github.com/mozilla/neqo?tag=v0.13.4#c3179d9f363bf92a908d90e4240b315b9ff72516"
 dependencies = [
  "enum-map",
  "env_logger",
  "log",
  "qlog",
- "strum 0.26.999",
+ "strum",
  "windows",
 ]
 
 [[package]]
 name = "neqo-crypto"
-version = "0.13.2"
-source = "git+https://github.com/mozilla/neqo?tag=v0.13.2#847a5989f20d30eb3675d1435180fd48a8c6a3ad"
+version = "0.13.4"
+source = "git+https://github.com/mozilla/neqo?tag=v0.13.4#c3179d9f363bf92a908d90e4240b315b9ff72516"
 dependencies = [
  "bindgen 0.69.4",
  "enum-map",
@@ -4726,14 +4726,14 @@ dependencies = [
  "semver",
  "serde",
  "serde_derive",
- "strum 0.26.999",
+ "strum",
  "toml",
 ]
 
 [[package]]
 name = "neqo-http3"
-version = "0.13.2"
-source = "git+https://github.com/mozilla/neqo?tag=v0.13.2#847a5989f20d30eb3675d1435180fd48a8c6a3ad"
+version = "0.13.4"
+source = "git+https://github.com/mozilla/neqo?tag=v0.13.4#c3179d9f363bf92a908d90e4240b315b9ff72516"
 dependencies = [
  "enumset",
  "log",
@@ -4743,14 +4743,14 @@ dependencies = [
  "neqo-transport",
  "qlog",
  "sfv",
- "strum 0.26.999",
+ "strum",
  "url",
 ]
 
 [[package]]
 name = "neqo-qpack"
-version = "0.13.2"
-source = "git+https://github.com/mozilla/neqo?tag=v0.13.2#847a5989f20d30eb3675d1435180fd48a8c6a3ad"
+version = "0.13.4"
+source = "git+https://github.com/mozilla/neqo?tag=v0.13.4#c3179d9f363bf92a908d90e4240b315b9ff72516"
 dependencies = [
  "log",
  "neqo-common",
@@ -4761,8 +4761,8 @@ dependencies = [
 
 [[package]]
 name = "neqo-transport"
-version = "0.13.2"
-source = "git+https://github.com/mozilla/neqo?tag=v0.13.2#847a5989f20d30eb3675d1435180fd48a8c6a3ad"
+version = "0.13.4"
+source = "git+https://github.com/mozilla/neqo?tag=v0.13.4#c3179d9f363bf92a908d90e4240b315b9ff72516"
 dependencies = [
  "enum-map",
  "enumset",
@@ -4774,13 +4774,13 @@ dependencies = [
  "qlog",
  "smallvec",
  "static_assertions",
- "strum 0.26.999",
+ "strum",
 ]
 
 [[package]]
 name = "neqo-udp"
-version = "0.13.2"
-source = "git+https://github.com/mozilla/neqo?tag=v0.13.2#847a5989f20d30eb3675d1435180fd48a8c6a3ad"
+version = "0.13.4"
+source = "git+https://github.com/mozilla/neqo?tag=v0.13.4#c3179d9f363bf92a908d90e4240b315b9ff72516"
 dependencies = [
  "cfg_aliases",
  "log",
@@ -6296,13 +6296,6 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
-
-[[package]]
-name = "strum"
-version = "0.26.999"
-dependencies = [
- "strum 0.27.1",
-]
 
 [[package]]
 name = "strum"

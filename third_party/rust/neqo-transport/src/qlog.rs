@@ -261,9 +261,7 @@ pub fn packet_dropped(qlog: &NeqoQlog, public_packet: &PublicPacket, now: Instan
                 PacketHeader::with_type(public_packet.packet_type().into(), None, None, None, None);
             let raw = RawInfo {
                 length: Some(public_packet.len() as u64),
-                payload_length: None,
-                data: None,
-                // TODO: ..Default::default() once qlog is past 0.15.1
+                ..Default::default()
             };
 
             let ev_data = EventData::PacketDropped(PacketDropped {

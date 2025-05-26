@@ -287,6 +287,10 @@ fn compatible_upgrade_large_initial() {
     assert!(
         server.stats().dscp_rx[IpTosDscp::Cs0] == server.stats().packets_rx
             || server.stats().dscp_rx[IpTosDscp::Cs0] == server.stats().packets_rx + 1
+            || server.stats().dscp_rx[IpTosDscp::Cs0] == server.stats().packets_rx - 1,
+        "dscp_rx[IpTosDscp::Cs0] {} != packets_rx {} (possibly +/- 1)",
+        server.stats().dscp_rx[IpTosDscp::Cs0],
+        server.stats().packets_rx
     );
 }
 

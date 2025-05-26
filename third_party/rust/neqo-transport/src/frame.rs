@@ -8,7 +8,7 @@
 
 use std::ops::RangeInclusive;
 
-use neqo_common::{qtrace, Decoder, Encoder};
+use neqo_common::{qtrace, Decoder, Encoder, MAX_VARINT};
 use strum::FromRepr;
 
 use crate::{
@@ -155,8 +155,8 @@ impl From<std::array::TryFromSliceError> for Error {
 
 #[derive(PartialEq, Eq, Debug, Default, Clone)]
 pub struct AckRange {
-    pub(crate) gap: u64,
-    pub(crate) range: u64,
+    gap: u64,
+    range: u64,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -543,7 +543,7 @@ impl<'a> Frame<'a> {
             FrameType::Crypto => {
                 let offset = dv(dec)?;
                 let data = d(dec.decode_vvec())?;
-                if offset + u64::try_from(data.len())? > ((1 << 62) - 1) {
+                if offset + u64::try_from(data.len())? > MAX_VARINT {
                     return Err(Error::FrameEncodingError);
                 }
                 Ok(Self::Crypto { offset, data })
@@ -577,7 +577,7 @@ impl<'a> Frame<'a> {
                     qtrace!("STREAM frame, with length");
                     d(dec.decode_vvec())?
                 };
-                if o + u64::try_from(data.len())? > ((1 << 62) - 1) {
+                if o + u64::try_from(data.len())? > MAX_VARINT {
                     return Err(Error::FrameEncodingError);
                 }
                 Ok(Self::Stream {

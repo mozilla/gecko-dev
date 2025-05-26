@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{cmp::max, collections::HashMap};
+use std::{cmp::max, collections::HashMap, fmt::Debug};
 
 use neqo_common::{event::Provider as _, qdebug};
 use test_fixture::now;
@@ -224,7 +224,7 @@ fn fairness_test<S, R>(source: S, number_iterates: usize, truncate_to: usize, re
 where
     S: IntoIterator,
     S::Item: Into<StreamId>,
-    R: IntoIterator + std::fmt::Debug,
+    R: IntoIterator + Debug,
     R::Item: Into<StreamId>,
     Vec<u64>: PartialEq<R>,
 {

@@ -9,6 +9,8 @@
     reason = "<https://github.com/mozilla/neqo/issues/2284#issuecomment-2782711813>"
 )]
 
+use std::fmt::{self, Display, Formatter};
+
 use neqo_common::{qdebug, Header};
 use neqo_transport::{Connection, StreamId};
 
@@ -273,8 +275,8 @@ impl QPackDecoder {
     }
 }
 
-impl ::std::fmt::Display for QPackDecoder {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for QPackDecoder {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "QPackDecoder {}", self.capacity())
     }
 }

@@ -418,8 +418,10 @@ pub async fn server(mut args: Args) -> Res<()> {
         .into_iter()
         .map(|host| {
             let socket = crate::udp::Socket::bind(host)?;
-            let local_addr = socket.local_addr()?;
-            qinfo!("Server waiting for connection on: {local_addr:?}");
+            qinfo!(
+                "Server waiting for connection on: {:?}",
+                socket.local_addr()
+            );
 
             Ok((host, socket))
         })

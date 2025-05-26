@@ -4,6 +4,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use std::cmp::min;
+
 use neqo_common::{qtrace, Decoder, IncrementalDecoderUint, Role};
 use neqo_qpack::{decoder::QPACK_UNI_STREAM_TYPE_DECODER, encoder::QPACK_UNI_STREAM_TYPE_ENCODER};
 use neqo_transport::{Connection, StreamId, StreamType};
@@ -108,9 +110,11 @@ impl NewStreamHeadReader {
             reader, stream_id, ..
         } = self
         {
+            // This type only exists to read at most two varints (= 16 bytes) from the stream.
+            let mut buf = [0; 16];
             loop {
-                let to_read = reader.min_remaining();
-                let mut buf = vec![0; to_read];
+                let to_read = min(reader.min_remaining(), buf.len());
+                let buf = &mut buf[0..to_read];
                 match conn.stream_recv(*stream_id, &mut buf[..])? {
                     (0, f) => return Ok((None, f)),
                     (amount, f) => {

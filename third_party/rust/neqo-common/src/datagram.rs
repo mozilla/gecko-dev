@@ -5,6 +5,7 @@
 // except according to those terms.
 
 use std::{
+    fmt::{self, Debug, Formatter},
     net::SocketAddr,
     ops::{Deref, DerefMut},
 };
@@ -80,8 +81,8 @@ impl<D: AsRef<[u8]>> Deref for Datagram<D> {
     }
 }
 
-impl<D: AsRef<[u8]>> std::fmt::Debug for Datagram<D> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<D: AsRef<[u8]>> Debug for Datagram<D> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
             "Datagram {:?} {:?}->{:?}: {}",

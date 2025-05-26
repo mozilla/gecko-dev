@@ -506,6 +506,10 @@ fn bad_client_initial() {
         State::Draining { error: CloseReason::Transport(Error::PeerError(code)), .. } if code == Error::ProtocolViolation.code()
     ));
 
+    #[expect(
+        clippy::iter_over_hash_type,
+        reason = "OK to loop over active connections in an undefined order."
+    )]
     for server in server.active_connections() {
         assert_eq!(
             *server.borrow().state(),

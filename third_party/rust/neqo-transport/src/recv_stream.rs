@@ -16,6 +16,7 @@ use std::{
     cell::RefCell,
     cmp::max,
     collections::BTreeMap,
+    fmt::Debug,
     mem,
     rc::{Rc, Weak},
     time::{Duration, Instant},
@@ -997,6 +998,7 @@ impl RecvStream {
 mod tests {
     use std::{
         cell::RefCell,
+        fmt::Debug,
         ops::Range,
         rc::Rc,
         time::{Duration, Instant},
@@ -1656,7 +1658,7 @@ mod tests {
         assert!(session_fc.borrow().frame_needed());
     }
 
-    fn check_fc<T: std::fmt::Debug>(fc: &ReceiverFlowControl<T>, consumed: u64, retired: u64) {
+    fn check_fc<T: Debug>(fc: &ReceiverFlowControl<T>, consumed: u64, retired: u64) {
         assert_eq!(fc.consumed(), consumed);
         assert_eq!(fc.retired(), retired);
     }

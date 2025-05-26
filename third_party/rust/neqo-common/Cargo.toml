@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.82.0"
 name = "neqo-common"
-version = "0.13.2"
+version = "0.13.4"
 authors = ["The Neqo Authors <necko@mozilla.com>"]
 build = "build.rs"
 autolib = false
@@ -85,12 +85,13 @@ version = "0.15.1"
 default-features = false
 
 [dependencies.strum]
-version = "0.26"
+version = "0.27"
 features = ["derive"]
 default-features = false
 
 [dev-dependencies.criterion]
-version = "0.5"
+version = "0.6"
+features = ["cargo_bench_support"]
 default-features = false
 
 [dev-dependencies.neqo-crypto]
@@ -117,17 +118,20 @@ create_dir = "warn"
 dbg_macro = "warn"
 empty_drop = "warn"
 empty_enum_variants_with_brackets = "warn"
+field_scoped_visibility_modifiers = "warn"
 filetype_is_file = "warn"
 float_cmp_const = "warn"
 fn_to_numeric_cast_any = "warn"
 get_unwrap = "warn"
 if_then_some_else_none = "warn"
 infinite_loop = "warn"
+iter_over_hash_type = "warn"
 large_include_file = "warn"
 let_underscore_must_use = "warn"
 let_underscore_untyped = "warn"
 literal_string_with_formatting_args = "allow"
 lossy_float_literal = "warn"
+map_with_unused_argument_over_ranges = "warn"
 mem_forget = "warn"
 mixed_read_write_in_expression = "warn"
 module_name_repetitions = "warn"
@@ -136,14 +140,18 @@ multiple_inherent_impl = "warn"
 mutex_atomic = "warn"
 mutex_integer = "warn"
 needless_raw_strings = "warn"
+partial_pub_fields = "warn"
 pathbuf_init_then_push = "warn"
+precedence_bits = "warn"
 pub_without_shorthand = "warn"
 rc_buffer = "warn"
 rc_mutex = "warn"
+redundant_test_prefix = "warn"
 redundant_type_annotations = "warn"
 ref_patterns = "warn"
 renamed_function_params = "warn"
 rest_pat_in_fully_bound_structs = "warn"
+return_and_then = "warn"
 self_named_module_files = "warn"
 semicolon_inside_block = "warn"
 string_lit_chars_any = "warn"

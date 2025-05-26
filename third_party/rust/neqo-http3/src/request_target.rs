@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::fmt::{Debug, Formatter};
+use std::fmt::{self, Debug, Formatter};
 
 use url::{ParseError, Url};
 
@@ -46,7 +46,7 @@ impl<'s, 'a, 'p> RefRequestTarget<'s, 'a, 'p> {
 }
 
 impl Debug for RefRequestTarget<'_, '_, '_> {
-    fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}://{}{}", self.scheme, self.authority, self.path)
     }
 }
@@ -113,7 +113,7 @@ impl RequestTarget for UrlRequestTarget {
 }
 
 impl Debug for UrlRequestTarget {
-    fn fmt(&self, f: &mut Formatter) -> ::std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         self.url.fmt(f)
     }
 }

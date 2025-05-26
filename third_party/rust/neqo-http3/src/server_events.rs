@@ -7,6 +7,7 @@
 use std::{
     cell::RefCell,
     collections::VecDeque,
+    fmt::{self, Display, Formatter},
     ops::{Deref, DerefMut},
     rc::Rc,
 };
@@ -30,8 +31,8 @@ pub struct StreamHandler {
     pub stream_info: Http3StreamInfo,
 }
 
-impl ::std::fmt::Display for StreamHandler {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for StreamHandler {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         let conn: &Connection = &self.conn.borrow();
         write!(f, "conn={conn} stream_info={:?}", self.stream_info)
     }
@@ -158,8 +159,8 @@ pub struct Http3OrWebTransportStream {
     stream_handler: StreamHandler,
 }
 
-impl ::std::fmt::Display for Http3OrWebTransportStream {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for Http3OrWebTransportStream {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Stream server {:?}", self.stream_handler)
     }
 }
@@ -242,8 +243,8 @@ pub struct WebTransportRequest {
     stream_handler: StreamHandler,
 }
 
-impl ::std::fmt::Display for WebTransportRequest {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for WebTransportRequest {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "WebTransport session {}", self.stream_handler)
     }
 }

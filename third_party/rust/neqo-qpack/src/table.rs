@@ -4,7 +4,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::collections::VecDeque;
+use std::{
+    collections::VecDeque,
+    fmt::{self, Display, Formatter},
+};
 
 use neqo_common::qtrace;
 
@@ -49,20 +52,10 @@ impl DynamicTableEntry {
         self.refs -= 1;
     }
 
-    #[allow(
-        clippy::allow_attributes,
-        clippy::missing_const_for_fn,
-        reason = "TODO: False positive on nightly."
-    )]
     pub fn name(&self) -> &[u8] {
         &self.name
     }
 
-    #[allow(
-        clippy::allow_attributes,
-        clippy::missing_const_for_fn,
-        reason = "TODO: False positive on nightly."
-    )]
     pub fn value(&self) -> &[u8] {
         &self.value
     }
@@ -87,8 +80,8 @@ pub struct HeaderTable {
     acked_inserts_cnt: u64,
 }
 
-impl ::std::fmt::Display for HeaderTable {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for HeaderTable {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
             "HeaderTable for (base={} acked_inserts_cnt={} capacity={})",

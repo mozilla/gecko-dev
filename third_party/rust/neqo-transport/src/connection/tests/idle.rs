@@ -96,7 +96,7 @@ fn asymmetric_idle_timeout() {
     server
         .tps
         .borrow_mut()
-        .local
+        .local_mut()
         .set_integer(TransportParameterId::IdleTimeout, LOWER_TIMEOUT_MS);
     server.idle_timeout = IdleTimeout::new(LOWER_TIMEOUT);
 
@@ -309,7 +309,7 @@ fn idle_caching() {
     // to send CRYPTO frames again, so manually extract and discard those.
     server.process_input(dgram.unwrap(), middle);
     let mut tokens = Vec::new();
-    server.crypto.streams.write_frame(
+    server.crypto.streams_mut().write_frame(
         PacketNumberSpace::Initial,
         server.conn_params.sni_slicing_enabled(),
         &mut builder,
@@ -318,7 +318,7 @@ fn idle_caching() {
     );
     assert_eq!(tokens.len(), 1);
     tokens.clear();
-    server.crypto.streams.write_frame(
+    server.crypto.streams_mut().write_frame(
         PacketNumberSpace::Initial,
         server.conn_params.sni_slicing_enabled(),
         &mut builder,

@@ -4,7 +4,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{os::raw::c_char, str::Utf8Error};
+use std::{
+    fmt::{self, Display, Formatter},
+    os::raw::c_char,
+    str::Utf8Error,
+};
 
 use crate::ssl::{SECStatus, SECSuccess};
 
@@ -91,8 +95,8 @@ impl std::error::Error for Error {
     }
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Error: {self:?}")
     }
 }
