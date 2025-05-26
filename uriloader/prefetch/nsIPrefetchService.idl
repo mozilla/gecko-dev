@@ -29,20 +29,6 @@ interface nsIPrefetchService : nsISupports
                      in boolean aExplicit);
 
     /**
-     * Start a preload of the specified URI.
-     *
-     * @param aURI the URI of the document to preload
-     * @param aReferrerInfo the referrerInfo of the request
-     * @param aSource the DOM node (such as a <link> tag) that requested this
-     *        fetch, or null if the prefetch was not requested by a DOM node.
-     * @param aPolicyType content policy to be used for this load.
-     */
-    void preloadURI(in nsIURI aURI,
-                    in nsIReferrerInfo aReferrerInfo,
-                    in Node aSource,
-                    in nsContentPolicyType aPolicyType);
-
-    /**
      * Find out if there are any prefetches running or queued
      */
     boolean hasMoreElements();

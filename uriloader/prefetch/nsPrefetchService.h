@@ -53,9 +53,6 @@ class nsPrefetchService final : public nsIPrefetchService,
   nsresult Prefetch(nsIURI* aURI, nsIReferrerInfo* aReferrerInfo,
                     nsINode* aSource, bool aExplicit);
 
-  nsresult Preload(nsIURI* aURI, nsIReferrerInfo* aReferrerInfo,
-                   nsINode* aSource, nsContentPolicyType aPolicyType);
-
   void AddProgressListener();
   void RemoveProgressListener();
   nsresult EnqueueURI(nsIURI* aURI, nsIReferrerInfo* aReferrerInfo,
