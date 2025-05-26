@@ -73,10 +73,6 @@ pref("general.useragent.compatMode.firefox", false);
 
 pref("general.config.obscure_value", 13); // for MCD .cfg files
 
-#ifndef MOZ_BUILD_APP_IS_BROWSER
-pref("general.warnOnAboutConfig", true);
-#endif
-
 // Whether middle button click with a modifier key starts to autoscroll or
 // does nothing.
 pref("general.autoscroll.prevent_to_start.shiftKey", true); // Shift

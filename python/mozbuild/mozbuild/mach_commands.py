@@ -2181,7 +2181,6 @@ def _run_desktop(
         prefs = {
             "browser.aboutConfig.showWarning": False,
             "browser.shell.checkDefaultBrowser": False,
-            "general.warnOnAboutConfig": False,
         }
         prefs.update(command_context._mach_context.settings.runprefs)
         prefs.update([p.split("=", 1) for p in setpref])
