@@ -19,47 +19,6 @@
       width: 110px;
       height: 117px;
     }
-
-    .meta {
-      padding: 0;
-      min-height: 125px;
-
-      .info-wrap {
-        flex-grow: 1
-      }
-
-      .sections-card-footer {
-        max-width: 120px;
-        inset-inline-end: var(--space-xsmall);
-        inset-block-end: var(--space-large);
-        min-height: unset;
-      }
-    }
-
-    .card-stp-button-hover-background {
-      background: transparent;
-    }
-
-    .card-stp-button-position-wrapper {
-      // context menu should match the padding for the parent
-      inset-inline-end: var(--space-large);
-      inset-block-end: var(--space-large);
-    }
-
-    &:hover,
-    &:active,
-    &:focus-visible,
-    &.active {
-      .card-stp-thumbs-buttons-wrapper {
-        display: block;
-      }
-
-      .meta {
-        .source-wrapper .source {
-          display: none;
-        }
-      }
-    }
   }
 
   &.ds-card.sections-card-ui {
@@ -131,6 +90,34 @@
     inset-inline-end: 10px;
   }
 
+  &.refined-cards {
+    .sections-card-footer {
+      max-width: 120px;
+    }
+
+    .card-stp-button-hover-background {
+      background: transparent;
+    }
+
+    .card-stp-button-position-wrapper {
+      // context menu should match the padding for the parent
+      inset-inline-end: var(--space-large);
+      inset-block-end: var(--space-large);
+    }
+
+    &:hover,
+    &:active,
+    &:focus-visible,
+    &.active {
+      .card-stp-thumbs-buttons-wrapper {
+        display: block;
+      }
+
+      .source-wrapper .source {
+        display: none;
+      }
+    }
+  }
 }
 
 @mixin section-card-medium {
@@ -145,6 +132,7 @@
     height: unset;
   }
 
+  // .refined-medium-card only appears if refinedCardsLayout.enabled pref is set to true
   &.refined-cards {
     .ds-card-link {
       padding: unset;
@@ -155,44 +143,6 @@
       width: 100%;
       height: 172px;
     }
-
-    .meta {
-      padding: var(--space-small) var(--space-large);
-      min-height: unset;
-
-      .info-wrap {
-        flex-grow: initial;
-      }
-
-      .sections-card-footer {
-        max-width: 230px;
-        inset-inline-end: initial;
-        inset-block-end: initial;
-        min-height: 28px;
-
-        .source-wrapper {
-          max-width: 175px;
-        }
-      }
-    }
-
-    .card-stp-button-position-wrapper {
-      // context menu should match the padding for the parent
-      inset-inline-end: var(--space-large);
-      inset-block-end: var(--space-medium);
-    }
-
-    &:hover,
-    &:active,
-    &:focus-visible,
-    &.active {
-      .meta {
-        .source-wrapper .source {
-          display: block;
-        }
-      }
-    }
-
   }
 
   .card-stp-button-hover-background {
@@ -234,7 +184,6 @@
 
     .info-wrap {
       flex-grow: initial;
-      // flex-grow: 1;/
 
       .title {
         -webkit-line-clamp: 3;
@@ -252,6 +201,31 @@
       margin-top: auto;
     }
   }
+
+  &.refined-cards {
+    .sections-card-footer {
+      max-width: 230px;
+
+      .source-wrapper {
+        max-width: 175px;
+      }
+    }
+
+    .card-stp-button-position-wrapper {
+      // context menu should match the padding for the parent
+      inset-inline-end: var(--space-large);
+      inset-block-end: var(--space-medium);
+    }
+
+    &:hover,
+    &:active,
+    &:focus-visible,
+    &.active {
+      .source-wrapper .source {
+        display: block;
+      }
+    }
+  }
 }
 
 // DS Large Card
@@ -259,36 +233,63 @@
   grid-row: span 2;
   grid-column: span 2;
 
-  &.refined-cards.ds-card.sections-card-ui {
-    height: fit-content;
-  }
-
   &.ds-card.sections-card-ui {
     @media ($break-point-layout-variant <= width < $break-point-widest),
       (min-width: $break-point-sections-variant) {
       align-content: flex-start;
 
-      &.refined-cards {
-        .ds-card-link {
-          padding: var(--space-small);
-        }
+      .ds-card-link {
+        flex-direction: row;
+        gap: var(--space-xlarge);
+        padding: var(--space-xxlarge);
+      }
 
-        .meta {
-          padding: var(--space-large) 0;
-          color: var(--newtab-text-primary-color);
-        }
+      .img-wrapper {
+        width: 265px;
+        height: 100%;
+      }
 
-        .meta .info-wrap .excerpt  {
-          color: var(--text-color-deemphasized);
+      .ds-image.img {
+        // Square ratio
+        aspect-ratio: 1/1;
+        width: 100%;
+        height: 100%;
+
+        img {
+          border-radius: var(--border-radius-medium);
         }
       }
 
-      .meta .sections-card-footer {
-        max-width: 250px;
+      .meta {
+        padding: 0;
+        // match height of image for large cards
+        min-height: 220px;
 
-        .source-wrapper {
-          max-width: 175px;
+        .title {
+          -webkit-line-clamp: 3;
+          font-size: var(--font-size-large);
+          font-weight: var(--font-weight-bold);
+          margin-block: 0 var(--space-small);
         }
+
+        .excerpt {
+          -webkit-line-clamp: 4;
+          font-size: var(--font-size-root);
+        }
+      }
+
+      .card-stp-button-hover-background {
+        inset-inline-start: 0;
+      }
+    }
+  }
+
+  &.refined-cards {
+    .sections-card-footer {
+      max-width: 225px;
+
+      .source-wrapper {
+        max-width: 170px;
       }
     }
 
@@ -298,61 +299,14 @@
 
     .card-stp-button-position-wrapper {
       // context menu should match the padding for the parent
-      inset-inline-end: var(--space-xlarge);
-      inset-block-end: var(--space-xlarge);
+      inset-inline-end: var(--space-xxlarge);
+      inset-block-end: var(--space-xxlarge);
     }
 
     &:hover {
-      .meta {
-        .source-wrapper .source {
-          display: block;
-        }
+      .source-wrapper .source {
+        display: block;
       }
-
-    }
-
-    .ds-card-link {
-      flex-direction: row;
-      gap: var(--space-xlarge);
-      padding: var(--space-xxlarge);
-    }
-
-    .img-wrapper {
-      width: 265px;
-      height: 100%;
-    }
-
-    .ds-image.img {
-      // Square ratio
-      aspect-ratio: 1/1;
-      width: 100%;
-      height: 100%;
-
-      img {
-        border-radius: var(--border-radius-medium);
-      }
-    }
-
-    .meta {
-      padding: 0;
-      // match height of image for large cards
-      min-height: 220px;
-
-      .title {
-        -webkit-line-clamp: 3;
-        font-size: var(--font-size-large);
-        font-weight: var(--font-weight-bold);
-        margin-block: 0 var(--space-small);
-      }
-
-      .excerpt {
-        -webkit-line-clamp: 4;
-        font-size: var(--font-size-root);
-      }
-    }
-
-    .card-stp-button-hover-background {
-      inset-inline-start: 0;
     }
   }
 }
