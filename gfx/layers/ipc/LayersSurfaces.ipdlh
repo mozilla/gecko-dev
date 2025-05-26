@@ -33,7 +33,6 @@ using mozilla::layers::CompositeProcessFencesHolderId from "mozilla/layers/Layer
 using mozilla::wr::ExternalImageSource from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::wr::ExternalImageId from "mozilla/webrender/WebRenderTypes.h";
 using mozilla::layers::SurfaceDescriptorRemoteDecoderId from "mozilla/layers/LayersTypes.h";
-using mozilla::ipc::ActorId from "mozilla/ipc/ProtocolUtils.h";
 [MoveOnly] using mozilla::ipc::ReadOnlySharedMemoryHandle from "mozilla/ipc/SharedMemoryHandle.h";
 
 namespace mozilla {
@@ -208,7 +207,7 @@ struct SurfaceDescriptorShared
 
 [Comparable] struct SurfaceDescriptorCanvasSurface {
   uint32_t managerId;
-  ActorId canvasId;
+  int32_t canvasId;
   uintptr_t surfaceId;
 };
 

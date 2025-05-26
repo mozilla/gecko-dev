@@ -47,16 +47,16 @@ class CanvasManagerParent final : public PCanvasManagerParent {
 
   mozilla::ipc::IPCResult RecvInitialize(const uint32_t& aId);
   mozilla::ipc::IPCResult RecvGetSnapshot(
-      const uint32_t& aManagerId, const ActorId& aProtocolId,
+      const uint32_t& aManagerId, const int32_t& aProtocolId,
       const Maybe<RemoteTextureOwnerId>& aOwnerId,
       const Maybe<RawId>& aCommandEncoderId,
       webgl::FrontBufferSnapshotIpc* aResult);
 
   static mozilla::ipc::IProtocol* GetCanvasActor(
-      dom::ContentParentId aContentId, uint32_t aManagerId, ActorId aCanvasId);
+      dom::ContentParentId aContentId, uint32_t aManagerId, int32_t aCanvasId);
 
   static already_AddRefed<DataSourceSurface> GetCanvasSurface(
-      dom::ContentParentId aContentId, uint32_t aManagerId, ActorId aCanvasId,
+      dom::ContentParentId aContentId, uint32_t aManagerId, int32_t aCanvasId,
       uintptr_t aSurfaceId);
 
  private:

@@ -20,7 +20,7 @@ class ShmemCreated : public IPC::Message {
   typedef Shmem::id_t id_t;
 
  public:
-  ShmemCreated(routeid_t routingId, id_t aIPDLId,
+  ShmemCreated(int32_t routingId, id_t aIPDLId,
                MutableSharedMemoryHandle&& aHandle)
       : IPC::Message(
             routingId, SHMEM_CREATED_MESSAGE_TYPE, 0,
@@ -46,7 +46,7 @@ class ShmemDestroyed : public IPC::Message {
   typedef Shmem::id_t id_t;
 
  public:
-  ShmemDestroyed(routeid_t routingId, id_t aIPDLId)
+  ShmemDestroyed(int32_t routingId, id_t aIPDLId)
       : IPC::Message(
             routingId, SHMEM_DESTROYED_MESSAGE_TYPE, 0,
             HeaderFlags(NOT_NESTED, NORMAL_PRIORITY, COMPRESSION_NONE,
@@ -127,7 +127,7 @@ Shmem::Builder::Builder(size_t aSize) : mSize(aSize) {
 }
 
 std::tuple<UniquePtr<IPC::Message>, Shmem> Shmem::Builder::Build(
-    id_t aId, bool aUnsafe, IPC::Message::routeid_t aRoutingId) {
+    id_t aId, bool aUnsafe, int32_t aRoutingId) {
   Shmem shmem(std::move(mSegment), aId, mSize, aUnsafe);
   shmem.AssertInvariants();
   MOZ_ASSERT(mHandle, "null shmem handle");
@@ -160,8 +160,7 @@ already_AddRefed<Shmem::Segment> Shmem::OpenExisting(
   return MakeAndAddRef<Shmem::Segment>(std::move(mapping));
 }
 
-UniquePtr<IPC::Message> Shmem::MkDestroyedMessage(
-    IPC::Message::routeid_t routingId) {
+UniquePtr<IPC::Message> Shmem::MkDestroyedMessage(int32_t routingId) {
   AssertInvariants();
   return MakeUnique<ShmemDestroyed>(routingId, mId);
 }

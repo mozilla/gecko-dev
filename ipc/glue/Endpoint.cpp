@@ -84,7 +84,7 @@ bool UntypedManagedEndpoint::BindCommon(IProtocol* aActor,
     return false;
   }
 
-  ActorId id = mInner->mId;
+  int32_t id = mInner->mId;
   mInner.reset();
 
   // Our typed caller will insert the actor into the managed container.

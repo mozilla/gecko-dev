@@ -12,7 +12,6 @@ include "mozilla/layers/CanvasTranslator.h";
 using mozilla::layers::RemoteTextureOwnerId from "mozilla/layers/LayersTypes.h";
 using mozilla::layers::TextureType from "mozilla/layers/LayersTypes.h";
 using mozilla::gfx::BackendType from "mozilla/gfx/Types.h";
-using mozilla::ipc::ActorId from "mozilla/ipc/ProtocolUtils.h";
 [MoveOnly] using mozilla::ipc::ReadOnlySharedMemoryHandle from "mozilla/ipc/SharedMemoryHandle.h";
 [MoveOnly] using mozilla::ipc::MutableSharedMemoryHandle from "mozilla/ipc/SharedMemoryHandle.h";
 
@@ -70,7 +69,7 @@ parent:
   /**
    * Snapshot an external canvas and label it for later lookup under a sync-id.
    */
-  async SnapshotExternalCanvas(uint64_t aSyncId, uint32_t aManagerId, ActorId aCanvasId);
+  async SnapshotExternalCanvas(uint64_t aSyncId, uint32_t aManagerId, int32_t aCanvasId);
 
   async __delete__();
 

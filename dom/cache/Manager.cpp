@@ -370,16 +370,14 @@ class Manager::Factory {
   }
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  static void RecordMayNotDeleteCSCP(
-      mozilla::ipc::ActorId aCacheStreamControlParentId) {
+  static void RecordMayNotDeleteCSCP(int32_t aCacheStreamControlParentId) {
     if (sFactory) {
       sFactory->mPotentiallyUnreleasedCSCP.AppendElement(
           aCacheStreamControlParentId);
     }
   }
 
-  static void RecordHaveDeletedCSCP(
-      mozilla::ipc::ActorId aCacheStreamControlParentId) {
+  static void RecordHaveDeletedCSCP(int32_t aCacheStreamControlParentId) {
     if (sFactory) {
       sFactory->mPotentiallyUnreleasedCSCP.RemoveElement(
           aCacheStreamControlParentId);
@@ -521,7 +519,7 @@ class Manager::Factory {
   // trigger the deletion of the factory while still executing this loop.
   bool mInSyncAbortOrShutdown;
 
-  nsTArray<mozilla::ipc::ActorId> mPotentiallyUnreleasedCSCP;
+  nsTArray<int32_t> mPotentiallyUnreleasedCSCP;
 };
 
 // static
@@ -1693,13 +1691,11 @@ bool Manager::IsShutdownAllComplete() {
 }
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-void Manager::RecordMayNotDeleteCSCP(
-    mozilla::ipc::ActorId aCacheStreamControlParentId) {
+void Manager::RecordMayNotDeleteCSCP(int32_t aCacheStreamControlParentId) {
   Factory::RecordMayNotDeleteCSCP(aCacheStreamControlParentId);
 }
 
-void Manager::RecordHaveDeletedCSCP(
-    mozilla::ipc::ActorId aCacheStreamControlParentId) {
+void Manager::RecordHaveDeletedCSCP(int32_t aCacheStreamControlParentId) {
   Factory::RecordHaveDeletedCSCP(aCacheStreamControlParentId);
 }
 #endif

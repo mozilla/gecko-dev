@@ -21,7 +21,7 @@ const mojo::core::ports::UserMessage::TypeInfo Message::kUserMessageTypeInfo{};
 
 Message::~Message() { MOZ_COUNT_DTOR(IPC::Message); }
 
-Message::Message(routeid_t routing_id, msgid_t type, uint32_t segment_capacity,
+Message::Message(int32_t routing_id, msgid_t type, uint32_t segment_capacity,
                  HeaderFlags flags)
     : UserMessage(&kUserMessageTypeInfo),
       Pickle(sizeof(Header), segment_capacity) {
@@ -46,7 +46,7 @@ Message::Message(const char* data, int data_len)
 }
 
 /*static*/ mozilla::UniquePtr<Message> Message::IPDLMessage(
-    routeid_t routing_id, msgid_t type, uint32_t segment_capacity,
+    int32_t routing_id, msgid_t type, uint32_t segment_capacity,
     HeaderFlags flags) {
   return mozilla::MakeUnique<Message>(routing_id, type, segment_capacity,
                                       flags);

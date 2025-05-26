@@ -178,7 +178,7 @@ CanvasManagerParent::AllocPCanvasParent() {
 }
 
 mozilla::ipc::IPCResult CanvasManagerParent::RecvGetSnapshot(
-    const uint32_t& aManagerId, const ActorId& aProtocolId,
+    const uint32_t& aManagerId, const int32_t& aProtocolId,
     const Maybe<RemoteTextureOwnerId>& aOwnerId,
     const Maybe<RawId>& aCommandEncoderId,
     webgl::FrontBufferSnapshotIpc* aResult) {
@@ -240,7 +240,7 @@ mozilla::ipc::IPCResult CanvasManagerParent::RecvGetSnapshot(
 }
 
 /* static */ mozilla::ipc::IProtocol* CanvasManagerParent::GetCanvasActor(
-    dom::ContentParentId aContentId, uint32_t aManagerId, ActorId aCanvasId) {
+    dom::ContentParentId aContentId, uint32_t aManagerId, int32_t aCanvasId) {
   IProtocol* actor = nullptr;
   for (CanvasManagerParent* i : sManagers) {
     if (i->mContentId == aContentId && i->mId == aManagerId) {
@@ -253,7 +253,7 @@ mozilla::ipc::IPCResult CanvasManagerParent::RecvGetSnapshot(
 
 /* static */ already_AddRefed<DataSourceSurface>
 CanvasManagerParent::GetCanvasSurface(dom::ContentParentId aContentId,
-                                      uint32_t aManagerId, ActorId aCanvasId,
+                                      uint32_t aManagerId, int32_t aCanvasId,
                                       uintptr_t aSurfaceId) {
   IProtocol* actor = GetCanvasActor(aContentId, aManagerId, aCanvasId);
   if (!actor) {

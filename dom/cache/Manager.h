@@ -199,9 +199,8 @@ class Manager final : public SafeRefCounted<Manager>, public Stringifyable {
                               nsCOMPtr<nsIInputStream>&& aBodyStream);
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
-  void RecordMayNotDeleteCSCP(
-      mozilla::ipc::ActorId aCacheStreamControlParentId);
-  void RecordHaveDeletedCSCP(mozilla::ipc::ActorId aCacheStreamControlParentId);
+  void RecordMayNotDeleteCSCP(int32_t aCacheStreamControlParentId);
+  void RecordHaveDeletedCSCP(int32_t aCacheStreamControlParentId);
 #endif
 
  private:

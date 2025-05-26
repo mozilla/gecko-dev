@@ -596,7 +596,7 @@ template <>
 void LogTaskBase<IPC::Message>::LogDispatchWithPid(IPC::Message* aEvent,
                                                    int32_t aPid) {
   if (aEvent->seqno() && aPid > 0) {
-    LOG1(("SEND %p %" PRId64 " %d", aEvent, aEvent->seqno(), aPid));
+    LOG1(("SEND %p %d %d", aEvent, aEvent->seqno(), aPid));
   }
 }
 
@@ -651,7 +651,7 @@ LogTaskBase<Task>::Run::Run(Task* aTask, bool aWillRunAgain)
 template <>
 LogTaskBase<IPC::Message>::Run::Run(IPC::Message* aMessage, bool aWillRunAgain)
     : mWillRunAgain(aWillRunAgain) {
-  LOG1(("RECV %p %p %" PRId64 " [%s]", aMessage, this, aMessage->seqno(),
+  LOG1(("RECV %p %p %d [%s]", aMessage, this, aMessage->seqno(),
         aMessage->name()));
 }
 
