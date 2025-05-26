@@ -58,6 +58,8 @@ class PerformanceInteractionMetrics final {
   uint64_t mCurrentInteractionValue;
 
   Maybe<uint64_t> mLastKeydownInteractionValue;
+
+  bool mContextMenuTriggered = false;
 };
 
 inline void ImplCycleCollectionTraverse(

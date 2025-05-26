@@ -64,6 +64,7 @@ Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
     case ePointerCancel:
     case ePointerDown:
     case ePointerUp:
+    case eContextMenu:
     case ePointerClick:
       break;
     default:
@@ -76,6 +77,7 @@ Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
     uint32_t pointerId = aEvent->AsPointerEvent()->pointerId;
 
     mPendingPointerDowns.InsertOrUpdate(pointerId, aEventTiming);
+    mContextMenuTriggered = false;
     // InteractionId for this will be assigned by pointerup or pointercancel
     // later.
     return Nothing();
@@ -161,7 +163,7 @@ Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
   // Step 11. Otherwise (type is pointercancel, pointerup, or click):
 
   MOZ_ASSERT(eventType == ePointerCancel || eventType == ePointerUp ||
-                 eventType == ePointerClick,
+                 eventType == ePointerClick || eventType == eContextMenu,
              "Unexpected event type");
   const auto* mouseEvent = aEvent->AsMouseEvent();
   // Step 11.1. Let pointerId be event’s pointerId attribute value.
@@ -190,17 +192,33 @@ Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
   }
 
   // Step 11.3. Assert that type is pointerup or pointercancel.
-  MOZ_RELEASE_ASSERT(eventType == ePointerUp || eventType == ePointerCancel);
+  MOZ_RELEASE_ASSERT(eventType == ePointerUp || eventType == ePointerCancel ||
+                     eventType == eContextMenu);
 
   // Step 11.5. Let pointerDownEntry be pendingPointerDowns[pointerId].
   auto entry = mPendingPointerDowns.MaybeGet(pointerId);
   // Step 11.4. If pendingPointerDowns[pointerId] does not exist, return 0.
   if (!entry) {
+    // This is the case where we have seen a pointerup before a contextmenu
+    // event. We return the same interactionId for the contextmenu.
+    // See https://github.com/w3c/event-timing/issues/155.
+    if (eventType == eContextMenu) {
+      return Some(mCurrentInteractionValue);
+    }
+
+    // This is the case where we have seen a contextmenu before a pointerup
+    // event. Similarly, we return the same interactionId, but also we reset the
+    // "is contextmenu triggered" flag to make sure that the next events are
+    // handled correctly. See https://github.com/w3c/event-timing/issues/155.
+    if (eventType == ePointerUp && mContextMenuTriggered) {
+      mContextMenuTriggered = false;
+      return Some(mCurrentInteractionValue);
+    }
     return Some(0);
   }
 
   // Step 11.7. If type is pointerup:
-  if (eventType == ePointerUp) {
+  if (eventType == ePointerUp || eventType == eContextMenu) {
     // Step 11.7.1. Increase interaction count on window.
     uint64_t interactionId = IncreaseInteractionValueAndCount();
 
@@ -217,6 +235,10 @@ Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
 
   // Step 11.9. Remove pendingPointerDowns[pointerId].
   mPendingPointerDowns.Remove(pointerId);
+
+  if (eventType == eContextMenu) {
+    mContextMenuTriggered = true;
+  }
 
   // Step 11.10. If type is pointercancel, return 0.
   if (eventType == ePointerCancel) {
