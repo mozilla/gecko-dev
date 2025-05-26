@@ -191,7 +191,9 @@ class PerftestArgumentParser(ArgumentParser):
 
         # let's parse what the user really gave us in the CLI
         # in a new namespace
-        if sys.version_info.minor > 11:
+        if sys.version_info.minor >= 13 or (
+            sys.version_info.minor == 12 and sys.version_info.micro > 7
+        ):
             user_namespace, extras = super()._parse_known_args(
                 arg_strings, Namespace(), intermixed=intermixed
             )
@@ -208,7 +210,9 @@ class PerftestArgumentParser(ArgumentParser):
 
     def parse_args(self, args=None, namespace=None, intermixed=False):
         self.parse_helper(args)
-        if sys.version_info.minor > 11:
+        if sys.version_info.minor >= 13 or (
+            sys.version_info.minor == 12 and sys.version_info.micro > 7
+        ):
             return super().parse_args(args, namespace, intermixed=intermixed)
         return super().parse_args(args, namespace)
 
