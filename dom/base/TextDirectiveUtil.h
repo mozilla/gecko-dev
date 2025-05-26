@@ -138,28 +138,9 @@ class TextDirectiveUtil final {
    */
   static RangeBoundary MoveToNextBoundaryPoint(const RangeBoundary& aPoint);
 
-  static Result<RangeBoundary, ErrorResult> FindNextBlockBoundary(
-      const RangeBoundary& aRangeBoundary, TextScanDirection aDirection);
-
-  /**
-   * @brief Compares two range boundaries whether they are "normalized equal".
-   *
-   * Range boundaries are "normalized equal" if there is no visible text between
-   * them, for example here (range boundaries represented by `|`):
-   *
-   * ```html
-   * <span>foo |<p>|bar</p></span>
-   * ```
-   *
-   * In this case, comparing the boundaries for equality would return false.
-   * But, when calling this function, they would be considered normalized equal.
-   *
-   * @return true if the boundaries are normalized equal.
-   */
-  static bool NormalizedRangeBoundariesAreEqual(
-      const RangeBoundary& aRangeBoundary1,
-      const RangeBoundary& aRangeBoundary2,
-      nsContentUtils::NodeIndexCache* aCache = nullptr);
+  template <TextScanDirection direction>
+  static RangeBoundary FindNextBlockBoundary(
+      const RangeBoundary& aRangeBoundary);
 };
 
 class TimeoutWatchdog final {
@@ -235,6 +216,23 @@ class SameBlockVisibleTextNodeIterator final {
   nsINode* mCurrent = nullptr;
   nsINode* mBlockAncestor = nullptr;
 };
+
+template <TextScanDirection direction>
+/*static*/ RangeBoundary TextDirectiveUtil::FindNextBlockBoundary(
+    const RangeBoundary& aRangeBoundary) {
+  MOZ_ASSERT(aRangeBoundary.IsSetAndValid());
+  nsINode* current = aRangeBoundary.GetContainer();
+  uint32_t offset =
+      direction == TextScanDirection::Left ? 0u : current->Length();
+  for (auto* node : SameBlockVisibleTextNodeIterator<direction>(*current)) {
+    if (!node) {
+      continue;
+    }
+    current = node;
+    offset = direction == TextScanDirection::Left ? 0u : current->Length();
+  }
+  return {current, offset};
+}
 
 }  // namespace mozilla::dom
 
