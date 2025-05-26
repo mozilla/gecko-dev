@@ -19,6 +19,7 @@ const NS_ERROR_START_PROFILE_MANAGER = 0x805800c9;
 const UPDATE_CHANNEL = AppConstants.MOZ_UPDATE_CHANNEL;
 
 let gProfD = do_get_profile();
+Services.fog.initializeFOG();
 let gDataHome = gProfD.clone();
 gDataHome.append("data");
 gDataHome.createUnique(Ci.nsIFile.DIRECTORY_TYPE, 0o755);
@@ -648,5 +649,14 @@ function checkStartupReason(expected = undefined) {
     selectionReason,
     expected,
     "Should have seen the right startup reason."
+  );
+
+  Assert.equal(
+    Glean.startup.profileSelectionReason.testGetValue("metrics"),
+    expected
+  );
+  Assert.equal(
+    Glean.startup.profileSelectionReason.testGetValue("baseline"),
+    expected
   );
 }
