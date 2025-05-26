@@ -401,6 +401,11 @@ class TestAsyncPanZoomController : public AsyncPanZoomController {
     EXPECT_EQ(WHEEL_SCROLL, mState);
   }
 
+  void AssertStateIsAutoscroll() {
+    RecursiveMutexAutoLock lock(mRecursiveMutex);
+    EXPECT_EQ(AUTOSCROLL, mState);
+  }
+
   void SetAxisLocked(ScrollDirections aDirections, bool aLockValue) {
     if (aDirections.contains(ScrollDirection::eVertical)) {
       mY.SetAxisLocked(aLockValue);

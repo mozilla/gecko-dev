@@ -2774,7 +2774,7 @@ nsEventStatus AsyncPanZoomController::OnPanMayBegin(
   StartTouch(aEvent.mLocalPanStartPoint, aEvent.mTimeStamp);
   MOZ_ASSERT(GetCurrentPanGestureBlock());
   GetCurrentPanGestureBlock()->GetOverscrollHandoffChain()->CancelAnimations(
-      ExcludeOverscroll);
+      ExcludeOverscroll | ExcludeAutoscroll);
 
   return nsEventStatus_eConsumeNoDefault;
 }
@@ -4428,6 +4428,10 @@ void AsyncPanZoomController::CancelAnimation(CancelAnimationFlags aFlags) {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
   APZC_LOG_DETAIL("running CancelAnimation(0x%x) in state %s\n", this, aFlags,
                   ToString(mState).c_str());
+
+  if ((aFlags & ExcludeAutoscroll) && mState == AUTOSCROLL) {
+    return;
+  }
 
   if (mAnimation) {
     mAnimation->Cancel(aFlags);

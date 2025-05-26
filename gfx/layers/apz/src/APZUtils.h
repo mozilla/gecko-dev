@@ -30,11 +30,12 @@ namespace mozilla {
 namespace layers {
 
 enum CancelAnimationFlags : uint32_t {
-  Default = 0x0,             /* Cancel all animations */
-  ExcludeOverscroll = 0x1,   /* Don't clear overscroll */
-  ScrollSnap = 0x2,          /* Snap to snap points */
-  TriggeredExternally = 0x4, /* Cancellation was not triggered by APZ in
-                                response to an input event */
+  Default = 0,                    /* Cancel all animations */
+  ExcludeOverscroll = (1 << 0),   /* Don't clear overscroll */
+  ScrollSnap = (1 << 1),          /* Snap to snap points */
+  TriggeredExternally = (1 << 2), /* Cancellation was not triggered by APZ in
+                                     response to an input event */
+  ExcludeAutoscroll = (1 << 3)    /* Don't cancel overscroll animations */
 };
 
 inline CancelAnimationFlags operator|(CancelAnimationFlags a,
