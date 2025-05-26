@@ -46,6 +46,7 @@ TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
   }
   return CreateInstance(aDocument, range)
       .andThen([](auto self) -> Result<nsCString, ErrorResult> {
+        MOZ_TRY(self->CollectContextTerms());
         return VoidCString();
       });
 }
@@ -139,5 +140,147 @@ TextDirectiveCreator::ExtendRangeToBlockBoundaries(AbstractRange* aRange) {
   TEXT_FRAGMENT_LOG("Extending to word boundaries collapsed the range.");
   return Result<RefPtr<AbstractRange>, ErrorResult>(nullptr);
 }
+
+Result<Ok, ErrorResult> ExactMatchTextDirectiveCreator::CollectContextTerms() {
+  MOZ_ASSERT(mRange);
+  if (MOZ_UNLIKELY(mRange->Collapsed())) {
+    return Ok();
+  }
+  TEXT_FRAGMENT_LOG("Collecting context terms for the target range.");
+  MOZ_TRY(CollectPrefixContextTerm());
+  MOZ_TRY(CollectSuffixContextTerm());
+  MOZ_TRY(TextDirectiveUtil::RangeContentAsString(mRange).andThen(
+      [start =
+           &mStartContent](const nsString& content) -> Result<Ok, ErrorResult> {
+        *start = content;
+        return Ok();
+      }));
+  mStartFoldCaseContent = mStartContent;
+  ToFoldedCase(mStartFoldCaseContent);
+  TEXT_FRAGMENT_LOG("Start term:\n{}", NS_ConvertUTF16toUTF8(mStartContent));
+  TEXT_FRAGMENT_LOG("No end term present (exact match).");
+  return Ok();
+}
+
+Result<Ok, ErrorResult> RangeBasedTextDirectiveCreator::CollectContextTerms() {
+  MOZ_ASSERT(mRange);
+  if (MOZ_UNLIKELY(mRange->Collapsed())) {
+    return Ok();
+  }
+  TEXT_FRAGMENT_LOG("Collecting context terms for the target range.");
+  MOZ_TRY(CollectPrefixContextTerm());
+  MOZ_TRY(CollectSuffixContextTerm());
+  if (const Maybe<RangeBoundary> firstBlockBoundaryInRange =
+          TextDirectiveUtil::FindBlockBoundaryInRange<TextScanDirection::Right>(
+              *mRange)) {
+    ErrorResult rv;
+    RefPtr startRange =
+        StaticRange::Create(mRange->StartRef(), *firstBlockBoundaryInRange, rv);
+    if (MOZ_UNLIKELY(rv.Failed())) {
+      return Err(std::move(rv));
+    }
+    MOZ_DIAGNOSTIC_ASSERT(!startRange->Collapsed());
+    MOZ_TRY(TextDirectiveUtil::RangeContentAsString(startRange)
+                .andThen([start = &mStartContent](const nsString& content)
+                             -> Result<Ok, ErrorResult> {
+                  *start = content;
+                  return Ok();
+                }));
+    const Maybe<RangeBoundary> lastBlockBoundaryInRange =
+        TextDirectiveUtil::FindBlockBoundaryInRange<TextScanDirection::Left>(
+            *mRange);
+    MOZ_DIAGNOSTIC_ASSERT(
+        lastBlockBoundaryInRange.isSome(),
+        "If the target range contains a block boundary looking left-to-right, "
+        "it must also contain one looking right-to-left");
+    RefPtr endRange =
+        StaticRange::Create(*lastBlockBoundaryInRange, mRange->EndRef(), rv);
+    if (MOZ_UNLIKELY(rv.Failed())) {
+      return Err(std::move(rv));
+    }
+    MOZ_DIAGNOSTIC_ASSERT(!endRange->Collapsed());
+    MOZ_TRY(TextDirectiveUtil::RangeContentAsString(endRange).andThen(
+        [end =
+             &mEndContent](const nsString& content) -> Result<Ok, ErrorResult> {
+          *end = content;
+          return Ok();
+        }));
+  } else {
+    const uint32_t kMaxLength = StaticPrefs::
+        dom_text_fragments_create_text_fragment_exact_match_max_length();
+    MOZ_TRY(TextDirectiveUtil::RangeContentAsString(mRange).andThen(
+        [start = &mStartContent](
+            const nsString& content) -> Result<Ok, ErrorResult> {
+          *start = content;
+          return Ok();
+        }));
+    MOZ_DIAGNOSTIC_ASSERT(mStartContent.Length() > kMaxLength);
+    const auto [wordStart, wordEnd] =
+        intl::WordBreaker::FindWord(mStartContent, mStartContent.Length() / 2);
+    mEndContent = Substring(mStartContent, wordEnd);
+    mStartContent = Substring(mStartContent, 0, wordEnd);
+  }
+  mStartFoldCaseContent = mStartContent;
+  ToFoldedCase(mStartFoldCaseContent);
+  TEXT_FRAGMENT_LOG("Maximum possible start term:\n{}",
+                    NS_ConvertUTF16toUTF8(mStartContent));
+  mEndFoldCaseContent = mEndContent;
+  ToFoldedCase(mEndFoldCaseContent);
+  TEXT_FRAGMENT_LOG("Maximum possible end term:\n{}",
+                    NS_ConvertUTF16toUTF8(mEndContent));
+  return Ok();
+}
+
+Result<Ok, ErrorResult> TextDirectiveCreator::CollectPrefixContextTerm() {
+  ErrorResult rv;
+  RangeBoundary prefixEnd =
+      TextDirectiveUtil::FindNextNonWhitespacePosition<TextScanDirection::Left>(
+          mRange->StartRef());
+  RangeBoundary prefixStart =
+      TextDirectiveUtil::FindNextBlockBoundary<TextScanDirection::Left>(
+          prefixEnd);
+  RefPtr prefixRange = StaticRange::Create(prefixStart, prefixEnd, rv);
+  if (MOZ_UNLIKELY(rv.Failed())) {
+    return Err(std::move(rv));
+  }
+  MOZ_ASSERT(prefixRange);
+  MOZ_TRY(TextDirectiveUtil::RangeContentAsString(prefixRange)
+              .andThen([prefix = &mPrefixContent](
+                           const nsString& content) -> Result<Ok, ErrorResult> {
+                *prefix = content;
+                return Ok();
+              }));
+  mPrefixFoldCaseContent = mPrefixContent;
+  ToFoldedCase(mPrefixFoldCaseContent);
+  TEXT_FRAGMENT_LOG("Maximum possible prefix term:\n{}",
+                    NS_ConvertUTF16toUTF8(mPrefixContent));
+  return Ok();
+}
+
+Result<Ok, ErrorResult> TextDirectiveCreator::CollectSuffixContextTerm() {
+  ErrorResult rv;
+  RangeBoundary suffixBegin = TextDirectiveUtil::FindNextNonWhitespacePosition<
+      TextScanDirection::Right>(mRange->EndRef());
+  RangeBoundary suffixEnd =
+      TextDirectiveUtil::FindNextBlockBoundary<TextScanDirection::Right>(
+          suffixBegin);
+  RefPtr suffixRange = StaticRange::Create(suffixBegin, suffixEnd, rv);
+  if (MOZ_UNLIKELY(rv.Failed())) {
+    return Err(std::move(rv));
+  }
+  MOZ_ASSERT(suffixRange);
+  MOZ_TRY(TextDirectiveUtil::RangeContentAsString(suffixRange)
+              .andThen([suffix = &mSuffixContent](
+                           const nsString& content) -> Result<Ok, ErrorResult> {
+                *suffix = content;
+                return Ok();
+              }));
+  mSuffixFoldCaseContent = mSuffixContent;
+  ToFoldedCase(mSuffixFoldCaseContent);
+  TEXT_FRAGMENT_LOG("Maximum possible suffix term:\n{}",
+                    NS_ConvertUTF16toUTF8(mSuffixContent));
+  return Ok();
+}
+
 
 }  // namespace mozilla::dom

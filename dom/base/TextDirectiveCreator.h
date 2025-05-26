@@ -79,6 +79,32 @@ class TextDirectiveCreator {
   static Result<UniquePtr<TextDirectiveCreator>, ErrorResult> CreateInstance(
       Document& aDocument, AbstractRange* aRange);
 
+  /**
+   * @brief Collects text content surrounding the target range.
+   *
+   * The context terms are then stored both in normal and fold case form.
+   */
+  virtual Result<Ok, ErrorResult> CollectContextTerms() = 0;
+
+  /**
+   * @brief Common helper which collects the prefix term of the target range.
+   */
+  Result<Ok, ErrorResult> CollectPrefixContextTerm();
+
+  /**
+   * @brief Common helper which collects the suffix term of the target range.
+   */
+  Result<Ok, ErrorResult> CollectSuffixContextTerm();
+
+  nsString mPrefixContent;
+  nsString mPrefixFoldCaseContent;
+
+  nsString mStartContent;
+  nsString mStartFoldCaseContent;
+
+  nsString mSuffixContent;
+  nsString mSuffixFoldCaseContent;
+
   Document& mDocument;
   RefPtr<AbstractRange> mRange;
 
@@ -100,6 +126,10 @@ class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
  private:
   using TextDirectiveCreator::TextDirectiveCreator;
 
+  Result<Ok, ErrorResult> CollectContextTerms() override;
+
+  nsString mEndContent;
+  nsString mEndFoldCaseContent;
 };
 
 /**
@@ -109,6 +139,8 @@ class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
 class ExactMatchTextDirectiveCreator : public TextDirectiveCreator {
  private:
   using TextDirectiveCreator::TextDirectiveCreator;
+
+  Result<Ok, ErrorResult> CollectContextTerms() override;
 
 };
 }  // namespace mozilla::dom
