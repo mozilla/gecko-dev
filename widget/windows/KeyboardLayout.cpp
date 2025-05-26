@@ -1077,7 +1077,7 @@ Modifiers VirtualKey::ShiftStateToModifiers(ShiftState aShiftState) {
 }
 
 const DeadKeyTable* VirtualKey::MatchingDeadKeyTable(
-    const DeadKeyEntry* aDeadKeyArray, uint32_t aEntries) const {
+    DeadKeyTable& aDeadKeyTable) const {
   if (!mIsDeadKey) {
     return nullptr;
   }
@@ -1087,7 +1087,7 @@ const DeadKeyTable* VirtualKey::MatchingDeadKeyTable(
       continue;
     }
     const DeadKeyTable* dkt = mShiftStates[shiftState].DeadKey.Table;
-    if (dkt && dkt->IsEqual(aDeadKeyArray, aEntries)) {
+    if (dkt && *dkt == aDeadKeyTable) {
       return dkt;
     }
   }
@@ -3890,7 +3890,6 @@ void KeyboardLayout::NotifyIdleServiceOfUserActivity() {
 }
 
 KeyboardLayout::KeyboardLayout() {
-  mDeadKeyTableListHead = nullptr;
   // A dead key sequence should be made from up to 5 keys.  Therefore, 4 is
   // enough and makes sense because the item is uint8_t.
   // (Although, even if it's possible to be 6 keys or more in a sequence,
@@ -4504,12 +4503,12 @@ void KeyboardLayout::LoadLayout(HKL aLayout) {
       int32_t vki = GetKeyIndex(virtualKey);
       if (vki >= 0 && mVirtualKeys[vki].IsDeadKey(shiftState)) {
         AutoTArray<DeadKeyEntry, 256> deadKeyArray;
-        uint32_t n = GetDeadKeyCombinations(
-            virtualKey, kbdState, shiftStatesWithBaseChars, deadKeyArray);
+        GetDeadKeyCombinations(virtualKey, kbdState, shiftStatesWithBaseChars,
+                               deadKeyArray);
         const DeadKeyTable* dkt =
-            mVirtualKeys[vki].MatchingDeadKeyTable(deadKeyArray.Elements(), n);
+            mVirtualKeys[vki].MatchingDeadKeyTable(deadKeyArray);
         if (!dkt) {
-          dkt = AddDeadKeyTable(deadKeyArray.Elements(), n);
+          dkt = AddDeadKeyTable(deadKeyArray);
         }
         mVirtualKeys[vki].AttachDeadKeyTable(shiftState, dkt);
       }
@@ -4597,30 +4596,15 @@ inline int32_t KeyboardLayout::GetKeyIndex(uint8_t aVirtualKey) {
 }
 
 const DeadKeyTable* KeyboardLayout::AddDeadKeyTable(
-    const DeadKeyEntry* aDeadKeyArray, uint32_t aEntries) {
-  DeadKeyTableListEntry* next = mDeadKeyTableListHead;
-
-  const size_t bytes = offsetof(DeadKeyTableListEntry, data) +
-                       DeadKeyTable::SizeInBytes(aEntries);
-  uint8_t* p = new uint8_t[bytes];
-
-  mDeadKeyTableListHead = reinterpret_cast<DeadKeyTableListEntry*>(p);
-  mDeadKeyTableListHead->next = next;
-
-  DeadKeyTable* dkt =
-      reinterpret_cast<DeadKeyTable*>(mDeadKeyTableListHead->data);
-
-  dkt->Init(aDeadKeyArray, aEntries);
-
+    DeadKeyTable& aDeadKeyTable) {
+  DeadKeyTable* dkt = new DeadKeyTable(aDeadKeyTable.Clone());
+  mDeadKeyTableList.AppendElement(dkt);
   return dkt;
 }
 
 void KeyboardLayout::ReleaseDeadKeyTables() {
-  while (mDeadKeyTableListHead) {
-    uint8_t* p = reinterpret_cast<uint8_t*>(mDeadKeyTableListHead);
-    mDeadKeyTableListHead = mDeadKeyTableListHead->next;
-
-    delete[] p;
+  for (auto dkt : mDeadKeyTableList) {
+    delete dkt;
   }
 }
 
@@ -4669,26 +4653,23 @@ void KeyboardLayout::DeactivateDeadKeyState() {
   mDeadKeyShiftStates.Clear();
 }
 
-bool KeyboardLayout::AddDeadKeyEntry(char16_t aBaseChar,
+void KeyboardLayout::AddDeadKeyEntry(char16_t aBaseChar,
                                      char16_t aCompositeChar,
-                                     nsTArray<DeadKeyEntry>& aDeadKeyArray) {
+                                     DeadKeyTable& aDeadKeyTable) {
   auto dke = DeadKeyEntry(aBaseChar, aCompositeChar);
-  for (uint32_t index = 0; index < aDeadKeyArray.Length(); index++) {
-    if (aDeadKeyArray[index] == dke) {
-      return false;
+  for (auto entry : aDeadKeyTable) {
+    if (entry == dke) {
+      return;
     }
   }
-
-  aDeadKeyArray.AppendElement(dke);
-
-  return true;
+  aDeadKeyTable.AppendElement(dke);
 }
 
-uint32_t KeyboardLayout::GetDeadKeyCombinations(
-    uint8_t aDeadKey, const PBYTE aDeadKeyKbdState,
-    uint16_t aShiftStatesWithBaseChars, nsTArray<DeadKeyEntry>& aDeadKeyArray) {
+void KeyboardLayout::GetDeadKeyCombinations(uint8_t aDeadKey,
+                                            const PBYTE aDeadKeyKbdState,
+                                            uint16_t aShiftStatesWithBaseChars,
+                                            DeadKeyTable& aDeadKeyTable) {
   bool deadKeyActive = false;
-  uint32_t entries = 0;
   BYTE kbdState[256];
   memset(kbdState, 0, sizeof(kbdState));
 
@@ -4727,16 +4708,14 @@ uint32_t KeyboardLayout::GetDeadKeyCombinations(
             char16_t baseChars[5];
             ret = ::ToUnicodeEx(virtualKey, 0, kbdState, (LPWSTR)baseChars,
                                 std::size(baseChars), 0, mKeyboardLayout);
-            if (entries < aDeadKeyArray.Capacity()) {
+            if (aDeadKeyTable.Length() < aDeadKeyTable.Capacity()) {
               switch (ret) {
                 case 1:
                   // Exactly one composite character produced. Now, when
                   // dead-key is not active, repeat the last character one more
                   // time to determine the base character.
-                  if (AddDeadKeyEntry(baseChars[0], compositeChars[0],
-                                      aDeadKeyArray)) {
-                    entries++;
-                  }
+                  AddDeadKeyEntry(baseChars[0], compositeChars[0],
+                                  aDeadKeyTable);
                   deadKeyActive = false;
                   break;
                 case -1: {
@@ -4760,10 +4739,9 @@ uint32_t KeyboardLayout::GetDeadKeyCombinations(
                       break;
                     }
                   }
-                  if (ret > 0 &&
-                      AddDeadKeyEntry(baseChars[0], compositeChars[0],
-                                      aDeadKeyArray)) {
-                    entries++;
+                  if (ret > 0) {
+                    AddDeadKeyEntry(baseChars[0], compositeChars[0],
+                                    aDeadKeyTable);
                   }
                   // Inactivate dead-key state for current virtual keycode.
                   EnsureDeadKeyActive(false, virtualKey, kbdState);
@@ -4810,9 +4788,7 @@ uint32_t KeyboardLayout::GetDeadKeyCombinations(
     deadKeyActive = EnsureDeadKeyActive(false, aDeadKey, aDeadKeyKbdState);
   }
 
-  aDeadKeyArray.Sort();
-
-  return entries;
+  aDeadKeyTable.Sort();
 }
 
 uint32_t KeyboardLayout::ConvertNativeKeyCodeToDOMKeyCode(
@@ -5432,26 +5408,6 @@ nsresult KeyboardLayout::SynthesizeNativeKeyEvent(
     ::UnloadKeyboardLayout(loadedLayout);
   }
   return NS_OK;
-}
-
-/*****************************************************************************
- * mozilla::widget::DeadKeyTable
- *****************************************************************************/
-
-char16_t DeadKeyTable::GetCompositeChar(char16_t aBaseChar) const {
-  // Dead-key table is sorted by BaseChar in ascending order.
-  // Usually they are too small to use binary search.
-
-  for (uint32_t index = 0; index < mEntries; index++) {
-    if (mTable[index].BaseChar == aBaseChar) {
-      return mTable[index].CompositeChar;
-    }
-    if (mTable[index].BaseChar > aBaseChar) {
-      break;
-    }
-  }
-
-  return 0;
 }
 
 /*****************************************************************************
