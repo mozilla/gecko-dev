@@ -1101,7 +1101,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   void FlushPendingNotifications(mozilla::FlushType aType);
 
-  void ScrollTo(const mozilla::CSSIntPoint& aScroll,
+  void ScrollTo(const mozilla::CSSPoint& aScroll,
                 const mozilla::dom::ScrollOptions& aOptions);
 
   already_AddRefed<nsIWidget> GetMainWidget();
