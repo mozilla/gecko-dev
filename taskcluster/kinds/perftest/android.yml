@@ -83,9 +83,14 @@ hw-a55-aarch64-shippable-startup-fenix-newssite-applink-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
@@ -115,9 +120,14 @@ hw-p6-aarch64-shippable-startup-fenix-newssite-applink-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
@@ -147,9 +157,14 @@ hw-s24-aarch64-shippable-startup-fenix-newssite-applink-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
@@ -326,9 +341,14 @@ hw-a55-aarch64-shippable-startup-fenix-shopify-applink-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
@@ -358,9 +378,14 @@ hw-p6-aarch64-shippable-startup-fenix-shopify-applink-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
@@ -390,9 +415,14 @@ hw-s24-aarch64-shippable-startup-fenix-shopify-applink-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
@@ -519,9 +549,14 @@ hw-a55-aarch64-shippable-startup-fenix-homeview-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
@@ -551,9 +586,14 @@ hw-p6-aarch64-shippable-startup-fenix-homeview-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
@@ -583,9 +623,14 @@ hw-s24-aarch64-shippable-startup-fenix-homeview-startup-simpleperf:
     attributes:
         cron: false
     run-on-projects: []
+    dependencies:
+        build-fat-aar: build-fat-aar-android-geckoview-fat-aar-shippable/opt
     fetches:
         build:
             - artifact: target.arm64-v8a.apk
+              extract: false
+        build-fat-aar:
+            - artifact: en-US/target.crashreporter-symbols-full.tar.zst
               extract: false
         toolchain:
             - linux64-android-simpleperf-linux-repack
