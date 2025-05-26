@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use nsstring::{nsCString, nsString};
-use rayon::prelude::*;
 use thin_vec::ThinVec;
 pub mod fragment_directive_impl;
 mod test;
@@ -157,80 +156,4 @@ pub extern "C" fn create_text_directive(
         }
     }
     false
-}
-
-#[repr(C)]
-pub struct TextDirectiveCandidateContents<'a> {
-    full_prefix_content: &'a nsString,
-    full_start_content: &'a nsString,
-    full_end_content: &'a nsString,
-    full_suffix_content: &'a nsString,
-
-    prefix_content: &'a nsString,
-    start_content: &'a nsString,
-    end_content: &'a nsString,
-    suffix_content: &'a nsString,
-    use_exact_matching: bool,
-}
-
-impl<'a> TextDirectiveCandidateContents<'a> {
-    /// Returns true if all context terms of `candidate` are contained
-    /// in the start (or end, depending on which term)
-    /// of the fully expanded terms of `self`.
-    fn matches_candidate(&self, candidate: &Self) -> bool {
-        if !self
-            .full_prefix_content
-            .ends_with(&candidate.prefix_content)
-        {
-            return false;
-        }
-        if !self
-            .full_suffix_content
-            .starts_with(&candidate.suffix_content)
-        {
-            return false;
-        }
-        assert!(self.use_exact_matching == candidate.use_exact_matching);
-        if !candidate.use_exact_matching {
-            if !self
-                .full_start_content
-                .starts_with(&candidate.start_content)
-            {
-                return false;
-            }
-            if !self.full_end_content.ends_with(&candidate.end_content) {
-                return false;
-            }
-        }
-        true
-    }
-}
-
-/// Matches all `candidates` against all `matches`, potentially in parallel.
-/// Returns an array of length of `candidates`, where each element is an
-/// array of all indices (in `matches`) of matches.
-#[no_mangle]
-pub extern "C" fn fragment_directive_filter_non_matching_candidates(
-    candidates: &ThinVec<&TextDirectiveCandidateContents>,
-    matches: &ThinVec<&TextDirectiveCandidateContents>,
-    result: &mut ThinVec<ThinVec<usize>>,
-) {
-    // It's not possible (yet) to use `ThinVec` together with `rayon`.
-    // Therefore it's necessary to collect into a `Vec<Vec<usize>>` first,
-    // and then get a new (non-rayon) iterator to be able
-    // to collect into `ThinVec<ThinVec<usize>>`.
-    result.extend(
-        candidates
-            .par_iter()
-            .map(|candidate| {
-                matches
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, m)| m.matches_candidate(candidate))
-                    .map(|(index, _)| index)
-                    .collect::<ThinVec<_>>()
-            })
-            .collect::<Vec<_>>()
-            .into_iter(),
-    );
 }

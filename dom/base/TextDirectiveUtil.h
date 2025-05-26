@@ -40,8 +40,6 @@ class TextDirectiveUtil final {
 
   static Result<nsString, ErrorResult> RangeContentAsString(nsRange* aRange);
 
-  static Result<nsString, ErrorResult> RangeContentAsFoldCase(nsRange* aRange);
-
   /**
    * @brief Return true if `aNode` is a visible Text node.
    *
@@ -62,20 +60,6 @@ class TextDirectiveUtil final {
       const RangeBoundary& aSearchStart, const RangeBoundary& aSearchEnd,
       const nsAString& aQuery, bool aWordStartBounded, bool aWordEndBounded,
       nsContentUtils::NodeIndexCache* aCache = nullptr);
-
-  /**
-   * @brief Moves `aRangeBoundary` one word in `aDirection`.
-   *
-   * Word boundaries are determined using `intl::WordBreaker::FindWord()`.
-   *
-   *
-   * @param aRangeBoundary[in] The range boundary that should be moved.
-   *                           Must be set and valid.
-   * @param aDirection[in]     The direction into which to move.
-   * @return A new `RangeBoundary` which is moved to the next word.
-   */
-  static RangeBoundary MoveRangeBoundaryOneWord(
-      const RangeBoundary& aRangeBoundary, TextScanDirection aDirection);
 
   /**
    * @brief Tests if there is whitespace at the given position.
@@ -141,23 +125,6 @@ class TextDirectiveUtil final {
    * see https://wicg.github.io/scroll-to-text-fragment/#non-searchable-subtree
    */
   static bool NodeIsPartOfNonSearchableSubTree(nsINode& aNode);
-  /**
-   * @brief Convenience function that returns true if the given position in a
-   * string is a word boundary.
-   *
-   * This is a thin wrapper around the `WordBreaker::FindWord()` function.
-   *
-   * @param aText The text input.
-   * @param aPosition The position to check.
-   * @return true if there is a word boundary at `aPosition`.
-   * @return false otherwise.
-   */
-  static bool IsAtWordBoundary(const nsAString& aText, uint32_t aPosition);
-
-  enum class IsEndIndex : bool { No, Yes };
-  static RangeBoundary GetBoundaryPointAtIndex(
-      uint32_t aIndex, const nsTArray<RefPtr<Text>>& aTextNodeList,
-      IsEndIndex aIsEndIndex);
 
   /** Advances the start of `aRange` to the next non-whitespace position.
    * The function follows this section of the spec:
@@ -169,14 +136,6 @@ class TextDirectiveUtil final {
    * @brief Returns a point moved by one character or unicode surrogate pair.
    */
   static RangeBoundary MoveToNextBoundaryPoint(const RangeBoundary& aPoint);
-
-  static RangeBoundary MoveBoundaryToNextNonWhitespacePosition(
-      const RangeBoundary& aRangeBoundary);
-  static RangeBoundary MoveBoundaryToPreviousNonWhitespacePosition(
-      const RangeBoundary& aRangeBoundary);
-
-  static Result<Maybe<RangeBoundary>, ErrorResult> FindBlockBoundaryInRange(
-      const nsRange& aRange, TextScanDirection aDirection);
 
   static Result<RangeBoundary, ErrorResult> FindNextBlockBoundary(
       const RangeBoundary& aRangeBoundary, TextScanDirection aDirection);
@@ -200,57 +159,6 @@ class TextDirectiveUtil final {
       const RangeBoundary& aRangeBoundary1,
       const RangeBoundary& aRangeBoundary2,
       nsContentUtils::NodeIndexCache* aCache = nullptr);
-
-  /**
-   * @brief Extends the range boundaries to word boundaries across nodes.
-   *
-   * @param[inout] aRange The range. Changes to the range are done in-place.
-   *
-   * @return Returns an error value if something failed along the way.
-   */
-  static Result<Ok, ErrorResult> ExtendRangeToWordBoundaries(nsRange& aRange);
-
-  /**
-   * @brief Create a `TextDirective` From `nsRange`s representing the context
-   *        terms.
-   *
-   * Every parameter besides `aStart` is allowed to be nullptr or a collapsed
-   * range. Ranges are converted to strings using their `ToString()` method.
-   * Whitespace is compressed.
-   *
-   * @return The created `TextDirective`, or an error if converting the ranges
-   *         to string fails.
-   */
-  static Result<TextDirective, ErrorResult> CreateTextDirectiveFromRanges(
-      nsRange* aPrefix, nsRange* aStart, nsRange* aEnd, nsRange* aSuffix);
-
-  /**
-   * Find the length of the common prefix between two folded strings.
-   *
-   * @return The length of the common prefix.
-   */
-  static uint32_t FindCommonPrefix(const nsAString& aFoldedStr1,
-                                   const nsAString& aFoldedStr2);
-
-  /**
-   * Find the length of the common suffix between two folded strings.
-   *
-   * @return The length of the common suffix.
-   */
-  static uint32_t FindCommonSuffix(const nsAString& aFoldedStr1,
-                                   const nsAString& aFoldedStr2);
-
-  /**
-   * Map a logical offset to a container node and offset within the DOM.
-   *
-   * @param aRange         The nsRange to map the offset from.
-   * @param aLogicalOffset The logical offset in the flattened text content of
-   *                       the range. The offset is always starting at the start
-   *                       of the range.
-   * @return a `RangeBoundary` that represents the logical offset, or an error.
-   */
-  static RangeBoundary CreateRangeBoundaryByMovingOffsetFromRangeStart(
-      nsRange* aRange, uint32_t aLogicalOffset);
 };
 
 class TimeoutWatchdog final {
