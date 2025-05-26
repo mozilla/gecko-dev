@@ -943,7 +943,7 @@ FutexWaiterListHead::~FutexWaiterListHead() {
       // If a timeout task exists, assert that the timeout task can still access
       // it. This will allow it to clean it up when it runs.  See the comment in
       // WaitAsyncTimeoutTask::run() or the the SMDOC in this file.
-      MOZ_ASSERT(!removedWaiter->timeoutTask()->cleared(lock));
+      MOZ_ASSERT(removedWaiter->timeoutTask()->cleared(lock));
       continue;
     }
     // In the case that a timeout task does not exist, the two live raw

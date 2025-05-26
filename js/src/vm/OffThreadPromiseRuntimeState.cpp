@@ -33,7 +33,10 @@ using js::OffThreadPromiseTask;
 
 OffThreadPromiseTask::OffThreadPromiseTask(JSContext* cx,
                                            JS::Handle<PromiseObject*> promise)
-    : runtime_(cx->runtime()), promise_(cx, promise), cancellable_(false) {
+    : runtime_(cx->runtime()),
+      promise_(cx, promise),
+      registered_(false),
+      cancellable_(false) {
   MOZ_ASSERT(runtime_ == promise_->zone()->runtimeFromMainThread());
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
   MOZ_ASSERT(cx->runtime()->offThreadPromiseState.ref().initialized());
@@ -245,7 +248,6 @@ OffThreadPromiseRuntimeState::OffThreadPromiseRuntimeState()
 
 OffThreadPromiseRuntimeState::~OffThreadPromiseRuntimeState() {
   MOZ_ASSERT(numRegistered_ == 0);
-  MOZ_ASSERT(numDelayed_ == 0);
   MOZ_ASSERT(internalDispatchQueue_.refNoCheck().empty());
   MOZ_ASSERT(!initialized());
 }
@@ -347,7 +349,6 @@ void OffThreadPromiseRuntimeState::dispatchDelayedTasks() {
     queue.popHighest();
 
     AutoEnterOOMUnsafeRegion noOOM;
-    numDelayed_++;
     if (!internalDispatchQueue().pushBack(d.dispatchable())) {
       noOOM.crash("dispatchDelayedTasks");
     }
@@ -378,8 +379,7 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
       dispatchDelayedTasks();
 
       MOZ_ASSERT(!internalDispatchQueueClosed_);
-      MOZ_ASSERT_IF(!internalDispatchQueue().empty(),
-                    numRegistered_ + numDelayed_ > 0);
+      MOZ_ASSERT_IF(!internalDispatchQueue().empty(), numRegistered_ > 0);
       if (internalDispatchQueue().empty() && !internalHasPending(lock)) {
         return;
       }
@@ -393,9 +393,6 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
 
       d = std::move(internalDispatchQueue().front());
       internalDispatchQueue().popFront();
-      if (!d->registered()) {
-        numDelayed_--;
-      }
     }
 
     // Don't call Run() with lock held to avoid deadlock.
@@ -414,9 +411,8 @@ bool OffThreadPromiseRuntimeState::internalHasPending(
   MOZ_ASSERT(usingInternalDispatchQueue());
 
   MOZ_ASSERT(!internalDispatchQueueClosed_);
-  MOZ_ASSERT_IF(!internalDispatchQueue().empty(),
-                numRegistered_ + numDelayed_ > 0);
-  return numDelayed_ > 0 || numRegistered_ > cancellable().count();
+  MOZ_ASSERT_IF(!internalDispatchQueue().empty(), numRegistered_ > 0);
+  return numRegistered_ > cancellable().count();
 }
 
 void OffThreadPromiseRuntimeState::stealFailedTask(JS::Dispatchable* task) {
