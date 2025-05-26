@@ -157,6 +157,7 @@ Result<nsString, ErrorResult> TextDirectiveUtil::RangeContentAsString(
   const StyleDisplay& styleDisplay = computedStyle->StyleDisplay()->mDisplay;
   return styleDisplay == StyleDisplay::Block ||
          styleDisplay == StyleDisplay::Table ||
+         styleDisplay == StyleDisplay::TableCell ||
          styleDisplay == StyleDisplay::FlowRoot ||
          styleDisplay == StyleDisplay::Grid ||
          styleDisplay == StyleDisplay::Flex || styleDisplay.IsListItem();
