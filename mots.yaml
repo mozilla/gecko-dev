@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-05-21T09:20:14.661913+00:00'
+updated_at: '2025-05-26T07:52:27.322222+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -3980,6 +3980,33 @@ modules:
       - *royang
       - *rsainani
     meta:
+    submodules:
+
+      - machine_name: fenix_addons
+        name: Fenix - Add-ons
+        description: Submodule for the add-ons code in Firefox for Android.
+        includes:
+          - mobile/android/android-components/components/browser/engine-gecko/src/*/java/mozilla/components/browser/engine/gecko/webextension/*
+          - mobile/android/android-components/components/browser/state/src/*/java/mozilla/components/browser/state/state/extension/*
+          - mobile/android/android-components/components/concept/engine/src/*/java/mozilla/components/concept/engine/webextension/*
+          - mobile/android/android-components/components/feature/addons/**/*
+          - mobile/android/android-components/components/support/webextensions/**/*
+          - mobile/android/android-components/samples/browser/src/*/java/org/mozilla/samples/browser/addons/*
+          - mobile/android/fenix/app/src/*/java/org/mozilla/fenix/addons/*
+          - mobile/android/fenix/app/src/*/java/org/mozilla/fenix/extension/*
+        meta:
+          components:
+            - 'Firefox for Android :: WebExtensions'
+            - 'WebExtensions :: Android'
+        owners:
+          - *willdurand
+        peers:
+          - *rpl
+          - *robwu
+          - *zombie
+          - *tcampbell
+          - *jonalmeida
+
   - machine_name: focus_android
     name: Focus for Android
     description: Android Project to build Focus for Android
@@ -4567,5 +4594,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 417f5aa3364f94e036f02a3612a733ab3cc9884a
-  export: f91f79309801aa730bc99a9a1f2bc64db1e64718
+  config: 7aabd4a3e690526fdd495a95f4aafd8b0f165ed3
+  export: 1052d26b4e5f5af83c211e81d4b5fe5d843ffefd
