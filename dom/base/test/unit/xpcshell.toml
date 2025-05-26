@@ -34,8 +34,6 @@ run-if = ["!debug"] # We fail an assertion if we block parsing on a self-closing
 ["test_bug737966.js"]
 prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
 
-["test_cancelPrefetch.js"]
-
 ["test_chromeutils_base64.js"]
 
 ["test_chromeutils_callFunctionAndLogException.js"]
