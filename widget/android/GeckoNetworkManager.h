@@ -9,6 +9,7 @@
 #include "nsAppShell.h"
 #include "nsCOMPtr.h"
 #include "nsINetworkLinkService.h"
+#include "nsISystemProxySettings.h"
 
 #include "mozilla/java/GeckoNetworkManagerNatives.h"
 #include "mozilla/Services.h"
@@ -37,6 +38,31 @@ class GeckoNetworkManager final
       os->NotifyObservers(nullptr, NS_NETWORK_LINK_TOPIC,
                           aStatus->ToString().get());
     }
+  }
+
+  static void OnProxyChanged(jni::String::Param aHost, int32_t aPort,
+                             jni::String::Param aPacFileUrl,
+                             jni::ObjectArray::Param aExclusionList) {
+    nsCOMPtr<nsISystemProxySettings> sp =
+        do_GetService(NS_SYSTEMPROXYSETTINGS_CONTRACTID);
+    if (!sp) {
+      return;
+    }
+    nsAutoCString host = NS_ConvertUTF16toUTF8(aHost->ToString().get());
+    nsAutoCString pacFileUrl =
+        NS_ConvertUTF16toUTF8(aPacFileUrl->ToString().get());
+    int size = aExclusionList->Length();
+    JNIEnv* env = jni::GetEnvForThread();
+    nsTArray<nsCString> exclusionList;
+    for (int32_t i = 0; i < size; i++) {
+      jstring javaString =
+          (jstring)(env->GetObjectArrayElement(aExclusionList.Get(), i));
+      const char* rawString = env->GetStringUTFChars(javaString, 0);
+      exclusionList.AppendElement(nsCString(rawString));
+      env->ReleaseStringUTFChars(javaString, rawString);
+    }
+
+    sp->SetSystemProxyInfo(host, aPort, pacFileUrl, exclusionList);
   }
 };
 

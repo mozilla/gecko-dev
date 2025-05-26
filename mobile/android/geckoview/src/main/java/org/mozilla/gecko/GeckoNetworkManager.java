@@ -12,7 +12,10 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.DhcpInfo;
+import android.net.Proxy;
+import android.net.ProxyInfo;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -107,12 +110,76 @@ public class GeckoNetworkManager extends BroadcastReceiver {
 
   @Override
   public void onReceive(final Context aContext, final Intent aIntent) {
+    if (aIntent.getAction().equals(Proxy.PROXY_CHANGE_ACTION)) {
+      getProxyInfoAndReport(aContext);
+      return;
+    }
+
     handleManagerEvent(ManagerEvent.receivedUpdate);
+  }
+
+  private void getProxyInfoAndReport(final Context aContext) {
+    // getDefaultProxy() added in API 23.
+    if (Build.VERSION.SDK_INT < 23) {
+      return;
+    }
+
+    if (mCurrentState != ManagerState.OnNoListeners
+        && mCurrentState != ManagerState.OnWithListeners) {
+      return;
+    }
+
+    final ConnectivityManager connectivityManager =
+        (ConnectivityManager) aContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+    if (connectivityManager == null) {
+      return;
+    }
+
+    final ProxyInfo proxyInfo = connectivityManager.getDefaultProxy();
+    if (proxyInfo == null) {
+      if (GeckoThread.isRunning()) {
+        onProxyChanged("", 0, "", new String[0]);
+      } else {
+        GeckoThread.queueNativeCall(
+            GeckoNetworkManager.class,
+            "onProxyChanged",
+            String.class,
+            "",
+            0,
+            String.class,
+            "",
+            String[].class,
+            new String[0]);
+      }
+      return;
+    }
+
+    final String host = proxyInfo.getHost();
+    final int port = proxyInfo.getPort();
+    final String[] exclusionList = proxyInfo.getExclusionList();
+    final String pacFileUrl =
+        proxyInfo.getPacFileUrl() != null ? proxyInfo.getPacFileUrl().toString() : "";
+
+    if (GeckoThread.isRunning()) {
+      onProxyChanged(host, port, pacFileUrl, exclusionList);
+    } else {
+      GeckoThread.queueNativeCall(
+          GeckoNetworkManager.class,
+          "onProxyChanged",
+          String.class,
+          host,
+          port,
+          String.class,
+          pacFileUrl,
+          String[].class,
+          exclusionList);
+    }
   }
 
   public void start(final Context context) {
     mContext = context;
     handleManagerEvent(ManagerEvent.start);
+    getProxyInfoAndReport(context);
   }
 
   public void stop() {
@@ -320,6 +387,10 @@ public class GeckoNetworkManager extends BroadcastReceiver {
   @WrapForJNI(dispatchTo = "gecko")
   private static native void onStatusChanged(String status);
 
+  @WrapForJNI(dispatchTo = "gecko")
+  private static native void onProxyChanged(
+      String host, int port, String pacFileUrl, String[] exclusionList);
+
   /** Send current network state and connection type to whomever is listening. */
   private void sendNetworkStateToListeners(final Context context) {
     final boolean connectionTypeOrSubtypeChanged =
@@ -380,6 +451,9 @@ public class GeckoNetworkManager extends BroadcastReceiver {
   private static void registerBroadcastReceiver(
       final Context context, final BroadcastReceiver receiver) {
     final IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+    if (Build.VERSION.SDK_INT >= 23) {
+      filter.addAction(Proxy.PROXY_CHANGE_ACTION);
+    }
     context.registerReceiver(receiver, filter);
   }
 
