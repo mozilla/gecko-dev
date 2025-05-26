@@ -1523,8 +1523,11 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp);
   // compartment, which means it would've been wrapped in a CCW.
   // To properly handle that case here, unwrap it and enter its
   // compartment, where the job creation should take place anyway.
-  Rooted<PromiseReactionRecord*> reaction(cx);
-  RootedValue handlerArg(cx, handlerArg_);
+  RootedTuple<PromiseReactionRecord*, Value, Value, Value, JSObject*,
+              JSFunction*, JSObject*, JSObject*>
+      roots(cx);
+  RootedField<PromiseReactionRecord*, 0> reaction(roots);
+  RootedField<Value, 1> handlerArg(roots, handlerArg_);
   mozilla::Maybe<AutoRealm> ar;
   if (!IsProxy(reactionObj)) {
     MOZ_RELEASE_ASSERT(reactionObj->is<PromiseReactionRecord>());
@@ -1561,8 +1564,8 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp);
   cx->check(handlerArg);
   reaction->setTargetStateAndHandlerArg(targetState, handlerArg);
 
-  RootedValue reactionVal(cx, ObjectValue(*reaction));
-  RootedValue handler(cx, reaction->handler());
+  RootedField<Value, 2> reactionVal(roots, ObjectValue(*reaction));
+  RootedField<Value, 3> handler(roots, reaction->handler());
 
   // NewPromiseReactionJob
   // Step 2. Let handlerRealm be null.
@@ -1603,7 +1606,7 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp);
     //           undefined. When the handler is a revoked Proxy and no
     //           ECMAScript code runs, handlerRealm is used to create error
     //           objects.
-    RootedObject handlerObj(cx, &handler.toObject());
+    RootedField<JSObject*, 4> handlerObj(roots, &handler.toObject());
     ar2.emplace(cx, handlerObj);
 
     // We need to wrap the reaction to store it on the job function.
@@ -1617,9 +1620,10 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp);
   //         captures reaction and argument and performs the following steps
   //         when called:
   Handle<PropertyName*> funName = cx->names().empty_;
-  RootedFunction job(
-      cx, NewNativeFunction(cx, PromiseReactionJob, 0, funName,
-                            gc::AllocKind::FUNCTION_EXTENDED, GenericObject));
+  RootedField<JSFunction*, 5> job(
+      roots,
+      NewNativeFunction(cx, PromiseReactionJob, 0, funName,
+                        gc::AllocKind::FUNCTION_EXTENDED, GenericObject));
   if (!job) {
     return false;
   }
@@ -1638,7 +1642,7 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp);
   // If after all this we do have an object, wrap it in case we entered the
   // handler's compartment above, because we should pass objects from a
   // single compartment to the enqueuePromiseJob callback.
-  RootedObject promise(cx, reaction->promise());
+  RootedField<JSObject*, 6> promise(roots, reaction->promise());
   if (promise) {
     if (promise->is<PromiseObject>()) {
       if (!cx->compartment()->wrap(cx, &promise)) {
@@ -1659,7 +1663,7 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp);
     }
   }
 
-  JS::Rooted<JSObject*> hostDefinedData(cx);
+  RootedField<JSObject*, 7> hostDefinedData(roots);
   if (JSObject* hostDefined = reaction->getAndClearHostDefinedData()) {
     hostDefined = CheckedUnwrapStatic(hostDefined);
     MOZ_ASSERT(hostDefined);
