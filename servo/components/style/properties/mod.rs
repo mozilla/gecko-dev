@@ -1190,8 +1190,9 @@ impl LonghandIdSet {
     /// Iterate over the current longhand id set.
     pub fn iter(&self) -> LonghandIdSetIterator {
         LonghandIdSetIterator {
-            longhands: self,
-            cur: 0,
+            chunks: &self.storage,
+            cur_chunk: 0,
+            cur_bit: 0,
         }
     }
 
@@ -1268,8 +1269,9 @@ impl LonghandIdSet {
 
 /// An iterator over a set of longhand ids.
 pub struct LonghandIdSetIterator<'a> {
-    longhands: &'a LonghandIdSet,
-    cur: usize,
+    chunks: &'a [u32],
+    cur_chunk: u32,
+    cur_bit: u32, // [0..31], note that zero means the end-most bit
 }
 
 impl<'a> Iterator for LonghandIdSetIterator<'a> {
@@ -1277,16 +1279,27 @@ impl<'a> Iterator for LonghandIdSetIterator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.cur >= property_counts::LONGHANDS {
-                return None;
+            debug_assert!(self.cur_bit < 32);
+            let cur_chunk = self.cur_chunk;
+            let cur_bit = self.cur_bit;
+            let chunk = *self.chunks.get(cur_chunk as usize)?;
+            let next_bit = (chunk >> cur_bit).trailing_zeros();
+            if next_bit == 32 {
+                // Totally empty chunk, skip it.
+                self.cur_bit = 0;
+                self.cur_chunk += 1;
+                continue;
             }
-
-            let id: LonghandId = unsafe { mem::transmute(self.cur as u16) };
-            self.cur += 1;
-
-            if self.longhands.contains(id) {
-                return Some(id);
+            debug_assert!(cur_bit + next_bit < 32);
+            let longhand_id = cur_chunk * 32 + cur_bit + next_bit;
+            debug_assert!(longhand_id as usize <= property_counts::LONGHANDS);
+            let id: LonghandId = unsafe { mem::transmute(longhand_id as u16) };
+            self.cur_bit += next_bit + 1;
+            if self.cur_bit == 32 {
+                self.cur_bit = 0;
+                self.cur_chunk += 1;
             }
+            return Some(id);
         }
     }
 }

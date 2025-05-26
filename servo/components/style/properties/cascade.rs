@@ -890,13 +890,13 @@ impl<'b> Cascade<'b> {
     #[cold]
     fn recompute_zoom_dependent_inherited_lengths(&self, context: &mut computed::Context) {
         debug_assert!(self.seen.contains(LonghandId::Zoom));
-        for prop in LonghandIdSet::zoom_dependent_inherited_properties() {
-            if self.seen.contains(*prop) {
+        for prop in LonghandIdSet::zoom_dependent_inherited_properties().iter() {
+            if self.seen.contains(prop) {
                 continue;
             }
-            let declaration = PropertyDeclaration::css_wide_keyword(*prop, CSSWideKeyword::Inherit);
+            let declaration = PropertyDeclaration::css_wide_keyword(prop, CSSWideKeyword::Inherit);
             unsafe {
-                self.do_apply_declaration(context, *prop, &declaration);
+                self.do_apply_declaration(context, prop, &declaration);
             }
         }
     }
