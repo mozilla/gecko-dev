@@ -209,15 +209,16 @@ Result<Ok, ErrorResult> RangeBasedTextDirectiveCreator::CollectContextTerms() {
           return Ok();
         }));
   } else {
-    const uint32_t kMaxLength = StaticPrefs::
-        dom_text_fragments_create_text_fragment_exact_match_max_length();
     MOZ_TRY(TextDirectiveUtil::RangeContentAsString(mRange).andThen(
         [start = &mStartContent](
             const nsString& content) -> Result<Ok, ErrorResult> {
           *start = content;
           return Ok();
         }));
-    MOZ_DIAGNOSTIC_ASSERT(mStartContent.Length() > kMaxLength);
+    MOZ_DIAGNOSTIC_ASSERT(
+        mStartContent.Length() >
+        StaticPrefs::
+            dom_text_fragments_create_text_fragment_exact_match_max_length());
     const auto [wordStart, wordEnd] =
         intl::WordBreaker::FindWord(mStartContent, mStartContent.Length() / 2);
     mEndContent = Substring(mStartContent, wordEnd);
