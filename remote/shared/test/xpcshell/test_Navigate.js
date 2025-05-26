@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+let { EventEmitter } = ChromeUtils.importESModule(
+  "resource://gre/modules/EventEmitter.sys.mjs"
+);
 const { setTimeout } = ChromeUtils.importESModule(
   "resource://gre/modules/Timer.sys.mjs"
 );
@@ -704,6 +707,82 @@ add_task(async function test_ProgressListener_waitForExplicitStart() {
   ok(
     await hasPromiseResolved(navigated),
     "Listener resolved after finishing the new navigation"
+  );
+});
+
+add_task(async function test_invalid_resolveWhenCommitted() {
+  // Create a webprogress and start it before creating the progress listener.
+  const browsingContext = new MockTopContext();
+  const webProgress = browsingContext.webProgress;
+  await webProgress.sendStartState();
+
+  Assert.throws(
+    () =>
+      new ProgressListener(webProgress, {
+        resolveWhenCommitted: true,
+        resolveWhenStarted: true,
+        navigationManager: {},
+      }),
+    /Cannot use both resolveWhenStarted and resolveWhenCommitted/,
+    "Expected error was returned"
+  );
+
+  Assert.throws(
+    () =>
+      new ProgressListener(webProgress, {
+        resolveWhenCommitted: true,
+        navigationManager: null,
+      }),
+    /Cannot use resolveWhenCommitted without a navigationManager/,
+    "Expected error was returned"
+  );
+});
+
+class MockNavigationManager extends EventEmitter {}
+
+add_task(async function test_ProgressListener_resolveWhenCommitted() {
+  // Create a webprogress and start it before creating the progress listener.
+  const browsingContext = new MockTopContext();
+  const webProgress = browsingContext.webProgress;
+  await webProgress.sendStartState();
+  const mockNavigationManager = new MockNavigationManager();
+
+  // Create the progress listener for a webprogress already in a navigation.
+  const progressListener = new ProgressListener(webProgress, {
+    resolveWhenCommitted: true,
+    navigationManager: mockNavigationManager,
+  });
+
+  // Setup two navigation ids, and start the progress listener with the first
+  // one.
+  const navigationId1 = "navigationId1";
+  const navigationId2 = "navigationId2";
+
+  const navigated = progressListener.start(navigationId1);
+
+  // Start a new navigation
+  await webProgress.sendStartState();
+  ok(
+    !(await hasPromiseResolved(navigated)),
+    "Listener has not resolved after navigation has only started"
+  );
+
+  // Emit an unexpected navigation-committed for the other navigation id.
+  mockNavigationManager.emit("navigation-committed", {
+    navigationId: navigationId2,
+  });
+  ok(
+    !(await hasPromiseResolved(navigated)),
+    "Listener has not resolved after an unexpected navigation-committed"
+  );
+
+  // Emit the expected navigation-committed event.
+  mockNavigationManager.emit("navigation-committed", {
+    navigationId: navigationId1,
+  });
+  ok(
+    await hasPromiseResolved(navigated),
+    "Listener has resolved after receiving the correct navigation-committed"
   );
 });
 

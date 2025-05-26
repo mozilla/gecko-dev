@@ -134,6 +134,7 @@ export async function waitForInitialNavigationCompleted(
  */
 export class ProgressListener {
   #expectNavigation;
+  #resolveWhenCommitted;
   #resolveWhenStarted;
   #unloadTimeout;
   #waitForExplicitStart;
@@ -161,10 +162,16 @@ export class ProgressListener {
    * @param {NavigationManager=} options.navigationManager
    *     The NavigationManager where navigations for the current session are
    *     monitored.
+   * @param {boolean=} options.resolveWhenCommitted
+   *     Flag to indicate that the Promise has to be resolved when the
+   *     navigation-committed event is received. Defaults to `false`.
+   *     Cannot be used together with resolveWhenStarted. Requires to provide
+   *     options.navigationManager.
    * @param {boolean=} options.resolveWhenStarted
    *     Flag to indicate that the Promise has to be resolved when the
-   *     page load has been started. Otherwise wait until the page has
-   *     finished loading. Defaults to `false`.
+   *     page load has been started. Otherwise wait until the navigation was
+   *     committed or the page has finished loading. Defaults to `false`.
+   *     Cannot be used together with resolveWhenCommitted.
    * @param {string=} options.targetURI
    *     The target URI for the navigation.
    * @param {number=} options.unloadTimeout
@@ -182,6 +189,7 @@ export class ProgressListener {
     const {
       expectNavigation = false,
       navigationManager = null,
+      resolveWhenCommitted = false,
       resolveWhenStarted = false,
       targetURI,
       unloadTimeout = DEFAULT_UNLOAD_TIMEOUT,
@@ -189,6 +197,7 @@ export class ProgressListener {
     } = options;
 
     this.#expectNavigation = expectNavigation;
+    this.#resolveWhenCommitted = resolveWhenCommitted;
     this.#resolveWhenStarted = resolveWhenStarted;
     this.#unloadTimeout = unloadTimeout * lazy.UNLOAD_TIMEOUT_MULTIPLIER;
     this.#waitForExplicitStart = waitForExplicitStart;
@@ -200,8 +209,25 @@ export class ProgressListener {
     this.#targetURI = targetURI;
     this.#unloadTimerId = null;
 
+    if (resolveWhenCommitted) {
+      if (resolveWhenStarted) {
+        throw new Error(
+          "Cannot use both resolveWhenStarted and resolveWhenCommitted"
+        );
+      }
+      if (!navigationManager) {
+        throw new Error(
+          "Cannot use resolveWhenCommitted without a navigationManager"
+        );
+      }
+    }
+
     if (navigationManager !== null) {
       this.#navigationListener = new lazy.NavigationListener(navigationManager);
+      this.#navigationListener.on(
+        "navigation-committed",
+        this.#onNavigationCommitted
+      );
       this.#navigationListener.on(
         "navigation-failed",
         this.#onNavigationFailed
@@ -213,6 +239,10 @@ export class ProgressListener {
   destroy() {
     if (this.#navigationListener) {
       this.#navigationListener.stopListening();
+      this.#navigationListener.off(
+        "navigation-committed",
+        this.#onNavigationCommitted
+      );
       this.#navigationListener.off(
         "navigation-failed",
         this.#onNavigationFailed
@@ -359,6 +389,17 @@ export class ProgressListener {
 
     return null;
   }
+
+  #onNavigationCommitted = (eventName, data) => {
+    const { navigationId } = data;
+
+    if (this.#resolveWhenCommitted && this.#navigationId === navigationId) {
+      this.#trace(
+        `Received "navigation-committed" event. Stopping the navigation.`
+      );
+      this.stop();
+    }
+  };
 
   #onNavigationFailed = (eventName, data) => {
     const { errorName, navigationId } = data;
