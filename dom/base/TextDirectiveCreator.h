@@ -142,6 +142,57 @@ class TextDirectiveCreator {
       const nsString& aSearchQuery, const RangeBoundary& aSearchStart,
       const RangeBoundary& aSearchEnd);
 
+  /**
+   * @brief Creates the shortest possible text directive.
+   *
+   * @return A percent-encoded string containing a text directive. Returns empty
+   *         string in cases where it's not possible to create a text directive.
+   */
+  Result<nsCString, ErrorResult> CreateTextDirective();
+
+  /**
+   * @brief Creates unique substring length arrays which are extended to the
+   *        nearest word boundary.
+   */
+  static std::tuple<nsTArray<uint32_t>, nsTArray<uint32_t>>
+  ExtendSubstringLengthsToWordBoundaries(
+      const nsTArray<std::tuple<uint32_t, uint32_t>>& aExactSubstringLengths,
+      const Span<const uint32_t>& aFirstWordPositions,
+      const Span<const uint32_t>& aSecondWordPositions);
+
+  /**
+   * @brief Test all combinations to identify the shortest text directive.
+   */
+  virtual Maybe<TextDirective> FindShortestCombination() const = 0;
+
+  /**
+   * @brief Perform a brute-force optimization run to find the shortest
+   *        combination of a combination of two context terms.
+   *
+   * Each combination of the extended values is compared against all exact
+   * values. It is only considered valid if at least one value is longer than
+   * the exact lengths.
+   *
+   * @param aExactWordLengths               Array of tuples containing the exact
+   *                                        common sub string lengths of this
+   *                                        combination.
+   * @param aFirstExtendedToWordBoundaries  All valid substring lengths for the
+   *                                        first context term, extended to its
+   *                                        next word boundary in reading
+   *                                        direction.
+   * @param aSecondExtendedToWordBoundaries All valid substring lengths for the
+   *                                        second context term, extended to its
+   *                                        next word boundary in reading
+   *                                        direction.
+   * @return A tuple of sub string lengths extended to word boundaries, which is
+   *         the shortest allowed combination to eliminate all matches.
+   *         Returns `Nothing` if it's not possible to eliminate all matches.
+   */
+  static Maybe<std::tuple<uint32_t, uint32_t>> CheckAllCombinations(
+      const nsTArray<std::tuple<uint32_t, uint32_t>>& aExactWordLengths,
+      const nsTArray<uint32_t>& aFirstExtendedToWordBoundaries,
+      const nsTArray<uint32_t>& aSecondExtendedToWordBoundaries);
+
   nsString mPrefixContent;
   nsString mPrefixFoldCaseContent;
   nsTArray<uint32_t> mPrefixWordBeginDistances;
@@ -188,6 +239,8 @@ class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
   void FindEndMatchCommonSubstringLengths(
       const nsTArray<RefPtr<AbstractRange>>& aMatchRanges);
 
+  Maybe<TextDirective> FindShortestCombination() const override;
+
   nsString mEndContent;
   nsString mEndFoldCaseContent;
 
@@ -214,6 +267,8 @@ class ExactMatchTextDirectiveCreator : public TextDirectiveCreator {
 
   void FindCommonSubstringLengths(
       const nsTArray<RefPtr<AbstractRange>>& aMatchRanges);
+
+  Maybe<TextDirective> FindShortestCombination() const override;
 
   nsTArray<std::tuple<uint32_t, uint32_t>> mCommonSubstringLengths;
 };
