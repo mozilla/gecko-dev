@@ -6,16 +6,16 @@ package org.mozilla.samples.crash
 
 import android.widget.Toast
 import mozilla.components.lib.crash.CrashReporter
-import mozilla.components.lib.crash.ui.AbstractCrashListActivity
+import mozilla.components.lib.crash.ui.AbstractCrashListFragment
 
 /**
  * Activity showing list of past crashes.
  */
-class CrashListActivity : AbstractCrashListActivity() {
-    override val crashReporter: CrashReporter
-        get() = (application as CrashApplication).crashReporter
+class CrashListFragment : AbstractCrashListFragment() {
+    override val reporter: CrashReporter
+        get() = (requireActivity().application as CrashApplication).crashReporter
 
     override fun onCrashServiceSelected(url: String) {
-        Toast.makeText(this, "Go to: $url", Toast.LENGTH_SHORT).show()
+        Toast.makeText(requireActivity(), "Go to: $url", Toast.LENGTH_SHORT).show()
     }
 }

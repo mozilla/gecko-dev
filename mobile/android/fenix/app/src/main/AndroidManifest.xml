@@ -648,10 +648,6 @@
 
         </activity>
 
-        <activity
-            android:name=".crashes.CrashListActivity"
-            android:exported="false" />
-
         <activity android:name=".widget.VoiceSearchActivity"
             android:theme="@style/Theme.AppCompat.Translucent"
             android:taskAffinity=""

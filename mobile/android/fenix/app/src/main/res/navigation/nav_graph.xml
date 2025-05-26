@@ -215,6 +215,11 @@
     </fragment>
 
     <fragment
+        android:id="@+id/crashListFragment"
+        android:name="org.mozilla.fenix.crashes.CrashListFragment"
+        android:label="CrashListFragment" />
+
+    <fragment
         android:id="@+id/onboardingFragment"
         android:name="org.mozilla.fenix.onboarding.OnboardingFragment">
         <action
@@ -309,6 +314,9 @@
         <action
             android:id="@+id/action_gleanDebugToolsFragment"
             app:destination="@id/gleanDebugToolsFragment" />
+        <action
+            android:id="@+id/action_crashListFragment"
+            app:destination="@id/crashListFragment" />
     </dialog>
 
     <fragment
@@ -868,6 +876,13 @@
         <action
             android:id="@+id/action_aboutFragment_to_aboutLibrariesFragment"
             app:destination="@id/aboutLibrariesFragment"
+            app:enterAnim="@anim/slide_in_right"
+            app:exitAnim="@anim/slide_out_left"
+            app:popEnterAnim="@anim/slide_in_left"
+            app:popExitAnim="@anim/slide_out_right" />
+        <action
+            android:id="@+id/action_aboutFragment_to_crashListFragment"
+            app:destination="@id/crashListFragment"
             app:enterAnim="@anim/slide_in_right"
             app:exitAnim="@anim/slide_out_left"
             app:popEnterAnim="@anim/slide_in_left"

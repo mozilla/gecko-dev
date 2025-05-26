@@ -58,6 +58,11 @@ sealed class Screen {
     object OnboardingSecondScreen : Screen()
 
     /**
+     * Screen to show content on about:crashes
+     */
+    object CrashListScreen : Screen()
+
+    /**
      * The home screen.
      */
     object Home : Screen()
@@ -120,6 +125,7 @@ sealed class Screen {
             SearchAutocompleteList,
             SearchAutocompleteAdd,
             SearchAutocompleteRemove,
+            CrashList,
         }
     }
 }

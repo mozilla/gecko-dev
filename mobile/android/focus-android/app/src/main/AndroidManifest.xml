@@ -123,11 +123,6 @@
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
 
-        <activity
-            android:name=".activity.CrashListActivity"
-            android:exported="false"
-            android:theme="@style/Theme.CrashActivityTheme"/>
-
         <activity android:name=".activity.CustomTabActivity"
             android:windowSoftInputMode="adjustResize|stateAlwaysHidden"
             android:exported="false"

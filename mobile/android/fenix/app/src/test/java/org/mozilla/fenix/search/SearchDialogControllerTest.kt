@@ -54,6 +54,7 @@ import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionCrashListFragment
 import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGleanDebugToolsFragment
 import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGlobalAddonsManagementFragment
 import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGlobalBrowser
@@ -317,19 +318,13 @@ class SearchDialogControllerTest {
     @Test
     fun handleCrashesUrlCommitted() {
         val url = "about:crashes"
-        every { activity.packageName } returns "org.mozilla.fenix"
+        val directions = actionCrashListFragment()
 
         createController().handleUrlCommitted(url)
 
         browserStore.waitUntilIdle()
 
-        verify {
-            activity.startActivity(any())
-        }
-
-        middleware.assertLastAction(AwesomeBarAction.EngagementFinished::class) { action ->
-            assertFalse(action.abandoned)
-        }
+        verify { navController.navigate(directions) }
     }
 
     @Test

@@ -11,7 +11,7 @@ import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.request.RequestInterceptor
 import org.mozilla.focus.R
 import org.mozilla.focus.ext.components
-import org.mozilla.focus.ext.showCrashReports
+import org.mozilla.focus.state.AppAction
 import org.mozilla.focus.utils.SupportUtils
 
 class AppContentInterceptor(
@@ -29,7 +29,9 @@ class AppContentInterceptor(
     ): RequestInterceptor.InterceptionResponse? {
         return when (uri) {
             "about:crashes" -> {
-                context.showCrashReports()
+                context.components.appStore.dispatch(
+                    AppAction.OpenCrashList,
+                )
                 RequestInterceptor.InterceptionResponse.Url("about:blank")
             }
 

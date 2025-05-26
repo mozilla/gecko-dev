@@ -7,20 +7,20 @@ package org.mozilla.fenix.crashes
 import android.content.Intent
 import androidx.core.net.toUri
 import mozilla.components.lib.crash.CrashReporter
-import mozilla.components.lib.crash.ui.AbstractCrashListActivity
+import mozilla.components.lib.crash.ui.AbstractCrashListFragment
 import org.mozilla.fenix.ext.components
 
 /**
- * Activity showing the list of past crashes.
+ * Fragment showing the list of past crashes.
  */
-class CrashListActivity : AbstractCrashListActivity() {
-    override val crashReporter: CrashReporter by lazy { components.analytics.crashReporter }
+class CrashListFragment : AbstractCrashListFragment() {
+    override val reporter: CrashReporter by lazy { requireContext().components.analytics.crashReporter }
 
     override fun onCrashServiceSelected(url: String) {
         val intent = Intent(Intent.ACTION_VIEW)
         intent.data = url.toUri()
-        intent.`package` = packageName
+        intent.`package` = requireContext().packageName
         startActivity(intent)
-        finish()
+        requireActivity().finish()
     }
 }

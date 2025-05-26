@@ -19,6 +19,7 @@ import org.mozilla.focus.exceptions.ExceptionsRemoveFragment
 import org.mozilla.focus.ext.components
 import org.mozilla.focus.ext.settings
 import org.mozilla.focus.fragment.BrowserFragment
+import org.mozilla.focus.fragment.CrashListFragment
 import org.mozilla.focus.fragment.UrlInputFragment
 import org.mozilla.focus.fragment.about.AboutFragment
 import org.mozilla.focus.fragment.onboarding.OnboardingFirstFragment
@@ -222,6 +223,16 @@ class MainActivityNavigation(
     }
 
     /**
+     * Show content of about:crashes
+     */
+    fun showCrashList() {
+        activity.supportFragmentManager
+            .beginTransaction()
+            .replace(R.id.container, CrashListFragment(true), CrashListFragment()::class.java.simpleName)
+            .commit()
+    }
+
+    /**
      * Lock app.
      *
      * @param bundle it is used for app navigation. If the user can unlock with success he should
@@ -286,6 +297,7 @@ class MainActivityNavigation(
             Screen.Settings.Page.Licenses -> AboutLibrariesFragment()
             Screen.Settings.Page.Locale -> LanguageFragment()
             Screen.Settings.Page.CookieBanner -> CookieBannerFragment()
+            Screen.Settings.Page.CrashList -> CrashListFragment()
         }
 
         val tag = "settings_" + fragment::class.java.simpleName

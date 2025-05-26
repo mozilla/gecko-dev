@@ -47,6 +47,7 @@ object AppReducer : Reducer<AppState, AppAction> {
             )
             is AppAction.ShowHomeScreen -> showHomeScreen(state)
             is AppAction.ShowOnboardingSecondScreen -> showOnBoardingSecondScreen(state)
+            is AppAction.OpenCrashList -> openCrashlist(state)
             is AppAction.ShowSearchWidgetSnackBar -> showSearchWidgetSnackBarChanged(state, action)
             is AppAction.ShowCookieBannerCfrChange -> showCookieBannerCfrChanged(state, action)
             is AppAction.UpdateIsPinningSupported -> updateIsPinningSupported(state, action)
@@ -177,6 +178,10 @@ private fun openSettings(state: AppState, action: AppAction.OpenSettings): AppSt
     return state.copy(
         screen = Screen.Settings(page = action.page),
     )
+}
+
+private fun openCrashlist(state: AppState): AppState {
+    return state.copy(screen = Screen.CrashListScreen)
 }
 
 private fun openTab(state: AppState, action: AppAction.OpenTab): AppState {
@@ -329,6 +334,7 @@ private fun navigateUp(state: AppState, action: AppAction.NavigateUp): AppState 
         Screen.Settings.Page.Licenses -> Screen.Settings(page = Screen.Settings.Page.Mozilla)
         Screen.Settings.Page.Locale -> Screen.Settings(page = Screen.Settings.Page.General)
         Screen.Settings.Page.CookieBanner -> Screen.Settings(page = Screen.Settings.Page.Privacy)
+        Screen.Settings.Page.CrashList -> Screen.Settings(page = Screen.Settings.Page.Mozilla)
     }
 
     return state.copy(screen = screen)

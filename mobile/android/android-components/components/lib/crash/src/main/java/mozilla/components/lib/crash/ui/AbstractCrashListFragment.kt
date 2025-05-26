@@ -14,15 +14,22 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.lib.crash.R
 import mozilla.components.lib.crash.db.CrashDatabase
 
 /**
  * Fragment displaying the list of crashes.
  */
-internal class CrashListFragment : Fragment(R.layout.mozac_lib_crash_crashlist) {
+abstract class AbstractCrashListFragment : Fragment(R.layout.mozac_lib_crash_crashlist) {
     private val database by lazy { CrashDatabase.get(requireContext()) }
-    private val reporter by lazy { (activity as AbstractCrashListActivity).crashReporter }
+    abstract val reporter: CrashReporter
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        requireActivity().setTitle(R.string.mozac_lib_crash_activity_title)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val listView: RecyclerView = view.findViewById(R.id.mozac_lib_crash_list)
@@ -54,10 +61,15 @@ internal class CrashListFragment : Fragment(R.layout.mozac_lib_crash_crashlist) 
         }
     }
 
+    /**
+     * Gets invoked whenever the user selects a crash reporting service.
+     *
+     * @param url URL pointing to the crash report for the selected crash reporting service.
+     */
+    abstract fun onCrashServiceSelected(url: String)
+
     private fun onCrashServiceSelected(entity: DisplayableCrash.Report) {
-        entity.url?.let {
-            (requireActivity() as AbstractCrashListActivity).onCrashServiceSelected(it)
-        }
+        entity.url?.let { onCrashServiceSelected(it) }
     }
 
     private fun onShareCrashClicked(crash: DisplayableCrash) {

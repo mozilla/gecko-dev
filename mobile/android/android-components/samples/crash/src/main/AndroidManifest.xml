@@ -31,8 +31,6 @@
             </intent-filter>
         </activity>
 
-        <activity android:name="org.mozilla.samples.crash.CrashListActivity" android:exported="false" />
-
         <service android:name="org.mozilla.samples.crash.CrashService"
             android:foregroundServiceType="specialUse"
             android:process=":samples.crash.service" />

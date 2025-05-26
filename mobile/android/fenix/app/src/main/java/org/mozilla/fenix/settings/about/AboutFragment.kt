@@ -5,7 +5,6 @@
 package org.mozilla.fenix.settings.about
 
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -25,7 +24,6 @@ import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
-import org.mozilla.fenix.crashes.CrashListActivity
 import org.mozilla.fenix.databinding.FragmentAboutBinding
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
@@ -271,7 +269,8 @@ class AboutFragment(
                 openLibrariesPage()
             }
             is AboutItem.Crashes -> {
-                startActivity(Intent(requireContext(), CrashListActivity::class.java))
+                val navController = findNavController()
+                navController.navigate(R.id.action_aboutFragment_to_crashListFragment)
             }
         }
     }
