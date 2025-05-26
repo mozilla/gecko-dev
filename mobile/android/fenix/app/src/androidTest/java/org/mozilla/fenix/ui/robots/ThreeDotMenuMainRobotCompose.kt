@@ -709,7 +709,7 @@ private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(ge
 
 private fun ComposeTestRule.saveSubMenuTitle() = onNodeWithText(getStringResource(R.string.browser_menu_save))
 
-private fun ComposeTestRule.bookmarkThisPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_bookmark_this_page_2))
+private fun ComposeTestRule.bookmarkThisPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_bookmark_this_page))
 
 private fun ComposeTestRule.editBookmarkButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_edit_bookmark))
 

@@ -36,7 +36,6 @@ import org.mozilla.fenix.theme.Theme
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
  * @param isPrivate Whether or not the browsing mode is in private mode.
- * @param isBookmarked Whether or not the current tab is bookmarked.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not translation is supported.
@@ -48,8 +47,6 @@ import org.mozilla.fenix.theme.Theme
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
  * @param onNewTabMenuClick Invoked when the user clicks on the new tab menu item.
  * @param onNewPrivateTabMenuClick Invoked when the user clicks on the new private tab menu item.
- * @param onBookmarkPageMenuClick Invoked when the user clicks on the bookmark page menu item.
- * @param onEditBookmarkButtonClick Invoked when the user clicks on the edit bookmark button.
  * @param onSwitchToDesktopSiteMenuClick Invoked when the user clicks on the switch to desktop site
  * menu toggle.
  * @param onFindInPageMenuClick Invoked when the user clicks on the find in page menu item.
@@ -77,7 +74,6 @@ fun MainMenu(
     accountState: AccountState,
     showQuitMenu: Boolean,
     isPrivate: Boolean,
-    isBookmarked: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
@@ -89,8 +85,6 @@ fun MainMenu(
     onSettingsButtonClick: () -> Unit,
     onNewTabMenuClick: () -> Unit,
     onNewPrivateTabMenuClick: () -> Unit,
-    onBookmarkPageMenuClick: () -> Unit,
-    onEditBookmarkButtonClick: () -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -133,15 +127,12 @@ fun MainMenu(
 
         ToolsAndActionsMenuGroup(
             accessPoint = accessPoint,
-            isBookmarked = isBookmarked,
             isDesktopMode = isDesktopMode,
             isPdf = isPdf,
             isTranslationSupported = isTranslationSupported,
             isWebCompatReporterSupported = isWebCompatReporterSupported,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
             extensionsMenuItemDescription = extensionsMenuItemDescription,
-            onBookmarkPageMenuClick = onBookmarkPageMenuClick,
-            onEditBookmarkButtonClick = onEditBookmarkButtonClick,
             onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
             onFindInPageMenuClick = onFindInPageMenuClick,
             onToolsMenuClick = onToolsMenuClick,
@@ -247,15 +238,12 @@ private fun NewTabsMenuGroup(
 @Composable
 private fun ToolsAndActionsMenuGroup(
     accessPoint: MenuAccessPoint,
-    isBookmarked: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
     isWebCompatReporterSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
     extensionsMenuItemDescription: String,
-    onBookmarkPageMenuClick: () -> Unit,
-    onEditBookmarkButtonClick: () -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -277,23 +265,6 @@ private fun ToolsAndActionsMenuGroup(
                 iconId = R.drawable.mozac_ic_device_desktop_24
                 menuItemState = if (isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED
             }
-
-            if (isBookmarked) {
-                MenuItem(
-                    label = stringResource(id = R.string.browser_menu_edit_bookmark),
-                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_bookmark_fill_24),
-                    state = MenuItemState.ACTIVE,
-                    onClick = onEditBookmarkButtonClick,
-                )
-            } else {
-                MenuItem(
-                    label = stringResource(id = R.string.browser_menu_bookmark_this_page_2),
-                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_bookmark_24),
-                    onClick = onBookmarkPageMenuClick,
-                )
-            }
-
-            Divider(color = FirefoxTheme.colors.borderSecondary)
 
             MenuItem(
                 label = stringResource(id = labelId),
@@ -480,7 +451,6 @@ private fun MenuDialogPreview() {
                 account = null,
                 accountState = NotAuthenticated,
                 isPrivate = false,
-                isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
@@ -493,8 +463,6 @@ private fun MenuDialogPreview() {
                 onSettingsButtonClick = {},
                 onNewTabMenuClick = {},
                 onNewPrivateTabMenuClick = {},
-                onBookmarkPageMenuClick = {},
-                onEditBookmarkButtonClick = {},
                 onSwitchToDesktopSiteMenuClick = {},
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},
@@ -529,7 +497,6 @@ private fun MenuDialogPrivatePreview() {
                 account = null,
                 accountState = NotAuthenticated,
                 isPrivate = false,
-                isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
@@ -542,8 +509,6 @@ private fun MenuDialogPrivatePreview() {
                 onSettingsButtonClick = {},
                 onNewTabMenuClick = {},
                 onNewPrivateTabMenuClick = {},
-                onBookmarkPageMenuClick = {},
-                onEditBookmarkButtonClick = {},
                 onSwitchToDesktopSiteMenuClick = {},
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},
