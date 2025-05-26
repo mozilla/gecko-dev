@@ -732,10 +732,10 @@ void RTCRtpReceiver::UpdateTransport() {
 
     // Add duplicate payload types
     auto duplicatePts =
-        GetJsepTransceiver().mRecvTrack.GetDuplicateReceivePayloadTypes();
+        GetJsepTransceiver().mRecvTrack.GetOtherReceivePayloadTypes();
 
     for (auto duplicatePt : duplicatePts) {
-      filter->AddDuplicateReceivePT(duplicatePt);
+      filter->AddOtherReceivePT(duplicatePt);
     }
   }
 
