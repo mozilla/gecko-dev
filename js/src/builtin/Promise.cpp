@@ -2923,7 +2923,10 @@ PromiseObject* PromiseObject::create(JSContext* cx, HandleObject executor,
                                      bool needsWrapping /* = false */) {
   MOZ_ASSERT(executor->isCallable());
 
-  RootedObject usedProto(cx, proto);
+  RootedTuple<JSObject*, PromiseObject*, JSObject*, JSObject*, JSObject*,
+              JSObject*, Value, Value, SavedFrame*, Value>
+      roots(cx);
+  RootedField<JSObject*, 0> usedProto(roots, proto);
   // If the proto is wrapped, that means the current function is running
   // with a different compartment active from the one the Promise instance
   // is to be created in.
@@ -2938,13 +2941,13 @@ PromiseObject* PromiseObject::create(JSContext* cx, HandleObject executor,
   }
 
   // Steps 3-7.
-  Rooted<PromiseObject*> promise(
-      cx, CreatePromiseObjectInternal(cx, usedProto, needsWrapping, false));
+  RootedField<PromiseObject*, 1> promise(
+      roots, CreatePromiseObjectInternal(cx, usedProto, needsWrapping, false));
   if (!promise) {
     return nullptr;
   }
 
-  RootedObject promiseObj(cx, promise);
+  RootedField<JSObject*, 2> promiseObj(roots, promise);
   if (needsWrapping && !cx->compartment()->wrap(cx, &promiseObj)) {
     return nullptr;
   }
@@ -2954,8 +2957,8 @@ PromiseObject* PromiseObject::create(JSContext* cx, HandleObject executor,
   // The resolving functions are created in the compartment active when the
   // (maybe wrapped) Promise constructor was called. They contain checks and
   // can unwrap the Promise if required.
-  RootedObject resolveFn(cx);
-  RootedObject rejectFn(cx);
+  RootedField<JSObject*, 3> resolveFn(roots);
+  RootedField<JSObject*, 4> rejectFn(roots);
   if (!CreateResolvingFunctions(cx, promiseObj, &resolveFn, &rejectFn)) {
     return nullptr;
   }
@@ -2965,7 +2968,7 @@ PromiseObject* PromiseObject::create(JSContext* cx, HandleObject executor,
              "Slot must be undefined so initFixedSlot can be used");
   if (needsWrapping) {
     AutoRealm ar(cx, promise);
-    RootedObject wrappedRejectFn(cx, rejectFn);
+    RootedField<JSObject*, 5> wrappedRejectFn(roots, rejectFn);
     if (!cx->compartment()->wrap(cx, &wrappedRejectFn)) {
       return nullptr;
     }
@@ -2984,14 +2987,14 @@ PromiseObject* PromiseObject::create(JSContext* cx, HandleObject executor,
     args[0].setObject(*resolveFn);
     args[1].setObject(*rejectFn);
 
-    RootedValue calleeOrRval(cx, ObjectValue(*executor));
+    RootedField<Value, 6> calleeOrRval(roots, ObjectValue(*executor));
     success = Call(cx, calleeOrRval, UndefinedHandleValue, args, &calleeOrRval);
   }
 
   // Step 10. If completion is an abrupt completion, then
   if (!success) {
-    RootedValue exceptionVal(cx);
-    Rooted<SavedFrame*> stack(cx);
+    RootedField<Value, 7> exceptionVal(roots);
+    RootedField<SavedFrame*, 8> stack(roots);
     if (!MaybeGetAndClearExceptionAndStack(cx, &exceptionVal, &stack)) {
       return nullptr;
     }
@@ -2999,7 +3002,7 @@ PromiseObject* PromiseObject::create(JSContext* cx, HandleObject executor,
     // Step 10.a. Perform
     //            ? Call(resolvingFunctions.[[Reject]], undefined,
     //                   « completion.[[Value]] »).
-    RootedValue calleeOrRval(cx, ObjectValue(*rejectFn));
+    RootedField<Value, 9> calleeOrRval(roots, ObjectValue(*rejectFn));
     if (!Call(cx, calleeOrRval, UndefinedHandleValue, exceptionVal,
               &calleeOrRval)) {
       return nullptr;
