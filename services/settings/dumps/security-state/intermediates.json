@@ -1,6 +1,19 @@
 {
   "data": [
     {
+      "schema": 1747922269539,
+      "derHash": "qINVkjH4OI2vNc5ByBAQQK6P2bZWQ0JHuUda9ZLMCMo=",
+      "attachment": {
+        "hash": "b356271a5b4d96bade88931159e8cd88abb806aa5f4f1f62b4732437c154c2fa",
+        "size": 1983,
+        "filename": "HiCIj2NSDCNfjmH96nJczhdF8jPvixza52ok27Py-1k=.pem",
+        "location": "security-state-staging/intermediates/876656dc-1886-4c64-9008-48e7d51fdb8b.pem",
+        "mimetype": "application/x-pem-file"
+      },
+      "id": "81d92ee7-2ace-485a-89b2-a2a8e641cd8e",
+      "last_modified": 1747925822578
+    },
+    {
       "schema": 1747879061705,
       "derHash": "3c0eiiBjjUqv9yAbsdVkUqzSx1nxaGvcOPc90VcyvcI=",
       "attachment": {
@@ -4933,42 +4946,6 @@
       "crlite_enrolled": false,
       "id": "be56b760-de01-4dae-9ac9-3a6e1cde93e5",
       "last_modified": 1719025023230
-    },
-    {
-      "schema": 1718419986483,
-      "derHash": "iA+8RP5xqhvkDbEwkXsbrsG9iJsrPXR47aBHKGZ+i0Q=",
-      "subject": "CN=GoDaddy Secure Certificate Authority - G5,O=GoDaddy Inc.,C=US",
-      "subjectDN": "MFgxCzAJBgNVBAYTAlVTMRUwEwYDVQQKEwxHb0RhZGR5IEluYy4xMjAwBgNVBAMTKUdvRGFkZHkgU2VjdXJlIENlcnRpZmljYXRlIEF1dGhvcml0eSAtIEc1",
-      "whitelist": false,
-      "attachment": {
-        "hash": "b0ab60886b732344120e026a516f1347e7b00beb8696ea917d500d651dfe8aa9",
-        "size": 1983,
-        "filename": "xHVm0DkmnVuuM9hP1BXFOradZUCdIX-phuSB2CBWNiU=.pem",
-        "location": "security-state-staging/intermediates/848610e4-7c79-4502-9bb9-fd3613ddd9ba.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "xHVm0DkmnVuuM9hP1BXFOradZUCdIX+phuSB2CBWNiU=",
-      "crlite_enrolled": false,
-      "id": "e91fe4d1-97c5-4d44-b3b9-eeafa19ab96f",
-      "last_modified": 1718420223252
-    },
-    {
-      "schema": 1718419986168,
-      "derHash": "KeUCmVMQQDaF3WJY+dBIVoeJYwQtR0nG1dl3OjEMMcA=",
-      "subject": "CN=Starfield Secure Certificate Authority - G5,O=Starfield Technologies\\, Inc.,C=US",
-      "subjectDN": "MGoxCzAJBgNVBAYTAlVTMSUwIwYDVQQKExxTdGFyZmllbGQgVGVjaG5vbG9naWVzLCBJbmMuMTQwMgYDVQQDEytTdGFyZmllbGQgU2VjdXJlIENlcnRpZmljYXRlIEF1dGhvcml0eSAtIEc1",
-      "whitelist": false,
-      "attachment": {
-        "hash": "1ab16093c00cfeb6b1281bd3570ee31b90544dbe82866716c4e0dc4dd23c0850",
-        "size": 2040,
-        "filename": "ZopoHb_DFyTNtOnoOeDm_G07T5xn8PEj_4_f_lJ927A=.pem",
-        "location": "security-state-staging/intermediates/3bb146a9-b858-4d9e-84a3-4898d6729add.pem",
-        "mimetype": "application/x-pem-file"
-      },
-      "pubKeyHash": "ZopoHb/DFyTNtOnoOeDm/G07T5xn8PEj/4/f/lJ927A=",
-      "crlite_enrolled": false,
-      "id": "c56b52a8-0671-4599-8084-0cb8e9fc79e8",
-      "last_modified": 1718420223250
     },
     {
       "schema": 1717559643220,
@@ -29649,5 +29626,5 @@
       "last_modified": 1559865884636
     }
   ],
-  "timestamp": 1747882622660
+  "timestamp": 1748055422527
 }
