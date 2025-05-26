@@ -2509,12 +2509,9 @@ ImgDrawResult nsCSSRendering::PaintStyleImageLayerWithSC(
   }
 
   // For canvas frames (in the CSS sense) we draw the background color using
-  // a solid color item that gets added in nsLayoutUtils::PaintFrame,
-  // or nsSubDocumentFrame::BuildDisplayList (bug 488242). (The solid
-  // color may be moved into nsDisplayCanvasBackground by
-  // PresShell::AddCanvasBackgroundColorItem(), and painted by
-  // nsDisplayCanvasBackground directly.) Either way we don't need to
-  // paint the background color here.
+  // a solid color item that gets added in nsLayoutUtils::PaintFrame, or
+  // nsSubDocumentFrame::BuildDisplayList (bug 488242).  Either way we don't
+  // need to paint the background color here.
   bool isCanvasFrame = aParams.frame->IsCanvasFrame();
   const bool paintMask = aParams.paintFlags & PAINTBG_MASK_IMAGE;
 
