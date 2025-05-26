@@ -1556,14 +1556,18 @@ pub trait LayerCompositor {
     fn begin_frame(
         &mut self,
         input: &CompositorInputConfig,
-    );
+    ) -> bool;
 
     // Bind a layer (by index in the input config) to begin rendering
     // content to it.
     fn bind_layer(&mut self, index: usize);
 
     // Complete rendering of a layer and present / swap buffers
-    fn present_layer(&mut self, index: usize);
+    fn present_layer(
+        &mut self,
+        index: usize,
+        dirty_rects: &[DeviceIntRect],
+    );
 
     fn add_surface(
         &mut self,

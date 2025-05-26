@@ -113,10 +113,11 @@ void wr_compositor_bind_swapchain(void* aCompositor, wr::NativeSurfaceId aId) {
   compositor->BindSwapChain(aId);
 }
 
-void wr_compositor_present_swapchain(void* aCompositor,
-                                     wr::NativeSurfaceId aId) {
+void wr_compositor_present_swapchain(void* aCompositor, wr::NativeSurfaceId aId,
+                                     const wr::DeviceIntRect* aDirtyRects,
+                                     size_t aNumDirtyRects) {
   RenderCompositor* compositor = static_cast<RenderCompositor*>(aCompositor);
-  compositor->PresentSwapChain(aId);
+  compositor->PresentSwapChain(aId, aDirtyRects, aNumDirtyRects);
 }
 
 void wr_compositor_destroy_surface(void* aCompositor, NativeSurfaceId aId) {

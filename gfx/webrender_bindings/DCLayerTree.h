@@ -162,7 +162,9 @@ class DCLayerTree {
                   wr::DeviceIntRect aRoundedClipRect,
                   wr::ClipRadius aClipRadius);
   void BindSwapChain(wr::NativeSurfaceId aId);
-  void PresentSwapChain(wr::NativeSurfaceId aId);
+  void PresentSwapChain(wr::NativeSurfaceId aId,
+                        const wr::DeviceIntRect* aDirtyRects,
+                        size_t aNumDirtyRects);
 
   gl::GLContext* GetGLContext() const { return mGL; }
   EGLConfig GetEGLConfig() const { return mEGLConfig; }
@@ -391,7 +393,8 @@ class DCLayerSurface : public DCSurface {
 
   virtual void Bind() = 0;
   virtual bool Resize(wr::DeviceIntSize aSize) = 0;
-  virtual void Present() = 0;
+  virtual void Present(const wr::DeviceIntRect* aDirtyRects,
+                       size_t aNumDirtyRects) = 0;
 
   DCLayerSurface* AsDCLayerSurface() override { return this; }
 };
@@ -409,7 +412,8 @@ class DCSwapChain : public DCLayerSurface {
 
   void Bind() override;
   bool Resize(wr::DeviceIntSize aSize) override;
-  void Present() override;
+  void Present(const wr::DeviceIntRect* aDirtyRects,
+               size_t aNumDirtyRects) override;
 
   DCSwapChain* AsDCSwapChain() override { return this; }
 
@@ -430,7 +434,8 @@ class DCLayerCompositionSurface : public DCLayerSurface {
 
   void Bind() override;
   bool Resize(wr::DeviceIntSize aSize) override;
-  void Present() override;
+  void Present(const wr::DeviceIntRect* aDirtyRects,
+               size_t aNumDirtyRects) override;
 
  private:
   wr::DeviceIntSize mSize;

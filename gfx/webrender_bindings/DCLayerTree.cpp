@@ -23,6 +23,7 @@
 #include "mozilla/gfx/gfxVars.h"
 #include "mozilla/gfx/GPUParent.h"
 #include "mozilla/gfx/Matrix.h"
+#include "mozilla/gfx/StackArray.h"
 #include "mozilla/layers/CompositeProcessD3D11FencesHolderMap.h"
 #include "mozilla/StaticPrefs_gfx.h"
 #include "mozilla/StaticPtr.h"
@@ -532,8 +533,8 @@ void DCLayerTree::WaitForCommitCompletion() {
   for (auto it = mDCSurfaces.begin(); it != mDCSurfaces.end(); it++) {
     auto* surface = it->second->AsDCSwapChain();
     if (surface) {
-      surface->Present();
-      surface->Present();
+      surface->Present(nullptr, 0);
+      surface->Present(nullptr, 0);
     }
   }
 
@@ -711,9 +712,11 @@ void DCLayerTree::BindSwapChain(wr::NativeSurfaceId aId) {
   surface->AsDCLayerSurface()->Bind();
 }
 
-void DCLayerTree::PresentSwapChain(wr::NativeSurfaceId aId) {
+void DCLayerTree::PresentSwapChain(wr::NativeSurfaceId aId,
+                                   const wr::DeviceIntRect* aDirtyRects,
+                                   size_t aNumDirtyRects) {
   auto surface = GetSurface(aId);
-  surface->AsDCLayerSurface()->Present();
+  surface->AsDCLayerSurface()->Present(aDirtyRects, aNumDirtyRects);
 }
 
 void DCLayerTree::Bind(wr::NativeTileId aId, wr::DeviceIntPoint* aOffset,
@@ -1571,9 +1574,47 @@ bool DCSwapChain::Resize(wr::DeviceIntSize aSize) {
   return true;
 }
 
-void DCSwapChain::Present() {
-  HRESULT hr = mSwapChain->Present(0, 0);
-  MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
+void DCSwapChain::Present(const wr::DeviceIntRect* aDirtyRects,
+                          size_t aNumDirtyRects) {
+  MOZ_ASSERT_IF(aNumDirtyRects > 0, !mFirstPresent);
+
+  HRESULT hr = S_OK;
+  int rectsCount = 0;
+  StackArray<RECT, 1> rects(aNumDirtyRects);
+
+  if (aNumDirtyRects > 0) {
+    for (size_t i = 0; i < aNumDirtyRects; ++i) {
+      const auto& rect = aDirtyRects[i];
+      // Clip rect to bufferSize
+      int left = std::clamp((int)rect.min.x, 0, mSize.width);
+      int top = std::clamp((int)rect.min.y, 0, mSize.height);
+      int right = std::clamp((int)rect.max.x, 0, mSize.width);
+      int bottom = std::clamp((int)rect.max.y, 0, mSize.height);
+
+      // When rect is not empty, the rect could be passed to Present1().
+      if (left < right && top < bottom) {
+        rects[rectsCount].left = left;
+        rects[rectsCount].top = top;
+        rects[rectsCount].right = right;
+        rects[rectsCount].bottom = bottom;
+        rectsCount++;
+      }
+    }
+
+    if (rectsCount > 0) {
+      DXGI_PRESENT_PARAMETERS params;
+      PodZero(&params);
+      params.DirtyRectsCount = rectsCount;
+      params.pDirtyRects = rects.data();
+
+      hr = mSwapChain->Present1(0, 0, &params);
+      if (FAILED(hr) && hr != DXGI_STATUS_OCCLUDED) {
+        gfxCriticalNote << "Present1 failed: " << gfx::hexa(hr);
+      }
+    }
+  } else {
+    mSwapChain->Present(0, 0);
+  }
 
   if (mFirstPresent) {
     mFirstPresent = false;
@@ -1706,7 +1747,8 @@ bool DCLayerCompositionSurface::Resize(wr::DeviceIntSize aSize) {
   return true;
 }
 
-void DCLayerCompositionSurface::Present() {
+void DCLayerCompositionSurface::Present(const wr::DeviceIntRect* aDirtyRects,
+                                        size_t aNumDirtyRects) {
   MOZ_ASSERT(mEGLSurface);
   MOZ_ASSERT(mCompositionSurface);
 

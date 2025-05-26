@@ -8,6 +8,9 @@
  * otherwise allocate them on the heap. It is similar in purpose to AutoTArray
  */
 
+#ifndef MOZILLA_GFX_STACKARRAY_H_
+#define MOZILLA_GFX_STACKARRAY_H_
+
 template <class T, size_t size>
 class StackArray final {
  public:
@@ -31,3 +34,5 @@ class StackArray final {
   T mStackData[size];
   T* mData;
 };
+
+#endif  // MOZILLA_GFX_STACKARRAY_H_

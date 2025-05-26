@@ -1474,7 +1474,7 @@ impl Renderer {
                 CompositorKind::Draw { .. } => {}
                 CompositorKind::Layer { .. } => {
                     let compositor = self.compositor_config.layer_compositor().unwrap();
-                    compositor.present_layer(self.debug_overlay_state.layer_index);
+                    compositor.present_layer(self.debug_overlay_state.layer_index, &[]);
                 }
             }
         }
@@ -3540,6 +3540,9 @@ impl Renderer {
         let mut swapchain_layers = Vec::new();
         let cap = composite_state.tiles.len();
         let mut segment_builder = SegmentBuilder::new();
+        let mut tile_index_to_layer_index = vec![None; composite_state.tiles.len()];
+
+        // Calculate layers with full device rect
 
         // NOTE: Tiles here are being iterated in front-to-back order by
         //       z-id, due to the sort in composite_state.end_frame()
@@ -3549,20 +3552,12 @@ impl Renderer {
                 tile.transform_index
             );
 
-            // Determine a clip rect to apply to this tile, depending on what
-            // the partial present mode is.
-            let partial_clip_rect = match partial_present_mode {
-                Some(PartialPresentMode::Single { dirty_rect }) => dirty_rect,
-                None => device_tile_box,
-            };
-
             // Simple compositor needs the valid rect in device space to match clip rect
             let device_valid_rect = composite_state
                 .get_device_rect(&tile.local_valid_rect, tile.transform_index);
 
             let rect = device_tile_box
                 .intersection_unchecked(&tile.device_clip_rect)
-                .intersection_unchecked(&partial_clip_rect)
                 .intersection_unchecked(&device_valid_rect);
 
             if rect.is_empty() {
@@ -3679,57 +3674,7 @@ impl Renderer {
                     occlusion: occlusion::FrontToBackBuilder::with_capacity(cap, cap),
                 })
             }
-
-            // For normal tiles, add to occlusion tracker. For clear tiles, add directly
-            // to the swapchain tile list
-            let layer = swapchain_layers.last_mut().unwrap();
-
-            // Clear tiles overwrite whatever is under them, so they are treated as opaque.
-            match tile.kind {
-                TileKind::Opaque | TileKind::Alpha => {
-                    let is_opaque = tile.kind != TileKind::Alpha;
-
-                    match tile.clip_index {
-                        Some(clip_index) => {
-                            let clip = composite_state.get_compositor_clip(clip_index);
-
-                                // TODO(gw): Make segment builder generic on unit to avoid casts below.
-                            segment_builder.initialize(
-                                rect.cast_unit(),
-                                None,
-                                rect.cast_unit(),
-                            );
-                            segment_builder.push_clip_rect(
-                                clip.rect.cast_unit(),
-                                Some(clip.radius),
-                                ClipMode::Clip,
-                            );
-                            segment_builder.build(|segment| {
-                                let key = OcclusionItemKey { tile_index: idx, needs_mask: segment.has_mask };
-
-                                layer. occlusion.add(
-                                    &segment.rect.cast_unit(),
-                                    is_opaque && !segment.has_mask,
-                                    key,
-                                );
-                            });
-                        }
-                        None => {
-                            layer.occlusion.add(&rect, is_opaque, OcclusionItemKey {
-                                tile_index: idx,
-                                needs_mask: false,
-                            });
-                        }
-                    }
-                }
-                TileKind::Clear => {
-                    // Clear tiles are specific to how we render the window buttons on
-                    // Windows 8. They clobber what's under them so they can be treated as opaque,
-                    // but require a different blend state so they will be rendered after the opaque
-                    // tiles and before transparent ones.
-                    layer.clear_tiles.push(occlusion::Item { rectangle: rect, key: OcclusionItemKey { tile_index: idx, needs_mask: false } });
-                }
-            }
+            tile_index_to_layer_index[idx] = Some(input_layers.len() - 1);
         }
 
         // Reverse the layers - we're now working in back-to-front order from here onwards
@@ -3785,14 +3730,115 @@ impl Renderer {
             });
         }
 
+        let mut full_render = false;
+
         // Start compositing if using OS compositor
         if let Some(ref mut compositor) = self.compositor_config.layer_compositor() {
             let input = CompositorInputConfig {
                 enable_screenshot,
                 layers: &input_layers,
             };
-            compositor.begin_frame(&input);
+            full_render = compositor.begin_frame(&input);
         }
+
+        let partial_present_mode = if full_render {
+            None
+        } else {
+            partial_present_mode
+        };
+
+        // Reverse the layers - we're now working in front-to-back order for tiles handling
+        assert_eq!(swapchain_layers.len(), input_layers.len());
+        input_layers.reverse();
+        swapchain_layers.reverse();
+
+        // Check tiles handling with partial_present_mode
+
+        // NOTE: Tiles here are being iterated in front-to-back order by
+        //       z-id, due to the sort in composite_state.end_frame()
+        for (idx, tile) in composite_state.tiles.iter().enumerate() {
+            let device_tile_box = composite_state.get_device_rect(
+                &tile.local_rect,
+                tile.transform_index
+            );
+
+            // Determine a clip rect to apply to this tile, depending on what
+            // the partial present mode is.
+            let partial_clip_rect = match partial_present_mode {
+                Some(PartialPresentMode::Single { dirty_rect }) => dirty_rect,
+                None => device_tile_box,
+            };
+
+            // Simple compositor needs the valid rect in device space to match clip rect
+            let device_valid_rect = composite_state
+                .get_device_rect(&tile.local_valid_rect, tile.transform_index);
+
+            let rect = device_tile_box
+                .intersection_unchecked(&tile.device_clip_rect)
+                .intersection_unchecked(&partial_clip_rect)
+                .intersection_unchecked(&device_valid_rect);
+
+            if rect.is_empty() {
+                continue;
+            }
+
+            // For normal tiles, add to occlusion tracker. For clear tiles, add directly
+            // to the swapchain tile list
+            //let layer = swapchain_layers.last_mut().unwrap();
+            let layer = &mut swapchain_layers[tile_index_to_layer_index[idx].unwrap()];
+
+            // Clear tiles overwrite whatever is under them, so they are treated as opaque.
+            match tile.kind {
+                TileKind::Opaque | TileKind::Alpha => {
+                    let is_opaque = tile.kind != TileKind::Alpha;
+
+                    match tile.clip_index {
+                        Some(clip_index) => {
+                            let clip = composite_state.get_compositor_clip(clip_index);
+
+                                // TODO(gw): Make segment builder generic on unit to avoid casts below.
+                            segment_builder.initialize(
+                                rect.cast_unit(),
+                                None,
+                                rect.cast_unit(),
+                            );
+                            segment_builder.push_clip_rect(
+                                clip.rect.cast_unit(),
+                                Some(clip.radius),
+                                ClipMode::Clip,
+                            );
+                            segment_builder.build(|segment| {
+                                let key = OcclusionItemKey { tile_index: idx, needs_mask: segment.has_mask };
+
+                                layer. occlusion.add(
+                                    &segment.rect.cast_unit(),
+                                    is_opaque && !segment.has_mask,
+                                    key,
+                                );
+                            });
+                        }
+                        None => {
+                            layer.occlusion.add(&rect, is_opaque, OcclusionItemKey {
+                                tile_index: idx,
+                                needs_mask: false,
+                            });
+                        }
+                    }
+                }
+                TileKind::Clear => {
+                    // Clear tiles are specific to how we render the window buttons on
+                    // Windows 8. They clobber what's under them so they can be treated as opaque,
+                    // but require a different blend state so they will be rendered after the opaque
+                    // tiles and before transparent ones.
+                    layer.clear_tiles.push(occlusion::Item { rectangle: rect, key: OcclusionItemKey { tile_index: idx, needs_mask: false } });
+                }
+            }
+        }
+
+        // Reverse the layers - we're now working in back-to-front order from here onwards
+        assert_eq!(swapchain_layers.len(), input_layers.len());
+        input_layers.reverse();
+        swapchain_layers.reverse();
 
         for (layer_index, (layer, swapchain_layer)) in input_layers.iter().zip(swapchain_layers.iter()).enumerate() {
             self.device.reset_state();
@@ -3810,6 +3856,14 @@ impl Renderer {
             } else {
                 ColorF::TRANSPARENT
             };
+
+            if let Some(ref mut _compositor) = self.compositor_config.layer_compositor() {
+                if let Some(PartialPresentMode::Single { dirty_rect }) = partial_present_mode {
+                    if dirty_rect.is_empty() {
+                        continue;
+                    }
+                }
+            }
 
             let draw_target = match self.compositor_config {
                 CompositorConfig::Layer { ref mut compositor } => {
@@ -3841,7 +3895,14 @@ impl Renderer {
             );
 
             if let Some(ref mut compositor) = self.compositor_config.layer_compositor() {
-                compositor.present_layer(layer_index);
+                match partial_present_mode {
+                    Some(PartialPresentMode::Single { dirty_rect }) => {
+                        compositor.present_layer(layer_index, &[dirty_rect.to_i32()]);
+                    }
+                    None => {
+                        compositor.present_layer(layer_index, &[]);
+                    }
+                };
             }
         }
 
@@ -4607,7 +4668,7 @@ impl Renderer {
                 (max_partial_present_rects, draw_previous_partial_present_regions)
             }
             CompositorKind::Layer { .. } => {
-                (0, false)
+                (1, false)
             }
         };
 
