@@ -230,6 +230,36 @@ add_task(async function test_login_line_commands() {
   SidebarController.hide();
 });
 
+add_task(async function test_passwords_menu_export_remove_disabled() {
+  Services.fog.testResetFOG();
+  await Services.fog.testFlushAllChildren();
+
+  const passwordsSidebar = await openPasswordsSidebar();
+  await waitForSnapshots();
+
+  // Ensure there are no saved logins
+  await Services.logins.removeAllLogins();
+  await checkEmptyState(".no-logins-card-content", passwordsSidebar);
+
+  const menu = passwordsSidebar.querySelector("panel-list");
+  const menuButton = passwordsSidebar.querySelector("#more-options-menubutton");
+  menuButton.click();
+  await BrowserTestUtils.waitForEvent(menu, "shown");
+
+  const exportButton = getShadowBtn(menu, "[action='export-logins']");
+  const removeAllButton = getShadowBtn(menu, "[action='remove-all-logins']");
+  ok(
+    exportButton.disabled,
+    "'Export Passwords' is disabled when no logins are saved."
+  );
+  ok(
+    removeAllButton.disabled,
+    "'Remove All Passwords' is disabled when no logins are saved."
+  );
+
+  SidebarController.hide();
+});
+
 add_task(async function test_passwords_menu_external_links() {
   Services.fog.testResetFOG();
   await Services.fog.testFlushAllChildren();
