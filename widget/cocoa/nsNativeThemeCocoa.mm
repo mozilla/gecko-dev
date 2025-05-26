@@ -2332,10 +2332,9 @@ bool nsNativeThemeCocoa::CreateWebRenderCommandsForWidget(
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Meter:
     case StyleAppearance::Range:
-      return false;
-
     case StyleAppearance::Textarea:
     case StyleAppearance::Listbox:
+      return false;
 
     default:
       return true;
