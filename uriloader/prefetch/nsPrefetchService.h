@@ -69,7 +69,6 @@ class nsPrefetchService final : public nsIPrefetchService,
   nsTArray<RefPtr<nsPrefetchNode>> mCurrentNodes;
   int32_t mMaxParallelism;
   int32_t mStopCount;
-  bool mHaveProcessed;
   bool mPrefetchDisabled;
 
   // In usual case prefetch does not start until all normal loads are done.

@@ -325,7 +325,6 @@ nsPrefetchNode::OnRedirectResult(nsresult status) {
 nsPrefetchService::nsPrefetchService()
     : mMaxParallelism(6),
       mStopCount(0),
-      mHaveProcessed(false),
       mPrefetchDisabled(true),
       mAggressive(false) {}
 
@@ -375,7 +374,7 @@ void nsPrefetchService::RemoveNodeAndMaybeStartNextPrefetchURI(
     mCurrentNodes.RemoveElement(aFinished);
   }
 
-  if ((!mStopCount && mHaveProcessed) || mAggressive) {
+  if (!mStopCount || mAggressive) {
     ProcessNextPrefetchURI();
   }
 }
@@ -497,7 +496,6 @@ void nsPrefetchService::StartPrefetching() {
   // STOP notifications.  we do this inorder to defer prefetching
   // until after all sub-frames have finished loading.
   if (!mStopCount) {
-    mHaveProcessed = true;
     while (!mPrefetchQueue.empty() &&
            mCurrentNodes.Length() < static_cast<uint32_t>(mMaxParallelism)) {
       ProcessNextPrefetchURI();
@@ -663,7 +661,7 @@ nsresult nsPrefetchService::Prefetch(nsIURI* aURI,
   NotifyLoadRequested(enqueuedNode);
 
   // if there are no pages loading, kick off the request immediately
-  if ((!mStopCount && mHaveProcessed) || mAggressive) {
+  if (!mStopCount || mAggressive) {
     ProcessNextPrefetchURI();
   }
 
