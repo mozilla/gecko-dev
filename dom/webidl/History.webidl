@@ -21,7 +21,7 @@ interface History {
   attribute ScrollRestoration scrollRestoration;
   [Throws]
   readonly attribute any state;
-  [Throws, NeedsCallerType]
+  [Throws, NeedsSubjectPrincipal]
   undefined go(optional long delta = 0);
   [Throws, NeedsCallerType]
   undefined back();

@@ -9490,7 +9490,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   }
 
   // The following steps are from https://html.spec.whatwg.org/#navigate
-  // Step 21
+  // Step 20
   if (RefPtr<Document> document = GetDocument();
       document &&
       aLoadState->UserNavigationInvolvement() !=
@@ -9500,16 +9500,16 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
       NS_IsFetchScheme(aLoadState->URI()) &&
       document->NodePrincipal()->Subsumes(aLoadState->TriggeringPrincipal())) {
     if (nsCOMPtr<nsPIDOMWindowInner> window = document->GetInnerWindow()) {
-      // Step 21.1
+      // Step 20.1
       if (RefPtr<Navigation> navigation = window->Navigation()) {
         AutoJSAPI jsapi;
         if (jsapi.Init(window)) {
           RefPtr<Element> sourceElement = aLoadState->GetSourceElement();
 
-          // Step 21.2
+          // Step 20.2
           RefPtr<FormData> formData = aLoadState->GetFormDataEntryList();
 
-          // Step 21.3
+          // Step 20.3
           RefPtr<nsIStructuredCloneContainer> navigationAPIStateForFiring =
               aLoadState->GetNavigationAPIState();
           if (!navigationAPIStateForFiring) {
@@ -9517,7 +9517,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
           }
 
           nsCOMPtr<nsIURI> destinationURL = aLoadState->URI();
-          // Step 21.4
+          // Step 20.4
           bool shouldContinue = navigation->FirePushReplaceReloadNavigateEvent(
               jsapi.cx(), aLoadState->GetNavigationType(), destinationURL,
               /* aIsSameDocument */ false,
@@ -9525,7 +9525,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
               formData.forget(), navigationAPIStateForFiring,
               /* aClassicHistoryAPIState */ nullptr);
 
-          // Step 21.5
+          // Step 20.5
           if (!shouldContinue) {
             return NS_OK;
           }

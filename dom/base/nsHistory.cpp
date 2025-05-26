@@ -8,14 +8,18 @@
 
 #include "jsapi.h"
 #include "nsCOMPtr.h"
-#include "nsDocShell.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/dom/Document.h"
+#include "mozilla/dom/DocumentInlines.h"
 #include "nsIDocShell.h"
 #include "nsIWebNavigation.h"
+#include "nsReadableUtils.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/WindowContext.h"
+#include "mozilla/dom/Location.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/BasePrincipal.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -23,19 +27,6 @@ using namespace mozilla::dom;
 extern LazyLogModule gSHistoryLog;
 
 #define LOG(format) MOZ_LOG(gSHistoryLog, mozilla::LogLevel::Debug, format)
-
-static bool CheckNavigationRateLimit(BrowsingContext* aContext,
-                                     CallerType aCallerType, ErrorResult& aRv) {
-  if (aContext) {
-    nsresult rv = aContext->CheckNavigationRateLimit(aCallerType);
-    if (NS_FAILED(rv)) {
-      aRv.Throw(rv);
-      return false;
-    }
-  }
-
-  return true;
-}
 
 //
 //  History class implementation
@@ -106,8 +97,13 @@ void nsHistory::SetScrollRestoration(mozilla::dom::ScrollRestoration aMode,
     return;
   }
 
-  if (!CheckNavigationRateLimit(win->GetBrowsingContext(), aCallerType, aRv)) {
-    return;
+  BrowsingContext* bc = win->GetBrowsingContext();
+  if (bc) {
+    nsresult rv = bc->CheckNavigationRateLimit(aCallerType);
+    if (NS_FAILED(rv)) {
+      aRv.Throw(rv);
+      return;
+    }
   }
 
   win->GetDocShell()->SetCurrentScrollRestorationIsManual(
@@ -136,20 +132,88 @@ void nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
   aRv = doc->GetStateObject(aResult);
 }
 
-// https://html.spec.whatwg.org/#dom-history-go
-void nsHistory::Go(JSContext* aCx, int32_t aDelta, CallerType aCallerType,
+void nsHistory::Go(int32_t aDelta, nsIPrincipal& aSubjectPrincipal,
                    ErrorResult& aRv) {
-  DeltaTraverse(Some(aCx), aDelta, aCallerType, aRv);
+  LOG(("nsHistory::Go(%d)", aDelta));
+  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
+  if (!win || !win->HasActiveDocument()) {
+    return aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+  }
+
+  if (!aDelta) {
+    // https://html.spec.whatwg.org/multipage/history.html#the-history-interface
+    // "When the go(delta) method is invoked, if delta is zero, the user agent
+    // must act as if the location.reload() method was called instead."
+    RefPtr<Location> location = win->Location();
+    return location->Reload(false, aSubjectPrincipal, aRv);
+  }
+
+  RefPtr<ChildSHistory> session_history = GetSessionHistory();
+  if (!session_history) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
+  }
+
+  bool userActivation =
+      win->GetWindowContext()
+          ? win->GetWindowContext()->HasValidTransientUserGestureActivation()
+          : false;
+
+  CallerType callerType = aSubjectPrincipal.IsSystemPrincipal()
+                              ? CallerType::System
+                              : CallerType::NonSystem;
+
+  // AsyncGo throws if we hit the navigation rate limit.
+  session_history->AsyncGo(aDelta, /* aRequireUserInteraction = */ false,
+                           userActivation, callerType, aRv);
 }
 
-// https://html.spec.whatwg.org/#dom-history-back
 void nsHistory::Back(CallerType aCallerType, ErrorResult& aRv) {
-  DeltaTraverse(Nothing(), -1, aCallerType, aRv);
+  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
+  if (!win || !win->HasActiveDocument()) {
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+
+    return;
+  }
+
+  RefPtr<ChildSHistory> sHistory = GetSessionHistory();
+  if (!sHistory) {
+    aRv.Throw(NS_ERROR_FAILURE);
+
+    return;
+  }
+
+  bool userActivation =
+      win->GetWindowContext()
+          ? win->GetWindowContext()->HasValidTransientUserGestureActivation()
+          : false;
+
+  sHistory->AsyncGo(-1, /* aRequireUserInteraction = */ false, userActivation,
+                    aCallerType, aRv);
 }
 
-// https://html.spec.whatwg.org/#dom-history-forward
 void nsHistory::Forward(CallerType aCallerType, ErrorResult& aRv) {
-  DeltaTraverse(Nothing(), 1, aCallerType, aRv);
+  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
+  if (!win || !win->HasActiveDocument()) {
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+
+    return;
+  }
+
+  RefPtr<ChildSHistory> sHistory = GetSessionHistory();
+  if (!sHistory) {
+    aRv.Throw(NS_ERROR_FAILURE);
+
+    return;
+  }
+
+  bool userActivation =
+      win->GetWindowContext()
+          ? win->GetWindowContext()->HasValidTransientUserGestureActivation()
+          : false;
+
+  sHistory->AsyncGo(1, /* aRequireUserInteraction = */ false, userActivation,
+                    aCallerType, aRv);
 }
 
 void nsHistory::PushState(JSContext* aCx, JS::Handle<JS::Value> aData,
@@ -182,8 +246,13 @@ void nsHistory::PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
     return;
   }
 
-  if (!CheckNavigationRateLimit(win->GetBrowsingContext(), aCallerType, aRv)) {
-    return;
+  BrowsingContext* bc = win->GetBrowsingContext();
+  if (bc) {
+    nsresult rv = bc->CheckNavigationRateLimit(aCallerType);
+    if (NS_FAILED(rv)) {
+      aRv.Throw(rv);
+      return;
+    }
   }
 
   // AddState might run scripts, so we need to hold a strong reference to the
@@ -211,51 +280,4 @@ already_AddRefed<ChildSHistory> nsHistory::GetSessionHistory() const {
 
   RefPtr<ChildSHistory> childSHistory = bc->Top()->GetChildSessionHistory();
   return childSHistory.forget();
-}
-
-// https://html.spec.whatwg.org/#delta-traverse
-void nsHistory::DeltaTraverse(mozilla::Maybe<JSContext*> aCx, int32_t aDelta,
-                              CallerType aCallerType, ErrorResult& aRv) {
-  LOG(("nsHistory::Go(%d)", aDelta));
-  // Step 1, but instead of Document we operate on the inner window in this and
-  // following steps.
-  nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
-  // Step 2
-  if (!win || !win->IsFullyActive()) {
-    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
-    return;
-  }
-
-  if (!CheckNavigationRateLimit(win->GetBrowsingContext(), aCallerType, aRv)) {
-    MOZ_LOG(gSHistoryLog, LogLevel::Debug, ("Rejected"));
-    return;
-  }
-
-  // Step 3
-  if (!aDelta) {
-    MOZ_DIAGNOSTIC_ASSERT(aCx);
-    RefPtr<nsDocShell> docShell = nsDocShell::Cast(win->GetDocShell());
-
-    nsresult rv =
-        docShell->ReloadNavigable(*aCx, nsIWebNavigation::LOAD_FLAGS_NONE);
-    if (NS_FAILED(rv)) {
-      aRv.Throw(rv);
-    }
-    return;
-  }
-
-  // Step 4 is the remainder of this method.
-  RefPtr<ChildSHistory> session_history = GetSessionHistory();
-  if (!session_history) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  bool userActivation =
-      win->GetWindowContext()
-          ? win->GetWindowContext()->HasValidTransientUserGestureActivation()
-          : false;
-
-  session_history->AsyncGo(aDelta, /* aRequireUserInteraction = */ false,
-                           userActivation);
 }
