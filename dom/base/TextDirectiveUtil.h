@@ -165,6 +165,11 @@ class TextDirectiveUtil final {
    */
   static void AdvanceStartToNextNonWhitespacePosition(nsRange& aRange);
 
+  /**
+   * @brief Returns a point moved by one character or unicode surrogate pair.
+   */
+  static RangeBoundary MoveToNextBoundaryPoint(const RangeBoundary& aPoint);
+
   static RangeBoundary MoveBoundaryToNextNonWhitespacePosition(
       const RangeBoundary& aRangeBoundary);
   static RangeBoundary MoveBoundaryToPreviousNonWhitespacePosition(

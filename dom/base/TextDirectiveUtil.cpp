@@ -294,6 +294,26 @@ TextDirectiveUtil::RangeContentAsFoldCase(nsRange* aRange) {
     aRange.SetStart(node, offset + 1);
   }
 }
+// https://wicg.github.io/scroll-to-text-fragment/#find-a-range-from-a-text-directive
+// Steps 2.2.3, 2.3.4
+/* static */
+RangeBoundary TextDirectiveUtil::MoveToNextBoundaryPoint(
+    const RangeBoundary& aPoint) {
+  MOZ_DIAGNOSTIC_ASSERT(aPoint.IsSetAndValid());
+  Text* node = Text::FromNode(aPoint.GetContainer());
+  MOZ_ASSERT(node);
+  uint32_t pos =
+      *aPoint.Offset(RangeBoundary::OffsetFilter::kValidOrInvalidOffsets);
+  if (!node) {
+    return {};
+  }
+  ++pos;
+  if (pos < node->Length() &&
+      node->GetText()->IsLowSurrogateFollowingHighSurrogateAt(pos)) {
+    ++pos;
+  }
+  return {node, pos};
+}
 
 /* static */ RangeBoundary
 TextDirectiveUtil::MoveBoundaryToNextNonWhitespacePosition(
