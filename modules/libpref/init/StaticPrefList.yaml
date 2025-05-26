@@ -2734,6 +2734,11 @@
   value: true
   mirror: always
 
+- name: dom.performance.largest_contentful_paint.coarsened_rendertime_enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 # Whether performance.GetEntries* will contain an entry for the active document
 - name: dom.enable_performance_navigation_timing
   type: bool
