@@ -6660,6 +6660,16 @@ main section {
   margin-inline: var(--space-large);
   margin-block-end: var(--space-large);
 }
+.ds-card.placeholder.refined-cards .placeholder-image {
+  height: 172px;
+}
+.ds-card.placeholder.refined-cards .placeholder-description {
+  margin-block-end: var(--space-small);
+}
+.ds-card.placeholder.refined-cards .placeholder-header {
+  width: initial;
+  margin-block-end: var(--space-large);
+}
 .ds-card.placeholder-seen::before {
   content: "";
   display: block;

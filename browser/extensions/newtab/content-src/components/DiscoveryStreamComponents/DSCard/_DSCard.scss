@@ -51,6 +51,21 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       margin-inline: var(--space-large);
       margin-block-end: var(--space-large);
     }
+
+    &.refined-cards {
+      .placeholder-image {
+        height: 172px;
+      }
+
+      .placeholder-description {
+        margin-block-end: var(--space-small);
+      }
+
+      .placeholder-header {
+        width: initial;
+        margin-block-end: var(--space-large);
+      }
+    }
   }
 
   &.placeholder-seen {
