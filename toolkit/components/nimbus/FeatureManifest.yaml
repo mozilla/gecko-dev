@@ -545,6 +545,14 @@ urlbar:
       description: >-
         Whether or not to show calculator results when a user types a valid
         calculation string into the urlbar.
+    unitConversionEnabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.urlbar.unitConversion.enabled
+      description: >-
+        Whether or not to show unit conversion results when a user types a
+        valid unit conversion string into the urlbar.
     weatherFeatureGate:
       type: boolean
       fallbackPref: browser.urlbar.weather.featureGate
