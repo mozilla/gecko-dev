@@ -24,8 +24,6 @@ def _buildconfig_files_diff():
     cmd = [
         "hg",
         "diff",
-        "--rev",
-        "draft() and ancestors(.)",
         "-I",
         "**/.buildconfig.yml",
     ]
