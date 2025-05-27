@@ -2579,6 +2579,36 @@ bool CacheIRCompiler::emitGuardIsNotProxy(ObjOperandId objId) {
   return true;
 }
 
+bool CacheIRCompiler::emitGuardToArrayBuffer(ObjOperandId objId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register obj = allocator.useRegister(masm, objId);
+  AutoScratchRegister scratch(allocator, masm);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.branchIfIsNotArrayBuffer(obj, scratch, failure->label());
+  return true;
+}
+
+bool CacheIRCompiler::emitGuardToSharedArrayBuffer(ObjOperandId objId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register obj = allocator.useRegister(masm, objId);
+  AutoScratchRegister scratch(allocator, masm);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.branchIfIsNotSharedArrayBuffer(obj, scratch, failure->label());
+  return true;
+}
+
 bool CacheIRCompiler::emitGuardIsNotArrayBufferMaybeShared(ObjOperandId objId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
@@ -2590,20 +2620,7 @@ bool CacheIRCompiler::emitGuardIsNotArrayBufferMaybeShared(ObjOperandId objId) {
     return false;
   }
 
-  masm.loadObjClassUnsafe(obj, scratch);
-  masm.branchPtr(Assembler::Equal, scratch,
-                 ImmPtr(&FixedLengthArrayBufferObject::class_),
-                 failure->label());
-  masm.branchPtr(Assembler::Equal, scratch,
-                 ImmPtr(&FixedLengthSharedArrayBufferObject::class_),
-                 failure->label());
-  masm.branchPtr(Assembler::Equal, scratch,
-                 ImmPtr(&ResizableArrayBufferObject::class_), failure->label());
-  masm.branchPtr(Assembler::Equal, scratch,
-                 ImmPtr(&GrowableSharedArrayBufferObject::class_),
-                 failure->label());
-  masm.branchPtr(Assembler::Equal, scratch,
-                 ImmPtr(&ImmutableArrayBufferObject::class_), failure->label());
+  masm.branchIfIsArrayBufferMaybeShared(obj, scratch, failure->label());
   return true;
 }
 

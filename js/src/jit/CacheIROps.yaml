@@ -454,6 +454,20 @@
   args:
     obj: ObjId
 
+- name: GuardToArrayBuffer
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    obj: ObjId
+
+- name: GuardToSharedArrayBuffer
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    obj: ObjId
+
 - name: GuardIsNotArrayBufferMaybeShared
   shared: true
   transpile: true

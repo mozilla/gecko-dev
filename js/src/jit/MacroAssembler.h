@@ -5360,6 +5360,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void branchIfClassIsNotResizableTypedArray(Register clasp,
                                              Label* notTypedArray);
 
+  void branchIfIsNotArrayBuffer(Register obj, Register temp, Label* label);
+  void branchIfIsNotSharedArrayBuffer(Register obj, Register temp,
+                                      Label* label);
+  void branchIfIsArrayBufferMaybeShared(Register obj, Register temp,
+                                        Label* label);
+
  private:
   enum class BranchIfDetached { No, Yes };
 
