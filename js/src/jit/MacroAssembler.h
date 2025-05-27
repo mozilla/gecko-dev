@@ -1819,6 +1819,21 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                  Register scratch, Register spectreRegToZero,
                                  Label* label);
 
+ private:
+  inline void branchTestClass(Condition cond, Register clasp,
+                              std::pair<const JSClass*, const JSClass*> classes,
+                              Label* label);
+
+ public:
+  inline void branchTestObjClass(
+      Condition cond, Register obj,
+      std::pair<const JSClass*, const JSClass*> classes, Register scratch,
+      Register spectreRegToZero, Label* label);
+  inline void branchTestObjClassNoSpectreMitigations(
+      Condition cond, Register obj,
+      std::pair<const JSClass*, const JSClass*> classes, Register scratch,
+      Label* label);
+
   inline void branchTestObjShape(Condition cond, Register obj,
                                  const Shape* shape, Register scratch,
                                  Register spectreRegToZero, Label* label);
@@ -5340,16 +5355,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
  public:
   void branchIfClassIsNotTypedArray(Register clasp, Label* notTypedArray);
-  void branchIfClassIsNotNonResizableTypedArray(Register clasp,
-                                                Label* notTypedArray);
+  void branchIfClassIsNotFixedLengthTypedArray(Register clasp,
+                                               Label* notTypedArray);
   void branchIfClassIsNotResizableTypedArray(Register clasp,
                                              Label* notTypedArray);
-
-  void branchIfIsNotArrayBuffer(Register obj, Register temp, Label* label);
-  void branchIfIsNotSharedArrayBuffer(Register obj, Register temp,
-                                      Label* label);
-  void branchIfIsArrayBufferMaybeShared(Register obj, Register temp,
-                                        Label* label);
 
  private:
   enum class BranchIfDetached { No, Yes };

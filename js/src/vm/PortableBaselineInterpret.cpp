@@ -1188,22 +1188,54 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         JSObject* object = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
         switch (kind) {
           case GuardClassKind::Array:
+            if (object->getClass() != &ArrayObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::PlainObject:
+            if (object->getClass() != &PlainObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::FixedLengthArrayBuffer:
-          case GuardClassKind::ImmutableArrayBuffer:
+            if (object->getClass() != &FixedLengthArrayBufferObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::ResizableArrayBuffer:
+            if (object->getClass() != &ResizableArrayBufferObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::FixedLengthSharedArrayBuffer:
+            if (object->getClass() !=
+                &FixedLengthSharedArrayBufferObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::GrowableSharedArrayBuffer:
+            if (object->getClass() !=
+                &GrowableSharedArrayBufferObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::FixedLengthDataView:
-          case GuardClassKind::ImmutableDataView:
+            if (object->getClass() != &FixedLengthDataViewObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::ResizableDataView:
+            if (object->getClass() != &ResizableDataViewObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::MappedArguments:
+            if (object->getClass() != &MappedArgumentsObject::class_) {
+              FAIL_IC();
+            }
+            break;
           case GuardClassKind::UnmappedArguments:
-          case GuardClassKind::Set:
-          case GuardClassKind::Map:
-          case GuardClassKind::BoundFunction:
-          case GuardClassKind::Date:
-            if (object->getClass() != jit::ClassFor(kind)) {
+            if (object->getClass() != &UnmappedArgumentsObject::class_) {
               FAIL_IC();
             }
             break;
@@ -1216,6 +1248,26 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
             break;
           case GuardClassKind::JSFunction:
             if (!object->is<JSFunction>()) {
+              FAIL_IC();
+            }
+            break;
+          case GuardClassKind::Set:
+            if (object->getClass() != &SetObject::class_) {
+              FAIL_IC();
+            }
+            break;
+          case GuardClassKind::Map:
+            if (object->getClass() != &MapObject::class_) {
+              FAIL_IC();
+            }
+            break;
+          case GuardClassKind::BoundFunction:
+            if (object->getClass() != &BoundFunctionObject::class_) {
+              FAIL_IC();
+            }
+            break;
+          case GuardClassKind::Date:
+            if (object->getClass() != &DateObject::class_) {
               FAIL_IC();
             }
             break;

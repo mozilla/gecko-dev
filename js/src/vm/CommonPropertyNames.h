@@ -290,7 +290,6 @@
   MACRO2(if_, "if")                                                            \
   MACRO_(ignoreCase, "ignoreCase")                                             \
   MACRO_(ignorePunctuation, "ignorePunctuation")                               \
-  MACRO_(immutable, "immutable")                                               \
   MACRO_(implements, "implements")                                             \
   MACRO_(import, "import")                                                     \
   MACRO_(importedStringConstants, "importedStringConstants")                   \
@@ -555,7 +554,6 @@
   MACRO_(signal, "signal")                                                     \
   MACRO_(signDisplay, "signDisplay")                                           \
   MACRO_(size, "size")                                                         \
-  MACRO_(sliceToImmutable, "sliceToImmutable")                                 \
   MACRO_(skeleton, "skeleton")                                                 \
   MACRO_(smallestUnit, "smallestUnit")                                         \
   MACRO_(source, "source")                                                     \
@@ -605,7 +603,6 @@
   MACRO_(trailingZeroDisplay, "trailingZeroDisplay")                           \
   MACRO_(transfer, "transfer")                                                 \
   MACRO_(transferToFixedLength, "transferToFixedLength")                       \
-  MACRO_(transferToImmutable, "transferToImmutable")                           \
   MACRO_(trimEnd, "trimEnd")                                                   \
   MACRO_(trimLeft, "trimLeft")                                                 \
   MACRO_(trimRight, "trimRight")                                               \

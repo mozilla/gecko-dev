@@ -4897,38 +4897,21 @@ void CodeGenerator::visitSmallObjectVariableKeyHasProp(
   masm.bind(&done);
 }
 
-void CodeGenerator::visitGuardToArrayBuffer(LGuardToArrayBuffer* guard) {
-  Register obj = ToRegister(guard->object());
-  Register temp = ToRegister(guard->temp0());
-
-  // branchIfIsNotArrayBuffer may zero the object register on speculative paths
-  // (we should have a defineReuseInput allocation in this case).
-
-  Label bail;
-  masm.branchIfIsNotArrayBuffer(obj, temp, &bail);
-  bailoutFrom(&bail, guard->snapshot());
-}
-
-void CodeGenerator::visitGuardToSharedArrayBuffer(
-    LGuardToSharedArrayBuffer* guard) {
-  Register obj = ToRegister(guard->object());
-  Register temp = ToRegister(guard->temp0());
-
-  // branchIfIsNotSharedArrayBuffer may zero the object register on speculative
-  // paths (we should have a defineReuseInput allocation in this case).
-
-  Label bail;
-  masm.branchIfIsNotSharedArrayBuffer(obj, temp, &bail);
-  bailoutFrom(&bail, guard->snapshot());
-}
-
 void CodeGenerator::visitGuardIsNotArrayBufferMaybeShared(
     LGuardIsNotArrayBufferMaybeShared* guard) {
   Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
-  masm.branchIfIsArrayBufferMaybeShared(obj, temp, &bail);
+  masm.loadObjClassUnsafe(obj, temp);
+  masm.branchPtr(Assembler::Equal, temp,
+                 ImmPtr(&FixedLengthArrayBufferObject::class_), &bail);
+  masm.branchPtr(Assembler::Equal, temp,
+                 ImmPtr(&FixedLengthSharedArrayBufferObject::class_), &bail);
+  masm.branchPtr(Assembler::Equal, temp,
+                 ImmPtr(&ResizableArrayBufferObject::class_), &bail);
+  masm.branchPtr(Assembler::Equal, temp,
+                 ImmPtr(&GrowableSharedArrayBufferObject::class_), &bail);
   bailoutFrom(&bail, guard->snapshot());
 }
 
@@ -4942,14 +4925,14 @@ void CodeGenerator::visitGuardIsTypedArray(LGuardIsTypedArray* guard) {
   bailoutFrom(&bail, guard->snapshot());
 }
 
-void CodeGenerator::visitGuardIsNonResizableTypedArray(
-    LGuardIsNonResizableTypedArray* guard) {
+void CodeGenerator::visitGuardIsFixedLengthTypedArray(
+    LGuardIsFixedLengthTypedArray* guard) {
   Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
   masm.loadObjClassUnsafe(obj, temp);
-  masm.branchIfClassIsNotNonResizableTypedArray(temp, &bail);
+  masm.branchIfClassIsNotFixedLengthTypedArray(temp, &bail);
   bailoutFrom(&bail, guard->snapshot());
 }
 
@@ -19650,6 +19633,24 @@ void CodeGenerator::visitGuardToClass(LGuardToClass* ins) {
   Label notEqual;
 
   masm.branchTestObjClass(Assembler::NotEqual, lhs, ins->mir()->getClass(),
+                          temp, spectreRegToZero, &notEqual);
+
+  // Can't return null-return here, so bail.
+  bailoutFrom(&notEqual, ins->snapshot());
+}
+
+void CodeGenerator::visitGuardToEitherClass(LGuardToEitherClass* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  Register temp = ToRegister(ins->temp0());
+
+  // branchTestObjClass may zero the object register on speculative paths
+  // (we should have a defineReuseInput allocation in this case).
+  Register spectreRegToZero = lhs;
+
+  Label notEqual;
+
+  masm.branchTestObjClass(Assembler::NotEqual, lhs,
+                          {ins->mir()->getClass1(), ins->mir()->getClass2()},
                           temp, spectreRegToZero, &notEqual);
 
   // Can't return null-return here, so bail.

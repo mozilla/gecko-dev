@@ -65,7 +65,6 @@ uint64_t WasmReservedBytes();
 //       - ArrayBufferObject
 //         - FixedLengthArrayBufferObject
 //         - ResizableArrayBufferObject
-//         - ImmutableArrayBufferObject
 //       - SharedArrayBufferObject
 //         - FixedLengthSharedArrayBufferObject
 //         - GrowableSharedArrayBufferObject
@@ -73,7 +72,6 @@ uint64_t WasmReservedBytes();
 //       - DataViewObject
 //         - FixedLengthDataViewObject
 //         - ResizableDataViewObject
-//         - ImmutableDataViewObject
 //       - TypedArrayObject (declared in vm/TypedArrayObject.h)
 //         - FixedLengthTypedArrayObject
 //           - FixedLengthTypedArrayObjectTemplate<NativeType>, also inheriting
@@ -87,20 +85,13 @@ uint64_t WasmReservedBytes();
 //             - ResizableTypedArrayObjectTemplate<int8_t>
 //             - ResizableTypedArrayObjectTemplate<uint8_t>
 //             - ...
-//         - ImmutableTypedArrayObject
-//           - ImmutableTypedArrayObjectTemplate<NativeType>, also inheriting
-//             from TypedArrayObjectTemplate<NativeType>
-//             - ImmutableTypedArrayObjectTemplate<int8_t>
-//             - ImmutableTypedArrayObjectTemplate<uint8_t>
-//             - ...
 //
-// Note that |{FixedLength,Resizable,Immutable}TypedArrayObjectTemplate| is just
-// an implementation detail that makes implementing its various subclasses
-// easier.
+// Note that |{FixedLength,Resizable}TypedArrayObjectTemplate| is just an
+// implementation detail that makes implementing its various subclasses easier.
 //
-// FixedLengthArrayBufferObject, ResizableArrayBufferObject, and
-// ImmutableArrayBufferObject are also implementation specific types to
-// differentiate between fixed-length, resizable, and immutable ArrayBuffers.
+// FixedLengthArrayBufferObject and ResizableArrayBufferObject are also
+// implementation specific types to differentiate between fixed-length and
+// resizable ArrayBuffers.
 //
 // ArrayBufferObject and SharedArrayBufferObject are unrelated data types:
 // the racy memory of the latter cannot substitute for the non-racy memory of
@@ -146,7 +137,6 @@ class ArrayBufferObjectMaybeShared : public NativeObject {
   inline size_t byteLength() const;
   inline bool isDetached() const;
   inline bool isResizable() const;
-  inline bool isImmutable() const;
   inline SharedMem<uint8_t*> dataPointerEither();
 
   inline bool pinLength(bool pin);
@@ -173,7 +163,6 @@ class ArrayBufferObjectMaybeShared : public NativeObject {
 
 class FixedLengthArrayBufferObject;
 class ResizableArrayBufferObject;
-class ImmutableArrayBufferObject;
 
 /*
  * ArrayBufferObject
@@ -183,9 +172,8 @@ class ImmutableArrayBufferObject;
  * used to construct an ArrayBufferView, or can be created lazily when it is
  * first accessed for a TypedArrayObject that doesn't have an explicit buffer.
  *
- * ArrayBufferObject is an abstract base class and has exactly three concrete
- * subclasses: FixedLengthArrayBufferObject, ResizableArrayBufferObject, and
- * ImmutableArrayBufferObject.
+ * ArrayBufferObject is an abstract base class and has exactly two concrete
+ * subclasses, FixedLengthArrayBufferObject and ResizableArrayBufferObject.
  *
  * ArrayBufferObject (or really the underlying memory) /is not racy/: the
  * memory is private to a single worker.
@@ -195,19 +183,10 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   static bool maxByteLengthGetterImpl(JSContext* cx, const CallArgs& args);
   static bool resizableGetterImpl(JSContext* cx, const CallArgs& args);
   static bool detachedGetterImpl(JSContext* cx, const CallArgs& args);
-#ifdef NIGHTLY_BUILD
-  static bool immutableGetterImpl(JSContext* cx, const CallArgs& args);
-#endif
   static bool sliceImpl(JSContext* cx, const CallArgs& args);
-#ifdef NIGHTLY_BUILD
-  static bool sliceToImmutableImpl(JSContext* cx, const CallArgs& args);
-#endif
   static bool resizeImpl(JSContext* cx, const CallArgs& args);
   static bool transferImpl(JSContext* cx, const CallArgs& args);
   static bool transferToFixedLengthImpl(JSContext* cx, const CallArgs& args);
-#ifdef NIGHTLY_BUILD
-  static bool transferToImmutableImpl(JSContext* cx, const CallArgs& args);
-#endif
 
  public:
   static const uint8_t DATA_SLOT = 0;
@@ -295,19 +274,12 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
     // The length is temporarily pinned, so it should not be detached. In the
     // future, this will also prevent GrowableArrayBuffer/ResizeableArrayBuffer
     // from modifying the length while this is set.
-    PINNED_LENGTH = 0b100'0000,
-
-    // Immutable ArrayBuffer.
-    IMMUTABLE = 0b1000'0000,
+    PINNED_LENGTH = 0b100'0000
   };
 
   static_assert(JS_ARRAYBUFFER_DETACHED_FLAG == DETACHED,
                 "self-hosted code with burned-in constants must use the "
                 "correct DETACHED bit value");
-
-  static_assert(JS_ARRAYBUFFER_IMMUTABLE_FLAG == IMMUTABLE,
-                "self-hosted code with burned-in constants must use the "
-                "correct IMMUTABLE bit value");
 
  protected:
   enum class FillContents { Zero, Uninitialized };
@@ -318,8 +290,8 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
                                    AutoSetNewObjectMetadata&,
                                    JS::Handle<JSObject*> proto);
 
-  template <class ArrayBufferType, FillContents FillType>
-  static std::tuple<ArrayBufferType*, uint8_t*> createBufferAndData(
+  template <FillContents FillType>
+  static std::tuple<ArrayBufferObject*, uint8_t*> createBufferAndData(
       JSContext* cx, size_t nbytes, AutoSetNewObjectMetadata& metadata,
       JS::Handle<JSObject*> proto = nullptr);
 
@@ -332,7 +304,6 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
 
     friend class ArrayBufferObject;
     friend class ResizableArrayBufferObject;
-    friend class ImmutableArrayBufferObject;
 
     BufferContents(uint8_t* data, BufferKind kind,
                    JS::BufferContentsFreeFunc freeFunc = nullptr,
@@ -450,27 +421,15 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
 
   static bool detachedGetter(JSContext* cx, unsigned argc, Value* vp);
 
-#ifdef NIGHTLY_BUILD
-  static bool immutableGetter(JSContext* cx, unsigned argc, Value* vp);
-#endif
-
   static bool fun_isView(JSContext* cx, unsigned argc, Value* vp);
 
   static bool slice(JSContext* cx, unsigned argc, Value* vp);
-
-#ifdef NIGHTLY_BUILD
-  static bool sliceToImmutable(JSContext* cx, unsigned argc, Value* vp);
-#endif
 
   static bool resize(JSContext* cx, unsigned argc, Value* vp);
 
   static bool transfer(JSContext* cx, unsigned argc, Value* vp);
 
   static bool transferToFixedLength(JSContext* cx, unsigned argc, Value* vp);
-
-#ifdef NIGHTLY_BUILD
-  static bool transferToImmutable(JSContext* cx, unsigned argc, Value* vp);
-#endif
 
   static bool class_constructor(JSContext* cx, unsigned argc, Value* vp);
 
@@ -481,32 +440,28 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   static ArrayBufferObject* createForContents(JSContext* cx, size_t nbytes,
                                               BufferContents contents);
 
- protected:
-  template <class ArrayBufferType>
-  static ArrayBufferType* copy(JSContext* cx, size_t newByteLength,
-                               JS::Handle<ArrayBufferObject*> source);
+  static ArrayBufferObject* copy(JSContext* cx, size_t newByteLength,
+                                 JS::Handle<ArrayBufferObject*> source);
 
-  template <class ArrayBufferType>
-  static ArrayBufferType* copyAndDetach(JSContext* cx, size_t newByteLength,
-                                        JS::Handle<ArrayBufferObject*> source);
+  static ArrayBufferObject* copyAndDetach(
+      JSContext* cx, size_t newByteLength,
+      JS::Handle<ArrayBufferObject*> source);
 
  private:
-  template <class ArrayBufferType>
-  static ArrayBufferType* copyAndDetachSteal(
+  static ArrayBufferObject* copyAndDetachSteal(
       JSContext* cx, JS::Handle<ArrayBufferObject*> source);
 
-  template <class ArrayBufferType>
-  static ArrayBufferType* copyAndDetachRealloc(
+  static ArrayBufferObject* copyAndDetachRealloc(
       JSContext* cx, size_t newByteLength,
       JS::Handle<ArrayBufferObject*> source);
 
  public:
-  static FixedLengthArrayBufferObject* createZeroed(
-      JSContext* cx, size_t nbytes, HandleObject proto = nullptr);
+  static ArrayBufferObject* createZeroed(JSContext* cx, size_t nbytes,
+                                         HandleObject proto = nullptr);
 
   // Create an ArrayBufferObject that is safely finalizable and can later be
   // initialize()d to become a real, content-visible ArrayBufferObject.
-  static FixedLengthArrayBufferObject* createEmpty(JSContext* cx);
+  static ArrayBufferObject* createEmpty(JSContext* cx);
 
   // Create an ArrayBufferObject using the provided buffer and size.  Assumes
   // ownership of |buffer| even in case of failure, i.e. on failure |buffer|
@@ -616,7 +571,6 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   bool isResizable() const { return flags() & RESIZABLE; }
   bool isLengthPinned() const { return flags() & PINNED_LENGTH; }
   bool isPreparedForAsmJS() const { return flags() & FOR_ASMJS; }
-  bool isImmutable() const { return flags() & IMMUTABLE; }
 
   // Only WASM and asm.js buffers have a non-undefined [[ArrayBufferDetachKey]].
   //
@@ -673,8 +627,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   void setFlags(uint32_t flags);
 
   void setIsDetached() {
-    MOZ_ASSERT(!isLengthPinned());
-    MOZ_ASSERT(!isImmutable());
+    MOZ_ASSERT(!(flags() & PINNED_LENGTH));
     setFlags(flags() | DETACHED);
   }
   void setIsPreparedForAsmJS() {
@@ -726,20 +679,6 @@ class FixedLengthArrayBufferObject : public ArrayBufferObject {
       (NativeObject::MAX_FIXED_SLOTS - RESERVED_SLOTS) * sizeof(JS::Value);
 
   static const JSClass class_;
-
-  static FixedLengthArrayBufferObject* copy(
-      JSContext* cx, size_t newByteLength,
-      JS::Handle<ArrayBufferObject*> source) {
-    return ArrayBufferObject::copy<FixedLengthArrayBufferObject>(
-        cx, newByteLength, source);
-  }
-
-  static FixedLengthArrayBufferObject* copyAndDetach(
-      JSContext* cx, size_t newByteLength,
-      JS::Handle<ArrayBufferObject*> source) {
-    return ArrayBufferObject::copyAndDetach<FixedLengthArrayBufferObject>(
-        cx, newByteLength, source);
-  }
 };
 
 /**
@@ -819,66 +758,6 @@ class ResizableArrayBufferObject : public ArrayBufferObject {
   static ResizableArrayBufferObject* copyAndDetachSteal(
       JSContext* cx, size_t newByteLength,
       JS::Handle<ResizableArrayBufferObject*> source);
-};
-
-/**
- * ImmutableArrayBufferObject
- *
- * ArrayBuffer object with immutable length and contents. Supports all possible
- * memory stores for ArrayBuffer objects, including inline data, malloc'ed
- * memory, mapped memory, and user-owner memory.
- *
- * Immutable ArrayBuffers can neither be used for asm.js nor WebAssembly.
- */
-class ImmutableArrayBufferObject : public ArrayBufferObject {
-  friend class ArrayBufferObject;
-
-  static ImmutableArrayBufferObject* createEmpty(JSContext* cx);
-
- public:
-  static ImmutableArrayBufferObject* createZeroed(
-      JSContext* cx, size_t byteLength, Handle<JSObject*> proto = nullptr);
-
- private:
-  uint8_t* inlineDataPointer() const;
-
-  bool hasInlineData() const { return dataPointer() == inlineDataPointer(); }
-
-  void initialize(size_t byteLength, BufferContents contents) {
-    MOZ_ASSERT(contents.isAligned(byteLength));
-    setByteLength(byteLength);
-    setFlags(IMMUTABLE);
-    setFirstView(nullptr);
-    setDataPointer(contents);
-  }
-
- public:
-  // Immutable ArrayBuffer objects don't have any additional reserved slots.
-  static const uint8_t RESERVED_SLOTS = ArrayBufferObject::RESERVED_SLOTS;
-
-  /** The largest number of bytes that can be stored inline. */
-  static constexpr size_t MaxInlineBytes =
-      (NativeObject::MAX_FIXED_SLOTS - RESERVED_SLOTS) * sizeof(JS::Value);
-
-  static const JSClass class_;
-
-  static ImmutableArrayBufferObject* copy(
-      JSContext* cx, size_t newByteLength,
-      JS::Handle<ArrayBufferObject*> source) {
-    return ArrayBufferObject::copy<ImmutableArrayBufferObject>(
-        cx, newByteLength, source);
-  }
-
-  static ImmutableArrayBufferObject* copyAndDetach(
-      JSContext* cx, size_t newByteLength,
-      JS::Handle<ArrayBufferObject*> source) {
-    return ArrayBufferObject::copyAndDetach<ImmutableArrayBufferObject>(
-        cx, newByteLength, source);
-  }
-
-  static ImmutableArrayBufferObject* slice(
-      JSContext* cx, size_t newByteLength,
-      JS::Handle<ArrayBufferObject*> source, size_t sourceByteOffset);
 };
 
 size_t ArrayBufferObject::maxByteLength() const {
@@ -1094,8 +973,7 @@ class WasmArrayRawBuffer {
 template <>
 inline bool JSObject::is<js::ArrayBufferObject>() const {
   return is<js::FixedLengthArrayBufferObject>() ||
-         is<js::ResizableArrayBufferObject>() ||
-         is<js::ImmutableArrayBufferObject>();
+         is<js::ResizableArrayBufferObject>();
 }
 
 template <>

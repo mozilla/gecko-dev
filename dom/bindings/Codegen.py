@@ -5860,13 +5860,6 @@ def getJSToNativeConversionInfo(
             "%s" % (firstCap(sourceDescription), exceptionCode)
         )
 
-    def onFailureIsImmutable():
-        desc = firstCap(sourceDescription)
-        return CGGeneric(
-            f'cx.ThrowErrorMessage<MSG_TYPEDARRAY_IS_IMMUTABLE>("{desc}");\n'
-            f"{exceptionCode}"
-        )
-
     def onFailureNotCallable(failureCode):
         return CGGeneric(
             failureCode
@@ -6904,13 +6897,11 @@ def getJSToNativeConversionInfo(
                 isSharedMethod = "JS::IsSharedArrayBufferObject"
                 isLargeMethod = "JS::IsLargeArrayBufferMaybeShared"
                 isResizableMethod = "JS::IsResizableArrayBufferMaybeShared"
-                isImmutableMethod = "JS::IsImmutableArrayBufferMaybeShared"
             else:
                 assert type.isArrayBufferView() or type.isTypedArray()
                 isSharedMethod = "JS::IsArrayBufferViewShared"
                 isLargeMethod = "JS::IsLargeArrayBufferView"
                 isResizableMethod = "JS::IsResizableArrayBufferView"
-                isImmutableMethod = "JS::IsImmutableArrayBufferView"
             if not isAllowShared:
                 template += fill(
                     """
@@ -6947,18 +6938,6 @@ def getJSToNativeConversionInfo(
                 isResizableMethod=isResizableMethod,
                 objRef=objRef,
                 badType=onFailureIsResizable().define(),
-            )
-            # For now reject immutable ArrayBuffers. Supporting this will
-            # require changing dom::TypedArray and consumers.
-            template += fill(
-                """
-                if (${isImmutableMethod}(${objRef}.Obj())) {
-                  $*{badType}
-                }
-                """,
-                isImmutableMethod=isImmutableMethod,
-                objRef=objRef,
-                badType=onFailureIsImmutable().define(),
             )
         template = wrapObjectTemplate(
             template, type, "${declName}.SetNull();\n", failureCode

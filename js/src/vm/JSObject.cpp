@@ -639,11 +639,9 @@ bool js::TestIntegrityLevel(JSContext* cx, HandleObject obj,
       return false;
     }
 
-    // Typed array elements are configurable, writable properties if the backing
-    // buffer is mutable, so if any elements are present, the typed array can
-    // neither be sealed nor frozen.
+    // Typed array elements are configurable, writable properties, so if any
+    // elements are present, the typed array can neither be sealed nor frozen.
     if (nobj->is<TypedArrayObject>() &&
-        !nobj->is<ImmutableTypedArrayObject>() &&
         nobj->as<TypedArrayObject>().length().valueOr(0) > 0) {
       *result = false;
       return true;
@@ -2238,14 +2236,6 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
     if (!JS::Prefs::experimental_upsert() &&
         (id == NameToId(cx->names().getOrInsert) ||
          id == NameToId(cx->names().getOrInsertComputed))) {
-      return true;
-    }
-  }
-  if (key == JSProto_ArrayBuffer &&
-      !JS::Prefs::experimental_arraybuffer_immutable()) {
-    if (id == NameToId(cx->names().immutable) ||
-        id == NameToId(cx->names().sliceToImmutable) ||
-        id == NameToId(cx->names().transferToImmutable)) {
       return true;
     }
   }

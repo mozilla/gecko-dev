@@ -8769,50 +8769,33 @@ static constexpr bool ValidateSizeRange(Scalar::Type from, Scalar::Type to) {
 }
 
 void MacroAssembler::typedArrayElementSize(Register obj, Register output) {
-  static_assert(std::end(TypedArrayObject::fixedLengthClasses) ==
-                        std::begin(TypedArrayObject::immutableClasses) &&
-                    std::end(TypedArrayObject::immutableClasses) ==
-                        std::begin(TypedArrayObject::resizableClasses),
-                "TypedArray classes are in contiguous memory");
-
-  // Constexpr subtraction requires using elements of the same array, so we have
-  // to use `std::end` instead of `std::begin`. We still get the right results,
-  // because the classes are in contiguous memory, as asserted above.
-  constexpr ptrdiff_t diffFirstImmutableToFirstFixedLength =
-      std::end(TypedArrayObject::fixedLengthClasses) -
-      std::begin(TypedArrayObject::fixedLengthClasses);
-  constexpr ptrdiff_t diffFirstResizableToFirstImmutable =
-      std::end(TypedArrayObject::immutableClasses) -
-      std::begin(TypedArrayObject::immutableClasses);
-  constexpr ptrdiff_t diffFirstResizableToFirstFixedLength =
-      diffFirstResizableToFirstImmutable + diffFirstImmutableToFirstFixedLength;
-
   loadObjClassUnsafe(obj, output);
 
-  // Map immutable and resizable to fixed-length TypedArray classes.
-  Label fixedLength, immutable;
+  // Map resizable to fixed-length TypedArray classes.
+  Label fixedLength;
   branchPtr(Assembler::Below, output,
             ImmPtr(std::end(TypedArrayObject::fixedLengthClasses)),
             &fixedLength);
-  branchPtr(Assembler::Below, output,
-            ImmPtr(std::end(TypedArrayObject::immutableClasses)), &immutable);
   {
-    // NB: constexpr evaluation doesn't allow overflow, so the difference is
-    // guaranteed to fit into an int32.
-    constexpr int32_t diff = static_cast<int32_t>(
-        diffFirstResizableToFirstFixedLength * sizeof(JSClass));
+    MOZ_ASSERT(std::end(TypedArrayObject::fixedLengthClasses) ==
+                   std::begin(TypedArrayObject::resizableClasses),
+               "TypedArray classes are in contiguous memory");
 
-    subPtr(Imm32(diff), output);
-    jump(&fixedLength);
-  }
-  bind(&immutable);
-  {
-    // NB: constexpr evaluation doesn't allow overflow, so the difference is
-    // guaranteed to fit into an int32.
-    constexpr int32_t diff = static_cast<int32_t>(
-        diffFirstImmutableToFirstFixedLength * sizeof(JSClass));
+    const auto* firstFixedLengthTypedArrayClass =
+        std::begin(TypedArrayObject::fixedLengthClasses);
+    const auto* firstResizableTypedArrayClass =
+        std::begin(TypedArrayObject::resizableClasses);
 
-    subPtr(Imm32(diff), output);
+    MOZ_ASSERT(firstFixedLengthTypedArrayClass < firstResizableTypedArrayClass);
+
+    ptrdiff_t diff =
+        firstResizableTypedArrayClass - firstFixedLengthTypedArrayClass;
+
+    mozilla::CheckedInt<int32_t> checked = diff;
+    checked *= sizeof(JSClass);
+    MOZ_ASSERT(checked.isValid(), "pointer difference fits in int32");
+
+    subPtr(Imm32(int32_t(checked.value())), output);
   }
   bind(&fixedLength);
 
@@ -8971,9 +8954,7 @@ void MacroAssembler::branchIfClassIsNotTypedArray(Register clasp,
   const auto* lastTypedArrayClass =
       std::prev(std::end(TypedArrayObject::resizableClasses));
   MOZ_ASSERT(std::end(TypedArrayObject::fixedLengthClasses) ==
-                     std::begin(TypedArrayObject::immutableClasses) &&
-                 std::end(TypedArrayObject::immutableClasses) ==
-                     std::begin(TypedArrayObject::resizableClasses),
+                 std::begin(TypedArrayObject::resizableClasses),
              "TypedArray classes are in contiguous memory");
 
   branchPtr(Assembler::Below, clasp, ImmPtr(firstTypedArrayClass),
@@ -8982,18 +8963,14 @@ void MacroAssembler::branchIfClassIsNotTypedArray(Register clasp,
             notTypedArray);
 }
 
-void MacroAssembler::branchIfClassIsNotNonResizableTypedArray(
+void MacroAssembler::branchIfClassIsNotFixedLengthTypedArray(
     Register clasp, Label* notTypedArray) {
-  // Inline implementation of IsFixedLengthTypedArrayClass() and
-  // IsImmutableTypedArrayClass().
+  // Inline implementation of IsFixedLengthTypedArrayClass().
 
   const auto* firstTypedArrayClass =
       std::begin(TypedArrayObject::fixedLengthClasses);
   const auto* lastTypedArrayClass =
-      std::prev(std::end(TypedArrayObject::immutableClasses));
-  MOZ_ASSERT(std::end(TypedArrayObject::fixedLengthClasses) ==
-                 std::begin(TypedArrayObject::immutableClasses),
-             "TypedArray classes are in contiguous memory");
+      std::prev(std::end(TypedArrayObject::fixedLengthClasses));
 
   branchPtr(Assembler::Below, clasp, ImmPtr(firstTypedArrayClass),
             notTypedArray);
@@ -9014,61 +8991,6 @@ void MacroAssembler::branchIfClassIsNotResizableTypedArray(
             notTypedArray);
   branchPtr(Assembler::Above, clasp, ImmPtr(lastTypedArrayClass),
             notTypedArray);
-}
-
-void MacroAssembler::branchIfIsNotArrayBuffer(Register obj, Register temp,
-                                              Label* label) {
-  Label ok;
-
-  loadObjClassUnsafe(obj, temp);
-
-  branchPtr(Assembler::Equal, temp,
-            ImmPtr(&FixedLengthArrayBufferObject::class_), &ok);
-  branchPtr(Assembler::Equal, temp, ImmPtr(&ResizableArrayBufferObject::class_),
-            &ok);
-  branchPtr(Assembler::NotEqual, temp,
-            ImmPtr(&ImmutableArrayBufferObject::class_), label);
-
-  bind(&ok);
-
-  if (JitOptions.spectreObjectMitigations) {
-    spectreZeroRegister(Assembler::NotEqual, temp, obj);
-  }
-}
-
-void MacroAssembler::branchIfIsNotSharedArrayBuffer(Register obj, Register temp,
-                                                    Label* label) {
-  Label ok;
-
-  loadObjClassUnsafe(obj, temp);
-
-  branchPtr(Assembler::Equal, temp,
-            ImmPtr(&FixedLengthSharedArrayBufferObject::class_), &ok);
-  branchPtr(Assembler::NotEqual, temp,
-            ImmPtr(&GrowableSharedArrayBufferObject::class_), label);
-
-  bind(&ok);
-
-  if (JitOptions.spectreObjectMitigations) {
-    spectreZeroRegister(Assembler::NotEqual, temp, obj);
-  }
-}
-
-void MacroAssembler::branchIfIsArrayBufferMaybeShared(Register obj,
-                                                      Register temp,
-                                                      Label* label) {
-  loadObjClassUnsafe(obj, temp);
-
-  branchPtr(Assembler::Equal, temp,
-            ImmPtr(&FixedLengthArrayBufferObject::class_), label);
-  branchPtr(Assembler::Equal, temp,
-            ImmPtr(&FixedLengthSharedArrayBufferObject::class_), label);
-  branchPtr(Assembler::Equal, temp, ImmPtr(&ResizableArrayBufferObject::class_),
-            label);
-  branchPtr(Assembler::Equal, temp,
-            ImmPtr(&GrowableSharedArrayBufferObject::class_), label);
-  branchPtr(Assembler::Equal, temp, ImmPtr(&ImmutableArrayBufferObject::class_),
-            label);
 }
 
 void MacroAssembler::branchIfHasDetachedArrayBuffer(BranchIfDetached branchIf,

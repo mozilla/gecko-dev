@@ -646,20 +646,51 @@ void MacroAssembler::branchTestObjClass(Condition cond, Register obj,
   }
 }
 
-void MacroAssembler::branchTestClassIsFunction(Condition cond, Register clasp,
-                                               Label* label) {
+void MacroAssembler::branchTestClass(
+    Condition cond, Register clasp,
+    std::pair<const JSClass*, const JSClass*> classes, Label* label) {
   MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
 
   if (cond == Assembler::Equal) {
-    branchPtr(Assembler::Equal, clasp, ImmPtr(&FunctionClass), label);
-    branchPtr(Assembler::Equal, clasp, ImmPtr(&ExtendedFunctionClass), label);
+    branchPtr(Assembler::Equal, clasp, ImmPtr(classes.first), label);
+    branchPtr(Assembler::Equal, clasp, ImmPtr(classes.second), label);
     return;
   }
 
   Label isClass;
-  branchPtr(Assembler::Equal, clasp, ImmPtr(&FunctionClass), &isClass);
-  branchPtr(Assembler::NotEqual, clasp, ImmPtr(&ExtendedFunctionClass), label);
+  branchPtr(Assembler::Equal, clasp, ImmPtr(classes.first), &isClass);
+  branchPtr(Assembler::NotEqual, clasp, ImmPtr(classes.second), label);
   bind(&isClass);
+}
+
+void MacroAssembler::branchTestObjClass(
+    Condition cond, Register obj,
+    std::pair<const JSClass*, const JSClass*> classes, Register scratch,
+    Register spectreRegToZero, Label* label) {
+  MOZ_ASSERT(scratch != spectreRegToZero);
+
+  branchTestObjClassNoSpectreMitigations(cond, obj, classes, scratch, label);
+
+  if (JitOptions.spectreObjectMitigations) {
+    spectreZeroRegister(cond, scratch, spectreRegToZero);
+  }
+}
+
+void MacroAssembler::branchTestObjClassNoSpectreMitigations(
+    Condition cond, Register obj,
+    std::pair<const JSClass*, const JSClass*> classes, Register scratch,
+    Label* label) {
+  MOZ_ASSERT(cond == Assembler::Equal || cond == Assembler::NotEqual);
+  MOZ_ASSERT(obj != scratch);
+
+  loadObjClassUnsafe(obj, scratch);
+  branchTestClass(cond, scratch, classes, label);
+}
+
+void MacroAssembler::branchTestClassIsFunction(Condition cond, Register clasp,
+                                               Label* label) {
+  return branchTestClass(cond, clasp, {&FunctionClass, &ExtendedFunctionClass},
+                         label);
 }
 
 void MacroAssembler::branchTestObjIsFunction(Condition cond, Register obj,

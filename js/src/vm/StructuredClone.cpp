@@ -149,7 +149,6 @@ enum StructuredDataType : uint32_t {
 
   SCTAG_RESIZABLE_ARRAY_BUFFER_OBJECT,
   SCTAG_GROWABLE_SHARED_ARRAY_BUFFER_OBJECT,
-  SCTAG_IMMUTABLE_ARRAY_BUFFER_OBJECT,
 
   SCTAG_TYPED_ARRAY_V1_MIN = 0xFFFF0100,
   SCTAG_TYPED_ARRAY_V1_INT8 = SCTAG_TYPED_ARRAY_V1_MIN + Scalar::Int8,
@@ -1238,13 +1237,9 @@ bool JSStructuredCloneWriter::parseTransferable() {
 
     // External array buffers may be able to be transferred in the future,
     // but that is not currently implemented.
-    //
-    // Immutable array buffers can't be transferred, because they can't be
-    // detached.
 
     else if (unwrappedObj->is<ArrayBufferObject>()) {
-      if (unwrappedObj->as<ArrayBufferObject>().isExternal() ||
-          unwrappedObj->as<ArrayBufferObject>().isImmutable()) {
+      if (unwrappedObj->as<ArrayBufferObject>().isExternal()) {
         return reportDataCloneError(JS_SCERR_TRANSFERABLE);
       }
     }
@@ -1491,10 +1486,9 @@ bool JSStructuredCloneWriter::writeArrayBuffer(HandleObject obj) {
                                     obj->maybeUnwrapAs<ArrayBufferObject>());
   JSAutoRealm ar(context(), buffer);
 
-  StructuredDataType type =
-      buffer->isResizable()   ? SCTAG_RESIZABLE_ARRAY_BUFFER_OBJECT
-      : buffer->isImmutable() ? SCTAG_IMMUTABLE_ARRAY_BUFFER_OBJECT
-                              : SCTAG_ARRAY_BUFFER_OBJECT;
+  StructuredDataType type = !buffer->isResizable()
+                                ? SCTAG_ARRAY_BUFFER_OBJECT
+                                : SCTAG_RESIZABLE_ARRAY_BUFFER_OBJECT;
 
   if (!out.writePair(type, 0)) {
     return false;
@@ -2349,9 +2343,6 @@ bool JSStructuredCloneWriter::transferOwnership() {
           cx, obj->maybeUnwrapAs<ArrayBufferObject>());
       JSAutoRealm ar(cx, arrayBuffer);
 
-      MOZ_ASSERT(!arrayBuffer->isImmutable(),
-                 "Immutable array buffers can't be transferred");
-
       if (arrayBuffer->isDetached()) {
         reportDataCloneError(JS_SCERR_TYPED_ARRAY_DETACHED);
         return false;
@@ -2846,8 +2837,7 @@ bool JSStructuredCloneReader::readArrayBuffer(StructuredDataType type,
   // length separately to allow larger length values.
   uint64_t nbytes = 0;
   uint64_t maxbytes = 0;
-  if (type == SCTAG_ARRAY_BUFFER_OBJECT ||
-      type == SCTAG_IMMUTABLE_ARRAY_BUFFER_OBJECT) {
+  if (type == SCTAG_ARRAY_BUFFER_OBJECT) {
     if (!in.read(&nbytes)) {
       return false;
     }
@@ -2873,15 +2863,12 @@ bool JSStructuredCloneReader::readArrayBuffer(StructuredDataType type,
   }
 
   JSObject* obj;
-  if (type == SCTAG_RESIZABLE_ARRAY_BUFFER_OBJECT) {
-    obj = ResizableArrayBufferObject::createZeroed(context(), size_t(nbytes),
-                                                   size_t(maxbytes));
-  } else if (type == SCTAG_IMMUTABLE_ARRAY_BUFFER_OBJECT) {
-    MOZ_ASSERT(maxbytes == 0);
-    obj = ImmutableArrayBufferObject::createZeroed(context(), size_t(nbytes));
-  } else {
+  if (type != SCTAG_RESIZABLE_ARRAY_BUFFER_OBJECT) {
     MOZ_ASSERT(maxbytes == 0);
     obj = ArrayBufferObject::createZeroed(context(), size_t(nbytes));
+  } else {
+    obj = ResizableArrayBufferObject::createZeroed(context(), size_t(nbytes),
+                                                   size_t(maxbytes));
   }
   if (!obj) {
     return false;
@@ -3266,7 +3253,6 @@ bool JSStructuredCloneReader::startRead(MutableHandleValue vp,
     case SCTAG_ARRAY_BUFFER_OBJECT_V2:
     case SCTAG_ARRAY_BUFFER_OBJECT:
     case SCTAG_RESIZABLE_ARRAY_BUFFER_OBJECT:
-    case SCTAG_IMMUTABLE_ARRAY_BUFFER_OBJECT:
       if (!readArrayBuffer(StructuredDataType(tag), data, vp)) {
         return false;
       }
@@ -3567,8 +3553,7 @@ bool JSStructuredCloneReader::readTransferMap() {
       }
       if (tag != SCTAG_ARRAY_BUFFER_OBJECT_V2 &&
           tag != SCTAG_ARRAY_BUFFER_OBJECT &&
-          tag != SCTAG_RESIZABLE_ARRAY_BUFFER_OBJECT &&
-          tag != SCTAG_IMMUTABLE_ARRAY_BUFFER_OBJECT) {
+          tag != SCTAG_RESIZABLE_ARRAY_BUFFER_OBJECT) {
         ReportDataCloneError(cx, callbacks, JS_SCERR_TRANSFERABLE, closure);
         return false;
       }

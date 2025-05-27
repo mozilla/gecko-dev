@@ -184,8 +184,6 @@ class ArrayBufferViewObject : public NativeObject {
 
   bool hasResizableBuffer() const;
 
-  bool hasImmutableBuffer() const;
-
  private:
   bool hasDetachedBufferOrIsOutOfBounds() const {
     // Shared buffers can't be detached or get out-of-bounds.

@@ -44,7 +44,6 @@ FEATURE_CHECK_NEEDED = {
     "iterator-sequencing": "!Iterator.concat",
     "Math.sumPrecise": "!Math.sumPrecise",  # Bug 1918708
     "upsert": "!Map.prototype.getOrInsertComputed",
-    "immutable-arraybuffer": "!ArrayBuffer.prototype.sliceToImmutable",
 }
 RELEASE_OR_BETA = set(
     [
@@ -71,7 +70,6 @@ SHELL_OPTIONS = {
     "Math.sumPrecise": "--enable-math-sumprecise",
     "Atomics.waitAsync": "--setpref=atomics_wait_async",
     "upsert": "--enable-upsert",
-    "immutable-arraybuffer": "--enable-arraybuffer-immutable",
 }
 
 INCLUDE_FEATURE_DETECTED_OPTIONAL_SHELL_OPTIONS = {}

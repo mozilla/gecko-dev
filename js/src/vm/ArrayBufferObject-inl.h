@@ -38,13 +38,6 @@ inline bool ArrayBufferObjectMaybeShared::isResizable() const {
   return this->as<SharedArrayBufferObject>().isGrowable();
 }
 
-inline bool ArrayBufferObjectMaybeShared::isImmutable() const {
-  if (this->is<ArrayBufferObject>()) {
-    return this->as<ArrayBufferObject>().isImmutable();
-  }
-  return false;
-}
-
 inline size_t ArrayBufferObjectMaybeShared::byteLength() const {
   if (this->is<ArrayBufferObject>()) {
     return this->as<ArrayBufferObject>().byteLength();

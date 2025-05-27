@@ -5836,25 +5836,6 @@ void LIRGenerator::visitSmallObjectVariableKeyHasProp(
   assignSafepoint(lir, ins);
 }
 
-void LIRGenerator::visitGuardToArrayBuffer(MGuardToArrayBuffer* ins) {
-  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
-
-  auto* lir = new (alloc())
-      LGuardToArrayBuffer(useRegisterAtStart(ins->object()), temp());
-  assignSnapshot(lir, ins->bailoutKind());
-  defineReuseInput(lir, ins, 0);
-}
-
-void LIRGenerator::visitGuardToSharedArrayBuffer(
-    MGuardToSharedArrayBuffer* ins) {
-  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
-
-  auto* lir = new (alloc())
-      LGuardToSharedArrayBuffer(useRegisterAtStart(ins->object()), temp());
-  assignSnapshot(lir, ins->bailoutKind());
-  defineReuseInput(lir, ins, 0);
-}
-
 void LIRGenerator::visitGuardIsNotArrayBufferMaybeShared(
     MGuardIsNotArrayBufferMaybeShared* ins) {
   MOZ_ASSERT(ins->object()->type() == MIRType::Object);
@@ -5876,12 +5857,12 @@ void LIRGenerator::visitGuardIsTypedArray(MGuardIsTypedArray* ins) {
   redefine(ins, ins->object());
 }
 
-void LIRGenerator::visitGuardIsNonResizableTypedArray(
-    MGuardIsNonResizableTypedArray* ins) {
+void LIRGenerator::visitGuardIsFixedLengthTypedArray(
+    MGuardIsFixedLengthTypedArray* ins) {
   MOZ_ASSERT(ins->object()->type() == MIRType::Object);
 
   auto* lir = new (alloc())
-      LGuardIsNonResizableTypedArray(useRegister(ins->object()), temp());
+      LGuardIsFixedLengthTypedArray(useRegister(ins->object()), temp());
   assignSnapshot(lir, ins->bailoutKind());
   add(lir, ins);
   redefine(ins, ins->object());
@@ -6442,6 +6423,15 @@ void LIRGenerator::visitGuardToClass(MGuardToClass* ins) {
   MOZ_ASSERT(ins->type() == MIRType::Object);
   LGuardToClass* lir =
       new (alloc()) LGuardToClass(useRegisterAtStart(ins->object()), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  defineReuseInput(lir, ins, 0);
+}
+
+void LIRGenerator::visitGuardToEitherClass(MGuardToEitherClass* ins) {
+  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
+  MOZ_ASSERT(ins->type() == MIRType::Object);
+  auto* lir = new (alloc())
+      LGuardToEitherClass(useRegisterAtStart(ins->object()), temp());
   assignSnapshot(lir, ins->bailoutKind());
   defineReuseInput(lir, ins, 0);
 }

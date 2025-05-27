@@ -284,13 +284,6 @@ JS_PUBLIC_API bool IsLargeArrayBufferView(JSObject* obj);
 JS_PUBLIC_API bool IsResizableArrayBufferView(JSObject* obj);
 
 /*
- * Returns whether the passed array buffer view has an immutable array buffer.
- *
- * |obj| must pass a JS_IsArrayBufferViewObject test.
- */
-JS_PUBLIC_API bool IsImmutableArrayBufferView(JSObject* obj);
-
-/*
  * Given an ArrayBuffer or view, prevent the length of the underlying
  * ArrayBuffer from changing (with pin=true) until unfrozen (with
  * pin=false). Note that some objects (eg SharedArrayBuffers) cannot change
@@ -374,7 +367,6 @@ class JS_PUBLIC_API ArrayBufferOrView {
 
   bool isDetached() const;
   bool isResizable() const;
-  bool isImmutable() const;
 
   void exposeToActiveJS() const {
     if (obj) {
@@ -402,7 +394,6 @@ class JS_PUBLIC_API ArrayBufferOrView {
 class JS_PUBLIC_API ArrayBuffer : public ArrayBufferOrView {
   static const JSClass* const FixedLengthUnsharedClass;
   static const JSClass* const ResizableUnsharedClass;
-  static const JSClass* const ImmutableUnsharedClass;
   static const JSClass* const FixedLengthSharedClass;
   static const JSClass* const GrowableSharedClass;
 
@@ -414,8 +405,8 @@ class JS_PUBLIC_API ArrayBuffer : public ArrayBufferOrView {
     if (unwrapped) {
       const JSClass* clasp = GetClass(unwrapped);
       if (clasp == FixedLengthUnsharedClass ||
-          clasp == ResizableUnsharedClass || clasp == ImmutableUnsharedClass ||
-          clasp == FixedLengthSharedClass || clasp == GrowableSharedClass) {
+          clasp == ResizableUnsharedClass || clasp == FixedLengthSharedClass ||
+          clasp == GrowableSharedClass) {
         return ArrayBuffer(unwrapped);
       }
     }
@@ -450,7 +441,6 @@ class JS_PUBLIC_API ArrayBufferView : public ArrayBufferOrView {
 
   bool isDetached() const;
   bool isResizable() const;
-  bool isImmutable() const;
 
   mozilla::Span<uint8_t> getData(bool* isSharedMemory,
                                  const JS::AutoRequireNoGC&);
@@ -462,7 +452,6 @@ class JS_PUBLIC_API ArrayBufferView : public ArrayBufferOrView {
 class JS_PUBLIC_API DataView : public ArrayBufferView {
   static const JSClass* const FixedLengthClassPtr;
   static const JSClass* const ResizableClassPtr;
-  static const JSClass* const ImmutableClassPtr;
 
  protected:
   explicit DataView(JSObject* unwrapped) : ArrayBufferView(unwrapped) {}
@@ -471,8 +460,7 @@ class JS_PUBLIC_API DataView : public ArrayBufferView {
   static DataView fromObject(JSObject* unwrapped) {
     if (unwrapped) {
       const JSClass* clasp = GetClass(unwrapped);
-      if (clasp == FixedLengthClassPtr || clasp == ResizableClassPtr ||
-          clasp == ImmutableClassPtr) {
+      if (clasp == FixedLengthClassPtr || clasp == ResizableClassPtr) {
         return DataView(unwrapped);
       }
     }
@@ -498,7 +486,6 @@ class JS_PUBLIC_API TypedArray_base : public ArrayBufferView {
 
   static const JSClass* const fixedLengthClasses;
   static const JSClass* const resizableClasses;
-  static const JSClass* const immutableClasses;
 
  public:
   static TypedArray_base fromObject(JSObject* unwrapped);
@@ -532,10 +519,6 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
     return &TypedArray_base::resizableClasses[static_cast<int>(
         TypedArrayElementType)];
   }
-  static const JSClass* immutableClasp() {
-    return &TypedArray_base::immutableClasses[static_cast<int>(
-        TypedArrayElementType)];
-  }
 
  protected:
   explicit TypedArray(JSObject* unwrapped) : TypedArray_base(unwrapped) {}
@@ -555,8 +538,7 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
   static TypedArray fromObject(JSObject* unwrapped) {
     if (unwrapped) {
       const JSClass* clasp = GetClass(unwrapped);
-      if (clasp == fixedLengthClasp() || clasp == resizableClasp() ||
-          clasp == immutableClasp()) {
+      if (clasp == fixedLengthClasp() || clasp == resizableClasp()) {
         return TypedArray(unwrapped);
       }
     }

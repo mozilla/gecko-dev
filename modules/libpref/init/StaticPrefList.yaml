@@ -8725,13 +8725,6 @@
     mirror: always
     set_spidermonkey_pref: startup
 
-  # Experimental support for immutable ArrayBuffers in JavaScript.
--   name: javascript.options.experimental.arraybuffer_immutable
-    type: bool
-    value: false
-    mirror: always
-    set_spidermonkey_pref: startup
-
 #endif  // NIGHTLY_BUILD
 
 # Whether to Baseline-compile self-hosted functions the first time they are

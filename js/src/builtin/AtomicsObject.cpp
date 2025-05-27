@@ -51,12 +51,6 @@ static bool ReportDetachedArrayBuffer(JSContext* cx) {
   return false;
 }
 
-static bool ReportImmutableBuffer(JSContext* cx) {
-  JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                            JSMSG_ARRAYBUFFER_IMMUTABLE);
-  return false;
-}
-
 static bool ReportResizedArrayBuffer(JSContext* cx) {
   JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                             JSMSG_TYPED_ARRAY_RESIZED_BOUNDS);
@@ -70,15 +64,15 @@ static bool ReportOutOfRange(JSContext* cx) {
   return false;
 }
 
-enum class AccessMode { Read, Write };
-
-// ES2026 draft rev affcec07523a45d40fb668689c07657412e772ac
-// Plus: https://tc39.es/proposal-immutable-arraybuffer/
-// 25.4.3.1 ValidateIntegerTypedArray ( typedArray, waitable )
+// ES2021 draft rev bd868f20b8c574ad6689fba014b62a1dba819e56
+// Plus: https://github.com/tc39/ecma262/pull/1908
+// 24.4.1.1 ValidateIntegerTypedArray ( typedArray [ , waitable ] )
 static bool ValidateIntegerTypedArray(
-    JSContext* cx, HandleValue typedArray, bool waitable, AccessMode accessMode,
+    JSContext* cx, HandleValue typedArray, bool waitable,
     MutableHandle<TypedArrayObject*> unwrappedTypedArray) {
-  // Steps 1-2.
+  // Step 1 (implicit).
+
+  // Step 2.
   auto* unwrapped = UnwrapAndTypeCheckValue<TypedArrayObject>(
       cx, typedArray, [cx]() { ReportBadArrayType(cx); });
   if (!unwrapped) {
@@ -89,12 +83,7 @@ static bool ValidateIntegerTypedArray(
     return ReportDetachedArrayBuffer(cx);
   }
 
-  if (accessMode == AccessMode::Write &&
-      unwrapped->is<ImmutableTypedArrayObject>()) {
-    return ReportImmutableBuffer(cx);
-  }
-
-  // Steps 3-4.
+  // Steps 3-6.
   if (waitable) {
     switch (unwrapped->type()) {
       case Scalar::Int32:
@@ -119,7 +108,7 @@ static bool ValidateIntegerTypedArray(
     }
   }
 
-  // Step 5 (modified to return the TypedArray).
+  // Steps 7-9 (modified to return the TypedArray).
   unwrappedTypedArray.set(unwrapped);
   return true;
 }
@@ -264,12 +253,10 @@ struct ArrayOps<uint64_t> {
 // 24.4.4 Atomics.compareExchange ( typedArray, index, ... ), steps 1-2.
 // 24.4.9 Atomics.store ( typedArray, index, value ), steps 1-2.
 template <typename Op>
-static bool AtomicAccess(JSContext* cx, HandleValue obj, HandleValue index,
-                         AccessMode accessMode, Op op) {
+bool AtomicAccess(JSContext* cx, HandleValue obj, HandleValue index, Op op) {
   // Step 1.
   Rooted<TypedArrayObject*> unwrappedTypedArray(cx);
-  if (!ValidateIntegerTypedArray(cx, obj, false, accessMode,
-                                 &unwrappedTypedArray)) {
+  if (!ValidateIntegerTypedArray(cx, obj, false, &unwrappedTypedArray)) {
     return false;
   }
 
@@ -339,7 +326,7 @@ static bool atomics_compareExchange(JSContext* cx, unsigned argc, Value* vp) {
   HandleValue index = args.get(1);
 
   return AtomicAccess(
-      cx, typedArray, index, AccessMode::Write,
+      cx, typedArray, index,
       [cx, &args](auto ops, Handle<TypedArrayObject*> unwrappedTypedArray,
                   size_t index) {
         using T = typename decltype(ops)::Type;
@@ -376,7 +363,7 @@ static bool atomics_load(JSContext* cx, unsigned argc, Value* vp) {
   HandleValue index = args.get(1);
 
   return AtomicAccess(
-      cx, typedArray, index, AccessMode::Read,
+      cx, typedArray, index,
       [cx, &args](auto ops, Handle<TypedArrayObject*> unwrappedTypedArray,
                   size_t index) {
         using T = typename decltype(ops)::Type;
@@ -401,7 +388,7 @@ static bool atomics_store(JSContext* cx, unsigned argc, Value* vp) {
   HandleValue index = args.get(1);
 
   return AtomicAccess(
-      cx, typedArray, index, AccessMode::Write,
+      cx, typedArray, index,
       [cx, &args](auto ops, Handle<TypedArrayObject*> unwrappedTypedArray,
                   size_t index) {
         using T = typename decltype(ops)::Type;
@@ -431,7 +418,7 @@ static bool AtomicReadModifyWrite(JSContext* cx, const CallArgs& args,
   HandleValue index = args.get(1);
 
   return AtomicAccess(
-      cx, typedArray, index, AccessMode::Write,
+      cx, typedArray, index,
       [cx, &args, op](auto ops, Handle<TypedArrayObject*> unwrappedTypedArray,
                       size_t index) {
         using T = typename decltype(ops)::Type;
@@ -1316,8 +1303,7 @@ static bool DoWait(JSContext* cx, bool isAsync, HandleValue objv,
                    MutableHandleValue r) {
   // Steps 1-2.
   Rooted<TypedArrayObject*> unwrappedTypedArray(cx);
-  if (!ValidateIntegerTypedArray(cx, objv, true, AccessMode::Read,
-                                 &unwrappedTypedArray)) {
+  if (!ValidateIntegerTypedArray(cx, objv, true, &unwrappedTypedArray)) {
     return false;
   }
   MOZ_ASSERT(unwrappedTypedArray->type() == Scalar::Int32 ||
@@ -1486,8 +1472,7 @@ static bool atomics_notify(JSContext* cx, unsigned argc, Value* vp) {
 
   // Step 1.
   Rooted<TypedArrayObject*> unwrappedTypedArray(cx);
-  if (!ValidateIntegerTypedArray(cx, objv, true, AccessMode::Read,
-                                 &unwrappedTypedArray)) {
+  if (!ValidateIntegerTypedArray(cx, objv, true, &unwrappedTypedArray)) {
     return false;
   }
   MOZ_ASSERT(unwrappedTypedArray->type() == Scalar::Int32 ||
