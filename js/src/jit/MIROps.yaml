@@ -2355,6 +2355,28 @@
   alias_set: custom
   generate_lir: true
 
+- name: GuardToArrayBuffer
+  operands:
+    object: Object
+  result_type: Object
+  guard: true
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: none
+  generate_lir: true
+  lir_temps: 1
+
+- name: GuardToSharedArrayBuffer
+  operands:
+    object: Object
+  result_type: Object
+  guard: true
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: none
+  generate_lir: true
+  lir_temps: 1
+
 - name: GuardIsNotArrayBufferMaybeShared
   operands:
     object: Object

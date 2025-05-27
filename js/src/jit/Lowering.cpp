@@ -5836,6 +5836,25 @@ void LIRGenerator::visitSmallObjectVariableKeyHasProp(
   assignSafepoint(lir, ins);
 }
 
+void LIRGenerator::visitGuardToArrayBuffer(MGuardToArrayBuffer* ins) {
+  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
+
+  auto* lir = new (alloc())
+      LGuardToArrayBuffer(useRegisterAtStart(ins->object()), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  defineReuseInput(lir, ins, 0);
+}
+
+void LIRGenerator::visitGuardToSharedArrayBuffer(
+    MGuardToSharedArrayBuffer* ins) {
+  MOZ_ASSERT(ins->object()->type() == MIRType::Object);
+
+  auto* lir = new (alloc())
+      LGuardToSharedArrayBuffer(useRegisterAtStart(ins->object()), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  defineReuseInput(lir, ins, 0);
+}
+
 void LIRGenerator::visitGuardIsNotArrayBufferMaybeShared(
     MGuardIsNotArrayBufferMaybeShared* ins) {
   MOZ_ASSERT(ins->object()->type() == MIRType::Object);

@@ -8993,6 +8993,61 @@ void MacroAssembler::branchIfClassIsNotResizableTypedArray(
             notTypedArray);
 }
 
+void MacroAssembler::branchIfIsNotArrayBuffer(Register obj, Register temp,
+                                              Label* label) {
+  Label ok;
+
+  loadObjClassUnsafe(obj, temp);
+
+  branchPtr(Assembler::Equal, temp,
+            ImmPtr(&FixedLengthArrayBufferObject::class_), &ok);
+  branchPtr(Assembler::Equal, temp, ImmPtr(&ResizableArrayBufferObject::class_),
+            &ok);
+  branchPtr(Assembler::NotEqual, temp,
+            ImmPtr(&ImmutableArrayBufferObject::class_), label);
+
+  bind(&ok);
+
+  if (JitOptions.spectreObjectMitigations) {
+    spectreZeroRegister(Assembler::NotEqual, temp, obj);
+  }
+}
+
+void MacroAssembler::branchIfIsNotSharedArrayBuffer(Register obj, Register temp,
+                                                    Label* label) {
+  Label ok;
+
+  loadObjClassUnsafe(obj, temp);
+
+  branchPtr(Assembler::Equal, temp,
+            ImmPtr(&FixedLengthSharedArrayBufferObject::class_), &ok);
+  branchPtr(Assembler::NotEqual, temp,
+            ImmPtr(&GrowableSharedArrayBufferObject::class_), label);
+
+  bind(&ok);
+
+  if (JitOptions.spectreObjectMitigations) {
+    spectreZeroRegister(Assembler::NotEqual, temp, obj);
+  }
+}
+
+void MacroAssembler::branchIfIsArrayBufferMaybeShared(Register obj,
+                                                      Register temp,
+                                                      Label* label) {
+  loadObjClassUnsafe(obj, temp);
+
+  branchPtr(Assembler::Equal, temp,
+            ImmPtr(&FixedLengthArrayBufferObject::class_), label);
+  branchPtr(Assembler::Equal, temp,
+            ImmPtr(&FixedLengthSharedArrayBufferObject::class_), label);
+  branchPtr(Assembler::Equal, temp, ImmPtr(&ResizableArrayBufferObject::class_),
+            label);
+  branchPtr(Assembler::Equal, temp,
+            ImmPtr(&GrowableSharedArrayBufferObject::class_), label);
+  branchPtr(Assembler::Equal, temp, ImmPtr(&ImmutableArrayBufferObject::class_),
+            label);
+}
+
 void MacroAssembler::branchIfHasDetachedArrayBuffer(BranchIfDetached branchIf,
                                                     Register obj, Register temp,
                                                     Label* label) {
