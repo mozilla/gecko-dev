@@ -1678,7 +1678,10 @@ addUiaTask(
  * Test the Text pattern's TextSelectionChanged event.
  */
 addUiaTask(
-  `<input id="input" value="abc">`,
+  `
+<input id="input" value="abc">
+<div id="editable" contenteditable role="textbox"><p>de</p><p>f</p></div>
+  `,
   async function testTextTextSelectionChanged(browser) {
     info("Focusing input");
     await setUpWaitForUiaEvent("Text_TextSelectionChanged", "input");
@@ -1701,6 +1704,31 @@ addUiaTask(
     });
     await waitForUiaEvent();
     ok(true, "input got TextSelectionChanged event");
+
+    info("Focusing editable");
+    await setUpWaitForUiaEvent("Text_TextSelectionChanged", "editable");
+    await invokeContentTask(browser, [], () => {
+      content._editable = content.document.getElementById("editable");
+      content._editable.focus();
+    });
+    await waitForUiaEvent();
+    ok(true, "editable got TextSelectionChanged event");
+    info("Moving caret to e");
+    await setUpWaitForUiaEvent("Text_TextSelectionChanged", "editable");
+    await invokeContentTask(browser, [], () => {
+      content._de = content._editable.firstChild.firstChild;
+      content.getSelection().setBaseAndExtent(content._de, 1, content._de, 1);
+    });
+    await waitForUiaEvent();
+    ok(true, "editable got TextSelectionChanged event");
+    info("Selecting ef");
+    await setUpWaitForUiaEvent("Text_TextSelectionChanged", "editable");
+    await invokeContentTask(browser, [], () => {
+      const f = content._editable.children[1].firstChild;
+      content.getSelection().setBaseAndExtent(content._de, 1, f, 1);
+    });
+    await waitForUiaEvent();
+    ok(true, "editable got TextSelectionChanged event");
   }
 );
 
@@ -1708,7 +1736,13 @@ addUiaTask(
  * Test the Text pattern's TextChanged event.
  */
 addUiaTask(
-  `<input id="input" value="abc">`,
+  `
+<input id="input" value="abc">
+<div id="editable" contenteditable role="textbox">
+  <p id="de">de</p>
+  <p>f</p>
+</div>
+  `,
   async function testTextTextChanged(browser) {
     info("Focusing input");
     let moved = waitForEvent(EVENT_TEXT_CARET_MOVED, "input");
@@ -1730,6 +1764,27 @@ addUiaTask(
     });
     await waitForUiaEvent();
     ok(true, "input got TextChanged event");
+
+    info("Focusing editable");
+    moved = waitForEvent(EVENT_TEXT_CARET_MOVED, "de");
+    await invokeContentTask(browser, [], () => {
+      content.document.getElementById("editable").focus();
+    });
+    await moved;
+    info("Deleting a");
+    await setUpWaitForUiaEvent("Text_TextChanged", "editable");
+    await invokeContentTask(browser, [], () => {
+      content.document.execCommand("forwardDelete");
+    });
+    await waitForUiaEvent();
+    ok(true, "editable got TextChanged event");
+    info("Inserting a");
+    await setUpWaitForUiaEvent("Text_TextChanged", "editable");
+    await invokeContentTask(browser, [], () => {
+      content.document.execCommand("insertText", false, "a");
+    });
+    await waitForUiaEvent();
+    ok(true, "editable got TextChanged event");
   }
 );
 
