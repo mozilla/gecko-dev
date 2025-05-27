@@ -355,6 +355,7 @@ export class EditProfileCard extends MozLitElement {
             value=${t.id}
           >
             <profiles-theme-card
+              aria-hidden="true"
               .theme=${t}
               value=${t.id}
             ></profiles-theme-card>

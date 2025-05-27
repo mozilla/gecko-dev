@@ -64,7 +64,7 @@ export class ProfilesThemeCard extends MozLitElement {
       />
       <moz-card class="theme-card">
         <div class="theme-content">
-          <div class="img-holder">
+          <div class="img-holder" aria-hidden="true">
             <img alt="" />
           </div>
           <div
