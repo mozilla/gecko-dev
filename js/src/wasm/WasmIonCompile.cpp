@@ -586,7 +586,7 @@ class FunctionCompiler {
       return false;
     }
 
-    for (WasmABIArgIter i(args); !i.done(); i++) {
+    for (ABIArgIter i(args, ABIKind::Wasm); !i.done(); i++) {
       MaybeRefType argRefType;
       if (!args.isSyntheticStackResultPointerArg(i.index())) {
         ValType argType = ft.arg(i.index());
@@ -2613,12 +2613,14 @@ class FunctionCompiler {
     if (callState->isCatchable()) {
       ins = MWasmCallCatchable::New(
           alloc(), desc, callee, callState->regArgs,
-          StackArgAreaSizeUnaligned(argTypes), callState->tryNoteIndex,
-          callState->fallthroughBlock, callState->prePadBlock, addressOrRef);
+          StackArgAreaSizeUnaligned(argTypes, callState->abiKind),
+          callState->tryNoteIndex, callState->fallthroughBlock,
+          callState->prePadBlock, addressOrRef);
     } else {
-      ins = MWasmCallUncatchable::New(alloc(), desc, callee, callState->regArgs,
-                                      StackArgAreaSizeUnaligned(argTypes),
-                                      addressOrRef);
+      ins = MWasmCallUncatchable::New(
+          alloc(), desc, callee, callState->regArgs,
+          StackArgAreaSizeUnaligned(argTypes, callState->abiKind),
+          addressOrRef);
     }
     if (!ins) {
       return false;
@@ -2857,9 +2859,9 @@ class FunctionCompiler {
       return false;
     }
 
-    auto ins =
-        MWasmReturnCall::New(alloc(), desc, callee, callState.regArgs,
-                             StackArgAreaSizeUnaligned(argTypes), nullptr);
+    auto ins = MWasmReturnCall::New(
+        alloc(), desc, callee, callState.regArgs,
+        StackArgAreaSizeUnaligned(argTypes, callState.abiKind), nullptr);
     if (!ins) {
       return false;
     }
@@ -2887,9 +2889,9 @@ class FunctionCompiler {
       return false;
     }
 
-    auto* ins =
-        MWasmReturnCall::New(alloc(), desc, callee, callState.regArgs,
-                             StackArgAreaSizeUnaligned(argTypes), nullptr);
+    auto* ins = MWasmReturnCall::New(
+        alloc(), desc, callee, callState.regArgs,
+        StackArgAreaSizeUnaligned(argTypes, callState.abiKind), nullptr);
     if (!ins) {
       return false;
     }
@@ -2931,9 +2933,9 @@ class FunctionCompiler {
       return false;
     }
 
-    auto* ins =
-        MWasmReturnCall::New(alloc(), desc, callee, callState.regArgs,
-                             StackArgAreaSizeUnaligned(argTypes), address32);
+    auto* ins = MWasmReturnCall::New(
+        alloc(), desc, callee, callState.regArgs,
+        StackArgAreaSizeUnaligned(argTypes, callState.abiKind), address32);
     if (!ins) {
       return false;
     }
@@ -3024,9 +3026,9 @@ class FunctionCompiler {
                       CallSiteKind::Symbolic);
     auto callee = CalleeDesc::builtin(builtin.identity);
 
-    auto* ins =
-        MWasmCallUncatchable::New(alloc(), desc, callee, callState->regArgs,
-                                  StackArgAreaSizeUnaligned(builtin));
+    auto* ins = MWasmCallUncatchable::New(
+        alloc(), desc, callee, callState->regArgs,
+        StackArgAreaSizeUnaligned(builtin, callState->abiKind));
     if (!ins) {
       return false;
     }
@@ -3112,13 +3114,14 @@ class FunctionCompiler {
       ins = MWasmCallCatchable::NewBuiltinInstanceMethodCall(
           alloc(), desc, builtin.identity, builtin.failureMode,
           callState->instanceArg, callState->regArgs,
-          StackArgAreaSizeUnaligned(builtin), callState->tryNoteIndex,
-          callState->fallthroughBlock, callState->prePadBlock);
+          StackArgAreaSizeUnaligned(builtin, callState->abiKind),
+          callState->tryNoteIndex, callState->fallthroughBlock,
+          callState->prePadBlock);
     } else {
       ins = MWasmCallUncatchable::NewBuiltinInstanceMethodCall(
           alloc(), desc, builtin.identity, builtin.failureMode,
           callState->instanceArg, callState->regArgs,
-          StackArgAreaSizeUnaligned(builtin));
+          StackArgAreaSizeUnaligned(builtin, callState->abiKind));
     }
     if (!ins) {
       return false;
@@ -3318,8 +3321,9 @@ class FunctionCompiler {
       return false;
     }
 
-    auto* ins = MWasmReturnCall::New(alloc(), desc, callee, callState.regArgs,
-                                     StackArgAreaSizeUnaligned(argTypes), ref);
+    auto* ins = MWasmReturnCall::New(
+        alloc(), desc, callee, callState.regArgs,
+        StackArgAreaSizeUnaligned(argTypes, callState.abiKind), ref);
     if (!ins) {
       return false;
     }

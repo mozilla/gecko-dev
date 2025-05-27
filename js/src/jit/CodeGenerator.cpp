@@ -16407,7 +16407,8 @@ bool CodeGenerator::generateWasm(wasm::CallIndirectId callIndirectId,
 
   JitSpew(JitSpew_Codegen, "# Emitting wasm code");
 
-  size_t nInboundStackArgBytes = StackArgAreaSizeUnaligned(argTypes);
+  size_t nInboundStackArgBytes =
+      StackArgAreaSizeUnaligned(argTypes, ABIKind::Wasm);
   inboundStackArgBytes_ = nInboundStackArgBytes;
 
   perfSpewer_.markStartOffset(masm.currentOffset());

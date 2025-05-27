@@ -41,8 +41,8 @@ static inline MIRType ToMIRType(ABIType argType) {
   MOZ_CRASH("unexpected argType");
 }
 
-template <class VecT, jit::ABIKind Kind>
-class ABIArgIterBase {
+template <class VecT>
+class ABIArgIter {
   ABIArgGenerator gen_;
   const VecT& types_;
   unsigned i_;
@@ -52,8 +52,8 @@ class ABIArgIterBase {
   }
 
  public:
-  explicit ABIArgIterBase(const VecT& types)
-      : gen_(Kind), types_(types), i_(0) {
+  ABIArgIter(const VecT& types, ABIKind kind)
+      : gen_(kind), types_(types), i_(0) {
     settle();
   }
   void operator++(int) {
@@ -83,22 +83,6 @@ class ABIArgIterBase {
   uint32_t stackBytesConsumedSoFar() const {
     return gen_.stackBytesConsumedSoFar();
   }
-};
-
-// This is not an alias because we want to allow class template argument
-// deduction.
-template <class VecT>
-class ABIArgIter : public ABIArgIterBase<VecT, ABIKind::System> {
- public:
-  explicit ABIArgIter(const VecT& types)
-      : ABIArgIterBase<VecT, ABIKind::System>(types) {}
-};
-
-template <class VecT>
-class WasmABIArgIter : public ABIArgIterBase<VecT, ABIKind::Wasm> {
- public:
-  explicit WasmABIArgIter(const VecT& types)
-      : ABIArgIterBase<VecT, ABIKind::Wasm>(types) {}
 };
 
 }  // namespace js::jit

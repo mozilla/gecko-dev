@@ -68,7 +68,7 @@ bool wasm::CreateStackMapForFunctionEntryTrap(
 
 #ifndef DEBUG
   bool hasRefs = false;
-  for (WasmABIArgIter i(argTypes); !i.done(); i++) {
+  for (ABIArgIter i(argTypes, ABIKind::Wasm); !i.done(); i++) {
     if (i.mirType() == MIRType::WasmAnyRef) {
       hasRefs = true;
       break;
@@ -109,7 +109,7 @@ bool wasm::CreateStackMapForFunctionEntryTrap(
   const size_t stackArgOffset =
       (trapExitLayoutBytes + nBytesReservedBeforeTrap + nFrameBytes) /
       sizeof(void*);
-  for (WasmABIArgIter i(argTypes); !i.done(); i++) {
+  for (ABIArgIter i(argTypes, ABIKind::Wasm); !i.done(); i++) {
     ABIArg argLoc = *i;
     if (argLoc.kind() == ABIArg::Stack &&
         argTypes[i.index()] == MIRType::WasmAnyRef) {
@@ -142,7 +142,7 @@ bool wasm::GenerateStackmapEntriesForTrapExit(
     return false;
   }
 
-  for (WasmABIArgIter i(args); !i.done(); i++) {
+  for (ABIArgIter i(args, ABIKind::Wasm); !i.done(); i++) {
     if (!i->argInRegister() || i.mirType() != MIRType::WasmAnyRef) {
       continue;
     }
