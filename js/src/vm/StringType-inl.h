@@ -417,7 +417,21 @@ MOZ_ALWAYS_INLINE JSLinearString* JSDependentString::newImpl_(
   MOZ_ASSERT_IF(!base->hasTwoByteChars(),
                 !JSInlineString::lengthFits<JS::Latin1Char>(length));
 
+  // Invariant: if a tenured dependent string points to chars in the nursery,
+  // then the string must be in the store buffer.
+  //
+  // Refuse to create a chain tenured -> tenured -> nursery (with nursery
+  // chars). The same holds for anything else that might create length > 1
+  // chains of dependent strings.
+  bool mustContract;
   if constexpr (contract == JS::ContractBaseChain::Contract) {
+    mustContract = true;
+  } else {
+    auto& nursery = cx->runtime()->gc.nursery();
+    mustContract = nursery.isInside(base->nonInlineCharsRaw());
+  }
+
+  if (mustContract) {
     // Try to avoid long chains of dependent strings. We can't avoid these
     // entirely, however, due to how ropes are flattened.
     if (base->isDependent()) {
