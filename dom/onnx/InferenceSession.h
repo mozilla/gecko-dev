@@ -65,7 +65,6 @@ class InferenceSession final : public nsISupports, public nsWrapperCache {
       const Record<nsCString, OwningNonNull<Tensor>>& feeds,
       const InferenceSessionRunOptions& options, ErrorResult& aRv);
 
-
   void Destroy();
 
   // This implements "release()" in the JS API but needs to be renamed to
