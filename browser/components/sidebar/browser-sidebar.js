@@ -328,7 +328,7 @@ var SidebarController = {
     }
 
     this._pinnedTabsContainer = document.getElementById(
-      "pinned-tabs-container"
+      "vertical-pinned-tabs-container"
     );
     this._pinnedTabsItemsWrapper =
       this._pinnedTabsContainer.shadowRoot.querySelector(
@@ -2294,7 +2294,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
       } else {
         SidebarController._disablePinnedTabsDragging();
       }
-      SidebarController._state.updatePinnedTabsHeight();
     }
   }
 );
