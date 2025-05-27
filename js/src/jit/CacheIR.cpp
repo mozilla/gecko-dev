@@ -9545,8 +9545,16 @@ AttachDecision InlinableNativeIRGenerator::tryAttachReflectGetPrototypeOf() {
   return AttachDecision::Attach;
 }
 
+enum class AtomicAccess { Read, Write };
+
 static bool AtomicsMeetsPreconditions(TypedArrayObject* typedArray,
-                                      const Value& index) {
+                                      const Value& index, AtomicAccess access) {
+  // Can't write into immutable TypedArrays.
+  if (access == AtomicAccess::Write &&
+      typedArray->is<ImmutableTypedArrayObject>()) {
+    return false;
+  }
+
   switch (typedArray->type()) {
     case Scalar::Int8:
     case Scalar::Uint8:
@@ -9603,7 +9611,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsCompareExchange() {
   }
 
   auto* typedArray = &args_[0].toObject().as<TypedArrayObject>();
-  if (!AtomicsMeetsPreconditions(typedArray, args_[1])) {
+  if (!AtomicsMeetsPreconditions(typedArray, args_[1], AtomicAccess::Write)) {
     return AttachDecision::NoAction;
   }
 
@@ -9669,7 +9677,7 @@ bool InlinableNativeIRGenerator::canAttachAtomicsReadWriteModify() {
   }
 
   auto* typedArray = &args_[0].toObject().as<TypedArrayObject>();
-  if (!AtomicsMeetsPreconditions(typedArray, args_[1])) {
+  if (!AtomicsMeetsPreconditions(typedArray, args_[1], AtomicAccess::Write)) {
     return false;
   }
   if (!ValueCanConvertToNumeric(typedArray->type(), args_[2])) {
@@ -9845,7 +9853,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsLoad() {
   }
 
   auto* typedArray = &args_[0].toObject().as<TypedArrayObject>();
-  if (!AtomicsMeetsPreconditions(typedArray, args_[1])) {
+  if (!AtomicsMeetsPreconditions(typedArray, args_[1], AtomicAccess::Read)) {
     return AttachDecision::NoAction;
   }
 
@@ -9900,7 +9908,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachAtomicsStore() {
   }
 
   auto* typedArray = &args_[0].toObject().as<TypedArrayObject>();
-  if (!AtomicsMeetsPreconditions(typedArray, args_[1])) {
+  if (!AtomicsMeetsPreconditions(typedArray, args_[1], AtomicAccess::Write)) {
     return AttachDecision::NoAction;
   }
 
