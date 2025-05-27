@@ -371,6 +371,10 @@
   <string name="juno_onboarding_enable_notifications_negative_button" tools:ignore="UnusedResources">Mitte praegu</string>
   <!-- Text for the button to dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Mitte praegu</string>
+  <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_title">Vearaporteid saadetakse automaatselt</string>
+  <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_description">Vearaportid võimaldavad meil diagnoosida ja lahendada veebilehitseja probleeme. Aruanded võivad sisaldada isikuandmeid või tundlikke andmeid.</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Rohkem teavet</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Rohkem teavet</string>
@@ -646,8 +650,19 @@
   <string name="exceptions_empty_message_description">Erandid võimaldavad valitud saitidel jälitamisvastase kaitse keelata.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Rohkem teavet</string>
+  <!-- Preference switch for usage and technical data collection -->
+  <string name="preference_usage_data_2">Saadetakse tehnilisi ja interaktsiooniandmeid</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">Lisateave</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Andmed sinu seadme, riistvara konfiguratsiooni ja kasutuse kohta aitavad meil Firefoxi funktsioone, jõudlust ja stabiilsust täiustada.</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">Igapäevane kasutusping</string>
+  <string name="preferences_daily_usage_ping_learn_more">Rohkem teavet igapäevasest kasutuspingust</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">Vearaporteid saadetakse automaatselt</string>
+  <!-- Learn more link for crash reporting preference -->
+  <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Rohkem teavet vearaportitest</string>
   <!-- Title for studies preferences -->
   <string name="preference_experiments_2">Uuringud</string>
   <!-- Summary for studies preferences -->
@@ -798,6 +813,10 @@
   <string name="studies_remove">Eemalda</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Praegu toimuvad</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">Proovi funktsioone ja ideid enne, kui need kõigile avaldatakse.</string>
+  <!-- Title of the Studies data preference -->
+  <string name="studies_title">Uuringute paigaldamine ja käivitamine</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">Rohkem teavet</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -1172,6 +1191,12 @@
   <string name="studies_on">Sees</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Väljas</string>
+  <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
+  <string name="preferences_category_permissions">Õigused</string>
+  <!-- Category header of a preference that allows a user to alter settings related to web content. -->
+  <string name="preferences_category_content">Sisu</string>
+  <!-- Preference for altering the default browsing mode. When enabled, the desktop site will always be requested. -->
+  <string name="preference_feature_desktop_mode_default">Küsitakse alati töölaua versiooni</string>
   <!--
     Collections
 
@@ -1351,6 +1376,8 @@
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d aadressi</string>
+  <!-- Title for the cookies and site data items in Delete browsing data -->
+  <string name="preferences_delete_browsing_data_cookies_and_site_data">Küpsised ja saidi andmed</string>
   <!-- Subtitle for the cookies item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cookies_subtitle">Sind logitakse enamikest saitidest välja</string>
   <!-- Title for the cached images and files item in Delete browsing data -->
@@ -1366,7 +1393,7 @@
   <!-- Title for the Delete browsing data on quit preference -->
   <string name="preferences_delete_browsing_data_on_quit">Lehitsemisandmete kustutamine väljumisel</string>
   <!-- Summary for the Delete browsing data on quit preference. "Quit" translation should match delete_browsing_data_on_quit_action translation. -->
-  <string name="preference_summary_delete_browsing_data_on_quit_2">Peamenüüst \\Välju\" valimisel kustutatakse lehitsemise ajalugu automaatselt</string>
+  <string name="preference_summary_delete_browsing_data_on_quit_2">Peamenüüst \"Välju\" valimisel kustutatakse lehitsemise ajalugu automaatselt</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">Välju</string>
   <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
@@ -1437,6 +1464,8 @@
   <string name="etp_settings">Kaitse sätted</string>
   <!-- Preference title for enhanced tracking protection settings -->
   <string name="preference_enhanced_tracking_protection">Täiustatud jälitamisvastane kaitse</string>
+  <!-- Preference summary for enhanced tracking protection settings on/off switch -->
+  <string name="preference_enhanced_tracking_protection_summary">Nüüd täieliku küpsiste kaitsega – meie seni võimsaim tõke saitideüleste jälitajate vastu.</string>
   <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
   <string name="preference_enhanced_tracking_protection_explanation_2">%s kaitseb sind paljude tuntud jälitajate eest, kes jälgivad, mida sa võrgus olles teed.</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
@@ -2103,6 +2132,8 @@
   <string name="download_language_file_dialog_positive_button_text_all_languages">Laadi alla ja tõlgi</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">Loobu</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">Õigused</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
   <string name="clear_site_data_dialog_negative_button_text">Loobu</string>
 </resources>

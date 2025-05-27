@@ -428,11 +428,25 @@
   -->
   <string name="search_engine_icon_content_description_1">موتور پیتینیڌن: %s</string>
   <!--
+    Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    %s is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
+  -->
+  <string name="search_engine_selector_content_description">%s: پسند کوݩ موتور پیتینیڌن</string>
+  <!--
     Home onboarding
 
     Home onboarding dialog welcome screen title text.
   -->
   <string name="onboarding_home_welcome_title_2">و اینترنتی سیخومی تر خش ٱوۊڌین</string>
+  <!-- Home onboarding dialog welcome screen description text. -->
+  <string name="onboarding_home_welcome_description">رنگا قلوه. هریم سیخومی بؽڌر. تعهود ی جۊر و زایار وو منافع.</string>
+  <!-- Home onboarding dialog sign into sync screen title text. -->
+  <string name="onboarding_home_sync_title_3">آلشت بلگه یل نیشتگر ز همیشه راهت تر هڌ</string>
+  <!-- Home onboarding dialog sign into sync screen description text. -->
+  <string name="onboarding_home_sync_description">ز اۊچونا ک بلگه یل تووݩ ن هیشتین، سکو من بلگه هووه ای تووݩ رین ز دینس.</string>
+  <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
+  <string name="onboarding_home_get_started_button">ناهاڌن پا کار</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
   <string name="onboarding_home_sign_in_button">و من ٱووڌن</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
@@ -456,6 +470,8 @@
   <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">مولتفت بۊین ک سیچه ملیووا آڌوم Firefox ن اخون</string>
   <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">گشتن ٱمن وا پسندا قلوه</string>
+  <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+  <string name="juno_onboarding_default_browser_description_nimbus_3">گشت گر ن سۊد بر ایما و ایسا هیاری اده تا شرکتا نترسته بۊن ایسا ن بؽڌاری من وب بنیرن وو و دین کونن.</string>
   <!-- Text for the button to set firefox as default browser on the device -->
   <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">سامووݩ و عونوان گشت گر پؽش فرز</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -494,35 +510,35 @@
     Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
   -->
-  <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">سیخومی کردن Firefox وا وردنی یل</string>
+  <string name="onboarding_add_on_header" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">سیخومی کردن Firefox وا وردنی یل</string>
   <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">ٱووردن وردنی یل شخس سالس سی وا روء بوردن ٱمنیت، و کار گیری وو بیشتر.</string>
+  <string name="onboarding_add_on_sub_header" moz:removedIn="140" tools:ignore="UnusedResources">ٱووردن وردنی یل شخس سالس سی وا روء بوردن ٱمنیت، و کار گیری وو بیشتر.</string>
   <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_explore_more_extensions_2">جوستن وردنی یل قلوه</string>
+  <string name="onboarding_add_on_explore_more_extensions_2" moz:removedIn="140" tools:ignore="UnusedResources">جوستن وردنی یل قلوه</string>
   <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_start_browsing_button_2">ناهاڌن پا گشتن</string>
+  <string name="onboarding_add_on_start_browsing_button_2" moz:removedIn="140" tools:ignore="UnusedResources">ناهاڌن پا گشتن</string>
   <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+  <string name="onboarding_add_on_ublock_name" moz:removedIn="140" tools:ignore="UnusedResources">uBlock Origin</string>
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+  <string name="onboarding_add_on_privacy_badger_name" moz:removedIn="140" tools:ignore="UnusedResources">Privacy Badger</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">پیتینیڌن ز ری شؽوات</string>
+  <string name="onboarding_add_on_search_by_image_name" moz:removedIn="140" tools:ignore="UnusedResources">پیتینیڌن ز ری شؽوات</string>
   <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
+  <string name="onboarding_add_on_dark_reader_name" moz:removedIn="140" tools:ignore="UnusedResources">Dark Reader</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">هالت تاریک سفارشی سی وب موبایل.</string>
+  <string name="onboarding_add_on_dark_reader_description" moz:removedIn="140" tools:ignore="UnusedResources">هالت تاریک سفارشی سی وب موبایل.</string>
   <!-- Label for the number of reviews for an add-on. %1$s is the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
-  <string name="onboarding_add_on_reviews_label">واجۊریا: %1$s</string>
+  <string name="onboarding_add_on_reviews_label" moz:removedIn="140" tools:ignore="UnusedResources">واجۊریا: %1$s</string>
   <!-- Content description for the add-on icon. -->
-  <string name="onboarding_add_on_icon_content_description">آیکون وردنی</string>
+  <string name="onboarding_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">آیکون وردنی</string>
   <!-- Content description for the an installed add-on icon. -->
-  <string name="onboarding_installed_add_on_icon_content_description">آیکون وردنی پۊرسته</string>
+  <string name="onboarding_installed_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">آیکون وردنی پۊرسته</string>
   <!-- Content description for the an installing add-on icon. -->
-  <string name="onboarding_installing_add_on_icon_content_description">آیکون هونی اپۊره وردنی</string>
+  <string name="onboarding_installing_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">آیکون هونی اپۊره وردنی</string>
   <!-- Content description for the add add-on button. -->
-  <string name="onboarding_add_on_add_button_content_description">دویمه ٱووردن وردنی</string>
+  <string name="onboarding_add_on_add_button_content_description" moz:removedIn="140" tools:ignore="UnusedResources">دویمه ٱووردن وردنی</string>
   <!-- Content description for the star rating group. %1$s is the rating. -->
-  <string name="onboarding_add_on_star_rating_content_description">نومره داڌه وابیڌه: %1$s ز 5</string>
+  <string name="onboarding_add_on_star_rating_content_description" moz:removedIn="140" tools:ignore="UnusedResources">نومره داڌه وابیڌه: %1$s ز 5</string>
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">ایما ن هیاری بڌین Firefox ن بؽڌر کۊنیم</string>
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->

@@ -575,41 +575,41 @@
     Onboarding header for the add-ons card used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
   -->
-  <string name="onboarding_add_on_header" tools:ignore="BrandUsage,UnusedResources">Cyfaddaswch eich Firefox gydag estyniadau</string>
+  <string name="onboarding_add_on_header" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Cyfaddaswch eich Firefox gydag estyniadau</string>
   <!-- Onboarding sub header for the add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_sub_header" tools:ignore="UnusedResources">Ychwanegwch estyniadau trydydd parti i wella eich diogelwch, cynhyrchiant, a mwy.</string>
+  <string name="onboarding_add_on_sub_header" moz:removedIn="140" tools:ignore="UnusedResources">Ychwanegwch estyniadau trydydd parti i wella eich diogelwch, cynhyrchiant, a mwy.</string>
   <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_explore_more_extensions_2">Gweld rhagor o estyniadau</string>
+  <string name="onboarding_add_on_explore_more_extensions_2" moz:removedIn="140" tools:ignore="UnusedResources">Gweld rhagor o estyniadau</string>
   <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_start_browsing_button_2">Dechreuwch bori</string>
+  <string name="onboarding_add_on_start_browsing_button_2" moz:removedIn="140" tools:ignore="UnusedResources">Dechreuwch bori</string>
   <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+  <string name="onboarding_add_on_ublock_name" moz:removedIn="140" tools:ignore="UnusedResources">uBlock Origin</string>
   <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Yn rhwystro hysbysebion yn effeithiol ac yn effeithlon.</string>
+  <string name="onboarding_add_on_ublock_description" moz:removedIn="140" tools:ignore="UnusedResources">Yn rhwystro hysbysebion yn effeithiol ac yn effeithlon.</string>
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+  <string name="onboarding_add_on_privacy_badger_name" moz:removedIn="140" tools:ignore="UnusedResources">Privacy Badger</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Gwrth-olrheiniwr gwych. Stopiwch dracwyr anweledig a hysbysebion ysbïo.</string>
+  <string name="onboarding_add_on_privacy_badger_description" moz:removedIn="140" tools:ignore="UnusedResources">Gwrth-olrheiniwr gwych. Stopiwch dracwyr anweledig a hysbysebion ysbïo.</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Chwilio yn ôl Delwedd</string>
+  <string name="onboarding_add_on_search_by_image_name" moz:removedIn="140" tools:ignore="UnusedResources">Chwilio yn ôl Delwedd</string>
   <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Edrychwch ar lun diddorol a dysgu mwy amdano.</string>
+  <string name="onboarding_add_on_search_by_image_description" moz:removedIn="140" tools:ignore="UnusedResources">Edrychwch ar lun diddorol a dysgu mwy amdano.</string>
   <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Darllenydd Tywyll</string>
+  <string name="onboarding_add_on_dark_reader_name" moz:removedIn="140" tools:ignore="UnusedResources">Darllenydd Tywyll</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Modd tywyll cyfaddas ar gyfer y we symudol.</string>
+  <string name="onboarding_add_on_dark_reader_description" moz:removedIn="140" tools:ignore="UnusedResources">Modd tywyll cyfaddas ar gyfer y we symudol.</string>
   <!-- Label for the number of reviews for an add-on. %1$s is the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
-  <string name="onboarding_add_on_reviews_label">Adolygiadau: %1$s</string>
+  <string name="onboarding_add_on_reviews_label" moz:removedIn="140" tools:ignore="UnusedResources">Adolygiadau: %1$s</string>
   <!-- Content description for the add-on icon. -->
-  <string name="onboarding_add_on_icon_content_description">Eicon ychwanegyn</string>
+  <string name="onboarding_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Eicon ychwanegyn</string>
   <!-- Content description for the an installed add-on icon. -->
-  <string name="onboarding_installed_add_on_icon_content_description">Eicon ychwanegyn wedi\'i osod</string>
+  <string name="onboarding_installed_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Eicon ychwanegyn wedi\'i osod</string>
   <!-- Content description for the an installing add-on icon. -->
-  <string name="onboarding_installing_add_on_icon_content_description">Yn gosod eicon ychwanegyn</string>
+  <string name="onboarding_installing_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Yn gosod eicon ychwanegyn</string>
   <!-- Content description for the add add-on button. -->
-  <string name="onboarding_add_on_add_button_content_description">Ychwanegu botwm ychwanegyn</string>
+  <string name="onboarding_add_on_add_button_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Ychwanegu botwm ychwanegyn</string>
   <!-- Content description for the star rating group. %1$s is the rating. -->
-  <string name="onboarding_add_on_star_rating_content_description">Graddiwyd %1$s allan o 5</string>
+  <string name="onboarding_add_on_star_rating_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Graddiwyd %1$s allan o 5</string>
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Helpwch ni i wneud Firefox yn well</string>
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
@@ -777,7 +777,7 @@
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
   <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Gweld tabiau gydag ôl bys, datgloi wyneb, neu PIN.</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
-  <string name="preferences_pbm_lock_screen_summary_2">Gweld tabiau gyda\'ch olion bysedd, PIN, neu ddatgloi wynebau.</string>
+  <string name="preferences_pbm_lock_screen_summary_2">Gweld tabiau gydag ôl bys, datgloi wyneb, neu PIN.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Rhwystrydd Baneri Cwcis</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1666,9 +1666,9 @@
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Gwefan yn araf neu ddim yn gweithio</string>
   <!-- Broken site reason text for site doesn’t load -->
-  <string name="webcompat_reporter_reason_load">Nid yw\'r wefan yn llwytho</string>
+  <string name="webcompat_reporter_reason_load">Dyw\'r wefan ddim yn llwytho</string>
   <!-- Broken site reason text for can’t pay, check out or shop -->
-  <string name="webcompat_reporter_reason_checkout">Methu talu, siec na siopa</string>
+  <string name="webcompat_reporter_reason_checkout">Methu talu, allgofnodi na siopa</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Delweddau neu fideos</string>
   <!-- Broken site reason text for buttons, links, and other content -->
@@ -1676,9 +1676,9 @@
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Mewngofnodi neu allgofnodi</string>
   <!-- Broken site reason text for site is slow -->
-  <string name="webcompat_reporter_reason_slow2">Safle yn araf</string>
+  <string name="webcompat_reporter_reason_slow2">Gwefan yn araf</string>
   <!-- Broken site reason text for video isn’t playing or loading -->
-  <string name="webcompat_reporter_reason_media2">Nid yw fideo yn chwarae nac yn llwytho</string>
+  <string name="webcompat_reporter_reason_media2">Dyw\'r fideo ddim yn chwarae nac yn llwytho</string>
   <!-- Broken site reason text for missing content -->
   <string name="webcompat_reporter_reason_content2">Cynnwys ar goll</string>
   <!-- Broken site reason text for can’t sign in or register -->
@@ -1686,9 +1686,9 @@
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Rhwystrydd hysbysebion</string>
   <!-- Broken site reason text for site asked to turn off ad blocker -->
-  <string name="webcompat_reporter_reason_turn_off_adblocker">Gofynnwyd i\'r wefan ddiffodd yr atalydd hysbysebion</string>
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Gofynnodd y wefan i ddiffodd y rhwystrydd hysbysebion</string>
   <!-- Broken site reason text for browser isn’t supported or blocked -->
-  <string name="webcompat_reporter_reason_notsupported">Nid yw\'r porwr yn cael ei gefnogi na\'i rwystro</string>
+  <string name="webcompat_reporter_reason_notsupported">Dyw\'r porwr ddim yn cael ei gefnogi na\'i rwystro</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Rhywbeth arall</string>
   <!--
