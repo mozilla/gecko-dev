@@ -1684,38 +1684,64 @@ function getSizeInBytes(x) {
 
 ;// ./external/qcms/qcms_utils.js
 class QCMS {
-  static _module = null;
+  static #memoryArray = null;
+  static _memory = null;
   static _mustAddAlpha = false;
   static _destBuffer = null;
+  static _destOffset = 0;
+  static _destLength = 0;
+  static _cssColor = "";
+  static _makeHexColor = null;
+  static get _memoryArray() {
+    const array = this.#memoryArray;
+    if (array?.byteLength) {
+      return array;
+    }
+    return this.#memoryArray = new Uint8Array(this._memory.buffer);
+  }
 }
 function copy_result(ptr, len) {
   const {
-    _module,
     _mustAddAlpha,
-    _destBuffer
+    _destBuffer,
+    _destOffset,
+    _destLength,
+    _memoryArray
   } = QCMS;
-  const result = new Uint8Array(_module.memory.buffer, ptr, len);
-  if (result.length === _destBuffer.length) {
-    _destBuffer.set(result);
+  if (len === _destLength) {
+    _destBuffer.set(_memoryArray.subarray(ptr, ptr + len), _destOffset);
     return;
   }
   if (_mustAddAlpha) {
-    for (let i = 0, j = 0, ii = result.length; i < ii; i += 3, j += 4) {
-      _destBuffer[j] = result[i];
-      _destBuffer[j + 1] = result[i + 1];
-      _destBuffer[j + 2] = result[i + 2];
+    for (let i = ptr, ii = ptr + len, j = _destOffset; i < ii; i += 3, j += 4) {
+      _destBuffer[j] = _memoryArray[i];
+      _destBuffer[j + 1] = _memoryArray[i + 1];
+      _destBuffer[j + 2] = _memoryArray[i + 2];
       _destBuffer[j + 3] = 255;
     }
   } else {
-    for (let i = 0, j = 0, ii = result.length; i < ii; i += 3, j += 4) {
-      _destBuffer[j] = result[i];
-      _destBuffer[j + 1] = result[i + 1];
-      _destBuffer[j + 2] = result[i + 2];
+    for (let i = ptr, ii = ptr + len, j = _destOffset; i < ii; i += 3, j += 4) {
+      _destBuffer[j] = _memoryArray[i];
+      _destBuffer[j + 1] = _memoryArray[i + 1];
+      _destBuffer[j + 2] = _memoryArray[i + 2];
     }
   }
 }
 function copy_rgb(ptr) {
-  QCMS._destBuffer.set(new Uint8Array(QCMS._module.memory.buffer, ptr, 3));
+  const {
+    _destBuffer,
+    _destOffset,
+    _memoryArray
+  } = QCMS;
+  _destBuffer[_destOffset] = _memoryArray[ptr];
+  _destBuffer[_destOffset + 1] = _memoryArray[ptr + 1];
+  _destBuffer[_destOffset + 2] = _memoryArray[ptr + 2];
+}
+function make_cssRGB(ptr) {
+  const {
+    _memoryArray
+  } = QCMS;
+  QCMS._cssColor = QCMS._makeHexColor(_memoryArray[ptr], _memoryArray[ptr + 1], _memoryArray[ptr + 2]);
 }
 
 ;// ./external/qcms/qcms.js
@@ -1756,14 +1782,14 @@ function qcms_convert_array(transformer, src) {
   const len0 = WASM_VECTOR_LEN;
   wasm.qcms_convert_array(transformer, ptr0, len0);
 }
-function qcms_convert_one(transformer, src) {
-  wasm.qcms_convert_one(transformer, src);
+function qcms_convert_one(transformer, src, css) {
+  wasm.qcms_convert_one(transformer, src, css);
 }
-function qcms_convert_three(transformer, src1, src2, src3) {
-  wasm.qcms_convert_three(transformer, src1, src2, src3);
+function qcms_convert_three(transformer, src1, src2, src3, css) {
+  wasm.qcms_convert_three(transformer, src1, src2, src3, css);
 }
-function qcms_convert_four(transformer, src1, src2, src3, src4) {
-  wasm.qcms_convert_four(transformer, src1, src2, src3, src4);
+function qcms_convert_four(transformer, src1, src2, src3, src4, css) {
+  wasm.qcms_convert_four(transformer, src1, src2, src3, src4, css);
 }
 function qcms_transformer_from_memory(mem, in_type, intent) {
   const ptr0 = passArray8ToWasm0(mem, wasm.__wbindgen_malloc);
@@ -1834,6 +1860,9 @@ function __wbg_get_imports() {
   imports.wbg.__wbg_copyrgb_d60ce17bb05d9b67 = function (arg0) {
     copy_rgb(arg0 >>> 0);
   };
+  imports.wbg.__wbg_makecssRGB_893bf0cd9fdb302d = function (arg0) {
+    make_cssRGB(arg0 >>> 0);
+  };
   imports.wbg.__wbindgen_init_externref_table = function () {
     const table = wasm.__wbindgen_export_0;
     const offset = table.grow(4);
@@ -1885,12 +1914,6 @@ async function __wbg_init(module_or_path) {
     } else {
       console.warn('using deprecated parameters for the initialization function; pass a single object instead');
     }
-  }
-  if (typeof module_or_path === 'undefined') {
-    module_or_path = new URL(
-    /*webpackIgnore: true*/
-    /*@vite-ignore*/
-    'qcms_bg.wasm', import.meta.url);
   }
   const imports = __wbg_get_imports();
   if (typeof module_or_path === 'string' || typeof Request === 'function' && module_or_path instanceof Request || typeof URL === 'function' && module_or_path instanceof URL) {
@@ -1984,14 +2007,18 @@ function copyRgbaImage(src, dest, alpha01) {
   }
 }
 class ColorSpace {
+  static #rgbBuf = new Uint8ClampedArray(3);
   constructor(name, numComps) {
     this.name = name;
     this.numComps = numComps;
   }
-  getRgb(src, srcOffset) {
-    const rgb = new Uint8ClampedArray(3);
-    this.getRgbItem(src, srcOffset, rgb, 0);
-    return rgb;
+  getRgb(src, srcOffset, output = new Uint8ClampedArray(3)) {
+    this.getRgbItem(src, srcOffset, output, 0);
+    return output;
+  }
+  getRgbHex(src, srcOffset) {
+    const buffer = this.getRgb(src, srcOffset, ColorSpace.#rgbBuf);
+    return Util.makeHexColor(buffer[0], buffer[1], buffer[2]);
   }
   getRgbItem(src, srcOffset, dest, destOffset) {
     unreachable("Should not call ColorSpace.getRgbItem");
@@ -2618,15 +2645,15 @@ class IccColorSpace extends ColorSpace {
     switch (numComps) {
       case 1:
         inType = DataType.Gray8;
-        this.#convertPixel = (src, srcOffset) => qcms_convert_one(this.#transformer, src[srcOffset] * 255);
+        this.#convertPixel = (src, srcOffset, css) => qcms_convert_one(this.#transformer, src[srcOffset] * 255, css);
         break;
       case 3:
         inType = DataType.RGB8;
-        this.#convertPixel = (src, srcOffset) => qcms_convert_three(this.#transformer, src[srcOffset] * 255, src[srcOffset + 1] * 255, src[srcOffset + 2] * 255);
+        this.#convertPixel = (src, srcOffset, css) => qcms_convert_three(this.#transformer, src[srcOffset] * 255, src[srcOffset + 1] * 255, src[srcOffset + 2] * 255, css);
         break;
       case 4:
         inType = DataType.CMYK;
-        this.#convertPixel = (src, srcOffset) => qcms_convert_four(this.#transformer, src[srcOffset] * 255, src[srcOffset + 1] * 255, src[srcOffset + 2] * 255, src[srcOffset + 3] * 255);
+        this.#convertPixel = (src, srcOffset, css) => qcms_convert_four(this.#transformer, src[srcOffset] * 255, src[srcOffset + 1] * 255, src[srcOffset + 2] * 255, src[srcOffset + 3] * 255, css);
         break;
       default:
         throw new Error(`Unsupported number of components: ${numComps}`);
@@ -2637,9 +2664,15 @@ class IccColorSpace extends ColorSpace {
     }
     IccColorSpace.#finalizer.register(this, this.#transformer);
   }
+  getRgbHex(src, srcOffset) {
+    this.#convertPixel(src, srcOffset, true);
+    return QCMS._cssColor;
+  }
   getRgbItem(src, srcOffset, dest, destOffset) {
-    QCMS._destBuffer = dest.subarray(destOffset, destOffset + 3);
-    this.#convertPixel(src, srcOffset);
+    QCMS._destBuffer = dest;
+    QCMS._destOffset = destOffset;
+    QCMS._destLength = 3;
+    this.#convertPixel(src, srcOffset, false);
     QCMS._destBuffer = null;
   }
   getRgbBuffer(src, srcOffset, count, dest, destOffset, bits, alpha01) {
@@ -2651,7 +2684,9 @@ class IccColorSpace extends ColorSpace {
       }
     }
     QCMS._mustAddAlpha = alpha01 && dest.buffer === src.buffer;
-    QCMS._destBuffer = dest.subarray(destOffset, destOffset + count * (3 + alpha01));
+    QCMS._destBuffer = dest;
+    QCMS._destOffset = destOffset;
+    QCMS._destLength = count * (3 + alpha01);
     qcms_convert_array(this.#transformer, src);
     QCMS._mustAddAlpha = false;
     QCMS._destBuffer = null;
@@ -2676,10 +2711,12 @@ class IccColorSpace extends ColorSpace {
     if (this.#useWasm) {
       if (this.#wasmUrl) {
         try {
-          this._module = QCMS._module = initSync({
+          this._module = initSync({
             module: fetchSync(`${this.#wasmUrl}qcms_bg.wasm`)
           });
           isUsable = !!this._module;
+          QCMS._memory = this._module.memory;
+          QCMS._makeHexColor = Util.makeHexColor;
         } catch (e) {
           warn(`ICCBased color space: "${e}".`);
         }
@@ -5333,12 +5370,6 @@ var OpenJPEG = (() => {
     };
     var _scriptName = import.meta.url;
     var scriptDirectory = "";
-    function locateFile(path) {
-      if (Module["locateFile"]) {
-        return Module["locateFile"](path, scriptDirectory);
-      }
-      return scriptDirectory + path;
-    }
     var readAsync, readBinary;
     if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
       try {
@@ -5425,58 +5456,6 @@ var OpenJPEG = (() => {
       throw e;
     }
     var wasmBinaryFile;
-    function findWasmBinary() {
-      if (Module["locateFile"]) {
-        return locateFile("openjpeg.wasm");
-      }
-      return new URL(
-      /*webpackIgnore: true*/
-      /*@vite-ignore*/
-      "openjpeg.wasm", import.meta.url).href;
-    }
-    function getBinarySync(file) {
-      if (file == wasmBinaryFile && wasmBinary) {
-        return new Uint8Array(wasmBinary);
-      }
-      if (readBinary) {
-        return readBinary(file);
-      }
-      throw "both async and sync fetching of the wasm failed";
-    }
-    async function getWasmBinary(binaryFile) {
-      if (!wasmBinary) {
-        try {
-          var response = await readAsync(binaryFile);
-          return new Uint8Array(response);
-        } catch {}
-      }
-      return getBinarySync(binaryFile);
-    }
-    async function instantiateArrayBuffer(binaryFile, imports) {
-      try {
-        var binary = await getWasmBinary(binaryFile);
-        var instance = await WebAssembly.instantiate(binary, imports);
-        return instance;
-      } catch (reason) {
-        err(`failed to asynchronously prepare wasm: ${reason}`);
-        abort(reason);
-      }
-    }
-    async function instantiateAsync(binary, binaryFile, imports) {
-      if (!binary && typeof WebAssembly.instantiateStreaming == "function") {
-        try {
-          var response = fetch(binaryFile, {
-            credentials: "same-origin"
-          });
-          var instantiationResult = await WebAssembly.instantiateStreaming(response, imports);
-          return instantiationResult;
-        } catch (reason) {
-          err(`wasm streaming compile failed: ${reason}`);
-          err("falling back to ArrayBuffer instantiation");
-        }
-      }
-      return instantiateArrayBuffer(binaryFile, imports);
-    }
     function getWasmImports() {
       return {
         a: wasmImports
@@ -5491,26 +5470,12 @@ var OpenJPEG = (() => {
         return wasmExports;
       }
       addRunDependency("wasm-instantiate");
-      function receiveInstantiationResult(result) {
-        return receiveInstance(result["instance"]);
-      }
       var info = getWasmImports();
-      if (Module["instantiateWasm"]) {
-        return new Promise((resolve, reject) => {
-          Module["instantiateWasm"](info, (mod, inst) => {
-            resolve(receiveInstance(mod, inst));
-          });
+      return new Promise((resolve, reject) => {
+        Module["instantiateWasm"](info, (mod, inst) => {
+          resolve(receiveInstance(mod, inst));
         });
-      }
-      wasmBinaryFile ??= findWasmBinary();
-      try {
-        var result = await instantiateAsync(wasmBinary, wasmBinaryFile, info);
-        var exports = receiveInstantiationResult(result);
-        return exports;
-      } catch (e) {
-        readyPromiseReject(e);
-        return Promise.reject(e);
-      }
+      });
     }
     class ExitStatus {
       name = "ExitStatus";
@@ -7653,7 +7618,13 @@ class FlateStream extends DecodeStream {
   }
   async getImageData(length, _decoderOptions) {
     const data = await this.asyncGetBytes();
-    return data?.subarray(0, length) || this.getBytes(length);
+    if (!data) {
+      return this.getBytes(length);
+    }
+    if (data.length <= length) {
+      return data;
+    }
+    return data.subarray(0, length);
   }
   async asyncGetBytes() {
     this.str.reset();
@@ -9390,9 +9361,6 @@ function parseJbig2Chunks(chunks) {
     processSegments(segments, visitor);
   }
   return visitor.buffer;
-}
-function parseJbig2(data) {
-  throw new Error("Not implemented: parseJbig2");
 }
 class SimpleSegmentVisitor {
   onPageInformation(info) {
@@ -27248,56 +27216,60 @@ class RadialAxialShading extends BaseShading {
     }
     const color = new Float32Array(cs.numComps),
       ratio = new Float32Array(1);
-    let rgbColor;
     let iBase = 0;
     ratio[0] = t0;
     fn(ratio, 0, color, 0);
-    let rgbBase = cs.getRgb(color, 0);
-    const cssColorBase = Util.makeHexColor(rgbBase[0], rgbBase[1], rgbBase[2]);
-    colorStops.push([0, cssColorBase]);
+    const rgbBuffer = new Uint8ClampedArray(3);
+    cs.getRgb(color, 0, rgbBuffer);
+    let [rBase, gBase, bBase] = rgbBuffer;
+    colorStops.push([0, Util.makeHexColor(rBase, gBase, bBase)]);
     let iPrev = 1;
     ratio[0] = t0 + step;
     fn(ratio, 0, color, 0);
-    let rgbPrev = cs.getRgb(color, 0);
-    let maxSlopeR = rgbPrev[0] - rgbBase[0] + 1;
-    let maxSlopeG = rgbPrev[1] - rgbBase[1] + 1;
-    let maxSlopeB = rgbPrev[2] - rgbBase[2] + 1;
-    let minSlopeR = rgbPrev[0] - rgbBase[0] - 1;
-    let minSlopeG = rgbPrev[1] - rgbBase[1] - 1;
-    let minSlopeB = rgbPrev[2] - rgbBase[2] - 1;
+    cs.getRgb(color, 0, rgbBuffer);
+    let [rPrev, gPrev, bPrev] = rgbBuffer;
+    let maxSlopeR = rPrev - rBase + 1;
+    let maxSlopeG = gPrev - gBase + 1;
+    let maxSlopeB = bPrev - bBase + 1;
+    let minSlopeR = rPrev - rBase - 1;
+    let minSlopeG = gPrev - gBase - 1;
+    let minSlopeB = bPrev - bBase - 1;
     for (let i = 2; i < NUMBER_OF_SAMPLES; i++) {
       ratio[0] = t0 + i * step;
       fn(ratio, 0, color, 0);
-      rgbColor = cs.getRgb(color, 0);
+      cs.getRgb(color, 0, rgbBuffer);
+      const [r, g, b] = rgbBuffer;
       const run = i - iBase;
-      maxSlopeR = Math.min(maxSlopeR, (rgbColor[0] - rgbBase[0] + 1) / run);
-      maxSlopeG = Math.min(maxSlopeG, (rgbColor[1] - rgbBase[1] + 1) / run);
-      maxSlopeB = Math.min(maxSlopeB, (rgbColor[2] - rgbBase[2] + 1) / run);
-      minSlopeR = Math.max(minSlopeR, (rgbColor[0] - rgbBase[0] - 1) / run);
-      minSlopeG = Math.max(minSlopeG, (rgbColor[1] - rgbBase[1] - 1) / run);
-      minSlopeB = Math.max(minSlopeB, (rgbColor[2] - rgbBase[2] - 1) / run);
+      maxSlopeR = Math.min(maxSlopeR, (r - rBase + 1) / run);
+      maxSlopeG = Math.min(maxSlopeG, (g - gBase + 1) / run);
+      maxSlopeB = Math.min(maxSlopeB, (b - bBase + 1) / run);
+      minSlopeR = Math.max(minSlopeR, (r - rBase - 1) / run);
+      minSlopeG = Math.max(minSlopeG, (g - gBase - 1) / run);
+      minSlopeB = Math.max(minSlopeB, (b - bBase - 1) / run);
       const slopesExist = minSlopeR <= maxSlopeR && minSlopeG <= maxSlopeG && minSlopeB <= maxSlopeB;
       if (!slopesExist) {
-        const cssColor = Util.makeHexColor(rgbPrev[0], rgbPrev[1], rgbPrev[2]);
+        const cssColor = Util.makeHexColor(rPrev, gPrev, bPrev);
         colorStops.push([iPrev / NUMBER_OF_SAMPLES, cssColor]);
-        maxSlopeR = rgbColor[0] - rgbPrev[0] + 1;
-        maxSlopeG = rgbColor[1] - rgbPrev[1] + 1;
-        maxSlopeB = rgbColor[2] - rgbPrev[2] + 1;
-        minSlopeR = rgbColor[0] - rgbPrev[0] - 1;
-        minSlopeG = rgbColor[1] - rgbPrev[1] - 1;
-        minSlopeB = rgbColor[2] - rgbPrev[2] - 1;
+        maxSlopeR = r - rPrev + 1;
+        maxSlopeG = g - gPrev + 1;
+        maxSlopeB = b - bPrev + 1;
+        minSlopeR = r - rPrev - 1;
+        minSlopeG = g - gPrev - 1;
+        minSlopeB = b - bPrev - 1;
         iBase = iPrev;
-        rgbBase = rgbPrev;
+        rBase = rPrev;
+        gBase = gPrev;
+        bBase = bPrev;
       }
       iPrev = i;
-      rgbPrev = rgbColor;
+      rPrev = r;
+      gPrev = g;
+      bPrev = b;
     }
-    const cssColor = Util.makeHexColor(rgbPrev[0], rgbPrev[1], rgbPrev[2]);
-    colorStops.push([1, cssColor]);
+    colorStops.push([1, Util.makeHexColor(rPrev, gPrev, bPrev)]);
     let background = "transparent";
     if (dict.has("Background")) {
-      rgbColor = cs.getRgb(dict.get("Background"), 0);
-      background = Util.makeHexColor(rgbColor[0], rgbColor[1], rgbColor[2]);
+      background = cs.getRgbHex(dict.get("Background"), 0);
     }
     if (!extendStart) {
       colorStops.unshift([0, background]);
@@ -31382,7 +31354,7 @@ class PartialEvaluator {
       }
       if (smask?.backdrop) {
         colorSpace ||= ColorSpaceUtils.rgb;
-        smask.backdrop = colorSpace.getRgb(smask.backdrop, 0);
+        smask.backdrop = colorSpace.getRgbHex(smask.backdrop, 0);
       }
       operatorList.addOp(OPS.beginGroup, [groupOptions]);
     }
@@ -32091,7 +32063,7 @@ class PartialEvaluator {
       const localTilingPattern = rawPattern instanceof Ref && localTilingPatternCache.getByRef(rawPattern);
       if (localTilingPattern) {
         try {
-          const color = cs.base ? cs.base.getRgb(args, 0) : null;
+          const color = cs.base ? cs.base.getRgbHex(args, 0) : null;
           const tilingPatternIR = getTilingPatternIR(localTilingPattern.operatorListIR, localTilingPattern.dict, color);
           operatorList.addOp(fn, tilingPatternIR);
           return undefined;
@@ -32102,7 +32074,7 @@ class PartialEvaluator {
         const dict = pattern instanceof BaseStream ? pattern.dict : pattern;
         const typeNum = dict.get("PatternType");
         if (typeNum === PatternType.TILING) {
-          const color = cs.base ? cs.base.getRgb(args, 0) : null;
+          const color = cs.base ? cs.base.getRgbHex(args, 0) : null;
           return this.handleTilingType(fn, color, resources, pattern, dict, operatorList, task, localTilingPatternCache);
         } else if (typeNum === PatternType.SHADING) {
           const shading = dict.get("Shading");
@@ -32439,47 +32411,47 @@ class PartialEvaluator {
             }
           case OPS.setFillColor:
             cs = stateManager.state.fillColorSpace;
-            args = cs.getRgb(args, 0);
+            args = [cs.getRgbHex(args, 0)];
             fn = OPS.setFillRGBColor;
             break;
           case OPS.setStrokeColor:
             cs = stateManager.state.strokeColorSpace;
-            args = cs.getRgb(args, 0);
+            args = [cs.getRgbHex(args, 0)];
             fn = OPS.setStrokeRGBColor;
             break;
           case OPS.setFillGray:
             stateManager.state.fillColorSpace = ColorSpaceUtils.gray;
-            args = ColorSpaceUtils.gray.getRgb(args, 0);
+            args = [ColorSpaceUtils.gray.getRgbHex(args, 0)];
             fn = OPS.setFillRGBColor;
             break;
           case OPS.setStrokeGray:
             stateManager.state.strokeColorSpace = ColorSpaceUtils.gray;
-            args = ColorSpaceUtils.gray.getRgb(args, 0);
+            args = [ColorSpaceUtils.gray.getRgbHex(args, 0)];
             fn = OPS.setStrokeRGBColor;
             break;
           case OPS.setFillCMYKColor:
             stateManager.state.fillColorSpace = ColorSpaceUtils.cmyk;
-            args = ColorSpaceUtils.cmyk.getRgb(args, 0);
+            args = [ColorSpaceUtils.cmyk.getRgbHex(args, 0)];
             fn = OPS.setFillRGBColor;
             break;
           case OPS.setStrokeCMYKColor:
             stateManager.state.strokeColorSpace = ColorSpaceUtils.cmyk;
-            args = ColorSpaceUtils.cmyk.getRgb(args, 0);
+            args = [ColorSpaceUtils.cmyk.getRgbHex(args, 0)];
             fn = OPS.setStrokeRGBColor;
             break;
           case OPS.setFillRGBColor:
             stateManager.state.fillColorSpace = ColorSpaceUtils.rgb;
-            args = ColorSpaceUtils.rgb.getRgb(args, 0);
+            args = [ColorSpaceUtils.rgb.getRgbHex(args, 0)];
             break;
           case OPS.setStrokeRGBColor:
             stateManager.state.strokeColorSpace = ColorSpaceUtils.rgb;
-            args = ColorSpaceUtils.rgb.getRgb(args, 0);
+            args = [ColorSpaceUtils.rgb.getRgbHex(args, 0)];
             break;
           case OPS.setFillColorN:
             cs = stateManager.state.patternFillColorSpace;
             if (!cs) {
               if (isNumberArray(args, null)) {
-                args = ColorSpaceUtils.gray.getRgb(args, 0);
+                args = [ColorSpaceUtils.gray.getRgbHex(args, 0)];
                 fn = OPS.setFillRGBColor;
                 break;
               }
@@ -32491,14 +32463,14 @@ class PartialEvaluator {
               next(self.handleColorN(operatorList, OPS.setFillColorN, args, cs, patterns, resources, task, localColorSpaceCache, localTilingPatternCache, localShadingPatternCache));
               return;
             }
-            args = cs.getRgb(args, 0);
+            args = [cs.getRgbHex(args, 0)];
             fn = OPS.setFillRGBColor;
             break;
           case OPS.setStrokeColorN:
             cs = stateManager.state.patternStrokeColorSpace;
             if (!cs) {
               if (isNumberArray(args, null)) {
-                args = ColorSpaceUtils.gray.getRgb(args, 0);
+                args = [ColorSpaceUtils.gray.getRgbHex(args, 0)];
                 fn = OPS.setStrokeRGBColor;
                 break;
               }
@@ -32510,7 +32482,7 @@ class PartialEvaluator {
               next(self.handleColorN(operatorList, OPS.setStrokeColorN, args, cs, patterns, resources, task, localColorSpaceCache, localTilingPatternCache, localShadingPatternCache));
               return;
             }
-            args = cs.getRgb(args, 0);
+            args = [cs.getRgbHex(args, 0)];
             fn = OPS.setStrokeRGBColor;
             break;
           case OPS.shadingFill:
@@ -34123,10 +34095,7 @@ class PartialEvaluator {
     const isType3Font = type === "Type3";
     if (!descriptor) {
       if (isType3Font) {
-        const bbox = lookupNormalRect(dict.getArray("FontBBox"), [0, 0, 0, 0]);
-        descriptor = new Dict(null);
-        descriptor.set("FontName", Name.get(type));
-        descriptor.set("FontBBox", bbox);
+        descriptor = Dict.empty;
       } else {
         let baseFontName = dict.get("BaseFont");
         if (!(baseFontName instanceof Name)) {
@@ -34191,13 +34160,17 @@ class PartialEvaluator {
     }
     const fontNameStr = fontName?.name;
     const baseFontStr = baseFont?.name;
-    if (!isType3Font && fontNameStr !== baseFontStr) {
+    if (isType3Font) {
+      if (!fontNameStr) {
+        fontName = Name.get(type);
+      }
+    } else if (fontNameStr !== baseFontStr) {
       info(`The FontDescriptor's FontName is "${fontNameStr}" but ` + `should be the same as the Font's BaseFont "${baseFontStr}".`);
       if (fontNameStr && baseFontStr && (baseFontStr.startsWith(fontNameStr) || !isKnownFontName(fontNameStr) && isKnownFontName(baseFontStr))) {
         fontName = null;
       }
+      fontName ||= baseFont;
     }
-    fontName ||= baseFont;
     if (!(fontName instanceof Name)) {
       throw new FormatError("invalid font name");
     }
@@ -34253,7 +34226,7 @@ class PartialEvaluator {
       }
     }
     const fontMatrix = lookupMatrix(dict.getArray("FontMatrix"), FONT_IDENTITY_MATRIX);
-    const bbox = lookupNormalRect(descriptor.getArray("FontBBox") || dict.getArray("FontBBox"), undefined);
+    const bbox = lookupNormalRect(descriptor.getArray("FontBBox") || dict.getArray("FontBBox"), isType3Font ? [0, 0, 0, 0] : undefined);
     let ascent = descriptor.get("Ascent");
     if (typeof ascent !== "number") {
       ascent = undefined;
@@ -34404,9 +34377,9 @@ class TranslatedFont {
     const charProcs = this.dict.get("CharProcs");
     const fontResources = this.dict.get("Resources") || resources;
     const charProcOperatorList = Object.create(null);
-    const fontBBox = Util.normalizeRect(font.bbox || [0, 0, 0, 0]),
-      width = fontBBox[2] - fontBBox[0],
-      height = fontBBox[3] - fontBBox[1];
+    const [x0, y0, x1, y1] = font.bbox,
+      width = x1 - x0,
+      height = y1 - y0;
     const fontBBoxSize = Math.hypot(width, height);
     for (const key of charProcs.getKeys()) {
       loadCharProcsPromise = loadCharProcsPromise.then(() => {
@@ -57166,7 +57139,7 @@ class WorkerMessageHandler {
       docId,
       apiVersion
     } = docParams;
-    const workerVersion = "5.2.183";
+    const workerVersion = "5.3.13";
     if (apiVersion !== workerVersion) {
       throw new Error(`The API version "${apiVersion}" does not match ` + `the Worker version "${workerVersion}".`);
     }
@@ -57692,8 +57665,8 @@ class WorkerMessageHandler {
 
 ;// ./src/pdf.worker.js
 
-const pdfjsVersion = "5.2.183";
-const pdfjsBuild = "3f1ecc1ba";
+const pdfjsVersion = "5.3.13";
+const pdfjsBuild = "875233b3c";
 globalThis.pdfjsWorker = {
   WorkerMessageHandler: WorkerMessageHandler
 };

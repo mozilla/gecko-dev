@@ -870,7 +870,7 @@ const defaultOptions = {
     kind: OptionKind.API
   },
   workerPort: {
-    value: null,
+    value: globalThis.pdfjsPreloadedWorker || null,
     kind: OptionKind.WORKER
   },
   workerSrc: {
@@ -3878,12 +3878,13 @@ class PDFDocumentProperties {
     dialog,
     fields,
     closeButton
-  }, overlayManager, eventBus, l10n, fileNameLookup) {
+  }, overlayManager, eventBus, l10n, fileNameLookup, titleLookup) {
     this.dialog = dialog;
     this.fields = fields;
     this.overlayManager = overlayManager;
     this.l10n = l10n;
     this._fileNameLookup = fileNameLookup;
+    this._titleLookup = titleLookup;
     this.#reset();
     closeButton.addEventListener("click", this.close.bind(this));
     this.overlayManager.register(this.dialog);
@@ -3904,20 +3905,21 @@ class PDFDocumentProperties {
     }
     const [{
       info,
+      metadata,
       contentLength
     }, pdfPage] = await Promise.all([this.pdfDocument.getMetadata(), this.pdfDocument.getPage(currentPageNumber)]);
-    const [fileName, fileSize, creationDate, modificationDate, pageSize, isLinearized] = await Promise.all([this._fileNameLookup(), this.#parseFileSize(contentLength), this.#parseDate(info.CreationDate), this.#parseDate(info.ModDate), this.#parsePageSize(getPageSizeInches(pdfPage), pagesRotation), this.#parseLinearization(info.IsLinearized)]);
+    const [fileName, fileSize, title, creationDate, modificationDate, pageSize, isLinearized] = await Promise.all([this._fileNameLookup(), this.#parseFileSize(contentLength), this._titleLookup(), this.#parseDate(metadata?.get("xmp:createdate"), info.CreationDate), this.#parseDate(metadata?.get("xmp:modifydate"), info.ModDate), this.#parsePageSize(getPageSizeInches(pdfPage), pagesRotation), this.#parseLinearization(info.IsLinearized)]);
     this.#fieldData = Object.freeze({
       fileName,
       fileSize,
-      title: info.Title,
-      author: info.Author,
-      subject: info.Subject,
-      keywords: info.Keywords,
+      title,
+      author: metadata?.get("dc:creator")?.join("\n") || info.Author,
+      subject: metadata?.get("dc:subject")?.join("\n") || info.Subject,
+      keywords: metadata?.get("pdf:keywords") || info.Keywords,
       creationDate,
       modificationDate,
-      creator: info.Creator,
-      producer: info.Producer,
+      creator: metadata?.get("xmp:creatortool") || info.Creator,
+      producer: metadata?.get("pdf:producer") || info.Producer,
       version: info.PDFFormatVersion,
       pageCount: this.pdfDocument.numPages,
       pageSize,
@@ -4029,8 +4031,8 @@ class PDFDocumentProperties {
       orientation
     });
   }
-  async #parseDate(inputDate) {
-    const dateObj = PDFDateString.toDateObject(inputDate);
+  async #parseDate(metadataDate, infoDate) {
+    const dateObj = Date.parse(metadataDate) || PDFDateString.toDateObject(infoDate);
     return dateObj ? this.l10n.get("pdfjs-document-properties-date-time-string", {
       dateObj: dateObj.valueOf()
     }) : undefined;
@@ -10242,7 +10244,7 @@ class PDFViewer {
   #supportsPinchToZoom = true;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "5.2.183";
+    const viewerVersion = "5.3.13";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -13475,6 +13477,7 @@ const PDFViewerApplication = {
         /*webpackIgnore: true*/
         /*@vite-ignore*/
         PDFWorker.workerSrc);
+        AppOptions.set("workerPort", null);
       } catch (ex) {
         console.error("_parseHashParams:", ex);
       }
@@ -13661,7 +13664,7 @@ const PDFViewerApplication = {
       this.imageAltTextSettings = new ImageAltTextSettings(appConfig.altTextSettingsDialog, overlayManager, eventBus, mlManager);
     }
     if (appConfig.documentProperties) {
-      this.pdfDocumentProperties = new PDFDocumentProperties(appConfig.documentProperties, overlayManager, eventBus, l10n, () => this._docFilename);
+      this.pdfDocumentProperties = new PDFDocumentProperties(appConfig.documentProperties, overlayManager, eventBus, l10n, () => this._docFilename, () => this._docTitle);
     }
     if (appConfig.secondaryToolbar?.cursorHandToolButton) {
       this.pdfCursorTools = new PDFCursorTools({
@@ -13872,6 +13875,19 @@ const PDFViewerApplication = {
   },
   get _docFilename() {
     return this._contentDispositionFilename || getPdfFilenameFromUrl(this.url);
+  },
+  get _docTitle() {
+    const {
+      documentInfo,
+      metadata
+    } = this;
+    const title = metadata?.get("dc:title");
+    if (title) {
+      if (title !== "Untitled" && !/[\uFFF0-\uFFFF]/g.test(title)) {
+        return title;
+      }
+    }
+    return documentInfo.Title;
   },
   _hideViewBookmark() {
     const {
@@ -14277,14 +14293,8 @@ const PDFViewerApplication = {
     this.metadata = metadata;
     this._contentDispositionFilename ??= contentDispositionFilename;
     this._contentLength ??= contentLength;
-    console.log(`PDF ${pdfDocument.fingerprints[0]} [${info.PDFFormatVersion} ` + `${(info.Producer || "-").trim()} / ${(info.Creator || "-").trim()}] ` + `(PDF.js: ${version || "?"} [${build || "?"}])`);
-    let pdfTitle = info.Title;
-    const metadataTitle = metadata?.get("dc:title");
-    if (metadataTitle) {
-      if (metadataTitle !== "Untitled" && !/[\uFFF0-\uFFFF]/g.test(metadataTitle)) {
-        pdfTitle = metadataTitle;
-      }
-    }
+    console.log(`PDF ${pdfDocument.fingerprints[0]} [${info.PDFFormatVersion} ` + `${(metadata?.get("pdf:producer") || info.Producer || "-").trim()} / ` + `${(metadata?.get("xmp:creatortool") || info.Creator || "-").trim()}` + `] (PDF.js: ${version || "?"} [${build || "?"}])`);
+    const pdfTitle = this._docTitle;
     if (pdfTitle) {
       this.setTitle(`${pdfTitle} - ${this._contentDispositionFilename || this._title}`);
     } else if (this._contentDispositionFilename) {
@@ -15249,8 +15259,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "5.2.183";
-const pdfjsBuild = "3f1ecc1ba";
+const pdfjsVersion = "5.3.13";
+const pdfjsBuild = "875233b3c";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
