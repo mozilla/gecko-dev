@@ -9701,7 +9701,7 @@ void CodeGenerator::visitWasmRegisterResult(LWasmRegisterResult* lir) {
 void CodeGenerator::visitWasmBuiltinFloatRegisterResult(
     LWasmBuiltinFloatRegisterResult* lir) {
   MOZ_ASSERT(lir->mir()->type() == MIRType::Float32 ||
-            lir->mir()->type() == MIRType::Double);
+             lir->mir()->type() == MIRType::Double);
   MOZ_ASSERT_IF(lir->mir()->type() == MIRType::Float32,
                 ToFloatRegister(lir->output()) == ReturnFloat32Reg);
   MOZ_ASSERT_IF(lir->mir()->type() == MIRType::Double,
