@@ -1819,21 +1819,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                  Register scratch, Register spectreRegToZero,
                                  Label* label);
 
- private:
-  inline void branchTestClass(Condition cond, Register clasp,
-                              std::pair<const JSClass*, const JSClass*> classes,
-                              Label* label);
-
- public:
-  inline void branchTestObjClass(
-      Condition cond, Register obj,
-      std::pair<const JSClass*, const JSClass*> classes, Register scratch,
-      Register spectreRegToZero, Label* label);
-  inline void branchTestObjClassNoSpectreMitigations(
-      Condition cond, Register obj,
-      std::pair<const JSClass*, const JSClass*> classes, Register scratch,
-      Label* label);
-
   inline void branchTestObjShape(Condition cond, Register obj,
                                  const Shape* shape, Register scratch,
                                  Register spectreRegToZero, Label* label);

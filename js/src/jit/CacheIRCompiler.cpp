@@ -2252,39 +2252,6 @@ bool CacheIRCompiler::emitGuardClass(ObjOperandId objId, GuardClassKind kind) {
   return true;
 }
 
-bool CacheIRCompiler::emitGuardEitherClass(ObjOperandId objId,
-                                           GuardClassKind kind1,
-                                           GuardClassKind kind2) {
-  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
-  Register obj = allocator.useRegister(masm, objId);
-  AutoScratchRegister scratch(allocator, masm);
-
-  FailurePath* failure;
-  if (!addFailurePath(&failure)) {
-    return false;
-  }
-
-  // We don't yet need this case, so it's unsupported for now.
-  MOZ_ASSERT(kind1 != GuardClassKind::JSFunction &&
-             kind2 != GuardClassKind::JSFunction);
-
-  const JSClass* clasp1 = ClassFor(cx_, kind1);
-  MOZ_ASSERT(clasp1);
-
-  const JSClass* clasp2 = ClassFor(cx_, kind2);
-  MOZ_ASSERT(clasp2);
-
-  if (objectGuardNeedsSpectreMitigations(objId)) {
-    masm.branchTestObjClass(Assembler::NotEqual, obj, {clasp1, clasp2}, scratch,
-                            obj, failure->label());
-  } else {
-    masm.branchTestObjClassNoSpectreMitigations(
-        Assembler::NotEqual, obj, {clasp1, clasp2}, scratch, failure->label());
-  }
-
-  return true;
-}
-
 bool CacheIRCompiler::emitGuardNullProto(ObjOperandId objId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   Register obj = allocator.useRegister(masm, objId);
