@@ -711,21 +711,8 @@ skip script test262/built-ins/String/prototype/search/cstm-search-on-boolean-pri
 skip script test262/built-ins/String/prototype/search/cstm-search-on-number-primitive.js
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1935510
-skip script test262/built-ins/Iterator/prototype/every/argument-validation-failure-closes-underlying.js
-skip script test262/built-ins/Iterator/prototype/forEach/argument-validation-failure-closes-underlying.js
-skip script test262/built-ins/Iterator/prototype/flatMap/argument-validation-failure-closes-underlying.js
-skip script test262/built-ins/Iterator/prototype/some/argument-validation-failure-closes-underlying.js
-skip script test262/built-ins/Iterator/prototype/reduce/argument-validation-failure-closes-underlying.js
 skip script test262/built-ins/Iterator/prototype/drop/argument-validation-failure-closes-underlying.js
 skip script test262/built-ins/Iterator/prototype/take/argument-validation-failure-closes-underlying.js
-skip script test262/built-ins/Iterator/prototype/filter/argument-validation-failure-closes-underlying.js
-skip script test262/built-ins/Iterator/prototype/find/argument-validation-failure-closes-underlying.js
-skip script test262/built-ins/Iterator/prototype/map/argument-validation-failure-closes-underlying.js
-skip script test262/staging/sm/Iterator/prototype/every/check-fn-after-getting-iterator.js
-skip script test262/staging/sm/Iterator/prototype/forEach/check-fn-after-getting-iterator.js
-skip script test262/staging/sm/Iterator/prototype/some/check-fn-after-getting-iterator.js
-skip script test262/staging/sm/Iterator/prototype/reduce/check-fn-after-getting-iterator.js
-skip script test262/staging/sm/Iterator/prototype/find/check-fn-after-getting-iterator.js
 
 # https://github.com/tc39/ecma402/pull/989
 skip script test262/intl402/PluralRules/constructor-options-throwing-getters.js

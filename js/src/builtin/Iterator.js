@@ -305,7 +305,8 @@ function IteratorHelperReturn() {
 /**
  * Iterator.prototype.map ( mapper )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.map
+ * https://tc39.es/ecma262/#sec-iterator.prototype.map
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorMap(mapper) {
   // Step 1.
@@ -316,15 +317,18 @@ function IteratorMap(mapper) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Step 3.
+  // Steps 3-4.
   if (!IsCallable(mapper)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, mapper));
   }
 
-  // Step 4. (Inlined call to GetIteratorDirect.)
+  // Step 5. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Steps 5-7.
+  // Steps 6-8.
   var result = NewIteratorHelper();
   var generator = IteratorMapGenerator(iterator, nextMethod, mapper);
   UnsafeSetReservedSlot(
@@ -336,7 +340,7 @@ function IteratorMap(mapper) {
   // Stop at the initial yield point.
   callFunction(GeneratorNext, generator);
 
-  // Step 8.
+  // Step 9.
   return result;
 }
 
@@ -345,7 +349,8 @@ function IteratorMap(mapper) {
  *
  * Abstract closure definition.
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.map
+ * https://tc39.es/ecma262/#sec-iterator.prototype.map
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorMapGenerator(iterator, nextMethod, mapper) {
   var isReturnCompletion = true;
@@ -363,24 +368,24 @@ function* IteratorMapGenerator(iterator, nextMethod, mapper) {
     }
   }
 
-  // Step 5.a.
+  // Step 6.a.
   var counter = 0;
 
-  // Step 5.b.
+  // Step 6.b.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
-    // Steps 5.b.i-iii. (Implicit through for-of loop)
+    // Steps 6.b.i-ii. (Implicit through for-of loop)
 
-    // Step 5.b.iv.
+    // Step 6.b.iii.
     var mapped = callContentFunction(mapper, undefined, value, counter);
 
-    // Step 5.b.v. (Implicit through for-of loop)
+    // Step 6.b.iv. (Implicit through for-of loop)
 
-    // Step 5.b.vi.
+    // Step 6.b.v.
     yield mapped;
 
-    // Step 5.b.vii. (Implicit through for-of loop)
+    // Step 6.b.vi. (Implicit through for-of loop)
 
-    // Step 5.b.viii.
+    // Step 6.b.vii.
     counter += 1;
   }
 }
@@ -388,7 +393,8 @@ function* IteratorMapGenerator(iterator, nextMethod, mapper) {
 /**
  * Iterator.prototype.filter ( predicate )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.filter
+ * https://tc39.es/ecma262/#sec-iterator.prototype.filter
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorFilter(predicate) {
   // Step 1.
@@ -399,15 +405,18 @@ function IteratorFilter(predicate) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Step 3.
+  // Steps 3-4.
   if (!IsCallable(predicate)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, predicate));
   }
 
-  // Step 4. (Inlined call to GetIteratorDirect.)
+  // Step 5. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Steps 5-7.
+  // Steps 6-8.
   var result = NewIteratorHelper();
   var generator = IteratorFilterGenerator(iterator, nextMethod, predicate);
   UnsafeSetReservedSlot(
@@ -419,7 +428,7 @@ function IteratorFilter(predicate) {
   // Stop at the initial yield point.
   callFunction(GeneratorNext, generator);
 
-  // Step 8.
+  // Step 9.
   return result;
 }
 
@@ -428,7 +437,8 @@ function IteratorFilter(predicate) {
  *
  * Abstract closure definition.
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.filter
+ * https://tc39.es/ecma262/#sec-iterator.prototype.filter
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorFilterGenerator(iterator, nextMethod, predicate) {
   var isReturnCompletion = true;
@@ -446,27 +456,27 @@ function* IteratorFilterGenerator(iterator, nextMethod, predicate) {
     }
   }
 
-  // Step 5.a.
+  // Step 6.a.
   var counter = 0;
 
-  // Step 5.b.
+  // Step 6.b.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
-    // Steps 5.b.i-iii. (Implicit through for-of loop)
+    // Steps 6.b.i-ii. (Implicit through for-of loop)
 
-    // Step 5.b.iv.
+    // Step 6.b.iii.
     var selected = callContentFunction(predicate, undefined, value, counter);
 
-    // Step 5.b.v. (Implicit through for-of loop)
+    // Step 6.b.iv. (Implicit through for-of loop)
 
-    // Step 5.b.vi.
+    // Step 6.b.v.
     if (selected) {
-      // Step 5.b.vi.1.
+      // Step 6.b.v.1.
       yield value;
 
-      // Step 5.b.vi.2. (Implicit through for-of loop)
+      // Step 6.b.v.2. (Implicit through for-of loop)
     }
 
-    // Step 5.b.vii.
+    // Step 6.b.vi.
     counter += 1;
   }
 }
@@ -640,7 +650,8 @@ function* IteratorDropGenerator(iterator, nextMethod, remaining) {
 /**
  * Iterator.prototype.flatMap ( mapper )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.flatmap
+ * https://tc39.es/ecma262/#sec-iterator.prototype.flatmap
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorFlatMap(mapper) {
   // Step 1.
@@ -651,15 +662,18 @@ function IteratorFlatMap(mapper) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Step 3.
+  // Steps 3-4.
   if (!IsCallable(mapper)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, mapper));
   }
 
-  // Step 4. (Inlined call to GetIteratorDirect.)
+  // Step 5. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Steps 5-7.
+  // Steps 6-8.
   var result = NewIteratorHelper();
   var generator = IteratorFlatMapGenerator(iterator, nextMethod, mapper);
   UnsafeSetReservedSlot(
@@ -671,14 +685,17 @@ function IteratorFlatMap(mapper) {
   // Stop at the initial yield point.
   callFunction(GeneratorNext, generator);
 
-  // Step 8.
+  // Step 9.
   return result;
 }
 
 /**
  * Iterator.prototype.flatMap ( mapper )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.flatmap
+ * Abstract closure definition.
+ *
+ * https://tc39.es/ecma262/#sec-iterator.prototype.flatmap
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorFlatMapGenerator(iterator, nextMethod, mapper) {
   var isReturnCompletion = true;
@@ -696,35 +713,35 @@ function* IteratorFlatMapGenerator(iterator, nextMethod, mapper) {
     }
   }
 
-  // Step 5.a.
+  // Step 6.a.
   var counter = 0;
 
-  // Step 5.b.
+  // Step 6.b.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
-    // Steps 5.b.i-iii. (Implicit through for-of loop)
+    // Steps 6.b.i-ii. (Implicit through for-of loop)
 
-    // Step 5.b.iv.
+    // Step 6.b.iii.
     var mapped = callContentFunction(mapper, undefined, value, counter);
 
-    // Step 5.b.v. (Implicit through for-of loop)
+    // Step 6.b.iv. (Implicit through for-of loop)
 
-    // Steps 5.b.vi.
+    // Steps 6.b.v.
     var innerIterator = GetIteratorFlattenable(mapped, /* rejectStrings= */ true);
     var innerIteratorNextMethod = innerIterator.next;
 
-    // Step 5.b.vii. (Implicit through for-of loop)
+    // Step 6.b.vi. (Implicit through for-of loop)
 
-    // Steps 5.b.viii-ix.
+    // Steps 6.b.vii-viii.
     for (var innerValue of allowContentIterWithNext(innerIterator, innerIteratorNextMethod)) {
-      // Steps 5.b.ix.1-3 and 5.b.ix.4.a-b. (Implicit through for-of loop)
+      // Steps 6.b.viii.1-3. (Implicit through for-of loop)
 
-      // Step 5.b.ix.4.c.
+      // Step 6.b.viii.4.a.
       yield innerValue;
 
-      // Step 5.b.ix.4.d. (Implicit through for-of loop)
+      // Step 6.b.viii.4.b. (Implicit through for-of loop)
     }
 
-    // Step 5.b.x.
+    // Step 6.b.ix.
     counter += 1;
   }
 }
@@ -732,7 +749,8 @@ function* IteratorFlatMapGenerator(iterator, nextMethod, mapper) {
 /**
  * Iterator.prototype.reduce ( reducer [ , initialValue ] )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.reduce
+ * https://tc39.es/ecma262/#sec-iterator.prototype.reduce
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorReduce(reducer /*, initialValue*/) {
   // Step 1.
@@ -743,59 +761,63 @@ function IteratorReduce(reducer /*, initialValue*/) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Step 3.
+  // Steps 3-4.
   if (!IsCallable(reducer)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, reducer));
   }
 
-  // Step 4. (Inlined call to GetIteratorDirect.)
+  // Step 5. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Steps 5-6.
+  // Steps 6-7.
   var accumulator;
   var counter;
   if (ArgumentsLength() === 1) {
-    // Steps 5.a-d. (Moved below.)
+    // Steps 6.a-d. (Moved below.)
     counter = -1;
   } else {
-    // Step 6.a.
+    // Step 7.a.
     accumulator = GetArgument(1);
 
-    // Step 6.b.
+    // Step 7.b.
     counter = 0;
   }
 
-  // Step 7.
+  // Step 8.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
     if (counter < 0) {
-      // Step 5. (Reordered steps to compute initial accumulator.)
+      // Step 6. (Reordered steps to compute initial accumulator.)
 
-      // Step 5.c.
+      // Step 6.c.
       accumulator = value;
 
-      // Step 5.d.
+      // Step 6.d.
       counter = 1;
     } else {
-      // Steps 7.a-c and 7.e. (Implicit through for-of loop)
+      // Steps 8.a-b and 8.d. (Implicit through for-of loop)
 
-      // Steps 7.d and 7.f-g.
+      // Steps 8.c and 8.e-f.
       accumulator = callContentFunction(reducer, undefined, accumulator, value, counter++);
     }
   }
 
-  // Step 5.b.
+  // Step 6.b.
   if (counter < 0) {
     ThrowTypeError(JSMSG_EMPTY_ITERATOR_REDUCE);
   }
 
-  // Step 7.b.
+  // Step 8.b.
   return accumulator;
 }
 
 /**
  * Iterator.prototype.toArray ( )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.toarray
+ * https://tc39.es/ecma262/#sec-iterator.prototype.toarray
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorToArray() {
   // Step 1.
@@ -816,7 +838,8 @@ function IteratorToArray() {
 /**
  * Iterator.prototype.forEach ( fn )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.foreach
+ * https://tc39.es/ecma262/#sec-iterator.prototype.foreach
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorForEach(fn) {
   // Step 1.
@@ -827,32 +850,36 @@ function IteratorForEach(fn) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Step 3.
+  // Steps 3-4.
   if (!IsCallable(fn)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, fn));
   }
 
-  // Step 4. (Inlined call to GetIteratorDirect.)
+  // Step 5. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Step 5.
+  // Step 6.
   var counter = 0;
 
-  // Step 6.
+  // Step 7.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
-    // Steps 6.a-c. (Implicit through for-of loop)
+    // Steps 7.a-b. (Implicit through for-of loop)
 
-    // Steps 6.d and 6.f.
+    // Steps 7.c and 7.e.
     callContentFunction(fn, undefined, value, counter++);
 
-    // Step 6.e. (Implicit through for-of loop)
+    // Step 7.d. (Implicit through for-of loop)
   }
 }
 
 /**
  * Iterator.prototype.some ( predicate )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.some
+ * https://tc39.es/ecma262/#sec-iterator.prototype.some
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorSome(predicate) {
   // Step 1.
@@ -863,35 +890,39 @@ function IteratorSome(predicate) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Step 3.
+  // Steps 3-4.
   if (!IsCallable(predicate)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, predicate));
   }
 
-  // Step 4. (Inlined call to GetIteratorDirect.)
+  // Step 5. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Step 5.
+  // Step 6.
   var counter = 0;
 
-  // Step 6.
+  // Step 7.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
-    // Steps 6.a-c. (Implicit through for-of loop)
+    // Steps 7.a-b. (Implicit through for-of loop)
 
-    // Steps 6.d-g.
+    // Steps 7.c-f.
     if (callContentFunction(predicate, undefined, value, counter++)) {
       return true;
     }
   }
 
-  // Step 6.b.
+  // Step 7.b.
   return false;
 }
 
 /**
  * Iterator.prototype.every ( predicate )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.every
+ * https://tc39.es/ecma262/#sec-iterator.prototype.every
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorEvery(predicate) {
   // Step 1.
@@ -902,35 +933,39 @@ function IteratorEvery(predicate) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Step 3.
+  // Steps 3-4.
   if (!IsCallable(predicate)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, predicate));
   }
 
-  // Step 4. (Inlined call to GetIteratorDirect.)
+  // Step 5. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Step 5.
+  // Step 6.
   var counter = 0;
 
-  // Step 6.
+  // Step 7.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
-    // Steps 6.a-c. (Implicit through for-of loop)
+    // Steps 7.a-b. (Implicit through for-of loop)
 
-    // Steps 6.d-g.
+    // Steps 7.c-f.
     if (!callContentFunction(predicate, undefined, value, counter++)) {
       return false;
     }
   }
 
-  // Step 6.b.
+  // Step 7.b.
   return true;
 }
 
 /**
  * Iterator.prototype.find ( predicate )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.find
+ * https://tc39.es/ecma262/#sec-iterator.prototype.find
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorFind(predicate) {
   // Step 1.
@@ -941,22 +976,25 @@ function IteratorFind(predicate) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Step 3.
+  // Steps 3-4.
   if (!IsCallable(predicate)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowTypeError(JSMSG_NOT_FUNCTION, DecompileArg(0, predicate));
   }
 
-  // Step 4. (Inlined call to GetIteratorDirect.)
+  // Step 5. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Step 5.
+  // Step 6.
   var counter = 0;
 
-  // Step 6.
+  // Step 7.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
-    // Steps 6.a-c. (Implicit through for-of loop)
+    // Steps 7.a-b. (Implicit through for-of loop)
 
-    // Steps 6.d-g.
+    // Steps 7.c-f.
     if (callContentFunction(predicate, undefined, value, counter++)) {
       return value;
     }
