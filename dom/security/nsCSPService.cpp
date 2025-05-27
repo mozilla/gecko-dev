@@ -96,8 +96,18 @@ static bool SubjectToCSP(nsILoadInfo* aLoadInfo, nsIURI* aURI,
       return true;
     }
   }
-  if (aURI->SchemeIs("chrome") && !isImgOrStyleOrDTD) {
-    return true;
+  if (aURI->SchemeIs("chrome")) {
+    nsAutoCString uriSpec;
+    aURI->GetSpec(uriSpec);
+    // Exempt the script used by the top-level VideoDocument.
+    if (contentType == ExtContentPolicyType::TYPE_SCRIPT &&
+        uriSpec.EqualsLiteral(
+            "chrome://global/content/TopLevelVideoDocument.js")) {
+      return false;
+    }
+    if (!isImgOrStyleOrDTD) {
+      return true;
+    }
   }
   if (aURI->SchemeIs("moz-icon") || aURI->SchemeIs("moz-src")) {
     return true;

@@ -84,11 +84,6 @@ void VideoDocument::SetScriptGlobalObject(
     DebugOnly<nsresult> rv = CreateSyntheticDocument();
     NS_ASSERTION(NS_SUCCEEDED(rv), "failed to create synthetic video document");
 
-    if (!nsContentUtils::IsChildOfSameType(this)) {
-      LinkStylesheet(nsLiteralString(
-          u"resource://content-accessible/TopLevelVideoDocument.css"));
-      LinkScript(u"chrome://global/content/TopLevelVideoDocument.js"_ns);
-    }
     InitialSetupDone();
   }
 }
@@ -122,6 +117,10 @@ nsresult VideoDocument::CreateVideoElement() {
         nsLiteralString(
             u"position:absolute; top:0; left:0; width:100%; height:100%"),
         true);
+  } else {
+    LinkStylesheet(nsLiteralString(
+        u"resource://content-accessible/TopLevelVideoDocument.css"));
+    LinkScript(u"chrome://global/content/TopLevelVideoDocument.js"_ns);
   }
 
   ErrorResult rv;
