@@ -162,6 +162,7 @@ int32_t js::intgemm::IntrI8PrepareB(wasm::Instance* instance,
   MOZ_ASSERT(wasm::SASigIntrI8PrepareB.failureMode ==
              wasm::FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
+  AutoUnsafeCallWithABI unsafe;
 
   // Size checks for matricies
   if (!CheckMatrixDimension(rowsB, ROWS_B_MULTIPLIER) ||
@@ -198,6 +199,7 @@ int32_t js::intgemm::IntrI8PrepareBFromTransposed(
   MOZ_ASSERT(wasm::SASigIntrI8PrepareBFromTransposed.failureMode ==
              wasm::FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
+  AutoUnsafeCallWithABI unsafe;
 
   // Size checks for matricies
   if (!CheckMatrixDimension(rowsB, ROWS_B_MULTIPLIER) ||
@@ -234,6 +236,7 @@ int32_t js::intgemm::IntrI8PrepareBFromQuantizedTransposed(
   MOZ_ASSERT(wasm::SASigIntrI8PrepareBFromQuantizedTransposed.failureMode ==
              wasm::FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
+  AutoUnsafeCallWithABI unsafe;
 
   // Size checks for matricies
   if (!CheckMatrixDimension(rowsB, ROWS_B_MULTIPLIER) ||
@@ -271,6 +274,8 @@ int32_t js::intgemm::IntrI8PrepareA(wasm::Instance* instance,
   MOZ_ASSERT(wasm::SASigIntrI8PrepareA.failureMode ==
              wasm::FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
+  AutoUnsafeCallWithABI unsafe;
+
   // Size checks for matricies
   if (!CheckMatrixDimension(rowsA, ROWS_A_MULTIPLIER) ||
       !CheckMatrixDimension(colsA, COLUMNS_A_MULTIPLIER)) {
@@ -303,6 +308,7 @@ int32_t js::intgemm::IntrI8PrepareBias(
   MOZ_ASSERT(wasm::SASigIntrI8PrepareBias.failureMode ==
              wasm::FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
+  AutoUnsafeCallWithABI unsafe;
 
   // Size checks for matricies
   if (!CheckMatrixDimension(rowsB, ROWS_B_MULTIPLIER) ||
@@ -360,6 +366,7 @@ int32_t js::intgemm::IntrI8MultiplyAndAddBias(
   MOZ_ASSERT(wasm::SASigIntrI8MultiplyAndAddBias.failureMode ==
              wasm::FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
+  AutoUnsafeCallWithABI unsafe;
 
   // Size checks for matricies
   if (!CheckMatrixDimension(rowsA, ROWS_A_MULTIPLIER) ||
@@ -411,6 +418,7 @@ int32_t js::intgemm::IntrI8SelectColumnsOfB(wasm::Instance* instance,
   MOZ_ASSERT(wasm::SASigIntrI8SelectColumnsOfB.failureMode ==
              wasm::FailureMode::FailOnNegI32);
   JSContext* cx = instance->cx();
+  AutoUnsafeCallWithABI unsafe;
 
   // Size checks for matricies
   if (!CheckMatrixDimension(rowsB, ROWS_B_MULTIPLIER) ||

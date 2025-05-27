@@ -1912,6 +1912,7 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
                                             uint32_t len, uint8_t* memBase) {
   MOZ_ASSERT(SASigIntrI8VecMul.failureMode == FailureMode::FailOnNegI32);
   MOZ_ASSERT(SASigIntrI8VecMul.failureTrap == Trap::OutOfBounds);
+  AutoUnsafeCallWithABI unsafe;
 
   const WasmArrayRawBuffer* rawBuf = WasmArrayRawBuffer::fromDataPtr(memBase);
   size_t memLen = rawBuf->byteLength();

@@ -4810,6 +4810,30 @@ void MacroAssembler::setupAlignedABICall() {
   dynamicAlignment_ = false;
 }
 
+#ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
+void MacroAssembler::wasmCheckUnsafeCallWithABIPre() {
+  // Set the JSContext::inUnsafeCallWithABI flag.
+  loadPtr(Address(InstanceReg, wasm::Instance::offsetOfCx()),
+          ABINonArgReturnReg0);
+  Address flagAddr(ABINonArgReturnReg0,
+                   JSContext::offsetOfInUnsafeCallWithABI());
+  store32(Imm32(1), flagAddr);
+}
+
+void MacroAssembler::wasmCheckUnsafeCallWithABIPost() {
+  // Check JSContext::inUnsafeCallWithABI was cleared as expected.
+  Label ok;
+  // InstanceReg is invariant in the system ABI, so we can use it here.
+  loadPtr(Address(InstanceReg, wasm::Instance::offsetOfCx()),
+          ABINonArgReturnReg0);
+  Address flagAddr(ABINonArgReturnReg0,
+                   JSContext::offsetOfInUnsafeCallWithABI());
+  branch32(Assembler::Equal, flagAddr, Imm32(0), &ok);
+  assumeUnreachable("callWithABI: callee did not use AutoUnsafeCallWithABI");
+  bind(&ok);
+}
+#endif // JS_CHECK_UNSAFE_CALL_WITH_ABI
+
 void MacroAssembler::passABIArg(const MoveOperand& from, ABIType type) {
   MOZ_ASSERT(inCall_);
   appendSignatureType(type);
@@ -4896,19 +4920,39 @@ CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
   callWithABIPre(&stackAdjust, /* callFromWasm = */ true);
 
   // The instance register is used in builtin thunks and must be set.
-  if (wasm::NeedsBuiltinThunk(imm)) {
+  bool needsBuiltinThunk = wasm::NeedsBuiltinThunk(imm);
+#ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
+  // The builtin thunk exits the JIT activation, if we don't have one we must
+  // use AutoUnsafeCallWithABI inside the builtin and check that here.
+  bool checkUnsafeCallWithABI = !needsBuiltinThunk;
+#else
+  bool checkUnsafeCallWithABI = false;
+#endif
+  if (needsBuiltinThunk || checkUnsafeCallWithABI) {
     if (instanceOffset) {
       loadPtr(Address(getStackPointer(), *instanceOffset + stackAdjust),
               InstanceReg);
     } else {
-      MOZ_CRASH("instanceOffset is Nothing only for unsupported abi calls.");
+      MOZ_CRASH("callWithABI missing instanceOffset");
     }
   }
+
+#ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
+  if (checkUnsafeCallWithABI) {
+    wasmCheckUnsafeCallWithABIPre();
+  }
+#endif
 
   CodeOffset raOffset = call(
       wasm::CallSiteDesc(bytecode.offset(), wasm::CallSiteKind::Symbolic), imm);
 
   callWithABIPost(stackAdjust, result, /* callFromWasm = */ true);
+
+#ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
+  if (checkUnsafeCallWithABI) {
+    wasmCheckUnsafeCallWithABIPost();
+  }
+#endif
 
   return raOffset;
 }
@@ -6172,6 +6216,9 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
                 failureMode == wasm::FailureMode::Infallible ||
                     failureTrap != wasm::Trap::ThrowReported);
 
+  // Instance methods take the instance as the first argument. This is in
+  // addition to the builtin thunk (if any) requiring the InstanceReg to be
+  // set.
   if (instanceArg.kind() == ABIArg::GPR) {
     movePtr(InstanceReg, instanceArg.gpr());
   } else if (instanceArg.kind() == ABIArg::Stack) {
@@ -6181,10 +6228,25 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
     MOZ_CRASH("Unknown abi passing style for pointer");
   }
 
+#ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
+  // The builtin thunk exits the JIT activation, if we don't have one we must
+  // use AutoUnsafeCallWithABI inside the builtin and check that here.
+  bool checkUnsafeCallWithABI = !wasm::NeedsBuiltinThunk(builtin);
+  if (checkUnsafeCallWithABI) {
+    wasmCheckUnsafeCallWithABIPre();
+  }
+#endif
+
   CodeOffset ret = call(desc, builtin);
+
+#ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
+  if (checkUnsafeCallWithABI) {
+    wasmCheckUnsafeCallWithABIPost();
+  }
+#endif
+
   wasmTrapOnFailedInstanceCall(ReturnReg, failureMode, failureTrap,
                                desc.toTrapSiteDesc());
-
   return ret;
 }
 

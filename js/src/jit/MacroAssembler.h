@@ -834,6 +834,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void callWithABIPost(uint32_t stackAdjust, ABIType result,
                        bool callFromWasm = false) PER_ARCH;
 
+#ifdef JS_CHECK_UNSAFE_CALL_WITH_ABI
+  // Set the JSContext::inUnsafeCallWithABI flag using InstanceReg.
+  void wasmCheckUnsafeCallWithABIPre();
+  // Check JSContext::inUnsafeCallWithABI was cleared as expected.
+  void wasmCheckUnsafeCallWithABIPost();
+#endif
+
   // Create the signature to be able to decode the arguments of a native
   // function, when calling a function within the simulator.
   inline void appendSignatureType(ABIType type);
