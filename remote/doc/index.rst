@@ -39,6 +39,8 @@ for Marionette can be found under `testing/marionette`_.
 .. _WebDriver (HTTP) specification: https://w3c.github.io/webdriver/
 .. _testing/marionette: /testing/marionette
 
+.. _webdriver-bidi-header:
+
 WebDriver BiDi
 --------------
 
