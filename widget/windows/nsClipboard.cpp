@@ -710,23 +710,17 @@ HRESULT nsClipboard::FillSTGMedium(IDataObject* aDataObject, UINT aFormat,
 // since Windows also appears to add null termination.  See GetGlobalData.
 template <typename CharType>
 static nsresult GetCharDataFromGlobalData(STGMEDIUM& aStm, CharType** aData,
-                                          uint32_t* aByteLen) {
+                                   uint32_t* aLen) {
   uint32_t nBytes = 0;
   MOZ_TRY(nsClipboard::GetGlobalData(aStm.hGlobal,
                                      reinterpret_cast<void**>(aData), &nBytes));
   auto nChars = nBytes / sizeof(CharType);
   if (nChars < 1) {
-    *aByteLen = 0;
+    *aLen = 0;
     return NS_OK;
   }
-
-  // Remove any nulls/LFs that appear at the end of the string.  Word, for
-  // one, sometimes adds a null, then a LF (0x0a), to the end of strings.
-  CharType* afterLastChar = *aData + nChars;
-  auto it = std::find_if(
-      std::reverse_iterator(afterLastChar), std::reverse_iterator(*aData),
-      [](CharType ch) { return ch != CharType(0) && ch != CharType(0x0a); });
-  *aByteLen = std::distance(*aData, it.base()) * sizeof(CharType);
+  bool hasNullTerminator = (*aData)[nChars - 1] == CharType(0);
+  *aLen = hasNullTerminator ? nBytes - sizeof(CharType) : nBytes;
   return NS_OK;
 }
 
