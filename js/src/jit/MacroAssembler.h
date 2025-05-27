@@ -814,8 +814,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
  private:
   // Reinitialize the variables which have to be cleared before making a call
   // with callWithABI.
-  template <class ABIArgGeneratorT>
-  void setupABICallHelper();
+  void setupABICallHelper(ABIKind kind);
 
   // Reinitialize the variables which have to be cleared before making a call
   // with native abi.

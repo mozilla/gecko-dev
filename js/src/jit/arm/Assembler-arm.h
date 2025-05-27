@@ -138,10 +138,9 @@ static constexpr Register FetchOpOutHi = IntArgReg1;
 static constexpr Register64 FetchOpOut64 =
     Register64(FetchOpOutHi, FetchOpOutLo);
 
-class ABIArgGenerator {
+class ABIArgGenerator : public ABIArgGeneratorShared {
   unsigned intRegIndex_;
   unsigned floatRegIndex_;
-  uint32_t stackOffset_;
   ABIArg current_;
 
   // ARM can either use HardFp (use float registers for float arguments), or
@@ -155,16 +154,15 @@ class ABIArgGenerator {
   ABIArg hardNext(MIRType argType);
 
  public:
-  ABIArgGenerator();
+  explicit ABIArgGenerator(ABIKind kind);
 
   void setUseHardFp(bool useHardFp) {
     MOZ_ASSERT(intRegIndex_ == 0 && floatRegIndex_ == 0);
+    MOZ_ASSERT_IF(kind_ == ABIKind::Wasm, useHardFp);
     useHardFp_ = useHardFp;
   }
   ABIArg next(MIRType argType);
   ABIArg& current() { return current_; }
-  uint32_t stackBytesConsumedSoFar() const { return stackOffset_; }
-  void increaseStackOffset(uint32_t bytes) { stackOffset_ += bytes; }
 };
 
 bool IsUnaligned(const wasm::MemoryAccessDesc& access);

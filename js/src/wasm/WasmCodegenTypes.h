@@ -41,7 +41,7 @@
 namespace js {
 
 namespace jit {
-template <class VecT, class ABIArgGeneratorT>
+template <class VecT, ABIKind Kind>
 class ABIArgIterBase;
 }  // namespace jit
 
@@ -67,12 +67,12 @@ class ArgTypeVector {
   const ValTypeVector& args_;
   bool hasStackResults_;
 
-  // To allow ABIArgIterBase<VecT, ABIArgGeneratorT>, we define a private
+  // To allow ABIArgIterBase<VecT, jit::ABIKind>, we define a private
   // length() method.  To prevent accidental errors, other users need to be
   // explicit and call lengthWithStackResults() or
   // lengthWithoutStackResults().
   size_t length() const { return args_.length() + size_t(hasStackResults_); }
-  template <class VecT, class ABIArgGeneratorT>
+  template <class VecT, jit::ABIKind Kind>
   friend class jit::ABIArgIterBase;
 
  public:

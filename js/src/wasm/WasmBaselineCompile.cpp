@@ -1614,34 +1614,7 @@ bool BaseCompiler::insertDebugCollapseFrame() {
 //
 // Function calls.
 
-void BaseCompiler::beginCall(FunctionCall& call, ABIKind abiKind,
-                             RestoreState restoreState) {
-  // The builtin ABI preserves the instance register (as it's in a non-volatile
-  // register) and realm. We just need to reload the HeapReg in case the memory
-  // has been moved.
-  MOZ_ASSERT_IF(abiKind == ABIKind::WasmBuiltin,
-                restoreState == RestoreState::None ||
-                    restoreState == RestoreState::PinnedRegs);
-  // Our uses of the wasm ABI either preserves everything or nothing.
-  MOZ_ASSERT_IF(
-      abiKind == ABIKind::Wasm,
-      restoreState == RestoreState::None || restoreState == RestoreState::All);
-
-  call.abiKind = abiKind;
-  call.restoreState = restoreState;
-
-  if (call.abiKind == ABIKind::WasmBuiltin) {
-    // Builtin calls use the system hardFP setting on ARM32.
-#if defined(JS_CODEGEN_ARM)
-    call.hardFP = ARMFlags::UseHardFpABI();
-    call.abi.setUseHardFp(call.hardFP);
-#endif
-  } else {
-#if defined(JS_CODEGEN_ARM)
-    MOZ_ASSERT(call.hardFP, "The WASM ABI passes FP arguments in registers");
-#endif
-  }
-
+void BaseCompiler::beginCall(FunctionCall& call) {
   // Use masm.framePushed() because the value we want here does not depend
   // on the height of the frame's stack area, but the actual size of the
   // allocated frame.
@@ -5428,9 +5401,9 @@ bool BaseCompiler::emitCall() {
     return false;
   }
 
-  FunctionCall baselineCall{};
-  beginCall(baselineCall, ABIKind::Wasm,
-            import ? RestoreState::All : RestoreState::None);
+  FunctionCall baselineCall(ABIKind::Wasm,
+                            import ? RestoreState::All : RestoreState::None);
+  beginCall(baselineCall);
 
   if (!emitCallArgs(funcType.args(), NormalCallResults(results), &baselineCall,
                     CalleeOnStack::False)) {
@@ -5480,9 +5453,9 @@ bool BaseCompiler::emitReturnCall() {
 
   uint32_t numArgs = funcType.args().length();
 
-  FunctionCall baselineCall{};
-  beginCall(baselineCall, ABIKind::Wasm,
-            import ? RestoreState::All : RestoreState::None);
+  FunctionCall baselineCall(ABIKind::Wasm,
+                            import ? RestoreState::All : RestoreState::None);
+  beginCall(baselineCall);
 
   if (!emitCallArgs(funcType.args(), TailCallResults(funcType), &baselineCall,
                     CalleeOnStack::False)) {
@@ -5543,10 +5516,10 @@ bool BaseCompiler::emitCallIndirect() {
     return false;
   }
 
-  FunctionCall baselineCall{};
   // State and realm are restored as needed by by callIndirect (really by
   // MacroAssembler::wasmCallIndirect).
-  beginCall(baselineCall, ABIKind::Wasm, RestoreState::None);
+  FunctionCall baselineCall(ABIKind::Wasm, RestoreState::None);
+  beginCall(baselineCall);
 
   if (!emitCallArgs(funcType.args(), NormalCallResults(results), &baselineCall,
                     CalleeOnStack::True)) {
@@ -5605,10 +5578,10 @@ bool BaseCompiler::emitReturnCallIndirect() {
 
   uint32_t numArgs = funcType.args().length() + 1;
 
-  FunctionCall baselineCall{};
   // State and realm are restored as needed by by callIndirect (really by
   // MacroAssembler::wasmCallIndirect).
-  beginCall(baselineCall, ABIKind::Wasm, RestoreState::None);
+  FunctionCall baselineCall(ABIKind::Wasm, RestoreState::None);
+  beginCall(baselineCall);
 
   if (!emitCallArgs(funcType.args(), TailCallResults(funcType), &baselineCall,
                     CalleeOnStack::True)) {
@@ -5671,10 +5644,10 @@ bool BaseCompiler::emitCallRef() {
     return false;
   }
 
-  FunctionCall baselineCall{};
   // State and realm are restored as needed by by callRef (really by
   // MacroAssembler::wasmCallRef).
-  beginCall(baselineCall, ABIKind::Wasm, RestoreState::None);
+  FunctionCall baselineCall(ABIKind::Wasm, RestoreState::None);
+  beginCall(baselineCall);
 
   if (!emitCallArgs(funcType.args(), NormalCallResults(results), &baselineCall,
                     CalleeOnStack::True)) {
@@ -5729,10 +5702,10 @@ bool BaseCompiler::emitReturnCallRef() {
 
   uint32_t numArgs = funcType.args().length() + 1;
 
-  FunctionCall baselineCall{};
   // State and realm are restored as needed by by callRef (really by
   // MacroAssembler::wasmCallRef).
-  beginCall(baselineCall, ABIKind::Wasm, RestoreState::None);
+  FunctionCall baselineCall(ABIKind::Wasm, RestoreState::None);
+  beginCall(baselineCall);
 
   if (!emitCallArgs(funcType.args(), TailCallResults(funcType), &baselineCall,
                     CalleeOnStack::True)) {
@@ -5790,8 +5763,8 @@ bool BaseCompiler::emitUnaryMathBuiltinCall(SymbolicAddress callee,
   uint32_t numArgs = signature.length();
   size_t stackSpace = stackConsumed(numArgs);
 
-  FunctionCall baselineCall{};
-  beginCall(baselineCall, ABIKind::WasmBuiltin, RestoreState::None);
+  FunctionCall baselineCall(ABIKind::WasmBuiltin, RestoreState::None);
+  beginCall(baselineCall);
 
   if (!emitCallArgs(signature, NoCallResults(), &baselineCall,
                     CalleeOnStack::False)) {
@@ -5862,7 +5835,7 @@ bool BaseCompiler::emitConvertInt64ToFloatingCallout(SymbolicAddress callee,
 
   RegI64 input = popI64();
 
-  FunctionCall call{};
+  FunctionCall call(ABIKind::Wasm, RestoreState::None);
 
   masm.setupWasmABICall();
 #  ifdef JS_PUNBOX64
@@ -5912,7 +5885,7 @@ bool BaseCompiler::emitConvertFloatingToInt64Callout(SymbolicAddress callee,
 
   sync();
 
-  FunctionCall call{};
+  FunctionCall call(ABIKind::Wasm, RestoreState::None);
 
   masm.setupWasmABICall();
   masm.passABIArg(doubleInput, ABIType::Float64);
@@ -6541,8 +6514,8 @@ bool BaseCompiler::emitInstanceCall(const SymbolicAddressSignature& builtin) {
   uint32_t numNonInstanceArgs = builtin.numArgs - 1 /* instance */;
   size_t stackSpace = stackConsumed(numNonInstanceArgs);
 
-  FunctionCall baselineCall{};
-  beginCall(baselineCall, ABIKind::WasmBuiltin, RestoreState::PinnedRegs);
+  FunctionCall baselineCall(ABIKind::WasmBuiltin, RestoreState::PinnedRegs);
+  beginCall(baselineCall);
 
   ABIArg instanceArg = reservePointerArgument(&baselineCall);
 

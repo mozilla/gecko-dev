@@ -10,14 +10,12 @@
 #include "mozilla/Maybe.h"
 
 #include "jit/AutoWritableJitCode.h"
+#include "wasm/WasmFrame.h"
 
 using mozilla::DebugOnly;
 
 using namespace js;
 using namespace js::jit;
-
-ABIArgGenerator::ABIArgGenerator()
-    : regIndex_(0), stackOffset_(0), current_() {}
 
 ABIArg ABIArgGenerator::next(MIRType type) {
   static_assert(NumIntArgRegs == NumFloatArgRegs);

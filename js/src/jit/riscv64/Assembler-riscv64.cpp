@@ -47,6 +47,7 @@
 #include "jit/ExecutableAllocator.h"
 #include "jit/riscv64/disasm/Disasm-riscv64.h"
 #include "vm/Realm.h"
+#include "wasm/WasmFrame.h"
 
 using mozilla::DebugOnly;
 namespace js {

@@ -13,6 +13,7 @@
 #include "jit/AutoWritableJitCode.h"
 #include "jit/ExecutableAllocator.h"
 #include "vm/Realm.h"
+#include "wasm/WasmFrame.h"
 
 using mozilla::DebugOnly;
 
@@ -21,6 +22,10 @@ using namespace js::jit;
 
 // Note this is used for inter-wasm calls and may pass arguments and results
 // in floating point registers even if the system ABI does not.
+
+void ABIArgGenerator::startWasm() {
+  stackOffset_ += wasm::FrameWithInstances::sizeOfInstanceFields();
+}
 
 // TODO(loong64): Inconsistent with LoongArch's calling convention.
 // LoongArch floating-point parameters calling convention:
@@ -47,6 +52,9 @@ ABIArg ABIArgGenerator::next(MIRType type) {
     case MIRType::Float32:
     case MIRType::Double: {
       if (floatRegIndex_ == NumFloatArgRegs) {
+        // See above comment, on system ABIs we should be switching to pass
+        // these with integers.
+        MOZ_ASSERT(kind_ == ABIKind::Wasm);
         current_ = ABIArg(stackOffset_);
         stackOffset_ += sizeof(double);
         break;

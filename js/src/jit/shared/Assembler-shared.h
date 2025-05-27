@@ -781,6 +781,18 @@ class MOZ_RAII AutoCreatedBy {
 };
 #endif
 
+// Base class for architecture specific ABIArgGenerator classes.
+class ABIArgGeneratorShared {
+ protected:
+  ABIKind kind_;
+  uint32_t stackOffset_;
+
+  explicit ABIArgGeneratorShared(ABIKind kind);
+
+ public:
+  uint32_t stackBytesConsumedSoFar() const { return stackOffset_; }
+};
+
 }  // namespace jit
 }  // namespace js
 

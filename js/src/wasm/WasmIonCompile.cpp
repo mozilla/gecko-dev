@@ -215,7 +215,7 @@ using PendingInlineReturnVector =
 // CallCompileState describes a call that is being compiled.
 struct CallCompileState {
   // A generator object that is passed each argument as it is compiled.
-  WasmABIArgGenerator abi;
+  ABIArgGenerator abi;
 
   // Whether we pass FP values through GPRs or FPRs.
   bool hardFP = true;
@@ -249,7 +249,7 @@ struct CallCompileState {
   // The block to take for exceptional execution for a catchable call.
   MBasicBlock* prePadBlock = nullptr;
 
-  explicit CallCompileState(ABIKind abiKind) : abiKind(abiKind) {
+  explicit CallCompileState(ABIKind abiKind) : abi(abiKind), abiKind(abiKind) {
     if (abiKind == ABIKind::WasmBuiltin) {
       // Builtin calls use the system hardFP setting on ARM32.
 #if defined(JS_CODEGEN_ARM)

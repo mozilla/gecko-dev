@@ -17,6 +17,7 @@
 #include "jit/AutoWritableJitCode.h"
 #include "jit/ExecutableAllocator.h"
 #include "vm/Realm.h"
+#include "wasm/WasmFrame.h"
 
 #include "gc/StoreBuffer-inl.h"
 
@@ -25,9 +26,6 @@ using namespace js::jit;
 
 using mozilla::CountLeadingZeroes32;
 using mozilla::DebugOnly;
-
-// Note this is used for inter-wasm calls and may pass arguments and results
-// in floating point registers even if the system ABI does not.
 
 ABIArg ABIArgGenerator::next(MIRType type) {
   switch (type) {

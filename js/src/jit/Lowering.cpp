@@ -8219,7 +8219,7 @@ void LIRGenerator::visitIonToWasmCall(MIonToWasmCall* ins) {
     return;
   }
 
-  ABIArgGenerator abi;
+  ABIArgGenerator abi(ABIKind::Wasm);
   for (unsigned i = 0; i < ins->numOperands(); i++) {
     MDefinition* argDef = ins->getOperand(i);
     ABIArg arg = abi.next(ToMIRType(argDef->type()));

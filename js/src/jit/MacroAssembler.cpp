@@ -4465,6 +4465,9 @@ MacroAssembler::MacroAssembler(TempAllocator& alloc,
     : maybeRuntime_(maybeRuntime),
       maybeRealm_(maybeRealm),
       framePushed_(0),
+      abiArgs_(/* This will be overwritten for every ABI call, the initial value
+                  doesn't matter */
+               ABIKind::System),
 #ifdef DEBUG
       inCall_(false),
 #endif
@@ -4764,8 +4767,7 @@ void MacroAssembler::loadVMFunctionOutParam(const VMFunctionData& f,
 
 // ===============================================================
 // ABI function calls.
-template <class ABIArgGeneratorT>
-void MacroAssembler::setupABICallHelper() {
+void MacroAssembler::setupABICallHelper(ABIKind kind) {
 #ifdef DEBUG
   MOZ_ASSERT(!inCall_);
   inCall_ = true;
@@ -4776,21 +4778,23 @@ void MacroAssembler::setupABICallHelper() {
 #endif
 
   // Reinitialize the ABIArg generator.
-  abiArgs_ = ABIArgGeneratorT();
+  abiArgs_ = ABIArgGenerator(kind);
 
 #if defined(JS_CODEGEN_ARM)
-  // On ARM, we need to know what ABI we are using.
-  abiArgs_.setUseHardFp(ARMFlags::UseHardFpABI());
+  if (kind != ABIKind::Wasm) {
+    // On ARM, we need to know what ABI we are using.
+    abiArgs_.setUseHardFp(ARMFlags::UseHardFpABI());
+  }
 #endif
 }
 
 void MacroAssembler::setupNativeABICall() {
-  setupABICallHelper<ABIArgGenerator>();
+  setupABICallHelper(ABIKind::System);
 }
 
 void MacroAssembler::setupWasmABICall() {
   MOZ_ASSERT(IsCompilingWasm(), "non-wasm should use setupAlignedABICall");
-  setupABICallHelper<WasmABIArgGenerator>();
+  setupABICallHelper(ABIKind::WasmBuiltin);
   dynamicAlignment_ = false;
 }
 

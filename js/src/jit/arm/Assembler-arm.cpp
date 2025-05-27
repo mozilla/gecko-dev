@@ -20,6 +20,7 @@
 #include "jit/ExecutableAllocator.h"
 #include "jit/MacroAssembler.h"
 #include "vm/Realm.h"
+#include "wasm/WasmFrame.h"
 
 using namespace js;
 using namespace js::jit;
@@ -36,10 +37,10 @@ void dbg_break() {}
 // calls. The system ABI can either be SoftFp or HardFp, and inter-wasm calls
 // are always HardFp calls. The initialization defaults to HardFp, and the ABI
 // choice is made before any system ABI calls with the method "setUseHardFp".
-ABIArgGenerator::ABIArgGenerator()
-    : intRegIndex_(0),
+ABIArgGenerator::ABIArgGenerator(ABIKind kind)
+    : ABIArgGeneratorShared(kind),
+      intRegIndex_(0),
       floatRegIndex_(0),
-      stackOffset_(0),
       current_(),
       useHardFp_(true) {}
 

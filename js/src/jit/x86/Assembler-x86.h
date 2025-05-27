@@ -91,16 +91,15 @@ static constexpr Register CallTempReg5 = edx;
 static constexpr Register CallTempNonArgRegs[] = {edi, eax, ebx, ecx, esi, edx};
 static constexpr uint32_t NumCallTempNonArgRegs = std::size(CallTempNonArgRegs);
 
-class ABIArgGenerator {
-  uint32_t stackOffset_;
+class ABIArgGenerator : public ABIArgGeneratorShared {
   ABIArg current_;
 
  public:
-  ABIArgGenerator();
+  explicit ABIArgGenerator(ABIKind kind)
+      : ABIArgGeneratorShared(kind), current_() {}
+
   ABIArg next(MIRType argType);
   ABIArg& current() { return current_; }
-  uint32_t stackBytesConsumedSoFar() const { return stackOffset_; }
-  void increaseStackOffset(uint32_t bytes) { stackOffset_ += bytes; }
 };
 
 // These registers may be volatile or nonvolatile.

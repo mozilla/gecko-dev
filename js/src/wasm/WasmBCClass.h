@@ -141,17 +141,39 @@ struct AccessCheck {
 
 // Encapsulate all the information about a function call.
 struct FunctionCall {
-  FunctionCall()
-      : restoreState(RestoreState::None),
-        abiKind(ABIKind::Wasm),
+  FunctionCall(ABIKind abiKind, RestoreState restoreState)
+      : abi(abiKind),
+        restoreState(restoreState),
+        abiKind(abiKind),
 #ifdef JS_CODEGEN_ARM
         hardFP(true),
 #endif
         frameAlignAdjustment(0),
         stackArgAreaSize(0) {
+    // The builtin ABI preserves the instance register (as it's in a
+    // non-volatile register) and realm. We just need to reload the HeapReg in
+    // case the memory has been moved.
+    MOZ_ASSERT_IF(abiKind == ABIKind::WasmBuiltin,
+                  restoreState == RestoreState::None ||
+                      restoreState == RestoreState::PinnedRegs);
+    // Our uses of the wasm ABI either preserves everything or nothing.
+    MOZ_ASSERT_IF(abiKind == ABIKind::Wasm,
+                  restoreState == RestoreState::None ||
+                      restoreState == RestoreState::All);
+    if (abiKind == ABIKind::WasmBuiltin) {
+      // Builtin calls use the system hardFP setting on ARM32.
+#if defined(JS_CODEGEN_ARM)
+      hardFP = ARMFlags::UseHardFpABI();
+      abi.setUseHardFp(hardFP);
+#endif
+    } else {
+#if defined(JS_CODEGEN_ARM)
+      MOZ_ASSERT(hardFP, "The WASM ABI passes FP arguments in registers");
+#endif
+    }
   }
 
-  WasmABIArgGenerator abi;
+  ABIArgGenerator abi;
   RestoreState restoreState;
   ABIKind abiKind;
 #ifdef JS_CODEGEN_ARM
@@ -977,8 +999,7 @@ struct BaseCompiler final {
   //
   // Calls.
 
-  void beginCall(FunctionCall& call, ABIKind abiKind,
-                 RestoreState restoreState);
+  void beginCall(FunctionCall& call);
   void endCall(FunctionCall& call, size_t stackSpace);
 
   void startCallArgs(size_t stackArgAreaSizeUnaligned, FunctionCall* call);
