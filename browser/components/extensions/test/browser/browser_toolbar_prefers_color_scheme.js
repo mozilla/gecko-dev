@@ -61,10 +61,23 @@ add_task(async function test_dark_toolbar_dark_text() {
     }
   );
 
-  // Dark frame text is ignored as it might be overlaid with an image,
+  // Dark frame text is taken into account when not overlaid with an image.
+  await testTheme("Dark frame is honored", kDark, kSystem, {
+    theme: {
+      colors: {
+        frame: "#000000",
+        tab_background_text: "#000000",
+      },
+    },
+  });
+
+  // Dark frame text should be ignored if overlaid with an image,
   // see bug 1741931.
   await testTheme("Dark frame is ignored", kLight, kSystem, {
     theme: {
+      images: {
+        theme_frame: "image1.png",
+      },
       colors: {
         frame: "#000000",
         tab_background_text: "#000000",
