@@ -67,7 +67,7 @@ import org.mozilla.fenix.messaging.MessageController
 import org.mozilla.fenix.onboarding.WallpaperOnboardingDialogFragment.Companion.THUMBNAILS_SELECTION_COUNT
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.utils.Settings
-import org.mozilla.fenix.utils.showAddSearchWidgetPrompt
+import org.mozilla.fenix.utils.maybeShowAddSearchWidgetPrompt
 import org.mozilla.fenix.wallpapers.Wallpaper
 import org.mozilla.fenix.wallpapers.WallpaperState
 import mozilla.components.feature.tab.collections.Tab as ComponentTab
@@ -695,7 +695,7 @@ class DefaultSessionControlController(
         ChecklistItem.Task.Type.CHANGE_TOOLBAR_PLACEMENT ->
             navigateTo(HomeFragmentDirections.actionGlobalCustomizationFragment())
 
-        ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET -> showAddSearchWidgetPrompt(activity)
+        ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET -> maybeShowAddSearchWidgetPrompt(activity)
 
         ChecklistItem.Task.Type.EXPLORE_EXTENSION ->
             navigateTo(HomeFragmentDirections.actionGlobalAddonsManagementFragment())

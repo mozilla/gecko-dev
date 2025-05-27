@@ -75,7 +75,7 @@ import org.mozilla.fenix.messaging.MessageController
 import org.mozilla.fenix.onboarding.WallpaperOnboardingDialogFragment.Companion.THUMBNAILS_SELECTION_COUNT
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.utils.Settings
-import org.mozilla.fenix.utils.showAddSearchWidgetPrompt
+import org.mozilla.fenix.utils.maybeShowAddSearchWidgetPrompt
 import org.mozilla.fenix.wallpapers.Wallpaper
 import org.mozilla.fenix.wallpapers.WallpaperState
 import java.io.File
@@ -1624,13 +1624,13 @@ class DefaultSessionControlControllerTest {
         val controller = createController()
         val task = mockk<ChecklistItem.Task>()
         mockkStatic("org.mozilla.fenix.utils.AddSearchWidgetPromptKt")
-        every { showAddSearchWidgetPrompt(activity) } just Runs
+        every { maybeShowAddSearchWidgetPrompt(activity) } just Runs
         every { task.type } returns ChecklistItem.Task.Type.INSTALL_SEARCH_WIDGET
 
         controller.navigationActionFor(task)
 
         verify {
-            showAddSearchWidgetPrompt(activity)
+            maybeShowAddSearchWidgetPrompt(activity)
         }
     }
 
