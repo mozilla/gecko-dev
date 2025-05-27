@@ -702,7 +702,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new PrefWithoutDefault<>("network.trr.excluded-domains");
   /* package */ final PrefWithoutDefault<Integer> mLargeKeepalivefactor =
       new PrefWithoutDefault<>("network.http.largeKeepaliveFactor");
-  /* package */ final Pref<Integer> mProcessCount = new Pref<>("dom.ipc.processCount", 2);
+  /* package */ final Pref<Integer> mProcessCount = new Pref<>("dom.ipc.processCount", 4);
   /* package */ final Pref<Boolean> mExtensionsWebAPIEnabled =
       new Pref<>("extensions.webapi.enabled", false);
   /* package */ final PrefWithoutDefault<Boolean> mExtensionsProcess =
