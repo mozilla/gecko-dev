@@ -1890,6 +1890,13 @@ static bool TypedArray_set(JSContext* cx, const CallArgs& args) {
   Rooted<TypedArrayObject*> target(
       cx, &args.thisv().toObject().as<TypedArrayObject>());
 
+  // Additional step from Immutable ArrayBuffer proposal.
+  if (target->is<ImmutableTypedArrayObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
+    return false;
+  }
+
   // Steps 4-5.
   double targetOffset = 0;
   if (args.length() > 1) {
@@ -1968,6 +1975,13 @@ static bool TypedArray_copyWithin(JSContext* cx, const CallArgs& args) {
   auto arrayLength = tarray->length();
   if (!arrayLength) {
     ReportOutOfBounds(cx, tarray);
+    return false;
+  }
+
+  // Additional step from Immutable ArrayBuffer proposal.
+  if (tarray->is<ImmutableTypedArrayObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
     return false;
   }
 
@@ -2949,7 +2963,7 @@ static void TypedArrayFill(TypedArrayObject* tarray, const Value& value,
 static bool TypedArray_fill(JSContext* cx, const CallArgs& args) {
   MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
 
-  // Steps 1-3.
+  // Steps 1-2.
   Rooted<TypedArrayObject*> tarray(
       cx, &args.thisv().toObject().as<TypedArrayObject>());
 
@@ -2958,6 +2972,15 @@ static bool TypedArray_fill(JSContext* cx, const CallArgs& args) {
     ReportOutOfBounds(cx, tarray);
     return false;
   }
+
+  // Additional step from Immutable ArrayBuffer proposal.
+  if (tarray->is<ImmutableTypedArrayObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
+    return false;
+  }
+
+  // Step 3
   size_t len = *arrayLength;
 
   // Steps 4-5.
@@ -3060,7 +3083,7 @@ static void TypedArrayReverse(TypedArrayObject* tarray, size_t len) {
 static bool TypedArray_reverse(JSContext* cx, const CallArgs& args) {
   MOZ_ASSERT(IsTypedArrayObject(args.thisv()));
 
-  // Steps 1-3.
+  // Steps 1-2.
   Rooted<TypedArrayObject*> tarray(
       cx, &args.thisv().toObject().as<TypedArrayObject>());
 
@@ -3069,6 +3092,15 @@ static bool TypedArray_reverse(JSContext* cx, const CallArgs& args) {
     ReportOutOfBounds(cx, tarray);
     return false;
   }
+
+  // Additional step from Immutable ArrayBuffer proposal.
+  if (tarray->is<ImmutableTypedArrayObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
+    return false;
+  }
+
+  // Step 3.
   size_t len = *arrayLength;
 
   // Steps 4-6.
@@ -4049,6 +4081,13 @@ static bool uint8array_setFromBase64(JSContext* cx, const CallArgs& args) {
   Rooted<TypedArrayObject*> tarray(
       cx, &args.thisv().toObject().as<TypedArrayObject>());
 
+  // Additional step from Immutable ArrayBuffer proposal.
+  if (tarray->is<ImmutableTypedArrayObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
+    return false;
+  }
+
   // Step 3.
   if (!args.get(0).isString()) {
     return ReportValueError(cx, JSMSG_UNEXPECTED_TYPE, JSDVG_SEARCH_STACK,
@@ -4142,6 +4181,13 @@ static bool uint8array_setFromBase64(JSContext* cx, unsigned argc, Value* vp) {
 static bool uint8array_setFromHex(JSContext* cx, const CallArgs& args) {
   Rooted<TypedArrayObject*> tarray(
       cx, &args.thisv().toObject().as<TypedArrayObject>());
+
+  // Additional step from Immutable ArrayBuffer proposal.
+  if (tarray->is<ImmutableTypedArrayObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
+    return false;
+  }
 
   // Step 3.
   if (!args.get(0).isString()) {
@@ -5646,6 +5692,13 @@ static MOZ_ALWAYS_INLINE bool TypedArraySortPrologue(JSContext* cx,
   auto arrayLength = tarrayUnwrapped->length();
   if (!arrayLength) {
     ReportOutOfBounds(cx, tarrayUnwrapped);
+    return false;
+  }
+
+  // Additional step from Immutable ArrayBuffer proposal.
+  if (tarrayUnwrapped->is<ImmutableTypedArrayObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
     return false;
   }
 

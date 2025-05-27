@@ -305,6 +305,10 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
                 "self-hosted code with burned-in constants must use the "
                 "correct DETACHED bit value");
 
+  static_assert(JS_ARRAYBUFFER_IMMUTABLE_FLAG == IMMUTABLE,
+                "self-hosted code with burned-in constants must use the "
+                "correct IMMUTABLE bit value");
+
  protected:
   enum class FillContents { Zero, Uninitialized };
 
