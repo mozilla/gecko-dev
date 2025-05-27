@@ -339,28 +339,19 @@
   }
 
   &[sizeto="available"] {
-    --box-inline-margin: 4px;
-    --box-ideal-width: 1000;
-    --box-ideal-height: 650;
-    --box-max-width-margin: calc(100% - 2 * var(--box-inline-margin));
-    --box-max-height-margin: 100%;
-    --box-max-height-requested: 100%;
-    --box-max-width-requested: 100%;
-
-    max-width: min(var(--box-ideal-width) * 1px, var(--box-max-width-margin), var(--box-max-width-requested));
-    max-height: min(var(--box-ideal-height) * 1px, var(--box-max-height-margin), var(--box-max-height-requested));
-
     width: 100%;
     height: 100%;
     margin: 0;
 
-    @media (min-width: 550px) {
-      --box-inline-margin: min(calc(4px + (100% - 550px) / 4), 16px);
-    }
-
-    @media (min-width: 800px) {
-      --box-inline-margin: min(calc(16px + (100% - 800px) / 4), 32px);
-    }
+    /* NOTE(emilio): This is a bit tricky, but basically what we want to do is
+     * guarantee a size between 80% (or 90% for height) and 100% of the
+     * available space, with some variable spacing when the available space is
+     * over 600px. The 2 controls the growth of the margin, with a larger
+     * number reaching the 80% width later, effectively. */
+    --box-max-width-default: clamp(80%, 100% + (600px - 100%) / 2, 100%);
+    --box-max-height-default: clamp(90%, 100% + (600px - 100%) / 2, 100%);
+    max-width: var(--box-max-width-requested, var(--box-max-width-default));
+    max-height: var(--box-max-height-requested, var(--box-max-height-default));
   }
 
   :not(.content-prompt-dialog) > .dialogOverlay > &:not(.spotlightBox) {
