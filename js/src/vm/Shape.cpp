@@ -565,9 +565,20 @@ bool NativeObject::changeProperty(JSContext* cx, Handle<NativeObject*> obj,
 
   const JSClass* clasp = obj->shape()->getObjectClass();
 
+  // Rebuilding the new SharedPropMap is linear in the number of properties.
+  // To avoid going quadratic when changing every property in a large object,
+  // we cap the number of properties we will re-add. As a fallback, we can
+  // transition to dictionary mode, which lets us change properties in constant
+  // time.
+  const uint32_t MaxCopiedMaps = 4;
+  bool hasReasonableGap =
+      map->isShared() && map->asShared()->numPreviousMaps() -
+                                 propMap->asShared()->numPreviousMaps() <=
+                             MaxCopiedMaps;
+
   bool isLast = propMap == map && propIndex == mapLength - 1;
   bool nonLastCustomProperty = oldProp.isCustomDataProperty() && !isLast;
-  if (map->isShared() && !nonLastCustomProperty) {
+  if (map->isShared() && !nonLastCustomProperty && hasReasonableGap) {
     // To change a property, we get the previous propmap and then call
     // addProperty to re-add the changed property with the new flags. If it
     // is not the last property, we have to re-add all the following
@@ -638,9 +649,10 @@ bool NativeObject::changeProperty(JSContext* cx, Handle<NativeObject*> obj,
   }
 
   if (map->isShared()) {
-    // Changing a non-last custom data property. Switch to dictionary mode
-    // and relookup pointers for the new dictionary map.
-    MOZ_ASSERT(nonLastCustomProperty);
+    // We gave up on trying to keep a shared map, either because of
+    // custom data properties or because we would have to copy too
+    // many properties. Switch to dictionary mode and relookup
+    // pointers for the new dictionary map.
     if (!NativeObject::toDictionaryMode(cx, obj)) {
       return false;
     }
