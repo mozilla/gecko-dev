@@ -115,6 +115,13 @@ class MenuNavigationMiddleware(
                     MenuDialogFragmentDirections.actionGlobalSettingsFragment(),
                 )
 
+                is MenuAction.Navigate.InstalledAddonDetails -> navController.nav(
+                    R.id.menuDialogFragment,
+                    MenuDialogFragmentDirections.actionMenuDialogFragmentToInstalledAddonDetailsFragment(
+                        addon = action.addon,
+                    ),
+                )
+
                 is MenuAction.Navigate.Bookmarks -> navController.nav(
                     R.id.menuDialogFragment,
                     MenuDialogFragmentDirections.actionGlobalBookmarkFragment(BookmarkRoot.Mobile.id),

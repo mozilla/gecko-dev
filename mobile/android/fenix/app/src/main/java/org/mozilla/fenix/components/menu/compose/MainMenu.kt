@@ -579,6 +579,7 @@ internal fun Addons(
     webExtensionMenuItems: List<WebExtensionMenuItem>,
     addonInstallationInProgress: Addon?,
     recommendedAddons: List<Addon>,
+    onAddonSettingsClick: (Addon) -> Unit,
     onAddonClick: (Addon) -> Unit,
     onInstallAddonClick: (Addon) -> Unit,
     onDiscoverMoreExtensionsMenuClick: () -> Unit,
@@ -595,7 +596,7 @@ internal fun Addons(
                     onWebExtensionMenuItemClick()
                     onAddonClick(it)
                 },
-                onIconClick = { onAddonClick(it) },
+                onIconClick = { onAddonSettingsClick(it) },
             )
         } else if (accessPoint == MenuAccessPoint.Browser && webExtensionMenuItems.isNotEmpty()) {
             WebExtensionMenuItems(
@@ -824,6 +825,7 @@ private fun MenuDialogPrivatePreview() {
                             translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
                         ),
                     ),
+                    onAddonSettingsClick = {},
                     onAddonClick = {},
                     onInstallAddonClick = {},
                     onDiscoverMoreExtensionsMenuClick = {},

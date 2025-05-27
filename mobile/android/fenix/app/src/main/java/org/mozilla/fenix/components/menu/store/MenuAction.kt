@@ -335,6 +335,15 @@ sealed class MenuAction : Action {
         ) : Navigate()
 
         /**
+         * [Navigate] action dispatched when navigating to the given installed [addon] details.
+         *
+         * @property addon The [Addon] details to display.
+         */
+        data class InstalledAddonDetails(
+            val addon: Addon,
+        ) : Navigate()
+
+        /**
          * [Navigate] action dispatched when the user clicks to report a broken site.
          */
         data object WebCompatReporter : Navigate()

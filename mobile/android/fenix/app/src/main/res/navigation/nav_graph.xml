@@ -1272,6 +1272,48 @@
         </fragment>
     </navigation>
 
+    <fragment
+        android:id="@+id/installedAddonDetailsFragment"
+        android:name="org.mozilla.fenix.addons.InstalledAddonDetailsFragment"
+        tools:layout="@layout/fragment_installed_add_on_details">
+        <action
+            android:id="@+id/action_installedAddonFragment_to_addonInternalSettingsFragment"
+            app:destination="@id/addonInternalSettingsFragment" />
+        <action
+            android:id="@+id/action_installedAddonFragment_to_addonDetailsFragment"
+            app:destination="@id/addonDetailsFragment" />
+        <action
+            android:id="@+id/action_installedAddonFragment_to_addonPermissionsDetailsFragment"
+            app:destination="@id/addonPermissionsDetailFragment" />
+        <argument
+            android:name="addon"
+            app:argType="mozilla.components.feature.addons.Addon" />
+    </fragment>
+    <fragment
+        android:id="@+id/notYetSupportedAddonFragment"
+        android:name="org.mozilla.fenix.addons.NotYetSupportedAddonFragment"
+        tools:layout="@layout/fragment_not_yet_supported_addons">
+        <argument
+            android:name="addons"
+            app:argType="mozilla.components.feature.addons.Addon[]" />
+    </fragment>
+    <fragment
+        android:id="@+id/addonPermissionsDetailFragment"
+        android:name="org.mozilla.fenix.addons.AddonPermissionsDetailsFragment"
+        tools:layout="@layout/fragment_add_on_permissions">
+        <argument
+            android:name="addon"
+            app:argType="mozilla.components.feature.addons.Addon" />
+    </fragment>
+    <fragment
+        android:id="@+id/addonInternalSettingsFragment"
+        android:name="org.mozilla.fenix.addons.AddonInternalSettingsFragment"
+        tools:layout="@layout/fragment_add_on_internal_settings">
+        <argument
+            android:name="addon"
+            app:argType="mozilla.components.feature.addons.Addon" />
+    </fragment>
+
     <navigation
         android:id="@+id/addons_management_graph"
         app:startDestination="@id/addonsManagementFragment">
@@ -1293,47 +1335,6 @@
                 android:defaultValue="@null"
                 app:argType="string"
                 app:nullable="true" />
-        </fragment>
-        <fragment
-            android:id="@+id/installedAddonDetailsFragment"
-            android:name="org.mozilla.fenix.addons.InstalledAddonDetailsFragment"
-            tools:layout="@layout/fragment_installed_add_on_details">
-            <action
-                android:id="@+id/action_installedAddonFragment_to_addonInternalSettingsFragment"
-                app:destination="@id/addonInternalSettingsFragment" />
-            <action
-                android:id="@+id/action_installedAddonFragment_to_addonDetailsFragment"
-                app:destination="@id/addonDetailsFragment" />
-            <action
-                android:id="@+id/action_installedAddonFragment_to_addonPermissionsDetailsFragment"
-                app:destination="@id/addonPermissionsDetailFragment" />
-            <argument
-                android:name="addon"
-                app:argType="mozilla.components.feature.addons.Addon" />
-        </fragment>
-        <fragment
-            android:id="@+id/notYetSupportedAddonFragment"
-            android:name="org.mozilla.fenix.addons.NotYetSupportedAddonFragment"
-            tools:layout="@layout/fragment_not_yet_supported_addons">
-            <argument
-                android:name="addons"
-                app:argType="mozilla.components.feature.addons.Addon[]" />
-        </fragment>
-        <fragment
-            android:id="@+id/addonPermissionsDetailFragment"
-            android:name="org.mozilla.fenix.addons.AddonPermissionsDetailsFragment"
-            tools:layout="@layout/fragment_add_on_permissions">
-            <argument
-                android:name="addon"
-                app:argType="mozilla.components.feature.addons.Addon" />
-        </fragment>
-        <fragment
-            android:id="@+id/addonInternalSettingsFragment"
-            android:name="org.mozilla.fenix.addons.AddonInternalSettingsFragment"
-            tools:layout="@layout/fragment_add_on_internal_settings">
-            <argument
-                android:name="addon"
-                app:argType="mozilla.components.feature.addons.Addon" />
         </fragment>
     </navigation>
 
@@ -1693,6 +1694,9 @@
             <action
                 android:id="@+id/action_menuDialogFragment_to_webCompatReporterFragment"
                 app:destination="@id/webCompatReporterFragment" />
+            <action
+                android:id="@+id/action_menuDialogFragment_to_installedAddonDetailsFragment"
+                app:destination="@id/installedAddonDetailsFragment" />
         </dialog>
     </navigation>
 

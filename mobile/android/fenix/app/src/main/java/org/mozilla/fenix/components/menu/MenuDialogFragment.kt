@@ -587,6 +587,13 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                                     )
                                                 }
                                             },
+                                            onAddonSettingsClick = { addon ->
+                                                store.dispatch(
+                                                    MenuAction.Navigate.InstalledAddonDetails(
+                                                        addon = addon,
+                                                    ),
+                                                )
+                                            },
                                             onInstallAddonClick = { addon ->
                                                 store.dispatch(MenuAction.InstallAddon(addon = addon))
                                             },
