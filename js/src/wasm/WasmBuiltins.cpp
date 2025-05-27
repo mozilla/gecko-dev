@@ -1688,9 +1688,10 @@ void* wasm::AddressOf(SymbolicAddress imm, ABIFunctionType* abiType) {
       *abiType = Args_General1;
       return FuncCast(PrintText, *abiType);
 #endif
-#define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, entry, ...) \
-  case SymbolicAddress::sa_name:                                     \
-    *abiType = abitype;                                              \
+#define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, needs_thunk, entry, \
+                           ...)                                              \
+  case SymbolicAddress::sa_name:                                             \
+    *abiType = abitype;                                                      \
     return FuncCast(entry, *abiType);
       FOR_EACH_BUILTIN_MODULE_FUNC(VISIT_BUILTIN_FUNC)
 #undef VISIT_BUILTIN_FUNC
@@ -1857,15 +1858,16 @@ bool wasm::NeedsBuiltinThunk(SymbolicAddress sym) {
     case SymbolicAddress::ArrayInitData:
     case SymbolicAddress::ArrayInitElem:
     case SymbolicAddress::ArrayCopy:
-#define VISIT_BUILTIN_FUNC(op, export, sa_name, ...) \
-  case SymbolicAddress::sa_name:
-      FOR_EACH_BUILTIN_MODULE_FUNC(VISIT_BUILTIN_FUNC)
-#undef VISIT_BUILTIN_FUNC
 #ifdef ENABLE_WASM_JSPI
     case SymbolicAddress::UpdateSuspenderState:
 #endif
       return true;
 
+#define VISIT_BUILTIN_FUNC(op, export, sa_name, sa_type, needs_thunk, ...) \
+  case SymbolicAddress::sa_name:                                           \
+    return needs_thunk;
+      FOR_EACH_BUILTIN_MODULE_FUNC(VISIT_BUILTIN_FUNC)
+#undef VISIT_BUILTIN_FUNC
     case SymbolicAddress::Limit:
       break;
   }

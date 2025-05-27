@@ -632,8 +632,8 @@ class alignas(16) Instance {
                            uint32_t numElements);
   static int32_t refTest(Instance* instance, void* refPtr,
                          const wasm::TypeDef* typeDef);
-  static int32_t intrI8VecMul(Instance* instance, uint32_t dest, uint32_t src1,
-                              uint32_t src2, uint32_t len, uint8_t* memBase);
+  static void intrI8VecMul(Instance* instance, uint32_t dest, uint32_t src1,
+                           uint32_t src2, uint32_t len, uint8_t* memBase);
 
 #ifdef ENABLE_WASM_JS_STRING_BUILTINS
   static int32_t stringTest(Instance* instance, void* stringArg);

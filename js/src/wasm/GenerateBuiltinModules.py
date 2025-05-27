@@ -119,7 +119,7 @@ def main(c_out, yaml_path):
             inlineOp = f"BuiltinInlineOp::{op['inline_op']}"
         contents += (
             f"    M({op['op']}, \"{op['export']}\", "
-            f"{sa['name']}, {sa['type']}, {op['entry']}, {cppBool(op['uses_memory'])}, {inlineOp}, {i})\\\n"
+            f"{sa['name']}, {sa['type']}, {cppBool(sa['needs_thunk'])}, {op['entry']}, {cppBool(op['uses_memory'])}, {inlineOp}, {i})\\\n"
         )
     contents += "\n"
 

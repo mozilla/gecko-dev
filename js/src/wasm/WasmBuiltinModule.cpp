@@ -81,8 +81,8 @@ bool BuiltinModuleFuncs::init() {
     return false;
   }
 
-#define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, entry, uses_memory,   \
-                           inline_op, ...)                                     \
+#define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, needs_thunk, entry,   \
+                           uses_memory, inline_op, ...)                        \
   const ValType op##Params[] =                                                 \
       DECLARE_BUILTIN_MODULE_FUNC_PARAM_VALTYPES_##op;                         \
   Maybe<ValType> op##Result = DECLARE_BUILTIN_MODULE_FUNC_RESULT_VALTYPE_##op; \

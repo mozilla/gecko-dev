@@ -4892,18 +4892,19 @@ CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
                                        wasm::SymbolicAddress imm,
                                        mozilla::Maybe<int32_t> instanceOffset,
                                        ABIType result) {
-  MOZ_ASSERT(wasm::NeedsBuiltinThunk(imm));
-
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust, /* callFromWasm = */ true);
 
   // The instance register is used in builtin thunks and must be set.
-  if (instanceOffset) {
-    loadPtr(Address(getStackPointer(), *instanceOffset + stackAdjust),
-            InstanceReg);
-  } else {
-    MOZ_CRASH("instanceOffset is Nothing only for unsupported abi calls.");
+  if (wasm::NeedsBuiltinThunk(imm)) {
+    if (instanceOffset) {
+      loadPtr(Address(getStackPointer(), *instanceOffset + stackAdjust),
+              InstanceReg);
+    } else {
+      MOZ_CRASH("instanceOffset is Nothing only for unsupported abi calls.");
+    }
   }
+
   CodeOffset raOffset = call(
       wasm::CallSiteDesc(bytecode.offset(), wasm::CallSiteKind::Symbolic), imm);
 
@@ -4914,7 +4915,6 @@ CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
 
 void MacroAssembler::callDebugWithABI(wasm::SymbolicAddress imm,
                                       ABIType result) {
-  MOZ_ASSERT(!wasm::NeedsBuiltinThunk(imm));
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust, /* callFromWasm = */ false);
   call(imm);
@@ -6167,6 +6167,8 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
     const wasm::CallSiteDesc& desc, const ABIArg& instanceArg,
     wasm::SymbolicAddress builtin, wasm::FailureMode failureMode) {
   MOZ_ASSERT(instanceArg != ABIArg());
+  MOZ_ASSERT_IF(!wasm::NeedsBuiltinThunk(builtin),
+                failureMode == wasm::FailureMode::Infallible);
 
   if (instanceArg.kind() == ABIArg::GPR) {
     movePtr(InstanceReg, instanceArg.gpr());

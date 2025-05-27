@@ -970,8 +970,8 @@ enum class BuiltinModuleFuncId {
 // emitted internally when compiling intrinsic modules and are rejected by wasm
 // validation.
 // See wasm/WasmBuiltinModule.yaml for the list.
-#define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, entry, uses_memory, \
-                           inline_op, idx)                                   \
+#define VISIT_BUILTIN_FUNC(op, export, sa_name, abitype, needs_thunk, entry, \
+                           uses_memory, inline_op, idx)                      \
   op = idx + 1,  // NOLINT
   FOR_EACH_BUILTIN_MODULE_FUNC(VISIT_BUILTIN_FUNC)
 #undef VISIT_BUILTIN_FUNC

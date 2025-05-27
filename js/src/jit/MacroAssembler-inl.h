@@ -124,8 +124,6 @@ void MacroAssembler::call(const wasm::CallSiteDesc& desc, wasm::Trap trap) {
 
 CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
                                 wasm::SymbolicAddress imm) {
-  MOZ_ASSERT(wasm::NeedsBuiltinThunk(imm),
-             "only for functions which may appear in profiler");
   CodeOffset raOffset = call(imm);
   append(desc, raOffset);
   return raOffset;

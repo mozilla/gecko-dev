@@ -9,6 +9,7 @@
   symbolic_address:
     name: IntrI8VecMul
     type: Args_Int32_GeneralInt32Int32Int32Int32General
+    needs_thunk: false
   entry: Instance::intrI8VecMul
   export: i8vecmul
   params:
@@ -16,7 +17,7 @@
     - 'i32'
     - 'i32'
     - 'i32'
-  fail_mode: FailOnNegI32
+  fail_mode: Infallible
   uses_memory: true
 
 #if defined(ENABLE_WASM_MOZ_INTGEMM)
@@ -37,6 +38,7 @@
   symbolic_address:
     name: IntrI8PrepareB
     type: Args_Int32_GeneralInt32Float32Float32Int32Int32Int32General
+    needs_thunk: true
   entry: intgemm::IntrI8PrepareB
   export: int8_prepare_b
   params:
@@ -62,6 +64,7 @@
   symbolic_address:
     name: IntrI8PrepareBFromTransposed
     type: Args_Int32_GeneralInt32Float32Float32Int32Int32Int32General
+    needs_thunk: true
   entry: intgemm::IntrI8PrepareBFromTransposed
   export: int8_prepare_b_from_transposed
   params:
@@ -87,6 +90,7 @@
   symbolic_address:
     name: IntrI8PrepareBFromQuantizedTransposed
     type: Args_Int32_GeneralInt32Int32Int32Int32General
+    needs_thunk: true
   entry: intgemm::IntrI8PrepareBFromQuantizedTransposed
   export: int8_prepare_b_from_quantized_transposed
   params:
@@ -113,6 +117,7 @@
   symbolic_address:
     name: IntrI8PrepareA
     type: Args_Int32_GeneralInt32Float32Float32Int32Int32Int32General
+    needs_thunk: true
   entry: intgemm::IntrI8PrepareA
   export: int8_prepare_a
   params:
@@ -139,6 +144,7 @@
   symbolic_address:
     name: IntrI8PrepareBias
     type: Args_Int32_GeneralInt32Float32Float32Float32Float32Int32Int32Int32Int32General
+    needs_thunk: true
   entry: intgemm::IntrI8PrepareBias
   export: int8_prepare_bias
   params:
@@ -174,6 +180,7 @@
   symbolic_address:
     name: IntrI8MultiplyAndAddBias
     type: Args_Int32_GeneralInt32Float32Float32Int32Float32Float32Int32Float32Int32Int32Int32Int32General
+    needs_thunk: true
   entry: intgemm::IntrI8MultiplyAndAddBias
   export: int8_multiply_and_add_bias
   params:
@@ -203,6 +210,7 @@
   symbolic_address:
     name: IntrI8SelectColumnsOfB
     type: Args_Int32_GeneralInt32Int32Int32Int32Int32Int32General
+    needs_thunk: true
   entry: intgemm::IntrI8SelectColumnsOfB
   export: int8_select_columns_of_b
   params:
@@ -223,6 +231,7 @@
   symbolic_address:
     name: StringTest
     type: Args_Int32_GeneralGeneral
+    needs_thunk: true
   entry: Instance::stringTest
   inline_op: StringTest
   export: test
@@ -236,6 +245,7 @@
   symbolic_address:
     name: StringCast
     type: Args_General2
+    needs_thunk: true
   entry: Instance::stringCast
   inline_op: StringCast
   export: cast
@@ -251,6 +261,7 @@
   symbolic_address:
     name: StringFromCharCodeArray
     type: Args_General_GeneralGeneralInt32Int32
+    needs_thunk: true
   entry: Instance::stringFromCharCodeArray
   export: fromCharCodeArray
   params:
@@ -268,6 +279,7 @@
   symbolic_address:
     name: StringIntoCharCodeArray
     type: Args_Int32_GeneralGeneralGeneralInt32
+    needs_thunk: true
   entry: Instance::stringIntoCharCodeArray
   export: intoCharCodeArray
   params:
@@ -283,6 +295,7 @@
   symbolic_address:
     name: StringFromCharCode
     type: Args_General_GeneralInt32
+    needs_thunk: true
   entry: Instance::stringFromCharCode
   export: fromCharCode
   params:
@@ -297,6 +310,7 @@
   symbolic_address:
     name: StringFromCodePoint
     type: Args_General_GeneralInt32
+    needs_thunk: true
   entry: Instance::stringFromCodePoint
   export: fromCodePoint
   params:
@@ -311,6 +325,7 @@
   symbolic_address:
     name: StringCharCodeAt
     type: Args_Int32_GeneralGeneralInt32
+    needs_thunk: true
   entry: Instance::stringCharCodeAt
   export: charCodeAt
   params:
@@ -324,6 +339,7 @@
   symbolic_address:
     name: StringCodePointAt
     type: Args_Int32_GeneralGeneralInt32
+    needs_thunk: true
   entry: Instance::stringCodePointAt
   export: codePointAt
   params:
@@ -337,6 +353,7 @@
   symbolic_address:
     name: StringLength
     type: Args_Int32_GeneralGeneral
+    needs_thunk: true
   entry: Instance::stringLength
   inline_op: StringLength
   export: length
@@ -350,6 +367,7 @@
   symbolic_address:
     name: StringConcat
     type: Args_General3
+    needs_thunk: true
   entry: Instance::stringConcat
   export: concat
   params:
@@ -365,6 +383,7 @@
   symbolic_address:
     name: StringSubstring
     type: Args_General_GeneralGeneralInt32Int32
+    needs_thunk: true
   entry: Instance::stringSubstring
   export: substring
   params:
@@ -381,6 +400,7 @@
   symbolic_address:
     name: StringEquals
     type: Args_Int32_GeneralGeneralGeneral
+    needs_thunk: true
   entry: Instance::stringEquals
   export: equals
   params:
@@ -394,6 +414,7 @@
   symbolic_address:
     name: StringCompare
     type: Args_Int32_GeneralGeneralGeneral
+    needs_thunk: true
   entry: Instance::stringCompare
   export: compare
   params:
@@ -411,6 +432,7 @@
   symbolic_address:
     name: CreateSuspender
     type: Args_General_GeneralInt32
+    needs_thunk: true
   entry: CreateSuspender
   export: createSuspender
   params:
@@ -423,6 +445,7 @@
   symbolic_address:
     name: CreatePromisingPromise
     type: Args_General2
+    needs_thunk: true
   entry: CreatePromisingPromise
   export: createPromisingPromise
   params:
@@ -435,6 +458,7 @@
   symbolic_address:
     name: CurrentSuspender
     type: Args_General_GeneralInt32
+    needs_thunk: true
   entry: CurrentSuspender
   export: currentSuspender
   params:
@@ -447,6 +471,7 @@
   symbolic_address:
     name: GetSuspendingPromiseResult
     type: Args_General3
+    needs_thunk: true
   entry: GetSuspendingPromiseResult
   export: getSuspendingPromiseResult
   params:
@@ -460,6 +485,7 @@
   symbolic_address:
     name: AddPromiseReactions
     type: Args_General4
+    needs_thunk: true
   entry: AddPromiseReactions
   export: addPromiseReactions
   params:
@@ -474,6 +500,7 @@
   symbolic_address:
     name: ForwardExceptionToSuspended
     type: Args_General3
+    needs_thunk: true
   entry: ForwardExceptionToSuspended
   export: forwardExceptionToSuspended
   params:
@@ -487,6 +514,7 @@
   symbolic_address:
     name: SetPromisingPromiseResults
     type: Args_Int32_GeneralGeneralGeneral
+    needs_thunk: true
   entry: SetPromisingPromiseResults
   export: setPromisingPromiseResults
   params:
