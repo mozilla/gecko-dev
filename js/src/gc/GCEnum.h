@@ -74,7 +74,8 @@ enum class State {
   D(YieldBeforeSweepingNonObjects, 22)   \
   D(YieldBeforeSweepingPropMapTrees, 23) \
   D(CheckWeakMapMarking, 24)             \
-  D(YieldWhileGrayMarking, 25)
+  D(YieldWhileGrayMarking, 25)           \
+  D(CheckHeapBeforeMinorGC, 26)
 
 enum class ZealMode {
 #define ZEAL_MODE(name, value) name = value,

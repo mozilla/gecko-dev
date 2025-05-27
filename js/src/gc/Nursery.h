@@ -370,7 +370,7 @@ class Nursery {
 
   bool shouldTenureEverything(JS::GCReason reason);
 
-  inline bool inCollectedRegion(gc::Cell* cell) const;
+  inline bool inCollectedRegion(const gc::Cell* cell) const;
   inline bool inCollectedRegion(void* ptr) const;
 
   void trackMallocedBufferOnPromotion(void* buffer, gc::Cell* owner,

@@ -108,7 +108,7 @@ inline bool js::Nursery::shouldTenure(gc::Cell* cell) {
   return offset <= tenureThreshold_;
 }
 
-inline bool js::Nursery::inCollectedRegion(gc::Cell* cell) const {
+inline bool js::Nursery::inCollectedRegion(const gc::Cell* cell) const {
   return gc::InCollectedNurseryRegion(cell);
 }
 

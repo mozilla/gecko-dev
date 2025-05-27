@@ -611,6 +611,7 @@ class GCRuntime {
   bool isVerifyPreBarriersEnabled() const { return verifyPreData.refNoCheck(); }
   bool shouldYieldForZeal(ZealMode mode);
   void verifyPostBarriers(AutoHeapSession& session);
+  void checkHeapBeforeMinorGC(AutoHeapSession& session);
 #else
   bool isVerifyPreBarriersEnabled() const { return false; }
 #endif
