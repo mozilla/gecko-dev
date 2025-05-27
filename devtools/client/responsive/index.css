@@ -118,7 +118,7 @@ body,
     [separator]
     max-content
     [dpr]
-    minmax(auto, 60px)
+    max-content
     [separator]
     max-content
     [throttling]
@@ -142,7 +142,7 @@ body,
     [separator]
     max-content
     [dpr]
-    minmax(auto, 60px)
+    max-content
     [separator]
     max-content
     [throttling]
@@ -208,9 +208,11 @@ body,
   font-size: 0.8em;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 800px) {
   /* When room becomes scarce, no need to constrain the selectors with a minmax like we
-     do in larger viewports, here they can occupy 1fr */
+     do in larger viewports, here they can occupy 1fr. We should also make sure to keep
+     the max-width value of the media-query in sync with the resizeToolbarObserver
+     in devtools/client/responsive/ui.js */
   #toolbar.user-agent #toolbar-center-controls {
     grid-template-columns:
       [device-selector]
@@ -224,7 +226,7 @@ body,
       [separator]
       max-content
       [dpr]
-      .6fr
+      max-content
       [separator]
       max-content
       [throttling]
