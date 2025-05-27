@@ -112,18 +112,6 @@ class MenuTelemetryMiddleware(
                 AppMenu.signIntoSync.add()
             }
 
-            MenuAction.Navigate.NewTab -> Events.browserMenuAction.record(
-                Events.BrowserMenuActionExtra(
-                    item = "new_tab",
-                ),
-            )
-
-            MenuAction.Navigate.NewPrivateTab -> Events.browserMenuAction.record(
-                Events.BrowserMenuActionExtra(
-                    item = "new_private_tab",
-                ),
-            )
-
             MenuAction.OpenInApp -> Events.browserMenuAction.record(
                 Events.BrowserMenuActionExtra(
                     item = "open_in_app",

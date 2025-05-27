@@ -72,7 +72,6 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
  * @param isExtensionsExpanded Whether or not the extensions menu is expanded.
- * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not translation is supported.
@@ -84,8 +83,6 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param webExtensionMenuCount The number of web extensions.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
- * @param onNewTabMenuClick Invoked when the user clicks on the new tab menu item.
- * @param onNewPrivateTabMenuClick Invoked when the user clicks on the new private tab menu item.
  * @param onSwitchToDesktopSiteMenuClick Invoked when the user clicks on the switch to desktop site
  * menu toggle.
  * @param onFindInPageMenuClick Invoked when the user clicks on the find in page menu item.
@@ -114,7 +111,6 @@ fun MainMenu(
     accountState: AccountState,
     showQuitMenu: Boolean,
     isExtensionsExpanded: Boolean,
-    isPrivate: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
@@ -126,8 +122,6 @@ fun MainMenu(
     webExtensionMenuCount: Int,
     onMozillaAccountButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
-    onNewTabMenuClick: () -> Unit,
-    onNewPrivateTabMenuClick: () -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -195,13 +189,6 @@ fun MainMenu(
                 extensionSubmenu = extensionSubmenu,
             )
         }
-
-        NewTabsMenuGroup(
-            accessPoint = accessPoint,
-            isPrivate = isPrivate,
-            onNewTabMenuClick = onNewTabMenuClick,
-            onNewPrivateTabMenuClick = onNewPrivateTabMenuClick,
-        )
 
         LibraryMenuGroup(
             onBookmarksMenuClick = onBookmarksMenuClick,
@@ -358,47 +345,6 @@ private fun QuitMenuGroup(
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_cross_circle_fill_24),
             state = MenuItemState.WARNING,
             onClick = onQuitMenuClick,
-        )
-    }
-}
-
-@Composable
-private fun NewTabsMenuGroup(
-    accessPoint: MenuAccessPoint,
-    isPrivate: Boolean,
-    onNewTabMenuClick: () -> Unit,
-    onNewPrivateTabMenuClick: () -> Unit,
-) {
-    val isNewTabMenuEnabled: Boolean
-    val isNewPrivateTabMenuEnabled: Boolean
-
-    when (accessPoint) {
-        MenuAccessPoint.Browser,
-        MenuAccessPoint.External,
-        -> {
-            isNewTabMenuEnabled = true
-            isNewPrivateTabMenuEnabled = true
-        }
-
-        MenuAccessPoint.Home -> {
-            isNewTabMenuEnabled = isPrivate
-            isNewPrivateTabMenuEnabled = !isPrivate
-        }
-    }
-
-    MenuGroup {
-        MenuItem(
-            label = stringResource(id = R.string.library_new_tab),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_plus_24),
-            state = if (isNewTabMenuEnabled) MenuItemState.ENABLED else MenuItemState.DISABLED,
-            onClick = onNewTabMenuClick,
-        )
-
-        MenuItem(
-            label = stringResource(id = R.string.browser_menu_new_private_tab),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_private_mode_circle_fill_24),
-            state = if (isNewPrivateTabMenuEnabled) MenuItemState.ENABLED else MenuItemState.DISABLED,
-            onClick = onNewPrivateTabMenuClick,
         )
     }
 }
@@ -772,7 +718,6 @@ private fun MenuDialogPreview() {
                 accessPoint = MenuAccessPoint.Browser,
                 account = null,
                 accountState = NotAuthenticated,
-                isPrivate = false,
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
@@ -786,8 +731,6 @@ private fun MenuDialogPreview() {
                 allWebExtensionsDisabled = false,
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
-                onNewTabMenuClick = {},
-                onNewPrivateTabMenuClick = {},
                 onSwitchToDesktopSiteMenuClick = {},
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},
@@ -822,7 +765,6 @@ private fun MenuDialogPrivatePreview() {
                 accessPoint = MenuAccessPoint.Home,
                 account = null,
                 accountState = NotAuthenticated,
-                isPrivate = false,
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
@@ -836,8 +778,6 @@ private fun MenuDialogPrivatePreview() {
                 allWebExtensionsDisabled = false,
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
-                onNewTabMenuClick = {},
-                onNewPrivateTabMenuClick = {},
                 onSwitchToDesktopSiteMenuClick = {},
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},

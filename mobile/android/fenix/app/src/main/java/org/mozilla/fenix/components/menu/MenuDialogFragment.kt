@@ -176,7 +176,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
         setContent {
             FirefoxTheme {
                 val context = LocalContext.current
-                val browsingModeManager = (requireActivity() as HomeActivity).browsingModeManager
 
                 val components = components
                 val settings = components.settings
@@ -254,10 +253,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             ),
                             MenuNavigationMiddleware(
                                 navController = findNavController(),
-                                browsingModeManager = browsingModeManager,
                                 openToBrowser = ::openToBrowser,
                                 sessionUseCases = components.useCases.sessionUseCases,
-                                fenixBrowserUseCases = components.useCases.fenixBrowserUseCases,
                                 webAppUseCases = webAppUseCases,
                                 settings = settings,
                                 onDismiss = {
@@ -469,7 +466,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                     isExtensionsExpanded = isExtensionsExpanded,
-                                    isPrivate = browsingModeManager.mode.isPrivate,
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
                                     isTranslationSupported = isTranslationSupported,
@@ -497,12 +493,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         view?.slideDown {
                                             store.dispatch(MenuAction.Navigate.Settings)
                                         }
-                                    },
-                                    onNewTabMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.NewTab)
-                                    },
-                                    onNewPrivateTabMenuClick = {
-                                        store.dispatch(MenuAction.Navigate.NewPrivateTab)
                                     },
                                     onSwitchToDesktopSiteMenuClick = {
                                         if (isDesktopMode) {

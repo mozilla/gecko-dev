@@ -10,7 +10,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import io.mockk.verifyOrder
 import kotlinx.coroutines.test.runTest
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.state.ContentState
@@ -33,9 +32,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
-import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
-import org.mozilla.fenix.browser.browsingmode.SimpleBrowsingModeManager
 import org.mozilla.fenix.collections.SaveCollectionStep
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.components.menu.middleware.MenuNavigationMiddleware
@@ -44,7 +40,6 @@ import org.mozilla.fenix.components.menu.store.BrowserMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
@@ -60,7 +55,6 @@ class MenuNavigationMiddlewareTest {
 
     private val navController: NavController = mockk(relaxed = true)
     private val sessionUseCases: SessionUseCases = mockk(relaxed = true)
-    private val fenixBrowserUseCases: FenixBrowserUseCases = mockk(relaxed = true)
     private val webAppUseCases: WebAppUseCases = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
 
@@ -533,90 +527,6 @@ class MenuNavigationMiddlewareTest {
     }
 
     @Test
-    fun `WHEN navigate to new tab action is dispatched THEN navigate to the home screen`() = runTest {
-        val browsingModeManager = SimpleBrowsingModeManager(BrowsingMode.Private)
-        val store = createStore(
-            browsingModeManager = browsingModeManager,
-        )
-        store.dispatch(MenuAction.Navigate.NewTab).join()
-
-        assertEquals(BrowsingMode.Normal, browsingModeManager.mode)
-
-        verify {
-            navController.nav(
-                R.id.menuDialogFragment,
-                MenuDialogFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
-            )
-        }
-    }
-
-    @Test
-    fun `WHEN navigate to new private tab action is dispatched THEN navigate to the home screen in private mode`() = runTest {
-        val browsingModeManager = SimpleBrowsingModeManager(BrowsingMode.Normal)
-        val store = createStore(
-            browsingModeManager = browsingModeManager,
-        )
-        store.dispatch(MenuAction.Navigate.NewPrivateTab).join()
-
-        assertEquals(BrowsingMode.Private, browsingModeManager.mode)
-
-        verify {
-            navController.nav(
-                R.id.menuDialogFragment,
-                MenuDialogFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
-            )
-        }
-    }
-
-    @Test
-    fun `GIVEN homepage as a new tab is enabled WHEN navigate to new tab action is dispatched THEN navigate to a new homepage tab`() = runTest {
-        every { settings.enableHomepageAsNewTab } returns true
-
-        val browsingModeManager = SimpleBrowsingModeManager(BrowsingMode.Private)
-        val store = createStore(
-            browsingModeManager = browsingModeManager,
-        )
-        store.dispatch(MenuAction.Navigate.NewTab).join()
-
-        assertEquals(BrowsingMode.Normal, browsingModeManager.mode)
-
-        verifyOrder {
-            fenixBrowserUseCases.addNewHomepageTab(
-                private = false,
-            )
-
-            navController.nav(
-                R.id.menuDialogFragment,
-                MenuDialogFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
-            )
-        }
-    }
-
-    @Test
-    fun `GIVEN homepage as a new tab is enabled WHEN navigate to new private tab action is dispatched THEN navigate to a private homepage tab`() = runTest {
-        every { settings.enableHomepageAsNewTab } returns true
-
-        val browsingModeManager = SimpleBrowsingModeManager(BrowsingMode.Normal)
-        val store = createStore(
-            browsingModeManager = browsingModeManager,
-        )
-        store.dispatch(MenuAction.Navigate.NewPrivateTab).join()
-
-        assertEquals(BrowsingMode.Private, browsingModeManager.mode)
-
-        verifyOrder {
-            fenixBrowserUseCases.addNewHomepageTab(
-                private = true,
-            )
-
-            navController.nav(
-                R.id.menuDialogFragment,
-                MenuDialogFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
-            )
-        }
-    }
-
-    @Test
     fun `WHEN navigate to addon details is dispatched THEN navigate to the addon details`() = runTest {
         val addon = Addon(id = "ext1")
         val store = createStore()
@@ -886,7 +796,6 @@ class MenuNavigationMiddlewareTest {
     private fun createStore(
         customTab: CustomTabSessionState? = mockk(relaxed = true),
         menuState: MenuState = MenuState(),
-        browsingModeManager: BrowsingModeManager = mockk(relaxed = true),
         openToBrowser: (params: BrowserNavigationParams) -> Unit = {},
         onDismiss: suspend () -> Unit = {},
     ) = MenuStore(
@@ -894,10 +803,8 @@ class MenuNavigationMiddlewareTest {
         middleware = listOf(
             MenuNavigationMiddleware(
                 navController = navController,
-                browsingModeManager = browsingModeManager,
                 openToBrowser = openToBrowser,
                 sessionUseCases = sessionUseCases,
-                fenixBrowserUseCases = fenixBrowserUseCases,
                 webAppUseCases = webAppUseCases,
                 settings = settings,
                 onDismiss = onDismiss,

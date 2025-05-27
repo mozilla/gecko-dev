@@ -24,8 +24,6 @@ import mozilla.components.service.fxa.manager.AccountState.AuthenticationProblem
 import mozilla.components.service.fxa.manager.AccountState.NotAuthenticated
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
-import org.mozilla.fenix.browser.browsingmode.BrowsingMode
-import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.collections.SaveCollectionStep
 import org.mozilla.fenix.components.menu.BrowserNavigationParams
 import org.mozilla.fenix.components.menu.MenuDialogFragmentDirections
@@ -33,7 +31,6 @@ import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
 import org.mozilla.fenix.components.menu.toFenixFxAEntryPoint
-import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.settings.SupportUtils.AMO_HOMEPAGE_FOR_ANDROID
@@ -46,11 +43,9 @@ import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
  * dispatched to the [MenuStore].
  *
  * @param navController [NavController] used for navigation.
- * @param browsingModeManager [BrowsingModeManager] used for setting the browsing mode.
  * @param openToBrowser Callback to open the provided [BrowserNavigationParams]
  * in a new browser tab.
  * @param sessionUseCases [SessionUseCases] used to reload the page and navigate back/forward.
- * @param fenixBrowserUseCases [FenixBrowserUseCases] used for adding new homepage tabs.
  * @param webAppUseCases [WebAppUseCases] used for adding items to the home screen.
  * @param settings Used to check [Settings] when adding items to the home screen.
  * @param onDismiss Callback invoked to dismiss the menu dialog.
@@ -60,10 +55,8 @@ import org.mozilla.fenix.webcompat.WEB_COMPAT_REPORTER_URL
 @Suppress("LongParameterList")
 class MenuNavigationMiddleware(
     private val navController: NavController,
-    private val browsingModeManager: BrowsingModeManager,
     private val openToBrowser: (params: BrowserNavigationParams) -> Unit,
     private val sessionUseCases: SessionUseCases,
-    private val fenixBrowserUseCases: FenixBrowserUseCases,
     private val webAppUseCases: WebAppUseCases,
     private val settings: Settings,
     private val onDismiss: suspend () -> Unit,
@@ -248,10 +241,6 @@ class MenuNavigationMiddleware(
                     BrowserNavigationParams(sumoTopic = SumoTopic.FIND_INSTALL_ADDONS),
                 )
 
-                is MenuAction.Navigate.NewTab -> openNewTab(isPrivate = false)
-
-                is MenuAction.Navigate.NewPrivateTab -> openNewTab(isPrivate = true)
-
                 is MenuAction.Navigate.AddonDetails -> navController.nav(
                     R.id.menuDialogFragment,
                     MenuDialogFragmentDirections.actionMenuDialogFragmenToAddonDetailsFragment(
@@ -339,18 +328,5 @@ class MenuNavigationMiddleware(
                 else -> Unit
             }
         }
-    }
-
-    private fun openNewTab(isPrivate: Boolean) {
-        browsingModeManager.mode = BrowsingMode.fromBoolean(isPrivate)
-
-        if (settings.enableHomepageAsNewTab) {
-            fenixBrowserUseCases.addNewHomepageTab(private = isPrivate)
-        }
-
-        navController.nav(
-            R.id.menuDialogFragment,
-            MenuDialogFragmentDirections.actionGlobalHome(focusOnAddressBar = true),
-        )
     }
 }

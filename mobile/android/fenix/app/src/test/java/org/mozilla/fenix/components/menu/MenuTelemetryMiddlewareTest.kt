@@ -186,26 +186,6 @@ class MenuTelemetryMiddlewareTest {
     }
 
     @Test
-    fun `WHEN opening a new tab THEN record the new tab browser menu telemetry`() {
-        val store = createStore()
-        assertNull(Events.browserMenuAction.testGetValue())
-
-        store.dispatch(MenuAction.Navigate.NewTab).joinBlocking()
-
-        assertTelemetryRecorded(Events.browserMenuAction, item = "new_tab")
-    }
-
-    @Test
-    fun `WHEN opening a new private tab THEN record the new private tab browser menu telemetry`() {
-        val store = createStore()
-        assertNull(Events.browserMenuAction.testGetValue())
-
-        store.dispatch(MenuAction.Navigate.NewPrivateTab).joinBlocking()
-
-        assertTelemetryRecorded(Events.browserMenuAction, item = "new_private_tab")
-    }
-
-    @Test
     fun `WHEN opening a site in app THEN record the open in app menu telemetry`() {
         val store = createStore()
         assertNull(Events.browserMenuAction.testGetValue())
