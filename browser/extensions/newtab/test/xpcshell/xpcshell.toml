@@ -25,8 +25,6 @@ support-files = ["topstories.json"]
 
 ["test_Store.js"]
 
-["test_StartupCacheInit.js"]
-
 ["test_TelemetryFeed.js"]
 support-files = ["../schemas/*.schema.json"]
 

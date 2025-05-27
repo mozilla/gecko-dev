@@ -1518,7 +1518,7 @@ describe("<TopSiteList>", () => {
         {...DEFAULT_PROPS}
         TopSites={{ rows }}
         TopSitesRows={1}
-        App={{ isForStartupCache: { TopSites: true } }}
+        App={{ isForStartupCache: { App: true } }}
       />
     );
     assert.lengthOf(wrapper.find(TopSite), 2, "topSites");

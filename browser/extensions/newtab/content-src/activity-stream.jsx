@@ -62,7 +62,6 @@ export function renderWithoutState() {
 }
 
 export function renderCache(initialState) {
-  initialState.App.isForStartupCache.App = false;
   const store = initStore(reducers, initialState);
   new DetectUserSessionStart(store).sendEventOrAddListener();
 

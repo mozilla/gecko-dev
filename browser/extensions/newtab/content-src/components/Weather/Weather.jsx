@@ -219,10 +219,7 @@ export class _Weather extends React.PureComponent {
       return false;
     }
 
-    if (
-      this.props.App.isForStartupCache.Weather ||
-      !this.props.Weather.initialized
-    ) {
+    if (!this.props.Weather.initialized) {
       return <WeatherPlaceholder />;
     }
 
@@ -381,7 +378,6 @@ export class _Weather extends React.PureComponent {
 }
 
 export const Weather = connect(state => ({
-  App: state.App,
   Weather: state.Weather,
   Prefs: state.Prefs,
   IntersectionObserver: globalThis.IntersectionObserver,

@@ -21,9 +21,6 @@ export const INITIAL_STATE = {
     locale: "",
     isForStartupCache: {
       App: false,
-      TopSites: false,
-      DiscoveryStream: false,
-      Weather: false,
       Wallpaper: false,
     },
     customizeMenuVisible: false,
@@ -181,28 +178,18 @@ function App(prevState = INITIAL_STATE.App, action) {
         initialized: true,
       });
     case at.TOP_SITES_UPDATED:
-      // Toggle `isForStartupCache.TopSites` when receiving the `TOP_SITES_UPDATE` action
+      // Toggle `isForStartupCache` when receiving the `TOP_SITES_UPDATE` action
       // so that sponsored tiles can be rendered as usual. See Bug 1826360.
       return {
         ...prevState,
-        isForStartupCache: { ...prevState.isForStartupCache, TopSites: false },
+        isForStartupCache: { ...prevState.isForStartupCache, App: false },
       };
     case at.DISCOVERY_STREAM_SPOCS_UPDATE:
-      // Toggle `isForStartupCache.DiscoveryStream` when receiving the `DISCOVERY_STREAM_SPOCS_UPDATE` action
+      // Toggle `isForStartupCache` when receiving the `DISCOVERY_STREAM_SPOCS_UPDATE_STARTUPCACHE` action
       // so that spoc cards can be rendered as usual.
       return {
         ...prevState,
-        isForStartupCache: {
-          ...prevState.isForStartupCache,
-          DiscoveryStream: false,
-        },
-      };
-    case at.WEATHER_UPDATE:
-      // Toggle `isForStartupCache.Weather` when receiving the `WEATHER_UPDATE` action
-      // so that weather can be rendered as usual.
-      return {
-        ...prevState,
-        isForStartupCache: { ...prevState.isForStartupCache, Weather: false },
+        isForStartupCache: { ...prevState.isForStartupCache, App: false },
       };
     case at.WALLPAPERS_CUSTOM_SET:
       // Toggle `isForStartupCache.Wallpaper` when receiving the `WALLPAPERS_CUSTOM_SET` action

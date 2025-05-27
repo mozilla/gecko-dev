@@ -379,7 +379,7 @@ export class _CardGrid extends React.PureComponent {
           rec.placeholder ||
           (rec.flight_id &&
             !spocsStartupCacheEnabled &&
-            this.props.App.isForStartupCache.DiscoveryStream) ? (
+            this.props.App.isForStartupCache.App) ? (
           <PlaceholderDSCard key={`dscard-${index}`} />
         ) : (
           <DSCard
