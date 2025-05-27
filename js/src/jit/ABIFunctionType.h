@@ -21,9 +21,6 @@ enum class ABIKind {
   // The wasm ABI for calling wasm functions. See "The WASM ABIs" in WasmFrame.h
   // for more information.
   Wasm,
-  // Uses the wasm ABI except that floating point values are returned using the
-  // system ABI. Will be replaced with the system ABI.
-  WasmBuiltin,
 };
 
 enum class ABIType {

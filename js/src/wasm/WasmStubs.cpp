@@ -1303,7 +1303,7 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
 
     // Baseline and Ion call C++ runtime via BuiltinThunk with wasm abi, so to
     // unify the BuiltinThunk's interface we call it here with wasm abi.
-    jit::ABIArgIter<MIRTypeVector> argsIter(coerceArgTypes, ABIKind::Wasm);
+    jit::ABIArgIter<MIRTypeVector> argsIter(coerceArgTypes, ABIKind::System);
 
     // argument 0: function index.
     if (argsIter->kind() == ABIArg::GPR) {
@@ -2485,8 +2485,8 @@ bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIKind abiKind,
   // WasmBuiltins.cpp, and 'builtin thunks' (see "Process-wide builtin thunk
   // set") in WasmBuiltins.cpp. Typed natives use the wasm ABI, as they are
   // directly imported into wasm and act as normal functions. Builtin thunks use
-  // the wasm builtins ABI and are called from JIT code.
-  MOZ_ASSERT(abiKind == ABIKind::WasmBuiltin || abiKind == ABIKind::Wasm);
+  // the system ABI and are called from JIT code.
+  MOZ_ASSERT(abiKind == ABIKind::System || abiKind == ABIKind::Wasm);
 
   AssertExpectedSP(masm);
   masm.setFramePushed(0);
@@ -2499,24 +2499,37 @@ bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIKind abiKind,
 
   GenerateExitPrologue(masm, framePushed, exitReason, offsets);
 
-  // Copy out and convert caller arguments, if needed.
-
-  // This is `sizeof(FrameWithInstances) - ShadowStackSpace` because the latter
-  // is accounted for by the ABIArgIter.
-  unsigned offsetFromFPToCallerStackArgs =
-      sizeof(FrameWithInstances) - jit::ShadowStackSpace;
+  // Copy out and convert caller arguments, if needed. We are translating from
+  // our 'self' ABI which is either 'wasm' or 'system' to a system ABI builtin.
   Register scratch = ABINonArgReturnReg0;
-  for (ABIArgIter i(args, ABIKind::System); !i.done(); i++) {
-    if (i->argInRegister()) {
+
+  // Use two arg iterators to track the different offsets that arguments must
+  // go.
+  ABIArgIter selfArgs(args, abiKind);
+  ABIArgIter callArgs(args, ABIKind::System);
+
+  // `selfArgs` gives us offsets from 'arg base' which is the SP immediately
+  // before our frame is added. We must add `sizeof(Frame)` now that the
+  // prologue has executed to access our stack args.
+  unsigned offsetFromFPToCallerStackArgs = sizeof(wasm::Frame);
+
+  for (; !selfArgs.done(); selfArgs++, callArgs++) {
+    // This loop doesn't handle all the possible cases of differing ABI's and
+    // relies on the wasm argument ABI being very close to the system ABI.
+    MOZ_ASSERT(!callArgs.done());
+    MOZ_ASSERT(selfArgs->argInRegister() == callArgs->argInRegister());
+    MOZ_ASSERT(selfArgs.mirType() == callArgs.mirType());
+
+    if (selfArgs->argInRegister()) {
 #ifdef JS_CODEGEN_ARM
       // If our ABI is wasm, we must adapt FP args when using the soft-float
       // ABI to go into GPRs.
       if (abiKind == ABIKind::Wasm && !ARMFlags::UseHardFpABI() &&
-          IsFloatingPointType(i.mirType())) {
-        FloatRegister input = i->fpu();
-        if (i.mirType() == MIRType::Float32) {
+          IsFloatingPointType(selfArgs.mirType())) {
+        FloatRegister input = selfArgs->fpu();
+        if (selfArgs.mirType() == MIRType::Float32) {
           masm.ma_vxfer(input, Register::FromCode(input.id()));
-        } else if (i.mirType() == MIRType::Double) {
+        } else if (selfArgs.mirType() == MIRType::Double) {
           uint32_t regId = input.singleOverlay().id();
           masm.ma_vxfer(input, Register::FromCode(regId),
                         Register::FromCode(regId + 1));
@@ -2527,11 +2540,14 @@ bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIKind abiKind,
     }
 
     Address src(FramePointer,
-                offsetFromFPToCallerStackArgs + i->offsetFromArgBase());
-    Address dst(masm.getStackPointer(), i->offsetFromArgBase());
-    StackCopy(masm, i.mirType(), scratch, src, dst);
+                offsetFromFPToCallerStackArgs + selfArgs->offsetFromArgBase());
+    Address dst(masm.getStackPointer(), callArgs->offsetFromArgBase());
+    StackCopy(masm, selfArgs.mirType(), scratch, src, dst);
   }
+  // If selfArgs is done, callArgs must be done.
+  MOZ_ASSERT(callArgs.done());
 
+  // Call into the native builtin function
   AssertStackAlignment(masm, ABIStackAlignment);
   MoveSPForJitABI(masm);
   masm.call(ImmPtr(funcPtr, ImmPtr::NoCheckToken()));

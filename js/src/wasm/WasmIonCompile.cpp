@@ -250,8 +250,8 @@ struct CallCompileState {
   MBasicBlock* prePadBlock = nullptr;
 
   explicit CallCompileState(ABIKind abiKind) : abi(abiKind), abiKind(abiKind) {
-    if (abiKind == ABIKind::WasmBuiltin) {
-      // Builtin calls use the system hardFP setting on ARM32.
+    if (abiKind == ABIKind::System) {
+      // The system ABI follows the hardFP setting on ARM32.
 #if defined(JS_CODEGEN_ARM)
       hardFP = ARMFlags::UseHardFpABI();
       abi.setUseHardFp(hardFP);
@@ -2481,7 +2481,7 @@ class FunctionCompiler {
                                 CallCompileState* callState) {
     // This function is for collecting results of builtin calls. Use
     // collectWasmCallResults for wasm calls.
-    MOZ_ASSERT(callState->abiKind == ABIKind::WasmBuiltin);
+    MOZ_ASSERT(callState->abiKind == ABIKind::System);
 
     MInstruction* def;
     switch (type) {
@@ -3041,7 +3041,7 @@ class FunctionCompiler {
   bool builtinCall1(const SymbolicAddressSignature& builtin,
                     uint32_t lineOrBytecode, MDefinition* arg,
                     MDefinition** result) {
-    CallCompileState callState(ABIKind::WasmBuiltin);
+    CallCompileState callState(ABIKind::System);
     return passCallArg(arg, builtin.argTypes[0], &callState) &&
            finishCallArgs(&callState) &&
            builtinCall(&callState, builtin, lineOrBytecode, result);
@@ -3051,7 +3051,7 @@ class FunctionCompiler {
   bool builtinCall2(const SymbolicAddressSignature& builtin,
                     uint32_t lineOrBytecode, MDefinition* arg1,
                     MDefinition* arg2, MDefinition** result) {
-    CallCompileState callState(ABIKind::WasmBuiltin);
+    CallCompileState callState(ABIKind::System);
     return passCallArg(arg1, builtin.argTypes[0], &callState) &&
            passCallArg(arg2, builtin.argTypes[1], &callState) &&
            finishCallArgs(&callState) &&
@@ -3063,7 +3063,7 @@ class FunctionCompiler {
                     uint32_t lineOrBytecode, MDefinition* arg1,
                     MDefinition* arg2, MDefinition* arg3, MDefinition* arg4,
                     MDefinition* arg5, MDefinition** result) {
-    CallCompileState callState(ABIKind::WasmBuiltin);
+    CallCompileState callState(ABIKind::System);
     return passCallArg(arg1, builtin.argTypes[0], &callState) &&
            passCallArg(arg2, builtin.argTypes[1], &callState) &&
            passCallArg(arg3, builtin.argTypes[2], &callState) &&
@@ -3079,7 +3079,7 @@ class FunctionCompiler {
                     MDefinition* arg2, MDefinition* arg3, MDefinition* arg4,
                     MDefinition* arg5, MDefinition* arg6,
                     MDefinition** result) {
-    CallCompileState callState(ABIKind::WasmBuiltin);
+    CallCompileState callState(ABIKind::System);
     return passCallArg(arg1, builtin.argTypes[0], &callState) &&
            passCallArg(arg2, builtin.argTypes[1], &callState) &&
            passCallArg(arg3, builtin.argTypes[2], &callState) &&
@@ -3186,7 +3186,7 @@ class FunctionCompiler {
     }
 
     // Finally, construct the call.
-    CallCompileState callState(ABIKind::WasmBuiltin);
+    CallCompileState callState(ABIKind::System);
     if (!passInstanceCallArg(callee.argTypes[0], &callState)) {
       return false;
     }
@@ -3420,7 +3420,7 @@ class FunctionCompiler {
     // `memoryBase`, and make the call.
     const SymbolicAddressSignature& callee = *builtinModuleFunc.sig();
 
-    CallCompileState callState(ABIKind::WasmBuiltin);
+    CallCompileState callState(ABIKind::System);
     if (!passInstanceCallArg(callee.argTypes[0], &callState) ||
         !passCallArgs(params, builtinModuleFunc.funcType()->args(),
                       &callState)) {

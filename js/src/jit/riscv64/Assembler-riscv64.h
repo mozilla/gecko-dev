@@ -533,6 +533,7 @@ class ABIArgGenerator : public ABIArgGeneratorShared {
         intRegIndex_(0),
         floatRegIndex_(0),
         current_() {}
+
   ABIArg next(MIRType);
   ABIArg& current() { return current_; }
 

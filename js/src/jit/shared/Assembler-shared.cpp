@@ -90,7 +90,6 @@ static uint32_t ABIArgGeneratorStartOffset(ABIKind kind) {
     case ABIKind::System:
       return 0;
     case ABIKind::Wasm:
-    case ABIKind::WasmBuiltin:
       return wasm::FrameWithInstances::sizeOfInstanceFields();
     default:
       MOZ_CRASH("Invalid ABI kind");

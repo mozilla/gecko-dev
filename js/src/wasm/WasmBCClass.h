@@ -150,17 +150,17 @@ struct FunctionCall {
 #endif
         frameAlignAdjustment(0),
         stackArgAreaSize(0) {
-    // The builtin ABI preserves the instance register (as it's in a
+    // The system ABI preserves the instance register (as it's in a
     // non-volatile register) and realm. We just need to reload the HeapReg in
     // case the memory has been moved.
-    MOZ_ASSERT_IF(abiKind == ABIKind::WasmBuiltin,
+    MOZ_ASSERT_IF(abiKind == ABIKind::System,
                   restoreState == RestoreState::None ||
                       restoreState == RestoreState::PinnedRegs);
     // Our uses of the wasm ABI either preserves everything or nothing.
     MOZ_ASSERT_IF(abiKind == ABIKind::Wasm,
                   restoreState == RestoreState::None ||
                       restoreState == RestoreState::All);
-    if (abiKind == ABIKind::WasmBuiltin) {
+    if (abiKind == ABIKind::System) {
       // Builtin calls use the system hardFP setting on ARM32.
 #if defined(JS_CODEGEN_ARM)
       hardFP = ARMFlags::UseHardFpABI();

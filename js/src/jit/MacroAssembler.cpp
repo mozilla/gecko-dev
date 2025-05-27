@@ -4794,7 +4794,7 @@ void MacroAssembler::setupNativeABICall() {
 
 void MacroAssembler::setupWasmABICall() {
   MOZ_ASSERT(IsCompilingWasm(), "non-wasm should use setupAlignedABICall");
-  setupABICallHelper(ABIKind::WasmBuiltin);
+  setupABICallHelper(ABIKind::System);
   dynamicAlignment_ = false;
 }
 

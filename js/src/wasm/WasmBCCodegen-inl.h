@@ -156,13 +156,12 @@ RegF32 BaseCompiler::captureReturnedF32(const FunctionCall& call) {
   MOZ_ASSERT(isAvailableF32(r));
   needF32(r);
 #if defined(JS_CODEGEN_ARM)
-  if ((call.abiKind == ABIKind::System ||
-       call.abiKind == ABIKind::WasmBuiltin) &&
+  if ((call.abiKind == ABIKind::System) &&
       !call.hardFP) {
     masm.ma_vxfer(ReturnReg, r);
   }
 #elif defined(JS_CODEGEN_X86)
-  if (call.abiKind == ABIKind::System || call.abiKind == ABIKind::WasmBuiltin) {
+  if (call.abiKind == ABIKind::System) {
     masm.reserveStack(sizeof(float));
     Operand op(esp, 0);
     masm.fstp32(op);
@@ -178,13 +177,12 @@ RegF64 BaseCompiler::captureReturnedF64(const FunctionCall& call) {
   MOZ_ASSERT(isAvailableF64(r));
   needF64(r);
 #if defined(JS_CODEGEN_ARM)
-  if ((call.abiKind == ABIKind::System ||
-       call.abiKind == ABIKind::WasmBuiltin) &&
+  if ((call.abiKind == ABIKind::System) &&
       !call.hardFP) {
     masm.ma_vxfer(ReturnReg64.low, ReturnReg64.high, r);
   }
 #elif defined(JS_CODEGEN_X86)
-  if (call.abiKind == ABIKind::System || call.abiKind == ABIKind::WasmBuiltin) {
+  if (call.abiKind == ABIKind::System) {
     masm.reserveStack(sizeof(double));
     Operand op(esp, 0);
     masm.fstp(op);

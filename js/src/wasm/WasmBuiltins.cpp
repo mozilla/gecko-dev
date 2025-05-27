@@ -2087,7 +2087,7 @@ bool wasm::EnsureBuiltinThunksInitialized(
     ExitReason exitReason(sym);
 
     CallableOffsets offsets;
-    if (!GenerateBuiltinThunk(masm, ABIKind::WasmBuiltin, abiType, exitReason,
+    if (!GenerateBuiltinThunk(masm, ABIKind::System, abiType, exitReason,
                               funcPtr, &offsets)) {
       return false;
     }

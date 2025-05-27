@@ -16,7 +16,7 @@ using namespace js::jit;
 ABIArgGenerator::ABIArgGenerator(ABIKind kind)
     : ABIArgGeneratorShared(kind),
 #if defined(XP_WIN)
-      regIndex_(0),
+      regIndex_(0)
 #else
       intRegIndex_(0),
       floatRegIndex_(0)
