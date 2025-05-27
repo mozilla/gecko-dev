@@ -22,9 +22,9 @@ interface nsIObjectInputStream : nsIBinaryInputStream
      *
      * @see nsIObjectOutputStream
      */
-    nsISupports readObject(in boolean aIsStrongRef);
+    [must_use] nsISupports readObject(in boolean aIsStrongRef);
 
-    [notxpcom] nsresult readID(out nsID aID);
+    [notxpcom, must_use] nsresult readID(out nsID aID);
 
     /**
      * Optimized deserialization support -- see nsIStreamBufferAccess.idl.

@@ -635,7 +635,7 @@ CookieJarSettings::Read(nsIObjectInputStream* aStream) {
   }
 
   bool isFixed;
-  aStream->ReadBoolean(&isFixed);
+  rv = aStream->ReadBoolean(&isFixed);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -667,7 +667,7 @@ CookieJarSettings::Read(nsIObjectInputStream* aStream) {
   mCookiePermissions.SetCapacity(cookiePermissionsLength);
   for (uint32_t i = 0; i < cookiePermissionsLength; ++i) {
     nsAutoCString principalJSON;
-    aStream->ReadCString(principalJSON);
+    rv = aStream->ReadCString(principalJSON);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -679,7 +679,7 @@ CookieJarSettings::Read(nsIObjectInputStream* aStream) {
     }
 
     uint32_t cookiePermission;
-    aStream->Read32(&cookiePermission);
+    rv = aStream->Read32(&cookiePermission);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }

@@ -25,27 +25,27 @@ interface nsIBinaryInputStream : nsIInputStream {
      *
      * @return that byte to be treated as a boolean.
      */
-    boolean readBoolean();
+    [must_use] boolean readBoolean();
 
-    uint8_t read8();
-    uint16_t read16();
-    uint32_t read32();
-    uint64_t read64();
+    [must_use] uint8_t read8();
+    [must_use] uint16_t read16();
+    [must_use] uint32_t read32();
+    [must_use] uint64_t read64();
 
-    float readFloat();
-    double readDouble();
+    [must_use] float readFloat();
+    [must_use] double readDouble();
 
     /**
      * Read an 8-bit pascal style string from the stream.
      * 32-bit length field, followed by length 8-bit chars.
      */
-    ACString readCString();
+    [must_use] ACString readCString();
 
     /**
      * Read an 16-bit pascal style string from the stream.
      * 32-bit length field, followed by length PRUnichars.
      */
-    AString readString();
+    [must_use] AString readString();
 
     /**
      * Read an opaque byte array from the stream.
@@ -54,8 +54,8 @@ interface nsIBinaryInputStream : nsIInputStream {
      *
      * @throws NS_ERROR_FAILURE if it can't read aLength bytes
      */
-    void readBytes(in uint32_t aLength,
-                   [size_is(aLength), retval] out string aString);
+    [must_use] void readBytes(in uint32_t aLength,
+                              [size_is(aLength), retval] out string aString);
 
     /**
      * Read an opaque byte array from the stream, storing the results
@@ -65,7 +65,7 @@ interface nsIBinaryInputStream : nsIInputStream {
      *
      * @throws NS_ERROR_FAILURE if it can't read aLength bytes
      */
-    Array<uint8_t> readByteArray(in uint32_t aLength);
+    [must_use] Array<uint8_t> readByteArray(in uint32_t aLength);
 
     /**
      * Read opaque bytes from the stream, storing the results in an ArrayBuffer.
@@ -77,7 +77,7 @@ interface nsIBinaryInputStream : nsIInputStream {
      *
      * @return The number of bytes actually read into aArrayBuffer.
      */
-    [implicit_jscontext]
+    [implicit_jscontext, must_use]
     uint64_t readArrayBuffer(in uint64_t aLength, in jsval aArrayBuffer);
 };
 
