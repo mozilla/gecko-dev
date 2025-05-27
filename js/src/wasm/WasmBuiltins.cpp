@@ -2087,7 +2087,8 @@ bool wasm::EnsureBuiltinThunksInitialized(
     ExitReason exitReason(sym);
 
     CallableOffsets offsets;
-    if (!GenerateBuiltinThunk(masm, abiType, exitReason, funcPtr, &offsets)) {
+    if (!GenerateBuiltinThunk(masm, ABIKind::WasmBuiltin, abiType, exitReason,
+                              funcPtr, &offsets)) {
       return false;
     }
     if (!thunks->codeRanges.emplaceBack(CodeRange::BuiltinThunk, offsets)) {
@@ -2115,7 +2116,8 @@ bool wasm::EnsureBuiltinThunksInitialized(
     ExitReason exitReason = ExitReason::Fixed::BuiltinNative;
 
     CallableOffsets offsets;
-    if (!GenerateBuiltinThunk(masm, abiType, exitReason, funcPtr, &offsets)) {
+    if (!GenerateBuiltinThunk(masm, ABIKind::Wasm, abiType, exitReason, funcPtr,
+                              &offsets)) {
       return false;
     }
     if (!thunks->codeRanges.emplaceBack(CodeRange::BuiltinThunk, offsets)) {
@@ -2257,7 +2259,7 @@ static Maybe<ABIFunctionType> ToBuiltinABIFunctionType(
   return Some(ABIFunctionType(abiType));
 }
 
-void* wasm::MaybeGetBuiltinThunk(JSFunction* f, const FuncType& funcType) {
+void* wasm::MaybeGetTypedNative(JSFunction* f, const FuncType& funcType) {
   MOZ_ASSERT(builtinThunks);
 
   if (!f->isNativeFun() || !f->hasJitInfo() ||

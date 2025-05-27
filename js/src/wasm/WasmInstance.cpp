@@ -2466,7 +2466,7 @@ bool Instance::init(JSContext* cx, const JSObjectVector& funcImports,
         import.instance = &fun->wasmInstance();
         import.realm = fun->realm();
         import.code = fun->wasmUncheckedCallEntry();
-      } else if (void* thunk = MaybeGetBuiltinThunk(fun, funcType)) {
+      } else if (void* thunk = MaybeGetTypedNative(fun, funcType)) {
         import.instance = this;
         import.realm = fun->realm();
         import.code = thunk;

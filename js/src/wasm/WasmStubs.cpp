@@ -2478,9 +2478,16 @@ struct ABIFunctionArgs {
   }
 };
 
-bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIFunctionType abiType,
-                                ExitReason exitReason, void* funcPtr,
-                                CallableOffsets* offsets) {
+bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIKind abiKind,
+                                ABIFunctionType abiType, ExitReason exitReason,
+                                void* funcPtr, CallableOffsets* offsets) {
+  // This is used to generate 'typed natives' (see "JS Fast Wasm Imports") in
+  // WasmBuiltins.cpp, and 'builtin thunks' (see "Process-wide builtin thunk
+  // set") in WasmBuiltins.cpp. Typed natives use the wasm ABI, as they are
+  // directly imported into wasm and act as normal functions. Builtin thunks use
+  // the wasm builtins ABI and are called from JIT code.
+  MOZ_ASSERT(abiKind == ABIKind::WasmBuiltin || abiKind == ABIKind::Wasm);
+
   AssertExpectedSP(masm);
   masm.setFramePushed(0);
 
@@ -2502,8 +2509,10 @@ bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIFunctionType abiType,
   for (ABIArgIter i(args); !i.done(); i++) {
     if (i->argInRegister()) {
 #ifdef JS_CODEGEN_ARM
-      // Non hard-fp passes the args values in GPRs.
-      if (!ARMFlags::UseHardFpABI() && IsFloatingPointType(i.mirType())) {
+      // If our ABI is wasm, we must adapt FP args when using the soft-float
+      // ABI to go into GPRs.
+      if (abiKind == ABIKind::Wasm && !ARMFlags::UseHardFpABI() &&
+          IsFloatingPointType(i.mirType())) {
         FloatRegister input = i->fpu();
         if (i.mirType() == MIRType::Float32) {
           masm.ma_vxfer(input, Register::FromCode(input.id()));
@@ -2530,22 +2539,28 @@ bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIFunctionType abiType,
 #if defined(JS_CODEGEN_X64)
   // No widening is required, as the caller will widen.
 #elif defined(JS_CODEGEN_X86)
-  // x86 passes the return value on the x87 FP stack.
-  Operand op(esp, 0);
-  MIRType retType = ToMIRType(ABIType(
-      std::underlying_type_t<ABIFunctionType>(abiType) & ABITypeArgMask));
-  if (retType == MIRType::Float32) {
-    masm.fstp32(op);
-    masm.loadFloat32(op, ReturnFloat32Reg);
-  } else if (retType == MIRType::Double) {
-    masm.fstp(op);
-    masm.loadDouble(op, ReturnDoubleReg);
+  // If our ABI is wasm, we must adapt the system x86 return value from a
+  // to x87 FP stack to a FPR that wasm expects.
+  if (abiKind == ABIKind::Wasm) {
+    // x86 passes the return value on the x87 FP stack.
+    Operand op(esp, 0);
+    MIRType retType = ToMIRType(ABIType(
+        std::underlying_type_t<ABIFunctionType>(abiType) & ABITypeArgMask));
+    if (retType == MIRType::Float32) {
+      masm.fstp32(op);
+      masm.loadFloat32(op, ReturnFloat32Reg);
+    } else if (retType == MIRType::Double) {
+      masm.fstp(op);
+      masm.loadDouble(op, ReturnDoubleReg);
+    }
   }
 #elif defined(JS_CODEGEN_ARM)
-  // Non hard-fp passes the return values in GPRs.
+  // If our ABI is wasm, we must adapt the system soft-fp return value from a
+  // GPR to a FPR.
   MIRType retType = ToMIRType(ABIType(
       std::underlying_type_t<ABIFunctionType>(abiType) & ABITypeArgMask));
-  if (!ARMFlags::UseHardFpABI() && IsFloatingPointType(retType)) {
+  if (abiKind == ABIKind::Wasm && !ARMFlags::UseHardFpABI() &&
+      IsFloatingPointType(retType)) {
     masm.ma_vxfer(r0, r1, d0);
   }
 #endif

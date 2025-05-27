@@ -329,7 +329,7 @@ void* SymbolicAddressTarget(SymbolicAddress sym);
 
 void* ProvisionalLazyJitEntryStub();
 
-void* MaybeGetBuiltinThunk(JSFunction* f, const FuncType& funcType);
+void* MaybeGetTypedNative(JSFunction* f, const FuncType& funcType);
 
 void ReleaseBuiltinThunks();
 

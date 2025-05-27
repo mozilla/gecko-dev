@@ -9698,6 +9698,44 @@ void CodeGenerator::visitWasmRegisterResult(LWasmRegisterResult* lir) {
 #endif
 }
 
+void CodeGenerator::visitWasmBuiltinFloatRegisterResult(
+    LWasmBuiltinFloatRegisterResult* lir) {
+  MOZ_ASSERT(lir->mir()->type() == MIRType::Float32 ||
+            lir->mir()->type() == MIRType::Double);
+  MOZ_ASSERT_IF(lir->mir()->type() == MIRType::Float32,
+                ToFloatRegister(lir->output()) == ReturnFloat32Reg);
+  MOZ_ASSERT_IF(lir->mir()->type() == MIRType::Double,
+                ToFloatRegister(lir->output()) == ReturnDoubleReg);
+
+#ifdef JS_CODEGEN_ARM
+  MWasmBuiltinFloatRegisterResult* mir = lir->mir();
+  if (!mir->hardFP()) {
+    if (mir->type() == MIRType::Float32) {
+      // Move float32 from r0 to ReturnFloatReg.
+      masm.ma_vxfer(r0, ReturnFloat32Reg);
+    } else if (mir->type() == MIRType::Double) {
+      // Move double from r0/r1 to ReturnDoubleReg.
+      masm.ma_vxfer(r0, r1, ReturnDoubleReg);
+    } else {
+      MOZ_CRASH("SIMD type not supported");
+    }
+  }
+#elif JS_CODEGEN_X86
+  MWasmBuiltinFloatRegisterResult* mir = lir->mir();
+  if (mir->type() == MIRType::Double) {
+    masm.reserveStack(sizeof(double));
+    masm.fstp(Operand(esp, 0));
+    masm.loadDouble(Operand(esp, 0), ReturnDoubleReg);
+    masm.freeStack(sizeof(double));
+  } else if (mir->type() == MIRType::Float32) {
+    masm.reserveStack(sizeof(float));
+    masm.fstp32(Operand(esp, 0));
+    masm.loadFloat32(Operand(esp, 0), ReturnFloat32Reg);
+    masm.freeStack(sizeof(float));
+  }
+#endif
+}
+
 void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   const MWasmCallBase* callBase = lir->callBase();
   bool isReturnCall = lir->isReturnCall();

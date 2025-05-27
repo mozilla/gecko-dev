@@ -6872,6 +6872,16 @@ void LIRGenerator::visitWasmFloatRegisterResult(MWasmFloatRegisterResult* ins) {
   add(lir, ins);
 }
 
+void LIRGenerator::visitWasmBuiltinFloatRegisterResult(
+    MWasmBuiltinFloatRegisterResult* ins) {
+  auto* lir = new (alloc()) LWasmBuiltinFloatRegisterResult();
+  uint32_t vreg = getVirtualRegister();
+  auto type = LDefinition::TypeFrom(ins->type());
+  lir->setDef(0, LDefinition(vreg, type, LFloatReg(ins->loc())));
+  ins->setVirtualRegister(vreg);
+  add(lir, ins);
+}
+
 void LIRGenerator::visitWasmRegister64Result(MWasmRegister64Result* ins) {
   MOZ_ASSERT(ins->type() == MIRType::Int64);
   uint32_t vreg = getVirtualRegister();

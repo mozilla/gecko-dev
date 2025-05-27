@@ -783,18 +783,16 @@ void MacroAssembler::callWithABIPost(uint32_t stackAdjust, ABIType result,
 
   // Calls to native functions in wasm pass through a thunk which already
   // fixes up the return value for us.
-  if (!callFromWasm) {
-    if (result == ABIType::Float64) {
-      reserveStack(sizeof(double));
-      fstp(Operand(esp, 0));
-      loadDouble(Operand(esp, 0), ReturnDoubleReg);
-      freeStack(sizeof(double));
-    } else if (result == ABIType::Float32) {
-      reserveStack(sizeof(float));
-      fstp32(Operand(esp, 0));
-      loadFloat32(Operand(esp, 0), ReturnFloat32Reg);
-      freeStack(sizeof(float));
-    }
+  if (result == ABIType::Float64) {
+    reserveStack(sizeof(double));
+    fstp(Operand(esp, 0));
+    loadDouble(Operand(esp, 0), ReturnDoubleReg);
+    freeStack(sizeof(double));
+  } else if (result == ABIType::Float32) {
+    reserveStack(sizeof(float));
+    fstp32(Operand(esp, 0));
+    loadFloat32(Operand(esp, 0), ReturnFloat32Reg);
+    freeStack(sizeof(float));
   }
 
   if (dynamicAlignment_) {

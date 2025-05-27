@@ -76,26 +76,6 @@ using ZeroOnOverflow = bool;
 
 class BaseStackFrame;
 
-// Two flags, useABI and restoreState, control how calls are made.
-//
-// UseABI::Wasm implies that the Instance/Heap/Global registers are nonvolatile,
-// except when RestoreRegisterStateAndRealm::True is also set, when they are
-// volatile.
-//
-// UseABI::Builtin implies that the Instance/Heap/Global registers are volatile.
-// In this case, we require RestoreRegisterStateAndRealm::False.  The calling
-// convention is otherwise like UseABI::Wasm.
-//
-// When the Instance/Heap/Global registers are not volatile, the baseline
-// compiler will restore the Instance register from its save slot before the
-// call, since the baseline compiler uses the Instance register for other
-// things.
-//
-// When those registers are volatile, the baseline compiler will reload them
-// after the call (it will restore the Instance register from the save slot and
-// load the other two from the Instance data).
-
-enum class UseABI { Wasm, Builtin };
 enum class RestoreState {
   // Don't reload anything
   None,

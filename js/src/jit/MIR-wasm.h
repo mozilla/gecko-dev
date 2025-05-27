@@ -1688,6 +1688,19 @@ class MWasmFloatRegisterResult : public MWasmResultBase<FloatRegister> {
   TRIVIAL_NEW_WRAPPERS
 };
 
+class MWasmBuiltinFloatRegisterResult : public MWasmResultBase<FloatRegister> {
+  MWasmBuiltinFloatRegisterResult(MIRType type, FloatRegister reg, bool hardFP)
+      : MWasmResultBase(classOpcode, type, reg), hardFP_(hardFP) {}
+
+  bool hardFP_;
+
+ public:
+  INSTRUCTION_HEADER(WasmBuiltinFloatRegisterResult)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool hardFP() const { return hardFP_; }
+};
+
 class MWasmRegister64Result : public MWasmResultBase<Register64> {
   explicit MWasmRegister64Result(Register64 reg)
       : MWasmResultBase(classOpcode, MIRType::Int64, reg) {}

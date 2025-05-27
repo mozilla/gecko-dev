@@ -243,6 +243,7 @@ class ABIResultIter {
 };
 
 extern bool GenerateBuiltinThunk(jit::MacroAssembler& masm,
+                                 jit::ABIKind abiKind,
                                  jit::ABIFunctionType abiType,
                                  ExitReason exitReason, void* funcPtr,
                                  CallableOffsets* offsets);

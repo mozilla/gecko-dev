@@ -3465,6 +3465,9 @@
 - name: WasmRegisterPairResult
   gen_boilerplate: false
 
+- name: WasmBuiltinFloatRegisterResult
+  gen_boilerplate: false
+
 - name: WasmStackResultArea
   result_type: WordSized
   num_temps: 1

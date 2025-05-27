@@ -917,6 +917,17 @@ class LWasmRegisterPairResult : public LInstructionHelper<2, 0, 0> {
   MDefinition* mir() const { return mirRaw(); }
 };
 
+class LWasmBuiltinFloatRegisterResult : public LInstructionHelper<1, 0, 0> {
+ public:
+  LIR_HEADER(WasmBuiltinFloatRegisterResult);
+
+  LWasmBuiltinFloatRegisterResult() : LInstructionHelper(classOpcode) {}
+
+  MWasmBuiltinFloatRegisterResult* mir() const {
+    return mir_->toWasmBuiltinFloatRegisterResult();
+  }
+};
+
 inline uint32_t LStackArea::base() const {
   return ins()->toWasmStackResultArea()->mir()->base();
 }

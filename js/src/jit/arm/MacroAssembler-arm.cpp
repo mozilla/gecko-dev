@@ -4536,9 +4536,7 @@ void MacroAssembler::callWithABIPost(uint32_t stackAdjust, ABIType result,
     ma_mov(secondScratchReg_, lr);
   }
 
-  // Calls to native functions in wasm pass through a thunk which already
-  // fixes up the return value for us.
-  if (!callFromWasm && !ARMFlags::UseHardFpABI()) {
+  if (!ARMFlags::UseHardFpABI()) {
     switch (result) {
       case ABIType::Float64:
         // Move double from r0/r1 to ReturnFloatReg.
