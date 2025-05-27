@@ -223,8 +223,7 @@ class QuotaManager final : public BackgroundThreadObject {
                               const OriginMetadata& aOriginMetadata,
                               Client::Type aClientType);
 
-  void UpdateOriginAccessTime(PersistenceType aPersistenceType,
-                              const OriginMetadata& aOriginMetadata);
+  void UpdateOriginAccessTime(const OriginMetadata& aOriginMetadata);
 
   void RemoveQuota();
 

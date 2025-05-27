@@ -1983,8 +1983,7 @@ void QuotaManager::RegisterDirectoryLock(DirectoryLockImpl& aLock) {
             aLock.Origin(),
             [this, &aLock] {
               if (!IsShuttingDown()) {
-                UpdateOriginAccessTime(aLock.GetPersistenceType(),
-                                       aLock.OriginMetadata());
+                UpdateOriginAccessTime(aLock.OriginMetadata());
               }
               return MakeUnique<nsTArray<NotNull<DirectoryLockImpl*>>>();
             })
@@ -2018,8 +2017,7 @@ void QuotaManager::UnregisterDirectoryLock(DirectoryLockImpl& aLock) {
       directoryLockTable.Remove(aLock.Origin());
 
       if (!IsShuttingDown()) {
-        UpdateOriginAccessTime(aLock.GetPersistenceType(),
-                               aLock.OriginMetadata());
+        UpdateOriginAccessTime(aLock.OriginMetadata());
       }
     }
   }
@@ -2707,10 +2705,9 @@ UsageInfo QuotaManager::GetUsageForClient(PersistenceType aPersistenceType,
 }
 
 void QuotaManager::UpdateOriginAccessTime(
-    PersistenceType aPersistenceType, const OriginMetadata& aOriginMetadata) {
+    const OriginMetadata& aOriginMetadata) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(aPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
-  MOZ_ASSERT(aOriginMetadata.mPersistenceType == aPersistenceType);
+  MOZ_ASSERT(aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT);
   MOZ_ASSERT(!IsShuttingDown());
 
   if (!StaticPrefs::
@@ -2725,7 +2722,8 @@ void QuotaManager::UpdateOriginAccessTime(
     return;
   }
 
-  RefPtr<GroupInfo> groupInfo = pair->LockedGetGroupInfo(aPersistenceType);
+  RefPtr<GroupInfo> groupInfo =
+      pair->LockedGetGroupInfo(aOriginMetadata.mPersistenceType);
   if (!groupInfo) {
     return;
   }
@@ -7813,8 +7811,7 @@ void QuotaManager::ClearDirectoryLockTables() {
         MOZ_ASSERT(!array->IsEmpty());
         const auto& lock = array->ElementAt(0);
 
-        UpdateOriginAccessTime(lock->GetPersistenceType(),
-                               lock->OriginMetadata());
+        UpdateOriginAccessTime(lock->OriginMetadata());
       }
     }
 
