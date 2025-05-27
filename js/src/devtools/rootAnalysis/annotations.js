@@ -219,6 +219,10 @@ var ignoreFunctions = {
     "realloc": true,
     "free": true,
 
+    // mozjemalloc can run callbacks through this function.  They should be
+    // used with care and shouldn't GC.
+    "void arena_t::MayDoOrQueuePurge(int32, int8*)": true,
+
     // FIXME!
     "NS_LogInit": true,
     "NS_LogTerm": true,
