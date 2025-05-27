@@ -5876,12 +5876,12 @@ void LIRGenerator::visitGuardIsTypedArray(MGuardIsTypedArray* ins) {
   redefine(ins, ins->object());
 }
 
-void LIRGenerator::visitGuardIsFixedLengthTypedArray(
-    MGuardIsFixedLengthTypedArray* ins) {
+void LIRGenerator::visitGuardIsNonResizableTypedArray(
+    MGuardIsNonResizableTypedArray* ins) {
   MOZ_ASSERT(ins->object()->type() == MIRType::Object);
 
   auto* lir = new (alloc())
-      LGuardIsFixedLengthTypedArray(useRegister(ins->object()), temp());
+      LGuardIsNonResizableTypedArray(useRegister(ins->object()), temp());
   assignSnapshot(lir, ins->bailoutKind());
   add(lir, ins);
   redefine(ins, ins->object());

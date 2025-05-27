@@ -4212,8 +4212,8 @@ AttachDecision HasPropIRGenerator::tryAttachNative(NativeObject* obj,
 
 static void EmitGuardTypedArray(CacheIRWriter& writer, TypedArrayObject* obj,
                                 ObjOperandId objId) {
-  if (obj->is<FixedLengthTypedArrayObject>()) {
-    writer.guardIsFixedLengthTypedArray(objId);
+  if (!obj->is<ResizableTypedArrayObject>()) {
+    writer.guardIsNonResizableTypedArray(objId);
   } else {
     writer.guardIsResizableTypedArray(objId);
   }

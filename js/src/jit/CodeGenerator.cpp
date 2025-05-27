@@ -4942,14 +4942,14 @@ void CodeGenerator::visitGuardIsTypedArray(LGuardIsTypedArray* guard) {
   bailoutFrom(&bail, guard->snapshot());
 }
 
-void CodeGenerator::visitGuardIsFixedLengthTypedArray(
-    LGuardIsFixedLengthTypedArray* guard) {
+void CodeGenerator::visitGuardIsNonResizableTypedArray(
+    LGuardIsNonResizableTypedArray* guard) {
   Register obj = ToRegister(guard->object());
   Register temp = ToRegister(guard->temp0());
 
   Label bail;
   masm.loadObjClassUnsafe(obj, temp);
-  masm.branchIfClassIsNotFixedLengthTypedArray(temp, &bail);
+  masm.branchIfClassIsNotNonResizableTypedArray(temp, &bail);
   bailoutFrom(&bail, guard->snapshot());
 }
 

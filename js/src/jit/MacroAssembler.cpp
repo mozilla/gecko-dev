@@ -8982,14 +8982,18 @@ void MacroAssembler::branchIfClassIsNotTypedArray(Register clasp,
             notTypedArray);
 }
 
-void MacroAssembler::branchIfClassIsNotFixedLengthTypedArray(
+void MacroAssembler::branchIfClassIsNotNonResizableTypedArray(
     Register clasp, Label* notTypedArray) {
-  // Inline implementation of IsFixedLengthTypedArrayClass().
+  // Inline implementation of IsFixedLengthTypedArrayClass() and
+  // IsImmutableTypedArrayClass().
 
   const auto* firstTypedArrayClass =
       std::begin(TypedArrayObject::fixedLengthClasses);
   const auto* lastTypedArrayClass =
-      std::prev(std::end(TypedArrayObject::fixedLengthClasses));
+      std::prev(std::end(TypedArrayObject::immutableClasses));
+  MOZ_ASSERT(std::end(TypedArrayObject::fixedLengthClasses) ==
+                 std::begin(TypedArrayObject::immutableClasses),
+             "TypedArray classes are in contiguous memory");
 
   branchPtr(Assembler::Below, clasp, ImmPtr(firstTypedArrayClass),
             notTypedArray);

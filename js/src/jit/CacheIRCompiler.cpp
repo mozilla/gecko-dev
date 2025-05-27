@@ -2608,7 +2608,7 @@ bool CacheIRCompiler::emitGuardIsTypedArray(ObjOperandId objId) {
   return true;
 }
 
-bool CacheIRCompiler::emitGuardIsFixedLengthTypedArray(ObjOperandId objId) {
+bool CacheIRCompiler::emitGuardIsNonResizableTypedArray(ObjOperandId objId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
 
   Register obj = allocator.useRegister(masm, objId);
@@ -2620,7 +2620,7 @@ bool CacheIRCompiler::emitGuardIsFixedLengthTypedArray(ObjOperandId objId) {
   }
 
   masm.loadObjClassUnsafe(obj, scratch);
-  masm.branchIfClassIsNotFixedLengthTypedArray(scratch, failure->label());
+  masm.branchIfClassIsNotNonResizableTypedArray(scratch, failure->label());
   return true;
 }
 

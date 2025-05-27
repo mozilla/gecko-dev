@@ -937,11 +937,11 @@ bool WarpCacheIRTranspiler::emitGuardIsTypedArray(ObjOperandId objId) {
   return true;
 }
 
-bool WarpCacheIRTranspiler::emitGuardIsFixedLengthTypedArray(
+bool WarpCacheIRTranspiler::emitGuardIsNonResizableTypedArray(
     ObjOperandId objId) {
   MDefinition* obj = getOperand(objId);
 
-  auto* ins = MGuardIsFixedLengthTypedArray::New(alloc(), obj);
+  auto* ins = MGuardIsNonResizableTypedArray::New(alloc(), obj);
   add(ins);
 
   setOperand(objId, ins);
