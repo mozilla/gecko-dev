@@ -22,6 +22,7 @@ UNIFIED_SOURCES = [
     "TestClientDirectoryLockHandle.cpp",
     "TestClientStorageScope.cpp",
     "TestClientUsageArray.cpp",
+    "TestCommonMetadata.cpp",
     "TestDirectoryLock.cpp",
     "TestEncryptedStream.cpp",
     "TestFileOutputStream.cpp",

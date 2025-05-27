@@ -62,6 +62,20 @@ struct OriginMetadata : public PrincipalMetadata {
                  PersistenceType aPersistenceType)
       : PrincipalMetadata(std::move(aPrincipalMetadata)),
         mPersistenceType(aPersistenceType) {}
+
+  // Returns a composite string key in the form "<persistence>*<origin>".
+  // Useful for flat hash maps keyed by both persistence type and origin,
+  // as an alternative to using structured keys or nested maps.
+  // Suitable when tree-based representation is unnecessary.
+  nsCString GetCompositeKey() const {
+    nsCString result;
+
+    result.AppendInt(mPersistenceType);
+    result.Append("*");
+    result.Append(mOrigin);
+
+    return result;
+  }
 };
 
 struct FullOriginMetadata : OriginMetadata {
