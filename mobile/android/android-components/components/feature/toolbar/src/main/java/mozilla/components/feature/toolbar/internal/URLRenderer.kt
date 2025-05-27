@@ -174,7 +174,7 @@ private fun SpannableStringBuilder.applyUrlColors(
 
     val (start, end) = registrableDomainOrHostSpan
     setSpan(
-        ForegroundColorSpan(registrableDomainColor),
+        Toolbar.RegistrableDomainColorSpan(registrableDomainColor),
         start,
         end,
         SPAN_INCLUSIVE_INCLUSIVE,
