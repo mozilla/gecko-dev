@@ -56,17 +56,21 @@
 #include "mozilla/ipc/UtilityProcessSandboxing.h"
 #include "mozilla/ipc/UtilityProcessManager.h"
 #include "mozilla/ipc/UtilityProcessHost.h"
+#include "mozilla/layers/WebRenderBridgeChild.h"
+#include "mozilla/layers/WebRenderLayerManager.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "mozilla/RemoteDecoderManagerChild.h"
 #include "mozilla/KeySystemConfig.h"
 #include "mozilla/WheelHandlingHelper.h"
 #include "nsIRFPTargetSetIDL.h"
+#include "nsIWidget.h"
 #include "nsString.h"
 #include "nsNativeTheme.h"
 #include "nsThreadUtils.h"
 #include "mozJSModuleLoader.h"
 #include "mozilla/ProfilerLabels.h"
 #include "mozilla/ProfilerMarkers.h"
+#include "nsContentUtils.h"
 #include "nsDocShell.h"
 #include "nsIException.h"
 #include "VsyncSource.h"
@@ -2249,12 +2253,63 @@ void ChromeUtils::ResetLastExternalProtocolIframeAllowed(
 }
 
 /* static */
-void ChromeUtils::EndWheelTransaction(GlobalObject& aGlobal) {
+already_AddRefed<Promise> ChromeUtils::EndWheelTransaction(
+    GlobalObject& aGlobal, WindowProxyHolder& aWindow, ErrorResult& aRv) {
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
+  MOZ_ASSERT(global);
+
+  RefPtr<Promise> promise = Promise::Create(global, aRv);
+  if (aRv.Failed()) {
+    return nullptr;
+  }
+
   // This allows us to end the current wheel transaction from the browser
   // chrome. We do not need to perform any checks before calling
   // EndTransaction(), as it should do nothing in the case that there is
   // no current wheel transaction.
   WheelTransaction::EndTransaction();
+
+  // We also need to end the wheel transaction in APZ.
+  nsIDocShell* docShell = aWindow.get()->GetDocShell();
+  if (!docShell) {
+    promise->MaybeResolveWithUndefined();
+    return promise.forget();
+  }
+
+  nsIWidget* widget =
+      nsContentUtils::GetWidget(docShell->GetPresShell(), nullptr);
+  if (!widget) {
+    promise->MaybeResolveWithUndefined();
+    return promise.forget();
+  }
+
+  WindowRenderer* renderer = widget->GetWindowRenderer();
+  if (!renderer) {
+    promise->MaybeResolveWithUndefined();
+    return promise.forget();
+  }
+
+  layers::WebRenderLayerManager* wr = renderer->AsWebRender();
+  if (!wr) {
+    promise->MaybeResolveWithUndefined();
+    return promise.forget();
+  }
+
+  layers::WebRenderBridgeChild* wrbc = wr->WrBridge();
+  if (!wrbc) {
+    promise->MaybeResolveWithUndefined();
+    return promise.forget();
+  }
+
+  wrbc->SendEndWheelTransaction()->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [promise](bool) { promise->MaybeResolveWithUndefined(); },
+      [promise](mozilla::ipc::ResponseRejectReason) {
+        promise->MaybeRejectWithUnknownError(
+            "actor died while ending wheel transaction");
+      });
+
+  return promise.forget();
 }
 
 /* static */

@@ -112,6 +112,9 @@ class ContentCompositorBridgeParent final : public CompositorBridgeParentBase {
   void SetConfirmedTargetAPZC(
       const LayersId& aLayersId, const uint64_t& aInputBlockId,
       nsTArray<ScrollableLayerGuid>&& aTargets) override;
+  void EndWheelTransaction(
+      const LayersId& aLayersId,
+      PWebRenderBridgeParent::EndWheelTransactionResolver&& aResolve) override;
 
   // Use DidCompositeLocked if you already hold a lock on
   // sIndirectLayerTreesLock; Otherwise use DidComposite, which would request

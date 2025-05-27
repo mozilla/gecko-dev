@@ -39,6 +39,7 @@ class PrecompiledScript;
 class Promise;
 struct ProcessActorOptions;
 struct WindowActorOptions;
+class WindowProxyHolder;
 
 class ChromeUtils {
  private:
@@ -260,7 +261,8 @@ class ChromeUtils {
 
   static void ResetLastExternalProtocolIframeAllowed(GlobalObject& aGlobal);
 
-  static void EndWheelTransaction(GlobalObject& aGlobal);
+  static already_AddRefed<Promise> EndWheelTransaction(
+      GlobalObject& aGlobal, WindowProxyHolder& aWindow, ErrorResult& aRv);
 
   static void RegisterWindowActor(const GlobalObject& aGlobal,
                                   const nsACString& aName,

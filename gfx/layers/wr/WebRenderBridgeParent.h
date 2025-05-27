@@ -169,6 +169,8 @@ class WebRenderBridgeParent final : public PWebRenderBridgeParent,
   mozilla::ipc::IPCResult RecvGetAPZTestData(APZTestData* data) override;
   mozilla::ipc::IPCResult RecvGetFrameUniformity(
       FrameUniformityData* aOutData) override;
+  mozilla::ipc::IPCResult RecvEndWheelTransaction(
+      PWebRenderBridgeParent::EndWheelTransactionResolver&& aResolve) override;
 
   void ActorDestroy(ActorDestroyReason aWhy) override;
 

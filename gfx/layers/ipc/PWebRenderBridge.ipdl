@@ -125,6 +125,8 @@ parent:
   // Child requests frame uniformity measurements
   sync GetFrameUniformity() returns (FrameUniformityData data);
 
+  // Focibly end the current wheel transaction in APZ.
+  async EndWheelTransaction() returns (bool unused);
 
   async Shutdown();
   sync ShutdownSync();

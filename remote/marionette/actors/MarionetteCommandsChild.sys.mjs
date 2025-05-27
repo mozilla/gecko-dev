@@ -129,7 +129,7 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
   async #finalizeAction() {
     // Terminate the current wheel transaction if there is one. Wheel
     // transactions should not live longer than a single action chain.
-    ChromeUtils.endWheelTransaction();
+    await ChromeUtils.endWheelTransaction(this.contentWindow);
 
     // Wait for the next animation frame to make sure the page's content
     // was updated.

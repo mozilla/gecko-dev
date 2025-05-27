@@ -2281,6 +2281,15 @@ mozilla::ipc::IPCResult WebRenderBridgeParent::RecvGetFrameUniformity(
   return IPC_OK();
 }
 
+mozilla::ipc::IPCResult WebRenderBridgeParent::RecvEndWheelTransaction(
+    EndWheelTransactionResolver&& aResolve) {
+  if (mDestroyed) {
+    return IPC_OK();
+  }
+  mCompositorBridge->EndWheelTransaction(GetLayersId(), std::move(aResolve));
+  return IPC_OK();
+}
+
 void WebRenderBridgeParent::ActorDestroy(ActorDestroyReason aWhy) { Destroy(); }
 
 void WebRenderBridgeParent::ResetPreviousSampleTime() {

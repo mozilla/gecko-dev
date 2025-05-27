@@ -23,6 +23,7 @@
 #include "mozilla/layers/ISurfaceAllocator.h"  // for IShmemAllocator
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/PCompositorBridgeParent.h"
+#include "mozilla/layers/PWebRenderBridgeParent.h"
 #include "mozilla/layers/APZInputBridgeParent.h"
 #include "mozilla/webrender/WebRenderTypes.h"
 
@@ -110,6 +111,9 @@ class CompositorBridgeParentBase : public PCompositorBridgeParent,
   virtual void SetConfirmedTargetAPZC(
       const LayersId& aLayersId, const uint64_t& aInputBlockId,
       nsTArray<ScrollableLayerGuid>&& aTargets) = 0;
+  virtual void EndWheelTransaction(
+      const LayersId& aLayersId,
+      PWebRenderBridgeParent::EndWheelTransactionResolver&& aResolve) = 0;
 
   IShmemAllocator* AsShmemAllocator() override { return this; }
 
@@ -312,6 +316,9 @@ class CompositorBridgeParent final : public CompositorBridgeParentBase,
       const LayersId& aLayersId, const uint64_t& aInputBlockId,
       nsTArray<ScrollableLayerGuid>&& aTargets) override;
   void SetFixedLayerMargins(ScreenIntCoord aTop, ScreenIntCoord aBottom);
+  void EndWheelTransaction(
+      const LayersId& aLayersId,
+      PWebRenderBridgeParent::EndWheelTransactionResolver&& aResolve) override;
 
   PTextureParent* AllocPTextureParent(
       const SurfaceDescriptor& aSharedData, ReadLockDescriptor& aReadLock,

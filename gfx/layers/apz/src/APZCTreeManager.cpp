@@ -40,7 +40,8 @@
 #include "mozilla/layers/UiCompositorControllerParent.h"
 #include "mozilla/layers/WebRenderScrollDataWrapper.h"
 #include "mozilla/MouseEvents.h"
-#include "mozilla/mozalloc.h"     // for operator new
+#include "mozilla/mozalloc.h"  // for operator new
+#include "mozilla/MozPromise.h"
 #include "mozilla/Preferences.h"  // for Preferences
 #include "mozilla/StaticPrefs_accessibility.h"
 #include "mozilla/StaticPrefs_apz.h"
@@ -3944,6 +3945,24 @@ void APZCTreeManager::SetDPI(float aDpiValue) {
 float APZCTreeManager::GetDPI() const {
   APZThreadUtils::AssertOnControllerThread();
   return mDPI;
+}
+
+void APZCTreeManager::EndWheelTransaction(
+    PWebRenderBridgeParent::EndWheelTransactionResolver&& aResolver) {
+  RefPtr<nsISerialEventTarget> controllerThread =
+      APZThreadUtils::GetControllerThread();
+  InvokeAsync(controllerThread, __func__,
+              [self = RefPtr{this}] {
+                if (WheelBlockState* txn =
+                        self->mInputQueue->GetActiveWheelTransaction()) {
+                  txn->EndTransaction();
+                }
+                return GenericPromise::CreateAndResolve(true, __func__);
+              })
+      // The resolver needs to be resolved on the thread where it was initiated.
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             [resolver = std::move(aResolver)](
+                 GenericPromise::ResolveOrRejectValue&&) { resolver(true); });
 }
 
 APZCTreeManager::FixedPositionInfo::FixedPositionInfo(

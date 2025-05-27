@@ -52,6 +52,11 @@ class APZThreadUtils {
       uint32_t flags = nsIEventTarget::DISPATCH_NORMAL);
 
   /**
+   * Get the controller thread.
+   */
+  static already_AddRefed<nsISerialEventTarget> GetControllerThread();
+
+  /**
    * Returns true if currently on APZ "controller thread".
    */
   static bool IsControllerThread();

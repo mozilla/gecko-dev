@@ -831,6 +831,14 @@ void CompositorBridgeParent::SetFixedLayerMargins(ScreenIntCoord aTop,
   ScheduleComposition(wr::RenderReasons::RESIZE);
 }
 
+void CompositorBridgeParent::EndWheelTransaction(
+    const LayersId& aLayersId,
+    PWebRenderBridgeParent::EndWheelTransactionResolver&& aResolve) {
+  if (mApzcTreeManager) {
+    mApzcTreeManager->EndWheelTransaction(std::move(aResolve));
+  }
+}
+
 void CompositorBridgeParent::NotifyVsync(const VsyncEvent& aVsync,
                                          const LayersId& aLayersId) {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_GPU);
