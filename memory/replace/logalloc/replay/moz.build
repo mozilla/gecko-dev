@@ -10,6 +10,7 @@ SOURCES += [
     "/mfbt/Assertions.cpp",
     "/mfbt/Poison.cpp",
     "/mfbt/RandomNum.cpp",
+    "/mfbt/RefCounted.cpp",
     "/mfbt/TaggedAnonymousMemory.cpp",
     "/mfbt/Unused.cpp",
     "/mozglue/misc/StackWalk.cpp",
@@ -83,6 +84,8 @@ USE_LIBS += [
 
 # The memory library defines this, so it's needed here too.
 DEFINES["IMPL_MFBT"] = True
+
+DEFINES["MOZ_SUPPORT_LEAKCHECKING"] = True
 
 OS_LIBS += CONFIG["LIBATOMIC_LIBS"]
 
