@@ -420,17 +420,13 @@ FloatRegisterSet VFPRegister::ReduceSetForPush(const FloatRegisterSet& s) {
 
   LiveFloatRegisterSet mod;
   for (FloatRegisterIterator iter(s); iter.more(); ++iter) {
-    if ((*iter).isSingle()) {
-      // Add in just this float.
-      mod.addUnchecked(*iter);
-    } else if ((*iter).id() < 16) {
-      // A double with an overlay, add in both floats.
-      mod.addUnchecked((*iter).singleOverlay(0));
-      mod.addUnchecked((*iter).singleOverlay(1));
-    } else {
-      // Add in the lone double in the range 16-31.
-      mod.addUnchecked(*iter);
+    FloatRegister reg = *iter;
+    if (reg.isSingle() && s.hasRegisterIndex(reg.doubleOverlay())) {
+      // If a single register overlays a double, we don't have to push the
+      // single register separately.
+      continue;
     }
+    mod.addUnchecked(*iter);
   }
   return mod.set();
 }
