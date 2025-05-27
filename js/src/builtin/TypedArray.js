@@ -19,11 +19,11 @@ function ViewedArrayBufferIfReified(tarray) {
   return IsObject(buf) ? buf : null;
 }
 
-function IsDetachedBuffer(buffer) {
-  // A typed array with a null buffer has never had its buffer exposed,
-  // and so cannot have become detached.
+function GetArrayBufferFlagsOrZero(buffer) {
+  // A typed array with a null buffer has never had its buffer exposed. Return
+  // the default flags, which is zero.
   if (buffer === null) {
-    return false;
+    return 0;
   }
 
   assert(
@@ -32,25 +32,24 @@ function IsDetachedBuffer(buffer) {
     "non-ArrayBuffer passed to IsDetachedBuffer"
   );
 
-  // Shared array buffers are not detachable.
+  // Return zero for shared array buffers.
   if ((buffer = GuardToArrayBuffer(buffer)) === null) {
-    return false;
+    return 0;
   }
 
-  var flags = UnsafeGetInt32FromReservedSlot(buffer, JS_ARRAYBUFFER_FLAGS_SLOT);
-  return (flags & JS_ARRAYBUFFER_DETACHED_FLAG) !== 0;
+  return UnsafeGetInt32FromReservedSlot(buffer, JS_ARRAYBUFFER_FLAGS_SLOT);
 }
 
-function GetAttachedArrayBuffer(tarray) {
+function EnsureAttachedArrayBuffer(tarray) {
   var buffer = ViewedArrayBufferIfReified(tarray);
-  if (IsDetachedBuffer(buffer)) {
+  var flags = GetArrayBufferFlagsOrZero(buffer);
+  if ((flags & JS_ARRAYBUFFER_DETACHED_FLAG) !== 0) {
     ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
   }
-  return buffer;
 }
 
-function GetAttachedArrayBufferMethod() {
-  return GetAttachedArrayBuffer(this);
+function EnsureAttachedArrayBufferMethod() {
+  EnsureAttachedArrayBuffer(this);
 }
 
 // A function which ensures that the argument is either a typed array or a
@@ -59,14 +58,14 @@ function GetAttachedArrayBufferMethod() {
 // kind of argument, or detached array buffer), an exception is thrown.
 function EnsureTypedArrayWithArrayBuffer(arg) {
   if (IsObject(arg) && IsTypedArray(arg)) {
-    GetAttachedArrayBuffer(arg);
+    EnsureAttachedArrayBuffer(arg);
     return;
   }
 
   callFunction(
     CallTypedArrayMethodIfWrapped,
     arg,
-    "GetAttachedArrayBufferMethod"
+    "EnsureAttachedArrayBufferMethod"
   );
 }
 
@@ -119,8 +118,8 @@ function ValidateTypedArray(obj) {
   if (IsObject(obj)) {
     /* Steps 3-5 (non-wrapped typed arrays). */
     if (IsTypedArray(obj)) {
-      // GetAttachedArrayBuffer throws for detached array buffers.
-      GetAttachedArrayBuffer(obj);
+      // EnsureAttachedArrayBuffer throws for detached array buffers.
+      EnsureAttachedArrayBuffer(obj);
       return;
     }
 
@@ -265,10 +264,10 @@ function TypedArrayEntries() {
   //
   // Before doing that, though, we want to check that we have a typed array
   // and it does not have a detached array buffer.  We do the latter by just
-  // calling GetAttachedArrayBuffer() and letting it throw if there isn't one.
+  // calling EnsureAttachedArrayBuffer() and letting it throw if there isn't one.
   // In the case when we're not sure we have a typed array (e.g. we might have
   // a cross-compartment wrapper for one), we can go ahead and call
-  // GetAttachedArrayBuffer via EnsureTypedArrayWithArrayBuffer; that will
+  // EnsureAttachedArrayBuffer via EnsureTypedArrayWithArrayBuffer; that will
   // throw if we're not actually a wrapped typed array, or if we have a
   // detached array buffer.
 
@@ -691,7 +690,7 @@ function TypedArraySlice(start, end) {
     );
   }
 
-  GetAttachedArrayBuffer(O);
+  EnsureAttachedArrayBuffer(O);
 
   // Step 3.
   var len = TypedArrayLength(O);
@@ -970,7 +969,7 @@ function TypedArrayAt(index) {
       "TypedArrayAt"
     );
   }
-  GetAttachedArrayBuffer(obj);
+  EnsureAttachedArrayBuffer(obj);
 
   // Step 3.
   var len = TypedArrayLength(obj);
@@ -1149,7 +1148,7 @@ function TypedArrayStaticFrom(source, mapfn = undefined, thisArg = undefined) {
       ) {
         // Step 7.a.
         // Omitted but we still need to throw if |source| was detached.
-        GetAttachedArrayBuffer(source);
+        EnsureAttachedArrayBuffer(source);
 
         // Step 7.b.
         var len = TypedArrayLength(source);
