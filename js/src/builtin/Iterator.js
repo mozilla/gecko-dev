@@ -78,14 +78,15 @@ function GetIterator(obj, isAsync, method) {
 /**
  * GetIteratorFlattenable ( obj, stringHandling )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-getiteratorflattenable
+ * https://tc39.es/ecma262/#sec-getiteratorflattenable
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function GetIteratorFlattenable(obj, rejectStrings) {
   assert(typeof rejectStrings === "boolean", "rejectStrings is a boolean");
 
   // Step 1.
   if (!IsObject(obj)) {
-    // Step 1.a.
+    // Steps 1.a-c.
     if (rejectStrings || typeof obj !== "string") {
       ThrowTypeError(JSMSG_OBJECT_REQUIRED, obj === null ? "null" : typeof obj);
     }
@@ -114,7 +115,8 @@ function GetIteratorFlattenable(obj, rejectStrings) {
 /**
  * Iterator.from ( O )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iterator.from
+ * https://tc39.es/ecma262/#sec-iterator.from
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorFrom(O) {
   // Step 1. (Inlined call to GetIteratorDirect.)
@@ -158,7 +160,8 @@ function IteratorFrom(O) {
 /**
  * %WrapForValidIteratorPrototype%.next ( )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-wrapforvaliditeratorprototype.next
+ * https://tc39.es/ecma262/#sec-%wrapforvaliditeratorprototype%.next
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function WrapForValidIteratorNext() {
   // Steps 1-2.
@@ -182,7 +185,8 @@ function WrapForValidIteratorNext() {
 /**
  * %WrapForValidIteratorPrototype%.return ( )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-wrapforvaliditeratorprototype.return
+ * https://tc39.es/ecma262/#sec-%wrapforvaliditeratorprototype%.return
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function WrapForValidIteratorReturn() {
   // Steps 1-2.
@@ -242,7 +246,8 @@ function IteratorDispose() {
 /**
  * %IteratorHelperPrototype%.next ( )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-%iteratorhelperprototype%.next
+ * https://tc39.es/ecma262/#sec-%iteratorhelperprototype%.next
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorHelperNext() {
   // Step 1.
@@ -261,7 +266,8 @@ function IteratorHelperNext() {
 /**
  * %IteratorHelperPrototype%.return ( )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-%iteratorhelperprototype%.return
+ * https://tc39.es/ecma262/#sec-%iteratorhelperprototype%.return
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorHelperReturn() {
   // Step 1.
@@ -285,10 +291,9 @@ function IteratorHelperReturn() {
 
 // Lazy %Iterator.prototype% methods
 //
-// In order to match the semantics of the built-in generator objects used in
-// the proposal, we use a reserved slot on the IteratorHelper objects to store
-// a regular generator that is called from the %IteratorHelper.prototype%
-// methods.
+// In order to match the semantics of the built-in generator objects, we use a
+// reserved slot on the IteratorHelper objects to store a regular generator that
+// is called from the %IteratorHelper.prototype% methods.
 //
 // Each of the lazy methods is divided into a prelude and a body, with the
 // eager prelude steps being contained in the corresponding IteratorX method
