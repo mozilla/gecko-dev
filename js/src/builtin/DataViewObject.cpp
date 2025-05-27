@@ -54,6 +54,7 @@ DataViewObject* DataViewObject::create(
     Handle<ArrayBufferObjectMaybeShared*> arrayBuffer, HandleObject proto) {
   MOZ_ASSERT(!arrayBuffer->isResizable());
   MOZ_ASSERT(!arrayBuffer->isDetached());
+  MOZ_ASSERT(!arrayBuffer->isImmutable());
 
   auto* obj = NewObjectWithClassProto<FixedLengthDataViewObject>(cx, proto);
   if (!obj || !obj->init(cx, arrayBuffer, byteOffset, byteLength,
@@ -69,12 +70,29 @@ ResizableDataViewObject* ResizableDataViewObject::create(
     Handle<ArrayBufferObjectMaybeShared*> arrayBuffer, HandleObject proto) {
   MOZ_ASSERT(arrayBuffer->isResizable());
   MOZ_ASSERT(!arrayBuffer->isDetached());
+  MOZ_ASSERT(!arrayBuffer->isImmutable());
   MOZ_ASSERT(autoLength == AutoLength::No || byteLength == 0,
              "byte length is zero for 'auto' length views");
 
   auto* obj = NewObjectWithClassProto<ResizableDataViewObject>(cx, proto);
   if (!obj || !obj->initResizable(cx, arrayBuffer, byteOffset, byteLength,
                                   /* bytesPerElement = */ 1, autoLength)) {
+    return nullptr;
+  }
+
+  return obj;
+}
+
+ImmutableDataViewObject* ImmutableDataViewObject::create(
+    JSContext* cx, size_t byteOffset, size_t byteLength,
+    Handle<ArrayBufferObjectMaybeShared*> arrayBuffer, HandleObject proto) {
+  MOZ_ASSERT(!arrayBuffer->isResizable());
+  MOZ_ASSERT(!arrayBuffer->isDetached());
+  MOZ_ASSERT(arrayBuffer->isImmutable());
+
+  auto* obj = NewObjectWithClassProto<ImmutableDataViewObject>(cx, proto);
+  if (!obj || !obj->init(cx, arrayBuffer, byteOffset, byteLength,
+                         /* bytesPerElement = */ 1)) {
     return nullptr;
   }
 
@@ -202,11 +220,14 @@ bool DataViewObject::constructSameCompartment(JSContext* cx,
   }
 
   DataViewObject* obj;
-  if (!buffer->isResizable()) {
-    obj = DataViewObject::create(cx, byteOffset, byteLength, buffer, proto);
-  } else {
+  if (buffer->isResizable()) {
     obj = ResizableDataViewObject::create(cx, byteOffset, byteLength,
                                           autoLength, buffer, proto);
+  } else if (buffer->isImmutable()) {
+    obj = ImmutableDataViewObject::create(cx, byteOffset, byteLength, buffer,
+                                          proto);
+  } else {
+    obj = DataViewObject::create(cx, byteOffset, byteLength, buffer, proto);
   }
   if (!obj) {
     return false;
@@ -280,13 +301,16 @@ bool DataViewObject::constructWrapped(JSContext* cx, HandleObject bufobj,
       return false;
     }
 
-    if (!unwrappedBuffer->isResizable()) {
-      dv = DataViewObject::create(cx, byteOffset, byteLength, unwrappedBuffer,
-                                  wrappedProto);
-    } else {
+    if (unwrappedBuffer->isResizable()) {
       dv = ResizableDataViewObject::create(cx, byteOffset, byteLength,
                                            autoLength, unwrappedBuffer,
                                            wrappedProto);
+    } else if (unwrappedBuffer->isImmutable()) {
+      dv = ImmutableDataViewObject::create(cx, byteOffset, byteLength,
+                                           unwrappedBuffer, wrappedProto);
+    } else {
+      dv = DataViewObject::create(cx, byteOffset, byteLength, unwrappedBuffer,
+                                  wrappedProto);
     }
     if (!dv) {
       return false;
@@ -533,6 +557,13 @@ bool DataViewObject::write(JSContext* cx, Handle<DataViewObject*> obj,
                            const CallArgs& args) {
   // Step 1. done by the caller
   // Step 2. unnecessary assert
+
+  // Additional step from Immutable ArrayBuffer proposal.
+  if (obj->is<ImmutableDataViewObject>()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
+    return false;
+  }
 
   // Step 3.
   uint64_t getIndex;
@@ -1109,10 +1140,20 @@ const JSClass ResizableDataViewObject::class_ = {
     &DataViewObject::classSpec_,
 };
 
+const JSClass ImmutableDataViewObject::class_ = {
+    "DataView",
+    JSCLASS_HAS_RESERVED_SLOTS(ImmutableDataViewObject::RESERVED_SLOTS) |
+        JSCLASS_HAS_CACHED_PROTO(JSProto_DataView),
+    &DataViewObjectClassOps,
+    &DataViewObject::classSpec_,
+};
+
 const JSClass* const JS::DataView::FixedLengthClassPtr =
     &FixedLengthDataViewObject::class_;
 const JSClass* const JS::DataView::ResizableClassPtr =
     &ResizableDataViewObject::class_;
+const JSClass* const JS::DataView::ImmutableClassPtr =
+    &ImmutableDataViewObject::class_;
 
 const JSClass DataViewObject::protoClass_ = {
     "DataView.prototype",

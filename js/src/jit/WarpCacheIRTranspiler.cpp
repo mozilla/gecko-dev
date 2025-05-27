@@ -421,6 +421,7 @@ const JSClass* WarpCacheIRTranspiler::classForGuardClassKind(
     case GuardClassKind::FixedLengthSharedArrayBuffer:
     case GuardClassKind::GrowableSharedArrayBuffer:
     case GuardClassKind::FixedLengthDataView:
+    case GuardClassKind::ImmutableDataView:
     case GuardClassKind::ResizableDataView:
     case GuardClassKind::MappedArguments:
     case GuardClassKind::UnmappedArguments:
@@ -2307,7 +2308,8 @@ bool WarpCacheIRTranspiler::emitCallObjectHasSparseElementResult(
 
 MInstruction* WarpCacheIRTranspiler::emitTypedArrayLength(
     ArrayBufferViewKind viewKind, MDefinition* obj) {
-  if (viewKind == ArrayBufferViewKind::FixedLength) {
+  if (viewKind == ArrayBufferViewKind::FixedLength ||
+      viewKind == ArrayBufferViewKind::Immutable) {
     auto* length = MArrayBufferViewLength::New(alloc(), obj);
     add(length);
 
@@ -3010,7 +3012,8 @@ bool WarpCacheIRTranspiler::emitStoreTypedArrayElement(
 
 MInstruction* WarpCacheIRTranspiler::emitDataViewLength(
     ArrayBufferViewKind viewKind, MDefinition* obj) {
-  if (viewKind == ArrayBufferViewKind::FixedLength) {
+  if (viewKind == ArrayBufferViewKind::FixedLength ||
+      viewKind == ArrayBufferViewKind::Immutable) {
     auto* length = MArrayBufferViewLength::New(alloc(), obj);
     add(length);
 

@@ -2080,6 +2080,8 @@ const JSClass* js::jit::ClassFor(GuardClassKind kind) {
       return &GrowableSharedArrayBufferObject::class_;
     case GuardClassKind::FixedLengthDataView:
       return &FixedLengthDataViewObject::class_;
+    case GuardClassKind::ImmutableDataView:
+      return &ImmutableDataViewObject::class_;
     case GuardClassKind::ResizableDataView:
       return &ResizableDataViewObject::class_;
     case GuardClassKind::MappedArguments:
@@ -2121,6 +2123,7 @@ void IRGenerator::emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
     case GuardClassKind::FixedLengthSharedArrayBuffer:
     case GuardClassKind::GrowableSharedArrayBuffer:
     case GuardClassKind::FixedLengthDataView:
+    case GuardClassKind::ImmutableDataView:
     case GuardClassKind::ResizableDataView:
     case GuardClassKind::Set:
     case GuardClassKind::Map:
@@ -2321,6 +2324,10 @@ AttachDecision GetPropIRGenerator::tryAttachDataView(HandleObject obj,
 
   // byteOffset and byteLength both throw when the ArrayBuffer is detached.
   if (dv->hasDetachedBuffer()) {
+    // The has-attached-arraybuffer guard is elided for immutable views. Assert
+    // we never see an immutable view with a detached buffer.
+    MOZ_ASSERT(!dv->is<ImmutableDataViewObject>(),
+               "immutable data views can't have their buffer detached");
     return AttachDecision::NoAction;
   }
 
@@ -2353,13 +2360,26 @@ AttachDecision GetPropIRGenerator::tryAttachDataView(HandleObject obj,
   // Emit all the normal guards for calling this native, but specialize
   // callNativeGetterResult.
   EmitCallGetterResultGuards(writer, dv, holder, id, *prop, objId, mode_);
-  writer.guardHasAttachedArrayBuffer(objId);
+
+  // Immutable array buffers can never get detached.
+  if (!dv->is<ImmutableDataViewObject>()) {
+    writer.guardHasAttachedArrayBuffer(objId);
+  } else {
+#ifdef DEBUG
+    // Add a guard in debug-mode, so if the buffer unexpectedly got detached,
+    // we bail out and rely on the above assertion to fire.
+    writer.guardHasAttachedArrayBuffer(objId);
+#endif
+  }
+
+  // Resizable array buffers can get out-of-bounds when shrunk.
   if (dv->is<ResizableDataViewObject>()) {
     writer.guardResizableArrayBufferViewInBounds(objId);
   }
+
   if (isByteOffset) {
-    // byteOffset doesn't need to use different code paths for fixed-length and
-    // resizable DataViews.
+    // byteOffset doesn't need to use different code paths for fixed-length,
+    // resizable, or immutable DataViews.
     size_t byteOffset = dv->byteOffset().valueOr(0);
     if (byteOffset <= INT32_MAX) {
       writer.arrayBufferViewByteOffsetInt32Result(objId);
@@ -2369,7 +2389,7 @@ AttachDecision GetPropIRGenerator::tryAttachDataView(HandleObject obj,
     trackAttached("GetProp.DataViewByteOffset");
   } else {
     size_t byteLength = dv->byteLength().valueOr(0);
-    if (dv->is<FixedLengthDataViewObject>()) {
+    if (!dv->is<ResizableDataViewObject>()) {
       if (byteLength <= INT32_MAX) {
         writer.loadArrayBufferViewLengthInt32Result(objId);
       } else {
@@ -3248,6 +3268,10 @@ static ArrayBufferViewKind ToArrayBufferViewKind(const TypedArrayObject* obj) {
 static ArrayBufferViewKind ToArrayBufferViewKind(const DataViewObject* obj) {
   if (obj->is<FixedLengthDataViewObject>()) {
     return ArrayBufferViewKind::FixedLength;
+  }
+
+  if (obj->is<ImmutableDataViewObject>()) {
+    return ArrayBufferViewKind::Immutable;
   }
 
   MOZ_ASSERT(obj->is<ResizableDataViewObject>());
@@ -7021,6 +7045,9 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewGet(
   if (dv->is<FixedLengthDataViewObject>()) {
     emitOptimisticClassGuard(objId, &thisval_.toObject(),
                              GuardClassKind::FixedLengthDataView);
+  } else if (dv->is<ImmutableDataViewObject>()) {
+    emitOptimisticClassGuard(objId, &thisval_.toObject(),
+                             GuardClassKind::ImmutableDataView);
   } else {
     emitOptimisticClassGuard(objId, &thisval_.toObject(),
                              GuardClassKind::ResizableDataView);
@@ -7072,6 +7099,11 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDataViewSet(
   }
 
   auto* dv = &thisval_.toObject().as<DataViewObject>();
+
+  // Immutable DataViews can't be modified.
+  if (dv->is<ImmutableDataViewObject>()) {
+    return AttachDecision::NoAction;
+  }
 
   // Bounds check the offset.
   size_t byteLength = dv->byteLength().valueOr(0);

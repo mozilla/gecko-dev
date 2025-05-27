@@ -2201,6 +2201,7 @@ static const JSClass* ClassFor(JSContext* cx, GuardClassKind kind) {
     case GuardClassKind::FixedLengthSharedArrayBuffer:
     case GuardClassKind::GrowableSharedArrayBuffer:
     case GuardClassKind::FixedLengthDataView:
+    case GuardClassKind::ImmutableDataView:
     case GuardClassKind::ResizableDataView:
     case GuardClassKind::MappedArguments:
     case GuardClassKind::UnmappedArguments:
@@ -5364,7 +5365,8 @@ bool CacheIRCompiler::emitLoadTypedArrayElementExistsResult(
   Label outOfBounds, done;
 
   // Bounds check.
-  if (viewKind == ArrayBufferViewKind::FixedLength) {
+  if (viewKind == ArrayBufferViewKind::FixedLength ||
+      viewKind == ArrayBufferViewKind::Immutable) {
     masm.loadArrayBufferViewLengthIntPtr(obj, scratch);
   } else {
     // Bounds check doesn't require synchronization. See IsValidIntegerIndex
@@ -7188,7 +7190,8 @@ void CacheIRCompiler::emitTypedArrayBoundsCheck(ArrayBufferViewKind viewKind,
     spectreScratch = maybeScratch;
   }
 
-  if (viewKind == ArrayBufferViewKind::FixedLength) {
+  if (viewKind == ArrayBufferViewKind::FixedLength ||
+      viewKind == ArrayBufferViewKind::Immutable) {
     masm.loadArrayBufferViewLengthIntPtr(obj, scratch);
     masm.spectreBoundsCheckPtr(index, scratch, spectreScratch, fail);
   } else {
@@ -7319,7 +7322,8 @@ void CacheIRCompiler::emitDataViewBoundsCheck(ArrayBufferViewKind viewKind,
   MOZ_ASSERT(offset != scratch);
   MOZ_ASSERT(offset != maybeScratch);
 
-  if (viewKind == ArrayBufferViewKind::FixedLength) {
+  if (viewKind == ArrayBufferViewKind::FixedLength ||
+      viewKind == ArrayBufferViewKind::Immutable) {
     masm.loadArrayBufferViewLengthIntPtr(obj, scratch);
   } else {
     if (maybeScratch == InvalidReg) {
@@ -10291,7 +10295,8 @@ bool CacheIRCompiler::emitAtomicsLoadResult(ObjOperandId objId,
                                          output ? *output : callvm->output());
   Maybe<AutoSpectreBoundsScratchRegister> spectreTemp;
   Maybe<AutoScratchRegister> scratch2;
-  if (viewKind == ArrayBufferViewKind::FixedLength) {
+  if (viewKind == ArrayBufferViewKind::FixedLength ||
+      viewKind == ArrayBufferViewKind::Immutable) {
     spectreTemp.emplace(allocator, masm);
   } else {
     scratch2.emplace(allocator, masm);

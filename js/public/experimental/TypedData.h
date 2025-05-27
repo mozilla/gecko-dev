@@ -462,6 +462,7 @@ class JS_PUBLIC_API ArrayBufferView : public ArrayBufferOrView {
 class JS_PUBLIC_API DataView : public ArrayBufferView {
   static const JSClass* const FixedLengthClassPtr;
   static const JSClass* const ResizableClassPtr;
+  static const JSClass* const ImmutableClassPtr;
 
  protected:
   explicit DataView(JSObject* unwrapped) : ArrayBufferView(unwrapped) {}
@@ -470,7 +471,8 @@ class JS_PUBLIC_API DataView : public ArrayBufferView {
   static DataView fromObject(JSObject* unwrapped) {
     if (unwrapped) {
       const JSClass* clasp = GetClass(unwrapped);
-      if (clasp == FixedLengthClassPtr || clasp == ResizableClassPtr) {
+      if (clasp == FixedLengthClassPtr || clasp == ResizableClassPtr ||
+          clasp == ImmutableClassPtr) {
         return DataView(unwrapped);
       }
     }
