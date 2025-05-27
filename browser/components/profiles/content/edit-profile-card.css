@@ -20,6 +20,7 @@
   width: var(--header-avatar-size);
   height: var(--header-avatar-size);
   border-radius: var(--border-radius-circle);
+  border: var(--card-border);
 }
 
 #profile-name-area {

@@ -2311,6 +2311,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
   z-index: -1;
   position: absolute;
   top: 0;
+  border-block-end: 1px solid var(--border-color-card);
 }
 
 #PanelUI-profiles > .panel-subview-body {
