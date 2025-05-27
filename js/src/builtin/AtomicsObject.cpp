@@ -641,11 +641,11 @@ namespace js {
  *      │WaitAsyncTimeoutTask│       │WaitAsyncNotifyTask│ ◄─────┐
  *      └────────────────────┘       └───┬───────────────┘       │
  *              ▲                        │             ▲         │
- *              │                        │             │         │ (transfered)
+ *              │                        │             │         │ (transferred)
  *              │ own                    ▼             │         │ own
- *      ┌───────────────────────────┐ ┌─────────────┐  │ ┌─────────────────────┐
- *      │DelayedJSDispatchaleHandler│ │PromiseObject│  │ │JSDispatchableHandler│
- *      └───────────────────────────┘ └─────────────┘  │ └─────────────────────┘
+ *     ┌────────────────────────────┐ ┌─────────────┐  │ ┌─────────────────────┐
+ *     │DelayedJSDispatchableHandler│ │PromiseObject│  │ │JSDispatchableHandler│
+ *     └────────────────────────────┘ └─────────────┘  │ └─────────────────────┘
  *              ▲                        ▲             │
  *     ┌────────┼────────────────────────┼──────┐      │
  *     │ ┌──────┴───────┐           ┌────┴────┐ │      │ own (initialized)
@@ -680,7 +680,7 @@ namespace js {
  *       cancelable list and is dispatched to resolve the promise with "ok".
  *       The task then destroys itself.
  *    C) The WaitAsyncTimeoutTask is disabled. It will fire and do nothing.
- *       See AsyncFutexWaiter::maybeCancelTimeout in atomics_notify_impl.
+ *       See AsyncFutexWaiter::maybeClearTimeout in atomics_notify_impl.
  *    D) The async waiter is destroyed.
  *
  * 2. A call to `Atomics.notify` notifies the waiter (atomics_notify_impl)
@@ -689,7 +689,7 @@ namespace js {
  *    B) The notify task is cancelled. The promise is extracted and resolved
  *        directly.
  *    C) The WaitAsyncTimeoutTask is disabled. It will fire and do nothing.
- *       See AsyncFutexWaiter::maybeCancelTimeout in atomics_notify_impl.
+ *       See AsyncFutexWaiter::maybeClearTimeout in atomics_notify_impl.
  *    D) The async waiter is destroyed.
  *
  * 3. The timeout expires without notification (WaitAsyncTimeoutTask::run)
@@ -705,7 +705,7 @@ namespace js {
  *    B) The notify task is cancelled and destroyed by
  *       OffThreadPromiseRuntimeState::shutdown.
  *    C) The WaitAsyncTimeoutTask is disabled.
- *       See AsyncFutexWaiter::maybeCancelTimeout in prepareForCancel.
+ *       See AsyncFutexWaiter::maybeClearTimeout in prepareForCancel.
  *
  * 5. The SharedArrayBuffer is collected by the GC (~FutexWaiterListHead)
  *    A) Async waiters without timeouts can no longer resolve. They are removed.
