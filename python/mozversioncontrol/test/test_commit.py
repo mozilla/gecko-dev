@@ -95,7 +95,7 @@ def test_commit(repo):
             "-T",
             'separate(",", author.name(), author.email(), commit_timestamp(self).format("%a, %d %b %Y %H:%M:%S %z"), description)',
         ]
-        patch_cmd = ["show", "@-"]
+        patch_cmd = ["show", "@-", "--git"]
 
     # Verify commit metadata (we rstrip to normalize trivial differences)
     log = vcs._run(*log_cmd).rstrip()

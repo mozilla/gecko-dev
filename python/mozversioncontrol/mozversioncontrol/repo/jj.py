@@ -355,7 +355,12 @@ class JujutsuRepository(Repository):
         `changed_files` may contain a dict of file paths and their contents,
         see `stage_changes`.
         """
-        opid = self._run_read_only(
+        # Redundant with the snapshot from the next command, but the semantics
+        # of this operation depend on a snapshot happening (and it will eat
+        # working-copy changes if not!), so be extra explicit here in case it
+        # becomes possible to default snapshotting off.
+        self._run("debug", "snapshot")  # Force a snapshot.
+        opid = self._run(
             "operation", "log", "-n1", "--no-graph", "-T", "id.short(16)"
         ).rstrip()
         try:
