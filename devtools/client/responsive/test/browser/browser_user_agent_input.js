@@ -58,8 +58,19 @@ addRDMTask(TEST_URL, async function ({ ui }) {
   });
 
   info("Test selecting the selected device user agent");
+  const waitForReload = await watchForDevToolsReload(ui.getViewportBrowser());
   await selectDevice(ui, testDevice.name);
-  await changeUserAgentFromSelector(ui, testDevice.name, testDevice.userAgent);
+  await waitForReload();
+  // We don't expect a reload here because the user agent is already set to the
+  // device's user agent when the device is selected. Selecting the user agent
+  // of the device won't trigger a reload here because the user agent isn't
+  // changed.
+  await changeUserAgentFromSelector(
+    ui,
+    testDevice.name,
+    testDevice.userAgent,
+    false
+  );
 
   await testMenuItems(toolWindow, userAgentSelector, items => {
     const menuItem = findMenuItem(items, testDevice.name);
@@ -87,15 +98,25 @@ addRDMTask(TEST_URL, async function ({ ui }) {
   reloadOnUAChange(false);
 });
 
-async function changeUserAgentFromSelector(ui, browserName, expectedUserAgent) {
+async function changeUserAgentFromSelector(
+  ui,
+  browserName,
+  expectedUserAgent,
+  expectReload = true
+) {
   const { document } = ui.toolWindow;
   const browser = ui.getViewportBrowser();
 
   const changed = once(ui, "user-agent-changed");
-  const waitForDevToolsReload = await watchForDevToolsReload(browser);
+  let waitForDevToolsReload;
+  if (expectReload) {
+    waitForDevToolsReload = await watchForDevToolsReload(browser);
+  } else {
+    waitForDevToolsReload = async () => {};
+  }
   await selectMenuItem(ui, "#user-agent-selector", browserName);
   await changed;
-  await waitForDevToolsReload;
+  await waitForDevToolsReload();
 
   const userAgentInput = document.getElementById("user-agent-input");
   is(userAgentInput.value, expectedUserAgent);
