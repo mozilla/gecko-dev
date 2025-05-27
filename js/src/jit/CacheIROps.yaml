@@ -472,7 +472,7 @@
   args:
     obj: ObjId
 
-- name: GuardIsFixedLengthTypedArray
+- name: GuardIsNonResizableTypedArray
   shared: true
   transpile: true
   cost_estimate: 1

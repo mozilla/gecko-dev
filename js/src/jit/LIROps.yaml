@@ -2951,7 +2951,7 @@
     object: WordSized
   num_temps: 1
 
-- name: GuardIsFixedLengthTypedArray
+- name: GuardIsNonResizableTypedArray
   operands:
     object: WordSized
   num_temps: 1

@@ -702,7 +702,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
     DECLARE_CACHEOP_CASE(CompareInt32Result);
     DECLARE_CACHEOP_CASE(CompareNullUndefinedResult);
     DECLARE_CACHEOP_CASE(AssertPropertyLookup);
-    DECLARE_CACHEOP_CASE(GuardIsFixedLengthTypedArray);
+    DECLARE_CACHEOP_CASE(GuardIsNonResizableTypedArray);
     DECLARE_CACHEOP_CASE(GuardIndexIsNotDenseElement);
     DECLARE_CACHEOP_CASE(LoadFixedSlotTypedResult);
     DECLARE_CACHEOP_CASE(LoadDenseElementHoleResult);
@@ -1334,10 +1334,11 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
         DISPATCH_CACHEOP();
       }
 
-      CACHEOP_CASE(GuardIsFixedLengthTypedArray) {
+      CACHEOP_CASE(GuardIsNonResizableTypedArray) {
         ObjOperandId objId = cacheIRReader.objOperandId();
         JSObject* obj = reinterpret_cast<JSObject*>(READ_REG(objId.id()));
-        if (!IsFixedLengthTypedArrayClass(obj->getClass())) {
+        if (!IsFixedLengthTypedArrayClass(obj->getClass()) &&
+            !IsImmutableTypedArrayClass(obj->getClass())) {
           FAIL_IC();
         }
         DISPATCH_CACHEOP();

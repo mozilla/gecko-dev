@@ -5340,8 +5340,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
  public:
   void branchIfClassIsNotTypedArray(Register clasp, Label* notTypedArray);
-  void branchIfClassIsNotFixedLengthTypedArray(Register clasp,
-                                               Label* notTypedArray);
+  void branchIfClassIsNotNonResizableTypedArray(Register clasp,
+                                                Label* notTypedArray);
   void branchIfClassIsNotResizableTypedArray(Register clasp,
                                              Label* notTypedArray);
 
