@@ -149,6 +149,9 @@ already_AddRefed<PointerEvent> PointerEvent::Constructor(
   if (aParam.mAzimuthAngle.WasPassed()) {
     e->mAzimuthAngle.emplace(aParam.mAzimuthAngle.Value());
   }
+
+  e->mPersistentDeviceId.emplace(aParam.mPersistentDeviceId);
+
   if (!aParam.mCoalescedEvents.IsEmpty()) {
     e->mCoalescedEvents.AppendElements(aParam.mCoalescedEvents);
   }
@@ -332,6 +335,24 @@ double PointerEvent::AzimuthAngle() {
 }
 
 bool PointerEvent::IsPrimary() { return mEvent->AsPointerEvent()->mIsPrimary; }
+
+int32_t PointerEvent::PersistentDeviceId() {
+  if (mPersistentDeviceId.isNothing()) {
+    if (mEvent->IsTrusted() &&
+        mEvent->AsPointerEvent()->mInputSource ==
+            MouseEvent_Binding::MOZ_SOURCE_MOUSE &&
+        IsPointerEventMessage(mEvent->mMessage) &&
+        !IsPointerEventMessageOriginallyMouseEventMessage(mEvent->mMessage)) {
+      // Follow the behavior which Chrome has for mouse.
+      mPersistentDeviceId.emplace(1);
+    } else {
+      // For now the default value is reported for non-mouse based events.
+      mPersistentDeviceId.emplace(0);
+    }
+  }
+
+  return mPersistentDeviceId.value();
+}
 
 bool PointerEvent::EnableGetCoalescedEvents(JSContext* aCx, JSObject* aGlobal) {
   return !StaticPrefs::

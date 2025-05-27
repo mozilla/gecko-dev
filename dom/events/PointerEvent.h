@@ -51,6 +51,7 @@ class PointerEvent : public MouseEvent {
   double AltitudeAngle();
   double AzimuthAngle();
   bool IsPrimary();
+  int32_t PersistentDeviceId();
   void GetPointerType(nsAString& aPointerType);
   static bool EnableGetCoalescedEvents(JSContext* aCx, JSObject* aGlobal);
   void GetCoalescedEvents(nsTArray<RefPtr<PointerEvent>>& aPointerEvents);
@@ -80,6 +81,8 @@ class PointerEvent : public MouseEvent {
   Maybe<int32_t> mTiltY;
   Maybe<double> mAltitudeAngle;
   Maybe<double> mAzimuthAngle;
+
+  Maybe<int32_t> mPersistentDeviceId;
 
   // https://w3c.github.io/pointerevents/#dfn-coalesced-events
   // https://w3c.github.io/pointerevents/#dfn-predicted-events
