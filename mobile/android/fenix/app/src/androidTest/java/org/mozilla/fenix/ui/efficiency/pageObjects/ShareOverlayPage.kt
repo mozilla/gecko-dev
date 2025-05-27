@@ -5,10 +5,10 @@ import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.ui.efficiency.helpers.BasePage
 import org.mozilla.fenix.ui.efficiency.helpers.Selector
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationRegistry
-import org.mozilla.fenix.ui.efficiency.selectors.EnhancedTrackingProtectionSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.ShareOverlaySelectors
 
-class EnhancedTrackingProtectionPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) : BasePage(composeRule) {
-    override val pageName = "EnhancedTrackingProtectionPage"
+class ShareOverlayPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) : BasePage(composeRule) {
+    override val pageName = "ShareOverlayPage"
 
     init {
         NavigationRegistry.register(
@@ -21,6 +21,6 @@ class EnhancedTrackingProtectionPage(composeRule: AndroidComposeTestRule<HomeAct
     }
 
     override fun mozGetSelectorsByGroup(group: String): List<Selector> {
-        return EnhancedTrackingProtectionSelectors.all.filter { it.groups.contains(group) }
+        return ShareOverlaySelectors.all.filter { it.groups.contains(group) }
     }
 }

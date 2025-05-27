@@ -6,7 +6,7 @@ import org.mozilla.fenix.ui.efficiency.helpers.BaseTest
 class SettingsTurnOnSyncTest : BaseTest() {
 
     @Test
-    fun verifyEmptyRecentlyClosedTabsSectionTest() {
+    fun verifyTurnOnSyncSectionTest() {
         on.settingsTurnOnSync.navigateToPage()
     }
 }

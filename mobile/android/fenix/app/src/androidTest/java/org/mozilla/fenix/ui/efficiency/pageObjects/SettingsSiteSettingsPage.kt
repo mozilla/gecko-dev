@@ -6,12 +6,13 @@ import org.mozilla.fenix.ui.efficiency.helpers.BasePage
 import org.mozilla.fenix.ui.efficiency.helpers.Selector
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationRegistry
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationStep
-import org.mozilla.fenix.ui.efficiency.selectors.BookmarksThreeDotMenuSelectors
 import org.mozilla.fenix.ui.efficiency.selectors.HomeSelectors
 import org.mozilla.fenix.ui.efficiency.selectors.MainMenuSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.SettingsSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.SettingsSiteSettingsSelectors
 
-class BookmarksThreeDotMenuPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) : BasePage(composeRule) {
-    override val pageName = "BookmarksThreeDotMenuPage"
+class SettingsSiteSettingsPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) : BasePage(composeRule) {
+    override val pageName = "SettingsSiteSettingsPage"
 
     init {
         NavigationRegistry.register(
@@ -19,13 +20,14 @@ class BookmarksThreeDotMenuPage(composeRule: AndroidComposeTestRule<HomeActivity
             to = pageName,
             steps = listOf(
                 NavigationStep.Click(HomeSelectors.MAIN_MENU_BUTTON),
-                NavigationStep.Click(MainMenuSelectors.BOOKMARKS_BUTTON),
-                // Will need to be able to click the bookmarked item's 3dot button
+                NavigationStep.Click(MainMenuSelectors.SETTINGS_BUTTON),
+                NavigationStep.Swipe(SettingsSelectors.SITE_SETTINGS_BUTTON),
+                NavigationStep.Click(SettingsSelectors.SITE_SETTINGS_BUTTON),
             ),
         )
     }
 
     override fun mozGetSelectorsByGroup(group: String): List<Selector> {
-        return BookmarksThreeDotMenuSelectors.all.filter { it.groups.contains(group) }
+        return SettingsSiteSettingsSelectors.all.filter { it.groups.contains(group) }
     }
 }

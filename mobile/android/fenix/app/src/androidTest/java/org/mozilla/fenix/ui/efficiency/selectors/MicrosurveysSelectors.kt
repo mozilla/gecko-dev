@@ -5,16 +5,17 @@ import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.ui.efficiency.helpers.Selector
 import org.mozilla.fenix.ui.efficiency.helpers.SelectorStrategy
 
-object BookmarksThreeDotMenuSelectors {
+object MicrosurveysSelectors {
 
-    val OPEN_IN_NEW_TAB_BUTTON = Selector(
+    val CONTINUE_SURVEY_BUTTON = Selector(
         strategy = SelectorStrategy.COMPOSE_BY_TEXT,
-        value = getStringResource(R.string.bookmark_menu_open_in_new_tab_button),
-        description = "Open in new tab bookmarks three dot menu button",
-        groups = listOf("requiredForPage"),
+        value = getStringResource(R.string.micro_survey_continue_button_label),
+        description = "Survey Continue button",
+        // Will see what groups we'll have once e start converting UI tests
+        groups = listOf("browserSurvey"),
     )
 
     val all = listOf(
-        OPEN_IN_NEW_TAB_BUTTON,
+        CONTINUE_SURVEY_BUTTON,
     )
 }

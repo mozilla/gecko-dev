@@ -3,16 +3,16 @@ package org.mozilla.fenix.ui.efficiency.selectors
 import org.mozilla.fenix.ui.efficiency.helpers.Selector
 import org.mozilla.fenix.ui.efficiency.helpers.SelectorStrategy
 
-object EnhancedTrackingProtectionSelectors {
+object SitePermissionsSelectors {
 
-    val ETP_QUICK_SETTINGS_SHEET = Selector(
+    val PAGE_PERMISSION_DIALOG_ALLOW_BUTTON = Selector(
         strategy = SelectorStrategy.UIAUTOMATOR_WITH_RES_ID,
-        value = "trackingProtectionLayout",
-        description = "Enhanced tracking protection section from quick settings sheet",
+        value = "allow_button",
+        description = "Permission dialog allow button",
         groups = listOf("requiredForPage"),
     )
 
     val all = listOf(
-        ETP_QUICK_SETTINGS_SHEET,
+        PAGE_PERMISSION_DIALOG_ALLOW_BUTTON,
     )
 }

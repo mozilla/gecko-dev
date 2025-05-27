@@ -8,10 +8,12 @@ import org.mozilla.fenix.ui.efficiency.navigation.NavigationRegistry
 import org.mozilla.fenix.ui.efficiency.navigation.NavigationStep
 import org.mozilla.fenix.ui.efficiency.selectors.HomeSelectors
 import org.mozilla.fenix.ui.efficiency.selectors.MainMenuSelectors
-import org.mozilla.fenix.ui.efficiency.selectors.SettingsAddonsManagerSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.SettingsPasswordsSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.SettingsSavePasswordsSelectors
+import org.mozilla.fenix.ui.efficiency.selectors.SettingsSelectors
 
-class SettingsAddonsManagerPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) : BasePage(composeRule) {
-    override val pageName = "SettingsAddonsManagerPage"
+class SettingsSavePasswordsPage(composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) : BasePage(composeRule) {
+    override val pageName = "SettingsSavePasswordsPage"
 
     init {
         NavigationRegistry.register(
@@ -19,22 +21,14 @@ class SettingsAddonsManagerPage(composeRule: AndroidComposeTestRule<HomeActivity
             to = pageName,
             steps = listOf(
                 NavigationStep.Click(HomeSelectors.MAIN_MENU_BUTTON),
-                NavigationStep.Click(MainMenuSelectors.EXTENSIONS_BUTTON),
-            ),
-        )
-
-        NavigationRegistry.register(
-            from = "HomePage",
-            to = pageName,
-            steps = listOf(
-                NavigationStep.Click(HomeSelectors.MAIN_MENU_BUTTON),
-                NavigationStep.Click(MainMenuSelectors.EXTENSIONS_BUTTON),
-                // Click the add-on to be able to open the details
+                NavigationStep.Click(MainMenuSelectors.SETTINGS_BUTTON),
+                NavigationStep.Click(SettingsSelectors.PASSWORDS_BUTTON),
+                NavigationStep.Click(SettingsPasswordsSelectors.SAVE_PASSWORDS_OPTION),
             ),
         )
     }
 
     override fun mozGetSelectorsByGroup(group: String): List<Selector> {
-        return SettingsAddonsManagerSelectors.all.filter { it.groups.contains(group) }
+        return SettingsSavePasswordsSelectors.all.filter { it.groups.contains(group) }
     }
 }
