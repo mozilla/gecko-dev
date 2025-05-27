@@ -1,0 +1,11 @@
+{
+    "configure-args": "--enable-js-fuzzilli --enable-fuzzing --enable-gczeal --disable-shared-js --target=aarch64 --disable-stdcxx-compat",
+    "optimize": true,
+    "debug": true,
+    "nspr": false,
+    "compiler": "clang",
+    "skip-tests": {
+        "all": ["jstests", "jittest", "checks", "jsapitests"]
+    },
+    "use_minidump": false
+}
