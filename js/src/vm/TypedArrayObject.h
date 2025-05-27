@@ -58,13 +58,16 @@ class TypedArrayObject : public ArrayBufferViewObject {
     return a->bufferEither() == b->bufferEither();
   }
 
-  static const JSClass anyClasses[2][Scalar::MaxTypedArrayViewType];
+  static const JSClass anyClasses[3][Scalar::MaxTypedArrayViewType];
   static constexpr const JSClass (
       &fixedLengthClasses)[Scalar::MaxTypedArrayViewType] =
       TypedArrayObject::anyClasses[0];
   static constexpr const JSClass (
-      &resizableClasses)[Scalar::MaxTypedArrayViewType] =
+      &immutableClasses)[Scalar::MaxTypedArrayViewType] =
       TypedArrayObject::anyClasses[1];
+  static constexpr const JSClass (
+      &resizableClasses)[Scalar::MaxTypedArrayViewType] =
+      TypedArrayObject::anyClasses[2];
   static const JSClass protoClasses[Scalar::MaxTypedArrayViewType];
   static const JSClass sharedTypedArrayPrototypeClass;
 
@@ -190,6 +193,8 @@ class ResizableTypedArrayObject : public TypedArrayObject {
   static const uint8_t RESERVED_SLOTS = RESIZABLE_RESERVED_SLOTS;
 };
 
+class ImmutableTypedArrayObject : public TypedArrayObject {};
+
 extern TypedArrayObject* NewTypedArrayWithTemplateAndLength(
     JSContext* cx, HandleObject templateObj, int32_t len);
 
@@ -213,9 +218,16 @@ inline bool IsResizableTypedArrayClass(const JSClass* clasp) {
          clasp < std::end(TypedArrayObject::resizableClasses);
 }
 
+inline bool IsImmutableTypedArrayClass(const JSClass* clasp) {
+  return std::begin(TypedArrayObject::immutableClasses) <= clasp &&
+         clasp < std::end(TypedArrayObject::immutableClasses);
+}
+
 inline bool IsTypedArrayClass(const JSClass* clasp) {
   MOZ_ASSERT(std::end(TypedArrayObject::fixedLengthClasses) ==
-                 std::begin(TypedArrayObject::resizableClasses),
+                     std::begin(TypedArrayObject::immutableClasses) &&
+                 std::end(TypedArrayObject::immutableClasses) ==
+                     std::begin(TypedArrayObject::resizableClasses),
              "TypedArray classes are in contiguous memory");
   return std::begin(TypedArrayObject::fixedLengthClasses) <= clasp &&
          clasp < std::end(TypedArrayObject::resizableClasses);
@@ -226,6 +238,10 @@ inline Scalar::Type GetTypedArrayClassType(const JSClass* clasp) {
   if (clasp < std::end(TypedArrayObject::fixedLengthClasses)) {
     return static_cast<Scalar::Type>(clasp -
                                      &TypedArrayObject::fixedLengthClasses[0]);
+  }
+  if (clasp < std::end(TypedArrayObject::immutableClasses)) {
+    return static_cast<Scalar::Type>(clasp -
+                                     &TypedArrayObject::immutableClasses[0]);
   }
   return static_cast<Scalar::Type>(clasp -
                                    &TypedArrayObject::resizableClasses[0]);
@@ -359,6 +375,11 @@ inline bool JSObject::is<js::FixedLengthTypedArrayObject>() const {
 template <>
 inline bool JSObject::is<js::ResizableTypedArrayObject>() const {
   return js::IsResizableTypedArrayClass(getClass());
+}
+
+template <>
+inline bool JSObject::is<js::ImmutableTypedArrayObject>() const {
+  return js::IsImmutableTypedArrayClass(getClass());
 }
 
 #endif /* vm_TypedArrayObject_h */

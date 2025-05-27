@@ -498,6 +498,7 @@ class JS_PUBLIC_API TypedArray_base : public ArrayBufferView {
 
   static const JSClass* const fixedLengthClasses;
   static const JSClass* const resizableClasses;
+  static const JSClass* const immutableClasses;
 
  public:
   static TypedArray_base fromObject(JSObject* unwrapped);
@@ -531,6 +532,10 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
     return &TypedArray_base::resizableClasses[static_cast<int>(
         TypedArrayElementType)];
   }
+  static const JSClass* immutableClasp() {
+    return &TypedArray_base::immutableClasses[static_cast<int>(
+        TypedArrayElementType)];
+  }
 
  protected:
   explicit TypedArray(JSObject* unwrapped) : TypedArray_base(unwrapped) {}
@@ -550,7 +555,8 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
   static TypedArray fromObject(JSObject* unwrapped) {
     if (unwrapped) {
       const JSClass* clasp = GetClass(unwrapped);
-      if (clasp == fixedLengthClasp() || clasp == resizableClasp()) {
+      if (clasp == fixedLengthClasp() || clasp == resizableClasp() ||
+          clasp == immutableClasp()) {
         return TypedArray(unwrapped);
       }
     }
