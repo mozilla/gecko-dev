@@ -15,6 +15,7 @@ import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.feature.recentlyclosed.RecentlyClosedTabsStorage
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.RecentlyClosedTabs
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -104,16 +105,34 @@ class DefaultRecentlyClosedController(
         )
     }
 
+    /**
+     * Handles the restoration of a recently closed tab.
+     *
+     * If the current browsing mode is Normal, the tab is restored using [TabsUseCases.restore]
+     * and deleted from the storage. The browser is then opened to this restored tab.
+     *
+     * If the current browsing mode is Private, then a new tab is opened in the current
+     * browsing mode using [handleOpen] and it is not deleted from the storage.
+     * The new tab is not restored from the disk.
+     *
+     * @param item The [TabState] of the tab to restore.
+     */
     override fun handleRestore(item: TabState) {
         lifecycleScope.launch {
             RecentlyClosedTabs.openTab.record(NoExtras())
-            tabsUseCases.restore(item, recentlyClosedTabsStorage.engineStateStorage())
+            val currentBrowsingMode = activity.browsingModeManager.mode
 
-            browserStore.dispatch(
-                RecentlyClosedAction.RemoveClosedTabAction(item),
-            )
-
-            handleOpen(item, activity.browsingModeManager.mode)
+            if (currentBrowsingMode == BrowsingMode.Normal) {
+                tabsUseCases.restore(item, recentlyClosedTabsStorage.engineStateStorage())
+                browserStore.dispatch(
+                    RecentlyClosedAction.RemoveClosedTabAction(item),
+                )
+                activity.openToBrowser(
+                    from = BrowserDirection.FromRecentlyClosed,
+                )
+            } else {
+                handleOpen(item, currentBrowsingMode)
+            }
         }
     }
 
