@@ -14,7 +14,8 @@ ChromeUtils.defineESModuleGetters(this, {
 createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1");
 AddonTestUtils.init(this);
 
-const MODELHUBPROVIDER_PREF = "browser.ml.modelHubProvider";
+const LOCAL_MODEL_MANAGEMENT_ENABLED_PREF =
+  "extensions.htmlaboutaddons.local_model_management";
 
 function ensureBrowserDelayedStartupFinished() {
   // ModelHubProvider does not register itself until the application startup
@@ -28,7 +29,7 @@ add_setup(async () => {
 
 add_task(
   {
-    pref_set: [[MODELHUBPROVIDER_PREF, false]],
+    pref_set: [[LOCAL_MODEL_MANAGEMENT_ENABLED_PREF, false]],
   },
   async function test_modelhub_provider_disabled() {
     ensureBrowserDelayedStartupFinished();
@@ -41,7 +42,7 @@ add_task(
 
 add_task(
   {
-    pref_set: [[MODELHUBPROVIDER_PREF, true]],
+    pref_set: [[LOCAL_MODEL_MANAGEMENT_ENABLED_PREF, true]],
   },
   async function test_modelhub_provider_enabled() {
     ensureBrowserDelayedStartupFinished();
@@ -54,7 +55,7 @@ add_task(
 
 add_task(
   {
-    pref_set: [[MODELHUBPROVIDER_PREF, true]],
+    pref_set: [[LOCAL_MODEL_MANAGEMENT_ENABLED_PREF, true]],
   },
   async function test_modelhub_provider_addon_wrappers() {
     let sandbox = sinon.createSandbox();
@@ -354,7 +355,7 @@ add_task(
 
 add_task(
   {
-    pref_set: [[MODELHUBPROVIDER_PREF, true]],
+    pref_set: [[LOCAL_MODEL_MANAGEMENT_ENABLED_PREF, true]],
   },
   async function test_modelhub_resets_cache_on_refresh() {
     let sandbox = sinon.createSandbox();

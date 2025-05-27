@@ -17,8 +17,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "MODELHUB_PROVIDER_ENABLED",
-  "browser.ml.modelHubProvider",
+  "LOCAL_MODEL_MANAGEMENT_ENABLED",
+  "extensions.htmlaboutaddons.local_model_management",
   false,
   (_pref, _old, val) => ModelHubProvider[val ? "init" : "shutdown"]()
 );
@@ -116,7 +116,7 @@ export const ModelHubProvider = {
   },
 
   async getAddonsByTypes(types) {
-    if (!lazy.MODELHUB_PROVIDER_ENABLED) {
+    if (!lazy.LOCAL_MODEL_MANAGEMENT_ENABLED) {
       return [];
     }
 
@@ -153,7 +153,7 @@ export const ModelHubProvider = {
   },
 
   init() {
-    if (!lazy.MODELHUB_PROVIDER_ENABLED || this.initialized) {
+    if (!lazy.LOCAL_MODEL_MANAGEMENT_ENABLED || this.initialized) {
       return;
     }
 
@@ -184,7 +184,7 @@ export const ModelHubProvider = {
   async refreshAddonCache() {
     // Return earlier if the model hub provider was disabled.
     // by the time it was being called.
-    if (!lazy.MODELHUB_PROVIDER_ENABLED) {
+    if (!lazy.LOCAL_MODEL_MANAGEMENT_ENABLED) {
       return;
     }
 
