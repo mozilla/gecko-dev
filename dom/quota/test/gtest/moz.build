@@ -29,6 +29,7 @@ UNIFIED_SOURCES = [
     "TestFlatten.cpp",
     "TestForwardDecls.cpp",
     "TestMozPromiseUtils.cpp",
+    "TestOpenClientDirectoryInfo.cpp",
     "TestOriginParser.cpp",
     "TestOriginScope.cpp",
     "TestPersistenceScope.cpp",
