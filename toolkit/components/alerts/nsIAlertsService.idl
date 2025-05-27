@@ -13,6 +13,10 @@ interface nsIURI;
 
 %{C++
 #define ALERT_NOTIFICATION_CONTRACTID "@mozilla.org/alert-notification;1"
+
+#include "nsString.h"
+static constexpr nsLiteralString kAlertActionDisable = u"snooze"_ns;
+static constexpr nsLiteralString kAlertActionSettings = u"settings"_ns;
 %}
 
 [scriptable, uuid(a71a637d-de1d-47c6-a8d2-c60b2596f471)]

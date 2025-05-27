@@ -545,8 +545,8 @@ ComPtr<IXmlDocument> ToastNotificationHandler::CreateToastXmlDocument() {
 
     AddActionNode(toastXml, actionsNode, disableButtonTitle,
                   // TODO: launch into `about:preferences`?
-                  launchArgWithoutAction, ActionArgsJSONString(u"snooze"_ns),
-                  u"contextmenu"_ns);
+                  launchArgWithoutAction,
+                  ActionArgsJSONString(kAlertActionDisable), u"contextmenu"_ns);
   }
 
   bool wantSettings = true;
@@ -565,7 +565,7 @@ ComPtr<IXmlDocument> ToastNotificationHandler::CreateToastXmlDocument() {
     success = AddActionNode(
         toastXml, actionsNode, settingsButtonTitle, launchArgWithoutAction,
         // TODO: launch into `about:preferences`?
-        ActionArgsJSONString(u"settings"_ns), u"contextmenu"_ns);
+        ActionArgsJSONString(kAlertActionSettings), u"contextmenu"_ns);
     NS_ENSURE_TRUE(success, nullptr);
   }
 
@@ -865,9 +865,9 @@ ToastNotificationHandler::OnActivate(
       // dismiss action. For this case `arguments` only includes a keyword so we
       // don't need to compare with a parsed result.
       SendFinished();
-    } else if (actionString.EqualsLiteral("settings")) {
+    } else if (actionString == kAlertActionSettings) {
       mAlertListener->Observe(nullptr, "alertsettingscallback", mCookie.get());
-    } else if (actionString.EqualsLiteral("snooze")) {
+    } else if (actionString == kAlertActionDisable) {
       mAlertListener->Observe(nullptr, "alertdisablecallback", mCookie.get());
     } else if (mClickable) {
       // When clicking toast, focus moves to another process, but we want to set
