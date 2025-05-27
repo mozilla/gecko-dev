@@ -789,12 +789,15 @@ static bool PrintZealHelpAndFail() {
   return false;
 }
 
-bool GCRuntime::parseAndSetZeal(const char* str) {
-  // Set the zeal mode from a string consisting of one or more mode specifiers
-  // separated by ';', optionally followed by a ',' and the trigger frequency.
-  // The mode specifiers can by a mode name or its number.
+bool GCRuntime::parseZeal(const char* str, size_t len, ZealSettings* zeal,
+                          bool* invalid) {
+  CharRange text(str, len);
 
-  auto text = CharRange(str, strlen(str));
+  // The zeal mode setting is a string consisting of one or more mode
+  // specifiers separated by ';', optionally followed by a ',' and the trigger
+  // frequency. The mode specifiers can by a mode name or its number.
+
+  *invalid = false;
 
   CharRangeVector parts;
   if (!SplitStringBy(text, ',', &parts)) {
@@ -802,12 +805,14 @@ bool GCRuntime::parseAndSetZeal(const char* str) {
   }
 
   if (parts.length() == 0 || parts.length() > 2) {
-    return PrintZealHelpAndFail();
+    *invalid = true;
+    return true;
   }
 
   uint32_t frequency = JS::ShellDefaultGCZealFrequency;
   if (parts.length() == 2 && !ParseZealModeNumericParam(parts[1], &frequency)) {
-    return PrintZealHelpAndFail();
+    *invalid = true;
+    return true;
   }
 
   CharRangeVector modes;
@@ -820,9 +825,30 @@ bool GCRuntime::parseAndSetZeal(const char* str) {
     if (!ParseZealModeName(descr, &mode) &&
         !(ParseZealModeNumericParam(descr, &mode) &&
           mode <= unsigned(ZealMode::Limit))) {
-      return PrintZealHelpAndFail();
+      *invalid = true;
+      return true;
     }
 
+    if (!zeal->append(ZealSetting{uint8_t(mode), frequency})) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool GCRuntime::parseAndSetZeal(const char* str) {
+  ZealSettings zeal;
+  bool invalid = false;
+  if (!parseZeal(str, strlen(str), &zeal, &invalid)) {
+    return false;
+  }
+
+  if (invalid) {
+    return PrintZealHelpAndFail();
+  }
+
+  for (auto [mode, frequency] : zeal) {
     setZeal(mode, frequency);
   }
 
