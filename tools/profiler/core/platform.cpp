@@ -60,6 +60,7 @@
 #include "js/ProfilingFrameIterator.h"
 #include "memory_counter.h"
 #include "memory_hooks.h"
+#include "memory_markers.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoProfilerLabel.h"
 #include "mozilla/BaseAndGeckoProfilerDetail.h"
@@ -1224,6 +1225,11 @@ class ActivePS {
       }
     }
 #endif
+
+#if defined(MOZ_PROFILER_MEMORY) && defined(MOZJEMALLOC_PROFILING_CALLBACKS)
+    unregister_profiler_memory_callbacks();
+#endif
+
     if (mProfileBufferChunkManager) {
       // We still control the chunk manager, remove it from the core buffer.
       profiler_get_core_buffer().ResetChunkManager();
@@ -6710,6 +6716,9 @@ static void locked_profiler_start(PSLockRef aLock, PowerOfTwo32 aCapacity,
     auto counter = mozilla::profiler::create_memory_counter();
     locked_profiler_add_sampled_counter(aLock, counter.get());
     ActivePS::SetMemoryCounter(std::move(counter), aLock);
+#  ifdef MOZJEMALLOC_PROFILING_CALLBACKS
+    register_profiler_memory_callbacks();
+#  endif
   }
 #endif
 
