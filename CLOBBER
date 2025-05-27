@@ -22,4 +22,4 @@
 # changes to stick? As of bug 928195, this shouldn't be necessary! Please
 # don't change CLOBBER for WebIDL changes any more.
 
-Merge day clobber 2025-05-26
+Modified build files in third_party/libwebrtc - Bug 1963852 - (fix-63f9cc0a12) upstream removed build targets we also removed
