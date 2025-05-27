@@ -460,7 +460,7 @@ class TypedArrayObjectTemplate {
         nullptr);
   }
 
-  // ES2023 draft rev cf86f1cdc28e809170733d74ea64fd0f3dd79f78
+  // ES2026 draft rev 6d71ca0e2dbf1c0cfb87b5eb7a83cf7c76591561
   // 23.2.5.1 TypedArray ( ...args )
   static bool class_constructor(JSContext* cx, unsigned argc, Value* vp) {
     AutoJSConstructorProfilerEntry pseudoFrame(cx, "[TypedArray]");
@@ -531,20 +531,21 @@ class TypedArrayObjectTemplate {
     return fromBufferWrapped(cx, dataObj, byteOffset, length, proto);
   }
 
-  // ES2023 draft rev cf86f1cdc28e809170733d74ea64fd0f3dd79f78
+  // ES2026 draft rev 6d71ca0e2dbf1c0cfb87b5eb7a83cf7c76591561
   // 23.2.5.1.3 InitializeTypedArrayFromArrayBuffer ( O, buffer, byteOffset,
-  // length ) Steps 2 and 4.
+  // length ) Steps 2-3 and 5.
   static bool byteOffsetAndLength(JSContext* cx, HandleValue byteOffsetValue,
                                   HandleValue lengthValue, uint64_t* byteOffset,
                                   uint64_t* length) {
-    // Step 2.
+    // Steps 2-3.
     *byteOffset = 0;
     if (!byteOffsetValue.isUndefined()) {
+      // Step 2.
       if (!ToIndex(cx, byteOffsetValue, byteOffset)) {
         return false;
       }
 
-      // Step 7.
+      // Step 3.
       if (*byteOffset % BYTES_PER_ELEMENT != 0) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                                   JSMSG_TYPED_ARRAY_CONSTRUCT_OFFSET_BOUNDS,
@@ -554,7 +555,7 @@ class TypedArrayObjectTemplate {
       }
     }
 
-    // Step 4.
+    // Step 5.
     *length = UINT64_MAX;
     if (!lengthValue.isUndefined()) {
       if (!ToIndex(cx, lengthValue, length)) {
@@ -565,9 +566,9 @@ class TypedArrayObjectTemplate {
     return true;
   }
 
-  // ES2023 draft rev cf86f1cdc28e809170733d74ea64fd0f3dd79f78
+  // ES2026 draft rev 6d71ca0e2dbf1c0cfb87b5eb7a83cf7c76591561
   // 23.2.5.1.3 InitializeTypedArrayFromArrayBuffer ( O, buffer, byteOffset,
-  // length ) Steps 5-8.
+  // length ) Steps 6-9.
   static bool computeAndCheckLength(
       JSContext* cx, Handle<ArrayBufferObjectMaybeShared*> bufferMaybeUnwrapped,
       uint64_t byteOffset, uint64_t lengthIndex, size_t* length,
@@ -577,19 +578,22 @@ class TypedArrayObjectTemplate {
     MOZ_ASSERT_IF(lengthIndex != UINT64_MAX,
                   lengthIndex < uint64_t(DOUBLE_INTEGRAL_PRECISION_LIMIT));
 
-    // Step 5.
+    // Step 6.
     if (bufferMaybeUnwrapped->isDetached()) {
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                                 JSMSG_TYPED_ARRAY_DETACHED);
       return false;
     }
 
-    // Step 6.
+    // Step 7.
     size_t bufferByteLength = bufferMaybeUnwrapped->byteLength();
     MOZ_ASSERT(bufferByteLength <= ByteLengthLimit);
 
+    // Steps 8-9.
     size_t len;
     if (lengthIndex == UINT64_MAX) {
+      // Steps 8.a and 9.a.iii.
+      //
       // Check if |byteOffset| valid.
       if (byteOffset > bufferByteLength) {
         JS_ReportErrorNumberASCII(
@@ -599,6 +603,8 @@ class TypedArrayObjectTemplate {
         return false;
       }
 
+      // Steps 8.b-c.
+      //
       // Resizable buffers without an explicit length are auto-length.
       if (bufferMaybeUnwrapped->isResizable()) {
         *length = 0;
@@ -606,7 +612,7 @@ class TypedArrayObjectTemplate {
         return true;
       }
 
-      // Steps 7.a and 7.c.
+      // Step 9.a.i.
       if (bufferByteLength % BYTES_PER_ELEMENT != 0) {
         // The given byte array doesn't map exactly to
         // |BYTES_PER_ELEMENT * N|
@@ -617,14 +623,14 @@ class TypedArrayObjectTemplate {
         return false;
       }
 
-      // Step 7.b.
+      // Step 9.a.ii.
       size_t newByteLength = bufferByteLength - size_t(byteOffset);
       len = newByteLength / BYTES_PER_ELEMENT;
     } else {
-      // Step 8.a.
+      // Step 9.b.i.
       uint64_t newByteLength = lengthIndex * BYTES_PER_ELEMENT;
 
-      // Step 8.b.
+      // Step 9.b.ii.
       if (byteOffset + newByteLength > bufferByteLength) {
         // |byteOffset + newByteLength| is too big for the arraybuffer
         JS_ReportErrorNumberASCII(
@@ -637,19 +643,20 @@ class TypedArrayObjectTemplate {
       len = size_t(lengthIndex);
     }
 
+    // Steps 9.c-d.
     MOZ_ASSERT(len <= ByteLengthLimit / BYTES_PER_ELEMENT);
     *length = len;
     *autoLength = AutoLength::No;
     return true;
   }
 
-  // ES2023 draft rev cf86f1cdc28e809170733d74ea64fd0f3dd79f78
+  // ES2026 draft rev 6d71ca0e2dbf1c0cfb87b5eb7a83cf7c76591561
   // 23.2.5.1.3 InitializeTypedArrayFromArrayBuffer ( O, buffer, byteOffset,
-  // length ) Steps 5-13.
+  // length ) Steps 6-12.
   static TypedArrayObject* fromBufferSameCompartment(
       JSContext* cx, Handle<ArrayBufferObjectMaybeShared*> buffer,
       uint64_t byteOffset, uint64_t lengthIndex, HandleObject proto) {
-    // Steps 5-8.
+    // Steps 6-9.
     size_t length = 0;
     auto autoLength = AutoLength::No;
     if (!computeAndCheckLength(cx, buffer, byteOffset, lengthIndex, &length,
@@ -657,8 +664,8 @@ class TypedArrayObjectTemplate {
       return nullptr;
     }
 
+    // Steps 10-12.
     if (!buffer->isResizable()) {
-      // Steps 9-13.
       return FixedLengthTypedArray::makeInstance(cx, buffer, byteOffset, length,
                                                  proto);
     }
