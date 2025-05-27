@@ -1537,6 +1537,7 @@ def build_treescript_payload(config, task, task_def):
         Optional("dontbuild"): bool,
         Optional("tags"): [Any("buildN", "release", None)],
         Optional("force-dry-run"): bool,
+        Optional("push"): bool,
         Optional("android-l10n-import-info"): {
             Required("from-repo-url"): str,
             Required("toml-info"): [
