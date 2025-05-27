@@ -5808,7 +5808,7 @@ static LogicalMargin SubgridAccumulatedMarginBorderPadding(
 static nscoord ContentContribution(
     const GridItemInfo& aGridItem, const GridReflowInput& aGridRI,
     gfxContext* aRC, WritingMode aCBWM, LogicalAxis aAxis,
-    const Maybe<LogicalSize>& aPercentageBasis, IntrinsicISizeType aConstraint,
+    LogicalSize aPercentageBasis, IntrinsicISizeType aConstraint,
     nscoord aMinSizeClamp = NS_MAXSIZE, uint32_t aFlags = 0) {
   nsIFrame* child = aGridItem.mFrame;
 
@@ -5862,7 +5862,7 @@ static nscoord ContentContribution(
 
   PhysicalAxis axis(aCBWM.PhysicalAxis(aAxis));
   nscoord size = nsLayoutUtils::IntrinsicForAxis(
-      axis, aRC, child, aConstraint, aPercentageBasis,
+      axis, aRC, child, aConstraint, Some(aPercentageBasis),
       aFlags | nsLayoutUtils::BAIL_IF_REFLOW_NEEDED, aMinSizeClamp);
   auto childWM = child->GetWritingMode();
   const bool isOrthogonal = childWM.IsOrthogonalTo(aCBWM);
@@ -5965,12 +5965,17 @@ static nscoord ContentContribution(
 }
 
 struct CachedIntrinsicSizes {
+  CachedIntrinsicSizes() = delete;
+  CachedIntrinsicSizes(const GridItemInfo& aGridItem,
+                       const GridReflowInput& aGridRI, const LogicalAxis aAxis)
+      : mPercentageBasis(aGridRI.PercentageBasisFor(aAxis, aGridItem)) {}
+
   Maybe<nscoord> mMinSize;
   Maybe<nscoord> mMinContentContribution;
   Maybe<nscoord> mMaxContentContribution;
 
   // The item's percentage basis for intrinsic sizing purposes.
-  Maybe<LogicalSize> mPercentageBasis;
+  const LogicalSize mPercentageBasis;
 
   // "if the grid item spans only grid tracks that have a fixed max track
   // sizing function, its automatic minimum size in that dimension is
@@ -5989,10 +5994,6 @@ static nscoord MinContentContribution(const GridItemInfo& aGridItem,
   if (aCache->mMinContentContribution.isSome()) {
     return aCache->mMinContentContribution.value();
   }
-  if (aCache->mPercentageBasis.isNothing()) {
-    aCache->mPercentageBasis.emplace(
-        aGridRI.PercentageBasisFor(aAxis, aGridItem));
-  }
   nscoord s = ContentContribution(
       aGridItem, aGridRI, aRC, aCBWM, aAxis, aCache->mPercentageBasis,
       IntrinsicISizeType::MinISize, aCache->mMinSizeClamp);
@@ -6007,10 +6008,6 @@ static nscoord MaxContentContribution(const GridItemInfo& aGridItem,
                                       CachedIntrinsicSizes* aCache) {
   if (aCache->mMaxContentContribution.isSome()) {
     return aCache->mMaxContentContribution.value();
-  }
-  if (aCache->mPercentageBasis.isNothing()) {
-    aCache->mPercentageBasis.emplace(
-        aGridRI.PercentageBasisFor(aAxis, aGridItem));
   }
   nscoord s = ContentContribution(
       aGridItem, aGridRI, aRC, aCBWM, aAxis, aCache->mPercentageBasis,
@@ -6049,11 +6046,6 @@ static nscoord MinContribution(const GridItemInfo& aGridItem,
     return s;
   }
 
-  if (aCache->mPercentageBasis.isNothing()) {
-    aCache->mPercentageBasis.emplace(
-        aGridRI.PercentageBasisFor(aAxis, aGridItem));
-  }
-
   // https://drafts.csswg.org/css-grid-2/#min-size-auto
   // This calculates the min-content contribution from either a definite
   // min-width (or min-height depending on aAxis), or the "specified /
@@ -6086,7 +6078,7 @@ static nscoord MinContribution(const GridItemInfo& aGridItem,
       (aGridItem.mState[aAxis] & ItemState::eContentBasedAutoMinSize)) {
     sz += nsLayoutUtils::MinSizeContributionForAxis(
         axis, aRC, child, IntrinsicISizeType::MinISize,
-        *aCache->mPercentageBasis);
+        aCache->mPercentageBasis);
 
     if ((axisInItemWM == LogicalAxis::Inline &&
          nsIFrame::ToExtremumLength(*styleMinSize)) ||
@@ -6169,7 +6161,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSizeForNonSpanningItems(
     const LineRange& aRange, const GridItemInfo& aGridItem) {
   gfxContext* rc = &aGridRI.mRenderingContext;
   WritingMode wm = aGridRI.mWM;
-  CachedIntrinsicSizes cache;
+  CachedIntrinsicSizes cache{aGridItem, aGridRI, mAxis};
   TrackSize& sz = mSizes[aRange.mStart];
 
   // min sizing
@@ -6961,7 +6953,7 @@ void nsGridContainerFrame::Tracks::ResolveIntrinsicSize(
       if (state &
           (TrackSize::eIntrinsicMinSizing | TrackSize::eIntrinsicMaxSizing)) {
         maxSpan = std::max(maxSpan, span);
-        CachedIntrinsicSizes cache;
+        CachedIntrinsicSizes cache{gridItem, aGridRI, mAxis};
 
         // Calculate data for "Automatic Minimum Size" clamping, if needed.
         if (TrackSize::IsDefiniteMaxSizing(state) &&
@@ -7268,9 +7260,10 @@ float nsGridContainerFrame::Tracks::FindUsedFlexFraction(
   for (const GridItemInfo& item : aGridItems) {
     if (item.mState[mAxis] & ItemState::eIsFlexing) {
       // XXX optimize: bug 1194446
-      auto pb = Some(aGridRI.PercentageBasisFor(mAxis, item));
-      nscoord spaceToFill = ContentContribution(
-          item, aGridRI, rc, wm, mAxis, pb, IntrinsicISizeType::PrefISize);
+      const auto percentageBasis = aGridRI.PercentageBasisFor(mAxis, item);
+      nscoord spaceToFill =
+          ContentContribution(item, aGridRI, rc, wm, mAxis, percentageBasis,
+                              IntrinsicISizeType::PrefISize);
       const LineRange& range =
           mAxis == LogicalAxis::Inline ? item.mArea.mCols : item.mArea.mRows;
       MOZ_ASSERT(range.Extent() >= 1);
@@ -8977,7 +8970,7 @@ nscoord nsGridContainerFrame::MasonryLayout(GridReflowInput& aGridRI,
                                       : IntrinsicISizeType::MinISize;
         auto sz =
             ::ContentContribution(*item, aGridRI, &aGridRI.mRenderingContext,
-                                  wm, masonryAxis, Some(percentBasis), type);
+                                  wm, masonryAxis, percentBasis, type);
         pos = sz + masonrySizes[masonryRange.mStart].mPosition;
       }
       pos += gap;
