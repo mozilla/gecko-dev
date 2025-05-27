@@ -3600,11 +3600,7 @@ nsCSSFrameConstructor::FindImgControlData(const Element& aElement,
 const nsCSSFrameConstructor::FrameConstructionData*
 nsCSSFrameConstructor::FindSearchControlData(const Element& aElement,
                                              ComputedStyle& aStyle) {
-  // Bug 1936648: Until we're absolutely sure we've solved the
-  // accessibility issues around the clear search button, we're only
-  // enabling the clear button in chrome contexts. See also Bug 1655503
-  if (StaticPrefs::layout_forms_input_type_search_enabled() ||
-      aElement.OwnerDoc()->ChromeRulesEnabled()) {
+  if (StaticPrefs::layout_forms_input_type_search_enabled()) {
     static constexpr FrameConstructionData sSearchControlData(
         NS_NewSearchControlFrame);
     return &sSearchControlData;
