@@ -148,7 +148,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         peekHeight = PEEK_HEIGHT.dpToPx(resources.displayMetrics)
                         halfExpandedRatio = EXPANDED_MIN_RATIO
                         maxHeight = calculateMenuSheetHeight()
-                        state = BottomSheetBehavior.STATE_COLLAPSED
+                        skipCollapsed = true
+                        state = BottomSheetBehavior.STATE_EXPANDED
                         hideFriction = HIDING_FRICTION
                     }
                 }

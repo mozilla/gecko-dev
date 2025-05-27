@@ -4,6 +4,13 @@
 
 package org.mozilla.fenix.components.menu.compose
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -54,6 +61,7 @@ import org.mozilla.fenix.components.menu.compose.header.MenuNavHeader
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
+import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
 
 /**
  * Wrapper column containing the main menu items.
@@ -292,6 +300,45 @@ private fun ExtensionsMenuItem(
             }
         }
 
+        MenuItemAnimation(
+            isExpanded = isExtensionsExpanded,
+            extensionSubmenu = extensionSubmenu,
+        )
+    }
+}
+
+@Composable
+private fun MenuItemAnimation(
+    isExpanded: Boolean,
+    extensionSubmenu: @Composable ColumnScope.() -> Unit,
+) {
+    AnimatedVisibility(
+        visible = isExpanded,
+        enter = expandVertically(
+            expandFrom = Alignment.Top,
+            animationSpec = tween(
+                durationMillis = DURATION_MS_MAIN_MENU,
+                easing = LinearEasing,
+            ),
+        ) + fadeIn(
+            animationSpec = tween(
+                durationMillis = DURATION_MS_MAIN_MENU,
+                easing = LinearEasing,
+            ),
+        ),
+        exit = shrinkVertically(
+            shrinkTowards = Alignment.Top,
+            animationSpec = tween(
+                durationMillis = DURATION_MS_MAIN_MENU,
+                easing = LinearEasing,
+            ),
+        ) + fadeOut(
+            animationSpec = tween(
+                durationMillis = DURATION_MS_MAIN_MENU,
+                easing = LinearEasing,
+            ),
+        ),
+    ) {
         Column {
             extensionSubmenu()
         }
