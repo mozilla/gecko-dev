@@ -14,7 +14,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=787070
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=787070">Mozilla Bug 787070</a>
 <p id="display"></p>
 <div id="content" style="display: none">
-<iframe id="t" src="http://example.org/tests/dom/bindings/test/file_dom_xrays.html"></iframe>
+<iframe id="t"></iframe>
 </div>
 <pre id="test">
 <script type="application/javascript">
@@ -68,10 +68,18 @@ function checkDocumentXrayProperty(doc, name, { documentValue, htmlDocumentProto
   checkXrayProperty(doc, name, [ documentValue, htmlDocumentPrototypeValue, documentPrototypeValue, nodePrototypeValue, eventTargetPrototypeValue ]);
 }
 
-function test() {
+function loadFrame() {
+  let frame = document.getElementById("t");
+  let win = frame.contentWindow;
+  let { promise: loaded, resolve } = Promise.withResolvers();
+  frame.addEventListener("load", resolve, { once: true });
+  frame.src = "http://example.org/tests/dom/bindings/test/file_dom_xrays.html";
+  return loaded.then(() => ({ frame, win, doc: frame.contentDocument }));
+}
+
+async function test() {
   // Window
-  var win = document.getElementById("t").contentWindow;
-  var doc = document.getElementById("t").contentDocument;
+  let { frame, win, doc } = await loadFrame();
 
   var winProto = Object.getPrototypeOf(win);
   is(winProto, win.Window.prototype, "The proto chain of the Xray should mirror the prototype chain of the Xrayed object");
@@ -134,7 +142,7 @@ function test() {
   // HTMLDocument
   // Unforgeable properties live on the instance.
   checkXrayProperty(doc, "location", [ win.location ]);
-  is(String(win.location), document.getElementById("t").src,
+  is(String(win.location), frame.src,
      "Should have the right stringification");
 
   // HTMLHtmlElement
@@ -395,6 +403,16 @@ function test() {
   checkReflectedAttributeWithFrozenArray(testObject.wrappedJSObject, expectedValues,
                                          "on Xray and object",
                                          (a, b) => a.wrappedJSObject == b);
+
+  // Load the frame again, so we get a pristine global.
+  ({ frame, win, doc } = await loadFrame());
+
+  is(win.wrappedJSObject.TestChromeOnlyInterface, undefined,
+     "A ChromeOnly interface shouldn't be exposed on a non-system global");
+  obj = win.TestFunctions.createTestChromeOnlyInterface();
+  ok(Cu.isXrayWrapper(obj), "Object should be wrapped in an Xray");
+  is(win.wrappedJSObject.TestChromeOnlyInterface, undefined,
+     "A ChromeOnly interface should still not be exposed on a non-system global");
 
   SimpleTest.finish();
 }

@@ -307,10 +307,23 @@ TestFunctions::WrapperCachedNonISupportsObject() {
   return mWrapperCachedNonISupportsTestInterface;
 }
 
+/* static */
+already_AddRefed<TestChromeOnlyInterface>
+TestFunctions::CreateTestChromeOnlyInterface(GlobalObject& aGlobal) {
+  return MakeRefPtr<TestChromeOnlyInterface>(aGlobal.GetAsSupports()).forget();
+}
+
 bool TestFunctions::WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto,
                                JS::MutableHandle<JSObject*> aWrapper) {
   return TestFunctions_Binding::Wrap(aCx, this, aGivenProto, aWrapper);
 }
+
+JSObject* TestChromeOnlyInterface::WrapObject(
+    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+  return TestChromeOnlyInterface_Binding::Wrap(aCx, this, aGivenProto);
+}
+
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(TestChromeOnlyInterface, mParent)
 
 }  // namespace mozilla::dom
