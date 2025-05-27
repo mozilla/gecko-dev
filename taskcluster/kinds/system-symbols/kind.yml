@@ -212,7 +212,7 @@ tasks:
                   type: directory
                   path: /builds/worker/artifacts/
             docker-image: {in-tree: system-symbols-linux-scraper}
-            max-run-time: 21600
+            max-run-time: 14400
         run:
             using: run-task
             command: >-
@@ -222,6 +222,8 @@ tasks:
         fetches:
             fetch:
                 - symbol-scrapers
+            toolchain:
+                - linux64-7zz
     opensuse:
         description: Extract OpenSUSE system symbols found in crashreports
         attributes:
@@ -246,6 +248,8 @@ tasks:
         fetches:
             fetch:
                 - symbol-scrapers
+            toolchain:
+                - linux64-7zz
     ubuntu:
         description: Extract Ubuntu system symbols found in crashreports
         attributes:
