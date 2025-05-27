@@ -33,6 +33,9 @@ const processComponentDataMiddleware = require("resource://devtools/client/about
 const tabComponentDataMiddleware = require("resource://devtools/client/aboutdebugging/src/middleware/tab-component-data.js");
 const workerComponentDataMiddleware = require("resource://devtools/client/aboutdebugging/src/middleware/worker-component-data.js");
 const {
+  simpleConsoleLogger,
+} = require("resource://devtools/client/aboutdebugging/src/middleware/simple-console-logger.js");
+const {
   getDebugTargetCollapsibilities,
 } = require("resource://devtools/client/aboutdebugging/src/modules/debug-target-collapsibilities.js");
 const {
@@ -52,6 +55,7 @@ function configureStore() {
 
   const middleware = applyMiddleware(
     thunk(),
+    simpleConsoleLogger,
     debugTargetListenerMiddleware,
     errorLoggingMiddleware,
     eventRecordingMiddleware,

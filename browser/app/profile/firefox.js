@@ -3154,6 +3154,9 @@ pref("devtools.aboutdebugging.collapsibilities.temporaryExtension", false);
   pref("devtools.aboutdebugging.showHiddenAddons", true);
 #endif
 
+// Add some extra logging to the console, for debugging
+pref("devtools.aboutdebugging.showReduxActionsInConsole", false);
+
 // Map top-level await expressions in the console
 pref("devtools.debugger.features.map-await-expression", true);
 

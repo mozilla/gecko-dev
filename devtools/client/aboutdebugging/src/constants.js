@@ -113,6 +113,9 @@ const PREFERENCES = {
   PROCESS_DEBUGGING_ENABLED: "devtools.aboutdebugging.process-debugging",
   // Preference that drives the display of hidden & system addons in about:debugging.
   SHOW_HIDDEN_ADDONS: "devtools.aboutdebugging.showHiddenAddons",
+  // This enables a redux middleware to log all redux actions to the console.
+  // This is only useful when working on the panel.
+  SHOW_REDUX_ACTIONS: "devtools.aboutdebugging.showReduxActionsInConsole",
   // Preference to store the last path used for loading a temporary extension.
   TEMPORARY_EXTENSION_PATH: "devtools.aboutdebugging.tmpExtDirPath",
   // Preference that disables installing extensions when set to false.

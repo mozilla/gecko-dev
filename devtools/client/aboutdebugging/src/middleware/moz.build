@@ -8,6 +8,7 @@ DevToolsModules(
     "event-recording.js",
     "extension-component-data.js",
     "process-component-data.js",
+    "simple-console-logger.js",
     "tab-component-data.js",
     "worker-component-data.js",
 )
