@@ -22,6 +22,7 @@ struct PurgeStats {
   const char* caller;
   size_t pages = 0;
   size_t system_calls = 0;
+  size_t chunks = 0;
 
   PurgeStats(arena_id_t aId, const char* aLabel, const char* aCaller)
       : arena_id(aId), arena_label(aLabel), caller(aCaller) {}
@@ -37,7 +38,8 @@ class MallocProfilerCallbacks
 
   using TS = mozilla::TimeStamp;
 
-  virtual void OnPurge(TS aStart, TS aEnd, const PurgeStats& aStats) = 0;
+  virtual void OnPurge(TS aStart, TS aEnd, const PurgeStats& aStats,
+                       ArenaPurgeResult aResult) = 0;
 };
 
 MOZ_JEMALLOC_API void jemalloc_set_profiler_callbacks(
