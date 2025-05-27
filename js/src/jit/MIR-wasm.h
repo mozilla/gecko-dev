@@ -1833,6 +1833,7 @@ class MWasmCallBase {
   wasm::CallSiteDesc desc_;
   wasm::CalleeDesc callee_;
   wasm::FailureMode builtinMethodFailureMode_;
+  wasm::Trap builtinMethodFailureTrap_;
   FixedList<AnyRegister> argRegs_;
   uint32_t stackArgAreaSizeUnaligned_;
   ABIArg instanceArg_;
@@ -1890,6 +1891,10 @@ class MWasmCallBase {
     MOZ_ASSERT(callee_.which() == wasm::CalleeDesc::BuiltinInstanceMethod);
     return builtinMethodFailureMode_;
   }
+  wasm::Trap builtinMethodFailureTrap() const {
+    MOZ_ASSERT(callee_.which() == wasm::CalleeDesc::BuiltinInstanceMethod);
+    return builtinMethodFailureTrap_;
+  }
   uint32_t stackArgAreaSizeUnaligned() const {
     return stackArgAreaSizeUnaligned_;
   }
@@ -1937,7 +1942,7 @@ class MWasmCallCatchable final : public MVariadicControlInstruction<2>,
   static MWasmCallCatchable* NewBuiltinInstanceMethodCall(
       TempAllocator& alloc, const wasm::CallSiteDesc& desc,
       const wasm::SymbolicAddress builtin, wasm::FailureMode failureMode,
-      const ABIArg& instanceArg, const Args& args,
+      wasm::Trap failureTrap, const ABIArg& instanceArg, const Args& args,
       uint32_t stackArgAreaSizeUnaligned, uint32_t tryNoteIndex,
       MBasicBlock* fallthroughBlock, MBasicBlock* prePadBlock);
 
@@ -1972,7 +1977,7 @@ class MWasmCallUncatchable final : public MVariadicInstruction,
   static MWasmCallUncatchable* NewBuiltinInstanceMethodCall(
       TempAllocator& alloc, const wasm::CallSiteDesc& desc,
       const wasm::SymbolicAddress builtin, wasm::FailureMode failureMode,
-      const ABIArg& instanceArg, const Args& args,
+      wasm::Trap failureTrap, const ABIArg& instanceArg, const Args& args,
       uint32_t stackArgAreaSizeUnaligned);
 
   bool possiblyCalls() const override { return true; }

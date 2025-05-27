@@ -3113,14 +3113,14 @@ class FunctionCompiler {
     if (callState->isCatchable()) {
       ins = MWasmCallCatchable::NewBuiltinInstanceMethodCall(
           alloc(), desc, builtin.identity, builtin.failureMode,
-          callState->instanceArg, callState->regArgs,
+          builtin.failureTrap, callState->instanceArg, callState->regArgs,
           StackArgAreaSizeUnaligned(builtin, callState->abiKind),
           callState->tryNoteIndex, callState->fallthroughBlock,
           callState->prePadBlock);
     } else {
       ins = MWasmCallUncatchable::NewBuiltinInstanceMethodCall(
           alloc(), desc, builtin.identity, builtin.failureMode,
-          callState->instanceArg, callState->regArgs,
+          builtin.failureTrap, callState->instanceArg, callState->regArgs,
           StackArgAreaSizeUnaligned(builtin, callState->abiKind));
     }
     if (!ins) {

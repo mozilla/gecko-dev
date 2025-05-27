@@ -2220,7 +2220,8 @@ CodeOffset BaseCompiler::builtinInstanceMethodCall(
 #endif
   CallSiteDesc desc(bytecodeOffset(), CallSiteKind::Symbolic);
   return masm.wasmCallBuiltinInstanceMethod(desc, instanceArg, builtin.identity,
-                                            builtin.failureMode);
+                                            builtin.failureMode,
+                                            builtin.failureTrap);
 }
 
 //////////////////////////////////////////////////////////////////////////////

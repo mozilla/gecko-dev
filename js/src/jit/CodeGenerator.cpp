@@ -9867,7 +9867,8 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
     case wasm::CalleeDesc::BuiltinInstanceMethod:
       retOffset = masm.wasmCallBuiltinInstanceMethod(
           desc, callBase->instanceArg(), callee.builtin(),
-          callBase->builtinMethodFailureMode());
+          callBase->builtinMethodFailureMode(),
+          callBase->builtinMethodFailureTrap());
       // The builtin ABI preserves the instance and pinned registers. However,
       // builtins may grow the memory which requires us to reload the pinned
       // registers.
@@ -20198,7 +20199,7 @@ void CodeGenerator::callWasmStructAllocFun(
 #endif
 
   masm.wasmTrapOnFailedInstanceCall(output, wasm::FailureMode::FailOnNullPtr,
-                                    trapSiteDesc);
+                                    wasm::Trap::ThrowReported, trapSiteDesc);
 }
 
 void CodeGenerator::visitWasmNewStructObject(LWasmNewStructObject* lir) {
@@ -20282,7 +20283,7 @@ void CodeGenerator::callWasmArrayAllocFun(
 #endif
 
   masm.wasmTrapOnFailedInstanceCall(output, wasm::FailureMode::FailOnNullPtr,
-                                    trapSiteDesc);
+                                    wasm::Trap::ThrowReported, trapSiteDesc);
 }
 
 void CodeGenerator::visitWasmNewArrayObject(LWasmNewArrayObject* lir) {

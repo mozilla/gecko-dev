@@ -106,6 +106,14 @@ def specTypeToValType(specType):
     raise ValueError()
 
 
+def failureTrap(op):
+    if not "fail_trap" in op:
+        if op["fail_mode"] == "Infallible":
+            return "Limit"
+        return "ThrowReported"
+    return op["fail_trap"]
+
+
 def main(c_out, yaml_path):
     data = load_yaml(yaml_path)
 
@@ -166,5 +174,9 @@ def main(c_out, yaml_path):
         # Define DECLARE_BUILTIN_MODULE_FUNC_FAILMODE_<op> as:
         # `FailureMode::X`.
         contents += f"#define DECLARE_BUILTIN_MODULE_FUNC_FAILMODE_{op['op']} FailureMode::{op['fail_mode']}\n"
+
+        # Define DECLARE_BUILTIN_MODULE_FUNC_FAILTRAP_<op> as:
+        # `Trap::X`.
+        contents += f"#define DECLARE_BUILTIN_MODULE_FUNC_FAILTRAP_{op['op']} Trap::{failureTrap(op)}\n"
 
     generate_header(c_out, "wasm_WasmBuiltinModuleGenerated_h", contents)

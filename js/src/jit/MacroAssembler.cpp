@@ -6165,10 +6165,12 @@ CodeOffset MacroAssembler::wasmReturnCall(
 
 CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
     const wasm::CallSiteDesc& desc, const ABIArg& instanceArg,
-    wasm::SymbolicAddress builtin, wasm::FailureMode failureMode) {
+    wasm::SymbolicAddress builtin, wasm::FailureMode failureMode,
+    wasm::Trap failureTrap) {
   MOZ_ASSERT(instanceArg != ABIArg());
   MOZ_ASSERT_IF(!wasm::NeedsBuiltinThunk(builtin),
-                failureMode == wasm::FailureMode::Infallible);
+                failureMode == wasm::FailureMode::Infallible ||
+                    failureTrap != wasm::Trap::ThrowReported);
 
   if (instanceArg.kind() == ABIArg::GPR) {
     movePtr(InstanceReg, instanceArg.gpr());
@@ -6180,17 +6182,19 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
   }
 
   CodeOffset ret = call(desc, builtin);
-  wasmTrapOnFailedInstanceCall(ReturnReg, failureMode, desc.toTrapSiteDesc());
+  wasmTrapOnFailedInstanceCall(ReturnReg, failureMode, failureTrap,
+                               desc.toTrapSiteDesc());
 
   return ret;
 }
 
 void MacroAssembler::wasmTrapOnFailedInstanceCall(
     Register resultRegister, wasm::FailureMode failureMode,
-    const wasm::TrapSiteDesc& trapSiteDesc) {
+    wasm::Trap failureTrap, const wasm::TrapSiteDesc& trapSiteDesc) {
   Label noTrap;
   switch (failureMode) {
     case wasm::FailureMode::Infallible:
+      MOZ_ASSERT(failureTrap == wasm::Trap::Limit);
       return;
     case wasm::FailureMode::FailOnNegI32:
       branchTest32(Assembler::NotSigned, resultRegister, resultRegister,
@@ -6210,7 +6214,7 @@ void MacroAssembler::wasmTrapOnFailedInstanceCall(
                 &noTrap);
       break;
   }
-  wasmTrap(wasm::Trap::ThrowReported, trapSiteDesc);
+  wasmTrap(failureTrap, trapSiteDesc);
   bind(&noTrap);
 }
 

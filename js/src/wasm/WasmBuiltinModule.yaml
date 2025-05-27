@@ -17,7 +17,8 @@
     - 'i32'
     - 'i32'
     - 'i32'
-  fail_mode: Infallible
+  fail_mode: FailOnNegI32
+  fail_trap: OutOfBounds
   uses_memory: true
 
 #if defined(ENABLE_WASM_MOZ_INTGEMM)
@@ -38,7 +39,7 @@
   symbolic_address:
     name: IntrI8PrepareB
     type: Args_Int32_GeneralInt32Float32Float32Int32Int32Int32General
-    needs_thunk: true
+    needs_thunk: false
   entry: intgemm::IntrI8PrepareB
   export: int8_prepare_b
   params:
@@ -49,6 +50,7 @@
     - 'i32'
     - 'i32'
   fail_mode: FailOnNegI32
+  fail_trap: OutOfBounds
   uses_memory: true
 
 
@@ -64,7 +66,7 @@
   symbolic_address:
     name: IntrI8PrepareBFromTransposed
     type: Args_Int32_GeneralInt32Float32Float32Int32Int32Int32General
-    needs_thunk: true
+    needs_thunk: false
   entry: intgemm::IntrI8PrepareBFromTransposed
   export: int8_prepare_b_from_transposed
   params:
@@ -75,6 +77,7 @@
     - 'i32'
     - 'i32'
   fail_mode: FailOnNegI32
+  fail_trap: OutOfBounds
   uses_memory: true
 
 
@@ -90,7 +93,7 @@
   symbolic_address:
     name: IntrI8PrepareBFromQuantizedTransposed
     type: Args_Int32_GeneralInt32Int32Int32Int32General
-    needs_thunk: true
+    needs_thunk: false
   entry: intgemm::IntrI8PrepareBFromQuantizedTransposed
   export: int8_prepare_b_from_quantized_transposed
   params:
@@ -99,6 +102,7 @@
     - 'i32'
     - 'i32'
   fail_mode: FailOnNegI32
+  fail_trap: OutOfBounds
   uses_memory: true
 
 
@@ -117,7 +121,7 @@
   symbolic_address:
     name: IntrI8PrepareA
     type: Args_Int32_GeneralInt32Float32Float32Int32Int32Int32General
-    needs_thunk: true
+    needs_thunk: false
   entry: intgemm::IntrI8PrepareA
   export: int8_prepare_a
   params:
@@ -128,6 +132,7 @@
     - 'i32'
     - 'i32'
   fail_mode: FailOnNegI32
+  fail_trap: OutOfBounds
   uses_memory: true
 
 
@@ -144,7 +149,7 @@
   symbolic_address:
     name: IntrI8PrepareBias
     type: Args_Int32_GeneralInt32Float32Float32Float32Float32Int32Int32Int32Int32General
-    needs_thunk: true
+    needs_thunk: false
   entry: intgemm::IntrI8PrepareBias
   export: int8_prepare_bias
   params:
@@ -158,6 +163,7 @@
     - 'i32'
     - 'i32'
   fail_mode: FailOnNegI32
+  fail_trap: OutOfBounds
   uses_memory: true
 
 
@@ -180,7 +186,7 @@
   symbolic_address:
     name: IntrI8MultiplyAndAddBias
     type: Args_Int32_GeneralInt32Float32Float32Int32Float32Float32Int32Float32Int32Int32Int32Int32General
-    needs_thunk: true
+    needs_thunk: false
   entry: intgemm::IntrI8MultiplyAndAddBias
   export: int8_multiply_and_add_bias
   params:
@@ -197,6 +203,7 @@
     - 'i32'
     - 'i32'
   fail_mode: FailOnNegI32
+  fail_trap: OutOfBounds
   uses_memory: true
 
 
@@ -210,7 +217,7 @@
   symbolic_address:
     name: IntrI8SelectColumnsOfB
     type: Args_Int32_GeneralInt32Int32Int32Int32Int32Int32General
-    needs_thunk: true
+    needs_thunk: false
   entry: intgemm::IntrI8SelectColumnsOfB
   export: int8_select_columns_of_b
   params:
@@ -221,6 +228,7 @@
     - 'i32'
     - 'i32'
   fail_mode: FailOnNegI32
+  fail_trap: OutOfBounds
   uses_memory: true
 
 #endif // ENABLE_WASM_MOZ_INTGEMM

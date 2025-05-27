@@ -3938,7 +3938,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   CodeOffset wasmCallBuiltinInstanceMethod(const wasm::CallSiteDesc& desc,
                                            const ABIArg& instanceArg,
                                            wasm::SymbolicAddress builtin,
-                                           wasm::FailureMode failureMode);
+                                           wasm::FailureMode failureMode,
+                                           wasm::Trap failureTrap);
 
   // Performs the appropriate check based on the instance call's FailureMode,
   // and traps if the check fails. The resultRegister should likely be
@@ -3946,6 +3947,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // after the call.
   void wasmTrapOnFailedInstanceCall(Register resultRegister,
                                     wasm::FailureMode failureMode,
+                                    wasm::Trap failureTrap,
                                     const wasm::TrapSiteDesc& trapSiteDesc);
 
   // Performs a bounds check for ranged wasm operations like memory.fill or

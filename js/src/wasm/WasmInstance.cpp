@@ -1907,10 +1907,11 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
   return -1;
 }
 
-/* static */ void Instance::intrI8VecMul(Instance* instance, uint32_t dest,
-                                         uint32_t src1, uint32_t src2,
-                                         uint32_t len, uint8_t* memBase) {
-  MOZ_ASSERT(SASigIntrI8VecMul.failureMode == FailureMode::Infallible);
+/* static */ int32_t Instance::intrI8VecMul(Instance* instance, uint32_t dest,
+                                            uint32_t src1, uint32_t src2,
+                                            uint32_t len, uint8_t* memBase) {
+  MOZ_ASSERT(SASigIntrI8VecMul.failureMode == FailureMode::FailOnNegI32);
+  MOZ_ASSERT(SASigIntrI8VecMul.failureTrap == Trap::OutOfBounds);
 
   const WasmArrayRawBuffer* rawBuf = WasmArrayRawBuffer::fromDataPtr(memBase);
   size_t memLen = rawBuf->byteLength();
@@ -1920,7 +1921,7 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
   uint64_t src1Limit = uint64_t(src1) + uint64_t(len);
   uint64_t src2Limit = uint64_t(src2) + uint64_t(len);
   if (destLimit > memLen || src1Limit > memLen || src2Limit > memLen) {
-    MOZ_CRASH();
+    return -1;
   }
 
   // Basic dot product
@@ -1935,6 +1936,7 @@ static bool ArrayCopyFromElem(JSContext* cx, Handle<WasmArrayObject*> arrayObj,
     src2Ptr++;
     len--;
   }
+  return 0;
 }
 
 #ifdef ENABLE_WASM_JS_STRING_BUILTINS
