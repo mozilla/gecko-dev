@@ -77,7 +77,8 @@ function isBlankPageURL(aURL) {
   return (
     aURL == "about:blank" ||
     aURL == "about:home" ||
-    aURL == BROWSER_NEW_TAB_URL ||
+    aURL == AboutNewTab.newTabURL ||
+    aURL == "about:privatebrowsing" ||
     aURL == "chrome://browser/content/blanktab.html"
   );
 }
