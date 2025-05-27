@@ -95,6 +95,8 @@ class DirectoryLockImpl {
 
   NS_INLINE_DECL_REFCOUNTING(DirectoryLockImpl)
 
+  QuotaManager& MutableManagerRef() const { return *mQuotaManager; }
+
   int64_t Id() const { return mId; }
 
   const PersistenceScope& PersistenceScopeRef() const {
