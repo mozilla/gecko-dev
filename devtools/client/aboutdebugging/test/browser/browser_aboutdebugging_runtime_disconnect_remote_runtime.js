@@ -33,7 +33,7 @@ add_task(async function () {
 
   const onRequestSuccess = waitForRequestsSuccess(window.AboutDebugging.store);
   await connectToRuntime(USB_DEVICE_NAME, document);
-  await selectRuntime(USB_DEVICE_NAME, USB_APP_NAME, document);
+  await waitForRuntimePage(USB_APP_NAME, document);
   await onRequestSuccess;
 
   const disconnectRemoteRuntimeButton = document.querySelector(

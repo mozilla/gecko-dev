@@ -24,7 +24,7 @@ add_task(async function () {
   mocks.emitUSBUpdate();
 
   await connectToRuntime(RUNTIME_DEVICE_NAME, document);
-  await selectRuntime(RUNTIME_DEVICE_NAME, RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(RUNTIME_APP_NAME, document);
 
   info("Create a second runtime and click on Refresh Devices");
   mocks.createUSBRuntime(OTHER_RUNTIME_ID, {

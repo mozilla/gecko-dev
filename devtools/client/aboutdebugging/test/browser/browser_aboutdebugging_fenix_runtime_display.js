@@ -35,7 +35,7 @@ add_task(async function () {
 
   mocks.emitUSBUpdate();
   await connectToRuntime(DEVICE_NAME, document);
-  await selectRuntime(DEVICE_NAME, ADB_RUNTIME_NAME, document);
+  await waitForRuntimePage(ADB_RUNTIME_NAME, document);
 
   info("Check that the runtime information is displayed as expected");
   const runtimeInfo = document.querySelector(".qa-runtime-name");
@@ -97,7 +97,7 @@ add_task(async function () {
   info("Select the runtime page for the USB runtime");
   const onRequestSuccess = waitForRequestsSuccess(window.AboutDebugging.store);
   await connectToRuntime(DEVICE_NAME, document);
-  await selectRuntime(DEVICE_NAME, ADB_RUNTIME_NAME, document);
+  await waitForRuntimePage(ADB_RUNTIME_NAME, document);
   info(
     "Wait for requests to finish the USB runtime is backed by a real local client"
   );

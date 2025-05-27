@@ -61,6 +61,7 @@ add_task(async function testNetworkRuntimeUpdates() {
       { method: "runtime_connected", extras: connectedNetworkRuntimeExtras },
       { method: "connection_attempt", extras: { status: "start" } },
       { method: "connection_attempt", extras: { status: "success" } },
+      { method: "select_page", extras: { page_type: "runtime" } },
     ],
     sessionId
   );
@@ -71,6 +72,7 @@ add_task(async function testNetworkRuntimeUpdates() {
   // Similarly we should not have any device removed event.
   checkTelemetryEvents(
     [
+      { method: "select_page", extras: { page_type: "runtime" } },
       { method: "runtime_disconnected", extras: connectedNetworkRuntimeExtras },
       { method: "runtime_removed", extras: networkRuntimeExtras },
     ],

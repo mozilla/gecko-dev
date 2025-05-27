@@ -45,7 +45,7 @@ add_task(async function () {
 
   mocks.emitUSBUpdate();
   await connectToRuntime(DEVICE_NAME, document);
-  await selectRuntime(DEVICE_NAME, RUNTIME_NAME, document);
+  await waitForRuntimePage(RUNTIME_NAME, document);
 
   //await selectThisFirefoxPage(document, window.AboutDebugging.store);
 

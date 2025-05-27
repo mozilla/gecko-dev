@@ -48,7 +48,7 @@ async function setupTestForMockUSBRuntime(mocks) {
 
   mocks.emitUSBUpdate();
   await connectToRuntime("deviceName", document);
-  await selectRuntime("deviceName", "runtimeName", document);
+  await waitForRuntimePage("runtimeName", document);
 
   return { document, usbClient };
 }

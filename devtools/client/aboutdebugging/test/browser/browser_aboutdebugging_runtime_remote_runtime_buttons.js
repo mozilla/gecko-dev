@@ -38,7 +38,7 @@ add_task(async function () {
   info("Checking a USB runtime");
   mocks.emitUSBUpdate();
   await connectToRuntime(USB_DEVICE_NAME, document);
-  await selectRuntime(USB_DEVICE_NAME, USB_APP_NAME, document);
+  await waitForRuntimePage(USB_APP_NAME, document);
   ok(
     !!document.querySelector(".qa-connection-prompt-toggle-button"),
     "Runtime contains the connection prompt button"

@@ -27,7 +27,7 @@ add_task(async function () {
 
   info("Connect and select the network runtime");
   await connectToRuntime(NETWORK_RUNTIME_HOST, document);
-  await selectRuntime(NETWORK_RUNTIME_HOST, NETWORK_RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(NETWORK_RUNTIME_APP_NAME, document);
 
   info(`Add a service worker to the network client`);
   const workers = {

@@ -38,7 +38,7 @@ add_task(async function () {
 
   info("Check the process category existence for USB runtime");
   await connectToRuntime(RUNTIME_DEVICE_NAME, document);
-  await selectRuntime(RUNTIME_DEVICE_NAME, RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(RUNTIME_APP_NAME, document);
   ok(
     getDebugTargetPane(CATEGORY_NAME, document),
     "Process category should display for USB runtime"

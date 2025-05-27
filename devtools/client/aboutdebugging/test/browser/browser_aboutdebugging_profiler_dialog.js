@@ -32,7 +32,7 @@ add_task(async function test_opening_profiler_dialog() {
 
   mocks.emitUSBUpdate();
   await connectToRuntime(DEVICE_NAME, document);
-  await selectRuntime(DEVICE_NAME, RUNTIME_NAME, document);
+  await waitForRuntimePage(RUNTIME_NAME, document);
 
   info("Open the profiler dialog");
   await openProfilerDialogWithRealClient(document);
@@ -81,7 +81,7 @@ add_task(async function test_set_profiler_settings() {
 
   mocks.emitUSBUpdate();
   await connectToRuntime(DEVICE_NAME, document);
-  await selectRuntime(DEVICE_NAME, RUNTIME_NAME, document);
+  await waitForRuntimePage(RUNTIME_NAME, document);
 
   info("Open the profiler dialog");
   await openProfilerDialogWithRealClient(document);

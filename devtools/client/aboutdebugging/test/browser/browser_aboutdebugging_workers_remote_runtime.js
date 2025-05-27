@@ -51,7 +51,7 @@ add_task(async function () {
 
   info("Test addons in runtime page for USB client");
   await connectToRuntime(USB_RUNTIME_DEVICE_NAME, document);
-  await selectRuntime(USB_RUNTIME_DEVICE_NAME, USB_RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(USB_RUNTIME_APP_NAME, document);
   for (const testData of TESTS) {
     await testWorkerOnMockedRemoteClient(
       testData,
@@ -68,7 +68,7 @@ add_task(async function () {
 
   info("Test workers in runtime page for Network client");
   await connectToRuntime(NETWORK_RUNTIME_HOST, document);
-  await selectRuntime(NETWORK_RUNTIME_HOST, NETWORK_RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(NETWORK_RUNTIME_APP_NAME, document);
 
   for (const testData of TESTS) {
     await testWorkerOnMockedRemoteClient(

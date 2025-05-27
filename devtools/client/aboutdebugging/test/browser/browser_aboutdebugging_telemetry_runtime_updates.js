@@ -87,6 +87,7 @@ add_task(async function testUsbRuntimeUpdates() {
       { method: "runtime_connected", extras: runtime1ConnectedExtras },
       { method: "connection_attempt", extras: { status: "start" } },
       { method: "connection_attempt", extras: { status: "success" } },
+      { method: "select_page", extras: { page_type: "runtime" } },
     ],
     sessionId
   );
@@ -111,6 +112,7 @@ add_task(async function testUsbRuntimeUpdates() {
 
   checkTelemetryEvents(
     [
+      { method: "select_page", extras: { page_type: "runtime" } },
       { method: "runtime_disconnected", extras: runtime1ConnectedExtras },
       { method: "runtime_removed", extras: runtime1Extras },
     ],

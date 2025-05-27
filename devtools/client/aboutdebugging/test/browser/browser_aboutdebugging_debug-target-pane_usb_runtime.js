@@ -38,7 +38,7 @@ async function checkTargetPanes({ enableLocalTabs }, mocks) {
   mocks.emitUSBUpdate();
 
   await connectToRuntime(RUNTIME_DEVICE_NAME, document);
-  await selectRuntime(RUNTIME_DEVICE_NAME, RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(RUNTIME_APP_NAME, document);
 
   const SUPPORTED_TARGET_PANES = [
     "Temporary Extensions",

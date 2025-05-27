@@ -27,6 +27,10 @@ function setupTelemetryTest() {
 function checkTelemetryEvents(expectedEvents, expectedSessionId) {
   const evts = readAboutDebuggingEvents();
   is(evts.length, expectedEvents.length, "Expected number of events");
+  if (evts.length !== expectedEvents.length) {
+    info("Expected:" + JSON.stringify(expectedEvents, null, 2));
+    info("Got: " + JSON.stringify(evts, null, 2));
+  }
 
   function _eventHasExpectedExtras(e, expectedEvent) {
     const expectedExtras = Object.keys(expectedEvent.extras);

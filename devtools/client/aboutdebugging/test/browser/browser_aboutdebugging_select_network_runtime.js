@@ -29,7 +29,7 @@ add_task(async function () {
 
   info("Test addons in runtime page for Network client");
   await connectToRuntime(NETWORK_RUNTIME_HOST, document);
-  await selectRuntime(NETWORK_RUNTIME_HOST, NETWORK_RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(NETWORK_RUNTIME_APP_NAME, document);
 
   info("Check that the network runtime mock is properly displayed");
   const thisFirefoxRuntimeInfo = document.querySelector(".qa-runtime-name");

@@ -24,7 +24,7 @@ add_task(async function testUsbDeviceUnplugged() {
 
   info("Connect to and select the USB device");
   await connectToRuntime(USB_DEVICE_NAME, document);
-  await selectRuntime(USB_DEVICE_NAME, USB_APP_NAME, document);
+  await waitForRuntimePage(USB_APP_NAME, document);
 
   info("Simulate a device unplugged");
   mocks.removeUSBRuntime(USB_RUNTIME_ID);
@@ -55,7 +55,7 @@ add_task(async function testUsbClientDisconnected() {
 
   info("Connect to and select the USB device");
   await connectToRuntime(USB_DEVICE_NAME, document);
-  await selectRuntime(USB_DEVICE_NAME, USB_APP_NAME, document);
+  await waitForRuntimePage(USB_APP_NAME, document);
 
   info("Simulate a client disconnection");
   usbClient.isClosed = () => true;
@@ -88,7 +88,7 @@ add_task(async function testNetworkClientDisconnected() {
 
   info("Connect to and select the network runtime");
   await connectToRuntime(NETWORK_RUNTIME_HOST, document);
-  await selectRuntime(NETWORK_RUNTIME_HOST, NETWORK_RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(NETWORK_RUNTIME_APP_NAME, document);
 
   info("Simulate a client disconnection");
   networkClient.isClosed = () => true;

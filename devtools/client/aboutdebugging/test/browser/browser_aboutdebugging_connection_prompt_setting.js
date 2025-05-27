@@ -27,7 +27,7 @@ add_task(async function () {
 
   mocks.emitUSBUpdate();
   await connectToRuntime(USB_DEVICE_NAME, document);
-  await selectRuntime(USB_DEVICE_NAME, USB_APP_NAME, document);
+  await waitForRuntimePage(USB_APP_NAME, document);
 
   info("Check whether connection prompt toggle button exists");
   let connectionPromptToggleButton = document.querySelector(

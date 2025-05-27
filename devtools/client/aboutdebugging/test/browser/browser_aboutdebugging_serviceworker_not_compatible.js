@@ -100,7 +100,7 @@ add_task(async function testRemoteRuntime() {
     info("Checking a USB runtime");
     mocks.emitUSBUpdate();
     await connectToRuntime("Fancy Phone", document);
-    await selectRuntime("Fancy Phone", "Lorem ipsum", document);
+    await waitForRuntimePage("Lorem ipsum", document);
 
     assertWarningMessage(document, expectedMessage);
 

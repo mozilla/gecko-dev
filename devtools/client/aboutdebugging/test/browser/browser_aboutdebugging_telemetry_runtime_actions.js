@@ -37,7 +37,7 @@ add_task(async function testUsbRuntimeUpdates() {
   info("Wait for the runtime to appear in the sidebar");
   await waitUntil(() => findSidebarItemByText(RUNTIME_NAME, document));
   await connectToRuntime(RUNTIME_DEVICE_NAME, document);
-  await selectRuntime(RUNTIME_DEVICE_NAME, RUNTIME_NAME, document);
+  await waitForRuntimePage(RUNTIME_NAME, document);
 
   info("Read telemetry events to flush unrelated events");
   const evts = readAboutDebuggingEvents();

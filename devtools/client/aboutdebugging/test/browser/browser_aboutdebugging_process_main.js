@@ -43,7 +43,7 @@ add_task(async function () {
 
   info("Select USB runtime");
   await connectToRuntime(RUNTIME_DEVICE_NAME, document);
-  await selectRuntime(RUNTIME_DEVICE_NAME, RUNTIME_APP_NAME, document);
+  await waitForRuntimePage(RUNTIME_APP_NAME, document);
 
   info("Check debug target item of the main process");
   await waitUntil(() =>
