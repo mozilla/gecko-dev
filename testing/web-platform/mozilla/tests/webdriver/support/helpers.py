@@ -30,7 +30,6 @@ class Browser:
         log_level=None,
         truncate_enabled=True,
         use_bidi=False,
-        use_cdp=False,
         use_marionette=False,
     ):
         self.profile = profile
@@ -40,33 +39,20 @@ class Browser:
         self.log_level = log_level
         self.truncate_enabled = truncate_enabled
         self.use_bidi = use_bidi
-        self.use_cdp = use_cdp
         self.use_marionette = use_marionette
 
         self.bidi_port_file = None
-        self.cdp_port_file = None
-        self.debugger_address = None
         self.remote_agent_host = None
         self.remote_agent_port = None
 
-        active_protocols = 0
         cmdargs = ["-no-remote"]
 
         if use_bidi:
-            active_protocols += 1
             self.webdriver_bidi_file = os.path.join(
                 self.profile.profile, "WebDriverBiDiServer.json"
             )
             with suppress(FileNotFoundError):
                 os.remove(self.webdriver_bidi_file)
-
-        if use_cdp:
-            active_protocols += 2
-            self.cdp_port_file = os.path.join(
-                self.profile.profile, "DevToolsActivePort"
-            )
-            with suppress(FileNotFoundError):
-                os.remove(self.cdp_port_file)
 
         if use_marionette:
             cmdargs.extend(["-marionette"])
@@ -74,7 +60,6 @@ class Browser:
         # Avoid modifying extra_prefs to prevent side-effects with the "browser" fixture,
         # which checks session equality and would create a new session each time.
         prefs = self.extra_prefs or {}
-        prefs.update({"remote.active-protocols": active_protocols})
 
         if log_level is not None:
             prefs.update({"remote.log.level": log_level})
@@ -84,7 +69,7 @@ class Browser:
 
         self.profile.set_preferences(prefs)
 
-        if self.use_bidi or self.use_cdp:
+        if self.use_bidi:
             cmdargs.extend(["--remote-debugging-port", "0"])
         if self.extra_args is not None:
             cmdargs.extend(self.extra_args)
@@ -118,20 +103,6 @@ class Browser:
             data = json.loads(open(self.webdriver_bidi_file).read())
             self.remote_agent_host = data["ws_host"]
             self.remote_agent_port = int(data["ws_port"])
-
-        if self.use_cdp:
-            # Wait until the DevToolsActivePort file is ready
-            while not os.path.exists(self.cdp_port_file):
-                time.sleep(0.1)
-
-            # Read the port if needed and the debugger address from the
-            # DevToolsActivePort file
-            lines = open(self.cdp_port_file).readlines()
-            assert len(lines) == 2
-
-            if self.remote_agent_port is None:
-                self.remote_agent_port = int(lines[0].strip())
-            self.debugger_address = lines[1].strip()
 
     def quit(self, clean_profile=True):
         if self.is_running:

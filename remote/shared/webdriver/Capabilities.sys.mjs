@@ -11,24 +11,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
-  RemoteAgent: "chrome://remote/content/components/RemoteAgent.sys.mjs",
   truncate: "chrome://remote/content/shared/Format.sys.mjs",
   UserPromptHandler:
     "chrome://remote/content/shared/webdriver/UserPromptHandler.sys.mjs",
 });
 
-ChromeUtils.defineLazyGetter(lazy, "debuggerAddress", () => {
-  return lazy.RemoteAgent.running && lazy.RemoteAgent.cdp
-    ? lazy.remoteAgent.debuggerAddress
-    : null;
-});
-
 ChromeUtils.defineLazyGetter(lazy, "isHeadless", () => {
   return Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo).isHeadless;
-});
-
-ChromeUtils.defineLazyGetter(lazy, "remoteAgent", () => {
-  return Cc["@mozilla.org/remote/agent;1"].createInstance(Ci.nsIRemoteAgent);
 });
 
 ChromeUtils.defineLazyGetter(lazy, "userAgent", () => {
@@ -52,7 +41,6 @@ export const WEBDRIVER_CLASSIC_CAPABILITIES = [
 
   // Gecko specific capabilities
   "moz:accessibilityChecks",
-  "moz:debuggerAddress",
   "moz:firefoxOptions",
   "moz:webdriverClick",
 
@@ -482,7 +470,6 @@ export class Capabilities extends Map {
         ["strictFileInteractability", false],
 
         ["moz:accessibilityChecks", false],
-        ["moz:debuggerAddress", lazy.debuggerAddress],
         ["moz:webdriverClick", true],
         ["moz:windowless", false]
       );
@@ -670,11 +657,6 @@ export class Capabilities extends Map {
           );
           break;
 
-        // Don't set the value because it's only used to return the address
-        // of the Remote Agent's debugger (HTTP server).
-        case "moz:debuggerAddress":
-          continue;
-
         case "moz:webdriverClick":
           lazy.assert.boolean(
             v,
@@ -829,12 +811,6 @@ export class Capabilities extends Map {
           );
         }
         return value;
-
-      case "moz:debuggerAddress":
-        return lazy.assert.boolean(
-          value,
-          `Expected "${name}" to be a boolean, ` + lazy.pprint`got ${value}`
-        );
 
       default:
         lazy.assert.string(

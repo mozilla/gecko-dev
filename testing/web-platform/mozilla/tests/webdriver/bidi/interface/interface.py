@@ -6,8 +6,8 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_navigator_webdriver_enabled(inline, browser):
-    # Request a new browser with only WebDriver BiDi and not Marionette/CDP enabled.
-    current_browser = browser(use_bidi=True, extra_prefs={"remote.active-protocols": 1})
+    # Request a new browser with only WebDriver BiDi and not Marionette enabled.
+    current_browser = browser(use_bidi=True)
     server_host = current_browser.remote_agent_host
     server_port = current_browser.remote_agent_port
 

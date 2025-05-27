@@ -18,9 +18,7 @@ can set `remote.log.truncate` to false.
 
 ## Enabling logging of emitted events
 
-To dump events produced by EventEmitter,
-including CDP events produced by the Remote Agent,
-you can use the `toolkit.dump.emit` [preference]:
+To dump events produced by EventEmitter you can use the `toolkit.dump.emit` [preference]:
 
 ```shell
 % ./mach run --setpref "toolkit.dump.emit=true" --remote-debugging-port

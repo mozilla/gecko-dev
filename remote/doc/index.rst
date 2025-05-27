@@ -6,7 +6,6 @@ Firefox supports several remote protocols, which allow to inspect and control
 the browser, usually for automation purposes:
 
 * :ref:`marionette-header`
-* :ref:`remote-protocol-cdp-header`
 * :ref:`webdriver-bidi-header`
 
 Common documentation
@@ -39,22 +38,6 @@ for Marionette can be found under `testing/marionette`_.
 
 .. _WebDriver (HTTP) specification: https://w3c.github.io/webdriver/
 .. _testing/marionette: /testing/marionette
-
-
-.. _remote-protocol-cdp-header:
-
-Remote Protocol (CDP)
----------------------
-
-Firefox implements a subset of the `Chrome DevTools Protocol`_ (CDP) in order to
-support third party automation tools such as `puppeteer`. The documentation for
-the remote protocol (CDP) implement can be found at `remote/cdp`_.
-
-.. _Chrome DevTools Protocol: https://chromedevtools.github.io/devtools-protocol/
-.. _remote/cdp: cdp/
-
-
-.. _webdriver-bidi-header:
 
 WebDriver BiDi
 --------------

@@ -3869,12 +3869,6 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   // Port to start Marionette server on.
   pref("marionette.port", 2828);
 
-  // Defines the protocols that will be active for the Remote Agent.
-  // 1: WebDriver BiDi
-  // 2: CDP (Chrome DevTools Protocol)
-  // 3: WebDriver BiDi + CDP
-  pref("remote.active-protocols", 1);
-
   // Enable WebDriver BiDi experimental commands and events.
   #if defined(NIGHTLY_BUILD)
     pref("remote.experimental.enabled", true);

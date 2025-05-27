@@ -323,6 +323,7 @@ impl BrowserCapabilities for FirefoxCapabilities<'_> {
                     ));
                 }
             }
+            // Bug 1967916: Remove when Firefox 140 is no longer supported
             "moz:debuggerAddress" => {
                 if !value.is_boolean() {
                     return Err(WebDriverError::new(

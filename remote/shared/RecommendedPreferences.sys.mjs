@@ -52,7 +52,7 @@ if (Services.appinfo.processType != Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
 // The preferences in `RecommendedPreferences.sys.mjs` are applied after
 // the application has started, which means that the application must apply this
 // change dynamically and behave correctly. Note that you can also define
-// protocol specific preferences (CDP, WebDriver, ...) which are merged with the
+// protocol specific preferences (WebDriver, ...) which are merged with the
 // COMMON_PREFERENCES from `RecommendedPreferences.sys.mjs`.
 //
 // Additionally, users relying on the Marionette Python client (ie. using

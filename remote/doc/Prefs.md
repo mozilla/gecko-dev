@@ -6,10 +6,12 @@ There are a couple of preferences associated with the Remote Agent:
 
 ### `remote.active-protocols`
 
-Defines the remote protocols that are active. Available protocols are,
-WebDriver BiDi (`1`), and CDP (`2`). Multiple protocols can be activated
-at the same time by using bitwise or with the values, such as `3` for
-both protocols. Defaults to `1` (WebDriver BiDi) since Firefox 129.
+Defines the remote protocols that are active. Currently available protocols are,
+WebDriver BiDi (`1`).
+
+Previously used to define the remote protocols that are active. With the end
+of the CDP support, WebDriver BiDi is the only available protocol, and the
+preference was removed in Firefox 141.
 
 ### `remote.events.async.enabled`
 

@@ -102,9 +102,6 @@ export class WebDriverSession {
    *  <dt><code>moz:accessibilityChecks</code> (boolean)
    *  <dd>(HTTP only) Run a11y checks when clicking elements.
    *
-   *  <dt><code>moz:debuggerAddress</code> (boolean)
-   *  <dd>Indicate that the Chrome DevTools Protocol (CDP) has to be enabled.
-   *
    *  <dt><code>moz:webdriverClick</code> (boolean)
    *  <dd>(HTTP only) Use a WebDriver conforming <i>WebDriver::ElementClick</i>.
    * </dl>

@@ -81,9 +81,6 @@ with Files("mozilla/tests/webdriver/**"):
 with Files("mozilla/tests/webdriver/bidi/**"):
     BUG_COMPONENT = ("Remote Protocol", "WebDriver BiDi")
 
-with Files("mozilla/tests/webdriver/cdp/**"):
-    BUG_COMPONENT = ("Remote Protocol", "CDP")
-
 with Files("update/**"):
     BUG_COMPONENT = ("Testing", "web-platform-tests")
 

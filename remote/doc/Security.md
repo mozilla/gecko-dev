@@ -50,8 +50,7 @@ if (!LOOPBACKS.includes(host)) {
 }
 ```
 
-The Remote Agent implements a large subset of the Chrome DevTools
-Protocol (CDP).  This protocol allows a client to:
+The Remote Agent implements the WebDriver BiDi protocol. This protocol allows a client to:
 
 * take control over the user session for automation purposes, for
   example to simulate user interaction such as clicking and typing;
@@ -59,8 +58,7 @@ Protocol (CDP).  This protocol allows a client to:
 * instrument the browser for analytical reasons, such as intercepting
   network traffic;
 
-* and extract information from the user session, including cookies
-  and local storage.
+* and extract information from the user session, including cookies.
 
 There are no web-exposed features in the Remote Agent whatsoever.
 

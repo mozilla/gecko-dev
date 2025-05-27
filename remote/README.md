@@ -1,66 +1,60 @@
-The Firefox remote agent is a low-level debugging interface based
-on the CDP protocol.
+# Remote Protocol
+
+The Firefox Remote Protocol is a low-level debugging interface.
 
 With it, you can inspect the state and control execution of documents
 running in web content, instrument Gecko in interesting ways,
 simulate user interaction for automation purposes, and debug
 JavaScript execution.
 
-This component provides an experimental and partial implementation
-of a remote devtools interface using the CDP protocol and transport
-layer.
+Available and supported protocols are:
 
-See https://firefox-source-docs.mozilla.org/remote/ for documentation.
+* WebDriver classic (aka Marionette)
+* WebDriver BiDi
 
-It is available in Firefox and is started this way:
+See <https://firefox-source-docs.mozilla.org/remote/> for the full documentation.
 
-	% ./mach run --remote-debugging-port
+## Puppeteer
 
-
-Puppeteer
-=========
 Puppeteer is a Node library which provides a high-level API to control Chrome,
-Chromium, and Firefox over the Chrome DevTools Protocol. Puppeteer runs headless
-by default, but can be configured to run full (non-headless) browsers.
+Chromium, and Firefox over the WebDriver BiDi or CDP protocol. Puppeteer runs
+headless by default, but can be configured to run full (non-headless) browsers.
 
-To verify that our implementation of the CDP protocol is valid we do not only
-run xpcshell and browser-chrome mochitests in Firefox CI but also the Puppeteer
-unit tests.
+To verify that our implementation of the WebDriver BiDi protocol is valid we do
+not only run xpcshell, browser-chrome mochitests and web-platform tests in
+Firefox CI but also the Puppeteer unit tests.
 
-Expectation Data
-----------------
+### Expectation Data
 
 With the tests coming from upstream, it is not guaranteed that they
 all pass in Gecko-based browsers. For this reason it is necessary to
 provide metadata about the expected results of each test. This is
-provided in a manifest file under `test/puppeteer-expected.json`.
+provided in a manifest file under `test/puppeteer/test/TestExpectations.json`.
 
-For each test of the Puppeteer unit test suite an equivalent entry will exist
-in this manifest file. By default tests are expected to `PASS`.
+For each non-passing test of the Puppeteer unit test suite an equivalent entry
+will exist in this manifest file. By default tests are expected to `PASS`.
 
 Tests that are intermittent may be marked with multiple statuses using
 a list of possibilities e.g. for a test that usually passes, but
 intermittently fails:
 
     "Page.click should click the button (click.spec.ts)": [
-      "PASS", "FAIL"
+      "expectations": ["PASS", "FAIL"],
     ],
 
-Disabling Tests
----------------
+### Disabling Tests
 
-Tests are disabled by using the manifest file `test/puppeteer-expected.json`.
-For example, if a test is unstable, it can be disabled using `SKIP`:
+Tests are disabled when marked as `SKIP` in the manifest file. For example,
+if a test is unstable, it can be disabled:
 
     "Workers Page.workers (worker.spec.ts)": [
-      "SKIP"
+      "expectations": ["SKIP"],
     ],
 
 For intermittents it's generally preferable to give the test multiple
 expectations rather than disable it.
 
-Autogenerating Expectation Data
--------------------------------
+### Autogenerating Expectation Data
 
 After changing some code it may be necessary to update the expectation
 data for the relevant tests. This can of course be done manually, but
@@ -68,7 +62,7 @@ data for the relevant tests. This can of course be done manually, but
 
     mach puppeteer-test --write-results
 
-By default it writes the output to `test/puppeteer-expected.json`.
+By default it writes the output to `test/puppeteer/test/TestExpectations.json`.
 
 Given that the unit tests run in Firefox CI only for Linux it is advised to
 download the expectation data (available as artifact) from the TaskCluster job.

@@ -196,7 +196,6 @@ avoid-blacklist-and-whitelist:
         - python/mozbuild/mozbuild/backend/recursivemake.py
         - python/mozbuild/mozbuild/configure/options.py
         - python/mozbuild/mozbuild/vendor/vendor_rust.py
-        - remote/cdp/Protocol.sys.mjs
         - security/manager/ssl/tests/unit/test_intermediate_preloads.js
         - security/sandbox/linux/broker/SandboxBroker.cpp
         - security/sandbox/linux/broker/SandboxBroker.h

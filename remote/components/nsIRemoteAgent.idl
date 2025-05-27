@@ -18,11 +18,6 @@
 interface nsIRemoteAgent : nsISupports
 {
   /**
-   * Address of the HTTP server under which the remote agent is reachable.
-   */
-  readonly attribute AString debuggerAddress;
-
-  /**
    * Indicates whether the Remote Agent is running.
    */
   readonly attribute boolean running;

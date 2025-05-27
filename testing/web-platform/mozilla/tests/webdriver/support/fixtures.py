@@ -36,7 +36,7 @@ def browser(configuration, firefox_options):
 
     Starting Firefox without geckodriver allows to set those command line arguments
     as needed. The fixture method returns the browser instance that should be used
-    to connect to a RemoteAgent supported protocol (CDP, WebDriver BiDi).
+    to connect to a RemoteAgent supported protocol (WebDriver BiDi).
     """
     current_browser = None
 
@@ -45,7 +45,6 @@ def browser(configuration, firefox_options):
         extra_args=None,
         extra_prefs=None,
         use_bidi=False,
-        use_cdp=False,
         use_marionette=False,
     ):
         nonlocal current_browser
@@ -71,7 +70,6 @@ def browser(configuration, firefox_options):
                 and current_browser.extra_prefs == extra_prefs
                 and current_browser.is_running
                 and current_browser.use_bidi == use_bidi
-                and current_browser.use_cdp == use_cdp
                 and current_browser.use_marionette == use_marionette
                 and current_browser.log_level == log_level
                 and current_browser.truncate_enabled == truncate_enabled
@@ -100,7 +98,6 @@ def browser(configuration, firefox_options):
             log_level=log_level,
             truncate_enabled=truncate_enabled,
             use_bidi=use_bidi,
-            use_cdp=use_cdp,
             use_marionette=use_marionette,
         )
         current_browser.start()

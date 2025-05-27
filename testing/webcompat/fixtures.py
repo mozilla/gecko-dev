@@ -107,8 +107,6 @@ class FirefoxWebDriver(WebDriver):
         # keep system addon updates off to prevent bug 1882562
         prefs[SYSTEM_ADDON_UPDATES_PREF] = False
 
-        # remote/cdp/CDP.sys.mjs sets cookieBehavior to 0,
-        # which we definitely do not want, so set it back to 5.
         cookieBehavior = 4 if test_config.get("without_tcp") else 5
         prefs[CB_PREF] = cookieBehavior
         prefs[CB_PBM_PREF] = cookieBehavior

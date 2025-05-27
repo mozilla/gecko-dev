@@ -21,58 +21,11 @@ class TestCommandLineArguments(MarionetteTestCase):
 
         super(TestCommandLineArguments, self).tearDown()
 
-    def test_debugger_address_cdp_status(self):
-        # By default Remote Agent is not enabled
-        debugger_address = self.marionette.session_capabilities.get(
-            "moz:debuggerAddress"
-        )
-        self.assertIsNone(debugger_address)
-
-        # With CDP enabled the capability has to be returned
-        self.marionette.set_pref("remote.active-protocols", 2)
-        self.marionette.quit()
-
-        self.marionette.instance.app_args.append("-remote-debugging-port")
-        self.marionette.start_session()
-
-        debugger_address = self.marionette.session_capabilities.get(
-            "moz:debuggerAddress"
-        )
-
-        self.assertEqual(debugger_address, "127.0.0.1:9222")
-        result = requests.get(url="http://{}/json/version".format(debugger_address))
-        self.assertTrue(result.ok)
-
-        # With BiDi only enabled the capability shouldn't be returned
-        self.marionette.clear_pref("remote.active-protocols")
-        self.marionette.quit()
-
-        self.marionette.instance.app_args.append("-remote-debugging-port")
-        self.marionette.start_session()
-
-        debugger_address = self.marionette.session_capabilities.get(
-            "moz:debuggerAddress"
-        )
-        self.assertIsNone(debugger_address)
-
-        # Clean the profile so that the preference is definitely reset.
-        self.marionette.quit(in_app=False, clean=True)
-
     def test_websocket_url(self):
         # By default Remote Agent is not enabled
         self.assertNotIn("webSocketUrl", self.marionette.session_capabilities)
 
-        # With CDP enabled the capability is not returned
-        self.marionette.set_pref("remote.active-protocols", 2)
-
-        self.marionette.quit()
-        self.marionette.instance.app_args.append("-remote-debugging-port")
-        self.marionette.start_session({"webSocketUrl": True})
-
-        self.assertNotIn("webSocketUrl", self.marionette.session_capabilities)
-
-        # With BiDi only enabled the capability is returned
-        self.marionette.clear_pref("remote.active-protocols")
+        # With BiDi enabled the capability is returned
         self.marionette.quit()
         self.marionette.instance.app_args.append("-remote-debugging-port")
         self.marionette.start_session({"webSocketUrl": True})
