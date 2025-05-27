@@ -31,43 +31,38 @@ class FenixAutocompletePrompt<T, V>(
     private val toolbarPositionProvider: () -> ToolbarPosition,
     private val onShow: () -> Unit,
     private val onHide: () -> Unit,
-) : AutocompletePrompt<T>, ExpandablePrompt where V : View, V : AutocompletePrompt<T> {
+) : AutocompletePrompt<T> where V : View, V : AutocompletePrompt<T>, V : ExpandablePrompt {
     private val view: V by lazy {
         viewProvider()
     }
 
-    override var expandablePromptListener: ExpandablePrompt.Listener? = null
+    private var isVisible = false
+
     override var selectablePromptListener: SelectablePromptView.Listener<T>? = null
     override var toggleablePromptListener: ToggleablePrompt.Listener? = null
 
-    override fun expand() = with(view) {
-        if (this is ExpandablePrompt) {
-            expand()
-            (behavior as? AutofillSelectBarBehavior<*>)?.placeAtBottom(this)
-            behavior = null
-        }
-    }
+    override val isPromptDisplayed: Boolean
+        get() = isVisible
 
-    override fun collapse() = with(view) {
-        if (this is ExpandablePrompt) {
-            collapse()
-            behavior = createCustomAutofillBarBehavior()
-        }
-    }
-
-    override val isPromptDisplayed: Boolean = false
     override fun populate(options: List<T>) = view.populate(options)
 
     override fun showPrompt() = with(view) {
         showPrompt()
         selectablePromptListener = this@FenixAutocompletePrompt.selectablePromptListener
+        toggleablePromptListener = this@FenixAutocompletePrompt.toggleablePromptListener
+        expandablePromptListener = createExpandableListener()
         behavior = createCustomAutofillBarBehavior()
+        isVisible = true
         this@FenixAutocompletePrompt.onShow()
     }
 
     override fun hidePrompt() = with(view) {
         hidePrompt()
+        selectablePromptListener = null
+        toggleablePromptListener = null
+        expandablePromptListener = null
         behavior = null
+        isVisible = false
         this@FenixAutocompletePrompt.onHide()
     }
 
@@ -75,6 +70,23 @@ class FenixAutocompletePrompt<T, V>(
         context = context,
         toolbarPosition = toolbarPositionProvider(),
     )
+
+    /**
+     * Creates an expandable listener that uses [AutofillSelectBarBehavior] to place the
+     * autofill view at the bottom.
+     */
+    private fun <T : View> T.createExpandableListener() = object : ExpandablePrompt.Listener {
+        override fun onExpanded() {
+            (behavior as? AutofillSelectBarBehavior<*>)?.placeAtBottom(this@createExpandableListener)
+
+            // Remove the custom behavior to ensure the autofill bar stays fixed in place
+            behavior = null
+        }
+
+        override fun onCollapsed() {
+            behavior = createCustomAutofillBarBehavior()
+        }
+    }
 
     private var View.behavior: CoordinatorLayout.Behavior<*>?
         get() = (layoutParams as? CoordinatorLayout.LayoutParams)?.behavior
