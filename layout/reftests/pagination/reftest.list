@@ -123,7 +123,7 @@ fuzzy-if(cocoaWidget,0-1,0-5000) fuzzy-if(swgl,0-1,0-9) == 745025-1.html 745025-
 == 1406291-1.html 1406291-1-ref.html
 == 1409585-1.html 1409585-1-ref.html
 == 1411799-1.html 1411799-1-ref.html
-fuzzy-if(gtkWidget,0-255,0-2774) == 1420528-1.html 1420528-1-ref.html # TODO: this is maligned
+== 1420528-1.html 1420528-1-ref.html
 == 1427141-1.html 1427141-ref.html
 == 1427141-2.html 1427141-ref.html
 == 1468654-1.html 1468654-1-ref.html

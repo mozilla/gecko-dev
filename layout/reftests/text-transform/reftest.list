@@ -13,7 +13,7 @@ defaults pref(gfx.font_rendering.fallback.async,false)
 == capitalize-9.html capitalize-9-ref.html
 == lowercase-1.html lowercase-ref.html
 == lowercase-sigma-1.html lowercase-sigma-1-ref.html
-random-if(winWidget) fuzzy-if(gtkWidget,0-255,0-278) == small-caps-1.html small-caps-1-ref.html # fails if default font supports 'smcp'
+random-if(winWidget) == small-caps-1.html small-caps-1-ref.html # fails if default font supports 'smcp'
 == fake-small-caps-1.html fake-small-caps-1-ref.html
 == opentype-small-caps-1.html opentype-small-caps-1-ref.html
 != opentype-small-caps-1.html opentype-small-caps-1-notref.html

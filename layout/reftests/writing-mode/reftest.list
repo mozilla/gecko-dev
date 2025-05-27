@@ -110,7 +110,7 @@ fuzzy-if(gtkWidget,0-1,0-15) == ua-style-sheet-input-number-1.html ua-style-shee
 == 1133945-1-vertical-align.html 1133945-1-vertical-align-ref.html
 == 1134744-radio-checkbox-baseline-1.html 1134744-radio-checkbox-baseline-1-ref.html
 == 1134849-orthogonal-inline.html 1134849-orthogonal-inline-ref.html
-fails-if(geckoview) fuzzy-if(gtkWidget,0-255,0-1574) == 1135361-ruby-justify-1.html 1135361-ruby-justify-1-ref.html # Bug 1558513 for GV # TODO: this is maligned
+fails-if(geckoview) == 1135361-ruby-justify-1.html 1135361-ruby-justify-1-ref.html # Bug 1558513 for GV
 fuzzy(0-159,0-111) == 1136557-1-nested-spans.html 1136557-1-nested-spans-ref.html
 fuzzy(0-159,0-111) == 1136557-2-nested-spans.html 1136557-2-nested-spans-ref.html
 fuzzy-if(winWidget,0-255,0-236) == 1136557-3-nested-spans.html 1136557-3-nested-spans-ref.html
@@ -181,7 +181,7 @@ fuzzy-if(gtkWidget,0-1,0-25) fuzzy-if(cocoaWidget,0-1,0-2) == 1302389-scrolled-r
 fuzzy-if(Android,0-54,0-852) == 1302389-scrolled-rect-2d.html 1302389-scrolled-rect-2-ref.html
 
 == 1361631-mongolian-upright-1.html 1361631-mongolian-upright-1-ref.html
-fuzzy-if(gtkWidget,0-255,0-33) == 1395926-vertical-upright-gpos-1.html 1395926-vertical-upright-gpos-1-ref.html # TODO: this is maligned
+== 1395926-vertical-upright-gpos-1.html 1395926-vertical-upright-gpos-1-ref.html
 == 1673510-1.html 1673510-1-ref.html # bug 1770273
 
 # Suite of tests from Gérard Talbot in bug 1079151

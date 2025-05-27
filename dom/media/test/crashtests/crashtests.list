@@ -1,4 +1,4 @@
-skip-if(cocoaWidget) skip-if(gtkWidget&&/^24\.04$/.test(os_version)) load 1185191.html # this needs to run near the beginning of the test suite
+skip-if(cocoaWidget) load 1185191.html # this needs to run near the beginning of the test suite
 load 0-timescale.html # bug 1229166
 skip-if(Android) pref(media.autoplay.default,0) load 459439-1.html # bug 888557
 load 466607-1.html
@@ -103,16 +103,16 @@ load audiocontext-after-xhr.html
 load audiocontext-double-suspend.html
 skip-if(Android) load audioworkletnode-after-unload-1.html # Needs secure context
 load buffer-source-duration-1.html
-skip-if(gtkWidget&&/^24\.04$/.test(os_version)) load buffer-source-ended-1.html
+load buffer-source-ended-1.html
 load buffer-source-resampling-start-1.html
 load buffer-source-slow-resampling-1.html
-skip-if(gtkWidget&&/^24\.04$/.test(os_version)) load convolver-memory-report-1.html
+load convolver-memory-report-1.html
 load copyFromChannel-2.html
 load empty-buffer-source.html
 HTTP load media-element-source-seek-1.html
 load offline-buffer-source-ended-1.html
-skip-if(gtkWidget&&/^24\.04$/.test(os_version)) load oscillator-ended-1.html
-skip-if(gtkWidget&&/^24\.04$/.test(os_version)) load oscillator-ended-2.html
+load oscillator-ended-1.html
+load oscillator-ended-2.html
 load video-replay-after-audio-end.html # bug 1315125, bug 1358876
 # This needs to run at the end to avoid leaking busted state into other tests.
 skip-if(Android||ThreadSanitizer) load 691096-1.html # Bug 1365451
