@@ -296,33 +296,36 @@ export const DeviceType = {
     /**
      * DESKTOP
      */
-    DESKTOP: 1,
+    DESKTOP: 0,
     /**
      * MOBILE
      */
-    MOBILE: 2,
+    MOBILE: 1,
     /**
      * TABLET
      */
-    TABLET: 3,
+    TABLET: 2,
     /**
      * VR
      */
-    VR: 4,
+    VR: 3,
     /**
      * TV
      */
-    TV: 5,
+    TV: 4,
     /**
      * UNKNOWN
      */
-    UNKNOWN: 6,
+    UNKNOWN: 5,
 };
 Object.freeze(DeviceType);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeDeviceType extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(DeviceType)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return DeviceType.DESKTOP
@@ -342,6 +345,7 @@ export class FfiConverterTypeDeviceType extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === DeviceType.DESKTOP) {
             dataStream.writeInt32(1);
             return;
@@ -374,7 +378,8 @@ export class FfiConverterTypeDeviceType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 6) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for DeviceType`);
       }
     }

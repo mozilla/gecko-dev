@@ -842,6 +842,7 @@ RemoteCommand.CloseTab = class extends RemoteCommand{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeRemoteCommand extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return new RemoteCommand.CloseTab(
@@ -853,6 +854,7 @@ export class FfiConverterTypeRemoteCommand extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value instanceof RemoteCommand.CloseTab) {
             dataStream.writeInt32(1);
             FfiConverterString.write(dataStream, value.url);

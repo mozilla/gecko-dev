@@ -708,6 +708,7 @@ GeonameType.Other = class extends GeonameType{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return new GeonameType.Country(
@@ -731,6 +732,7 @@ export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value instanceof GeonameType.Country) {
             dataStream.writeInt32(1);
             return;
@@ -1395,21 +1397,24 @@ export const GeonameMatchType = {
     /**
      * ABBREVIATION
      */
-    ABBREVIATION: 1,
+    ABBREVIATION: 0,
     /**
      * AIRPORT_CODE
      */
-    AIRPORT_CODE: 2,
+    AIRPORT_CODE: 1,
     /**
      * This includes any names that aren't abbreviations or airport codes.
      */
-    NAME: 3,
+    NAME: 2,
 };
 Object.freeze(GeonameMatchType);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(GeonameMatchType)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return GeonameMatchType.ABBREVIATION
@@ -1423,6 +1428,7 @@ export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === GeonameMatchType.ABBREVIATION) {
             dataStream.writeInt32(1);
             return;
@@ -1443,7 +1449,8 @@ export class FfiConverterTypeGeonameMatchType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 3) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for GeonameMatchType`);
       }
     }
@@ -1773,17 +1780,20 @@ export const YelpSubjectType = {
     /**
      * SERVICE
      */
-    SERVICE: 1,
+    SERVICE: 0,
     /**
      * BUSINESS
      */
-    BUSINESS: 2,
+    BUSINESS: 1,
 };
 Object.freeze(YelpSubjectType);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeYelpSubjectType extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(YelpSubjectType)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return YelpSubjectType.SERVICE
@@ -1795,6 +1805,7 @@ export class FfiConverterTypeYelpSubjectType extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === YelpSubjectType.SERVICE) {
             dataStream.writeInt32(1);
             return;
@@ -1811,7 +1822,8 @@ export class FfiConverterTypeYelpSubjectType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 2) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for YelpSubjectType`);
       }
     }
@@ -2122,6 +2134,7 @@ Suggestion.Dynamic = class extends Suggestion{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return new Suggestion.Amp(
@@ -2216,6 +2229,7 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value instanceof Suggestion.Amp) {
             dataStream.writeInt32(1);
             FfiConverterString.write(dataStream, value.title);
@@ -2727,7 +2741,10 @@ Object.freeze(SuggestionProvider);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(SuggestionProvider)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SuggestionProvider.AMP
@@ -2753,6 +2770,7 @@ export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer 
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SuggestionProvider.AMP) {
             dataStream.writeInt32(1);
             return;
@@ -2797,7 +2815,8 @@ export class FfiConverterTypeSuggestionProvider extends FfiConverterArrayBuffer 
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 9) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for SuggestionProvider`);
       }
     }
@@ -2984,7 +3003,10 @@ Object.freeze(AmpMatchingStrategy);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(AmpMatchingStrategy)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return AmpMatchingStrategy.NO_KEYWORD_EXPANSION
@@ -2998,6 +3020,7 @@ export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === AmpMatchingStrategy.NO_KEYWORD_EXPANSION) {
             dataStream.writeInt32(1);
             return;
@@ -3018,7 +3041,8 @@ export class FfiConverterTypeAmpMatchingStrategy extends FfiConverterArrayBuffer
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 3) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for AmpMatchingStrategy`);
       }
     }
@@ -3583,22 +3607,25 @@ export const InterruptKind = {
     /**
      * Interrupt read operations like [SuggestStore::query]
      */
-    READ: 1,
+    READ: 0,
     /**
      * Interrupt write operations.  This mostly means [SuggestStore::ingest], but
      * other operations may also be interrupted.
      */
-    WRITE: 2,
+    WRITE: 1,
     /**
      * Interrupt both read and write operations,
      */
-    READ_WRITE: 3,
+    READ_WRITE: 2,
 };
 Object.freeze(InterruptKind);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(InterruptKind)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return InterruptKind.READ
@@ -3612,6 +3639,7 @@ export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === InterruptKind.READ) {
             dataStream.writeInt32(1);
             return;
@@ -3632,7 +3660,8 @@ export class FfiConverterTypeInterruptKind extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 3) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for InterruptKind`);
       }
     }
@@ -3804,6 +3833,7 @@ SuggestProviderConfig.Weather = class extends SuggestProviderConfig{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return new SuggestProviderConfig.Weather(
@@ -3816,6 +3846,7 @@ export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuff
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value instanceof SuggestProviderConfig.Weather) {
             dataStream.writeInt32(1);
             FfiConverterFloat64.write(dataStream, value.score);

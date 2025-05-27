@@ -2264,21 +2264,24 @@ export const EnumNoData = {
     /**
      * A
      */
-    A: 1,
+    A: 0,
     /**
      * B
      */
-    B: 2,
+    B: 1,
     /**
      * C
      */
-    C: 3,
+    C: 2,
 };
 Object.freeze(EnumNoData);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeEnumNoData extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(EnumNoData)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return EnumNoData.A
@@ -2292,6 +2295,7 @@ export class FfiConverterTypeEnumNoData extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === EnumNoData.A) {
             dataStream.writeInt32(1);
             return;
@@ -2312,7 +2316,8 @@ export class FfiConverterTypeEnumNoData extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 3) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for EnumNoData`);
       }
     }
@@ -2357,6 +2362,7 @@ EnumWithData.C = class extends EnumWithData{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeEnumWithData extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return new EnumWithData.A(
@@ -2375,6 +2381,7 @@ export class FfiConverterTypeEnumWithData extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value instanceof EnumWithData.A) {
             dataStream.writeInt32(1);
             FfiConverterUInt8.write(dataStream, value.value);
@@ -2457,6 +2464,7 @@ ComplexEnum.C = class extends ComplexEnum{
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeComplexEnum extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return new ComplexEnum.A(
@@ -2476,6 +2484,7 @@ export class FfiConverterTypeComplexEnum extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value instanceof ComplexEnum.A) {
             dataStream.writeInt32(1);
             FfiConverterTypeEnumNoData.write(dataStream, value.value);
@@ -2515,6 +2524,168 @@ export class FfiConverterTypeComplexEnum extends FfiConverterArrayBuffer {
     static checkType(value) {
       if (!(value instanceof ComplexEnum)) {
         throw new UniFFITypeError(`${value} is not a subclass instance of ComplexEnum`);
+      }
+    }
+}
+
+/**
+ * ExplicitValuedEnum
+ */
+export const ExplicitValuedEnum = {
+    /**
+     * FIRST
+     */
+    FIRST: 1,
+    /**
+     * SECOND
+     */
+    SECOND: 2,
+    /**
+     * FOURTH
+     */
+    FOURTH: 4,
+    /**
+     * TENTH
+     */
+    TENTH: 10,
+    /**
+     * ELEVENTH
+     */
+    ELEVENTH: 11,
+    /**
+     * THIRTEENTH
+     */
+    THIRTEENTH: 13,
+};
+Object.freeze(ExplicitValuedEnum);
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeExplicitValuedEnum extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(ExplicitValuedEnum)
+
+    static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        switch (dataStream.readInt32()) {
+            case 1:
+                return ExplicitValuedEnum.FIRST
+            case 2:
+                return ExplicitValuedEnum.SECOND
+            case 3:
+                return ExplicitValuedEnum.FOURTH
+            case 4:
+                return ExplicitValuedEnum.TENTH
+            case 5:
+                return ExplicitValuedEnum.ELEVENTH
+            case 6:
+                return ExplicitValuedEnum.THIRTEENTH
+            default:
+                throw new UniFFITypeError("Unknown ExplicitValuedEnum variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        if (value === ExplicitValuedEnum.FIRST) {
+            dataStream.writeInt32(1);
+            return;
+        }
+        if (value === ExplicitValuedEnum.SECOND) {
+            dataStream.writeInt32(2);
+            return;
+        }
+        if (value === ExplicitValuedEnum.FOURTH) {
+            dataStream.writeInt32(3);
+            return;
+        }
+        if (value === ExplicitValuedEnum.TENTH) {
+            dataStream.writeInt32(4);
+            return;
+        }
+        if (value === ExplicitValuedEnum.ELEVENTH) {
+            dataStream.writeInt32(5);
+            return;
+        }
+        if (value === ExplicitValuedEnum.THIRTEENTH) {
+            dataStream.writeInt32(6);
+            return;
+        }
+        throw new UniFFITypeError("Unknown ExplicitValuedEnum variant");
+    }
+
+    static computeSize(value) {
+        return 4;
+    }
+
+    static checkType(value) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
+          throw new UniFFITypeError(`${value} is not a valid value for ExplicitValuedEnum`);
+      }
+    }
+}
+
+/**
+ * GappedEnum
+ */
+export const GappedEnum = {
+    /**
+     * ONE
+     */
+    ONE: 10,
+    /**
+     * TWO
+     */
+    TWO: 11,
+    /**
+     * THREE
+     */
+    THREE: 14,
+};
+Object.freeze(GappedEnum);
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeGappedEnum extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(GappedEnum)
+
+    static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        switch (dataStream.readInt32()) {
+            case 1:
+                return GappedEnum.ONE
+            case 2:
+                return GappedEnum.TWO
+            case 3:
+                return GappedEnum.THREE
+            default:
+                throw new UniFFITypeError("Unknown GappedEnum variant");
+        }
+    }
+
+    static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
+        if (value === GappedEnum.ONE) {
+            dataStream.writeInt32(1);
+            return;
+        }
+        if (value === GappedEnum.TWO) {
+            dataStream.writeInt32(2);
+            return;
+        }
+        if (value === GappedEnum.THREE) {
+            dataStream.writeInt32(3);
+            return;
+        }
+        throw new UniFFITypeError("Unknown GappedEnum variant");
+    }
+
+    static computeSize(value) {
+        return 4;
+    }
+
+    static checkType(value) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
+          throw new UniFFITypeError(`${value} is not a valid value for GappedEnum`);
       }
     }
 }

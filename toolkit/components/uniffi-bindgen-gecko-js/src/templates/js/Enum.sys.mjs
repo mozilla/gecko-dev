@@ -4,14 +4,17 @@
 export const {{ enum_.name }} = {
     {%- for variant in enum_.variants %}
     {{ variant.js_docstring|indent(4) }}
-    {{ variant.name }}: {{loop.index}},
+    {{ variant.name }}: {{ variant.resolved_discr.js_lit }},
     {%- endfor %}
 };
 Object.freeze({{ enum_.name }});
 
 // Export the FFIConverter object to make external types work.
 export class {{ enum_|ffi_converter }} extends FfiConverterArrayBuffer {
+    static #validValues = Object.values({{ enum_.name }})
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             {%- for variant in enum_.variants %}
             case {{ loop.index }}:
@@ -23,6 +26,7 @@ export class {{ enum_|ffi_converter }} extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         {%- for variant in enum_.variants %}
         if (value === {{ enum_.name }}.{{ variant.name }}) {
             dataStream.writeInt32({{ loop.index }});
@@ -37,7 +41,8 @@ export class {{ enum_|ffi_converter }} extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > {{ enum_.variants.len() }}) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for {{ enum_.name }}`);
       }
     }
@@ -67,6 +72,7 @@ export class {{ enum_.name }} {}
 // Export the FFIConverter object to make external types work.
 export class {{ enum_|ffi_converter }} extends FfiConverterArrayBuffer {
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             {%- for variant in enum_.variants %}
             case {{ loop.index }}:
@@ -82,6 +88,7 @@ export class {{ enum_|ffi_converter }} extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         {%- for variant in enum_.variants %}
         if (value instanceof {{ enum_.name }}.{{ variant.name }}) {
             dataStream.writeInt32({{ loop.index }});

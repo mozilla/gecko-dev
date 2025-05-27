@@ -25,6 +25,27 @@ pub enum ComplexEnum {
     C { value: SimpleRec },
 }
 
+// Test enum with explicit discriminant values and gaps
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, uniffi::Enum)]
+pub enum ExplicitValuedEnum {
+    First = 1,
+    Second = 2,
+    Fourth = 4,
+    Tenth = 10,
+    Eleventh = 11,
+    Thirteenth = 13,
+}
+
+// Example with sequential and explicit values mixed
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, uniffi::Enum)]
+pub enum GappedEnum {
+    One = 10,
+    Two, // should be 11
+    Three = 14,
+}
+
 #[uniffi::export]
 pub fn roundtrip_enum_no_data(en: EnumNoData) -> EnumNoData {
     en

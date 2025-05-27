@@ -356,17 +356,20 @@ export const JsonEngineMethod = {
     /**
      * POST
      */
-    POST: 1,
+    POST: 2,
     /**
      * GET
      */
-    GET: 2,
+    GET: 1,
 };
 Object.freeze(JsonEngineMethod);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeJSONEngineMethod extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(JsonEngineMethod)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return JsonEngineMethod.POST
@@ -378,6 +381,7 @@ export class FfiConverterTypeJSONEngineMethod extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === JsonEngineMethod.POST) {
             dataStream.writeInt32(1);
             return;
@@ -394,7 +398,8 @@ export class FfiConverterTypeJSONEngineMethod extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 2) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for JsonEngineMethod`);
       }
     }
@@ -1039,17 +1044,20 @@ export const SearchEngineClassification = {
     /**
      * GENERAL
      */
-    GENERAL: 1,
+    GENERAL: 2,
     /**
      * UNKNOWN
      */
-    UNKNOWN: 2,
+    UNKNOWN: 1,
 };
 Object.freeze(SearchEngineClassification);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchEngineClassification extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(SearchEngineClassification)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SearchEngineClassification.GENERAL
@@ -1061,6 +1069,7 @@ export class FfiConverterTypeSearchEngineClassification extends FfiConverterArra
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SearchEngineClassification.GENERAL) {
             dataStream.writeInt32(1);
             return;
@@ -1077,7 +1086,8 @@ export class FfiConverterTypeSearchEngineClassification extends FfiConverterArra
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 2) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for SearchEngineClassification`);
       }
     }
@@ -2043,7 +2053,10 @@ Object.freeze(SearchUpdateChannel);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchUpdateChannel extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(SearchUpdateChannel)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SearchUpdateChannel.NIGHTLY
@@ -2063,6 +2076,7 @@ export class FfiConverterTypeSearchUpdateChannel extends FfiConverterArrayBuffer
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SearchUpdateChannel.NIGHTLY) {
             dataStream.writeInt32(1);
             return;
@@ -2095,7 +2109,8 @@ export class FfiConverterTypeSearchUpdateChannel extends FfiConverterArrayBuffer
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 6) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for SearchUpdateChannel`);
       }
     }
@@ -2130,7 +2145,10 @@ Object.freeze(SearchApplicationName);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchApplicationName extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(SearchApplicationName)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SearchApplicationName.FIREFOX_ANDROID
@@ -2148,6 +2166,7 @@ export class FfiConverterTypeSearchApplicationName extends FfiConverterArrayBuff
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SearchApplicationName.FIREFOX_ANDROID) {
             dataStream.writeInt32(1);
             return;
@@ -2176,7 +2195,8 @@ export class FfiConverterTypeSearchApplicationName extends FfiConverterArrayBuff
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 5) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for SearchApplicationName`);
       }
     }
@@ -2203,7 +2223,10 @@ Object.freeze(SearchDeviceType);
 
 // Export the FFIConverter object to make external types work.
 export class FfiConverterTypeSearchDeviceType extends FfiConverterArrayBuffer {
+    static #validValues = Object.values(SearchDeviceType)
+
     static read(dataStream) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
                 return SearchDeviceType.SMARTPHONE
@@ -2217,6 +2240,7 @@ export class FfiConverterTypeSearchDeviceType extends FfiConverterArrayBuffer {
     }
 
     static write(dataStream, value) {
+        // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         if (value === SearchDeviceType.SMARTPHONE) {
             dataStream.writeInt32(1);
             return;
@@ -2237,7 +2261,8 @@ export class FfiConverterTypeSearchDeviceType extends FfiConverterArrayBuffer {
     }
 
     static checkType(value) {
-      if (!Number.isInteger(value) || value < 1 || value > 3) {
+      // Check that the value is a valid enum variant
+      if (!this.#validValues.includes(value)) {
           throw new UniFFITypeError(`${value} is not a valid value for SearchDeviceType`);
       }
     }
