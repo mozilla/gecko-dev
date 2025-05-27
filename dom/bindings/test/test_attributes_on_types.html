@@ -155,7 +155,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1295322
         ok(!threw, `Set sequenceOfAllowSharedArrayBuffer to [${arrayBuffer.type}]`);
 
         ["Int8Array", "Uint8Array", "Uint8ClampedArray", "Int16Array", "Uint16Array",
-         "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "DataView"].forEach(arrayType => {
+         "Int32Array", "Uint32Array", "Float32Array", "Float64Array", "BigInt64Array",
+         "BigUint64Array", "DataView"].forEach(arrayType => {
           let array = new self[arrayType](buffer);
           // Test Not Allow Shared
           try {

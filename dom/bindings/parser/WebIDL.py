@@ -3864,6 +3864,8 @@ class IDLBuiltinType(IDLType):
         "Uint32Array",
         "Float32Array",
         "Float64Array",
+        "BigInt64Array",
+        "BigUint64Array",
     )
 
     TagLookup = {
@@ -3899,6 +3901,8 @@ class IDLBuiltinType(IDLType):
         Types.Uint32Array: IDLType.Tags.interface,
         Types.Float32Array: IDLType.Tags.interface,
         Types.Float64Array: IDLType.Tags.interface,
+        Types.BigInt64Array: IDLType.Tags.interface,
+        Types.BigUint64Array: IDLType.Tags.interface,
     }
 
     PrettyNames = {
@@ -3934,6 +3938,8 @@ class IDLBuiltinType(IDLType):
         Types.Uint32Array: "Uint32Array",
         Types.Float32Array: "Float32Array",
         Types.Float64Array: "Float64Array",
+        Types.BigInt64Array: "BigInt64Array",
+        Types.BigUint64Array: "BigUint64Array",
     }
 
     __slots__ = (
@@ -4102,7 +4108,7 @@ class IDLBuiltinType(IDLType):
     def isTypedArray(self):
         return (
             self._typeTag >= IDLBuiltinType.Types.Int8Array
-            and self._typeTag <= IDLBuiltinType.Types.Float64Array
+            and self._typeTag <= IDLBuiltinType.Types.BigUint64Array
         )
 
     def isInterface(self):
@@ -4408,6 +4414,16 @@ BuiltinTypes = {
         BuiltinLocation("<builtin type>"),
         "Float64Array",
         IDLBuiltinType.Types.Float64Array,
+    ),
+    IDLBuiltinType.Types.BigInt64Array: IDLBuiltinType(
+        BuiltinLocation("<builtin type>"),
+        "BigInt64Array",
+        IDLBuiltinType.Types.BigInt64Array,
+    ),
+    IDLBuiltinType.Types.BigUint64Array: IDLBuiltinType(
+        BuiltinLocation("<builtin type>"),
+        "BigUint64Array",
+        IDLBuiltinType.Types.BigUint64Array,
     ),
 }
 
@@ -9320,7 +9336,7 @@ class Parser(Tokenizer):
 
         # range omits the last value.
         for x in range(
-            IDLBuiltinType.Types.ArrayBuffer, IDLBuiltinType.Types.Float64Array + 1
+            IDLBuiltinType.Types.ArrayBuffer, IDLBuiltinType.Types.BigUint64Array + 1
         ):
             builtin = BuiltinTypes[x]
             identifier = IDLUnresolvedIdentifier(
