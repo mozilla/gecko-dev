@@ -523,13 +523,33 @@ class Longhand(Property):
     def is_zoom_dependent(self):
         if not self.predefined_type:
             return False
-        # TODO: Get this from SpecifiedValueInfo or so instead.
+        # TODO: Get this from SpecifiedValueInfo or so instead; see bug 1887627.
         return self.predefined_type in {
+            "BorderSpacing",
+            "FontSize",
+            "Inset",
             "Length",
             "LengthPercentage",
-            "FontSize",
+            "LengthPercentageOrAuto",
+            "LetterSpacing",
             "LineHeight",
+            "LineWidth",
+            "MaxSize",
+            "NonNegativeLength",
+            "NonNegativeLengthOrAuto",
+            "NonNegativeLengthOrNumber",
+            "NonNegativeLengthOrNumberRect",
+            "NonNegativeLengthPercentage",
+            "NonNegativeLengthPercentageOrNormal",
+            "Position",
+            "PositionOrAuto",
+            "SimpleShadow",
             "Size",
+            "SVGLength",
+            "SVGStrokeDashArray",
+            "SVGWidth",
+            "TextDecorationLength",
+            "TextIndent",
             "WordSpacing",
         }
 
