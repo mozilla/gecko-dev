@@ -26,4 +26,4 @@ prefs = [
 ["browser_text.js"]
 
 ["browser_textSelectionContainer.js"]
-skip-if = ["true"] # Bug 1857116
+tags = "os_integration"
