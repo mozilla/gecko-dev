@@ -39,6 +39,10 @@ void ArrayBufferViewObject::trace(JSTracer* trc, JSObject* obj) {
                    bufferObj)) {
       buffer =
           &gc::MaybeForwardedObjectAs<ResizableArrayBufferObject>(bufferObj);
+    } else if (gc::MaybeForwardedObjectIs<ImmutableArrayBufferObject>(
+                   bufferObj)) {
+      buffer =
+          &gc::MaybeForwardedObjectAs<ImmutableArrayBufferObject>(bufferObj);
     }
     if (buffer) {
       size_t offset = view->dataPointerOffset();
@@ -296,16 +300,19 @@ size_t ArrayBufferViewObject::dataPointerOffset() const {
   // Can be called during tracing, so the buffer is possibly forwarded.
   const auto* bufferObj = gc::MaybeForwarded(&bufferValue().toObject());
 
-  // Two distinct classes are used for non-shared buffers.
+  // Three distinct classes are used for non-shared buffers.
   MOZ_ASSERT(
       gc::MaybeForwardedObjectIs<FixedLengthArrayBufferObject>(bufferObj) ||
-      gc::MaybeForwardedObjectIs<ResizableArrayBufferObject>(bufferObj));
+      gc::MaybeForwardedObjectIs<ResizableArrayBufferObject>(bufferObj) ||
+      gc::MaybeForwardedObjectIs<ImmutableArrayBufferObject>(bufferObj));
 
-  // Ensure these two classes can be casted to ArrayBufferObject.
+  // Ensure these three classes can be casted to ArrayBufferObject.
   static_assert(
       std::is_base_of_v<ArrayBufferObject, FixedLengthArrayBufferObject>);
   static_assert(
       std::is_base_of_v<ArrayBufferObject, ResizableArrayBufferObject>);
+  static_assert(
+      std::is_base_of_v<ArrayBufferObject, ImmutableArrayBufferObject>);
 
   // Manual cast necessary because the buffer is possibly forwarded.
   const auto* buffer = static_cast<const ArrayBufferObject*>(bufferObj);

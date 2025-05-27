@@ -1190,6 +1190,7 @@ uint64_t ICInterpretOps(uint64_t arg0, uint64_t arg1, ICStub* stub,
           case GuardClassKind::Array:
           case GuardClassKind::PlainObject:
           case GuardClassKind::FixedLengthArrayBuffer:
+          case GuardClassKind::ImmutableArrayBuffer:
           case GuardClassKind::ResizableArrayBuffer:
           case GuardClassKind::FixedLengthSharedArrayBuffer:
           case GuardClassKind::GrowableSharedArrayBuffer:

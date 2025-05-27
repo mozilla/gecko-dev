@@ -435,6 +435,7 @@ const JSClass* WarpCacheIRTranspiler::classForGuardClassKind(
     case GuardClassKind::Array:
     case GuardClassKind::PlainObject:
     case GuardClassKind::FixedLengthArrayBuffer:
+    case GuardClassKind::ImmutableArrayBuffer:
     case GuardClassKind::ResizableArrayBuffer:
     case GuardClassKind::FixedLengthSharedArrayBuffer:
     case GuardClassKind::GrowableSharedArrayBuffer:

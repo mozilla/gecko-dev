@@ -565,6 +565,7 @@ enum class GuardClassKind : uint8_t {
   Array,
   PlainObject,
   FixedLengthArrayBuffer,
+  ImmutableArrayBuffer,
   ResizableArrayBuffer,
   FixedLengthSharedArrayBuffer,
   GrowableSharedArrayBuffer,
@@ -595,6 +596,8 @@ inline const char* GuardClassKindEnumName(GuardClassKind kind) {
       return "PlainObject";
     case GuardClassKind::FixedLengthArrayBuffer:
       return "FixedLengthArrayBuffer";
+    case GuardClassKind::ImmutableArrayBuffer:
+      return "ImmutableArrayBuffer";
     case GuardClassKind::ResizableArrayBuffer:
       return "ResizableArrayBuffer";
     case GuardClassKind::FixedLengthSharedArrayBuffer:

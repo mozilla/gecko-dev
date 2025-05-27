@@ -2070,6 +2070,8 @@ const JSClass* js::jit::ClassFor(GuardClassKind kind) {
       return &PlainObject::class_;
     case GuardClassKind::FixedLengthArrayBuffer:
       return &FixedLengthArrayBufferObject::class_;
+    case GuardClassKind::ImmutableArrayBuffer:
+      return &ImmutableArrayBufferObject::class_;
     case GuardClassKind::ResizableArrayBuffer:
       return &ResizableArrayBufferObject::class_;
     case GuardClassKind::FixedLengthSharedArrayBuffer:
@@ -2114,6 +2116,7 @@ void IRGenerator::emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
     case GuardClassKind::Array:
     case GuardClassKind::PlainObject:
     case GuardClassKind::FixedLengthArrayBuffer:
+    case GuardClassKind::ImmutableArrayBuffer:
     case GuardClassKind::ResizableArrayBuffer:
     case GuardClassKind::FixedLengthSharedArrayBuffer:
     case GuardClassKind::GrowableSharedArrayBuffer:
@@ -7583,6 +7586,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachGuardToEitherClass(
 }
 
 AttachDecision InlinableNativeIRGenerator::tryAttachGuardToArrayBuffer() {
+  // TODO: Support Immutable Array Buffers.
   return tryAttachGuardToEitherClass(GuardClassKind::FixedLengthArrayBuffer,
                                      GuardClassKind::ResizableArrayBuffer);
 }
@@ -11485,9 +11489,11 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayConstructor() {
         writer.guardClass(objId, GuardClassKind::FixedLengthSharedArrayBuffer);
       } else if (obj->is<ResizableArrayBufferObject>()) {
         writer.guardClass(objId, GuardClassKind::ResizableArrayBuffer);
-      } else {
-        MOZ_ASSERT(obj->is<GrowableSharedArrayBufferObject>());
+      } else if (obj->is<GrowableSharedArrayBufferObject>()) {
         writer.guardClass(objId, GuardClassKind::GrowableSharedArrayBuffer);
+      } else {
+        MOZ_ASSERT(obj->is<ImmutableArrayBufferObject>());
+        writer.guardClass(objId, GuardClassKind::ImmutableArrayBuffer);
       }
       ValOperandId byteOffsetId;
       if (args_.length() > 1) {

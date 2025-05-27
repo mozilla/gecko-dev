@@ -2196,6 +2196,7 @@ static const JSClass* ClassFor(JSContext* cx, GuardClassKind kind) {
     case GuardClassKind::Array:
     case GuardClassKind::PlainObject:
     case GuardClassKind::FixedLengthArrayBuffer:
+    case GuardClassKind::ImmutableArrayBuffer:
     case GuardClassKind::ResizableArrayBuffer:
     case GuardClassKind::FixedLengthSharedArrayBuffer:
     case GuardClassKind::GrowableSharedArrayBuffer:
@@ -2601,6 +2602,8 @@ bool CacheIRCompiler::emitGuardIsNotArrayBufferMaybeShared(ObjOperandId objId) {
   masm.branchPtr(Assembler::Equal, scratch,
                  ImmPtr(&GrowableSharedArrayBufferObject::class_),
                  failure->label());
+  masm.branchPtr(Assembler::Equal, scratch,
+                 ImmPtr(&ImmutableArrayBufferObject::class_), failure->label());
   return true;
 }
 
