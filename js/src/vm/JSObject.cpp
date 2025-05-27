@@ -2239,6 +2239,14 @@ JS_PUBLIC_API bool js::ShouldIgnorePropertyDefinition(JSContext* cx,
       return true;
     }
   }
+  if (key == JSProto_ArrayBuffer &&
+      !JS::Prefs::experimental_arraybuffer_immutable()) {
+    if (id == NameToId(cx->names().immutable) ||
+        id == NameToId(cx->names().sliceToImmutable) ||
+        id == NameToId(cx->names().transferToImmutable)) {
+      return true;
+    }
+  }
 #endif
 
   if (key == JSProto_Function &&

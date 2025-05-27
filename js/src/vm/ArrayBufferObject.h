@@ -195,10 +195,19 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   static bool maxByteLengthGetterImpl(JSContext* cx, const CallArgs& args);
   static bool resizableGetterImpl(JSContext* cx, const CallArgs& args);
   static bool detachedGetterImpl(JSContext* cx, const CallArgs& args);
+#ifdef NIGHTLY_BUILD
+  static bool immutableGetterImpl(JSContext* cx, const CallArgs& args);
+#endif
   static bool sliceImpl(JSContext* cx, const CallArgs& args);
+#ifdef NIGHTLY_BUILD
+  static bool sliceToImmutableImpl(JSContext* cx, const CallArgs& args);
+#endif
   static bool resizeImpl(JSContext* cx, const CallArgs& args);
   static bool transferImpl(JSContext* cx, const CallArgs& args);
   static bool transferToFixedLengthImpl(JSContext* cx, const CallArgs& args);
+#ifdef NIGHTLY_BUILD
+  static bool transferToImmutableImpl(JSContext* cx, const CallArgs& args);
+#endif
 
  public:
   static const uint8_t DATA_SLOT = 0;
@@ -437,15 +446,27 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
 
   static bool detachedGetter(JSContext* cx, unsigned argc, Value* vp);
 
+#ifdef NIGHTLY_BUILD
+  static bool immutableGetter(JSContext* cx, unsigned argc, Value* vp);
+#endif
+
   static bool fun_isView(JSContext* cx, unsigned argc, Value* vp);
 
   static bool slice(JSContext* cx, unsigned argc, Value* vp);
+
+#ifdef NIGHTLY_BUILD
+  static bool sliceToImmutable(JSContext* cx, unsigned argc, Value* vp);
+#endif
 
   static bool resize(JSContext* cx, unsigned argc, Value* vp);
 
   static bool transfer(JSContext* cx, unsigned argc, Value* vp);
 
   static bool transferToFixedLength(JSContext* cx, unsigned argc, Value* vp);
+
+#ifdef NIGHTLY_BUILD
+  static bool transferToImmutable(JSContext* cx, unsigned argc, Value* vp);
+#endif
 
   static bool class_constructor(JSContext* cx, unsigned argc, Value* vp);
 
@@ -850,6 +871,10 @@ class ImmutableArrayBufferObject : public ArrayBufferObject {
     return ArrayBufferObject::copyAndDetach<ImmutableArrayBufferObject>(
         cx, newByteLength, source);
   }
+
+  static ImmutableArrayBufferObject* slice(
+      JSContext* cx, size_t newByteLength,
+      JS::Handle<ArrayBufferObject*> source, size_t sourceByteOffset);
 };
 
 size_t ArrayBufferObject::maxByteLength() const {
