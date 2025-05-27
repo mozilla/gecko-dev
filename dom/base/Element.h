@@ -1577,10 +1577,10 @@ class Element : public FragmentOrElement {
   MOZ_CAN_RUN_SCRIPT void ScrollTo(const ScrollToOptions& aOptions);
   MOZ_CAN_RUN_SCRIPT void ScrollBy(double aXScrollDif, double aYScrollDif);
   MOZ_CAN_RUN_SCRIPT void ScrollBy(const ScrollToOptions& aOptions);
-  MOZ_CAN_RUN_SCRIPT double ScrollTop();
-  MOZ_CAN_RUN_SCRIPT void SetScrollTop(double aScrollTop);
-  MOZ_CAN_RUN_SCRIPT double ScrollLeft();
-  MOZ_CAN_RUN_SCRIPT void SetScrollLeft(double aScrollLeft);
+  MOZ_CAN_RUN_SCRIPT int32_t ScrollTop();
+  MOZ_CAN_RUN_SCRIPT void SetScrollTop(int32_t aScrollTop);
+  MOZ_CAN_RUN_SCRIPT int32_t ScrollLeft();
+  MOZ_CAN_RUN_SCRIPT void SetScrollLeft(int32_t aScrollLeft);
   MOZ_CAN_RUN_SCRIPT int32_t ScrollWidth();
   MOZ_CAN_RUN_SCRIPT int32_t ScrollHeight();
   MOZ_CAN_RUN_SCRIPT void MozScrollSnap();
@@ -1601,10 +1601,10 @@ class Element : public FragmentOrElement {
   MOZ_CAN_RUN_SCRIPT int32_t ScreenY();
   MOZ_CAN_RUN_SCRIPT already_AddRefed<nsIScreen> GetScreen();
 
-  MOZ_CAN_RUN_SCRIPT double ScrollTopMin();
-  MOZ_CAN_RUN_SCRIPT double ScrollTopMax();
-  MOZ_CAN_RUN_SCRIPT double ScrollLeftMin();
-  MOZ_CAN_RUN_SCRIPT double ScrollLeftMax();
+  MOZ_CAN_RUN_SCRIPT int32_t ScrollTopMin();
+  MOZ_CAN_RUN_SCRIPT int32_t ScrollTopMax();
+  MOZ_CAN_RUN_SCRIPT int32_t ScrollLeftMin();
+  MOZ_CAN_RUN_SCRIPT int32_t ScrollLeftMax();
 
   MOZ_CAN_RUN_SCRIPT double ClientHeightDouble() {
     return CSSPixel::FromAppUnits(GetClientAreaRect().Height());

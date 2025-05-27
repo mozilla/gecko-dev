@@ -849,15 +849,14 @@ void Element::ScrollTo(const ScrollToOptions& aOptions) {
   if (!sf) {
     return;
   }
-
-  CSSPoint scrollPos = sf->GetScrollPositionCSSPixels();
+  CSSIntPoint scrollPos = sf->GetRoundedScrollPositionCSSPixels();
   if (aOptions.mLeft.WasPassed()) {
-    scrollPos.x = ToZeroIfNonfinite(
-        frame->Style()->EffectiveZoom().Zoom(aOptions.mLeft.Value()));
+    scrollPos.x = int32_t(mozilla::ToZeroIfNonfinite(
+        frame->Style()->EffectiveZoom().Zoom(aOptions.mLeft.Value())));
   }
   if (aOptions.mTop.WasPassed()) {
-    scrollPos.y = ToZeroIfNonfinite(
-        frame->Style()->EffectiveZoom().Zoom(aOptions.mTop.Value()));
+    scrollPos.y = int32_t(mozilla::ToZeroIfNonfinite(
+        frame->Style()->EffectiveZoom().Zoom(aOptions.mTop.Value())));
   }
   ScrollMode scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
                               ? ScrollMode::SmoothMsd
@@ -879,15 +878,15 @@ void Element::ScrollBy(const ScrollToOptions& aOptions) {
     return;
   }
 
-  CSSPoint scrollDelta;
+  CSSIntPoint scrollDelta;
   if (aOptions.mLeft.WasPassed()) {
-    scrollDelta.x = ToZeroIfNonfinite(
-        frame->Style()->EffectiveZoom().Zoom(aOptions.mLeft.Value()));
+    scrollDelta.x = int32_t(mozilla::ToZeroIfNonfinite(
+        frame->Style()->EffectiveZoom().Zoom(aOptions.mLeft.Value())));
   }
 
   if (aOptions.mTop.WasPassed()) {
-    scrollDelta.y = ToZeroIfNonfinite(
-        frame->Style()->EffectiveZoom().Zoom(aOptions.mTop.Value()));
+    scrollDelta.y = int32_t(mozilla::ToZeroIfNonfinite(
+        frame->Style()->EffectiveZoom().Zoom(aOptions.mTop.Value())));
   }
 
   auto scrollMode = sf->IsSmoothScroll(aOptions.mBehavior)
@@ -896,21 +895,21 @@ void Element::ScrollBy(const ScrollToOptions& aOptions) {
   sf->ScrollByCSSPixels(scrollDelta, scrollMode);
 }
 
-double Element::ScrollTop() {
-  return CSSPixel::FromAppUnits(GetScrollOrigin().y);
+int32_t Element::ScrollTop() {
+  return CSSPixel::FromAppUnitsRounded(GetScrollOrigin().y);
 }
 
-void Element::SetScrollTop(double aScrollTop) {
+void Element::SetScrollTop(int32_t aScrollTop) {
   ScrollToOptions options;
   options.mTop.Construct(aScrollTop);
   ScrollTo(options);
 }
 
-double Element::ScrollLeft() {
-  return CSSPixel::FromAppUnits(GetScrollOrigin().x);
+int32_t Element::ScrollLeft() {
+  return CSSPixel::FromAppUnitsRounded(GetScrollOrigin().x);
 }
 
-void Element::SetScrollLeft(double aScrollLeft) {
+void Element::SetScrollLeft(int32_t aScrollLeft) {
   ScrollToOptions options;
   options.mLeft.Construct(aScrollLeft);
   ScrollTo(options);
@@ -932,20 +931,20 @@ nsRect Element::GetScrollRange() {
   return frame->Style()->EffectiveZoom().Unzoom(sf->GetScrollRange());
 }
 
-double Element::ScrollTopMin() {
-  return CSSPixel::FromAppUnits(GetScrollRange().Y());
+int32_t Element::ScrollTopMin() {
+  return CSSPixel::FromAppUnitsRounded(GetScrollRange().Y());
 }
 
-double Element::ScrollTopMax() {
-  return CSSPixel::FromAppUnits(GetScrollRange().YMost());
+int32_t Element::ScrollTopMax() {
+  return CSSPixel::FromAppUnitsRounded(GetScrollRange().YMost());
 }
 
-double Element::ScrollLeftMin() {
-  return CSSPixel::FromAppUnits(GetScrollRange().X());
+int32_t Element::ScrollLeftMin() {
+  return CSSPixel::FromAppUnitsRounded(GetScrollRange().X());
 }
 
-double Element::ScrollLeftMax() {
-  return CSSPixel::FromAppUnits(GetScrollRange().XMost());
+int32_t Element::ScrollLeftMax() {
+  return CSSPixel::FromAppUnitsRounded(GetScrollRange().XMost());
 }
 
 static nsSize GetScrollRectSizeForOverflowVisibleFrame(nsIFrame* aFrame) {

@@ -216,12 +216,8 @@ partial interface Element {
   // scrolling
   undefined scrollIntoView(optional (boolean or ScrollIntoViewOptions) arg = {});
   // None of the CSSOM attributes are [Pure], because they flush
-           attribute unrestricted double scrollTop;   // scroll on setting
-           attribute unrestricted double scrollLeft;  // scroll on setting
-
-  // FIXME(emilio): A bit weird that these are long instead of doubles, see:
-  // https://lists.w3.org/Archives/Public/www-style/2015Feb/0195.html
-  // https://github.com/w3c/csswg-drafts/issues/5260
+           attribute long scrollTop;   // scroll on setting
+           attribute long scrollLeft;  // scroll on setting
   readonly attribute long scrollWidth;
   readonly attribute long scrollHeight;
 
@@ -254,10 +250,10 @@ partial interface Element {
   /* The minimum/maximum offset that the element can be scrolled to
      (i.e., the value that scrollLeft/scrollTop would be clamped to if they were
      set to arbitrarily large values. */
-  [ChromeOnly] readonly attribute unrestricted double scrollTopMin;
-               readonly attribute unrestricted double scrollTopMax;
-  [ChromeOnly] readonly attribute unrestricted double scrollLeftMin;
-               readonly attribute unrestricted double scrollLeftMax;
+  [ChromeOnly] readonly attribute long scrollTopMin;
+               readonly attribute long scrollTopMax;
+  [ChromeOnly] readonly attribute long scrollLeftMin;
+               readonly attribute long scrollLeftMax;
 
   [Pref="layout.css.zoom.enabled"] readonly attribute double currentCSSZoom;
 };
