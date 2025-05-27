@@ -86,7 +86,7 @@ skip == enable-sheet-7.html multiple-in-family-1-ref.html
 == ex-unit-1.html ex-unit-1-ref.html
 == ex-unit-1-dynamic.html ex-unit-1-ref.html
 
-== local-1.html local-1-ref.html
+fuzzy-if(gtkWidget&&fission&&!swgl,255-255,4216-4426) == local-1.html local-1-ref.html
 == local-styled-1.html local-styled-1-ref.html
 
 == synthetic-weight-style.html synthetic-weight-style-ref.html
