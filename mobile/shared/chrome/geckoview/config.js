@@ -243,12 +243,6 @@ var AboutConfig = {
     Services.prefs.removeObserver("", this);
   },
 
-  // Clear the filterInput value, to display the entire list
-  clearFilterInput: function AC_clearFilterInput() {
-    this.filterInput.value = "";
-    this.bufferFilterInput();
-  },
-
   // Buffer down rapid changes in filterInput value from keyboard
   bufferFilterInput: function AC_bufferFilterInput() {
     if (this._filterChangeTimer) {
