@@ -484,7 +484,8 @@ function* IteratorFilterGenerator(iterator, nextMethod, predicate) {
 /**
  * Iterator.prototype.take ( limit )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.take
+ * https://tc39.es/ecma262/#sec-iterator.prototype.take
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorTake(limit) {
   // Step 1.
@@ -495,16 +496,30 @@ function IteratorTake(limit) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Steps 3-6.
-  var integerLimit = std_Math_trunc(limit);
+  // Steps 3-5.
+  var numLimit;
+  try {
+    numLimit = +limit;
+  } catch (e) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
+    throw e;
+  }
+
+  // Steps 6-8.
+  var integerLimit = std_Math_trunc(numLimit);
   if (!(integerLimit >= 0)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowRangeError(JSMSG_NEGATIVE_LIMIT);
   }
 
-  // Step 7. (Inlined call to GetIteratorDirect.)
+  // Step 9. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Steps 8-10.
+  // Steps 10-12.
   var result = NewIteratorHelper();
   var generator = IteratorTakeGenerator(iterator, nextMethod, integerLimit);
   UnsafeSetReservedSlot(
@@ -516,7 +531,7 @@ function IteratorTake(limit) {
   // Stop at the initial yield point.
   callFunction(GeneratorNext, generator);
 
-  // Step 11.
+  // Step 13.
   return result;
 }
 
@@ -525,7 +540,8 @@ function IteratorTake(limit) {
  *
  * Abstract closure definition.
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.take
+ * https://tc39.es/ecma262/#sec-iterator.prototype.take
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorTakeGenerator(iterator, nextMethod, remaining) {
   var isReturnCompletion = true;
@@ -571,7 +587,8 @@ function* IteratorTakeGenerator(iterator, nextMethod, remaining) {
 /**
  * Iterator.prototype.drop ( limit )
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.drop
+ * https://tc39.es/ecma262/#sec-iterator.prototype.drop
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function IteratorDrop(limit) {
   // Step 1.
@@ -582,16 +599,30 @@ function IteratorDrop(limit) {
     ThrowTypeError(JSMSG_OBJECT_REQUIRED, iterator === null ? "null" : typeof iterator);
   }
 
-  // Steps 3-6.
-  var integerLimit = std_Math_trunc(limit);
+  // Steps 3-5.
+  var numLimit;
+  try {
+    numLimit = +limit;
+  } catch (e) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
+    throw e;
+  }
+
+  // Steps 6-8.
+  var integerLimit = std_Math_trunc(numLimit);
   if (!(integerLimit >= 0)) {
+    try {
+      IteratorClose(iterator);
+    } catch {}
     ThrowRangeError(JSMSG_NEGATIVE_LIMIT);
   }
 
-  // Step 7. (Inlined call to GetIteratorDirect.)
+  // Step 9. (Inlined call to GetIteratorDirect.)
   var nextMethod = iterator.next;
 
-  // Steps 8-10.
+  // Steps 10-12.
   var result = NewIteratorHelper();
   var generator = IteratorDropGenerator(iterator, nextMethod, integerLimit);
   UnsafeSetReservedSlot(
@@ -603,7 +634,7 @@ function IteratorDrop(limit) {
   // Stop at the initial yield point.
   callFunction(GeneratorNext, generator);
 
-  // Step 11.
+  // Step 13.
   return result;
 }
 
@@ -612,7 +643,8 @@ function IteratorDrop(limit) {
  *
  * Abstract closure definition.
  *
- * https://tc39.es/proposal-iterator-helpers/#sec-iteratorprototype.drop
+ * https://tc39.es/ecma262/#sec-iterator.prototype.drop
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  */
 function* IteratorDropGenerator(iterator, nextMethod, remaining) {
   var isReturnCompletion = true;
@@ -630,19 +662,19 @@ function* IteratorDropGenerator(iterator, nextMethod, remaining) {
     }
   }
 
-  // Step 8.a. (Implicit)
+  // Step 10.a. (Implicit)
 
-  // Steps 8.b-c.
+  // Steps 10.b-c.
   for (var value of allowContentIterWithNext(iterator, nextMethod)) {
-    // Step 8.b.i.
+    // Step 10.b.i.
     if (remaining-- <= 0) {
-      // Steps 8.b.ii-iii. (Implicit through for-of loop)
-      // Steps 8.c.i-ii. (Implicit through for-of loop)
+      // Steps 10.b.ii-iii. (Implicit through for-of loop)
+      // Steps 10.c.i-ii. (Implicit through for-of loop)
 
-      // Step 8.c.iii.
+      // Step 10.c.iii.
       yield value;
 
-      // Step 8.c.iv. (Implicit through for-of loop)
+      // Step 10.c.iv. (Implicit through for-of loop)
     }
   }
 }

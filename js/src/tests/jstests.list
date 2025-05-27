@@ -710,10 +710,6 @@ skip script test262/built-ins/String/prototype/search/cstm-search-on-string-prim
 skip script test262/built-ins/String/prototype/search/cstm-search-on-boolean-primitive.js
 skip script test262/built-ins/String/prototype/search/cstm-search-on-number-primitive.js
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1935510
-skip script test262/built-ins/Iterator/prototype/drop/argument-validation-failure-closes-underlying.js
-skip script test262/built-ins/Iterator/prototype/take/argument-validation-failure-closes-underlying.js
-
 # https://github.com/tc39/ecma402/pull/989
 skip script test262/intl402/PluralRules/constructor-options-throwing-getters.js
 skip script test262/intl402/PluralRules/default-options-object-prototype.js
