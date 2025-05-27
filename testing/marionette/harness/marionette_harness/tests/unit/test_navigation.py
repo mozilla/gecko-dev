@@ -5,7 +5,7 @@
 import contextlib
 import os
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from marionette_driver import By, errors, expected, Wait
 from marionette_driver.keys import Keys

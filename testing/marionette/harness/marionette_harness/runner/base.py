@@ -24,7 +24,6 @@ from manifestparser.filters import tags
 from marionette_driver.marionette import Marionette
 from moztest.adapters.unit import StructuredTestResult, StructuredTestRunner
 from moztest.results import TestResult, TestResultCollection, relevant_line
-from six import MAXSIZE
 
 from . import serve
 
@@ -371,7 +370,7 @@ class BaseMarionetteArguments(ArgumentParser):
         self.add_argument(
             "--shuffle-seed",
             type=int,
-            default=random.randint(0, MAXSIZE),
+            default=random.randint(0, sys.maxsize),
             help="Use given seed to shuffle tests",
         )
         self.add_argument(
@@ -615,7 +614,7 @@ class BaseMarionetteTestRunner:
         testvars=None,
         symbols_path=None,
         shuffle=False,
-        shuffle_seed=random.randint(0, MAXSIZE),
+        shuffle_seed=random.randint(0, sys.maxsize),
         this_chunk=1,
         total_chunks=1,
         server_root=None,

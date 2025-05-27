@@ -2,12 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import types
-
-import six
-
 import mozunit
-import pytest
 
 from marionette_harness.runner import serve
 from marionette_harness.runner.serve import iter_proc, iter_url
@@ -37,7 +32,7 @@ def test_start():
     assert "http" in serve.servers
     assert "https" in serve.servers
     for url in iter_url(serve.servers):
-        assert isinstance(url, six.string_types)
+        assert isinstance(url, str)
 
 
 def test_start_with_custom_root(tmpdir_factory):
@@ -56,7 +51,7 @@ def test_iter_proc():
 def test_iter_url():
     serve.start()
     for url in iter_url(serve.servers):
-        assert isinstance(url, six.string_types)
+        assert isinstance(url, str)
 
 
 def test_where_is():

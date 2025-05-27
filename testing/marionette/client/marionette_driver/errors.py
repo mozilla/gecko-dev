@@ -4,10 +4,7 @@
 
 import traceback
 
-import six
 
-
-@six.python_2_unicode_compatible
 class MarionetteException(Exception):
     """Raised when a generic non-recoverable exception has occured."""
 

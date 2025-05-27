@@ -2,8 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import six
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from marionette_driver import errors
 from marionette_harness import MarionetteTestCase, WindowManagerMixin
@@ -27,14 +26,12 @@ class TestWindowHandles(WindowManagerMixin, MarionetteTestCase):
 
     def assert_window_handles(self):
         try:
-            self.assertIsInstance(
-                self.marionette.current_window_handle, six.string_types
-            )
+            self.assertIsInstance(self.marionette.current_window_handle, str)
         except errors.NoSuchWindowException:
             pass
 
         for handle in self.marionette.window_handles:
-            self.assertIsInstance(handle, six.string_types)
+            self.assertIsInstance(handle, str)
 
     def test_window_handles_after_opening_new_tab(self):
         new_tab = self.open_tab()

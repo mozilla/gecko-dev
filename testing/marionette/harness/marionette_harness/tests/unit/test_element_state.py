@@ -2,10 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import types
-
-import six
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from marionette_driver.by import By
 from marionette_harness import MarionetteTestCase
@@ -95,25 +92,25 @@ class TestGetElementAttribute(MarionetteTestCase):
         self.marionette.navigate(inline("<p style=foo>"))
         el = self.marionette.find_element(By.TAG_NAME, "p")
         attr = el.get_attribute("style")
-        self.assertIsInstance(attr, six.string_types)
+        self.assertIsInstance(attr, str)
         self.assertEqual("foo", attr)
 
     def test_boolean_attributes(self):
-        for tag, attrs in six.iteritems(boolean_attributes):
+        for tag, attrs in boolean_attributes.items():
             for attr in attrs:
                 print("testing boolean attribute <{0} {1}>".format(tag, attr))
                 doc = inline("<{0} {1}>".format(tag, attr))
                 self.marionette.navigate(doc)
                 el = self.marionette.find_element(By.TAG_NAME, tag)
                 res = el.get_attribute(attr)
-                self.assertIsInstance(res, six.string_types)
+                self.assertIsInstance(res, str)
                 self.assertEqual("true", res)
 
     def test_global_boolean_attributes(self):
         self.marionette.navigate(inline("<p hidden>foo"))
         el = self.marionette.find_element(By.TAG_NAME, "p")
         attr = el.get_attribute("hidden")
-        self.assertIsInstance(attr, six.string_types)
+        self.assertIsInstance(attr, str)
         self.assertEqual("true", attr)
 
         self.marionette.navigate(inline("<p>foo"))
@@ -124,7 +121,7 @@ class TestGetElementAttribute(MarionetteTestCase):
         self.marionette.navigate(inline("<p itemscope>foo"))
         el = self.marionette.find_element(By.TAG_NAME, "p")
         attr = el.get_attribute("itemscope")
-        self.assertIsInstance(attr, six.string_types)
+        self.assertIsInstance(attr, str)
         self.assertEqual("true", attr)
 
         self.marionette.navigate(inline("<p>foo"))
@@ -139,7 +136,7 @@ class TestGetElementAttribute(MarionetteTestCase):
         self.marionette.navigate(doc)
         el = self.marionette.find_element(By.TAG_NAME, "p")
         attr = el.get_attribute("hidden")
-        self.assertIsInstance(attr, six.string_types)
+        self.assertIsInstance(attr, str)
         self.assertEqual("true", attr)
 
 

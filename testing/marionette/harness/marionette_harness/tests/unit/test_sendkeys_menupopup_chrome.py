@@ -2,7 +2,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from marionette_driver import By, errors, Wait
 from marionette_driver.keys import Keys

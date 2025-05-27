@@ -5,7 +5,7 @@
 import sys
 from unittest import skipIf
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from marionette_driver import By, Wait
 from marionette_driver.keys import Keys

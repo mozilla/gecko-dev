@@ -38,7 +38,13 @@ setup(
         "Topic :: Software Development :: Testing",
         "Topic :: Utilities",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     keywords="mozilla",
     author="Auto-tools",
@@ -55,4 +61,5 @@ setup(
       [console_scripts]
       marionette = marionette_harness.runtests:cli
       """,
+    python_requires=">=3.8",
 )

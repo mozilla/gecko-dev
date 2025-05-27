@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import six
-
 from marionette_driver import errors
 from marionette_harness import MarionetteTestCase, WindowManagerMixin
 
@@ -24,20 +22,16 @@ class TestWindowHandles(WindowManagerMixin, MarionetteTestCase):
 
     def assert_window_handles(self):
         try:
-            self.assertIsInstance(
-                self.marionette.current_chrome_window_handle, six.string_types
-            )
-            self.assertIsInstance(
-                self.marionette.current_window_handle, six.string_types
-            )
+            self.assertIsInstance(self.marionette.current_chrome_window_handle, str)
+            self.assertIsInstance(self.marionette.current_window_handle, str)
         except errors.NoSuchWindowException:
             pass
 
         for handle in self.marionette.chrome_window_handles:
-            self.assertIsInstance(handle, six.string_types)
+            self.assertIsInstance(handle, str)
 
         for handle in self.marionette.window_handles:
-            self.assertIsInstance(handle, six.string_types)
+            self.assertIsInstance(handle, str)
 
     def test_chrome_window_handles_with_scopes(self):
         new_browser = self.open_window()

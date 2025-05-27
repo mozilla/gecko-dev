@@ -4,10 +4,7 @@
 
 import json
 import os
-import types
-
-import six
-from six.moves.urllib_request import urlopen
+from urllib.request import urlopen
 
 import mozunit
 import pytest
@@ -42,7 +39,7 @@ def test_start_stop(server):
 def test_get_url(server):
     server.start()
     url = server.get_url("/")
-    assert isinstance(url, six.string_types)
+    assert isinstance(url, str)
     assert "http://" in url
 
     server.stop()
@@ -52,9 +49,9 @@ def test_get_url(server):
 
 def test_doc_root(server):
     server.start()
-    assert isinstance(server.doc_root, six.string_types)
+    assert isinstance(server.doc_root, str)
     server.stop()
-    assert isinstance(server.doc_root, six.string_types)
+    assert isinstance(server.doc_root, str)
 
 
 def test_router(server):

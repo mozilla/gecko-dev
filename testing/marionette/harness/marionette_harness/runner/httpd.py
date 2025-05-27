@@ -14,8 +14,8 @@ import os
 import select
 import sys
 import time
+from urllib.parse import parse_qsl, urlparse
 
-from six.moves.urllib import parse as urlparse
 from wptserve import handlers, request, server
 from wptserve import routes as default_routes
 
@@ -28,7 +28,7 @@ default_ssl_key = os.path.join(root, "certificates", "test.key")
 @handlers.handler
 def http_auth_handler(req, response):
     # Allow the test to specify the username and password
-    params = dict(urlparse.parse_qsl(req.url_parts.query))
+    params = dict(parse_qsl(req.url_parts.query))
     username = params.get("username", "guest")
     password = params.get("password", "guest")
 
@@ -55,7 +55,7 @@ def upload_handler(request, response):
 @handlers.handler
 def slow_loading_handler(request, response):
     # Allow the test specify the delay for delivering the content
-    params = dict(urlparse.parse_qsl(request.url_parts.query))
+    params = dict(parse_qsl(request.url_parts.query))
     delay = int(params.get("delay", 5))
     time.sleep(delay)
 
@@ -72,7 +72,7 @@ def slow_loading_handler(request, response):
 @handlers.handler
 def slow_coop_handler(request, response):
     # Allow the test specify the delay for delivering the content
-    params = dict(urlparse.parse_qsl(request.url_parts.query))
+    params = dict(parse_qsl(request.url_parts.query))
     delay = int(params.get("delay", 5))
     time.sleep(delay)
 
@@ -126,7 +126,7 @@ class FixtureServer:
         if not os.path.isdir(doc_root):
             raise ValueError("Server root is not a directory: %s" % doc_root)
 
-        url = urlparse.urlparse(url)
+        url = urlparse(url)
         if url.scheme is None:
             raise ValueError("Server scheme not provided")
 

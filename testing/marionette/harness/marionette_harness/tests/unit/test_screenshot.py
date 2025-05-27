@@ -9,8 +9,7 @@ import struct
 import tempfile
 import unittest
 
-import six
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 import mozinfo
 
@@ -21,12 +20,6 @@ from marionette_harness import (
     skip,
     WindowManagerMixin,
 )
-
-
-def decodebytes(s):
-    if six.PY3:
-        return base64.decodebytes(six.ensure_binary(s))
-    return base64.decodestring(s)
 
 
 def inline(doc, mime="text/html;charset=utf-8"):
@@ -87,9 +80,9 @@ class ScreenCaptureTestCase(MarionetteTestCase):
 
     def assert_png(self, screenshot):
         """Test that screenshot is a Base64 encoded PNG file."""
-        if six.PY3 and not isinstance(screenshot, bytes):
+        if not isinstance(screenshot, bytes):
             screenshot = bytes(screenshot, encoding="utf-8")
-        image = decodebytes(screenshot)
+        image = base64.decodebytes(screenshot)
         self.assertEqual(imghdr.what("", image), "png")
 
     def assert_formats(self, element=None):
@@ -97,10 +90,10 @@ class ScreenCaptureTestCase(MarionetteTestCase):
             element = self.document_element
 
         screenshot_default = self.marionette.screenshot(element=element)
-        if six.PY3 and not isinstance(screenshot_default, bytes):
+        if not isinstance(screenshot_default, bytes):
             screenshot_default = bytes(screenshot_default, encoding="utf-8")
         screenshot_image = self.marionette.screenshot(element=element, format="base64")
-        if six.PY3 and not isinstance(screenshot_image, bytes):
+        if not isinstance(screenshot_image, bytes):
             screenshot_image = bytes(screenshot_image, encoding="utf-8")
         binary1 = self.marionette.screenshot(element=element, format="binary")
         binary2 = self.marionette.screenshot(element=element, format="binary")
@@ -128,10 +121,10 @@ class ScreenCaptureTestCase(MarionetteTestCase):
         return rect["width"], rect["height"]
 
     def get_image_dimensions(self, screenshot):
-        if six.PY3 and not isinstance(screenshot, bytes):
+        if not isinstance(screenshot, bytes):
             screenshot = bytes(screenshot, encoding="utf-8")
         self.assert_png(screenshot)
-        image = decodebytes(screenshot)
+        image = base64.decodebytes(screenshot)
         width, height = struct.unpack(">LL", image[16:24])
         return int(width), int(height)
 

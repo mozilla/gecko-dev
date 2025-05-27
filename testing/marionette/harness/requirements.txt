@@ -11,5 +11,4 @@ mozprofile >= 2.2.0
 mozrunner >= 7.4.0
 moztest >= 0.8
 mozversion >= 2.1.0
-six
 wptserve >= 2.0.0

@@ -4,7 +4,7 @@
 
 from datetime import datetime
 
-from six.moves.urllib.parse import quote
+from urllib.parse import quote
 
 from marionette_driver.by import By
 from marionette_driver.date_time_value import DateTimeValue
