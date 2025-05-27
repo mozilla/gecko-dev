@@ -11,7 +11,7 @@ const { AppConstants } = ChromeUtils.importESModule(
   "resource://gre/modules/AppConstants.sys.mjs"
 );
 const { PlacesUIUtils } = ChromeUtils.importESModule(
-  "resource:///modules/PlacesUIUtils.sys.mjs"
+  "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs"
 );
 
 add_task(async function has_not_used_ctrl_tab_and_its_off() {

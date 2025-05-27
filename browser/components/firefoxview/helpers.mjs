@@ -8,7 +8,7 @@ const loggersByName = new Map();
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
   Log: "resource://gre/modules/Log.sys.mjs",
-  PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
+  PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "relativeTimeFormat", () => {

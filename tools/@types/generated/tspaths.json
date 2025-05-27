@@ -1121,12 +1121,6 @@
       "resource:///modules/InstallerPrefs.sys.mjs": [
         "browser/components/installerprefs/InstallerPrefs.sys.mjs"
       ],
-      "resource:///modules/Interactions.sys.mjs": [
-        "browser/components/places/Interactions.sys.mjs"
-      ],
-      "resource:///modules/InteractionsBlocklist.sys.mjs": [
-        "browser/components/places/InteractionsBlocklist.sys.mjs"
-      ],
       "resource:///modules/InternalTestingProfileMigrator.sys.mjs": [
         "browser/components/migration/InternalTestingProfileMigrator.sys.mjs"
       ],
@@ -1168,9 +1162,6 @@
       ],
       "resource:///modules/PermissionUI.sys.mjs": [
         "browser/modules/PermissionUI.sys.mjs"
-      ],
-      "resource:///modules/PlacesUIUtils.sys.mjs": [
-        "browser/components/places/PlacesUIUtils.sys.mjs"
       ],
       "resource:///modules/PopupBlockerObserver.sys.mjs": [
         "browser/modules/PopupBlockerObserver.sys.mjs"

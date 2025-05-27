@@ -5,7 +5,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  Interactions: "resource:///modules/Interactions.sys.mjs",
+  Interactions: "moz-src:///browser/components/places/Interactions.sys.mjs",
 });
 
 /**

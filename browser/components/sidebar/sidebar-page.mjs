@@ -16,7 +16,7 @@ const { LightweightThemeConsumer } = ChromeUtils.importESModule(
 );
 ChromeUtils.defineESModuleGetters(lazy, {
   BrowserUtils: "resource://gre/modules/BrowserUtils.sys.mjs",
-  PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
+  PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
 });
 
 export class SidebarPage extends MozLitElement {

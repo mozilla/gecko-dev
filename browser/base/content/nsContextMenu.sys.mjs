@@ -19,7 +19,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   LoginManagerContextMenu:
     "resource://gre/modules/LoginManagerContextMenu.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
-  PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
+  PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",

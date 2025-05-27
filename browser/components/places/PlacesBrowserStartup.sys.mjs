@@ -13,7 +13,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   DistributionManagement: "resource:///modules/distribution.sys.mjs",
   PlacesBackups: "resource://gre/modules/PlacesBackups.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
-  PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
+  PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyServiceGetters(lazy, {

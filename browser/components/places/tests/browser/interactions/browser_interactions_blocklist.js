@@ -10,7 +10,8 @@ const BLOCKED_TEST_URL = "https://example.com/browser";
 
 ChromeUtils.defineESModuleGetters(this, {
   FilterAdult: "resource:///modules/FilterAdult.sys.mjs",
-  InteractionsBlocklist: "resource:///modules/InteractionsBlocklist.sys.mjs",
+  InteractionsBlocklist:
+    "moz-src:///browser/components/places/InteractionsBlocklist.sys.mjs",
 });
 
 add_setup(async function () {

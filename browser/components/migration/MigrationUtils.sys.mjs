@@ -10,7 +10,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   AMBrowserExtensionsImport: "resource://gre/modules/AddonManager.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
-  PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
+  PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",

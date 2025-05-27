@@ -16,7 +16,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",
   PlacesTransactions: "resource://gre/modules/PlacesTransactions.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
-  PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
+  PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   // eslint-disable-next-line mozilla/no-browser-refs-in-toolkit
   SelectableProfileService:

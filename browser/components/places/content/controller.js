@@ -5,7 +5,7 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   PlacesTransactions: "resource://gre/modules/PlacesTransactions.sys.mjs",
-  PlacesUIUtils: "resource:///modules/PlacesUIUtils.sys.mjs",
+  PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
 });
 

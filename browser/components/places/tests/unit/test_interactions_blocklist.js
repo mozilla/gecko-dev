@@ -6,7 +6,8 @@
  */
 
 ChromeUtils.defineESModuleGetters(this, {
-  InteractionsBlocklist: "resource:///modules/InteractionsBlocklist.sys.mjs",
+  InteractionsBlocklist:
+    "moz-src:///browser/components/places/InteractionsBlocklist.sys.mjs",
 });
 
 let BLOCKED_URLS = [

@@ -40,7 +40,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   // eslint-disable-next-line mozilla/valid-lazy
   FilePickerCrashed: "resource:///modules/FilePickerCrashed.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
-  Interactions: "resource:///modules/Interactions.sys.mjs",
+  Interactions: "moz-src:///browser/components/places/Interactions.sys.mjs",
   LoginBreaches: "resource:///modules/LoginBreaches.sys.mjs",
   LoginHelper: "resource://gre/modules/LoginHelper.sys.mjs",
   MigrationUtils: "resource:///modules/MigrationUtils.sys.mjs",

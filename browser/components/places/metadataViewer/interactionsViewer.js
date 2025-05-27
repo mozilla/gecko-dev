@@ -9,7 +9,7 @@ const { AppConstants } = ChromeUtils.importESModule(
 );
 
 const { Interactions } = ChromeUtils.importESModule(
-  "resource:///modules/Interactions.sys.mjs"
+  "moz-src:///browser/components/places/Interactions.sys.mjs"
 );
 const { PlacesUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/PlacesUtils.sys.mjs"

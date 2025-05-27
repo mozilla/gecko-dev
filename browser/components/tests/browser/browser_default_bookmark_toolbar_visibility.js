@@ -58,7 +58,7 @@ add_task(async function test_bookmark_toolbar_visible_when_populated() {
     "resource://gre/modules/Bookmarks.sys.mjs"
   );
   const { PlacesUIUtils } = ChromeUtils.importESModule(
-    "resource:///modules/PlacesUIUtils.sys.mjs"
+    "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs"
   );
 
   let bookmark = {
