@@ -1,20 +1,12 @@
-#![allow(non_camel_case_types)]
-#![allow(non_upper_case_globals)]
-include!(concat!(env!("OUT_DIR"), "/hb.rs"));
+use super::hb::*;
 
-use std::alloc::{GlobalAlloc, Layout};
 use std::collections::HashMap;
+use std::ffi::c_void;
 use std::mem::transmute;
-use std::os::raw::c_void;
 use std::ptr::null_mut;
 use std::sync::atomic::{AtomicPtr, AtomicU32, Ordering};
 use std::sync::{Mutex, OnceLock};
 
-use read_fonts::tables::cpal::ColorRecord;
-use read_fonts::tables::vmtx::Vmtx;
-use read_fonts::tables::vorg::Vorg;
-use read_fonts::tables::vvar::Vvar;
-use read_fonts::TableProvider;
 use skrifa::charmap::Charmap;
 use skrifa::charmap::MapVariant::Variant;
 use skrifa::color::{
@@ -25,35 +17,13 @@ use skrifa::instance::{Location, NormalizedCoord, Size};
 use skrifa::metrics::{BoundingBox, GlyphMetrics};
 use skrifa::outline::pen::OutlinePen;
 use skrifa::outline::DrawSettings;
+use skrifa::raw::tables::cpal::ColorRecord;
+use skrifa::raw::tables::vmtx::Vmtx;
+use skrifa::raw::tables::vorg::Vorg;
+use skrifa::raw::tables::vvar::Vvar;
+use skrifa::raw::TableProvider;
 use skrifa::OutlineGlyphCollection;
 use skrifa::{GlyphId, GlyphNames, MetadataProvider};
-
-struct MyAllocator;
-
-unsafe impl GlobalAlloc for MyAllocator {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        assert!(layout.align() <= 2 * std::mem::size_of::<*mut u8>());
-        hb_malloc(layout.size()) as *mut u8
-    }
-
-    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
-        assert!(layout.align() <= 2 * std::mem::size_of::<*mut u8>());
-        hb_calloc(layout.size(), 1) as *mut u8
-    }
-
-    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        assert!(layout.align() <= 2 * std::mem::size_of::<*mut u8>());
-        hb_realloc(ptr as *mut c_void, new_size) as *mut u8
-    }
-
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        assert!(layout.align() <= 2 * std::mem::size_of::<*mut u8>());
-        hb_free(ptr as *mut c_void);
-    }
-}
-
-#[global_allocator]
-static GLOBAL: MyAllocator = MyAllocator;
 
 // A struct for storing your “fontations” data
 #[repr(C)]
@@ -81,15 +51,21 @@ struct FontationsData<'a> {
 }
 
 impl FontationsData<'_> {
-    unsafe fn from_hb_font(font: *mut hb_font_t) -> Self {
+    unsafe fn from_hb_font(font: *mut hb_font_t) -> Option<Self> {
         let face_index = hb_face_get_index(hb_font_get_face(font));
         let face_blob = hb_face_reference_blob(hb_font_get_face(font));
         let blob_length = hb_blob_get_length(face_blob);
         let blob_data = hb_blob_get_data(face_blob, null_mut());
+        if blob_data.is_null() {
+            return None;
+        }
         let face_data = std::slice::from_raw_parts(blob_data as *const u8, blob_length as usize);
 
-        let font_ref = FontRef::from_index(face_data, face_index)
-            .expect("FontRef::from_index should succeed on valid HarfBuzz face data");
+        let font_ref = FontRef::from_index(face_data, face_index);
+        let font_ref = match font_ref {
+            Ok(f) => f,
+            Err(_) => return None,
+        };
 
         let char_map = Charmap::new(&font_ref);
 
@@ -128,7 +104,7 @@ impl FontationsData<'_> {
 
         data.check_for_updates();
 
-        data
+        Some(data)
     }
 
     unsafe fn _check_for_updates(&mut self) {
@@ -1035,10 +1011,10 @@ extern "C" fn _hb_fontations_glyph_from_name(
 }
 
 fn _hb_fontations_font_funcs_get() -> *mut hb_font_funcs_t {
-    static static_ffuncs: AtomicPtr<hb_font_funcs_t> = AtomicPtr::new(null_mut());
+    static STATIC_FFUNCS: AtomicPtr<hb_font_funcs_t> = AtomicPtr::new(null_mut());
 
     loop {
-        let mut ffuncs = static_ffuncs.load(Ordering::Acquire);
+        let mut ffuncs = STATIC_FFUNCS.load(Ordering::Acquire);
 
         if !ffuncs.is_null() {
             return ffuncs;
@@ -1115,7 +1091,7 @@ fn _hb_fontations_font_funcs_get() -> *mut hb_font_funcs_t {
             );
         }
 
-        if (static_ffuncs.compare_exchange(null_mut(), ffuncs, Ordering::SeqCst, Ordering::Relaxed))
+        if (STATIC_FFUNCS.compare_exchange(null_mut(), ffuncs, Ordering::SeqCst, Ordering::Relaxed))
             == Ok(null_mut())
         {
             return ffuncs;
@@ -1135,6 +1111,10 @@ pub unsafe extern "C" fn hb_fontations_font_set_funcs(font: *mut hb_font_t) {
     let ffuncs = _hb_fontations_font_funcs_get();
 
     let data = FontationsData::from_hb_font(font);
+    let data = match data {
+        Some(d) => d,
+        None => return,
+    };
     let data_ptr = Box::into_raw(Box::new(data)) as *mut c_void;
 
     hb_font_set_funcs(font, ffuncs, data_ptr, Some(_hb_fontations_data_destroy));

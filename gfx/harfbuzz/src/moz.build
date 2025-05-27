@@ -55,6 +55,7 @@ UNIFIED_SOURCES += [
     'hb-face-builder.cc',
     'hb-face.cc',
     'hb-font.cc',
+    'hb-harfruzz.cc',
     'hb-map.cc',
     'hb-number.cc',
     'hb-ot-cff1-table.cc',
