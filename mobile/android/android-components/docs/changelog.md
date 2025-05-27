@@ -17,6 +17,20 @@ permalink: /changelog/
   * ⚠️ **Breaking change**: Moved prompt functionality back to `AppLinksFeature`.
   * ⚠️ **Breaking change**: Removed `interceptLinkClicks` parameter from `AppLinksInterceptor` since no usage sets this to false.
 
+* **support-rusterrors**:
+  * ⚠️ **Breaking change**: Deprecated in place of `support-appservices`. See below.
+
+* **support-rusthttp**:
+  * ⚠️ **Breaking change**: Deprecated in place of `support-appservices`. See below.
+
+* **support-rustlog**:
+  * ⚠️ **Breaking change**: Deprecated in place of `support-appservices`. See below.
+
+* **support-appservices**:
+  * 🆕 New component that components the individual rust ones.
+  * Adds a `AppServicesInitializer.init` that preserves the sequence for individual component initialization.
+  * Namespacing has been preserved from previous components, so only the dependency package needs updating.
+
 # 139.0
 * **feature-downloads**
   * ⚠️ **Breaking change**: Added new `fileSizeFormatter` abstract val to `AbstractFetchDownloadService`. [Bug 1956580](https://bugzilla.mozilla.org/show_bug.cgi?id=1956580).

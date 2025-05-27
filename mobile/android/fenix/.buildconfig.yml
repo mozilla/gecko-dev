@@ -76,14 +76,12 @@ projects:
     - service-pocket
     - service-sync-autofill
     - service-sync-logins
+    - support-appservices
     - support-base
     - support-images
     - support-ktx
     - support-locale
     - support-remotesettings
-    - support-rusterrors
-    - support-rusthttp
-    - support-rustlog
     - support-test
     - support-test-fakes
     - support-test-libstate

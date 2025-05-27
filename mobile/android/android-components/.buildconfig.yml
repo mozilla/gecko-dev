@@ -1780,12 +1780,12 @@ projects:
     - service-nimbus
     - service-sync-logins
     - support-android-test
+    - support-appservices
     - support-base
     - support-images
     - support-ktx
     - support-locale
     - support-remotesettings
-    - support-rustlog
     - support-utils
     - support-webextensions
     - tooling-lint
@@ -1834,12 +1834,12 @@ projects:
     - lib-state
     - service-location
     - service-nimbus
+    - support-appservices
     - support-base
     - support-images
     - support-ktx
     - support-locale
     - support-remotesettings
-    - support-rusthttp
     - support-utils
     - tooling-lint
     - ui-autocomplete
@@ -1891,10 +1891,9 @@ projects:
     - lib-publicsuffixlist
     - lib-state
     - service-firefox-accounts
+    - support-appservices
     - support-base
     - support-ktx
-    - support-rusthttp
-    - support-rustlog
     - support-utils
     - tooling-lint
   samples-glean:
@@ -1916,11 +1915,10 @@ projects:
     - samples-glean-library
     - service-glean
     - service-nimbus
+    - support-appservices
     - support-base
     - support-ktx
     - support-locale
-    - support-rusthttp
-    - support-rustlog
     - support-utils
     - tooling-lint
     - ui-icons
@@ -1949,10 +1947,9 @@ projects:
     - service-firefox-accounts
     - service-sync-autofill
     - service-sync-logins
+    - support-appservices
     - support-base
     - support-ktx
-    - support-rusthttp
-    - support-rustlog
     - support-utils
     - tooling-lint
   samples-sync-logins:
@@ -1970,10 +1967,9 @@ projects:
     - lib-state
     - service-firefox-accounts
     - service-sync-logins
+    - support-appservices
     - support-base
     - support-ktx
-    - support-rusthttp
-    - support-rustlog
     - support-utils
     - tooling-lint
   samples-toolbar:
@@ -2164,15 +2160,16 @@ projects:
     upstream_dependencies:
     - tooling-lint
   support-appservices:
-    description: A collection of helpers for integrating native Application Services' components.
+    description: A collection of helpers for integrating native Application Services'
+      components.
     path: components/support/appservices
     publish: true
     upstream_dependencies:
-      - concept-base
-      - concept-fetch
-      - support-base
-      - support-test
-      - tooling-lint
+    - concept-base
+    - concept-fetch
+    - support-base
+    - support-test
+    - tooling-lint
   support-base:
     description: Base component containing building blocks for components.
     path: components/support/base
@@ -2250,34 +2247,6 @@ projects:
     - support-ktx
     - support-test
     - support-utils
-    - tooling-lint
-  support-rusterrors:
-    description: A bridge for reporting Rust errors to Sentry/Glean
-    path: components/support/rusterrors
-    publish: true
-    upstream_dependencies:
-    - concept-base
-    - concept-fetch
-    - support-base
-    - tooling-lint
-  support-rusthttp:
-    description: A bridge allowing configuration of Rust HTTP requests without directly
-      depending on the application services library
-    path: components/support/rusthttp
-    publish: true
-    upstream_dependencies:
-    - concept-fetch
-    - tooling-lint
-  support-rustlog:
-    description: A bridge allowing log messages from Rust code to be sent to the log
-      system in support-base
-    path: components/support/rustlog
-    publish: true
-    upstream_dependencies:
-    - concept-base
-    - concept-fetch
-    - support-base
-    - support-test
     - tooling-lint
   support-test:
     description: A collection of helpers for testing components (local unit tests).

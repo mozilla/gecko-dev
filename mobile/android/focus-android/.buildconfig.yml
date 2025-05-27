@@ -52,14 +52,13 @@ projects:
     - service-glean
     - service-location
     - service-nimbus
+    - support-appservices
     - support-base
     - support-images
     - support-ktx
     - support-license
     - support-locale
     - support-remotesettings
-    - support-rusthttp
-    - support-rustlog
     - support-test
     - support-test-libstate
     - support-utils
