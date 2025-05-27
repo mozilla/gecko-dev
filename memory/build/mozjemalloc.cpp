@@ -124,6 +124,7 @@
 #include "mozmemory_wrap.h"
 #include "mozjemalloc.h"
 #include "mozjemalloc_types.h"
+#include "mozjemalloc_profiling.h"
 
 #include <cstring>
 #include <cerrno>
@@ -645,6 +646,10 @@ static Atomic<size_t> gRecycledSize;
 #define DIRTY_MAX_DEFAULT (1U << 8)
 
 static size_t opt_dirty_max = DIRTY_MAX_DEFAULT;
+
+#ifdef MOZJEMALLOC_PROFILING_CALLBACKS
+static MallocProfilerCallbacks* sCallbacks;
+#endif
 
 // Return the smallest chunk multiple that is >= s.
 #define CHUNK_CEILING(s) (((s) + kChunkSizeMask) & ~kChunkSizeMask)
@@ -2180,6 +2185,16 @@ void* MozVirtualAlloc(void* lpAddress, size_t dwSize, uint32_t flAllocationType,
 }  // namespace mozilla
 
 #endif  // XP_WIN
+
+#ifdef MOZJEMALLOC_PROFILING_CALLBACKS
+namespace mozilla {
+
+void jemalloc_set_profiler_callbacks(MallocProfilerCallbacks* aCallbacks) {
+  sCallbacks = aCallbacks;
+}
+
+}  // namespace mozilla
+#endif
 
 // ***************************************************************************
 
