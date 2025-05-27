@@ -11,6 +11,7 @@
 
 #include "vm/JSObject.h"
 #include "vm/PropertyResult.h"
+#include "vm/TypedArrayObject.h"
 
 #include "gc/GCContext-inl.h"
 #include "gc/Marking-inl.h"
@@ -93,6 +94,9 @@ static inline JS::PropertyAttributes GetPropertyAttributes(
     return obj->as<NativeObject>().getElementsHeader()->elementAttributes();
   }
   if (prop.isTypedArrayElement()) {
+    if (obj->is<ImmutableTypedArrayObject>()) {
+      return {JS::PropertyAttribute::Enumerable};
+    }
     return {JS::PropertyAttribute::Configurable,
             JS::PropertyAttribute::Enumerable, JS::PropertyAttribute::Writable};
   }
