@@ -540,18 +540,20 @@ add_task(async function test_vertical_tabs_min_width() {
     BrowserTestUtils.addTab(gBrowser, "about:blank"),
   ];
   gBrowser.pinTab(tabs[1]);
-  let pinnedTabsContainer = document.querySelector("#pinned-tabs-container");
+  let verticalPinnedTabsContainer = document.querySelector(
+    "#vertical-pinned-tabs-container"
+  );
   ok(
-    BrowserTestUtils.isVisible(pinnedTabsContainer),
+    BrowserTestUtils.isVisible(verticalPinnedTabsContainer),
     "Vertical pinned tabs container is visible"
   );
   is(
-    pinnedTabsContainer.children.length,
+    verticalPinnedTabsContainer.children.length,
     1,
     "One tab is pinned in vertical pinned tabs container"
   );
   is(
-    pinnedTabsContainer.getBoundingClientRect().width,
+    verticalPinnedTabsContainer.getBoundingClientRect().width,
     gBrowser.tabContainer.getBoundingClientRect().width,
     "Vertical pinned tabs container should be the same width as the tab strip"
   );

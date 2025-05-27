@@ -137,6 +137,13 @@
       min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 86px);
     }
 
+    &[positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
+      /* Add padding to match the shadow's blur radius so the
+         shadow doesn't get clipped when either the first or
+         last tab is selected */
+      padding-inline: var(--tab-selected-shadow-size);
+    }
+
     /* Make it easier to drag tabs by expanding the drag area downwards. */
     &[movingtab] {
       padding-bottom: 15px;
@@ -206,6 +213,11 @@
     max-width: 0.1px;
     min-width: 0.1px;
     visibility: hidden;
+  }
+
+  #tabbrowser-tabs[positionpinnedtabs] > #tabbrowser-arrowscrollbox > &[pinned] {
+    position: absolute !important;
+    display: block;
   }
 
   #tabbrowser-tabs[movingtab] &:is(:active, [multiselected]) {
@@ -919,16 +931,12 @@
   }
 }
 
-.tab-label[attention]:not([selected]) {
-  font-weight: bold;
+#tabbrowser-tabs[haspinnedtabs]:not([positionpinnedtabs])[orient="horizontal"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab:nth-child(1 of :not([pinned], [hidden])) {
+  margin-inline-start: 12px;
 }
 
-#pinned-tabs-container[orient="horizontal"] {
-  margin-inline-end: 12px;
-
-  &:empty {
-    display: none;
-  }
+.tab-label[attention]:not([selected]) {
+  font-weight: bold;
 }
 
 /* Tab Groups */
@@ -1423,9 +1431,9 @@ tab-group {
   }
 }
 
-#pinned-tabs-container[orient="vertical"] {
+#vertical-pinned-tabs-container {
   /* Don't allow resizing below the height of 1 row of pinned tabs */
-    min-height: var(--tab-height-with-margin-padding);
+  min-height: var(--tab-height-with-margin-padding);
 
   &:empty {
     display: none;
@@ -1537,12 +1545,7 @@ tab-group {
   margin-inline: var(--tab-inner-inline-margin);
   min-height: 2px;
 
-  #pinned-tabs-container:empty + & {
-    display: none;
-  }
-
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media not -moz-pref("sidebar.verticalTabs") {
+  #vertical-pinned-tabs-container:empty + & {
     display: none;
   }
 

@@ -98,8 +98,8 @@
       this.tabGroupMenu = document.getElementById("tab-group-editor");
       this.tabbox = document.getElementById("tabbrowser-tabbox");
       this.tabpanels = document.getElementById("tabbrowser-tabpanels");
-      this.pinnedTabsContainer = document.getElementById(
-        "pinned-tabs-container"
+      this.verticalPinnedTabsContainer = document.getElementById(
+        "vertical-pinned-tabs-container"
       );
 
       ChromeUtils.defineESModuleGetters(this, {
@@ -813,7 +813,7 @@
 
     _updateTabBarForPinnedTabs() {
       this.tabContainer._unlockTabSizing();
-      this.tabContainer._handleTabSelect(true);
+      this.tabContainer._positionPinnedTabs();
       this.tabContainer._updateCloseButtons();
     }
 
@@ -834,10 +834,16 @@
       }
 
       this.showTab(aTab);
-      this.#handleTabMove(aTab, () =>
-        this.pinnedTabsContainer.appendChild(aTab)
-      );
-
+      if (this.tabContainer.verticalMode) {
+        this.#handleTabMove(aTab, () =>
+          this.verticalPinnedTabsContainer.appendChild(aTab)
+        );
+      } else {
+        this.moveTabTo(aTab, {
+          tabIndex: this.pinnedTabCount,
+          forceUngrouped: true,
+        });
+      }
       aTab.setAttribute("pinned", "true");
       this._updateTabBarForPinnedTabs();
       this._notifyPinnedStatus(aTab);
@@ -848,14 +854,21 @@
         return;
       }
 
-      this.#handleTabMove(aTab, () => {
-        // we remove this attribute first, so that allTabs represents
-        // the moving of a tab from the pinned tabs container
-        // and back into arrowscrollbox.
+      if (this.tabContainer.verticalMode) {
+        this.#handleTabMove(aTab, () => {
+          // we remove this attribute first, so that allTabs represents
+          // the moving of a tab from the vertical pinned tabs container
+          // and back into arrowscrollbox.
+          aTab.removeAttribute("pinned");
+          this.tabContainer.arrowScrollbox.prepend(aTab);
+        });
+      } else {
+        this.moveTabTo(aTab, {
+          tabIndex: this.pinnedTabCount - 1,
+          forceUngrouped: true,
+        });
         aTab.removeAttribute("pinned");
-        this.tabContainer.arrowScrollbox.prepend(aTab);
-      });
-
+      }
       aTab.style.marginInlineStart = "";
       aTab._pinnedUnscrollable = false;
       this._updateTabBarForPinnedTabs();
@@ -3502,6 +3515,7 @@
       let tabsFragment = document.createDocumentFragment();
       let tabToSelect = null;
       let hiddenTabs = new Map();
+      let shouldUpdateForPinnedTabs = false;
       /** @type {Map<TabGroupStateData['id'], TabGroupWorkingData>} */
       let tabGroupWorkingData = new Map();
 
@@ -3594,7 +3608,21 @@
         tabs.push(tab);
 
         if (tabData.pinned) {
-          this.pinTab(tab);
+          // Calling `pinTab` calls `moveTabTo`, which assumes the tab is
+          // inserted in the DOM. If the tab is not yet in the DOM,
+          // just insert it in the right place from the start.
+          if (!tab.parentNode) {
+            tab._tPos = this.pinnedTabCount;
+            this.tabContainer.insertBefore(tab, this.tabs[this.pinnedTabCount]);
+            tab.toggleAttribute("pinned", true);
+            this.tabContainer._invalidateCachedTabs();
+            // Then ensure all the tab open/pinning information is sent.
+            this._fireTabOpen(tab, {});
+            this._notifyPinnedStatus(tab);
+            // Once we're done adding all tabs, _updateTabBarForPinnedTabs
+            // needs calling:
+            shouldUpdateForPinnedTabs = true;
+          }
         } else if (tabData.groupId) {
           let { groupId } = tabData;
           const tabGroup = tabGroupWorkingData.get(groupId);
@@ -3649,6 +3677,9 @@
       }
 
       this.tabContainer._invalidateCachedTabs();
+      if (shouldUpdateForPinnedTabs) {
+        this._updateTabBarForPinnedTabs();
+      }
 
       // We need to wait until after all tabs have been appended to the DOM
       // to remove the old selected tab.
@@ -4993,6 +5024,8 @@
         browser.destroy();
       }
 
+      var wasPinned = aTab.pinned;
+
       // Remove the tab ...
       aTab.remove();
       this.tabContainer._invalidateCachedTabs();
@@ -5003,6 +5036,10 @@
       }
 
       if (!this._windowIsClosing) {
+        if (wasPinned) {
+          this.tabContainer._positionPinnedTabs();
+        }
+
         // update tab close buttons state
         this.tabContainer._updateCloseButtons();
 
@@ -6072,10 +6109,12 @@
         moveBefore = true;
       }
 
-      let getContainer = () =>
-        element.pinned
-          ? this.tabContainer.pinnedTabsContainer
-          : this.tabContainer;
+      let getContainer = () => {
+        if (element.pinned && this.tabContainer.verticalMode) {
+          return this.tabContainer.verticalPinnedTabsContainer;
+        }
+        return this.tabContainer;
+      };
 
       this.#handleTabMove(
         element,
@@ -6247,6 +6286,9 @@
         let tab = tabs[ii];
         if (tab.selected) {
           this.tabContainer._handleTabSelect(true);
+        }
+        if (tab.pinned) {
+          this.tabContainer._positionPinnedTabs();
         }
 
         let currentTabState = this.#getTabMoveState(tab);
