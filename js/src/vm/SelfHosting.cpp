@@ -1023,6 +1023,24 @@ static bool intrinsic_PossiblyWrappedTypedArrayHasDetachedBuffer(JSContext* cx,
   return true;
 }
 
+static bool intrinsic_PossiblyWrappedTypedArrayHasImmutableBuffer(JSContext* cx,
+                                                                  unsigned argc,
+                                                                  Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 1);
+  MOZ_ASSERT(args[0].isObject());
+
+  auto* obj = args[0].toObject().maybeUnwrapAs<TypedArrayObject>();
+  if (!obj) {
+    ReportAccessDenied(cx);
+    return false;
+  }
+
+  bool immutable = obj->is<ImmutableTypedArrayObject>();
+  args.rval().setBoolean(immutable);
+  return true;
+}
+
 static bool intrinsic_TypedArrayIsAutoLength(JSContext* cx, unsigned argc,
                                              Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -2101,6 +2119,8 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("NumberToBigInt", intrinsic_NumberToBigInt, 1, 0),
     JS_FN("PossiblyWrappedTypedArrayHasDetachedBuffer",
           intrinsic_PossiblyWrappedTypedArrayHasDetachedBuffer, 1, 0),
+    JS_FN("PossiblyWrappedTypedArrayHasImmutableBuffer",
+          intrinsic_PossiblyWrappedTypedArrayHasImmutableBuffer, 1, 0),
     JS_INLINABLE_FN("PossiblyWrappedTypedArrayLength",
                     intrinsic_PossiblyWrappedTypedArrayLength, 1, 0,
                     IntrinsicPossiblyWrappedTypedArrayLength),

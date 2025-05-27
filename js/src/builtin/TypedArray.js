@@ -48,6 +48,19 @@ function EnsureAttachedArrayBuffer(tarray) {
   }
 }
 
+function EnsureAttachedMutableArrayBuffer(tarray) {
+  var buffer = ViewedArrayBufferIfReified(tarray);
+  var flags = GetArrayBufferFlagsOrZero(buffer);
+  if ((flags & JS_ARRAYBUFFER_DETACHED_FLAG) !== 0) {
+    ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
+  }
+
+  // Additional step from Immutable ArrayBuffer proposal.
+  if ((flags & JS_ARRAYBUFFER_IMMUTABLE_FLAG) !== 0) {
+    ThrowTypeError(JSMSG_ARRAYBUFFER_IMMUTABLE);
+  }
+}
+
 function EnsureAttachedArrayBufferMethod() {
   EnsureAttachedArrayBuffer(this);
 }
@@ -137,6 +150,34 @@ function ValidateTypedArray(obj) {
 }
 
 // ES2017 draft rev 6859bb9ccaea9c6ede81d71e5320e3833b92cb3e
+// 22.2.3.5.1 Runtime Semantics: ValidateTypedArray ( O )
+function ValidateWritableTypedArray(obj) {
+  if (IsObject(obj)) {
+    /* Steps 3-5 (non-wrapped typed arrays). */
+    if (IsTypedArray(obj)) {
+      // EnsureAttachedMutableArrayBuffer throws for detached or immutable
+      // array buffers.
+      EnsureAttachedMutableArrayBuffer(obj);
+      return;
+    }
+
+    /* Steps 3-5 (wrapped typed arrays). */
+    if (IsPossiblyWrappedTypedArray(obj)) {
+      if (PossiblyWrappedTypedArrayHasDetachedBuffer(obj)) {
+        ThrowTypeError(JSMSG_TYPED_ARRAY_DETACHED);
+      }
+      if (PossiblyWrappedTypedArrayHasImmutableBuffer(obj)) {
+        ThrowTypeError(JSMSG_ARRAYBUFFER_IMMUTABLE);
+      }
+      return;
+    }
+  }
+
+  /* Steps 1-2. */
+  ThrowTypeError(JSMSG_NON_TYPED_ARRAY_RETURNED);
+}
+
+// ES2017 draft rev 6859bb9ccaea9c6ede81d71e5320e3833b92cb3e
 // 22.2.4.6 TypedArrayCreate ( constructor, argumentList )
 function TypedArrayCreateWithLength(constructor, length) {
   // Step 1.
@@ -147,7 +188,7 @@ function TypedArrayCreateWithLength(constructor, length) {
   );
 
   // Step 2.
-  ValidateTypedArray(newTypedArray);
+  ValidateWritableTypedArray(newTypedArray);
 
   // Step 3.
   var len = PossiblyWrappedTypedArrayLength(newTypedArray);
