@@ -11,9 +11,3 @@ package mozilla.components.support.utils.ext
 fun String.toCreditCardNumber(): String {
     return this.filter { it.isDigit() }
 }
-
-/**
- * Returns true if the String contains a content URL
- * Content URLs starts with `content://`
- */
-fun String.isContentUrl(): Boolean = startsWith("content://")

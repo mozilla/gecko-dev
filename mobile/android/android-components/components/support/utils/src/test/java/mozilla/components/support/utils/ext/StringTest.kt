@@ -5,8 +5,6 @@
 package mozilla.components.support.utils.ext
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StringTest {
@@ -17,17 +15,5 @@ class StringTest {
         val expectedResult = "38520000023237"
 
         assertEquals(expectedResult, number.toCreditCardNumber())
-    }
-
-    @Test
-    fun `GIVEN a content Url WHEN calling isContentUrl THEN returns true`() {
-        val url = "content://contenturl"
-        assertTrue(url.isContentUrl())
-    }
-
-    @Test
-    fun `GIVEN an internet Url WHEN calling isContentUrl THEN returns false`() {
-        val url = "https://mozilla.org"
-        assertFalse(url.isContentUrl())
     }
 }
