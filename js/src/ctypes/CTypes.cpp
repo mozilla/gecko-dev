@@ -39,7 +39,7 @@
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{IsArrayBufferObject,GetArrayBufferData,GetArrayBuffer{ByteLength,Data}}
 #include "js/ArrayBufferMaybeShared.h"  // JS::IsImmutableArrayBufferMaybeShared
-#include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionValue
+#include "js/CallAndConstruct.h"        // JS::IsCallable, JS_CallFunctionValue
 #include "js/CharacterEncoding.h"
 #include "js/experimental/TypedData.h"  // JS_GetArrayBufferView{Type,Data}, JS_GetTypedArrayByteLength, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject
 #include "js/friend/ErrorMessages.h"    // js::GetErrorMessage, JSMSG_*
