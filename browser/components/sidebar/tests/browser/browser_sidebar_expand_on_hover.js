@@ -229,10 +229,8 @@ add_task(async function test_expand_on_hover_pinned_tabs() {
       SidebarController.sidebarMain.hasAttribute("expanded"),
     "The launcher is expanded"
   );
-  let verticalPinnedTabsContainer = document.getElementById(
-    "vertical-pinned-tabs-container"
-  );
-  let verticalTabsWidth = verticalPinnedTabsContainer.clientWidth;
+  let pinnedTabsContainer = document.getElementById("pinned-tabs-container");
+  let verticalTabsWidth = pinnedTabsContainer.clientWidth;
   Assert.greater(
     Math.round(parseInt(verticalTabsWidth)),
     Math.round(parseInt(pinnedTabOriginalWidth)),
