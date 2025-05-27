@@ -606,13 +606,11 @@ void WebrtcAudioConduit::OnRtpReceived(webrtc::RtpPacketReceived&& aPacket,
                                        webrtc::RTPHeader&& aHeader) {
   MOZ_ASSERT(mCallThread->IsOnCurrentThread());
 
-  // We should only be handling packets on this conduit if we are set to receive
-  // them.
+  // We should only be handling packets on this conduit if we are set to receive them.
   if (!mControl.mReceiving) {
-    CSFLogVerbose(LOGTAG,
-                  "AudioConduit %p: Discarding packet SEQ# %u SSRC %u as not "
-                  "configured to receive.",
-                  this, aPacket.SequenceNumber(), aHeader.ssrc);
+    // TODO: Create profiler marker for this and/or less noisy logging.
+    // CSFLogInfo(LOGTAG, "AudioConduit %p: Discarding packet SEQ# %u SSRC %u as not configured to receive.",
+    //   this, aPacket.SequenceNumber(), aHeader.ssrc);
     return;
   }
 

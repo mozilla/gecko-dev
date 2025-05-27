@@ -69,7 +69,7 @@ class MediaPipelineFilter {
   void AddUniqueReceivePT(uint8_t payload_type);
 
   // When a payload type id is NOT unique to our media section, add it here.
-  void AddOtherReceivePT(uint8_t payload_type);
+  void AddDuplicateReceivePT(uint8_t payload_type);
 
   void Update(const MediaPipelineFilter& filter_update, bool signalingStable);
 
@@ -79,8 +79,8 @@ class MediaPipelineFilter {
   // The number of filters we manage here is quite small, so I am optimizing
   // for readability.
   std::set<uint32_t> remote_ssrc_set_;
-  std::set<uint8_t> unique_payload_type_set_;
-  std::set<uint8_t> other_payload_type_set_;
+  std::set<uint8_t> receive_payload_type_set_;
+  std::set<uint8_t> duplicate_payload_type_set_;
   Maybe<std::string> mRemoteMid;
   std::set<uint32_t> mRemoteMidBindings;
   // RID extension can be set by tests and is sticky, the rest of

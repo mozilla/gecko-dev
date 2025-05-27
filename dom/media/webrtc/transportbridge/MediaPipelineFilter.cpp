@@ -25,7 +25,7 @@ MediaPipelineFilter::MediaPipelineFilter(
 void MediaPipelineFilter::SetRemoteMediaStreamId(
     const Maybe<std::string>& aMid) {
   if (aMid != mRemoteMid) {
-    DEBUG_LOG(("MediaPipelineFilter 0x%p added new remote RTP MID: '%s'.", this,
+    DEBUG_LOG(("MediaPipelineFilter added new remote RTP MID: '%s'.",
                aMid.valueOr("").c_str()));
     mRemoteMid = aMid;
     mRemoteMidBindings.clear();
@@ -33,7 +33,7 @@ void MediaPipelineFilter::SetRemoteMediaStreamId(
 }
 
 bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header) {
-  DEBUG_LOG(("MediaPipelineFilter 0x%p inspecting seq# %u SSRC: %u", this,
+  DEBUG_LOG(("MediaPipelineFilter inspecting seq# %u SSRC: %u",
              header.sequenceNumber, header.ssrc));
 
   auto fromStreamId = [](const std::string& aId) {
@@ -52,7 +52,7 @@ bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header) {
   }
   // Bind an SSRC if a matching MID is found
   if (mid && mRemoteMid == mid) {
-    DEBUG_LOG(("MediaPipelineFilter 0x%p learned SSRC: %u for MID: '%s'", this,
+    DEBUG_LOG(("MediaPipelineFilter learned SSRC: %u for MID: '%s'",
                header.ssrc, mRemoteMid.value().c_str()));
     mRemoteMidBindings.insert(header.ssrc);
   }
@@ -61,18 +61,18 @@ bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header) {
     MOZ_ASSERT(mRemoteMid != Nothing());
     if (mRemoteMidBindings.count(header.ssrc) == 1) {
       DEBUG_LOG(
-          ("MediaPipelineFilter 0x%p SSRC: %u matched for MID: '%s'."
+          ("MediaPipelineFilter SSRC: %u matched for MID: '%s'."
            " passing packet",
-           this, header.ssrc, mRemoteMid.value().c_str()));
+           header.ssrc, mRemoteMid.value().c_str()));
       return true;
     }
     DEBUG_LOG(
-        ("MediaPipelineFilter 0x%p SSRC: %u did not match bound SSRC(s) for"
+        ("MediaPipelineFilter SSRC: %u did not match bound SSRC(s) for"
          " MID: '%s'. ignoring packet",
-         this, header.ssrc, mRemoteMid.value().c_str()));
+         header.ssrc, mRemoteMid.value().c_str()));
     for (const uint32_t ssrc : mRemoteMidBindings) {
-      DEBUG_LOG(("MediaPipelineFilter 0x%p MID %s is associated with SSRC: %u",
-                 this, mRemoteMid.value().c_str(), ssrc));
+      DEBUG_LOG(("MID %s is associated with SSRC: %u",
+                 mRemoteMid.value().c_str(), ssrc));
     }
     return false;
   }
@@ -87,39 +87,38 @@ bool MediaPipelineFilter::Filter(const webrtc::RTPHeader& header) {
 
   if (remote_ssrc_set_.count(header.ssrc)) {
     DEBUG_LOG(
-        ("MediaPipelineFilter 0x%p SSRC: %u matched remote SSRC set."
+        ("MediaPipelineFilter SSRC: %u matched remote SSRC set."
          " passing packet",
-         this, header.ssrc));
+         header.ssrc));
     return true;
   }
   DEBUG_LOG(
-      ("MediaPipelineFilter 0x%p SSRC: %u did not match any of %zu"
+      ("MediaPipelineFilter SSRC: %u did not match any of %zu"
        " remote SSRCS.",
-       this, header.ssrc, remote_ssrc_set_.size()));
+       header.ssrc, remote_ssrc_set_.size()));
 
   //
   // PT, payload type, last ditch effort filtering. We only try this if we do
   // not have any ssrcs configured (either by learning them, or negotiation).
   //
 
-  if (unique_payload_type_set_.count(header.payloadType)) {
+  if (receive_payload_type_set_.count(header.payloadType)) {
     DEBUG_LOG(
-        ("MediaPipelineFilter 0x%p payload-type: %u matched %zu"
+        ("MediaPipelineFilter payload-type: %u matched %zu"
          " unique payload type. learning ssrc. passing packet",
-         this, header.ssrc, remote_ssrc_set_.size()));
+         header.ssrc, remote_ssrc_set_.size()));
     // Actual match. We need to update the ssrc map so we can route rtcp
     // sender reports correctly (these use a different payload-type field)
     AddRemoteSSRC(header.ssrc);
     return true;
   }
   DEBUG_LOG(
-      ("MediaPipelineFilter 0x%p payload-type: %u did not match any of %zu"
+      ("MediaPipelineFilter payload-type: %u did not match any of %zu"
        " unique payload-types.",
-       this, header.payloadType, unique_payload_type_set_.size()));
+       header.payloadType, receive_payload_type_set_.size()));
   DEBUG_LOG(
-      ("MediaPipelineFilter 0x%p packet failed to match any criteria."
-       " ignoring packet",
-       this));
+      ("MediaPipelineFilter packet failed to match any criteria."
+       " ignoring packet"));
   return false;
 }
 
@@ -128,11 +127,11 @@ void MediaPipelineFilter::AddRemoteSSRC(uint32_t ssrc) {
 }
 
 void MediaPipelineFilter::AddUniqueReceivePT(uint8_t payload_type) {
-  unique_payload_type_set_.insert(payload_type);
+  receive_payload_type_set_.insert(payload_type);
 }
 
-void MediaPipelineFilter::AddOtherReceivePT(uint8_t payload_type) {
-  other_payload_type_set_.insert(payload_type);
+void MediaPipelineFilter::AddDuplicateReceivePT(uint8_t payload_type) {
+  duplicate_payload_type_set_.insert(payload_type);
 }
 
 void MediaPipelineFilter::Update(const MediaPipelineFilter& filter_update,
@@ -142,10 +141,6 @@ void MediaPipelineFilter::Update(const MediaPipelineFilter& filter_update,
   // has explicitly given us a new set.
   if (!filter_update.remote_ssrc_set_.empty()) {
     remote_ssrc_set_ = filter_update.remote_ssrc_set_;
-    for (const auto& ssrc : remote_ssrc_set_) {
-      DEBUG_LOG(
-          ("MediaPipelineFilter 0x%p Now bound to remote SSRC %u", this, ssrc));
-    }
   }
   // We don't want to overwrite the learned binding unless we have changed MIDs
   // or the update contains a MID binding.
@@ -153,36 +148,20 @@ void MediaPipelineFilter::Update(const MediaPipelineFilter& filter_update,
       (filter_update.mRemoteMid && filter_update.mRemoteMid != mRemoteMid)) {
     mRemoteMid = filter_update.mRemoteMid;
     mRemoteMidBindings = filter_update.mRemoteMidBindings;
-    auto remoteMid = mRemoteMid.valueOrFrom([] { return std::string(); });
-    DEBUG_LOG(("MediaPipelineFilter 0x%p Now bound to remote MID %s", this,
-               remoteMid.c_str()));
-    for (const auto& ssrc : mRemoteMidBindings) {
-      DEBUG_LOG((
-          "MediaPipelineFilter 0x%p Now bound to remote SSRC %u for remote MID "
-          "%s",
-          this, ssrc, remoteMid.c_str()));
-    }
   }
 
-  // If signaling is stable replace the pt filters, otherwise add to them.
+  // If we are signaling is stable replace the filters values otherwise add to
+  // them.
   if (signalingStable) {
-    unique_payload_type_set_ = filter_update.unique_payload_type_set_;
-    other_payload_type_set_ = filter_update.other_payload_type_set_;
+    receive_payload_type_set_ = filter_update.receive_payload_type_set_;
+    duplicate_payload_type_set_ = filter_update.duplicate_payload_type_set_;
   } else {
-    for (const auto& uniquePT : filter_update.unique_payload_type_set_) {
-      if (!unique_payload_type_set_.count(uniquePT) &&
-          !other_payload_type_set_.count(uniquePT)) {
+    for (const auto& uniquePT : filter_update.receive_payload_type_set_) {
+      if (!receive_payload_type_set_.count(uniquePT) &&
+          !duplicate_payload_type_set_.count(uniquePT)) {
         AddUniqueReceivePT(uniquePT);
       }
     }
-  }
-  for (const auto& pt : unique_payload_type_set_) {
-    DEBUG_LOG(("MediaPipelineFilter 0x%p Now bound to remote unique PT %u",
-               this, pt));
-  }
-  for (const auto& pt : other_payload_type_set_) {
-    DEBUG_LOG(
-        ("MediaPipelineFilter 0x%p Now aware of other remote PT %u", this, pt));
   }
 
   // Use extmapping from new filter

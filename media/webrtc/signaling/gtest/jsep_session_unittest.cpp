@@ -4977,47 +4977,45 @@ TEST_F(JsepSessionTest, TestUniqueReceivePayloadTypes) {
   ASSERT_TRUE(offerTransceivers[0].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(offerTransceivers[0].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
-  ASSERT_THAT(offerTransceivers[0].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109, 97, 99, 103, 105, 120,
-                                   121, 122, 123, 126));
+  ASSERT_THAT(offerTransceivers[0].mRecvTrack.GetDuplicateReceivePayloadTypes(),
+              UnorderedElementsAre(0, 8, 9, 101, 109));
 
   ASSERT_FALSE(IsNull(offerTransceivers[1].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[1].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(offerTransceivers[1].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
-  ASSERT_THAT(offerTransceivers[1].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109, 97, 99, 103, 105, 120,
-                                   121, 122, 123, 126));
+  ASSERT_THAT(offerTransceivers[1].mRecvTrack.GetDuplicateReceivePayloadTypes(),
+              UnorderedElementsAre(0, 8, 9, 101, 109));
 
   ASSERT_FALSE(IsNull(offerTransceivers[2].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[2].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(offerTransceivers[2].mRecvTrack.GetUniqueReceivePayloadTypes(),
+              UnorderedElementsAre());
+  ASSERT_THAT(offerTransceivers[2].mRecvTrack.GetDuplicateReceivePayloadTypes(),
               UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
-  ASSERT_THAT(offerTransceivers[2].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109));
 
   ASSERT_TRUE(IsNull(offerTransceivers[3].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[3].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(offerTransceivers[3].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
-  ASSERT_THAT(offerTransceivers[3].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre());
+  ASSERT_THAT(offerTransceivers[3].mRecvTrack.GetDuplicateReceivePayloadTypes(),
+              UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
 
   ASSERT_FALSE(IsNull(answerTransceivers[0].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[0].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(answerTransceivers[0].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
-  ASSERT_THAT(answerTransceivers[0].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109, 97, 99, 103, 105, 120,
-                                   121, 122, 123, 126));
+  ASSERT_THAT(
+      answerTransceivers[0].mRecvTrack.GetDuplicateReceivePayloadTypes(),
+      UnorderedElementsAre(0, 8, 9, 101, 109));
 
   ASSERT_FALSE(IsNull(answerTransceivers[1].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[1].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(answerTransceivers[1].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
-  ASSERT_THAT(answerTransceivers[1].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109, 97, 99, 103, 105, 120,
-                                   121, 122, 123, 126));
+  ASSERT_THAT(
+      answerTransceivers[1].mRecvTrack.GetDuplicateReceivePayloadTypes(),
+      UnorderedElementsAre(0, 8, 9, 101, 109));
 
   // Answerer is receiving two video streams with the same payload types.
   // Neither recv track should have unique pts.
@@ -5025,17 +5023,17 @@ TEST_F(JsepSessionTest, TestUniqueReceivePayloadTypes) {
   ASSERT_TRUE(answerTransceivers[2].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(answerTransceivers[2].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
-  ASSERT_THAT(answerTransceivers[2].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109, 97, 99, 103, 105, 120,
-                                   121, 122, 123, 126));
+  ASSERT_THAT(
+      answerTransceivers[2].mRecvTrack.GetDuplicateReceivePayloadTypes(),
+      UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
 
   ASSERT_FALSE(IsNull(answerTransceivers[3].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[3].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(answerTransceivers[3].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
-  ASSERT_THAT(answerTransceivers[3].mRecvTrack.GetOtherReceivePayloadTypes(),
-              UnorderedElementsAre(0, 8, 9, 101, 109, 97, 99, 103, 105, 120,
-                                   121, 122, 123, 126));
+  ASSERT_THAT(
+      answerTransceivers[3].mRecvTrack.GetDuplicateReceivePayloadTypes(),
+      UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
 }
 
 TEST_F(JsepSessionTest, UnknownFingerprintAlgorithm) {
