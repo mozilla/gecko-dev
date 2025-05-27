@@ -1629,6 +1629,10 @@ interface GleanImpl {
     jsDateparse: GleanCounter;
     jsDateparseImplDef: GleanCounter;
     jsRegexpSymbolProtocolOnPrimitive: GleanCounter;
+    jsLargeOomReported: GleanCounter;
+    jsSmallOomReported: GleanCounter;
+    jsLargeOomRecovered: GleanCounter;
+    jsSmallOomRecovered: GleanCounter;
     consoleAssert: GleanCounter;
     consoleClear: GleanCounter;
     consoleCount: GleanCounter;
@@ -1990,6 +1994,10 @@ interface GleanImpl {
     jsDateparse: GleanCounter;
     jsDateparseImplDef: GleanCounter;
     jsRegexpSymbolProtocolOnPrimitive: GleanCounter;
+    jsLargeOomReported: GleanCounter;
+    jsSmallOomReported: GleanCounter;
+    jsLargeOomRecovered: GleanCounter;
+    jsSmallOomRecovered: GleanCounter;
     consoleAssert: GleanCounter;
     consoleClear: GleanCounter;
     consoleCount: GleanCounter;
@@ -5745,6 +5753,15 @@ interface GleanImpl {
     runInferenceSuccess: Record<string, GleanTimingDistribution>;
     modelDownload: GleanEvent;
     modelDeletion: GleanEvent;
+  }
+
+  modelManagement: {
+    removeInitiated: GleanEvent;
+    removeConfirmation: GleanEvent;
+    listItemManage: GleanEvent;
+    extensionModelLink: GleanEvent;
+    listView: GleanEvent;
+    detailsView: GleanEvent;
   }
 
   nimbusTargetingEnvironment: {

@@ -34,8 +34,10 @@ async function getTestExtension({ id, withIcon }) {
 }
 
 let mockProvider;
+let promptService;
 add_setup(async function () {
   mockProvider = new MockProvider(["mlmodel"]);
+  promptService = mockPromptService();
 });
 
 /**
@@ -158,6 +160,8 @@ add_task(async function testModelHubProvider() {
  * Test model hub card in the list view.
  */
 add_task(async function testModelHubCard() {
+  const expectedTelemetryCount = 1;
+  Services.fog.testResetFOG();
   const extWithIcon = await getTestExtension({
     id: "addon-with-icon@test-extension",
     withIcon: true,
@@ -200,6 +204,14 @@ add_task(async function testModelHubCard() {
   ]);
 
   let win = await loadInitialView("mlmodel");
+
+  info("Test list view telemetry");
+  let listViewEvent = Glean.modelManagement.listView.testGetValue() || [];
+  Assert.equal(
+    listViewEvent.length,
+    expectedTelemetryCount,
+    "Got the expected listView telemetry"
+  );
 
   // Card No Size
   let card1 = getAddonCard(win, id1);
@@ -335,6 +347,7 @@ add_task(async function testModelHubDetails() {
     type: "mlmodel",
     totalSize: undefined,
     lastUsed: new Date("2023-10-01T12:00:00Z"),
+    updateDate: new Date("2023-10-01T12:00:00Z"),
     modelHomepageURL: "https://huggingface.co/org/model-mock-1",
     modelIconURL: "chrome://mozapps/skin/extensions/extensionGeneric.svg",
     // Testing a model using one of the expected Firefox features.
@@ -342,6 +355,7 @@ add_task(async function testModelHubDetails() {
     // Testing extension using the models (one with its own icon and
     // one without any icon).
     usedByAddonIds: [extWithIcon.id, extWithoutIcon.id],
+    engineIds: [],
   };
   const mockModel2 = {
     id: id2,
@@ -350,6 +364,7 @@ add_task(async function testModelHubDetails() {
     type: "mlmodel",
     totalSize: 5 * 1024 * 1024,
     lastUsed: new Date("2023-10-01T12:00:00Z"),
+    updateDate: new Date("2023-10-01T12:00:00Z"),
     modelHomepageURL: "https://huggingface.co/org/model-mock-2",
     modelIconURL: "", // testing that empty icon sets to defult svg
     // Testing that a Firefox feature that is mistakenly missing a
@@ -360,6 +375,7 @@ add_task(async function testModelHubDetails() {
     ],
     // Testing that a non existing extension is omitted.
     usedByAddonIds: ["non-existing@test-extension", extWithIcon.id],
+    engineIds: [],
   };
 
   mockProvider.createAddons([mockModel1, mockModel2]);
@@ -416,7 +432,9 @@ add_task(async function testModelHubDetails() {
     expectedModelIconURL,
     expectedUsedBy,
   }) {
+    Services.fog.testResetFOG();
     let win = await loadInitialView("mlmodel");
+
     // Get the list view card DOM element for the given addon id.
     let card = getAddonCard(win, id);
     ok(card, `Found addon card for model ${id}`);
@@ -426,6 +444,24 @@ add_task(async function testModelHubDetails() {
     let loaded = waitForViewLoad(win);
     card.querySelector('[action="expand"]').click();
     await loaded;
+
+    info("Test detials view telemetry");
+    let detailsViewEvent =
+      Glean.modelManagement.detailsView.testGetValue() || [];
+    Assert.equal(
+      detailsViewEvent.length,
+      1,
+      "Got the expected detailsView telemetry"
+    );
+
+    info("Test list management button click telemetry");
+    let listItemManageEvent =
+      Glean.modelManagement.listItemManage.testGetValue() || [];
+    Assert.equal(
+      listItemManageEvent.length,
+      1,
+      "Got the expected listItemManage telemetry"
+    );
 
     // Get the detail view card DOM element for the given addon id.
     card = getAddonCard(win, id);
@@ -445,6 +481,41 @@ add_task(async function testModelHubDetails() {
     ok(
       mlmodelRemoveAddonButton,
       "Expect to see the mlmodel remove addon button"
+    );
+
+    // Set response to cancel & Fire off Delete click
+    promptService._response = 1;
+    EventUtils.sendMouseEvent({ type: "click" }, mlmodelRemoveAddonButton);
+    await BrowserTestUtils.waitForEvent(card, "remove-cancelled");
+    info("Test cancel remove prompt telemetry");
+    let cancelEvent =
+      Glean.modelManagement.removeConfirmation.testGetValue() || [];
+    Assert.equal(
+      "cancel",
+      cancelEvent[0].extra.action,
+      "Got the expected removeConfirmation telemetry"
+    );
+
+    // Set response to confirm & Fire off Delete click
+    promptService._response = 0;
+    EventUtils.sendMouseEvent({ type: "click" }, mlmodelRemoveAddonButton);
+    await BrowserTestUtils.waitForEvent(card, "remove");
+    info("Test confirm remove prompt telemetry");
+    let confirmEvent =
+      Glean.modelManagement.removeConfirmation.testGetValue() || [];
+    Assert.equal(
+      "remove",
+      confirmEvent[1].extra.action,
+      "Got the expected removeConfirmation telemetry"
+    );
+
+    info("Test how many removes iniated telemetry");
+    let removeInitiatedEvent =
+      Glean.modelManagement.removeInitiated.testGetValue() || [];
+    Assert.equal(
+      removeInitiatedEvent.length,
+      2,
+      "Got the expected removeInitiated telemetry"
     );
 
     ok(
@@ -483,6 +554,17 @@ add_task(async function testModelHubDetails() {
     let modelCardEl = card.querySelector(".addon-detail-row-mlmodel-modelcard");
     ok(modelCardEl, "Expect to see the model card link");
     let modelHomepageURL = modelCardEl.querySelector("a");
+
+    EventUtils.sendMouseEvent({ type: "click" }, modelHomepageURL);
+    info("Test model card link telemetry");
+    let extensionModelLinkEvent =
+      Glean.modelManagement.extensionModelLink.testGetValue() || [];
+    Assert.equal(
+      extensionModelLinkEvent.length,
+      1,
+      "Got the expected extensionModelLink telemetry"
+    );
+
     ok(modelHomepageURL, "Expect to see the model card link element");
     is(
       modelHomepageURL?.href,
