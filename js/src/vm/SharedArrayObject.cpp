@@ -833,8 +833,10 @@ void SharedArrayBufferObject::copyData(ArrayBufferObjectMaybeShared* toBuffer,
                                        size_t toIndex,
                                        ArrayBufferObjectMaybeShared* fromBuffer,
                                        size_t fromIndex, size_t count) {
+  MOZ_ASSERT(!toBuffer->isDetached());
   MOZ_ASSERT(toBuffer->byteLength() >= count);
   MOZ_ASSERT(toBuffer->byteLength() >= toIndex + count);
+  MOZ_ASSERT(!fromBuffer->isDetached());
   MOZ_ASSERT(fromBuffer->byteLength() >= fromIndex);
   MOZ_ASSERT(fromBuffer->byteLength() >= fromIndex + count);
 

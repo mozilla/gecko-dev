@@ -1083,6 +1083,7 @@ void ArrayBufferObject::detach(JSContext* cx,
   cx->check(buffer);
   MOZ_ASSERT(!buffer->isPreparedForAsmJS());
   MOZ_ASSERT(!buffer->isLengthPinned());
+  MOZ_ASSERT(!buffer->isImmutable());
 
   // Update all views of the buffer to account for the buffer having been
   // detached, and clear the buffer's data and list of views.
@@ -1118,6 +1119,7 @@ void ResizableArrayBufferObject::resize(size_t newByteLength) {
   MOZ_ASSERT(!isPreparedForAsmJS());
   MOZ_ASSERT(!isWasm());
   MOZ_ASSERT(!isDetached());
+  MOZ_ASSERT(!isImmutable());
   MOZ_ASSERT(!isLengthPinned());
   MOZ_ASSERT(isResizable());
   MOZ_ASSERT(newByteLength <= maxByteLength());
@@ -1583,6 +1585,8 @@ bool ArrayBufferObject::prepareForAsmJS() {
              "prior size checking should have excluded empty buffers");
   MOZ_ASSERT(!isResizable(),
              "prior checks should have excluded resizable buffers");
+  MOZ_ASSERT(!isImmutable(),
+             "prior checks should have excluded immutable buffers");
 
   switch (bufferKind()) {
     case MALLOCED_ARRAYBUFFER_CONTENTS_ARENA:
@@ -1648,6 +1652,7 @@ SharedMem<uint8_t*> ArrayBufferObject::dataPointerShared() const {
 ArrayBufferObject::FreeInfo* ArrayBufferObject::freeInfo() const {
   MOZ_ASSERT(isExternal());
   MOZ_ASSERT(!isResizable());
+  MOZ_ASSERT(!isImmutable());
   auto* data = as<FixedLengthArrayBufferObject>().inlineDataPointer();
   return reinterpret_cast<FreeInfo*>(data);
 }
@@ -1801,6 +1806,7 @@ static void CheckStealPreconditions(Handle<ArrayBufferObject*> buffer,
   cx->check(buffer);
 
   MOZ_ASSERT(!buffer->isDetached(), "can't steal from a detached buffer");
+  MOZ_ASSERT(!buffer->isImmutable(), "can't steal from an immutable buffer");
   MOZ_ASSERT(!buffer->isLengthPinned(),
              "can't steal from a buffer with a pinned length");
   MOZ_ASSERT(!buffer->isPreparedForAsmJS(),
@@ -2304,6 +2310,7 @@ ResizableArrayBufferObject::createBufferAndData(
     JSContext* cx, size_t newByteLength,
     JS::Handle<ArrayBufferObject*> source) {
   MOZ_ASSERT(!source->isDetached());
+  MOZ_ASSERT(!source->isImmutable());
   MOZ_ASSERT(!source->isLengthPinned());
   MOZ_ASSERT(newByteLength <= ArrayBufferObject::ByteLengthLimit,
              "caller must validate the byte count it passes");
@@ -2331,6 +2338,7 @@ ResizableArrayBufferObject::createBufferAndData(
 /* static */ ArrayBufferObject* ArrayBufferObject::copyAndDetachSteal(
     JSContext* cx, JS::Handle<ArrayBufferObject*> source) {
   MOZ_ASSERT(!source->isDetached());
+  MOZ_ASSERT(!source->isImmutable());
   MOZ_ASSERT(!source->isLengthPinned());
   MOZ_ASSERT(source->isMalloced());
 
@@ -2369,6 +2377,7 @@ ResizableArrayBufferObject::createBufferAndData(
     JSContext* cx, size_t newByteLength,
     JS::Handle<ArrayBufferObject*> source) {
   MOZ_ASSERT(!source->isDetached());
+  MOZ_ASSERT(!source->isImmutable());
   MOZ_ASSERT(!source->isLengthPinned());
   MOZ_ASSERT(source->bufferKind() == MALLOCED_ARRAYBUFFER_CONTENTS_ARENA);
   MOZ_ASSERT(newByteLength > FixedLengthArrayBufferObject::MaxInlineBytes,
@@ -2427,6 +2436,7 @@ ResizableArrayBufferObject::copyAndDetach(
     JSContext* cx, size_t newByteLength,
     JS::Handle<ResizableArrayBufferObject*> source) {
   MOZ_ASSERT(!source->isDetached());
+  MOZ_ASSERT(!source->isImmutable());
   MOZ_ASSERT(!source->isLengthPinned());
   MOZ_ASSERT(newByteLength <= source->maxByteLength());
 
@@ -2449,6 +2459,7 @@ ResizableArrayBufferObject::copyAndDetachSteal(
     JSContext* cx, size_t newByteLength,
     JS::Handle<ResizableArrayBufferObject*> source) {
   MOZ_ASSERT(!source->isDetached());
+  MOZ_ASSERT(!source->isImmutable());
   MOZ_ASSERT(!source->isLengthPinned());
   MOZ_ASSERT(newByteLength <= source->maxByteLength());
   MOZ_ASSERT(source->isMalloced());
@@ -3274,6 +3285,11 @@ JS_PUBLIC_API bool JS::DetachArrayBuffer(JSContext* cx, HandleObject obj) {
                               JSMSG_WASM_NO_TRANSFER);
     return false;
   }
+  if (unwrappedBuffer->isImmutable()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
+    return false;
+  }
   if (unwrappedBuffer->isLengthPinned()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_ARRAYBUFFER_LENGTH_PINNED);
@@ -3438,6 +3454,11 @@ JS_PUBLIC_API void* JS::StealArrayBufferContents(JSContext* cx,
                               JSMSG_TYPED_ARRAY_DETACHED);
     return nullptr;
   }
+  if (unwrappedBuffer->isImmutable()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_ARRAYBUFFER_IMMUTABLE);
+    return nullptr;
+  }
   if (unwrappedBuffer->isLengthPinned()) {
     JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                               JSMSG_ARRAYBUFFER_LENGTH_PINNED);
@@ -3576,6 +3597,10 @@ bool JS::ArrayBufferCopyData(JSContext* cx, Handle<JSObject*> toBlock,
                               JSMSG_ARRAYBUFFER_COPY_RANGE);
     return false;
   }
+
+  MOZ_ASSERT(!unwrappedToBlock->isDetached());
+  MOZ_ASSERT(!unwrappedToBlock->isImmutable());
+  MOZ_ASSERT(!unwrappedFromBlock->isDetached());
 
   // If both are array buffers, can use ArrayBufferCopyData
   if (unwrappedToBlock->is<ArrayBufferObject>() &&

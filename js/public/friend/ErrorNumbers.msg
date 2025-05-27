@@ -707,6 +707,7 @@ MSG_DEF(JSMSG_SAME_ARRAY_BUFFER_RETURNED, 0, JSEXN_TYPEERR, "expected different 
 MSG_DEF(JSMSG_SHORT_ARRAY_BUFFER_RETURNED, 2, JSEXN_TYPEERR, "expected ArrayBuffer with at least {0} bytes, but species constructor returns ArrayBuffer with {1} bytes")
 MSG_DEF(JSMSG_TYPED_ARRAY_BAD_ARGS,    0, JSEXN_TYPEERR, "invalid arguments")
 MSG_DEF(JSMSG_TYPED_ARRAY_DETACHED,    0, JSEXN_TYPEERR, "attempting to access detached ArrayBuffer")
+MSG_DEF(JSMSG_ARRAYBUFFER_IMMUTABLE,   0, JSEXN_TYPEERR, "attempting to change immutable ArrayBuffer")
 MSG_DEF(JSMSG_ARRAYBUFFER_LENGTH_PINNED, 0, JSEXN_RANGEERR, "attempting to change pinned length of ArrayBuffer")
 MSG_DEF(JSMSG_TYPED_ARRAY_RESIZED_BOUNDS, 0, JSEXN_TYPEERR, "attempting to access outside the bounds of resized ArrayBuffer")
 MSG_DEF(JSMSG_TYPED_ARRAY_CONSTRUCT_OFFSET_BOUNDS, 2, JSEXN_RANGEERR, "start offset of {0}Array should be a multiple of {1}")

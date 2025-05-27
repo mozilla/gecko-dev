@@ -6874,6 +6874,11 @@ static bool CheckBuffer(JSContext* cx, const CodeMetadata& codeMeta,
                     "Unable to prepare resizable ArrayBuffer for asm.js use");
   }
 
+  if (buffer->isImmutable()) {
+    return LinkFail(cx,
+                    "Unable to prepare immutable ArrayBuffer for asm.js use");
+  }
+
   if (!buffer->prepareForAsmJS()) {
     return LinkFail(cx, "Unable to prepare ArrayBuffer for asm.js use");
   }

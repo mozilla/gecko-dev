@@ -137,6 +137,7 @@ class ArrayBufferObjectMaybeShared : public NativeObject {
   inline size_t byteLength() const;
   inline bool isDetached() const;
   inline bool isResizable() const;
+  inline bool isImmutable() const;
   inline SharedMem<uint8_t*> dataPointerEither();
 
   inline bool pinLength(bool pin);
@@ -274,7 +275,10 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
     // The length is temporarily pinned, so it should not be detached. In the
     // future, this will also prevent GrowableArrayBuffer/ResizeableArrayBuffer
     // from modifying the length while this is set.
-    PINNED_LENGTH = 0b100'0000
+    PINNED_LENGTH = 0b100'0000,
+
+    // Immutable ArrayBuffer.
+    IMMUTABLE = 0b1000'0000,
   };
 
   static_assert(JS_ARRAYBUFFER_DETACHED_FLAG == DETACHED,
@@ -571,6 +575,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   bool isResizable() const { return flags() & RESIZABLE; }
   bool isLengthPinned() const { return flags() & PINNED_LENGTH; }
   bool isPreparedForAsmJS() const { return flags() & FOR_ASMJS; }
+  bool isImmutable() const { return flags() & IMMUTABLE; }
 
   // Only WASM and asm.js buffers have a non-undefined [[ArrayBufferDetachKey]].
   //
@@ -627,7 +632,8 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   void setFlags(uint32_t flags);
 
   void setIsDetached() {
-    MOZ_ASSERT(!(flags() & PINNED_LENGTH));
+    MOZ_ASSERT(!isLengthPinned());
+    MOZ_ASSERT(!isImmutable());
     setFlags(flags() | DETACHED);
   }
   void setIsPreparedForAsmJS() {

@@ -62,6 +62,7 @@ bool JSObject::is<js::ArrayBufferViewObject>() const {
 void ArrayBufferViewObject::notifyBufferDetached() {
   MOZ_ASSERT(!isSharedMemory());
   MOZ_ASSERT(hasBuffer());
+  MOZ_ASSERT(!bufferUnshared()->isImmutable());
   MOZ_ASSERT(!bufferUnshared()->isLengthPinned());
 
   setFixedSlot(LENGTH_SLOT, PrivateValue(size_t(0)));
@@ -72,6 +73,7 @@ void ArrayBufferViewObject::notifyBufferDetached() {
 void ArrayBufferViewObject::notifyBufferResized() {
   MOZ_ASSERT(!isSharedMemory());
   MOZ_ASSERT(hasBuffer());
+  MOZ_ASSERT(!bufferUnshared()->isImmutable());
   MOZ_ASSERT(!bufferUnshared()->isLengthPinned());
   MOZ_ASSERT(bufferUnshared()->isResizable());
 
@@ -268,6 +270,13 @@ size_t ArrayBufferViewObject::bytesPerElement() const {
 bool ArrayBufferViewObject::hasResizableBuffer() const {
   if (auto* buffer = bufferEither()) {
     return buffer->isResizable();
+  }
+  return false;
+}
+
+bool ArrayBufferViewObject::hasImmutableBuffer() const {
+  if (auto* buffer = bufferEither()) {
+    return buffer->isImmutable();
   }
   return false;
 }
@@ -501,6 +510,11 @@ bool JS::ArrayBufferView::isResizable() const {
   return obj->as<ArrayBufferViewObject>().hasResizableBuffer();
 }
 
+bool JS::ArrayBufferView::isImmutable() const {
+  MOZ_ASSERT(obj);
+  return obj->as<ArrayBufferViewObject>().hasImmutableBuffer();
+}
+
 JS_PUBLIC_API size_t JS_GetArrayBufferViewByteOffset(JSObject* obj) {
   obj = obj->maybeUnwrapAs<ArrayBufferViewObject>();
   if (!obj) {
@@ -576,6 +590,14 @@ JS_PUBLIC_API bool JS::IsResizableArrayBufferView(JSObject* obj) {
   auto* view = &obj->unwrapAs<ArrayBufferViewObject>();
   if (auto* buffer = view->bufferEither()) {
     return buffer->isResizable();
+  }
+  return false;
+}
+
+JS_PUBLIC_API bool JS::IsImmutableArrayBufferView(JSObject* obj) {
+  auto* view = &obj->unwrapAs<ArrayBufferViewObject>();
+  if (auto* buffer = view->bufferEither()) {
+    return buffer->isImmutable();
   }
   return false;
 }
