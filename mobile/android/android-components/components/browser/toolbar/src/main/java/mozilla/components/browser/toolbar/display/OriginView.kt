@@ -48,6 +48,9 @@ internal class OriginView @JvmOverloads constructor(
         isClickable = true
         isFocusable = true
 
+        textDirection = View.TEXT_DIRECTION_LTR
+        layoutDirection = View.LAYOUT_DIRECTION_LTR
+
         setOnClickListener {
             if (onUrlClicked()) {
                 toolbar.editMode()

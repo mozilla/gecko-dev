@@ -16,8 +16,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mockito.spy
-import org.mockito.Mockito.verify
 import kotlin.random.Random
 
 @RunWith(AndroidJUnit4::class)
@@ -246,20 +244,9 @@ class URLStringUtilsTest {
     }
 
     @Test
-    fun showDisplayUrlAsLTREvenIfTextStartsWithArabicCharacters() {
+    fun toDisplayUrlDoesNotAddImplicitDirectionalMarks() {
         val testDisplayUrl = URLStringUtils.toDisplayUrl("http://ختار.ار/www.mozilla.org/1")
-        assertEquals("\u200Eختار.ار/www.mozilla.org/1", testDisplayUrl)
-    }
-
-    @Test
-    fun toDisplayUrlAlwaysUseATextDirectionHeuristicToDetermineDirectionality() {
-        val textHeuristic = spy(TestTextDirectionHeuristicCompat())
-
-        URLStringUtils.toDisplayUrl("http://ختار.ار/www.mozilla.org/1", textHeuristic)
-        verify(textHeuristic).isRtl("ختار.ار/www.mozilla.org/1", 0, 1)
-
-        URLStringUtils.toDisplayUrl("http://www.mozilla.org/1", textHeuristic)
-        verify(textHeuristic).isRtl("mozilla.org/1", 0, 1)
+        assertEquals("ختار.ار/www.mozilla.org/1", testDisplayUrl)
     }
 
     @Test
