@@ -58,11 +58,10 @@ android {
 
 dependencies {
     implementation libs.mozilla.glean
+    implementation project(':support-appservices')
     implementation project(':service-glean')
     implementation project(':service-nimbus')
     implementation project(':support-base')
-    implementation project(':support-rusthttp')
-    implementation project(':support-rustlog')
     implementation project(':lib-fetch-httpurlconnection')
 
     implementation libs.kotlin.coroutines

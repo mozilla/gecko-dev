@@ -2163,6 +2163,16 @@ projects:
     publish: true
     upstream_dependencies:
     - tooling-lint
+  support-appservices:
+    description: A collection of helpers for integrating native Application Services' components.
+    path: components/support/appservices
+    publish: true
+    upstream_dependencies:
+      - concept-base
+      - concept-fetch
+      - support-base
+      - support-test
+      - tooling-lint
   support-base:
     description: Base component containing building blocks for components.
     path: components/support/base

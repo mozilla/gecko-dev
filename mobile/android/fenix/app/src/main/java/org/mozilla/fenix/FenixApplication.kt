@@ -27,7 +27,6 @@ import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import mozilla.appservices.RustComponentsInitializer
 import mozilla.appservices.autofill.AutofillApiException
 import mozilla.components.browser.state.action.SystemAction
 import mozilla.components.browser.state.selector.selectedTab
@@ -53,6 +52,7 @@ import mozilla.components.feature.webcompat.reporter.WebCompatReporterFeature
 import mozilla.components.lib.crash.CrashReporter
 import mozilla.components.service.fxa.manager.SyncEnginesStorage
 import mozilla.components.service.sync.logins.LoginsApiException
+import mozilla.components.support.AppServicesInitializer
 import mozilla.components.support.base.ext.areNotificationsEnabledSafe
 import mozilla.components.support.base.ext.isNotificationChannelEnabled
 import mozilla.components.support.base.facts.register
@@ -64,9 +64,7 @@ import mozilla.components.support.ktx.android.content.isMainProcess
 import mozilla.components.support.ktx.android.content.runOnlyInMainProcess
 import mozilla.components.support.locale.LocaleAwareApplication
 import mozilla.components.support.remotesettings.GlobalRemoteSettingsDependencyProvider
-import mozilla.components.support.rusterrors.initializeRustErrors
 import mozilla.components.support.rusthttp.RustHttpConfig
-import mozilla.components.support.rustlog.RustLog
 import mozilla.components.support.utils.BrowsersCache
 import mozilla.components.support.utils.logElapsedTime
 import mozilla.components.support.webextensions.WebExtensionSupport
@@ -525,12 +523,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
      */
     private fun beginSetupMegazord() {
         // Rust components must be initialized at the very beginning, before any other Rust call, ...
-        RustComponentsInitializer.init()
-
-        initializeRustErrors(components.analytics.crashReporter)
-        // ... but RustHttpConfig.setClient() and RustLog.enable() can be called later.
-
-        RustLog.enable()
+        AppServicesInitializer.init(components.analytics.crashReporter)
     }
 
     @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
@@ -540,9 +533,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
                 RustHttpConfig.allowEmulatorLoopback()
             }
             RustHttpConfig.setClient(lazy { components.core.client })
-
-            // Now viaduct (the RustHttp client) is initialized we can ask Nimbus to fetch
-            // experiments recipes from the server.
         }
     }
 

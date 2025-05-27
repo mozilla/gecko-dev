@@ -163,6 +163,7 @@ mobile/android/android-components/components/service/pocket/lint-baseline.xml
 mobile/android/android-components/components/service/sync-autofill/lint-baseline.xml
 mobile/android/android-components/components/service/sync-logins/lint-baseline.xml
 mobile/android/android-components/components/support/android-test/lint-baseline.xml
+mobile/android/android-components/components/support/appservices/lint-baseline.xml
 mobile/android/android-components/components/support/base/lint-baseline.xml
 mobile/android/android-components/components/support/images/lint-baseline.xml
 mobile/android/android-components/components/support/ktx/lint-baseline.xml

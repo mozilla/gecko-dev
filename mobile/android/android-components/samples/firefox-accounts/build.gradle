@@ -39,9 +39,8 @@ android {
 dependencies {
     implementation project(':service-firefox-accounts')
     implementation project(':feature-qr')
+    implementation project(':support-appservices')
     implementation project(':support-base')
-    implementation project(':support-rustlog')
-    implementation project(':support-rusthttp')
     implementation project(':lib-fetch-httpurlconnection')
 
     implementation libs.androidx.constraintlayout

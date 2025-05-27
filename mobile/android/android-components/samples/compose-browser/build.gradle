@@ -68,10 +68,10 @@ dependencies {
     implementation project(':feature-session')
     implementation project(':feature-tabs')
 
+    implementation project(':support-appservices')
     implementation project(':service-location')
     implementation project(':support-ktx')
     implementation project(':support-remotesettings')
-    implementation project(':support-rusthttp')
 
     implementation project(':ui-icons')
 

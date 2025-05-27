@@ -634,10 +634,9 @@ dependencies {
     implementation project(':support-webextensions')
     implementation project(':support-base')
     implementation project(':support-remotesettings')
-    implementation project(':support-rusterrors')
     implementation project(':support-images')
     implementation project(':support-ktx')
-    implementation project(':support-rustlog')
+    implementation project(':support-appservices')
     implementation project(':support-utils')
     implementation project(':support-locale')
 
@@ -711,8 +710,6 @@ dependencies {
     implementation libs.play.review
     implementation libs.play.review.ktx
 
-    implementation ComponentsDependencies.mozilla_appservices_init_rust_components
-
     androidTestImplementation(libs.androidx.espresso.contrib) {
         exclude module: 'protobuf-lite'
     }
@@ -742,7 +739,6 @@ dependencies {
     }
 
     testImplementation libs.testing.maven.ant.tasks
-    implementation project(':support-rusthttp')
 
     androidTestImplementation libs.testing.mockk.android
     testImplementation libs.testing.mockk

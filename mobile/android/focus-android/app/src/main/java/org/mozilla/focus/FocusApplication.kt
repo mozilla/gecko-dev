@@ -21,13 +21,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import mozilla.components.support.AppServicesInitializer
 import mozilla.components.support.base.facts.register
 import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.ktx.android.content.isMainProcess
 import mozilla.components.support.locale.LocaleAwareApplication
 import mozilla.components.support.rusthttp.RustHttpConfig
-import mozilla.components.support.rustlog.RustLog
 import mozilla.components.support.webextensions.WebExtensionSupport
 import org.mozilla.focus.biometrics.LockObserver
 import org.mozilla.focus.experiments.finishNimbusInitialization
@@ -143,12 +143,7 @@ open class FocusApplication : LocaleAwareApplication(), Provider, CoroutineScope
      * thread, early in the app startup sequence.
      */
     private fun beginSetupMegazord() {
-        // Note: Megazord.init() must be called as soon as possible ...
-        // Megazord.init()
-
-        // ... but RustHttpConfig.setClient() and RustLog.enable() can be called later.
-
-        RustLog.enable()
+        AppServicesInitializer.init(components.crashReporter)
     }
 
     /**

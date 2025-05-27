@@ -310,6 +310,7 @@ treeherder:
         'service-sync-autofill': 'service-sync-autofill'
         'service-sync-logins': 'service-sync-logins'
         'support-android-test': 'support-android-test'
+        'support-appservices': 'support-appservices'
         'support-base': 'support-base'
         'support-images': 'support-images'
         'support-ktx': 'support-ktx'

@@ -39,8 +39,7 @@ dependencies {
     implementation project(':concept-storage')
     implementation project(':service-firefox-accounts')
     implementation project(':service-sync-logins')
-    implementation project(':support-rustlog')
-    implementation project(':support-rusthttp')
+    implementation project(':support-appservices')
     implementation project(':lib-dataprotect')
     implementation project(':lib-fetch-httpurlconnection')
 
