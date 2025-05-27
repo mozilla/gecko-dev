@@ -1302,6 +1302,12 @@ struct arena_t {
   // released after a concurrent purge completes.
   bool mMustDeleteAfterPurge MOZ_GUARDED_BY(mLock) = false;
 
+  // mLabel describes the label for the firefox profiler.  It's stored in a
+  // fixed size area including a null terminating byte.  The actual maximum
+  // length of the string is one less than LABEL_MAX_CAPACITY;
+  static constexpr size_t LABEL_MAX_CAPACITY = 128;
+  char mLabel[LABEL_MAX_CAPACITY];
+
  private:
   // Size/address-ordered tree of this arena's available runs.  This tree
   // is used for first-best-fit run allocation.
@@ -1596,6 +1602,7 @@ class ArenaCollection {
     arena_params_t params;
     // The main arena allows more dirty pages than the default for other arenas.
     params.mMaxDirty = opt_dirty_max;
+    params.mLabel = "Default";
     mDefaultArena =
         mLock.Init() ? CreateArena(/* aIsPrivate = */ false, &params) : nullptr;
     mPurgeListLock.Init();
@@ -2947,8 +2954,9 @@ static inline arena_t* thread_local_arena(bool enabled) {
     // called with `false`, but it doesn't matter at the moment.
     // because in practice nothing actually calls this function
     // with `false`, except maybe at shutdown.
-    arena =
-        gArenas.CreateArena(/* aIsPrivate = */ false, /* aParams = */ nullptr);
+    arena_params_t params;
+    params.mLabel = "Thread local";
+    arena = gArenas.CreateArena(/* aIsPrivate = */ false, &params);
   } else {
     arena = gArenas.GetDefault();
   }
@@ -5011,9 +5019,22 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
 
     mMaxDirtyIncreaseOverride = aParams->mMaxDirtyIncreaseOverride;
     mMaxDirtyDecreaseOverride = aParams->mMaxDirtyDecreaseOverride;
+
+    if (aParams->mLabel) {
+      // The string may be truncated so always place a null-byte in the last
+      // position.
+      strncpy(mLabel, aParams->mLabel, LABEL_MAX_CAPACITY - 1);
+      mLabel[LABEL_MAX_CAPACITY - 1] = 0;
+      // In debug builds we assert if the string needed truncating.
+      MOZ_ASSERT(strlen(aParams->mLabel) < LABEL_MAX_CAPACITY);
+    } else {
+      mLabel[0] = 0;
+    }
   } else {
     mMaxDirtyIncreaseOverride = 0;
     mMaxDirtyDecreaseOverride = 0;
+
+    mLabel[0] = 0;
   }
 
   mLastSignificantReuseNS = GetTimestampNS();
