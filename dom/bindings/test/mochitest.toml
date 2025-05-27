@@ -10,6 +10,7 @@ support-files = [
 ]
 prefs = [
   "javascript.options.large_arraybuffers=true",
+  "javascript.options.experimental.arraybuffer_immutable=true",
 ]
 
 ["test_ByteString.html"]
@@ -178,6 +179,12 @@ skip-if = ["!debug"] # Test WebIDL interfaces are only available in debug builds
 skip-if = [
   "!debug",
   "!nightly_build", # Bug 1670026
+]
+
+["test_immutable_arraybufferview.html"]
+skip-if = [
+  "!debug",
+  "!nightly_build", # Bug 1952253
 ]
 
 ["test_returnUnion.html"]
