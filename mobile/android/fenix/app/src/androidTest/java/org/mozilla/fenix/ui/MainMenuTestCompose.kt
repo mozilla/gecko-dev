@@ -54,6 +54,7 @@ import org.mozilla.fenix.ui.robots.homeScreen
 import org.mozilla.fenix.ui.robots.mainMenuScreen
 import org.mozilla.fenix.ui.robots.navigationToolbar
 
+@Ignore("Bugzilla issue: https://bugzilla.mozilla.org/show_bug.cgi?id=1963618")
 class MainMenuTestCompose : TestSetup() {
     @get:Rule
     val composeTestRule =
@@ -77,19 +78,17 @@ class MainMenuTestCompose : TestSetup() {
     val memoryLeaksRule = DetectMemoryLeaksRule()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860735
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @SmokeTest
     @Test
     fun homepageRedesignedMenuItemsTest() {
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             verifyHomeMainMenuItems()
         }
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860835
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @SmokeTest
     @Test
     fun webpageRedesignedMenuItemsTest() {
@@ -97,7 +96,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             verifyPageMainMenuItems()
         }
@@ -111,7 +110,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickNewTabButton {
             verifySearchToolbar(isDisplayed = true)
         }.dismissSearchBar {
@@ -127,7 +126,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickNewPrivateTabButton {
             verifySearchToolbar(isDisplayed = true)
         }.dismissSearchBar {
@@ -144,7 +143,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(pdfPage.url) {
             verifyPageContent(pdfPage.content)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             verifySwitchToDesktopSiteButtonIsEnabled(isEnabled = false)
         }
     }
@@ -158,7 +157,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
             mDevice.waitForIdle()
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickFindInPageButton {
             verifyFindInPageNextButton()
             verifyFindInPagePrevButton()
@@ -175,7 +174,7 @@ class MainMenuTestCompose : TestSetup() {
             verifyFindInPageResult("1/3")
         }.closeFindInPageWithCloseButton {
             verifyFindInPageBar(false)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickFindInPageButton {
             enterFindInPageQuery("3")
             verifyFindInPageResult("1/1")
@@ -192,7 +191,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openBookmarks(composeTestRule) {
             verifyEmptyBookmarksMenuView()
@@ -209,7 +208,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openHistory {
             verifyHistoryMenuView()
@@ -226,7 +225,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openDownloads {
             verifyEmptyDownloadsList(composeTestRule)
@@ -244,7 +243,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openPasswords {
             verifySecurityPromptForLogins()
@@ -332,7 +331,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             verifyRecommendedAddonsViewFromRedesignedMainMenu(composeTestRule)
@@ -347,7 +346,7 @@ class MainMenuTestCompose : TestSetup() {
         val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openExtensionsFromMainMenu {
             waitForAddonsListProgressBarToBeGone()
             clickInstallAddon(addonName)
@@ -360,7 +359,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
@@ -369,9 +368,7 @@ class MainMenuTestCompose : TestSetup() {
             verifySnackBarText("Successfully uninstalled $addonName")
             waitUntilSnackbarGone()
         }.goBack {
-        }
-        browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             verifyNoExtensionsButton()
         }
@@ -385,7 +382,7 @@ class MainMenuTestCompose : TestSetup() {
         val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openExtensionsFromMainMenu {
             waitForAddonsListProgressBarToBeGone()
             clickInstallAddon(addonName)
@@ -398,7 +395,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
@@ -417,7 +414,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
             verifySaveSubMenuItems()
@@ -425,7 +422,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860813
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @SmokeTest
     @Test
     fun verifyTheBookmarkThisPageSubMenuItemsTest() {
@@ -433,11 +429,11 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickBookmarkThisPageButton {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickEditBookmarkButton(composeTestRule) {
@@ -445,7 +441,7 @@ class MainMenuTestCompose : TestSetup() {
             clickDeleteBookmarkButtonInEditMode()
         }
         browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
             verifyBookmarkThisPageButton()
@@ -461,20 +457,20 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
             verifyPageContent(testPage.content)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickAddToShortcutsButton {
             verifySnackBarText(getStringResource(R.string.snackbar_added_to_shortcuts))
-        }.goToHomescreen(composeTestRule) {
+        }.goToHomescreenWithRedesignedToolbar {
             verifyExistingTopSitesTabs(composeTestRule, testPage.title)
         }.openTopSiteTabWithTitle(composeTestRule, testPage.title) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickRemoveFromShortcutsButton {
             verifySnackBarText(getStringResource(R.string.snackbar_top_site_removed))
-        }.goToHomescreen(composeTestRule) {
+        }.goToHomescreenWithRedesignedToolbar {
             verifyNotExistingTopSiteItem(composeTestRule, testPage.title)
         }
     }
@@ -487,14 +483,14 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickAddToHomeScreenButton {
             clickCancelShortcutButton()
         }
         browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickAddToHomeScreenButton {
@@ -527,13 +523,13 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(secondTestPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickSaveToCollectionButton {
         }.selectExistingCollection(collectionTitle) {
             verifySnackBarText("Tab saved!")
-        }.goToHomescreen(composeTestRule) {
+        }.goToHomescreenWithRedesignedToolbar {
         }.expandCollection(composeTestRule, collectionTitle) {
             verifyTabSavedInCollection(composeTestRule, firstTestPage.title)
             verifyTabSavedInCollection(composeTestRule, secondTestPage.title)
@@ -548,7 +544,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             clickSaveButton()
         }.clickSaveAsPDFButton {
@@ -567,7 +563,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()
             verifyTheDefaultToolsMenuItems()
@@ -586,7 +582,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(readerViewPage.url) {
             verifyPageContent(readerViewPage.content)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()
             verifyReaderViewButtonIsEnabled(isEnabled = true)
@@ -598,7 +594,7 @@ class MainMenuTestCompose : TestSetup() {
             verifyReaderViewNavigationToolbarButton(isReaderViewEnabled = true)
         }
         browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()
             verifyCustomizeReaderViewButtonIsDisplayed(isDisplayed = true)
@@ -614,10 +610,10 @@ class MainMenuTestCompose : TestSetup() {
             verifyAppearanceColorLight(true)
             verifyAppearanceColorSepia(true)
         }.closeAppearanceMenu {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             openToolsMenu()
         }.clickTurnOffReaderViewButton {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             openToolsMenu()
             verifyReaderViewButtonIsEnabled(isEnabled = true)
             verifyCustomizeReaderViewButtonIsDisplayed(isDisplayed = false)
@@ -632,19 +628,19 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURL(testPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()
         }.clickTranslateButton {
             verifyTranslationSheetIsDisplayed(isDisplayed = true)
         }.clickTranslateButton {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             openToolsMenu()
         }.clickTranslatedToButton("English") {
             verifyTranslationSheetIsDisplayed(isDisplayed = true)
         }.clickShowOriginalButton {
             verifyPageContent(testPage.content)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             openToolsMenu()
             verifyTheDefaultToolsMenuItems()
         }
@@ -659,7 +655,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(testPage.url) {
             verifyPageContent(testPage.content)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()
         }.clickShareButton {
@@ -681,7 +677,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(youtubeURL) {
             waitForPageToLoad(waitingTime)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()
             verifyOpenInAppButtonIsEnabled(appName = "YouTube", isEnabled = true)
@@ -695,7 +691,7 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun homeMainMenuExtensionsButtonOpensManageExtensionsTest() {
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openExtensionsFromMainMenu {
             registerAndCleanupIdlingResources(
                 RecyclerViewIdlingResource(composeTestRule.activity.findViewById(R.id.add_ons_list), 1),
@@ -713,21 +709,21 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             verifySwitchToDesktopSiteButton()
             clickSwitchToDesktopSiteButton()
         }
         browserScreen {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             verifySwitchToMobileSiteButton()
             clickSwitchToMobileSiteButton()
         }
         browserScreen {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             verifySwitchToDesktopSiteButton()
         }
@@ -742,7 +738,7 @@ class MainMenuTestCompose : TestSetup() {
         navigationToolbar {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
             mDevice.waitForIdle()
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             openToolsMenu()
             clickPrintContentButton()
@@ -758,7 +754,7 @@ class MainMenuTestCompose : TestSetup() {
         val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openExtensionsFromMainMenu {
             waitForAddonsListProgressBarToBeGone()
             clickInstallAddon(addonName)
@@ -771,7 +767,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
@@ -781,9 +777,7 @@ class MainMenuTestCompose : TestSetup() {
             waitUntilSnackbarGone()
         }.goBack {
         }.goBack {
-        }
-        browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
             verifyNoExtensionsButton()
         }
@@ -797,7 +791,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             val recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
@@ -812,7 +806,7 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun verifyTheHomePageMainMenuSettingsButtonTest() {
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openSettings {
             verifySettingsToolbar()
         }.goBack {
@@ -827,7 +821,7 @@ class MainMenuTestCompose : TestSetup() {
         }.togglePrivateBrowsingMode()
 
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickNewTabButton {
             verifySearchToolbar(isDisplayed = true)
         }.dismissSearchBar {
@@ -839,7 +833,7 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun verifyTheHomePageNewPrivateTabButtonInNormalBrowsingModeTest() {
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickNewPrivateTabButton {
             verifySearchToolbar(isDisplayed = true)
         }.dismissSearchBar {
@@ -851,7 +845,7 @@ class MainMenuTestCompose : TestSetup() {
     @Test
     fun verifyTheHomePageMainMenuCustomizeHomepageButtonTest() {
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.clickCustomizeHomepageButton {
             verifyHomePageView()
@@ -867,7 +861,7 @@ class MainMenuTestCompose : TestSetup() {
             it.isMenuRedesignCFREnabled = true
         }
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             verifyMainMenuCFR()
         }
     }
@@ -881,7 +875,7 @@ class MainMenuTestCompose : TestSetup() {
         }.enterURLAndEnterToBrowser(testPage.url) {
             clickPageObject(MatcherHelper.itemWithText("PDF form file"))
             clickPageObject(itemWithResIdAndText("android:id/button2", "CANCEL"))
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickFindInPageButton {
             verifyFindInPageNextButton()
             verifyFindInPagePrevButton()
@@ -894,7 +888,7 @@ class MainMenuTestCompose : TestSetup() {
             verifyFindInPageResult("1/2")
         }.closeFindInPageWithCloseButton {
             verifyFindInPageBar(false)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickFindInPageButton {
             enterFindInPageQuery("p")
             verifyFindInPageResult("1/1")
@@ -904,13 +898,12 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860854
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @Test
     fun verifyTheQuitFirefoxMenuItemTest() {
         val genericURL = getGenericAsset(mockWebServer, 1)
 
         homeScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.openSettings {
         }.openSettingsSubMenuDeleteBrowsingDataOnQuit {
             verifyDeleteBrowsingOnQuitEnabled(false)
@@ -922,7 +915,7 @@ class MainMenuTestCompose : TestSetup() {
         }
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             clickQuitFirefoxButton()
             restartApp(composeTestRule.activityRule)
         }
@@ -938,7 +931,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             openToolsMenu()
         }.clickOutsideTheMainMenu {
             verifyToolsMenuDoesNotExist()
@@ -952,7 +945,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             clickSaveButton()
         }.clickOutsideTheMainMenu {
             verifySaveMenuDoesNotExist()
@@ -1011,7 +1004,7 @@ class MainMenuTestCompose : TestSetup() {
             verifyFindInPageResult("1/3")
         }.closeFindInPageWithCloseButton {
             verifyFindInPageBar(false)
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
         }.clickFindInPageButton {
             enterFindInPageQuery("3")
             verifyFindInPageResult("1/1")
@@ -1048,7 +1041,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             verifyNoInstalledExtensionsPromotionBanner(composeTestRule)
@@ -1065,7 +1058,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
@@ -1079,7 +1072,7 @@ class MainMenuTestCompose : TestSetup() {
             waitUntilSnackbarGone()
         }.goBack {
         }.goBackToBrowser {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             verifyDisabledExtensionsPromotionBanner(composeTestRule)
@@ -1093,7 +1086,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
         }.clickDiscoverMoreExtensionsButton(composeTestRule) {
@@ -1109,14 +1102,14 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(genericURL.url) {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
         }
         mainMenuScreen(composeTestRule) {
         }.clickOutsideTheMainMenu {
             verifyExtensionsMenuDoesNotExist()
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             recommendedExtensionTitle = getRecommendedExtensionTitle(composeTestRule)
@@ -1130,7 +1123,7 @@ class MainMenuTestCompose : TestSetup() {
             verifyExtensionsMenuDoesNotExist()
         }
         browserScreen {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
             clickManageExtensionsButtonFromRedesignedMainMenu(composeTestRule)
@@ -1139,7 +1132,7 @@ class MainMenuTestCompose : TestSetup() {
             waitUntilSnackbarGone()
         }.goBack {
         }.goBackToBrowser {
-        }.openThreeDotMenu(composeTestRule) {
+        }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             expandMainMenu()
         }.openExtensionsFromMainMenu {
         }
@@ -1150,7 +1143,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860800
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @Test
     fun verifyTheReportBrokenSiteOptionTest() {
         runWithCondition(
@@ -1161,12 +1153,12 @@ class MainMenuTestCompose : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.clickReportBrokenSiteButton {
                 verifyWebCompatReporterViewItems(composeTestRule, websiteURL = defaultWebPage.url.toString())
             }.closeWebCompatReporter {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             }.openSettings {
             }.openSettingsSubMenuDataCollection {
                 clickUsageAndTechnicalDataToggle()
@@ -1176,7 +1168,7 @@ class MainMenuTestCompose : TestSetup() {
             exitMenu()
 
             browserScreen {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.clickReportBrokenSiteButton {
                 verifyUrl("webcompat.com/issues/new")
@@ -1195,7 +1187,7 @@ class MainMenuTestCompose : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
@@ -1220,14 +1212,14 @@ class MainMenuTestCompose : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
                 clickChooseReasonField(composeTestRule)
                 clickSiteDoesNotLoadReason(composeTestRule)
                 clickBrokenSiteFormCancelButton(composeTestRule)
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWhatIsBrokenField(composeTestRule)
@@ -1236,7 +1228,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2939176
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @Test
     fun verifyTheBrokenSiteFormSubmissionTest() {
         runWithCondition(
@@ -1247,7 +1238,7 @@ class MainMenuTestCompose : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
@@ -1258,7 +1249,7 @@ class MainMenuTestCompose : TestSetup() {
             }
             browserScreen {
                 verifySnackBarText("Your report was sent")
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWhatIsBrokenField(composeTestRule)
@@ -1278,7 +1269,7 @@ class MainMenuTestCompose : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
@@ -1286,7 +1277,7 @@ class MainMenuTestCompose : TestSetup() {
                 clickSiteDoesNotLoadReason(composeTestRule)
                 describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
             }.closeWebCompatReporter {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time", isDisplayed = true)
@@ -1306,7 +1297,7 @@ class MainMenuTestCompose : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(firstWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, firstWebPage.url.toString())
@@ -1317,7 +1308,7 @@ class MainMenuTestCompose : TestSetup() {
             }.openTabDrawer(composeTestRule) {
             }.openNewTab {
             }.submitQuery(secondWebPage.url.toString()) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWhatIsBrokenField(composeTestRule)
@@ -1337,7 +1328,7 @@ class MainMenuTestCompose : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
@@ -1349,7 +1340,7 @@ class MainMenuTestCompose : TestSetup() {
             restartApp(composeTestRule.activityRule)
 
             browserScreen {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyWhatIsBrokenField(composeTestRule)
@@ -1368,7 +1359,7 @@ class MainMenuTestCompose : TestSetup() {
             val defaultWebPage = getGenericAsset(mockWebServer, 1)
 
             homeScreen {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
             }.openSettings {
             }.openSettingsSubMenuDataCollection {
                 clickUsageAndTechnicalDataToggle()
@@ -1379,7 +1370,7 @@ class MainMenuTestCompose : TestSetup() {
 
             navigationToolbar {
             }.enterURLAndEnterToBrowser(defaultWebPage.url) {
-            }.openThreeDotMenu(composeTestRule) {
+            }.openThreeDotMenuFromRedesignedToolbar(composeTestRule) {
                 openToolsMenu()
             }.openReportBrokenSite {
                 verifyUrl("webcompat.com/issues/new")
