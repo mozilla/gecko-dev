@@ -2254,7 +2254,7 @@ AttachDecision GetPropIRGenerator::tryAttachTypedArray(HandleObject obj,
   EmitCallGetterResultGuards(writer, tarr, holder, id, *prop, objId, mode_);
   if (isLength) {
     size_t length = tarr->length().valueOr(0);
-    if (tarr->is<FixedLengthTypedArrayObject>()) {
+    if (!tarr->is<ResizableTypedArrayObject>()) {
       if (length <= INT32_MAX) {
         writer.loadArrayBufferViewLengthInt32Result(objId);
       } else {
@@ -2280,7 +2280,7 @@ AttachDecision GetPropIRGenerator::tryAttachTypedArray(HandleObject obj,
     trackAttached("GetProp.TypedArrayByteOffset");
   } else {
     size_t byteLength = tarr->byteLength().valueOr(0);
-    if (tarr->is<FixedLengthTypedArrayObject>()) {
+    if (!tarr->is<ResizableTypedArrayObject>()) {
       if (byteLength <= INT32_MAX) {
         writer.typedArrayByteLengthInt32Result(objId);
       } else {
@@ -3259,6 +3259,10 @@ static bool ForceDoubleForUint32Array(TypedArrayObject* tarr, uint64_t index) {
 static ArrayBufferViewKind ToArrayBufferViewKind(const TypedArrayObject* obj) {
   if (obj->is<FixedLengthTypedArrayObject>()) {
     return ArrayBufferViewKind::FixedLength;
+  }
+
+  if (obj->is<ImmutableTypedArrayObject>()) {
+    return ArrayBufferViewKind::Immutable;
   }
 
   MOZ_ASSERT(obj->is<ResizableTypedArrayObject>());
@@ -5218,6 +5222,11 @@ AttachDecision SetPropIRGenerator::tryAttachSetTypedArrayElement(
 
   auto* tarr = &obj->as<TypedArrayObject>();
   Scalar::Type elementType = tarr->type();
+
+  // Immutable TypedArrays can't be modified.
+  if (tarr->is<ImmutableTypedArrayObject>()) {
+    return AttachDecision::NoAction;
+  }
 
   // Don't attach if the input type doesn't match the guard added below.
   if (!ValueCanConvertToNumeric(elementType, rhsVal_)) {
@@ -11063,7 +11072,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayByteOffset() {
   EmitGuardTypedArray(writer, tarr, objArgId);
 
   size_t byteOffset = tarr->byteOffsetMaybeOutOfBounds();
-  if (tarr->is<FixedLengthTypedArrayObject>()) {
+  if (!tarr->is<ResizableTypedArrayObject>()) {
     if (byteOffset <= INT32_MAX) {
       writer.arrayBufferViewByteOffsetInt32Result(objArgId);
     } else {
@@ -11146,7 +11155,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachTypedArrayLength(
 
   EmitGuardTypedArray(writer, tarr, objArgId);
 
-  if (tarr->is<FixedLengthTypedArrayObject>()) {
+  if (!tarr->is<ResizableTypedArrayObject>()) {
     if (length.valueOr(0) <= INT32_MAX) {
       writer.loadArrayBufferViewLengthInt32Result(objArgId);
     } else {
