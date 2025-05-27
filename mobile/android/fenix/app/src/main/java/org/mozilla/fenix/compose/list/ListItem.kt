@@ -192,6 +192,7 @@ fun TextListItem(
  * @param onLongClick Called when the user long clicks on the item.
  * @param showDivider Whether or not to display a vertical divider line before the [IconButton]
  * at the end.
+ * @param dividerColor [Color] to be applied to the divider. Default is [FirefoxTheme.colors.borderSecondary].
  * @param iconPainter [Painter] used to display an [IconButton] after the list item.
  * @param iconButtonModifier [Modifier] to be applied to the icon button.
  * @param iconDescription Content description of the icon.
@@ -208,6 +209,7 @@ fun FaviconListItem(
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
+    dividerColor: Color = FirefoxTheme.colors.borderSecondary,
     iconPainter: Painter? = null,
     iconButtonModifier: Modifier = Modifier,
     iconDescription: String? = null,
@@ -249,7 +251,7 @@ fun FaviconListItem(
                         .padding(vertical = DIVIDER_VERTICAL_PADDING)
                         .fillMaxHeight()
                         .width(1.dp),
-                    color = FirefoxTheme.colors.borderSecondary,
+                    color = dividerColor,
                 )
             }
 

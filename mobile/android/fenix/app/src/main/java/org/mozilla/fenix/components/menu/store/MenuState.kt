@@ -10,6 +10,7 @@ import mozilla.components.feature.addons.Addon
 import mozilla.components.lib.state.State
 import mozilla.components.support.ktx.kotlin.isAboutUrl
 import mozilla.components.support.ktx.kotlin.isContentUrl
+import org.mozilla.fenix.components.menu.MenuAccessPoint
 
 /**
  * Value type that represents the state of the menu.
@@ -67,6 +68,7 @@ data class BrowserMenuState(
  * should be displayed to the user.
  * @property browserWebExtensionMenuItem A list of [WebExtensionMenuItem]s
  * to be shown in the menu.
+ * @property accesspoint The [MenuAccessPoint] that was used to navigate to the menu dialog.
  */
 data class ExtensionMenuState(
     val recommendedAddons: List<Addon> = emptyList(),
@@ -76,7 +78,40 @@ data class ExtensionMenuState(
     val addonInstallationInProgress: Addon? = null,
     val shouldShowManageExtensionsMenuItem: Boolean = false,
     val browserWebExtensionMenuItem: List<WebExtensionMenuItem> = emptyList(),
-)
+    val accesspoint: MenuAccessPoint? = null,
+) {
+
+    /**
+     * Get the number of web extensions to be shown in the menu.
+     */
+    val webExtensionsCount: Int
+        get() {
+            return when (accesspoint) {
+                MenuAccessPoint.Browser -> {
+                    browserWebExtensionMenuItem.size
+                }
+                MenuAccessPoint.Home -> {
+                    availableAddons.size
+                }
+                else -> 0
+            }
+        }
+
+    /**
+     * All web extensions disabled.
+     */
+    val allWebExtensionsDisabled: Boolean
+        get() {
+            return (
+                recommendedAddons.isEmpty() &&
+                        availableAddons.isEmpty() && browserWebExtensionMenuItem.isEmpty()
+            ) ||
+            (
+                accesspoint == MenuAccessPoint.Browser &&
+                    browserWebExtensionMenuItem.isEmpty() && availableAddons.isNotEmpty()
+            )
+        }
+}
 
 /**
  * Value type that represents the bookmark state of a tab.

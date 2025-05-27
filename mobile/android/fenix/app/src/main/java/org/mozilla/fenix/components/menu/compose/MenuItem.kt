@@ -104,11 +104,10 @@ internal fun MenuItem(
                 }
             }
             .wrapContentSize()
+            .clip(shape = RoundedCornerShape(4.dp))
             .background(
                 color = FirefoxTheme.colors.layer3,
-                shape = RoundedCornerShape(4.dp),
-            )
-            .clip(shape = RoundedCornerShape(4.dp)),
+            ),
         labelModifier = labelModifier,
         labelTextColor = labelTextColor,
         maxLabelLines = 2,
@@ -137,13 +136,17 @@ internal fun MenuItem(
  * An [IconListItem] wrapper for menu items in a [MenuGroup] with an optional icon at the end.
  *
  * @param label The label in the menu item.
+ * @param modifier [Modifier] to be applied to the layout.
  * @param description An optional description text below the label.
+ * @param iconPainter [Painter] used to display an [Icon] after the list item.
  * @param onClick Invoked when the user clicks on the item.
  */
 @Composable
 internal fun MenuTextItem(
     label: String,
+    modifier: Modifier = Modifier,
     description: String? = null,
+    iconPainter: Painter? = null,
     onClick: (() -> Unit)? = null,
 ) {
     TextListItem(
@@ -155,6 +158,8 @@ internal fun MenuTextItem(
         } else {
             MENU_ITEM_HEIGHT_WITHOUT_DESC
         },
+        modifier = modifier,
+        iconPainter = iconPainter,
         onClick = onClick,
     )
 }
@@ -190,7 +195,11 @@ internal fun WebExtensionMenuItem(
         iconPainter = iconPainter,
         iconTint = iconTint,
         enabled = enabled == true,
-        modifier = modifier,
+        modifier = modifier.background(
+            color = FirefoxTheme.colors.layer3,
+            shape = ROUNDED_CORNER_SHAPE,
+        )
+            .clip(shape = ROUNDED_CORNER_SHAPE),
         onClick = onClick,
         afterListAction = {
             if (badgeText.isNullOrEmpty()) {

@@ -215,6 +215,8 @@
     <string name="browser_menu_extensions_disabled_description">Temporarily disabled</string>
     <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
     <string name="browser_menu_no_extensions_installed_description">No extensions enabled</string>
+    <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+    <string name="browser_menu_try_a_recommended_extension_description">Try a recommended extension</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Account info</string>
     <!-- Browser menu button that sends a user to help articles -->

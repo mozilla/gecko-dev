@@ -4,16 +4,43 @@
 
 package org.mozilla.fenix.components.menu.compose
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.Icon
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.dp
+import mozilla.components.feature.addons.Addon
+import mozilla.components.feature.addons.ui.displayName
+import mozilla.components.feature.addons.ui.summary
 import mozilla.components.service.fxa.manager.AccountState
 import mozilla.components.service.fxa.manager.AccountState.Authenticated
 import mozilla.components.service.fxa.manager.AccountState.Authenticating
@@ -24,6 +51,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.menu.MenuDialogTestTag
 import org.mozilla.fenix.components.menu.compose.header.MenuNavHeader
+import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
@@ -35,14 +63,17 @@ import org.mozilla.fenix.theme.Theme
  * @param accountState The [AccountState] of a Mozilla account.
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
+ * @param isExtensionsExpanded Whether or not the extensions menu is expanded.
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not translation is supported.
  * @param isWebCompatReporterSupported Whether or not the report broken site feature is supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
+ * @param allWebExtensionsDisabled Whether or not all web extensions are disabled.
  * @param extensionsMenuItemDescription The label of extensions menu item description.
  * @param scrollState The [ScrollState] used for vertical scrolling.
+ * @param webExtensionMenuCount The number of web extensions.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
  * @param onNewTabMenuClick Invoked when the user clicks on the new tab menu item.
@@ -65,22 +96,26 @@ import org.mozilla.fenix.theme.Theme
  * @param onForwardButtonClick Invoked when the user clicks on the forward button.
  * @param onRefreshButtonClick Invoked when the user clicks on the refresh button.
  * @param onShareButtonClick Invoked when the user clicks on the share button.
+ * @param extensionSubmenu The content of extensions menu item to avoid configuration during animation.
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "LongMethod")
 @Composable
 fun MainMenu(
     accessPoint: MenuAccessPoint,
     account: Account?,
     accountState: AccountState,
     showQuitMenu: Boolean,
+    isExtensionsExpanded: Boolean,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
     isWebCompatReporterSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
+    allWebExtensionsDisabled: Boolean,
     extensionsMenuItemDescription: String,
     scrollState: ScrollState,
+    webExtensionMenuCount: Int,
     onMozillaAccountButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
     onNewTabMenuClick: () -> Unit,
@@ -101,6 +136,7 @@ fun MainMenu(
     onForwardButtonClick: (longPress: Boolean) -> Unit,
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
     onShareButtonClick: () -> Unit,
+    extensionSubmenu: @Composable ColumnScope.() -> Unit,
 ) {
     MenuScaffold(
         header = {
@@ -118,26 +154,45 @@ fun MainMenu(
         },
         scrollState = scrollState,
     ) {
+        if (accessPoint == MenuAccessPoint.Home) {
+            HomepageMenuGroup(
+                onCustomizeHomepageMenuClick = onCustomizeHomepageMenuClick,
+                onNewInFirefoxMenuClick = onNewInFirefoxMenuClick,
+                onExtensionsMenuClick = onExtensionsMenuClick,
+                extensionsMenuItemDescription = extensionsMenuItemDescription,
+                isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+                isExtensionsExpanded = isExtensionsExpanded,
+                webExtensionMenuCount = webExtensionMenuCount,
+                allWebExtensionsDisabled = allWebExtensionsDisabled,
+                extensionSubmenu = extensionSubmenu,
+            )
+        }
+
+        if (accessPoint == MenuAccessPoint.Browser) {
+            ToolsAndActionsMenuGroup(
+                isDesktopMode = isDesktopMode,
+                isPdf = isPdf,
+                isTranslationSupported = isTranslationSupported,
+                isWebCompatReporterSupported = isWebCompatReporterSupported,
+                extensionsMenuItemDescription = extensionsMenuItemDescription,
+                isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+                isExtensionsExpanded = isExtensionsExpanded,
+                webExtensionMenuCount = webExtensionMenuCount,
+                allWebExtensionsDisabled = allWebExtensionsDisabled,
+                onExtensionsMenuClick = onExtensionsMenuClick,
+                onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
+                onFindInPageMenuClick = onFindInPageMenuClick,
+                onToolsMenuClick = onToolsMenuClick,
+                onSaveMenuClick = onSaveMenuClick,
+                extensionSubmenu = extensionSubmenu,
+            )
+        }
+
         NewTabsMenuGroup(
             accessPoint = accessPoint,
             isPrivate = isPrivate,
             onNewTabMenuClick = onNewTabMenuClick,
             onNewPrivateTabMenuClick = onNewPrivateTabMenuClick,
-        )
-
-        ToolsAndActionsMenuGroup(
-            accessPoint = accessPoint,
-            isDesktopMode = isDesktopMode,
-            isPdf = isPdf,
-            isTranslationSupported = isTranslationSupported,
-            isWebCompatReporterSupported = isWebCompatReporterSupported,
-            isExtensionsProcessDisabled = isExtensionsProcessDisabled,
-            extensionsMenuItemDescription = extensionsMenuItemDescription,
-            onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
-            onFindInPageMenuClick = onFindInPageMenuClick,
-            onToolsMenuClick = onToolsMenuClick,
-            onSaveMenuClick = onSaveMenuClick,
-            onExtensionsMenuClick = onExtensionsMenuClick,
         )
 
         LibraryMenuGroup(
@@ -146,13 +201,6 @@ fun MainMenu(
             onDownloadsMenuClick = onDownloadsMenuClick,
             onPasswordsMenuClick = onPasswordsMenuClick,
         )
-
-        if (accessPoint == MenuAccessPoint.Home) {
-            HomepageMenuGroup(
-                onCustomizeHomepageMenuClick = onCustomizeHomepageMenuClick,
-                onNewInFirefoxMenuClick = onNewInFirefoxMenuClick,
-            )
-        }
 
         MenuGroup {
             MozillaAccountMenuItem(
@@ -172,6 +220,80 @@ fun MainMenu(
             QuitMenuGroup(
                 onQuitMenuClick = onQuitMenuClick,
             )
+        }
+    }
+}
+
+@Composable
+private fun ExtensionsMenuItem(
+    extensionsMenuItemDescription: String,
+    isExtensionsProcessDisabled: Boolean,
+    isExtensionsExpanded: Boolean,
+    webExtensionMenuCount: Int,
+    allWebExtensionsDisabled: Boolean,
+    onExtensionsMenuClick: () -> Unit,
+    extensionSubmenu: @Composable ColumnScope.() -> Unit,
+) {
+    Column {
+        val leftPadding = if (webExtensionMenuCount > 0) 8.dp else 2.dp
+        MenuItem(
+            label = stringResource(id = R.string.browser_menu_extensions),
+            description = extensionsMenuItemDescription,
+            beforeIconPainter = if (isExtensionsProcessDisabled) {
+                painterResource(id = R.drawable.mozac_ic_extension_disabled_24)
+            } else {
+                painterResource(id = R.drawable.mozac_ic_extension_24)
+            },
+            onClick = onExtensionsMenuClick,
+            descriptionState = if (isExtensionsProcessDisabled) {
+                MenuItemState.WARNING
+            } else {
+                MenuItemState.ENABLED
+            },
+        ) {
+            if (isExtensionsProcessDisabled || allWebExtensionsDisabled) {
+                Icon(
+                    painter = painterResource(id = R.drawable.mozac_ic_settings_24),
+                    contentDescription = null,
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+                return@MenuItem
+            }
+
+            Row(
+                modifier = Modifier
+                    .background(
+                        color = FirefoxTheme.colors.layerSearch,
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    .padding(start = leftPadding, top = 2.dp, bottom = 2.dp, end = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (webExtensionMenuCount > 0) {
+                    Text(
+                        text = webExtensionMenuCount.toString(),
+                        color = FirefoxTheme.colors.textPrimary,
+                        overflow = TextOverflow.Ellipsis,
+                        style = FirefoxTheme.typography.caption,
+                        maxLines = 1,
+                    )
+                }
+
+                Icon(
+                    painter = if (isExtensionsExpanded) {
+                        painterResource(id = R.drawable.mozac_ic_chevron_up_20)
+                    } else {
+                        painterResource(id = R.drawable.mozac_ic_chevron_down_20)
+                    },
+                    contentDescription = null,
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        }
+
+        Column {
+            extensionSubmenu()
         }
     }
 }
@@ -237,96 +359,89 @@ private fun NewTabsMenuGroup(
 @Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun ToolsAndActionsMenuGroup(
-    accessPoint: MenuAccessPoint,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
     isWebCompatReporterSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
     extensionsMenuItemDescription: String,
+    isExtensionsExpanded: Boolean,
+    webExtensionMenuCount: Int,
+    allWebExtensionsDisabled: Boolean,
+    onExtensionsMenuClick: () -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
     onSaveMenuClick: () -> Unit,
-    onExtensionsMenuClick: () -> Unit,
+    extensionSubmenu: @Composable ColumnScope.() -> Unit,
 ) {
     MenuGroup {
-        if (accessPoint == MenuAccessPoint.Browser) {
-            val labelId: Int
-            val iconId: Int
-            val menuItemState: MenuItemState
+        val labelId: Int
+        val iconId: Int
+        val menuItemState: MenuItemState
 
-            if (isDesktopMode) {
-                labelId = R.string.browser_menu_switch_to_mobile_site
-                iconId = R.drawable.mozac_ic_device_mobile_24
-                menuItemState = MenuItemState.ACTIVE
-            } else {
-                labelId = R.string.browser_menu_switch_to_desktop_site
-                iconId = R.drawable.mozac_ic_device_desktop_24
-                menuItemState = if (isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED
-            }
-
-            MenuItem(
-                label = stringResource(id = labelId),
-                beforeIconPainter = painterResource(id = iconId),
-                state = menuItemState,
-                onClick = onSwitchToDesktopSiteMenuClick,
-            )
-
-            MenuItem(
-                label = stringResource(id = R.string.browser_menu_find_in_page_2),
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_search_24),
-                onClick = onFindInPageMenuClick,
-            )
-
-            MenuItem(
-                label = stringResource(id = R.string.browser_menu_tools),
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
-                description = when {
-                    isTranslationSupported && isWebCompatReporterSupported -> stringResource(
-                        R.string.browser_menu_tools_description_with_translate_with_report_site_2,
-                    )
-                    isTranslationSupported -> stringResource(
-                        R.string.browser_menu_tools_description_with_translate_without_report_site,
-                    )
-                    isWebCompatReporterSupported -> stringResource(
-                        R.string.browser_menu_tools_description_with_report_site_2,
-                    )
-                    else -> stringResource(
-                        R.string.browser_menu_tools_description_without_report_site,
-                    )
-                },
-                onClick = onToolsMenuClick,
-                modifier = Modifier.testTag(MenuDialogTestTag.TOOLS),
-                afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
-            )
-
-            MenuItem(
-                label = stringResource(id = R.string.browser_menu_save),
-                beforeIconPainter = painterResource(id = R.drawable.mozac_ic_save_24),
-                description = stringResource(id = R.string.browser_menu_save_description),
-                onClick = onSaveMenuClick,
-                modifier = Modifier.testTag(MenuDialogTestTag.SAVE),
-                afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
-            )
+        if (isDesktopMode) {
+            labelId = R.string.browser_menu_switch_to_mobile_site
+            iconId = R.drawable.mozac_ic_device_mobile_24
+            menuItemState = MenuItemState.ACTIVE
+        } else {
+            labelId = R.string.browser_menu_switch_to_desktop_site
+            iconId = R.drawable.mozac_ic_device_desktop_24
+            menuItemState = if (isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED
         }
 
         MenuItem(
-            label = stringResource(id = R.string.browser_menu_extensions),
-            description = extensionsMenuItemDescription,
-            descriptionState = if (isExtensionsProcessDisabled) {
-                MenuItemState.WARNING
-            } else {
-                MenuItemState.ENABLED
+            label = stringResource(id = labelId),
+            beforeIconPainter = painterResource(id = iconId),
+            state = menuItemState,
+            onClick = onSwitchToDesktopSiteMenuClick,
+        )
+
+        MenuItem(
+            label = stringResource(id = R.string.browser_menu_find_in_page_2),
+            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_search_24),
+            onClick = onFindInPageMenuClick,
+        )
+
+        MenuItem(
+            label = stringResource(id = R.string.browser_menu_tools),
+            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
+            description = when {
+                isTranslationSupported && isWebCompatReporterSupported -> stringResource(
+                    R.string.browser_menu_tools_description_with_translate_with_report_site_2,
+                )
+                isTranslationSupported -> stringResource(
+                    R.string.browser_menu_tools_description_with_translate_without_report_site,
+                )
+                isWebCompatReporterSupported -> stringResource(
+                    R.string.browser_menu_tools_description_with_report_site_2,
+                )
+                else -> stringResource(
+                    R.string.browser_menu_tools_description_without_report_site,
+                )
             },
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_extension_24),
-            onClick = onExtensionsMenuClick,
-            modifier = Modifier.testTag(MenuDialogTestTag.EXTENSIONS),
-            afterIconPainter = if (accessPoint != MenuAccessPoint.Home) {
-                painterResource(id = R.drawable.mozac_ic_chevron_right_24)
-            } else {
-                null
-            },
+            onClick = onToolsMenuClick,
+            modifier = Modifier.testTag(MenuDialogTestTag.TOOLS),
+            afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
+        )
+
+        MenuItem(
+            label = stringResource(id = R.string.browser_menu_save),
+            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_save_24),
+            description = stringResource(id = R.string.browser_menu_save_description),
+            onClick = onSaveMenuClick,
+            modifier = Modifier.testTag(MenuDialogTestTag.SAVE),
+            afterIconPainter = painterResource(id = R.drawable.mozac_ic_chevron_right_24),
+        )
+
+        ExtensionsMenuItem(
+            extensionsMenuItemDescription = extensionsMenuItemDescription,
+            isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+            isExtensionsExpanded = isExtensionsExpanded,
+            webExtensionMenuCount = webExtensionMenuCount,
+            allWebExtensionsDisabled = allWebExtensionsDisabled,
+            onExtensionsMenuClick = onExtensionsMenuClick,
+            extensionSubmenu = extensionSubmenu,
         )
     }
 }
@@ -365,18 +480,20 @@ private fun LibraryMenuGroup(
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun HomepageMenuGroup(
+    extensionsMenuItemDescription: String,
+    isExtensionsProcessDisabled: Boolean,
+    isExtensionsExpanded: Boolean,
+    webExtensionMenuCount: Int,
+    allWebExtensionsDisabled: Boolean,
+    onExtensionsMenuClick: () -> Unit,
     onCustomizeHomepageMenuClick: () -> Unit,
     onNewInFirefoxMenuClick: () -> Unit,
+    extensionSubmenu: @Composable ColumnScope.() -> Unit,
 ) {
     MenuGroup {
-        MenuItem(
-            label = stringResource(id = R.string.browser_menu_customize_home_1),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_grid_add_24),
-            onClick = onCustomizeHomepageMenuClick,
-        )
-
         MenuItem(
             label = stringResource(
                 id = R.string.browser_menu_new_in_firefox,
@@ -384,6 +501,22 @@ private fun HomepageMenuGroup(
             ),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_whats_new_24),
             onClick = onNewInFirefoxMenuClick,
+        )
+
+        MenuItem(
+            label = stringResource(id = R.string.browser_menu_customize_home_1),
+            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_grid_add_24),
+            onClick = onCustomizeHomepageMenuClick,
+        )
+
+        ExtensionsMenuItem(
+            extensionsMenuItemDescription = extensionsMenuItemDescription,
+            isExtensionsProcessDisabled = isExtensionsProcessDisabled,
+            isExtensionsExpanded = isExtensionsExpanded,
+            webExtensionMenuCount = webExtensionMenuCount,
+            allWebExtensionsDisabled = allWebExtensionsDisabled,
+            onExtensionsMenuClick = onExtensionsMenuClick,
+            extensionSubmenu = extensionSubmenu,
         )
     }
 }
@@ -438,6 +571,147 @@ internal fun MozillaAccountMenuItem(
     )
 }
 
+@Suppress("LongParameterList")
+@Composable
+internal fun Addons(
+    accessPoint: MenuAccessPoint,
+    availableAddons: List<Addon>,
+    webExtensionMenuItems: List<WebExtensionMenuItem>,
+    addonInstallationInProgress: Addon?,
+    recommendedAddons: List<Addon>,
+    onAddonClick: (Addon) -> Unit,
+    onInstallAddonClick: (Addon) -> Unit,
+    onDiscoverMoreExtensionsMenuClick: () -> Unit,
+    onWebExtensionMenuItemClick: () -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        if (accessPoint == MenuAccessPoint.Home && availableAddons.isNotEmpty()) {
+            AddonsMenuItems(
+                availableAddons = availableAddons,
+                iconPainter = painterResource(id = R.drawable.mozac_ic_settings_24),
+                onClick = {
+                    onWebExtensionMenuItemClick()
+                    onAddonClick(it)
+                },
+                onIconClick = { onAddonClick(it) },
+            )
+        } else if (accessPoint == MenuAccessPoint.Browser && webExtensionMenuItems.isNotEmpty()) {
+            WebExtensionMenuItems(
+                webExtensionMenuItems = webExtensionMenuItems,
+                onWebExtensionMenuItemClick = onWebExtensionMenuItemClick,
+            )
+        } else if (recommendedAddons.isNotEmpty()) {
+            AddonsMenuItems(
+                availableAddons = recommendedAddons,
+                addonInstallationInProgress = addonInstallationInProgress,
+                onClick = {
+                    onWebExtensionMenuItemClick()
+                    onAddonClick(it)
+                },
+                onIconClick = { onInstallAddonClick(it) },
+            )
+        }
+
+        val label = if (availableAddons.size != webExtensionMenuItems.size && accessPoint == MenuAccessPoint.Browser) {
+            stringResource(id = R.string.browser_menu_manage_extensions)
+        } else {
+            stringResource(id = R.string.browser_menu_discover_more_extensions)
+        }
+
+        DiscoverMoreExtensionsMenuItem(onDiscoverMoreExtensionsMenuClick, label)
+    }
+}
+
+@Composable
+private fun AddonsMenuItems(
+    availableAddons: List<Addon>,
+    addonInstallationInProgress: Addon? = null,
+    iconPainter: Painter? = null,
+    onClick: (Addon) -> Unit,
+    onIconClick: (Addon) -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(top = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        for (addon in availableAddons) {
+            val description = stringResource(
+                R.string.browser_menu_extension_plus_icon_content_description_2,
+                addon.displayName(LocalContext.current),
+            )
+
+            AddonMenuItem(
+                addon = addon,
+                addonInstallationInProgress = addonInstallationInProgress,
+                iconPainter = iconPainter ?: painterResource(id = R.drawable.mozac_ic_plus_24),
+                iconDescription = if (iconPainter != null) addon.summary(LocalContext.current) else description,
+                showDivider = true,
+                onClick = { onClick(addon) },
+                onIconClick = { onIconClick(addon) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun WebExtensionMenuItems(
+    webExtensionMenuItems: List<WebExtensionMenuItem>,
+    onWebExtensionMenuItemClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.padding(top = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        for (webExtensionMenuItem in webExtensionMenuItems) {
+            WebExtensionMenuItem(
+                label = webExtensionMenuItem.label,
+                iconPainter = webExtensionMenuItem.icon?.let { icon ->
+                    BitmapPainter(image = icon.asImageBitmap())
+                }
+                    ?: painterResource(R.drawable.mozac_ic_web_extension_default_icon),
+                enabled = webExtensionMenuItem.enabled,
+                badgeText = webExtensionMenuItem.badgeText,
+                badgeTextColor = webExtensionMenuItem.badgeTextColor,
+                badgeBackgroundColor = webExtensionMenuItem.badgeBackgroundColor,
+                onClick = {
+                    onWebExtensionMenuItemClick()
+                    webExtensionMenuItem.onClick()
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DiscoverMoreExtensionsMenuItem(
+    onClick: () -> Unit,
+    label: String,
+) {
+    Column(
+        modifier = Modifier
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = LocalIndication.current,
+            ) { onClick.invoke() }
+            .clearAndSetSemantics {
+                role = Role.Button
+            }
+            .wrapContentSize()
+            .clip(shape = RoundedCornerShape(4.dp))
+            .background(
+                color = FirefoxTheme.colors.layer3,
+            ),
+    ) {
+        MenuTextItem(
+            label = label,
+            iconPainter = painterResource(id = R.drawable.mozac_ic_external_link_24),
+            modifier = Modifier.padding(start = 40.dp),
+        )
+    }
+}
+
 @PreviewLightDark
 @Composable
 private fun MenuDialogPreview() {
@@ -457,8 +731,11 @@ private fun MenuDialogPreview() {
                 isWebCompatReporterSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = true,
+                isExtensionsExpanded = false,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
+                webExtensionMenuCount = 1,
+                allWebExtensionsDisabled = false,
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
                 onNewTabMenuClick = {},
@@ -479,7 +756,8 @@ private fun MenuDialogPreview() {
                 onForwardButtonClick = {},
                 onRefreshButtonClick = {},
                 onShareButtonClick = {},
-            )
+            ) {
+            }
         }
     }
 }
@@ -503,8 +781,11 @@ private fun MenuDialogPrivatePreview() {
                 isWebCompatReporterSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = false,
+                isExtensionsExpanded = true,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
+                webExtensionMenuCount = 0,
+                allWebExtensionsDisabled = false,
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
                 onNewTabMenuClick = {},
@@ -525,7 +806,30 @@ private fun MenuDialogPrivatePreview() {
                 onForwardButtonClick = {},
                 onRefreshButtonClick = {},
                 onShareButtonClick = {},
-            )
+            ) {
+                Addons(
+                    accessPoint = MenuAccessPoint.Home,
+                    availableAddons = listOf(),
+                    webExtensionMenuItems = listOf(),
+                    addonInstallationInProgress = null,
+                    recommendedAddons = listOf(
+                        Addon(
+                            id = "id",
+                            translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
+                            translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
+                        ),
+                        Addon(
+                            id = "id",
+                            translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
+                            translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
+                        ),
+                    ),
+                    onAddonClick = {},
+                    onInstallAddonClick = {},
+                    onDiscoverMoreExtensionsMenuClick = {},
+                    onWebExtensionMenuItemClick = {},
+                )
+            }
         }
     }
 }
