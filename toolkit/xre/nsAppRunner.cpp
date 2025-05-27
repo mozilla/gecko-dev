@@ -4767,14 +4767,29 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 
   // Initialize GTK here for splash.
 
-#  if defined(MOZ_WIDGET_GTK) && defined(MOZ_X11)
+#  if defined(MOZ_X11)
   // Disable XInput2 multidevice support due to focus bugginess.
   // See bugs 1182700, 1170342.
   // gdk_disable_multidevice() affects Gdk X11 backend only,
   // the multidevice support is always enabled on Wayland backend.
-  const char* useXI2 = PR_GetEnv("MOZ_USE_XINPUT2");
-  if (!useXI2 || (*useXI2 == '0')) gdk_disable_multidevice();
-#  endif
+  int32_t useXI2 = 0;
+  if (const char* useXI2Env = PR_GetEnv("MOZ_USE_XINPUT2")) {
+    useXI2 = (*useXI2Env != '0');
+  } else {
+    // Steam Deck needs multidevice support for touchscreen
+    if (const char* currentDesktop = PR_GetEnv("XDG_CURRENT_DESKTOP")) {
+      useXI2 |= (nsDependentCString(currentDesktop) == "gamescope"_ns);
+    }
+#    ifdef NIGHTLY_BUILD
+    // We tried 3.24.0+ but had problems, let's retry with newer versions. See
+    // bug 1660212.
+    useXI2 |= !gtk_check_version(3, 24, 49);
+#    endif
+  }
+  if (!useXI2) {
+    gdk_disable_multidevice();
+  }
+#  endif /* MOZ_X11 */
 
   // Open the display ourselves instead of using gtk_init, so that we can
   // close it without fear that one day gtk might clean up the display it
