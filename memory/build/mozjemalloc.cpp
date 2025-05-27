@@ -1455,20 +1455,6 @@ struct arena_t {
       MOZ_REQUIRES(mLock);
 #endif
 
-  enum PurgeResult {
-    // The stop threshold of dirty pages was reached.
-    Done,
-
-    // There's more chunks in this arena that could be purged.
-    Continue,
-
-    // The only chunks with dirty pages are busy being purged by other threads.
-    Busy,
-
-    // The arena needs to be destroyed by the caller.
-    Dying,
-  };
-
   // Purge some dirty pages.
   //
   // When this is called the caller has already tested ShouldStartPurge()
@@ -1485,7 +1471,7 @@ struct arena_t {
   //
   // This must be called without the mLock held (it'll take the lock).
   //
-  PurgeResult Purge(PurgeCondition aCond, PurgeStats& aStats)
+  ArenaPurgeResult Purge(PurgeCondition aCond, PurgeStats& aStats)
       MOZ_EXCLUDES(mLock);
 
   // Run Purge() in a loop. If sCallback is non-null then collect statistics and
@@ -1499,10 +1485,9 @@ struct arena_t {
   //                 milliseconds.  Or 0 to ignore recent reuse.
   // aKeepGoing    - Optional function to implement a time budget.
   //
-  PurgeResult PurgeLoop(PurgeCondition aCond, const char* aCaller,
-                        uint32_t aReuseGraceMS = 0,
-                        Maybe<std::function<bool()>> aKeepGoing = Nothing())
-      MOZ_EXCLUDES(mLock);
+  ArenaPurgeResult PurgeLoop(
+      PurgeCondition aCond, const char* aCaller, uint32_t aReuseGraceMS = 0,
+      Maybe<std::function<bool()>> aKeepGoing = Nothing()) MOZ_EXCLUDES(mLock);
 
   class PurgeInfo {
    private:
@@ -3560,7 +3545,7 @@ size_t arena_t::ExtraCommitPages(size_t aReqPages, size_t aRemainingPages) {
 }
 #endif
 
-arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
+ArenaPurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
   arena_chunk_t* chunk;
 
   // The first critical section will find a chunk and mark dirty pages in it as
@@ -3584,7 +3569,7 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
 
     if (!ShouldContinuePurge(aCond)) {
       mIsPurgePending = false;
-      return Done;
+      return ReachedThreshold;
     }
 
     // Take a single chunk and attempt to purge some of its dirty pages.  The
@@ -3661,7 +3646,7 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
       }
       // There's nothing else to do here, our caller may execute Purge() again
       // if continue_purge_arena is true.
-      return continue_purge_arena ? Continue : Done;
+      return continue_purge_arena ? NotDone : ReachedThreshold;
     }
 
 #ifdef MALLOC_DECOMMIT
@@ -3710,12 +3695,12 @@ arena_t::PurgeResult arena_t::Purge(PurgeCondition aCond, PurgeStats& aStats) {
     purged_once = true;
   }
 
-  return continue_purge_arena ? Continue : Done;
+  return continue_purge_arena ? NotDone : ReachedThreshold;
 }
 
-arena_t::PurgeResult arena_t::PurgeLoop(
-    PurgeCondition aCond, const char* aCaller, uint32_t aReuseGraceMS,
-    Maybe<std::function<bool()>> aKeepGoing) {
+ArenaPurgeResult arena_t::PurgeLoop(PurgeCondition aCond, const char* aCaller,
+                                    uint32_t aReuseGraceMS,
+                                    Maybe<std::function<bool()>> aKeepGoing) {
   PurgeStats purge_stats(mId, mLabel, aCaller);
 
 #ifdef MOZJEMALLOC_PROFILING_CALLBACKS
@@ -3730,12 +3715,12 @@ arena_t::PurgeResult arena_t::PurgeLoop(
 
   uint64_t reuseGraceNS = (uint64_t)aReuseGraceMS * 1000 * 1000;
   uint64_t now = aReuseGraceMS ? 0 : GetTimestampNS();
-  PurgeResult pr;
+  ArenaPurgeResult pr;
   do {
     pr = Purge(aCond, purge_stats);
     now = aReuseGraceMS ? 0 : GetTimestampNS();
   } while (
-      pr == Continue &&
+      pr == NotDone &&
       (!aReuseGraceMS || (now - mLastSignificantReuseNS >= reuseGraceNS)) &&
       (!aKeepGoing || (*aKeepGoing)()));
 
@@ -4898,11 +4883,11 @@ inline void arena_t::MayDoOrQueuePurge(purge_action_t aAction,
       gArenas.AddToOutstandingPurges(this);
       break;
     case purge_action_t::PurgeNow: {
-      PurgeResult pr = PurgeLoop(PurgeIfThreshold, aCaller);
+      ArenaPurgeResult pr = PurgeLoop(PurgeIfThreshold, aCaller);
       // Arenas cannot die here because the caller is still using the arena, if
       // they did it'd be a use-after-free: the arena is destroyed but then used
       // afterwards.
-      MOZ_RELEASE_ASSERT(pr != arena_t::PurgeResult::Dying);
+      MOZ_RELEASE_ASSERT(pr != ArenaPurgeResult::Dying);
       break;
     }
     case purge_action_t::None:
@@ -6292,10 +6277,10 @@ may_purge_now_result_t ArenaCollection::MayPurgeSteps(
     mOutstandingPurges.remove(found);
   }
 
-  arena_t::PurgeResult pr;
-  pr = found->PurgeLoop(PurgeIfThreshold, __func__, aReuseGraceMS, aKeepGoing);
+  ArenaPurgeResult pr =
+      found->PurgeLoop(PurgeIfThreshold, __func__, aReuseGraceMS, aKeepGoing);
 
-  if (pr == arena_t::PurgeResult::Continue) {
+  if (pr == ArenaPurgeResult::NotDone) {
     // If there's more work to do we re-insert the arena into the purge queue.
     // If the arena was busy we don't since the other thread that's purging it
     // will finish that work.
@@ -6312,7 +6297,7 @@ may_purge_now_result_t ArenaCollection::MayPurgeSteps(
       // to increase the probability to find it fast.
       mOutstandingPurges.pushFront(found);
     }
-  } else if (pr == arena_t::PurgeResult::Dying) {
+  } else if (pr == ArenaPurgeResult::Dying) {
     delete found;
   }
 
@@ -6330,12 +6315,12 @@ void ArenaCollection::MayPurgeAll(PurgeCondition aCond, const char* aCaller) {
     // So we do what we can even if called from another thread.
     if (!arena->IsMainThreadOnly() || IsOnMainThreadWeak()) {
       RemoveFromOutstandingPurges(arena);
-      arena_t::PurgeResult pr = arena->PurgeLoop(aCond, aCaller);
+      ArenaPurgeResult pr = arena->PurgeLoop(aCond, aCaller);
 
       // No arena can die here because we're holding the arena collection lock.
       // Arenas are removed from the collection before setting their mDying
       // flag.
-      MOZ_RELEASE_ASSERT(pr != arena_t::PurgeResult::Dying);
+      MOZ_RELEASE_ASSERT(pr != ArenaPurgeResult::Dying);
     }
   }
 }
