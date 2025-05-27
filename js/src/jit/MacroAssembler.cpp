@@ -8769,33 +8769,50 @@ static constexpr bool ValidateSizeRange(Scalar::Type from, Scalar::Type to) {
 }
 
 void MacroAssembler::typedArrayElementSize(Register obj, Register output) {
+  static_assert(std::end(TypedArrayObject::fixedLengthClasses) ==
+                        std::begin(TypedArrayObject::immutableClasses) &&
+                    std::end(TypedArrayObject::immutableClasses) ==
+                        std::begin(TypedArrayObject::resizableClasses),
+                "TypedArray classes are in contiguous memory");
+
+  // Constexpr subtraction requires using elements of the same array, so we have
+  // to use `std::end` instead of `std::begin`. We still get the right results,
+  // because the classes are in contiguous memory, as asserted above.
+  constexpr ptrdiff_t diffFirstImmutableToFirstFixedLength =
+      std::end(TypedArrayObject::fixedLengthClasses) -
+      std::begin(TypedArrayObject::fixedLengthClasses);
+  constexpr ptrdiff_t diffFirstResizableToFirstImmutable =
+      std::end(TypedArrayObject::immutableClasses) -
+      std::begin(TypedArrayObject::immutableClasses);
+  constexpr ptrdiff_t diffFirstResizableToFirstFixedLength =
+      diffFirstResizableToFirstImmutable + diffFirstImmutableToFirstFixedLength;
+
   loadObjClassUnsafe(obj, output);
 
-  // Map resizable to fixed-length TypedArray classes.
-  Label fixedLength;
+  // Map immutable and resizable to fixed-length TypedArray classes.
+  Label fixedLength, immutable;
   branchPtr(Assembler::Below, output,
             ImmPtr(std::end(TypedArrayObject::fixedLengthClasses)),
             &fixedLength);
+  branchPtr(Assembler::Below, output,
+            ImmPtr(std::end(TypedArrayObject::immutableClasses)), &immutable);
   {
-    MOZ_ASSERT(std::end(TypedArrayObject::fixedLengthClasses) ==
-                   std::begin(TypedArrayObject::resizableClasses),
-               "TypedArray classes are in contiguous memory");
+    // NB: constexpr evaluation doesn't allow overflow, so the difference is
+    // guaranteed to fit into an int32.
+    constexpr int32_t diff = static_cast<int32_t>(
+        diffFirstResizableToFirstFixedLength * sizeof(JSClass));
 
-    const auto* firstFixedLengthTypedArrayClass =
-        std::begin(TypedArrayObject::fixedLengthClasses);
-    const auto* firstResizableTypedArrayClass =
-        std::begin(TypedArrayObject::resizableClasses);
+    subPtr(Imm32(diff), output);
+    jump(&fixedLength);
+  }
+  bind(&immutable);
+  {
+    // NB: constexpr evaluation doesn't allow overflow, so the difference is
+    // guaranteed to fit into an int32.
+    constexpr int32_t diff = static_cast<int32_t>(
+        diffFirstImmutableToFirstFixedLength * sizeof(JSClass));
 
-    MOZ_ASSERT(firstFixedLengthTypedArrayClass < firstResizableTypedArrayClass);
-
-    ptrdiff_t diff =
-        firstResizableTypedArrayClass - firstFixedLengthTypedArrayClass;
-
-    mozilla::CheckedInt<int32_t> checked = diff;
-    checked *= sizeof(JSClass);
-    MOZ_ASSERT(checked.isValid(), "pointer difference fits in int32");
-
-    subPtr(Imm32(int32_t(checked.value())), output);
+    subPtr(Imm32(diff), output);
   }
   bind(&fixedLength);
 
@@ -8954,7 +8971,9 @@ void MacroAssembler::branchIfClassIsNotTypedArray(Register clasp,
   const auto* lastTypedArrayClass =
       std::prev(std::end(TypedArrayObject::resizableClasses));
   MOZ_ASSERT(std::end(TypedArrayObject::fixedLengthClasses) ==
-                 std::begin(TypedArrayObject::resizableClasses),
+                     std::begin(TypedArrayObject::immutableClasses) &&
+                 std::end(TypedArrayObject::immutableClasses) ==
+                     std::begin(TypedArrayObject::resizableClasses),
              "TypedArray classes are in contiguous memory");
 
   branchPtr(Assembler::Below, clasp, ImmPtr(firstTypedArrayClass),

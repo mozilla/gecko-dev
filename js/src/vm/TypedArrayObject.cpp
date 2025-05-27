@@ -135,7 +135,7 @@ bool TypedArrayObject::ensureHasBuffer(JSContext* cx,
   }
 
   MOZ_ASSERT(typedArray->is<FixedLengthTypedArrayObject>(),
-             "Resizable TypedArrays always use an ArrayBuffer");
+             "Resizable and immutable TypedArrays always use an ArrayBuffer");
 
   Rooted<FixedLengthTypedArrayObject*> tarray(
       cx, &typedArray->as<FixedLengthTypedArrayObject>());
@@ -352,7 +352,8 @@ static TypedArrayType* NewTypedArrayObject(JSContext* cx, const JSClass* clasp,
   allocKind = gc::GetFinalizedAllocKindForClass(allocKind, clasp);
 
   static_assert(std::is_same_v<TypedArrayType, FixedLengthTypedArrayObject> ||
-                std::is_same_v<TypedArrayType, ResizableTypedArrayObject>);
+                std::is_same_v<TypedArrayType, ResizableTypedArrayObject> ||
+                std::is_same_v<TypedArrayType, ImmutableTypedArrayObject>);
 
   // Fixed length typed arrays can store data inline so we only use fixed slots
   // to cover the reserved slots, ignoring the AllocKind.
@@ -380,11 +381,15 @@ template <typename NativeType>
 class ResizableTypedArrayObjectTemplate;
 
 template <typename NativeType>
+class ImmutableTypedArrayObjectTemplate;
+
+template <typename NativeType>
 class TypedArrayObjectTemplate {
   friend class js::TypedArrayObject;
 
   using FixedLengthTypedArray = FixedLengthTypedArrayObjectTemplate<NativeType>;
   using ResizableTypedArray = ResizableTypedArrayObjectTemplate<NativeType>;
+  using ImmutableTypedArray = ImmutableTypedArrayObjectTemplate<NativeType>;
   using AutoLength = ArrayBufferViewObject::AutoLength;
 
   static constexpr auto ByteLengthLimit = TypedArrayObject::ByteLengthLimit;
@@ -670,8 +675,8 @@ class TypedArrayObjectTemplate {
                                                autoLength, proto);
     }
     if (buffer->isImmutable()) {
-      JS_ReportErrorASCII(cx, "Immutable ArrayBuffer not yet supported");
-      return nullptr;
+      return ImmutableTypedArray::makeInstance(cx, buffer, byteOffset, length,
+                                               proto);
     }
     return FixedLengthTypedArray::makeInstance(cx, buffer, byteOffset, length,
                                                proto);
@@ -739,8 +744,8 @@ class TypedArrayObjectTemplate {
         typedArray = ResizableTypedArray::makeInstance(
             cx, unwrappedBuffer, byteOffset, length, autoLength, wrappedProto);
       } else if (unwrappedBuffer->isImmutable()) {
-        JS_ReportErrorASCII(cx, "Immutable ArrayBuffer not yet supported");
-        return nullptr;
+        typedArray = ImmutableTypedArray::makeInstance(
+            cx, unwrappedBuffer, byteOffset, length, wrappedProto);
       } else {
         typedArray = FixedLengthTypedArray::makeInstance(
             cx, unwrappedBuffer, byteOffset, length, wrappedProto);
@@ -1099,6 +1104,91 @@ class ResizableTypedArrayObjectTemplate
     tarray->initFixedSlot(ResizableTypedArrayObject::INITIAL_LENGTH_SLOT,
                           PrivateValue(size_t(0)));
     tarray->initFixedSlot(ResizableTypedArrayObject::INITIAL_BYTE_OFFSET_SLOT,
+                          PrivateValue(size_t(0)));
+
+    // Template objects don't need memory for their elements, since there
+    // won't be any elements to store.
+    MOZ_ASSERT(tarray->getReservedSlot(DATA_SLOT).isUndefined());
+
+    return tarray;
+  }
+};
+
+template <typename NativeType>
+class ImmutableTypedArrayObjectTemplate
+    : public ImmutableTypedArrayObject,
+      public TypedArrayObjectTemplate<NativeType> {
+  friend class js::TypedArrayObject;
+
+  using TypedArrayTemplate = TypedArrayObjectTemplate<NativeType>;
+
+ public:
+  using TypedArrayTemplate::ArrayTypeID;
+  using TypedArrayTemplate::BYTES_PER_ELEMENT;
+  using TypedArrayTemplate::protoKey;
+
+  static inline const JSClass* instanceClass() {
+    static_assert(ArrayTypeID() <
+                  std::size(TypedArrayObject::immutableClasses));
+    return &TypedArrayObject::immutableClasses[ArrayTypeID()];
+  }
+
+  static ImmutableTypedArrayObject* newBuiltinClassInstance(
+      JSContext* cx, gc::AllocKind allocKind, gc::Heap heap) {
+    RootedObject proto(cx, GlobalObject::getOrCreatePrototype(cx, protoKey()));
+    if (!proto) {
+      return nullptr;
+    }
+    return NewTypedArrayObject<ImmutableTypedArrayObject>(
+        cx, instanceClass(), proto, allocKind, heap);
+  }
+
+  static ImmutableTypedArrayObject* makeProtoInstance(JSContext* cx,
+                                                      HandleObject proto,
+                                                      gc::AllocKind allocKind) {
+    MOZ_ASSERT(proto);
+    return NewTypedArrayObject<ImmutableTypedArrayObject>(
+        cx, instanceClass(), proto, allocKind, gc::Heap::Default);
+  }
+
+  static ImmutableTypedArrayObject* makeInstance(
+      JSContext* cx, Handle<ArrayBufferObjectMaybeShared*> buffer,
+      size_t byteOffset, size_t len, HandleObject proto) {
+    MOZ_ASSERT(buffer);
+    MOZ_ASSERT(buffer->isImmutable());
+    MOZ_ASSERT(!buffer->isDetached());
+    MOZ_ASSERT(len <= ByteLengthLimit / BYTES_PER_ELEMENT);
+
+    gc::AllocKind allocKind = gc::GetGCObjectKind(instanceClass());
+
+    AutoSetNewObjectMetadata metadata(cx);
+    ImmutableTypedArrayObject* obj;
+    if (proto) {
+      obj = makeProtoInstance(cx, proto, allocKind);
+    } else {
+      obj = newBuiltinClassInstance(cx, allocKind, gc::Heap::Default);
+    }
+    if (!obj || !obj->init(cx, buffer, byteOffset, len, BYTES_PER_ELEMENT)) {
+      return nullptr;
+    }
+
+    return obj;
+  }
+
+  static ImmutableTypedArrayObject* makeTemplateObject(JSContext* cx) {
+    gc::AllocKind allocKind = gc::GetGCObjectKind(instanceClass());
+
+    AutoSetNewObjectMetadata metadata(cx);
+
+    auto* tarray = newBuiltinClassInstance(cx, allocKind, gc::Heap::Tenured);
+    if (!tarray) {
+      return nullptr;
+    }
+
+    tarray->initFixedSlot(TypedArrayObject::BUFFER_SLOT, JS::FalseValue());
+    tarray->initFixedSlot(TypedArrayObject::LENGTH_SLOT,
+                          PrivateValue(size_t(0)));
+    tarray->initFixedSlot(TypedArrayObject::BYTEOFFSET_SLOT,
                           PrivateValue(size_t(0)));
 
     // Template objects don't need memory for their elements, since there
@@ -1517,8 +1607,8 @@ static bool GetTemplateObjectForNative(JSContext* cx,
     }
 
     if (obj->as<ArrayBufferObjectMaybeShared>().isImmutable()) {
-      // TODO: Not yet supported.
-      return true;
+      res.set(ImmutableTypedArrayObjectTemplate<T>::makeTemplateObject(cx));
+      return !!res;
     }
   }
 
@@ -4648,6 +4738,19 @@ static const JSClassOps ResizableTypedArrayClassOps = {
     ArrayBufferViewObject::trace,  // trace
 };
 
+static const JSClassOps ImmutableTypedArrayClassOps = {
+    nullptr,                       // addProperty
+    nullptr,                       // delProperty
+    nullptr,                       // enumerate
+    nullptr,                       // newEnumerate
+    nullptr,                       // resolve
+    nullptr,                       // mayResolve
+    nullptr,                       // finalize
+    nullptr,                       // call
+    nullptr,                       // construct
+    ArrayBufferViewObject::trace,  // trace
+};
+
 static const ClassExtension TypedArrayClassExtension = {
     FixedLengthTypedArrayObject::objectMoved,  // objectMovedOp
 };
@@ -4713,9 +4816,10 @@ static const ClassSpec
 #undef IMPL_TYPED_ARRAY_CLASS_SPEC
 };
 
-// Class definitions for fixed length and resizable typed arrays. Stored into a
-// 2-dimensional array to ensure the classes are in contiguous memory.
-const JSClass TypedArrayObject::anyClasses[2][Scalar::MaxTypedArrayViewType] = {
+// Class definitions for fixed length, resizable, and immutable typed arrays.
+// Stored into a 2-dimensional array to ensure the classes are in contiguous
+// memory.
+const JSClass TypedArrayObject::anyClasses[3][Scalar::MaxTypedArrayViewType] = {
     // Class definitions for fixed length typed arrays.
     {
 #define IMPL_TYPED_ARRAY_CLASS(ExternalType, NativeType, Name)             \
@@ -4728,6 +4832,23 @@ const JSClass TypedArrayObject::anyClasses[2][Scalar::MaxTypedArrayViewType] = {
       &TypedArrayClassOps,                                                 \
       &TypedArrayObjectClassSpecs[Scalar::Type::Name],                     \
       &TypedArrayClassExtension,                                           \
+  },
+
+        JS_FOR_EACH_TYPED_ARRAY(IMPL_TYPED_ARRAY_CLASS)
+#undef IMPL_TYPED_ARRAY_CLASS
+    },
+
+    // Class definitions for immutable typed arrays.
+    {
+#define IMPL_TYPED_ARRAY_CLASS(ExternalType, NativeType, Name)                \
+  {                                                                           \
+      #Name "Array",                                                          \
+      JSCLASS_HAS_RESERVED_SLOTS(ImmutableTypedArrayObject::RESERVED_SLOTS) | \
+          JSCLASS_HAS_CACHED_PROTO(JSProto_##Name##Array) |                   \
+          JSCLASS_DELAY_METADATA_BUILDER,                                     \
+      &ImmutableTypedArrayClassOps,                                           \
+      &TypedArrayObjectClassSpecs[Scalar::Type::Name],                        \
+      JS_NULL_CLASS_EXT,                                                      \
   },
 
         JS_FOR_EACH_TYPED_ARRAY(IMPL_TYPED_ARRAY_CLASS)
@@ -5735,7 +5856,9 @@ ArraySortResult js::TypedArraySortFromJit(
     if (clasp != FixedLengthTypedArrayObjectTemplate<                         \
                      NativeType>::instanceClass() &&                          \
         clasp !=                                                              \
-            ResizableTypedArrayObjectTemplate<NativeType>::instanceClass()) { \
+            ResizableTypedArrayObjectTemplate<NativeType>::instanceClass() && \
+        clasp !=                                                              \
+            ImmutableTypedArrayObjectTemplate<NativeType>::instanceClass()) { \
       return nullptr;                                                         \
     }                                                                         \
     return obj;                                                               \
@@ -5837,6 +5960,8 @@ namespace JS {
 
 const JSClass* const TypedArray_base::fixedLengthClasses =
     TypedArrayObject::fixedLengthClasses;
+const JSClass* const TypedArray_base::immutableClasses =
+    TypedArrayObject::immutableClasses;
 const JSClass* const TypedArray_base::resizableClasses =
     TypedArrayObject::resizableClasses;
 
