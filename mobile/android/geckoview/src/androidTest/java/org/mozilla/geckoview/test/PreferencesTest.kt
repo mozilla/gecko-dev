@@ -208,7 +208,7 @@ class PreferencesTest : BaseSessionTest() {
      * Checking all pref types and multiple observations. Using pref examples defined in StaticPrefList.yaml.
      */
     @Test
-    fun multiPrefObservation() {
+    fun multiPrefObservationRegistrationAndDeregistration() {
         var timesCalled = 0
 
         // Arbitrarily selected based on pref type
@@ -266,25 +266,10 @@ class PreferencesTest : BaseSessionTest() {
                 }
             },
         )
+
         sessionRule.waitForResult(
             GeckoPreferenceController.Observer
-                .registerPreference(intPref),
-        )
-        sessionRule.waitForResult(
-            GeckoPreferenceController.Observer
-                .registerPreference(stringPref),
-        )
-        sessionRule.waitForResult(
-            GeckoPreferenceController.Observer
-                .registerPreference(floatPref),
-        )
-        sessionRule.waitForResult(
-            GeckoPreferenceController.Observer
-                .registerPreference(boolPref),
-        )
-        sessionRule.waitForResult(
-            GeckoPreferenceController.Observer
-                .registerPreference(unknownPref),
+                .registerPreferences(listOf(intPref, stringPref, floatPref, boolPref, unknownPref)),
         )
         sessionRule.setPrefsUntilTestEnd(
             mapOf(
@@ -296,6 +281,26 @@ class PreferencesTest : BaseSessionTest() {
             ),
         )
         assertEquals("Called onGeckoPreferenceChange the expected times: $timesCalled", 5, timesCalled)
+
+        sessionRule.waitForResult(
+            GeckoPreferenceController.Observer
+                .unregisterPreferences(listOf(intPref, stringPref, floatPref, boolPref, unknownPref)),
+        )
+
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                intPref to 4,
+                stringPref to "#111111",
+                floatPref to "2.2",
+                boolPref to true,
+                unknownPref to "hello-world-2",
+            ),
+        )
+        assertEquals(
+            "Unregistered successfully, subsequent pref changes didn't trigger onGeckoPreferenceChange: $timesCalled",
+            5,
+            timesCalled,
+        )
     }
 
     /**

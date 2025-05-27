@@ -67,12 +67,16 @@ export const GeckoViewPreferences = {
         break;
       }
       case "GeckoView:Preferences:RegisterObserver": {
-        Services.prefs.addObserver(aData.pref, this);
+        for (const pref of aData.prefs) {
+          Services.prefs.addObserver(pref, this);
+        }
         aCallback.onSuccess();
         break;
       }
       case "GeckoView:Preferences:UnregisterObserver": {
-        Services.prefs.removeObserver(aData.pref, this);
+        for (const pref of aData.prefs) {
+          Services.prefs.removeObserver(pref, this);
+        }
         aCallback.onSuccess();
         break;
       }

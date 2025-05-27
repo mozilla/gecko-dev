@@ -14,6 +14,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.List;
 import java.util.Objects;
 import org.mozilla.gecko.EventDispatcher;
 import org.mozilla.gecko.util.GeckoBundle;
@@ -140,34 +141,62 @@ public class GeckoPreferenceController {
     private static final String UNREGISTER_PREF = "GeckoView:Preferences:UnregisterObserver";
 
     /**
-     * This will register preferences for observation.
+     * This will register a preference for observation.
      *
      * @param preferenceName The Gecko preference that should be placed under observation. e.g.,
      *     "some.pref.item".
      * @return The GeckoResult will complete with the current preference value when observation is
-     *     set or else return an error.
+     *     set.
      */
     @AnyThread
     public static @NonNull GeckoResult<Void> registerPreference(
         @NonNull final String preferenceName) {
+      return registerPreferences(List.of(preferenceName));
+    }
+
+    /**
+     * This will register preferences for observation.
+     *
+     * @param preferenceNames A list of Gecko preference that should be placed under observation.
+     *     e.g., "some.pref.item", "some.pref.item.other".
+     * @return The GeckoResult will complete with the current preference value when observation is
+     *     set.
+     */
+    @AnyThread
+    public static @NonNull GeckoResult<Void> registerPreferences(
+        @NonNull final List<String> preferenceNames) {
       final GeckoBundle bundle = new GeckoBundle();
-      bundle.putString("pref", preferenceName);
+      bundle.putStringArray("prefs", preferenceNames);
       return EventDispatcher.getInstance().queryVoid(REGISTER_PREF, bundle);
+    }
+
+    /**
+     * This will deregister a preference for observation.
+     *
+     * @param preferenceName The Gecko preference that should be removed from observation. e.g.,
+     *     "some.pref.item".
+     * @return The GeckoResult will complete when the observer is removed. If the item requested is
+     *     not under observation, the function will still return.
+     */
+    @UiThread
+    public static @NonNull GeckoResult<Void> unregisterPreference(
+        @NonNull final String preferenceName) {
+      return unregisterPreferences(List.of(preferenceName));
     }
 
     /**
      * This will deregister preferences for observation.
      *
-     * @param preferenceName The Gecko preference that should be removed from observation. e.g.,
-     *     "some.pref.item".
-     * @return The GeckoResult will complete when the observer is removed or else return an error.
-     *     If the item requested is not under observation, the function will still return.
+     * @param preferenceNames The Gecko preferences that should be removed from observation. e.g.,
+     *     "some.pref.item", "some.pref.item.other".
+     * @return The GeckoResult will complete when the observer is removed. If the item requested is
+     *     not under observation, the function will still return.
      */
     @UiThread
-    public static @NonNull GeckoResult<Void> unregisterPreference(
-        @NonNull final String preferenceName) {
+    public static @NonNull GeckoResult<Void> unregisterPreferences(
+        @NonNull final List<String> preferenceNames) {
       final GeckoBundle bundle = new GeckoBundle();
-      bundle.putString("pref", preferenceName);
+      bundle.putStringArray("prefs", preferenceNames);
       return EventDispatcher.getInstance().queryVoid(UNREGISTER_PREF, bundle);
     }
 

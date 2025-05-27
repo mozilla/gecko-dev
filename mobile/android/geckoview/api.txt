@@ -787,7 +787,9 @@ package org.mozilla.geckoview {
   public static final class GeckoPreferenceController.Observer {
     ctor public Observer();
     method @AnyThread @NonNull public static GeckoResult<Void> registerPreference(@NonNull String);
+    method @AnyThread @NonNull public static GeckoResult<Void> registerPreferences(@NonNull List<String>);
     method @NonNull @UiThread public static GeckoResult<Void> unregisterPreference(@NonNull String);
+    method @NonNull @UiThread public static GeckoResult<Void> unregisterPreferences(@NonNull List<String>);
   }
 
   public static interface GeckoPreferenceController.Observer.Delegate {
