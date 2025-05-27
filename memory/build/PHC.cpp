@@ -1385,17 +1385,17 @@ static MOZ_ALWAYS_INLINE bool ShouldPageAllocHot(size_t aReqSize) {
   return true;
 }
 
-static void LogNoAlloc(size_t aReqSize, size_t aAlignment,
+static void LogNoAlloc(PHCLock& aLock, size_t aReqSize, size_t aAlignment,
                        Delay newAllocDelay) {
   // No pages are available, or VirtualAlloc/mprotect failed.
 #if PHC_LOGGING
-  phc::PHCStats stats = PHC::sPHC->GetPageStats(lock);
+  phc::PHCStats stats = PHC::sPHC->GetPageStats(aLock);
 #endif
   LOG("No PageAlloc(%zu, %zu), sAllocDelay <- %zu, fullness %zu/%zu/%zu, "
       "hits %zu/%zu (%zu%%)\n",
       aReqSize, aAlignment, size_t(newAllocDelay), stats.mSlotsAllocated,
-      stats.mSlotsFreed, kNumAllocPages, PHC::sPHC->PageAllocHits(lock),
-      PHC::sPHC->PageAllocAttempts(lock), PHC::sPHC->PageAllocHitRate(lock));
+      stats.mSlotsFreed, kNumAllocPages, PHC::sPHC->PageAllocHits(aLock),
+      PHC::sPHC->PageAllocAttempts(aLock), PHC::sPHC->PageAllocHitRate(aLock));
 }
 
 // Attempt a page allocation if the time and the size are right. Allocated
@@ -1454,7 +1454,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   Maybe<uintptr_t> mb_index = PHC::sPHC->PopNextFreeIfAllocatable(lock, now);
   if (!mb_index) {
     PHC::sPHC->IncPageAllocMisses(lock);
-    LogNoAlloc(aReqSize, aAlignment, newAllocDelay);
+    LogNoAlloc(lock, aReqSize, aAlignment, newAllocDelay);
     return nullptr;
   }
   uintptr_t index = mb_index.value();
@@ -1474,7 +1474,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   if (!ok) {
     PHC::sPHC->UnpopNextFree(lock, index);
     PHC::sPHC->IncPageAllocMisses(lock);
-    LogNoAlloc(aReqSize, aAlignment, newAllocDelay);
+    LogNoAlloc(lock, aReqSize, aAlignment, newAllocDelay);
     return nullptr;
   }
 
@@ -1490,7 +1490,7 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
   }
 
 #if PHC_LOGGING
-  Time then = PHC::sPHC->GetFreeTime(i);
+  Time then = PHC::sPHC->GetFreeTime(index);
   lifetime = then != 0 ? now - then : 0;
 #endif
 
@@ -1510,11 +1510,11 @@ static void* MaybePageAlloc(const Maybe<arena_id_t>& aArenaId, size_t aReqSize,
 #endif
   LOG("PageAlloc(%zu, %zu) -> %p[%zu]/%p (%zu) (z%zu), sAllocDelay <- %zu, "
       "fullness %zu/%zu/%zu, hits %zu/%zu (%zu%%), lifetime %zu\n",
-      aReqSize, aAlignment, pagePtr, i, ptr, usableSize, size_t(newAllocDelay),
-      size_t(PHC::SharedAllocDelay()), stats.mSlotsAllocated, stats.mSlotsFreed,
-      kNumAllocPages, PHC::sPHC->PageAllocHits(lock),
-      PHC::sPHC->PageAllocAttempts(lock), PHC::sPHC->PageAllocHitRate(lock),
-      lifetime);
+      aReqSize, aAlignment, pagePtr, index, ptr, usableSize,
+      size_t(newAllocDelay), size_t(PHC::SharedAllocDelay()),
+      stats.mSlotsAllocated, stats.mSlotsFreed, kNumAllocPages,
+      PHC::sPHC->PageAllocHits(lock), PHC::sPHC->PageAllocAttempts(lock),
+      PHC::sPHC->PageAllocHitRate(lock), lifetime);
 
   return ptr;
 }
