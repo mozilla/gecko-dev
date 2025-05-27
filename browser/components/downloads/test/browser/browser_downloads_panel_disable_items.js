@@ -134,6 +134,81 @@ add_task(async function test_downloads_panel_new_download() {
 });
 
 /**
+ * Tests that the download items are disabled when the downloads panel is
+ * automatically opened as a result of a new download, also when using
+ * the mouse to then activate items in the panel.
+ */
+add_task(async function test_downloads_panel_new_download_mouse() {
+  // Overwrite DownloadsCommon.openDownload to prevent file from opening during tests
+  const originalOpenDownload = DownloadsCommon.openDownload;
+  DownloadsCommon.openDownload = async () => {
+    ok(false, "openDownload was called when it was not expected");
+  };
+  let newTabPromise = BrowserTestUtils.openNewForegroundTab({
+    gBrowser,
+    opening: TEST_PATH + "foo.txt",
+    waitForLoad: false,
+    waitForStateStop: true,
+  });
+
+  await promisePanelOpened();
+  let downloadsListBox = document.getElementById("downloadsListBox");
+
+  ok(downloadsListBox, "downloadsListBox richlistitem should be visible");
+  await BrowserTestUtils.waitForMutationCondition(
+    downloadsListBox,
+    { childList: true },
+    () => downloadsListBox.childElementCount == 1
+  );
+  info("downloadsListBox should have 1 download");
+  ok(
+    downloadsListBox.getAttribute("disabled"),
+    "All download items in the downloads panel should first be disabled"
+  );
+
+  let newTab = await newTabPromise;
+
+  // click 6 times at 100ms intervals.
+  let firstDownload = downloadsListBox.querySelector("richlistitem");
+  EventUtils.synthesizeMouseAtCenter(firstDownload, {}, window);
+  for (let i = 0; i < 5; i++) {
+    // There's no other way to allow some time to pass and ensure we're
+    // genuinely testing that these clicks postpone the enabling of
+    // the items, so disable this check for this line:
+    // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+    await new Promise(r => setTimeout(r, 100));
+    EventUtils.synthesizeMouseAtCenter(firstDownload, {}, window);
+  }
+  // Measure when we finished.
+  let clickTime = Date.now();
+
+  await BrowserTestUtils.waitForMutationCondition(
+    downloadsListBox,
+    { attributeFilter: ["disabled"] },
+    () => !downloadsListBox.hasAttribute("disabled")
+  );
+  Assert.greater(
+    Date.now(),
+    clickTime + 750,
+    "Should have waited at least another 750ms after this click."
+  );
+  let openedDownload = new Promise(resolve => {
+    DownloadsCommon.openDownload = async () => {
+      ok(true, "openDownload should have been called");
+      resolve();
+    };
+  });
+
+  info("All download items in the download panel should now be enabled");
+  EventUtils.synthesizeMouseAtCenter(firstDownload, {}, window);
+  await openedDownload;
+
+  await task_resetState();
+  DownloadsCommon.openDownload = originalOpenDownload;
+  BrowserTestUtils.removeTab(newTab);
+});
+
+/**
  * Tests that the disabled attribute does not exist when we close the
  * downloads panel before the disabled state timeout resolves.
  */
