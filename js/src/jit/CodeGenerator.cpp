@@ -5282,8 +5282,6 @@ void CodeGenerator::emitCallMegamorphicGetter(
   masm.loadPtr(Address(calleeScratch, GetterSetter::offsetOfGetter()),
                calleeScratch);
   masm.branchTestPtr(Assembler::Zero, calleeScratch, calleeScratch, nullGetter);
-  masm.loadPtr(Address(calleeScratch, JSFunction::offsetOfJitInfoOrScript()),
-               argcScratch);
 
   if (JitStackValueAlignment > 1) {
     masm.reserveStack(sizeof(Value) * (JitStackValueAlignment - 1));
