@@ -4,6 +4,9 @@ Data Review
 **Everything that lands in mozilla-central that adds or expands data
 collection must go through the data review process.**
 
+The data review process is in place to ensure we follow Firefox's
+:doc:`standards for data collection <data-collection>`.
+
 This will require assessing the sensitivity of the data that is being
 collected, and going through the `sensitive data collection
 process <https://wiki.mozilla.org/Data_Collection#Step_3:_Sensitive_Data_Collection_Review_Process>`__
