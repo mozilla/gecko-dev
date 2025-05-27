@@ -259,6 +259,9 @@ static int transient_analysis(const opus_val32 * OPUS_RESTRICT in, int len, int 
            3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  3,  2,
    };
    SAVE_STACK;
+#ifdef FIXED_POINT
+   int in_shift = IMAX(0, celt_ilog2(1+celt_maxabs32(in, C*len))-14);
+#endif
    ALLOC(tmp, len, opus_val16);
 
    *weak_transient = 0;
@@ -290,7 +293,7 @@ static int transient_analysis(const opus_val32 * OPUS_RESTRICT in, int len, int 
          float mem00;
 #endif
          opus_val32 x,y;
-         x = SHR32(in[i+c*len],SIG_SHIFT);
+         x = SHR32(in[i+c*len],in_shift);
          y = ADD32(mem0, x);
 #ifdef FIXED_POINT
          mem0 = mem1 + y - SHL32(x,1);
