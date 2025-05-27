@@ -113,8 +113,6 @@ const FEATURES = {
   MDNSuggestions: "resource:///modules/urlbar/private/MDNSuggestions.sys.mjs",
   OfflineWikipediaSuggestions:
     "resource:///modules/urlbar/private/OfflineWikipediaSuggestions.sys.mjs",
-  PocketSuggestions:
-    "resource:///modules/urlbar/private/PocketSuggestions.sys.mjs",
   SuggestBackendMerino:
     "resource:///modules/urlbar/private/SuggestBackendMerino.sys.mjs",
   SuggestBackendMl:

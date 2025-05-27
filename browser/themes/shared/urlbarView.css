@@ -938,19 +938,13 @@
 
 /* Other Firefox Suggest rows */
 
-.urlbarView-row[type$=_pocket] > .urlbarView-row-inner > .urlbarView-favicon,
-.urlbarView-row[type$=_pocket] > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-favicon {
-  fill: var(--pocket-icon-fill);
-  fill-opacity: 1;
-}
-
-.urlbarView-row:is([type$=_amo], [type$=_pocket])[icon-size="24"] > .urlbarView-row-inner > .urlbarView-favicon {
+.urlbarView-row[type$=_amo][icon-size="24"] > .urlbarView-row-inner > .urlbarView-favicon {
   padding: calc((var(--urlbarView-top-pick-large-icon-box-size) - 24px) / 2);
   background-color: var(--urlbar-box-focus-bgcolor);
   border-radius: 2px;
 }
 
-.urlbarView-row:is([type$=_amo], [type$=_pocket])[icon-size="24"]:is([selected], :hover) > .urlbarView-row-inner > .urlbarView-favicon {
+.urlbarView-row[type$=_amo][icon-size="24"]:is([selected], :hover) > .urlbarView-row-inner > .urlbarView-favicon {
   background-color: var(--urlbarView-result-button-selected-background-color);
 }
 
