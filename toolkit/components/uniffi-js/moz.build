@@ -34,6 +34,6 @@ EXPORTS.mozilla.uniffi += [
     "Rust.h",
 ]
 
-EXTRA_JS_MODULES += [
+MOZ_SRC_FILES += [
     "js/UniFFI.sys.mjs",
 ]

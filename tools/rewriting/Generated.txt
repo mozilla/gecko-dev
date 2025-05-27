@@ -219,7 +219,7 @@ toolkit/components/nimbus/schemas/NimbusExperiment.schema.json
 toolkit/components/pdfjs/PdfJsDefaultPrefs.js
 toolkit/components/pdfjs/PdfJsOverridePrefs.js
 toolkit/components/uniffi-js/GeneratedScaffolding.cpp
-toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated
+toolkit/components/uniffi-bindgen-gecko-js/tests/generated
 tools/@types/generated/
 tools/@types/subs/
 tools/browsertime/package.json

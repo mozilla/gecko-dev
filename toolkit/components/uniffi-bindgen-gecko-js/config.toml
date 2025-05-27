@@ -75,29 +75,45 @@ enable = true
 [webext_storage.async_wrappers]
 enable = true
 
-[arithmetical.async_wrappers]
-enable = true
-
-[uniffi_custom_types.async_wrappers]
-enable = true
-
-[uniffi_fixture_callbacks.async_wrappers]
+[uniffi_bindings_tests.async_wrappers]
 enable = true
 main_thread = [
-  "log_even_numbers_main_thread",
+    "clone_interface",
+    "func_with_default",
+    "func_with_error",
+    "func_with_flat_error",
+    "func_roundtrip_custom_type",
+    "swap_test_interfaces",
+    "invoke_test_callback_interface_method",
+    "roundtrip_u8",
+    "roundtrip_i8",
+    "roundtrip_u16",
+    "roundtrip_i16",
+    "roundtrip_u32",
+    "roundtrip_i32",
+    "roundtrip_u64",
+    "roundtrip_i64",
+    "roundtrip_f32",
+    "roundtrip_f64",
+    "roundtrip_bool",
+    "roundtrip_custom_type",
+    "roundtrip_string",
+    "sum_with_many_types",
+    "test_func",
+    "func_with_multi_word_arg",
+    "roundtrip_option",
+    "roundtrip_vec",
+    "roundtrip_hash_map",
+    "roundtrip_complex_compound",
+    "roundtrip_complex_rec",
+    "roundtrip_enum_no_data",
+    "roundtrip_enum_with_data",
+    "roundtrip_complex_enum",
+    "AsyncInterface.new",
+    "ComplexMethods.method_with_default",
+    "ComplexMethods.method_with_multi_word_arg",
+    "ComplexMethods.new",
+    "TestInterface.new",
+    "TestInterface.get_value",
+    "TestInterface.ref_count",
 ]
-
-[uniffi_fixture_external_types.async_wrappers]
-enable = true
-
-[uniffi_geometry.async_wrappers]
-enable = true
-
-[uniffi_rondpoint.async_wrappers]
-enable = true
-
-[uniffi_sprites.async_wrappers]
-enable = true
-
-[uniffi_todolist.async_wrappers]
-enable = true

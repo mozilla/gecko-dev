@@ -1,16 +1,11 @@
 # RustSuggest.sys.mjs
-
-```{js:autoclass} RustSuggest.sys.SuggestStore
-    :members:
-    :exclude-members: SuggestStore
-```
-```{js:autoclass} RustSuggest.sys.SuggestStoreBuilder
-    :members:
-    :exclude-members: SuggestStoreBuilder
-```
 ```{js:autoclass} RustSuggest.sys.AlternateNames
     :members:
     :exclude-members: AlternateNames
+```
+```{js:autoclass} RustSuggest.sys.Backoff
+    :members:
+    :exclude-members: Backoff
 ```
 ```{js:autoclass} RustSuggest.sys.FtsMatchInfo
     :members:
@@ -28,9 +23,33 @@
     :members:
     :exclude-members: GeonameMatch
 ```
+```{js:autoclass} RustSuggest.sys.GeonameType
+    :members:
+    :exclude-members: GeonameType
+```
+```{js:autoclass} RustSuggest.sys.InterruptKind
+    :members:
+    :exclude-members: InterruptKind
+```
+```{js:autoclass} RustSuggest.sys.Interrupted
+    :members:
+    :exclude-members: Interrupted
+```
 ```{js:autoclass} RustSuggest.sys.LabeledTimingSample
     :members:
     :exclude-members: LabeledTimingSample
+```
+```{js:autoclass} RustSuggest.sys.Network
+    :members:
+    :exclude-members: Network
+```
+```{js:autoclass} RustSuggest.sys.Other
+    :members:
+    :exclude-members: Other
+```
+```{js:autoclass} RustSuggest.sys.SuggestApiError
+    :members:
+    :exclude-members: SuggestApiError
 ```
 ```{js:autoclass} RustSuggest.sys.SuggestGlobalConfig
     :members:
@@ -44,29 +63,17 @@
     :members:
     :exclude-members: SuggestIngestionMetrics
 ```
-```{js:autoclass} RustSuggest.sys.SuggestionProviderConstraints
-    :members:
-    :exclude-members: SuggestionProviderConstraints
-```
-```{js:autoclass} RustSuggest.sys.SuggestionQuery
-    :members:
-    :exclude-members: SuggestionQuery
-```
-```{js:autoclass} RustSuggest.sys.GeonameType
-    :members:
-    :exclude-members: GeonameType
-```
-```{js:autoclass} RustSuggest.sys.InterruptKind
-    :members:
-    :exclude-members: InterruptKind
-```
-```{js:autoclass} RustSuggest.sys.SuggestApiError
-    :members:
-    :exclude-members: SuggestApiError
-```
 ```{js:autoclass} RustSuggest.sys.SuggestProviderConfig
     :members:
     :exclude-members: SuggestProviderConfig
+```
+```{js:autoclass} RustSuggest.sys.SuggestStore
+    :members:
+    :exclude-members: SuggestStore
+```
+```{js:autoclass} RustSuggest.sys.SuggestStoreBuilder
+    :members:
+    :exclude-members: SuggestStoreBuilder
 ```
 ```{js:autoclass} RustSuggest.sys.Suggestion
     :members:
@@ -76,25 +83,17 @@
     :members:
     :exclude-members: SuggestionProvider
 ```
+```{js:autoclass} RustSuggest.sys.SuggestionProviderConstraints
+    :members:
+    :exclude-members: SuggestionProviderConstraints
+```
+```{js:autoclass} RustSuggest.sys.SuggestionQuery
+    :members:
+    :exclude-members: SuggestionQuery
+```
 ```{js:autoclass} RustSuggest.sys.YelpSubjectType
     :members:
     :exclude-members: YelpSubjectType
-```
-```{js:autoclass} RustSuggest.sys.Network
-    :members:
-    :exclude-members: Network
-```
-```{js:autoclass} RustSuggest.sys.Backoff
-    :members:
-    :exclude-members: Backoff
-```
-```{js:autoclass} RustSuggest.sys.Interrupted
-    :members:
-    :exclude-members: Interrupted
-```
-```{js:autoclass} RustSuggest.sys.Other
-    :members:
-    :exclude-members: Other
 ```
 ```{js:autofunction} RustSuggest.sys.rawSuggestionUrlMatches
 ```

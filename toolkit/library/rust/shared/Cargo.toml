@@ -114,7 +114,7 @@ osclientcerts = { path = "../../../../security/manager/ssl/osclientcerts" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 gkrust-uniffi-components = { path = "../../../components/uniffi-bindgen-gecko-js/components/", features = ["xpcom"] }
-gkrust-uniffi-fixtures = { path = "../../../components/uniffi-bindgen-gecko-js/fixtures/", features = ["xpcom"], optional = true }
+uniffi-bindgen-gecko-js-test-fixtures = { path = "../../../components/uniffi-bindgen-gecko-js/test-fixtures/", optional = true }
 viaduct = "0.1"
 webext-storage = "0.1"
 
@@ -142,7 +142,7 @@ oxidized_breakpad = ["rust_minidump_writer_linux"]
 crashreporter = ["crash_helper_client", "mozannotation_client"]
 with_dbus = ["audio_thread_priority/with_dbus"]
 thread_sanitizer = ["xpcom/thread_sanitizer"]
-uniffi_fixtures = ["gkrust-uniffi-fixtures"]
+uniffi_fixtures = ["uniffi-bindgen-gecko-js-test-fixtures"]
 webmidi_midir_impl = ["midir_impl"]
 icu4x = ["jsrust_shared/icu4x"]
 

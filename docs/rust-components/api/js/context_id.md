@@ -1,5 +1,4 @@
 # RustContextId.sys.mjs
-
 ```{js:autoclass} RustContextId.sys.ContextIdComponent
     :members:
     :exclude-members: ContextIdComponent
