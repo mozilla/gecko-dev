@@ -140,6 +140,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -306,8 +307,11 @@ projects:
     upstream_dependencies:
     - concept-base
     - concept-fetch
+    - lib-publicsuffixlist
     - support-base
+    - support-ktx
     - support-test
+    - support-utils
     - tooling-lint
     - ui-colors
     - ui-icons
@@ -317,6 +321,7 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-menu2
     - browser-state
     - compose-base
     - concept-awesomebar
@@ -337,6 +342,7 @@ projects:
     - ui-autocomplete
     - ui-colors
     - ui-icons
+    - ui-tabcounter
   compose-cfr:
     description: A standard Contextual Feature Recommendation popup using Jetpack
       Compose.
@@ -386,6 +392,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -541,6 +548,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -682,6 +690,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -740,6 +749,7 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-icons
     - browser-menu
     - browser-menu2
     - browser-session-storage
@@ -747,6 +757,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -781,6 +792,7 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-icons
     - browser-menu
     - browser-menu2
     - browser-session-storage
@@ -788,6 +800,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -895,6 +908,7 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-icons
     - browser-menu
     - browser-menu2
     - browser-session-storage
@@ -902,6 +916,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1076,6 +1091,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1186,6 +1202,7 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-errorpages
+    - browser-icons
     - browser-menu
     - browser-menu2
     - browser-session-storage
@@ -1193,6 +1210,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1234,6 +1252,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1311,6 +1330,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1377,6 +1397,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1417,6 +1438,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -1557,6 +1579,7 @@ projects:
     - browser-tabstray
     - browser-thumbnails
     - browser-toolbar
+    - compose-base
     - concept-awesomebar
     - concept-base
     - concept-engine
@@ -2215,6 +2238,7 @@ projects:
     - lib-publicsuffixlist
     - support-base
     - support-ktx
+    - support-test
     - support-utils
     - tooling-lint
   support-rusterrors:
@@ -2378,6 +2402,7 @@ projects:
     publish: true
     upstream_dependencies:
     - browser-menu2
+    - compose-base
     - concept-base
     - concept-fetch
     - concept-menu
