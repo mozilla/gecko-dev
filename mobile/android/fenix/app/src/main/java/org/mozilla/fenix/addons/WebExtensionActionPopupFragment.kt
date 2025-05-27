@@ -8,17 +8,22 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.feature.accounts.push.SendTabUseCases
 import mozilla.components.lib.state.ext.consumeFrom
+import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.databinding.FragmentAddOnInternalSettingsBinding
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.showToolbar
+import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
+import org.mozilla.fenix.snackbar.SnackbarBinding
 
 /**
  * A fragment to show the web extension action popup with [EngineView].
@@ -33,6 +38,8 @@ class WebExtensionActionPopupFragment : AddonPopupBaseFragment(), EngineSession.
         set(value) {
             safeArguments.putBoolean("isSessionConsumed", value)
         }
+    private val snackbarBinding = ViewBoundFeatureWrapper<SnackbarBinding>()
+
     private var _binding: FragmentAddOnInternalSettingsBinding? = null
     internal val binding get() = _binding!!
 
@@ -83,6 +90,21 @@ class WebExtensionActionPopupFragment : AddonPopupBaseFragment(), EngineSession.
                 }
             }
         }
+
+        snackbarBinding.set(
+            feature = SnackbarBinding(
+                context = requireContext(),
+                browserStore = requireComponents.core.store,
+                appStore = requireComponents.appStore,
+                snackbarDelegate = FenixSnackbarDelegate(provideDynamicSnackbarContainer()),
+                navController = findNavController(),
+                tabsUseCases = requireComponents.useCases.tabsUseCases,
+                sendTabUseCases = SendTabUseCases(requireComponents.backgroundServices.accountManager),
+                customTabSessionId = null,
+            ),
+            owner = this,
+            view = view,
+        )
     }
 
     override fun provideDownloadContainer(): ViewGroup {
@@ -91,6 +113,10 @@ class WebExtensionActionPopupFragment : AddonPopupBaseFragment(), EngineSession.
 
     override fun provideDownloadDialogLayoutBinding(): DownloadDialogLayoutBinding {
         return binding.viewDynamicDownloadDialog
+    }
+
+    override fun provideDynamicSnackbarContainer(): ConstraintLayout {
+        return binding.dynamicSnackbarContainer
     }
 
     override fun onDestroyView() {

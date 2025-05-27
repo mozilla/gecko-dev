@@ -115,6 +115,22 @@ class FenixSnackbarDelegateTest {
     }
 
     @Test
+    fun `GIVEN the snackbar has a subText WHEN the snackbar state is made THEN the snackbar should be with a subMessage`() {
+        val subText = "subText"
+        val snackbarState = delegate.makeSnackbarState(
+            snackBarParentView = view,
+            text = APP_NAME,
+            subText = subText,
+            duration = LENGTH_LONG,
+            isError = true,
+            actionText = null,
+            listener = null,
+        )
+
+        assertTrue(snackbarState.subMessage == subText)
+    }
+
+    @Test
     fun `GIVEN the snackbar is not an error WHEN the snackbar state is made THEN the snackbar should be the default type`() {
         val snackbarState = delegate.makeSnackbarState(
             snackBarParentView = view,

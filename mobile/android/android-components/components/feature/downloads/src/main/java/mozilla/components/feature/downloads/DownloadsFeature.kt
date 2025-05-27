@@ -99,6 +99,7 @@ value class NegativeActionCallback(val value: () -> Unit)
  * @property fragmentManager a reference to a [FragmentManager]. If a fragment
  * manager is provided, a dialog will be shown before every download.
  * @property promptsStyling styling properties for the dialog.
+ * @property onDownloadStartedListener a callback invoked when a download is started.
  * @property shouldForwardToThirdParties Indicates if downloads should be forward to third party apps,
  * if there are multiple apps a chooser dialog will shown.
  * @property customFirstPartyDownloadDialog An optional delegate for showing a dialog for a download
@@ -120,6 +121,7 @@ class DownloadsFeature(
     private val tabId: String? = null,
     private val fragmentManager: FragmentManager? = null,
     private val promptsStyling: PromptsStyling? = null,
+    private val onDownloadStartedListener: ((String?) -> Unit) = {},
     private val shouldForwardToThirdParties: () -> Boolean = { false },
     private val customFirstPartyDownloadDialog: (
         (Filename, ContentSize, PositiveActionCallback, NegativeActionCallback) -> Unit
@@ -152,7 +154,6 @@ class DownloadsFeature(
      * Starts observing downloads on the selected session and sends them to the [DownloadManager]
      * to be processed.
      */
-    @Suppress("Deprecation")
     override fun start() {
         // Dismiss the previous prompts when the user navigates to another site.
         // This prevents prompts from the previous page from covering content.
@@ -279,6 +280,7 @@ class DownloadsFeature(
 
         val id = downloadManager.download(download)
         return if (id != null) {
+            onDownloadStartedListener.invoke(tabId)
             true
         } else {
             showDownloadNotSupportedError()

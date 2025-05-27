@@ -1496,6 +1496,43 @@ class DownloadsFeatureTest {
 
         assertFalse(feature.isDownloadBiggerThanAvailableSpace(downloadState))
     }
+
+    @Test
+    fun `WHEN download has started with success THEN call onDownloadStartedListener`() {
+        grantPermissions()
+
+        val downloadManager: DownloadManager = mock()
+        val onDownloadStartedListener: ((String?) -> Unit) = mock()
+
+        doReturn(
+            arrayOf(INTERNET, WRITE_EXTERNAL_STORAGE),
+        ).`when`(downloadManager).permissions
+
+        val download = DownloadState(url = "https://www.mozilla.org", sessionId = "test-tab")
+
+        doReturn("id").`when`(downloadManager).download(eq(download), anyString())
+
+        val feature = spy(
+            DownloadsFeature(
+                testContext,
+                store,
+                useCases = DownloadsUseCases(store),
+                tabId = "id",
+                downloadManager = downloadManager,
+                onDownloadStartedListener = onDownloadStartedListener,
+            ),
+        )
+
+        doNothing().`when`(feature).showDownloadNotSupportedError()
+
+        feature.start()
+
+        doReturn(false).`when`(feature).isDownloadBiggerThanAvailableSpace(download)
+
+        feature.startDownload(download)
+
+        verify(onDownloadStartedListener).invoke("id")
+    }
 }
 
 private fun grantPermissions() {

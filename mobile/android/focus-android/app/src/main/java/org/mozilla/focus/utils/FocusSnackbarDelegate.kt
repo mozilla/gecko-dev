@@ -13,6 +13,7 @@ class FocusSnackbarDelegate(private val view: View) : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         @StringRes text: Int,
+        subText: String?,
         duration: Int,
         isError: Boolean,
         @StringRes action: Int,
@@ -20,6 +21,7 @@ class FocusSnackbarDelegate(private val view: View) : SnackbarDelegate {
     ) = show(
         snackBarParentView = snackBarParentView,
         text = snackBarParentView.context.getString(text),
+        subText = subText,
         duration = duration,
         action = if (action == 0) null else snackBarParentView.context.getString(action),
         listener = listener,
@@ -28,6 +30,7 @@ class FocusSnackbarDelegate(private val view: View) : SnackbarDelegate {
     override fun show(
         snackBarParentView: View,
         text: String,
+        subText: String?,
         duration: Int,
         isError: Boolean,
         action: String?,
