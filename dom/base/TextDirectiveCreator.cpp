@@ -588,7 +588,7 @@ TextDirectiveCreator::ExtendSubstringLengthsToWordBoundaries(
   // (which represent the amount of matches for the target range) into word
   // bounded lengths. This means that the number of unique word bounded lengths
   // is < 32.
-  for (const auto [first, second] : aExactSubstringLengths) {
+  for (const auto& [first, second] : aExactSubstringLengths) {
     firstSet.Insert(getNextWordBoundaryPosition(aFirstWordPositions, first));
     secondSet.Insert(getNextWordBoundaryPosition(aSecondWordPositions, second));
   }
