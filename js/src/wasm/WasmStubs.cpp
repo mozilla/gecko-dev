@@ -1231,7 +1231,9 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
   GenPrintf(DebugChannel::Function, masm, "wasm-function[%d]; returns ",
             fe.funcIndex());
 
-  // Pop frame.
+  // Pop frame. We set the stack pointer immediately after calling Wasm code
+  // because the current stack pointer might not match the one before the call
+  // if the callee performed a tail call.
   masm.moveToStackPtr(FramePointer);
   masm.setFramePushed(0);
 
