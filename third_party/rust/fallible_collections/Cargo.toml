@@ -10,26 +10,43 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.64"
 name = "fallible_collections"
-version = "0.4.9"
+version = "0.5.1"
 authors = ["vcombey <vcombey@student.42.fr>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "a crate which adds fallible allocation api to std collections"
 readme = "README.md"
 keywords = [
     "fallible",
+    "allocation",
     "collections",
+    "oom",
+    "try-reserve",
 ]
-license = "MIT/Apache-2.0"
+categories = [
+    "rust-patterns",
+    "memory-management",
+]
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/vcombey/fallible_collections.git"
 
+[lib]
+name = "fallible_collections"
+path = "src/lib.rs"
+
 [dependencies.hashbrown]
-version = "0.13"
+version = "0.14"
 optional = true
 
 [features]
 default = ["hashmap"]
-hashmap = ["hashbrown"]
+hashmap = ["dep:hashbrown"]
 rust_1_57 = []
 std = []
 std_io = ["std"]

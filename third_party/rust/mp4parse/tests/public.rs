@@ -243,7 +243,7 @@ fn public_api() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     assert_eq!(context.timescale, Some(mp4::MediaTimeScale(1000)));
     for track in context.tracks {
         match track.track_type {
@@ -373,7 +373,7 @@ fn public_metadata() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     let udta = context
         .userdata
         .expect("didn't find udta")
@@ -439,7 +439,7 @@ fn public_metadata_gnre() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     let udta = context
         .userdata
         .expect("didn't find udta")
@@ -504,7 +504,7 @@ fn public_invalid_metadata() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     // Should have userdata.
     assert!(context.userdata.is_some());
     // But it should contain an error.
@@ -547,7 +547,7 @@ fn public_audio_tenc() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         let a = match stsd.descriptions.first().expect("expected a SampleEntry") {
@@ -605,7 +605,7 @@ fn public_video_cenc() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         let v = match stsd.descriptions.first().expect("expected a SampleEntry") {
@@ -677,7 +677,7 @@ fn public_audio_cbcs() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         assert_eq!(stsd.descriptions.len(), 2);
@@ -758,7 +758,7 @@ fn public_video_cbcs() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         assert_eq!(stsd.descriptions.len(), 2);
@@ -816,7 +816,7 @@ fn public_video_av1() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         // track part
         assert_eq!(track.duration, Some(mp4::TrackScaledTime(512, 0)));
@@ -863,7 +863,7 @@ fn public_video_av1() {
 #[test]
 fn public_mp4_bug_1185230() {
     let input = &mut File::open("tests/test_case_1185230.mp4").expect("Unknown file");
-    let context = mp4::read_mp4(input).expect("read_mp4 failed");
+    let context = mp4::read_mp4(input, ParseStrictness::Normal).expect("read_mp4 failed");
     let number_video_tracks = context
         .tracks
         .iter()
@@ -882,7 +882,10 @@ fn public_mp4_bug_1185230() {
 fn public_mp4_ctts_overflow() {
     let input = &mut File::open("tests/clusterfuzz-testcase-minimized-mp4-6093954524250112")
         .expect("Unknown file");
-    assert_eq!(Status::from(mp4::read_mp4(input)), Status::CttsBadSize);
+    assert_eq!(
+        Status::from(mp4::read_mp4(input, ParseStrictness::Normal)),
+        Status::CttsBadSize
+    );
 }
 
 #[test]
@@ -1427,7 +1430,7 @@ fn public_video_h263() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         let v = match stsd.descriptions.first().expect("expected a SampleEntry") {
@@ -1453,7 +1456,7 @@ fn public_video_hevc() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         let v = match stsd.descriptions.first().expect("expected a SampleEntry") {
@@ -1479,7 +1482,7 @@ fn public_parse_pasp_h264() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         let v = match stsd.descriptions.first().expect("expected a SampleEntry") {
@@ -1509,7 +1512,7 @@ fn public_audio_amrnb() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         let a = match stsd.descriptions.first().expect("expected a SampleEntry") {
@@ -1534,7 +1537,7 @@ fn public_audio_amrwb() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         let a = match stsd.descriptions.first().expect("expected a SampleEntry") {
@@ -1559,7 +1562,7 @@ fn public_video_mp4v() {
     fd.read_to_end(&mut buf).expect("File error");
 
     let mut c = Cursor::new(&buf);
-    let context = mp4::read_mp4(&mut c).expect("read_mp4 failed");
+    let context = mp4::read_mp4(&mut c, ParseStrictness::Normal).expect("read_mp4 failed");
     for track in context.tracks {
         let stsd = track.stsd.expect("expected an stsd");
         let v = match stsd.descriptions.first().expect("expected a SampleEntry") {

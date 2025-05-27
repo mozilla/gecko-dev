@@ -431,108 +431,22 @@ impl<'a, T> Iterator for IterMut<'a, T> {
     }
 }
 
-/// Grow capacity exponentially
-#[cold]
-fn vec_try_reserve_for_growth<T>(v: &mut Vec<T>, additional: usize) -> Result<(), TryReserveError> {
-    // saturating, because can't use CapacityOverflow here if rust_1_57 flag is enabled
-    FallibleVec::try_reserve(v, additional.max(v.capacity().saturating_mul(2) - v.len()))
-}
-
 fn needs_to_grow<T>(v: &Vec<T>, len: usize) -> bool {
-    v.len().checked_add(len).map_or(true, |needed| needed > v.capacity())
-}
-
-#[cfg(not(any(feature = "unstable", feature = "rust_1_57")))]
-fn vec_try_reserve<T>(v: &mut Vec<T>, additional: usize) -> Result<(), TryReserveError> {
-    let available = v.capacity().checked_sub(v.len()).expect("capacity >= len");
-    if additional > available {
-        let increase = additional
-            .checked_sub(available)
-            .expect("additional > available");
-        let new_cap = v
-            .capacity()
-            .checked_add(increase)
-            .ok_or(TryReserveError::CapacityOverflow)?;
-        vec_try_extend(v, new_cap)?;
-        debug_assert!(v.capacity() == new_cap);
-    }
-
-    Ok(())
-}
-
-#[cfg(not(any(feature = "unstable", feature = "rust_1_57")))]
-fn vec_try_extend<T>(v: &mut Vec<T>, new_cap: usize) -> Result<(), TryReserveError> {
-    let old_len = v.len();
-    let old_cap: usize = v.capacity();
-
-    if old_cap >= new_cap {
-        return Ok(());
-    }
-
-    let elem_size = core::mem::size_of::<T>();
-    let new_alloc_size = new_cap
-        .checked_mul(elem_size)
-        .filter(|size| *size <= isize::MAX as usize)
-        .ok_or(TryReserveError::CapacityOverflow)?;
-
-    // required for alloc safety
-    // See https://doc.rust-lang.org/stable/std/alloc/trait.GlobalAlloc.html#safety-1
-    // Should be unreachable given prior `old_cap >= new_cap` check.
-    assert!(new_alloc_size > 0);
-
-    let align = core::mem::align_of::<T>();
-
-    let (new_ptr, layout) = {
-        if old_cap == 0 {
-            let layout = Layout::from_size_align(new_alloc_size, align).expect("Invalid layout");
-            let new_ptr = unsafe { alloc(layout) };
-            (new_ptr, layout)
-        } else {
-            let old_alloc_size = old_cap
-                .checked_mul(elem_size)
-                .ok_or(TryReserveError::CapacityOverflow)?;
-            let layout = Layout::from_size_align(old_alloc_size, align).expect("Invalid layout");
-            let new_ptr = unsafe { realloc(v.as_mut_ptr() as *mut u8, layout, new_alloc_size) };
-            (new_ptr, layout)
-        }
-    };
-
-    if new_ptr.is_null() {
-        return Err(TryReserveError::AllocError { layout });
-    }
-
-    let new_vec = unsafe { Vec::from_raw_parts(new_ptr.cast(), old_len, new_cap) };
-
-    core::mem::forget(core::mem::replace(v, new_vec));
-    Ok(())
+    v.len()
+        .checked_add(len)
+        .map_or(true, |needed| needed > v.capacity())
 }
 
 impl<T> FallibleVec<T> for Vec<T> {
     #[inline(always)]
     fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
-        #[cfg(all(feature = "unstable", not(feature = "rust_1_57")))]
-        {
-            self.try_reserve(additional)
-        }
-
-        #[cfg(all(not(feature = "unstable"), not(feature = "rust_1_57")))]
-        {
-            vec_try_reserve(self, additional)
-        }
-
-        #[cfg(feature = "rust_1_57")]
-        {
-            // TryReserveError is an opaque type in 1.57
-            self.try_reserve(additional).map_err(|_| {
-                crate::make_try_reserve_error(self.len(), additional, core::mem::size_of::<T>(), core::mem::align_of::<T>())
-            })
-        }
+        self.try_reserve(additional)
     }
 
     #[inline]
     fn try_push(&mut self, elem: T) -> Result<(), TryReserveError> {
         if self.len() == self.capacity() {
-            vec_try_reserve_for_growth(self, 1)?;
+            self.try_reserve(1)?;
         }
         Ok(self.push(elem))
     }
@@ -540,7 +454,7 @@ impl<T> FallibleVec<T> for Vec<T> {
     #[inline]
     fn try_push_give_back(&mut self, elem: T) -> Result<(), (T, TryReserveError)> {
         if self.len() == self.capacity() {
-            if let Err(e) = vec_try_reserve_for_growth(self, 1) {
+            if let Err(e) = self.try_reserve(1) {
                 return Err((elem, e));
             }
         }
@@ -560,17 +474,19 @@ impl<T> FallibleVec<T> for Vec<T> {
     #[inline]
     fn try_insert(&mut self, index: usize, element: T) -> Result<(), (T, TryReserveError)> {
         if self.len() == self.capacity() {
-            if let Err(e) = vec_try_reserve_for_growth(self, 1) {
+            if let Err(e) = self.try_reserve(1) {
                 return Err((element, e));
             }
         }
         Ok(self.insert(index, element))
     }
+
     #[inline]
     fn try_append(&mut self, other: &mut Self) -> Result<(), TryReserveError> {
         FallibleVec::try_reserve(self, other.len())?;
         Ok(self.append(other))
     }
+
     fn try_resize(&mut self, new_len: usize, value: T) -> Result<(), TryReserveError>
     where
         T: Copy + Clone,
@@ -581,6 +497,7 @@ impl<T> FallibleVec<T> for Vec<T> {
         }
         Ok(self.resize(new_len, value))
     }
+
     fn try_resize_with<F>(&mut self, new_len: usize, f: F) -> Result<(), TryReserveError>
     where
         F: FnMut() -> T,
@@ -591,6 +508,7 @@ impl<T> FallibleVec<T> for Vec<T> {
         }
         Ok(self.resize_with(new_len, f))
     }
+
     fn try_resize_no_copy(&mut self, new_len: usize, value: T) -> Result<(), TryReserveError>
     where
         T: TryClone,
@@ -600,25 +518,27 @@ impl<T> FallibleVec<T> for Vec<T> {
         if new_len > len {
             self.try_extend_with(new_len - len, TryExtendElement(value))
         } else {
-            Ok(self.truncate(new_len))
+            Ok(Truncate::truncate(self, new_len))
         }
     }
+
     #[inline]
     fn try_extend_from_slice(&mut self, other: &[T]) -> Result<(), TryReserveError>
     where
         T: Clone,
     {
         if needs_to_grow(self, other.len()) {
-            vec_try_reserve_for_growth(self, other.len())?;
+            self.try_reserve(other.len())?;
         }
         Ok(self.extend_from_slice(other))
     }
+
     fn try_extend_from_slice_no_copy(&mut self, other: &[T]) -> Result<(), TryReserveError>
     where
         T: TryClone,
     {
         if needs_to_grow(self, other.len()) {
-            vec_try_reserve_for_growth(self, other.len())?;
+            self.try_reserve(other.len())?;
         }
         let mut len = self.len();
         let mut iterator = other.iter();
@@ -667,7 +587,7 @@ impl<T> TryExtend<T> for Vec<T> {
         mut value: E,
     ) -> Result<(), TryReserveError> {
         if needs_to_grow(self, n) {
-            vec_try_reserve_for_growth(self, n)?;
+            self.try_reserve(n)?;
         }
 
         unsafe {
@@ -824,16 +744,26 @@ mod tests {
     #[test]
     fn try_clone_oom() {
         let layout = Layout::new::<u8>();
-        let v =
-            unsafe { Vec::<u8>::from_raw_parts(alloc(layout), core::isize::MAX as usize, core::isize::MAX as usize) };
+        let v = unsafe {
+            Vec::<u8>::from_raw_parts(
+                alloc(layout),
+                core::isize::MAX as usize,
+                core::isize::MAX as usize,
+            )
+        };
         assert!(v.try_clone().is_err());
     }
 
     #[test]
     fn tryvec_try_clone_oom() {
         let layout = Layout::new::<u8>();
-        let inner =
-            unsafe { Vec::<u8>::from_raw_parts(alloc(layout), core::isize::MAX as usize, core::isize::MAX as usize) };
+        let inner = unsafe {
+            Vec::<u8>::from_raw_parts(
+                alloc(layout),
+                core::isize::MAX as usize,
+                core::isize::MAX as usize,
+            )
+        };
         let tv = TryVec { inner };
         assert!(tv.try_clone().is_err());
     }
@@ -949,15 +879,6 @@ mod tests {
         let mut vec: TryVec<u8> = b"foo".as_ref().try_into().unwrap();
         vec.extend_from_slice(b"bar").unwrap();
         assert_eq!(vec, b"foobar".as_ref());
-    }
-
-    #[test]
-    #[cfg(not(any(feature = "unstable", feature = "rust_1_57")))]
-    fn try_extend_zst() {
-        let mut vec: Vec<()> = Vec::new();
-        assert_eq!(vec.capacity(), core::usize::MAX);
-        assert!(vec_try_extend(&mut vec, 10).is_ok());
-        assert!(vec_try_extend(&mut vec, core::usize::MAX).is_ok());
     }
 
     #[test]

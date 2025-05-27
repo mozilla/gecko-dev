@@ -174,7 +174,7 @@ struct TestFileData {
 
 static const TestFileData testFiles[] = {
     // filename parses? #V hasVideoIndex vDur w h #A aDur hasCrypto? moofOffset
-    // validMoof? audio_profile
+    // validMoof1? validMoofAll? audio_profile
     {"test_case_1156505.mp4", false, 0, false, -1, 0, 0, 0, -1., false, 152,
      false, false, 0},  // invalid ''trak box
     {"test_case_1181213.mp4", true, 1, true, 0.41666666, 320, 240, 1,
@@ -183,8 +183,13 @@ static const TestFileData testFiles[] = {
      false, 0},
     {"test_case_1181223.mp4", false, 0, false, 0.41666666, 320, 240, 0, -1,
      false, 0, false, false, 0},
+#if 0
+    // Test disabled due to unsupported audio type (possibly corrupt track).
+    // This file was used to verify that the parser rejected the file entirely,
+    // but it is now accepted with the audio track ignored.
     {"test_case_1181719.mp4", false, 0, false, -1, 0, 0, 0, -1, false, 0, false,
      false, 0},
+#endif
     {"test_case_1185230.mp4", true, 2, true, 0.41666666, 320, 240, 2,
      0.0000059754907, false, 0, false, false, 2},
     {"test_case_1187067.mp4", true, 1, true, 0.080000, 160, 90, 0, -1, false, 0,

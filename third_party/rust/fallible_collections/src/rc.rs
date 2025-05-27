@@ -3,7 +3,15 @@ use super::FallibleBox;
 use crate::TryReserveError;
 use alloc::boxed::Box;
 use alloc::rc::Rc;
+
 /// trait to implement Fallible Rc
+#[cfg_attr(
+    any(not(feature = "unstable"), feature = "rust_1_57"),
+    deprecated(
+        since = "0.4.9",
+        note = "⚠️️️this function is not completely fallible, it can panic!, see [issue](https://github.com/vcombey/fallible_collections/issues/13). help wanted"
+    )
+)]
 pub trait FallibleRc<T> {
     /// try creating a new Rc, returning a Result<Box<T>,
     /// TryReserveError> if allocation failed
@@ -12,6 +20,7 @@ pub trait FallibleRc<T> {
         Self: Sized;
 }
 
+#[allow(deprecated)]
 impl<T> FallibleRc<T> for Rc<T> {
     fn try_new(t: T) -> Result<Self, TryReserveError> {
         let b = <Box<T> as FallibleBox<T>>::try_new(t)?;

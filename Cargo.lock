@@ -1984,11 +1984,11 @@ checksum = "7360491ce676a36bf9bb3c56c1aa791658183a54d2744120f27285738d90465a"
 
 [[package]]
 name = "fallible_collections"
-version = "0.4.9"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a88c69768c0a15262df21899142bc6df9b9b823546d4b4b9a7bc2d6c448ec6fd"
+checksum = "8b3e85d14d419ba3e1db925519461c0d17a49bdd2d67ea6316fa965ca7acdf74"
 dependencies = [
- "hashbrown 0.13.999",
+ "hashbrown 0.14.999",
 ]
 
 [[package]]
@@ -2573,7 +2573,6 @@ dependencies = [
  "dom_fragmentdirectives",
  "encoding_glue",
  "etagere",
- "fallible_collections",
  "fluent",
  "fluent-fallback",
  "fluent-ffi",
@@ -4605,7 +4604,7 @@ dependencies = [
 [[package]]
 name = "mp4parse"
 version = "0.17.0"
-source = "git+https://github.com/mozilla/mp4parse-rust?rev=e64650a686e5c5732395cd059e17cfd3b1e5b63b#e64650a686e5c5732395cd059e17cfd3b1e5b63b"
+source = "git+https://github.com/mozilla/mp4parse-rust?rev=d3e4d255bd149d341c7e90f5e9fc84e743a8e179#d3e4d255bd149d341c7e90f5e9fc84e743a8e179"
 dependencies = [
  "bitreader",
  "byteorder",
@@ -4622,7 +4621,7 @@ version = "0.1.0"
 [[package]]
 name = "mp4parse_capi"
 version = "0.17.0"
-source = "git+https://github.com/mozilla/mp4parse-rust?rev=e64650a686e5c5732395cd059e17cfd3b1e5b63b#e64650a686e5c5732395cd059e17cfd3b1e5b63b"
+source = "git+https://github.com/mozilla/mp4parse-rust?rev=d3e4d255bd149d341c7e90f5e9fc84e743a8e179#d3e4d255bd149d341c7e90f5e9fc84e743a8e179"
 dependencies = [
  "byteorder",
  "fallible_collections",

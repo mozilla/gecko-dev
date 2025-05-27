@@ -31,13 +31,6 @@
 #![cfg_attr(feature = "unstable", feature(maybe_uninit_slice))]
 #![cfg_attr(feature = "unstable", feature(maybe_uninit_uninit_array))]
 
-#[cfg(all(feature = "unstable", feature = "rust_1_57"))]
-compile_error!(
-    "The use of the 'unstable' feature combined with the \
-'rust_1_57' feature, which is related to the partial stabilization \
-of the allocator API since rustc version 1.57, does not make sense!"
-);
-
 extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
@@ -49,7 +42,9 @@ pub mod vec;
 pub use vec::*;
 pub mod rc;
 pub use rc::*;
+#[cfg(target_has_atomic = "ptr")]
 pub mod arc;
+#[cfg(target_has_atomic = "ptr")]
 pub use arc::*;
 #[cfg(feature = "unstable")]
 pub mod btree;
@@ -61,8 +56,7 @@ pub use hashmap::*;
 pub mod format;
 pub mod try_clone;
 
-pub mod try_reserve_error;
-pub use try_reserve_error::TryReserveError;
+pub use alloc::collections::TryReserveError;
 
 #[cfg(feature = "std_io")]
 pub use vec::std_io::*;
@@ -82,14 +76,4 @@ pub trait TryClone {
     fn try_clone(&self) -> Result<Self, TryReserveError>
     where
         Self: core::marker::Sized;
-}
-
-#[cfg(feature = "rust_1_57")]
-fn make_try_reserve_error(len: usize, additional: usize, elem_size: usize, align: usize) -> TryReserveError {
-    if let Some(size) = len.checked_add(additional).and_then(|l| l.checked_mul(elem_size)) {
-        if let Ok(layout) = alloc::alloc::Layout::from_size_align(size, align) {
-            return TryReserveError::AllocError { layout }
-        }
-    }
-    TryReserveError::CapacityOverflow
 }
