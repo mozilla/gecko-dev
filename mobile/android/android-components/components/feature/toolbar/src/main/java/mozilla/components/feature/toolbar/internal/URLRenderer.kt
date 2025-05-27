@@ -18,6 +18,9 @@ import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.launch
 import mozilla.components.concept.toolbar.Toolbar
 import mozilla.components.feature.toolbar.ToolbarFeature
+import mozilla.components.lib.publicsuffixlist.PublicSuffixList
+import mozilla.components.support.ktx.android.net.isHttpOrHttps
+import mozilla.components.support.ktx.kotlin.isIpv4OrIpv6
 
 /**
  * Asynchronous URL renderer.
@@ -78,8 +81,15 @@ internal class URLRenderer(
             }
             // Display the registrableDomain with color and URL with another color
             ToolbarFeature.RenderStyle.ColoredUrl -> SpannableStringBuilder(url).apply {
-                color(configuration.urlColor)
-                colorRegistrableDomain(configuration)
+                val span = getRegistrableDomainOrHostSpan(url, configuration.publicSuffixList)
+
+                if (configuration.urlColor != null && span != null) {
+                    applyUrlColors(
+                        configuration.urlColor,
+                        configuration.registrableDomainColor,
+                        span,
+                    )
+                }
             }
             // Display the full URL, uncolored
             ToolbarFeature.RenderStyle.UncoloredUrl -> url
@@ -90,40 +100,83 @@ internal class URLRenderer(
 private suspend fun getRegistrableDomain(host: String, configuration: ToolbarFeature.UrlRenderConfiguration) =
     configuration.publicSuffixList.getPublicSuffixPlusOne(host).await()
 
-private suspend fun SpannableStringBuilder.colorRegistrableDomain(
-    configuration: ToolbarFeature.UrlRenderConfiguration,
-) {
-    val url = toString()
-    val host = url.toUri().host?.removeSuffix(".") ?: return
+/**
+ * Determines the position span of the registrable domain within a host string.
+ *
+ * @param host The host string to analyze
+ * @param publicSuffixList The [PublicSuffixList] used to get the eTLD+1 for the host
+ * @return A Pair of (startIndex, endIndex) for the registrable domain within the host,
+ *         or null if the host is an IP address or no registrable domain could be found
+ */
+@VisibleForTesting
+internal suspend fun getRegistrableDomainSpanInHost(
+    host: String,
+    publicSuffixList: PublicSuffixList,
+): Pair<Int, Int>? {
+    if (host.isIpv4OrIpv6()) return null
 
-    val registrableDomain = configuration
-        .publicSuffixList
-        .getPublicSuffixPlusOne(host)
-        .await() ?: return
+    val normalizedHost = host.removeSuffix(".")
 
-    val indexOfHost = url.indexOf(host)
-    val indexOfRegistrableDomain = host.lastIndexOf(registrableDomain)
-    if (indexOfHost == -1 || indexOfRegistrableDomain == -1) {
-        return
+    val registrableDomain = publicSuffixList
+        .getPublicSuffixPlusOne(normalizedHost)
+        .await() ?: return null
+
+    val start = normalizedHost.lastIndexOf(registrableDomain)
+    return if (start == -1) {
+        null
+    } else {
+        start to start + registrableDomain.length
     }
-
-    val index = indexOfHost + indexOfRegistrableDomain
-
-    setSpan(
-        ForegroundColorSpan(configuration.registrableDomainColor),
-        index,
-        index + registrableDomain.length,
-        SPAN_INCLUSIVE_INCLUSIVE,
-    )
 }
 
-private fun SpannableStringBuilder.color(@ColorInt urlColor: Int?) {
-    urlColor ?: return
+/**
+ * Determines the position span of either the registrable domain or the full host
+ * within a URL string.
+ *
+ * @param url The complete URL to analyze
+ * @param publicSuffixList The [PublicSuffixList] used to get the eTLD+1 for the host
+ * @return A Pair of (startIndex, endIndex) for either:
+ *         - The registrable domain's position within the URL, or
+ *         - The host's position within the URL if no registrable domain was found, or
+ *         - null if the URL has no host or the host couldn't be located in the URL
+ */
+@Suppress("ReturnCount")
+@VisibleForTesting
+internal suspend fun getRegistrableDomainOrHostSpan(
+    url: String,
+    publicSuffixList: PublicSuffixList,
+): Pair<Int, Int>? {
+    val uri = url.toUri()
+    if (!uri.isHttpOrHttps) return null
 
+    val host = uri.host ?: return null
+
+    val hostStart = url.indexOf(host)
+    if (hostStart == -1) return null
+
+    val domainSpan = getRegistrableDomainSpanInHost(host, publicSuffixList)
+    return domainSpan?.let { (start, end) ->
+        hostStart + start to hostStart + end
+    } ?: (hostStart to hostStart + host.length)
+}
+
+private fun SpannableStringBuilder.applyUrlColors(
+    @ColorInt urlColor: Int,
+    @ColorInt registrableDomainColor: Int,
+    registrableDomainOrHostSpan: Pair<Int, Int>,
+): SpannableStringBuilder = apply {
     setSpan(
         ForegroundColorSpan(urlColor),
         0,
         length,
+        SPAN_INCLUSIVE_INCLUSIVE,
+    )
+
+    val (start, end) = registrableDomainOrHostSpan
+    setSpan(
+        ForegroundColorSpan(registrableDomainColor),
+        start,
+        end,
         SPAN_INCLUSIVE_INCLUSIVE,
     )
 }
