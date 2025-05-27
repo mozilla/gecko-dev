@@ -2461,10 +2461,11 @@ bool js::ToPrimitiveSlow(JSContext* cx, JSType preferredType,
   // (2015 Mar 17) 7.1.1 ToPrimitive.
   MOZ_ASSERT(preferredType == JSTYPE_UNDEFINED ||
              preferredType == JSTYPE_STRING || preferredType == JSTYPE_NUMBER);
-  RootedObject obj(cx, &vp.toObject());
+  RootedTuple<JSObject*, Value, Value> roots(cx);
+  RootedField<JSObject*, 0> obj(roots, &vp.toObject());
 
   // Steps 4-5.
-  RootedValue method(cx);
+  RootedField<Value, 1> method(roots);
   if (!GetInterestingSymbolProperty(cx, obj, cx->wellKnownSymbols().toPrimitive,
                                     &method)) {
     return false;
@@ -2480,8 +2481,8 @@ bool js::ToPrimitiveSlow(JSContext* cx, JSType preferredType,
     }
 
     // Steps 1-3, 6.a-b.
-    RootedValue arg0(
-        cx,
+    RootedField<Value, 2> arg0(
+        roots,
         StringValue(preferredType == JSTYPE_STRING   ? cx->names().string
                     : preferredType == JSTYPE_NUMBER ? cx->names().number
                                                      : cx->names().default_));
