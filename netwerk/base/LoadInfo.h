@@ -295,6 +295,8 @@ class LoadInfo final : public nsILoadInfo {
   void ComputeIsThirdPartyContext(nsPIDOMWindowOuter* aOuterWindow);
   void ComputeIsThirdPartyContext(dom::WindowGlobalParent* aGlobal);
 
+  bool IsDocumentMissingClientInfo();
+
   // This function is the *only* function which can change the securityflags
   // of a loadinfo. It only exists because of the XHR code. Don't call it
   // from anywhere else!
