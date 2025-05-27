@@ -140,6 +140,7 @@ open class BaseSessionTest(
         const val BODY_FULLY_COVERED_BY_GREEN_ELEMENT = "/assets/www/red-background-body-fully-covered-by-green-element.html"
         const val COLOR_GRID_HTML_PATH = "/assets/www/color_grid.html"
         const val COLOR_ORANGE_BACKGROUND_HTML_PATH = "/assets/www/color_orange_background.html"
+        const val FT_FONT_HTML_PATH = "/assets/www/ft_font.html"
         const val TRACEMONKEY_PDF_PATH = "/assets/www/tracemonkey.pdf"
         const val HELLO_PDF_WORLD_PDF_PATH = "/assets/www/helloPDFWorld.pdf"
         const val ORANGE_PDF_PATH = "/assets/www/orange.pdf"

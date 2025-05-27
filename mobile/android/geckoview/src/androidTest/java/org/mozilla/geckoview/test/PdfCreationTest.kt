@@ -111,6 +111,23 @@ class PdfCreationTest : BaseSessionTest() {
 
     @NullDelegate(Autofill.Delegate::class)
     @Test
+    fun ftFontPdf() {
+        activityRule.scenario.onActivity {
+            mainSession.loadTestPath(FT_FONT_HTML_PATH)
+            mainSession.waitForPageStop()
+            val pdfInputStream = mainSession.saveAsPdf()
+            sessionRule.waitForResult(pdfInputStream).let {
+                val bitmap = pdfToBitmap(it)!![0]
+                val scaled = bitmap.scale(scaledWidth, scaledHeight, filter = false)
+                val centerPixel = scaled[scaledWidth / 2, scaledHeight / 2]
+                val orange = rgb(255, 113, 57)
+                assertTrue("The PDF orange color matches.", centerPixel == orange)
+            }
+        }
+    }
+
+    @NullDelegate(Autofill.Delegate::class)
+    @Test
     fun rgbColorsPdf() {
         activityRule.scenario.onActivity {
             mainSession.loadTestPath(COLOR_GRID_HTML_PATH)

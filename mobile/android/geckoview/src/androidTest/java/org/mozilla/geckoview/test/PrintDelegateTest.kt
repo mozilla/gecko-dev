@@ -145,6 +145,23 @@ class PrintDelegateTest : BaseSessionTest() {
 
     @NullDelegate(Autofill.Delegate::class)
     @Test
+    fun printFtFontRendered() {
+        activityRule.scenario.onActivity { activity ->
+            mainSession.loadTestPath(FT_FONT_HTML_PATH)
+            mainSession.waitForPageStop()
+            mainSession.printDelegate = activity.view.printDelegate
+            mainSession.printPageContent()
+            val orange = rgb(255, 113, 57)
+            val centerPixel = printCenterPixelColor()
+            assertTrue(
+                "Android print opened and rendered.",
+                sessionRule.waitForResult(centerPixel) == orange,
+            )
+        }
+    }
+
+    @NullDelegate(Autofill.Delegate::class)
+    @Test
     fun printSuccessWithStatus() {
         activityRule.scenario.onActivity { activity ->
             // CSS rules render this blue on screen and orange on print
