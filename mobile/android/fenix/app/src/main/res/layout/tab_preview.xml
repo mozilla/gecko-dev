@@ -136,6 +136,15 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/composableToolbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/browser_toolbar_height"
+        android:layout_gravity="bottom"
+        android:elevation="5dp"
+        android:foregroundGravity="bottom"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/fakeToolbar"
         android:layout_width="match_parent"
@@ -145,7 +154,7 @@
         android:elevation="5dp"
         android:foregroundGravity="bottom"
         android:orientation="horizontal"
-        android:visibility="visible"
+        android:visibility="gone"
         >
 
         <View
