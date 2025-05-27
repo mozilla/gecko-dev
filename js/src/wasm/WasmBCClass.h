@@ -142,8 +142,8 @@ struct AccessCheck {
 // Encapsulate all the information about a function call.
 struct FunctionCall {
   FunctionCall()
-      : restoreRegisterStateAndRealm(false),
-        usesSystemAbi(false),
+      : restoreState(RestoreState::None),
+        useABI(UseABI::Wasm),
 #ifdef JS_CODEGEN_ARM
         hardFP(true),
 #endif
@@ -152,8 +152,8 @@ struct FunctionCall {
   }
 
   WasmABIArgGenerator abi;
-  bool restoreRegisterStateAndRealm;
-  bool usesSystemAbi;
+  RestoreState restoreState;
+  UseABI useABI;
 #ifdef JS_CODEGEN_ARM
   bool hardFP;
 #endif
@@ -977,8 +977,7 @@ struct BaseCompiler final {
   //
   // Calls.
 
-  void beginCall(FunctionCall& call, UseABI useABI,
-                 RestoreRegisterStateAndRealm restoreRegisterStateAndRealm);
+  void beginCall(FunctionCall& call, UseABI useABI, RestoreState restoreState);
   void endCall(FunctionCall& call, size_t stackSpace);
   void startCallArgs(size_t stackArgAreaSizeUnaligned, FunctionCall* call);
   ABIArg reservePointerArgument(FunctionCall* call);

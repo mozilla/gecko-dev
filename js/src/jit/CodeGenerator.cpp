@@ -9729,7 +9729,8 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   // LWasmCallBase::isCallPreserved() assumes that all MWasmCalls preserve the
   // instance and pinned regs. The only case where where we don't have to
   // reload the instance and pinned regs is when the callee preserves them.
-  bool reloadRegs = true;
+  bool reloadInstance = true;
+  bool reloadPinnedRegs = true;
   bool switchRealm = true;
 
   const wasm::CallSiteDesc& desc = callBase->desc();
@@ -9747,7 +9748,8 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       }
       MOZ_ASSERT(!isReturnCall);
       retOffset = masm.call(desc, callee.funcIndex());
-      reloadRegs = false;
+      reloadInstance = false;
+      reloadPinnedRegs = false;
       switchRealm = false;
       break;
     case wasm::CalleeDesc::Import:
@@ -9810,19 +9812,29 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       // Register reloading and realm switching are handled dynamically inside
       // wasmCallIndirect.  There are two return offsets, one for each call
       // instruction (fast path and slow path).
-      reloadRegs = false;
+      reloadInstance = false;
+      reloadPinnedRegs = false;
       switchRealm = false;
       break;
     }
     case wasm::CalleeDesc::Builtin:
       retOffset = masm.call(desc, callee.builtin());
-      reloadRegs = false;
+      // The builtin ABI preserves the instance and pinned registers. However,
+      // builtins may grow the memory which requires us to reload the pinned
+      // registers.
+      reloadInstance = false;
+      reloadPinnedRegs = true;
       switchRealm = false;
       break;
     case wasm::CalleeDesc::BuiltinInstanceMethod:
       retOffset = masm.wasmCallBuiltinInstanceMethod(
           desc, callBase->instanceArg(), callee.builtin(),
           callBase->builtinMethodFailureMode());
+      // The builtin ABI preserves the instance and pinned registers. However,
+      // builtins may grow the memory which requires us to reload the pinned
+      // registers.
+      reloadInstance = false;
+      reloadPinnedRegs = true;
       switchRealm = false;
       break;
     case wasm::CalleeDesc::FuncRef:
@@ -9838,7 +9850,8 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       // wasmCallRef.  There are two return offsets, one for each call
       // instruction (fast path and slow path).
       masm.wasmCallRef(desc, callee, &retOffset, &secondRetOffset);
-      reloadRegs = false;
+      reloadInstance = false;
+      reloadPinnedRegs = false;
       switchRealm = false;
       break;
   }
@@ -9864,16 +9877,18 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
                                                  framePushedAtStackMapBase);
   }
 
-  if (reloadRegs) {
+  if (reloadInstance) {
     masm.loadPtr(
         Address(masm.getStackPointer(), WasmCallerInstanceOffsetBeforeCall),
         InstanceReg);
-    masm.loadWasmPinnedRegsFromInstance(mozilla::Nothing());
     if (switchRealm) {
       masm.switchToWasmInstanceRealm(ABINonArgReturnReg0, ABINonArgReturnReg1);
     }
   } else {
     MOZ_ASSERT(!switchRealm);
+  }
+  if (reloadPinnedRegs) {
+    masm.loadWasmPinnedRegsFromInstance(mozilla::Nothing());
   }
 
   switch (callee.which()) {

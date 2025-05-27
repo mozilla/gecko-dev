@@ -6170,11 +6170,6 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
     wasm::SymbolicAddress builtin, wasm::FailureMode failureMode) {
   MOZ_ASSERT(instanceArg != ABIArg());
 
-  storePtr(InstanceReg,
-           Address(getStackPointer(), WasmCallerInstanceOffsetBeforeCall));
-  storePtr(InstanceReg,
-           Address(getStackPointer(), WasmCalleeInstanceOffsetBeforeCall));
-
   if (instanceArg.kind() == ABIArg::GPR) {
     movePtr(InstanceReg, instanceArg.gpr());
   } else if (instanceArg.kind() == ABIArg::Stack) {
