@@ -10,6 +10,9 @@ const {
 } = require("resource://devtools/client/shared/vendor/react.mjs");
 const dom = require("resource://devtools/client/shared/vendor/react-dom-factories.js");
 const PropTypes = require("resource://devtools/client/shared/vendor/react-prop-types.mjs");
+const {
+  withRouter,
+} = require("resource://devtools/client/shared/vendor/react-router-dom.js");
 
 const FluentReact = require("resource://devtools/client/shared/vendor/fluent-react.js");
 const Localized = createFactory(FluentReact.Localized);
@@ -46,11 +49,16 @@ class SidebarRuntimeItem extends PureComponent {
       isUnplugged: PropTypes.bool.isRequired,
       name: PropTypes.string.isRequired,
       runtimeId: PropTypes.string.isRequired,
+
+      // Provided by react-router
+      match: PropTypes.object.isRequired,
+      location: PropTypes.object.isRequired,
+      history: PropTypes.object.isRequired,
     };
   }
 
   renderConnectButton() {
-    const { isConnecting } = this.props;
+    const { isConnecting, history } = this.props;
     const localizationId = isConnecting
       ? "about-debugging-sidebar-item-connect-button-connecting"
       : "about-debugging-sidebar-item-connect-button";
@@ -62,9 +70,18 @@ class SidebarRuntimeItem extends PureComponent {
         {
           className: "default-button default-button--micro qa-connect-button",
           disabled: isConnecting,
-          onClick: () => {
+          onClick: async () => {
             const { dispatch, runtimeId } = this.props;
-            dispatch(Actions.connectRuntime(runtimeId));
+            await dispatch(Actions.connectRuntime(runtimeId));
+            if (this.props.isConnected) {
+              // If the connection was successful, navigate to the new runtime.
+              // Note: By using `this.props`, the latest value is retrieved, as
+              // the result of the `connectRuntime` action. If we had used a
+              // destructuring assignment at the start of the
+              // `renderConnectButton` function instead, we'd have captured the
+              // initial (outdated) value instead.
+              history.push("/runtime/" + encodeURIComponent(runtimeId));
+            }
           },
         },
         localizationId
@@ -213,4 +230,4 @@ class SidebarRuntimeItem extends PureComponent {
   }
 }
 
-module.exports = FluentReact.withLocalization(SidebarRuntimeItem);
+module.exports = withRouter(FluentReact.withLocalization(SidebarRuntimeItem));
