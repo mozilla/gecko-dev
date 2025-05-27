@@ -21,17 +21,23 @@ import androidx.core.view.updateLayoutParams
 import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.thumbnails.loader.ThumbnailLoader
 import mozilla.components.compose.base.Divider
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.BrowserToolbar
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
+import mozilla.components.compose.browser.toolbar.concept.PageOrigin
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageOriginUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.DisplayState
 import mozilla.components.concept.base.images.ImageLoadRequest
+import mozilla.components.support.ktx.util.URLStringUtils
+import mozilla.components.support.utils.ext.isContentUrl
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.databinding.TabPreviewBinding
@@ -55,6 +61,9 @@ class TabPreview @JvmOverloads constructor(
     private val thumbnailLoader = ThumbnailLoader(context.components.core.thumbnailStorage)
 
     private lateinit var mockToolbarView: View
+    private val browserToolbarStore: BrowserToolbarStore by lazy(LazyThreadSafetyMode.NONE) {
+        buildComposableToolbarStore()
+    }
 
     init {
         initializeView()
@@ -90,13 +99,29 @@ class TabPreview @JvmOverloads constructor(
     /**
      * Load a preview for a thumbnail.
      */
-    fun loadPreviewThumbnail(thumbnailId: String, isPrivate: Boolean) {
+    fun loadDestinationPreview(destination: TabSessionState) {
         doOnNextLayout {
             val previewThumbnail = binding.previewThumbnail
             val thumbnailSize = min(previewThumbnail.height, previewThumbnail.width)
             thumbnailLoader.loadIntoView(
                 previewThumbnail,
-                ImageLoadRequest(thumbnailId, thumbnailSize, isPrivate),
+                ImageLoadRequest(destination.id, thumbnailSize, destination.content.private),
+            )
+
+            updateToolbar(
+                new = {
+                    browserToolbarStore.dispatch(
+                        PageOriginUpdated(
+                            buildComposableToolbarPageOrigin(destination),
+                        ),
+                    )
+                    browserToolbarStore.dispatch(
+                        BrowserDisplayToolbarAction.PageActionsStartUpdated(
+                            buildComposableToolbarPageStartActions(destination),
+                        ),
+                    )
+                },
+                old = {},
             )
         }
     }
@@ -137,7 +162,7 @@ class TabPreview @JvmOverloads constructor(
                     // Ensure the divider is shown together with the toolbar
                     Box {
                         BrowserToolbar(
-                            store = buildComposableToolbarStore(),
+                            store = browserToolbarStore,
                             browserStore = context.components.core.store,
                             onTextEdit = {},
                             onTextCommit = {},
@@ -190,6 +215,45 @@ class TabPreview @JvmOverloads constructor(
                     ),
                 ),
             ),
+        )
+    }
+
+    private fun buildComposableToolbarPageStartActions(tab: TabSessionState) = buildList {
+        if (tab.content.url.isContentUrl() == true) {
+            add(
+                ActionButton(
+                    icon = R.drawable.mozac_ic_page_portrait_24,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = object : BrowserToolbarEvent {},
+                ),
+            )
+        } else if (tab.content.securityInfo.secure == true) {
+            add(
+                ActionButton(
+                    icon = R.drawable.mozac_ic_lock_24,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = object : BrowserToolbarEvent {},
+                ),
+            )
+        } else {
+            add(
+                ActionButton(
+                    icon = R.drawable.mozac_ic_broken_lock,
+                    contentDescription = R.string.mozac_browser_toolbar_content_description_site_info,
+                    onClick = object : BrowserToolbarEvent {},
+                ),
+            )
+        }
+    }
+
+    private fun buildComposableToolbarPageOrigin(tab: TabSessionState): PageOrigin {
+        val urlString = URLStringUtils.toDisplayUrl(tab.content.url).toString()
+
+        return PageOrigin(
+            hint = R.string.search_hint,
+            title = null,
+            url = urlString,
+            onClick = object : BrowserToolbarEvent {},
         )
     }
 

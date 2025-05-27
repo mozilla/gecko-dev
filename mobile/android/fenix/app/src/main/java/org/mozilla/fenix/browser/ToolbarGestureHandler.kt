@@ -188,17 +188,17 @@ class ToolbarGestureHandler(
     }
 
     private fun preparePreview(destination: Destination) {
-        val (thumbnailId, isPrivate) = when (destination) {
-            is Destination.Tab -> destination.tab.id to destination.tab.content.private
-            is Destination.None -> return
+        if (destination !is Destination.Tab) {
+            return
         }
 
-        tabPreview.loadPreviewThumbnail(thumbnailId, isPrivate)
-        tabPreview.alpha = 1f
+        tabPreview.loadDestinationPreview(destination.tab)
+
         tabPreview.translationX = when (gestureDirection) {
             GestureDirection.RIGHT_TO_LEFT -> windowWidth.toFloat() + previewOffset
             GestureDirection.LEFT_TO_RIGHT -> -windowWidth.toFloat() - previewOffset
         }
+        tabPreview.alpha = 1f
         tabPreview.isVisible = true
     }
 
