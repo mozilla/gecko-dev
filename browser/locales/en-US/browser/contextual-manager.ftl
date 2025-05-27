@@ -274,34 +274,34 @@ contextual-manager-origin-login-line-with-alert =
 # Variables
 #   $username (string) - The username associated with the login
 contextual-manager-username-login-line =
-  .aria-label = Copy Username { $username }
-  .title = Copy Username { $username }
+  .aria-label = Copy username { $username }
+  .title = Copy username { $username }
 # "(Warning)" indicates that a login's username field has an alert icon.
 # Variables
 #   $username (string) - The username associated with the login
 contextual-manager-username-login-line-with-alert =
-  .aria-label = Copy Username { $username } (Warning)
-  .title = Copy Username { $username } (Warning)
+  .aria-label = Copy username { $username } (Warning)
+  .title = Copy username { $username } (Warning)
 contextual-manager-password-login-line =
-  .aria-label = Copy Password
-  .title = Copy Password
+  .aria-label = Copy password
+  .title = Copy password
 # "(Warning)" indicates that a login's password field has an alert icon.
 contextual-manager-password-login-line-with-alert =
-  .aria-label = Copy Password (Warning)
-  .title = Copy Password (Warning)
+  .aria-label = Copy password (Warning)
+  .title = Copy password (Warning)
 contextual-manager-edit-login-button = Edit
-  .tooltiptext = Edit Password
+  .tooltiptext = Edit password
 contextual-manager-view-alert-heading =
   .heading = View alert
 contextual-manager-view-alert-button =
   .tooltiptext = Review alert
 
 contextual-manager-show-password-button =
-  .aria-label = Show Password
-  .title = Show Password
+  .aria-label = Show password
+  .title = Show password
 contextual-manager-hide-password-button =
-  .aria-label = Hide Password
-  .title = Hide Password
+  .aria-label = Hide password
+  .title = Hide password
 
 # The message displayed when the search text does not match any of the user's saved logins.
 contextual-manager-passwords-no-passwords-found-header =
