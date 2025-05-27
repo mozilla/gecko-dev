@@ -108,6 +108,9 @@ skip-if = [
 ["test_altsvc_pref.js"]
 skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && msix"]
 
+["test_android_content_uri.js"]
+run-if = ["os == 'android'"]
+
 ["test_anonymous-coalescing.js"]
 
 ["test_auth_dialog_permission.js"]
