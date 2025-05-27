@@ -307,8 +307,6 @@ interface TestExampleInterface {
   undefined passUint8ClampedArray(Uint8ClampedArray arg);
   undefined passFloat32Array(Float32Array arg);
   undefined passFloat64Array(Float64Array arg);
-  undefined passBigUint64Array(BigUint64Array arg);
-  undefined passBigInt64Array(BigInt64Array arg);
   undefined passSequenceOfArrayBuffers(sequence<ArrayBuffer> arg);
   undefined passSequenceOfNullableArrayBuffers(sequence<ArrayBuffer?> arg);
   undefined passRecordOfArrayBuffers(record<DOMString, ArrayBuffer> arg);

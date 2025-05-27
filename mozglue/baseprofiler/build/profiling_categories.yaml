@@ -331,14 +331,3 @@
   subcategories:
     - name: TELEMETRY
       label: Other
-
-- name: ML
-  label: ML
-  color: magenta
-  subcategories:
-    - name: ML
-      label: Other
-    - name: ML_INFERENCE
-      label: Inference
-    - name: ML_SETUP
-      label: Setup

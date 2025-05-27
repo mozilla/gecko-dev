@@ -874,8 +874,6 @@ using Int32Array = TypedArray<JS::Int32Array>;
 using Uint32Array = TypedArray<JS::Uint32Array>;
 using Float32Array = TypedArray<JS::Float32Array>;
 using Float64Array = TypedArray<JS::Float64Array>;
-using BigInt64Array = TypedArray<JS::BigInt64Array>;
-using BigUint64Array = TypedArray<JS::BigUint64Array>;
 using ArrayBufferView = ArrayBufferView_base<JS_GetArrayBufferViewType>;
 using ArrayBuffer = TypedArray<JS::ArrayBuffer>;
 
@@ -962,8 +960,6 @@ APPLY_IMPL(Int32Array)
 APPLY_IMPL(Uint32Array)
 APPLY_IMPL(Float32Array)
 APPLY_IMPL(Float64Array)
-APPLY_IMPL(BigInt64Array)
-APPLY_IMPL(BigUint64Array)
 APPLY_IMPL(ArrayBufferView)
 APPLY_IMPL(ArrayBuffer)
 

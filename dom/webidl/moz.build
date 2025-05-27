@@ -798,7 +798,6 @@ WEBIDL_FILES = [
     "OfflineAudioContext.webidl",
     "OffscreenCanvas.webidl",
     "OffscreenCanvasRenderingContext2D.webidl",
-    "ONNX.webidl",
     "OscillatorNode.webidl",
     "PaintRequest.webidl",
     "PaintRequestList.webidl",

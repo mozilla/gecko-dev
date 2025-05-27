@@ -37,12 +37,6 @@ def WebIDLTest(parser, harness):
 
           attribute Float64Array float64ArrayAttr;
           undefined float64ArrayMethod(Float64Array arg1, Float64Array? arg2, sequence<Float64Array> arg3);
-
-          attribute BigInt64Array bigInt64ArrayAttr;
-          undefined BigInt64ArrayMethod(BigInt64Array arg1, BigInt64Array? arg2, sequence<BigInt64Array> arg3);
-
-          attribute BigUint64Array bigUint64ArrayAttr;
-          undefined BigUint64ArrayMethod(BigUint64Array arg1, BigUint64Array? arg2, sequence<BigUint64Array> arg3);
         };
     """
     )
@@ -52,7 +46,7 @@ def WebIDLTest(parser, harness):
     iface = results[0]
 
     harness.ok(True, "TestArrayBuffer interface parsed without error")
-    harness.check(len(iface.members), 26, "Interface should have twenty two members")
+    harness.check(len(iface.members), 22, "Interface should have twenty two members")
 
     members = iface.members
 
@@ -99,5 +93,3 @@ def WebIDLTest(parser, harness):
     checkStuff(members[16], members[17], "Uint32Array")
     checkStuff(members[18], members[19], "Float32Array")
     checkStuff(members[20], members[21], "Float64Array")
-    checkStuff(members[22], members[23], "BigInt64Array")
-    checkStuff(members[24], members[25], "BigUint64Array")
