@@ -19,8 +19,7 @@ of the front-end, or record events that normally wouldn't show up in samples.
 Markers in the GeckoView Java codebase
 **************************************
 
-If you are in the GeckoView codebase, then you should have access to ``GeckoRuntime``.
-``GeckoRuntime`` has a ``getProfilerController`` method to get the ``ProfilerController``.
+If you are in the GeckoView codebase, then you should have access to ``ProfilerController``.
 See the `ProfilerController Java file`_ (`javadoc`_) to find which methods you can use to
 instrument your source code.
 
@@ -29,18 +28,18 @@ Here's an example:
 .. code-block:: java
 
     // Simple marker
-    sGeckoRuntime.getProfilerController().addMarker("Marker Name");
+    ProfilerController().addMarker("Marker Name");
 
     // Simple marker with additional information
-    sGeckoRuntime.getProfilerController().addMarker("Marker Name", "info");
+    ProfilerController().addMarker("Marker Name", "info");
 
     // Duration marker
-    Double startTime = sGeckoRuntime.getProfilerController().getProfilerTime();
+    Double startTime = ProfilerController().getProfilerTime();
     // ...some code you want to measure...
-    sGeckoRuntime.getProfilerController().addMarker("Marker Name", startTime);
+    ProfilerController().addMarker("Marker Name", startTime);
 
     // Duration marker with additional information
-    sGeckoRuntime.getProfilerController().addMarker("Marker Name", startTime, "info");
+    ProfilerController().addMarker("Marker Name", startTime, "info");
 
 There are various overloads of ``addMarker`` you can choose depending on your need.
 

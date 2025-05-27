@@ -13,6 +13,15 @@ exclude: true
 
 ⚠️  breaking change and deprecation notices
 
+## v141
+- Changed the methods in [`ProfilerController`][141.1] to static.
+  ([bug 1955403]({{bugzilla}}1955403))
+- ⚠️ Deprecated [`GeckoRuntime.getProfilerController`][141.2], will now be removed in v142.
+  ([bug 1955403]({{bugzilla}}1955403))
+
+[141.1]: {{javadoc_uri}}/ProfilerController.html
+[141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
+
 ## v140
 - Added a [`GeckoPreferenceController`][140.1] class to manage Gecko preferences.
 - Introduced a new [`preference observer delegate`][140.2] and a way to [`register`][140.3] preferences on the delegate.
@@ -1744,4 +1753,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 6d93b98aed14f546f7db741f766e52adef92dc07
+[api-version]: e0a041a2007dcd9af353134d5d7e26971e5ee8d6

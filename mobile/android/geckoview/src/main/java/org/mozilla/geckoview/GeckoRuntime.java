@@ -597,8 +597,8 @@ public final class GeckoRuntime implements Parcelable {
       mScreenChangeListener.enable();
     }
 
-    mProfilerController.addMarker(
-        "GeckoView Initialization START", mProfilerController.getProfilerTime());
+    ProfilerController.addMarker(
+        "GeckoView Initialization START", ProfilerController.getProfilerTime());
     return true;
   }
 
@@ -660,6 +660,8 @@ public final class GeckoRuntime implements Parcelable {
    * @return an instance of {@link ProfilerController}.
    */
   @UiThread
+  @Deprecated
+  @DeprecationSchedule(id = "GeckoRuntime-getProfilerController", version = 142)
   public @NonNull ProfilerController getProfilerController() {
     return mProfilerController;
   }

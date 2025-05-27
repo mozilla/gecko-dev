@@ -91,6 +91,7 @@ import org.mozilla.geckoview.GeckoWebExecutor;
 import org.mozilla.geckoview.Image;
 import org.mozilla.geckoview.MediaSession;
 import org.mozilla.geckoview.OrientationController;
+import org.mozilla.geckoview.ProfilerController;
 import org.mozilla.geckoview.SlowScriptResponse;
 import org.mozilla.geckoview.TranslationsController;
 import org.mozilla.geckoview.WebExtension;
@@ -1420,12 +1421,12 @@ public class GeckoViewActivity extends AppCompatActivity
   }
 
   private void createNewTab() {
-    Double startTime = sGeckoRuntime.getProfilerController().getProfilerTime();
+    Double startTime = ProfilerController.getProfilerTime();
     TabSession newSession = createSession();
     newSession.open(sGeckoRuntime);
     setGeckoViewSession(newSession);
     mToolbarView.updateTabCount();
-    sGeckoRuntime.getProfilerController().addMarker("Create new tab", startTime);
+    ProfilerController.addMarker("Create new tab", startTime);
   }
 
   @SuppressLint("WrongThread")

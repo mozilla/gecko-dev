@@ -1073,7 +1073,7 @@ class GeckoEngine(
     /**
      * See [Engine.profiler].
      */
-    override val profiler: Profiler? = Profiler(runtime)
+    override val profiler: Profiler = Profiler()
 
     override fun name(): String = "Gecko"
 

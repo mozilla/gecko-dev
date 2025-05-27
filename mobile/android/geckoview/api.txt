@@ -870,7 +870,7 @@ package org.mozilla.geckoview {
     method @Nullable @UiThread public GeckoRuntime.Delegate getDelegate();
     method @NonNull @UiThread public OrientationController getOrientationController();
     method @AnyThread @Nullable public GeckoPreferenceController.Observer.Delegate getPreferencesObserverDelegate();
-    method @NonNull @UiThread public ProfilerController getProfilerController();
+    method @Deprecated @DeprecationSchedule(id="GeckoRuntime-getProfilerController",version=142) @NonNull @UiThread public ProfilerController getProfilerController();
     method @Nullable @UiThread public GeckoRuntime.ServiceWorkerDelegate getServiceWorkerDelegate();
     method @AnyThread @NonNull public GeckoRuntimeSettings getSettings();
     method @NonNull @UiThread public StorageController getStorageController();
@@ -2212,15 +2212,15 @@ package org.mozilla.geckoview {
 
   @UiThread public class ProfilerController {
     ctor public ProfilerController();
-    method public void addMarker(@NonNull String, @Nullable Double, @Nullable Double, @Nullable String);
-    method public void addMarker(@NonNull String, @Nullable Double, @Nullable String);
-    method public void addMarker(@NonNull String, @Nullable Double);
-    method public void addMarker(@NonNull String, @Nullable String);
-    method public void addMarker(@NonNull String);
-    method @Nullable public Double getProfilerTime();
-    method public boolean isProfilerActive();
-    method public void startProfiler(@NonNull String[], @NonNull String[]);
-    method @NonNull public GeckoResult<byte[]> stopProfiler();
+    method public static void addMarker(@NonNull String, @Nullable Double, @Nullable Double, @Nullable String);
+    method public static void addMarker(@NonNull String, @Nullable Double, @Nullable String);
+    method public static void addMarker(@NonNull String, @Nullable Double);
+    method public static void addMarker(@NonNull String, @Nullable String);
+    method public static void addMarker(@NonNull String);
+    method @Nullable public static Double getProfilerTime();
+    method public static boolean isProfilerActive();
+    method public static void startProfiler(@NonNull String[], @NonNull String[]);
+    method @NonNull public static GeckoResult<byte[]> stopProfiler();
   }
 
   public abstract class RuntimeSettings implements Parcelable {
