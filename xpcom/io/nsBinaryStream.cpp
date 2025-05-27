@@ -39,9 +39,9 @@
 
 #include "js/ArrayBuffer.h"  // JS::{GetArrayBuffer{,ByteLength},IsArrayBufferObject}
 #include "js/ArrayBufferMaybeShared.h"  // JS::IsImmutableArrayBufferMaybeShared
-#include "js/GCAPI.h"        // JS::AutoCheckCannotGC
-#include "js/RootingAPI.h"  // JS::{Handle,Rooted}
-#include "js/Value.h"       // JS::Value
+#include "js/GCAPI.h"                   // JS::AutoCheckCannotGC
+#include "js/RootingAPI.h"              // JS::{Handle,Rooted}
+#include "js/Value.h"                   // JS::Value
 
 using mozilla::AsBytes;
 using mozilla::MakeUnique;
