@@ -5541,22 +5541,14 @@ void PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder* aBuilder,
                                              nsIFrame* aFrame,
                                              const nsRect& aBounds,
                                              nscolor aBackstopColor) {
-  if (aBounds.IsEmpty()) {
-    return;
-  }
-  const bool isViewport = aFrame->IsViewportFrame();
-  const SingleCanvasBackground* canvasBg;
-  if (isViewport) {
-    canvasBg = &mCanvasBackground.mViewport;
-  } else if (aFrame->IsPageContentFrame()) {
-    canvasBg = &mCanvasBackground.mPage;
-  } else {
+  if (aBounds.IsEmpty() || !aFrame->IsViewportFrame()) {
     // We don't want to add an item for the canvas background color if the frame
     // (sub)tree we are painting doesn't include any canvas frames.
     return;
   }
 
-  const nscolor bgcolor = NS_ComposeColors(aBackstopColor, canvasBg->mColor);
+  const SingleCanvasBackground& canvasBg = mCanvasBackground.mViewport;;
+  const nscolor bgcolor = NS_ComposeColors(aBackstopColor, canvasBg.mColor);
   if (NS_GET_A(bgcolor) == 0) {
     return;
   }
@@ -5572,24 +5564,26 @@ void PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder* aBuilder,
   // backgrounds shouldn't ever be semi-transparent.
   const bool forceUnscrolledItem =
       nsLayoutUtils::UsesAsyncScrolling(aFrame) && NS_GET_A(bgcolor) == 255;
-  if (!canvasBg->mCSSSpecified || forceUnscrolledItem) {
-    MOZ_ASSERT(NS_GET_A(bgcolor) == 255);
-    const bool isRootContentDocumentCrossProcess =
-        mPresContext->IsRootContentDocumentCrossProcess();
-    MOZ_ASSERT_IF(
-        isViewport && isRootContentDocumentCrossProcess &&
-            mPresContext->HasDynamicToolbar(),
-        aBounds.Size() ==
-            nsLayoutUtils::ExpandHeightForDynamicToolbar(
-                mPresContext, aFrame->InkOverflowRectRelativeToSelf().Size()));
-
-    nsDisplaySolidColor* item = MakeDisplayItem<nsDisplaySolidColor>(
-        aBuilder, aFrame, aBounds, bgcolor);
-    if (canvasBg->mCSSSpecified && isRootContentDocumentCrossProcess) {
-      item->SetIsCheckerboardBackground();
-    }
-    AddDisplayItemToBottom(aBuilder, aList, item);
+  if (canvasBg.mCSSSpecified && !forceUnscrolledItem) {
+    return;
   }
+
+  MOZ_ASSERT(NS_GET_A(bgcolor) == 255);
+  const bool isRootContentDocumentCrossProcess =
+      mPresContext->IsRootContentDocumentCrossProcess();
+  MOZ_ASSERT_IF(
+      !aFrame->GetParent() && isRootContentDocumentCrossProcess &&
+          mPresContext->HasDynamicToolbar(),
+      aBounds.Size() ==
+          nsLayoutUtils::ExpandHeightForDynamicToolbar(
+              mPresContext, aFrame->InkOverflowRectRelativeToSelf().Size()));
+
+  nsDisplaySolidColor* item = MakeDisplayItem<nsDisplaySolidColor>(
+      aBuilder, aFrame, aBounds, bgcolor);
+  if (canvasBg.mCSSSpecified && isRootContentDocumentCrossProcess) {
+    item->SetIsCheckerboardBackground();
+  }
+  AddDisplayItemToBottom(aBuilder, aList, item);
 }
 
 bool PresShell::IsTransparentContainerElement() const {

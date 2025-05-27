@@ -152,6 +152,39 @@ assertErrorMessage(
   /second argument must be an object/
 );
 
+// Exnref cannot cross the JS/wasm boundary as a function parameter.
+var inst = wasmEvalText(`
+(module
+  (func (export "f") (result nullexnref)
+    unreachable
+  )
+)`);
+assertErrorMessage(() => inst.exports.f(), TypeError, /cannot pass value to or from JS/);
+
+inst = wasmEvalText(`
+(module
+  (func (export "f") (result exnref)
+    unreachable
+  )
+)`);
+assertErrorMessage(() => inst.exports.f(), TypeError, /cannot pass value to or from JS/);
+
+inst = wasmEvalText(`
+(module
+  (func (export "f") (result (ref exn))
+    unreachable
+  )
+)`);
+assertErrorMessage(() => inst.exports.f(), TypeError, /cannot pass value to or from JS/);
+
+inst = wasmEvalText(`
+(module
+  (func (export "f") (result (ref noexn))
+    unreachable
+  )
+)`);
+assertErrorMessage(() => inst.exports.f(), TypeError, /cannot pass value to or from JS/);
+
 // Test Exception methods.
 {
   const exn1 = new WebAssembly.Exception(tag1, []);

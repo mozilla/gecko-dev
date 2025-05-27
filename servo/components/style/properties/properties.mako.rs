@@ -909,6 +909,27 @@ impl LonghandIdSet {
         )}
         &BORDER_BACKGROUND_PROPERTIES
     }
+
+    /// Returns properties that are zoom dependent (basically, that contain lengths).
+    #[inline]
+    pub fn zoom_dependent() -> &'static Self {
+        ${static_longhand_id_set("ZOOM_DEPENDENT", lambda p: p.is_zoom_dependent())}
+        &ZOOM_DEPENDENT
+    }
+
+    /// Note that it's different from zoom_dependent(), as this only includes inherited, physical
+    /// properties.
+    #[inline]
+    pub fn zoom_dependent_inherited_properties() -> &'static [LonghandId] {
+        static ZOOM_DEPENDENT: &'static [LonghandId] = &[
+            % for p in data.longhands:
+            % if p.is_inherited_zoom_dependent_property():
+                LonghandId::${p.camel_case},
+            % endif
+            % endfor
+        ];
+        ZOOM_DEPENDENT
+    }
 }
 
 /// An identifier for a given longhand property.

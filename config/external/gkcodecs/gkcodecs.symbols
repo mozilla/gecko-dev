@@ -97,6 +97,7 @@ opus_multistream_encoder_create
 opus_multistream_encoder_ctl
 opus_multistream_encoder_destroy
 opus_packet_get_nb_channels
+opus_packet_get_nb_samples
 opus_packet_get_nb_frames
 opus_packet_get_samples_per_frame
 opus_packet_parse

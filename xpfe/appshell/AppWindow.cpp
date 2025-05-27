@@ -60,6 +60,7 @@
 #include "mozilla/PresShell.h"
 #include "mozilla/Services.h"
 #include "mozilla/SpinEventLoopUntil.h"
+#include "mozilla/StaticPrefs_browser.h"
 #include "mozilla/dom/BarProps.h"
 #include "mozilla/dom/DOMRect.h"
 #include "mozilla/dom/Element.h"
@@ -2392,6 +2393,12 @@ AppWindow::NeedFastSnaphot() {
 void AppWindow::LoadPersistentWindowState() {
   nsCOMPtr<dom::Element> docShellElement = GetWindowDOMElement();
   if (!docShellElement) {
+    return;
+  }
+
+  // Disable state restoration, allowing the kiosk desktop environment
+  // to manage state and position.
+  if (StaticPrefs::browser_restoreWindowState_disabled()) {
     return;
   }
 

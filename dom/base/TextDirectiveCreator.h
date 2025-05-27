@@ -24,256 +24,17 @@ class ErrorResult;
 namespace mozilla::dom {
 class Document;
 /**
- * @brief Caches fold case representations of `nsRange`s.
- *
- * This class is a specialization for a hashmap using `nsRange*` as key and
- * `UniquePtr<nsString>` as value.
- * The class only exposes the strings as raw pointers, which are valid as long
- * as this cache is alive. The addresses will not change and the pointers can
- * safely be stored, as long as the lifetime of this cache is greater.
- *
- */
-class RangeContentCache final {
- public:
-  /**
-   * @brief Get the fold case representation of `aRange`.
-   *
-   * This method uses a maximum of two hashtable lookups to either return a
-   * cached fold case representation of `aRange`s content, or to create one.
-   * The returned string pointer is alive as long as the cache is alive.
-   * Returns `nullptr` if `aRange` is `nullptr`, and propagates the error of
-   * converting the range content into fold case.
-   */
-  Result<const nsString*, ErrorResult> GetOrCreate(nsRange* aRange);
-
- private:
-  nsTHashMap<nsRange*, UniquePtr<nsString>> mCache;
-};
-
-/**
- * @brief Helper which represents a potential text directive using `nsRange`s.
- *
- * In addition to the _current_ context terms of the text directive, it also
- * contains the _fully expanded_ context terms, i.e. the ranges until the next
- * block boundary.
- *
- * `TextDirectiveCandidate`s are immutable.
- * This allows sharing `nsRange`s across instances to save memory. Also, this
- * allows to create the text directive string representation
- * (`TextDirectiveString()`) once when the object is created.
- * However, the `nsRange` members cannot be marked as `const`:
- * - It's not possible to have the `nsRange` itself be const because
- *   `nsRange::ToString()` is not const.
- * - It's not possible to have the `RefPtr` be const because of move semantics.
- */
-class TextDirectiveCandidate {
- public:
-  TextDirectiveCandidate(TextDirectiveCandidate&&) = default;
-  TextDirectiveCandidate& operator=(TextDirectiveCandidate&&) = default;
-
- private:
-  TextDirectiveCandidate(const TextDirectiveCandidate&) = default;
-  TextDirectiveCandidate& operator=(const TextDirectiveCandidate&) = default;
-
- public:
-  /**
-   * @brief Creates a candidate from a given input range.
-   *
-   * This function determines whether the candidate needs to use exact or
-   * range-based matching based on whether the input range contains a block
-   * boundary.
-   * Then, it determines the fully-expanded ranges for all context terms and
-   * creates an instance.
-   *
-   * @param aInputRange The input range.
-   * @param aRangeContentCache A cache which stores fold case representations of
-   *                           the ranges used to compare ranges for equality.
-   * @return A text directive candidate, or an error.
-   */
-  static Result<TextDirectiveCandidate, ErrorResult> CreateFromInputRange(
-      const nsRange* aInputRange, RangeContentCache& aRangeContentCache);
-
-  static Result<TextDirectiveCandidate, ErrorResult> CreateFromStartAndEndRange(
-      const nsRange* aStartRange, const nsRange* aEndRange,
-      RangeContentCache& aRangeContentCache);
-
-  /**
-   * Creates new text directive candidates for each element of `aMatches`, which
-   * eliminate the element.
-   *
-   * @see CreateNewCandidatesForGivenMatch()
-   */
-  Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
-  CreateNewCandidatesForMatches(
-      const nsTArray<const TextDirectiveCandidate*>& aMatches,
-      RangeContentCache& aRangeContentCache);
-
-  /**
-   * Creates new text directive candidates which eliminate `aOther` by extending
-   * context terms in every direction.
-   *
-   * If exact matching is used, this function will create up to two new
-   * candidates, one where the prefix is extended until it is not matching with
-   * other, one where suffix is extended.
-   * If range based matching is used, there will be additional candidates
-   * created which extend the start and end term.
-   *
-   * If even a fully expanded context term is matching the context term of
-   * `other`, no candidate is created.
-   * Returning an empty array indicates that it is not possible to create a text
-   * directive for the given text in the current document, because it is not
-   * possible to create a text directive that would not match `other`.
-   */
-  Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
-  CreateNewCandidatesForGivenMatch(const TextDirectiveCandidate& aOther,
-                                   RangeContentCache& aRangeContentCache) const;
-
-  /**
-   * Clones `this` and replaces ranges which are non-null.
-   * The parameter ranges are moved into the function to emphasize that the
-   * objects are not cloned. Therefore, the ranges must not be updated after
-   * this call.
-   */
-  Result<TextDirectiveCandidate, ErrorResult> CloneWith(
-      RefPtr<nsRange>&& aNewPrefixRange, RefPtr<nsRange>&& aNewStartRange,
-      RefPtr<nsRange>&& aNewEndRange, RefPtr<nsRange>&& aNewSuffixRange,
-      RangeContentCache& aRangeContentCache) const;
-
-  /**
-   * @brief Returns true if the text directive string in `this` would match the
-   *        other candidate.
-   *
-   * The candidate matches another candidate if the context terms are fully
-   * present in the fully-expanded context terms of the other candidate.
-   */
-  bool ThisCandidateMatchesOther(const TextDirectiveCandidate& aOther) const;
-
-  /**
-   * @brief Returns a filtered list of candidates, which still match against
-   *        `this`.
-   *
-   * This method uses `ThisCandidateMatchesOther()` to check whether a candidate
-   * is still matching against `this` or can be ruled out.
-   */
-  nsTArray<const TextDirectiveCandidate*> FilterNonMatchingCandidates(
-      const nsTArray<const TextDirectiveCandidate*>& aMatches);
-
-  /** Returns true if the candidate uses exact matching (and not range-based) */
-  bool UseExactMatch() const { return !mEndRange; }
-
-  nsRange* StartRange() { return mStartRange; }
-  const nsRange* StartRange() const { return mStartRange; }
-
-  nsRange* EndRange() { return mEndRange; }
-  const nsRange* EndRange() const { return mEndRange; }
-
-  /**
-   * @brief Returns a percent-encoded text directive string representation of
-   *        this candidate.
-   */
-  const nsCString& TextDirectiveString() const;
-
-  /**
-   * Logging utility. This function outputs the current state, ie. the text
-   * directive string, the context term range contents, the fully expanded
-   * context terms, and a fully expanded text directive string.
-   */
-  void LogCurrentState(const char* aCallerFunc) const;
-
-  const TextDirectiveCandidateContents& RangeContents() const {
-    return mFoldCaseContents;
-  };
-
- private:
-  TextDirectiveCandidate(nsRange* aStartRange, nsRange* aFullStartRange,
-                         nsRange* aEndRange, nsRange* aFullEndRange,
-                         nsRange* aPrefixRange, nsRange* aFullPrefixRange,
-                         nsRange* aSuffixRange, nsRange* aFullSuffixRange);
-
-  /**
-   * @brief Creates a range which starts at the beginning of `aRange` and ends
-   *        at the first block boundary inside of `aRange`.
-   *
-   * @return nullptr if `aRange` does not contain a block boundary.
-   */
-  static Result<RefPtr<nsRange>, ErrorResult>
-  MaybeCreateStartToBlockBoundaryRange(const nsRange& aRange);
-
-  /**
-   * @brief Creates a range which starts at the last block boundary in `aRange`
-   *        and ends at `aRange`s end.
-   *
-   * @return nullptr if `aRange` does not contain a block boundary.
-   */
-  static Result<RefPtr<nsRange>, ErrorResult>
-  MaybeCreateEndToBlockBoundaryRange(const nsRange& aRange);
-
-  /**
-   * @brief Creates the collapsed and fully expanded prefix ranges.
-   *
-   * The created ranges _end_ at `aRangeBoundary`. The first returned element is
-   * collapsed to `aRangeBoundary`, the second one is expanded to the nearest
-   * block boundary to the left.
-   *
-   * @param aRangeBoundary The end point of the created ranges.
-   * @return The first element is the collapsed range, the second one is the
-   *         fully expanded range.
-   */
-  static Result<std::tuple<RefPtr<nsRange>, RefPtr<nsRange>>, ErrorResult>
-  CreatePrefixRanges(const RangeBoundary& aRangeBoundary);
-
-  /**
-   * @brief Creates the collapsed and fully expanded suffix ranges.
-   *
-   * The created ranges _start_ at `aRangeBoundary`. The first returned element
-   * is collapsed to `aRangeBoundary`, the second one is expanded to the nearest
-   * block boundary to the right.
-   *
-   * @param aRangeBoundary The start point of the created ranges.
-   * @return The first element is the collapsed range, the second one is the
-   *         fully expanded range.
-   */
-  static Result<std::tuple<RefPtr<nsRange>, RefPtr<nsRange>>, ErrorResult>
-  CreateSuffixRanges(const RangeBoundary& aRangeBoundary);
-
-  /**
-   * @brief Creates a percent-encoded string representation of the candidate.
-   *
-   */
-  Result<Ok, ErrorResult> CreateTextDirectiveString();
-
-  /**
-   * Creates fold case representations of all ranges used in this candidate.
-   */
-  Result<Ok, ErrorResult> CreateFoldCaseContents(
-      RangeContentCache& aRangeContentCache);
-
-  RefPtr<nsRange> mStartRange;
-  RefPtr<nsRange> mFullStartRange;
-  RefPtr<nsRange> mEndRange;
-  RefPtr<nsRange> mFullEndRange;
-
-  RefPtr<nsRange> mPrefixRange;
-  RefPtr<nsRange> mFullPrefixRange;
-  RefPtr<nsRange> mSuffixRange;
-  RefPtr<nsRange> mFullSuffixRange;
-
-  nsCString mTextDirectiveString;
-
-  TextDirectiveCandidateContents mFoldCaseContents{};
-};
-
-/**
- * @brief Helper class to create a text directive string from a given `nsRange`.
+ * @brief Helper class to create a text directive string from a given `Range`.
  *
  * The class provides a public static creator function which encapsulates all
- * necessary logic. The class itself stores necessary state throughout the
- * steps.
+ * necessary logic.
+ * This class serves as a base class that defines the main algorithm, and is
+ * subclassed twice for exact and range-based matching.
  */
-class TextDirectiveCreator final {
+class TextDirectiveCreator {
  public:
   /**
-   * @brief Static creator function. Takes an `nsRange` and creates a text
+   * @brief Static creator function. Takes a `Range` and creates a text
    *        directive string, if possible.
    *
    * @param aDocument   The document in which `aInputRange` lives.
@@ -284,52 +45,167 @@ class TextDirectiveCreator final {
    *         given range, or an error code.
    */
   static Result<nsCString, ErrorResult> CreateTextDirectiveFromRange(
-      Document& aDocument, nsRange* aInputRange);
+      Document& aDocument, AbstractRange* aInputRange);
 
- private:
-  TextDirectiveCreator(Document& aDocument, nsRange* aInputRange,
-                       TextDirectiveCandidate&& aTextDirective,
-                       RangeContentCache&& aRangeContentCache);
+  virtual ~TextDirectiveCreator() = default;
+
+ protected:
+  TextDirectiveCreator(Document& aDocument, AbstractRange* aRange);
+
   /**
-   * Find all ranges up to the end of the target range that have the same
-   * content. The input range will *not* be part of the result, therefore an
-   * empty array indicates that there are no conflicts and the text directive
-   * can be constructed trivially.
+   * @brief Ensures the boundary points of the range point to word boundaries.
+   *
+   * This function always returns a new range.
    */
-  Result<nsTArray<TextDirectiveCandidate>, ErrorResult>
-  FindAllMatchingCandidates();
+  static Result<RefPtr<AbstractRange>, ErrorResult>
+  ExtendRangeToBlockBoundaries(AbstractRange* aRange);
+
+  /**
+   * @brief Determines whether exact or range-based matching should be used.
+   *
+   * This function searches for a block boundary in `aRange`, which requires
+   * range-based matching. If there is no block boundary, but the range content
+   * is longer than a threshold, range-based matching is used as well.
+   * This threshold is defined by the pref
+   * `dom.text_fragments.create_text_fragment.exact_match_max_length`.
+   *
+   */
+  static Result<bool, ErrorResult> MustUseRangeBasedMatching(
+      AbstractRange* aRange);
+
+  /**
+   * @brief Creates an instance either for exact or range-based matching.
+   */
+  static Result<UniquePtr<TextDirectiveCreator>, ErrorResult> CreateInstance(
+      Document& aDocument, AbstractRange* aRange);
+
+  /**
+   * @brief Collects text content surrounding the target range.
+   *
+   * The context terms are then stored both in normal and fold case form.
+   */
+  virtual Result<Ok, ErrorResult> CollectContextTerms() = 0;
+
+  /**
+   * @brief Common helper which collects the prefix term of the target range.
+   */
+  Result<Ok, ErrorResult> CollectPrefixContextTerm();
+
+  /**
+   * @brief Common helper which collects the suffix term of the target range.
+   */
+  Result<Ok, ErrorResult> CollectSuffixContextTerm();
+
+  /**
+   * @brief Collect the word begin / word end distances for the context terms.
+   *
+   * For start (for range-based matching) and suffix terms, the search direction
+   * is left-to-right. Therefore, the distances are based off the beginning of
+   * the context terms and use the word end boundary.
+   *
+   * For prefix and end (for range-based matching), the search direction is
+   * right-to-left. Therefore, the distances are based off the end of the
+   * context terms and use the word start boundary.
+   *
+   * The distances are always sorted, so that the first entry points to the
+   * nearest word boundary in search direction.
+   */
+  virtual void CollectContextTermWordBoundaryDistances() = 0;
+
+  /**
+   * @brief Searches the document for other occurrences of the target range and
+   *        converts the results into a comparable format.
+   *
+   * This method searches the partial document from the beginning up to the
+   * target range for occurrences of the target range content.
+   * This needs to be done differently based on whether matching is exact or
+   * range-based. For exact matching, the whole text content of the target range
+   * is searched for. For range-based matching, two search runs are required:
+   * One for the minimal `start` term (ie., the first word), which ends at the
+   * beginning of the target range. And one for the minimal `end` term (ie., the
+   * last word), which starts at the beginning of the target range and ends
+   * _before_ its end.
+   * The resulting lists of matching ranges do not exclude the target range.
+   */
+  virtual Result<Ok, ErrorResult> FindAllMatchingCandidates() = 0;
 
   /**
    * @brief Find all occurrences of `aSearchQuery` in the partial document.
    *
    * This method uses `nsFind` to perform a case-insensitive search for
-   * `aSearchQuery` in the document up to `aSearchEnd`.
+   * `aSearchQuery` in the partial document from `aSearchStart` to `aSearchEnd`.
    *
-   * @return List of `nsRange`s which have the case-insensitive-same content as
+   * @return List of `Range`s which have the case-insensitive-same content as
    *         `aSearchQuery`.
    */
-  Result<nsTArray<RefPtr<nsRange>>, ErrorResult> FindAllMatchingRanges(
-      const nsString& aSearchQuery, const RangeBoundary& aSearchEnd);
+  Result<nsTArray<RefPtr<AbstractRange>>, ErrorResult> FindAllMatchingRanges(
+      const nsString& aSearchQuery, const RangeBoundary& aSearchStart,
+      const RangeBoundary& aSearchEnd);
 
   /**
-   * @brief Creates a list of matches which match against every candidate.
+   * @brief Creates the shortest possible text directive.
    *
-   * This method returns the subset of `aMatches` for each `aCandidate`, for
-   * which the candidate is still a match.
+   * @return A percent-encoded string containing a text directive. Returns empty
+   *         string in cases where it's not possible to create a text directive.
    */
-  nsTArray<std::pair<TextDirectiveCandidate,
-                     nsTArray<const TextDirectiveCandidate*>>>
-  FindMatchesForCandidates(
-      nsTArray<TextDirectiveCandidate>&& aCandidates,
-      const nsTArray<const TextDirectiveCandidate*>& aMatches);
+  Result<nsCString, ErrorResult> CreateTextDirective();
 
-  Result<nsCString, ErrorResult> CreateTextDirectiveFromMatches(
-      const nsTArray<TextDirectiveCandidate>& aTextDirectiveMatches);
+  /**
+   * @brief Creates unique substring length arrays which are extended to the
+   *        nearest word boundary.
+   */
+  static std::tuple<nsTArray<uint32_t>, nsTArray<uint32_t>>
+  ExtendSubstringLengthsToWordBoundaries(
+      const nsTArray<std::tuple<uint32_t, uint32_t>>& aExactSubstringLengths,
+      const Span<const uint32_t>& aFirstWordPositions,
+      const Span<const uint32_t>& aSecondWordPositions);
+
+  /**
+   * @brief Test all combinations to identify the shortest text directive.
+   */
+  virtual Maybe<TextDirective> FindShortestCombination() const = 0;
+
+  /**
+   * @brief Perform a brute-force optimization run to find the shortest
+   *        combination of a combination of two context terms.
+   *
+   * Each combination of the extended values is compared against all exact
+   * values. It is only considered valid if at least one value is longer than
+   * the exact lengths.
+   *
+   * @param aExactWordLengths               Array of tuples containing the exact
+   *                                        common sub string lengths of this
+   *                                        combination.
+   * @param aFirstExtendedToWordBoundaries  All valid substring lengths for the
+   *                                        first context term, extended to its
+   *                                        next word boundary in reading
+   *                                        direction.
+   * @param aSecondExtendedToWordBoundaries All valid substring lengths for the
+   *                                        second context term, extended to its
+   *                                        next word boundary in reading
+   *                                        direction.
+   * @return A tuple of sub string lengths extended to word boundaries, which is
+   *         the shortest allowed combination to eliminate all matches.
+   *         Returns `Nothing` if it's not possible to eliminate all matches.
+   */
+  static Maybe<std::tuple<uint32_t, uint32_t>> CheckAllCombinations(
+      const nsTArray<std::tuple<uint32_t, uint32_t>>& aExactWordLengths,
+      const nsTArray<uint32_t>& aFirstExtendedToWordBoundaries,
+      const nsTArray<uint32_t>& aSecondExtendedToWordBoundaries);
+
+  nsString mPrefixContent;
+  nsString mPrefixFoldCaseContent;
+  nsTArray<uint32_t> mPrefixWordBeginDistances;
+
+  nsString mStartContent;
+  nsString mStartFoldCaseContent;
+
+  nsString mSuffixContent;
+  nsString mSuffixFoldCaseContent;
+  nsTArray<uint32_t> mSuffixWordEndDistances;
 
   Document& mDocument;
-  RefPtr<nsRange> mInputRange;
-  TextDirectiveCandidate mTextDirective;
-  RangeContentCache mRangeContentCache;
+  RefPtr<AbstractRange> mRange;
 
   /**
    * The watchdog ensures that the algorithm exits after a defined time
@@ -339,6 +215,62 @@ class TextDirectiveCreator final {
    * `dom.text_fragments.create_text_fragment.timeout`.
    */
   TimeoutWatchdog mWatchdog;
+
+  nsContentUtils::NodeIndexCache mNodeIndexCache;
+};
+
+/**
+ * @brief Creator class which creates a range-based text directive.
+ *
+ */
+class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
+ private:
+  using TextDirectiveCreator::TextDirectiveCreator;
+
+  Result<Ok, ErrorResult> CollectContextTerms() override;
+
+  void CollectContextTermWordBoundaryDistances() override;
+
+  Result<Ok, ErrorResult> FindAllMatchingCandidates() override;
+
+  void FindStartMatchCommonSubstringLengths(
+      const nsTArray<RefPtr<AbstractRange>>& aMatchRanges);
+
+  void FindEndMatchCommonSubstringLengths(
+      const nsTArray<RefPtr<AbstractRange>>& aMatchRanges);
+
+  Maybe<TextDirective> FindShortestCombination() const override;
+
+  nsString mEndContent;
+  nsString mEndFoldCaseContent;
+
+  nsTArray<uint32_t> mStartWordEndDistances;
+  nsTArray<uint32_t> mEndWordBeginDistances;
+
+  nsTArray<std::tuple<uint32_t, uint32_t>> mStartMatchCommonSubstringLengths;
+  nsTArray<std::tuple<uint32_t, uint32_t>> mEndMatchCommonSubstringLengths;
+};
+
+/**
+ * @brief Creator class which creates an exact match text directive.
+ *
+ */
+class ExactMatchTextDirectiveCreator : public TextDirectiveCreator {
+ private:
+  using TextDirectiveCreator::TextDirectiveCreator;
+
+  Result<Ok, ErrorResult> CollectContextTerms() override;
+
+  void CollectContextTermWordBoundaryDistances() override;
+
+  Result<Ok, ErrorResult> FindAllMatchingCandidates() override;
+
+  void FindCommonSubstringLengths(
+      const nsTArray<RefPtr<AbstractRange>>& aMatchRanges);
+
+  Maybe<TextDirective> FindShortestCombination() const override;
+
+  nsTArray<std::tuple<uint32_t, uint32_t>> mCommonSubstringLengths;
 };
 }  // namespace mozilla::dom
 #endif

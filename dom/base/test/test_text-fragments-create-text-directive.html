@@ -27,6 +27,16 @@
   <p id="textWithDifferentEmoji"><span>😍😏😍</span> abc def 😍😏</p>
   <!-- TODO: Add test case with `visibility: hidden` as soon as it's supported (bug 1950707) -->
   <p id="textWithInvisibleContent">Text with <span style="display: none">display:none </span>content</p>
+  <p id="wordBoundaryAtInlineBoundary">WordEnd <span>should not be part of text directive</span></p>
+  <p id="matchAtEndOfBlock">EndOfBlock</p>
+  <p id="prevMatchAtEndOfBlock">EndOfBlock</p>
+  <div id="emptyBlockAtBeginning"><div></div>AfterEmptyBlock</div>
+  <div id="emptyBlockAtEnd">BeforeEmptyBlock<div></div></div>
+  <table>
+    <tr>
+      <td id="firstRow">first row</td></tr> <tr><td id="secondRow">second row</td>
+    </tr>
+  </table>
   <script>
     SimpleTest.waitForExplicitFinish();
     function rAF() {
@@ -179,7 +189,7 @@
           endContainer: textWithEmoji.firstChild.firstChild,
           endOffset: 4,
           content: "😍",
-          textDirective: "text=%F0%9F%98%8D,-abc",
+          textDirective: "text=%F0%9F%98%8D-,%F0%9F%98%8D",
         },
         {
           name: "Text directive contains emoji as prefix",
@@ -226,6 +236,33 @@
           content: "abc def ghi jkl abc. def ghi\n  foo",
           textDirective: "text=ghi-,abc,foo"
         },
+        {
+          name: "Range-based text directive, end term is at inline boundary",
+          startContainer: textWithInvisibleContent.firstChild,
+          startOffset: 0,
+          endContainer: wordBoundaryAtInlineBoundary.firstChild,
+          endOffset: 7,
+          content: "Text with display:none content\n  WordEnd",
+          textDirective: "text=Text,WordEnd"
+        },
+        {
+          name: "Finding text directive matches must correctly deal with block boundaries",
+          startContainer: prevMatchAtEndOfBlock.firstChild,
+          startOffset: 0,
+          endContainer: prevMatchAtEndOfBlock.firstChild,
+          endOffset: 10,
+          content: "EndOfBlock",
+          textDirective: "text=EndOfBlock-,EndOfBlock"
+        },
+        {
+          name: "Finding text directive across table rows",
+          startContainer: firstRow.firstChild,
+          startOffset: 0,
+          endContainer: secondRow.firstChild,
+          endOffset: secondRow.firstChild.length,
+          content: "first row second row",
+          textDirective: "text=first%20row,second%20row",
+        }
       ]) {
         const range = document.createRange();
         range.setStart(testCase.startContainer, testCase.startOffset);
@@ -253,7 +290,7 @@
 
         is(
           ranges[0].toString(), range.toString(),
-          `${testCase.name}: Ranges have the same content '${ranges[0].toString()}'`
+          `${testCase.name}: Ranges have the same content`
         );
         ok(
           rangeBoundariesAreEqual(range, ranges[0]),
@@ -434,6 +471,23 @@
       is(createDirectiveTime.count, createDirectiveTimeStart.count + 1, `${testCase}: Glean should have recorded the time it took to create the text directive`);
     }
 
+    async function testRangeBasedWithEmptySurroundingBlocks() {
+      const testCase = "Empty blocks at beginning or end of range must be ignored";
+      const range = document.createRange();
+      range.setStart(emptyBlockAtBeginning, 0);
+      range.setEnd(emptyBlockAtEnd.nextSibling ,0);
+      const content = "AfterEmptyBlock\n  BeforeEmptyBlock";
+      const textDirectiveString = "text=AfterEmptyBlock,BeforeEmptyBlock";
+      is(range.toString(), content, `${testCase}: Range has expected value`);
+      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      is(textDirective, textDirectiveString, `${testCase}: text directive has expected value '${textDirectiveString}'`);
+      location.hash = `:~:${textDirective}`;
+      await rAF();
+      ranges = SpecialPowers.wrap(document).fragmentDirective.getTextDirectiveRanges();
+      is(ranges.length, 1, `${testCase}: There is one text fragment range on the document`);
+      is(ranges[0].toString(), range.toString(), `${testCase}: Ranges have the same content`);
+    }
+
     async function runTests() {
       try {
         await SpecialPowers.pushPrefEnv({"set": [
@@ -445,6 +499,7 @@
         await testEmptyRange();
         await testExpandRangeToWordBoundaries();
         await testNonUniqueTestSurroundedByBlockBoundaries();
+        await testRangeBasedWithEmptySurroundingBlocks();
 
     }
     finally {

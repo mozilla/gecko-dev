@@ -144,10 +144,9 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
 
       // 2.2.3. Set searchRange’s start to the first boundary point after
       // prefixMatch’s start
+      MOZ_DIAGNOSTIC_ASSERT(prefixMatch->GetStartContainer()->IsText());
       const RangeBoundary boundaryPoint =
-          TextDirectiveUtil::MoveRangeBoundaryOneWord(
-              {prefixMatch->GetStartContainer(), prefixMatch->StartOffset()},
-              TextScanDirection::Right);
+          TextDirectiveUtil::MoveToNextBoundaryPoint(prefixMatch->StartRef());
       if (!boundaryPoint.IsSetAndValid()) {
         return nullptr;
       }
@@ -183,11 +182,11 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       // following a matched prefix.)
       MOZ_ASSERT(matchRange->GetStartContainer()->IsText());
       // Set `matchRange`s end to the next block boundary.
-      auto nextBlockBoundary = TextDirectiveUtil::FindNextBlockBoundary(
-          matchRange->StartRef(), TextScanDirection::Right);
-      if (MOZ_LIKELY(nextBlockBoundary.isOk())) {
-        matchRange->SetEnd(nextBlockBoundary.unwrap().AsRaw(), IgnoreErrors());
-      }
+      auto nextBlockBoundary =
+          TextDirectiveUtil::FindNextBlockBoundary<TextScanDirection::Right>(
+              matchRange->StartRef());
+
+      matchRange->SetEnd(nextBlockBoundary.AsRaw(), IgnoreErrors());
 
       // 2.2.8. Let mustEndAtWordBoundary be true if parsedValues’s end is
       // non-null or parsedValues’s suffix is null, false otherwise.
@@ -250,11 +249,11 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       }
       // 2.3.4. Set searchRange’s start to the first boundary point after
       // potentialMatch’s start
-      RangeBoundary newRangeBoundary =
-          TextDirectiveUtil::MoveRangeBoundaryOneWord(
-              {potentialMatch->GetStartContainer(),
-               potentialMatch->StartOffset()},
-              TextScanDirection::Right);
+      MOZ_DIAGNOSTIC_ASSERT(potentialMatch->GetStartContainer()->IsText());
+      const RangeBoundary newRangeBoundary =
+          TextDirectiveUtil::MoveToNextBoundaryPoint(
+              potentialMatch->StartRef());
+
       if (!newRangeBoundary.IsSetAndValid()) {
         return nullptr;
       }
@@ -318,11 +317,10 @@ RefPtr<nsRange> TextDirectiveFinder::FindRangeForTextDirective(
       }
       // 2.5.5. Advance suffixRange's start to the next non-whitespace position.
       TextDirectiveUtil::AdvanceStartToNextNonWhitespacePosition(*suffixRange);
-      auto nextBlockBoundary = TextDirectiveUtil::FindNextBlockBoundary(
-          suffixRange->StartRef(), TextScanDirection::Right);
-      if (MOZ_LIKELY(nextBlockBoundary.isOk())) {
-        suffixRange->SetEnd(nextBlockBoundary.unwrap().AsRaw(), IgnoreErrors());
-      }
+      auto nextBlockBoundary =
+          TextDirectiveUtil::FindNextBlockBoundary<TextScanDirection::Right>(
+              suffixRange->StartRef());
+      suffixRange->SetEnd(nextBlockBoundary.AsRaw(), IgnoreErrors());
 
       // 2.5.6. Let suffixMatch be result of running the find a string in range
       // steps with query parsedValue's suffix, searchRange suffixRange,

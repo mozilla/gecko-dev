@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import Layout from "@/partials/layout/layout";
@@ -8,12 +8,8 @@ import Toast from "@/components/toast/toast";
 import { useDataContext } from "@/context/data-context";
 
 export default function Page({ id }) {
-    const [showPortal, setShowPortal] = useState(false);
     const { content } = useDataContext();
-
-    useEffect(() => {
-        setShowPortal(content[id].notification);
-    }, [id]);
+    const [showPortal, setShowPortal] = useState(Boolean(content[id].notification));
 
     function closePortal() {
         setShowPortal(false);

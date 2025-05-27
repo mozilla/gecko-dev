@@ -44,4 +44,12 @@ interface nsISystemProxySettings : nsISupports
      * Check if system settings are configured to use WPAD
      */
     readonly attribute boolean systemWPADSetting;
+
+    /**
+     * Sets the system proxy info. Currently only used on Android.
+     */
+    void setSystemProxyInfo(in AUTF8String host,
+                            in int32_t port,
+                            in AUTF8String pacFileUrl,
+                            in Array<AUTF8String> exclusionList);
 };

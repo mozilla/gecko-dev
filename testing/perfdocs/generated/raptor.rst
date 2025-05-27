@@ -4126,13 +4126,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 600000
-   * **repository**: https://github.com/WebKit/Speedometer
-   * **repository revision**: 1386415be8fef2f6b6bbdbe1828872471c5d802a
    * **subtest lower is better**: true
    * **subtest unit**: ms
    * **support class**: speedometer3.py
    * **test script**: speedometer3.js
-   * **test url**: `<http://\<host\>:\<port\>/index.html>`__
+   * **test url**: `<http://\<host\>:\<port\>/Speedometer3/index.html?raptor>`__
    * **type**: benchmark
    * **unit**: score
    * **Test Task**:
@@ -4632,13 +4630,11 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 420000
-   * **repository**: https://github.com/WebKit/Speedometer
-   * **repository revision**: 1386415be8fef2f6b6bbdbe1828872471c5d802a
    * **subtest lower is better**: true
    * **subtest unit**: ms
    * **support class**: speedometer3.py
    * **test script**: speedometer3.js
-   * **test url**: `<http://\<host\>:\<port\>/index.html>`__
+   * **test url**: `<http://\<host\>:\<port\>/Speedometer3/index.html?raptor>`__
    * **type**: benchmark
    * **unit**: score
    * **Test Task**:

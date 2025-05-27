@@ -1608,22 +1608,8 @@ toolbarbutton[itemtype="showmorebutton"],
     :not([cui-areatype="toolbar"]),
     [overflowedItem=true]
   ) > separator {
-    appearance: none;
-    align-items: stretch;
-    margin: .5em 0;
-    width: 1px;
-    height: auto;
-    background: var(--panel-separator-color);
-    transition-property: margin;
-    transition-duration: 10ms;
-    transition-timing-function: ease;
-  }
-
-  &:is(
-    :not([cui-areatype="toolbar"]),
-    [overflowedItem=true]
-  ):hover > separator {
-    margin: 0;
+    /* Override toolbarbuttons.css which sets the color to currentColor */
+    color: var(--panel-separator-color);
   }
 }
 

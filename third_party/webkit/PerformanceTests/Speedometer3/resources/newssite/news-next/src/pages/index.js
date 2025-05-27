@@ -14,14 +14,14 @@ export default function App() {
             <DataContextProvider>
                 <Router>
                     <Routes>
-                        <Route path="/business" element={<Page id="business" />} />
-                        <Route path="/health" element={<Page id="health" />} />
-                        <Route path="/opinion" element={<Page id="opinion" />} />
-                        <Route path="/politics" element={<Page id="politics" />} />
-                        <Route path="/us" element={<Page id="us" />} />
-                        <Route path="/world" element={<Page id="world" />} />
-                        <Route path="/home" element={<Page id="home" />} />
-                        <Route path="/" element={<Page id="home" />} />
+                        <Route path="/business" element={<Page id="business" key="business" />} />
+                        <Route path="/health" element={<Page id="health" key="health" />} />
+                        <Route path="/opinion" element={<Page id="opinion" key="opinion" />} />
+                        <Route path="/politics" element={<Page id="politics" key="politics" />} />
+                        <Route path="/us" element={<Page id="us" key="us" />} />
+                        <Route path="/world" element={<Page id="world" key="world" />} />
+                        <Route path="/home" element={<Page id="home" key="home" />} />
+                        <Route path="/" element={<Page id="home" key="home" />} />
                     </Routes>
                 </Router>
             </DataContextProvider>

@@ -964,6 +964,9 @@ xpcom:
     data_sensitivity:
       - technical
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
 system.cpu:
   name:
@@ -981,6 +984,9 @@ system.cpu:
     notification_emails:
       - florian@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   vendor:
     type: string
@@ -996,6 +1002,9 @@ system.cpu:
     notification_emails:
       - florian@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   logical_cores:
     type: quantity
@@ -1012,6 +1021,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: core
+    send_in_pings:
+      - metrics
+      - update
 
   physical_cores:
     type: quantity
@@ -1028,6 +1040,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: core
+    send_in_pings:
+      - metrics
+      - update
 
   big_cores:
     type: quantity
@@ -1044,6 +1059,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: core
+    send_in_pings:
+      - metrics
+      - update
 
   medium_cores:
     type: quantity
@@ -1060,6 +1078,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: core
+    send_in_pings:
+      - metrics
+      - update
 
   little_cores:
     type: quantity
@@ -1076,6 +1097,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: core
+    send_in_pings:
+      - metrics
+      - update
 
   family:
     type: quantity
@@ -1092,6 +1116,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: cpu family number
+    send_in_pings:
+      - metrics
+      - update
 
   model:
     type: quantity
@@ -1108,6 +1135,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: cpu model number
+    send_in_pings:
+      - metrics
+      - update
 
   stepping:
     type: quantity
@@ -1124,6 +1154,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: cpu stepping number
+    send_in_pings:
+      - metrics
+      - update
 
   l2_cache:
     type: quantity
@@ -1140,6 +1173,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: kilobyte
+    send_in_pings:
+      - metrics
+      - update
 
   l3_cache:
     type: quantity
@@ -1156,6 +1192,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: kilobyte
+    send_in_pings:
+      - metrics
+      - update
 
   speed:
     type: quantity
@@ -1172,6 +1211,9 @@ system.cpu:
       - florian@mozilla.com
     expires: never
     unit: megahertz
+    send_in_pings:
+      - metrics
+      - update
 
   extensions:
     type: string_list
@@ -1187,6 +1229,9 @@ system.cpu:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
 hdd:
   profile: &hdd_object
@@ -1216,6 +1261,9 @@ hdd:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   binary:
     <<: *hdd_object
@@ -1252,6 +1300,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   version:
     type: string
@@ -1269,6 +1320,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   locale:
     type: string
@@ -1285,6 +1339,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   distro:
     type: string
@@ -1302,6 +1359,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   distro_version:
     type: string
@@ -1319,6 +1379,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   service_pack_major:
     type: quantity
@@ -1337,6 +1400,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   service_pack_minor:
     type: quantity
@@ -1355,6 +1421,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   windows_build_number:
     type: quantity
@@ -1374,6 +1443,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   windows_ubr:
     type: quantity
@@ -1393,6 +1465,9 @@ system.os:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
 system:
   memory:
@@ -1411,6 +1486,9 @@ system:
     notification_emails:
       - memshrink-telemetry-alerts@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   virtual_memory:
     type: quantity
@@ -1429,6 +1507,9 @@ system:
     notification_emails:
       - memshrink-telemetry-alerts@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   is_wow_64:
     type: boolean
@@ -1445,6 +1526,9 @@ system:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   is_wow_arm_64:
     type: boolean
@@ -1461,6 +1545,9 @@ system:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   has_win_package_id:
     type: boolean
@@ -1477,6 +1564,9 @@ system:
     notification_emails:
       - gijs@ozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   win_package_family_name:
     type: string
@@ -1497,6 +1587,9 @@ system:
     notification_emails:
       - gijs@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   apple_model_id:
     type: string

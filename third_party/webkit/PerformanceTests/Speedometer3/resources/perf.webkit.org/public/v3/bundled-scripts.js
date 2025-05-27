@@ -2608,8 +2608,8 @@ url(routeName,state)
 _updateURLState()
 {this._historyTimer=null;console.assert(this._currentPage);const currentPage=this._currentPage;this._hash=this._serializeToHash(currentPage.routeName(),currentPage.serializeState());location.hash=this._hash;}
 _hashDidChange()
-{if(unescape(location.hash)==this._hash)
-return;this.route();this._hash=null;}
+{let unescapedHash=unescape(location.hash);if(unescapedHash==this._hash)
+return;this.route();this._hash=unescapedHash;}
 _serializeToHash(route,state)
 {const params=[];for(const key in state)
 params.push(key+'='+this._serializeHashQueryValue(state[key]));const query=params.length?('?'+params.join('&')):'';return`#/${route}${query}`;}

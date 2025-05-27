@@ -10,7 +10,12 @@ let h3ServerPath;
 let h3DBPath;
 let prefs;
 
-let tests = [test_https_alt_svc, test_https_alt_svc_1, testsDone];
+let tests = [
+  test_https_alt_svc,
+  test_https_alt_svc_1,
+  test_https_speculativeConnect_alt_svc,
+  testsDone,
+];
 
 let current_test = 0;
 
@@ -171,6 +176,36 @@ function test_https_alt_svc_1() {
       doTest(httpsOrigin + "http3-test3", h3Route, h3AltSvc, "h3");
     })
     .catch(_ => {});
+}
+
+function test_https_speculativeConnect_alt_svc() {
+  dump("test_https_speculativeConnect_alt_svc()\n");
+
+  do_test_pending();
+
+  let observer = {
+    QueryInterface: ChromeUtils.generateQI(["nsIObserver"]),
+    observe(aSubject, aTopic, aData) {
+      if (aTopic == "speculative-connect-request") {
+        Services.obs.removeObserver(observer, "speculative-connect-request");
+        info("h3Route=" + h3Route + "\n");
+        info("aData=" + aData + "\n");
+        Assert.ok(aData.includes(`<ROUTE-via ${h3Route}`));
+        do_test_finished();
+      }
+    },
+  };
+  Services.obs.addObserver(observer, "speculative-connect-request");
+
+  Services.prefs.setBoolPref("network.http.debug-observations", true);
+
+  let uri = Services.io.newURI(httpsOrigin);
+  Services.io.speculativeConnect(
+    uri,
+    Services.scriptSecurityManager.getSystemPrincipal(),
+    null,
+    false
+  );
 }
 
 function testsDone() {

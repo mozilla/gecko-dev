@@ -1484,6 +1484,132 @@ update:
     expires: never
     telemetry_mirror: UPDATE_LANGPACK_OVERTIME
 
+  target_channel:
+    type: string
+    description: |
+      The Firefox channel the update was fetched from.
+      Only valid for "update" pings with reason "ready".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    send_in_pings:
+      - update
+
+  target_version:
+    type: string
+    description: |
+      The Firefox version the browser is updating to.
+      Follows the same format as application.version.
+      Only valid for "update" pings with reason "ready".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    send_in_pings:
+      - update
+
+  target_build_id:
+    type: string
+    description: |
+      The Firefox build id the browser is updating to.
+      Follows the same format as application.buildId.
+      Only valid for "update" pings with reason "ready".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    send_in_pings:
+      - update
+
+  target_display_version:
+    type: string
+    description: |
+      The Firefox display version the browser is updating to.
+      This may contain a different value than `update.target_version`,
+      e.g. for the Beta channel this field will report the beta suffix
+      while `update.target_version` will only report the version number.
+      Only valid for "update" pings with reason "ready".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    send_in_pings:
+      - update
+
+  previous_channel:
+    type: string
+    description: |
+      The Firefox channel the profile was on before the update was applied.
+      Only valid for "update" pings with reason "success".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    send_in_pings:
+      - update
+
+  previous_version:
+    type: string
+    description: |
+      The Firefox version the browser is updating from.
+      Follows the same format as application.version.
+      Only valid for "update" pings with reason "success".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    send_in_pings:
+      - update
+
+  previous_build_id:
+    type: string
+    description: |
+      The Firefox build id the browser is updating from.
+      Follows the same format as application.buildId.
+      Only valid for "update" pings with reason "success".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1963871
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - application-update-telemetry-alerts@mozilla.com
+    expires: never
+    send_in_pings:
+      - update
+
 
 updater:
   available:
@@ -1501,6 +1627,9 @@ updater:
     data_sensitivity:
       - technical
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
 
 update.settings:
@@ -1520,6 +1649,9 @@ update.settings:
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   enabled:
     type: boolean
@@ -1535,6 +1667,9 @@ update.settings:
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   auto_download:
     type: boolean
@@ -1550,6 +1685,9 @@ update.settings:
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update
 
   background:
     type: boolean
@@ -1565,3 +1703,6 @@ update.settings:
     notification_emails:
       - application-update-telemetry-alerts@mozilla.com
     expires: never
+    send_in_pings:
+      - metrics
+      - update

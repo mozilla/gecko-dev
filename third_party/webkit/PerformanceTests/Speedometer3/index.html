@@ -3,7 +3,7 @@
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
         <meta name="viewport" content="width=850" />
-        <title>Speedometer 3.0</title>
+        <title>Speedometer 3.1</title>
         <link rel="stylesheet" href="resources/main.css" />
         <link rel="icon" href="resources/favicon.png" />
         <script src="resources/main.mjs" type="module"></script>
@@ -13,7 +13,7 @@
             <section id="home">
                 <a href="#home" class="logo">
                     <img srcset="resources/logo@2x.png 2x" src="resources/logo.png" alt="Speedometer" />
-                    <div class="version">3.0</div>
+                    <div class="version">3.1</div>
                 </a>
                 <div class="content">
                     <p>Speedometer is a browser benchmark that measures the responsiveness of Web applications. It uses demo web applications to simulate user actions such as adding to-do items.</p>
@@ -38,7 +38,7 @@
             <section id="running">
                 <a href="#home" class="logo">
                     <img srcset="resources/logo@2x.png 2x" src="resources/logo.png" alt="Speedometer" />
-                    <div class="version">3.0</div>
+                    <div class="version">3.1</div>
                 </a>
                 <div id="testContainer"></div>
                 <div id="progress">
@@ -50,10 +50,10 @@
                 </div>
             </section>
 
-            <section id="summary" data-title="Results Summary">
+            <section id="summary" data-title="Results Summary" class="valid">
                 <a href="#home" class="logo">
                     <img srcset="resources/logo@2x.png 2x" src="resources/logo.png" alt="Speedometer" />
-                    <div class="version">3.0</div>
+                    <div class="version">3.1</div>
                 </a>
                 <h1>Score</h1>
                 <div class="gauge">
@@ -62,6 +62,10 @@
                 <hr />
                 <div id="result-number"></div>
                 <div id="confidence-number"></div>
+                <div id="invalid-score-text">
+                    One or more subtests produced no duration.<br />
+                    Please check your <a href="./instructions.html" target="_blank">browser settings</a> and re-run the benchmark.<br />
+                </div>
                 <div class="buttons">
                     <div class="button-row">
                         <a class="button" href="#details" id="show-details" title="Show detailed results data.">Details</a>
@@ -72,7 +76,7 @@
             <section id="details" data-title="Results Details">
                 <a href="#home" class="logo">
                     <img srcset="resources/logo@2x.png 2x" src="resources/logo.png" alt="Speedometer" />
-                    <div class="version">3.0</div>
+                    <div class="version">3.1</div>
                 </a>
                 <div class="section-grid">
                     <h1 class="section-header">Detailed Results</h1>

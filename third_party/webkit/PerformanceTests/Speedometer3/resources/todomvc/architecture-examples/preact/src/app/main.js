@@ -10,7 +10,7 @@ export default function TodoMain({ onChange, onToggle, onRemove, onSave, todos, 
     return (
         <main class="main">
             <div class="toggle-all-container">
-                <input class="toggle-all" type="checkbox" checked={activeTodoCount === 0} onChange={onChange} />
+                <input class="toggle-all" type="checkbox" id="toggle-all" checked={activeTodoCount === 0} onChange={onChange} />
                 <label class="toggle-all-label" htmlFor="toggle-all">
                     Toggle All Input
                 </label>

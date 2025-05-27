@@ -101,6 +101,13 @@ export var UpdatePing = {
       progress.pingFailed = true;
       this._log.error("handleUpdateSuccess - failed to submit update ping", e);
     });
+
+    if (update) {
+      Glean.update.previousChannel.set(update.channel);
+    }
+    Glean.update.previousVersion.set(aPreviousVersion);
+    Glean.update.previousBuildId.set(aPreviousBuildId);
+    GleanPings.update.submit("success");
   },
 
   /**
@@ -157,6 +164,12 @@ export var UpdatePing = {
     ).catch(e =>
       this._log.error("_handleUpdateReady - failed to submit update ping", e)
     );
+
+    Glean.update.targetChannel.set(update.channel);
+    Glean.update.targetVersion.set(update.appVersion);
+    Glean.update.targetBuildId.set(update.buildID);
+    Glean.update.targetDisplayVersion.set(update.displayVersion);
+    GleanPings.update.submit("ready");
   },
 
   /**

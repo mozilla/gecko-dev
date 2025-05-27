@@ -1764,6 +1764,12 @@
   value: false
   mirror: always
 
+# Disable state restoration, allowing the kiosk desktop environment to manage state and position.
+- name: browser.restoreWindowState.disabled
+  type: bool
+  value: false
+  mirror: always
+
 # Communicates the toolbar color to platform (for e.g., prefers-color-scheme).
 #
 # Returns whether the toolbar is dark (0), light (1), or system (2). The
@@ -4857,6 +4863,11 @@
 - name: dom.text_fragments.create_text_fragment.timeout_seconds
   type: uint32_t
   value: 5
+  mirror: always
+
+- name: dom.text_fragments.create_text_fragment.exact_match_max_length
+  type: uint32_t
+  value: 200
   mirror: always
 
 - name: dom.textMetrics.actualBoundingBox.enabled

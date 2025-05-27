@@ -164,6 +164,13 @@ nsresult nsWindowsSystemProxySettings::GetPACURI(nsACString& aResult) {
   return rv;
 }
 
+NS_IMETHODIMP nsWindowsSystemProxySettings::SetSystemProxyInfo(
+    const nsACString& aHost, int32_t aPort, const nsACString& aPacFileUrl,
+    const nsTArray<nsCString>& aExclusionList) {
+  MOZ_ASSERT(false, "Did not expect to be called on this platform");
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
 nsresult nsWindowsSystemProxySettings::GetProxyForURI(const nsACString& aSpec,
                                                       const nsACString& aScheme,
                                                       const nsACString& aHost,

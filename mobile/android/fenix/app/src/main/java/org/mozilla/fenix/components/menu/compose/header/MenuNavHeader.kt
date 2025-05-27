@@ -37,6 +37,7 @@ import org.mozilla.fenix.theme.Theme
 
 @Composable
 internal fun MenuNavHeader(
+    state: MenuItemState = MenuItemState.ENABLED,
     onBackButtonClick: (longPress: Boolean) -> Unit,
     onForwardButtonClick: (longPress: Boolean) -> Unit,
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
@@ -51,6 +52,7 @@ internal fun MenuNavHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         MenuNavItem(
+            state = state,
             painter = painterResource(id = R.drawable.mozac_ic_back_24),
             label = stringResource(id = R.string.browser_menu_back),
             onClick = { onBackButtonClick(false) },
@@ -58,6 +60,7 @@ internal fun MenuNavHeader(
         )
 
         MenuNavItem(
+            state = state,
             painter = painterResource(id = R.drawable.mozac_ic_forward_24),
             label = stringResource(id = R.string.browser_menu_forward),
             onClick = { onForwardButtonClick(false) },
@@ -65,6 +68,7 @@ internal fun MenuNavHeader(
         )
 
         MenuNavItem(
+            state = state,
             painter = painterResource(id = R.drawable.mozac_ic_arrow_clockwise_24),
             label = stringResource(id = R.string.browser_menu_refresh),
             onClick = { onRefreshButtonClick(false) },
@@ -72,6 +76,7 @@ internal fun MenuNavHeader(
         )
 
         MenuNavItem(
+            state = state,
             painter = painterResource(id = R.drawable.mozac_ic_share_android_24),
             label = stringResource(id = R.string.browser_menu_share),
             onClick = onShareButtonClick,

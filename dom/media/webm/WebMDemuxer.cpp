@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <numeric>
 #include <stdint.h>
+#include <opus/opus.h>
 
 #define WEBM_DEBUG(arg, ...)                                          \
   DDMOZ_LOG(gMediaDemuxerLog, mozilla::LogLevel::Debug, "::%s: " arg, \
@@ -819,15 +820,19 @@ nsresult WebMDemuxer::GetNextPacket(TrackInfo::TrackType aType,
         sample->mDuration = TimeUnit::Invalid();
       } else {
         TimeUnit padding = TimeUnit::FromNanoseconds(discardPadding);
-        if (padding > sample->mDuration || mProcessedDiscardPadding) {
+        size_t samples = opus_packet_get_nb_samples(
+            sample->Data(), AssertedCast<int32_t>(sample->Size()),
+            AssertedCast<int32_t>(mInfo.mAudio.mRate));
+        TimeUnit packetDuration = TimeUnit(samples, mInfo.mAudio.mRate);
+        if (padding > packetDuration || mProcessedDiscardPadding) {
           WEBM_DEBUG(
               "Padding frames larger than packet size, flagging the packet for "
               "error (padding: %s, duration: %s, already processed: %s)",
-              padding.ToString().get(), sample->mDuration.ToString().get(),
+              padding.ToString().get(), packetDuration.ToString().get(),
               mProcessedDiscardPadding ? "true" : "false");
           sample->mDuration = TimeUnit::Invalid();
         } else {
-          sample->mDuration -= padding;
+          sample->mDuration = packetDuration - padding;
         }
       }
       mProcessedDiscardPadding = true;

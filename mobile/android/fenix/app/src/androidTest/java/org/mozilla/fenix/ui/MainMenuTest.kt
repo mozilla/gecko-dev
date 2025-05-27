@@ -7,7 +7,6 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -375,7 +374,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2937924
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967946")
     @Test
     fun verifyTheWhatIsBrokenErrorMessageTest() {
         runWithCondition(
@@ -392,7 +390,7 @@ class MainMenuTest : TestSetup() {
                 verifyWhatIsBrokenField(composeTestRule)
                 verifySendButtonIsEnabled(composeTestRule, isEnabled = false)
                 clickChooseReasonField(composeTestRule)
-                clickSiteSlowOrNotWorkingReason(composeTestRule)
+                clickSiteDoesNotLoadReason(composeTestRule)
                 verifyChooseReasonErrorMessageIsNotDisplayed(composeTestRule)
                 verifySendButtonIsEnabled(composeTestRule, isEnabled = true)
             }
@@ -400,7 +398,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2937926
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967946")
     @Test
     fun verifyThatTheBrokenSiteFormCanBeCanceledTest() {
         runWithCondition(
@@ -415,7 +412,7 @@ class MainMenuTest : TestSetup() {
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
                 clickChooseReasonField(composeTestRule)
-                clickSiteSlowOrNotWorkingReason(composeTestRule)
+                clickSiteDoesNotLoadReason(composeTestRule)
                 clickBrokenSiteFormCancelButton(composeTestRule)
             }.openThreeDotMenu {
             }.openReportBrokenSite {
@@ -425,7 +422,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2937927
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967946")
     @Test
     fun verifyTheBrokenSiteFormSubmissionTest() {
         runWithCondition(
@@ -440,7 +436,7 @@ class MainMenuTest : TestSetup() {
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
                 clickChooseReasonField(composeTestRule)
-                clickSiteSlowOrNotWorkingReason(composeTestRule)
+                clickSiteDoesNotLoadReason(composeTestRule)
                 describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
                 clickBrokenSiteFormSendButton(composeTestRule)
             }
@@ -455,7 +451,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2937930
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967946")
     @Test
     fun verifyThatTheBrokenSiteFormInfoPersistsTest() {
         runWithCondition(
@@ -470,7 +465,7 @@ class MainMenuTest : TestSetup() {
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
                 clickChooseReasonField(composeTestRule)
-                clickSiteSlowOrNotWorkingReason(composeTestRule)
+                clickSiteDoesNotLoadReason(composeTestRule)
                 describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
             }.closeWebCompatReporter {
             }.openThreeDotMenu {
@@ -481,7 +476,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2937931
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967946")
     @Test
     fun verifyTheBrokenSiteFormIsEmptyWithoutSubmittingThePreviousOneTest() {
         runWithCondition(
@@ -497,7 +491,7 @@ class MainMenuTest : TestSetup() {
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, firstWebPage.url.toString())
                 clickChooseReasonField(composeTestRule)
-                clickSiteSlowOrNotWorkingReason(composeTestRule)
+                clickSiteDoesNotLoadReason(composeTestRule)
                 describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
             }.closeWebCompatReporter {
             }.openTabDrawer(composeTestRule) {
@@ -512,7 +506,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2937932
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967946")
     @Test
     fun verifyThatTheBrokenSiteFormInfoIsErasedWhenKillingTheAppTest() {
         runWithCondition(
@@ -527,7 +520,7 @@ class MainMenuTest : TestSetup() {
             }.openReportBrokenSite {
                 verifyWebCompatReporterViewItems(composeTestRule, defaultWebPage.url.toString())
                 clickChooseReasonField(composeTestRule)
-                clickSiteSlowOrNotWorkingReason(composeTestRule)
+                clickSiteDoesNotLoadReason(composeTestRule)
                 describeBrokenSiteProblem(composeTestRule, problemDescription = "Prolonged page loading time")
             }
             closeApp(composeTestRule.activityRule)

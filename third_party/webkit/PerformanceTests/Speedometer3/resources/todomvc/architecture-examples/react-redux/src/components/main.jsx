@@ -26,7 +26,7 @@ export default class Main extends Component {
         return (
             <main className="main" data-testid="main">
                 <div className="toggle-all-container">
-                    <input className="toggle-all" type="checkbox" data-testid="toggle-all" checked={completedCount === todos.length} onChange={toggleAll} />
+                    <input className="toggle-all" type="checkbox" id="toggle-all" data-testid="toggle-all" checked={completedCount === todos.length} onChange={toggleAll} />
                     <label className="toggle-all-label" htmlFor="toggle-all">
                         Toggle All Input
                     </label>

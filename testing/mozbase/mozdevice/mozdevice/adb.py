@@ -4143,6 +4143,13 @@ class ADBDevice(ADBCommand):
             if match:
                 package_name = match.group(1)
                 break
+        output = self.shell_output(f"dumpsys package dexopt | grep -A 1 {package_name}")
+        print(output)
+        if "status=speed-profile" not in output:
+            raise Exception(
+                f"{package_name} did not install the baseline profile correctly"
+            )
+
         return package_name
 
     def is_app_installed(self, app_name, timeout=None):
