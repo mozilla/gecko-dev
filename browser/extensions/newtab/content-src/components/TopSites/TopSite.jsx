@@ -952,7 +952,7 @@ export class _TopSiteList extends React.PureComponent {
       // tile for the about:home startup cache.
       if (
         !link ||
-        (props.App.isForStartupCache.App && isSponsored(link)) ||
+        (props.App.isForStartupCache.TopSites && isSponsored(link)) ||
         topSites[i]?.isAddButton
       ) {
         if (link) {
