@@ -11,7 +11,7 @@ import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.concept.engine.EngineSessionState
 import mozilla.components.concept.storage.HistoryMetadataKey
-import mozilla.components.support.ktx.kotlin.isContentUrl
+import mozilla.components.support.utils.ext.isContentUrl
 
 /**
  * A tab that is no longer open and in the list of tabs, but that can be restored (recovered) at
