@@ -1377,3 +1377,41 @@ JS::ubi::Node::Size JS::ubi::Concrete<PropMap>::size(
   get().addSizeOfExcludingThis(mallocSizeOf, &children, &tables);
   return size + children + tables;
 }
+
+SharedPropMapIter::SharedPropMapIter(
+    JSContext* cx, mozilla::Maybe<SharedPropMapAndIndex> start,
+    SharedPropMapAndIndex end)
+    : maps_(cx),
+      propIdx_(start.isSome() ? start->index() : 0),
+      endIdx_(end.index()) {
+  // Add all maps to a Vector so we can iterate over them in reverse order
+  // (property definition order).
+
+  SharedPropMap* curMap = end.map();
+  AutoEnterOOMUnsafeRegion oom;
+  while (true) {
+    if (!maps_.append(curMap)) {
+      oom.crash("SharedPropMapIter constructor");
+    }
+    if (start.isSome() && curMap == start->map()) {
+      break;
+    }
+    if (!curMap->hasPrevious()) {
+      MOZ_ASSERT(start.isNothing());
+      break;
+    }
+    curMap = curMap->asLinked()->previous()->asShared();
+  }
+  mapIdx_ = maps_.length() - 1;
+}
+
+SharedPropMapIter::SharedPropMapIter(JSContext* cx, SharedPropMapAndIndex end)
+    : SharedPropMapIter(cx, mozilla::Nothing(), end) {}
+
+SharedPropMapIter::SharedPropMapIter(JSContext* cx,
+                                     SharedPropMapAndIndex startAfter,
+                                     SharedPropMapAndIndex end)
+    : SharedPropMapIter(cx, mozilla::Some(startAfter), end) {
+  // Skip the first element.
+  next();
+}
