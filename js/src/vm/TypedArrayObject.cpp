@@ -665,13 +665,16 @@ class TypedArrayObjectTemplate {
     }
 
     // Steps 10-12.
-    if (!buffer->isResizable()) {
-      return FixedLengthTypedArray::makeInstance(cx, buffer, byteOffset, length,
-                                                 proto);
+    if (buffer->isResizable()) {
+      return ResizableTypedArray::makeInstance(cx, buffer, byteOffset, length,
+                                               autoLength, proto);
     }
-
-    return ResizableTypedArray::makeInstance(cx, buffer, byteOffset, length,
-                                             autoLength, proto);
+    if (buffer->isImmutable()) {
+      JS_ReportErrorASCII(cx, "Immutable ArrayBuffer not yet supported");
+      return nullptr;
+    }
+    return FixedLengthTypedArray::makeInstance(cx, buffer, byteOffset, length,
+                                               proto);
   }
 
   // Create a TypedArray object in another compartment.
@@ -732,12 +735,15 @@ class TypedArrayObjectTemplate {
         return nullptr;
       }
 
-      if (!unwrappedBuffer->isResizable()) {
-        typedArray = FixedLengthTypedArray::makeInstance(
-            cx, unwrappedBuffer, byteOffset, length, wrappedProto);
-      } else {
+      if (unwrappedBuffer->isResizable()) {
         typedArray = ResizableTypedArray::makeInstance(
             cx, unwrappedBuffer, byteOffset, length, autoLength, wrappedProto);
+      } else if (unwrappedBuffer->isImmutable()) {
+        JS_ReportErrorASCII(cx, "Immutable ArrayBuffer not yet supported");
+        return nullptr;
+      } else {
+        typedArray = FixedLengthTypedArray::makeInstance(
+            cx, unwrappedBuffer, byteOffset, length, wrappedProto);
       }
       if (!typedArray) {
         return nullptr;
@@ -1504,17 +1510,23 @@ static bool GetTemplateObjectForNative(JSContext* cx,
     return true;
   }
 
+  if (obj->is<ArrayBufferObjectMaybeShared>()) {
+    if (obj->as<ArrayBufferObjectMaybeShared>().isResizable()) {
+      res.set(ResizableTypedArrayObjectTemplate<T>::makeTemplateObject(cx));
+      return !!res;
+    }
+
+    if (obj->as<ArrayBufferObjectMaybeShared>().isImmutable()) {
+      // TODO: Not yet supported.
+      return true;
+    }
+  }
+
   // We don't use the template's length in the object case, so we can create
   // the template typed array with an initial length of zero.
   uint32_t len = 0;
 
-  if (!obj->is<ArrayBufferObjectMaybeShared>() ||
-      !obj->as<ArrayBufferObjectMaybeShared>().isResizable()) {
-    res.set(
-        FixedLengthTypedArrayObjectTemplate<T>::makeTemplateObject(cx, len));
-  } else {
-    res.set(ResizableTypedArrayObjectTemplate<T>::makeTemplateObject(cx));
-  }
+  res.set(FixedLengthTypedArrayObjectTemplate<T>::makeTemplateObject(cx, len));
   return !!res;
 }
 
@@ -5860,6 +5872,15 @@ bool JS::ArrayBufferOrView::isResizable() const {
     return obj->as<ArrayBufferObjectMaybeShared>().isResizable();
   } else {
     return obj->as<ArrayBufferViewObject>().hasResizableBuffer();
+  }
+}
+
+bool JS::ArrayBufferOrView::isImmutable() const {
+  MOZ_ASSERT(obj);
+  if (obj->is<ArrayBufferObjectMaybeShared>()) {
+    return obj->as<ArrayBufferObjectMaybeShared>().isImmutable();
+  } else {
+    return obj->as<ArrayBufferViewObject>().hasImmutableBuffer();
   }
 }
 

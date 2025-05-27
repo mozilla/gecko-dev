@@ -38,6 +38,7 @@
 #include "jit/AtomicOperations.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{IsArrayBufferObject,GetArrayBufferData,GetArrayBuffer{ByteLength,Data}}
+#include "js/ArrayBufferMaybeShared.h"  // JS::IsImmutableArrayBufferMaybeShared
 #include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionValue
 #include "js/CharacterEncoding.h"
 #include "js/experimental/TypedData.h"  // JS_GetArrayBufferView{Type,Data}, JS_GetTypedArrayByteLength, JS_IsArrayBufferViewObject, JS_IsTypedArrayObject
@@ -3529,6 +3530,12 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
         }
         break;
       } else if (val.isObject() && JS::IsArrayBufferObject(valObj)) {
+        // Immutable ArrayBuffers not yet supported.
+        if (JS::IsImmutableArrayBufferMaybeShared(valObj)) {
+          return ConvError(cx, targetType, val, convType, funObj, argIndex,
+                           arrObj, arrIndex);
+        }
+
         // Convert ArrayBuffer to pointer without any copy. This is only valid
         // when converting an argument to a function call, as it is possible for
         // the pointer to be invalidated by anything that runs JS code. (It is
@@ -3557,6 +3564,12 @@ static bool ImplicitConvert(JSContext* cx, HandleValue val,
         return ConvError(cx, targetType, val, convType, funObj, argIndex,
                          arrObj, arrIndex);
       } else if (val.isObject() && JS_IsArrayBufferViewObject(valObj)) {
+        // Immutable ArrayBuffers not yet supported.
+        if (JS::IsImmutableArrayBufferView(valObj)) {
+          return ConvError(cx, targetType, val, convType, funObj, argIndex,
+                           arrObj, arrIndex);
+        }
+
         // Same as ArrayBuffer, above, though note that this will take the
         // offset of the view into account.
         if (!CanConvertTypedArrayItemTo(baseType, valObj, cx)) {

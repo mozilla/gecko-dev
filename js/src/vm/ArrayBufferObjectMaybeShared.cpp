@@ -84,3 +84,13 @@ JS_PUBLIC_API bool JS::IsResizableArrayBufferMaybeShared(JSObject* obj) {
   }
   return obj->as<SharedArrayBufferObject>().isGrowable();
 }
+
+JS_PUBLIC_API bool JS::IsImmutableArrayBufferMaybeShared(JSObject* obj) {
+  obj = UnwrapArrayBufferMaybeShared(obj);
+  MOZ_ASSERT(obj);
+
+  if (obj->is<ArrayBufferObject>()) {
+    return obj->as<ArrayBufferObject>().isImmutable();
+  }
+  return false;
+}

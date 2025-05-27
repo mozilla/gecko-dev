@@ -284,6 +284,13 @@ JS_PUBLIC_API bool IsLargeArrayBufferView(JSObject* obj);
 JS_PUBLIC_API bool IsResizableArrayBufferView(JSObject* obj);
 
 /*
+ * Returns whether the passed array buffer view has an immutable array buffer.
+ *
+ * |obj| must pass a JS_IsArrayBufferViewObject test.
+ */
+JS_PUBLIC_API bool IsImmutableArrayBufferView(JSObject* obj);
+
+/*
  * Given an ArrayBuffer or view, prevent the length of the underlying
  * ArrayBuffer from changing (with pin=true) until unfrozen (with
  * pin=false). Note that some objects (eg SharedArrayBuffers) cannot change
@@ -367,6 +374,7 @@ class JS_PUBLIC_API ArrayBufferOrView {
 
   bool isDetached() const;
   bool isResizable() const;
+  bool isImmutable() const;
 
   void exposeToActiveJS() const {
     if (obj) {
@@ -441,6 +449,7 @@ class JS_PUBLIC_API ArrayBufferView : public ArrayBufferOrView {
 
   bool isDetached() const;
   bool isResizable() const;
+  bool isImmutable() const;
 
   mozilla::Span<uint8_t> getData(bool* isSharedMemory,
                                  const JS::AutoRequireNoGC&);
