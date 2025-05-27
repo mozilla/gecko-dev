@@ -459,50 +459,26 @@ bool SharedPropMap::freezeOrSealProperties(JSContext* cx, IntegrityLevel level,
                                            MutableHandle<SharedPropMap*> map,
                                            uint32_t mapLength,
                                            ObjectFlags* objectFlags) {
-  // Add all maps to a Vector so we can iterate over them in reverse order
-  // (property definition order).
-  JS::RootedVector<SharedPropMap*> maps(cx);
-  {
-    SharedPropMap* curMap = map;
-    while (true) {
-      if (!maps.append(curMap)) {
-        return false;
-      }
-      if (!curMap->hasPrevious()) {
-        break;
-      }
-      curMap = curMap->asNormal()->previous();
-    }
-  }
-
   // Build a new SharedPropMap by adding each property with the changed
   // attributes.
   Rooted<SharedPropMap*> newMap(cx);
   uint32_t newMapLength = 0;
 
   Rooted<PropertyKey> key(cx);
-  Rooted<SharedPropMap*> curMap(cx);
-
-  for (size_t i = maps.length(); i > 0; i--) {
-    curMap = maps[i - 1];
-    uint32_t len = (i == 1) ? mapLength : PropMap::Capacity;
-
-    for (uint32_t j = 0; j < len; j++) {
-      key = curMap->getKey(j);
-      PropertyInfo prop = curMap->getPropertyInfo(j);
-      PropertyFlags flags =
-          ComputeFlagsForSealOrFreeze(key, prop.flags(), level);
-
-      if (prop.isCustomDataProperty()) {
-        if (!addCustomDataProperty(cx, clasp, &newMap, &newMapLength, key,
-                                   flags, objectFlags)) {
-          return false;
-        }
-      } else {
-        if (!addPropertyWithKnownSlot(cx, clasp, &newMap, &newMapLength, key,
-                                      flags, prop.slot(), objectFlags)) {
-          return false;
-        }
+  SharedPropMapAndIndex mapAndIndex(map, mapLength - 1);
+  for (SharedPropMapIter iter(cx, mapAndIndex); !iter.done(); iter.next()) {
+    key = iter.key();
+    PropertyInfo prop = iter.prop();
+    PropertyFlags flags = ComputeFlagsForSealOrFreeze(key, prop.flags(), level);
+    if (prop.isCustomDataProperty()) {
+      if (!addCustomDataProperty(cx, clasp, &newMap, &newMapLength, key, flags,
+                                 objectFlags)) {
+        return false;
+      }
+    } else {
+      if (!addPropertyWithKnownSlot(cx, clasp, &newMap, &newMapLength, key,
+                                    flags, prop.slot(), objectFlags)) {
+        return false;
       }
     }
   }
