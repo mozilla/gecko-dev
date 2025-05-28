@@ -354,6 +354,30 @@
     background-image: url(chrome://browser/skin/pin-12.svg);
     fill: light-dark(rgb(91, 91, 102), rgb(251, 251, 254));
   }
+
+  /* The following badges are used for debugging purposes */
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media -moz-pref("browser.urlbar.showDebuggingIcons") {
+    .urlbarView-row[type] > .urlbarView-row-inner > .urlbarView-no-wrap > &::before {
+      display: flex;
+      position: absolute;
+      background-color: var(--button-background-color);
+      justify-content: center;
+      align-items: center;
+      border-radius: 50%;
+      width: 12px;
+      height: 12px;
+      font-size: 10px;
+    }
+
+    /* Can't nest due to https://github.com/w3c/csswg-drafts/issues/7433 */
+    .urlbarView-row[type="adaptive-history"] > .urlbarView-row-inner > .urlbarView-no-wrap > &::before {
+      content: "A";
+    }
+    .urlbarView-row[type="semantic-history"] > .urlbarView-row-inner > .urlbarView-no-wrap > &::before {
+      content: "S";
+    }
+  }
 }
 
 /* Buttons */

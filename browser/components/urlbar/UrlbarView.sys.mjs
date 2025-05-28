@@ -1852,6 +1852,10 @@ export class UrlbarView {
       return;
     } else if (result.providerName == "TabToSearch") {
       item.setAttribute("type", "tabtosearch");
+    } else if (result.providerName == "SemanticHistorySearch") {
+      item.setAttribute("type", "semantic-history");
+    } else if (result.providerName == "InputHistory") {
+      item.setAttribute("type", "adaptive-history");
     } else {
       item.setAttribute(
         "type",
