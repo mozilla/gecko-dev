@@ -7,67 +7,66 @@ const TEST_LOCAL_URI = Services.io.newURI(
 const LOAD_NON_PRIVATE = PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE;
 const LOAD_PRIVATE = PlacesUtils.favicons.FAVICON_LOAD_PRIVATE;
 
-function copyFavicons(source, dest, inPrivate) {
-  return new Promise(resolve => {
-    PlacesUtils.favicons.copyFavicons(
-      source,
-      dest,
-      inPrivate ? LOAD_PRIVATE : LOAD_NON_PRIVATE,
-      resolve
-    );
-  });
-}
-
 function promisePageChanged(url) {
   return PlacesTestUtils.waitForNotification("favicon-changed", events =>
     events.some(e => e.url == url)
   );
 }
 
-add_task(async function test_copyFavicons_inputcheck() {
-  Assert.throws(
-    () => PlacesUtils.favicons.copyFavicons(null, TEST_URI2, LOAD_PRIVATE),
-    /NS_ERROR_ILLEGAL_VALUE/
-  );
-  Assert.throws(
-    () => PlacesUtils.favicons.copyFavicons(TEST_URI1, null, LOAD_PRIVATE),
-    /NS_ERROR_ILLEGAL_VALUE/
-  );
-  Assert.throws(
-    () => PlacesUtils.favicons.copyFavicons(TEST_URI1, TEST_URI2, 3),
-    /NS_ERROR_ILLEGAL_VALUE/
-  );
-  Assert.throws(
-    () => PlacesUtils.favicons.copyFavicons(TEST_URI1, TEST_URI2, -1),
-    /NS_ERROR_ILLEGAL_VALUE/
-  );
-  Assert.throws(
-    () => PlacesUtils.favicons.copyFavicons(TEST_URI1, TEST_URI2, null),
-    /NS_ERROR_ILLEGAL_VALUE/
-  );
+add_task(async function test_tryCopyFavicons_inputcheck() {
+  try {
+    await PlacesUtils.favicons.tryCopyFavicons(null, TEST_URI2, LOAD_PRIVATE);
+    Assert.ok(false);
+  } catch (e) {
+    Assert.equal(e.result, Cr.NS_ERROR_ILLEGAL_VALUE);
+  }
+  try {
+    await PlacesUtils.favicons.tryCopyFavicons(TEST_URI1, null, LOAD_PRIVATE);
+    Assert.ok(false);
+  } catch (e) {
+    Assert.equal(e.result, Cr.NS_ERROR_ILLEGAL_VALUE);
+  }
+  try {
+    await PlacesUtils.favicons.tryCopyFavicons(TEST_URI1, TEST_URI2, 3);
+    Assert.ok(false);
+  } catch (e) {
+    Assert.equal(e.result, Cr.NS_ERROR_ILLEGAL_VALUE);
+  }
+  try {
+    await PlacesUtils.favicons.tryCopyFavicons(TEST_URI1, TEST_URI2, -1);
+    Assert.ok(false);
+  } catch (e) {
+    Assert.equal(e.result, Cr.NS_ERROR_ILLEGAL_VALUE);
+  }
+  try {
+    await PlacesUtils.favicons.tryCopyFavicons(TEST_URI1, TEST_URI2, null);
+    Assert.ok(false);
+  } catch (e) {
+    Assert.equal(e.result, Cr.NS_ERROR_ILLEGAL_VALUE);
+  }
 });
 
-add_task(async function test_copyFavicons_noop() {
+add_task(async function test_tryCopyFavicons_noop() {
   info("Unknown uris");
   Assert.equal(
-    await copyFavicons(TEST_URI1, TEST_URI2, false),
-    null,
+    await PlacesUtils.favicons.tryCopyFavicons(
+      TEST_URI1,
+      TEST_URI2,
+      LOAD_NON_PRIVATE
+    ),
+    false,
     "Icon should not have been copied"
   );
 
   info("Unknown dest uri");
   await PlacesTestUtils.addVisits(TEST_URI1);
   Assert.equal(
-    await copyFavicons(TEST_URI1, TEST_URI2, false),
-    null,
-    "Icon should not have been copied"
-  );
-
-  info("Unknown dest uri");
-  await PlacesTestUtils.addVisits(TEST_URI1);
-  Assert.equal(
-    await copyFavicons(TEST_URI1, TEST_URI2, false),
-    null,
+    await PlacesUtils.favicons.tryCopyFavicons(
+      TEST_URI1,
+      TEST_URI2,
+      LOAD_NON_PRIVATE
+    ),
+    false,
     "Icon should not have been copied"
   );
 
@@ -77,17 +76,26 @@ add_task(async function test_copyFavicons_noop() {
     SMALLPNG_DATA_URI,
     SMALLPNG_DATA_URI
   );
+  await PlacesTestUtils.addVisits(TEST_URI1);
   Assert.equal(
-    await copyFavicons(TEST_URI1, TEST_URI2, false),
-    null,
+    await PlacesUtils.favicons.tryCopyFavicons(
+      TEST_URI1,
+      TEST_URI2,
+      LOAD_NON_PRIVATE
+    ),
+    false,
     "Icon should not have been copied"
   );
 
   info("Known uris, source has icon, private");
   await PlacesTestUtils.addVisits(TEST_URI2);
   Assert.equal(
-    await copyFavicons(TEST_URI1, TEST_URI2, true),
-    null,
+    await PlacesUtils.favicons.tryCopyFavicons(
+      TEST_URI1,
+      TEST_URI2,
+      LOAD_PRIVATE
+    ),
+    false,
     "Icon should not have been copied"
   );
 
@@ -95,7 +103,7 @@ add_task(async function test_copyFavicons_noop() {
   await PlacesUtils.history.clear();
 });
 
-add_task(async function test_copyFavicons() {
+add_task(async function test_tryCopyFavicons() {
   info("Normal copy across 2 pages");
   await PlacesTestUtils.addVisits(TEST_URI1);
   await PlacesTestUtils.setFaviconForPage(
@@ -108,14 +116,19 @@ add_task(async function test_copyFavicons() {
     SMALLSVG_DATA_URI,
     SMALLSVG_DATA_URI
   );
+
   await PlacesTestUtils.addVisits(TEST_URI2);
   let promiseChange = promisePageChanged(TEST_URI2.spec);
-  Assert.equal(
-    (await copyFavicons(TEST_URI1, TEST_URI2, false)).spec,
-    SMALLSVG_DATA_URI.spec,
+  Assert.ok(
+    await PlacesUtils.favicons.tryCopyFavicons(
+      TEST_URI1,
+      TEST_URI2,
+      LOAD_NON_PRIVATE
+    ),
     "Icon should have been copied"
   );
   await promiseChange;
+
   Assert.equal(
     (await PlacesTestUtils.getFaviconForPage(TEST_URI2, 1)).uri.spec,
     SMALLPNG_DATA_URI.spec,
@@ -133,9 +146,12 @@ add_task(async function test_copyFavicons() {
     parentGuid: PlacesUtils.bookmarks.unfiledGuid,
   });
   promiseChange = promisePageChanged(TEST_URI3.spec);
-  Assert.equal(
-    (await copyFavicons(TEST_URI1, TEST_URI3, true)).spec,
-    SMALLSVG_DATA_URI.spec,
+  Assert.ok(
+    await PlacesUtils.favicons.tryCopyFavicons(
+      TEST_URI1,
+      TEST_URI3,
+      LOAD_PRIVATE
+    ),
     "Icon should have been copied"
   );
   await promiseChange;
@@ -154,7 +170,7 @@ add_task(async function test_copyFavicons() {
   await PlacesUtils.history.clear();
 });
 
-add_task(async function test_copyFavicons_overlap() {
+add_task(async function test_tryCopyFavicons_overlap() {
   info("Copy to a page that has one of the favicons already");
   await PlacesTestUtils.addVisits(TEST_URI1);
   await PlacesTestUtils.setFaviconForPage(
@@ -174,9 +190,12 @@ add_task(async function test_copyFavicons_overlap() {
     SMALLPNG_DATA_URI
   );
   let promiseChange = promisePageChanged(TEST_URI2.spec);
-  Assert.equal(
-    (await copyFavicons(TEST_URI1, TEST_URI2, false)).spec,
-    SMALLSVG_DATA_URI.spec,
+  Assert.ok(
+    await PlacesUtils.favicons.tryCopyFavicons(
+      TEST_URI1,
+      TEST_URI2,
+      LOAD_NON_PRIVATE
+    ),
     "Icon should have been copied"
   );
   await promiseChange;
@@ -192,16 +211,16 @@ add_task(async function test_copyFavicons_overlap() {
   );
 });
 
-add_task(async function test_copyFavicons_local_uri() {
+add_task(async function test_tryCopyFavicons_local_uri() {
   await PlacesTestUtils.addVisits(TEST_URI1);
-  await PlacesTestUtils.setFaviconForPage(
-    TEST_URI1,
-    SMALLPNG_DATA_URI,
-    SMALLPNG_DATA_URI
-  );
-
-  Assert.throws(
-    () => PlacesUtils.favicons.copyFavicons(TEST_URI1, TEST_LOCAL_URI, false),
-    /NS_ERROR_ILLEGAL_VALUE/
-  );
+  try {
+    await PlacesUtils.favicons.tryCopyFavicons(
+      TEST_URI1,
+      TEST_LOCAL_URI,
+      LOAD_NON_PRIVATE
+    );
+    Assert.ok(false);
+  } catch (e) {
+    Assert.equal(e.result, Cr.NS_ERROR_ILLEGAL_VALUE);
+  }
 });
