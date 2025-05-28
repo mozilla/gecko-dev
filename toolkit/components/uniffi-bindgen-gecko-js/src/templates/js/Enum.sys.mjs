@@ -56,30 +56,16 @@ export class {{ enum_.name }} {}
 {%- for variant in enum_.variants %}
 {{ variant.js_docstring }}
 {{enum_.name }}.{{ variant.name }} = class extends {{ enum_.name }}{
-   constructor(
-        {%- if variant.fields.is_empty() -%}
+    constructor(
+        {% for field in variant.fields -%}
+        {{ field.name }}{%- if loop.last %}{%- else %}, {%- endif %}
+        {% endfor -%}
         ) {
             super();
-        {%- else -%}
-            {
-                {%- for field in variant.fields -%}
-                {{ field.name }}{% if let Some(default_val) = field.default %} = {{ default_val.js_lit }}{% else %} = undefined{% endif %}{%- if loop.last %} {% else %}, {% endif -%}
-            {%- endfor -%}
-            } = {}) {
-                super();
-            {% for field in variant.fields -%}
-            try {
-                {{ field.ty|check_type_fn }}({{ field.name }});
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("{{ field.name }}");
-                }
-                throw e;
-            }
+            {%- for field in variant.fields %}
             this.{{ field.name }} = {{ field.name }};
             {%- endfor %}
-        {%- endif %}
-    }
+        }
 }
 {%- endfor %}
 
@@ -90,15 +76,11 @@ export class {{ enum_|ffi_converter }} extends FfiConverterArrayBuffer {
         switch (dataStream.readInt32()) {
             {%- for variant in enum_.variants %}
             case {{ loop.index }}:
-                {%- if variant.fields.is_empty() %}
-                return new {{ enum_.name }}.{{ variant.name }}();
-                {%- else %}
-                return new {{ enum_.name }}.{{ variant.name }}({
+                return new {{ enum_.name }}.{{ variant.name  }}(
                     {%- for field in variant.fields %}
-                    {{ field.name }}: {{ field|read_fn }}(dataStream){%- if loop.last %}{% else %}, {%- endif %}
+                    {{ field|read_fn }}(dataStream){%- if loop.last %}{% else %}, {%- endif %}
                     {%- endfor %}
-                });
-                {%- endif %}
+                    );
             {%- endfor %}
             default:
                 throw new UniFFITypeError("Unknown {{ enum_.name }} variant");
