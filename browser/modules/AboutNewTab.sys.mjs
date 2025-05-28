@@ -10,7 +10,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   ActivityStream: "resource://newtab/lib/ActivityStream.sys.mjs",
   AddonManager: "resource://gre/modules/AddonManager.sys.mjs",
-  AddonManagerPrivate: "resource://gre/modules/AddonManager.sys.mjs",
   ObjectUtils: "resource://gre/modules/ObjectUtils.sys.mjs",
 });
 
@@ -160,28 +159,13 @@ export const AboutNewTab = {
     }
 
     if (AppConstants.BROWSER_NEWTAB_AS_ADDON) {
-      let addonPolicy = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
-      if (!addonPolicy) {
-        // If this is the first time that the build flag was set to true, we
-        // might not yet have refreshed the addon database cache yet, in which
-        // case the addonPolicy will be null. In that case, we'll wait for the
-        // database to be ready before proceeding.
-        //
-        // We don't always just wait for the databaseReady Promise to resolve
-        // in order to avoid regressing newtab render times by needlessly
-        // going back to the event loop.
-        await lazy.AddonManagerPrivate.databaseReady;
-        addonPolicy = WebExtensionPolicy.getByID(BUILTIN_ADDON_ID);
-      }
+      // Wait until the built-in addon has reported that it has finished
+      // initializing.
+      let redirector = Cc[
+        "@mozilla.org/network/protocol/about;1?what=newtab"
+      ].getService(Ci.nsIAboutModule).wrappedJSObject;
 
-      if (!addonPolicy) {
-        // Something's gone very wrong here, and we should collect telemetry
-        // about it.
-        Glean.newtab.addonReadySuccess.set(false);
-      } else {
-        await addonPolicy.readyPromise;
-        Glean.newtab.addonReadySuccess.set(true);
-      }
+      await redirector.promiseBuiltInAddonInitialized;
     } else {
       // We may have had the built-in addon installed in the past. Since the
       // flag is false, let's go ahead and remove it. We don't need to await on
