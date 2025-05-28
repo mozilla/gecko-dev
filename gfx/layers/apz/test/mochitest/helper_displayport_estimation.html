@@ -90,7 +90,8 @@ async function test() {
   let displayport = getLastContentDisplayportFor(document.documentElement.id);
   isfuzzy(displayport.y,
      (alignedDisplayportPosition - currentScrollPositionInScreen) / (resolution * deviceScale),
-     1.0, // getLastContentDisplayportFor returns rounded interger values.
+     1.0 * deviceScale, // `getLastContentDisplayportFor` returns rounded interger values.
+                        // `document.documentElement.clientHeight` also returns rounded values.
      "The displayport y should be reflecting the instant scroll distance");
 }
 
