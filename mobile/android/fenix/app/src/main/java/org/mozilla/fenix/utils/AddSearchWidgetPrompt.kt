@@ -16,7 +16,7 @@ import org.mozilla.gecko.search.SearchWidgetProvider
  *
  * @param activity the parent [Activity].
  */
-fun showAddSearchWidgetPrompt(activity: Activity) {
+fun maybeShowAddSearchWidgetPrompt(activity: Activity) {
     // Requesting to pin app widget is only available for Android 8.0 and above
     if (canShowAddSearchWidgetPrompt()) {
         val appWidgetManager = AppWidgetManager.getInstance(activity)
