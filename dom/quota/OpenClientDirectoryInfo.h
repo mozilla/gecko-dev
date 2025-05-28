@@ -16,16 +16,16 @@ namespace mozilla::dom::quota {
 
 /**
  * @class OpenClientDirectoryInfo
- * @brief Prepares for handle-based tracking of origin directory access.
+ * @brief Tracks the first and last access to an origin directory.
  *
- * OpenClientDirectoryInfo is a lightweight internal helper introduced in
- * preparation for transitioning origin access time tracking from being lock
- * based to handle-based.
+ * OpenClientDirectoryInfo is a lightweight internal helper used to track
+ * access to a specific origin directory after a call to
+ * QuotaManager::OpenClientDirectory.
  *
- * It tracks the number of active ClientDirectoryLockHandle instances
- * associated with an origin directory. Once integrated, it will allow
- * QuotaManager to update origin metadata (such as access time) when the first
- * handle is created and the last one is released.
+ * It keeps a count of active ClientDirectoryLockHandle instances associated
+ * with the origin directory and allows the QuotaManager to update the
+ * directory’s access time when the first handle is created and when the last
+ * one is released.
  *
  * Although this class is currently focused on tracking origin-level access, it
  * may be extended in the future to track finer-grained access to individual
@@ -34,10 +34,8 @@ namespace mozilla::dom::quota {
  * initiate access to their storage.
  *
  * ## Usage:
- * - Will be created by QuotaManager when a ClientDirectoryLockHandle is
- *   registered (via RegisterClientDirectoryLockHandle).
- * - Will be removed when the last handle is unregistered.
- * - Not yet connected to OpenClientDirectory or live handle usage.
+ * - Created by QuotaManager::RegisterClientDirectoryLockHandle.
+ * - Removed by QuotaManager::UnregisterClientDirectoryLockHandle.
  *
  * ## Lifetime:
  * - Exists only while at least one ClientDirectoryLockHandle is active for the

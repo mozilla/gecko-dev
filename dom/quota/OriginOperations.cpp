@@ -1389,11 +1389,14 @@ void ClearPrivateRepositoryOp::CloseDirectory() {
 RefPtr<BoolPromise> ShutdownStorageOp::OpenDirectory() {
   AssertIsOnOwningThread();
 
-  // Clear directory lock tables (which also saves origin access time) before
-  // acquiring the exclusive lock below. Otherwise, saving of origin access
-  // time would be scheduled after storage shutdown and that would initialize
-  // storage again in the end.
-  mQuotaManager->ClearDirectoryLockTables();
+  // Clear OpenClientDirectoryInfos (which also saves origin access time)
+  // before acquiring the exclusive lock below. Otherwise, saving of origin
+  // access time would be scheduled after storage shutdown and that would
+  // initialize storage again in the end.
+  //
+  // XXX This call and the method can be removed once the save origin access
+  // time op uses a pre-acquired directory lock.
+  mQuotaManager->ClearOpenClientDirectoryInfos();
 
   mDirectoryLock = mQuotaManager->CreateDirectoryLockInternal(
       PersistenceScope::CreateFromNull(), OriginScope::FromNull(),
@@ -2637,11 +2640,14 @@ void ClearStorageOp::DeleteStorageFile(QuotaManager& aQuotaManager) {
 RefPtr<BoolPromise> ClearStorageOp::OpenDirectory() {
   AssertIsOnOwningThread();
 
-  // Clear directory lock tables (which also saves origin access time) before
-  // acquiring the exclusive lock below. Otherwise, saving of origin access
-  // time would be scheduled after storage clearing and that would initialize
-  // storage again in the end.
-  mQuotaManager->ClearDirectoryLockTables();
+  // Clear OpenClientDirectoryInfos (which also saves origin access time)
+  // before acquiring the exclusive lock below. Otherwise, saving of origin
+  // access time would be scheduled after storage shutdown and that would
+  // initialize storage again in the end.
+  //
+  // XXX This call and the method can be removed once the save origin access
+  // time op uses a pre-acquired directory lock.
+  mQuotaManager->ClearOpenClientDirectoryInfos();
 
   return OpenStorageDirectory(
       PersistenceScope::CreateFromNull(), OriginScope::FromNull(),

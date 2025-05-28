@@ -1971,25 +1971,6 @@ void QuotaManager::RegisterDirectoryLock(DirectoryLockImpl& aLock) {
                                          WrapNotNullUnchecked(&aLock));
   }
 
-  if (aLock.ShouldUpdateLockTable()) {
-    DirectoryLockTable& directoryLockTable =
-        GetDirectoryLockTable(aLock.GetPersistenceType());
-
-    // XXX It seems that the contents of the array are never actually used, we
-    // just use that like an inefficient use counter. Can't we just change
-    // DirectoryLockTable to a nsTHashMap<nsCStringHashKey, uint32_t>?
-    directoryLockTable
-        .LookupOrInsertWith(
-            aLock.Origin(),
-            [this, &aLock] {
-              if (!IsShuttingDown()) {
-                UpdateOriginAccessTime(aLock.OriginMetadata());
-              }
-              return MakeUnique<nsTArray<NotNull<DirectoryLockImpl*>>>();
-            })
-        ->AppendElement(WrapNotNullUnchecked(&aLock));
-  }
-
   aLock.SetRegistered(true);
 }
 
@@ -2003,23 +1984,6 @@ void QuotaManager::UnregisterDirectoryLock(DirectoryLockImpl& aLock) {
 
     MOZ_DIAGNOSTIC_ASSERT(mDirectoryLockIdTable.Contains(aLock.Id()));
     mDirectoryLockIdTable.Remove(aLock.Id());
-  }
-
-  if (aLock.ShouldUpdateLockTable()) {
-    DirectoryLockTable& directoryLockTable =
-        GetDirectoryLockTable(aLock.GetPersistenceType());
-
-    // ClearDirectoryLockTables may have been called, so the element or entire
-    // array may not exist anymre.
-    nsTArray<NotNull<DirectoryLockImpl*>>* array;
-    if (directoryLockTable.Get(aLock.Origin(), &array) &&
-        array->RemoveElement(&aLock) && array->IsEmpty()) {
-      directoryLockTable.Remove(aLock.Origin());
-
-      if (!IsShuttingDown()) {
-        UpdateOriginAccessTime(aLock.OriginMetadata());
-      }
-    }
   }
 
   aLock.SetRegistered(false);
@@ -5648,7 +5612,8 @@ QuotaManager::OpenClientDirectoryImpl(
                  }))
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [clientDirectoryLock = std::move(clientDirectoryLock)](
+          [self = RefPtr(this), aClientMetadata,
+           clientDirectoryLock = std::move(clientDirectoryLock)](
               const BoolPromise::ResolveOrRejectValue& aValue) mutable {
             if (aValue.IsReject()) {
               DropDirectoryLockIfNotDropped(clientDirectoryLock);
@@ -5669,6 +5634,10 @@ QuotaManager::OpenClientDirectoryImpl(
 
             auto clientDirectoryLockHandle =
                 ClientDirectoryLockHandle(std::move(clientDirectoryLock));
+
+            self->RegisterClientDirectoryLockHandle(aClientMetadata);
+
+            clientDirectoryLockHandle.SetRegistered(true);
 
             return ClientDirectoryLockHandlePromise::CreateAndResolve(
                 std::move(clientDirectoryLockHandle), __func__);
@@ -7789,44 +7758,22 @@ Result<Ok, nsresult> QuotaManager::ArchiveOrigins(
   return Ok{};
 }
 
-auto QuotaManager::GetDirectoryLockTable(PersistenceType aPersistenceType)
-    -> DirectoryLockTable& {
-  switch (aPersistenceType) {
-    case PERSISTENCE_TYPE_TEMPORARY:
-      return mTemporaryDirectoryLockTable;
-    case PERSISTENCE_TYPE_DEFAULT:
-      return mDefaultDirectoryLockTable;
-    case PERSISTENCE_TYPE_PRIVATE:
-      return mPrivateDirectoryLockTable;
-
-    case PERSISTENCE_TYPE_PERSISTENT:
-    case PERSISTENCE_TYPE_INVALID:
-    default:
-      MOZ_CRASH("Bad persistence type value!");
-  }
-}
-
-void QuotaManager::ClearDirectoryLockTables() {
+void QuotaManager::ClearOpenClientDirectoryInfos() {
   AssertIsOnOwningThread();
 
-  for (const PersistenceType type : kBestEffortPersistenceTypes) {
-    DirectoryLockTable& directoryLockTable = GetDirectoryLockTable(type);
+  auto backgroundThreadData = mBackgroundThreadAccessible.Access();
 
-    if (!IsShuttingDown()) {
-      for (const auto& entry : directoryLockTable) {
-        const auto& array = entry.GetData();
-
-        // It doesn't matter which lock is used, they all have the same
-        // persistence type and origin metadata.
-        MOZ_ASSERT(!array->IsEmpty());
-        const auto& lock = array->ElementAt(0);
-
-        UpdateOriginAccessTime(lock->OriginMetadata());
+  if (!IsShuttingDown()) {
+    for (const auto& entry : backgroundThreadData->mOpenClientDirectoryInfos) {
+      const auto& openClientDirectoryInfo = entry.GetData();
+      if (openClientDirectoryInfo.OriginMetadataRef().mPersistenceType !=
+          PERSISTENCE_TYPE_PERSISTENT) {
+        UpdateOriginAccessTime(openClientDirectoryInfo.OriginMetadataRef());
       }
     }
-
-    directoryLockTable.Clear();
   }
+
+  backgroundThreadData->mOpenClientDirectoryInfos.Clear();
 }
 
 bool QuotaManager::IsSanitizedOriginValid(const nsACString& aSanitizedOrigin) {
@@ -8146,6 +8093,86 @@ int64_t QuotaManager::GenerateDirectoryLockId() {
   //       directory lock with given id.
 
   return directorylockId;
+}
+
+void QuotaManager::RegisterClientDirectoryLockHandle(
+    const OriginMetadata& aOriginMetadata) {
+  AssertIsOnOwningThread();
+
+  auto backgroundThreadData = mBackgroundThreadAccessible.Access();
+
+  auto& openClientDirectoryInfo =
+      backgroundThreadData->mOpenClientDirectoryInfos.LookupOrInsertWith(
+          aOriginMetadata.GetCompositeKey(),
+          [&aOriginMetadata] { return aOriginMetadata; });
+
+  openClientDirectoryInfo.IncreaseClientDirectoryLockHandleCount();
+
+  bool firstHandle =
+      (openClientDirectoryInfo.ClientDirectoryLockHandleCount() == 1);
+
+  if (firstHandle) {
+    // XXX The caller should be responsible for triggering the saving of origin
+    // access time, especially once the operation uses a pre-acquired directory
+    // lock and all quota clients must wait for it to complete.
+    if (aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
+      if (!IsShuttingDown()) {
+        UpdateOriginAccessTime(aOriginMetadata);
+      }
+    }
+  }
+}
+
+void QuotaManager::UnregisterClientDirectoryLockHandle(
+    const OriginMetadata& aOriginMetadata) {
+  AssertIsOnOwningThread();
+
+  auto backgroundThreadData = mBackgroundThreadAccessible.Access();
+
+  auto entry = backgroundThreadData->mOpenClientDirectoryInfos.Lookup(
+      aOriginMetadata.GetCompositeKey());
+
+  // ClearOpenClientDirectoryInfos may have been called, so the entry may not
+  // exist anymre.
+  //
+  // XXX This can be changed to an assert once ClearOpenClientDirectoryInfos is
+  // removed.
+  if (!entry) {
+    return;
+  }
+
+  auto& openClientDirectoryInfo = entry.Data();
+
+  openClientDirectoryInfo.DecreaseClientDirectoryLockHandleCount();
+
+  bool lastHandle =
+      openClientDirectoryInfo.ClientDirectoryLockHandleCount() == 0;
+
+  if (lastHandle) {
+    // XXX The caller should be responsible for triggering the saving of origin
+    // access time here as well, for consistency with the registration method.
+    if (aOriginMetadata.mPersistenceType != PERSISTENCE_TYPE_PERSISTENT) {
+      if (!IsShuttingDown()) {
+        UpdateOriginAccessTime(aOriginMetadata);
+      }
+    }
+
+    entry.Remove();
+  }
+}
+
+void QuotaManager::ClientDirectoryLockHandleDestroy(
+    ClientDirectoryLockHandle& aHandle) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aHandle);
+
+  if (!aHandle.IsRegistered()) {
+    return;
+  }
+
+  UnregisterClientDirectoryLockHandle(aHandle->OriginMetadata());
+
+  aHandle.SetRegistered(false);
 }
 
 template <typename Func>

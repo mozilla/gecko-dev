@@ -9,6 +9,7 @@
 #include "mozilla/dom/quota/ClientDirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
+#include "mozilla/dom/quota/QuotaManager.h"
 
 namespace mozilla::dom::quota {
 
@@ -38,6 +39,8 @@ ClientDirectoryLockHandle::ClientDirectoryLockHandle(
   // handle’s destructor may observe a stale non-null value.
   aOther.mClientDirectoryLock = nullptr;
 
+  mRegistered = std::exchange(aOther.mRegistered, false);
+
   MOZ_COUNT_CTOR(mozilla::dom::quota::ClientDirectoryLockHandle);
 }
 
@@ -51,6 +54,9 @@ ClientDirectoryLockHandle::~ClientDirectoryLockHandle() {
   // like AddressSanitizer.
   if (mClientDirectoryLock) {
     AssertIsOnOwningThread();
+
+    mClientDirectoryLock->MutableManagerRef().ClientDirectoryLockHandleDestroy(
+        *this);
 
     DropDirectoryLock(mClientDirectoryLock);
   }
@@ -76,6 +82,8 @@ ClientDirectoryLockHandle& ClientDirectoryLockHandle::operator=(
     // occurring only just before RefPtr’s own destructor runs. Without this,
     // the moved-from handle’s destructor may observe a stale non-null value.
     aOther.mClientDirectoryLock = nullptr;
+
+    mRegistered = std::exchange(aOther.mRegistered, false);
   }
 
   return *this;
@@ -103,6 +111,18 @@ ClientDirectoryLock* ClientDirectoryLockHandle::operator->() const {
   AssertIsOnOwningThread();
 
   return get();
+}
+
+bool ClientDirectoryLockHandle::IsRegistered() const {
+  AssertIsOnOwningThread();
+
+  return mRegistered;
+}
+
+void ClientDirectoryLockHandle::SetRegistered(bool aRegistered) {
+  AssertIsOnOwningThread();
+
+  mRegistered = aRegistered;
 }
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED

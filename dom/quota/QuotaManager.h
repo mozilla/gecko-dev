@@ -29,6 +29,7 @@
 #include "mozilla/dom/quota/HashKeys.h"
 #include "mozilla/dom/quota/InitializationTypes.h"
 #include "mozilla/dom/quota/NotifyUtils.h"
+#include "mozilla/dom/quota/OpenClientDirectoryInfo.h"
 #include "mozilla/dom/quota/OriginOperationCallbacks.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "nsCOMPtr.h"
@@ -95,6 +96,7 @@ class QuotaManager final : public BackgroundThreadObject {
   friend class ClearDataOp;
   friend class ClearRequestBase;
   friend class ClearStorageOp;
+  friend class ClientDirectoryLockHandle;
   friend class DirectoryLockImpl;
   friend class FinalizeOriginEvictionOp;
   friend class GroupInfo;
@@ -118,8 +120,6 @@ class QuotaManager final : public BackgroundThreadObject {
       const mozilla::ipc::PrincipalInfo& aPrincipalInfo);
 
   using PrincipalInfo = mozilla::ipc::PrincipalInfo;
-  using DirectoryLockTable =
-      nsClassHashtable<nsCStringHashKey, nsTArray<NotNull<DirectoryLockImpl*>>>;
 
   class Observer;
 
@@ -860,9 +860,7 @@ class QuotaManager final : public BackgroundThreadObject {
     }
   }
 
-  DirectoryLockTable& GetDirectoryLockTable(PersistenceType aPersistenceType);
-
-  void ClearDirectoryLockTables();
+  void ClearOpenClientDirectoryInfos();
 
   void AddTemporaryOrigin(const FullOriginMetadata& aFullOriginMetadata);
 
@@ -911,6 +909,42 @@ class QuotaManager final : public BackgroundThreadObject {
       const nsACString& aStorageOrigin);
 
   int64_t GenerateDirectoryLockId();
+
+  /**
+   * Registers a ClientDirectoryLockHandle for the given origin.
+   *
+   * Tracks the handle in internal bookkeeping to enable metadata updates. If
+   * this is the first active handle for the origin, and the origin is not
+   * persistent, this triggers an access time update (unless the system is
+   * shutting down).
+   */
+  void RegisterClientDirectoryLockHandle(const OriginMetadata& aOriginMetadata);
+
+  /**
+   * Unregisters a ClientDirectoryLockHandle for the given origin.
+   *
+   * Decreases the active handle count. If this was the last active handle for
+   * the origin, and the origin is not persistent, this triggers an access time
+   * update (unless the system is shutting down).
+   *
+   * The internal tracking entry is removed when the handle count reaches zero.
+   * In some shutdown cases, the entry may no longer exist, which is currently
+   * tolerated (see comment in implementation).
+   */
+  void UnregisterClientDirectoryLockHandle(
+      const OriginMetadata& aOriginMetadata);
+
+  /**
+   * This wrapper is used by ClientDirectoryLockHandle to notify the
+   * QuotaManager when a non-inert (i.e., owning) handle is being destroyed.
+   *
+   * This extra abstraction (ClientDirectoryLockHandle could call
+   * UnregisterClientDirectoryLockHandle directly) enables future changes to
+   * the registration methods, such as templating them. Without this wrapper,
+   * such changes would require exposing their implementation in
+   * QuotaManagerImpl.h, which would allow access from another translation unit.
+   */
+  void ClientDirectoryLockHandleDestroy(ClientDirectoryLockHandle& aHandle);
 
   bool ShutdownStarted() const;
 
@@ -1002,15 +1036,15 @@ class QuotaManager final : public BackgroundThreadObject {
   nsTHashMap<nsUint64HashKey, NotNull<DirectoryLockImpl*>>
       mDirectoryLockIdTable;
 
-  // Directory lock tables that are used to update origin access time.
-  DirectoryLockTable mTemporaryDirectoryLockTable;
-  DirectoryLockTable mDefaultDirectoryLockTable;
-  DirectoryLockTable mPrivateDirectoryLockTable;
-
   // Things touched on the owning (PBackground) thread only.
   struct BackgroundThreadAccessible {
     PrincipalMetadataArray mUninitializedGroups;
     nsTHashSet<nsCString> mInitializedGroups;
+
+    // Tracks active origin directories for updating origin access time.
+    nsTHashMap<nsCStringHashKey, OpenClientDirectoryInfo>
+        mOpenClientDirectoryInfos;
+
     // Tracks how many times SaveOriginAccessTime resulted in updating metadata.
     uint64_t mSaveOriginAccessTimeCount = 0;
   };

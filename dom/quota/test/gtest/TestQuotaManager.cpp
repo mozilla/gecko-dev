@@ -450,13 +450,11 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Simple) {
   const auto saveOriginAccessTimeCountInternalAfter =
       SaveOriginAccessTimeCountInternal();
 
-  // XXX We currently observe only one access time update (on last access), but
-  // it should have been updated twice!
   ASSERT_EQ(saveOriginAccessTimeCountAfter - saveOriginAccessTimeCountBefore,
-            1u);
+            2u);
   ASSERT_EQ(saveOriginAccessTimeCountInternalAfter -
                 saveOriginAccessTimeCountInternalBefore,
-            1u);
+            2u);
 
   ASSERT_NO_FATAL_FAILURE(AssertStorageInitialized());
 
@@ -699,17 +697,12 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
                      const auto saveOriginAccessTimeCountNow =
                          quotaManager->SaveOriginAccessTimeCount();
 
-                     const auto saveOriginAccessTimeCountDelta =
-                         saveOriginAccessTimeCountNow -
-                         saveOriginAccessTimeCountBefore;
-
                      // XXX This callback should only be called once the access
                      // time update has completed, but it's currently triggered
-                     // inconsistently — sometimes before the update finishes.
-                     // For now, we allow either 0 or 1 updates to reflect this
-                     // timing issue.
-                     EXPECT_TRUE(saveOriginAccessTimeCountDelta == 0u ||
-                                 saveOriginAccessTimeCountDelta == 1u);
+                     // before the update finishes!
+                     EXPECT_EQ(saveOriginAccessTimeCountNow -
+                                   saveOriginAccessTimeCountBefore,
+                               0u);
 
                      directoryLockHandle = std::move(aValue.ResolveValue());
 
@@ -729,9 +722,11 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
                      const auto saveOriginAccessTimeCountInternalNow =
                          quotaManager->SaveOriginAccessTimeCountInternal();
 
+                     // XXX Once SaveOriginAccessTime uses a pre-acquired lock,
+                     // access time updates will be observed here again.
                      EXPECT_EQ(saveOriginAccessTimeCountInternalNow -
                                    saveOriginAccessTimeCountInternalBefore,
-                               1u);
+                               0u);
 
                      return BoolPromise::CreateAndResolve(true, __func__);
                    }));
@@ -752,17 +747,12 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
                      const auto saveOriginAccessTimeCountNow =
                          quotaManager->SaveOriginAccessTimeCount();
 
-                     const auto saveOriginAccessTimeCountDelta =
-                         saveOriginAccessTimeCountNow -
-                         saveOriginAccessTimeCountBefore;
-
                      // XXX This callback should only be called once the access
                      // time update has completed, but it's currently triggered
-                     // inconsistently — sometimes before the update finishes.
-                     // For now, we allow either 0 or 1 updates to reflect this
-                     // timing issue.
-                     EXPECT_TRUE(saveOriginAccessTimeCountDelta == 0u ||
-                                 saveOriginAccessTimeCountDelta == 1u);
+                     // before the update finishes!
+                     EXPECT_EQ(saveOriginAccessTimeCountNow -
+                                   saveOriginAccessTimeCountBefore,
+                               0u);
 
                      directoryLockHandle2 = std::move(aValue.ResolveValue());
 
@@ -782,9 +772,15 @@ TEST_F(TestQuotaManager, OpenClientDirectory_Ongoing_OriginDirectoryExists) {
                      const auto saveOriginAccessTimeCountInternalNow =
                          quotaManager->SaveOriginAccessTimeCountInternal();
 
-                     EXPECT_EQ(saveOriginAccessTimeCountInternalNow -
-                                   saveOriginAccessTimeCountInternalBefore,
-                               1u);
+                     const auto saveOriginAccessTimeCountInternalDelta =
+                         saveOriginAccessTimeCountInternalNow -
+                         saveOriginAccessTimeCountInternalBefore;
+
+                     // XXX Once SaveOriginAccessTime uses a pre-acquired lock,
+                     // access time updates will be consistently observed here
+                     // again.
+                     EXPECT_TRUE(saveOriginAccessTimeCountInternalDelta == 0u ||
+                                 saveOriginAccessTimeCountInternalDelta == 1u);
 
                      return BoolPromise::CreateAndResolve(true, __func__);
                    }));
