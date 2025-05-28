@@ -9,8 +9,6 @@
  *
  * The site is using a faulty -moz-transform rule, which we can unset.
  */
-[class*="Modal_overlay"][class*="Modal_positionContentCenter"]:has(
-    [class*="after-open"]
-  ) {
+[class*="Modal_overlay"][class*="Modal_positionContentCenter"]:has([class*="after-open"]) {
   justify-content: unset;
 }
