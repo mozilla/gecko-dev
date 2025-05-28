@@ -5,6 +5,7 @@
 package org.mozilla.fenix.onboarding
 
 import android.annotation.SuppressLint
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.IntentFilter
 import android.content.pm.ActivityInfo
@@ -81,7 +82,7 @@ class OnboardingFragment : Fragment() {
             pagesToDisplay(
                 showDefaultBrowserPage = isNotDefaultBrowser(this) && !isDefaultBrowserPromptSupported(),
                 showNotificationPage = canShowNotificationPage(),
-                showAddWidgetPage = canShowAddSearchWidgetPrompt(),
+                showAddWidgetPage = canShowAddSearchWidgetPrompt(AppWidgetManager.getInstance(activity)),
             ).toMutableList()
         }
     }
