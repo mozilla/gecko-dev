@@ -69,7 +69,13 @@
   grid-template-rows: 65px [margin-top-offset] var(--browser-viewport-height);
 }
 
-.browserContainer.responsive-mode > .browserStack > :is(browser, .rdm-viewport-resize-handle) {
+.browserContainer.responsive-mode > .browserStack > .rdm-dynamic-toolbar {
+  align-self: end;
+  background: lightslategray;
+  opacity: 0.5;
+}
+
+.browserContainer.responsive-mode > .browserStack > :is(browser, .rdm-viewport-resize-handle, .rdm-dynamic-toolbar) {
   grid-column: center-align;
   grid-row: margin-top-offset;
 }
