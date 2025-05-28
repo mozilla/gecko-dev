@@ -20,26 +20,34 @@
     let payloadType;
     test.chain.insertBefore("PC_LOCAL_SET_LOCAL_DESCRIPTION", [
       function PC_LOCAL_FILTER_OUT_CODECS() {
-        const otherCodec = codecs.find(c => c != codec);
-        const otherId = sdputils.findCodecId(test.originalOffer.sdp, otherCodec.name, otherCodec.offset);
-        const otherRtpmapMatcher = new RegExp(`a=rtpmap:${otherId}.*\\r\\n`, "gi");
-
         const id = sdputils.findCodecId(test.originalOffer.sdp, codec.name, codec.offset);
         payloadType = Number(id);
-        if (codec.offset) {
-          isnot(id, sdputils.findCodecId(test.originalOffer.sdp, codec.name, 0),
-            "Different offsets should return different payload types");
+        const otherIds = [];
+        for (const otherCodec of codecs) {
+          const otherId = sdputils.findCodecId(test.originalOffer.sdp, otherCodec.name, otherCodec.offset);
+          const otherRtpmapMatcher = new RegExp(`a=rtpmap:${otherId}.*\\r\\n`, "gi");
+
+          if (codec.offset) {
+            isnot(id, sdputils.findCodecId(test.originalOffer.sdp, codec.name, 0),
+              "Different offsets should return different payload types");
+          }
+          if (Number(otherId) != id) {
+            otherIds.push(otherId);
+          }
         }
+
         test.originalOffer.sdp =
           sdputils.removeAllButPayloadType(test.originalOffer.sdp, id);
 
-        // Bug 1901160 test receiving signaling with no H264 fmtp.
+        // Bug 1901160 test receiving signaling with no H264 profile-level-id fmtp.
         if (codec.hasOwnProperty("fmtpOverride")) {
           test.originalOffer.sdp = test.originalOffer.sdp.replace(new RegExp("a=fmtp:" + id + ".*\\r\\n", "gi"), codec.fmtpOverride);
         }
 
-        ok(!test.originalOffer.sdp.match(new RegExp(`m=.*UDP/TLS/RTP/SAVPF.* ${otherId}[^0-9]`, "gi")),
-          `Other codec ${otherId} should be removed after filtering`);
+        for (const otherId of otherIds) {
+          ok(!test.originalOffer.sdp.match(new RegExp(`m=.*UDP/TLS/RTP/SAVPF.* ${otherId}[^0-9]`, "gi")),
+            `Other codec ${otherId} should be removed after filtering`);
+        }
         ok(test.originalOffer.sdp.match(new RegExp(`m=.*UDP/TLS/RTP/SAVPF.* ${id}[^0-9]`, "gi")),
           `Tested codec ${id} should remain after filtering`);
 
