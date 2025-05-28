@@ -3885,21 +3885,6 @@ static void huge_dalloc(void* aPtr, arena_t* aArena) {
   ExtentAlloc::dealloc(node);
 }
 
-size_t GetKernelPageSize() {
-  static size_t kernel_page_size = ([]() {
-#ifdef XP_WIN
-    SYSTEM_INFO info;
-    GetSystemInfo(&info);
-    return info.dwPageSize;
-#else
-    long result = sysconf(_SC_PAGESIZE);
-    MOZ_ASSERT(result != -1);
-    return result;
-#endif
-  })();
-  return kernel_page_size;
-}
-
 // Returns whether the allocator was successfully initialized.
 static bool malloc_init_hard() {
   unsigned i;
