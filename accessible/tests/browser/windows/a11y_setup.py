@@ -28,6 +28,40 @@ RPC_S_CALLPENDING = -2147417835
 WINEVENT_OUTOFCONTEXT = 0
 WM_CLOSE = 0x0010
 
+
+def registerIa2Proxy():
+    """Register the IAccessible2 proxy.
+    This is only used on CI because we don't want to mess with the registry on
+    local developer machines. Developers should register the proxy themselves
+    using regsvr32.
+    This registers in HKEY_CURRENT_USER rather than HKEY_LOCAL_MACHINE so that
+    this can be done without administrator privileges. regsvr32 registers in
+    HKEY_LOCAL_MACHINE, so we can't use that here.
+    """
+    import winreg
+
+    dll = os.path.join(os.getcwd(), "IA2Marshal.dll")
+    if not os.path.isfile(dll):
+        raise RuntimeError(f"Couldn't find IAccessible2 proxy dll: {dll}")
+    # This must be kept in sync with accessible/interfaces/ia2/moz.build.
+    clsid = "{F9A6CC32-B0EF-490B-B102-179DDEEB08ED}"
+    with winreg.CreateKey(
+        winreg.HKEY_CURRENT_USER, rf"SOFTWARE\Classes\CLSID\{clsid}\InProcServer32"
+    ) as key:
+        winreg.SetValue(key, None, winreg.REG_SZ, dll)
+    for interface in (
+        # IA2 interfaces that aren't included in the proxy dll bundled with
+        # Windows.
+        # IAccessibleTextSelectionContainer
+        "{2118B599-733F-43D0-A569-0B31D125ED9A}",
+    ):
+        with winreg.CreateKey(
+            winreg.HKEY_CURRENT_USER,
+            rf"SOFTWARE\Classes\Interface\{interface}\ProxyStubClsid32",
+        ) as key:
+            winreg.SetValue(key, None, winreg.REG_SZ, clsid)
+
+
 user32 = ctypes.windll.user32
 oleacc = ctypes.oledll.oleacc
 oleaccMod = comtypes.client.GetModule("oleacc.dll")
@@ -47,6 +81,7 @@ ia2Tlb = os.path.join(
 if not os.path.isfile(ia2Tlb):
     # This is the path if running in CI.
     ia2Tlb = os.path.join(os.getcwd(), "ia2Typelib.tlb")
+    registerIa2Proxy()
 ia2Mod = comtypes.client.GetModule(ia2Tlb)
 del ia2Tlb
 # Shove all the IAccessible* interfaces and IA2_* constants directly
