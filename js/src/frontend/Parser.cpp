@@ -6591,9 +6591,36 @@ bool GeneralParser<ParseHandler, Unit>::forHeadStart(
       return false;
     }
 
-    if (nextTok == TokenKind::Of || !TokenKindIsPossibleIdentifier(nextTok)) {
+    if (!TokenKindIsPossibleIdentifier(nextTok)) {
       anyChars.ungetToken();  // we didnt find a valid case of using decl put
                               // back the token
+    } else if (nextTok == TokenKind::Of) {
+      // "for (using of" can be a prefix of the following:
+      //   * "for (using of = 0;;) { ... }"
+      //   * "for (using of [1, 2, 3]) { ... }"
+      //
+      // If the "of" token is followed by the assignment token, the loop is
+      // considered a C-style for-statement with a using declaration where
+      // "of" is an identifier.
+      // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-for-statement&secAll=true
+      //
+      // If the "of" token is followed by anything else, this is a for-of
+      // statement with the "using" being an identifier", and the token after
+      // the "of" token being the first token of the iterated expression (thus
+      // SlashIsRegExp is used as the modifier).
+      // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-for-in-and-for-of-statements&secAll=true
+      tokenStream.consumeKnownToken(nextTok);
+      TokenKind nextTokAssign;
+      if (!tokenStream.peekToken(&nextTokAssign, TokenStream::SlashIsRegExp)) {
+        return false;
+      }
+      if (nextTokAssign == TokenKind::Assign) {
+        parsingLexicalDeclaration = true;
+        anyChars.ungetToken();  // put back the assignment token
+      } else {
+        anyChars.ungetToken();  // put back the token after the "of" token
+        anyChars.ungetToken();  // put back the of token
+      }
     } else {
       parsingLexicalDeclaration = true;
     }

@@ -2168,7 +2168,8 @@ bool ASTSerializer::forInit(ParseNode* pn, MutableHandleValue dst) {
   bool lexical = pn->isKind(ParseNodeKind::LetDecl) ||
                  pn->isKind(ParseNodeKind::ConstDecl)
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-                 || pn->isKind(ParseNodeKind::UsingDecl)
+                 || pn->isKind(ParseNodeKind::UsingDecl) ||
+                 pn->isKind(ParseNodeKind::AwaitUsingDecl)
 #endif
       ;
   return (lexical || pn->isKind(ParseNodeKind::VarStmt))

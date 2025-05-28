@@ -21,6 +21,7 @@ Reflect.parse("{ using x = null }");
 Reflect.parse("{ using x = undefined }");
 Reflect.parse("{ for (using x of y) {} }");
 Reflect.parse("for (using x of y) {}");
+Reflect.parse("for (using x = y;;) {}");
 Reflect.parse("for await (using x of y) {}", { target: "module" });
 Reflect.parse("async function fn() { for await (using x of y) {} }");
 
@@ -144,6 +145,7 @@ Reflect.parse("{ using package = {}; }");
 Reflect.parse("'use strict'; { using await = {}; }");
 Reflect.parse("for (using await of y) {}");
 Reflect.parse("for (using yield of y) {}");
+Reflect.parse("for (using of = null;;) {}");
 Reflect.parse("using async = {};", { target: "module" });
 Reflect.parse("await using async = {};", { target: "module" });
 Reflect.parse("async function fn() { using async = {}; }");
@@ -161,6 +163,8 @@ Reflect.parse("async function fn() { await using package = {}; }");
 Reflect.parse("await using as = {}", { target: "module" });
 Reflect.parse("await using async = {};", { target: "module" });
 Reflect.parse("for (await using of of y) {}", { target: "module" })
+Reflect.parse("async () => { for (await using of = 0;;) {} }");
+Reflect.parse("for (await using of = 0;;) {}", { target: "module" });
 
 // Invalid usage of `using` syntax with contextual keywords.
 assertThrowsInstanceOf(() => Reflect.parse("{ using let = {} }"), SyntaxError);
@@ -180,6 +184,9 @@ assertThrowsInstanceOf(() => Reflect.parse("function* gen() { using yield = {}; 
 assertThrowsInstanceOf(() => Reflect.parse("for (using await of y) {}", { target: "module" }), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("async function fn() { for (using await of y) {} }"), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("function* gen() { for (using yield of y) {} }"), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("for (using of;;) {}"), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("for (using of = 0 in {}) {}"), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("for (using\nof = null;;) {}"), SyntaxError);
 
 // Invalid usage of `await using` syntax with contextual keywords.
 assertThrowsInstanceOf(() => Reflect.parse("await using yield = {};", { target: "module" }), SyntaxError);
@@ -203,6 +210,8 @@ assertThrowsInstanceOf(() => Reflect.parse("'use strict'; async function fn() { 
 assertThrowsInstanceOf(() => Reflect.parse("async function* gen() { await using yield = {}; } "), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("async function fn() { for (await using await of y) {} }"), SyntaxError);
 assertThrowsInstanceOf(() => Reflect.parse("async function* gen() { for (await using yield of y) {} }"), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("async () => { for (await using of;;) {} }"), SyntaxError);
+assertThrowsInstanceOf(() => Reflect.parse("async () => { for await (using of = 0;;) {} }"), SyntaxError);
 
 // Valid syntaxes close to `using` but not `using` declarations.
 Reflect.parse("for (using of y) {}");
