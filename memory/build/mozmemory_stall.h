@@ -48,8 +48,8 @@ struct StallSpecs {
   // ```
   //
   template <typename DelayFunc, typename OpFunc>
-  auto StallAndRetry(DelayFunc&& aDelayFunc,
-                     OpFunc&& aOperation) const -> decltype(aOperation()) {
+  auto StallAndRetry(DelayFunc&& aDelayFunc, OpFunc&& aOperation) const
+      -> decltype(aOperation()) {
     {
       // Explicit typecheck for OpFunc, to provide an explicit error message.
       using detail::is_std_optional;
