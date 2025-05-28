@@ -2179,10 +2179,10 @@ add_task(async function test_pinningInteractionsWithTabGroups() {
   Assert.equal(workingTab.group, group, "tab is in group");
   gBrowser.pinTab(workingTab);
   Assert.ok(!workingTab.group, "pinned tab is no longer in the tab group");
-  Assert.equal(
+  Assert.notEqual(
     group.previousElementSibling,
     workingTab,
-    "pinned tab should be before the tab group"
+    "pinned tab should not be before the tab group"
   );
 
   gBrowser.unpinTab(workingTab);
@@ -2201,14 +2201,14 @@ add_task(async function test_pinningInteractionsWithTabGroups() {
   );
 
   const firstPinnedTabToUnpin = gBrowser.tabs[0];
-  const lastPinnedTab = gBrowser.tabs[gBrowser.pinnedTabCount - 1];
+  const tabContainer = document.getElementById("tabbrowser-arrowscrollbox");
   gBrowser.unpinTab(firstPinnedTabToUnpin);
   Assert.ok(
     !firstPinnedTabToUnpin.group,
     "unpinned tab is not in the tab group"
   );
   Assert.equal(
-    lastPinnedTab.nextElementSibling,
+    tabContainer.firstChild,
     firstPinnedTabToUnpin,
     "unpinned tab is the first tab after all of the pinned tabs"
   );

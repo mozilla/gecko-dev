@@ -71,8 +71,8 @@
       this.arrowScrollbox.addEventListener("wheel", this, true);
       this.arrowScrollbox.addEventListener("underflow", this);
       this.arrowScrollbox.addEventListener("overflow", this);
-      this.verticalPinnedTabsContainer = document.getElementById(
-        "vertical-pinned-tabs-container"
+      this.pinnedTabsContainer = document.getElementById(
+        "pinned-tabs-container"
       );
       // Override arrowscrollbox.js method, since our scrollbox's children are
       // inherited from the scrollbox binding parent (this).
@@ -83,7 +83,7 @@
       };
       this.arrowScrollbox._canScrollToElement = element => {
         if (isTab(element)) {
-          return !element.pinned || !this.hasAttribute("positionpinnedtabs");
+          return !element.pinned;
         }
         return true;
       };
@@ -112,8 +112,6 @@
       this._lastTabClosedByMouse = false;
       this._hasTabTempMaxWidth = false;
       this._scrollButtonWidth = 0;
-      this._lastNumPinned = 0;
-      this._pinnedTabsLayoutCache = null;
       this._animateElement = this.arrowScrollbox;
       this._tabClipWidth = Services.prefs.getIntPref(
         "browser.tabs.tabClipWidth"
@@ -215,17 +213,15 @@
         return;
       }
 
-      if (oldValue == "vertical" && newValue == "horizontal") {
-        this._resetVerticalPinnedTabs();
-      }
       if (this.overflowing) {
         // reset this value so we don't have incorrect styling for vertical tabs
         this.removeAttribute("overflow");
       }
-      this._positionPinnedTabs();
 
       this.#updateTabMinWidth();
       this.#updateTabMinHeight();
+
+      this.pinnedTabsContainer.setAttribute("orient", newValue);
 
       super.attributeChangedCallback(name, oldValue, newValue);
     }
@@ -869,7 +865,7 @@
           : event.screenY - window.screenY,
         scrollPos:
           this.verticalMode && tab.pinned
-            ? this.verticalPinnedTabsContainer.scrollPosition
+            ? this.pinnedTabsContainer.scrollPosition
             : this.arrowScrollbox.scrollPosition,
         screenX: event.screenX,
         screenY: event.screenY,
@@ -1536,7 +1532,6 @@
       }
 
       this.toggleAttribute("overflow", true);
-      this._positionPinnedTabs();
       this._updateCloseButtons();
       this._handleTabSelect(true);
 
@@ -1563,7 +1558,6 @@
         gBrowser.removeTab(tab);
       }
 
-      this._positionPinnedTabs();
       this._updateCloseButtons();
 
       document
@@ -1634,10 +1628,7 @@
         }
       }
 
-      this.#allTabs = [
-        ...this.verticalPinnedTabsContainer.children,
-        ...children,
-      ];
+      this.#allTabs = [...this.pinnedTabsContainer.children, ...children];
       return this.#allTabs;
     }
 
@@ -1698,11 +1689,9 @@
       }
 
       let elementIndex = 0;
-      let verticalPinnedTabsContainer = document.getElementById(
-        "vertical-pinned-tabs-container"
-      );
-      for (let i = 0; i < verticalPinnedTabsContainer.childElementCount; i++) {
-        verticalPinnedTabsContainer.children[i].elementIndex = elementIndex++;
+
+      for (let i = 0; i < this.pinnedTabsContainer.childElementCount; i++) {
+        this.pinnedTabsContainer.children[i].elementIndex = elementIndex++;
       }
       let children = Array.from(this.arrowScrollbox.children);
 
@@ -1725,7 +1714,7 @@
       }
 
       this.#focusableItems = [
-        ...verticalPinnedTabsContainer.children,
+        ...this.pinnedTabsContainer.children,
         ...focusableItems,
       ];
 
@@ -2090,102 +2079,9 @@
     }
 
     uiDensityChanged() {
-      this._positionPinnedTabs();
       this._updateCloseButtons();
       this.#updateTabMinHeight();
       this._handleTabSelect(true);
-    }
-
-    _updateVerticalPinnedTabs() {
-      // Move pinned tabs to another container when the tabstrip is toggled to vertical
-      // and when session restore code calls _positionPinnedTabs; update styling whenever
-      // the number of pinned tabs changes.
-      let verticalTabsContainer = document.getElementById(
-        "vertical-pinned-tabs-container"
-      );
-      let numPinned = gBrowser.pinnedTabCount;
-
-      if (gBrowser.pinnedTabCount !== verticalTabsContainer.children.length) {
-        let tabs = this.visibleTabs;
-        for (let i = 0; i < numPinned; i++) {
-          tabs[i].style.marginInlineStart = "";
-          verticalTabsContainer.appendChild(tabs[i]);
-        }
-      }
-
-      this.style.removeProperty("--tab-overflow-pinned-tabs-width");
-    }
-
-    _resetVerticalPinnedTabs() {
-      let verticalTabsContainer = document.getElementById(
-        "vertical-pinned-tabs-container"
-      );
-
-      if (!verticalTabsContainer.children.length) {
-        return;
-      }
-      for (const child of Array.from(
-        verticalTabsContainer.children
-      ).reverse()) {
-        this.arrowScrollbox.prepend(child);
-      }
-    }
-
-    _positionPinnedTabs() {
-      let tabs = this.visibleTabs;
-      let numPinned = gBrowser.pinnedTabCount;
-      let absPositionHorizontalTabs =
-        this.overflowing && tabs.length > numPinned && numPinned > 0;
-
-      this.toggleAttribute("haspinnedtabs", !!numPinned);
-      this.toggleAttribute("positionpinnedtabs", absPositionHorizontalTabs);
-
-      if (this.verticalMode) {
-        this._updateVerticalPinnedTabs();
-      } else if (absPositionHorizontalTabs) {
-        let layoutData = this._pinnedTabsLayoutCache;
-        let uiDensity = document.documentElement.getAttribute("uidensity");
-        if (!layoutData || layoutData.uiDensity != uiDensity) {
-          let arrowScrollbox = this.arrowScrollbox;
-          layoutData = this._pinnedTabsLayoutCache = {
-            uiDensity,
-            pinnedTabWidth: tabs[0].getBoundingClientRect().width,
-            scrollStartOffset:
-              arrowScrollbox.scrollbox.getBoundingClientRect().left -
-              arrowScrollbox.getBoundingClientRect().left +
-              parseFloat(
-                getComputedStyle(arrowScrollbox.scrollbox).paddingInlineStart
-              ),
-          };
-        }
-
-        let width = 0;
-        for (let i = numPinned - 1; i >= 0; i--) {
-          let tab = tabs[i];
-          width += layoutData.pinnedTabWidth;
-          tab.style.setProperty(
-            "margin-inline-start",
-            -(width + layoutData.scrollStartOffset) + "px",
-            "important"
-          );
-        }
-        this.style.setProperty(
-          "--tab-overflow-pinned-tabs-width",
-          width + "px"
-        );
-      } else {
-        for (let i = 0; i < numPinned; i++) {
-          let tab = tabs[i];
-          tab.style.marginInlineStart = "";
-        }
-
-        this.style.removeProperty("--tab-overflow-pinned-tabs-width");
-      }
-
-      if (this._lastNumPinned != numPinned) {
-        this._lastNumPinned = numPinned;
-        this._handleTabSelect(true);
-      }
     }
 
     #animateExpandedPinnedTabMove(event) {
@@ -2244,7 +2140,7 @@
       let translateX = screenX - dragData.screenX;
       let translateY = screenY - dragData.screenY;
       translateY +=
-        this.verticalPinnedTabsContainer.scrollPosition - dragData.scrollPos;
+        this.pinnedTabsContainer.scrollPosition - dragData.scrollPos;
       let firstBoundX = firstTabInRow.screenX - firstMovingTabScreenX;
       let firstBoundY = firstTabInRow.screenY - firstMovingTabScreenY;
       let lastBoundX =
@@ -2432,7 +2328,7 @@
           this.arrowScrollbox.scrollbox[scrollDirection] - dragData.scrollPos;
       } else if (isPinned && this.verticalMode) {
         translate +=
-          this.verticalPinnedTabsContainer.scrollPosition - dragData.scrollPos;
+          this.pinnedTabsContainer.scrollPosition - dragData.scrollPos;
       }
       // Constrain the range over which the moving tabs can move:
       // - for pinned tabs, between the first and last pinned tab
