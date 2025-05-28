@@ -12,7 +12,7 @@ hbox {
 
 #titleContainer {
   padding-bottom: var(--space-xlarge);
-  --icon-url: url("chrome://browser/skin/preferences/category-search.svg")
+  --icon-url: url("chrome://browser/skin/preferences/category-search.svg");
 }
 
 .dialogRow {
@@ -33,8 +33,6 @@ input[type="url"] {
   display: flex;
   flex-direction: column;
 }
-
-
 
 .error-label {
   display: flex;
