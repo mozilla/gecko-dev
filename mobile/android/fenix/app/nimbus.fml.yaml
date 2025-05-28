@@ -545,9 +545,6 @@ features:
         description: >
           The protection overrides to add or remove fingerprinting protection
           targets. Please check RFPTargets.inc for all supported targets.
-          The format of the overrides is +Target1,-Target2,+Target3
-          where + means add and - means remove. The targets are separated by
-          commas. The default value is empty string.
         type: String
         default: ""
       fdlibm-math:
@@ -556,27 +553,6 @@ features:
           exposes less entropy
         type: Boolean
         default: false
-
-  baseline-fpp:
-    description: Control Baseline Fingerprinting Protection
-    variables:
-      feat-enabled:
-        description: If true, the feature is active.
-        type: Boolean
-        default: false
-      enabled:
-        type: Boolean
-        description: Enables / disables baseline fingerprinting protection.
-        default: true
-      overrides:
-        type: String
-        description: >-
-          The protection overrides to add or remove fingerprinting protection
-          targets. Please check RFPTargets.inc for all supported targets.
-          The format of the overrides is +Target1,-Target2,+Target3
-          where + means add and - means remove. The targets are separated by
-          commas. The default value is empty string.
-        default: ""
 
   third-party-cookie-blocking:
     description: Control third-party cookie blocking.

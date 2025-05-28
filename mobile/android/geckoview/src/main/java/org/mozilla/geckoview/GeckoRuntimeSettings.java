@@ -727,10 +727,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new Pref<Boolean>("javascript.options.use_fdlibm_for_sin_cos_tan", false);
   /* package */ final Pref<Integer> mUserCharacteristicPingCurrentVersion =
       new Pref<>("toolkit.telemetry.user_characteristics_ping.current_version", 0);
-  /* package */ final PrefWithoutDefault<Boolean> mBaselineFingerprintingProtection =
-      new PrefWithoutDefault<>("privacy.baselineFingerprintingProtection");
-  /* package */ final PrefWithoutDefault<String> mBaselineFingerprintingProtectionOverrides =
-      new PrefWithoutDefault<>("privacy.baselineFingerprintingProtection.overrides");
   /* package */ PrefWithoutDefault<Boolean> mDisableShip =
       new PrefWithoutDefault<Boolean>("fission.disableSessionHistoryInParent");
   /* package */ final Pref<Boolean> mFetchPriorityEnabled =
@@ -923,9 +919,7 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    * Set the Fingerprint protection overrides
    *
    * @param overrides The overrides value to add or remove fingerprinting protection targets. Please
-   *     check RFPTargets.inc for all supported targets. The format of the overrides is
-   *     +Target1,-Target2,+Target3 where + means add and - means remove. The targets are separated
-   *     by commas. The default value is empty string.
+   *     check RFPTargets.inc for all supported targets.
    * @return This GeckoRuntimeSettings instance
    */
   public @NonNull GeckoRuntimeSettings setFingerprintingProtectionOverrides(
@@ -980,50 +974,6 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public boolean getFdlibmMathEnabled() {
     return mFdlibmMathEnabled.get();
-  }
-
-  /**
-   * Set the Baseline fingerprint protection.
-   *
-   * @param enabled Whether we set the pref to true or false
-   * @return This GeckoRuntimeSettings instance
-   */
-  public @NonNull GeckoRuntimeSettings setBaselineFingerprintingProtection(final boolean enabled) {
-    mBaselineFingerprintingProtection.commit(enabled);
-    return this;
-  }
-
-  /**
-   * Set the Baseline fingerprint protection overrides
-   *
-   * @param overrides The overrides value to add or remove fingerprinting protection targets. Please
-   *     check RFPTargets.inc for all supported targets. The format of the overrides is
-   *     +Target1,-Target2,+Target3 where + means add and - means remove. The targets are separated
-   *     by commas. The default value is empty string.
-   * @return This GeckoRuntimeSettings instance
-   */
-  public @NonNull GeckoRuntimeSettings setBaselineFingerprintingProtectionOverrides(
-      @NonNull final String overrides) {
-    mBaselineFingerprintingProtectionOverrides.commit(overrides);
-    return this;
-  }
-
-  /**
-   * Get whether Fingerprint protection is enabled private browsing mode.
-   *
-   * @return Whether Fingerprint protection is enabled private browsing mode.
-   */
-  public @Nullable Boolean getBaselineFingerprintingProtection() {
-    return mBaselineFingerprintingProtection.get();
-  }
-
-  /**
-   * Get Fingerprint protection overrides.
-   *
-   * @return The string of the fingerprinting protection overrides.
-   */
-  public @Nullable String getBaselineFingerprintingProtectionOverrides() {
-    return mBaselineFingerprintingProtectionOverrides.get();
   }
 
   /**
