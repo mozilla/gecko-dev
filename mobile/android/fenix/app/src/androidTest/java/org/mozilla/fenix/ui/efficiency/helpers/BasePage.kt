@@ -12,9 +12,13 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.ViewInteraction
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.pressImeActionButton
+import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
@@ -34,7 +38,7 @@ abstract class BasePage(
 ) {
     abstract val pageName: String
 
-    open fun navigateToPage(): BasePage {
+    open fun navigateToPage(url: String = ""): BasePage {
         if (mozWaitForPageToLoad()) {
             PageStateTracker.currentPageName = pageName
             return this
@@ -58,6 +62,8 @@ abstract class BasePage(
                 is NavigationStep.Click -> mozClick(step.selector)
                 is NavigationStep.Swipe -> mozSwipeTo(step.selector, step.direction)
                 is NavigationStep.OpenNotificationsTray -> mozOpenNotificationsTray()
+                is NavigationStep.EnterText -> mozEnterText(url, step.selector)
+                is NavigationStep.PressEnter -> mozPressEnter(step.selector)
             }
         }
 
@@ -199,6 +205,83 @@ abstract class BasePage(
         }
 
         mDevice.swipe(startX, startY, endX, endY, 10)
+    }
+
+    fun mozEnterText(text: String, selector: Selector): BasePage {
+        val element = mozGetElement(selector)
+            ?: throw AssertionError("Element not found for selector: ${selector.description} (${selector.strategy} -> ${selector.value})")
+
+        when (element) {
+            is ViewInteraction -> {
+                try {
+                    element.perform(typeText(text))
+                } catch (e: Exception) {
+                    throw AssertionError("Failed to enter text on Espresso element for selector: ${selector.description}", e)
+                }
+            }
+
+            is UiObject -> {
+                try {
+                    element.setText(text)
+                } catch (e: Exception) {
+                    throw AssertionError("Failed to enter text on UIObject element for selector: ${selector.description}", e)
+                }
+            }
+
+            is SemanticsNodeInteraction -> {
+                try {
+                    element.performTextInput(text)
+                } catch (e: Exception) {
+                    throw AssertionError("Failed to enter text on Compose element for selector: ${selector.description}", e)
+                }
+            }
+
+            else -> {
+                throw AssertionError("Unsupported element type (${element::class.simpleName}) for selector: ${selector.description}")
+            }
+        }
+
+        return this
+    }
+
+    fun mozPressEnter(selector: Selector): BasePage {
+        val element = mozGetElement(selector)
+
+        if (element == null) {
+            throw AssertionError("Element not found for selector: ${selector.description} (${selector.strategy} -> ${selector.value})")
+        }
+
+        when (element) {
+            is ViewInteraction -> {
+                try {
+                    element.perform(pressImeActionButton())
+                } catch (e: Exception) {
+                    throw AssertionError("Failed to press IMEActionButton on Espresso element for selector: ${selector.description}", e)
+                }
+            }
+
+            is UiObject -> {
+                try {
+                    mDevice.pressEnter()
+                } catch (e: Exception) {
+                    throw AssertionError("Failed to press Enter on UIObject element for selector: ${selector.description}", e)
+                }
+            }
+
+            is SemanticsNodeInteraction -> {
+                try {
+                    element.performImeAction()
+                } catch (e: Exception) {
+                    throw AssertionError("Failed to press IMEActionButton on Compose element for selector: ${selector.description}", e)
+                }
+            }
+
+            else -> {
+                throw AssertionError("Unsupported element type (${element::class.simpleName}) for selector: ${selector.description}")
+            }
+        }
+
+        return this
     }
 
     private fun mozGetElement(selector: Selector): Any? {

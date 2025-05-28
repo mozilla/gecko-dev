@@ -7,6 +7,7 @@ package org.mozilla.fenix.ui.efficiency.helpers
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.ui.efficiency.pageObjects.BookmarksPage
+import org.mozilla.fenix.ui.efficiency.pageObjects.BrowserPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.CollectionsPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.CustomTabsPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.DownloadsPage
@@ -19,6 +20,7 @@ import org.mozilla.fenix.ui.efficiency.pageObjects.MicrosurveysPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.NotificationPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.ReaderViewPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.RecentlyClosedTabsPage
+import org.mozilla.fenix.ui.efficiency.pageObjects.SearchBarComponent
 import org.mozilla.fenix.ui.efficiency.pageObjects.SettingsAboutPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.SettingsAccessibilityPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.SettingsAddonsManagerPage
@@ -51,11 +53,13 @@ import org.mozilla.fenix.ui.efficiency.pageObjects.SitePermissionsPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.SiteSecurityPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.SystemSettingsPage
 import org.mozilla.fenix.ui.efficiency.pageObjects.TabDrawerPage
+import org.mozilla.fenix.ui.efficiency.pageObjects.ToolbarComponent
 import org.mozilla.fenix.ui.efficiency.pageObjects.TranslationsPage
 
 class PageContext(val composeRule: AndroidComposeTestRule<HomeActivityIntentTestRule, *>) {
     // Let's make sure we have them in a lexicographic order
     val bookmarks = BookmarksPage(composeRule)
+    val browserPage = BrowserPage(composeRule)
     val collections = CollectionsPage(composeRule)
     val customTabs = CustomTabsPage(composeRule)
     val downloads = DownloadsPage(composeRule)
@@ -68,6 +72,7 @@ class PageContext(val composeRule: AndroidComposeTestRule<HomeActivityIntentTest
     val notifications = NotificationPage(composeRule)
     val readerView = ReaderViewPage(composeRule)
     val recentlyClosedTabs = RecentlyClosedTabsPage(composeRule)
+    val searchBar = SearchBarComponent(composeRule)
     val settings = SettingsPage(composeRule)
     val settingsAbout = SettingsAboutPage(composeRule)
     val settingsAccessibility = SettingsAccessibilityPage(composeRule)
@@ -100,6 +105,7 @@ class PageContext(val composeRule: AndroidComposeTestRule<HomeActivityIntentTest
     val shortcuts = ShortcutsPage(composeRule)
     val systemSettings = SystemSettingsPage(composeRule)
     val tabDrawer = TabDrawerPage(composeRule)
+    val toolbar = ToolbarComponent(composeRule)
     val translations = TranslationsPage(composeRule)
 
     fun initTestRule(
