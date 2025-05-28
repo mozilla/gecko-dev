@@ -836,7 +836,6 @@ features:
         value:
           enabled: false
           force-disable-uri: ""
-
   doh:
     description: Feature controlling DNS over HTTPS (DoH).
     variables:
@@ -850,6 +849,22 @@ features:
           Controls the network.android_doh.autoselect_enabled pref and automatically chooses a DoH provider when Default Protection mode is selected.
         type: Boolean
         default: false
+
+  private-browsing-lock:
+    description: Allows enabling and disabling the private browsing mode lock via an authentication screen.
+    variables:
+      enabled:
+        description: >
+          Whether or not to enable private browsing mode lock.
+        type: Boolean
+        default: false
+    defaults:
+      - channel: nightly
+        value:
+          enabled: true
+      - channel: developer
+        value:
+          enabled: true
 
 types:
   objects: {}

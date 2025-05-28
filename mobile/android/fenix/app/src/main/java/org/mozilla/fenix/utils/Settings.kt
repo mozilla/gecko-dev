@@ -334,7 +334,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     var privateBrowsingLockedEnabled by lazyFeatureFlagPreference(
         appContext.getPreferenceKey(R.string.pref_key_private_browsing_locked_enabled),
-        featureFlag = FeatureFlags.privateBrowsingLock,
+        featureFlag = FxNimbus.features.privateBrowsingLock.value().enabled,
         default = { false },
     )
 
@@ -1232,7 +1232,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
 
     var shouldShowLockPbmBanner by lazyFeatureFlagPreference(
         appContext.getPreferenceKey(R.string.pref_key_should_show_lock_pbm_banner),
-        featureFlag = FeatureFlags.privateBrowsingLock,
+        featureFlag = FxNimbus.features.privateBrowsingLock.value().enabled,
         default = { true },
     )
 

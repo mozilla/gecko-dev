@@ -60,10 +60,4 @@ object FeatureFlags {
      * ⚠️ DO NOT MODIFY THIS FLAG IN PRODUCTION.
      */
     val onboardingFeatureEnabled = !Config.channel.isDebug
-
-    /**
-     * Enables locking of the private mode behind an authentication screen feature.
-     * Currently only enabled on debug and nightly.
-     */
-    val privateBrowsingLock = Config.channel.isNightlyOrDebug
 }

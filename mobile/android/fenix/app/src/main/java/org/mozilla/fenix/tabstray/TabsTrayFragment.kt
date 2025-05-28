@@ -40,7 +40,6 @@ import mozilla.components.feature.tabs.tabstray.TabsFeature
 import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.Config
-import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
 import org.mozilla.fenix.GleanMetrics.TabsTray
 import org.mozilla.fenix.HomeActivity
@@ -64,6 +63,7 @@ import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeScreenViewModel
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.settings.biometric.BiometricUtils
 import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 import org.mozilla.fenix.settings.biometric.ext.isAuthenticatorAvailable
@@ -259,7 +259,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
                     shouldShowTabAutoCloseBanner = requireContext().settings().shouldShowAutoCloseTabsBanner &&
                         requireContext().settings().canShowCfr,
                     shouldShowLockPbmBanner =
-                        if (FeatureFlags.privateBrowsingLock) {
+                        if (FxNimbus.features.privateBrowsingLock.value().enabled) {
                             shouldShowLockPbmBanner(
                                 isPrivateMode = (activity as HomeActivity).browsingModeManager.mode.isPrivate,
                                 hasPrivateTabs = requireComponents.core.store.state.privateTabs.isNotEmpty(),
