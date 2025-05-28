@@ -23,6 +23,11 @@ ChromeUtils.defineESModuleGetters(this, {
   ExtensionParent: "resource://gre/modules/ExtensionParent.sys.mjs",
   ExtensionPermissions: "resource://gre/modules/ExtensionPermissions.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
+  recordListViewTelemetry: "chrome://global/content/ml/Utils.sys.mjs",
+  recordDetailsViewTelemetry: "chrome://global/content/ml/Utils.sys.mjs",
+  recordRemoveInitiatedTelemetry: "chrome://global/content/ml/Utils.sys.mjs",
+  recordRemoveConfirmationTelemetry: "chrome://global/content/ml/Utils.sys.mjs",
+  recordListItemManageTelemetry: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 XPCOMUtils.defineLazyPreferenceGetter(
@@ -2628,9 +2633,16 @@ class AddonCard extends HTMLElement {
               this.sendEvent("remove-disabled");
               return;
             }
+            if (addon.type == "mlmodel") {
+              const source = e.target.nodeName == "BUTTON" ? "details" : "list";
+              recordRemoveInitiatedTelemetry(addon, source);
+            }
             let { BrowserAddonUI } = windowRoot.ownerGlobal;
             let { remove, report } =
               await BrowserAddonUI.promptRemoveExtension(addon);
+            if (addon.type == "mlmodel") {
+              recordRemoveConfirmationTelemetry(addon, remove);
+            }
             if (remove) {
               await addon.uninstall(true);
               this.sendEvent("remove");
@@ -2646,6 +2658,9 @@ class AddonCard extends HTMLElement {
           }
           break;
         case "expand":
+          if (addon.type == "mlmodel") {
+            recordListItemManageTelemetry(addon);
+          }
           gViewController.loadView(`detail/${this.addon.id}`);
           break;
         case "more-options":
@@ -3413,6 +3428,10 @@ class AddonList extends HTMLElement {
 
     if (type == "theme") {
       await BuiltInThemes.ensureBuiltInThemes();
+    }
+
+    if (type == "mlmodel") {
+      recordListViewTelemetry(addons.length);
     }
 
     // Put the add-ons into the sections, an add-on goes in the first section
@@ -4233,6 +4252,10 @@ gViewController.defineView("detail", async param => {
 
   if (!addon) {
     return null;
+  }
+
+  if (addon.type === "mlmodel") {
+    recordDetailsViewTelemetry(addon);
   }
 
   let card = document.createElement("addon-card");

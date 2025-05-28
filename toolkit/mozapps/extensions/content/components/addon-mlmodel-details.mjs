@@ -9,6 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
   featureEngineIdToFluentId: "chrome://global/content/ml/Utils.sys.mjs",
+  recordExtensionModelLinkTelemetry: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 const DEFAULT_EXTENSION_ICON =
@@ -84,6 +85,10 @@ export class AddonMLModelDetails extends MozLitElement {
     });
   }
 
+  handleCardLinkClick() {
+    lazy.recordExtensionModelLinkTelemetry(this.addon);
+  }
+
   render() {
     if (this.addon?.type !== "mlmodel") {
       return null;
@@ -108,6 +113,7 @@ export class AddonMLModelDetails extends MozLitElement {
         <label data-l10n-id="mlmodel-addon-detail-model-card"></label>
         <a
           target="_blank"
+          @click=${this.handleCardLinkClick}
           href=${this.addon.modelHomepageURL}
           data-l10n-id="mlmodel-addon-detail-model-card-link-label"
         ></a>
