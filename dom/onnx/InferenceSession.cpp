@@ -4,21 +4,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 #include "mozilla/dom/InferenceSession.h"
-
 #include <prlink.h>
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Logging.h"
+#include <thread>
 #include "nsXPCOMPrivate.h"
 #include "mozilla/FileUtils.h"
-
-#include "mozilla/dom/InferenceSession.h"
+#include "mozilla/ScopeExit.h"
 #include "mozilla/dom/ContentChild.h"
 #include "ErrorList.h"
 #include "GeckoProfiler.h"
 #include "fmt/format.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/BindingDeclarations.h"
-#include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/ONNXBinding.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -254,6 +252,29 @@ nsCString InferenceSessionSessionOptionsToString(
       aOptions.mProfileFilePrefix);
 }
 
+OrtCustomThreadHandle WrapProfilerRegister(void* options, void (*func)(void*),
+                                           void* param) {
+  // We don't use options for now
+  MOZ_ASSERT(!options);
+  auto wrapperFunc = [func](void* param) {
+    char stacktop;
+    profiler_register_thread("onnx_worker", &stacktop);
+    LOGD("Starting thread");
+    (static_cast<OrtThreadWorkerFn>(func))(param);
+  };
+
+  auto* t = new std::thread(wrapperFunc, param);
+
+  return reinterpret_cast<OrtCustomThreadHandle>(t);
+}
+
+void WrapProfilerUnregister(OrtCustomThreadHandle thread) {
+  LOGD("Joining thread");
+  std::thread* t = (std::thread*)thread;
+  t->join();
+  delete t;
+}
+
 RefPtr<Promise> InferenceSession::Create(
     GlobalObject& aGlobal, const UTF8StringOrUint8Array& aUriOrBuffer,
     const InferenceSessionSessionOptions& aOptions, ErrorResult& aRv) {
@@ -286,8 +307,18 @@ void InferenceSession::Init(const RefPtr<Promise>& aPromise,
       aPromise->MaybeRejectWithUndefined();
       return;
     }
+    status = sAPI->SetGlobalCustomCreateThreadFn(threadingOptions,
+                                                 WrapProfilerRegister);
     if (status) {
       LOGD("SetGlobalCustomCreateThreadFn error");
+      aPromise->MaybeRejectWithUndefined();
+      return;
+    }
+
+    status = sAPI->SetGlobalCustomJoinThreadFn(threadingOptions,
+                                               WrapProfilerUnregister);
+    if (status) {
+      LOGD("SetGlobalCustomJoinThreadFn error");
       aPromise->MaybeRejectWithUndefined();
       return;
     }

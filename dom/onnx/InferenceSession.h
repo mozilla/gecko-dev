@@ -7,13 +7,13 @@
 #ifndef DOM_INFERENCESESSION_H_
 #define DOM_INFERENCESESSION_H_
 
-#include "mozilla/dom/BindingUtils.h"
 #include "js/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/IOUtilsBinding.h"
 #include "mozilla/dom/ONNXBinding.h"
-#include "mozilla/dom/UnionTypes.h"
 #include "nsISupports.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
