@@ -424,26 +424,32 @@ def setup_browsertime(config, tasks):
             "android.*": [
                 "linux64-cft-cd-backup",
                 "linux64-cft-cd-stable",
+                "linux64-cft-cd-beta",
             ],
             "linux.*": [
                 "linux64-cft-cd-backup",
                 "linux64-cft-cd-stable",
+                "linux64-cft-cd-beta",
             ],
             "macosx1470.*": [
                 "mac-cft-cd-backup",
                 "mac-cft-cd-stable",
+                "mac-cft-cd-beta",
             ],
             "macosx1400.*": [
                 "mac-cft-cd-arm-backup",
                 "mac-cft-cd-arm-stable",
+                "mac-cft-cd-arm-beta",
             ],
             "macosx1500.*": [
                 "mac-cft-cd-arm-backup",
                 "mac-cft-cd-arm-stable",
+                "mac-cft-cd-arm-beta",
             ],
             "windows.*-64.*": [
                 "win64-cft-cd-backup",
                 "win64-cft-cd-stable",
+                "win64-cft-cd-beta",
             ],
         }
 

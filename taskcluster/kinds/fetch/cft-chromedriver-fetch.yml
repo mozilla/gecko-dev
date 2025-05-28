@@ -13,7 +13,7 @@ linux64-cft-cd-canary:
         cached_task: false
     fetch:
         platform: linux
-        artifact-name: cft-cd-linux.tar.bz2
+        artifact-name: cft-cd-linux-canary.tar.bz2
         channel: Canary
 
 win64-cft-cd-canary:
@@ -22,7 +22,7 @@ win64-cft-cd-canary:
         cached_task: false
     fetch:
         platform: win64
-        artifact-name: cft-cd-win64.tar.bz2
+        artifact-name: cft-cd-win64-canary.tar.bz2
         channel: Canary
 
 mac-cft-cd-canary:
@@ -31,7 +31,7 @@ mac-cft-cd-canary:
         cached_task: false
     fetch:
         platform: mac
-        artifact-name: cft-cd-mac.tar.bz2
+        artifact-name: cft-cd-mac-canary.tar.bz2
         channel: Canary
 
 mac-cft-cd-arm-canary:
@@ -40,7 +40,7 @@ mac-cft-cd-arm-canary:
         cached_task: false
     fetch:
         platform: mac-arm
-        artifact-name: cft-cd-mac-arm.tar.bz2
+        artifact-name: cft-cd-mac-arm-canary.tar.bz2
         channel: Canary
 
 linux64-cft-cd-stable:
@@ -49,7 +49,7 @@ linux64-cft-cd-stable:
         cached_task: false
     fetch:
         platform: linux
-        artifact-name: cft-cd-linux.tar.bz2
+        artifact-name: cft-cd-linux-stable.tar.bz2
         channel: Stable
 
 win64-cft-cd-stable:
@@ -58,7 +58,7 @@ win64-cft-cd-stable:
         cached_task: false
     fetch:
         platform: win64
-        artifact-name: cft-cd-win64.tar.bz2
+        artifact-name: cft-cd-win64-stable.tar.bz2
         channel: Stable
 
 mac-cft-cd-stable:
@@ -67,7 +67,7 @@ mac-cft-cd-stable:
         cached_task: false
     fetch:
         platform: mac
-        artifact-name: cft-cd-mac.tar.bz2
+        artifact-name: cft-cd-mac-stable.tar.bz2
         channel: Stable
 
 mac-cft-cd-arm-stable:
@@ -76,7 +76,7 @@ mac-cft-cd-arm-stable:
         cached_task: false
     fetch:
         platform: mac-arm
-        artifact-name: cft-cd-mac-arm.tar.bz2
+        artifact-name: cft-cd-mac-arm-stable.tar.bz2
         channel: Stable
 
 linux64-cft-cd-backup:
@@ -114,3 +114,39 @@ mac-cft-cd-arm-backup:
         platform: mac-arm
         artifact-name: cft-cd-mac-arm-backup.tar.bz2
         backup: true
+
+linux64-cft-cd-beta:
+    description: 'Linux64 Chrome-for-Testing Chromedriver Fetch (beta channel)'
+    attributes:
+        cached_task: false
+    fetch:
+        platform: linux
+        artifact-name: cft-cd-linux-beta.tar.bz2
+        channel: Beta
+
+win64-cft-cd-beta:
+    description: 'Windows64 Chrome-for-Testing Chromedriver Fetch (beta channel)'
+    attributes:
+        cached_task: false
+    fetch:
+        platform: win64
+        artifact-name: cft-cd-win64-beta.tar.bz2
+        channel: Beta
+
+mac-cft-cd-beta:
+    description: 'MacOSX Chrome-for-Testing Chromedriver Fetch (beta channel)'
+    attributes:
+        cached_task: false
+    fetch:
+        platform: mac
+        artifact-name: cft-cd-mac-beta.tar.bz2
+        channel: Beta
+
+mac-cft-cd-arm-beta:
+    description: 'MacOS (arm) Chrome-for-Testing Chromedriver fetch (beta channel)'
+    attributes:
+        cached_task: false
+    fetch:
+        platform: mac-arm
+        artifact-name: cft-cd-mac-arm-beta.tar.bz2
+        channel: Beta
