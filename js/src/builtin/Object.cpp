@@ -554,11 +554,7 @@ static JSString* GetBuiltinTagSlow(JSContext* cx, HandleObject obj) {
       return cx->names().object_RegExp_;
     default:
       if (obj->isCallable()) {
-        // Non-standard: Prevent <object> from showing up as Function.
-        JSObject* unwrapped = CheckedUnwrapDynamic(obj, cx);
-        if (!unwrapped || !unwrapped->getClass()->isDOMClass()) {
-          return cx->names().object_Function_;
-        }
+        return cx->names().object_Function_;
       }
       return cx->names().object_Object_;
   }
@@ -611,8 +607,7 @@ static MOZ_ALWAYS_INLINE JSString* GetBuiltinTagFast(JSObject* obj,
     return cx->names().object_Error_;
   }
 
-  if (obj->isCallable() && !obj->getClass()->isDOMClass()) {
-    // Non-standard: Prevent <object> from showing up as Function.
+  if (obj->isCallable()) {
     return cx->names().object_Function_;
   }
 
