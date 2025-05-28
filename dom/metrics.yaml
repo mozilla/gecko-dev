@@ -24,6 +24,9 @@ perf:
       - perf-telemetry-alerts@mozilla.com
     expires: never
     telemetry_mirror: PERF_LARGEST_CONTENTFUL_PAINT_MS
+    metadata:
+      # Settings used for prototyping telemetry alerting
+      monitor: True
   largest_contentful_paint_from_response_start:
     type: timing_distribution
     time_unit: millisecond
