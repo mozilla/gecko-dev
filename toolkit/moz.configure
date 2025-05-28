@@ -2761,33 +2761,22 @@ with only_when(target_is_windows):
         }.get(target.cpu, target.cpu)
 
         dxc_name = "dxcompiler.dll"
-        dxil_name = "dxil.dll"
-        dxil_path = ""
-        if not artifact:
-            sdk_d3d_path = os.path.join(windows_sdk_dir.path, "Redist", "D3D", arch)
-            dxil_path = os.path.join(sdk_d3d_path, dxil_name)
-            if not os.path.exists(dxc_path):
-                die("Could not find dxcompiler.dll at {}", dxc_path)
-            if not os.path.exists(dxil_path):
-                die("Could not find dxil.dll at {}", dxil_path)
+        if not artifact and not os.path.exists(dxc_path):
+            die("Could not find dxcompiler.dll at {}", dxc_path)
 
         return namespace(
             enabled=True,
             from_sdk=not artifact,
             dxc_name=dxc_name,
             dxc_path=dxc_path,
-            dxil_name=dxil_name,
-            dxil_path=dxil_path,
         )
 
     with only_when(dxcompiler.enabled):
         set_config("MOZ_DXCOMPILER", True)
         set_define("MOZ_DXCOMPILER", 1)
         set_define("MOZ_DXC_DLL_NAME", dxcompiler.dxc_name)
-        set_define("MOZ_DXIL_DLL_NAME", dxcompiler.dxil_name)
         with only_when(dxcompiler.from_sdk):
             set_config("MOZ_DXC_DLL_PATH", dxcompiler.dxc_path)
-            set_config("MOZ_DXIL_DLL_PATH", dxcompiler.dxil_path)
 
 
 # Remoting protocol support

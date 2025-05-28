@@ -102,7 +102,6 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] in ("cocoa", "uikit"):
 if CONFIG["MOZ_DXCOMPILER"] and not CONFIG["MOZ_ARTIFACT_BUILDS"]:
     FINAL_TARGET_FILES += [
         "%" + CONFIG["MOZ_DXC_DLL_PATH"],
-        "%" + CONFIG["MOZ_DXIL_DLL_PATH"],
     ]
 
 if CONFIG["CC_TYPE"] in ("clang", "clang-cl"):
