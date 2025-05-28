@@ -1428,3 +1428,13 @@ def gen_jinja(output, input_filename):
     }
 
     tpl.stream(context).dump(output, encoding="utf-8")
+
+
+def error_list_json(output):
+    """
+    Export error_list.json, used by tools/ts to build lib.gecko.nsresult.d.ts.
+    """
+    import json
+
+    json.dump(errors, output, indent=2)
+    output.write("\n")

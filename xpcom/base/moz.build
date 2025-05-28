@@ -236,6 +236,7 @@ GeneratedFile(
     "ErrorNamesInternal.h", script="ErrorList.py", entry_point="error_names_internal_h"
 )
 GeneratedFile("error_list.rs", script="ErrorList.py", entry_point="error_list_rs")
+GeneratedFile("error_list.json", script="ErrorList.py", entry_point="error_list_json")
 
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
     SOURCES += [
