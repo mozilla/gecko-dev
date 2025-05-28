@@ -26,14 +26,14 @@ add_task(async function test_SUBMIT_ONBOARDING_OPT_OUT_PING() {
     }),
     "test"
   );
-  ExperimentAPI.manager.unenroll("foo");
+  await ExperimentAPI.manager.unenroll("foo");
   await ExperimentAPI.manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("bar", {
       featureId: "testFeature",
     }),
     "test"
   );
-  ExperimentAPI.manager.unenroll("bar");
+  await ExperimentAPI.manager.unenroll("bar");
   await ExperimentAPI.manager.enroll(
     NimbusTestUtils.factories.recipe.withFeatureConfig("baz", {
       featureId: "testFeature",
@@ -45,7 +45,7 @@ add_task(async function test_SUBMIT_ONBOARDING_OPT_OUT_PING() {
     NimbusTestUtils.factories.recipe("rol1", { isRollout: true }),
     "test"
   );
-  ExperimentAPI.manager.unenroll("rol1");
+  await ExperimentAPI.manager.unenroll("rol1");
   await ExperimentAPI.manager.enroll(
     NimbusTestUtils.factories.recipe("rol2", { isRollout: true }),
     "test"
