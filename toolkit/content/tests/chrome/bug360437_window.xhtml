@@ -34,7 +34,9 @@
     var is = window.arguments[0].is;
     var info = window.arguments[0].info;
 
-    function startTest() {
+    async function startTest() {
+      await SimpleTest.promiseFocus(window);
+
       (async function() {
         gFindBar = document.getElementById("FindToolbar");
         for (let browserId of ["content", "content-remote"]) {
@@ -71,14 +73,35 @@
 
       // Make sure "find again" correctly transfers focus to the content element
       // when the find bar is closed.
+
+      let focusPromise;
+      if (browserId == "content-remote") {
+        focusPromise = ContentTask.spawn(gBrowser, null, async function() {
+          await new Promise(resolve => {
+            content.document.addEventListener("focus", resolve, { once: true });
+          });
+        });
+      }
+
+      info("Wait for findbarclose");
       await new Promise(resolve => {
         window.addEventListener("findbarclose", resolve, { once: true });
         gFindBar.close();
       });
-      gFindBar.onFindAgainCommand(false);
+
+      info("Wait for document focus");
+      await focusPromise;
+
       await SpecialPowers.spawn(gBrowser, [], async function() {
         Assert.equal(content.document.activeElement,
          content.document.getElementById("input"), "Input Element isn't focused");
+      });
+
+      gFindBar.onFindAgainCommand(false);
+
+      await SpecialPowers.spawn(gBrowser, [], async function() {
+        Assert.equal(content.document.activeElement,
+         content.document.getElementById("input"), "Input Element isn't focused after find again");
       });
 
       // Make sure "find again" doesn't focus the content element if focus
