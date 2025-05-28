@@ -40,8 +40,7 @@
 
 .connect-section__content {
   line-height: 1.5;
-  padding-inline-start: calc(var(--base-unit) * 5
-    + var(--header-col-gap) + var(--icon-size));
+  padding-inline-start: calc(var(--base-unit) * 5 + var(--header-col-gap) + var(--icon-size));
   padding-inline-end: calc(var(--base-unit) * 5);
 }
 

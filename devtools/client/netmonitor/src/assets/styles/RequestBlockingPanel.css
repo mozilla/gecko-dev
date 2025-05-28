@@ -37,7 +37,7 @@
 }
 
 .request-blocking-editable-label {
-  cursor: text
+  cursor: text;
 }
 
 /* The "Enable Blocking Requests" bar */
@@ -176,5 +176,5 @@
 }
 
 .request-blocking-notice-element::before {
-  content:"• ";
+  content: "• ";
 }

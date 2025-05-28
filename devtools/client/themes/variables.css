@@ -8,19 +8,19 @@
  * the actual final (rgb) color, and not the declaration with subtituted variables
  */
 @property --theme-highlight-blue {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: transparent;
 }
 
 @property --theme-highlight-red {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: transparent;
 }
 
 @property --theme-body-color {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: transparent;
 }
@@ -42,7 +42,7 @@
   --theme-focus-outline-size: 2px;
   --theme-focus-outline: var(--theme-focus-outline-size) solid var(--theme-focus-outline-color);
   --theme-outline-offset: 0px;
-    /**
+  /**
    * we want the box shadow to be 2px bigger than the offset so we have a "double border"
    * (without it impacting the element layout), which should work whatever
    * the background-color is (e.g. a clickable element in a "selected" blue-background container)
@@ -60,7 +60,7 @@
    * with lower opacity than the 0.6 we apply on highlighter so this can be used as
    * background color without being too bold
    */
-  --dimmed-highlighter-box-content-color:hsl(197,71%,73%,.3);
+  --dimmed-highlighter-box-content-color: hsl(197, 71%, 73%, 0.3);
 
   /*
    * Photon Colors CSS Variables v3.3.2
@@ -246,12 +246,11 @@
   --theme-toolbarbutton-color: light-dark(var(--grey-70), var(--grey-40));
   --theme-toolbarbutton-hover-background: color-mix(in srgb, currentColor 14%, transparent);
   --theme-toolbarbutton-hover-color: var(--theme-toolbarbutton-color);
-  --theme-toolbarbutton-checked-background: color-mix(in srgb,var(--theme-toolbarbutton-checked-color) 5%,transparent);
+  --theme-toolbarbutton-checked-background: color-mix(in srgb, var(--theme-toolbarbutton-checked-color) 5%, transparent);
   --theme-toolbarbutton-checked-color: light-dark(var(--blue-60), var(--blue-30));
   --theme-toolbarbutton-checked-hover-background: var(--theme-toolbarbutton-hover-background);
   --theme-toolbarbutton-checked-hover-color: var(--theme-toolbarbutton-color);
-  --theme-toolbarbutton-active-background: color-mix(in srgb,var(--theme-toolbarbutton-checked-color) 20%,transparent);
-
+  --theme-toolbarbutton-active-background: color-mix(in srgb, var(--theme-toolbarbutton-checked-color) 20%, transparent);
 
   /* Used for select elements */
   /* Note: we don't use the pair of system properties Field/FieldText here (like
@@ -265,34 +264,17 @@
 
   /* Warning colors */
   --theme-warning-background: light-dark(hsl(54, 100%, 92%), hsl(42, 37%, 19%));
-  --theme-warning-border: light-dark(
-      /* Yellow 60 + opacity */
-      rgba(215, 182, 0, 0.28) ,
-      hsl(60, 30%, 26%)
-    );
+  --theme-warning-border: light-dark(/* Yellow 60 + opacity */ rgba(215, 182, 0, 0.28), hsl(60, 30%, 26%));
   --theme-warning-color: light-dark(var(--yellow-80), hsl(43, 94%, 81%));
 
   /* Error colors */
   --theme-error-background: light-dark(hsl(344, 73%, 97%), hsl(345, 23%, 24%));
-  --theme-error-border: light-dark(
-      rgb(from var(--red-60) r g b / 0.12),
-      hsl(345, 30%, 35%)
-    );
+  --theme-error-border: light-dark(rgb(from var(--red-60) r g b / 0.12), hsl(345, 30%, 35%));
   --theme-error-color: light-dark(var(--red-70), var(--red-20));
 
-/* Flashing colors used to highlight updates */
-  --theme-contrast-background: light-dark(
-    /* = Yellow 50-a40 on white */
-    #fff699,
-    /* = Yellow 50-a20 on body background */
-    #4f4b1f
-  );
-  --theme-contrast-background-alpha: light-dark(
-    /* Yellow 50-a40 */
-    rgba(255, 233, 0, 0.4),
-    /* Yellow 50-a15 */
-    rgba(255, 233, 0, 0.15)
-  );
+  /* Flashing colors used to highlight updates */
+  --theme-contrast-background: light-dark(/* = Yellow 50-a40 on white */ #fff699, /* = Yellow 50-a20 on body background */ #4f4b1f);
+  --theme-contrast-background-alpha: light-dark(/* Yellow 50-a40 */ rgba(255, 233, 0, 0.4), /* Yellow 50-a15 */ rgba(255, 233, 0, 0.15));
   --theme-contrast-color: light-dark(black, white);
   /* This is used for search/filter results underline and need to have a 3:1 contrast against the background */
   --theme-contrast-border: light-dark(var(--yellow-70), var(--yellow-65));
@@ -303,15 +285,15 @@
 
   &[forced-colors-active] {
     /* Color picked from HCM palette created by a11y team */
-    --theme-highlight-blue: light-dark(#0060DF, #00DDFF);
-    --theme-highlight-red: light-dark(#C50042, #FF9AA2);
-    --theme-highlight-green: light-dark(#005E5E, #3FE1B0);
-    --theme-highlight-purple: #952BB9;
-    --theme-highlight-purple-text: #F7E2FF;
-    --theme-highlight-yellow: light-dark(#FFFFCC, #FFEA80);
-    --theme-highlight-orange: light-dark(#CC3D00, #FFB587);
-    --theme-highlight-pink: light-dark(#FF9AA2, #FFDFE7);
-    --theme-highlight-gray: light-dark(#5B5B66, #F0F0F4);
+    --theme-highlight-blue: light-dark(#0060df, #00ddff);
+    --theme-highlight-red: light-dark(#c50042, #ff9aa2);
+    --theme-highlight-green: light-dark(#005e5e, #3fe1b0);
+    --theme-highlight-purple: #952bb9;
+    --theme-highlight-purple-text: #f7e2ff;
+    --theme-highlight-yellow: light-dark(#ffffcc, #ffea80);
+    --theme-highlight-orange: light-dark(#cc3d00, #ffb587);
+    --theme-highlight-pink: light-dark(#ff9aa2, #ffdfe7);
+    --theme-highlight-gray: light-dark(#5b5b66, #f0f0f4);
 
     --theme-body-background: Canvas;
 
@@ -367,7 +349,6 @@
     --theme-body-color: CanvasText;
     --theme-link-color: LinkText;
     --theme-internal-link-color: LinkText;
-
 
     --theme-focus-outline-color: CanvasText;
     --theme-focus-textinput-outline-color: SelectedItem;

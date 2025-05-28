@@ -7,16 +7,14 @@
  * Styles for React component at `devtools/client/shared/components/SmartTrace.js`
  */
 
-
-.frames-group .frame{
+.frames-group .frame {
   display: block;
   padding-inline-start: 16px;
 }
 
-.img.annotation-logo{
+.img.annotation-logo {
   background-color: var(--theme-body-color);
 }
-
 
 .frames .top-frames-list[role="listbox"] {
   display: inline-grid;
@@ -68,7 +66,7 @@
 
 /******* Group styles *******/
 .frames-group {
-  grid-column:1 / -1;
+  grid-column: 1 / -1;
 }
 
 .frames .frames-group {
@@ -151,15 +149,15 @@
 }
 
 .frames-group .img.arrow {
-    mask: url("chrome://devtools/content/debugger/images/arrow.svg");
-    margin-inline-end: 4px;
-    background-color: var(--theme-icon-dimmed-color);
-    width: 10px;
-    height: 10px;
-    mask-size: 100%;
-    display: inline-block;
-    transform: rotate(-90deg);
-    transition: transform 0.18s ease;
+  mask: url("chrome://devtools/content/debugger/images/arrow.svg");
+  margin-inline-end: 4px;
+  background-color: var(--theme-icon-dimmed-color);
+  width: 10px;
+  height: 10px;
+  mask-size: 100%;
+  display: inline-block;
+  transform: rotate(-90deg);
+  transition: transform 0.18s ease;
 }
 
 .frames-group .img.arrow.expanded {

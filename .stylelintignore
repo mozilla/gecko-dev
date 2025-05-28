@@ -41,12 +41,18 @@ devtools/client/debugger/test/mochitest/examples/
 # no errors at all.
 devtools/client/inspector/rules/test/doc_sourcemaps.css
 
+# This is intended to simulate a css file generated from a scss file in order to
+# test sourcemaps.
+devtools/client/inspector/rules/test/doc_sourcemaps2.css
+
 # Some of these produce parse errors, some have sourcemaps modified.
 # They're tests, so let's just ignore all of them:
 devtools/client/inspector/computed/test/doc_sourcemaps.css
 devtools/client/inspector/rules/test/doc_invalid_sourcemap.css
 devtools/client/shared/sourceeditor/test/css_statemachine_testcases.css
 devtools/client/webconsole/test/browser/*.css
+devtools/shared/commands/resource/tests/style_iframe.css
+devtools/shared/commands/resource/tests/style_document.css
 
 # Style editor tests check how it copes with invalid or "special" CSS,
 # so don't try to "fix" those.
@@ -96,4 +102,3 @@ toolkit/components/pdfjs/content/web/viewer-geckoview.css
 
 # Ignore web-platform tests as they are not necessarily under our control.
 testing/web-platform/tests/
-

@@ -10,7 +10,7 @@
   --bezier-curve-width: 150px;
   --bezier-curve-height: 330px;
   --bezier-preview-height: 40px;
-  --bezier-tooltip-container-height:  calc(var(--bezier-curve-height) + var(--bezier-preview-height));
+  --bezier-tooltip-container-height: calc(var(--bezier-curve-height) + var(--bezier-preview-height));
   display: grid;
   grid-template-areas:
     "presets curve"
@@ -68,9 +68,10 @@
      is a registered property, so the engine will compute it to an rgb color,
      which means it won't be seen as a system color in High Contrast Mode
      and a default color would be used. */
-     forced-color-adjust: none;
+  forced-color-adjust: none;
 }
 
+/* prettier-ignore */
 .cubic-bezier-container .display-wrap {
   background:
   repeating-linear-gradient(0deg,
@@ -120,7 +121,7 @@
   height: 1px;
   background-color: var(--timing-function-preview-scale);
   /* opt-out of forced colors so we can see the line in High Contrast Mode */
-    forced-color-adjust: none;
+  forced-color-adjust: none;
 }
 
 .cubic-bezier-container .timing-function-preview .dot {

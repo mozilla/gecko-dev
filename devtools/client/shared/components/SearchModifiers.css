@@ -47,7 +47,7 @@
   background-image: url(chrome://devtools/content/debugger/images/case-match.svg);
 }
 
-.search-modifiers button  > span.regex-match {
+.search-modifiers button > span.regex-match {
   background-image: url(chrome://devtools/content/debugger/images/regex-match.svg);
 }
 

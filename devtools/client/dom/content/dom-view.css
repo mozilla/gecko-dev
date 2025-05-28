@@ -78,11 +78,11 @@ body {
 }
 
 .treeTable .userClassLabel {
-  color: #E90000;
+  color: #e90000;
 }
 
 .treeTable .userFunctionLabel {
-  color: #025E2A;
+  color: #025e2a;
 }
 
 .treeTable .domLabel {
@@ -90,11 +90,11 @@ body {
 }
 
 .treeTable .domClassLabel {
-  color: #E90000;
+  color: #e90000;
 }
 
 .treeTable .domFunctionLabel {
-  color: #025E2A;
+  color: #025e2a;
 }
 
 .treeTable .ordinalLabel {

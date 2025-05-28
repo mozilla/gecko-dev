@@ -22,7 +22,7 @@
   --base-line-height: 1.8;
   --list-line-height: 1.25;
 
- /* Global colours */
+  /* Global colours */
   --separator-color: var(--theme-splitter-color);
   --bg-color: var(--theme-toolbar-background);
   --highlight-color: var(--theme-toolbar-background-hover);

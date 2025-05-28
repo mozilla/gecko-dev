@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-.network-monitor .tabpanel-summary-container:is(.http-custom-section, .http-custom-method-and-url, .http-custom-input ) {
+.network-monitor .tabpanel-summary-container:is(.http-custom-section, .http-custom-method-and-url, .http-custom-input) {
   padding-inline-start: 0;
   margin: 0;
 }
@@ -193,8 +193,10 @@
 }
 
 .network-monitor .http-custom-request-button-container button:focus {
-  box-shadow: 0 0 0 1px #0a84ff inset, 0 0 0 1px #0a84ff,
-  0 0 0 4px rgba(10,132,255,0.3)
+  box-shadow:
+    0 0 0 1px #0a84ff inset,
+    0 0 0 1px #0a84ff,
+    0 0 0 4px rgba(10, 132, 255, 0.3);
 }
 
 .network-monitor .http-custom-request-button-container #http-custom-request-send-button {

@@ -94,7 +94,7 @@
 .breakpoints-list .breakpoint,
 .breakpoints-list .breakpoint-heading,
 .breakpoints-options {
-  border-inline-start: 4px solid transparent
+  border-inline-start: 4px solid transparent;
 }
 
 html .breakpoints-list .breakpoint.is-conditional {

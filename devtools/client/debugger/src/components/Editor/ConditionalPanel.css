@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
- /* CodeMirror 6 block widgets can't have margin, so we put a padding on a container element */
+/* CodeMirror 6 block widgets can't have margin, so we put a padding on a container element */
 .conditional-breakpoint-panel-container {
   padding-block: 1em;
 }

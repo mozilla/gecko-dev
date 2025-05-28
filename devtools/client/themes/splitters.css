@@ -8,7 +8,7 @@
 /* Splitters */
 
 :root {
-  --devtools-splitter-color: #e0e0e2  /* --grey-25 */;
+  --devtools-splitter-color: #e0e0e2 /* --grey-25 */;
   /* Use :where() so we don't get a higher specificity for this rule */
   &:where([devtoolstheme="dark"]) {
     --devtools-splitter-color: #38383d /* --grey-70 */;
@@ -30,20 +30,20 @@
 
   --devtools-splitter-top-width: 2px;
   --devtools-splitter-bottom-width: 2px;
-  --devtools-horizontal-splitter-min-height: calc(var(--devtools-splitter-top-width) +
-                                                  var(--devtools-splitter-bottom-width) +
-                                                  var(--devtools-splitter-element-size));
-  --devtools-emphasized-horizontal-splitter-min-height: calc(var(--devtools-splitter-top-width) +
-                                                             var(--devtools-splitter-bottom-width) +
-                                                             var(--devtools-emphasized-splitter-element-size));
+  --devtools-horizontal-splitter-min-height: calc(
+    var(--devtools-splitter-top-width) + var(--devtools-splitter-bottom-width) + var(--devtools-splitter-element-size)
+  );
+  --devtools-emphasized-horizontal-splitter-min-height: calc(
+    var(--devtools-splitter-top-width) + var(--devtools-splitter-bottom-width) + var(--devtools-emphasized-splitter-element-size)
+  );
 
   /* Small draggable area on inline-start to avoid overlaps on scrollbars.*/
   --devtools-splitter-inline-start-width: 1px;
   --devtools-splitter-inline-end-width: 4px;
 
-  --devtools-vertical-splitter-min-width: calc(var(--devtools-splitter-inline-start-width) +
-                                               var(--devtools-splitter-inline-end-width) +
-                                               var(--devtools-splitter-element-size));
+  --devtools-vertical-splitter-min-width: calc(
+    var(--devtools-splitter-inline-start-width) + var(--devtools-splitter-inline-end-width) + var(--devtools-splitter-element-size)
+  );
 }
 
 splitter.devtools-horizontal-splitter,
@@ -64,7 +64,7 @@ splitter.devtools-horizontal-splitter,
   /* opt-out of forced colors because the transparent borders are turned into
      opaque ones in High Contrast Mode. --devtools-splitter-color has specific value
      in High Contrast Mode so we should be fine */
-     forced-color-adjust: none;
+  forced-color-adjust: none;
 }
 
 splitter.devtools-horizontal-splitter {

@@ -13,19 +13,16 @@
 
   /* Colors for timing markers */
   --timing-marker-color-opacity: 0.75;
+  /* prettier-ignore */
   --timing-marker-dom-content-loaded-color:
     rgb(
       from var(--theme-highlight-blue) r g b /
       var(--timing-marker-color-opacity)
     );
-  --timing-marker-load-color:
-    rgb(
-      from var(--theme-highlight-red) r g b /
-      var(--timing-marker-color-opacity)
-    );
+  --timing-marker-load-color: rgb(from var(--theme-highlight-red) r g b / var(--timing-marker-color-opacity));
 
   --table-splitter-color: light-dark(var(--grey-20), var(--grey-70));
-  --table-zebra-background: light-dark(rgba(247, 247, 247, 0.8), rgba(255,255,255,0.05));
+  --table-zebra-background: light-dark(rgba(247, 247, 247, 0.8), rgba(255, 255, 255, 0.05));
   --table-zebra-inline-icons-background: light-dark(rgba(247, 247, 247), rgb(49, 47, 47));
   --table-selection-background-hover: light-dark(rgba(209, 232, 255, 0.8), rgba(53, 59, 72, 1));
   --table-selection-inline-icons-background-hover: light-dark(rgba(209, 232, 255), rgba(53, 59, 72, 1));
@@ -34,6 +31,7 @@
   --timing-dns-color: rgba(223, 128, 255, 0.8); /* pink */
   --timing-ssl-color: rgba(217, 102, 41, 0.8); /* orange */
   --timing-connect-color: rgba(217, 102, 41, 0.8); /* orange */
+  /* prettier-ignore */
   --timing-send-color: light-dark(
       rgba(0, 136, 204, 0.8), /* blue */
       rgba(70, 175, 227, 0.8) /* light blue */
@@ -53,7 +51,7 @@
     --timing-dns-color: var(--theme-highlight-purple);
     --timing-ssl-color: var(--theme-highlight-orange);
     --timing-connect-color: var(--theme-highlight-orange);
-    --timing-send-color:var(--theme-highlight-blue);
+    --timing-send-color: var(--theme-highlight-blue);
     --timing-wait-color: var(--theme-highlight-gray);
     --timing-receive-color: var(--theme-highlight-green);
 

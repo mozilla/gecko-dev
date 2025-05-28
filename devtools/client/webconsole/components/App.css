@@ -64,12 +64,13 @@ body {
      *   rows/columns to "auto" to make them collapse when the element
      *   they contain is hidden.
     */
-  grid-template-areas: "chrome-debug-toolbar     chrome-debug-toolbar"
-                       "filter-toolbar           sidebar"
-                       "filter-toolbar-secondary sidebar"
-                       "output-input             sidebar"
-                       "eval-notification        sidebar"
-                       "reverse-search           sidebar";
+  grid-template-areas:
+    "chrome-debug-toolbar     chrome-debug-toolbar"
+    "filter-toolbar           sidebar"
+    "filter-toolbar-secondary sidebar"
+    "output-input             sidebar"
+    "eval-notification        sidebar"
+    "reverse-search           sidebar";
   grid-template-rows: auto var(--primary-toolbar-height) auto 1fr auto auto;
   grid-template-columns: minmax(200px, 1fr) minmax(0, auto);
   max-height: 100vh !important;
@@ -154,12 +155,7 @@ body {
   --jsterm-border-width: 0;
   --jsterm-padding-top: 0;
   --jsterm-padding-bottom: 0;
-  min-height: calc(
-    var(--console-row-height) +
-    var(--jsterm-border-width) +
-    var(--jsterm-padding-top) +
-    var(--jsterm-padding-bottom)
-  );
+  min-height: calc(var(--console-row-height) + var(--jsterm-border-width) + var(--jsterm-padding-top) + var(--jsterm-padding-bottom));
   padding-top: var(--jsterm-padding-top);
   padding-bottom: var(--jsterm-padding-bottom);
   border-top-color: var(--theme-splitter-color);
@@ -183,7 +179,7 @@ body {
 }
 
 .webconsole-input-openEditorButton {
-    /* adjust outline offset so it's not clipped */
+  /* adjust outline offset so it's not clipped */
   --theme-outline-offset: -2px;
   height: var(--console-row-height);
   margin: 0;
@@ -291,14 +287,15 @@ body {
      *   rows/columns to "auto" to make them collapse when the element
      *   they contain is hidden.
      */
-  grid-template-areas: "chrome-debug-toolbar  chrome-debug-toolbar      chrome-debug-toolbar"
-                       "notification          notification              notification"
-                       "editor-toolbar        filter-toolbar            sidebar"
-                       "editor                filter-toolbar-secondary  sidebar"
-                       "editor                output                    sidebar"
-                       "eager-evaluation      output                    sidebar"
-                       "eval-notification     output                    sidebar"
-                       "reverse-search        output                    sidebar";
+  grid-template-areas:
+    "chrome-debug-toolbar  chrome-debug-toolbar      chrome-debug-toolbar"
+    "notification          notification              notification"
+    "editor-toolbar        filter-toolbar            sidebar"
+    "editor                filter-toolbar-secondary  sidebar"
+    "editor                output                    sidebar"
+    "eager-evaluation      output                    sidebar"
+    "eval-notification     output                    sidebar"
+    "reverse-search        output                    sidebar";
   grid-template-rows:
     auto
     auto
@@ -347,7 +344,6 @@ body {
   display: flex;
   align-items: center;
 }
-
 
 .jsterm-editor .webconsole-editor-toolbar .webconsole-editor-toolbar-executeButton::before {
   content: url("chrome://devtools/skin/images/webconsole/run.svg");

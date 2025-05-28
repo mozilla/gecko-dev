@@ -22,10 +22,11 @@
   grid-template-columns: calc(var(--base-unit) * 8) 1fr max-content;
   grid-template-rows: 1fr minmax(0, auto) auto;
   grid-column-gap: calc(var(--base-unit) * 2);
-  grid-template-areas: "icon               name               action"
-                       "icon               subname            action"
-                       "detail             detail             detail"
-                       "additional_actions additional_actions additional_actions";
+  grid-template-areas:
+    "icon               name               action"
+    "icon               subname            action"
+    "detail             detail             detail"
+    "additional_actions additional_actions additional_actions";
   margin-block-end: calc(var(--base-unit) * 4);
 
   padding-block: calc(var(--base-unit) * 3) calc(var(--base-unit) * 2);

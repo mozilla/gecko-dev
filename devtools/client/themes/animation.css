@@ -183,7 +183,7 @@ select.playback-rate-selector.devtools-button:not(:empty, :disabled, .checked):h
 }
 
 .animation-item:dir(rtl).animation-target {
-  right:0;
+  right: 0;
 }
 
 /* Reps component */
@@ -204,7 +204,7 @@ select.playback-rate-selector.devtools-button:not(:empty, :disabled, .checked):h
   flex: none;
 }
 
-.animation-target .objectBox .highlight-node:hover{
+.animation-target .objectBox .highlight-node:hover {
   fill: var(--theme-icon-color);
 }
 
@@ -251,7 +251,7 @@ select.playback-rate-selector.devtools-button:not(:empty, :disabled, .checked):h
 }
 
 .animation-summary-graph:dir(rtl) .animation-summary-graph-path {
-  transform: scaleX(-1.0);
+  transform: scaleX(-1);
 }
 
 .animation-computed-timing-path path {
@@ -262,7 +262,7 @@ select.playback-rate-selector.devtools-button:not(:empty, :disabled, .checked):h
   transform: scale(1, -1);
 }
 
-.animation-computed-timing-path path.infinity:nth-child(n+2) {
+.animation-computed-timing-path path.infinity:nth-child(n + 2) {
   opacity: 0.3;
 }
 
@@ -274,7 +274,7 @@ select.playback-rate-selector.devtools-button:not(:empty, :disabled, .checked):h
   vector-effect: non-scaling-stroke;
 }
 
-.animation-effect-timing-path path.infinity:nth-child(n+2) {
+.animation-effect-timing-path path.infinity:nth-child(n + 2) {
   opacity: 0.3;
 }
 
@@ -375,7 +375,7 @@ select.playback-rate-selector.devtools-button:not(:empty, :disabled, .checked):h
   paint-order: stroke;
   stroke: var(--theme-body-background);
   stroke-linejoin: round;
-  stroke-opacity: .5;
+  stroke-opacity: 0.5;
   stroke-width: 4;
   text-anchor: end;
 }
@@ -385,7 +385,7 @@ select.playback-rate-selector.devtools-button:not(:empty, :disabled, .checked):h
 }
 
 .animation-summary-graph:dir(rtl) .animation-name {
-  right:0;
+  right: 0;
 }
 
 /* Animation Detail */
@@ -509,7 +509,7 @@ select.playback-rate-selector.devtools-button:not(:empty, :disabled, .checked):h
 }
 
 .keyframes-graph:dir(rtl) .keyframes-graph-path {
-  transform: scaleX(-1.0);
+  transform: scaleX(-1);
 }
 
 .keyframes-graph-path {

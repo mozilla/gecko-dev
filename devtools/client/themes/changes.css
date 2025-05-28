@@ -20,9 +20,9 @@
 
 :root.theme-dark {
   --diff-add-background-color: rgba(18, 188, 0, 0.15);
-  --diff-add-text-color: #12BC00;
+  --diff-add-text-color: #12bc00;
   --diff-remove-background-color: rgba(255, 0, 57, 0.15);
-  --diff-remove-text-color: #FF0039;
+  --diff-remove-text-color: #ff0039;
   --diff-source-background: #222225;
 }
 
@@ -73,8 +73,7 @@
   padding-top: 3px;
   padding-right: 5px;
   padding-bottom: 3px;
-  padding-left: calc(var(--diff-level-min-offset) +
-                     var(--diff-level-offset) * var(--diff-level));
+  padding-left: calc(var(--diff-level-min-offset) + var(--diff-level-offset) * var(--diff-level));
 }
 
 #sidebar-panel-changes .changes__toolbar {
@@ -132,8 +131,7 @@
    */
   background-blend-mode: overlay;
   background-color: var(--theme-button-background);
-  background-image:
-    linear-gradient(var(--theme-sidebar-background), var(--theme-sidebar-background));
+  background-image: linear-gradient(var(--theme-sidebar-background), var(--theme-sidebar-background));
   border-radius: 8px;
   border: none;
   color: var(--theme-body-color);

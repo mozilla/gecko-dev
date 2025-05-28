@@ -62,16 +62,17 @@
    * The solution is to make the line number take the whole gutters element width,
    * using a pseudo-element so it will widen the :hover target for line number elements.
    */
+  /* prettier-ignore */
   :is(
     &:not(.cm6-gutter-breakpoint),
     &.cm6-gutter-breakpoint .breakpoint-marker
-    )::after {
-      content: "";
-      position: absolute;
-      height: 1lh;
-      right: 0;
-      left: 0;
-    }
+  )::after {
+    content: "";
+    position: absolute;
+    height: 1lh;
+    right: 0;
+    left: 0;
+  }
 }
 
 /* CodeMirror puts a padding on the line gutter, but we want the breakpoint to take the whole gutter */
@@ -118,9 +119,7 @@
 }
 /* End CM6 */
 
-.editor-wrapper :not(.new-breakpoint)
-  > .CodeMirror-gutter-wrapper
-  > .CodeMirror-linenumber:hover::after {
+.editor-wrapper :not(.new-breakpoint) > .CodeMirror-gutter-wrapper > .CodeMirror-linenumber:hover::after {
   content: "";
   position: absolute;
   /* paint below the number */
@@ -131,8 +130,7 @@
   bottom: 0;
   height: 15px;
   background-color: var(--gutter-hover-background-color);
-  mask: url(chrome://devtools/content/debugger/images/breakpoint.svg)
-    no-repeat;
+  mask: url(chrome://devtools/content/debugger/images/breakpoint.svg) no-repeat;
   mask-size: auto 15px;
   mask-position: right;
 }

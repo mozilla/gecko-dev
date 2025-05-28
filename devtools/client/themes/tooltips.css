@@ -22,14 +22,14 @@
  * Since they're defined in :root with light-dark(), we need to register them so we'll get
  * the actual final (rgb) color, and not the declaration with substituted variables
  */
- @property --bezier-diagonal-color {
-  syntax: '<color>';
+@property --bezier-diagonal-color {
+  syntax: "<color>";
   inherits: true;
   initial-value: transparent;
 }
 
 @property --timing-function-control-point-background {
-  syntax: '<color>';
+  syntax: "<color>";
   inherits: true;
   initial-value: transparent;
 }
@@ -39,7 +39,7 @@
 
   --bezier-diagonal-color: light-dark(rgba(0, 0, 0, 0.2), #eee);
   --timing-function-grid-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1));
-  --timing-function-line-color: #4C9ED9;
+  --timing-function-line-color: #4c9ed9;
   --timing-function-preview-scale: light-dark(var(--grey-43), var(--grey-40));
   --timing-function-preview-dot-border: white;
   --timing-function-control-point-background: light-dark(var(--grey-55), var(--grey-20));
@@ -54,10 +54,10 @@
   --theme-arrowpanel-background: var(--theme-popup-background);
   --theme-arrowpanel-color: var(--theme-popup-color);
   --theme-arrowpanel-border-color: var(--theme-popup-border-color);
-  --theme-arrowpanel-separator: light-dark(ThreeDShadow, rgba(249,249,250,.1));
-  --theme-arrowpanel-active-background: light-dark(hsla(0,0%,80%,.45), rgba(249,249,250,.15));
+  --theme-arrowpanel-separator: light-dark(ThreeDShadow, rgba(249, 249, 250, 0.1));
+  --theme-arrowpanel-active-background: light-dark(hsla(0, 0%, 80%, 0.45), rgba(249, 249, 250, 0.15));
   --theme-arrowpanel-active-outline-color: transparent;
-  --theme-arrowpanel-disabled-color: light-dark(GrayText, rgba(249,249,250,.5));
+  --theme-arrowpanel-disabled-color: light-dark(GrayText, rgba(249, 249, 250, 0.5));
 
   &[forced-colors-active] {
     /* The active state have a different background but with an outline in HCM */
@@ -72,6 +72,7 @@
        work even if we don't have a resulting system color, as the
        consumers of this variable already need to opt out of forced colors
        so it can be used in the background gradient */
+    /* prettier-ignore */
     --timing-function-grid-color: light-dark(
       /* In light mode, the grid appears much more contrasted, so lower the opacity even more */
       rgb(from GrayText r g b / 0.4),
@@ -85,7 +86,7 @@
 }
 
 :root[platform="mac"].theme-light {
-  --theme-arrowpanel-separator: hsla(210,4%,10%,.14);
+  --theme-arrowpanel-separator: hsla(210, 4%, 10%, 0.14);
 }
 
 /*
@@ -95,8 +96,9 @@
   Unset the color-scheme on those element so it uses the one we set on :root in common.css,
   which matches our light/dark theme.
 */
-menupopup, panel {
-  color-scheme: unset
+menupopup,
+panel {
+  color-scheme: unset;
 }
 
 strong {
@@ -149,7 +151,8 @@ strong {
       margin: 0;
     }
 
-    dt,dd {
+    dt,
+    dd {
       display: inline;
     }
 
@@ -166,7 +169,6 @@ strong {
   }
 }
 
-
 /* Tooltip: Compatibility tooltip */
 
 .devtools-tooltip-css-compatibility {
@@ -181,7 +183,6 @@ strong {
   /* helps the JS Context selector to have scrollbars when content exceed the vertical size of the popup */
   overflow-y: auto;
 }
-
 
 /* Tooltip: Inactive CSS tooltip */
 
@@ -270,15 +271,17 @@ strong {
   color: var(--theme-highlight-red);
 }
 
-
 /* Tooltip: Tiles */
 
 .devtools-tooltip-tiles {
   background-color: #eee;
-  background-image: linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc),
+  background-image:
+    linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc),
     linear-gradient(45deg, #ccc 25%, transparent 25%, transparent 75%, #ccc 75%, #ccc);
   background-size: 20px 20px;
-  background-position: 0 0, 10px 10px;
+  background-position:
+    0 0,
+    10px 10px;
 }
 
 .tooltip-container {
@@ -470,7 +473,7 @@ strong {
     background: var(--theme-arrowpanel-background);
     border: 1px solid var(--theme-arrowpanel-border-color);
     border-radius: var(--theme-arrowpanel-border-radius);
-    box-shadow: 0 0 4px hsla(210,4%,10%,.2);
+    box-shadow: 0 0 4px hsla(210, 4%, 10%, 0.2);
   }
 
   > .tooltip-arrow {
@@ -576,15 +579,15 @@ strong {
       --theme-outline-offset: -2px;
     }
 
-    &:not([disabled],[open],:active):hover {
+    &:not([disabled], [open], :active):hover {
       background-color: var(--theme-popup-hover-background);
       color: var(--theme-popup-hover-color);
     }
 
-    &:not([disabled]):is([open],:hover:active) {
+    &:not([disabled]):is([open], :hover:active) {
       background-color: var(--theme-arrowpanel-active-background);
       color: var(--theme-arrowpanel-active-color);
-      box-shadow: 0 1px 0 hsla(210,4%,10%,.03) inset;
+      box-shadow: 0 1px 0 hsla(210, 4%, 10%, 0.03) inset;
       outline: 1px solid var(--theme-arrowpanel-active-outline-color);
     }
 
@@ -621,11 +624,7 @@ strong {
   }
 
   /* Use :where to avoid having a high specificity that would take over the rule above */
-  .menuitem > button.command:where(
-    [role="menuitem"],
-    [role="menuitemcheckbox"],
-    [role="link"]
-  ) {
+  .menuitem > button.command:where([role="menuitem"], [role="menuitemcheckbox"], [role="link"]) {
     appearance: none;
     border: none;
     background-color: transparent;
@@ -889,7 +888,7 @@ strong {
   flex: 1;
   padding: var(--image-tooltip-image-padding);
   justify-content: center;
-  min-height: 1px
+  min-height: 1px;
 }
 
 .devtools-tooltip-image {
@@ -911,7 +910,7 @@ strong {
 
 .invoke-confirm {
   color: var(--theme-popup-color);
-  border: 1px solid rgba(0,0,0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   max-width: 212px;
 }
 
@@ -1024,7 +1023,7 @@ strong {
 /* Indent the content script items */
 .webconsole-evaluation-selector-item.indented::before {
   content: "\2514\2500" !important;
-  z-index:1000;
+  z-index: 1000;
   margin-inline-start: 20px;
 }
 .checkbox-container .menuitem > .command.indented > .label {

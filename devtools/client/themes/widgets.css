@@ -5,15 +5,15 @@
 @import url(chrome://devtools/skin/breadcrumbs.css);
 
 .theme-dark {
-  --table-splitter-color: rgba(255,255,255,0.15);
-  --table-zebra-background: rgba(255,255,255,0.05);
+  --table-splitter-color: rgba(255, 255, 255, 0.15);
+  --table-zebra-background: rgba(255, 255, 255, 0.05);
   --sidemenu-selected-arrow: url(images/item-arrow-dark-ltr.svg);
   --sidemenu-selected-arrow-rtl: url(images/item-arrow-dark-rtl.svg);
 }
 
 .theme-light {
-  --table-splitter-color: rgba(0,0,0,0.15);
-  --table-zebra-background: rgba(0,0,0,0.05);
+  --table-splitter-color: rgba(0, 0, 0, 0.15);
+  --table-zebra-background: rgba(0, 0, 0, 0.05);
   --sidemenu-selected-arrow: url(images/item-arrow-ltr.svg);
   --sidemenu-selected-arrow-rtl: url(images/item-arrow-rtl.svg);
 }
@@ -68,8 +68,7 @@
   .devtools-responsive-container > .devtools-side-splitter {
     /* This is a normally vertical splitter, but we have turned it horizontal
        due to the smaller resolution */
-    min-height: calc(var(--devtools-splitter-top-width) +
-    var(--devtools-splitter-bottom-width) + 1px);
+    min-height: calc(var(--devtools-splitter-top-width) + var(--devtools-splitter-bottom-width) + 1px);
     border-top-width: var(--devtools-splitter-top-width);
     border-bottom-width: var(--devtools-splitter-bottom-width);
     margin-top: calc(-1 * var(--devtools-splitter-top-width) - 1px);
@@ -139,7 +138,7 @@
 
 /* Custom scope stylings */
 
-.variables-view-watch-expressions .title > .name  {
+.variables-view-watch-expressions .title > .name {
   max-width: 14em;
 }
 
@@ -258,17 +257,20 @@
   color: inherit;
   text-align: start;
   font-weight: inherit !important;
-  border-image: linear-gradient(transparent 15%,
-                                var(--theme-splitter-color) 15%,
-                                var(--theme-splitter-color) 85%,
-                                transparent 85%,
-                                transparent calc(100% - 1px),
-                                var(--theme-splitter-color) calc(100% - 1px)) 1 1;
+  border-image: linear-gradient(
+      transparent 15%,
+      var(--theme-splitter-color) 15%,
+      var(--theme-splitter-color) 85%,
+      transparent 85%,
+      transparent calc(100% - 1px),
+      var(--theme-splitter-color) calc(100% - 1px)
+    )
+    1 1;
   background-repeat: no-repeat;
 }
 
 .table-widget-column-header:not([sorted]):hover {
-  background-image: linear-gradient(rgba(0,0,0,0.1),rgba(0,0,0,0.1));
+  background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
 }
 
 .table-widget-column-header[sorted] {
@@ -283,20 +285,20 @@
   background-position: 6px center;
 }
 
-.table-widget-column-header[sorted=ascending] {
+.table-widget-column-header[sorted="ascending"] {
   background-image: url("chrome://devtools/skin/images/sort-ascending-arrow.svg");
 }
 
-.table-widget-column-header[sorted=descending] {
+.table-widget-column-header[sorted="descending"] {
   background-image: url("chrome://devtools/skin/images/sort-descending-arrow.svg");
 }
 
 .theme-dark .table-widget-column[readonly] {
-  background-color: rgba(255,255,255,0.1);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .theme-light .table-widget-column[readonly] {
-  background-color: rgba(0,0,0,0.1);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 .table-widget-body .devtools-side-splitter:last-of-type {

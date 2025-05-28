@@ -6,18 +6,18 @@
   --position-text-color: light-dark(var(--grey-90), var(--grey-30));
   --position-border-color: light-dark(var(--grey-50), var(--grey-40));
 
-  --margin-box-color: light-dark(#FDFFDF, #73764A);
+  --margin-box-color: light-dark(#fdffdf, #73764a);
   --margin-box-text-color: light-dark(var(--grey-90), var(--grey-10));
-  --margin-box-border-color: light-dark(#D8E60A, #BDCA00);
+  --margin-box-border-color: light-dark(#d8e60a, #bdca00);
 
   --border-box-color: light-dark(var(--grey-50), var(--grey-70));
   --border-box-text-color: light-dark(var(--theme-selection-color), var(--grey-10));
 
-  --padding-box-color: light-dark(#E3DCFF, #6657A6);
+  --padding-box-color: light-dark(#e3dcff, #6657a6);
   --padding-box-text-color: light-dark(var(--grey-90), var(--grey-10));
 
-  --content-box-color: light-dark(#CFF0FB, #407AA4);
-  --content-box-border-color: light-dark(#54A9FF, #00B8FF);
+  --content-box-color: light-dark(#cff0fb, #407aa4);
+  --content-box-border-color: light-dark(#54a9ff, #00b8ff);
 
   --box-border-width: 1px;
 

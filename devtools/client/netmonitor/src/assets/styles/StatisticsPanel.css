@@ -83,31 +83,31 @@ path[data-statistic-name] {
   fill: var(--stat-color);
 }
 
-[data-statistic-name=html] {
+[data-statistic-name="html"] {
   --stat-color: var(--theme-highlight-bluegrey);
 }
 
-[data-statistic-name=css] {
+[data-statistic-name="css"] {
   --stat-color: var(--theme-highlight-blue);
 }
 
-[data-statistic-name=js] {
+[data-statistic-name="js"] {
   --stat-color: var(--theme-highlight-lightorange);
 }
 
-[data-statistic-name=xhr] {
+[data-statistic-name="xhr"] {
   --stat-color: var(--theme-highlight-orange);
 }
 
-[data-statistic-name=fonts] {
+[data-statistic-name="fonts"] {
   --stat-color: var(--theme-highlight-purple);
 }
 
-[data-statistic-name=images] {
+[data-statistic-name="images"] {
   --stat-color: var(--theme-highlight-pink);
 }
 
-[data-statistic-name=media] {
+[data-statistic-name="media"] {
   --stat-color: var(--theme-highlight-green);
 }
 
@@ -118,22 +118,22 @@ path[data-statistic-name] {
   text-align: center;
 }
 
-.table-chart-row-label[name=count] {
+.table-chart-row-label[name="count"] {
   width: 3em;
   text-align: end;
 }
 
-.table-chart-row-label[name=label] {
+.table-chart-row-label[name="label"] {
   width: 7em;
   text-align: start;
 }
 
-.table-chart-row-label[name=size] {
+.table-chart-row-label[name="size"] {
   width: 7em;
   text-align: start;
 }
 
-.table-chart-row-label[name=time] {
+.table-chart-row-label[name="time"] {
   width: 7em;
   text-align: start;
 }
@@ -162,15 +162,15 @@ path[data-statistic-name] {
   }
 
   .statistics-panel .charts,
-  .statistics-panel .pie-table-chart-container{
+  .statistics-panel .pie-table-chart-container {
     margin-bottom: 2rem;
   }
 }
 
-.offscreen{
-    position: absolute!important;
-    font-size: 0;
-    overflow: hidden;
-    clip: rect(1px,1px,1px,1px);
-    clip-path: polygon(0 0,0 0,0 0,0 0);
+.offscreen {
+  position: absolute !important;
+  font-size: 0;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  clip-path: polygon(0 0, 0 0, 0 0, 0 0);
 }

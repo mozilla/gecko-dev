@@ -11,16 +11,16 @@
   width: 20px;
   height: 20px;
   border-radius: 10px;
-  background-color: #FFCB01;
+  background-color: #ffcb01;
 }
 
 #pacman {
   width: 0;
   height: 0;
   border-right: 60px solid transparent;
-  border-top: 60px solid #FFCB01;
-  border-left: 60px solid #FFCB01;
-  border-bottom: 60px solid #FFCB01;
+  border-top: 60px solid #ffcb01;
+  border-left: 60px solid #ffcb01;
+  border-bottom: 60px solid #ffcb01;
   border-top-left-radius: 60px;
   border-bottom-left-radius: 60px;
   border-top-right-radius: 60px;
@@ -40,7 +40,6 @@
   position: absolute;
   animation: 4s linear 0s normal none infinite boxy;
 }
-
 
 #moxy {
   animation-name: moxy, boxy;

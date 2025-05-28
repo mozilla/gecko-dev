@@ -29,7 +29,8 @@
   overflow: auto;
 }
 
-#font-container, #font-editor {
+#font-container,
+#font-editor {
   min-width: var(--min-container-width);
 }
 
@@ -38,18 +39,18 @@
 }
 
 #font-editor {
-  padding-bottom: .5em;
+  padding-bottom: 0.5em;
 }
 
 #font-editor summary {
   user-select: none;
   cursor: pointer;
-  margin-bottom: .4em;
+  margin-bottom: 0.4em;
   width: -moz-fit-content;
 }
 
 #font-editor details {
-  padding-bottom: .5em;
+  padding-bottom: 0.5em;
 }
 
 #font-editor details .label-open,
@@ -140,7 +141,7 @@
 }
 
 .font-group {
-  margin-bottom: .5em;
+  margin-bottom: 0.5em;
 }
 
 .font-group .font-name {
@@ -220,7 +221,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0 20px;
-  margin: .6em 0;
+  margin: 0.6em 0;
 }
 
 /* Style *all* axis controls with a top separator. See reset below. */
@@ -313,7 +314,7 @@
 }
 
 /* Make native number steppers disappear by treating it as text field*/
-.font-value-input[type=number] {
+.font-value-input[type="number"] {
   appearance: textfield;
 }
 
@@ -385,7 +386,7 @@
   color: var(--theme-text-color-alt);
   font-size: smaller;
   position: absolute;
-  bottom: -.6em;
+  bottom: -0.6em;
   visibility: hidden;
 }
 
@@ -398,12 +399,12 @@
 
 .font-value-slider-container::before {
   content: attr(data-min);
-  inset-inline-start: .3em;
+  inset-inline-start: 0.3em;
 }
 
 .font-value-slider-container::after {
   content: attr(data-max);
-  inset-inline-end: .3em;
+  inset-inline-end: 0.3em;
 }
 
 .font-value-slider {
@@ -416,11 +417,10 @@
   The value of font-weight goes from 100 to 900 in increments of 100.
   Decorate the slider for font-weight to have 9 vertical notches using a linear gradient.
 */
-.font-value-slider[name=font-weight] {
+.font-value-slider[name="font-weight"] {
   --notch-size: 3px;
   /* Draw a vertical line to get one notch per background-image instance */
-  background-image: linear-gradient(90deg, var(--slider-track-color) var(--notch-size),
-   transparent 0);
+  background-image: linear-gradient(90deg, var(--slider-track-color) var(--notch-size), transparent 0);
   /* Offset the background so the notch aligns with the center of the slider thumb */
   background-position: 5px center;
   /* Repeat the background-image horizontally */
@@ -448,7 +448,7 @@
 }
 
 .font-origin {
-  margin-top: -.25em;
+  margin-top: -0.25em;
   color: var(--theme-comment);
   justify-self: start;
 }
@@ -516,7 +516,8 @@
     }
   }
 
-  & a, a:visited {
+  & a,
+  a:visited {
     color: var(--theme-link-color);
   }
 }

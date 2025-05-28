@@ -42,22 +42,14 @@ body {
  * FIXME: http://bugzil.la/575675 CSS links without :visited set cause assertion
  * failures in debug builds.
  */
-:is(
-  .theme-link,
-  .cm-s-mozilla .cm-link,
-  :is(.cm-editor, .cm-highlighted) .tok-link
-):visited {
+:is(.theme-link, .cm-s-mozilla .cm-link, :is(.cm-editor, .cm-highlighted) .tok-link):visited {
   color: var(--theme-link-color);
 }
 
 .theme-comment,
 .cm-s-mozilla .cm-meta,
 .cm-s-mozilla .cm-hr,
-.cm-s-mozilla .cm-comment
-:is(.cm-editor, .cm-highlighted) :is(
-  .tok-meta,
-  .tok-comment
-),
+.cm-s-mozilla .cm-comment :is(.cm-editor, .cm-highlighted) :is(.tok-meta, .tok-comment),
 .variable-or-property .token-undefined,
 .variable-or-property .token-null,
 .CodeMirror-Tern-completion-unknown:before {
@@ -82,7 +74,7 @@ body {
 }
 
 .CodeMirror-Tern-completion-number:before {
-  background-color: hsl(72,100%,27%);
+  background-color: hsl(72, 100%, 27%);
 }
 
 .theme-fg-color1,
@@ -96,10 +88,7 @@ body {
 
 .cm-s-mozilla .cm-def,
 .cm-s-mozilla .cm-variable-2,
-:is(.cm-editor, .cm-highlighted) :is(
-  .tok-variableName.tok-definition,
-  .tok-variableName
-) {
+:is(.cm-editor, .cm-highlighted) :is(.tok-variableName.tok-definition, .tok-variableName) {
   color: var(--blue-55);
 }
 
@@ -114,7 +103,7 @@ body {
 }
 
 .CodeMirror-Tern-completion-object:before {
-  background-color: hsl(208,56%,40%);
+  background-color: hsl(208, 56%, 40%);
 }
 
 .theme-fg-color3,
@@ -142,17 +131,13 @@ body {
 
 .CodeMirror-Tern-completion-string:before,
 .CodeMirror-Tern-completion-fn:before {
-  background-color: hsl(24,85%,39%);
+  background-color: hsl(24, 85%, 39%);
 }
 
 .cm-s-mozilla .cm-atom,
 .cm-s-mozilla .cm-quote,
 .cm-s-mozilla .cm-error,
-:is(.cm-editor, .cm-highlighted) :is(
-  .tok-atom,
-  .tok-bool,
-  .tok-invalid
-),
+:is(.cm-editor, .cm-highlighted) :is(.tok-atom, .tok-bool, .tok-invalid),
 .variable-or-property .token-boolean,
 .variable-or-property .token-domnode,
 .variable-or-property[exception] > .title > .name {
@@ -171,7 +156,8 @@ body {
 .devtools-toolbar,
 .devtools-sidebar-tabs tabs,
 .devtools-sidebar-alltabs,
-.cm-s-mozilla .CodeMirror-dialog { /* General toolbar styling */
+.cm-s-mozilla .CodeMirror-dialog {
+  /* General toolbar styling */
   color: var(--theme-body-color);
   background-color: var(--theme-toolbar-background);
   border-color: var(--theme-splitter-color);
@@ -189,22 +175,20 @@ body {
  * Best effort to match the existing theme, some of the colors
  * are duplicated here to prevent weirdness in the main theme. */
 
-.CodeMirror.cm-s-mozilla { /* Inherit platform specific font sizing and styles */
+.CodeMirror.cm-s-mozilla {
+  /* Inherit platform specific font sizing and styles */
   font-family: inherit;
   font-size: inherit;
   background: transparent;
 }
 
-.CodeMirror.cm-s-mozilla  pre,
-.CodeMirror.cm-s-mozilla  pre.CodeMirror-line,
-.CodeMirror.cm-s-mozilla  pre.CodeMirror-line-like,
+.CodeMirror.cm-s-mozilla pre,
+.CodeMirror.cm-s-mozilla pre.CodeMirror-line,
+.CodeMirror.cm-s-mozilla pre.CodeMirror-line-like,
 .cm-s-mozilla .cm-variable-3,
 .cm-s-mozilla .cm-operator,
 .cm-s-mozilla .cm-special,
-:is(.cm-editor, .cm-highlighted) :is(
-  .tok-punctuation,
-  .tok-operator
-) {
+:is(.cm-editor, .cm-highlighted) :is(.tok-punctuation, .tok-operator) {
   color: var(--theme-body-color);
 }
 
@@ -213,19 +197,20 @@ body {
   border-left: solid 1px black;
 }
 
-.cm-s-mozilla .CodeMirror-activeline-background { /* selected color with alpha */
-  background: rgba(185, 215, 253, .35);
+.cm-s-mozilla .CodeMirror-activeline-background {
+  /* selected color with alpha */
+  background: rgba(185, 215, 253, 0.35);
 }
 
 /* Highlight for a line that contains an error. */
 div.CodeMirror div.error-line {
-  background: rgba(255,0,0,0.2);
+  background: rgba(255, 0, 0, 0.2);
 }
 
 /* Generic highlighted text */
 div.CodeMirror span.marked-text {
-  background: rgba(255,255,0,0.2);
-  border: 1px dashed rgba(192,192,0,0.6);
+  background: rgba(255, 255, 0, 0.2);
+  border: 1px dashed rgba(192, 192, 0, 0.6);
   margin-inline-start: -1px;
   margin-inline-end: -1px;
 }
@@ -248,12 +233,13 @@ div.CodeMirror span.eval-text {
   background-color: #ccd;
 }
 
-.cm-s-mozilla .CodeMirror-linenumber { /* line number text */
+.cm-s-mozilla .CodeMirror-linenumber {
+  /* line number text */
   color: var(--grey-50);
 }
 
 .CodeMirror-hints,
 .CodeMirror-Tern-tooltip {
-  box-shadow: 0 0 4px rgba(128, 128, 128, .5);
+  box-shadow: 0 0 4px rgba(128, 128, 128, 0.5);
   background-color: var(--theme-sidebar-background);
 }

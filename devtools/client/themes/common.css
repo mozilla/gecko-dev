@@ -13,10 +13,7 @@
   font: message-box;
   font-size: var(--theme-body-font-size);
 
-  --tab-line-hover-color: light-dark(
-    rgba(0,0,0,.2),
-    rgba(255,255,255,.2)
-  );
+  --tab-line-hover-color: light-dark(rgba(0, 0, 0, 0.2), rgba(255, 255, 255, 0.2));
 
   --tab-line-selected-color: var(--blue-50);
   --toggle-thumb-color: light-dark(white, var(--grey-40));
@@ -38,7 +35,7 @@
   --toggle-hover-thumb-color: var(--toggle-thumb-color);
 
   --searchbox-no-match-background-color: light-dark(#ffe5e5, #402325);
-  --searchbox-no-match-stroke-color: light-dark(var(--red-60),var(--red-50));
+  --searchbox-no-match-stroke-color: light-dark(var(--red-60), var(--red-50));
   --searchbox-background-color: transparent;
   --searchbox-border-color: transparent;
 
@@ -150,7 +147,9 @@ html|input {
  * Override wrong system font from forms.css
  * Bug 1458224: buttons use a wrong default font-size on Linux
  */
-html|button, html|select, html|input {
+html|button,
+html|select,
+html|input {
   font: message-box;
   font-size: var(--theme-body-font-size);
 }
@@ -402,11 +401,7 @@ iframe {
   }
 }
 
-.devtools-button:empty:not(
-  [aria-expanded="true"],
-  [aria-pressed="true"],
-  .checked
-):hover {
+.devtools-button:empty:not([aria-expanded="true"], [aria-pressed="true"], .checked):hover {
   background: var(--toolbarbutton-hover-background);
   color: var(--toolbarbutton-hover-color);
 
@@ -424,7 +419,7 @@ iframe {
 }
 
 .theme-light .devtools-button[data-standalone] {
-  border-color: rgba(138,161,180,0.2);
+  border-color: rgba(138, 161, 180, 0.2);
 }
 
 /* Selectable button which is unchecked. */
@@ -675,11 +670,7 @@ iframe {
   color: var(--theme-selection-color);
 }
 
-.theme-twisty:is(
-  .open,
-  [open],
-  [aria-expanded="true"]
-) {
+.theme-twisty:is(.open, [open], [aria-expanded="true"]) {
   transform: none;
 }
 
@@ -749,7 +740,9 @@ iframe {
   width: 100%;
   height: 2px;
   background: transparent;
-  transition: transform 250ms var(--animation-curve), opacity 250ms var(--animation-curve);
+  transition:
+    transform 250ms var(--animation-curve),
+    opacity 250ms var(--animation-curve);
   opacity: 0;
   transform: scaleX(0);
 
@@ -798,7 +791,7 @@ iframe {
 /* Checkbox Toggle */
 
 .devtools-checkbox-toggle {
-  --x-pos: .15em;
+  --x-pos: 0.15em;
   /* Reset native checkbox styling. */
   appearance: none;
   background-color: var(--toggle-track-color);
@@ -837,10 +830,9 @@ iframe {
   }
 }
 
-
 /* For right-to-left layout, the toggle thumb goes in the opposite direction. */
 html[dir="rtl"] .devtools-checkbox-toggle {
-  --x-pos: -.15em;
+  --x-pos: -0.15em;
 }
 
 html[dir="rtl"] .devtools-checkbox-toggle:checked {
@@ -849,14 +841,14 @@ html[dir="rtl"] .devtools-checkbox-toggle:checked {
 
 .devtools-checkbox-toggle::before {
   position: relative;
-  width: calc(1em - .3em);
-  height: calc(1em - .3em);
-  transform: translateY(.15em) translateX(var(--x-pos));
+  width: calc(1em - 0.3em);
+  height: calc(1em - 0.3em);
+  transform: translateY(0.15em) translateX(var(--x-pos));
   border-radius: 100%;
   display: block;
   content: "";
   background-color: var(--toggle-thumb-color);
-  transition: transform .1s ease-out;
+  transition: transform 0.1s ease-out;
 }
 
 .devtools-checkbox-toggle:checked::before {

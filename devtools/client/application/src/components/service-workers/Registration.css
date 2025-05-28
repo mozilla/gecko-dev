@@ -24,13 +24,14 @@
   grid-template-rows: minmax(calc(var(--base-unit) * 6), auto) 1fr auto;
   grid-column-gap: calc(4 * var(--base-unit));
   grid-row-gap: calc(2 * var(--base-unit));
-  grid-template-areas: "header          header-controls"
-                       "workers         workers"
-                       "footer-controls footer-controls";
+  grid-template-areas:
+    "header          header-controls"
+    "workers         workers"
+    "footer-controls footer-controls";
 }
 
 /* vertical layout */
-@media(max-width: 700px) {
+@media (max-width: 700px) {
   .registration__controls {
     grid-area: footer-controls;
     justify-self: end;
@@ -38,7 +39,7 @@
 }
 
 /* wide layout */
-@media(min-width: 701px) {
+@media (min-width: 701px) {
   .registration__controls {
     grid-area: header-controls;
   }

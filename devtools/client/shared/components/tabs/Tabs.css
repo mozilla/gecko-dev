@@ -17,7 +17,7 @@
 }
 
 /* Hides the tab strip in the TabBar */
-div[hidetabs=true] .tabs .tabs-navigation {
+div[hidetabs="true"] .tabs .tabs-navigation {
   display: none;
 }
 
@@ -67,7 +67,7 @@ div[hidetabs=true] .tabs .tabs-navigation {
 
 .tabs .tabs-menu-item.is-active {
   color: var(--theme-toolbar-selected-color);
-  background-color:  var(--theme-toolbar-selected-background);
+  background-color: var(--theme-toolbar-selected-background);
 
   &:hover {
     background-color: var(--theme-toolbar-selected-hover);

@@ -5,7 +5,7 @@
 .evaluation-notification.warning {
   color: var(--console-warning-color);
   border-color: var(--console-warning-border);
-  background-color: var(--console-warning-background)
+  background-color: var(--console-warning-background);
 }
 
 .evaluation-notification.warning .evaluation-notification__icon {

@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@import url('chrome://devtools/content/shared/components/reps/reps.css');
+@import url("chrome://devtools/content/shared/components/reps/reps.css");
 
 /******************************************************************************/
 /* TreeView Colors */
 
 :root {
-  --tree-header-background: #C8D2DC;
-  --tree-header-sorted-background: #AAC3DC;
+  --tree-header-background: #c8d2dc;
+  --tree-header-sorted-background: #aac3dc;
 }
 
 /******************************************************************************/
@@ -156,12 +156,9 @@
   user-select: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
   padding: 0 !important;
-  background: linear-gradient(
-          rgba(255, 255, 255, 0.05),
-          rgba(0, 0, 0, 0.05)),
-      radial-gradient(1px 60% at right,
-          rgba(0, 0, 0, 0.8) 0%,
-          transparent 80%) repeat-x var(--tree-header-background);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.05)),
+    radial-gradient(1px 60% at right, rgba(0, 0, 0, 0.8) 0%, transparent 80%) repeat-x var(--tree-header-background);
   color: var(--theme-body-color);
   white-space: nowrap;
 }
@@ -188,10 +185,5 @@
 }
 
 .treeTable .treeHeaderCell:hover:active {
-  background-image: linear-gradient(
-          rgba(0, 0, 0, 0.1),
-          transparent),
-      radial-gradient(1px 60% at right,
-          rgba(0, 0, 0, 0.8) 0%,
-          transparent 80%);
+  background-image: linear-gradient(rgba(0, 0, 0, 0.1), transparent), radial-gradient(1px 60% at right, rgba(0, 0, 0, 0.8) 0%, transparent 80%);
 }

@@ -83,7 +83,7 @@
   border: none;
   font-family: var(--monospace-font-family);
   font-size: var(--theme-code-font-size);
-  line-height: calc(15/11);
+  line-height: calc(15 / 11);
   direction: ltr;
   text-align: left;
   resize: none;

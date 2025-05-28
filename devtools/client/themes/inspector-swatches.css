@@ -43,11 +43,7 @@
   }
 }
 
-:is(
-  .inspector-flex,
-  .inspector-grid,
-  .inspector-shapeswatch
-)[aria-pressed="true"] {
+:is(.inspector-flex, .inspector-grid, .inspector-shapeswatch)[aria-pressed="true"] {
   background-color: var(--theme-toolbarbutton-checked-background);
   stroke: var(--theme-toolbarbutton-checked-color);
 }
@@ -116,18 +112,15 @@
 /* We want to display a checker below the current swatch color that would be visible
   if the swatch color isn't opaque */
 .inspector-colorswatch::before {
-  content: '';
+  content: "";
   background-color: #eee;
   --checker-color: #ccc;
-  --background-gradient: linear-gradient(
-    45deg,
-    var(--checker-color) 25%,
-    transparent 25% 75%,
-    var(--checker-color) 75%
-  );
+  --background-gradient: linear-gradient(45deg, var(--checker-color) 25%, transparent 25% 75%, var(--checker-color) 75%);
   background-image: var(--background-gradient), var(--background-gradient);
   background-size: var(--swatch-size) var(--swatch-size);
-  background-position: 0 0, calc(var(--swatch-size) / 2) calc(var(--swatch-size) / 2);
+  background-position:
+    0 0,
+    calc(var(--swatch-size) / 2) calc(var(--swatch-size) / 2);
   position: absolute;
   border-radius: 50%;
   inset: 0;
@@ -172,12 +165,7 @@
   stroke: #808080;
 }
 
-:root[forced-colors-active] :is(
-  .inspector-bezierswatch,
-  .inspector-lineareasingswatch,
-  .inspector-filterswatch,
-  .inspector-angleswatch
-) {
+:root[forced-colors-active] :is(.inspector-bezierswatch, .inspector-lineareasingswatch, .inspector-filterswatch, .inspector-angleswatch) {
   fill: ButtonFace;
   stroke: var(--theme-icon-color);
   /* For some icons, the outline can conflate with the background image in a weird way

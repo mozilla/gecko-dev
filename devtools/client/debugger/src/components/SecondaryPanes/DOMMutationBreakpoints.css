@@ -2,19 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
- .dom-mutation-empty {
+.dom-mutation-empty {
   padding: 6px 20px;
   text-align: center;
   font-style: italic;
   color: var(--theme-body-color);
   white-space: normal;
- }
+}
 
- .dom-mutation-empty a {
-   text-decoration: underline;
-   color: var(--theme-toolbar-selected-color);
-   cursor: pointer;
- }
+.dom-mutation-empty a {
+  text-decoration: underline;
+  color: var(--theme-toolbar-selected-color);
+  cursor: pointer;
+}
 
 .dom-mutation-list * {
   user-select: none;

@@ -40,8 +40,7 @@
   display: grid;
   grid-column-gap: var(--base-unit);
   grid-template-columns: calc(var(--base-unit) * 6) 1fr auto;
-  grid-template-areas:
-    "icon body button";
+  grid-template-areas: "icon body button";
   margin: calc(var(--base-unit) * 2) 0;
   padding: var(--base-unit);
   -moz-context-properties: fill;

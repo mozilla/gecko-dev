@@ -77,10 +77,10 @@ body.dragging .tag-line {
 }
 
 #root-wrapper:after {
-   content: "";
-   display: block;
-   clear: both;
-   position:relative;
+  content: "";
+  display: block;
+  clear: both;
+  position: relative;
 }
 
 .html-editor {
@@ -96,7 +96,7 @@ body.dragging .tag-line {
 }
 
 .html-editor-inner {
-  border: solid .1px;
+  border: solid 0.1px;
   flex: 1 1 auto;
 
   /* Keep the editor away from the markup view floating scrollbars */
@@ -283,7 +283,8 @@ ul.children + .tag-line::before {
   z-index: 1;
 }
 
-.child.collapsed .child, .child.collapsed .children {
+.child.collapsed .child,
+.child.collapsed .children {
   display: none;
 }
 
@@ -365,7 +366,6 @@ ul.children + .tag-line::before {
   forced-color-adjust: none;
 }
 
-
 .closing-bracket {
   pointer-events: none;
 }
@@ -428,7 +428,9 @@ ul.children + .tag-line::before {
 }
 
 .flash-out {
-  transition: background,color .5s;
+  transition:
+    background,
+    color 0.5s;
 }
 
 .editor {
@@ -534,10 +536,7 @@ ul.children + .tag-line::before {
 
   /* In High Contrast Mode, we need to override all the colors so we can properly handle
      the selected + focused-visible style */
-  :root[forced-colors-active] :is(
-    .tag,
-    .pseudo
-  ) {
+  :root[forced-colors-active] :is(.tag, .pseudo) {
     color: SelectedItem;
   }
 
@@ -568,11 +567,7 @@ ul.children + .tag-line::before {
    inplace editor input).
    theme-selected doesn't work in this case since the text is a
    sibling of the class, not a child. */
-.tag-line[selected]:not(:has(.styleinspector-propertyeditor:focus)) :is(
-  .editor,
-  .editor.comment,
-  .editor :is(.attr-name, .attr-value, .tag, .pseudo)
-) {
+.tag-line[selected]:not(:has(.styleinspector-propertyeditor:focus)) :is(.editor, .editor.comment, .editor :is(.attr-name, .attr-value, .tag, .pseudo)) {
   color: var(--theme-selection-color);
 
   & :is([editable], .tag):focus-visible {
@@ -609,13 +604,9 @@ ul.children + .tag-line::before {
 /* Selected nodes being flashed in the tree should have dark selected text. Here we target
    nodes with theme-selected text colors and apply a dark, accessible text color for when
    the yellow flashing background is applied. */
-.tag-line[selected] :is(
-  .theme-selected.theme-bg-contrast ~ .editor,
-  .theme-selected ~ .editor .theme-fg-contrast
-) {
+.tag-line[selected] :is(.theme-selected.theme-bg-contrast ~ .editor, .theme-selected ~ .editor .theme-fg-contrast) {
   color: var(--theme-contrast-color) !important;
 }
-
 
 /* Applicable to the DOCTYPE */
 .doctype {

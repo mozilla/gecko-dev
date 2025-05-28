@@ -4,7 +4,7 @@
 
 :root {
   /* This should map to --theme-toolbar-background. */
-  --rdm-background-color: #F5F5F6;
+  --rdm-background-color: #f5f5f6;
   --rdm-shadow-color: rgba(155, 155, 155, 0.26);
 
   &[devtoolstheme="dark"] {
@@ -83,7 +83,7 @@
 }
 
 html[dir="rtl"] .browserContainer.responsive-mode.left-aligned > .browserStack {
-  grid-template-columns: 1fr [left-align] var(--browser-viewport-width) 15px
+  grid-template-columns: 1fr [left-align] var(--browser-viewport-width) 15px;
 }
 
 .browserContainer.responsive-mode > .browserStack > browser {

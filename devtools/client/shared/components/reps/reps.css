@@ -37,13 +37,7 @@
   white-space: pre-wrap;
 }
 
-:is(
-  .objectBox-string,
-  .objectBox-textNode,
-  .objectBox > .nodeName,
-  .objectBox-node .tag-name,
-  .objectBox-node .attrName
-).has-rtl-char {
+:is(.objectBox-string, .objectBox-textNode, .objectBox > .nodeName, .objectBox-node .tag-name, .objectBox-node .attrName).has-rtl-char {
   unicode-bidi: isolate;
 }
 
@@ -105,7 +99,6 @@
 .objectBox-string a .cropped-url-end::before {
   content: "…";
 }
-
 
 .objectBox-function,
 .objectBox-profile {
@@ -324,20 +317,16 @@
 /* Open DOMNode in inspector or Accessible in accessibility inspector button */
 
 :is(button, [role="button"]).open-accessibility-inspector {
-  background: url("chrome://devtools/content/shared/components/reps/images/open-a11y.svg")
-    no-repeat;
+  background: url("chrome://devtools/content/shared/components/reps/images/open-a11y.svg") no-repeat;
 }
 
 :is(button, [role="button"]).open-inspector {
-  background: url("chrome://devtools/content/shared/components/reps/images/open-inspector.svg")
-    no-repeat;
+  background: url("chrome://devtools/content/shared/components/reps/images/open-inspector.svg") no-repeat;
 }
 
 :is(button, [role="button"]).highlight-node {
-  background: url("chrome://devtools/skin/images/highlight-selector.svg")
-    no-repeat;
+  background: url("chrome://devtools/skin/images/highlight-selector.svg") no-repeat;
 }
-
 
 :is(button, [role="button"]):is(.open-accessibility-inspector, .open-inspector, .highlight-node) {
   display: inline-block;
@@ -371,9 +360,7 @@ button.jump-definition {
   width: 20px;
   margin-left: 0.25em;
   vertical-align: middle;
-  background: center
-    url("chrome://devtools/content/shared/components/reps/images/jump-definition.svg")
-    no-repeat;
+  background: center url("chrome://devtools/content/shared/components/reps/images/jump-definition.svg") no-repeat;
   border-color: transparent;
   stroke: var(--theme-icon-color);
   -moz-context-properties: stroke;
@@ -392,7 +379,7 @@ button.jump-definition:hover {
 
 :root[forced-colors-active] button.jump-definition:hover {
   stroke: var(--theme-icon-hover-color);
-  border-color:  var(--theme-icon-hover-color);
+  border-color: var(--theme-icon-hover-color);
 }
 
 /* In High Contrast Mode, the button has a solid background, so we only need
@@ -405,8 +392,7 @@ button.jump-definition:hover {
 /* Invoke getter button */
 
 button.invoke-getter {
-  mask: url(chrome://devtools/content/shared/components/reps/images/input.svg)
-    no-repeat;
+  mask: url(chrome://devtools/content/shared/components/reps/images/input.svg) no-repeat;
   display: inline-block;
   background-color: var(--theme-icon-color);
   height: 10px;

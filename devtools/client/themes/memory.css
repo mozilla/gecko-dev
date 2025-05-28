@@ -4,7 +4,7 @@
 
 /* CSS Variables specific to this panel that aren't defined by the themes */
 .theme-dark {
-  --cell-border-color: rgba(255,255,255,0.15);
+  --cell-border-color: rgba(255, 255, 255, 0.15);
   --row-alt-background-color: rgba(86, 117, 185, 0.15);
   --row-hover-background-color: rgba(86, 117, 185, 0.25);
   --link-color: var(--blue-40);
@@ -12,14 +12,17 @@
 }
 
 .theme-light {
-  --cell-border-color: rgba(0,0,0,0.15);
-  --row-alt-background-color: rgba(76,158,217,0.1);
-  --row-hover-background-color: rgba(76,158,217,0.2);
+  --cell-border-color: rgba(0, 0, 0, 0.15);
+  --row-alt-background-color: rgba(76, 158, 217, 0.1);
+  --row-hover-background-color: rgba(76, 158, 217, 0.2);
   --link-color: var(--theme-link-color);
   --link-color-active: var(--blue-70);
 }
 
-html, body, #app, #memory-tool {
+html,
+body,
+#app,
+#memory-tool {
   height: 100%;
 }
 
@@ -231,7 +234,7 @@ html, body, #app, #memory-tool {
   margin-bottom: 14px;
 }
 
-.snapshot-list-item > .snapshot-title > input[type=checkbox] {
+.snapshot-list-item > .snapshot-title > input[type="checkbox"] {
   margin: 0;
   margin-inline-end: 5px;
 }
@@ -579,9 +582,9 @@ html, body, #app, #memory-tool {
 .separator,
 .not-available,
 .heap-tree-item-address {
-  opacity: .5;
-  margin-left: .5em;
-  margin-right: .5em;
+  opacity: 0.5;
+  margin-left: 0.5em;
+  margin-right: 0.5em;
 }
 
 .heap-tree-item-address {

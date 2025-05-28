@@ -5,10 +5,10 @@
 :root {
   /* Colors from common.css */
   --in-content-background-color: light-dark(#fff, rgb(28, 27, 34));
-  --in-content-border-color: light-dark(#d7d7db, rgba(249,249,250,0.2));
+  --in-content-border-color: light-dark(#d7d7db, rgba(249, 249, 250, 0.2));
   --in-content-primary-button-background: light-dark(rgb(0, 97, 224), #00ddff);
-  --in-content-primary-button-background-active: light-dark(rgb(5, 62, 148), rgb(170,242,255));
-  --in-content-primary-button-background-hover: light-dark(rgb(2, 80, 187), rgb(128,235,255));
+  --in-content-primary-button-background-active: light-dark(rgb(5, 62, 148), rgb(170, 242, 255));
+  --in-content-primary-button-background-hover: light-dark(rgb(2, 80, 187), rgb(128, 235, 255));
   --in-content-text-color: light-dark(#0c0c0d, #eee);
 
   --bg-color: var(--in-content-background-color);
@@ -20,22 +20,24 @@
   --box-background: light-dark(#fff, rgb(35, 34, 43));
   --box-border-color: var(--in-content-border-color);
 
+  /* prettier-ignore */
   --button-background-color: light-dark(
     var(--grey-90-a10), /* Note: this is from Photon Default button */
     rgb(72, 72, 84)
   );
+  /* prettier-ignore */
   --button-color: light-dark(
     var(--grey-90), /* Note: this is from Photon Default button */
     var(--white-100)
   );
+  /* prettier-ignore */
   --button-hover-background-color: light-dark(
     var(--grey-90-a20), /* Note: this is from Photon Default button */
     rgb(92, 92, 106)
   );
-  --button-active-background-color: var(--grey-90-a30); /* Note: this is from Photon Default button */
 
-  --category-background-hover: rgba(12,12,13,0.1);
-  --category-text: light-dark(rgba(12,12,13), var(--text-color));
+  --category-background-hover: rgba(12, 12, 13, 0.1);
+  --category-text: light-dark(rgba(12, 12, 13), var(--text-color));
   --category-text-selected: var(--in-content-primary-button-background);
 
   --fieldpair-text-color: light-dark(var(--grey-50), var(--text-color));
@@ -61,9 +63,9 @@
   --link-color-hover: var(--in-content-primary-button-background-hover);
 
   --primary-button-background-color: light-dark(var(--blue-60), #00ddff);
-  --primary-button-color: light-dark(var(--white-100), rgb(43,42,51));
-  --primary-button-hover-background-color: light-dark(var(--blue-70), rgb(128,235,255));
-  --primary-button-active-background-color: light-dark(var(--blue-80), rgb(170,242,255));
+  --primary-button-color: light-dark(var(--white-100), rgb(43, 42, 51));
+  --primary-button-hover-background-color: light-dark(var(--blue-70), rgb(128, 235, 255));
+  --primary-button-active-background-color: light-dark(var(--blue-80), rgb(170, 242, 255));
 
   --popup-header-background-color: light-dark(var(--grey-20), var(--grey-50));
   --popup-header-color: light-dark(var(--grey-90), var(--white-100));
@@ -125,7 +127,6 @@
 
   --card-shadow-blur-radius: var(--base-unit);
 
-
   /*
    * Variables particular to about:debugging
    */
@@ -176,7 +177,8 @@ a:active {
   color: var(--link-color-active);
 }
 
-p, h1 {
+p,
+h1 {
   margin: 0;
 }
 
@@ -315,13 +317,15 @@ p, h1 {
 /*
 Form controls
 */
-.default-button, .default-input {
+.default-button,
+.default-input {
   box-sizing: border-box;
   font-size: 1em;
 }
 
 /* Buttons from Photon */
-.default-button, .primary-button {
+.default-button,
+.primary-button {
   appearance: none;
   margin: 0;
   height: calc(var(--base-unit) * 8);
@@ -335,12 +339,14 @@ Form controls
 }
 
 /* Disabled state for buttons from Photon */
-.default-button:disabled, .primary-button:disabled {
+.default-button:disabled,
+.primary-button:disabled {
   opacity: 0.4;
 }
 
 /* Smaller variant size for buttons, from Photon */
-.default-button--micro, .primary-button--micro {
+.default-button--micro,
+.primary-button--micro {
   padding-inline-start: calc(2 * var(--base-unit));
   padding-inline-end: calc(2 * var(--base-unit));
   font-size: var(--micro-font-size);
@@ -386,9 +392,10 @@ Form controls
   }
 
   .ghost-button {
-    fill:  ButtonText;
+    fill: ButtonText;
   }
 
+  /* prettier-ignore */
   :is(
     .default-button,
     .ghost-button,

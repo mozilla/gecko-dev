@@ -92,7 +92,7 @@ body,
 
 #toolbar :is(select, button):focus-visible {
   /* Adjust the outline otherwise it's clipped at the top */
-  outline-offset: -1px
+  outline-offset: -1px;
 }
 
 #toolbar-center-controls,
@@ -216,7 +216,7 @@ body,
   #toolbar.user-agent #toolbar-center-controls {
     grid-template-columns:
       [device-selector]
-      .8fr
+      0.8fr
       [separator]
       max-content
       [size-selector]
@@ -252,11 +252,13 @@ body,
   /* When the UA label is here and it's on a second line, draw a separator between the
      2 lines*/
   #toolbar.user-agent {
-    background-image: linear-gradient(to bottom,
+    background-image: linear-gradient(
+      to bottom,
       transparent var(--toolbar-row-height),
       var(--theme-splitter-color) var(--toolbar-row-height),
       var(--theme-splitter-color) calc(var(--toolbar-row-height) + 1px),
-      transparent 0);
+      transparent 0
+    );
   }
 }
 
@@ -418,8 +420,9 @@ body,
 /* On screens that are >750px*/
 @media (min-width: 750px) {
   #device-form {
-    grid-template-areas: "name size dpr"
-                         "user-agent touch buttons";
+    grid-template-areas:
+      "name size dpr"
+      "user-agent touch buttons";
   }
 
   #device-form-name input,
@@ -429,9 +432,10 @@ body,
 
   .device-modal-content {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas: "phone phone"
-                         "tablet laptop"
-                         "tv custom";
+    grid-template-areas:
+      "phone phone"
+      "tablet laptop"
+      "tv custom";
   }
 
   .device-type-phones .device-list {
@@ -442,9 +446,10 @@ body,
 /* On screens that are between 450px and 749px */
 @media (min-width: 450px) and (max-width: 749px) {
   #device-form {
-    grid-template-areas: "name size"
-                         "user-agent dpr"
-                         "touch buttons";
+    grid-template-areas:
+      "name size"
+      "user-agent dpr"
+      "touch buttons";
     grid-template-columns: 2fr 1fr;
   }
 
@@ -461,12 +466,13 @@ body,
 /* On screens that are <450px */
 @media (max-width: 449px) {
   #device-form {
-    grid-template-areas: "name"
-                         "size"
-                         "dpr"
-                         "user-agent"
-                         "touch"
-                         "buttons";
+    grid-template-areas:
+      "name"
+      "size"
+      "dpr"
+      "user-agent"
+      "touch"
+      "buttons";
   }
 
   #device-form-name input,
@@ -481,12 +487,13 @@ body,
 
 @media (max-width: 749px) {
   .device-modal-content {
-    grid-template-areas: "phone"
-                         "phone"
-                         "tablet"
-                         "laptop"
-                         "tv"
-                         "custom";
+    grid-template-areas:
+      "phone"
+      "phone"
+      "tablet"
+      "laptop"
+      "tv"
+      "custom";
   }
 
   .device-modal-header {
@@ -707,9 +714,9 @@ body,
 }
 
 #device-form #device-form-save {
-  background-color: #0060DF;
+  background-color: #0060df;
   color: #fff;
-  border: 1px solid #0060DF;
+  border: 1px solid #0060df;
   width: 60px;
 
   &:focus-visible {

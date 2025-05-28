@@ -156,7 +156,7 @@ html[dir="rtl"] .editor-mount {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: calc( 50% - 1px );
+    left: calc(50% - 1px);
     width: 1px;
     height: 1.5em;
   }
@@ -192,7 +192,8 @@ html[dir="rtl"] .editor-mount {
 }
 
 @keyframes fade-highlight-out {
-  0%, 30% {
+  0%,
+  30% {
     /* We want to use a color with some transparency so text selection is visible through it */
     background-color: var(--theme-contrast-background-alpha);
   }

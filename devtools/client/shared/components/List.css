@@ -14,7 +14,8 @@
   overflow: auto;
 }
 
-.list:focus, .list .list-item-content:focus {
+.list:focus,
+.list .list-item-content:focus {
   outline: 0;
 }
 
@@ -22,7 +23,8 @@
   background-color: var(--theme-toolbar-hover);
 }
 
-.list:focus li.current, .list li.active.current {
+.list:focus li.current,
+.list li.active.current {
   background-color: var(--theme-emphasized-splitter-color);
 }
 
