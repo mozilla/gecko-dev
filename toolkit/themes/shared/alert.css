@@ -21,14 +21,14 @@
   #alertBox {
     margin: 10px;
     border-radius: 1px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.59);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.59);
   }
 
   @media (not (prefers-contrast)) and (prefers-color-scheme: light) {
     #alertBox {
-      border-color: rgba(107,107,107,.3);
-      background-color: rgba(255,255,255,.9);
-      color: rgba(0,0,0,.9);
+      border-color: rgba(107, 107, 107, 0.3);
+      background-color: rgba(255, 255, 255, 0.9);
+      color: rgba(0, 0, 0, 0.9);
     }
   }
 }
@@ -45,18 +45,18 @@
 }
 
 #alertBox[animate] {
-  animation-timing-function: cubic-bezier(.12,1.23,.48,1.09);
+  animation-timing-function: cubic-bezier(0.12, 1.23, 0.48, 1.09);
 }
 
 #alertBox[animate][clicked] {
-  animation-duration: .6s;
+  animation-duration: 0.6s;
   animation-name: alert-clicked-animation;
 }
 
 /* This is used if the close button is clicked
    before the animation has finished. */
 #alertBox[animate][closing] {
-  animation-duration: .6s;
+  animation-duration: 0.6s;
   animation-name: alert-closing-animation;
 }
 
@@ -196,12 +196,12 @@
 }
 
 #alertSettings:hover {
-  background-color: rgb(128,128,128);
+  background-color: rgb(128, 128, 128);
 }
 
 #alertSettings[open],
 #alertSettings:hover:active {
-  background-color: rgb(102,102,102);
+  background-color: rgb(102, 102, 102);
 }
 
 #alertSettings[focusedViaMouse]:-moz-focusring {

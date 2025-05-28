@@ -13,7 +13,7 @@
 }
 
 h1 {
-  font-size: var(--embedded-wizard-header-font-size, 1.30em);
+  font-size: var(--embedded-wizard-header-font-size, 1.3em);
   font-weight: var(--embedded-wizard-header-font-weight, normal);
   margin-block: var(--embedded-wizard-header-margin-block, 0 16px);
   min-height: 1em;
@@ -156,15 +156,15 @@ div[name="page-selection"]:not([show-import-all]) summary {
   display: none;
 }
 
-div[name="page-selection"][show-import-all]:not([single-item]) label:not(#select-all)  {
+div[name="page-selection"][show-import-all]:not([single-item]) label:not(#select-all) {
   margin-inline: var(--resource-type-label-margin-inline, 24px 0);
 }
 
-div[name="page-selection"][show-import-all] #select-all  {
+div[name="page-selection"][show-import-all] #select-all {
   display: flex;
 }
 
-div[name="page-selection"][show-import-all][hide-select-all] #select-all  {
+div[name="page-selection"][show-import-all][hide-select-all] #select-all {
   display: none;
 }
 
@@ -239,9 +239,10 @@ summary {
 .resource-progress-group {
   display: grid;
   grid-template-columns: min-content auto;
-  grid-template-areas: "icon type"
-                       "icon status"
-                       "icon support";
+  grid-template-areas:
+    "icon type"
+    "icon status"
+    "icon support";
   align-items: center;
   justify-items: start;
 }
@@ -385,7 +386,7 @@ summary {
 
 div[name="page-selection"]:not([no-resources]) .no-resources-found,
 div[name="page-selection"]:not([no-permissions]) .no-permissions-message,
-div[name="page-selection"]:is([no-resources],[no-permissions]) .hide-on-error,
+div[name="page-selection"]:is([no-resources], [no-permissions]) .hide-on-error,
 div[name="page-selection"]:not([file-import-error]) .file-import-error {
   display: none;
 }
@@ -397,8 +398,9 @@ div[name="page-selection"][show-import-all] .resource-selection-details {
 .resource-selection-details > summary {
   list-style: none;
   display: grid;
-  grid-template-areas: "a b"
-                       "c b";
+  grid-template-areas:
+    "a b"
+    "c b";
   margin-block: 16px 0;
 }
 
@@ -407,7 +409,7 @@ div[name="page-selection"][show-import-all] .resource-selection-details {
 }
 
 p.migration-wizard-subheader {
-  font-size: var(--embedded-wizard-subheader-font-size, .85em);
+  font-size: var(--embedded-wizard-subheader-font-size, 0.85em);
   font-weight: var(--embedded-wizard-subheader-font-weight, 400);
   margin-block: var(--embedded-wizard-subheader-margin-block, 0 28px);
   line-height: 1.2em;

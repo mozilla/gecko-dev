@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* Hide all conditional elements by default. */
-:is([when-connection],[when-customroot],[when-mixedcontent],[when-ciphers],[when-httpsonlystatus]) {
+:is([when-connection], [when-customroot], [when-mixedcontent], [when-ciphers], [when-httpsonlystatus]) {
   display: none;
 }
 
@@ -143,6 +143,7 @@
   /* The protections popup panel header text needs a different calculation because it contains an info button.
    * icon-full-width is included twice to compensate for the margin-inline-start of the text,
    * used to center it even if the header includes a info button. See .panel-header-with-info-button */
+  /* prettier-ignore */
   max-width: calc(var(--popup-width)
                   - var(--arrowpanel-menuitem-margin-inline) * 2
                   - var(--arrowpanel-header-info-icon-full-width) * 2);
@@ -150,6 +151,7 @@
 
 #identity-popup .panel-header > .subviewbutton-back + h1 > span {
   /* Same idea as above, but in the identity popup when there's a back button. */
+  /* prettier-ignore */
   max-width: calc(var(--popup-width)
                   - var(--arrowpanel-menuitem-margin-inline) * 2
                   - var(--arrowpanel-header-back-icon-full-width) * 2);
@@ -176,7 +178,7 @@
 
 /* SECURITY */
 
-#identity-popup[mixedcontent~=active-loaded] .identity-popup-connection-not-secure,
+#identity-popup[mixedcontent~="active-loaded"] .identity-popup-connection-not-secure,
 #identity-popup:not([mixedcontent]) .identity-popup-connection-not-secure {
   font-weight: bold;
 }
@@ -208,45 +210,45 @@
   min-height: 24px;
 }
 
-#identity-popup[connection=chrome] .identity-popup-security-connection {
+#identity-popup[connection="chrome"] .identity-popup-security-connection {
   list-style-image: url(chrome://branding/content/icon48.png);
 }
 
-#identity-popup[connection=file] .identity-popup-security-connection {
+#identity-popup[connection="file"] .identity-popup-security-connection {
   list-style-image: url(chrome://global/skin/icons/page-portrait.svg);
 }
 
-#identity-popup[connection=associated] .identity-popup-security-connection {
+#identity-popup[connection="associated"] .identity-popup-security-connection {
   list-style-image: url(chrome://global/skin/icons/info.svg);
 }
 
-#identity-popup[connection^=secure] .identity-popup-security-connection {
+#identity-popup[connection^="secure"] .identity-popup-security-connection {
   list-style-image: url(chrome://global/skin/icons/security.svg);
 }
 
 /* Use [isbroken] to make sure we don't show a warning lock on an http page. See Bug 1192162. */
-#identity-popup[ciphers=weak] .identity-popup-security-connection,
-#identity-popup[mixedcontent~=passive-loaded][isbroken] .identity-popup-security-connection {
+#identity-popup[ciphers="weak"] .identity-popup-security-connection,
+#identity-popup[mixedcontent~="passive-loaded"][isbroken] .identity-popup-security-connection {
   list-style-image: url(chrome://global/skin/icons/security-warning.svg);
   -moz-context-properties: fill, fill-opacity;
 }
 
-#identity-popup[connection=secure-cert-user-overridden] .identity-popup-security-connection,
-#identity-popup[connection=cert-error-page] .identity-popup-security-connection {
+#identity-popup[connection="secure-cert-user-overridden"] .identity-popup-security-connection,
+#identity-popup[connection="cert-error-page"] .identity-popup-security-connection {
   list-style-image: url(chrome://global/skin/icons/security-warning.svg);
   fill: unset;
 }
 
-#identity-popup[connection=net-error-page] .identity-popup-security-connection {
+#identity-popup[connection="net-error-page"] .identity-popup-security-connection {
   list-style-image: url(chrome://global/skin/icons/info.svg);
   fill: unset;
 }
 
-#identity-popup[mixedcontent~=active-loaded][isbroken] .identity-popup-security-connection {
+#identity-popup[mixedcontent~="active-loaded"][isbroken] .identity-popup-security-connection {
   list-style-image: url(chrome://browser/skin/controlcenter/mcb-disabled.svg);
 }
 
-#identity-popup[connection=extension] .identity-popup-security-connection {
+#identity-popup[connection="extension"] .identity-popup-security-connection {
   list-style-image: url(chrome://mozapps/skin/extensions/extension.svg);
 }
 
@@ -520,7 +522,7 @@
 
   &:hover:active {
     color: var(--button-text-color-active);
-    background-color: var(--button-background-color-active)
+    background-color: var(--button-background-color-active);
   }
 }
 
@@ -697,7 +699,7 @@
   background-repeat: no-repeat;
   background-position: center;
 
-  fill: light-dark(#0090ED, #80EBFF);
+  fill: light-dark(#0090ed, #80ebff);
 }
 
 .protections-popup-shim-allow-hint-icon {
@@ -729,7 +731,6 @@
 .protections-popup-cookieBannerView-footer {
   margin-top: auto;
 }
-
 
 /* Cookie banner state toggles for the popup menu item */
 

@@ -13,7 +13,7 @@ panel {
   --menuitem-padding: 0.5em 1em;
 
   @media (-moz-platform: linux) {
-    --menuitem-padding: .25em .5em;
+    --menuitem-padding: 0.25em 0.5em;
   }
   @media (-moz-platform: macos) {
     --menuitem-padding: 3px 9px;
@@ -152,7 +152,7 @@ menubar > menu {
     color: inherit;
     background-color: transparent;
     border-radius: 0;
-    padding: .25em .5em;
+    padding: 0.25em 0.5em;
     padding-bottom: 1px;
     border-bottom: 3px solid transparent;
 
@@ -264,7 +264,7 @@ menupopup > menu::after {
 
   margin-inline: 1em 0;
   @media (-moz-platform: linux) {
-    margin-inline: .5em 0;
+    margin-inline: 0.5em 0;
   }
   @media (-moz-platform: macos) {
     margin-inline: 22px -3px;
@@ -325,7 +325,7 @@ menuitem[highlightable] > .menu-text {
 
   @media (-moz-platform: linux) {
     /* Matches inline menuitem padding */
-    margin-inline-end: .5em;
+    margin-inline-end: 0.5em;
   }
   @media (-moz-platform: windows) {
     margin-top: 2px;
@@ -387,7 +387,7 @@ menupopup[needsgutter] {
       padding-inline-start: 0;
 
       &::before {
-        content: '\2713'; /* a checkmark */
+        content: "\2713"; /* a checkmark */
         display: inline-block;
         vertical-align: middle;
         line-height: 0;

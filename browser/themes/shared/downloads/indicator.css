@@ -105,7 +105,7 @@ toolbarpaletteitem > #downloads-button > .toolbarbutton-badge-stack > #downloads
 }
 
 #downloads-button[attention="info"] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
-  background: url(chrome://browser/skin/notification-fill-12.svg)  no-repeat center;
+  background: url(chrome://browser/skin/notification-fill-12.svg) no-repeat center;
   fill: var(--panel-banner-item-info-icon-bgcolor);
 }
 
@@ -116,7 +116,7 @@ toolbarpaletteitem > #downloads-button > .toolbarbutton-badge-stack > #downloads
 
 #downloads-button[attention="severe"] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
   background: url(chrome://browser/skin/notification-fill-12.svg) no-repeat center;
-  fill: light-dark(rgb(226,40,80), rgb(255,132,138));
+  fill: light-dark(rgb(226, 40, 80), rgb(255, 132, 138));
 }
 
 #downloads-button[animate] > .toolbarbutton-badge-stack > .toolbarbutton-badge {
@@ -179,7 +179,7 @@ toolbarpaletteitem > #downloads-button > .toolbarbutton-badge-stack > #downloads
   transform: translateX(0);
 }
 #downloads-button[open] > .toolbarbutton-badge-stack > #downloads-indicator-finish-box > #downloads-indicator-finish-image {
- stroke: currentColor;
+  stroke: currentColor;
 }
 
 #downloads-button[animate][notification="finish"] > .toolbarbutton-badge-stack > #downloads-indicator-finish-box > #downloads-indicator-finish-image {
@@ -202,10 +202,12 @@ toolbarpaletteitem > #downloads-button > .toolbarbutton-badge-stack > #downloads
     animation-timing-function: steps(18);
     transform: translateX(0);
   }
-  14.28% { /* 18th frame (18/126) */
+  14.28% {
+    /* 18th frame (18/126) */
     transform: translateX(calc(18 * -20px));
   }
-  93.65% { /* Wait 100 frames of time, but resume from 18th frame (118/126) */
+  93.65% {
+    /* Wait 100 frames of time, but resume from 18th frame (118/126) */
     animation-timing-function: steps(8);
     transform: translateX(calc(18 * -20px));
   }

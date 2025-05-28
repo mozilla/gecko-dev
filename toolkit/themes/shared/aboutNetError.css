@@ -8,7 +8,7 @@ body {
   --warning-color: #ffa436;
 }
 
-@media (prefers-color-scheme: dark)  {
+@media (prefers-color-scheme: dark) {
   body {
     --warning-color: #ffbd4f;
   }
@@ -27,7 +27,7 @@ body.certerror {
 /* Normally, setting e.g. `display: flex` overrides the hidden attribute.
  * This allows for element hiding to be controlled entirely in HTML & JS. */
 [hidden] {
-    display: none !important;
+  display: none !important;
 }
 
 body.captiveportal .title {

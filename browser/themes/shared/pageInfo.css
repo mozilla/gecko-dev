@@ -96,12 +96,12 @@
   }
 
   #viewGroup > radio:hover {
-    background-color: #E0E8F6;
+    background-color: #e0e8f6;
     color: black;
   }
 
   #viewGroup > radio[selected="true"] {
-    background-color: #C1D2EE;
+    background-color: #c1d2ee;
     color: black;
   }
 
@@ -128,9 +128,9 @@
   }
 
   @media (-moz-mac-big-sur-theme: 0) {
-    #viewGroup > radio[selected=true],
-    #viewGroup > toolbarbutton[checked=true] {
-      color: #FFF !important;
+    #viewGroup > radio[selected="true"],
+    #viewGroup > toolbarbutton[checked="true"] {
+      color: #fff !important;
       text-shadow: rgba(0, 0, 0, 0.4) 0 1px;
     }
   }
@@ -138,7 +138,7 @@
 
 /* Misc */
 tree {
-  margin: .5em;
+  margin: 0.5em;
 }
 
 html|input {
@@ -152,7 +152,7 @@ html|input.header {
 }
 
 #imagecontainerbox {
-  margin: .5em;
+  margin: 0.5em;
   background: white;
   overflow: auto;
   border: 1px solid ThreeDLightShadow;
@@ -200,7 +200,7 @@ html|input:disabled {
 
 @media not (-moz-platform: macos) {
   #mediaSplitter {
-    height: .8em;
+    height: 0.8em;
   }
 }
 
@@ -222,7 +222,7 @@ treechildren::-moz-tree-cell-text(broken) {
 #permList {
   appearance: auto;
   -moz-default-appearance: listbox;
-  margin: .5em;
+  margin: 0.5em;
   overflow: auto;
   background-color: Field;
   color: FieldText;

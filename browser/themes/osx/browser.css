@@ -5,7 +5,7 @@
 @import url("chrome://browser/skin/browser-shared.css");
 
 :root {
-  --arrowpanel-field-background: light-dark(rgba(249, 249, 250, .3), rgba(12, 12, 13, .3));
+  --arrowpanel-field-background: light-dark(rgba(249, 249, 250, 0.3), rgba(12, 12, 13, 0.3));
 }
 
 /* stylelint-disable-next-line media-query-no-invalid */
@@ -57,7 +57,7 @@
 /** End titlebar **/
 
 :root[chromehidden~="toolbar"][chromehidden~="location"][chromehidden~="directories"] {
-  border-top: 1px solid rgba(0,0,0,0.65);
+  border-top: 1px solid rgba(0, 0, 0, 0.65);
 }
 
 /* ----- BOOKMARK TOOLBAR ----- */
@@ -96,7 +96,7 @@
      resembles the system outline, bringing the Urlbar in line with panels and
      other Mac apps. */
   #urlbar[open] > #urlbar-background {
-    outline: 1px solid var(--focus-outline-color)
+    outline: 1px solid var(--focus-outline-color);
   }
 }
 
@@ -115,7 +115,7 @@
 /* ----- AUTOCOMPLETE ----- */
 
 #PopupAutoComplete > richlistbox > richlistitem[originaltype~="datalist-first"] {
-  border-top: 1px solid #C7C7C7;
+  border-top: 1px solid #c7c7c7;
 }
 
 /* Bookmarking panel */
@@ -137,14 +137,14 @@
   margin: 0;
 }
 
-#editBMPanel_folderTree > treechildren::-moz-tree-row(blur,selected),
+#editBMPanel_folderTree > treechildren::-moz-tree-row(blur, selected),
 #editBMPanel_tagsSelector:not(:focus) > richlistitem[selected] {
   background-color: var(--arrowpanel-dimmed);
 }
 
-#editBMPanel_folderTree > treechildren::-moz-tree-twisty(blur,selected),
-#editBMPanel_folderTree > treechildren::-moz-tree-image(blur,selected),
-#editBMPanel_folderTree > treechildren::-moz-tree-cell-text(blur,selected),
+#editBMPanel_folderTree > treechildren::-moz-tree-twisty(blur, selected),
+#editBMPanel_folderTree > treechildren::-moz-tree-image(blur, selected),
+#editBMPanel_folderTree > treechildren::-moz-tree-cell-text(blur, selected),
 #editBMPanel_tagsSelector:not(:focus) > richlistitem[selected] {
   color: inherit;
 }
@@ -174,7 +174,7 @@
 }
 
 .tabbrowser-tab:not(:hover) > .tab-stack > .tab-content > .tab-icon-image:not([selected], [multiselected]) {
-  opacity: .9;
+  opacity: 0.9;
 }
 
 /*
@@ -186,7 +186,7 @@
 }
 
 .tab-label-container:not([selected], [multiselected]) {
-  opacity: .7;
+  opacity: 0.7;
 }
 
 .tabbrowser-tab {

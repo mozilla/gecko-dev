@@ -30,7 +30,7 @@
   --in-content-button-border-color: transparent;
   --in-content-button-border-color-hover: transparent;
   --in-content-button-border-color-active: var(--in-content-button-border-color-hover);
-  --in-content-primary-button-text-color: rgb(251,251,254);
+  --in-content-primary-button-text-color: rgb(251, 251, 254);
   --in-content-primary-button-text-color-hover: var(--in-content-primary-button-text-color);
   --in-content-primary-button-text-color-active: var(--in-content-primary-button-text-color);
   --in-content-primary-button-background: var(--button-background-color-primary);
@@ -97,20 +97,20 @@
      * just replace most of these for system colors and remove all this
      * duplication (assuming we honor the preferred color scheme for
      * in-content privileged pages and plain-text documents). */
-    --in-content-page-color: rgb(251,251,254);
+    --in-content-page-color: rgb(251, 251, 254);
 
-    --in-content-box-info-background: rgba(249,249,250,0.15);
+    --in-content-box-info-background: rgba(249, 249, 250, 0.15);
 
-    --in-content-border-color: rgba(249,249,250,0.2);
-    --in-content-border-invalid: rgb(255,132,139);
+    --in-content-border-color: rgba(249, 249, 250, 0.2);
+    --in-content-border-invalid: rgb(255, 132, 139);
 
-    --in-content-primary-button-text-color: rgb(43,42,51);
+    --in-content-primary-button-text-color: rgb(43, 42, 51);
 
     --in-content-table-background: rgb(35, 34, 43);
 
     --dialog-warning-text-color: var(--red-40);
 
-    scrollbar-color: rgba(249,249,250,.4) rgba(20,20,25,.3);
+    scrollbar-color: rgba(249, 249, 250, 0.4) rgba(20, 20, 25, 0.3);
   }
 
   /* For dialogs, use a different background colour. We don't do
@@ -282,7 +282,7 @@ xul|menulist {
   border-radius: 4px;
   background-color: var(--in-content-button-background);
   font-weight: 400;
-  padding: .45em 1em;
+  padding: 0.45em 1em;
   text-decoration: none;
   margin: 4px 8px;
   /* Ensure font-size isn't overridden by widget styling (e.g. in forms.css) */
@@ -295,7 +295,7 @@ button {
 
 /* Small buttons get sized to 6/12px padding (when adding the 1px border) */
 button.small-button {
-  padding: .25em 1em;
+  padding: 0.25em 1em;
   font-size: var(--font-size-small);
   min-height: 28px;
 }
@@ -552,13 +552,13 @@ html|textarea {
   box-sizing: border-box;
   font-family: inherit;
   font-size: inherit;
-  padding: .45em;
+  padding: 0.45em;
   margin: 2px 4px;
   min-height: var(--input-text-min-height);
 }
 
 html|textarea {
-  min-height: auto
+  min-height: auto;
 }
 
 html|input:where([type="email"], [type="tel"], [type="text"], [type="password"], [type="url"], [type="number"]):focus,
@@ -929,8 +929,8 @@ xul|richlistitem[selected] xul|menulist:focus-visible {
     an existing forced colors border that uses the background color */
 @media (forced-colors) {
   xul|treechildren::-moz-tree-row(selected) {
-     border: 2px solid currentColor;
-     border-radius: 4px;
+    border: 2px solid currentColor;
+    border-radius: 4px;
   }
 }
 
@@ -988,7 +988,15 @@ xul|treecol:not([hideheader="true"], :first-child),
 .tree-columnpicker-button {
   border-inline-start-width: 1px;
   border-inline-start-style: solid;
-  border-image: linear-gradient(transparent 0%, transparent 20%, var(--in-content-box-border-color) 20%, var(--in-content-box-border-color) 80%, transparent 80%, transparent 100%) 1 1;
+  border-image: linear-gradient(
+      transparent 0%,
+      transparent 20%,
+      var(--in-content-box-border-color) 20%,
+      var(--in-content-box-border-color) 80%,
+      transparent 80%,
+      transparent 100%
+    )
+    1 1;
 }
 
 @media (forced-colors) {
@@ -1087,7 +1095,9 @@ xul|treechildren::-moz-tree-image(selected) {
 
 input[type="text"][warning]:enabled:not(:focus) {
   border-color: var(--yellow-60);
-  box-shadow: 0 0 0 1px var(--yellow-60), 0 0 0 4px var(--yellow-60-a30);
+  box-shadow:
+    0 0 0 1px var(--yellow-60),
+    0 0 0 4px var(--yellow-60-a30);
 }
 
 /* Cards */
@@ -1183,7 +1193,7 @@ xul|*.sidebar-footer-link {
 }
 
 .sidebar-footer-label {
-  font-size: .9em;
+  font-size: 0.9em;
   margin: 0 4px;
   user-select: none;
 }

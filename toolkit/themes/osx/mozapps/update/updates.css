@@ -5,7 +5,8 @@
 /* Elevation Dialog */
 /* Specify the size for the UI so it has a fixed size. 3rd
    party themes should typically specify the same values. */
-#elevationBox, .update-content {
+#elevationBox,
+.update-content {
   height: 360px;
   width: 700px;
 }
@@ -58,7 +59,7 @@
 
 /* Update History Window */
 update {
-  border-bottom: 1px dotted #C0C0C0;
+  border-bottom: 1px dotted #c0c0c0;
 }
 
 .update-name {

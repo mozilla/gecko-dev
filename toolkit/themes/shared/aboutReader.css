@@ -69,8 +69,8 @@ body {
   --custom-theme-background: var(--color-white);
   --custom-theme-foreground: var(--color-gray-100);
   --custom-theme-unvisited-links: var(--color-blue-50);
-  --custom-theme-visited-links: #321C64;
-  --custom-theme-selection-highlight: #FFFFCC;
+  --custom-theme-visited-links: #321c64;
+  --custom-theme-selection-highlight: #ffffcc;
   /* light colours */
 }
 
@@ -128,11 +128,11 @@ body.dark {
 body.contrast {
   --main-background: #000000;
   --main-foreground: #fff;
-  --primary-color: #D6B4FD;
-  --link-color: #8080FF;
-  --link-color-hover: #D6B4FD;
-  --toolbar-border: #FFEE32;
-  --icon-fill: #FFEE32;
+  --primary-color: #d6b4fd;
+  --link-color: #8080ff;
+  --link-color-hover: #d6b4fd;
+  --toolbar-border: #ffee32;
+  --icon-fill: #ffee32;
 }
 
 body.custom {
@@ -207,7 +207,9 @@ body {
 }
 
 body.loaded {
-  transition: color 0.4s, background-color 0.4s;
+  transition:
+    color 0.4s,
+    background-color 0.4s;
 }
 
 *::selection {
@@ -567,7 +569,7 @@ button:disabled {
   color: var(--popup-button-foreground-hover);
 }
 
-.radiorow > input[type=radio]:focus-visible + label {
+.radiorow > input[type="radio"]:focus-visible + label {
   outline: 2px solid var(--primary-color);
   outline-offset: var(--focus-outline-offset);
   z-index: 1;
@@ -898,7 +900,7 @@ div[name="customtheme"] {
 
 .color-scheme-buttons {
   .auto-button:before {
-    background: linear-gradient(to right, var(--light-theme-background) 50%, var(--dark-theme-background) 50%);;
+    background: linear-gradient(to right, var(--light-theme-background) 50%, var(--dark-theme-background) 50%);
   }
 
   .light-button:before {
@@ -1093,7 +1095,7 @@ pre {
 }
 
 .moz-reader-content .caption,
-.moz-reader-content .wp-caption-text
+.moz-reader-content .wp-caption-text,
 .moz-reader-content figcaption {
   font-size: 0.9em;
   line-height: 1.48em;
@@ -1163,7 +1165,7 @@ table {
   border-width: 0;
   /* height: auto is implied from `.moz-reader-content *` rule. */
   width: 1em;
-  margin: 0 .07em;
+  margin: 0 0.07em;
   padding: 0;
 }
 

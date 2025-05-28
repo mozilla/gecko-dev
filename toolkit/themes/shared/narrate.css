@@ -42,7 +42,9 @@ body.hcm {
   transform: translate(-50%, calc(-50% - 2px));
   z-index: -1;
   border-bottom: 7px solid var(--narrate-word-highlight-color);
-  transition: left 0.1s ease, width 0.1s ease;
+  transition:
+    left 0.1s ease,
+    width 0.1s ease;
 }
 
 body.hcm .narrate-word-highlight {
@@ -176,7 +178,7 @@ body.hcm .narrate-word-highlight {
 /* Rate control */
 
 .narrate-rate-icon {
-  content: '';
+  content: "";
   width: 48px;
   height: 40px;
   background-position: center;

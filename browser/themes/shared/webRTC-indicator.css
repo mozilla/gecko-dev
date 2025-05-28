@@ -11,23 +11,23 @@
   border: 0;
   border-radius: 5px;
   --indicator-height: 32px;
-  --indicator-background-color: rgb(249,249,250);
-  --indicator-color: rgb(12,12,13);
-  --indicator-border-color: hsla(0,0%,0%,.32);
+  --indicator-background-color: rgb(249, 249, 250);
+  --indicator-color: rgb(12, 12, 13);
+  --indicator-border-color: hsla(0, 0%, 0%, 0.32);
   --indicator-icon-fill-opacity: 0.8;
-  --indicator-item-separator: 1px solid hsla(210,4%,10%,.14);
-  --indicator-stop-button-background-color: rgb(0,96,223);
-  --indicator-stop-button-hover-background-color: rgb(0,62,170);
-  --indicator-stop-button-color: rgb(255,255,255);
-  --minimize-button-background-color: hsla(240,5%,5%,.1);
-  --minimize-button-hover-background-color: hsla(240,5%,5%,.15);
-  --minimize-button-active-background-color: hsla(240,5%,5%,.2);
-  --control-icon-unchecked-hover-background-color: hsla(0,0%,70%,.4);
-  --control-icon-unchecked-active-background-color: hsla(0,0%,70%,.6);
-  --control-icon-checked-background-color: hsla(10,100%,50%,.16);
-  --control-icon-checked-icon-fill: rgb(215,0,34);
-  --control-icon-checked-hover-background-color: hsla(10,100%,50%,.24);
-  --control-icon-checked-active-background-color: hsla(10,100%,50%,.32);
+  --indicator-item-separator: 1px solid hsla(210, 4%, 10%, 0.14);
+  --indicator-stop-button-background-color: rgb(0, 96, 223);
+  --indicator-stop-button-hover-background-color: rgb(0, 62, 170);
+  --indicator-stop-button-color: rgb(255, 255, 255);
+  --minimize-button-background-color: hsla(240, 5%, 5%, 0.1);
+  --minimize-button-hover-background-color: hsla(240, 5%, 5%, 0.15);
+  --minimize-button-active-background-color: hsla(240, 5%, 5%, 0.2);
+  --control-icon-unchecked-hover-background-color: hsla(0, 0%, 70%, 0.4);
+  --control-icon-unchecked-active-background-color: hsla(0, 0%, 70%, 0.6);
+  --control-icon-checked-background-color: hsla(10, 100%, 50%, 0.16);
+  --control-icon-checked-icon-fill: rgb(215, 0, 34);
+  --control-icon-checked-hover-background-color: hsla(10, 100%, 50%, 0.24);
+  --control-icon-checked-active-background-color: hsla(10, 100%, 50%, 0.32);
   max-height: var(--indicator-height);
 }
 
@@ -37,15 +37,15 @@
     --indicator-color: rgb(249, 249, 250);
     --indicator-border-color: hsl(240, 1%, 40%);
     --indicator-item-separator: 1px solid rgb(249, 249, 250);
-    --minimize-button-background-color: rgba(249,249,250,0.1);
-    --minimize-button-hover-background-color: rgba(249,249,250,0.15);
-    --minimize-button-active-background-color: rgba(249,249,250,0.2);
-    --control-icon-unchecked-hover-background-color: rgba(249,249,250,0.15);
-    --control-icon-unchecked-active-background-color: rgba(249,249,250,0.2);
-    --control-icon-checked-background-color: hsla(343,100%,58%,.16);
-    --control-icon-checked-icon-fill: rgb(255,40,102);
-    --control-icon-checked-hover-background-color: hsla(343,100%,58%,.24);
-    --control-icon-checked-active-background-color: hsla(343,100%,58%,.32);
+    --minimize-button-background-color: rgba(249, 249, 250, 0.1);
+    --minimize-button-hover-background-color: rgba(249, 249, 250, 0.15);
+    --minimize-button-active-background-color: rgba(249, 249, 250, 0.2);
+    --control-icon-unchecked-hover-background-color: rgba(249, 249, 250, 0.15);
+    --control-icon-unchecked-active-background-color: rgba(249, 249, 250, 0.2);
+    --control-icon-checked-background-color: hsla(343, 100%, 58%, 0.16);
+    --control-icon-checked-icon-fill: rgb(255, 40, 102);
+    --control-icon-checked-hover-background-color: hsla(343, 100%, 58%, 0.24);
+    --control-icon-checked-active-background-color: hsla(343, 100%, 58%, 0.32);
   }
 }
 
@@ -120,7 +120,7 @@ input[type="checkbox"] {
 :root:not([sharingaudio]) > body > #device-share > #microphone-mute-toggle,
 :root:not([sharingvideo],[sharingaudio]) > body > #device-share,
 :root:not([sharingvideo],[sharingaudio]) > body > #device-share + .separator {
-  display:none;
+  display: none;
 }
 
 xul|menu {
@@ -201,7 +201,7 @@ xul|menu {
 }
 
 .stop-button:hover {
-  background-color:  var(--indicator-stop-button-hover-background-color);
+  background-color: var(--indicator-stop-button-hover-background-color);
 }
 
 #window-controls {
@@ -312,18 +312,18 @@ xul|menu {
       --indicator-color: -moz-DialogText;
       --indicator-border-color: InactiveBorder;
       --indicator-item-separator: 1px solid ThreeDShadow;
-      --indicator-stop-button-background-color: hsla(0,0%,70%,.2);
-      --indicator-stop-button-hover-background-color: hsla(0,0%,70%,.4);
+      --indicator-stop-button-background-color: hsla(0, 0%, 70%, 0.2);
+      --indicator-stop-button-hover-background-color: hsla(0, 0%, 70%, 0.4);
       --indicator-stop-button-color: inherit;
-      --minimize-button-background-color: hsla(0,0%,70%,.2);
-      --minimize-button-hover-background-color: hsla(0,0%,70%,.4);
-      --minimize-button-active-background-color: hsla(0,0%,70%,.6);
-      --control-icon-unchecked-hover-background-color: hsla(0,0%,70%,.2);
-      --control-icon-unchecked-active-background-color: hsla(0,0%,70%,.6);
+      --minimize-button-background-color: hsla(0, 0%, 70%, 0.2);
+      --minimize-button-hover-background-color: hsla(0, 0%, 70%, 0.4);
+      --minimize-button-active-background-color: hsla(0, 0%, 70%, 0.6);
+      --control-icon-unchecked-hover-background-color: hsla(0, 0%, 70%, 0.2);
+      --control-icon-unchecked-active-background-color: hsla(0, 0%, 70%, 0.6);
       --control-icon-checked-background-color: SelectedItem;
       --control-icon-checked-icon-fill: SelectedItemText;
-      --control-icon-checked-hover-background-color: hsla(0,0%,70%,.2);
-      --control-icon-checked-active-background-color: hsla(0,0%,70%,.6);
+      --control-icon-checked-hover-background-color: hsla(0, 0%, 70%, 0.2);
+      --control-icon-checked-active-background-color: hsla(0, 0%, 70%, 0.6);
     }
 
     #minimize,

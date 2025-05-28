@@ -19,7 +19,7 @@
   /* Prevent unwanted style inheritance. See bug 554717. */
   text-align: left;
   list-style-image: none !important;
-  font: normal normal normal 100%/normal sans-serif !important;
+  font: normal normal normal 100% / normal sans-serif !important;
   text-decoration: none !important;
   white-space: normal !important;
 }
@@ -37,7 +37,7 @@
   --thumb-size: 13px;
   --label-font-size: 13px;
   --pip-toggle-padding: 5px;
-  --control-focus-outline: 2px solid #00DDFF;
+  --control-focus-outline: 2px solid #00ddff;
   --control-focus-outline-offset: -2px;
   --pip-toggle-icon-width-height: 16px;
   --pip-toggle-translate-x: calc(100% - var(--pip-toggle-icon-width-height) - 2 * var(--pip-toggle-padding));
@@ -123,7 +123,7 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: rgb(80,80,80, .85);
+  background-color: rgb(80, 80, 80, 0.85);
 }
 
 .controlsOverlay {
@@ -149,7 +149,7 @@
   overflow: hidden;
   height: 40px;
   padding: 0 9px;
-  background-color: rgba(26,26,26,.8);
+  background-color: rgba(26, 26, 26, 0.8);
 }
 
 .touch .controlBar {
@@ -253,7 +253,7 @@
   border-radius: 50%;
   /* this is a foreground element even though it is implemented as a background */
   background-color: currentColor;
-  filter: drop-shadow(0 0 2px rgba(0,0,0,0.65));
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.65));
 }
 
 .volumeControl,
@@ -311,7 +311,7 @@
 }
 
 .bufferBar {
-  background-color: rgba(0,0,0,0.7);
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 .bufferBar::-moz-progress-bar,
@@ -325,7 +325,7 @@
 }
 
 .bufferBar::-moz-progress-bar {
-  background-color: rgba(255,255,255,0.3);
+  background-color: rgba(255, 255, 255, 0.3);
   border-radius: calc(var(--track-size) / 2);
 }
 
@@ -360,7 +360,7 @@
 }
 
 .volumeControl::-moz-range-track {
-  background-color: rgba(0,0,0,0.7);
+  background-color: rgba(0, 0, 0, 0.7);
 }
 
 @media (prefers-contrast) {
@@ -560,13 +560,13 @@
   direction: rtl;
 }
 
-[status="errorAborted"]         > #errorAborted,
-[status="errorNetwork"]         > #errorNetwork,
-[status="errorDecode"]          > #errorDecode,
+[status="errorAborted"] > #errorAborted,
+[status="errorNetwork"] > #errorNetwork,
+[status="errorDecode"] > #errorDecode,
 [status="errorSrcNotSupported"] > #errorSrcNotSupported,
-[status="errorNoSource"]        > #errorNoSource,
-[status="errorGeneric"]         > #errorGeneric,
-[status="pictureInPicture"]     > #pictureInPicture {
+[status="errorNoSource"] > #errorNoSource,
+[status="errorGeneric"] > #errorGeneric,
+[status="pictureInPicture"] > #pictureInPicture {
   display: inline;
 }
 

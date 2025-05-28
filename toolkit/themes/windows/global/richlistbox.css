@@ -34,7 +34,7 @@ richlistbox.theme-listbox:focus > richlistitem[current="true"] {
 
 richlistbox[seltype="multiple"]:focus > richlistitem[current="true"][selected="true"],
 richlistbox.theme-listbox:focus > richlistitem[current="true"][selected="true"] {
-  outline-color: #F3D982; /* TODO: find a suitable system color */
+  outline-color: #f3d982; /* TODO: find a suitable system color */
 }
 
 richlistbox.theme-listbox > richlistitem {
@@ -60,16 +60,16 @@ richlistbox.theme-listbox > richlistitem > label {
 
 @media not (prefers-contrast) {
   richlistbox.theme-listbox > richlistitem {
-    --listitem-selectedTextColor: rgb(0,0,0);
-    --listitem-selectedColor: rgb(217,217,217);
+    --listitem-selectedTextColor: rgb(0, 0, 0);
+    --listitem-selectedColor: rgb(217, 217, 217);
     --listitem-selectedBorder: var(--listitem-selectedColor);
-    --listitem-selectedBottomBorder: rgb(204,204,204);
+    --listitem-selectedBottomBorder: rgb(204, 204, 204);
     --listitem-selectedBackground: var(--listitem-selectedColor);
     --listitem-selectedImage: none;
-    --listitem-selectedCurrentBorder: rgb(123,195,255);
-    --listitem-selectedFocusColor: rgb(205,232,255);
+    --listitem-selectedCurrentBorder: rgb(123, 195, 255);
+    --listitem-selectedFocusColor: rgb(205, 232, 255);
     --listitem-selectedFocusBorder: var(--listitem-selectedFocusColor);
-    --listitem-selectedFocusBottomBorder: rgb(165,214,255);
+    --listitem-selectedFocusBottomBorder: rgb(165, 214, 255);
     --listitem-selectedFocusBackground: var(--listitem-selectedFocusColor);
     --listitem-selectedFocusImage: none;
     --listitem-selectedFocusCurrentBorder: var(--listitem-selectedFocusColor);

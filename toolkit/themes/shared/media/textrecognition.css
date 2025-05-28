@@ -9,7 +9,7 @@
   overflow: clip;
 
   /* Prevent unwanted style inheritance. */
-  font: normal normal normal 100%/normal sans-serif;
+  font: normal normal normal 100% / normal sans-serif;
   text-align: left;
   white-space: normal;
 }

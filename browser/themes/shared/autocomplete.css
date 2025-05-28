@@ -27,7 +27,7 @@
   padding: 0 1px;
 
   --status-text-color: currentColor;
-  --status-background-color: rgba(248, 232, 28, .2);
+  --status-background-color: rgba(248, 232, 28, 0.2);
 
   > .ac-site-icon {
     margin-inline: 4px 0;
@@ -75,7 +75,7 @@
 
     &:hover,
     &[selected] {
-      background-color: hsla(0,0%,80%,.5); /* match arrowpanel-dimmed-further */
+      background-color: hsla(0, 0%, 80%, 0.5); /* match arrowpanel-dimmed-further */
     }
   }
 
@@ -182,11 +182,11 @@
     fill: SelectedItemText;
   }
 
-    /* Login form autocompletion */
-    > .two-line-wrapper {
-      padding: 4px;
-      padding-inline-start: 6px;
-    }
+  /* Login form autocompletion */
+  > .two-line-wrapper {
+    padding: 4px;
+    padding-inline-start: 6px;
+  }
 
   &[originaltype="action"] > .two-line-wrapper {
     flex: 1;
@@ -219,7 +219,7 @@
   &[originaltype="loginWithOrigin"] + richlistitem[originaltype="generatedPassword"] {
     /* Separator between logins and generated passwords. This uses --panel-separator-color from default
      * themes since autocomplete doesn't yet switch to dark. */
-    border-top: 1px solid hsla(210,4%,10%,.14);
+    border-top: 1px solid hsla(210, 4%, 10%, 0.14);
   }
 
   &[originaltype="action"] {

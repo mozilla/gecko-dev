@@ -20,6 +20,7 @@ menuitem[appHandlerIcon="save"] > .menu-icon {
   @media not (-moz-platform: linux) {
     content: url("chrome://browser/skin/preferences/saveFile.png");
   }
+  /* prettier-ignore */
   @media (-moz-platform: linux) {
     content: image-set(
       "moz-icon://stock/document-save?size=16" 1x,

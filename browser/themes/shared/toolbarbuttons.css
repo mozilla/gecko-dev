@@ -38,13 +38,13 @@
 
   --bookmark-block-padding: 4px;
 
-  &[uidensity=compact] {
+  &[uidensity="compact"] {
     --toolbarbutton-outer-padding: 3px;
     --toolbarbutton-inner-padding: 6px;
     --bookmark-block-padding: 1px;
   }
 
-  &[uidensity=touch] {
+  &[uidensity="touch"] {
     --toolbarbutton-inner-padding: 9px;
     --bookmark-block-padding: 7px;
   }
@@ -229,10 +229,7 @@ toolbar .toolbaritem-combined-buttons {
 }
 
 toolbar .toolbaritem-combined-buttons > separator {
-  color: light-dark(
-    color-mix(in srgb, currentColor 20%, transparent),
-    color-mix(in srgb, currentColor 30%, transparent)
-  );
+  color: light-dark(color-mix(in srgb, currentColor 20%, transparent), color-mix(in srgb, currentColor 30%, transparent));
 }
 
 /* Toolbar button animations */
@@ -334,7 +331,7 @@ toolbar .toolbaritem-combined-buttons > separator {
   /* resume at 7/35 and animate across the next 14 frames */
   17.14% {
     animation-timing-function: steps(14);
-    transform: translateX(calc(0  * -20px));
+    transform: translateX(calc(0 * -20px));
   }
   /* pause on the last frame for the remainder of the duration */
   54.29% {
@@ -452,7 +449,7 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
   --toolbarbutton-inner-padding: 4px;
   --toolbarbutton-outer-padding: 2px;
 
-  :root[uidensity=compact] & {
+  :root[uidensity="compact"] & {
     --toolbarbutton-outer-padding: 1px;
   }
 
@@ -499,7 +496,7 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
     outline-offset: var(--focus-outline-inset);
   }
 
-  :root[uidensity=compact] & {
+  :root[uidensity="compact"] & {
     margin-inline: 1px;
   }
 }
@@ -541,7 +538,7 @@ toolbarbutton.bookmark-item:not(.subviewbutton) {
 
 toolbarpaletteitem[place="toolbar"] > #personal-bookmarks > #bookmarks-toolbar-placeholder,
 toolbarpaletteitem[place="palette"] > #personal-bookmarks > #bookmarks-toolbar-button,
-#personal-bookmarks:is([overflowedItem=true], [cui-areatype="panel"]) > #bookmarks-toolbar-button {
+#personal-bookmarks:is([overflowedItem="true"], [cui-areatype="panel"]) > #bookmarks-toolbar-button {
   display: flex;
 }
 
@@ -594,7 +591,8 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
       transparent 3.75px,
       var(--toolbarseparator-color) 3.75px,
       var(--toolbarseparator-color) calc(100% - 3.75px),
-      transparent calc(100% - 3.75px) );
+      transparent calc(100% - 3.75px)
+    );
     border-image-slice: 1;
   }
 
@@ -613,14 +611,14 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
   #PersonalToolbar & {
     margin-top: -1px !important;
 
-    :root[uidensity=touch] & {
+    :root[uidensity="touch"] & {
       margin-top: -4px !important;
     }
   }
 
   /* Remove a pixel of margin on the end so that the badge doesn't
    * overflow the toolbar and push the button into the overflow menu. */
-  :root[uidensity=compact] & {
+  :root[uidensity="compact"] & {
     margin-inline-end: -7px !important;
   }
 
@@ -641,7 +639,7 @@ toolbar:not(#TabsToolbar) > #personal-bookmarks {
 
 /* Flexible spacer sizing */
 
-toolbarpaletteitem[place=toolbar][id^=wrapper-customizableui-special-spring],
+toolbarpaletteitem[place="toolbar"][id^="wrapper-customizableui-special-spring"],
 toolbarspring {
   flex: 1;
   min-width: 28px;
@@ -662,7 +660,7 @@ toolbarspring {
 
 /* Keyboard navigation */
 
-toolbar[keyNav]:not([collapsed=true], [customizing]) toolbartabstop,
+toolbar[keyNav]:not([collapsed="true"], [customizing]) toolbartabstop,
 #tabbrowser-tabs[orient="vertical"] #tabs-newtab-button,
 #vertical-tabs-newtab-button {
   -moz-user-focus: normal;

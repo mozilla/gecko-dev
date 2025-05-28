@@ -72,9 +72,10 @@ toolbarbutton {
   color: #fff;
   text-shadow: none;
   border-radius: 2px;
-  box-shadow: 0 1px 0 hsla(0, 100%, 100%, .2) inset,
-              0 -1px 0 hsla(0, 0%, 0%, .1) inset,
-              0 1px 0 hsla(206, 50%, 10%, .2);
+  box-shadow:
+    0 1px 0 hsla(0, 100%, 100%, 0.2) inset,
+    0 -1px 0 hsla(0, 0%, 0%, 0.1) inset,
+    0 1px 0 hsla(206, 50%, 10%, 0.2);
   margin: -5px 0 0 !important;
   margin-inline-end: -4px !important;
   min-width: 14px;

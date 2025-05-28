@@ -14,7 +14,7 @@ table {
 
 #disk,
 #memory {
-  background-color: rgba(0, 0, 0, .1);
+  background-color: rgba(0, 0, 0, 0.1);
 }
 
 th {
@@ -49,15 +49,15 @@ td {
 }
 
 #entries > tbody > tr:nth-child(odd) {
-  background-color: rgba(0, 0, 0, .03);
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 #entries > tbody > tr:nth-child(even) {
-  background-color: rgba(0, 0, 0, .06);
+  background-color: rgba(0, 0, 0, 0.06);
 }
 
 #entries > tbody > tr > td {
-  padding: .5em 0;
+  padding: 0.5em 0;
   text-align: center;
 }
 

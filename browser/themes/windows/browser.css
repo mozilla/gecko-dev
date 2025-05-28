@@ -15,7 +15,7 @@
   color: inherit;
 
   &[_moz-menuactive] {
-    background-color: light-dark(hsla(0,0%,0%,.12), hsla(0,0%,100%,.22));
+    background-color: light-dark(hsla(0, 0%, 0%, 0.12), hsla(0, 0%, 100%, 0.22));
     color: inherit;
 
     @media (prefers-contrast) {
@@ -31,7 +31,7 @@
     /* stylelint-disable-next-line media-query-no-invalid */
     @media -moz-pref("widget.windows.mica.toplevel-backdrop", 2) {
       /* For acrylic, do the same we do for popups to guarantee some contrast */
-      background-color: light-dark(rgba(255, 255, 255, .6), rgba(0, 0, 0, .6));
+      background-color: light-dark(rgba(255, 255, 255, 0.6), rgba(0, 0, 0, 0.6));
     }
   }
 
@@ -57,7 +57,7 @@
 /* This is needed for Windows 10, see bug 1961257 */
 @media (-moz-windows-accent-color-in-titlebar) {
   :root[customtitlebar][sizemode="normal"] #navigator-toolbox {
-    border-top: .5px solid ActiveBorder;
+    border-top: 0.5px solid ActiveBorder;
     &:-moz-window-inactive {
       border-top-color: InactiveBorder;
     }
@@ -158,19 +158,19 @@
 
 @media not (prefers-contrast) {
   .titlebar-button:hover {
-    background-color: light-dark(hsla(0,0%,0%,.12), hsla(0,0%,100%,.22));
+    background-color: light-dark(hsla(0, 0%, 0%, 0.12), hsla(0, 0%, 100%, 0.22));
 
     &:active {
-      background-color: light-dark(hsla(0,0%,0%,.22), hsla(0,0%,100%,.32));
+      background-color: light-dark(hsla(0, 0%, 0%, 0.22), hsla(0, 0%, 100%, 0.32));
     }
   }
 
   .titlebar-close:hover {
     stroke: white;
-    background-color: hsl(355,86%,49%);
+    background-color: hsl(355, 86%, 49%);
 
     &:active {
-      background-color: hsl(355,82%,69%);
+      background-color: hsl(355, 82%, 69%);
     }
   }
 }
@@ -324,7 +324,7 @@
 @media (prefers-contrast) {
   /* For high contrast themes. XXX is this needed anymore? */
   #tabbrowser-tabpanels,
-  :root[privatebrowsingmode=temporary] #tabbrowser-tabpanels {
+  :root[privatebrowsingmode="temporary"] #tabbrowser-tabpanels {
     background-color: -moz-default-background-color;
   }
 }

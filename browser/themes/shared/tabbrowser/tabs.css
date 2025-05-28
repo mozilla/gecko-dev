@@ -8,10 +8,10 @@
   --tab-min-height: 36px;
   --tab-group-suggestions-loading-animation-color-1: color-mix(in srgb, currentColor 5%, transparent);
   --tab-group-suggestions-loading-animation-color-2: color-mix(in srgb, currentColor 35%, transparent);
-  &[uidensity=compact] {
+  &[uidensity="compact"] {
     --tab-min-height: 29px;
   }
-  &[uidensity=touch] {
+  &[uidensity="touch"] {
     --tab-min-height: 41px;
   }
   --tab-group-label-height: max(1.5em, var(--tab-min-height) - 14px);
@@ -33,7 +33,7 @@
   --tab-block-margin: 4px;
   --tab-icon-end-margin: 5.5px;
   --tab-label-line-height: 1.7;
-  --tab-loading-fill: #0A84FF;
+  --tab-loading-fill: #0a84ff;
   --tab-hover-background-color: color-mix(in srgb, currentColor 11%, transparent);
   --tab-selected-textcolor: var(--toolbar-color);
   --tab-selected-bgcolor: var(--toolbar-bgcolor);
@@ -100,9 +100,9 @@
   --tab-group-color-red: var(--color-red-70);
   --tab-group-color-red-invert: var(--color-red-20);
   --tab-group-color-red-pale: var(--color-red-0);
-  --tab-group-color-gray: #5E6A77;
-  --tab-group-color-gray-invert: #99A6B4;
-  --tab-group-color-gray-pale: #F2F9FF;
+  --tab-group-color-gray: #5e6a77;
+  --tab-group-color-gray-invert: #99a6b4;
+  --tab-group-color-gray-pale: #f2f9ff;
 
   --tab-group-label-text-dark: var(--color-gray-100);
   /* 5px of padding-block are adding to .tabbrowser-tab */
@@ -174,7 +174,7 @@
   pointer-events: none;
 
   #tabbrowser-arrowscrollbox:not(:hover) > #tabbrowser-arrowscrollbox-periphery > & {
-    transition: width .15s ease-out;
+    transition: width 0.15s ease-out;
   }
 }
 
@@ -201,8 +201,9 @@
   &:not([pinned]) {
     flex: 100 100;
     max-width: 225px;
-    transition: min-width 100ms ease-out,
-                max-width 100ms ease-out;
+    transition:
+      min-width 100ms ease-out,
+      max-width 100ms ease-out;
 
     #tabbrowser-tabs[orient="horizontal"] &[fadein] {
       min-width: var(--tab-min-width-pref, var(--tab-min-width));
@@ -247,7 +248,7 @@
     &:is([muted], [soundplaying], [activemedia-blocked]) {
       --tab-icon-end-margin: 2px;
 
-      #tabbrowser-tabs[orient=horizontal] &:not([pinned]) {
+      #tabbrowser-tabs[orient="horizontal"] &:not([pinned]) {
         min-width: max(var(--tab-min-width-pref, var(--tab-min-width)), 100px);
       }
     }
@@ -262,7 +263,7 @@
     min-width: 0;
   }
 
-  :root:not([uidensity=compact], [sidebar-expand-on-hover]) &[pinned] {
+  :root:not([uidensity="compact"], [sidebar-expand-on-hover]) &[pinned] {
     padding: 0 10px;
   }
 
@@ -303,7 +304,7 @@
       background-position: center center;
       background-size: 100% auto;
       background-repeat: no-repeat;
-      animation: tab-burst-animation 375ms cubic-bezier(0,0,.58,1);
+      animation: tab-burst-animation 375ms cubic-bezier(0, 0, 0.58, 1);
       -moz-context-properties: fill;
       fill: var(--tab-loading-fill);
     }
@@ -435,13 +436,21 @@
 }
 
 @keyframes tab-throbber-animation {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 @keyframes tab-throbber-animation-rtl {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .tab-icon-pending:is(:not([pendingicon]), [busy], [pinned]) {
@@ -453,10 +462,14 @@
 }
 
 @keyframes tab-sharing-icon-pulse {
-  0%, 16.66%, 83.33%, 100% {
+  0%,
+  16.66%,
+  83.33%,
+  100% {
     opacity: 0;
   }
-  33.33%, 66.66% {
+  33.33%,
+  66.66% {
     opacity: 1;
   }
 }
@@ -563,7 +576,7 @@
   inset-inline-end: -7px;
   z-index: 1; /* Overlay tab title */
 
-  #tabbrowser-tabs[orient=vertical] & {
+  #tabbrowser-tabs[orient="vertical"] & {
     top: 7px;
   }
 
@@ -597,18 +610,16 @@
        * We also apply one extra color on top (--audio-overlay-extra-background)
        * for hover / active feedback.
        */
-       --audio-overlay-extra-background: transparent;
+      --audio-overlay-extra-background: transparent;
       background-color: var(--lwt-accent-color);
-      background-image: linear-gradient(var(--audio-overlay-extra-background)),
-                        linear-gradient(var(--toolbox-bgcolor));
+      background-image: linear-gradient(var(--audio-overlay-extra-background)), linear-gradient(var(--toolbox-bgcolor));
       -moz-context-properties: fill;
       fill: var(--tab-selected-textcolor);
       color-scheme: var(--tab-selected-color-scheme);
       border-radius: var(--border-radius-circle);
 
       .browser-toolbox-background:-moz-window-inactive &:not([selected]) {
-        background-image: linear-gradient(var(--audio-overlay-extra-background)),
-                          linear-gradient(var(--toolbox-bgcolor-inactive));
+        background-image: linear-gradient(var(--audio-overlay-extra-background)), linear-gradient(var(--toolbox-bgcolor-inactive));
       }
 
       &:hover {
@@ -620,15 +631,13 @@
       }
 
       &[selected] {
-        background-image: linear-gradient(var(--audio-overlay-extra-background)),
-                          linear-gradient(var(--tab-selected-bgcolor)),
-                          linear-gradient(var(--toolbox-bgcolor));
+        background-image:
+          linear-gradient(var(--audio-overlay-extra-background)), linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor));
       }
 
       .browser-toolbox-background:-moz-window-inactive &[selected] {
-        background-image: linear-gradient(var(--audio-overlay-extra-background)),
-                        linear-gradient(var(--tab-selected-bgcolor)),
-                        linear-gradient(var(--toolbox-bgcolor-inactive));
+        background-image:
+          linear-gradient(var(--audio-overlay-extra-background)), linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor-inactive));
       }
     }
   }
@@ -673,18 +682,16 @@
          * We also apply one extra color on top (--audio-overlay-extra-background)
          * for hover / active feedback.
          */
-         --audio-overlay-extra-background: transparent;
+        --audio-overlay-extra-background: transparent;
         background-color: var(--lwt-accent-color);
-        background-image: linear-gradient(var(--audio-overlay-extra-background)),
-                          linear-gradient(var(--toolbox-bgcolor));
+        background-image: linear-gradient(var(--audio-overlay-extra-background)), linear-gradient(var(--toolbox-bgcolor));
         -moz-context-properties: fill;
         fill: var(--tab-selected-textcolor);
         color-scheme: var(--tab-selected-color-scheme);
         border-radius: var(--border-radius-circle);
 
         .browser-toolbox-background:-moz-window-inactive &:not([selected]) {
-          background-image: linear-gradient(var(--audio-overlay-extra-background)),
-                            linear-gradient(var(--toolbox-bgcolor-inactive));
+          background-image: linear-gradient(var(--audio-overlay-extra-background)), linear-gradient(var(--toolbox-bgcolor-inactive));
         }
 
         &:hover {
@@ -696,15 +703,14 @@
         }
 
         &[selected] {
-          background-image: linear-gradient(var(--audio-overlay-extra-background)),
-                            linear-gradient(var(--tab-selected-bgcolor)),
-                            linear-gradient(var(--toolbox-bgcolor));
+          background-image:
+            linear-gradient(var(--audio-overlay-extra-background)), linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor));
         }
 
         .browser-toolbox-background:-moz-window-inactive &[selected] {
-          background-image: linear-gradient(var(--audio-overlay-extra-background)),
-                          linear-gradient(var(--tab-selected-bgcolor)),
-                          linear-gradient(var(--toolbox-bgcolor-inactive));
+          background-image:
+            linear-gradient(var(--audio-overlay-extra-background)), linear-gradient(var(--tab-selected-bgcolor)),
+            linear-gradient(var(--toolbox-bgcolor-inactive));
         }
       }
     }
@@ -730,37 +736,37 @@
   --button-min-height-small: 24px;
   --button-border-radius: var(--border-radius-small);
 
-    /* stylelint-disable-next-line media-query-no-invalid */
-    @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
-      /* We need these rules to apply at all times when the sidebar.visibility
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
+    /* We need these rules to apply at all times when the sidebar.visibility
       pref is not set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
       has not been added to root. There are certain scenarios when that attribute is temporarily
       removed from root such as when toggling the sidebar to expand with the toolbar button. */
-      #tabbrowser-tabs[orient="horizontal"] &:not([pinned]):not([crashed]),
-      :root:not([sidebar-expand-on-hover]) #tabbrowser-tabs[orient="vertical"][expanded] &:not([pinned]):not([crashed]) {
-        &:is([soundplaying], [muted], [activemedia-blocked]) {
-          display: block;
-        }
+    #tabbrowser-tabs[orient="horizontal"] &:not([pinned]):not([crashed]),
+    :root:not([sidebar-expand-on-hover]) #tabbrowser-tabs[orient="vertical"][expanded] &:not([pinned]):not([crashed]) {
+      &:is([soundplaying], [muted], [activemedia-blocked]) {
+        display: block;
+      }
 
-        &[soundplaying]::part(button) {
-          background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
-        }
+      &[soundplaying]::part(button) {
+        background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
+      }
 
-        &[muted]::part(button) {
-          background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
-        }
+      &[muted]::part(button) {
+        background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
+      }
 
-        &[activemedia-blocked]::part(button) {
-          background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-circle-12.svg");
-        }
+      &[activemedia-blocked]::part(button) {
+        background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-circle-12.svg");
       }
     }
+  }
 }
 
 .tab-label-container {
   overflow: hidden;
 
-  #tabbrowser-tabs:not([secondarytext-unsupported], [orient=vertical]) & {
+  #tabbrowser-tabs:not([secondarytext-unsupported], [orient="vertical"]) & {
     height: 2.7em;
   }
 
@@ -769,13 +775,13 @@
   }
 
   &[textoverflow] {
-    &[labeldirection=ltr],
+    &[labeldirection="ltr"],
     &:not([labeldirection]):-moz-locale-dir(ltr) {
       direction: ltr;
       mask-image: linear-gradient(to left, transparent, black var(--tab-label-mask-size));
     }
 
-    &[labeldirection=rtl],
+    &[labeldirection="rtl"],
     &:not([labeldirection]):-moz-locale-dir(rtl) {
       direction: rtl;
       mask-image: linear-gradient(to right, transparent, black var(--tab-label-mask-size));
@@ -785,7 +791,7 @@
 
 .tab-label {
   margin-inline: 0;
-  line-height: var(--tab-label-line-height);  /* override 'normal' in case of fallback math fonts with huge metrics */
+  line-height: var(--tab-label-line-height); /* override 'normal' in case of fallback math fonts with huge metrics */
   white-space: nowrap;
 }
 
@@ -824,12 +830,12 @@
 }
 
 .tab-secondary-label {
-  font-size: .75em;
-  margin: -.3em 0 .3em; /* adjust margins to compensate for line-height of .tab-label */
-  opacity: .8;
+  font-size: 0.75em;
+  margin: -0.3em 0 0.3em; /* adjust margins to compensate for line-height of .tab-label */
+  opacity: 0.8;
 
   #tabbrowser-tabs:is([secondarytext-unsupported], [orient="vertical"]) &,
-  :root[uidensity=compact] &,
+  :root[uidensity="compact"] &,
   &:not([pictureinpicture]) {
     display: none;
   }
@@ -871,7 +877,10 @@
   }
 
   #tabbrowser-tabs[movingtab-createGroup] & {
-    transition: background-color 50ms ease, color 50ms ease, outline-color 50ms ease;
+    transition:
+      background-color 50ms ease,
+      color 50ms ease,
+      outline-color 50ms ease;
 
     &[dragover-createGroup] {
       background-color: light-dark(var(--dragover-tab-group-color-pale), var(--dragover-tab-group-color));
@@ -931,6 +940,7 @@
   }
 }
 
+/* prettier-ignore */
 #tabbrowser-tabs[haspinnedtabs]:not([positionpinnedtabs])[orient="horizontal"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab:nth-child(1 of :not([pinned], [hidden])) {
   margin-inline-start: 12px;
 }
@@ -985,13 +995,14 @@
     display: flex;
   }
 
+  /* prettier-ignore */
   #tabbrowser-tabs[movingtab]:not([movingtab-createGroup],[movingtab-ungroup]) .tabbrowser-tab:is(:active,[multiselected]) > .tab-stack > .tab-background > & {
     display: flex;
     background-color: light-dark(var(--dragover-tab-group-color), var(--dragover-tab-group-color-invert));
     border-radius: 1px;
   }
 
-  #tabbrowser-tabs:is([movingtab-createGroup],[movingtab-ungroup]) &:is([selected],[multiselected]) {
+  #tabbrowser-tabs:is([movingtab-createGroup], [movingtab-ungroup]) &:is([selected], [multiselected]) {
     display: none;
   }
 }
@@ -1017,7 +1028,7 @@ tab-group {
 
 #tabbrowser-tabs[orient="vertical"][expanded] {
   tab-group > :is(.tab-group-label-container, .tabbrowser-tab),
-  &[movingtab][movingtab-addToGroup]:not([movingtab-createGroup],[movingtab-ungroup]) .tabbrowser-tab:is(:active,[multiselected]) {
+  &[movingtab][movingtab-addToGroup]:not([movingtab-createGroup], [movingtab-ungroup]) .tabbrowser-tab:is(:active, [multiselected]) {
     margin-inline-start: var(--space-medium);
   }
 }
@@ -1190,13 +1201,13 @@ tab-group {
   }
 
   input[name="tab-group-color"] {
-     width: 0;
-     height: 0;
-     opacity: 0;
-     margin: 0;
-     position: absolute;
-     pointer-events: none;
-     top: -100px;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    margin: 0;
+    position: absolute;
+    pointer-events: none;
+    top: -100px;
   }
 
   .tab-group-editor-swatch {
@@ -1227,7 +1238,7 @@ tab-group {
   .tab-group-delete {
     padding-block: 0;
     > toolbarbutton {
-     justify-content: flex-start;
+      justify-content: flex-start;
     }
   }
 
@@ -1259,24 +1270,25 @@ tab-group {
     &:not([scrolledtostart])::part(overflow-start-indicator),
     &:not([scrolledtoend])::part(overflow-end-indicator) {
       width: 7px; /* The width is the sum of the inline margins */
+      /* prettier-ignore */
       background-image: radial-gradient(ellipse at bottom,
                                         rgba(0,0,0,0.1) 0%,
                                         rgba(0,0,0,0.1) 7.6%,
                                         rgba(0,0,0,0) 87.5%);
       background-repeat: no-repeat;
       background-position: -3px;
-      border-left: .5px solid rgba(255,255,255,.2);
+      border-left: 0.5px solid rgba(255, 255, 255, 0.2);
       pointer-events: none;
       position: relative;
-      border-bottom: .5px solid transparent;
+      border-bottom: 0.5px solid transparent;
     }
 
     &:not([scrolledtostart])::part(overflow-start-indicator) {
-      margin-inline: -.5px -6.5px;
+      margin-inline: -0.5px -6.5px;
     }
 
     &:not([scrolledtoend])::part(overflow-end-indicator) {
-      margin-inline: -6.5px -.5px;
+      margin-inline: -6.5px -0.5px;
     }
 
     &:-moz-locale-dir(rtl)::part(overflow-start-indicator),
@@ -1285,15 +1297,10 @@ tab-group {
     }
   }
 
-
   &[orient="vertical"] {
     &::part(overflow-start-indicator),
     &::part(overflow-end-indicator) {
-      background-image: linear-gradient(
-        to top,
-        transparent 0%,
-        light-dark(rgba(0, 0, 0, .05), rgba(255, 255, 255, .05))
-      );
+      background-image: linear-gradient(to top, transparent 0%, light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05)));
       background-repeat: no-repeat;
       pointer-events: none;
 
@@ -1452,11 +1459,7 @@ tab-group {
 
   &:not([scrolledtostart])::part(overflow-start-indicator),
   &:not([scrolledtoend])::part(overflow-end-indicator) {
-    background-image: linear-gradient(
-      to top,
-      transparent 0%,
-      light-dark(rgba(0, 0, 0, .05), rgba(255, 255, 255, .05))
-    );
+    background-image: linear-gradient(to top, transparent 0%, light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05)));
     background-repeat: no-repeat;
     pointer-events: none;
     position: relative;
@@ -1486,8 +1489,7 @@ tab-group {
   }
 
   :root:not([sidebar-expand-on-hover]) & {
-    --tab-inline-padding: calc((var(--tab-collapsed-background-width) + 2 *
-      var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2);
+    --tab-inline-padding: calc((var(--tab-collapsed-background-width) + 2 * var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2);
     /* stylelint-disable-next-line media-query-no-invalid */
     @media not -moz-pref("sidebar.visibility", "expand-on-hover") {
       /* We need these rules to apply at all times when the sidebar.visibility
@@ -1495,10 +1497,7 @@ tab-group {
       has not been added to root. There are certain scenarios when that attribute is temporarily
       removed from root such as when toggling the sidebar to expand with the toolbar button. */
       &::part(items-wrapper) {
-        grid-template-columns: repeat(
-          auto-fit,
-          minmax(var(--tab-pinned-min-width-expanded), auto)
-        );
+        grid-template-columns: repeat(auto-fit, minmax(var(--tab-pinned-min-width-expanded), auto));
         display: grid;
         grid-auto-rows: var(--tab-height-with-margin-padding);
       }
@@ -1636,9 +1635,8 @@ tab-group {
        */
       --close-button-extra-background: transparent;
       background-color: var(--lwt-accent-color);
-      background-image: linear-gradient(var(--close-button-extra-background)),
-                        linear-gradient(var(--tab-selected-bgcolor)),
-                        linear-gradient(var(--toolbox-bgcolor));
+      background-image:
+        linear-gradient(var(--close-button-extra-background)), linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor));
       color-scheme: var(--tab-selected-color-scheme);
       outline-color: var(--tab-selected-outline-color);
       box-shadow: var(--tab-selected-shadow);
@@ -1650,9 +1648,8 @@ tab-group {
       inset-inline-start: 2px;
 
       &:-moz-window-inactive {
-        background-image: linear-gradient(var(--close-button-extra-background)),
-                          linear-gradient(var(--tab-selected-bgcolor)),
-                          linear-gradient(var(--toolbox-bgcolor-inactive));
+        background-image:
+          linear-gradient(var(--close-button-extra-background)), linear-gradient(var(--tab-selected-bgcolor)), linear-gradient(var(--toolbox-bgcolor-inactive));
       }
 
       &:hover {
@@ -1732,10 +1729,7 @@ tab-group {
 }
 
 :root:not([privatebrowsingmode]) :is(toolbarbutton, toolbarpaletteitem) ~ #tabbrowser-tabs,
-:root[privatebrowsingmode] :is(
-  toolbarbutton:not(#firefox-view-button),
-  toolbarpaletteitem:not(#wrapper-firefox-view-button)
-) ~ #tabbrowser-tabs {
+:root[privatebrowsingmode] :is(toolbarbutton:not(#firefox-view-button), toolbarpaletteitem:not(#wrapper-firefox-view-button)) ~ #tabbrowser-tabs {
   border-inline-start: var(--tabstrip-inner-border);
   padding-inline-start: calc(var(--tab-overflow-pinned-tabs-width) + 2px);
   margin-inline-start: 2px;
@@ -2075,10 +2069,12 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
   animation: tab-group-loading-block-animation 3s infinite;
   outline-color: var(--tab-group-suggestions-loading-animation-color-1);
   border-color: var(--tab-group-suggestions-loading-animation-color-2);
-  background: linear-gradient(100deg,
-      color-mix(in srgb, var(--tab-group-suggestions-loading-animation-color-2), transparent 60%) 30%,
-        var(--tab-group-suggestions-loading-animation-color-1) 50%,
-        color-mix(in srgb, var(--tab-group-suggestions-loading-animation-color-2), transparent 60%) 70%);
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--tab-group-suggestions-loading-animation-color-2), transparent 60%) 30%,
+    var(--tab-group-suggestions-loading-animation-color-1) 50%,
+    color-mix(in srgb, var(--tab-group-suggestions-loading-animation-color-2), transparent 60%) 70%
+  );
   background-size: 200% 100%;
   border-radius: var(--border-radius-small);
   height: 1.5em;

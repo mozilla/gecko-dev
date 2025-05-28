@@ -35,25 +35,25 @@
 
 @media not (prefers-contrast) {
   :root {
-    --organizer-color: rgb(21,20,26);
-    --organizer-deemphasized-color: rgb(91,91,102);
+    --organizer-color: rgb(21, 20, 26);
+    --organizer-deemphasized-color: rgb(91, 91, 102);
 
-    --organizer-toolbar-background: rgb(249,249,251);
-    --organizer-pane-background: rgb(240,240,244);
+    --organizer-toolbar-background: rgb(249, 249, 251);
+    --organizer-pane-background: rgb(240, 240, 244);
     --organizer-content-background: white;
 
-    --organizer-hover-background: rgba(207,207,216,.66);
+    --organizer-hover-background: rgba(207, 207, 216, 0.66);
     --organizer-hover-color: var(--organizer-color);
-    --organizer-selected-background: rgb(207,207,216);
+    --organizer-selected-background: rgb(207, 207, 216);
     --organizer-selected-color: var(--organizer-color);
-    --organizer-focus-selected-background: rgb(0,97,224);
-    --organizer-focus-selected-color: rgb(251,251,254);
-    --organizer-outline-color: rgb(0,97,224);
+    --organizer-focus-selected-background: rgb(0, 97, 224);
+    --organizer-focus-selected-color: rgb(251, 251, 254);
+    --organizer-outline-color: rgb(0, 97, 224);
 
     --organizer-separator-color: var(--organizer-pane-field-border-color);
     --organizer-border-color: ThreeDLightShadow;
 
-    --organizer-toolbar-field-background: rgb(240,240,244);
+    --organizer-toolbar-field-background: rgb(240, 240, 244);
     --organizer-toolbar-field-background-focused: Field;
     --organizer-toolbar-field-border-color: transparent;
     --organizer-toolbar-field-focus-border-color: color-mix(in srgb, var(--organizer-outline-color) 50%, transparent);
@@ -63,22 +63,22 @@
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --organizer-color: rgb(251,251,254);
-      --organizer-deemphasized-color: rgb(191,191,201);
+      --organizer-color: rgb(251, 251, 254);
+      --organizer-deemphasized-color: rgb(191, 191, 201);
 
-      --organizer-toolbar-background: rgb(43,42,51);
-      --organizer-pane-background: rgb(35,34,43);
-      --organizer-content-background: rgb(28,27,34);
+      --organizer-toolbar-background: rgb(43, 42, 51);
+      --organizer-pane-background: rgb(35, 34, 43);
+      --organizer-content-background: rgb(28, 27, 34);
 
-      --organizer-hover-background: rgb(82,82,94);
-      --organizer-selected-background: rgb(91,91,102);
-      --organizer-focus-selected-background: color-mix(in srgb, rgb(0,221,255) 80%, currentColor);
-      --organizer-focus-selected-color: rgb(43,42,51);
-      --organizer-outline-color: rgb(0,221,255);
+      --organizer-hover-background: rgb(82, 82, 94);
+      --organizer-selected-background: rgb(91, 91, 102);
+      --organizer-focus-selected-background: color-mix(in srgb, rgb(0, 221, 255) 80%, currentColor);
+      --organizer-focus-selected-color: rgb(43, 42, 51);
+      --organizer-outline-color: rgb(0, 221, 255);
 
-      --organizer-toolbar-field-background: rgb(28,27,34);
-      --organizer-toolbar-field-background-focused: rgb(66,65,77);
-      scrollbar-color: rgba(249,249,250,.4) rgba(20,20,25,.3);
+      --organizer-toolbar-field-background: rgb(28, 27, 34);
+      --organizer-toolbar-field-background-focused: rgb(66, 65, 77);
+      scrollbar-color: rgba(249, 249, 250, 0.4) rgba(20, 20, 25, 0.3);
     }
   }
 }
@@ -241,7 +241,7 @@
   /* Use box-shadow to draw a bottom border instead of border-bottom
    * because otherwise the items on contentView won't be perfectly
    * aligned with the items on the sidebar. */
-  box-shadow: inset 0 -1px var(--organizer-border-color)
+  box-shadow: inset 0 -1px var(--organizer-border-color);
 }
 
 tree {

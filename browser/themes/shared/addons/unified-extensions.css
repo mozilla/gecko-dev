@@ -137,7 +137,7 @@ unified-extensions-item {
 .unified-extensions-item-name,
 .unified-extensions-item-message {
   margin: 0;
-  padding-inline-start: .5em;
+  padding-inline-start: 0.5em;
   word-break: break-word;
 }
 
@@ -148,8 +148,7 @@ unified-extensions-item {
 .unified-extensions-item-menu-button.subviewbutton {
   list-style-image: url("chrome://global/skin/icons/settings.svg");
   /* subtract the child's ~1px border from the block padding */
-  padding: calc(var(--arrowpanel-menuitem-margin-inline) - 1px)
-    var(--arrowpanel-menuitem-margin-inline);
+  padding: calc(var(--arrowpanel-menuitem-margin-inline) - 1px) var(--arrowpanel-menuitem-margin-inline);
   padding-inline-end: 0;
   border-radius: 0;
   /* override panelUI-shared.css */
@@ -176,7 +175,7 @@ unified-extensions-item {
   &:hover:active > .toolbarbutton-icon {
     color: var(--uei-button-active-color);
     background-color: var(--uei-button-active-bgcolor);
-    box-shadow: 0 1px 0 hsla(210,4%,10%,.03) inset;
+    box-shadow: 0 1px 0 hsla(210, 4%, 10%, 0.03) inset;
   }
 
   &:focus-visible > .toolbarbutton-icon {

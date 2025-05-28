@@ -22,9 +22,9 @@
   --tabs-navbar-separator-color: ThreeDShadow;
   --tabs-navbar-separator-style: solid;
 
-  --short-notification-background: #0250BB;
-  --short-notification-gradient: #9059FF;
-  --warning-icon-bgcolor: light-dark(#FFA436, #FFBD4F);
+  --short-notification-background: #0250bb;
+  --short-notification-gradient: #9059ff;
+  --warning-icon-bgcolor: light-dark(#ffa436, #ffbd4f);
 
   --urlbar-box-bgcolor: var(--button-background-color-hover);
   --urlbar-box-focus-bgcolor: var(--button-background-color);
@@ -52,7 +52,7 @@
     --link-color: light-dark(var(--color-blue-50), var(--color-cyan-50));
     --link-color-hover: light-dark(var(--color-blue-60), var(--color-cyan-30));
     --link-color-active: light-dark(var(--color-blue-70), var(--color-cyan-20));
-    --tabs-navbar-separator-color: light-dark(rgba(0,0,0,.1), rgba(0,0,0,.3));
+    --tabs-navbar-separator-color: light-dark(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3));
     --attention-dot-color: light-dark(#2ac3a2, #54ffbd);
 
     --toolbox-bgcolor: var(--lwt-accent-color);
@@ -61,7 +61,7 @@
     --toolbox-textcolor-inactive: var(--lwt-text-color, currentColor);
 
     @media not (prefers-contrast) {
-      --focus-outline-color: light-dark(#0061E0, #00DDFF);
+      --focus-outline-color: light-dark(#0061e0, #00ddff);
     }
   }
 
@@ -84,23 +84,17 @@
   :root:not([lwtheme]) {
     --color-accent-primary: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
     --button-text-color-primary: light-dark(rgb(251, 251, 254), rgb(43, 42, 51));
-    --button-background-color: light-dark(rgba(207, 207, 216, .33), rgba(0, 0, 0, .33));
-    --button-background-color-hover: light-dark(rgba(207, 207, 216, .66), rgba(207, 207, 216, .20));
-    --button-background-color-active: light-dark(rgb(207, 207, 216), rgba(207, 207, 216, .40));
+    --button-background-color: light-dark(rgba(207, 207, 216, 0.33), rgba(0, 0, 0, 0.33));
+    --button-background-color-hover: light-dark(rgba(207, 207, 216, 0.66), rgba(207, 207, 216, 0.2));
+    --button-background-color-active: light-dark(rgb(207, 207, 216), rgba(207, 207, 216, 0.4));
     --button-text-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
 
     --arrowpanel-background: light-dark(white, rgb(66, 65, 77));
     --arrowpanel-color: light-dark(black, rgb(251, 251, 254));
-    --arrowpanel-border-color: light-dark(rgb(240, 240, 244), rgb(82,82,94));
+    --arrowpanel-border-color: light-dark(rgb(240, 240, 244), rgb(82, 82, 94));
 
-    --arrowpanel-dimmed: light-dark(
-      color-mix(in srgb, currentColor 12%, transparent),
-      color-mix(in srgb, currentColor 17%, transparent)
-    );
-    --arrowpanel-dimmed-further: light-dark(
-      color-mix(in srgb, currentColor 20%, transparent),
-      color-mix(in srgb, currentColor 14%, transparent)
-    );
+    --arrowpanel-dimmed: light-dark(color-mix(in srgb, currentColor 12%, transparent), color-mix(in srgb, currentColor 17%, transparent));
+    --arrowpanel-dimmed-further: light-dark(color-mix(in srgb, currentColor 20%, transparent), color-mix(in srgb, currentColor 14%, transparent));
 
     --input-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
     --input-bgcolor: light-dark(rgb(255, 255, 255), #42414d);
@@ -128,14 +122,14 @@
     --toolbarbutton-icon-fill-attention-text: light-dark(rgb(240, 240, 244), rgb(28, 27, 34));
 
     --toolbar-field-border-color: transparent;
-    --toolbar-field-background-color: light-dark(rgba(0, 0, 0, .05), rgba(0, 0, 0, .3));
+    --toolbar-field-background-color: light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.3));
     --toolbar-field-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
     --toolbar-field-focus-background-color: light-dark(white, rgb(66, 65, 77));
     --toolbar-field-focus-color: light-dark(black, rgb(251, 251, 254));
 
     --urlbarView-action-color: light-dark(rgb(91, 91, 102), rgb(191, 191, 201));
     --urlbarView-separator-color: light-dark(rgb(240, 240, 244), rgb(82, 82, 94));
-    --urlbarView-highlight-background: light-dark(#e0e0e6, rgb(43,42,51));
+    --urlbarView-highlight-background: light-dark(#e0e0e6, rgb(43, 42, 51));
     --urlbarView-highlight-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
     --urlbarView-hover-background: light-dark(rgb(240, 240, 244), var(--arrowpanel-dimmed));
 

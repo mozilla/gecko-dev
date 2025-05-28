@@ -212,7 +212,6 @@
   }
 }
 
-
 /* NO EXPERIMENT - PIP STYLING */
 
 .controlsOverlay:not(.experiment).hovering > .pip-wrapper:not(:focus-visible) {
@@ -260,7 +259,9 @@
 
 .pip-wrapper:not(.experiment) > .pip-expanded {
   border: var(--pip-highlight-width) var(--pip-highlight-style);
-  transition: opacity 250ms, scale 200ms;
+  transition:
+    opacity 250ms,
+    scale 200ms;
   height: var(--pip-expanded-height);
   background-color: rgba(12, 12, 13, 0.9);
   box-shadow: 0 4px 4px rgba(12, 12, 13, 0.25);
@@ -286,8 +287,10 @@
 .pip-wrapper:not(.experiment) > .pip-expanded > .pip-explainer {
   padding: 6px 16px 8px 8px;
   translate: 0;
-  transition: opacity 250ms, translate 190ms;
-  transition-timing-function: cubic-bezier(.07, .95, 0, 1);
+  transition:
+    opacity 250ms,
+    translate 190ms;
+  transition-timing-function: cubic-bezier(0.07, 0.95, 0, 1);
   background: rgba(12, 12, 13, 0.65);
   border-bottom-right-radius: 8px;
   border-bottom-left-radius: 8px;
@@ -313,14 +316,13 @@
   translate: 0 calc(40px - var(--pip-highlight-width));
 }
 
-
 /* EXPERIMENT ONLY - PIP STYLING */
 
 /* Since we change the outline for the first-time PiP toggle VARIANT,
  * override the focus outline in videocontrols.css as well so that
  * there is design consistency. */
 .controlsContainer.experiment {
-  --control-focus-outline: 2px solid #0060DF;
+  --control-focus-outline: 2px solid #0060df;
 }
 
 .pip-wrapper.experiment > .pip-expanded > .pip-icon-label > .pip-label {
@@ -357,7 +359,11 @@
 }
 
 .pip-wrapper.experiment > .pip-expanded {
-  transition: opacity 250ms, scale 200ms, translate 190ms, background-color 200ms;
+  transition:
+    opacity 250ms,
+    scale 200ms,
+    translate 190ms,
+    background-color 200ms;
   height: var(--pip-expanded-height);
   width: var(--pip-expanded-max-width);
   min-width: var(--pip-expanded-min-width);

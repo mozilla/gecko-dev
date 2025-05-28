@@ -7,11 +7,11 @@
 :root {
   /* --tabpanel-background-color matches $in-content-page-background in newtab
      (browser/extensions/newtab/content-src/styles/_variables.scss) */
-  --tabpanel-background-color: #F9F9FB;
+  --tabpanel-background-color: #f9f9fb;
   @media (-moz-content-prefers-color-scheme: dark) {
-    --tabpanel-background-color: #2B2A33;
+    --tabpanel-background-color: #2b2a33;
   }
-  &[privatebrowsingmode=temporary] {
+  &[privatebrowsingmode="temporary"] {
     /* Value for --in-content-page-background in aboutPrivateBrowsing.css.
        !important overrides the direct setting of this variable in
        ThemeVariableMap.sys.mjs when the user has a theme that defines
@@ -20,7 +20,7 @@
 
     /* stylelint-disable-next-line media-query-no-invalid */
     @media -moz-pref("browser.privatebrowsing.felt-privacy-v1") {
-      --tabpanel-background-color: linear-gradient(45deg, #722291 0%, #45278D 50%, #393473 100%) !important;
+      --tabpanel-background-color: linear-gradient(45deg, #722291 0%, #45278d 50%, #393473 100%) !important;
     }
   }
 }
@@ -137,7 +137,7 @@
     opacity: 0;
   }
 
-  browser[type=content] {
+  browser[type="content"] {
     color-scheme: env(-moz-content-preferred-color-scheme);
   }
 
@@ -172,26 +172,30 @@
     max-width: 50%;
   }
 
-  &[type=status] {
+  &[type="status"] {
     min-width: min(23em, 33%);
   }
 
-  &[type=overLink] {
-    transition: opacity 120ms ease-out, visibility 120ms;
+  &[type="overLink"] {
+    transition:
+      opacity 120ms ease-out,
+      visibility 120ms;
   }
 
-  &:is([type=overLink], [inactive][previoustype=overLink]) {
+  &:is([type="overLink"], [inactive][previoustype="overLink"]) {
     direction: ltr;
   }
 
   &[inactive],
-  :root[inDOMFullscreen] &:not([type=overLink]) {
+  :root[inDOMFullscreen] &:not([type="overLink"]) {
     transition: none;
     opacity: 0;
     visibility: hidden;
 
-    &[previoustype=overLink] {
-      transition: opacity 200ms ease-out, visibility 200ms;
+    &[previoustype="overLink"] {
+      transition:
+        opacity 200ms ease-out,
+        visibility 200ms;
     }
   }
 
@@ -212,17 +216,17 @@
   text-shadow: none;
 
   @media (not (prefers-contrast)) and (not (-moz-platform: linux)) {
-    background-color: light-dark(#f9f9fa, hsl(240,1%,20%));
-    border-color: light-dark(#ddd, hsl(240,1%,40%));
-    color: light-dark(#444, rgb(249,249,250));
+    background-color: light-dark(#f9f9fa, hsl(240, 1%, 20%));
+    border-color: light-dark(#ddd, hsl(240, 1%, 40%));
+    color: light-dark(#444, rgb(249, 249, 250));
   }
 
   #statuspanel:not([mirror]) > &:-moz-locale-dir(ltr),
   #statuspanel[mirror] > &:-moz-locale-dir(rtl) {
     border-right-style: solid;
     /* disabled on Windows for triggering grayscale AA (bug 659213): */
-  	@media not (-moz-platform: windows) {
-      border-top-right-radius: .3em;
+    @media not (-moz-platform: windows) {
+      border-top-right-radius: 0.3em;
     }
     margin-right: 1em;
   }
@@ -231,8 +235,8 @@
   #statuspanel[mirror] > &:-moz-locale-dir(ltr) {
     border-left-style: solid;
     /* disabled on Windows for triggering grayscale AA (bug 659213): */
-  	@media not (-moz-platform: windows) {
-      border-top-left-radius: .3em;
+    @media not (-moz-platform: windows) {
+      border-top-left-radius: 0.3em;
     }
     margin-left: 1em;
   }
@@ -243,7 +247,7 @@
  */
 #selection-shortcut-action-panel {
   --panel-subview-body-padding: 0;
- }
+}
 
 #ai-action-button {
   --button-min-height: 34px;
@@ -251,7 +255,6 @@
   --button-border-radius: 7px;
   margin: 1px;
 }
-
 
 #ask-chat-shortcuts {
   max-width: 345px;
@@ -266,7 +269,6 @@
   margin: var(--arrowpanel-menuitem-margin);
   margin-top: var(--space-small);
 }
-
 
 /**
  * Dialogs
@@ -372,11 +374,7 @@
     /* Do not go below 3px (as otherwise the top of the dialog would be
      * adjacent to or clipped by the top of the window), or above the window
      * size. */
-    margin-top: clamp(
-      3px,
-      var(--chrome-offset, 20px) - 5px,
-      calc(100vh - var(--subdialog-inner-height) - 5px)
-    );
+    margin-top: clamp(3px, var(--chrome-offset, 20px) - 5px, calc(100vh - var(--subdialog-inner-height) - 5px));
   }
 }
 

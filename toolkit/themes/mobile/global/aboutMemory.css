@@ -22,7 +22,11 @@ body {
 
 /* The comment at the top of aboutMemory.xhtml explains this font choice. */
 pre {
-  font-family: Fira Mono, DejaVu Sans Mono, Liberation Mono, monospace;
+  font-family:
+    Fira Mono,
+    DejaVu Sans Mono,
+    Liberation Mono,
+    monospace;
 }
 
 div.ancillary {
@@ -65,7 +69,7 @@ div.sidebarItem {
   border-radius: 10px;
   background: Field;
   color: FieldText;
-  user-select: none;  /* no need to include this when cutting+pasting */
+  user-select: none; /* no need to include this when cutting+pasting */
 }
 
 input.filterInput {
@@ -93,7 +97,8 @@ div.opsRow {
   display: inline-block;
 }
 
-div.opsRowLabel, div.sidebarLabel {
+div.opsRowLabel,
+div.sidebarLabel {
   display: block;
   margin-bottom: 0.2em;
   font-weight: bold;
@@ -115,10 +120,12 @@ h1 {
 }
 
 h2 {
-  padding-left: .1em;
+  padding-left: 0.1em;
 }
 
-.accuracyWarning, .badInputWarning, .invalid {
+.accuracyWarning,
+.badInputWarning,
+.invalid {
   /*
    * Technically this should be used with the default background colour,
    * instead we're using the default field background colour,
@@ -145,17 +152,17 @@ h2 {
 }
 
 .noselect {
-  user-select: none;  /* no need to include this when cutting+pasting */
+  user-select: none; /* no need to include this when cutting+pasting */
 }
 
 .option {
   font-size: 80%;
-  user-select: none;  /* no need to include this when cutting+pasting */
+  user-select: none; /* no need to include this when cutting+pasting */
 }
 
 .legend {
   font-size: 80%;
-  user-select: none;  /* no need to include this when cutting+pasting */
+  user-select: none; /* no need to include this when cutting+pasting */
 }
 
 .debug {

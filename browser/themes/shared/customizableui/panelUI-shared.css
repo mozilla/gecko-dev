@@ -27,10 +27,10 @@
   --panel-and-palette-icon-size: 16px;
 
   &:not([lwtheme]) {
-    --panel-separator-zap-gradient: linear-gradient(90deg, #9059FF 0%, #FF4AA2 52.08%, #FFBD4F 100%);
+    --panel-separator-zap-gradient: linear-gradient(90deg, #9059ff 0%, #ff4aa2 52.08%, #ffbd4f 100%);
   }
 
-  &[uidensity=compact] {
+  &[uidensity="compact"] {
     --arrowpanel-menuitem-margin-inline: 4px;
     --arrowpanel-menuitem-padding-block: 4px;
     --panel-separator-margin-horizontal: 4px;
@@ -55,8 +55,7 @@ menupopup {
   /* The min-height is calculated with the separator's horizontal margin rather
    * than the vertical, to let the back icon have even spacing all around
    * while being aligned with the separator. */
-  --arrowpanel-header-min-height: calc(var(--arrowpanel-header-back-icon-full-width)
-                                       + (var(--panel-separator-margin-horizontal) * 2));
+  --arrowpanel-header-min-height: calc(var(--arrowpanel-header-back-icon-full-width) + (var(--panel-separator-margin-horizontal) * 2));
 }
 
 #PanelUI-menu-button {
@@ -254,7 +253,7 @@ panelview {
   border-radius: var(--toolbarbutton-border-radius);
   flex-shrink: 0;
 
-  &[disabled=true] {
+  &[disabled="true"] {
     visibility: hidden;
   }
 
@@ -286,8 +285,8 @@ panelview {
   display: none;
 }
 
-#wrapper-edit-controls:is([place="palette"],[place="panel"]) > #edit-controls,
-#wrapper-zoom-controls:is([place="palette"],[place="panel"]) > #zoom-controls,
+#wrapper-edit-controls:is([place="palette"], [place="panel"]) > #edit-controls,
+#wrapper-zoom-controls:is([place="palette"], [place="panel"]) > #zoom-controls,
 :is(panelview, #widget-overflow-fixed-list) .toolbaritem-combined-buttons {
   margin: var(--arrowpanel-menuitem-margin);
 }
@@ -406,7 +405,7 @@ menupopup[emptyplacesresult] > .hide-if-empty-places-result {
     background-image: url("chrome://global/skin/icons/delete.svg");
     background-size: contain;
     -moz-context-properties: fill;
-    fill: #FFF;
+    fill: #fff;
     animation: none;
   }
 }
@@ -474,10 +473,11 @@ menupopup[emptyplacesresult] > .hide-if-empty-places-result {
 
 @media (prefers-reduced-motion: no-preference) {
   #confirmation-hint-message-container {
-    transform: scale(.8);
+    transform: scale(0.8);
     opacity: 0;
-    transition: transform 120ms cubic-bezier(.25,1.27,.35,1.18),
-                opacity 60ms linear;
+    transition:
+      transform 120ms cubic-bezier(0.25, 1.27, 0.35, 1.18),
+      opacity 60ms linear;
 
     #confirmation-hint-checkmark-animation-container[animate] + & {
       transform: scale(1);
@@ -517,10 +517,7 @@ menupopup[emptyplacesresult] > .hide-if-empty-places-result {
   min-width: calc(var(--menu-panel-width) + 32px);
 }
 
-.toolbaritem-combined-buttons:is(
-  :not([cui-areatype="toolbar"]),
-  [overflowedItem=true]
-) > toolbarbutton > .toolbarbutton-icon {
+.toolbaritem-combined-buttons:is(:not([cui-areatype="toolbar"]), [overflowedItem="true"]) > toolbarbutton > .toolbarbutton-icon {
   min-width: 0;
   min-height: 0;
   margin: 0;
@@ -539,8 +536,8 @@ menupopup[emptyplacesresult] > .hide-if-empty-places-result {
     transform: scale(1);
   }
   100% {
-    opacity: 0 ;
-    transform: scale(.5);
+    opacity: 0;
+    transform: scale(0.5);
   }
 }
 
@@ -624,8 +621,12 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 /* FxAccount indicator bits. */
 
 @keyframes syncRotate {
-  from { transform: rotate(0); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -671,7 +672,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 }
 
 #PanelUI-fxa[showing-fxa-menu-message] #fxa-manage-account-button {
-  display: none
+  display: none;
 }
 
 :root:not([fxastatus="signedin"]) #PanelUI-fxa-menu-syncnow-button {
@@ -722,8 +723,8 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   font-weight: 600;
 }
 
-:root[fxadisabled=true] #appMenu-fxa-status2,
-:root[fxadisabled=true] #appMenu-fxa-separator {
+:root[fxadisabled="true"] #appMenu-fxa-status2,
+:root[fxadisabled="true"] #appMenu-fxa-separator {
   display: none;
 }
 
@@ -819,7 +820,6 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
     background-color: var(--button-background-color-active);
   }
 }
-
 
 /* Firefox Account Toolbar Panel */
 
@@ -944,9 +944,9 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   font-weight: lighter;
 
   @media (-moz-platform: linux) {
-     /* Use 300 on Linux because 100 is too light (lacks contrast with
+    /* Use 300 on Linux because 100 is too light (lacks contrast with
      * the background) for some fonts in combination with anti-aliasing. */
-     font-weight: 300;
+    font-weight: 300;
   }
 }
 
@@ -1041,23 +1041,23 @@ panelmultiview[mainViewId="PanelUI-fxa"] #PanelUI-remotetabs-syncnow {
 }
 
 .sendToDevice-device {
-  &[clientType=phone] {
+  &[clientType="phone"] {
     list-style-image: url("chrome://browser/skin/device-phone.svg");
   }
 
-  &[clientType=tablet] {
+  &[clientType="tablet"] {
     list-style-image: url("chrome://browser/skin/device-tablet.svg");
   }
 
-  &[clientType=desktop] {
+  &[clientType="desktop"] {
     list-style-image: url("chrome://browser/skin/device-desktop.svg");
   }
 
-  &[clientType=tv] {
+  &[clientType="tv"] {
     list-style-image: url("chrome://browser/skin/device-tv.svg");
   }
 
-  &[clientType=vr] {
+  &[clientType="vr"] {
     list-style-image: url("chrome://browser/skin/device-vr.svg");
   }
 
@@ -1138,7 +1138,8 @@ panelmultiview[mainViewId="PanelUI-fxa"] #PanelUI-remotetabs-syncnow {
   display: block;
 }
 
-#PanelUI-remotetabs[mainview] { /* panel anchored to toolbar button might be too skinny */
+#PanelUI-remotetabs[mainview] {
+  /* panel anchored to toolbar button might be too skinny */
   min-width: 19em;
 
   .PanelUI-remotetabs-notabsforclient-label {
@@ -1148,6 +1149,7 @@ panelmultiview[mainViewId="PanelUI-fxa"] #PanelUI-remotetabs-syncnow {
   /* Work around bug 1224412 - these boxes will cause scrollbars to appear when
    the panel is anchored to a toolbar button.
   */
+  /* prettier-ignore */
   #PanelUI-remotetabs-setupsync,
   #PanelUI-remotetabs-syncdisabled,
   #PanelUI-remotetabs-reauthsync,
@@ -1341,7 +1343,7 @@ panelview .toolbarbutton-1,
 }
 
 #appMenu-zoomReset-button2 > .toolbarbutton-text,
-#appMenu-fullscreen-button2 > .toolbarbutton-icon  {
+#appMenu-fullscreen-button2 > .toolbarbutton-icon {
   border-radius: 2px;
 }
 
@@ -1473,10 +1475,7 @@ panelview .toolbarbutton-1 {
   panelview .toolbarbutton-1,
   toolbarbutton.subviewbutton,
   .widget-overflow-list .toolbarbutton-1,
-  .toolbaritem-combined-buttons:is(
-    :not([cui-areatype="toolbar"]),
-    [overflowedItem=true]
-  ) > toolbarbutton
+  .toolbaritem-combined-buttons:is(:not([cui-areatype="toolbar"]), [overflowedItem="true"]) > toolbarbutton
 ) {
   color: var(--button-text-color-ghost);
   background-color: var(--button-background-color-ghost);
@@ -1499,7 +1498,7 @@ panelview .toolbarbutton-1 {
     &:active {
       color: var(--button-text-color-ghost-active);
       background-color: var(--button-background-color-ghost-active);
-      box-shadow: 0 1px 0 hsla(210,4%,10%,.03) inset;
+      box-shadow: 0 1px 0 hsla(210, 4%, 10%, 0.03) inset;
     }
   }
 }
@@ -1534,7 +1533,9 @@ panelview .toolbarbutton-1 {
 }
 
 .PanelUI-tabitem-container {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 
   &.tabitem-removed {
     opacity: 0;
@@ -1553,23 +1554,22 @@ panelview .toolbarbutton-1 {
 }
 
 toolbarbutton[itemtype="showmorebutton"],
-  toolbarbutton[itemtype="showinactivebutton"] {
-    padding-inline-start: 0;
+toolbarbutton[itemtype="showinactivebutton"] {
+  padding-inline-start: 0;
 
-    > label {
-      /* Needed to properly left-align with the rest of list */
-      margin-inline-start: -8px;
-    }
+  > label {
+    /* Needed to properly left-align with the rest of list */
+    margin-inline-start: -8px;
   }
+}
 
 .remote-tabs-close-button {
   .toolbarbutton-icon {
-      /* To match the nav elements in the panel */
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-  fill-opacity: 0.6;
-  display: flex;
-
+    /* To match the nav elements in the panel */
+    -moz-context-properties: fill, fill-opacity;
+    fill: currentColor;
+    fill-opacity: 0.6;
+    display: flex;
   }
 }
 
@@ -1579,10 +1579,7 @@ toolbarbutton[itemtype="showmorebutton"],
 }
 
 .toolbaritem-combined-buttons {
-  &:where(:not(.unified-extensions-item)):is(
-    :not([cui-areatype="toolbar"]),
-    [overflowedItem=true]
-  ) > toolbarbutton {
+  &:where(:not(.unified-extensions-item)):is(:not([cui-areatype="toolbar"]), [overflowedItem="true"]) > toolbarbutton {
     border: 0;
     margin: 0;
     flex: 1;
@@ -1595,19 +1592,13 @@ toolbarbutton[itemtype="showmorebutton"],
     display: none;
   }
 
-  &:is(
-    :not([cui-areatype="toolbar"]),
-    [overflowedItem=true]
-  ) > toolbarbutton:not(.toolbarbutton-1)[disabled] {
+  &:is(:not([cui-areatype="toolbar"]), [overflowedItem="true"]) > toolbarbutton:not(.toolbarbutton-1)[disabled] {
     opacity: 0.4;
     /* Override toolbarbutton.css which sets the color to GrayText */
     color: inherit;
   }
 
-  &:is(
-    :not([cui-areatype="toolbar"]),
-    [overflowedItem=true]
-  ) > separator {
+  &:is(:not([cui-areatype="toolbar"]), [overflowedItem="true"]) > separator {
     /* Override toolbarbuttons.css which sets the color to currentColor */
     color: var(--panel-separator-color);
   }
@@ -1627,7 +1618,7 @@ toolbarbutton[itemtype="showmorebutton"],
 
   .toolbarbutton-1:not(.toolbarbutton-combined) > .toolbarbutton-text {
     text-align: start;
-    padding-inline-start: .5em;
+    padding-inline-start: 0.5em;
   }
 
   > #stop-reload-button > .toolbarbutton-1 {
@@ -1698,7 +1689,7 @@ toolbarbutton[itemtype="showmorebutton"],
     border: 1px solid rgba(110, 110, 110, 0.4);
     border-radius: 50%;
     margin: 1px 5px;
-    background-color: rgba(150,150,150,0.2);
+    background-color: rgba(150, 150, 150, 0.2);
   }
 
   > .radio-check[selected] {
@@ -1839,8 +1830,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
   &.panel-header-with-info-button > .subviewbutton-back + h1 {
     margin-inline-start: 0;
-    margin-inline-end: calc(var(--arrowpanel-header-back-icon-full-width)
-                            - var(--arrowpanel-header-info-icon-full-width));
+    margin-inline-end: calc(var(--arrowpanel-header-back-icon-full-width) - var(--arrowpanel-header-info-icon-full-width));
   }
 
   &:not(.panel-header-with-additional-element) > .subviewbutton-back + h1 {
@@ -1886,16 +1876,16 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
   #info-message-container {
     height: 260px;
     overflow: hidden;
-    transition: margin-bottom .25s;
+    transition: margin-bottom 0.25s;
   }
 
   #info-message-container[disabled] {
     /* Offset the height when hidden. This makes the panel content
     * cover the info message and reveal it as it slides down, rather
     * than the info message growing in height. */
-   margin-bottom: -260px;
-   pointer-events: none;
- }
+    margin-bottom: -260px;
+    pointer-events: none;
+  }
 
   #info-message-container[disabled] #protections-popup-message {
     opacity: 0;
@@ -1907,7 +1897,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
   align-items: flex-end;
   height: calc(100% - 20px);
   margin: 10px;
-  transition: opacity .25s;
+  transition: opacity 0.25s;
   opacity: 1;
   background-image: url(chrome://browser/skin/controlcenter/hero-message-background.svg);
   background-repeat: no-repeat;
@@ -1955,11 +1945,11 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
   &[viewId="PanelUI-profiler"] {
     --panel-width: 319px;
-   }
+  }
 
-   /* Override themes for the Pocket panel, because the Pocket
+  /* Override themes for the Pocket panel, because the Pocket
    panel currently only supports dark and light themes. */
-  @media not (prefers-color-scheme: dark){
+  @media not (prefers-color-scheme: dark) {
     &[viewId="PanelUI-savetopocket"] {
       --arrowpanel-background: #fbfbfb;
     }
@@ -1975,7 +1965,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
     background: radial-gradient(circle farthest-side at top right, #03b1f4, #0556cd);
     color: #fff;
 
-     &:-moz-locale-dir(rtl) {
+    &:-moz-locale-dir(rtl) {
       background: radial-gradient(circle farthest-side at top left, #03b1f4, #0556cd);
     }
 
@@ -1997,15 +1987,16 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
    "false". When the DOM is being initialized it is set to "false" so that animations
    do not run. */
   &[animationready="true"] #PanelUI-profiler-info {
-    transition: margin-block-end 250ms, opacity 250ms;
+    transition:
+      margin-block-end 250ms,
+      opacity 250ms;
   }
 }
 
 #PanelUI-profiler-info {
   min-height: 180px;
   padding: 0 15px 15px;
-  background: top 10px right no-repeat
-    url("chrome://browser/skin/profiler-popup-backdrop.png");
+  background: top 10px right no-repeat url("chrome://browser/skin/profiler-popup-backdrop.png");
   opacity: 1;
 }
 
@@ -2043,7 +2034,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 }
 
 #PanelUI-profiler-content-edit-settings {
-  font-size: .9em;
+  font-size: 0.9em;
 }
 
 .PanelUI-profiler-content-label {
@@ -2052,7 +2043,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 #PanelUI-profiler-content-description {
   margin-block: 4px;
-  font-size: .9em;
+  font-size: 0.9em;
   color: var(--text-color-deemphasized);
 }
 
@@ -2127,7 +2118,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 /* Web-extension pop-ups */
 
-.cui-widget-panelview[id^=PanelUI-webext-] {
+.cui-widget-panelview[id^="PanelUI-webext-"] {
   border-radius: var(--arrowpanel-border-radius);
 }
 

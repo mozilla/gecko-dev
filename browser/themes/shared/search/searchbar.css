@@ -27,7 +27,7 @@
 .search-panel-header > label {
   margin-top: 2px;
   margin-bottom: 1px;
-  opacity: .6;
+  opacity: 0.6;
 }
 
 /* Make the contrast stronger in dark mode */
@@ -150,7 +150,7 @@
   color: inherit;
 }
 
-.search-panel-tree[collapsed=true] + .searchbar-separator {
+.search-panel-tree[collapsed="true"] + .searchbar-separator {
   display: none;
 }
 

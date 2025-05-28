@@ -181,7 +181,7 @@ button.month-year {
 
 @media not (prefers-contrast) {
   button.month-year {
-    fill-opacity: .5;
+    fill-opacity: 0.5;
   }
 }
 
@@ -229,7 +229,7 @@ button.month-year.active {
 }
 
 .week-header > tr > th {
-  opacity: .5;
+  opacity: 0.5;
 }
 
 .days-view {
@@ -281,7 +281,7 @@ button.month-year.active {
 }
 
 .days-view > tr > td.outside {
-  opacity: .5;
+  opacity: 0.5;
 }
 
 .days-view > tr > td.out-of-range,
