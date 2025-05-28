@@ -134,9 +134,11 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
            "WebGPU is disabled because the `dom.webgpu.enabled` pref. is set "
            "to `false`.");
 #ifdef WIN32
-#ifndef MOZ_DXCOMPILER
-  rejectIf(true, "WebGPU is disabled because dxcompiler is unavailable with this build configuration");
-#endif
+#  ifndef MOZ_DXCOMPILER
+  rejectIf(true,
+           "WebGPU is disabled because dxcompiler is unavailable with this "
+           "build configuration");
+#  endif
 #endif
 
   if (rejectionMessage) {
