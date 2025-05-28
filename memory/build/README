@@ -43,6 +43,10 @@ Main components
 
    The majority of the allocator.
 
+ * BaseAlloc.h
+
+   Declarations for the base allocator.
+
  * Chunk.h
 
    Chunks are 1MiB contigous blocks of memory that the allocator will divide
