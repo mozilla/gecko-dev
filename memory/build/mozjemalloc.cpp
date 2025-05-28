@@ -166,9 +166,11 @@
 #include "mozilla/XorShift128PlusRNG.h"
 #include "mozilla/fallible.h"
 #include "Chunk.h"
-#include "rb.h"
+#include "Constants.h"
+#include "Globals.h"
 #include "Mutex.h"
 #include "PHC.h"
+#include "rb.h"
 #include "Utils.h"
 
 #if defined(XP_WIN)
@@ -181,31 +183,6 @@
 #endif
 
 using namespace mozilla;
-
-// Define MALLOC_RUNTIME_CONFIG depending on MOZ_DEBUG. Overriding this as
-// a build option allows us to build mozjemalloc/firefox without runtime asserts
-// but with runtime configuration. Making some testing easier.
-
-#ifdef MOZ_DEBUG
-#  define MALLOC_RUNTIME_CONFIG
-#endif
-
-// Uncomment this to enable extra-vigilant assertions.  These assertions may run
-// more expensive checks that are sometimes too slow for regular debug mode.
-// #define MALLOC_DEBUG_VIGILANT
-
-// When MALLOC_STATIC_PAGESIZE is defined, the page size is fixed at
-// compile-time for better performance, as opposed to determined at
-// runtime. Some platforms can have different page sizes at runtime
-// depending on kernel configuration, so they are opted out by default.
-// Debug builds are opted out too, for test coverage.
-#ifndef MALLOC_RUNTIME_CONFIG
-#  if !defined(__ia64__) && !defined(__sparc__) && !defined(__mips__) &&       \
-      !defined(__aarch64__) && !defined(__powerpc__) && !defined(XP_MACOSX) && \
-      !defined(__loongarch__)
-#    define MALLOC_STATIC_PAGESIZE 1
-#  endif
-#endif
 
 #ifdef XP_WIN
 
@@ -221,17 +198,6 @@ static char* getenv(const char* name) {
 
   return nullptr;
 }
-#endif
-
-#ifndef XP_WIN
-// Newer Linux systems support MADV_FREE, but we're not supporting
-// that properly. bug #1406304.
-#  if defined(XP_LINUX) && defined(MADV_FREE)
-#    undef MADV_FREE
-#  endif
-#  ifndef MADV_FREE
-#    define MADV_FREE MADV_DONTNEED
-#  endif
 #endif
 
 // Some tools, such as /dev/dsp wrappers, LD_PRELOAD libraries that
@@ -280,185 +246,6 @@ static inline void* _mmap(void* addr, size_t length, int prot, int flags,
 #  endif
 #endif
 
-// ***************************************************************************
-// Constants defining allocator size classes and behavior.
-
-// Our size classes are inclusive ranges of memory sizes.  By describing the
-// minimums and how memory is allocated in each range the maximums can be
-// calculated.
-
-// Smallest size class to support.  On Windows the smallest allocation size
-// must be 8 bytes on 32-bit, 16 bytes on 64-bit.  On Linux and Mac, even
-// malloc(1) must reserve a word's worth of memory (see Mozilla bug 691003).
-#ifdef XP_WIN
-static const size_t kMinTinyClass = sizeof(void*) * 2;
-#else
-static const size_t kMinTinyClass = sizeof(void*);
-#endif
-
-// Maximum tiny size class.
-static const size_t kMaxTinyClass = 8;
-
-// Smallest quantum-spaced size classes. It could actually also be labelled a
-// tiny allocation, and is spaced as such from the largest tiny size class.
-// Tiny classes being powers of 2, this is twice as large as the largest of
-// them.
-static const size_t kMinQuantumClass = kMaxTinyClass * 2;
-static const size_t kMinQuantumWideClass = 512;
-static const size_t kMinSubPageClass = 4_KiB;
-
-// Amount (quantum) separating quantum-spaced size classes.
-static const size_t kQuantum = 16;
-static const size_t kQuantumMask = kQuantum - 1;
-static const size_t kQuantumWide = 256;
-static const size_t kQuantumWideMask = kQuantumWide - 1;
-
-static const size_t kMaxQuantumClass = kMinQuantumWideClass - kQuantum;
-static const size_t kMaxQuantumWideClass = kMinSubPageClass - kQuantumWide;
-
-// We can optimise some divisions to shifts if these are powers of two.
-static_assert(mozilla::IsPowerOfTwo(kQuantum),
-              "kQuantum is not a power of two");
-static_assert(mozilla::IsPowerOfTwo(kQuantumWide),
-              "kQuantumWide is not a power of two");
-
-static_assert(kMaxQuantumClass % kQuantum == 0,
-              "kMaxQuantumClass is not a multiple of kQuantum");
-static_assert(kMaxQuantumWideClass % kQuantumWide == 0,
-              "kMaxQuantumWideClass is not a multiple of kQuantumWide");
-static_assert(kQuantum < kQuantumWide,
-              "kQuantum must be smaller than kQuantumWide");
-static_assert(mozilla::IsPowerOfTwo(kMinSubPageClass),
-              "kMinSubPageClass is not a power of two");
-
-// Number of (2^n)-spaced tiny classes.
-static const size_t kNumTinyClasses =
-    LOG2(kMaxTinyClass) - LOG2(kMinTinyClass) + 1;
-
-// Number of quantum-spaced classes.  We add kQuantum(Max) before subtracting to
-// avoid underflow when a class is empty (Max<Min).
-static const size_t kNumQuantumClasses =
-    (kMaxQuantumClass + kQuantum - kMinQuantumClass) / kQuantum;
-static const size_t kNumQuantumWideClasses =
-    (kMaxQuantumWideClass + kQuantumWide - kMinQuantumWideClass) / kQuantumWide;
-
-// Size and alignment of memory chunks that are allocated by the OS's virtual
-// memory system.
-static const size_t kChunkSize = 1_MiB;
-static const size_t kChunkSizeMask = kChunkSize - 1;
-
-#ifdef MALLOC_STATIC_PAGESIZE
-// VM page size. It must divide the runtime CPU page size or the code
-// will abort.
-// Platform specific page size conditions copied from js/public/HeapAPI.h
-#  if defined(__powerpc64__)
-static const size_t gPageSize = 64_KiB;
-#  elif defined(__loongarch64)
-static const size_t gPageSize = 16_KiB;
-#  else
-static const size_t gPageSize = 4_KiB;
-#  endif
-static const size_t gRealPageSize = gPageSize;
-
-#else
-// When MALLOC_OPTIONS contains one or several `P`s, the page size used
-// across the allocator is multiplied by 2 for each `P`, but we also keep
-// the real page size for code paths that need it. gPageSize is thus a
-// power of two greater or equal to gRealPageSize.
-static size_t gRealPageSize;
-static size_t gPageSize;
-#endif
-
-#ifdef MALLOC_STATIC_PAGESIZE
-#  define DECLARE_GLOBAL(type, name)
-#  define DEFINE_GLOBALS
-#  define END_GLOBALS
-#  define DEFINE_GLOBAL(type) static const type
-#  define GLOBAL_LOG2 LOG2
-#  define GLOBAL_ASSERT_HELPER1(x) static_assert(x, #x)
-#  define GLOBAL_ASSERT_HELPER2(x, y) static_assert(x, y)
-#  define GLOBAL_ASSERT(...)                                               \
-    MACRO_CALL(                                                            \
-        MOZ_PASTE_PREFIX_AND_ARG_COUNT(GLOBAL_ASSERT_HELPER, __VA_ARGS__), \
-        (__VA_ARGS__))
-#  define GLOBAL_CONSTEXPR constexpr
-#else
-#  define DECLARE_GLOBAL(type, name) static type name;
-#  define DEFINE_GLOBALS static void DefineGlobals() {
-#  define END_GLOBALS }
-#  define DEFINE_GLOBAL(type)
-#  define GLOBAL_LOG2 FloorLog2
-#  define GLOBAL_ASSERT MOZ_RELEASE_ASSERT
-#  define GLOBAL_CONSTEXPR
-#endif
-
-DECLARE_GLOBAL(size_t, gMaxSubPageClass)
-DECLARE_GLOBAL(uint8_t, gNumSubPageClasses)
-DECLARE_GLOBAL(uint8_t, gPageSize2Pow)
-DECLARE_GLOBAL(size_t, gPageSizeMask)
-DECLARE_GLOBAL(size_t, gChunkNumPages)
-DECLARE_GLOBAL(size_t, gChunkHeaderNumPages)
-DECLARE_GLOBAL(size_t, gMaxLargeClass)
-
-DEFINE_GLOBALS
-
-// Largest sub-page size class, or zero if there are none
-DEFINE_GLOBAL(size_t)
-gMaxSubPageClass = gPageSize / 2 >= kMinSubPageClass ? gPageSize / 2 : 0;
-
-// Max size class for bins.
-#define gMaxBinClass \
-  (gMaxSubPageClass ? gMaxSubPageClass : kMaxQuantumWideClass)
-
-// Number of sub-page bins.
-DEFINE_GLOBAL(uint8_t)
-gNumSubPageClasses = []() GLOBAL_CONSTEXPR -> uint8_t {
-  if GLOBAL_CONSTEXPR (gMaxSubPageClass != 0) {
-    return FloorLog2(gMaxSubPageClass) - LOG2(kMinSubPageClass) + 1;
-  }
-  return 0;
-}();
-
-DEFINE_GLOBAL(uint8_t) gPageSize2Pow = GLOBAL_LOG2(gPageSize);
-DEFINE_GLOBAL(size_t) gPageSizeMask = gPageSize - 1;
-
-// Number of pages in a chunk.
-DEFINE_GLOBAL(size_t) gChunkNumPages = kChunkSize >> gPageSize2Pow;
-
-// Number of pages necessary for a chunk header plus a guard page.
-DEFINE_GLOBAL(size_t)
-gChunkHeaderNumPages =
-    1 + (((sizeof(arena_chunk_t) + sizeof(arena_chunk_map_t) * gChunkNumPages +
-           gPageSizeMask) &
-          ~gPageSizeMask) >>
-         gPageSize2Pow);
-
-// One chunk, minus the header, minus a guard page
-DEFINE_GLOBAL(size_t)
-gMaxLargeClass =
-    kChunkSize - gPageSize - (gChunkHeaderNumPages << gPageSize2Pow);
-
-// Various sanity checks that regard configuration.
-GLOBAL_ASSERT(1ULL << gPageSize2Pow == gPageSize,
-              "Page size is not a power of two");
-GLOBAL_ASSERT(kQuantum >= sizeof(void*));
-GLOBAL_ASSERT(kQuantum <= kQuantumWide);
-GLOBAL_ASSERT(!kNumQuantumWideClasses ||
-              kQuantumWide <= (kMinSubPageClass - kMaxQuantumClass));
-
-GLOBAL_ASSERT(kQuantumWide <= kMaxQuantumClass);
-
-GLOBAL_ASSERT(gMaxSubPageClass >= kMinSubPageClass || gMaxSubPageClass == 0);
-GLOBAL_ASSERT(gMaxLargeClass >= gMaxSubPageClass);
-GLOBAL_ASSERT(kChunkSize >= gPageSize);
-GLOBAL_ASSERT(kQuantum * 4 <= kChunkSize);
-
-END_GLOBALS
-
-// Recycle at most 128 MiB of chunks. This means we retain at most
-// 6.25% of the process address space on a 32-bit OS for later use.
-static const size_t gRecycleLimit = 128_MiB;
-
 // The current amount of recycled bytes, updated atomically.
 static Atomic<size_t> gRecycledSize;
 
@@ -474,29 +261,6 @@ static size_t opt_dirty_max = DIRTY_MAX_DEFAULT;
 // arena's lock.
 MOZ_CONSTINIT static RefPtr<MallocProfilerCallbacks> sCallbacks;
 #endif
-
-// Return the smallest chunk multiple that is >= s.
-#define CHUNK_CEILING(s) (((s) + kChunkSizeMask) & ~kChunkSizeMask)
-
-// Return the smallest cacheline multiple that is >= s.
-#define CACHELINE_CEILING(s) \
-  (((s) + (kCacheLineSize - 1)) & ~(kCacheLineSize - 1))
-
-// Return the smallest quantum multiple that is >= a.
-#define QUANTUM_CEILING(a) (((a) + (kQuantumMask)) & ~(kQuantumMask))
-#define QUANTUM_WIDE_CEILING(a) \
-  (((a) + (kQuantumWideMask)) & ~(kQuantumWideMask))
-
-// Return the smallest sub page-size  that is >= a.
-#define SUBPAGE_CEILING(a) (RoundUpPow2(a))
-
-// Return the smallest pagesize multiple that is >= s.
-#define PAGE_CEILING(s) (((s) + gPageSizeMask) & ~gPageSizeMask)
-
-// Number of all the small-allocated classes
-#define NUM_SMALL_CLASSES                                          \
-  (kNumTinyClasses + kNumQuantumClasses + kNumQuantumWideClasses + \
-   gNumSubPageClasses)
 
 // ***************************************************************************
 // MALLOC_DECOMMIT and MALLOC_DOUBLE_PURGE are mutually exclusive.
@@ -1839,16 +1603,6 @@ extern "C" MOZ_EXPORT int pthread_atfork(void (*)(void), void (*)(void),
 
 // ***************************************************************************
 // Begin Utility functions/macros.
-
-// Return the chunk address for allocation address a.
-static inline arena_chunk_t* GetChunkForPtr(const void* aPtr) {
-  return (arena_chunk_t*)(uintptr_t(aPtr) & ~kChunkSizeMask);
-}
-
-// Return the chunk offset of address a.
-static inline size_t GetChunkOffsetForPtr(const void* aPtr) {
-  return (size_t)(uintptr_t(aPtr) & kChunkSizeMask);
-}
 
 static inline void MaybePoison(void* aPtr, size_t aSize) {
   size_t size;

@@ -7,31 +7,6 @@
 
 #include "rb.h"
 
-// On Linux, we use madvise(MADV_DONTNEED) to release memory back to the
-// operating system.  If we release 1MB of live pages with MADV_DONTNEED, our
-// RSS will decrease by 1MB (almost) immediately.
-//
-// On Mac, we use madvise(MADV_FREE).  Unlike MADV_DONTNEED on Linux, MADV_FREE
-// on Mac doesn't cause the OS to release the specified pages immediately; the
-// OS keeps them in our process until the machine comes under memory pressure.
-//
-// It's therefore difficult to measure the process's RSS on Mac, since, in the
-// absence of memory pressure, the contribution from the heap to RSS will not
-// decrease due to our madvise calls.
-//
-// We therefore define MALLOC_DOUBLE_PURGE on Mac.  This causes jemalloc to
-// track which pages have been MADV_FREE'd.  You can then call
-// jemalloc_purge_freed_pages(), which will force the OS to release those
-// MADV_FREE'd pages, making the process's RSS reflect its true memory usage.
-
-#ifdef XP_DARWIN
-#  define MALLOC_DOUBLE_PURGE
-#endif
-
-#ifdef XP_WIN
-#  define MALLOC_DECOMMIT
-#endif
-
 #include "mozilla/DoublyLinkedList.h"
 
 // ***************************************************************************
