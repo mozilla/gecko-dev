@@ -19,19 +19,18 @@ const BASE_CORS_ERROR_URL_PARAMS = new URLSearchParams({
   utm_campaign: "default",
 });
 
-registerCleanupFunction(async function () {
-  await new Promise(resolve => {
+function clearCaches() {
+  return new Promise(resolve => {
     Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, () =>
       resolve()
     );
   });
-});
+}
 
-add_task(async function () {
-  await pushPref("devtools.webconsole.filter.netxhr", true);
+registerCleanupFunction(clearCaches);
 
-  const hud = await openNewTabAndConsole(TEST_URI);
-
+let gCorsRequestMethod = "fetch";
+async function runCorsTests(hud, method) {
   let onCorsMessage;
   let message;
 
@@ -42,19 +41,21 @@ add_task(async function () {
   message = await onCorsMessage;
   await checkCorsMessage(hud, message, "CORSDisabled");
   await pushPref("content.cors.disable", false);
-
   await clearOutput(hud);
-  info("Test CORSPreflightDidNotSucceed");
-  onCorsMessage = waitForMessageByType(
-    hud,
-    `(Reason: CORS preflight response did not succeed). Status code: `,
-    ".error"
-  );
-  makeFaultyCorsCall("CORSPreflightDidNotSucceed");
-  message = await onCorsMessage;
-  await checkCorsMessage(hud, message, "CORSPreflightDidNotSucceed");
 
-  await clearOutput(hud);
+  if (method != "image") {
+    info("Test CORSPreflightDidNotSucceed");
+    onCorsMessage = waitForMessageByType(
+      hud,
+      `(Reason: CORS preflight response did not succeed). Status code: `,
+      ".error"
+    );
+    makeFaultyCorsCall("CORSPreflightDidNotSucceed");
+    message = await onCorsMessage;
+    await checkCorsMessage(hud, message, "CORSPreflightDidNotSucceed");
+    await clearOutput(hud);
+  }
+
   info("Test CORS did not succeed");
   onCorsMessage = waitForMessageByType(
     hud,
@@ -64,19 +65,21 @@ add_task(async function () {
   makeFaultyCorsCall("CORSDidNotSucceed");
   message = await onCorsMessage;
   await checkCorsMessage(hud, message, "CORSDidNotSucceed");
-
   await clearOutput(hud);
-  info("Test CORSExternalRedirectNotAllowed");
-  onCorsMessage = waitForMessageByType(
-    hud,
-    "Reason: CORS request external redirect not allowed",
-    ".error"
-  );
-  makeFaultyCorsCall("CORSExternalRedirectNotAllowed");
-  message = await onCorsMessage;
-  await checkCorsMessage(hud, message, "CORSExternalRedirectNotAllowed");
 
-  await clearOutput(hud);
+  if (method != "image") {
+    info("Test CORSExternalRedirectNotAllowed");
+    onCorsMessage = waitForMessageByType(
+      hud,
+      "Reason: CORS request external redirect not allowed",
+      ".error"
+    );
+    makeFaultyCorsCall("CORSExternalRedirectNotAllowed");
+    message = await onCorsMessage;
+    await checkCorsMessage(hud, message, "CORSExternalRedirectNotAllowed");
+    await clearOutput(hud);
+  }
+
   info("Test CORSMissingAllowOrigin");
   onCorsMessage = waitForMessageByType(
     hud,
@@ -88,8 +91,8 @@ add_task(async function () {
   makeFaultyCorsCall("CORSMissingAllowOrigin");
   message = await onCorsMessage;
   await checkCorsMessage(hud, message, "CORSMissingAllowOrigin");
-
   await clearOutput(hud);
+
   info("Test CORSMultipleAllowOriginNotAllowed");
   onCorsMessage = waitForMessageByType(
     hud,
@@ -115,8 +118,8 @@ add_task(async function () {
   makeFaultyCorsCall("CORSAllowOriginNotMatchingOrigin");
   message = await onCorsMessage;
   await checkCorsMessage(hud, message, "CORSAllowOriginNotMatchingOrigin");
-
   await clearOutput(hud);
+
   info("Test CORSNotSupportingCredentials");
   onCorsMessage = waitForMessageByType(
     hud,
@@ -127,20 +130,22 @@ add_task(async function () {
   makeFaultyCorsCall("CORSNotSupportingCredentials");
   message = await onCorsMessage;
   await checkCorsMessage(hud, message, "CORSNotSupportingCredentials");
-
   await clearOutput(hud);
-  info("Test CORSMethodNotFound");
-  onCorsMessage = waitForMessageByType(
-    hud,
-    `Reason: Did not find method in CORS header ` +
-      `${quote("Access-Control-Allow-Methods")}`,
-    ".error"
-  );
-  makeFaultyCorsCall("CORSMethodNotFound");
-  message = await onCorsMessage;
-  await checkCorsMessage(hud, message, "CORSMethodNotFound");
 
-  await clearOutput(hud);
+  if (method != "image") {
+    info("Test CORSMethodNotFound");
+    onCorsMessage = waitForMessageByType(
+      hud,
+      `Reason: Did not find method in CORS header ` +
+        `${quote("Access-Control-Allow-Methods")}`,
+      ".error"
+    );
+    makeFaultyCorsCall("CORSMethodNotFound");
+    message = await onCorsMessage;
+    await checkCorsMessage(hud, message, "CORSMethodNotFound");
+    await clearOutput(hud);
+  }
+
   info("Test CORSMissingAllowCredentials");
   onCorsMessage = waitForMessageByType(
     hud,
@@ -151,44 +156,47 @@ add_task(async function () {
   makeFaultyCorsCall("CORSMissingAllowCredentials");
   message = await onCorsMessage;
   await checkCorsMessage(hud, message, "CORSMissingAllowCredentials");
-
   await clearOutput(hud);
-  info("Test CORSInvalidAllowMethod");
-  onCorsMessage = waitForMessageByType(
-    hud,
-    `Reason: invalid token ${quote("xyz;")} in CORS ` +
-      `header ${quote("Access-Control-Allow-Methods")}`,
-    ".error"
-  );
-  makeFaultyCorsCall("CORSInvalidAllowMethod");
-  message = await onCorsMessage;
-  await checkCorsMessage(hud, message, "CORSInvalidAllowMethod");
 
-  await clearOutput(hud);
-  info("Test CORSInvalidAllowHeader");
-  onCorsMessage = waitForMessageByType(
-    hud,
-    `Reason: invalid token ${quote("xyz;")} in CORS ` +
-      `header ${quote("Access-Control-Allow-Headers")}`,
-    ".error"
-  );
-  makeFaultyCorsCall("CORSInvalidAllowHeader");
-  message = await onCorsMessage;
-  await checkCorsMessage(hud, message, "CORSInvalidAllowHeader");
+  if (method != "image") {
+    info("Test CORSInvalidAllowMethod");
+    onCorsMessage = waitForMessageByType(
+      hud,
+      `Reason: invalid token ${quote("xyz;")} in CORS ` +
+        `header ${quote("Access-Control-Allow-Methods")}`,
+      ".error"
+    );
+    makeFaultyCorsCall("CORSInvalidAllowMethod");
+    message = await onCorsMessage;
+    await checkCorsMessage(hud, message, "CORSInvalidAllowMethod");
+    await clearOutput(hud);
 
-  await clearOutput(hud);
-  info("Test CORSMissingAllowHeaderFromPreflight");
-  onCorsMessage = waitForMessageByType(
-    hud,
-    `Reason: header ${quote("xyz")} is not allowed according to ` +
-      `header ${quote(
-        "Access-Control-Allow-Headers"
-      )} from CORS preflight response`,
-    ".error"
-  );
-  makeFaultyCorsCall("CORSMissingAllowHeaderFromPreflight");
-  message = await onCorsMessage;
-  await checkCorsMessage(hud, message, "CORSMissingAllowHeaderFromPreflight");
+    info("Test CORSInvalidAllowHeader");
+    onCorsMessage = waitForMessageByType(
+      hud,
+      `Reason: invalid token ${quote("xyz;")} in CORS ` +
+        `header ${quote("Access-Control-Allow-Headers")}`,
+      ".error"
+    );
+    makeFaultyCorsCall("CORSInvalidAllowHeader");
+    message = await onCorsMessage;
+    await checkCorsMessage(hud, message, "CORSInvalidAllowHeader");
+    await clearOutput(hud);
+
+    info("Test CORSMissingAllowHeaderFromPreflight");
+    onCorsMessage = waitForMessageByType(
+      hud,
+      `Reason: header ${quote("xyz")} is not allowed according to ` +
+        `header ${quote(
+          "Access-Control-Allow-Headers"
+        )} from CORS preflight response`,
+      ".error"
+    );
+    makeFaultyCorsCall("CORSMissingAllowHeaderFromPreflight");
+    message = await onCorsMessage;
+    await checkCorsMessage(hud, message, "CORSMissingAllowHeaderFromPreflight");
+    await clearOutput(hud);
+  }
 
   // See Bug 1480671.
   // XXX: how to make Origin to not be included in the request ?
@@ -200,17 +208,26 @@ add_task(async function () {
   // await checkCorsMessage(hud, message, "CORSOriginHeaderNotAdded");
 
   // See Bug 1480672.
-  // XXX: Failing with another error: Console message: Security Error: Content at
-  // http://example.com/browser/devtools/client/webconsole/test/browser/test-network-request.html
-  // may not load or link to file:///Users/nchevobbe/Projects/mozilla-central/devtools/client/webconsole/test/browser/sjs_cors-test-server.sjs.
-  // info("Test CORSRequestNotHttp");
-  // onCorsMessage = waitForMessageByType(hud, "Reason: CORS request not http",
-  //   ".error");
-  // const dir = getChromeDir(getResolvedURI(gTestPath));
-  // dir.append("sjs_cors-test-server.sjs");
-  // makeFaultyCorsCall("CORSRequestNotHttp", Services.io.newFileURI(dir).spec);
-  // message = await onCorsMessage;
-  // await checkCorsMessage(hud, message, "CORSRequestNotHttp");
+  info("Test CORSRequestNotHttp");
+  onCorsMessage = waitForMessageByType(
+    hud,
+    "Reason: CORS request not http",
+    ".error"
+  );
+  makeFaultyCorsCall("CORSRequestNotHttp", "not-http:something");
+  message = await onCorsMessage;
+  await checkCorsMessage(hud, message, "CORSRequestNotHttp");
+}
+
+add_task(async function test_cors_errors() {
+  await pushPref("devtools.webconsole.filter.netxhr", true);
+  const hud = await openNewTabAndConsole(TEST_URI);
+  for (const method of ["fetch", "image"]) {
+    gCorsRequestMethod = method;
+    await clearOutput(hud);
+    await runCorsTests(hud, method);
+    await clearCaches();
+  }
 });
 
 async function checkCorsMessage(hud, message, category) {
@@ -237,29 +254,39 @@ async function checkCorsMessage(hud, message, category) {
 function makeFaultyCorsCall(errorCategory, corsUrl) {
   SpecialPowers.spawn(
     gBrowser.selectedBrowser,
-    [[errorCategory, corsUrl]],
-    ([category, url]) => {
+    [[errorCategory, corsUrl, gCorsRequestMethod]],
+    ([category, url, requestMethod]) => {
       if (!url) {
         const baseUrl =
           "http://mochi.test:8888/browser/devtools/client/webconsole/test/browser";
         url = `${baseUrl}/sjs_cors-test-server.sjs?corsErrorCategory=${category}`;
       }
 
-      // Preflight request are not made for GET requests, so let's do a PUT.
-      const method = "PUT";
-      const options = { method };
-      if (
-        category === "CORSNotSupportingCredentials" ||
-        category === "CORSMissingAllowCredentials"
-      ) {
-        options.credentials = "include";
-      }
+      if (requestMethod == "fetch") {
+        // Preflight request are not made for GET requests, so let's do a PUT.
+        const method = "PUT";
+        const options = { method };
+        if (
+          category === "CORSNotSupportingCredentials" ||
+          category === "CORSMissingAllowCredentials"
+        ) {
+          options.credentials = "include";
+        }
 
-      if (category === "CORSMissingAllowHeaderFromPreflight") {
-        options.headers = new content.Headers({ xyz: true });
-      }
+        if (category === "CORSMissingAllowHeaderFromPreflight") {
+          options.headers = new content.Headers({ xyz: true });
+        }
 
-      content.fetch(url, options);
+        content.fetch(url, options);
+      } else {
+        const image = content.document.createElement("img");
+        image.crossOrigin =
+          category === "CORSNotSupportingCredentials" ||
+          category === "CORSMissingAllowCredentials"
+            ? "use-credentials"
+            : "anonymous";
+        image.src = url;
+      }
     }
   );
 }

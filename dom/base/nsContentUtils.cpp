@@ -8682,6 +8682,16 @@ uint64_t nsContentUtils::GetInnerWindowID(nsIRequest* aRequest) {
     return 0;
   }
 
+  if (nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest)) {
+    nsCOMPtr loadInfo = channel->LoadInfo();
+    if (auto id = loadInfo->GetInnerWindowID()) {
+      return id;
+    }
+    if (auto id = loadInfo->GetTriggeringWindowId()) {
+      return id;
+    }
+  }
+
   nsCOMPtr<nsILoadGroup> loadGroup;
   nsresult rv = aRequest->GetLoadGroup(getter_AddRefs(loadGroup));
 

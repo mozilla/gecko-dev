@@ -147,8 +147,7 @@ static void LogBlockedRequest(nsIRequest* aRequest, const char* aProperty,
   // We can always try top level content window id in this case,
   // since the window id can lead to current top level window's web console.
   if (!innerWindowID) {
-    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest);
-    if (httpChannel) {
+    if (nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aRequest)) {
       Unused << httpChannel->GetTopLevelContentWindowId(&innerWindowID);
     }
   }

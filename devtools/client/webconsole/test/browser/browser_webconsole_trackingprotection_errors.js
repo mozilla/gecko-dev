@@ -95,7 +95,7 @@ add_task(async function testForeignCookieBlockedMessage() {
     message,
     getStorageErrorUrl("CookieBlockedForeign")
   );
-  // We explicitely destroy the toolbox in order to ensure waiting for its full destruction
+  // We explicitly destroy the toolbox in order to ensure waiting for its full destruction
   // and avoid leak / pending requests
   await hud.toolbox.destroy();
   win.close();
@@ -305,7 +305,7 @@ add_task(async function testCookieBlockedForUserContentResourceMessage() {
   );
   ok(true, "Third-party storage access blocked message was displayed");
 
-  // We explicitely destroy the toolbox in order to ensure waiting for its full destruction
+  // We explicitly destroy the toolbox in order to ensure waiting for its full destruction
   // and avoid leak / pending requests
   await hud.toolbox.destroy();
   win.close();
