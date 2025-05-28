@@ -1296,7 +1296,7 @@ class PerfParser(CompareParser):
                     # XXX Figure out if we can use the `again` selector in some way
                     # Right now we would need to modify it to be able to do this.
                     # XXX Fix up the again selector for the perf selector (if it makes sense to)
-                    PerfParser.push_info.base_lando_commit_id = push_to_try(
+                    lando_commit_id = push_to_try(
                         "perf-again",
                         f"{base_commit_message}",
                         try_task_config=generate_try_task_config(
@@ -1308,6 +1308,10 @@ class PerfParser(CompareParser):
                         allow_log_capture=True,
                         push_to_vcs=False,
                     )
+
+                    if not lando_commit_id:
+                        return
+                    PerfParser.push_info.base_lando_commit_id = lando_commit_id
                 else:
                     with redirect_stdout(log_processor):
                         push_to_try(
@@ -1341,7 +1345,7 @@ class PerfParser(CompareParser):
             )
 
             if not push_to_vcs:
-                PerfParser.push_info.new_lando_commit_id = push_to_try(
+                lando_commit_id = push_to_try(
                     "perf",
                     f"{new_commit_message}",
                     # XXX Figure out if changing `fuzzy` to `perf` will break something
@@ -1354,6 +1358,9 @@ class PerfParser(CompareParser):
                     allow_log_capture=True,
                     push_to_vcs=False,
                 )
+                if not lando_commit_id:
+                    return
+                PerfParser.push_info.new_lando_commit_id = lando_commit_id
             else:
                 with redirect_stdout(log_processor):
                     push_to_try(
