@@ -1425,7 +1425,7 @@ impl Renderer {
                 }
                 CompositorKind::Layer { .. } => {
                     let compositor = self.compositor_config.layer_compositor().unwrap();
-                    compositor.bind_layer(self.debug_overlay_state.layer_index);
+                    compositor.bind_layer(self.debug_overlay_state.layer_index, &[]);
 
                     self.device.clear_target(
                         Some([0.0, 0.0, 0.0, 0.0]),
@@ -3867,7 +3867,14 @@ impl Renderer {
 
             let draw_target = match self.compositor_config {
                 CompositorConfig::Layer { ref mut compositor } => {
-                    compositor.bind_layer(layer_index);
+                    match partial_present_mode {
+                        Some(PartialPresentMode::Single { dirty_rect }) => {
+                            compositor.bind_layer(layer_index, &[dirty_rect.to_i32()]);
+                        }
+                        None => {
+                            compositor.bind_layer(layer_index, &[]);
+                        }
+                    };
 
                     DrawTarget::NativeSurface {
                         offset: -layer.offset,

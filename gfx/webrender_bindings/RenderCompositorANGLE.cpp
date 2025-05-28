@@ -864,8 +864,10 @@ void RenderCompositorANGLE::Bind(wr::NativeTileId aId,
 
 void RenderCompositorANGLE::Unbind() { mDCLayerTree->Unbind(); }
 
-void RenderCompositorANGLE::BindSwapChain(wr::NativeSurfaceId aId) {
-  mDCLayerTree->BindSwapChain(aId);
+void RenderCompositorANGLE::BindSwapChain(wr::NativeSurfaceId aId,
+                                          const wr::DeviceIntRect* aDirtyRects,
+                                          size_t aNumDirtyRects) {
+  mDCLayerTree->BindSwapChain(aId, aDirtyRects, aNumDirtyRects);
 }
 void RenderCompositorANGLE::PresentSwapChain(
     wr::NativeSurfaceId aId, const wr::DeviceIntRect* aDirtyRects,
@@ -1004,16 +1006,7 @@ void RenderCompositorANGLE::InitializeUsePartialPresent() {
 
 bool RenderCompositorANGLE::UsePartialPresent() { return mUsePartialPresent; }
 
-bool RenderCompositorANGLE::RequestFullRender() {
-  // XXX Add partial present support to DCLayerCompositionSurface(WebRender
-  // layer compositor). Bug 1963535
-  if (UseLayerCompositor() &&
-      StaticPrefs::
-          gfx_webrender_layer_compositor_use_composition_surface_AtStartup()) {
-    return true;
-  }
-  return mFullRender;
-}
+bool RenderCompositorANGLE::RequestFullRender() { return mFullRender; }
 
 uint32_t RenderCompositorANGLE::GetMaxPartialPresentRects() {
   if (!mUsePartialPresent) {

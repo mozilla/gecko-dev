@@ -1328,7 +1328,12 @@ extern "C" {
     fn wr_compositor_get_capabilities(compositor: *mut c_void, caps: *mut CompositorCapabilities);
     fn wr_compositor_get_window_visibility(compositor: *mut c_void, caps: *mut WindowVisibility);
     fn wr_compositor_get_window_properties(compositor: *mut c_void, props: *mut WindowProperties);
-    fn wr_compositor_bind_swapchain(compositor: *mut c_void, id: NativeSurfaceId);
+    fn wr_compositor_bind_swapchain(
+        compositor: *mut c_void,
+        id: NativeSurfaceId,
+        dirty_rects: *const DeviceIntRect,
+        num_dirty_rects: usize,
+    );
     fn wr_compositor_present_swapchain(
         compositor: *mut c_void,
         id: NativeSurfaceId,
@@ -1694,11 +1699,20 @@ impl LayerCompositor for WrLayerCompositor {
     }
 
     // Bind a layer by index for compositing into
-    fn bind_layer(&mut self, index: usize) {
+    fn bind_layer(
+        &mut self,
+        index: usize,
+        dirty_rects: &[DeviceIntRect],
+    ) {
         let layer = &self.visual_tree[index];
 
         unsafe {
-            wr_compositor_bind_swapchain(self.compositor, layer.id);
+            wr_compositor_bind_swapchain(
+                self.compositor,
+                layer.id,
+                dirty_rects.as_ptr(),
+                dirty_rects.len(),
+            );
         }
     }
 

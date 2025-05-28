@@ -706,9 +706,11 @@ void DCLayerTree::CompositorEndFrame() {
   }
 }
 
-void DCLayerTree::BindSwapChain(wr::NativeSurfaceId aId) {
+void DCLayerTree::BindSwapChain(wr::NativeSurfaceId aId,
+                                const wr::DeviceIntRect* aDirtyRects,
+                                size_t aNumDirtyRects) {
   auto surface = GetSurface(aId);
-  surface->AsDCLayerSurface()->Bind();
+  surface->AsDCLayerSurface()->Bind(aDirtyRects, aNumDirtyRects);
 }
 
 void DCLayerTree::PresentSwapChain(wr::NativeSurfaceId aId,
@@ -1523,7 +1525,8 @@ bool DCSwapChain::Initialize() {
   return true;
 }
 
-void DCSwapChain::Bind() {
+void DCSwapChain::Bind(const wr::DeviceIntRect* aDirtyRects,
+                       size_t aNumDirtyRects) {
   const auto gl = mDCLayerTree->GetGLContext();
   const auto& gle = gl::GLContextEGL::Cast(gl);
 
@@ -1663,7 +1666,8 @@ bool DCLayerCompositionSurface::Initialize() {
   return true;
 }
 
-void DCLayerCompositionSurface::Bind() {
+void DCLayerCompositionSurface::Bind(const wr::DeviceIntRect* aDirtyRects,
+                                     size_t aNumDirtyRects) {
   MOZ_ASSERT(mCompositionSurface);
 
   if (!mCompositionSurface) {
@@ -1674,7 +1678,30 @@ void DCLayerCompositionSurface::Bind() {
   POINT offset;
   HRESULT hr;
 
-  hr = mCompositionSurface->BeginDraw(NULL, __uuidof(ID3D11Texture2D),
+  RECT updateRect;
+  gfx::IntPoint updatePos;
+  if (aNumDirtyRects > 0) {
+    MOZ_ASSERT(!mFirstDraw);
+    MOZ_ASSERT(aNumDirtyRects == 1);
+
+    updateRect.left = std::clamp(aDirtyRects[0].min.x, 0, mSize.width);
+    updateRect.top = std::clamp(aDirtyRects[0].min.y, 0, mSize.height);
+    updateRect.right = std::clamp(aDirtyRects[0].max.x, 0, mSize.width);
+    updateRect.bottom = std::clamp(aDirtyRects[0].max.y, 0, mSize.height);
+
+    updatePos = {updateRect.left, updateRect.top};
+  } else {
+    updateRect.left = 0;
+    updateRect.top = 0;
+    updateRect.right = mSize.width;
+    updateRect.bottom = mSize.height;
+
+    updatePos = {0, 0};
+  }
+
+  mFirstDraw = false;
+
+  hr = mCompositionSurface->BeginDraw(&updateRect, __uuidof(ID3D11Texture2D),
                                       (void**)getter_AddRefs(backBuffer),
                                       &offset);
 
@@ -1683,21 +1710,20 @@ void DCLayerCompositionSurface::Bind() {
     return;
   }
 
-  D3D11_TEXTURE2D_DESC desc;
-  backBuffer->GetDesc(&desc);
-
   const auto gl = mDCLayerTree->GetGLContext();
   const auto& gle = gl::GLContextEGL::Cast(gl);
   const auto& egl = gle->mEgl;
 
+  gfx::IntPoint originOffset = {(int)offset.x - updatePos.x,
+                                (int)offset.y - updatePos.y};
   const EGLint pbuffer_attribs[]{LOCAL_EGL_WIDTH,
                                  mSize.width,
                                  LOCAL_EGL_HEIGHT,
                                  mSize.height,
                                  LOCAL_EGL_TEXTURE_OFFSET_X_ANGLE,
-                                 offset.x,
+                                 originOffset.x,
                                  LOCAL_EGL_TEXTURE_OFFSET_Y_ANGLE,
-                                 offset.y,
+                                 originOffset.y,
                                  LOCAL_EGL_NONE};
   const auto buffer = reinterpret_cast<EGLClientBuffer>(backBuffer.get());
   EGLConfig eglConfig = mDCLayerTree->GetEGLConfig();
@@ -1743,6 +1769,7 @@ bool DCLayerCompositionSurface::Resize(wr::DeviceIntSize aSize) {
 
   mCompositionSurface = surface;
   mSize = aSize;
+  mFirstDraw = true;
   return true;
 }
 
@@ -1760,6 +1787,8 @@ void DCLayerCompositionSurface::Present(const wr::DeviceIntRect* aDirtyRects,
   const auto gl = mDCLayerTree->GetGLContext();
   const auto& gle = gl::GLContextEGL::Cast(gl);
   const auto& egl = gle->mEgl;
+
+  gle->SetEGLSurfaceOverride(EGL_NO_SURFACE);
 
   egl->fDestroySurface(mEGLSurface);
   mEGLSurface = EGL_NO_SURFACE;
