@@ -368,6 +368,16 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   bool AllowedInBFCache(const Maybe<uint64_t>& aChannelId, nsIURI* aNewURI);
 
+ private:
+  static nsresult ContainsSameOriginBfcacheEntry(
+      nsISHEntry* aEntry, mozilla::dom::BrowsingContext* aBC,
+      int32_t aChildIndex, void* aData);
+
+ public:
+  // Removes all bfcache entries that match the origin + originAttributes of the
+  // principal. Must be passed partitionedPrincipal
+  static nsresult ClearBfcacheByPrincipal(nsIPrincipal* aPrincipal);
+
   // Methods for getting and setting the active state for top level
   // browsing contexts, for the process priority manager.
   bool IsPriorityActive() const {

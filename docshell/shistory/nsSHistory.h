@@ -244,7 +244,11 @@ class nsSHistory : public mozilla::LinkedListElement<nsSHistory>,
   // Evict content viewers in this window which don't lie in the "safe" range
   // around aIndex.
   virtual void EvictOutOfRangeWindowDocumentViewers(int32_t aIndex);
+
+ public:
   void EvictDocumentViewerForEntry(nsISHEntry* aEntry);
+
+ private:
   static void GloballyEvictDocumentViewers();
   static void GloballyEvictAllDocumentViewers();
 

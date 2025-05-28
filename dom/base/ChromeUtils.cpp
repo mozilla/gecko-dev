@@ -1716,6 +1716,12 @@ void ChromeUtils::ClearResourceCache(
   }
 }
 
+void ChromeUtils::ClearBfcacheByPrincipal(GlobalObject& aGlobal,
+                                          nsIPrincipal* aPrincipal,
+                                          ErrorResult& aRv) {
+  aRv = CanonicalBrowsingContext::ClearBfcacheByPrincipal(aPrincipal);
+}
+
 #define PROCTYPE_TO_WEBIDL_CASE(_procType, _webidl) \
   case mozilla::ProcType::_procType:                \
     return WebIDLProcType::_webidl

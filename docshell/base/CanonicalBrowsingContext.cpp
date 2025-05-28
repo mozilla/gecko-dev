@@ -3089,6 +3089,94 @@ bool CanonicalBrowsingContext::AllowedInBFCache(
   return bfcacheCombo == 0;
 }
 
+struct ClearSiteWalkHistoryData {
+  nsIPrincipal* mPrincipal = nullptr;
+  bool mShouldClear = false;
+};
+
+// static
+nsresult CanonicalBrowsingContext::ContainsSameOriginBfcacheEntry(
+    nsISHEntry* aEntry, mozilla::dom::BrowsingContext* aBC, int32_t aChildIndex,
+    void* aData) {
+  if (!aEntry) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIPrincipal> entryPrincipal;
+  nsresult rv =
+      aEntry->GetPartitionedPrincipalToInherit(getter_AddRefs(entryPrincipal));
+
+  if (NS_FAILED(rv) || !entryPrincipal) {
+    return NS_OK;
+  }
+
+  ClearSiteWalkHistoryData* data =
+      static_cast<ClearSiteWalkHistoryData*>(aData);
+  if (data->mPrincipal->OriginAttributesRef() ==
+      entryPrincipal->OriginAttributesRef()) {
+    nsCOMPtr<nsIURI> entryURI = aEntry->GetURI();
+    if (data->mPrincipal->IsSameOrigin(entryURI)) {
+      data->mShouldClear = true;
+    } else {
+      nsSHistory::WalkHistoryEntries(aEntry, aBC,
+                                     ContainsSameOriginBfcacheEntry, aData);
+    }
+  }
+  return NS_OK;
+}
+
+// static
+nsresult CanonicalBrowsingContext::ClearBfcacheByPrincipal(
+    nsIPrincipal* aPrincipal) {
+  NS_ENSURE_ARG_POINTER(aPrincipal);
+  MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess());
+
+  // Allow disabling the feature if unexpected regressions occur
+  if (!StaticPrefs::privacy_clearSiteDataHeader_cache_bfcache_enabled()) {
+    return NS_OK;
+  }
+
+  // Iter through all open tabs by going through all top-level browsing
+  // contexts.
+  AutoTArray<RefPtr<BrowsingContextGroup>, 32> groups;
+  BrowsingContextGroup::GetAllGroups(groups);
+  for (auto& browsingContextGroup : groups) {
+    for (auto& topLevel : browsingContextGroup->Toplevels()) {
+      if (topLevel->IsDiscarded()) {
+        continue;
+      }
+
+      auto* bc = topLevel->Canonical();
+      nsSHistory* sh = static_cast<nsSHistory*>(bc->GetSessionHistory());
+      if (!sh) {
+        continue;
+      }
+
+      AutoTArray<nsCOMPtr<nsISHEntry>, 4> entriesToDelete;
+      // We only need to traverse all top-level history items due to bfcache
+      // only caching top level sites and partitioning origins. If an iframe has
+      // the same origin, we only want to clear it, if the top level has the
+      // same origin.
+      for (nsCOMPtr<nsISHEntry>& entry : sh->Entries()) {
+        // Determine whether this history entry matches the origin, or contains
+        // an iframe with that origin
+        ClearSiteWalkHistoryData data;
+        data.mPrincipal = aPrincipal;
+        CanonicalBrowsingContext::ContainsSameOriginBfcacheEntry(entry, nullptr,
+                                                                 0, &data);
+
+        if (data.mShouldClear) {
+          entriesToDelete.AppendElement(entry);
+        }
+      }
+      for (nsCOMPtr<nsISHEntry>& entry : entriesToDelete) {
+        sh->EvictDocumentViewerForEntry(entry);
+      }
+    }
+  }
+  return NS_OK;
+}
+
 void CanonicalBrowsingContext::SetIsActive(bool aIsActive, ErrorResult& aRv) {
 #ifdef DEBUG
   if (MOZ_UNLIKELY(!ManuallyManagesActiveness())) {
