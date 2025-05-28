@@ -4,13 +4,16 @@
 
 package org.mozilla.fenix.settings.search
 
+import android.content.Context
 import android.os.Bundle
+import androidx.annotation.VisibleForTesting
 import androidx.core.content.edit
 import androidx.navigation.fragment.findNavController
 import androidx.preference.CheckBoxPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
+import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.browser.state.state.selectedOrDefaultSearchEngine
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import org.mozilla.fenix.BrowserDirection
@@ -62,10 +65,13 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         view?.hideKeyboard()
         showToolbar(getString(R.string.preferences_search))
 
-        with(requirePreference<Preference>(R.string.pref_key_default_search_engine)) {
-            summary =
-                requireContext().components.core.store.state.search.selectedOrDefaultSearchEngine?.name
-        }
+        val showVoiceSearchPreference =
+            requirePreference<SwitchPreference>(R.string.pref_key_show_voice_search).apply {
+                isChecked = context.settings().shouldShowVoiceSearch
+            }
+
+        initialiseVoiceSearchPreference(showVoiceSearchPreference)
+        updateDefaultSearchEnginePreference()
 
         val searchSuggestionsPreference =
             requirePreference<SwitchPreference>(R.string.pref_key_show_search_suggestions).apply {
@@ -75,8 +81,7 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         val trendingSearchSuggestionsPreference =
             requirePreference<CheckBoxPreference>(R.string.pref_key_show_trending_search_suggestions).apply {
                 isVisible = context.settings().isTrendingSearchesVisible
-                isEnabled = requireContext().components.core.store.state.search
-                    .selectedOrDefaultSearchEngine?.trendingUrl != null &&
+                isEnabled = getSelectedSearchEngine(requireContext())?.trendingUrl != null &&
                     context.settings().shouldShowSearchSuggestions
             }
 
@@ -121,11 +126,6 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
                 isChecked = context.settings().shouldShowClipboardSuggestions
             }
 
-        val showVoiceSearchPreference =
-            requirePreference<SwitchPreference>(R.string.pref_key_show_voice_search).apply {
-                isChecked = context.settings().shouldShowVoiceSearch
-            }
-
         val showSponsoredSuggestionsPreference =
             requirePreference<SwitchPreference>(R.string.pref_key_show_sponsored_suggestions).apply {
                 isChecked = context.settings().showSponsoredSuggestions
@@ -153,23 +153,12 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         searchSuggestionsInPrivatePreference.onPreferenceChangeListener = SharedPreferenceUpdater()
         trendingSearchSuggestionsPreference.onPreferenceChangeListener = SharedPreferenceUpdater()
         recentSearchSuggestionsPreference.onPreferenceChangeListener = SharedPreferenceUpdater()
-        showVoiceSearchPreference.onPreferenceChangeListener = object : Preference.OnPreferenceChangeListener {
-            override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
-                val newBooleanValue = newValue as? Boolean ?: return false
-                requireContext().settings().preferences.edit {
-                    putBoolean(preference.key, newBooleanValue)
-                }
-                SearchWidgetProvider.updateAllWidgets(requireContext())
-                return true
-            }
-        }
         autocompleteURLsPreference.onPreferenceChangeListener = SharedPreferenceUpdater()
 
         searchSuggestionsPreference.setOnPreferenceClickListener {
             searchSuggestionsInPrivatePreference.isEnabled = searchSuggestionsPreference.isChecked
             trendingSearchSuggestionsPreference.isEnabled =
-                requireContext().components.core.store.state.search.selectedOrDefaultSearchEngine
-                    ?.trendingUrl != null && searchSuggestionsPreference.isChecked
+                getSelectedSearchEngine(requireContext())?.trendingUrl != null && searchSuggestionsPreference.isChecked
             true
         }
 
@@ -177,36 +166,122 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
         showNonSponsoredSuggestionsPreference.onPreferenceChangeListener = SharedPreferenceUpdater()
     }
 
+    /**
+     * Updates the summary of the default search engine preference to display the name
+     * of the currently selected search engine.
+     */
+    @VisibleForTesting
+    internal fun updateDefaultSearchEnginePreference() {
+        with(requirePreference<Preference>(R.string.pref_key_default_search_engine)) {
+            summary = getSelectedSearchEngine(requireContext())?.name
+        }
+    }
+
+    /**
+     * Updates all search widgets. This is necessary when the visibility of the voice search button
+     * changes, as the widget needs to be redrawn.
+     *
+     * @param context The context.
+     */
+    @VisibleForTesting
+    internal fun updateAllWidgets(context: Context) {
+        SearchWidgetProvider.updateAllWidgets(context)
+    }
+
+    /**
+     * Gets the currently selected search engine or the default search engine if none is selected.
+     *
+     * @param context The application context.
+     * @return The selected or default [SearchEngine], or null if no search engines are available.
+     */
+    @VisibleForTesting
+    internal fun getSelectedSearchEngine(context: Context): SearchEngine? {
+          return context.components.core.store.state.search.selectedOrDefaultSearchEngine
+    }
+
+    /**
+     * Initialises the "Show voice search" preference.
+     *
+     * This preference allows the user to enable or disable the voice search feature.
+     * When the preference value changes, it updates the corresponding setting in SharedPreferences
+     * and triggers an update for all search widgets.
+     *
+     * @param showVoiceSearchPreference The [SwitchPreference] for the "Show voice search" setting.
+     */
+    @VisibleForTesting
+    internal fun initialiseVoiceSearchPreference(showVoiceSearchPreference: SwitchPreference) {
+        showVoiceSearchPreference.onPreferenceChangeListener =
+            object : Preference.OnPreferenceChangeListener {
+                override fun onPreferenceChange(preference: Preference, newValue: Any?): Boolean {
+                    val newBooleanValue = newValue as? Boolean ?: return false
+                    requireContext().settings().preferences.edit {
+                        putBoolean(preference.key, newBooleanValue)
+                    }
+                    updateAllWidgets(requireContext())
+                    return true
+                }
+            }
+    }
+
     override fun onPreferenceTreeClick(preference: Preference): Boolean {
         when (preference.key) {
             getPreferenceKey(R.string.pref_key_default_search_engine) -> {
-                val directions = SearchEngineFragmentDirections
-                    .actionSearchEngineFragmentToDefaultEngineFragment()
-                findNavController().navigate(directions)
+                openDefaultEngineSettings()
             }
             getPreferenceKey(R.string.pref_key_manage_search_shortcuts) -> {
-                val directions = SearchEngineFragmentDirections
-                    .actionSearchEngineFragmentToSearchShortcutsFragment()
-                context?.let {
-                    findNavController().navigateWithBreadcrumb(
-                        directions = directions,
-                        navigateFrom = "SearchEngineFragment",
-                        navigateTo = "ActionSearchEngineFragmentToSearchShortcutsFragment",
-                        it.components.analytics.crashReporter,
-                    )
-                }
+                openSearchShortcutsSettings()
             }
             getPreferenceKey(R.string.pref_key_learn_about_fx_suggest) -> {
-                (activity as HomeActivity).openToBrowserAndLoad(
-                    searchTermOrURL = SupportUtils.getGenericSumoURLForTopic(
-                        SupportUtils.SumoTopic.FX_SUGGEST,
-                    ),
-                    newTab = true,
-                    from = BrowserDirection.FromSearchEngineFragment,
-                )
+                openLearnMoreLink()
             }
         }
 
         return super.onPreferenceTreeClick(preference)
+    }
+
+    /**
+     * Opens the "Learn More" link for Firefox Suggest in a new browser tab.
+     *
+     * This function retrieves the appropriate SUMO (support.mozilla.org) URL
+     * for the Firefox Suggest topic and instructs the HomeActivity to open
+     * this URL in a new browser tab.
+     */
+    @VisibleForTesting
+    internal fun openLearnMoreLink() {
+        (activity as HomeActivity).openToBrowserAndLoad(
+            searchTermOrURL = SupportUtils.getGenericSumoURLForTopic(
+                SupportUtils.SumoTopic.FX_SUGGEST,
+            ),
+            newTab = true,
+            from = BrowserDirection.FromSearchEngineFragment,
+        )
+    }
+
+    /**
+     * Navigates to the search shortcuts settings screen.
+     *
+     * This function uses the Navigation Component to navigate from the current fragment
+     * (SearchEngineFragment) to the SearchShortcutsFragment. It also logs breadcrumbs
+     * for crash reporting.
+     */
+    @VisibleForTesting
+    internal fun openSearchShortcutsSettings() {
+        val directions = SearchEngineFragmentDirections
+            .actionSearchEngineFragmentToSearchShortcutsFragment()
+        context?.let {
+            findNavController().navigateWithBreadcrumb(
+                directions = directions,
+                navigateFrom = "SearchEngineFragment",
+                navigateTo = "ActionSearchEngineFragmentToSearchShortcutsFragment",
+                it.components.analytics.crashReporter,
+            )
+        }
+    }
+
+    @VisibleForTesting
+    internal fun openDefaultEngineSettings() {
+        val directions = SearchEngineFragmentDirections
+            .actionSearchEngineFragmentToDefaultEngineFragment()
+        findNavController().navigate(directions)
     }
 }
