@@ -130,7 +130,7 @@ def _protocolId(ptype):
 
 
 def _protocolIdType():
-    return Type("mozilla::ipc::ProtocolId")
+    return Type.INT32
 
 
 def _actorName(pname, side):
@@ -142,13 +142,21 @@ def _actorName(pname, side):
 
 
 def _actorIdType():
-    return Type("mozilla::ipc::ActorId")
+    return Type.INT32
+
+
+def _actorTypeTagType():
+    return Type.INT32
 
 
 def _actorId(actor=None):
     if actor is not None:
         return ExprCall(ExprSelect(actor, "->", "Id"))
     return ExprCall(ExprVar("Id"))
+
+
+def _actorHId(actorhandle):
+    return ExprSelect(actorhandle, ".", "mId")
 
 
 def _deleteId():
@@ -1814,7 +1822,7 @@ def _generateMessageConstructor(md, segmentSize, protocol, forReply=False):
     func = FunctionDefn(
         FunctionDecl(
             clsname,
-            params=[Decl(Type("IPC::Message::routeid_t"), routingId.name)],
+            params=[Decl(Type("int32_t"), routingId.name)],
             ret=Type("mozilla::UniquePtr<IPC::Message>"),
         )
     )
@@ -2136,38 +2144,53 @@ class _ParamTraits:
         Write and read callers will perform nullability validation."""
 
         cxxtype = _cxxBareType(actortype, side, fq=True)
-        basetype = Type("mozilla::ipc::IProtocol", ptr=True)
 
-        # void Write(..) impl - Write actor as IProtocol*
-        write = cls.checkedWrite(
-            None,
-            ExprCast(cls.var, basetype, static=True),
-            cls.writervar,
-            sentinelKey=actortype.name(),
+        write = StmtCode(
+            """
+            MOZ_RELEASE_ASSERT(
+                ${writervar}->GetActor(),
+                "Cannot serialize managed actors without an actor");
+
+            int32_t id;
+            if (!${var}) {
+                id = 0;  // kNullActorId
+            } else {
+                id = ${var}->Id();
+                if (id == 1) {  // kFreedActorId
+                    ${var}->FatalError("Actor has been |delete|d");
+                }
+                MOZ_RELEASE_ASSERT(
+                    ${writervar}->GetActor()->GetIPCChannel() == ${var}->GetIPCChannel(),
+                    "Actor must be from the same channel as the"
+                    " actor it's being sent over");
+                MOZ_RELEASE_ASSERT(
+                    ${var}->CanSend(),
+                    "Actor must still be open when sending");
+            }
+
+            ${write};
+            """,
+            var=cls.var,
+            writervar=cls.writervar,
+            write=cls.write(ExprVar("id"), cls.writervar),
         )
 
-        # bool Read(..) impl - Read actor as IProtocol*
+        # bool Read(..) impl
         read = StmtCode(
             """
-            ${read}
-            if (actor && actor->GetProtocolId() != ${protocolid}) {
-                ${typeerror}
-                return {};
+            MOZ_RELEASE_ASSERT(
+                ${readervar}->GetActor(),
+                "Cannot deserialize managed actors without an actor");
+            mozilla::Maybe<mozilla::ipc::IProtocol*> actor = ${readervar}->GetActor()
+              ->ReadActor(${readervar}, true, ${actortype}, ${protocolid});
+            if (actor.isSome()) {
+                return static_cast<${cxxtype}>(actor.ref());
             }
-            return static_cast<${cxxtype}>(actor);
+            return {};
             """,
-            read=cls._checkedRead(
-                None,
-                basetype,
-                ExprVar("actor"),
-                sentinelKey=actortype.name(),
-                what="managed " + actortype.name() + " actor",
-            ),
+            readervar=cls.readervar,
+            actortype=ExprLiteral.String(actortype.name()),
             protocolid=_protocolId(actortype),
-            typeerror=cls.fatalError(
-                cls.readervar,
-                "Unexpected actor type (expected " + actortype.name() + ")",
-            ),
             cxxtype=cxxtype,
         )
 
@@ -3327,7 +3350,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         self.nonForwardDeclaredHeaders = set()
         self.typedefSet = set(
             [
-                Typedef(Type("mozilla::ipc::ActorId"), "ActorId"),
+                Typedef(Type("mozilla::ipc::ActorHandle"), "ActorHandle"),
                 Typedef(Type("base::ProcessId"), "ProcessId"),
                 Typedef(Type("mozilla::ipc::ProtocolId"), "ProtocolId"),
                 Typedef(Type("mozilla::ipc::Endpoint"), "Endpoint", ["FooSide"]),
@@ -4011,8 +4034,8 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         # for ctor recv cases, we can't read the actor ID into a PFoo*
         # because it doesn't exist on this side yet.  Use a "special"
         # actor handle instead
-        actoridvar = ExprVar("actorid__")
-        self.actoridvar = actoridvar
+        handlevar = ExprVar("handle__")
+        self.handlevar = handlevar
 
         msgtype = ExprCode("msg__.type()")
         self.asyncSwitch = StmtSwitch(msgtype)
@@ -4107,7 +4130,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
 
                 method.addcode(
                     """
-                    IPC::Message::routeid_t route__ = ${msgvar}.routing_id();
+                    int32_t route__ = ${msgvar}.routing_id();
                     if (MSG_ROUTING_CONTROL != route__) {
                         IProtocol* routed__ = Lookup(route__);
                         if (!routed__ || !routed__->GetLifecycleProxy()) {
@@ -4739,6 +4762,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
     def genCtorRecvCase(self, md):
         lbl = CaseLabel(md.pqMsgId())
         case = StmtBlock()
+        actorhandle = self.handlevar
 
         stmts = self.deserializeMessage(
             md, self.side, errfnRecv, errfnSent=errfnSentinel(_Result.ValuError)
@@ -4754,7 +4778,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             # alloc the actor, register it under the foreign ID
             + [self.callAllocActor(md, retsems="in", side=self.side)]
             + self.bindManagedActor(
-                md.actorDecl(), errfn=_Result.ValuError, idexpr=self.actoridvar
+                md.actorDecl(), errfn=_Result.ValuError, idexpr=_actorHId(actorhandle)
             )
             + [Whitespace.NL]
             + saveIdStmts
@@ -4823,45 +4847,33 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
     def makeMessage(self, md, errfn, fromActor=None):
         msgvar = self.msgvar
         writervar = ExprVar("writer__")
-        isctor = md.decl.type.isCtor()
         routingId = self.protocol.routingId(fromActor)
         this = fromActor or ExprVar.THIS
 
-        stmts = [
-            StmtDecl(
-                Decl(Type("UniquePtr<IPC::Message>"), msgvar.name),
-                init=ExprCall(ExprVar(md.pqMsgCtorFunc()), args=[routingId]),
-            ),
-            StmtDecl(
-                Decl(Type("IPC::MessageWriter"), writervar.name),
-                initargs=[ExprDeref(msgvar), this],
-            ),
-            Whitespace.NL,
-        ]
-
-        start = 0
-        if isctor:
-            # serialize the actor as the raw actor ID so that it can be used to
-            # construct the "real" actor on the other side.
-            stmts += [
-                _ParamTraits.checkedWrite(
-                    None,
-                    _actorId(ExprVar("actor")),
-                    ExprAddrOf(writervar),
-                    sentinelKey="actorid",
-                )
+        stmts = (
+            [
+                StmtDecl(
+                    Decl(Type("UniquePtr<IPC::Message>"), msgvar.name),
+                    init=ExprCall(ExprVar(md.pqMsgCtorFunc()), args=[routingId]),
+                ),
+                StmtDecl(
+                    Decl(Type("IPC::MessageWriter"), writervar.name),
+                    initargs=[ExprDeref(msgvar), this],
+                ),
             ]
-            start = 1
-
-        stmts += [
-            _ParamTraits.checkedWrite(
-                p.ipdltype,
-                p.var(),
-                ExprAddrOf(writervar),
-                sentinelKey=p.name,
-            )
-            for p in md.params[start:]
-        ]
+            + [Whitespace.NL]
+            + [
+                _ParamTraits.checkedWrite(
+                    p.ipdltype,
+                    p.var(),
+                    ExprAddrOf(writervar),
+                    sentinelKey=p.name,
+                )
+                for p in md.params
+            ]
+            + [Whitespace.NL]
+            + self.setMessageFlags(md, msgvar)
+        )
         return msgvar, stmts
 
     def makeResolver(self, md, errfn, routingId):
@@ -4952,8 +4964,19 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 )
                 for r in md.returns
             ]
+            + self.setMessageFlags(md, replyvar)
             + [self.logMessage(md, replyvar, "Sending reply ")]
         )
+
+    def setMessageFlags(self, md, var, seqno=None):
+        stmts = []
+
+        if seqno:
+            stmts.append(
+                StmtExpr(ExprCall(ExprSelect(var, "->", "set_seqno"), args=[seqno]))
+            )
+
+        return stmts + [Whitespace.NL]
 
     def deserializeMessage(self, md, side, errfn, errfnSent):
         msgvar = self.msgvar
@@ -4973,17 +4996,17 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         if isctor:
             # return the raw actor handle so that its ID can be used
             # to construct the "real" actor
-            actoridvar = self.actoridvar
-            actoridtype = _actorIdType()
+            handlevar = self.handlevar
+            handletype = Type("ActorHandle")
             reads = [
                 _ParamTraits.checkedRead(
                     None,
-                    actoridtype,
-                    actoridvar,
+                    handletype,
+                    handlevar,
                     ExprAddrOf(readervar),
                     errfn,
-                    "'%s'" % actoridtype.name,
-                    sentinelKey="actorid",
+                    "'%s'" % handletype.name,
+                    sentinelKey="actor",
                     errfnSentinel=errfnSent,
                 )
             ]
@@ -5043,7 +5066,27 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 StmtReturn(errcode),
             ]
 
-        reads = [
+        start, reads = 0, []
+        if md.decl.type.isCtor():
+            # return the raw actor handle so that its ID can be used
+            # to construct the "real" actor
+            handlevar = self.handlevar
+            handletype = Type("ActorHandle")
+            reads = [
+                _ParamTraits.checkedRead(
+                    None,
+                    handletype,
+                    handlevar,
+                    readervar,
+                    errfn,
+                    "'%s'" % handletype.name,
+                    sentinelKey="actor",
+                    errfnSentinel=errfnSentinel(_Result.ValuError),
+                )
+            ]
+            start = 1
+
+        reads += [
             _ParamTraits.checkedRead(
                 p.ipdltype,
                 p.bareType(side),
@@ -5054,7 +5097,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 sentinelKey=p.name,
                 errfnSentinel=errfnSentinel(_Result.ValuError),
             )
-            for p in md.returns
+            for p in md.returns[start:]
         ]
 
         if len(md.returns) > 1:
@@ -5142,12 +5185,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         if actor is not None:
             send = ExprSelect(actor, "->", send.name)
         if md.returns:
-            stmts.append(
-                StmtDecl(
-                    Decl(Type("IPC::Message::seqno_t"), seqno.name),
-                    init=ExprLiteral.ZERO,
-                )
-            )
+            stmts.append(StmtDecl(Decl(Type.INT32, seqno.name), init=ExprLiteral.ZERO))
             ifsendok = StmtIf(
                 ExprCall(send, args=[ExprMove(msgexpr), ExprAddrOf(seqno)])
             )

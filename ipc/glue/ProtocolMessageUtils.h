@@ -46,12 +46,21 @@ struct ParamTraits<IPCMessageStart>
                                LastMsgIndex> {};
 
 template <>
-struct ParamTraits<mozilla::ipc::IProtocol*> {
-  using paramType = mozilla::ipc::IProtocol*;
+struct ParamTraits<mozilla::ipc::ActorHandle> {
+  typedef mozilla::ipc::ActorHandle paramType;
 
-  static void Write(MessageWriter* aWriter, const paramType& aParam);
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
+    IPC::WriteParam(aWriter, aParam.mId);
+  }
 
-  static bool Read(MessageReader* aReader, paramType* aResult);
+  static bool Read(MessageReader* aReader, paramType* aResult) {
+    int id;
+    if (IPC::ReadParam(aReader, &id)) {
+      aResult->mId = id;
+      return true;
+    }
+    return false;
+  }
 };
 
 template <>

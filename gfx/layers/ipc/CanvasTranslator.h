@@ -196,7 +196,7 @@ class CanvasTranslator final : public gfx::InlineTranslator,
    */
   mozilla::ipc::IPCResult RecvSnapshotExternalCanvas(uint64_t aSyncId,
                                                      uint32_t aManagerId,
-                                                     ActorId aCanvasId);
+                                                     int32_t aCanvasId);
 
   /**
    * Resolves the given sync-id from the recording stream to a snapshot from

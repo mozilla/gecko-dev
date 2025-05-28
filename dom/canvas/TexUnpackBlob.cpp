@@ -1032,7 +1032,7 @@ bool TexUnpackSurface::TexOrSubImage(bool isSubImage, bool needsRespec,
       // process as the WebGL canvas. Query it for the surface.
       const auto& sdc = sd.get_SurfaceDescriptorCanvasSurface();
       uint32_t managerId = sdc.managerId();
-      mozilla::ipc::ActorId canvasId = sdc.canvasId();
+      int32_t canvasId = sdc.canvasId();
       uintptr_t surfaceId = sdc.surfaceId();
       surf = gfx::CanvasManagerParent::GetCanvasSurface(
           webgl->GetContentId(), managerId, canvasId, surfaceId);

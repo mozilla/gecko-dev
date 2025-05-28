@@ -231,9 +231,9 @@ class UntypedManagedEndpoint {
     RefPtr<WeakActorLifecycleProxy> mOtherSide;
     RefPtr<WeakActorLifecycleProxy> mToplevel;
 
-    ActorId mId = 0;
+    int32_t mId = 0;
     ProtocolId mType = LastMsgIndex;
-    ActorId mManagerId = 0;
+    int32_t mManagerId = 0;
     ProtocolId mManagerType = LastMsgIndex;
   };
   Maybe<Inner> mInner;
