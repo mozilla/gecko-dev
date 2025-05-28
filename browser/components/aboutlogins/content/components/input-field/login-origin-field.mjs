@@ -69,6 +69,7 @@ class LoginOriginField extends MozLitElement {
             required: this.required,
             labelL10nId: "login-item-origin-label",
             noteL10nId: "contextual-manager-passwords-origin-tooltip",
+            inputL10nId: "login-item-origin",
             onBlur: e => this.addHTTPSPrefix(e),
           })}
     `;
