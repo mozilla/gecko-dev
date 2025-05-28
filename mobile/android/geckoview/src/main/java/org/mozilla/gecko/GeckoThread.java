@@ -493,17 +493,8 @@ public class GeckoThread extends Thread {
     initGeckoEnvironment();
 
     if ((mInitInfo.flags & FLAG_PRELOAD_CHILD) != 0) {
-      // Preload any child processes we need as soon as we want to display any web page.
-      GeckoProcessManager.getInstance()
-          .preload(
-              // The GPU process is the child process we need first.
-              GeckoProcessType.GPU,
-              // We also usually need two content processes: One for the tab contents,
-              // and one for the WebExtension process. If our embedder doesn't use web
-              // extensions, the second content process can still be useful once a
-              // second GeckoSession is started.
-              GeckoProcessType.CONTENT,
-              GeckoProcessType.CONTENT);
+      // Preload the content ("tab") child process.
+      GeckoProcessManager.getInstance().preload(GeckoProcessType.CONTENT);
     }
 
     if ((mInitInfo.flags & FLAG_DEBUGGING) != 0) {
