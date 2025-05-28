@@ -20,7 +20,6 @@
 #include "nsIBrowserChild.h"
 #include "nsITooltipListener.h"
 #include "nsIWebProgressListener.h"
-#include "nsIWebProgressListener2.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/TabContext.h"
 #include "mozilla/dom/CoalescedMouseData.h"
@@ -136,7 +135,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
                            public nsSupportsWeakReference,
                            public nsIBrowserChild,
                            public nsIObserver,
-                           public nsIWebProgressListener2,
+                           public nsIWebProgressListener,
                            public TabContext,
                            public nsITooltipListener,
                            public mozilla::ipc::IShmemAllocator {
@@ -193,7 +192,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   NS_DECL_NSIBROWSERCHILD
   NS_DECL_NSIOBSERVER
   NS_DECL_NSIWEBPROGRESSLISTENER
-  NS_DECL_NSIWEBPROGRESSLISTENER2
   NS_DECL_NSITOOLTIPLISTENER
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(BrowserChild,
@@ -847,7 +845,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   nsCOMPtr<nsIURI> mLastURI;
   RefPtr<ContentChild> mManager;
   RefPtr<BrowsingContext> mBrowsingContext;
-  RefPtr<nsBrowserStatusFilter> mStatusFilter;
   RefPtr<nsIDragSession> mDragSession;
 
   Maybe<CodeNameIndex> mPreviousConsumedKeyDownCode;

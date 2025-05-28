@@ -79,7 +79,6 @@
 #include "mozilla/layers/ImageBridgeChild.h"
 #include "mozilla/layers/InputAPZContext.h"
 #include "mozilla/layers/WebRenderLayerManager.h"
-#include "nsBrowserStatusFilter.h"
 #include "nsCommandParams.h"
 #include "nsContentPermissionHelper.h"
 #include "nsContentUtils.h"
@@ -412,19 +411,6 @@ nsresult BrowserChild::Init(mozIDOMWindowProxy* aParent,
   nsCOMPtr<nsIDocShell> docShell = do_GetInterface(WebNavigation());
   MOZ_ASSERT(docShell);
 
-  mStatusFilter = new nsBrowserStatusFilter();
-
-  nsresult rv =
-      mStatusFilter->AddProgressListener(this, nsIWebProgress::NOTIFY_ALL);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  {
-    nsCOMPtr<nsIWebProgress> webProgress = do_QueryInterface(docShell);
-    rv = webProgress->AddProgressListener(mStatusFilter,
-                                          nsIWebProgress::NOTIFY_ALL);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
 #ifdef DEBUG
   nsCOMPtr<nsILoadContext> loadContext = do_GetInterface(WebNavigation());
   MOZ_ASSERT(loadContext);
@@ -485,7 +471,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(BrowserChild)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowserChildMessageManager)
   tmp->nsMessageManagerScriptExecutor::Unlink();
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWebBrowser)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mStatusFilter)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mWebNav)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mBrowsingContext)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSessionStoreChild)
@@ -496,7 +481,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(BrowserChild)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowserChildMessageManager)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebBrowser)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mStatusFilter)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWebNav)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowsingContext)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSessionStoreChild)
@@ -517,7 +501,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(BrowserChild)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsITooltipListener)
   NS_INTERFACE_MAP_ENTRY(nsIWebProgressListener)
-  NS_INTERFACE_MAP_ENTRY(nsIWebProgressListener2)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIBrowserChild)
 NS_INTERFACE_MAP_END
 
@@ -686,16 +669,6 @@ BrowserChild::ProvideWindow(nsIOpenWindowInfo* aOpenWindowInfo,
 
 void BrowserChild::DestroyWindow() {
   mBrowsingContext = nullptr;
-
-  if (mStatusFilter) {
-    if (nsCOMPtr<nsIWebProgress> webProgress =
-            do_QueryInterface(WebNavigation())) {
-      webProgress->RemoveProgressListener(mStatusFilter);
-    }
-
-    mStatusFilter->RemoveProgressListener(this);
-    mStatusFilter = nullptr;
-  }
 
   if (mCoalescedMouseEventFlusher) {
     mCoalescedMouseEventFlusher->RemoveObserver();
@@ -3787,7 +3760,7 @@ NS_IMETHODIMP BrowserChild::OnStateChange(nsIWebProgress* aWebProgress,
                                           nsIRequest* aRequest,
                                           uint32_t aStateFlags,
                                           nsresult aStatus) {
-  if (!IPCOpen() || !mShouldSendWebProgressEventsToParent) {
+  if (!IPCOpen() || mDestroyed || !mShouldSendWebProgressEventsToParent) {
     return NS_OK;
   }
 
@@ -3845,7 +3818,7 @@ NS_IMETHODIMP BrowserChild::OnProgressChange(nsIWebProgress* aWebProgress,
                                              int32_t aMaxSelfProgress,
                                              int32_t aCurTotalProgress,
                                              int32_t aMaxTotalProgress) {
-  if (!IPCOpen() || !mShouldSendWebProgressEventsToParent) {
+  if (!IPCOpen() || mDestroyed || !mShouldSendWebProgressEventsToParent) {
     return NS_OK;
   }
 
@@ -3856,15 +3829,15 @@ NS_IMETHODIMP BrowserChild::OnProgressChange(nsIWebProgress* aWebProgress,
     return NS_OK;
   }
 
-  // As we're being filtered by nsBrowserStatusFilter, we will be passed either
-  // nullptr or 0 for all arguments other than aCurTotalProgress and
-  // aMaxTotalProgress. Don't bother sending them.
-  MOZ_ASSERT(!aWebProgress);
-  MOZ_ASSERT(!aRequest);
-  MOZ_ASSERT(aCurSelfProgress == 0);
-  MOZ_ASSERT(aMaxSelfProgress == 0);
+  WebProgressData webProgressData;
+  RequestData requestData;
 
-  Unused << SendOnProgressChange(aCurTotalProgress, aMaxTotalProgress);
+  MOZ_TRY(PrepareProgressListenerData(aWebProgress, aRequest, webProgressData,
+                                      requestData));
+
+  Unused << SendOnProgressChange(webProgressData, requestData, aCurSelfProgress,
+                                 aMaxSelfProgress, aCurTotalProgress,
+                                 aMaxTotalProgress);
 
   return NS_OK;
 }
@@ -3873,7 +3846,7 @@ NS_IMETHODIMP BrowserChild::OnLocationChange(nsIWebProgress* aWebProgress,
                                              nsIRequest* aRequest,
                                              nsIURI* aLocation,
                                              uint32_t aFlags) {
-  if (!IPCOpen() || !mShouldSendWebProgressEventsToParent) {
+  if (!IPCOpen() || mDestroyed || !mShouldSendWebProgressEventsToParent) {
     return NS_OK;
   }
 
@@ -3965,25 +3938,18 @@ NS_IMETHODIMP BrowserChild::OnStatusChange(nsIWebProgress* aWebProgress,
                                            nsIRequest* aRequest,
                                            nsresult aStatus,
                                            const char16_t* aMessage) {
-  if (!IPCOpen() || !mShouldSendWebProgressEventsToParent) {
+  if (!IPCOpen() || mDestroyed || !mShouldSendWebProgressEventsToParent) {
     return NS_OK;
   }
 
-  // FIXME: We currently ignore StatusChange from out-of-process subframes both
-  // here and in BrowserParent. We may want to change this behaviour in the
-  // future.
-  if (!GetBrowsingContext()->IsTopContent()) {
-    return NS_OK;
-  }
+  WebProgressData webProgressData;
+  RequestData requestData;
 
-  // As we're being filtered by nsBrowserStatusFilter, we will be passed either
-  // nullptr or NS_OK for all arguments other than aMessage. Don't bother
-  // sending them.
-  MOZ_ASSERT(!aWebProgress);
-  MOZ_ASSERT(!aRequest);
-  MOZ_ASSERT(aStatus == NS_OK);
+  MOZ_TRY(PrepareProgressListenerData(aWebProgress, aRequest, webProgressData,
+                                      requestData));
 
-  Unused << SendOnStatusChange(nsDependentString(aMessage));
+  Unused << SendOnStatusChange(webProgressData, requestData, aStatus,
+                               nsDependentString(aMessage));
 
   return NS_OK;
 }
@@ -4005,28 +3971,6 @@ NS_IMETHODIMP BrowserChild::OnContentBlockingEvent(nsIWebProgress* aWebProgress,
   MOZ_DIAGNOSTIC_ASSERT(
       false, "OnContentBlockingEvent should not be seen in content process.");
   return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP BrowserChild::OnProgressChange64(nsIWebProgress* aWebProgress,
-                                               nsIRequest* aRequest,
-                                               int64_t aCurSelfProgress,
-                                               int64_t aMaxSelfProgress,
-                                               int64_t aCurTotalProgress,
-                                               int64_t aMaxTotalProgress) {
-  // All the events we receive are filtered through an nsBrowserStatusFilter,
-  // which accepts ProgressChange64 events, but truncates the progress values to
-  // uint32_t and calls OnProgressChange.
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP BrowserChild::OnRefreshAttempted(nsIWebProgress* aWebProgress,
-                                               nsIURI* aRefreshURI,
-                                               uint32_t aMillis, bool aSameURI,
-                                               bool* aOut) {
-  NS_ENSURE_ARG_POINTER(aOut);
-  *aOut = true;
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP BrowserChild::NotifyNavigationFinished() {

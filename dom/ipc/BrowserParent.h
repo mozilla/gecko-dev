@@ -292,8 +292,10 @@ class BrowserParent final : public PBrowserParent,
       const uint32_t aStateFlags, const nsresult aStatus,
       const Maybe<WebProgressStateChangeData>& aStateChangeData);
 
-  mozilla::ipc::IPCResult RecvOnProgressChange(const int32_t aCurTotalProgres,
-                                               const int32_t aMaxTotalProgress);
+  mozilla::ipc::IPCResult RecvOnProgressChange(
+      const WebProgressData& aWebProgressData, const RequestData& aRequestData,
+      const int32_t aCurSelfProgress, const int32_t aMaxSelfProgress,
+      const int32_t aCurTotalProgres, const int32_t aMaxTotalProgress);
 
   mozilla::ipc::IPCResult RecvOnLocationChange(
       const WebProgressData& aWebProgressData, const RequestData& aRequestData,
@@ -301,7 +303,9 @@ class BrowserParent final : public PBrowserParent,
       const bool aCanGoBackIgnoringUserInteraction, const bool aCanGoForward,
       const Maybe<WebProgressLocationChangeData>& aLocationChangeData);
 
-  mozilla::ipc::IPCResult RecvOnStatusChange(const nsString& aMessage);
+  mozilla::ipc::IPCResult RecvOnStatusChange(
+      const WebProgressData& aWebProgressData, const RequestData& aRequestData,
+      nsresult aStatus, const nsString& aMessage);
 
   mozilla::ipc::IPCResult RecvNotifyContentBlockingEvent(
       const uint32_t& aEvent, const RequestData& aRequestData,
@@ -317,8 +321,10 @@ class BrowserParent final : public PBrowserParent,
 
   already_AddRefed<nsIBrowser> GetBrowser();
 
-  already_AddRefed<CanonicalBrowsingContext> BrowsingContextForWebProgress(
-      const WebProgressData& aWebProgressData);
+  bool ReceiveProgressListenerData(const WebProgressData& aWebProgressData,
+                                   const RequestData& aRequestData,
+                                   CanonicalBrowsingContext** aBrowsingContext,
+                                   nsIRequest** aRequest);
 
   mozilla::ipc::IPCResult RecvIntrinsicSizeOrRatioChanged(
       const Maybe<IntrinsicSize>& aIntrinsicSize,

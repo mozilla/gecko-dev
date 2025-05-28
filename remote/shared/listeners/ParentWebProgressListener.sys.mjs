@@ -197,10 +197,7 @@ export class ParentWebProgressListener {
     this.#contextListener.stopListening();
     for (const webProgress of this.#monitoredWebProgress.keys()) {
       try {
-        webProgress.removeProgressListener(
-          this.#listener,
-          Ci.nsIWebProgress.NOTIFY_STATE_ALL
-        );
+        webProgress.removeProgressListener(this.#listener);
       } catch (e) {
         this.#trace(`Failed to remove the progress listener`);
       }
@@ -277,7 +274,8 @@ export class ParentWebProgressListener {
       this.#monitoredWebProgress.set(webProgress, new Set());
       webProgress.addProgressListener(
         this.#listener,
-        Ci.nsIWebProgress.NOTIFY_ALL
+        Ci.nsIWebProgress.NOTIFY_STATE_WINDOW |
+          Ci.nsIWebProgress.NOTIFY_LOCATION
       );
     }
 
@@ -321,10 +319,7 @@ export class ParentWebProgressListener {
         browsingContext.id
       );
       try {
-        webProgress.removeProgressListener(
-          this.#listener,
-          Ci.nsIWebProgress.NOTIFY_STATE_ALL
-        );
+        webProgress.removeProgressListener(this.#listener);
       } catch (e) {
         this.#trace(
           `Failed to remove the progress listener`,

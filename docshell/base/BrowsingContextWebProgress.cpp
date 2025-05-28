@@ -142,6 +142,22 @@ void BrowsingContextWebProgress::UpdateAndNotifyListeners(
   }
 }
 
+already_AddRefed<nsIWebProgress> BrowsingContextWebProgress::ResolveWebProgress(
+    nsIWebProgress* aWebProgress) {
+  // If we are receiving this notifcation directly from the docshell,
+  // `nsIWebProgress` will be the docshell, instead of the
+  // BrowsingContextWebProgress object.
+  nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aWebProgress);
+  if (docShell && docShell->GetBrowsingContext()) {
+    RefPtr<BrowsingContextWebProgress> progress =
+        docShell->GetBrowsingContext()->Canonical()->GetWebProgress();
+    aWebProgress->GetLoadType(&progress->mLoadType);
+    return progress.forget();
+  }
+
+  return do_AddRef(aWebProgress);
+}
+
 void BrowsingContextWebProgress::ContextDiscarded() {
   if (mBounceTrackingState) {
     mBounceTrackingState->OnBrowsingContextDiscarded();
@@ -202,20 +218,11 @@ BrowsingContextWebProgress::OnStateChange(nsIWebProgress* aWebProgress,
        DescribeError(aStatus).get(),
        DescribeBrowsingContext(mCurrentBrowsingContext).get()));
 
-  bool targetIsThis = aWebProgress == this;
-
-  // We may receive a request from an in-process nsDocShell which doesn't have
-  // `aWebProgress == this` which we should still consider as targeting
-  // ourselves.
-  if (nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aWebProgress);
-      docShell && docShell->GetBrowsingContext() == mCurrentBrowsingContext) {
-    targetIsThis = true;
-    aWebProgress->GetLoadType(&mLoadType);
-  }
+  nsCOMPtr<nsIWebProgress> webProgress = ResolveWebProgress(aWebProgress);
 
   // Track `mIsLoadingDocument` based on the notifications we've received so far
   // if the nsIWebProgress being targeted is this one.
-  if (targetIsThis) {
+  if (webProgress == this) {
     constexpr uint32_t startFlags = nsIWebProgressListener::STATE_START |
                                     nsIWebProgressListener::STATE_IS_DOCUMENT |
                                     nsIWebProgressListener::STATE_IS_REQUEST |
@@ -252,10 +259,21 @@ BrowsingContextWebProgress::OnStateChange(nsIWebProgress* aWebProgress,
     }
   }
 
+  // Remove the STATE_IS_NETWORK bit if necessary.
+  //
+  // The rule is to remove this bit if the notification has been passed up from
+  // a child WebProgress, and the current WebProgress is already active.
+  //
+  // NOTE: Keep this in-sync with the logic in nsDocLoader::DoFireOnStateChange.
+  if (webProgress != this && mIsLoadingDocument &&
+      aStateFlags & nsIWebProgressListener::STATE_IS_NETWORK) {
+    aStateFlags &= ~nsIWebProgressListener::STATE_IS_NETWORK;
+  }
+
   UpdateAndNotifyListeners(
       ((aStateFlags >> 16) & nsIWebProgress::NOTIFY_STATE_ALL),
       [&](nsIWebProgressListener* listener) {
-        listener->OnStateChange(aWebProgress, aRequest, aStateFlags, aStatus);
+        listener->OnStateChange(webProgress, aRequest, aStateFlags, aStatus);
       });
   return NS_OK;
 }
@@ -273,9 +291,12 @@ BrowsingContextWebProgress::OnProgressChange(nsIWebProgress* aWebProgress,
        DescribeWebProgress(aWebProgress).get(), DescribeRequest(aRequest).get(),
        aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress,
        DescribeBrowsingContext(mCurrentBrowsingContext).get()));
+
+  nsCOMPtr<nsIWebProgress> webProgress = ResolveWebProgress(aWebProgress);
+
   UpdateAndNotifyListeners(
       nsIWebProgress::NOTIFY_PROGRESS, [&](nsIWebProgressListener* listener) {
-        listener->OnProgressChange(aWebProgress, aRequest, aCurSelfProgress,
+        listener->OnProgressChange(webProgress, aRequest, aCurSelfProgress,
                                    aMaxSelfProgress, aCurTotalProgress,
                                    aMaxTotalProgress);
       });
@@ -294,9 +315,12 @@ BrowsingContextWebProgress::OnLocationChange(nsIWebProgress* aWebProgress,
        aLocation ? aLocation->GetSpecOrDefault().get() : "<null>",
        DescribeWebProgressFlags(aFlags, "LOCATION_CHANGE_"_ns).get(),
        DescribeBrowsingContext(mCurrentBrowsingContext).get()));
+
+  nsCOMPtr<nsIWebProgress> webProgress = ResolveWebProgress(aWebProgress);
+
   UpdateAndNotifyListeners(
       nsIWebProgress::NOTIFY_LOCATION, [&](nsIWebProgressListener* listener) {
-        listener->OnLocationChange(aWebProgress, aRequest, aLocation, aFlags);
+        listener->OnLocationChange(webProgress, aRequest, aLocation, aFlags);
       });
   return NS_OK;
 }
@@ -312,9 +336,12 @@ BrowsingContextWebProgress::OnStatusChange(nsIWebProgress* aWebProgress,
        DescribeWebProgress(aWebProgress).get(), DescribeRequest(aRequest).get(),
        DescribeError(aStatus).get(), NS_ConvertUTF16toUTF8(aMessage).get(),
        DescribeBrowsingContext(mCurrentBrowsingContext).get()));
+
+  nsCOMPtr<nsIWebProgress> webProgress = ResolveWebProgress(aWebProgress);
+
   UpdateAndNotifyListeners(
       nsIWebProgress::NOTIFY_STATUS, [&](nsIWebProgressListener* listener) {
-        listener->OnStatusChange(aWebProgress, aRequest, aStatus, aMessage);
+        listener->OnStatusChange(webProgress, aRequest, aStatus, aMessage);
       });
   return NS_OK;
 }
@@ -328,9 +355,12 @@ BrowsingContextWebProgress::OnSecurityChange(nsIWebProgress* aWebProgress,
       ("OnSecurityChange(%s, %s, %x) on %s",
        DescribeWebProgress(aWebProgress).get(), DescribeRequest(aRequest).get(),
        aState, DescribeBrowsingContext(mCurrentBrowsingContext).get()));
+
+  nsCOMPtr<nsIWebProgress> webProgress = ResolveWebProgress(aWebProgress);
+
   UpdateAndNotifyListeners(
       nsIWebProgress::NOTIFY_SECURITY, [&](nsIWebProgressListener* listener) {
-        listener->OnSecurityChange(aWebProgress, aRequest, aState);
+        listener->OnSecurityChange(webProgress, aRequest, aState);
       });
   return NS_OK;
 }
@@ -344,9 +374,12 @@ BrowsingContextWebProgress::OnContentBlockingEvent(nsIWebProgress* aWebProgress,
       ("OnContentBlockingEvent(%s, %s, %x) on %s",
        DescribeWebProgress(aWebProgress).get(), DescribeRequest(aRequest).get(),
        aEvent, DescribeBrowsingContext(mCurrentBrowsingContext).get()));
+
+  nsCOMPtr<nsIWebProgress> webProgress = ResolveWebProgress(aWebProgress);
+
   UpdateAndNotifyListeners(nsIWebProgress::NOTIFY_CONTENT_BLOCKING,
                            [&](nsIWebProgressListener* listener) {
-                             listener->OnContentBlockingEvent(aWebProgress,
+                             listener->OnContentBlockingEvent(webProgress,
                                                               aRequest, aEvent);
                            });
   return NS_OK;
