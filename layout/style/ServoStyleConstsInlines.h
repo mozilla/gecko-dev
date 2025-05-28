@@ -1302,6 +1302,10 @@ DEFINE_LENGTH_PERCENTAGE_CTOR(Margin)
 DEFINE_LENGTH_PERCENTAGE_CTOR(Size)
 DEFINE_LENGTH_PERCENTAGE_CTOR(MaxSize)
 
+inline bool StylePositionArea::IsNone() const {
+  return first == StylePositionAreaKeyword::None;
+}
+
 }  // namespace mozilla
 
 #endif

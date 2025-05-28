@@ -1194,3 +1194,7 @@ renaming_overrides_prefixing = true
   inline bool HasAnchorPositioningFunction() const;
   inline explicit StyleGenericMargin(const LP &);
 """
+
+"PositionArea" = """
+  inline bool IsNone() const;
+"""
