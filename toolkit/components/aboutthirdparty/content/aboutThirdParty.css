@@ -43,7 +43,7 @@
 }
 
 .card-head > img {
-  margin-inline-start: .5em;
+  margin-inline-start: 0.5em;
 }
 
 .image-warning {
@@ -62,7 +62,6 @@
   fill: goldenrod;
 }
 
-
 .card {
   margin-bottom: 16px;
 }
@@ -77,7 +76,7 @@
 }
 
 .module-tags {
-  margin-inline: .5em;
+  margin-inline: 0.5em;
 }
 
 .module-tag {

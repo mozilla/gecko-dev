@@ -3,13 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 body {
-   height: 100%;
-   width: 100%;
-   margin: 0;
-   padding: 0;
-   overflow: hidden;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
 
-   font-family: "Segoe UI", sans-serif;
+  font-family: "Segoe UI", sans-serif;
 }
 
 /* This is an <img> rather than using background-image because IE8

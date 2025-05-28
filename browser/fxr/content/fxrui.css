@@ -4,10 +4,10 @@
 
 @namespace xul url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
 
-html, body {
+html,
+body {
   height: 100%;
 }
-
 
 body {
   display: flex;
@@ -55,7 +55,7 @@ body {
 }
 
 .icon_disabled_hide:disabled {
-  display:none;
+  display: none;
 }
 .icon_backward {
   background-image: url("assets/icon-backward.svg");
@@ -113,7 +113,7 @@ body {
   border: none;
 
   font-size: 18px;
-  font-family: 'Open Sans', sans-serif;
+  font-family: "Open Sans", sans-serif;
 
   mask-image: linear-gradient(to left, transparent, black 8ch);
 }
@@ -132,7 +132,7 @@ body {
  * fill the entire viewport
  */
 :root[inFullScreen] .navbar_container {
-  display:none;
+  display: none;
 }
 
 .browser_settings {

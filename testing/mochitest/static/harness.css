@@ -1,4 +1,4 @@
-body   {
+body {
   margin: 0;
   padding: 0;
   font-family: Verdana, Helvetica, Arial, sans-serif;
@@ -12,20 +12,23 @@ body   {
   bottom: 0;
   right: 0;
   left: 0;
-  overflow:auto;
+  overflow: auto;
 }
 
-th, td {
+th,
+td {
   font-family: Verdana, Helvetica, Arial, sans-serif;
   font-size: 11px;
-  padding-left: .2em;
-  padding-right: .2em;
+  padding-left: 0.2em;
+  padding-right: 0.2em;
   text-align: left;
   height: 15px;
   margin: 0;
 }
 
-li, li.test, li.dir {
+li,
+li.test,
+li.dir {
   padding: 0;
   line-height: 15px;
 }
@@ -53,7 +56,8 @@ div.container {
   margin: 1em;
 }
 
-a#runtests, a {
+a#runtests,
+a {
   color: #3333cc;
 }
 
@@ -65,8 +69,12 @@ small a {
   color: #000;
 }
 
-.clear { clear: both;}
-.invisible { display: none;}
+.clear {
+  clear: both;
+}
+.invisible {
+  display: none;
+}
 
 div.status {
   min-height: 170px;
@@ -87,13 +95,14 @@ div#current-test {
 #indicator {
   color: white;
   background-color: green;
-  padding: .5em;
+  padding: 0.5em;
   margin: 0;
 }
 
-#pass, #fail {
+#pass,
+#fail {
   margin: 0;
-  padding: .5em;
+  padding: 0.5em;
 }
 
 #testframe {
@@ -101,23 +110,21 @@ div#current-test {
   height: 300px;
 }
 
-
-body[singletest=true] table,
-body[singletest=true] h2,
-body[singletest=true] p,
-body[singletest=true] br,
-body[singletest=true] .clear,
-body[singletest=true] .toggle,
-body[singletest=true] #current-test,
-body[singletest=true] .status {
+body[singletest="true"] table,
+body[singletest="true"] h2,
+body[singletest="true"] p,
+body[singletest="true"] br,
+body[singletest="true"] .clear,
+body[singletest="true"] .toggle,
+body[singletest="true"] #current-test,
+body[singletest="true"] .status {
   display: none;
 }
 
-
-body[singletest=true],
-body[singletest=true] .container,
-body[singletest=true] .frameholder,
-body[singletest=true] #testframe {
+body[singletest="true"],
+body[singletest="true"] .container,
+body[singletest="true"] .frameholder,
+body[singletest="true"] #testframe {
   display: flex;
   flex: 1 1 auto;
   height: 100%;

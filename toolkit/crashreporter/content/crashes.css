@@ -25,7 +25,8 @@ th {
   text-align: start;
 }
 
-th, td {
+th,
+td {
   border-bottom: 1px solid var(--in-content-border-color);
 }
 

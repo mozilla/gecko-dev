@@ -55,7 +55,7 @@ label {
   pointer-events: none;
 }
 
-@media (max-width: 830px){
+@media (max-width: 830px) {
   #categories > .category {
     padding-inline-start: 5px;
     margin-inline-start: 0;

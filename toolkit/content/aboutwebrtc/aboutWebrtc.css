@@ -148,7 +148,7 @@ h3 > span {
 .ice-succeeded,
 .ice-failed,
 .ice-cancelled {
-  color: black
+  color: black;
 }
 
 .info-label {

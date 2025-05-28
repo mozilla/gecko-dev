@@ -5,7 +5,8 @@
 @import url("chrome://global/skin/in-content/common.css");
 
 @media not print {
-  html, body {
+  html,
+  body {
     height: 100%;
   }
 }
@@ -36,7 +37,7 @@ body {
 }
 
 tbody tr {
-  transition: background cubic-bezier(.07, .95, 0, 1) 250ms;
+  transition: background cubic-bezier(0.07, 0.95, 0, 1) 250ms;
 }
 
 tbody tr:hover {
@@ -44,7 +45,9 @@ tbody tr:hover {
   color: var(--in-content-item-hover-text);
 }
 
-th, td, table {
+th,
+td,
+table {
   border-collapse: collapse;
   border: none;
   text-align: start;
@@ -94,8 +97,8 @@ tbody:nth-child(4n + 1) {
   height: 14px;
   vertical-align: middle;
   width: 14px;
-  margin-top: -.125rem;
-  margin-left: .5rem;
+  margin-top: -0.125rem;
+  margin-left: 0.5rem;
 }
 
 .collapsible {

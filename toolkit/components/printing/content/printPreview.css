@@ -19,7 +19,7 @@
   align-items: center;
   justify-content: center;
 
-  .previewStack:not([rendering=true]) > & {
+  .previewStack:not([rendering="true"]) > & {
     visibility: hidden;
   }
 }
@@ -33,7 +33,7 @@
     visibility: inherit;
   }
 
-  .previewStack[rendering=true] > & {
+  .previewStack[rendering="true"] > & {
     opacity: 0;
   }
 }
@@ -50,7 +50,7 @@ printpreview-pagination:focus-within,
 .previewStack:hover printpreview-pagination {
   opacity: 1;
 }
-.previewStack[rendering=true] printpreview-pagination {
+.previewStack[rendering="true"] printpreview-pagination {
   opacity: 0;
 }
 
@@ -62,7 +62,7 @@ printpreview-pagination:focus-within,
   .printPreviewBrowser {
     transition: opacity 60ms;
 
-    .previewStack[rendering=true] > & {
+    .previewStack[rendering="true"] > & {
       transition: opacity 1ms 250ms;
     }
   }

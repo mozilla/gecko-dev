@@ -13,7 +13,9 @@
   display: block;
 }
 
-.test_ok, .test_not_ok, .test_todo {
+.test_ok,
+.test_not_ok,
+.test_todo {
   border-bottom-width: 2px;
   border-bottom-style: solid;
   border-bottom-color: black;

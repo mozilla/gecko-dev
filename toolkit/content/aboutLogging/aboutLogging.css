@@ -28,7 +28,9 @@
   border-radius: var(--border-radius-small);
   padding: var(--space-medium);
   opacity: 0;
-  transition: opacity 0.5s, visibility 0.5s;
+  transition:
+    opacity 0.5s,
+    visibility 0.5s;
   margin-left: auto;
   &.show {
     visibility: visible;
@@ -80,7 +82,7 @@ label {
   line-height: 1.8em;
 }
 
-input[type=text] {
+input[type="text"] {
   box-sizing: border-box;
   width: 100%;
   font-family: monospace;
@@ -93,7 +95,7 @@ input[type=text] {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: .5em;
+  gap: 0.5em;
 }
 
 .button-row > button:first-of-type {
@@ -122,7 +124,7 @@ input[type=text] {
 
 .button-with-icon {
   display: flex;
-  gap: .5em;
+  gap: 0.5em;
 
   /* Make sure that the icon changes color in dark mode. */
   -moz-context-properties: fill;

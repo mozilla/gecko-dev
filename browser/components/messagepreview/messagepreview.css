@@ -13,8 +13,7 @@ body {
 }
 
 body {
-  background: url(chrome://browser/content/messagepreview/limelight.svg)
-    center/contain no-repeat;
+  background: url(chrome://browser/content/messagepreview/limelight.svg) center/contain no-repeat;
   -moz-context-properties: fill, fill-opacity;
   fill: var(--icon-color);
   fill-opacity: 0.2;

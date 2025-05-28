@@ -58,7 +58,7 @@ select#language-to {
 .language-swap-icon {
   width: 20px;
   height: 20px;
-  background-image: url('chrome://global/skin/icons/arrows-updown.svg');
+  background-image: url("chrome://global/skin/icons/arrows-updown.svg");
   background-size: contain;
   margin: 0 auto;
   -moz-context-properties: fill;
@@ -135,7 +135,7 @@ select.about-translations-select:dir(rtl) {
   width: 16px;
   height: 16px;
   margin: 10px;
-  background-image: url('chrome://global/skin/icons/info.svg');
+  background-image: url("chrome://global/skin/icons/info.svg");
   -moz-context-properties: fill;
   fill: currentColor;
 }

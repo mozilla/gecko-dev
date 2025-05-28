@@ -46,7 +46,8 @@ tr {
   width: 100%;
 }
 
-.cpu, .memory {
+.cpu,
+.memory {
   text-align: end;
 }
 
@@ -61,16 +62,26 @@ th {
 }
 th:not(:first-child) {
   border-inline-start: 1px solid;
-  border-image: linear-gradient(transparent 0%, transparent 20%, var(--in-content-box-border-color) 20%, var(--in-content-box-border-color) 80%, transparent 80%, transparent 100%) 1 1;
+  border-image: linear-gradient(
+      transparent 0%,
+      transparent 20%,
+      var(--in-content-box-border-color) 20%,
+      var(--in-content-box-border-color) 80%,
+      transparent 80%,
+      transparent 100%
+    )
+    1 1;
 }
-th, td {
+th,
+td {
   padding: 5px 10px;
   min-height: 16px;
   max-height: 2em;
   overflow: hidden;
   white-space: nowrap;
 }
-td.type, td.favicon {
+td.type,
+td.favicon {
   background-repeat: no-repeat;
   background-origin: border-box;
   background-size: 16px 16px;
@@ -79,7 +90,8 @@ td.type, td.favicon {
   -moz-context-properties: fill;
   fill: currentColor;
 }
-td.type:dir(rtl), td.favicon:dir(rtl) {
+td.type:dir(rtl),
+td.favicon:dir(rtl) {
   background-position-x: right 11px;
 }
 td:first-child {
@@ -254,7 +266,7 @@ tr.thread {
   padding: 2px 7px;
   /* The -5px is -3 to partially undo the td padding, but keep the distance from the CPU meter. */
   margin: -2px -5px;
-  opacity: 0;      /* Start out as transparent */
+  opacity: 0; /* Start out as transparent */
   -moz-context-properties: fill;
   fill: currentColor;
 }

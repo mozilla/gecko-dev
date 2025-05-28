@@ -6,7 +6,8 @@ table.listing {
   width: 100%;
 }
 
-table th, table td {
+table th,
+table td {
   padding: 5px;
   border: inset 2px black;
   margin: 0;
@@ -24,7 +25,8 @@ iframe {
   height: 900px;
 }
 
-#player, #raw {
+#player,
+#raw {
   width: 800px;
   margin-inline: auto;
 }
