@@ -53,6 +53,8 @@ callback interface TestCallbackInterface {
   undefined passUint32Array(Uint32Array arg);
   undefined passUint8ClampedArray(Uint8ClampedArray arg);
   undefined passFloat32Array(Float32Array arg);
+  undefined passBigInt64Array(BigUint64Array arg);
+  undefined passBigUint64Array(BigUint64Array arg);
   undefined passFloat64Array(Float64Array arg);
   undefined passSequenceOfArrayBuffers(sequence<ArrayBuffer> arg);
   undefined passSequenceOfNullableArrayBuffers(sequence<ArrayBuffer?> arg);
@@ -60,6 +62,8 @@ callback interface TestCallbackInterface {
   undefined passVariadicNullableTypedArray(Float32Array?... arg);
   Uint8Array receiveUint8Array();
   attribute Uint8Array uint8ArrayAttr;
+  BigUint64Array receiveBigUint64Array();
+  attribute BigInt64Array int64ArrayAttr;
   Promise<undefined> receivePromise();
 };
 
