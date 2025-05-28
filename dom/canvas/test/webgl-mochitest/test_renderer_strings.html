@@ -150,13 +150,13 @@ async function testPrefBehaviorForExampleRtx3070() {
   ]});
 
   ext = gl.getExtension('WEBGL_debug_renderer_info');
-  ok(!ext,
-     'With RFP: Should not have access to \'WEBGL_debug_renderer_info\'.');
 
   {
     const EXPECTED = {
       renderer: 'Mozilla',
       vendor: 'Mozilla',
+      unmasked_renderer: 'Mozilla',
+      unmasked_vendor: 'Mozilla',
     };
     const was = getStrings();
     expectJsonEqual(was, EXPECTED, 'RFP behavior');
