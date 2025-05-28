@@ -77,9 +77,9 @@ OrtSessionOptions* ToOrtSessionOption(
 #define SET_BOOL_ON_SESSION(x)                                       \
   do {                                                               \
     if (aOptions.mEnable##x) {                                       \
-      status = sAPI->Enable##x(sessionOptions);                     \
+      status = sAPI->Enable##x(sessionOptions);                      \
     } else {                                                         \
-      status = sAPI->Disable##x(sessionOptions);                    \
+      status = sAPI->Disable##x(sessionOptions);                     \
     }                                                                \
     if (status) {                                                    \
       LOGE("Setter {} (val: {}) error: {}", #x, aOptions.mEnable##x, \
@@ -95,7 +95,7 @@ OrtSessionOptions* ToOrtSessionOption(
 
 #define CALL_API(x, ...)                                           \
   do {                                                             \
-    status = sAPI->x(sessionOptions, __VA_ARGS__);                \
+    status = sAPI->x(sessionOptions, __VA_ARGS__);                 \
     if (status) {                                                  \
       LOGD("SetSessionExecutionMode error: {}", status.Message()); \
       return nullptr;                                              \
@@ -116,12 +116,12 @@ OrtSessionOptions* ToOrtSessionOption(
   CALL_API(SetSessionLogSeverityLevel, aOptions.mLogSeverityLevel);
   CALL_API(SetSessionLogVerbosityLevel, aOptions.mLogVerbosityLevel);
   PathString path;
-  #ifdef XP_WIN
+#ifdef XP_WIN
   path = NS_ConvertUTF8toUTF16(aOptions.mOptimizedModelFilePath.get());
 
-  #else
+#else
   path = aOptions.mOptimizedModelFilePath.get();
-  #endif
+#endif
   CALL_API(SetOptimizedModelFilePath, path.get());
   GraphOptimizationLevel level = ORT_ENABLE_BASIC;
   LOGD("Graph optimization level: {}", aOptions.mGraphOptimizationLevel);
@@ -438,8 +438,7 @@ already_AddRefed<Promise> InferenceSession::Run(
     for (uint32_t i = 0; i < val->DimsSize(); i++) {
       dims64.AppendElement(val->Dims()[i]);
     }
-    LOGD("{}: {}", input.mKey.get(),
-         val->ToString().get());
+    LOGD("{}: {}", input.mKey.get(), val->ToString().get());
     AUTO_PROFILER_MARKER_FMT("CreateTensorWithDataAsOrtValue", ML_INFERENCE, {},
                              "{}", input.mKey.get());
     status = sAPI->CreateTensorWithDataAsOrtValue(
@@ -530,8 +529,7 @@ already_AddRefed<Promise> InferenceSession::Run(
     MOZ_ASSERT(type == ONNX_TYPE_TENSOR);
 
     ONNXTensorElementDataType outputTensorType;
-    status =
-        sAPI->GetTensorElementType(typeAndShapeInfo, &outputTensorType);
+    status = sAPI->GetTensorElementType(typeAndShapeInfo, &outputTensorType);
     if (status) {
       LOGD("GetTensorElementType failed: {}", status.Message());
       p->MaybeReject(NS_ERROR_UNEXPECTED);
@@ -548,8 +546,7 @@ already_AddRefed<Promise> InferenceSession::Run(
 
     AutoTArray<int64_t, 16> dims;
     dims.SetLength(dimCount);
-    status =
-        sAPI->GetDimensions(typeAndShapeInfo, dims.Elements(), dimCount);
+    status = sAPI->GetDimensions(typeAndShapeInfo, dims.Elements(), dimCount);
 
     size_t outputSize = 1;
     for (size_t d = 0; d < dimCount; ++d) {
@@ -558,8 +555,8 @@ already_AddRefed<Promise> InferenceSession::Run(
 
     // TODO skip this copy by using CreateTensorWithDataAsOrtValue
     nsTArray<uint8_t> output;
-    output.AppendElements(
-        outputData, outputSize * Tensor::DataTypeSize(outputTensorType));
+    output.AppendElements(outputData,
+                          outputSize * Tensor::DataTypeSize(outputTensorType));
     GlobalObject global(mCtx, GetParentObject()->GetGlobalJSObject());
     auto outputTensor = MakeRefPtr<Tensor>(global, outputTensorType,
                                            std::move(output), std::move(dims));
