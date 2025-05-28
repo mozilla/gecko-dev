@@ -62,26 +62,17 @@
   }
 
   &:indeterminate {
-    --optin-animation-base-color-1: light-dark(
-      var(--color-blue-50),
-      var(--color-blue-30)
-    );
-    --optin-animation-base-color-2: color-mix(
-      in srgb,
-      var(--optin-animation-base-color-1) 25%,
-      transparent
-    );
+    --optin-animation-base-color-1: light-dark(var(--color-blue-50), var(--color-blue-30));
+    --optin-animation-base-color-2: color-mix(in srgb, var(--optin-animation-base-color-1) 25%, transparent);
 
     animation: optin-loading-bar-animation 3s infinite;
     outline-color: var(--optin-animation-base-color-1);
     border-color: var(--optin-animation-base-color-2);
     background: linear-gradient(
       100deg,
-      color-mix(in srgb, var(--optin-animation-base-color-1), transparent 25%)
-        30%,
+      color-mix(in srgb, var(--optin-animation-base-color-1), transparent 25%) 30%,
       var(--optin-animation-base-color-2) 50%,
-      color-mix(in srgb, var(--optin-animation-base-color-1), transparent 25%)
-        70%
+      color-mix(in srgb, var(--optin-animation-base-color-1), transparent 25%) 70%
     );
 
     background-size: 200% 100%;

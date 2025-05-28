@@ -5,43 +5,43 @@
  */
 
 .og-card {
-    --og-main-font-size: 1.4rem;
-    background-color: light-dark(rgba(0,0,0,0.05), rgba(255,255,255,0.05));
-    font-size: 1.2em;
+  --og-main-font-size: 1.4rem;
+  background-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
+  font-size: 1.2em;
 }
 
 .og-card-img {
-    border-radius: var(--border-radius-small);
-    height: 100px;
-    object-fit: cover;
-    width: 100%;
+  border-radius: var(--border-radius-small);
+  height: 100px;
+  object-fit: cover;
+  width: 100%;
 }
 
 .og-card-content {
-    background-color: var(--panel-background);
-    border-bottom: 1px solid var(--panel-border-color);
-    color: var(--text-color-deemphasized);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-large);
-    padding: var(--og-padding);
+  background-color: var(--panel-background);
+  border-bottom: 1px solid var(--panel-border-color);
+  color: var(--text-color-deemphasized);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-large);
+  padding: var(--og-padding);
 }
 
 .og-card-title {
-    color: var(--panel-color);
-    font-size: var(--og-main-font-size);
-    font-weight: var(--font-weight-bold);
-    margin: 0;
-    overflow: hidden;
-    -webkit-line-clamp: 3;
+  color: var(--panel-color);
+  font-size: var(--og-main-font-size);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
 }
 
 .og-card-description {
-    color: var(--panel-color);
-    font-size: var(--og-main-font-size);
-    margin: 0;
-    overflow: hidden;
-    -webkit-line-clamp: 3;
+  color: var(--panel-color);
+  font-size: var(--og-main-font-size);
+  margin: 0;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
 }
 
 .og-error-message {
@@ -54,40 +54,40 @@
   padding: var(--og-padding);
 
   .og-error-message-container {
-      font-size: var(--og-main-font-size);
-      margin: 0;
+    font-size: var(--og-main-font-size);
+    margin: 0;
 
-      .og-error-message {
-          color: var(--text-color-deemphasized);
-      }
+    .og-error-message {
+      color: var(--text-color-deemphasized);
+    }
 
-      a {
-          color: var(--text-color-deemphasized);
-      }
+    a {
+      color: var(--text-color-deemphasized);
+    }
   }
 
   .keypoints-header {
-      display: flex;
-      font-size: var(--og-main-font-size);
-      font-weight: var(--font-weight-bold);
-      gap: var(--space-xs);
-      margin: 0;
-      user-select: none;
-      /* TODO: this could have been handled with just ::before with { content: '', icon stuff }*/
-      .chevron-icon {
-          background-image: url("chrome://global/skin/icons/arrow-down.svg");
-          background-position: center;
-          background-repeat: no-repeat;
-          background-size: contain;
-          display: inline-block;
-          fill: currentColor;
-          height: 16px;
-          margin-inline-end: 8px;
-          -moz-context-properties: fill;
-          transform: rotateZ(0deg);
-          transition: transform 0.3s ease;
-          width: 16px;
-      }
+    display: flex;
+    font-size: var(--og-main-font-size);
+    font-weight: var(--font-weight-bold);
+    gap: var(--space-xs);
+    margin: 0;
+    user-select: none;
+    /* TODO: this could have been handled with just ::before with { content: '', icon stuff }*/
+    .chevron-icon {
+      background-image: url("chrome://global/skin/icons/arrow-down.svg");
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: contain;
+      display: inline-block;
+      fill: currentColor;
+      height: 16px;
+      margin-inline-end: 8px;
+      -moz-context-properties: fill;
+      transform: rotateZ(0deg);
+      transition: transform 0.3s ease;
+      width: 16px;
+    }
   }
 
   .keypoints-header:has(+ .keypoints-content:not(.hidden)) .chevron-icon {
@@ -95,64 +95,63 @@
   }
 
   img.icon {
-      fill: currentColor;
-      height: var(--icon-size-default);
-      margin-inline-start: var(--space-xlarge);
-      -moz-context-properties: fill;
-      pointer-events: none;
-      width: var(--icon-size-default);
+    fill: currentColor;
+    height: var(--icon-size-default);
+    margin-inline-start: var(--space-xlarge);
+    -moz-context-properties: fill;
+    pointer-events: none;
+    width: var(--icon-size-default);
   }
 
   .keypoints-content {
-      max-height: 1000px;
+    max-height: 1000px;
+    overflow: hidden;
+    padding-inline-start: 0.05rem; /*  custom adjustment to align with chevron icon */
+    transition: max-height 0.3s ease;
+
+    &.hidden {
+      max-height: 0;
       overflow: hidden;
-      padding-inline-start: 0.05rem; /*  custom adjustment to align with chevron icon */
-      transition: max-height 0.3s ease;
+    }
 
-      &.hidden {
-          max-height: 0;
-          overflow: hidden;
+    > ul {
+      font-size: var(--og-main-font-size);
+      line-height: 1.15; /* Design requires 18px line-height */
+      list-style-type: square;
+      padding-inline-start: var(--space-xlarge);
+    }
+
+    li {
+      margin-block: var(--space-medium);
+      padding-inline-start: 5px;
+      &::marker {
+        color: var(--border-color-deemphasized);
       }
+    }
 
+    .visit-link-container {
+      align-items: center;
+      display: flex;
+      justify-content: flex-end;
+      margin-top: var(--space-xlarge);
 
-      > ul {
-          font-size: var(--og-main-font-size);
-          line-height: 1.15;  /* Design requires 18px line-height */
-          list-style-type: square;
-          padding-inline-start: var(--space-xlarge);
+      .visit-link {
+        align-items: center;
+        display: flex;
+        font-size: var(--og-main-font-size);
+        font-weight: var(--font-weight-bold);
+        gap: var(--space-xs);
       }
+    }
 
-      li {
-          margin-block: var(--space-medium);
-          padding-inline-start: 5px;
-          &::marker {
-              color: var(--border-color-deemphasized);
-          }
-      }
+    > hr {
+      border-color: var(--border-color-card);
+      margin-block: var(--space-xlarge);
+    }
 
-      .visit-link-container {
-          align-items: center;
-          display: flex;
-          justify-content: flex-end;
-          margin-top: var(--space-xlarge);
-
-          .visit-link {
-              align-items: center;
-              display: flex;
-              font-size: var(--og-main-font-size);
-              font-weight: var(--font-weight-bold);
-              gap: var(--space-xs);
-          }
-      }
-
-      > hr {
-          border-color: var(--border-color-card);
-          margin-block: var(--space-xlarge);
-      }
-
-      > p {
-          margin-block: var(--space-medium) 0;
-      }
+    > p {
+      margin-block: var(--space-medium) 0;
+    }
   }
 }
 
@@ -191,7 +190,7 @@
         height: var(--og-main-font-size);
         margin-bottom: 4px;
         width: 100%;
-         /* Add non-impactful references to the CSS variables to satisfy the test browser_parsable_css */
+        /* Add non-impactful references to the CSS variables to satisfy the test browser_parsable_css */
         outline-color: var(--skeleton-loader-background-color);
         border-color: var(--skeleton-loader-motion-element-color);
       }

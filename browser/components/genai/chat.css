@@ -76,7 +76,7 @@ browser {
 }
 
 #multi-stage-message-root {
-  background-color: rgba(0, 0, 0, .5);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   inset: 0;
@@ -235,16 +235,16 @@ browser {
       margin-block: var(--space-small);
       padding-inline-start: 24px;
 
-      &[data-l10n-id*=generate] {
+      &[data-l10n-id*="generate"] {
         background-image: url(chrome://global/skin/icons/edit-outline.svg);
       }
-      &[data-l10n-id*=analyze] {
+      &[data-l10n-id*="analyze"] {
         background-image: url(chrome://global/skin/icons/eye.svg);
       }
-      &[data-l10n-id*=switch] {
+      &[data-l10n-id*="switch"] {
         background-image: url(chrome://global/skin/icons/arrows-updown.svg);
       }
-      &[data-l10n-id*=price] {
+      &[data-l10n-id*="price"] {
         background-image: url(chrome://browser/skin/price.svg);
       }
     }
@@ -252,7 +252,7 @@ browser {
 
   .link-paragraph {
     color: var(--text-color-deemphasized);
-    font-size: .8em;
+    font-size: 0.8em;
   }
 
   .inline-image {
