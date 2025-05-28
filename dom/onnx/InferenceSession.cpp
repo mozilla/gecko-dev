@@ -376,6 +376,7 @@ void InferenceSession::Init(const RefPtr<Promise>& aPromise,
   }
   aUriOrBuffer.GetAsUint8Array().ProcessFixedData(
       [&](const Span<uint8_t>& aData) {
+        AUTO_PROFILER_MARKER_UNTYPED("CreateSessionFromArray", ML_SETUP, {});
         status = sAPI->CreateSessionFromArray(
             sEnv, aData.data(), aData.Length(), mOptions, &session);
       });
@@ -439,6 +440,8 @@ already_AddRefed<Promise> InferenceSession::Run(
     }
     LOGD("{}: {}", input.mKey.get(),
          val->ToString().get());
+    AUTO_PROFILER_MARKER_FMT("CreateTensorWithDataAsOrtValue", ML_INFERENCE, {},
+                             "{}", input.mKey.get());
     status = sAPI->CreateTensorWithDataAsOrtValue(
         memoryInfo, val->Data(), val->Size(), dims64.Elements(),
         val->DimsSize(), val->Type(), &inputOrt);
@@ -473,11 +476,14 @@ already_AddRefed<Promise> InferenceSession::Run(
   }
   OrtValue** ptr = outputs.Elements();
 
-  status = sAPI->Run(mSession,
-                      nullptr,  // Run options
-                      inputNamesPtrs.Elements(), inputValues.Elements(),
-                      inputNamesPtrs.Length(), outputNamesPtrs.Elements(),
-                      outputNamesPtrs.Length(), ptr);
+  {
+    AUTO_PROFILER_MARKER_UNTYPED("Ort::Run", ML_INFERENCE, {});
+    status = sAPI->Run(mSession,
+                       nullptr,  // Run options
+                       inputNamesPtrs.Elements(), inputValues.Elements(),
+                       inputNamesPtrs.Length(), outputNamesPtrs.Elements(),
+                       outputNamesPtrs.Length(), ptr);
+  }
   if (status) {
     LOGD("Session Run failed: {}", status.Message());
     p->MaybeReject(NS_ERROR_UNEXPECTED);
@@ -486,6 +492,7 @@ already_AddRefed<Promise> InferenceSession::Run(
 
   Record<nsCString, OwningNonNull<Tensor>> rv;
   for (size_t i = 0; i < outputs.Length(); i++) {
+    TimeStamp start = TimeStamp::Now();
     // outputData has the same lifetime as output[i]. For now, the actual data
     // is copied into the Tensor object below. This copy will be removed in the
     // future.
@@ -556,6 +563,10 @@ already_AddRefed<Promise> InferenceSession::Run(
     GlobalObject global(mCtx, GetParentObject()->GetGlobalJSObject());
     auto outputTensor = MakeRefPtr<Tensor>(global, outputTensorType,
                                            std::move(output), std::move(dims));
+    AUTO_PROFILER_MARKER_FMT(
+        "Output tensor", ML_INFERENCE,
+        MarkerOptions(MarkerTiming::IntervalUntilNowFrom(start)), "{}: {}",
+        outputNames[i], outputTensor->ToString().get());
 
     sAPI->ReleaseTensorTypeAndShapeInfo(typeAndShapeInfo);
 
