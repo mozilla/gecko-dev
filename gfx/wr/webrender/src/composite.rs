@@ -697,10 +697,10 @@ impl CompositeState {
                 (
                     clip.rect.cast_unit(),
                     ClipRadius {
-                        top_left: clip.radius.top_left.width,
-                        top_right: clip.radius.top_right.width,
-                        bottom_left: clip.radius.bottom_left.width,
-                        bottom_right: clip.radius.bottom_right.width,
+                        top_left: clip.radius.top_left.width.round() as i32,
+                        top_right: clip.radius.top_right.width.round() as i32,
+                        bottom_left: clip.radius.bottom_left.width.round() as i32,
+                        bottom_right: clip.radius.bottom_right.width.round() as i32,
                     }
                 )
             }
@@ -1353,14 +1353,14 @@ pub type CompositorSurfaceTransform = ScaleOffset;
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub struct ClipRadius {
-    top_left: f32,
-    top_right: f32,
-    bottom_left: f32,
-    bottom_right: f32,
+    pub top_left: i32,
+    pub top_right: i32,
+    pub bottom_left: i32,
+    pub bottom_right: i32,
 }
 
 impl ClipRadius {
-    pub const EMPTY: ClipRadius = ClipRadius { top_left: 0.0, top_right: 0.0, bottom_left: 0.0, bottom_right: 0.0 };
+    pub const EMPTY: ClipRadius = ClipRadius { top_left: 0, top_right: 0, bottom_left: 0, bottom_right: 0 };
 }
 
 /// Defines an interface to a native (OS level) compositor. If supplied
