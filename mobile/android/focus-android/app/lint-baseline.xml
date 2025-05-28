@@ -981,61 +981,6 @@
     </issue>
 
     <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="            primaryImage = ContextCompat.getDrawable(context, R.drawable.mozac_ic_back_24)!!,"
-        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/browser/integration/NavigationButtonsIntegration.kt"
-            line="48"
-            column="28"/>
-    </issue>
-
-    <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="            primaryImage = ContextCompat.getDrawable(context, R.drawable.mozac_ic_forward_24)!!,"
-        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/browser/integration/NavigationButtonsIntegration.kt"
-            line="65"
-            column="28"/>
-    </issue>
-
-    <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="            primaryImage = ContextCompat.getDrawable(context, R.drawable.mozac_ic_stop)!!,"
-        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/browser/integration/NavigationButtonsIntegration.kt"
-            line="82"
-            column="28"/>
-    </issue>
-
-    <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="            secondaryImage = ContextCompat.getDrawable(context, R.drawable.mozac_ic_arrow_clockwise_24)!!,"
-        errorLine2="                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/browser/integration/NavigationButtonsIntegration.kt"
-            line="83"
-            column="30"/>
-    </issue>
-
-    <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="            ContextCompat.getDrawable(binding.root.context, R.drawable.ic_link)?.intrinsicWidth ?: 0"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/focus/session/ui/TabViewHolder.kt"
-            line="100"
-            column="13"/>
-    </issue>
-
-    <issue
         id="VectorRaster"
         message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
         errorLine1="    android:width=&quot;640dp&quot;"

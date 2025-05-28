@@ -5,7 +5,7 @@
 package org.mozilla.focus.session.ui
 
 import androidx.annotation.DrawableRes
-import androidx.core.content.ContextCompat
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.browser.state.state.TabSessionState
@@ -97,7 +97,7 @@ class TabViewHolder(
         binding.sessionItem.setBackgroundResource(drawable)
 
         val drawableWidth =
-            ContextCompat.getDrawable(binding.root.context, R.drawable.ic_link)?.intrinsicWidth ?: 0
+            AppCompatResources.getDrawable(binding.root.context, R.drawable.ic_link)?.intrinsicWidth ?: 0
 
         binding.sessionTitle.apply {
             text = binding.root.context.getString(R.string.tabs_tray_action_erase_other)
