@@ -108,7 +108,7 @@
 }
 
 .fxview-tab-row-button::part(button) {
-  color: var(--fxview-text-primary-color)
+  color: var(--fxview-text-primary-color);
 }
 
 .fxview-tab-row-button[muted="true"]::part(button) {

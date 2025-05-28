@@ -113,8 +113,8 @@
   display: none;
 }
 
-::slotted([slot=header]),
-::slotted([slot=secondary-header]) {
+::slotted([slot="header"]),
+::slotted([slot="secondary-header"]) {
   align-self: center;
   margin: 0;
   font-size: 1.13em;
@@ -125,12 +125,12 @@
   white-space: nowrap;
 }
 
-::slotted([slot=header]) {
+::slotted([slot="header"]) {
   flex: 1;
   width: 0;
 }
 
-::slotted([slot=secondary-header]) {
+::slotted([slot="secondary-header"]) {
   padding-inline-end: 1em;
 }
 
@@ -141,7 +141,7 @@
   cursor: pointer;
 }
 
-::slotted([slot=footer]:not([hidden])) {
+::slotted([slot="footer"]:not([hidden])) {
   text-decoration: underline;
   display: inline-block;
   outline-offset: 2px;
