@@ -141,7 +141,7 @@ interface nsIFaviconService : nsISupports
                             in unsigned short aPreferredWidth);
 
   /**
-   * Try to copy cached favicons from a page to another one.
+   * Copies cached favicons from a page to another one.
    *
    * @param aFromPageURI
    *        URI of the originating page.
@@ -150,15 +150,15 @@ interface nsIFaviconService : nsISupports
    * @param aFaviconLoadType
    *        Set to FAVICON_LOAD_PRIVATE if the copy is started from a private
    *        browsing window.  Set to FAVICON_LOAD_NON_PRIVATE otherwise.
-   * @return Promise that is resolved/rejected when finishing the process.
-   *         If succeeded to copy, the promise resolved with true. Otherwise
-   *         false. Will reject if the paramter value is illeagal or DB access
-   *         fails etc.
+   * @param [optional] aCallback
+   *        Once we're done copying the favicon, we invoke this callback.
+   *        If a copy has been done, the callback will report one of the
+   *        favicons uri as aFaviconURI, otherwise all the params will be null.
    */
-  [implicit_jscontext, must_use]
-  Promise tryCopyFavicons(in nsIURI aFromPageURI,
-                          in nsIURI aToPageURI,
-                          in unsigned long aFaviconLoadType);
+  void copyFavicons(in nsIURI aFromPageURI,
+                    in nsIURI aToPageURI,
+                    in unsigned long aFaviconLoadType,
+                    [optional] in nsIFaviconDataCallback aCallback);
 };
 
 [scriptable, function, uuid(c85e5c82-b70f-4621-9528-beb2aa47fb44)]

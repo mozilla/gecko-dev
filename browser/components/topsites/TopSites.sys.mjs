@@ -1227,7 +1227,7 @@ export class FaviconProvider {
       const iconInfo = await this.getFaviconInfo(redirectedUri);
       if (iconInfo?.faviconSize >= MIN_FAVICON_SIZE) {
         try {
-          await lazy.PlacesUtils.favicons.tryCopyFavicons(
+          lazy.PlacesUtils.favicons.copyFavicons(
             redirectedUri,
             Services.io.newURI(url),
             lazy.PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE

@@ -95,24 +95,6 @@ class nsFaviconService final : public nsIFaviconService {
       nsIURI* aPageURI, uint16_t aPreferredWidth = 0);
 
   /**
-   * Try to copy the favicons associated to the aFromURI to aToURI.
-   *
-   * @param aFromPageURI
-   *        URI of the originating page.
-   * @param aToPageURI
-   *        URI of the destination page.
-   * @param aFaviconLoadType
-   *        Set to FAVICON_LOAD_PRIVATE if the copy is started from a private
-   *        browsing window.  Set to FAVICON_LOAD_NON_PRIVATE otherwise.
-   *
-   * @return MozPromise<bool, nsresult>
-   *         If it could copy, resolved with true.
-   */
-  RefPtr<mozilla::places::BoolPromise> AsyncTryCopyFavicons(
-      nsCOMPtr<nsIURI> aFromPageURI, nsCOMPtr<nsIURI> aToPageURI,
-      uint32_t aFaviconLoadType);
-
-  /**
    * Clears the image cache for the given image spec.
    *
    * @param aImageURI
