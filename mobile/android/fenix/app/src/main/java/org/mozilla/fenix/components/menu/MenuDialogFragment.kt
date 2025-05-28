@@ -466,6 +466,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                     isExtensionsExpanded = isExtensionsExpanded,
+                                    isBookmarked = isBookmarked,
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
                                     isTranslationSupported = isTranslationSupported,
@@ -493,6 +494,12 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         view?.slideDown {
                                             store.dispatch(MenuAction.Navigate.Settings)
                                         }
+                                    },
+                                    onBookmarkPageMenuClick = {
+                                        store.dispatch(MenuAction.AddBookmark)
+                                    },
+                                    onEditBookmarkButtonClick = {
+                                        store.dispatch(MenuAction.Navigate.EditBookmark)
                                     },
                                     onSwitchToDesktopSiteMenuClick = {
                                         if (isDesktopMode) {
@@ -717,17 +724,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     context.getString(R.string.browser_save_menu_handlebar_content_description)
 
                                 SaveSubmenu(
-                                    isBookmarked = isBookmarked,
                                     isPinned = isPinned,
                                     isInstallable = webAppUseCases.isInstallable(),
                                     onBackButtonClick = {
                                         contentState = Route.MainMenu
-                                    },
-                                    onBookmarkPageMenuClick = {
-                                        store.dispatch(MenuAction.AddBookmark)
-                                    },
-                                    onEditBookmarkButtonClick = {
-                                        store.dispatch(MenuAction.Navigate.EditBookmark)
                                     },
                                     onShortcutsMenuClick = {
                                         if (!isPinned) {

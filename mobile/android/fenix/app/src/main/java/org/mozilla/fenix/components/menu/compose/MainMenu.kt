@@ -72,6 +72,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
  * @param isExtensionsExpanded Whether or not the extensions menu is expanded.
+ * @param isBookmarked Whether or not the current tab is bookmarked.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not translation is supported.
@@ -83,6 +84,8 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param webExtensionMenuCount The number of web extensions.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
+ * @param onBookmarkPageMenuClick Invoked when the user clicks on the bookmark page menu item.
+ * @param onEditBookmarkButtonClick Invoked when the user clicks on the edit bookmark button.
  * @param onSwitchToDesktopSiteMenuClick Invoked when the user clicks on the switch to desktop site
  * menu toggle.
  * @param onFindInPageMenuClick Invoked when the user clicks on the find in page menu item.
@@ -111,6 +114,7 @@ fun MainMenu(
     accountState: AccountState,
     showQuitMenu: Boolean,
     isExtensionsExpanded: Boolean,
+    isBookmarked: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
@@ -122,6 +126,8 @@ fun MainMenu(
     webExtensionMenuCount: Int,
     onMozillaAccountButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
+    onBookmarkPageMenuClick: () -> Unit,
+    onEditBookmarkButtonClick: () -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -172,6 +178,7 @@ fun MainMenu(
 
         if (accessPoint == MenuAccessPoint.Browser) {
             ToolsAndActionsMenuGroup(
+                isBookmarked = isBookmarked,
                 isDesktopMode = isDesktopMode,
                 isPdf = isPdf,
                 isTranslationSupported = isTranslationSupported,
@@ -182,6 +189,8 @@ fun MainMenu(
                 webExtensionMenuCount = webExtensionMenuCount,
                 allWebExtensionsDisabled = allWebExtensionsDisabled,
                 onExtensionsMenuClick = onExtensionsMenuClick,
+                onBookmarkPageMenuClick = onBookmarkPageMenuClick,
+                onEditBookmarkButtonClick = onEditBookmarkButtonClick,
                 onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
                 onFindInPageMenuClick = onFindInPageMenuClick,
                 onToolsMenuClick = onToolsMenuClick,
@@ -352,6 +361,7 @@ private fun QuitMenuGroup(
 @Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun ToolsAndActionsMenuGroup(
+    isBookmarked: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
     isTranslationSupported: Boolean,
@@ -362,6 +372,8 @@ private fun ToolsAndActionsMenuGroup(
     webExtensionMenuCount: Int,
     allWebExtensionsDisabled: Boolean,
     onExtensionsMenuClick: () -> Unit,
+    onBookmarkPageMenuClick: () -> Unit,
+    onEditBookmarkButtonClick: () -> Unit,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
@@ -383,12 +395,27 @@ private fun ToolsAndActionsMenuGroup(
             menuItemState = if (isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED
         }
 
-        MenuItem(
-            label = stringResource(id = labelId),
-            beforeIconPainter = painterResource(id = iconId),
-            state = menuItemState,
-            onClick = onSwitchToDesktopSiteMenuClick,
-        )
+        if (isBookmarked) {
+                MenuItem(
+                    label = stringResource(id = R.string.browser_menu_edit_bookmark),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_bookmark_fill_24),
+                    state = MenuItemState.ACTIVE,
+                    onClick = onEditBookmarkButtonClick,
+                )
+            } else {
+                MenuItem(
+                    label = stringResource(id = R.string.browser_menu_bookmark_this_page_2),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_bookmark_24),
+                    onClick = onBookmarkPageMenuClick,
+                )
+            }
+
+            MenuItem(
+                label = stringResource(id = labelId),
+                beforeIconPainter = painterResource(id = iconId),
+                state = menuItemState,
+                onClick = onSwitchToDesktopSiteMenuClick,
+            )
 
         MenuItem(
             label = stringResource(id = R.string.browser_menu_find_in_page_2),
@@ -718,6 +745,7 @@ private fun MenuDialogPreview() {
                 accessPoint = MenuAccessPoint.Browser,
                 account = null,
                 accountState = NotAuthenticated,
+                isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
@@ -731,6 +759,8 @@ private fun MenuDialogPreview() {
                 allWebExtensionsDisabled = false,
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
+                onBookmarkPageMenuClick = {},
+                onEditBookmarkButtonClick = {},
                 onSwitchToDesktopSiteMenuClick = {},
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},
@@ -765,6 +795,7 @@ private fun MenuDialogPrivatePreview() {
                 accessPoint = MenuAccessPoint.Home,
                 account = null,
                 accountState = NotAuthenticated,
+                isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
                 isTranslationSupported = true,
@@ -778,6 +809,8 @@ private fun MenuDialogPrivatePreview() {
                 allWebExtensionsDisabled = false,
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
+                onBookmarkPageMenuClick = {},
+                onEditBookmarkButtonClick = {},
                 onSwitchToDesktopSiteMenuClick = {},
                 onFindInPageMenuClick = {},
                 onToolsMenuClick = {},

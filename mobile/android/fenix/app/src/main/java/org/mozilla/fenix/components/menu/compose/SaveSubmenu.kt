@@ -21,12 +21,9 @@ import org.mozilla.fenix.theme.Theme
 @Suppress("LongParameterList")
 @Composable
 internal fun SaveSubmenu(
-    isBookmarked: Boolean,
     isPinned: Boolean,
     isInstallable: Boolean,
     onBackButtonClick: () -> Unit,
-    onBookmarkPageMenuClick: () -> Unit,
-    onEditBookmarkButtonClick: () -> Unit,
     onShortcutsMenuClick: () -> Unit,
     onAddToHomeScreenMenuClick: () -> Unit,
     onSaveToCollectionMenuClick: () -> Unit,
@@ -44,14 +41,6 @@ internal fun SaveSubmenu(
         },
     ) {
         MenuGroup {
-            BookmarkMenuItem(
-                isBookmarked = isBookmarked,
-                onBookmarkPageMenuClick = onBookmarkPageMenuClick,
-                onEditBookmarkButtonClick = onEditBookmarkButtonClick,
-            )
-
-            Divider(color = FirefoxTheme.colors.borderSecondary)
-
             ShortcutsMenuItem(
                 isPinned = isPinned,
                 onShortcutsMenuClick = onShortcutsMenuClick,
@@ -89,28 +78,6 @@ internal fun SaveSubmenu(
 }
 
 @Composable
-private fun BookmarkMenuItem(
-    isBookmarked: Boolean,
-    onBookmarkPageMenuClick: () -> Unit,
-    onEditBookmarkButtonClick: () -> Unit,
-) {
-    if (isBookmarked) {
-        MenuItem(
-            label = stringResource(id = R.string.browser_menu_edit_bookmark),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_bookmark_fill_24),
-            state = MenuItemState.ACTIVE,
-            onClick = onEditBookmarkButtonClick,
-        )
-    } else {
-        MenuItem(
-            label = stringResource(id = R.string.browser_menu_bookmark_this_page),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_bookmark_24),
-            onClick = onBookmarkPageMenuClick,
-        )
-    }
-}
-
-@Composable
 private fun ShortcutsMenuItem(
     isPinned: Boolean,
     onShortcutsMenuClick: () -> Unit,
@@ -143,12 +110,9 @@ private fun SaveSubmenuPreview() {
             modifier = Modifier.background(color = FirefoxTheme.colors.layer3),
         ) {
             SaveSubmenu(
-                isBookmarked = false,
                 isPinned = false,
                 isInstallable = false,
                 onBackButtonClick = {},
-                onBookmarkPageMenuClick = {},
-                onEditBookmarkButtonClick = {},
                 onShortcutsMenuClick = {},
                 onAddToHomeScreenMenuClick = {},
                 onSaveToCollectionMenuClick = {},
@@ -166,12 +130,9 @@ private fun SaveSubmenuPrivatePreview() {
             modifier = Modifier.background(color = FirefoxTheme.colors.layer3),
         ) {
             SaveSubmenu(
-                isBookmarked = false,
                 isPinned = false,
                 isInstallable = true,
                 onBackButtonClick = {},
-                onBookmarkPageMenuClick = {},
-                onEditBookmarkButtonClick = {},
                 onShortcutsMenuClick = {},
                 onAddToHomeScreenMenuClick = {},
                 onSaveToCollectionMenuClick = {},
