@@ -87,7 +87,7 @@ class BrowserToolbarComposable(
     private var showDivider by mutableStateOf(true)
 
     private val middleware = getOrCreate<BrowserToolbarMiddleware>()
-    private val store = StoreProvider.get(lifecycleOwner) {
+    val store = StoreProvider.get(lifecycleOwner) {
         BrowserToolbarStore(
             initialState = BrowserToolbarState(),
             middleware = listOf(middleware),

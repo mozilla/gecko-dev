@@ -8,6 +8,7 @@ import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.UiStore
 import org.mozilla.fenix.browser.store.BrowserScreenAction.CancelPrivateDownloadsOnPrivateTabsClosedAccepted
 import org.mozilla.fenix.browser.store.BrowserScreenAction.ClosingLastPrivateTab
+import org.mozilla.fenix.browser.store.BrowserScreenAction.PageTranslationStatusUpdated
 
 /**
  * [UiStore] for the browser screen.
@@ -32,4 +33,6 @@ private fun reduce(state: BrowserScreenState, action: BrowserScreenAction): Brow
     is CancelPrivateDownloadsOnPrivateTabsClosedAccepted -> state.copy(
         cancelPrivateDownloadsAccepted = true,
     )
+
+    is PageTranslationStatusUpdated -> state.copy(pageTranslationStatus = action.pageTranslationStatus)
 }

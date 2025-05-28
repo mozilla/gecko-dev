@@ -9,16 +9,26 @@ import mozilla.components.concept.engine.translate.Language
 /**
  * Translations action button state.
  *
- * @property isVisible Whether or not the translation action button is visible.
- * @property isTranslated The page is currently translated.
- * @property isTranslateProcessing The page is currently attempting a translation.
+ * @property isTranslationPossible Whether or not translating the current page is possible.
+ * @property isTranslated Whether the page is currently translated.
+ * @property isTranslateProcessing Whether a translation of the current page is currently in progress.
  * @property fromSelectedLanguage Initial "from" language based on the translation state and page state.
  * @property toSelectedLanguage Initial "to" language based on the translation state and page state.
  */
-data class TranslationsIconState(
-    val isVisible: Boolean,
+data class PageTranslationStatus(
+    val isTranslationPossible: Boolean,
     val isTranslated: Boolean,
     val isTranslateProcessing: Boolean,
     val fromSelectedLanguage: Language? = null,
     val toSelectedLanguage: Language? = null,
-)
+) {
+    /**
+     * Static configuration and properties of [PageTranslationStatus].
+     */
+    companion object {
+        /**
+         * [PageTranslationStatus] for when translating the current page is not possible.
+         */
+        val NOT_POSSIBLE = PageTranslationStatus(false, false, false)
+    }
+}

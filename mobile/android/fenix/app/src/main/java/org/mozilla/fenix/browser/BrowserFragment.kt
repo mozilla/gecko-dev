@@ -191,8 +191,8 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         translationsBinding.set(
             feature = TranslationsBinding(
                 browserStore = context.components.core.store,
-                onTranslationsActionUpdated = {
-                    translationsAvailable = it.isVisible
+                onTranslationStatusUpdate = {
+                    translationsAvailable = it.isTranslationPossible
 
                     translationsAction.updateView(
                         tintColorResource = if (it.isTranslated) {

@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.browser
 
+import androidx.annotation.VisibleForTesting
+import androidx.navigation.NavController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -16,6 +18,13 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.translate.initialFromLanguage
 import mozilla.components.concept.engine.translate.initialToLanguage
 import mozilla.components.lib.state.helpers.AbstractBinding
+import org.mozilla.fenix.GleanMetrics.Translations
+import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.store.BrowserScreenAction.PageTranslationStatusUpdated
+import org.mozilla.fenix.browser.store.BrowserScreenStore
+import org.mozilla.fenix.components.AppStore
+import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
+import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.translations.TranslationDialogBottomSheet
 import org.mozilla.fenix.translations.TranslationsFlowState
 
@@ -24,15 +33,20 @@ import org.mozilla.fenix.translations.TranslationsFlowState
  * from the [BrowserStore] and updating the translations action button.
  *
  * @param browserStore [BrowserStore] observed for any changes related to [TranslationsState].
- * @param onTranslationsActionUpdated Invoked when the translations action button
- * should be updated with the new translations state.
+ * @param browserScreenStore [BrowserScreenStore] integrating all browsing features.
+ * @param appStore [AppStore] integrating all application wide features.
+ * @param navController [NavController] used for navigation.
+ * @param onTranslationStatusUpdate Invoked when the translation status of the current page is updated.
  * @param onShowTranslationsDialog Invoked when [TranslationDialogBottomSheet]
  * should be automatically shown to the user.
  */
 class TranslationsBinding(
     private val browserStore: BrowserStore,
-    private val onTranslationsActionUpdated: (TranslationsIconState) -> Unit,
-    private val onShowTranslationsDialog: () -> Unit,
+    private val browserScreenStore: BrowserScreenStore? = null,
+    private val appStore: AppStore? = null,
+    private val navController: NavController? = null,
+    private val onTranslationStatusUpdate: (PageTranslationStatus) -> Unit = { _ -> },
+    private val onShowTranslationsDialog: () -> Unit = { },
 ) : AbstractBinding<BrowserState>(browserStore) {
 
     @Suppress("LongMethod")
@@ -70,9 +84,9 @@ class TranslationsBinding(
                 val sessionTranslationsState = state.sessionState.translationsState
 
                 if (state.sessionState.readerState.active) {
-                    onTranslationsActionUpdated(
-                        TranslationsIconState(
-                            isVisible = false,
+                    onTranslationStateUpdated(
+                        PageTranslationStatus(
+                            isTranslationPossible = false,
                             isTranslated = false,
                             isTranslateProcessing = false,
                         ),
@@ -88,9 +102,9 @@ class TranslationsBinding(
                         )
 
                     if (fromSelected != null && toSelected != null) {
-                        onTranslationsActionUpdated(
-                            TranslationsIconState(
-                                isVisible = true,
+                        onTranslationStateUpdated(
+                            PageTranslationStatus(
+                                isTranslationPossible = true,
                                 isTranslated = true,
                                 isTranslateProcessing = sessionTranslationsState.isTranslateProcessing,
                                 fromSelectedLanguage = fromSelected,
@@ -99,17 +113,17 @@ class TranslationsBinding(
                         )
                     }
                 } else if (isEngineSupported == true && sessionTranslationsState.isExpectedTranslate) {
-                    onTranslationsActionUpdated(
-                        TranslationsIconState(
-                            isVisible = true,
+                    onTranslationStateUpdated(
+                        PageTranslationStatus(
+                            isTranslationPossible = true,
                             isTranslated = false,
                             isTranslateProcessing = sessionTranslationsState.isTranslateProcessing,
                         ),
                     )
                 } else {
-                    onTranslationsActionUpdated(
-                        TranslationsIconState(
-                            isVisible = false,
+                    onTranslationStateUpdated(
+                        PageTranslationStatus(
+                            isTranslationPossible = false,
                             isTranslated = false,
                             isTranslateProcessing = false,
                         ),
@@ -123,7 +137,7 @@ class TranslationsBinding(
                             isOfferTranslate = false,
                         ),
                     )
-                    onShowTranslationsDialog()
+                    offerToTranslateCurrentPage()
                 }
 
                 if (
@@ -131,8 +145,37 @@ class TranslationsBinding(
                     sessionTranslationsState.isExpectedTranslate &&
                     sessionTranslationsState.translationError != null
                 ) {
-                    onShowTranslationsDialog()
+                    offerToTranslateCurrentPage()
                 }
             }
+    }
+
+    private fun onTranslationStateUpdated(state: PageTranslationStatus) {
+        onTranslationStatusUpdate(state)
+        browserScreenStore?.dispatch(PageTranslationStatusUpdated(state))
+        if (!state.isTranslateProcessing) {
+            appStore?.dispatch(SnackbarAction.SnackbarDismissed)
+        }
+    }
+
+    private fun offerToTranslateCurrentPage() = when (appStore != null && navController != null) {
+        true -> {
+            recordTranslationStartTelemetry()
+
+            appStore.dispatch(SnackbarAction.SnackbarDismissed)
+
+            navController.navigateSafe(
+                R.id.browserFragment,
+                BrowserFragmentDirections.actionBrowserFragmentToTranslationsDialogFragment(),
+            )
+        }
+        false -> {
+            onShowTranslationsDialog()
+        }
+    }
+
+    @VisibleForTesting
+    internal fun recordTranslationStartTelemetry() {
+        Translations.action.record(Translations.ActionExtra("main_flow_toolbar"))
     }
 }
