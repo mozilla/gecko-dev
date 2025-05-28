@@ -43,6 +43,85 @@ LazyLogModule gGIOServiceLog("GIOService");
 #  define LOG(...)
 #endif /* MOZ_LOGGING */
 
+#define MOZ_TYPE_APP_LAUNCH_CONTEXT (moz_app_launch_context_get_type())
+#define MOZ_APP_LAUNCH_CONTEXT(obj)                               \
+  (G_TYPE_CHECK_INSTANCE_CAST((obj), MOZ_TYPE_APP_LAUNCH_CONTEXT, \
+                              MozAppLaunchContext))
+#define MOZ_APP_LAUNCH_CONTEXT_CLASS(klass)                      \
+  (G_TYPE_CHECK_CLASS_CAST((klass), MOZ_TYPE_APP_LAUNCH_CONTEXT, \
+                           MozAppLaunchContextClass))
+#define MOZ_IS_APP_LAUNCH_CONTEXT(obj) \
+  (G_TYPE_CHECK_INSTANCE_TYPE((obj), MOZ_TYPE_APP_LAUNCH_CONTEXT))
+#define MOZ_IS_APP_LAUNCH_CONTEXT_CLASS(klass) \
+  (G_TYPE_CHECK_CLASS_TYPE((klass), MOZ_TYPE_APP_LAUNCH_CONTEXT))
+#define MOZ_APP_LAUNCH_CONTEXT_GET_CLASS(obj)                    \
+  (G_TYPE_INSTANCE_GET_CLASS((obj), MOZ_TYPE_APP_LAUNCH_CONTEXT, \
+                             MozAppLaunchContextClass))
+
+typedef struct {
+  GAppLaunchContext parent_instance;
+  char* activation_token;
+} MozAppLaunchContext;
+
+typedef struct {
+  GAppLaunchContextClass parent_class;
+} MozAppLaunchContextClass;
+G_DEFINE_TYPE(MozAppLaunchContext, moz_app_launch_context,
+              G_TYPE_APP_LAUNCH_CONTEXT)
+
+static char* moz_app_launch_context_get_startup_notify_id(
+    GAppLaunchContext* context, GAppInfo* info, GList* files) {
+  MozAppLaunchContext* self = MOZ_APP_LAUNCH_CONTEXT(context);
+
+  // https://docs.gtk.org/gio/method.AppLaunchContext.get_startup_notify_id.html
+  // We have already obtained an activation token, so simply return it now.
+  return g_strdup(self->activation_token);
+}
+
+static void moz_app_launch_context_finalize(GObject* object) {
+  MozAppLaunchContext* self = MOZ_APP_LAUNCH_CONTEXT(object);
+  g_clear_pointer(&self->activation_token, g_free);
+  G_OBJECT_CLASS(moz_app_launch_context_parent_class)->finalize(object);
+}
+
+static void moz_app_launch_context_class_init(MozAppLaunchContextClass* klass) {
+  GAppLaunchContextClass* launch_class = G_APP_LAUNCH_CONTEXT_CLASS(klass);
+  GObjectClass* object_class = G_OBJECT_CLASS(klass);
+
+  launch_class->get_startup_notify_id =
+      moz_app_launch_context_get_startup_notify_id;
+  object_class->finalize = moz_app_launch_context_finalize;
+}
+
+static void moz_app_launch_context_init(MozAppLaunchContext* self) {
+  GAppLaunchContext* context = G_APP_LAUNCH_CONTEXT(self);
+
+  // GLib does not support xdg-activation before version 2.76,
+  // so set the environment variable manually.
+  // This only works when launching the proces directly, and does
+  // not work when going through the xdg-desktop-portal.
+  // For activation to work when using the portal, you need to use
+  // GLib 2.76 or newer.
+  if (self->activation_token && glib_check_version(2, 76, 0)) {
+    g_app_launch_context_setenv(context, "XDG_ACTIVATION_TOKEN",
+                                self->activation_token);
+  }
+
+  // Unset this before launching third-party MIME handlers. Otherwise, if
+  // Thunderbird sets this in its startup script (as it does in Debian and
+  // Fedora), and Firefox does not set this in its startup script (it doesn't in
+  // Debian), then Firefox will think it is part of Thunderbird and try to make
+  // Thunderbird the default browser. See bug 1494436.
+  g_app_launch_context_unsetenv(context, "MOZ_APP_LAUNCHER");
+}
+
+MozAppLaunchContext* moz_app_launch_context_new(const char* activation_token) {
+  MozAppLaunchContext* self =
+      MOZ_APP_LAUNCH_CONTEXT(g_object_new(MOZ_TYPE_APP_LAUNCH_CONTEXT, NULL));
+  self->activation_token = g_strdup(activation_token);
+  return self;
+}
+
 class nsFlatpakHandlerApp : public nsIHandlerApp {
  public:
   NS_DECL_ISUPPORTS
@@ -319,16 +398,8 @@ nsGIOMimeApp::Equals(nsIHandlerApp* aHandlerApp, bool* _retval) {
 
 static RefPtr<GAppLaunchContext> GetLaunchContext(
     const char* aXDGToken = nullptr) {
-  RefPtr<GAppLaunchContext> context = dont_AddRef(g_app_launch_context_new());
-  // Unset this before launching third-party MIME handlers. Otherwise, if
-  // Thunderbird sets this in its startup script (as it does in Debian and
-  // Fedora), and Firefox does not set this in its startup script (it doesn't in
-  // Debian), then Firefox will think it is part of Thunderbird and try to make
-  // Thunderbird the default browser. See bug 1494436.
-  g_app_launch_context_unsetenv(context, "MOZ_APP_LAUNCHER");
-  if (aXDGToken) {
-    g_app_launch_context_setenv(context, "XDG_ACTIVATION_TOKEN", aXDGToken);
-  }
+  RefPtr<GAppLaunchContext> context =
+      dont_AddRef(G_APP_LAUNCH_CONTEXT(moz_app_launch_context_new(aXDGToken)));
   return context;
 }
 
