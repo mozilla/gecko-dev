@@ -41,7 +41,7 @@ def add_previous_versions(config, jobs):
             yield job
     else:
         extra_params = []
-        for partial in release_config["partial_versions"].split(","):
+        for partial in release_config["partial_versions"]:
             extra_params.append(
                 "--previous-version={}".format(partial.split("build")[0].strip())
             )

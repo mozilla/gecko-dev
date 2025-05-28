@@ -112,7 +112,7 @@ def add_command(config, tasks):
         command.extend(["--repo-path", repo_path])
 
         if release_config.get("partial_versions"):
-            for partial in release_config["partial_versions"].split(","):
+            for partial in release_config["partial_versions"]:
                 command.extend(["--partial-version", partial.split("build")[0]])
 
         for arg in optional_args:

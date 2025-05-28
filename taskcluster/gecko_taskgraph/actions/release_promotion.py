@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import json
 import os
 
 import requests
@@ -268,6 +267,7 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
     promotion_config = graph_config["release-promotion"]["flavors"][
         release_promotion_flavor
     ]
+    partial_versions = []
     release_history = {}
     product = promotion_config["product"]
 
@@ -288,7 +288,10 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
                 "target."
             )
         balrog_prefix = product.title()
-        os.environ["PARTIAL_UPDATES"] = json.dumps(partial_updates, sort_keys=True)
+        partial_versions = [
+            "{}build{}".format(v, info["buildNumber"])
+            for v, info in partial_updates.items()
+        ]
         release_history = populate_release_history(
             balrog_prefix, parameters["project"], partial_updates=partial_updates
         )
@@ -353,6 +356,7 @@ def release_promotion_action(parameters, graph_config, input, task_group_id, tas
     parameters["target_tasks_method"] = target_tasks_method
     parameters["build_number"] = int(input["build_number"])
     parameters["next_version"] = next_version
+    parameters["partial_versions"] = partial_versions
     parameters["release_history"] = release_history
     if promotion_config.get("is-rc"):
         parameters["release_type"] += "-rc"

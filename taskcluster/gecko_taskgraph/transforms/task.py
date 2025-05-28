@@ -1161,7 +1161,9 @@ def build_balrog_payload(config, task, task_def):
                     "archive_domain": worker["archive-domain"],
                     "channel_names": worker["channel-names"],
                     "download_domain": worker["download-domain"],
-                    "partial_versions": release_config.get("partial_versions", ""),
+                    "partial_versions": ",".join(
+                        release_config.get("partial_versions", [])
+                    ),
                     "platforms": worker["platforms"],
                     "rules_to_update": worker["rules-to-update"],
                     "require_mirrors": worker["require-mirrors"],

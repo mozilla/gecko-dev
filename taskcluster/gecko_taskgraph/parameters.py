@@ -25,6 +25,7 @@ gecko_parameters_schema = {
     Required("message"): str,
     Required("next_version"): Any(None, str),
     Required("optimize_strategies"): Any(None, str),
+    Optional("partial_versions"): [str],
     Required("phabricator_diff"): Any(None, str),
     Required("release_enable_emefree"): bool,
     Required("release_enable_partner_repack"): bool,

@@ -185,10 +185,8 @@ def craft_bouncer_entries(config, job):
     current_build_number = release_config["build_number"]
 
     bouncer_products = job["bouncer-products"]
-    previous_versions_string = release_config.get("partial_versions", None)
-    if previous_versions_string:
-        previous_versions = previous_versions_string.split(", ")
-    else:
+    previous_versions = release_config.get("partial_versions", [])
+    if not previous_versions:
         logger.warning(
             'No partials defined! Bouncer submission task won\'t send any \
 partial-related entry for "{}"'.format(
