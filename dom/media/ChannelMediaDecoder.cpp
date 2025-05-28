@@ -24,6 +24,8 @@ using TimeUnit = media::TimeUnit;
 extern LazyLogModule gMediaDecoderLog;
 #define LOG(x, ...) \
   DDMOZ_LOG(gMediaDecoderLog, LogLevel::Debug, x, ##__VA_ARGS__)
+#define LOGD(x, ...) \
+  MOZ_LOG_FMT(gMediaDecoderLog, LogLevel::Debug, x, ##__VA_ARGS__)
 
 ChannelMediaDecoder::ResourceCallback::ResourceCallback(
     AbstractThread* aMainThread)
@@ -408,6 +410,7 @@ void ChannelMediaDecoder::DownloadProgressed() {
               return;
             }
             mCanPlayThrough = aStats.CanPlayThrough();
+            LOGD("Can play through: {} [{}]", mCanPlayThrough, aStats.ToString());
             GetStateMachine()->DispatchCanPlayThrough(mCanPlayThrough);
             mResource->ThrottleReadahead(ShouldThrottleDownload(aStats));
             // Update readyState since mCanPlayThrough might have changed.
@@ -480,21 +483,35 @@ bool ChannelMediaDecoder::ShouldThrottleDownload(
     // Don't throttle the download of small resources. This is to speed
     // up seeking, as seeks into unbuffered ranges would require starting
     // up a new HTTP transaction, which adds latency.
+    LOGD("Not throttling download: media resource is small");
     return false;
   }
 
   if (OnCellularConnection() &&
       Preferences::GetBool(
           "media.throttle-cellular-regardless-of-download-rate", false)) {
+    LOGD(
+        "Throttling download: on cellular, and "
+        "media.throttle-cellular-regardless-of-download-rate is true.");
     return true;
   }
 
   if (!aStats.mDownloadRateReliable || !aStats.mPlaybackRateReliable) {
+    LOGD(
+        "Not throttling download: download rate ({}) playback rate ({}) is not "
+        "reliable",
+        aStats.mDownloadRate, aStats.mPlaybackRate);
     return false;
   }
   uint32_t factor =
       std::max(2u, Preferences::GetUint("media.throttle-factor", 2));
-  return aStats.mDownloadRate > factor * aStats.mPlaybackRate;
+  bool throttle = aStats.mDownloadRate > factor * aStats.mPlaybackRate;
+  LOGD(
+      "ShouldThrottleDownload: {} (download rate({}) > factor({}) * playback "
+      "rate({}))",
+      throttle ? "true" : "false", aStats.mDownloadRate, factor,
+      aStats.mPlaybackRate);
+  return throttle;
 }
 
 void ChannelMediaDecoder::AddSizeOfResources(ResourceSizes* aSizes) {
@@ -567,12 +584,22 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
   // fluctuating bitrates.
   static const int64_t CAN_PLAY_THROUGH_MARGIN = 1;
 
+  LOGD(
+      "CanPlayThrough: playback rate: {}, download rate: {}, total "
+      "bytes: {}, download position: {}, playback position: {}, download rate "
+      "reliable: {}, playback rate reliable: {}",
+      mPlaybackRate, mDownloadRate, mTotalBytes, mDownloadPosition,
+      mPlaybackPosition, mDownloadRateReliable, mPlaybackRateReliable);
+
   if ((mTotalBytes < 0 && mDownloadByteRateReliable) ||
       (mTotalBytes >= 0 && mTotalBytes == mDownloadBytePosition)) {
+    LOGD("CanPlayThrough: true (early return)");
     return true;
   }
 
   if (!mDownloadByteRateReliable || !mPlaybackByteRateReliable) {
+    LOGD("CanPlayThrough: false (rate unreliable: download({})/playback({}))",
+        mDownloadRateReliable, mPlaybackRateReliable);
     return false;
   }
 
@@ -584,6 +611,7 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
   if (timeToDownload  > timeToPlay) {
     // Estimated time to download is greater than the estimated time to play.
     // We probably can't play through without having to stop to buffer.
+    LOGD("CanPlayThrough: false (download speed too low)");
     return false;
   }
 
@@ -616,3 +644,4 @@ nsCString ChannelMediaDecoder::MediaStatistics::ToString() const {
 
 // avoid redefined macro in unified build
 #undef LOG
+#undef LOGD
