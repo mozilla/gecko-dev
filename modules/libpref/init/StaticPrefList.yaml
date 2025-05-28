@@ -13159,7 +13159,11 @@
 # If we should attempt to race the cache and network.
 - name: network.http.rcwn.enabled
   type: bool
+#if defined(ANDROID)
+  value: false
+#else
   value: true
+#endif
   mirror: always
 
 - name: network.http.rcwn.cache_queue_normal_threshold
