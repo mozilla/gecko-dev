@@ -101,7 +101,9 @@ add_task(async function test_pinned_horizontal_tabs() {
 
   let tabStrip = tabbrowser.tabContainer;
   let verticalTabs = document.querySelector("#vertical-tabs");
-  let pinnedTabsContainer = document.querySelector("#pinned-tabs-container");
+  let verticalPinnedTabsContainer = document.querySelector(
+    "#vertical-pinned-tabs-container"
+  );
 
   is(tabbrowser.pinnedTabCount, 1, "One tab is pinned in horizontal tabstrip");
   ok(tabs[3].pinned, "Third tab is pinned");
@@ -117,11 +119,11 @@ add_task(async function test_pinned_horizontal_tabs() {
   );
 
   ok(
-    BrowserTestUtils.isVisible(pinnedTabsContainer),
+    BrowserTestUtils.isVisible(verticalPinnedTabsContainer),
     "Vertical pinned tabs container is visible"
   );
   is(
-    pinnedTabsContainer.children.length,
+    verticalPinnedTabsContainer.children.length,
     1,
     "One tab is pinned in vertical pinned tabs container"
   );
@@ -130,7 +132,7 @@ add_task(async function test_pinned_horizontal_tabs() {
   tabbrowser.unpinTab(tabs[3]);
   is(tabbrowser.pinnedTabCount, 0, "No tabs are pinned in the global tabstrip");
   is(
-    pinnedTabsContainer.children.length,
+    verticalPinnedTabsContainer.children.length,
     0,
     "No tabs are pinned in vertical pinned tabs container"
   );
@@ -139,7 +141,7 @@ add_task(async function test_pinned_horizontal_tabs() {
   tabbrowser.pinTab(tabs[1]);
 
   is(
-    pinnedTabsContainer.children.length,
+    verticalPinnedTabsContainer.children.length,
     2,
     "Two tabs are pinned in the vertical pinned tabs container"
   );
@@ -161,7 +163,7 @@ add_task(async function test_pinned_horizontal_tabs() {
   indexTest(1, 0, "about:blank is now the first pinned tab");
   indexTest(3, 1, "about:home is now the second pinned tab");
   is(
-    pinnedTabsContainer.children[0],
+    verticalPinnedTabsContainer.children[0],
     tabs[1],
     "about:blank is the first tab in the pinned tabs container"
   );
@@ -185,7 +187,7 @@ add_task(async function test_pinned_horizontal_tabs() {
   indexTest(3, 2, "about:home is now the third pinned tab");
 
   is(
-    pinnedTabsContainer.children[2],
+    verticalPinnedTabsContainer.children[2],
     tabs[3],
     "about:home is the last tab in the pinned tabs container"
   );
@@ -193,6 +195,10 @@ add_task(async function test_pinned_horizontal_tabs() {
   // flip the pref to move the tabstrip back into original location
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", false]] });
 
+  await TestUtils.waitForCondition(
+    () => !verticalPinnedTabsContainer.children.length,
+    "Pinned tabs are no longer in vertical pinned tabs container"
+  );
   is(
     tabbrowser.pinnedTabCount,
     3,

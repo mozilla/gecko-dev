@@ -225,7 +225,7 @@ export class SidebarState {
           break;
         case "expandedPinnedTabsHeight":
         case "collapsedPinnedTabsHeight":
-          this.updatePinnedTabsHeight();
+          this.#updatePinnedTabsHeight();
           break;
         default:
           this[key] = value;
@@ -333,7 +333,7 @@ export class SidebarState {
 
   set expandedPinnedTabsHeight(height) {
     this.#props.expandedPinnedTabsHeight = height;
-    this.updatePinnedTabsHeight();
+    this.#updatePinnedTabsHeight();
   }
 
   get collapsedPinnedTabsHeight() {
@@ -342,7 +342,7 @@ export class SidebarState {
 
   set collapsedPinnedTabsHeight(height) {
     this.#props.collapsedPinnedTabsHeight = height;
-    this.updatePinnedTabsHeight();
+    this.#updatePinnedTabsHeight();
   }
 
   get defaultLauncherVisible() {
@@ -449,7 +449,7 @@ export class SidebarState {
       !this.pinnedTabsDragActive &&
       this.#controller.sidebarRevampVisibility !== "expand-on-hover"
     ) {
-      this.updatePinnedTabsHeight();
+      this.#updatePinnedTabsHeight();
     }
   }
 
@@ -573,9 +573,9 @@ export class SidebarState {
 
   set pinnedTabsHeight(height) {
     this.#props.pinnedTabsHeight = height;
-    if (this.launcherExpanded && lazy.verticalTabsEnabled) {
+    if (this.launcherExpanded) {
       this.expandedPinnedTabsHeight = height;
-    } else if (lazy.verticalTabsEnabled) {
+    } else {
       this.collapsedPinnedTabsHeight = height;
     }
   }
@@ -584,13 +584,7 @@ export class SidebarState {
    * When the sidebar is expanded/collapsed, resize the pinned tabs container to the user-preferred
    * height (if available).
    */
-  updatePinnedTabsHeight() {
-    if (!lazy.verticalTabsEnabled) {
-      if (this.#pinnedTabsContainerEl) {
-        this.#pinnedTabsContainerEl.style.height = "";
-      }
-      return;
-    }
+  #updatePinnedTabsHeight() {
     if (this.launcherExpanded && this.expandedPinnedTabsHeight) {
       this.#pinnedTabsContainerEl.style.height = `${this.expandedPinnedTabsHeight}px`;
     } else if (!this.launcherExpanded && this.collapsedPinnedTabsHeight) {
