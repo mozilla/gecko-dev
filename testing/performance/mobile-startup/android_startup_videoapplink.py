@@ -23,7 +23,7 @@ PROD_CHRM = "chrome-m"
 BACKGROUND_TABS = [
     "https://www.google.com/search?q=toronto+weather",
     "https://en.m.wikipedia.org/wiki/Anemone_hepatica",
-    "https://www.amazon.ca/gp/aw/gb?ref_=navm_cs_gb&discounts-widget",
+    "https://www.temu.com",
     "https://www.espn.com/nfl/game/_/gameId/401671793/chiefs-falcons",
 ]
 ITERATIONS = 5
