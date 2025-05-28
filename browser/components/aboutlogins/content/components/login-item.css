@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- :host {
+:host {
   overflow: hidden;
 
-  --reveal-checkbox-opacity: .8;
-  --reveal-checkbox-opacity-hover: .6;
+  --reveal-checkbox-opacity: 0.8;
+  --reveal-checkbox-opacity-hover: 0.6;
   --reveal-checkbox-opacity-active: 1;
 }
 
@@ -19,9 +19,9 @@
 
 @media (prefers-color-scheme: dark) {
   :host {
-    --reveal-checkbox-opacity: .8;
+    --reveal-checkbox-opacity: 0.8;
     --reveal-checkbox-opacity-hover: 1;
-    --reveal-checkbox-opacity-active: .6;
+    --reveal-checkbox-opacity-active: 0.6;
   }
 }
 
@@ -63,7 +63,6 @@ form {
 :host(:not([data-editing])) .form-actions-row {
   display: none;
 }
-
 
 :host(:not([data-editing])) input[type="password"]:read-only,
 input[type="text"]:read-only,
@@ -115,16 +114,17 @@ input[name="password"] {
   flex-grow: 1;
 }
 
-origin-warning, password-warning {
+origin-warning,
+password-warning {
   display: none;
 }
 
-input[type = "url"]:focus:not(:user-invalid):invalid ~ origin-warning,
-input[type = "url"]:focus:user-invalid:not(:placeholder-shown) ~ origin-warning {
+input[type="url"]:focus:not(:user-invalid):invalid ~ origin-warning,
+input[type="url"]:focus:user-invalid:not(:placeholder-shown) ~ origin-warning {
   display: block;
 }
 
-input[name = "password"]:focus ~ password-warning {
+input[name="password"]:focus ~ password-warning {
   display: block;
 }
 

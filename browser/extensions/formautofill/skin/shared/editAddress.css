@@ -19,7 +19,9 @@
     flex: 0 1 100%;
   }
 
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     width: 100%;
     margin: 0;
   }
@@ -44,7 +46,7 @@
   display: flex;
   align-items: center;
   text-align: start;
-  opacity: .5;
+  opacity: 0.5;
   padding-inline-start: 1em;
   flex: 1;
 }

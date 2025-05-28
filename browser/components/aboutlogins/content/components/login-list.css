@@ -106,7 +106,7 @@ ol {
   display: block;
   position: sticky;
   top: 0;
-  font-size: .85em;
+  font-size: 0.85em;
   font-weight: var(--font-weight-bold);
   padding: 4px 16px;
   border-bottom: 1px solid var(--in-content-border-color);
