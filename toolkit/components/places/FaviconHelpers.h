@@ -120,15 +120,10 @@ class AsyncAssociateIconToPage final : public Runnable {
    *        Icon to be associated.
    * @param aPage
    *        Page to which associate the icon.
-   * @param aCallback
-   *        Function to be called when the associate process finishes.
    */
-  AsyncAssociateIconToPage(
-      const IconData& aIcon, const PageData& aPage,
-      const nsMainThreadPtrHandle<nsIFaviconDataCallback>& aCallback);
+  AsyncAssociateIconToPage(const IconData& aIcon, const PageData& aPage);
 
  private:
-  nsMainThreadPtrHandle<nsIFaviconDataCallback> mCallback;
   IconData mIcon;
   PageData mPage;
 };
@@ -201,21 +196,16 @@ class NotifyIconObservers final : public Runnable {
   NS_DECL_NSIRUNNABLE
 
   /**
-   * Constructor for nsIFaviconDataCallback.
+   * Constructor.
    *
    * @param aIcon
    *        Icon information. Can be empty if no icon is associated to the page.
    * @param aPage
    *        Page to which the icon information applies.
-   * @param aCallback
-   *        Function to be notified in all cases.
    */
-  NotifyIconObservers(
-      const IconData& aIcon, const PageData& aPage,
-      const nsMainThreadPtrHandle<nsIFaviconDataCallback>& aCallback);
+  NotifyIconObservers(const IconData& aIcon, const PageData& aPage);
 
  private:
-  nsMainThreadPtrHandle<nsIFaviconDataCallback> mCallback;
   IconData mIcon;
   PageData mPage;
 };
