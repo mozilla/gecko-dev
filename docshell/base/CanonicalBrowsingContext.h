@@ -302,6 +302,8 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   // mixed content/https-only state for our current window is changed.
   void UpdateSecurityState();
 
+  void MaybeAddAsProgressListener(nsIWebProgress* aWebProgress);
+
   // Called when a navigation forces us to recreate our browsing
   // context (for example, when switching in or out of the parent
   // process).

@@ -1449,9 +1449,6 @@ void nsDocLoader::DoFireOnStateChange(nsIWebProgress* const aProgress,
   // up from a child WebProgress, and the current WebProgress is already
   // active...
   //
-  // NOTE: Keep this in-sync with the logic in
-  // BrowsingContextWebProgress::OnStateChange.
-  //
   if (mIsLoadingDocument &&
       (aStateFlags & nsIWebProgressListener::STATE_IS_NETWORK) &&
       (this != aProgress)) {

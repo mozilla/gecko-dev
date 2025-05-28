@@ -74,8 +74,6 @@ class BrowsingContextWebProgress final : public nsIWebProgress,
   void UpdateAndNotifyListeners(
       uint32_t aFlag,
       const std::function<void(nsIWebProgressListener*)>& aCallback);
-  static already_AddRefed<nsIWebProgress> ResolveWebProgress(
-      nsIWebProgress* aWebProgress);
 
   using ListenerArray = nsAutoTObserverArray<ListenerInfo, 4>;
   ListenerArray mListenerInfoList;

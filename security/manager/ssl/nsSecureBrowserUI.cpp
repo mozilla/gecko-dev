@@ -128,8 +128,7 @@ void nsSecureBrowserUI::RecomputeSecurityFlags() {
     nsDocShell* nativeDocShell = nsDocShell::Cast(ctx->GetDocShell());
     nativeDocShell->nsDocLoader::OnSecurityChange(nullptr, mState);
   } else if (ctx->GetWebProgress()) {
-    ctx->GetWebProgress()->OnSecurityChange(ctx->GetWebProgress(), nullptr,
-                                            mState);
+    ctx->GetWebProgress()->OnSecurityChange(nullptr, nullptr, mState);
   }
 }
 

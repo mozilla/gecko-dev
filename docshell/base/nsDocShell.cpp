@@ -489,23 +489,13 @@ already_AddRefed<nsDocShell> nsDocShell::Create(
     return nullptr;
   }
 
-  uint32_t notifyMask =
-      nsIWebProgress::NOTIFY_STATE_ALL | nsIWebProgress::NOTIFY_LOCATION |
-      nsIWebProgress::NOTIFY_SECURITY | nsIWebProgress::NOTIFY_STATUS;
-
-  // NOTE: Only listen for NOTIFY_PROGRESS on toplevel BrowsingContexts, as
-  // listeners in the browser UI only cares about total progress on the toplevel
-  // context. Aggregation of the total progress is currently handled within
-  // `nsDocLoader`, and does not take out-of-process iframes into account.
-  if (aBrowsingContext->IsTop()) {
-    notifyMask |= nsIWebProgress::NOTIFY_PROGRESS;
-  }
-
   // Add |ds| as a progress listener to itself.  A little weird, but simpler
   // than reproducing all the listener-notification logic in overrides of the
   // various methods via which nsDocLoader can be notified.   Note that this
   // holds an nsWeakPtr to |ds|, so it's ok.
-  rv = ds->AddProgressListener(ds, notifyMask);
+  rv = ds->AddProgressListener(ds, nsIWebProgress::NOTIFY_STATE_DOCUMENT |
+                                       nsIWebProgress::NOTIFY_STATE_NETWORK |
+                                       nsIWebProgress::NOTIFY_LOCATION);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return nullptr;
   }
@@ -543,6 +533,10 @@ already_AddRefed<nsDocShell> nsDocShell::Create(
 
   // Set |ds| default load flags on load group.
   ds->SetLoadGroupDefaultLoadFlags(aBrowsingContext->GetDefaultLoadFlags());
+
+  if (XRE_IsParentProcess()) {
+    aBrowsingContext->Canonical()->MaybeAddAsProgressListener(ds);
+  }
 
   return ds.forget();
 }
@@ -5648,42 +5642,12 @@ nsDocShell::OnProgressChange(nsIWebProgress* aProgress, nsIRequest* aRequest,
                              int32_t aCurSelfProgress, int32_t aMaxSelfProgress,
                              int32_t aCurTotalProgress,
                              int32_t aMaxTotalProgress) {
-  // Listeners in the parent process only care about aCurTotalProgress and
-  // aMaxTotalProgress, which is internally managed by nsDocLoader. Because of
-  // this, we don't send progress notifications except when they are recorded by
-  // the toplevel context, and only report them on the toplevel context in the
-  // parent process.
-  //
-  // FIXME: We should track progress for out-of-process iframes and manage total
-  // progress in the parent process for more accurate notifications.
-  MOZ_ASSERT(
-      mBrowsingContext->IsTop(),
-      "notification excluded in AddProgressListener(...) for non-toplevel BCs");
-
-  if (nsCOMPtr<nsIWebProgressListener> listener = BCWebProgressListener()) {
-    listener->OnProgressChange(aProgress, aRequest, aCurSelfProgress,
-                               aMaxSelfProgress, aCurTotalProgress,
-                               aMaxTotalProgress);
-  }
-
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShell::OnStateChange(nsIWebProgress* aProgress, nsIRequest* aRequest,
                           uint32_t aStateFlags, nsresult aStatus) {
-  // If we're receiving a notification on ourselves, also notify WebProgress on
-  // BrowsingContextWebProgress, potentially over IPC.
-  //
-  // NOTE: We don't notify for bubbled notifications (aProgress != this), as
-  // BrowsingContextWebProgress independently handles event bubbling in the
-  // parent process.
-  if (aProgress == this) {
-    if (nsCOMPtr<nsIWebProgressListener> listener = BCWebProgressListener()) {
-      listener->OnStateChange(aProgress, aRequest, aStateFlags, aStatus);
-    }
-  }
-
   if ((~aStateFlags & (STATE_START | STATE_IS_NETWORK)) == 0) {
     // Save timing statistics.
     nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
@@ -5745,20 +5709,6 @@ nsDocShell::OnStateChange(nsIWebProgress* aProgress, nsIRequest* aRequest,
 NS_IMETHODIMP
 nsDocShell::OnLocationChange(nsIWebProgress* aProgress, nsIRequest* aRequest,
                              nsIURI* aURI, uint32_t aFlags) {
-  // If we're receiving a notification on ourselves, also notify WebProgress on
-  // BrowsingContextWebProgress, potentially over IPC.
-  //
-  // NOTE: We don't notify for bubbled notifications (aProgress != this), as
-  // BrowsingContextWebProgress independently handles event bubbling in the
-  // parent process.
-  //
-  // NOTE: Tests depend on this happening before UpdateSecurityState.
-  if (aProgress == this) {
-    if (nsCOMPtr<nsIWebProgressListener> listener = BCWebProgressListener()) {
-      listener->OnLocationChange(aProgress, aRequest, aURI, aFlags);
-    }
-  }
-
   // Since we've now changed Documents, notify the BrowsingContext that we've
   // changed. Ideally we'd just let the BrowsingContext do this when it
   // changes the current window global, but that happens before this and we
@@ -5843,36 +5793,14 @@ void nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
 NS_IMETHODIMP
 nsDocShell::OnStatusChange(nsIWebProgress* aWebProgress, nsIRequest* aRequest,
                            nsresult aStatus, const char16_t* aMessage) {
-  // If we're receiving a notification on ourselves, also notify WebProgress on
-  // BrowsingContextWebProgress, potentially over IPC.
-  //
-  // NOTE: We don't notify for bubbled notifications (aWebProgress != this), as
-  // BrowsingContextWebProgress independently handles event bubbling in the
-  // parent process.
-  if (aWebProgress == this) {
-    if (nsCOMPtr<nsIWebProgressListener> listener = BCWebProgressListener()) {
-      listener->OnStatusChange(aWebProgress, aRequest, aStatus, aMessage);
-    }
-  }
-
+  MOZ_ASSERT_UNREACHABLE("notification excluded in AddProgressListener(...)");
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsDocShell::OnSecurityChange(nsIWebProgress* aWebProgress, nsIRequest* aRequest,
                              uint32_t aState) {
-  // If we're receiving a notification on ourselves, also notify WebProgress on
-  // BrowsingContextWebProgress, potentially over IPC.
-  //
-  // NOTE: We don't notify for bubbled notifications (aWebProgress != this), as
-  // BrowsingContextWebProgress independently handles event bubbling in the
-  // parent process.
-  if (aWebProgress == this) {
-    if (nsCOMPtr<nsIWebProgressListener> listener = BCWebProgressListener()) {
-      listener->OnSecurityChange(aWebProgress, aRequest, aState);
-    }
-  }
-
+  MOZ_ASSERT_UNREACHABLE("notification excluded in AddProgressListener(...)");
   return NS_OK;
 }
 
@@ -5881,14 +5809,6 @@ nsDocShell::OnContentBlockingEvent(nsIWebProgress* aWebProgress,
                                    nsIRequest* aRequest, uint32_t aEvent) {
   MOZ_ASSERT_UNREACHABLE("notification excluded in AddProgressListener(...)");
   return NS_OK;
-}
-
-already_AddRefed<nsIWebProgressListener> nsDocShell::BCWebProgressListener() {
-  if (XRE_IsParentProcess()) {
-    return do_AddRef(mBrowsingContext->Canonical()->GetWebProgress());
-  }
-  nsCOMPtr<nsIWebProgressListener> bc = do_QueryReferent(mBrowserChild);
-  return bc.forget();
 }
 
 already_AddRefed<nsIURIFixupInfo> nsDocShell::KeywordToURI(

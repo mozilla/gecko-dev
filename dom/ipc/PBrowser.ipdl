@@ -532,12 +532,15 @@ parent:
                            bool aCanGoForward,
                            WebProgressLocationChangeData? aLocationChangeData);
 
-    async OnProgressChange(WebProgressData aWebProgressData, RequestData aRequestData,
-                           int32_t aCurSelfProgress, int32_t aMaxSelfProgress,
-                           int32_t aCurTotalProgress, int32_t aMaxTotalProgress);
+    // We only track information about total progress in the parent process.
+    // This value is throttled using nsBrowserStatusFilter, and records the full
+    // total progress for nsDocShells managed by this actor.
+    async OnProgressChange(int32_t aCurTotalProgress, int32_t aMaxTotalProgress);
 
-    async OnStatusChange(WebProgressData aWebProgressData, RequestData aRequestData,
-                         nsresult aStatus, nsString aMessage);
+    // Calls to OnStatusChange are throttled by nsBrowserStatusFilter, meaning
+    // they are only called with a status of `NS_OK`, and with no webProgress or
+    // request.
+    async OnStatusChange(nsString aMessage);
 
     async NotifyContentBlockingEvent(uint32_t aEvent, RequestData aRequestData,
                                      bool aBlocked, nsCString aTrackingOrigin,
