@@ -6,6 +6,7 @@ tags = "local"
 ["test_restore_loading_tab.py"]
 
 ["test_restore_manually.py"]
+skip-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'"] # Bug 1968578
 
 ["test_restore_manually_with_pinned_tabs.py"]
 

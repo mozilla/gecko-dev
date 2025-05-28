@@ -10,4 +10,5 @@ skip-if = [
 ["test_accessiblecaret_selection_mode.py"]
 skip-if = [
   "os == 'win' && os_version == '11.2009' && (debug || asan)", # Bug 1855083
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968697
 ]

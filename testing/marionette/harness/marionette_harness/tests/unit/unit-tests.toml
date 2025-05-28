@@ -173,7 +173,10 @@ skip-if = ["os == 'mac'"] # bug 1674411
 ["test_window_maximize.py"]
 
 ["test_window_rect.py"]
-skip-if = ["os == 'linux' && os_version == '18.04' && !swgl"] # Bug 1709584
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && !swgl", # Bug 1709584
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1709584
+]
 
 ["test_window_status_chrome.py"]
 
