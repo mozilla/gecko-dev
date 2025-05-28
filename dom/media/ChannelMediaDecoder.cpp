@@ -316,11 +316,12 @@ void ChannelMediaDecoder::NotifyDownloadEnded(nsresult aStatus) {
   if (NS_SUCCEEDED(aStatus) || aStatus == NS_BASE_STREAM_CLOSED) {
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
         "ChannelMediaDecoder::UpdatePlaybackRate",
-      [playbackStats = mPlaybackStatistics,
-       res = RefPtr<BaseMediaResource>(mResource),
-       duration = mDuration.match(DurationToTimeUnit())]() {
-        Unused << UpdateResourceOfPlaybackByteRate(playbackStats, res, duration);
-      });
+        [playbackStats = mPlaybackStatistics,
+         res = RefPtr<BaseMediaResource>(mResource),
+         duration = mDuration.match(DurationToTimeUnit())]() {
+          Unused << UpdateResourceOfPlaybackByteRate(playbackStats, res,
+                                                     duration);
+        });
     nsresult rv = GetStateMachine()->OwnerThread()->Dispatch(r.forget());
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
     Unused << rv;
@@ -377,8 +378,8 @@ void ChannelMediaDecoder::DurationChanged() {
       [playbackStats = mPlaybackStatistics,
        res = RefPtr<BaseMediaResource>(mResource),
        duration = mDuration.match(DurationToTimeUnit())]() {
-        Unused << UpdateResourceOfPlaybackByteRate(
-            playbackStats, res, duration);
+        Unused << UpdateResourceOfPlaybackByteRate(playbackStats, res,
+                                                   duration);
       });
   nsresult rv = GetStateMachine()->OwnerThread()->Dispatch(r.forget());
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
@@ -397,10 +398,13 @@ void ChannelMediaDecoder::DownloadProgressed() {
                res = RefPtr<BaseMediaResource>(mResource),
                duration = mDuration.match(DurationToTimeUnit()),
                playbackByteOffset = mPlaybackByteOffset]() {
-                auto rateInfo = UpdateResourceOfPlaybackByteRate(playbackStats, res, duration);
+                auto rateInfo = UpdateResourceOfPlaybackByteRate(playbackStats,
+                                                                 res, duration);
                 MediaStatistics result;
-                result.mDownloadByteRate = res->GetDownloadRate(&result.mDownloadByteRateReliable);
-                result.mDownloadBytePosition = res->GetCachedDataEnd(playbackByteOffset);
+                result.mDownloadByteRate =
+                    res->GetDownloadRate(&result.mDownloadByteRateReliable);
+                result.mDownloadBytePosition =
+                    res->GetCachedDataEnd(playbackByteOffset);
                 result.mTotalBytes = res->GetLength();
                 result.mPlaybackByteRate = rateInfo.mRate;
                 result.mPlaybackByteRateReliable = rateInfo.mReliable;
@@ -415,7 +419,8 @@ void ChannelMediaDecoder::DownloadProgressed() {
               return;
             }
             mCanPlayThrough = aStats.CanPlayThrough();
-            LOGD("Can play through: {} [{}]", mCanPlayThrough, aStats.ToString());
+            LOGD("Can play through: {} [{}]", mCanPlayThrough,
+                 aStats.ToString());
             GetStateMachine()->DispatchCanPlayThrough(mCanPlayThrough);
             mResource->ThrottleReadahead(ShouldThrottleDownload(aStats));
             // Update readyState since mCanPlayThrough might have changed.
@@ -574,11 +579,13 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
   static const int64_t CAN_PLAY_THROUGH_MARGIN = 1;
 
   LOGD(
-      "CanPlayThrough: mPlaybackByteRate: {}, mDownloadByteRate: {}, mTotalBytes"
+      "CanPlayThrough: mPlaybackByteRate: {}, mDownloadByteRate: {}, "
+      "mTotalBytes"
       ": {}, mDownloadBytePosition: {}, mPlaybackByteOffset: {}, "
       "mDownloadByteRateReliable: {}, mPlaybackByteRateReliable: {}",
       mPlaybackByteRate, mDownloadByteRate, mTotalBytes, mDownloadBytePosition,
-      mPlaybackByteOffset, mDownloadByteRateReliable, mPlaybackByteRateReliable);
+      mPlaybackByteOffset, mDownloadByteRateReliable,
+      mPlaybackByteRateReliable);
 
   if ((mTotalBytes < 0 && mDownloadByteRateReliable) ||
       (mTotalBytes >= 0 && mTotalBytes == mDownloadBytePosition)) {
@@ -588,7 +595,7 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
 
   if (!mDownloadByteRateReliable || !mPlaybackByteRateReliable) {
     LOGD("CanPlayThrough: false (rate unreliable: download({})/playback({}))",
-        mDownloadByteRateReliable, mPlaybackByteRateReliable);
+         mDownloadByteRateReliable, mPlaybackByteRateReliable);
     return false;
   }
 
@@ -597,7 +604,7 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
   double timeToDownload = bytesToDownload / mDownloadByteRate;
   double timeToPlay = bytesToPlayback / mPlaybackByteRate;
 
-  if (timeToDownload  > timeToPlay) {
+  if (timeToDownload > timeToPlay) {
     // Estimated time to download is greater than the estimated time to play.
     // We probably can't play through without having to stop to buffer.
     LOGD("CanPlayThrough: false (download speed too low)");
