@@ -1891,9 +1891,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates whether or not to use remote server search configuration.
      */
-    var useRemoteSearchConfiguration by booleanPreference(
+    var useRemoteSearchConfiguration by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_use_remote_search_configuration),
-        default = FxNimbus.features.remoteSearchConfiguration.value().enabled,
+        default = { FxNimbus.features.remoteSearchConfiguration.value().enabled },
+        featureFlag = true,
     )
 
     /**
