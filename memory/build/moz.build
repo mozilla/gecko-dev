@@ -36,6 +36,7 @@ if CONFIG["MOZ_PHC"]:
 
 if CONFIG["MOZ_MEMORY"]:
     UNIFIED_SOURCES += [
+        "BaseAlloc.cpp",
         "Globals.cpp",
         "mozjemalloc.cpp",
         "mozmemory_wrap.cpp",
