@@ -6,6 +6,10 @@ for forward playback.
 `MediaFormatReader::Update()` manages transitions between multiple states.
 The key transitions are captured in the diagram below:
 ```{mermaid}
+
+%% Work around https://github.com/mermaid-js/mermaid/issues/5785 %%
+%%{init: {"flowchart": {"htmlLabels": false}}}%%
+
 stateDiagram-v2
 
     DecodeError : Decode error
