@@ -41,7 +41,7 @@
 
         // Bug 1901160 test receiving signaling with no H264 profile-level-id fmtp.
         if (codec.hasOwnProperty("fmtpOverride")) {
-          test.originalOffer.sdp = test.originalOffer.sdp.replace(new RegExp("a=fmtp:" + id + ".*\\r\\n", "gi"), codec.fmtpOverride);
+          test.originalOffer.sdp = test.originalOffer.sdp.replace(new RegExp(`(a=fmtp:${id}).*(\\r\\n)`, "gi"), `$1 ${codec.fmtpOverride}$2`);
         }
 
         for (const otherId of otherIds) {
@@ -137,9 +137,9 @@
       codecs.push(
         { name: "H264", offset: 1 },
         { name: "H264", offset: 2 },
-        { name: "H264", offset: 2, fmtpOverride: "a=fmtp:packetization-mode=1" },
+        { name: "H264", offset: 2, fmtpOverride: "packetization-mode=1" },
         { name: "H264", offset: 3 },
-        { name: "H264", offset: 3, fmtpOverride: "a=fmtp:packetization-mode=0" },
+        { name: "H264", offset: 3, fmtpOverride: "packetization-mode=0" },
         { name: "H264", offset: 3, fmtpOverride: "" }
       );
     } else {
@@ -147,7 +147,7 @@
       // not all platforms support slice size control.
       codecs.push(
         { name: "H264", offset: 1 },
-        { name: "H264", offset: 1, fmtpOverride: "a=fmtp:packetization-mode=1" },
+        { name: "H264", offset: 1, fmtpOverride: "packetization-mode=1" },
       );
     }
 
