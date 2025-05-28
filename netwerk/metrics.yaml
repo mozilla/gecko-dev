@@ -1792,6 +1792,12 @@ networking:
       - necko@mozilla.com
       - kershaw@mozilla.com
     expires: never
+    metadata:
+      # Settings used for prototyping telemetry alerting
+      monitor:
+        alert: True
+        bugzilla_notification_emails:
+          - gmierz2@outlook.com
 
   http_channel_sub_open_to_first_sent:
     type: timing_distribution
