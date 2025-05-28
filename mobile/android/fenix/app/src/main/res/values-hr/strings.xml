@@ -62,7 +62,7 @@
     Explanation for private browsing displayed to users on home view when they first enable private mode.
     %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="private_browsing_placeholder_description_2">%1$s čisti tvoju povijest pretraživanja i pregledavanja u privatnim karticama kada ih zatvoriš ili izađeš iz aplikacije. Ovo te ne čini anonimnim prema web-stranicama ili tvom pružatelju internetskih usluga, ali olakšava da zadržiš privatnim ono što radiš na internetu od ostalih osoba koje koriste ovaj uređaj.</string>
+  <string name="private_browsing_placeholder_description_2">%1$s čisti tvoju povijest pretraživanja i pregledavanja u privatnim karticama kada ih zatvoriš ili izađeš iz aplikacije. Ovo te ne čini anonimnim prema web stranicama ili tvom pružatelju internetskih usluga, ali olakšava da zadržiš privatnim ono što radiš na internetu od ostalih osoba koje koriste ovaj uređaj.</string>
   <string name="private_browsing_common_myths">Česti mitovi o privatnom pregledavanju</string>
   <!--
     True Private Browsing Mode
@@ -116,7 +116,7 @@
   -->
   <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">Pregledavajte brže s novom navigacijom</string>
   <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Kod pregledavanja web-stranica, ova traka se uvlači dok se pomičete prema dolje kako biste imali više prostora za pregledavanje.</string>
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Na web stranici se ova traka uvlači tijekom pomicanja prema dolje, čime se dobiva više prostora za pregledavanje.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Dodirni i drži strelice pritisnutima za kretanje po stranicama u povijesti ove kartice.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
@@ -531,37 +531,37 @@
   <!-- Text for the button to dismiss the screen and move on with the flow -->
   <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Ne sada</string>
   <!-- Onboarding add-ons card, for checking more add-ons on, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_explore_more_extensions_2">Istraži još proširenja</string>
+  <string name="onboarding_add_on_explore_more_extensions_2" moz:removedIn="140" tools:ignore="UnusedResources">Istraži još proširenja</string>
   <!-- Onboarding add-ons card, button for start browsing, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_start_browsing_button_2">Počni pregledavati</string>
+  <string name="onboarding_add_on_start_browsing_button_2" moz:removedIn="140" tools:ignore="UnusedResources">Počni pregledavati</string>
   <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_ublock_name" tools:ignore="UnusedResources">uBlock Origin</string>
+  <string name="onboarding_add_on_ublock_name" moz:removedIn="140" tools:ignore="UnusedResources">uBlock Origin</string>
   <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_ublock_description" tools:ignore="UnusedResources">Efikasno blokira oglase.</string>
+  <string name="onboarding_add_on_ublock_description" moz:removedIn="140" tools:ignore="UnusedResources">Efikasno blokira oglase.</string>
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_privacy_badger_name" tools:ignore="UnusedResources">Privacy Badger</string>
+  <string name="onboarding_add_on_privacy_badger_name" moz:removedIn="140" tools:ignore="UnusedResources">Privacy Badger</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_privacy_badger_description" tools:ignore="UnusedResources">Korisno protiv praćenja. Zaustavlja nevidljive programe za praćenje i špijunske oglase.</string>
+  <string name="onboarding_add_on_privacy_badger_description" moz:removedIn="140" tools:ignore="UnusedResources">Korisno protiv praćenja. Zaustavlja nevidljive programe za praćenje i špijunske oglase.</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_search_by_image_name" tools:ignore="UnusedResources">Search by Image</string>
+  <string name="onboarding_add_on_search_by_image_name" moz:removedIn="140" tools:ignore="UnusedResources">Search by Image</string>
   <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_search_by_image_description" tools:ignore="UnusedResources">Saznaj više o interesantnim slikama na koje naiđeš.</string>
+  <string name="onboarding_add_on_search_by_image_description" moz:removedIn="140" tools:ignore="UnusedResources">Saznaj više o interesantnim slikama na koje naiđeš.</string>
   <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_dark_reader_name" tools:ignore="UnusedResources">Dark Reader</string>
+  <string name="onboarding_add_on_dark_reader_name" moz:removedIn="140" tools:ignore="UnusedResources">Dark Reader</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
-  <string name="onboarding_add_on_dark_reader_description" tools:ignore="UnusedResources">Prilagođen tamni modus za mobilni web.</string>
+  <string name="onboarding_add_on_dark_reader_description" moz:removedIn="140" tools:ignore="UnusedResources">Prilagođen tamni modus za mobilni web.</string>
   <!-- Label for the number of reviews for an add-on. %1$s is the formatted number of reviews e.g. "1,234", "12,345", "123,456". -->
-  <string name="onboarding_add_on_reviews_label">Recenzije: %1$s</string>
+  <string name="onboarding_add_on_reviews_label" moz:removedIn="140" tools:ignore="UnusedResources">Recenzije: %1$s</string>
   <!-- Content description for the add-on icon. -->
-  <string name="onboarding_add_on_icon_content_description">Ikona za dodatke</string>
+  <string name="onboarding_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Ikona za dodatke</string>
   <!-- Content description for the an installed add-on icon. -->
-  <string name="onboarding_installed_add_on_icon_content_description">Ikona za instalirani dodatak</string>
+  <string name="onboarding_installed_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Ikona za instalirani dodatak</string>
   <!-- Content description for the an installing add-on icon. -->
-  <string name="onboarding_installing_add_on_icon_content_description">Ikona za instaliranje dodatka</string>
+  <string name="onboarding_installing_add_on_icon_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Ikona za instaliranje dodatka</string>
   <!-- Content description for the add add-on button. -->
-  <string name="onboarding_add_on_add_button_content_description">Gumb za dodavanje dodataka</string>
+  <string name="onboarding_add_on_add_button_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Gumb za dodavanje dodataka</string>
   <!-- Content description for the star rating group. %1$s is the rating. -->
-  <string name="onboarding_add_on_star_rating_content_description">Ocijenjeno s %1$s od 5</string>
+  <string name="onboarding_add_on_star_rating_content_description" moz:removedIn="140" tools:ignore="UnusedResources">Ocijenjeno s %1$s od 5</string>
   <!-- Title for the privacy preferences dialog shown during onboarding. Note: The word "Firefox" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">Pomogni nam poboljšati Firefox</string>
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
@@ -1521,7 +1521,7 @@
   <!-- Text for the cancel button on Clear permission dialog -->
   <string name="clear_permission_negative">Odustani</string>
   <!-- Button label for clearing all the information on all sites -->
-  <string name="clear_permissions_on_all_sites">Izbriši dozvole za sve web-stranice</string>
+  <string name="clear_permissions_on_all_sites">Izbriši dozvole za sve web stranice</string>
   <!-- Preference for altering video and audio autoplay for all websites -->
   <string name="preference_browser_feature_autoplay">Automatsko pokretanje</string>
   <!-- Preference for altering the camera access for all websites -->
@@ -1783,7 +1783,7 @@
   <!-- QR code scanner prompt dialog positive option to deny navigation to scanned link -->
   <string name="qr_scanner_dialog_negative">ZABRANI</string>
   <!-- QR code scanner prompt dialog error message shown when a hostname does not contain http or https. -->
-  <string name="qr_scanner_dialog_invalid">Web-adresa nije ispravna.</string>
+  <string name="qr_scanner_dialog_invalid">Web adresa nije ispravna.</string>
   <!-- QR code scanner prompt dialog positive option when there is an error -->
   <string name="qr_scanner_dialog_invalid_ok">U redu</string>
   <!-- Tab collection deletion prompt dialog message. %1$s is the collection name. -->
@@ -1795,7 +1795,7 @@
   <!-- Sample text for accessibility font size -->
   <string name="accessibility_text_size_sample_text_1">Ovo je primjer teksta. Ovdje se prikazuje kako će se tekst pojaviti kad povećaš ili smanjiš veličinu pomoću ove postavke.</string>
   <!-- Summary for Accessibility Text Size Scaling Preference -->
-  <string name="preference_accessibility_text_size_summary">Povećaj ili smanji tekst na web-stranicama</string>
+  <string name="preference_accessibility_text_size_summary">Povećaj ili smanji tekst na web stranicama</string>
   <!-- Title for Accessibility Text Size Scaling Preference -->
   <string name="preference_accessibility_font_size_title">Veličina fonta</string>
   <!-- Title for Accessibility Text Automatic Size Scaling Preference -->
@@ -1822,13 +1822,13 @@
   <!-- Title for the cookies and site data items in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cookies_and_site_data">Kolačići i podaci web stranice</string>
   <!-- Subtitle for the cookies item in Delete browsing data -->
-  <string name="preferences_delete_browsing_data_cookies_subtitle">Odjavit ćeš se na većini web-stranica</string>
+  <string name="preferences_delete_browsing_data_cookies_subtitle">Odjavit ćeš se na većini web stranica</string>
   <!-- Title for the cached images and files item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cached_files">Predmemorirane slike i datoteke</string>
   <!-- Subtitle for the cached images and files item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cached_files_subtitle">Prazni memoriju</string>
   <!-- Title for the site permissions item in Delete browsing data -->
-  <string name="preferences_delete_browsing_data_site_permissions">Dozvole web-stranice</string>
+  <string name="preferences_delete_browsing_data_site_permissions">Dozvole web stranice</string>
   <!-- Title for the downloads item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_downloads">Preuzimanja</string>
   <!-- Text for the button to delete browsing data -->
@@ -1914,7 +1914,7 @@
   <!-- Preference title for enhanced tracking protection settings -->
   <string name="preference_enhanced_tracking_protection">Poboljšana zaštita od praćenja</string>
   <!-- Preference summary for enhanced tracking protection settings on/off switch -->
-  <string name="preference_enhanced_tracking_protection_summary">Sadrži potpunu zaštitu od kolačića, našu najnapredniju barijeru protiv međustraničnih kolačića.</string>
+  <string name="preference_enhanced_tracking_protection_summary">Sadrži potpunu zaštitu od kolačića, našu najnapredniju barijeru protiv programa za međustranično praćenje.</string>
   <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
   <string name="preference_enhanced_tracking_protection_explanation_2">%s vas štiti od mnogih uobičajenih programa za praćenje, koji prate vaše radnje na mreži.</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
@@ -1928,7 +1928,7 @@
   <!-- Preference for enhanced tracking protection for the strict protection settings -->
   <string name="preference_enhanced_tracking_protection_strict">Strogo</string>
   <!-- Preference description for enhanced tracking protection for the strict protection settings -->
-  <string name="preference_enhanced_tracking_protection_strict_description_4">Jača zaštita od praćenja i brži rad, ali neke web-stranice možda neće ispravno raditi.</string>
+  <string name="preference_enhanced_tracking_protection_strict_description_4">Jača zaštita od praćenja i brži rad, ali neke web stranice možda neće ispravno raditi.</string>
   <!-- Accessibility text for the Strict protection information icon -->
   <string name="preference_enhanced_tracking_protection_strict_info_button">Što se blokira strogom zaštitom od praćenja</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings -->
@@ -1956,7 +1956,7 @@
   <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: & -->
   <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">Reci web stranicama da ne dijele i ne prodaju moje podatke</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
-  <string name="preference_enhanced_tracking_protection_custom_tracking_content">Praćenje sadržaja</string>
+  <string name="preference_enhanced_tracking_protection_custom_tracking_content">Sadržaj za praćenje</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->
   <string name="preference_enhanced_tracking_protection_custom_tracking_content_1">U svim karticama</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->
@@ -1974,11 +1974,11 @@
   <!-- Description of social media trackers that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_social_media_trackers_description">Ograničava mogućnost društvenih mreža da prate tvoje aktivnosti pregledavanja na webu.</string>
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_title">Kolačići programa za međustranično praćenje</string>
+  <string name="etp_cookies_title">Međustranični kolačići za praćenje</string>
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title_2">Međustranični kolačići</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_cookies_description">Blokira kolačiće koje oglasne mreže i analitičke tvrtke koriste za prikupljanje podataka o tvom pregledavanju na mnogim web-stranicama.</string>
+  <string name="etp_cookies_description">Blokira kolačiće koje oglasne mreže i analitičke tvrtke koriste za prikupljanje podataka o tvom pregledavanju na mnogim web stranicama.</string>
   <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_description_2">Potpuna zaštita od kolačića izolira kolačiće na stranicu koja ih je postavila, tako da vas programi za praćenje, tipično od reklamnih mreža, ne mogu pratiti na svim stranicama koje posjećujete.</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
@@ -1986,15 +1986,15 @@
   <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_description">Sprečava da zlonamjerne skripte dobiju pristup tvom uređaju za rudarenje digitalne valute.</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_tracking_content_title">Praćenje sadržaja</string>
+  <string name="etp_tracking_content_title">Sadržaj za praćenje</string>
   <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
-  <string name="etp_tracking_content_description">Zaustavlja učitavanje vanjskih oglasa, videozapisa i drugog sadržaja koji sadrži kod za praćenje. Može utjecati na neke funkcionalnosti web-stranice.</string>
+  <string name="etp_tracking_content_description">Zaustavlja učitavanje vanjskih oglasa, videozapisa i drugog sadržaja koji sadrži kod za praćenje. Može utjecati na neke funkcionalnosti web stranice.</string>
   <!-- Enhanced Tracking Protection message that protection is currently on for this site -->
-  <string name="etp_panel_on">Za ovu web-stranicu zaštite su UKLJUČENE</string>
+  <string name="etp_panel_on">Za ovu web stranicu su zaštite UKLJUČENE</string>
   <!-- Enhanced Tracking Protection message that protection is currently off for this site -->
-  <string name="etp_panel_off">Za ovu web-stranicu zaštite su ISKLJUČENE</string>
+  <string name="etp_panel_off">Za ovu web stranicu su zaštite ISKLJUČENE</string>
   <!-- Header for exceptions list for which sites enhanced tracking protection is always off -->
-  <string name="enhanced_tracking_protection_exceptions">Pojačana zaštita od praćenja je ISKLJUČENA za ove web-stranice</string>
+  <string name="enhanced_tracking_protection_exceptions">Pojačana zaštita od praćenja je ISKLJUČENA za ove web stranice</string>
   <!--
     Content description (not visible, for screen readers etc.): Navigate
     back from ETP details (Ex: Tracking content)
@@ -2136,7 +2136,7 @@
   <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
   <string name="preferences_passwords_autofill2">Automatski ispuni u %1$s</string>
   <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
-  <string name="preferences_passwords_autofill_description">Ispuni i spremi korisnička imena i lozinke na web-stranicama tijekom korištenja %1$sa.</string>
+  <string name="preferences_passwords_autofill_description">Ispuni i spremi korisnička imena i lozinke na web stranicama tijekom korištenja %1$sa.</string>
   <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
   <string name="preferences_android_autofill">Automatski ispuni u drugim aplikacijama</string>
   <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
@@ -2200,9 +2200,9 @@
   <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their logins -->
   <string name="logins_biometric_prompt_message_pin">Otključaj uređaj</string>
   <!-- Title for Accessibility Force Enable Zoom Preference -->
-  <string name="preference_accessibility_force_enable_zoom">Zumiranje na svim web-stranicama</string>
+  <string name="preference_accessibility_force_enable_zoom">Zumiranje na svim web stranicama</string>
   <!-- Summary for Accessibility Force Enable Zoom Preference -->
-  <string name="preference_accessibility_force_enable_zoom_summary">Aktiviraj, kako bi se omogućile geste za smanjivanje i zumiranje prikaza, čak i ako web-stranica sprečava ovu gestu.</string>
+  <string name="preference_accessibility_force_enable_zoom_summary">Aktiviraj, kako bi se omogućile geste za smanjivanje i zumiranje prikaza, čak i ako web stranica sprečava ovu gestu.</string>
   <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
   <string name="saved_logins_sort_strategy_alphabetically">Naziv (A-Z)</string>
   <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
@@ -2390,13 +2390,13 @@
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
   <string name="confirm_clear_site_data"><![CDATA[Jeste li sigurni da želite obrisati sve kolačiće i podatke za stranicu <b>%s</b>?]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
-  <string name="confirm_clear_permissions_on_all_sites">Sigurno želiš izbrisati sve dozvole na svim web-stranicama?</string>
+  <string name="confirm_clear_permissions_on_all_sites">Stvarno želiš izbrisati sve dozvole na svim web stranicama?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for a site -->
-  <string name="confirm_clear_permissions_site">Sigurno želiš izbrisati sve dozvole za ovu web-stranicu?</string>
+  <string name="confirm_clear_permissions_site">Stvarno želiš izbrisati sve dozvole za ovu web stranicu?</string>
   <!-- Confirmation message for a dialog confirming if the user wants to set default value a permission for a site -->
-  <string name="confirm_clear_permission_site">Sigurno želiš izbrisati ovu dozvolu za ovu web-stranicu?</string>
+  <string name="confirm_clear_permission_site">Stvarno želiš izbrisati ovu dozvolu za ovu web stranicu?</string>
   <!-- label shown when there are not site exceptions to show in the site exception settings -->
-  <string name="no_site_exceptions">Bez izuzetih web-stranica</string>
+  <string name="no_site_exceptions">Bez izuzetih web stranica</string>
   <!-- Bookmark deletion confirmation -->
   <string name="bookmark_deletion_confirmation">Sigurno želiš izbrisati ovu zabilješku?</string>
   <!-- Browser menu button that adds a shortcut to the home fragment -->
@@ -2439,7 +2439,7 @@
   <!-- The error message in add login view when hostname field is blank. -->
   <string name="saved_login_hostname_required" tools:ignore="UnusedResources">Domena je potrebna</string>
   <!-- The error message in add login view when hostname field is blank. -->
-  <string name="saved_login_hostname_required_2" tools:ignore="UnusedResources">Upiši web-adresu</string>
+  <string name="saved_login_hostname_required_2" tools:ignore="UnusedResources">Upiši web adresu</string>
   <!-- Voice search button content description -->
   <string name="voice_search_content_description">Glasovno pretraživanje</string>
   <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -2449,7 +2449,7 @@
   <!-- This is the hint text that is shown inline on the hostname field of the create new login page. 'https://www.example.com' intentionally hardcoded here -->
   <string name="add_login_hostname_hint_text">https://www.example.com</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname does not contain http or https. -->
-  <string name="add_login_hostname_invalid_text_3">Web-adresa mora sadržavati \"https://\" ili \"http://\"</string>
+  <string name="add_login_hostname_invalid_text_3">Web adresa mora sadržavati „https://” ili „http://”</string>
   <!-- This is an error message shown below the hostname field of the add login page when a hostname is invalid. -->
   <string name="add_login_hostname_invalid_text_2">Valjana domena je potrebna</string>
   <!--
