@@ -222,6 +222,7 @@ tasks:
                 - sysroot-wasm32-wasi
                 - vs
                 - windows-rs
+                - dxc-x86_64-pc-windows-msvc
             fetch:
                 - upx-3.95-win
 
