@@ -31,6 +31,7 @@
 #include "nsPresContext.h"
 #include "nsStyleConsts.h"
 #include "nsTableFrame.h"
+#include "PresShell.h"
 #include "StickyScrollContainer.h"
 
 using namespace mozilla;
@@ -257,6 +258,9 @@ ReflowInput::ReflowInput(nsPresContext* aPresContext,
       nscoord icbLimit = icbSize.ISize(mWritingMode);
 
       SetAvailableISize(std::min(icbLimit, std::min(scLimit, cbLimit)));
+
+      // Record that this frame needs to be invalidated on a resize reflow.
+      mFrame->PresShell()->AddOrthogonalFlow(mFrame);
     }
   }
 

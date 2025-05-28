@@ -2001,6 +2001,13 @@ bool PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight,
     }
   };
 
+  // If there are orthogonal flows that were dependent on the ICB size, mark
+  // them as dirty to ensure they will be reflowed.
+  for (auto* frame : mOrthogonalFlows) {
+    FrameNeedsReflow(frame, IntrinsicDirty::None, NS_FRAME_HAS_DIRTY_CHILDREN);
+  }
+  mOrthogonalFlows.Clear();
+
   if (!(aOptions & ResizeReflowOptions::BSizeLimit)) {
     nsSize oldSize = mPresContext->GetVisibleArea().Size();
     if (oldSize == nsSize(aWidth, aHeight)) {
@@ -2240,6 +2247,7 @@ void PresShell::NotifyDestroyingFrame(nsIFrame* aFrame) {
     }
 
     mFramesToDirty.Remove(aFrame);
+    mOrthogonalFlows.Remove(aFrame);
 
     if (ScrollContainerFrame* scrollContainerFrame = do_QueryFrame(aFrame)) {
       mPendingScrollAnchorSelection.Remove(scrollContainerFrame);
@@ -5547,7 +5555,7 @@ void PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder* aBuilder,
     return;
   }
 
-  const SingleCanvasBackground& canvasBg = mCanvasBackground.mViewport;;
+  const SingleCanvasBackground& canvasBg = mCanvasBackground.mViewport;
   const nscolor bgcolor = NS_ComposeColors(aBackstopColor, canvasBg.mColor);
   if (NS_GET_A(bgcolor) == 0) {
     return;
@@ -5578,8 +5586,8 @@ void PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder* aBuilder,
           nsLayoutUtils::ExpandHeightForDynamicToolbar(
               mPresContext, aFrame->InkOverflowRectRelativeToSelf().Size()));
 
-  nsDisplaySolidColor* item = MakeDisplayItem<nsDisplaySolidColor>(
-      aBuilder, aFrame, aBounds, bgcolor);
+  nsDisplaySolidColor* item =
+      MakeDisplayItem<nsDisplaySolidColor>(aBuilder, aFrame, aBounds, bgcolor);
   if (canvasBg.mCSSSpecified && isRootContentDocumentCrossProcess) {
     item->SetIsCheckerboardBackground();
   }
