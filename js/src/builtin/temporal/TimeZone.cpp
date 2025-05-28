@@ -986,9 +986,9 @@ bool js::temporal::DisambiguatePossibleEpochNanoseconds(
 
   // Step 5.
   if (disambiguation == TemporalDisambiguation::Reject) {
-    // TODO: Improve error message to say the date was skipped.
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_TIMEZONE_INSTANT_AMBIGUOUS);
+    JS_ReportErrorNumberASCII(
+        cx, GetErrorMessage, nullptr,
+        JSMSG_TEMPORAL_TIMEZONE_INSTANT_AMBIGUOUS_DATE_SKIPPED);
     return false;
   }
 
