@@ -1058,6 +1058,10 @@ void GlobalObjectData::trace(JSTracer* trc, GlobalObject* global) {
 
   regExpRealm.trace(trc);
 
+#ifdef JS_HAS_INTL_API
+  globalIntlData.trace(trc);
+#endif
+
   TraceNullableEdge(trc, &mappedArgumentsTemplate, "mapped-arguments-template");
   TraceNullableEdge(trc, &unmappedArgumentsTemplate,
                     "unmapped-arguments-template");

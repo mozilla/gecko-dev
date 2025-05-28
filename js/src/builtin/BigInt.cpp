@@ -6,6 +6,10 @@
 
 #include "builtin/BigInt.h"
 
+#if JS_HAS_INTL_API
+#  include "builtin/intl/GlobalIntlData.h"
+#  include "builtin/intl/NumberFormat.h"
+#endif
 #include "jit/InlinableNatives.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/PropertySpec.h"
@@ -68,36 +72,48 @@ BigInt* BigIntObject::unbox() const {
   return getFixedSlot(PRIMITIVE_VALUE_SLOT).toBigInt();
 }
 
-// BigInt proposal section 5.3.4
-bool BigIntObject::valueOf_impl(JSContext* cx, const CallArgs& args) {
-  // Step 1.
+static BigInt* ThisBigIntValue(const CallArgs& args) {
   HandleValue thisv = args.thisv();
   MOZ_ASSERT(IsBigInt(thisv));
-  BigInt* bi = thisv.isBigInt() ? thisv.toBigInt()
-                                : thisv.toObject().as<BigIntObject>().unbox();
 
-  args.rval().setBigInt(bi);
+  return thisv.isBigInt() ? thisv.toBigInt()
+                          : thisv.toObject().as<BigIntObject>().unbox();
+}
+
+/**
+ * BigInt.prototype.valueOf ( )
+ *
+ * ES2025 draft rev e42d11da7753bd933b1e7a5f3cb657ab0a8f6251
+ */
+bool BigIntObject::valueOf_impl(JSContext* cx, const CallArgs& args) {
+  // Step 1.
+  args.rval().setBigInt(ThisBigIntValue(args));
   return true;
 }
 
+/**
+ * BigInt.prototype.valueOf ( )
+ *
+ * ES2025 draft rev e42d11da7753bd933b1e7a5f3cb657ab0a8f6251
+ */
 bool BigIntObject::valueOf(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   return CallNonGenericMethod<IsBigInt, valueOf_impl>(cx, args);
 }
 
-// BigInt proposal section 5.3.3
+/**
+ * BigInt.prototype.toString ( [ radix ] )
+ *
+ * ES2025 draft rev e42d11da7753bd933b1e7a5f3cb657ab0a8f6251
+ */
 bool BigIntObject::toString_impl(JSContext* cx, const CallArgs& args) {
   // Step 1.
-  HandleValue thisv = args.thisv();
-  MOZ_ASSERT(IsBigInt(thisv));
-  RootedBigInt bi(cx, thisv.isBigInt()
-                          ? thisv.toBigInt()
-                          : thisv.toObject().as<BigIntObject>().unbox());
+  RootedBigInt bi(cx, ThisBigIntValue(args));
 
-  // Steps 2-3.
+  // Step 2.
   uint8_t radix = 10;
 
-  // Steps 4-5.
+  // Steps 3-4.
   if (args.hasDefined(0)) {
     double d;
     if (!ToInteger(cx, args[0], &d)) {
@@ -110,7 +126,7 @@ bool BigIntObject::toString_impl(JSContext* cx, const CallArgs& args) {
     radix = d;
   }
 
-  // Steps 6-7.
+  // Step 5.
   JSLinearString* str = BigInt::toString<CanGC>(cx, bi, radix);
   if (!str) {
     return false;
@@ -125,23 +141,47 @@ bool BigIntObject::toString(JSContext* cx, unsigned argc, Value* vp) {
   return CallNonGenericMethod<IsBigInt, toString_impl>(cx, args);
 }
 
-#ifndef JS_HAS_INTL_API
-// BigInt proposal section 5.3.2. "This function is
-// implementation-dependent, and it is permissible, but not encouraged,
-// for it to return the same thing as toString."
+/**
+ * BigInt.prototype.toLocaleString ( [ reserved1 [ , reserved2 ] ] )
+ *
+ * ES2025 draft rev e42d11da7753bd933b1e7a5f3cb657ab0a8f6251
+ *
+ * BigInt.prototype.toLocaleString ( [ locales [ , options ] ] )
+ *
+ * ES2025 Intl draft rev 6827e6e40b45fb313472595be31352451a2d85fa
+ */
 bool BigIntObject::toLocaleString_impl(JSContext* cx, const CallArgs& args) {
-  HandleValue thisv = args.thisv();
-  MOZ_ASSERT(IsBigInt(thisv));
-  RootedBigInt bi(cx, thisv.isBigInt()
-                          ? thisv.toBigInt()
-                          : thisv.toObject().as<BigIntObject>().unbox());
+  // Step 1.
+  RootedBigInt bi(cx, ThisBigIntValue(args));
 
+#if JS_HAS_INTL_API
+  HandleValue locales = args.get(0);
+  HandleValue options = args.get(1);
+
+  // Step 2.
+  Rooted<NumberFormatObject*> numberFormat(
+      cx, intl::GetOrCreateNumberFormat(cx, locales, options));
+  if (!numberFormat) {
+    return false;
+  }
+
+  // Step 3.
+  JSString* str = intl::FormatBigInt(cx, numberFormat, bi);
+  if (!str) {
+    return false;
+  }
+  args.rval().setString(str);
+  return true;
+#else
+  // This method is implementation-defined, and it is permissible, but not
+  // encouraged, for it to return the same thing as toString.
   JSString* str = BigInt::toString<CanGC>(cx, bi, 10);
   if (!str) {
     return false;
   }
   args.rval().setString(str);
   return true;
+#endif
 }
 
 bool BigIntObject::toLocaleString(JSContext* cx, unsigned argc, Value* vp) {
@@ -150,7 +190,6 @@ bool BigIntObject::toLocaleString(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   return CallNonGenericMethod<IsBigInt, toLocaleString_impl>(cx, args);
 }
-#endif /* !JS_HAS_INTL_API */
 
 // BigInt proposal section 5.2.1. BigInt.asUintN ( bits, bigint )
 bool BigIntObject::asUintN(JSContext* cx, unsigned argc, Value* vp) {
@@ -238,11 +277,7 @@ const JSPropertySpec BigIntObject::properties[] = {
 const JSFunctionSpec BigIntObject::methods[] = {
     JS_FN("valueOf", valueOf, 0, 0),
     JS_FN("toString", toString, 0, 0),
-#ifdef JS_HAS_INTL_API
-    JS_SELF_HOSTED_FN("toLocaleString", "BigInt_toLocaleString", 0, 0),
-#else
     JS_FN("toLocaleString", toLocaleString, 0, 0),
-#endif
     JS_FS_END,
 };
 

@@ -62,6 +62,7 @@ using JS::AutoStableStringChars;
 using JS::ClippedTime;
 using JS::TimeClip;
 
+using js::intl::DateTimeFormatKind;
 using js::intl::DateTimeFormatOptions;
 using js::intl::FormatBuffer;
 using js::intl::INITIAL_CHAR_BUFFER_SIZE;
@@ -209,6 +210,84 @@ bool js::intl_CreateDateTimeFormat(JSContext* cx, unsigned argc, Value* vp) {
   // cannot be used with "new", but it still has to be treated as a constructor.
   return DateTimeFormat(cx, args, true, required, defaults,
                         DateTimeFormatOptions::Standard);
+}
+
+static Handle<PropertyName*> ToRequired(JSContext* cx,
+                                        DateTimeFormatKind kind) {
+  switch (kind) {
+    case DateTimeFormatKind::All:
+      return cx->names().any;
+    case DateTimeFormatKind::Date:
+      return cx->names().date;
+    case DateTimeFormatKind::Time:
+      return cx->names().time;
+  }
+  MOZ_CRASH("invalid date time format kind");
+}
+
+static Handle<PropertyName*> ToDefaults(JSContext* cx,
+                                        DateTimeFormatKind kind) {
+  switch (kind) {
+    case DateTimeFormatKind::All:
+      return cx->names().all;
+    case DateTimeFormatKind::Date:
+      return cx->names().date;
+    case DateTimeFormatKind::Time:
+      return cx->names().time;
+  }
+  MOZ_CRASH("invalid date time format kind");
+}
+
+static DateTimeFormatObject* CreateDateTimeFormat(
+    JSContext* cx, Handle<Value> locales, Handle<Value> options,
+    Handle<Value> toLocaleStringTimeZone, DateTimeFormatKind kind) {
+  Rooted<DateTimeFormatObject*> dateTimeFormat(
+      cx, NewBuiltinClassInstance<DateTimeFormatObject>(cx));
+  if (!dateTimeFormat) {
+    return nullptr;
+  }
+
+  Handle<PropertyName*> required = ToRequired(cx, kind);
+  Handle<PropertyName*> defaults = ToDefaults(cx, kind);
+
+  Rooted<Value> thisValue(cx, ObjectValue(*dateTimeFormat));
+  Rooted<Value> ignored(cx);
+  if (!InitializeDateTimeFormatObject(
+          cx, dateTimeFormat, thisValue, locales, options, required, defaults,
+          toLocaleStringTimeZone, DateTimeFormatOptions::Standard, &ignored)) {
+    return nullptr;
+  }
+  MOZ_ASSERT(&ignored.toObject() == dateTimeFormat);
+
+  return dateTimeFormat;
+}
+
+DateTimeFormatObject* js::intl::CreateDateTimeFormat(JSContext* cx,
+                                                     Handle<Value> locales,
+                                                     Handle<Value> options,
+                                                     DateTimeFormatKind kind) {
+  return CreateDateTimeFormat(cx, locales, options, UndefinedHandleValue, kind);
+}
+
+DateTimeFormatObject* js::intl::GetOrCreateDateTimeFormat(
+    JSContext* cx, Handle<Value> locales, Handle<Value> options,
+    DateTimeFormatKind kind) {
+  // Try to use a cached instance when |locales| is either undefined or a
+  // string, and |options| is undefined.
+  if ((locales.isUndefined() || locales.isString()) && options.isUndefined()) {
+    Rooted<JSLinearString*> locale(cx);
+    if (locales.isString()) {
+      locale = locales.toString()->ensureLinear(cx);
+      if (!locale) {
+        return nullptr;
+      }
+    }
+    return cx->global()->globalIntlData().getOrCreateDateTimeFormat(cx, kind,
+                                                                    locale);
+  }
+
+  // Create a new Intl.DateTimeFormat instance.
+  return CreateDateTimeFormat(cx, locales, options, UndefinedHandleValue, kind);
 }
 
 void js::DateTimeFormatObject::finalize(JS::GCContext* gcx, JSObject* obj) {
@@ -2467,6 +2546,21 @@ bool js::intl_FormatDateTime(JSContext* cx, unsigned argc, Value* vp) {
   return formatToParts ? intl_FormatToPartsDateTime(
                              cx, df, x, /* hasNoSource */ true, args.rval())
                        : intl_FormatDateTime(cx, df, x, args.rval());
+}
+
+bool js::intl::FormatDateTime(JSContext* cx,
+                              Handle<DateTimeFormatObject*> dateTimeFormat,
+                              double millis, MutableHandle<Value> result) {
+  auto x = JS::TimeClip(millis);
+  MOZ_ASSERT(x.isValid());
+
+  mozilla::intl::DateTimeFormat* df =
+      GetOrCreateDateTimeFormat(cx, dateTimeFormat, DateTimeValueKind::Number);
+  if (!df) {
+    return false;
+  }
+
+  return intl_FormatDateTime(cx, df, x, result);
 }
 
 /**

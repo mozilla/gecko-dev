@@ -122,6 +122,39 @@ class NumberFormatObject : public NativeObject {
                                                          Value* vp);
 #endif
 
+namespace intl {
+
+/**
+ * Returns a new instance of the standard built-in NumberFormat constructor.
+ */
+[[nodiscard]] extern NumberFormatObject* CreateNumberFormat(
+    JSContext* cx, JS::Handle<JS::Value> locales,
+    JS::Handle<JS::Value> options);
+
+/**
+ * Returns a possibly cached instance of the standard built-in NumberFormat
+ * constructor.
+ */
+[[nodiscard]] extern NumberFormatObject* GetOrCreateNumberFormat(
+    JSContext* cx, JS::Handle<JS::Value> locales,
+    JS::Handle<JS::Value> options);
+
+/**
+ * Returns a string representing the number x according to the effective locale
+ * and the formatting options of the given NumberFormat.
+ */
+[[nodiscard]] extern JSString* FormatNumber(
+    JSContext* cx, Handle<NumberFormatObject*> numberFormat, double x);
+
+/**
+ * Returns a string representing the BigInt x according to the effective locale
+ * and the formatting options of the given NumberFormat.
+ */
+[[nodiscard]] extern JSString* FormatBigInt(
+    JSContext* cx, Handle<NumberFormatObject*> numberFormat, Handle<BigInt*> x);
+
+}  // namespace intl
+
 }  // namespace js
 
 #endif /* builtin_intl_NumberFormat_h */

@@ -21,6 +21,9 @@
 #include "jstypes.h"
 #include "NamespaceImports.h"
 
+#ifdef JS_HAS_INTL_API
+#  include "builtin/intl/GlobalIntlData.h"
+#endif
 #include "gc/AllocKind.h"
 #include "js/CallArgs.h"
 #include "js/Class.h"
@@ -204,6 +207,11 @@ class GlobalObjectData {
 
   // Global state for regular expressions.
   RegExpRealm regExpRealm;
+
+#ifdef JS_HAS_INTL_API
+  // Cache Intl formatters.
+  intl::GlobalIntlData globalIntlData;
+#endif
 
   GCPtr<ArgumentsObject*> mappedArgumentsTemplate;
   GCPtr<ArgumentsObject*> unmappedArgumentsTemplate;
@@ -987,6 +995,10 @@ class GlobalObject : public NativeObject {
                                              Handle<GlobalObject*> global);
 
   RegExpRealm& regExpRealm() { return data().regExpRealm; }
+
+#ifdef JS_HAS_INTL_API
+  intl::GlobalIntlData& globalIntlData() { return data().globalIntlData; }
+#endif
 
   // Infallibly test whether the given value is the eval function for this
   // global.

@@ -147,6 +147,42 @@ bool js::intl_Collator(JSContext* cx, unsigned argc, Value* vp) {
   return Collator(cx, args);
 }
 
+CollatorObject* js::intl::CreateCollator(JSContext* cx, Handle<Value> locales,
+                                         Handle<Value> options) {
+  Rooted<CollatorObject*> collator(cx,
+                                   NewBuiltinClassInstance<CollatorObject>(cx));
+  if (!collator) {
+    return nullptr;
+  }
+
+  if (!InitializeObject(cx, collator, cx->names().InitializeCollator, locales,
+                        options)) {
+    return nullptr;
+  }
+
+  return collator;
+}
+
+CollatorObject* js::intl::GetOrCreateCollator(JSContext* cx,
+                                              Handle<Value> locales,
+                                              Handle<Value> options) {
+  // Try to use a cached instance when |locales| is either undefined or a
+  // string, and |options| is undefined.
+  if ((locales.isUndefined() || locales.isString()) && options.isUndefined()) {
+    Rooted<JSLinearString*> locale(cx);
+    if (locales.isString()) {
+      locale = locales.toString()->ensureLinear(cx);
+      if (!locale) {
+        return nullptr;
+      }
+    }
+    return cx->global()->globalIntlData().getOrCreateCollator(cx, locale);
+  }
+
+  // Create a new Intl.Collator instance.
+  return CreateCollator(cx, locales, options);
+}
+
 void js::CollatorObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   MOZ_ASSERT(gcx->onMainThread());
 
@@ -459,6 +495,16 @@ bool js::intl_CompareStrings(JSContext* cx, unsigned argc, Value* vp) {
   RootedString str1(cx, args[1].toString());
   RootedString str2(cx, args[2].toString());
   return intl_CompareStrings(cx, coll, str1, str2, args.rval());
+}
+
+bool js::intl::CompareStrings(JSContext* cx, Handle<CollatorObject*> collator,
+                              Handle<JSString*> str1, Handle<JSString*> str2,
+                              MutableHandle<Value> result) {
+  mozilla::intl::Collator* coll = GetOrCreateCollator(cx, collator);
+  if (!coll) {
+    return false;
+  }
+  return intl_CompareStrings(cx, coll, str1, str2, result);
 }
 
 bool js::intl_isUpperCaseFirst(JSContext* cx, unsigned argc, Value* vp) {

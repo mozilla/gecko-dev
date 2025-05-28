@@ -247,6 +247,51 @@ class DateTimeFormatObject : public NativeObject {
     JS::Handle<JSString*> defaults,
     JS::Handle<JS::Value> toLocaleStringTimeZone = JS::UndefinedHandleValue);
 
+namespace intl {
+
+enum class DateTimeFormatKind {
+  /**
+   * Call CreateDateTimeFormat with `required = Any` and `defaults = All`.
+   */
+  All,
+
+  /**
+   * Call CreateDateTimeFormat with `required = Date` and `defaults = Date`.
+   */
+  Date,
+
+  /**
+   * Call CreateDateTimeFormat with `required = Time` and `defaults = Time`.
+   */
+  Time,
+};
+
+/**
+ * Returns a new instance of the standard built-in DateTimeFormat constructor.
+ */
+[[nodiscard]] extern DateTimeFormatObject* CreateDateTimeFormat(
+    JSContext* cx, JS::Handle<JS::Value> locales, JS::Handle<JS::Value> options,
+    DateTimeFormatKind kind);
+
+/**
+ * Returns a possibly cached instance of the standard built-in DateTimeFormat
+ * constructor.
+ */
+[[nodiscard]] extern DateTimeFormatObject* GetOrCreateDateTimeFormat(
+    JSContext* cx, JS::Handle<JS::Value> locales, JS::Handle<JS::Value> options,
+    DateTimeFormatKind kind);
+
+/**
+ * Returns a String value representing |millis| (which must be a valid time
+ * value) according to the effective locale and the formatting options of the
+ * given DateTimeFormat.
+ */
+[[nodiscard]] extern bool FormatDateTime(
+    JSContext* cx, JS::Handle<DateTimeFormatObject*> dateTimeFormat,
+    double millis, JS::MutableHandle<JS::Value> result);
+
+}  // namespace intl
+
 }  // namespace js
 
 #endif /* builtin_intl_DateTimeFormat_h */

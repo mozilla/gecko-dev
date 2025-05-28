@@ -475,6 +475,7 @@ if CONFIG["JS_HAS_INTL_API"]:
         "builtin/intl/DateTimeFormat.cpp",
         "builtin/intl/DisplayNames.cpp",
         "builtin/intl/DurationFormat.cpp",
+        "builtin/intl/GlobalIntlData.cpp",
         "builtin/intl/IntlObject.cpp",
         "builtin/intl/LanguageTag.cpp",
         "builtin/intl/ListFormat.cpp",

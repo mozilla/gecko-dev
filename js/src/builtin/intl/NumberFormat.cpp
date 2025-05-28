@@ -170,6 +170,46 @@ bool js::intl_NumberFormat(JSContext* cx, unsigned argc, Value* vp) {
   return NumberFormat(cx, args, true);
 }
 
+NumberFormatObject* js::intl::CreateNumberFormat(JSContext* cx,
+                                                 Handle<Value> locales,
+                                                 Handle<Value> options) {
+  Rooted<NumberFormatObject*> numberFormat(
+      cx, NewBuiltinClassInstance<NumberFormatObject>(cx));
+  if (!numberFormat) {
+    return nullptr;
+  }
+
+  Rooted<Value> thisValue(cx, ObjectValue(*numberFormat));
+  Rooted<Value> ignored(cx);
+  if (!InitializeNumberFormatObject(cx, numberFormat, thisValue, locales,
+                                    options, &ignored)) {
+    return nullptr;
+  }
+  MOZ_ASSERT(&ignored.toObject() == numberFormat);
+
+  return numberFormat;
+}
+
+NumberFormatObject* js::intl::GetOrCreateNumberFormat(JSContext* cx,
+                                                      Handle<Value> locales,
+                                                      Handle<Value> options) {
+  // Try to use a cached instance when |locales| is either undefined or a
+  // string, and |options| is undefined.
+  if ((locales.isUndefined() || locales.isString()) && options.isUndefined()) {
+    Rooted<JSLinearString*> locale(cx);
+    if (locales.isString()) {
+      locale = locales.toString()->ensureLinear(cx);
+      if (!locale) {
+        return nullptr;
+      }
+    }
+    return cx->global()->globalIntlData().getOrCreateNumberFormat(cx, locale);
+  }
+
+  // Create a new Intl.NumberFormat instance.
+  return CreateNumberFormat(cx, locales, options);
+}
+
 void js::NumberFormatObject::finalize(JS::GCContext* gcx, JSObject* obj) {
   MOZ_ASSERT(gcx->onMainThread());
 
@@ -1080,6 +1120,16 @@ static bool NumberPart(JSContext* cx, JSLinearString* str,
   return true;
 }
 
+static JSString* FormattedResultToString(
+    JSContext* cx,
+    mozilla::Result<std::u16string_view, mozilla::intl::ICUError>& result) {
+  if (result.isErr()) {
+    intl::ReportInternalError(cx, result.unwrapErr());
+    return nullptr;
+  }
+  return NewStringCopy<CanGC>(cx, result.unwrap());
+}
+
 bool js::intl_FormatNumber(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   MOZ_ASSERT(args.length() == 3);
@@ -1163,12 +1213,7 @@ bool js::intl_FormatNumber(JSContext* cx, unsigned argc, Value* vp) {
     }
   }
 
-  if (result.isErr()) {
-    intl::ReportInternalError(cx, result.unwrapErr());
-    return false;
-  }
-
-  RootedString str(cx, NewStringCopy<CanGC>(cx, result.unwrap()));
+  RootedString str(cx, FormattedResultToString(cx, result));
   if (!str) {
     return false;
   }
@@ -1180,6 +1225,49 @@ bool js::intl_FormatNumber(JSContext* cx, unsigned argc, Value* vp) {
 
   args.rval().setString(str);
   return true;
+}
+
+JSString* js::intl::FormatNumber(JSContext* cx,
+                                 Handle<NumberFormatObject*> numberFormat,
+                                 double x) {
+  mozilla::intl::NumberFormat* nf = GetOrCreateNumberFormat(cx, numberFormat);
+  if (!nf) {
+    return nullptr;
+  }
+
+  auto result = nf->format(x);
+  return FormattedResultToString(cx, result);
+}
+
+JSString* js::intl::FormatBigInt(JSContext* cx,
+                                 Handle<NumberFormatObject*> numberFormat,
+                                 Handle<BigInt*> x) {
+  mozilla::intl::NumberFormat* nf = GetOrCreateNumberFormat(cx, numberFormat);
+  if (!nf) {
+    return nullptr;
+  }
+
+  int64_t num;
+  if (BigInt::isInt64(x, &num)) {
+    auto result = nf->format(num);
+    return FormattedResultToString(cx, result);
+  }
+
+  JSLinearString* str = BigInt::toString<CanGC>(cx, x, 10);
+  if (!str) {
+    return nullptr;
+  }
+  MOZ_RELEASE_ASSERT(str->hasLatin1Chars());
+
+  mozilla::Result<std::u16string_view, mozilla::intl::ICUError> result{
+      std::u16string_view{}};
+  {
+    JS::AutoCheckCannotGC nogc;
+
+    const char* chars = reinterpret_cast<const char*>(str->latin1Chars(nogc));
+    result = nf->format(std::string_view(chars, str->length()));
+  }
+  return FormattedResultToString(cx, result);
 }
 
 static JSLinearString* ToLinearString(JSContext* cx, HandleValue val) {
