@@ -11,10 +11,8 @@ support-files = [
 # Enable Linux after Bug 1310655 # TIMED_OUT for Android.
 
 ["test_vrDisplay_canvas2d.html"]
-# skip-if = (os != "win" && release_or_beta) # Enable Linux after Bug 1310655
 
 ["test_vrDisplay_exitPresent.html"]
-# skip-if = (os != "win" && release_or_beta) # Enable Linux after Bug 1310655
 
 ["test_vrDisplay_getFrameData.html"]
 # Enable Linux after Bug 1310655, enable Android after Bug 1348246

@@ -338,7 +338,6 @@ skip-if = [
 https_first_disabled = true
 
 ["browser_ext_originControls.js"]
-# skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt"] # Bug TBD
 
 ["browser_ext_originControls_internals.js"]
 

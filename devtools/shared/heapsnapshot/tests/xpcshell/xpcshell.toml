@@ -184,4 +184,3 @@ skip-if = [
 ["test_getReportLeaves_01.js"]
 
 ["test_saveHeapSnapshot_e10s_01.js"]
-# skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && socketprocess_networking"] # Bug TBD
