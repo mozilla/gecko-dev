@@ -78,7 +78,7 @@ add_task(async function remote_disable() {
   );
   Assert.ok(setDefaultStub.called, "Used plain set default instead");
 
-  doCleanup();
+  await doCleanup();
 });
 
 add_task(async function restore_default() {
