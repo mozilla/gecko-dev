@@ -382,6 +382,46 @@ class GeckoEngineSessionTest {
     }
 
     @Test
+    fun contentDelegateNotifiesObserverAboutDownloadsWithContentDisposition() {
+        val engineSession = GeckoEngineSession(
+            mock(),
+            geckoSessionProvider = geckoSessionProvider,
+            privateMode = true,
+        )
+
+        val observer: EngineSession.Observer = mock()
+        engineSession.register(observer)
+
+        val response = WebResponse.Builder("https://download.mozilla.org/anyfile.txt")
+            .addHeader(Headers.Names.CONTENT_TYPE, "image/png")
+            .addHeader(Headers.Names.CONTENT_LENGTH, "42")
+            .addHeader(Headers.Names.CONTENT_DISPOSITION, "attachment; filename=\"image%0Aimage.png\"\n")
+            .skipConfirmation(true)
+            .requestExternalApp(true)
+            .body(mock())
+            .build()
+
+        val captor = argumentCaptor<Response>()
+        captureDelegates()
+        contentDelegate.value.onExternalResponse(mock(), response)
+
+        verify(observer).onExternalResource(
+            url = eq("https://download.mozilla.org/anyfile.txt"),
+            fileName = eq("image image.png"),
+            contentLength = eq(42),
+            contentType = eq("image/png"),
+            cookie = eq(null),
+            userAgent = eq(null),
+            isPrivate = eq(true),
+            skipConfirmation = eq(true),
+            openInApp = eq(true),
+            response = captor.capture(),
+        )
+
+        assertNotNull(captor.value)
+    }
+
+    @Test
     fun contentDelegateNotifiesObserverAboutDownloadsWithMalformedContentLength() {
         val engineSession = GeckoEngineSession(
             mock(),

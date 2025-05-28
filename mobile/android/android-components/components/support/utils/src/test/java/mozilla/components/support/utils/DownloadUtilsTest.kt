@@ -53,6 +53,7 @@ class DownloadUtilsTest {
             assertContentDisposition("filename.jpg", "$contentDisposition; filename=filename.jpg")
             assertContentDisposition("filename.jpg", "$contentDisposition; filename=filename.jpg; foo")
             assertContentDisposition("filename.jpg", "$contentDisposition; filename=\"filename.jpg\"; foo")
+            assertContentDisposition("file\nname.jpg", "$contentDisposition; filename=\"file%0Aname.jpg\"; foo")
 
             // UTF-8 encoded filename* field
             assertContentDisposition(
