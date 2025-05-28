@@ -46,9 +46,15 @@ class nsHistory final : public nsISupports, public nsWrapperCache {
                             mozilla::ErrorResult& aRv);
   void GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
                 mozilla::ErrorResult& aRv) const;
-  void Go(int32_t aDelta, nsIPrincipal& aSubjectPrincipal,
+
+  MOZ_CAN_RUN_SCRIPT
+  void Go(JSContext* aCx, int32_t aDelta, mozilla::dom::CallerType aCallerType,
           mozilla::ErrorResult& aRv);
+
+  MOZ_CAN_RUN_SCRIPT
   void Back(mozilla::dom::CallerType aCallerType, mozilla::ErrorResult& aRv);
+
+  MOZ_CAN_RUN_SCRIPT
   void Forward(mozilla::dom::CallerType aCallerType, mozilla::ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT
@@ -73,6 +79,11 @@ class nsHistory final : public nsISupports, public nsWrapperCache {
                           mozilla::ErrorResult& aRv, bool aReplace);
 
   already_AddRefed<mozilla::dom::ChildSHistory> GetSessionHistory() const;
+
+  MOZ_CAN_RUN_SCRIPT
+  void DeltaTraverse(mozilla::Maybe<JSContext*> aCx, int32_t aDelta,
+                     mozilla::dom::CallerType aCallerType,
+                     mozilla::ErrorResult& aRv);
 
   nsWeakPtr mInnerWindow;
 };
