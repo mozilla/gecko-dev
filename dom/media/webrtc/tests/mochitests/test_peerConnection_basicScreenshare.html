@@ -38,10 +38,12 @@
   }
 
   runNetworkTest(async () => {
-    await SpecialPowers.pushPrefEnv({ set: [["media.navigator.video.red_ulpfec_enabled", true]] });
-    await SpecialPowers.pushPrefEnv({ set: [["media.navigator.video.disable_h264_baseline", false]] });
     let hasH264 = await matchPlatformH264CodecPrefs();
-    let hasAv1 = await matchPlatformAV1CodecPrefs();
+    await pushPrefs(
+      ["media.navigator.video.red_ulpfec_enabled", true],
+      ["media.navigator.video.disable_h264_baseline", false],
+      ["media.webrtc.codec.video.av1.enabled", true],
+    );
     const allPts = await supportedVideoPayloadTypes();
     const pts = {
       pts: allPts,
@@ -56,9 +58,7 @@
     };
     ok(pts.take("120"), "VP8 is supported");
     ok(pts.take("121"), "VP9 is supported");
-    if (hasAv1.any) {
-      ok(pts.take("99"), "AV1 is supported");
-    }
+    ok(pts.take("99"), "AV1 is supported");
     if (hasH264.any) {
       ok(pts.take("97"), "H264 with no packetization-mode is supported");
       ok(pts.take("126"), "H264 with packetization-mode=1 is supported");

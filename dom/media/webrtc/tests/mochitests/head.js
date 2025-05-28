@@ -477,18 +477,6 @@ async function matchPlatformH264CodecPrefs() {
   };
 }
 
-async function matchPlatformAV1CodecPrefs() {
-  // Has hardware AV1 encoder support
-  const hardware = false;
-  const software = !navigator.userAgent.includes("Android");
-  await pushPrefs(["media.webrtc.codec.video.av1.enabled", software]);
-  return {
-    hardware,
-    software,
-    any: hardware || software,
-  };
-}
-
 async function runTestWhenReady(testFunc) {
   setupEnvironment();
   const options = await testConfigured;

@@ -139,13 +139,6 @@
             );
           }
         }
-        if (codec.name == "AV1" ) {
-          const hasAv1 = await matchPlatformAV1CodecPrefs();
-          if (!hasAv1.software && !hasAv1.hardware) {
-            info("Skipping AV1 test as no AV1 codec is available");
-            continue;
-          }
-        }
         await testVideoCodec(options, codec);
         await pushPrefs(
           ['media.webrtc.encoder_creation_strategy', enc],
