@@ -271,6 +271,138 @@ add_task(async function testSyncScheduledWhileSyncing() {
   svc.sync = origSync;
 });
 
+add_task(async function testTelemetrySentOnDialogAccept() {
+  Services.fog.testResetFOG();
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["services.sync.engine.addons", true],
+      ["services.sync.engine.bookmarks", false],
+      ["services.sync.engine.history", false],
+      ["services.sync.engine.tabs", false],
+      ["services.sync.engine.prefs", true],
+      ["services.sync.engine.passwords", true],
+      ["services.sync.engine.addresses", false],
+      ["services.sync.engine.creditcards", true],
+
+      ["identity.fxaccounts.enabled", true],
+    ],
+  });
+
+  const expectedEngineSettings = {
+    "services.sync.engine.addons": false,
+    "services.sync.engine.bookmarks": true,
+    "services.sync.engine.history": true,
+    "services.sync.engine.tabs": true,
+    "services.sync.engine.prefs": false,
+    "services.sync.engine.passwords": false,
+    "services.sync.engine.addresses": true,
+    "services.sync.engine.creditcards": false,
+  };
+
+  await openPreferencesViaOpenPreferencesAPI("paneGeneral", {
+    leaveOpen: true,
+  });
+
+  // This will check if the callback was actually called during the test
+  let callbackCalled = false;
+
+  // Enabling all the sync UI is painful in tests, so we just open the dialog manually
+  let syncWindow = await openAndLoadSubDialog(
+    "chrome://browser/content/preferences/dialogs/syncChooseWhatToSync.xhtml",
+    null,
+    {},
+    async () => {
+      var expectedEnabledEngines = [];
+      var expectedDisabledEngines = [];
+
+      for (const [prefKey, prefValue] of Object.entries(
+        expectedEngineSettings
+      )) {
+        Assert.equal(
+          Services.prefs.getBoolPref(prefKey),
+          prefValue,
+          `${prefValue} is expected value`
+        );
+
+        // Splitting engine settings by enablement to make it easier to test.
+        let engineName = prefKey.replace("services.sync.engine.", "");
+        if (prefValue === true) {
+          expectedEnabledEngines.push(engineName);
+        } else {
+          expectedDisabledEngines.push(engineName);
+        }
+      }
+      callbackCalled = true;
+
+      const actual = await Glean.syncSettings.save.testGetValue()[0];
+      const expectedCategory = "sync_settings";
+      const expectedName = "save";
+      const actualEnabledEngines = actual.extra.enabled_engines.split(",");
+      const actualDisabledEngines = actual.extra.disabled_engines.split(",");
+
+      Assert.equal(
+        actual.category,
+        expectedCategory,
+        `telemetry category is ${expectedCategory}`
+      );
+      Assert.equal(
+        actual.name,
+        expectedName,
+        `telemetry name is ${expectedName}`
+      );
+      Assert.equal(
+        actualEnabledEngines.length,
+        expectedEnabledEngines.length,
+        `reported ${expectedEnabledEngines.length} engines enabled`
+      );
+      Assert.equal(
+        actualDisabledEngines.length,
+        expectedDisabledEngines.length,
+        `reported ${expectedDisabledEngines.length} engines disabled`
+      );
+
+      actualEnabledEngines.forEach(engine => {
+        Assert.ok(
+          expectedEnabledEngines.includes(engine),
+          `reported enabled engines should include ${engine} engine`
+        );
+      });
+
+      actualDisabledEngines.forEach(engine => {
+        Assert.ok(
+          expectedDisabledEngines.includes(engine),
+          `reported disabled engines should include ${engine} engine`
+        );
+      });
+    }
+  );
+
+  Assert.ok(syncWindow, "Choose what to sync window opened");
+  let syncChooseDialog =
+    syncWindow.document.getElementById("syncChooseOptions");
+  let syncCheckboxes = syncChooseDialog.querySelectorAll(
+    "checkbox[preference]"
+  );
+
+  [...syncCheckboxes].forEach(checkbox => {
+    // Setting the UI to match the predefined engine settings.
+    if (
+      expectedEngineSettings[checkbox.getAttribute("preference")] !==
+      checkbox.checked
+    ) {
+      checkbox.click();
+    }
+  });
+
+  syncChooseDialog.acceptDialog();
+
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  Assert.ok(callbackCalled, "Accept callback was called");
+
+  await SpecialPowers.popPrefEnv();
+});
+
 async function runWithCWTSDialog(test) {
   await openPreferencesViaOpenPreferencesAPI("paneSync", { leaveOpen: true });
 

@@ -154,3 +154,12 @@ sync_settings:
     notification_emails:
       - sync-dev@mozilla.org
     expires: never
+    extra_keys:
+      enabled_engines:
+        description: |
+          A comma-delimited list of engines that were enabled by the user.
+        type: string
+      disabled_engines:
+        description: |
+          A comma-delimited list of engines that were disabled by the user.
+        type: string
