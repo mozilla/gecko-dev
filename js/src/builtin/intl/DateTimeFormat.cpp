@@ -198,20 +198,6 @@ static bool MozDateTimeFormat(JSContext* cx, unsigned argc, Value* vp) {
                         DateTimeFormatOptions::EnableMozExtensions);
 }
 
-bool js::intl_CreateDateTimeFormat(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 4);
-  MOZ_ASSERT(!args.isConstructing());
-
-  RootedString required(cx, args[2].toString());
-  RootedString defaults(cx, args[3].toString());
-
-  // intl_CreateDateTimeFormat is an intrinsic for self-hosted JavaScript, so it
-  // cannot be used with "new", but it still has to be treated as a constructor.
-  return DateTimeFormat(cx, args, true, required, defaults,
-                        DateTimeFormatOptions::Standard);
-}
-
 static Handle<PropertyName*> ToRequired(JSContext* cx,
                                         DateTimeFormatKind kind) {
   switch (kind) {

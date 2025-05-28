@@ -301,10 +301,6 @@ template <typename CharT>
   return d;
 }
 
-[[nodiscard]] extern bool ThisNumberValueForToLocaleString(JSContext* cx,
-                                                           unsigned argc,
-                                                           Value* vp);
-
 [[nodiscard]] extern bool num_valueOf(JSContext* cx, unsigned argc, Value* vp);
 
 static inline bool IsNumberIndex(const Value& v) {

@@ -260,8 +260,6 @@
   _(IntrinsicTypedArrayByteOffset)                 \
   _(IntrinsicTypedArrayElementSize)                \
                                                    \
-  _(IntrinsicThisTimeValue)                        \
-                                                   \
   INLINABLE_EXPLICIT_RESOURCE_MANAGEMENENT_LIST(_) \
   INLINABLE_NATIVE_FUZZILLI_LIST(_)                \
   INLINABLE_NATIVE_ITERATOR_RANGE_LIST(_)

@@ -589,8 +589,6 @@ selfhosted_inputs = [
     "builtin/Array.js",
     "builtin/AsyncFunction.js",
     "builtin/AsyncIteration.js",
-    "builtin/BigInt.js",
-    "builtin/Date.js",
     "builtin/Error.js",
     "builtin/Generator.js",
     "builtin/Iterator.js",

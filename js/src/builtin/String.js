@@ -827,46 +827,6 @@ function StringIteratorNext() {
 SetIsInlinableLargeFunction(StringIteratorNext);
 
 #if JS_HAS_INTL_API
-var collatorCache = new_Record();
-
-/**
- * Compare this String against that String, using the locale and collation
- * options provided.
- *
- * Spec: ECMAScript Internationalization API Specification, 13.1.1.
- */
-function String_localeCompare(that) {
-  // Step 1.
-  if (IsNullOrUndefined(this)) {
-    ThrowIncompatibleMethod("localeCompare", this);
-  }
-
-  // Steps 2-3.
-  var S = ToString(this);
-  var That = ToString(that);
-
-  // Steps 4-5.
-  var locales = ArgumentsLength() > 1 ? GetArgument(1) : undefined;
-  var options = ArgumentsLength() > 2 ? GetArgument(2) : undefined;
-
-  // Step 6.
-  var collator;
-  if (locales === undefined && options === undefined) {
-    // This cache only optimizes for the old ES5 localeCompare without
-    // locales and options.
-    if (!intl_IsRuntimeDefaultLocale(collatorCache.runtimeDefaultLocale)) {
-      collatorCache.collator = intl_Collator(locales, options);
-      collatorCache.runtimeDefaultLocale = intl_RuntimeDefaultLocale();
-    }
-    collator = collatorCache.collator;
-  } else {
-    collator = intl_Collator(locales, options);
-  }
-
-  // Step 7.
-  return intl_CompareStrings(collator, S, That);
-}
-
 /**
  * 13.1.2 String.prototype.toLocaleLowerCase ( [ locales ] )
  *

@@ -799,7 +799,7 @@ class MOZ_RAII InlinableNativeIRGenerator {
   AttachDecision tryAttachMapGet();
   AttachDecision tryAttachMapDelete();
   AttachDecision tryAttachMapSet();
-  AttachDecision tryAttachDateGetTime(InlinableNative native);
+  AttachDecision tryAttachDateGetTime();
   AttachDecision tryAttachDateGet(DateComponent component);
 #ifdef FUZZING_JS_FUZZILLI
   AttachDecision tryAttachFuzzilliHash();

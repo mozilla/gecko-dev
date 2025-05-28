@@ -57,14 +57,6 @@ class CollatorObject : public NativeObject {
 };
 
 /**
- * Returns a new instance of the standard built-in Collator constructor.
- *
- * Usage: collator = intl_Collator(locales, options)
- */
-[[nodiscard]] extern bool intl_Collator(JSContext* cx, unsigned argc,
-                                        JS::Value* vp);
-
-/**
  * Returns an array with the collation type identifiers per Unicode
  * Technical Standard 35, Unicode Locale Data Markup Language, for the
  * collations supported for the given locale. "standard" and "search" are

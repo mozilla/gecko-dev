@@ -104,8 +104,9 @@ const ClassSpec CollatorObject::classSpec_ = {
  *
  * ES2017 Intl draft rev 94045d234762ad107a3d09bb6f7381a65f1a2f9b
  */
-static bool Collator(JSContext* cx, const CallArgs& args) {
+static bool Collator(JSContext* cx, unsigned argc, Value* vp) {
   AutoJSConstructorProfilerEntry pseudoFrame(cx, "Intl.Collator");
+  CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1 (Handled by OrdinaryCreateFromConstructor fallback code).
 
@@ -132,19 +133,6 @@ static bool Collator(JSContext* cx, const CallArgs& args) {
 
   args.rval().setObject(*collator);
   return true;
-}
-
-static bool Collator(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return Collator(cx, args);
-}
-
-bool js::intl_Collator(JSContext* cx, unsigned argc, Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-  MOZ_ASSERT(args.length() == 2);
-  MOZ_ASSERT(!args.isConstructing());
-
-  return Collator(cx, args);
 }
 
 CollatorObject* js::intl::CreateCollator(JSContext* cx, Handle<Value> locales,

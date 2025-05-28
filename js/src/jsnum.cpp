@@ -723,21 +723,6 @@ static bool ThisNumberValue(JSContext* cx, const CallArgs& args,
   return true;
 }
 
-// On-off helper function for the self-hosted Number_toLocaleString method.
-// This only exists to produce an error message with the right method name.
-bool js::ThisNumberValueForToLocaleString(JSContext* cx, unsigned argc,
-                                          Value* vp) {
-  CallArgs args = CallArgsFromVp(argc, vp);
-
-  double d;
-  if (!ThisNumberValue(cx, args, "toLocaleString", &d)) {
-    return false;
-  }
-
-  args.rval().setNumber(d);
-  return true;
-}
-
 static bool num_toSource(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 

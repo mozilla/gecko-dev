@@ -10804,33 +10804,22 @@ AttachDecision InlinableNativeIRGenerator::tryAttachMapSet() {
   return AttachDecision::Attach;
 }
 
-AttachDecision InlinableNativeIRGenerator::tryAttachDateGetTime(
-    InlinableNative native) {
+AttachDecision InlinableNativeIRGenerator::tryAttachDateGetTime() {
   // Ensure |this| is a DateObject.
   if (!thisval_.isObject() || !thisval_.toObject().is<DateObject>()) {
     return AttachDecision::NoAction;
   }
 
-  if (native == InlinableNative::DateGetTime) {
-    // Expecting no arguments.
-    if (args_.length() != 0) {
-      return AttachDecision::NoAction;
-    }
-  } else {
-    MOZ_ASSERT(args_.length() == 1 && args_[0].isInt32());
+  // Expecting no arguments.
+  if (args_.length() != 0) {
+    return AttachDecision::NoAction;
   }
 
   // Initialize the input operand.
   Int32OperandId argcId = initializeInputOperand();
 
-  ObjOperandId calleeId;
-  if (native == InlinableNative::DateGetTime) {
-    // Guard callee is the 'getTime' (or 'valueOf') native function.
-    calleeId = emitNativeCalleeGuard(argcId);
-  } else {
-    // Note: we don't need to call emitNativeCalleeGuard for intrinsics.
-    MOZ_ASSERT(native == InlinableNative::IntrinsicThisTimeValue);
-  }
+  // Guard callee is the 'getTime' (or 'valueOf') native function.
+  ObjOperandId calleeId = emitNativeCalleeGuard(argcId);
 
   // Guard |this| is a DateObject.
   ValOperandId thisValId = loadThis(calleeId);
@@ -10842,8 +10831,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachDateGetTime(
 
   writer.returnFromIC();
 
-  trackAttached(native == InlinableNative::DateGetTime ? "DateGetTime"
-                                                       : "ThisTimeValue");
+  trackAttached("DateGetTime");
   return AttachDecision::Attach;
 }
 
@@ -12627,8 +12615,7 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStub() {
 
     // Date natives and intrinsics.
     case InlinableNative::DateGetTime:
-    case InlinableNative::IntrinsicThisTimeValue:
-      return tryAttachDateGetTime(native);
+      return tryAttachDateGetTime();
     case InlinableNative::DateGetFullYear:
       return tryAttachDateGet(DateComponent::FullYear);
     case InlinableNative::DateGetMonth:
