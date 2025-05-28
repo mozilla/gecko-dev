@@ -1,5 +1,8 @@
 "use strict";
 
+/* import-globals-from ../../../../../toolkit/profile/test/xpcshell/head.js */
+/* import-globals-from ../../../../../browser/components/profiles/tests/unit/head.js */
+
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -23,8 +26,19 @@ ChromeUtils.defineESModuleGetters(this, {
 
 NimbusTestUtils.init(this);
 
-add_setup(function () {
+add_setup(async function () {
   do_get_profile();
+
+  await initSelectableProfileService();
+
+  // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
+  Services.prefs.setBoolPref("nimbus.profilesdatastoreservice.enabled", true);
+  registerCleanupFunction(() => {
+    Services.prefs.setBoolPref(
+      "nimbus.profilesdatastoreservice.enabled",
+      false
+    );
+  });
 });
 
 /**

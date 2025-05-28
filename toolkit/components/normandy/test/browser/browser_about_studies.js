@@ -22,6 +22,8 @@ const { NormandyTestUtils } = ChromeUtils.importESModule(
 const { addonStudyFactory, preferenceStudyFactory } =
   NormandyTestUtils.factories;
 
+NimbusTestUtils.init(this);
+
 function withAboutStudies() {
   return function (testFunc) {
     return async args =>
@@ -708,9 +710,8 @@ add_task(async function test_nimbus_about_studies_experiment() {
       );
     }
   );
-  // Cleanup for multiple test runs
-  ExperimentAPI.manager.store._deleteForTests(recipe.slug);
-  Assert.equal(ExperimentAPI.manager.store.getAll().length, 0, "Cleanup done");
+
+  await NimbusTestUtils.assert.storeIsEmpty(ExperimentAPI.manager.store);
 });
 
 add_task(async function test_nimbus_about_studies_rollout() {
@@ -777,7 +778,7 @@ add_task(async function test_nimbus_about_studies_rollout() {
     }
   );
   // Cleanup for multiple test runs
-  ExperimentAPI.manager.store._deleteForTests(rollout.slug);
+  await NimbusTestUtils.assert.storeIsEmpty(ExperimentAPI.manager.store);
   Services.prefs.clearUserPref("nimbus.debug");
 });
 
@@ -859,95 +860,93 @@ add_task(async function test_forceEnroll() {
     }
   );
 
-  add_task(async function test_inactive_rollouts_under_completed_studies() {
-    // Adds an active experiment and rollout
-    const experiment = NimbusTestUtils.factories.recipe(
-      "my-testing-experiment"
-    );
-    const rollout = NimbusTestUtils.factories.recipe("my-testing-rollout", {
-      isRollout: true,
-    });
+  NimbusTestUtils.assert.storeIsEmpty(ExperimentAPI.manager.store);
+  sandbox.restore();
+});
 
-    // Enrolls in the experiment and rollout
-    await ExperimentAPI.manager.enroll(experiment, "test");
-    await ExperimentAPI.manager.enroll(rollout, "test");
-
-    // Checks about:studies to ensure they are both in the active section
-    await BrowserTestUtils.withNewTab(
-      { gBrowser, url: "about:studies" },
-      async browser => {
-        const activeListItems = await SpecialPowers.spawn(
-          browser,
-          [],
-          async () => {
-            await ContentTaskUtils.waitForCondition(
-              () => content.document.querySelector(".nimbus .remove-button"),
-              "waiting for page to load"
-            );
-            return Array.from(
-              content.document.querySelectorAll("ul.active-study-list li")
-            ).map(el => el.dataset.studySlug);
-          }
-        );
-
-        Assert.ok(
-          activeListItems.includes(experiment.slug),
-          "active list should include enrolled experiment"
-        );
-        Assert.ok(
-          activeListItems.includes(rollout.slug),
-          "active list should include enrolled rollout"
-        );
-        Assert.equal(
-          activeListItems.length,
-          2,
-          "should be 2 elements in active list"
-        );
-      }
-    );
-
-    // Unenrolls from the experiment and rollout
-    await ExperimentAPI.manager.unenroll(experiment.slug);
-    await ExperimentAPI.manager.unenroll(rollout.slug);
-
-    // Checks about:studies to ensure they are both in the inactive section
-    await BrowserTestUtils.withNewTab(
-      { gBrowser, url: "about:studies" },
-      async browser => {
-        const inactiveListItems = await SpecialPowers.spawn(
-          browser,
-          [],
-          async () => {
-            await ContentTaskUtils.waitForCondition(
-              () => content.document.querySelector(".nimbus.disabled"),
-              "waiting for the experiment to become disabled"
-            );
-            return Array.from(
-              content.document.querySelectorAll("ul.inactive-study-list li")
-            ).map(el => el.dataset.studySlug);
-          }
-        );
-
-        Assert.ok(
-          inactiveListItems.includes(experiment.slug),
-          "inactive list should include unenrolled experiment"
-        );
-        Assert.ok(
-          inactiveListItems.includes(rollout.slug),
-          "inactive list should include unenrolled rollout"
-        );
-        Assert.equal(
-          inactiveListItems.length,
-          2,
-          "should be 2 items in inactive list"
-        );
-      }
-    );
-
-    // Cleanup for multiple test runs
-    ExperimentAPI.manager.store._deleteForTests(experiment.slug);
-    ExperimentAPI.manager.store._deleteForTests(rollout.slug);
+add_task(async function test_inactive_rollouts_under_completed_studies() {
+  // Adds an active experiment and rollout
+  const experiment = NimbusTestUtils.factories.recipe("my-testing-experiment");
+  const rollout = NimbusTestUtils.factories.recipe("my-testing-rollout", {
+    isRollout: true,
   });
 
-  sandbox.restore();
+  // Enrolls in the experiment and rollout
+  await ExperimentAPI.manager.enroll(experiment, "test");
+  await ExperimentAPI.manager.enroll(rollout, "test");
+
+  // Checks about:studies to ensure they are both in the active section
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:studies" },
+    async browser => {
+      const activeListItems = await SpecialPowers.spawn(
+        browser,
+        [],
+        async () => {
+          await ContentTaskUtils.waitForCondition(
+            () => content.document.querySelector(".nimbus .remove-button"),
+            "waiting for page to load"
+          );
+          return Array.from(
+            content.document.querySelectorAll("ul.active-study-list li")
+          ).map(el => el.dataset.studySlug);
+        }
+      );
+
+      Assert.ok(
+        activeListItems.includes(experiment.slug),
+        "active list should include enrolled experiment"
+      );
+      Assert.ok(
+        activeListItems.includes(rollout.slug),
+        "active list should include enrolled rollout"
+      );
+      Assert.equal(
+        activeListItems.length,
+        2,
+        "should be 2 elements in active list"
+      );
+    }
+  );
+
+  // Unenrolls from the experiment and rollout
+  await ExperimentAPI.manager.unenroll(experiment.slug);
+  await ExperimentAPI.manager.unenroll(rollout.slug);
+
+  // Checks about:studies to ensure they are both in the inactive section
+  await BrowserTestUtils.withNewTab(
+    { gBrowser, url: "about:studies" },
+    async browser => {
+      const inactiveListItems = await SpecialPowers.spawn(
+        browser,
+        [],
+        async () => {
+          await ContentTaskUtils.waitForCondition(
+            () => content.document.querySelector(".nimbus.disabled"),
+            "waiting for the experiment to become disabled"
+          );
+          return Array.from(
+            content.document.querySelectorAll("ul.inactive-study-list li")
+          ).map(el => el.dataset.studySlug);
+        }
+      );
+
+      Assert.ok(
+        inactiveListItems.includes(experiment.slug),
+        "inactive list should include unenrolled experiment"
+      );
+      Assert.ok(
+        inactiveListItems.includes(rollout.slug),
+        "inactive list should include unenrolled rollout"
+      );
+      Assert.equal(
+        inactiveListItems.length,
+        2,
+        "should be 2 items in inactive list"
+      );
+    }
+  );
+
+  // Cleanup for multiple test runs
+  await NimbusTestUtils.assert.storeIsEmpty(ExperimentAPI.manager.store);
 });
