@@ -111,7 +111,7 @@ class ChannelMediaDecoder
     // the first uncached byte after the decoder position.
     int64_t mDownloadPosition;
     // Current position of playback, in bytes
-    int64_t mPlaybackPosition;
+    int64_t mPlaybackByteOffset;
     // If false, then mDownloadRate cannot be considered a reliable
     // estimate (probably because the download has only been running
     // a short time).
@@ -171,11 +171,10 @@ class ChannelMediaDecoder
   // time of the last decoded video frame).
   MediaChannelStatistics mPlaybackStatistics;
 
-  // Current playback position in the stream. This is (approximately)
-  // where we're up to playing back the stream. This is not adjusted
-  // during decoder seek operations, but it's updated at the end when we
-  // start playing back again.
-  int64_t mPlaybackPosition = 0;
+  // Current playback byte offset in the stream. This is (approximately)
+  // where we're up to playing back the stream. This is not adjusted immediately
+  // after seek happens, but it will be updated when playback starts or stops.
+  int64_t mPlaybackByteOffset = 0;
 
   bool mCanPlayThrough = false;
 

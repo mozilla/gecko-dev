@@ -346,19 +346,19 @@ void ChannelMediaDecoder::OnPlaybackEvent(MediaPlaybackEvent&& aEvent) {
   MOZ_ASSERT(NS_IsMainThread());
   switch (aEvent.mType) {
     case MediaPlaybackEvent::PlaybackStarted:
-      mPlaybackPosition = aEvent.mData.as<int64_t>();
+      mPlaybackByteOffset = aEvent.mData.as<int64_t>();
       mPlaybackStatistics.Start();
       break;
     case MediaPlaybackEvent::PlaybackProgressed: {
       int64_t newPos = aEvent.mData.as<int64_t>();
-      mPlaybackStatistics.AddBytes(newPos - mPlaybackPosition);
-      mPlaybackPosition = newPos;
+      mPlaybackStatistics.AddBytes(newPos - mPlaybackByteOffset);
+      mPlaybackByteOffset = newPos;
       break;
     }
     case MediaPlaybackEvent::PlaybackStopped: {
       int64_t newPos = aEvent.mData.as<int64_t>();
-      mPlaybackStatistics.AddBytes(newPos - mPlaybackPosition);
-      mPlaybackPosition = newPos;
+      mPlaybackStatistics.AddBytes(newPos - mPlaybackByteOffset);
+      mPlaybackByteOffset = newPos;
       mPlaybackStatistics.Stop();
       break;
     }
@@ -396,7 +396,7 @@ void ChannelMediaDecoder::DownloadProgressed() {
               [playbackStats = mPlaybackStatistics,
                res = RefPtr<BaseMediaResource>(mResource),
                duration = mDuration.match(DurationToTimeUnit()),
-               pos = mPlaybackPosition]() {
+               pos = mPlaybackByteOffset]() {
                 auto rateInfo = UpdateResourceOfPlaybackByteRate(
                     playbackStats, res, duration);
                 return StatsPromise::CreateAndResolve(
@@ -464,7 +464,7 @@ ChannelMediaDecoder::MediaStatistics ChannelMediaDecoder::GetStatistics(
   result.mTotalBytes = aRes->GetLength();
   result.mPlaybackRate = aInfo.mRate;
   result.mPlaybackRateReliable = aInfo.mReliable;
-  result.mPlaybackPosition = aPlaybackPosition;
+  result.mPlaybackByteOffset = aPlaybackPosition;
   return result;
 }
 
@@ -589,7 +589,7 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
       "bytes: {}, download position: {}, playback position: {}, download rate "
       "reliable: {}, playback rate reliable: {}",
       mPlaybackRate, mDownloadRate, mTotalBytes, mDownloadPosition,
-      mPlaybackPosition, mDownloadRateReliable, mPlaybackRateReliable);
+      mPlaybackByteOffset, mDownloadRateReliable, mPlaybackRateReliable);
 
   if ((mTotalBytes < 0 && mDownloadByteRateReliable) ||
       (mTotalBytes >= 0 && mTotalBytes == mDownloadBytePosition)) {
@@ -632,7 +632,7 @@ nsCString ChannelMediaDecoder::MediaStatistics::ToString() const {
   str.AppendPrintf("MediaStatistics: ");
   str.AppendPrintf(" mTotalBytes=%" PRId64, mTotalBytes);
   str.AppendPrintf(" mDownloadPosition=%" PRId64, mDownloadPosition);
-  str.AppendPrintf(" mPlaybackPosition=%" PRId64, mPlaybackPosition);
+  str.AppendPrintf(" mPlaybackByteOffset=%" PRId64, mPlaybackByteOffset);
   str.AppendPrintf(" mDownloadRate=%f", mDownloadRate);
   str.AppendPrintf(" mPlaybackRate=%f", mPlaybackRate);
   str.AppendPrintf(" mDownloadRateReliable=%d", mDownloadRateReliable);
