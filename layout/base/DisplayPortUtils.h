@@ -280,6 +280,15 @@ class DisplayPortUtils {
       ScrollContainerFrame* aScrollContainerFrame, RepaintMode aRepaintMode);
 
   /**
+   * Step up one frame in the async scrollable ancestor chain, to be used in
+   * conjunction with GetAsyncScrollableAncestorFrame to walk the async
+   * scrollable ancestor chain. Note this doesn't go from one async scrollable
+   * frame to the next. Rather this walks all frame types, taking only one
+   * ancestor step per call.
+   */
+  static nsIFrame* OneStepInAsyncScrollableAncestorChain(nsIFrame* aFrame);
+
+  /**
    * Sets a zero margin display port on all proper ancestors of aFrame that
    * are async scrollable.
    */

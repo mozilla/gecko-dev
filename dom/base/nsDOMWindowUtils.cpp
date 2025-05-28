@@ -3094,7 +3094,7 @@ static nsTArray<ScrollContainerFrame*> CollectScrollableAncestors(
   nsTArray<ScrollContainerFrame*> result;
   nsIFrame* frame = aStart;
   while (frame) {
-    frame = nsLayoutUtils::GetCrossDocParentFrame(frame);
+    frame = DisplayPortUtils::OneStepInAsyncScrollableAncestorChain(frame);
     if (!frame) {
       break;
     }
