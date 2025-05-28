@@ -134,7 +134,6 @@ class Navigation final : public DOMEventTargetHelper {
       JSContext* aCx, JS::Handle<JS::Value> aError = JS::UndefinedHandleValue);
 
  private:
-  friend struct NavigationAPIMethodTracker;
   using UpcomingTraverseAPIMethodTrackers =
       nsTHashMap<nsIDHashKey, RefPtr<NavigationAPIMethodTracker>>;
 

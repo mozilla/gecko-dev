@@ -62,44 +62,6 @@ struct NavigationAPIMethodTracker final : public nsISupports {
     mozilla::HoldJSObjects(this);
   }
 
-  // https://html.spec.whatwg.org/#navigation-api-method-tracker-clean-up
-  void CleanUp() { Navigation::CleanUp(this); }
-
-  // https://html.spec.whatwg.org/#notify-about-the-committed-to-entry
-  void NotifyAboutCommittedToEntry(NavigationHistoryEntry* aNHE) {
-    // Step 1
-    mCommittedToEntry = aNHE;
-    if (mSerializedState) {
-      // Step 2
-      aNHE->SetState(
-          static_cast<nsStructuredCloneContainer*>(mSerializedState.get()));
-      // At this point, apiMethodTracker's serialized state is no longer needed.
-      // We drop it do now for efficiency.
-      mSerializedState = nullptr;
-    }
-    mCommittedPromise->MaybeResolve(aNHE);
-  }
-
-  // https://html.spec.whatwg.org/#resolve-the-finished-promise
-  void ResolveFinishedPromise() {
-    // Step 1
-    MOZ_DIAGNOSTIC_ASSERT(mCommittedToEntry);
-    // Step 2
-    mFinishedPromise->MaybeResolve(mCommittedToEntry);
-    // Step 3
-    CleanUp();
-  }
-
-  // https://html.spec.whatwg.org/#reject-the-finished-promise
-  void RejectFinishedPromise(JS::Handle<JS::Value> aException) {
-    // Step 1
-    mCommittedPromise->MaybeReject(aException);
-    // Step 2
-    mFinishedPromise->MaybeReject(aException);
-    // Step 3
-    CleanUp();
-  }
-
   RefPtr<Navigation> mNavigationObject;
   Maybe<nsID> mKey;
   JS::Heap<JS::Value> mInfo;
@@ -296,11 +258,7 @@ void Navigation::UpdateEntriesForSameDocumentNavigation(
       break;
   }
 
-  // Step 8.
-  if (mOngoingAPIMethodTracker) {
-    RefPtr<NavigationHistoryEntry> currentEntry = GetCurrentEntry();
-    mOngoingAPIMethodTracker->NotifyAboutCommittedToEntry(currentEntry);
-  }
+  // TODO: Step 8.
 
   // Steps 9-12.
   {
@@ -756,15 +714,11 @@ bool Navigation::InnerFireNavigateEvent(
                        (aDestination->SameDocument() ||
                         aNavigationType != NavigationType::Traverse);
 
-  // Step 10
-  bool traverseCanBeCanceled =
+  // Step 10 and step 11
+  init.mCancelable =
       navigable->IsTop() && aDestination->SameDocument() &&
       (aUserInvolvement != UserNavigationInvolvement::BrowserUI ||
        HasHistoryActionActivation(ToMaybeRef(GetOwnerWindow())));
-
-  // Step 11
-  init.mCancelable =
-      aNavigationType != NavigationType::Traverse || traverseCanBeCanceled;
 
   // Step 13
   init.mNavigationType = aNavigationType;
@@ -776,9 +730,7 @@ bool Navigation::InnerFireNavigateEvent(
   init.mDownloadRequest = aDownloadRequestFilename;
 
   // Step 16
-  if (apiMethodTracker) {
-    init.mInfo = apiMethodTracker->mInfo;
-  }
+  // init.mInfo = std::move(apiMethodTracker->mInfo);
 
   // Step 17
   init.mHasUAVisualTransition =
@@ -816,7 +768,7 @@ bool Navigation::InnerFireNavigateEvent(
   // step 2 of #fire-a-traverse-navigate-event,
   // #fire-a-push/replace/reload-navigate-event, or
   // #fire-a-download-request-navigate-event, but there's no reason to not
-  // delay it until here. This also performs step 12.
+  // delay it until here.
   RefPtr<NavigateEvent> event = NavigateEvent::Constructor(
       this, u"navigate"_ns, init, aClassicHistoryAPIState, abortController);
   // Here we're running #concept-event-create from https://dom.spec.whatwg.org/
@@ -952,7 +904,7 @@ bool Navigation::InnerFireNavigateEvent(
 
               // Step 7
               if (apiMethodTracker) {
-                apiMethodTracker->ResolveFinishedPromise();
+                apiMethodTracker->mFinishedPromise->MaybeResolveWithUndefined();
               }
 
               // Step 8
@@ -1015,7 +967,7 @@ bool Navigation::InnerFireNavigateEvent(
 
   // Step 35
   if (apiMethodTracker) {
-    apiMethodTracker->CleanUp();
+    CleanUp(apiMethodTracker);
   }
 
   // Step 37 and step 38
@@ -1123,7 +1075,7 @@ void Navigation::AbortOngoingNavigation(JSContext* aCx,
 
   // Step 11
   if (mOngoingAPIMethodTracker) {
-    mOngoingAPIMethodTracker->RejectFinishedPromise(error);
+    mOngoingAPIMethodTracker->mFinishedPromise->MaybeReject(error);
   }
 
   // Step 12
