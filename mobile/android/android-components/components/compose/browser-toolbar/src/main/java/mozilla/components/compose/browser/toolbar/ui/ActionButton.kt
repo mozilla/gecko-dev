@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -38,15 +39,18 @@ import mozilla.components.ui.icons.R
  *
  * @param icon Drawable resource for this button.
  * @param contentDescription Text used by accessibility services to describe what this button does.
+ * @param isActive Whether or not to show this button as a currently active feature.
  * @param highlighted Whether or not to highlight this button.
  * @param onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
  * @param onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button being long clicked.
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
+@Suppress("LongMethod")
 fun ActionButton(
     @DrawableRes icon: Int,
     @StringRes contentDescription: Int,
+    isActive: Boolean = false,
     highlighted: Boolean = false,
     onClick: BrowserToolbarInteraction,
     onLongClick: BrowserToolbarInteraction? = null,
@@ -56,6 +60,13 @@ fun ActionButton(
         onLongClick != null
     }
     var currentMenuState by remember { mutableStateOf(None) }
+    val colors = AcornTheme.colors
+    val tint = remember(isActive, colors) {
+        when (isActive) {
+            true -> colors.iconAccentViolet
+            false -> colors.iconPrimary
+        }
+    }
 
     val handleInteraction: (BrowserToolbarInteraction) -> Unit = { interaction ->
         when (interaction) {
@@ -87,7 +98,7 @@ fun ActionButton(
             contentDescription = stringResource(contentDescription),
         ) {
             Box {
-                ActionButtonIcon(icon)
+                ActionButtonIcon(icon, tint)
                 if (highlighted) {
                     DotHighlight(
                         modifier = Modifier.align(Alignment.BottomEnd),
@@ -109,7 +120,7 @@ fun ActionButton(
             contentDescription = stringResource(contentDescription),
         ) {
             Box {
-                ActionButtonIcon(icon)
+                ActionButtonIcon(icon, tint)
                 if (highlighted) {
                     DotHighlight(
                         modifier = Modifier.align(Alignment.BottomEnd),
@@ -129,11 +140,14 @@ fun ActionButton(
 }
 
 @Composable
-private fun ActionButtonIcon(@DrawableRes icon: Int) {
+private fun ActionButtonIcon(
+    @DrawableRes icon: Int,
+    tint: Color,
+) {
     Icon(
         painter = painterResource(icon),
         contentDescription = null,
-        tint = AcornTheme.colors.iconPrimary,
+        tint = tint,
     )
 }
 
