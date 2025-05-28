@@ -251,7 +251,7 @@
 #include "nsDocShellTelemetryUtils.h"
 
 #ifdef MOZ_PLACES
-#  include "nsIFaviconService.h"
+#  include "mozilla/places/nsFaviconService.h"
 #  include "mozIPlacesPendingOperation.h"
 #endif
 
@@ -8191,14 +8191,12 @@ void nsDocShell::CopyFavicon(nsIURI* aOldURI, nsIURI* aNewURI,
   }
 
 #ifdef MOZ_PLACES
-  nsCOMPtr<nsIFaviconService> favSvc =
-      do_GetService("@mozilla.org/browser/favicon-service;1");
-  if (favSvc) {
-    favSvc->CopyFavicons(aOldURI, aNewURI,
-                         aInPrivateBrowsing
-                             ? nsIFaviconService::FAVICON_LOAD_PRIVATE
-                             : nsIFaviconService::FAVICON_LOAD_NON_PRIVATE,
-                         nullptr);
+  auto* faviconService = nsFaviconService::GetFaviconService();
+  if (faviconService) {
+    faviconService->AsyncTryCopyFavicons(
+        aOldURI, aNewURI,
+        aInPrivateBrowsing ? nsIFaviconService::FAVICON_LOAD_PRIVATE
+                           : nsIFaviconService::FAVICON_LOAD_NON_PRIVATE);
   }
 #endif
 }
