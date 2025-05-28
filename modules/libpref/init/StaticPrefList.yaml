@@ -16378,13 +16378,6 @@
   value: true
   mirror: always
 
-# Whether to treat the CSP in browser.xhtml as "Report-Only".
-# This allows us to collect telemetry information about potential issues.
-- name: security.browser_xhtml_csp.report-only
-  type: bool
-  value: false
-  mirror: always
-
 # Allow unsafe eval usage with high privileges to. This should
 # not be activated without a very good reason.
 # This pref has to be set before starting Firefox!

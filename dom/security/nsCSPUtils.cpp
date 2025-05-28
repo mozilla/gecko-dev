@@ -149,26 +149,20 @@ void CSP_ApplyMetaCSPToDoc(mozilla::dom::Document& aDoc,
     return;
   }
 
-  // CSPs delivered via a <meta> tag can not be report-only.
-  bool reportOnly = false;
-
   if (nsIURI* uri = aDoc.GetDocumentURI(); CSP_IsBrowserXHTML(uri)) {
     // Make the <meta> policy in browser.xhtml toggleable.
     if (!StaticPrefs::security_browser_xhtml_csp_enabled()) {
       return;
-    }
-
-    // Make the policy report-only to be able to collect telemetry.
-    if (StaticPrefs::security_browser_xhtml_csp_report_only()) {
-      reportOnly = true;
     }
   }
 
   // Multiple CSPs (delivered through either header of meta tag) need to
   // be joined together, see:
   // https://w3c.github.io/webappsec/specs/content-security-policy/#delivery-html-meta-element
-  nsresult rv = csp->AppendPolicy(policyStr, reportOnly,
-                                  true);  // delivered through the meta tag
+  nsresult rv = csp->AppendPolicy(
+      policyStr,
+      false,  // CSPs delivered via a <meta> tag can not be report-only.
+      true);  // delivered through the meta tag
   NS_ENSURE_SUCCESS_VOID(rv);
   if (nsPIDOMWindowInner* inner = aDoc.GetInnerWindow()) {
     inner->SetCsp(csp);
