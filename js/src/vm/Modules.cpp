@@ -1310,6 +1310,10 @@ static bool ModuleInitializeEnvironment(JSContext* cx,
 // https://tc39.es/ecma262/#sec-moduledeclarationlinking
 // ES2023 16.2.1.5.1 Link
 static bool ModuleLink(JSContext* cx, Handle<ModuleObject*> module) {
+  if (!module->hasCyclicModuleFields()) {
+    return true;
+  }
+
   // Step 1. Assert: module.[[Status]] is not linking or evaluating.
   ModuleStatus status = module->status();
   if (status == ModuleStatus::Linking || status == ModuleStatus::Evaluating) {
