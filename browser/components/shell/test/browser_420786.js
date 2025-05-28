@@ -63,7 +63,6 @@ add_task(async function () {
 
         const prevImage = gsettings.getString(GS_IMAGE_KEY);
         const prevOption = gsettings.getString(GS_OPTION_KEY);
-        const prevDrawBG = gsettings.getBoolean(GS_DRAW_BG_KEY);
 
         checkWallpaper = function (position, expectedGSettingsPosition) {
           shell.setDesktopBackground(image, position, "");
@@ -83,7 +82,6 @@ add_task(async function () {
         restoreSettings = function () {
           gsettings.setString(GS_IMAGE_KEY, prevImage);
           gsettings.setString(GS_OPTION_KEY, prevOption);
-          gsettings.setBoolean(GS_DRAW_BG_KEY, prevDrawBG);
         };
       } catch (e) {}
 

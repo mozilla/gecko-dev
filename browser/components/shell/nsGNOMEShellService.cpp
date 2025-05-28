@@ -430,7 +430,6 @@ nsGNOMEShellService::SetDesktopBackground(dom::Element* aElement,
                                 nsDependentCString(fileURI.get()));
   backgroundSettings->SetString("picture-uri-dark"_ns,
                                 nsDependentCString(fileURI.get()));
-  backgroundSettings->SetBoolean("draw-background"_ns, true);
   return NS_OK;
 }
 
