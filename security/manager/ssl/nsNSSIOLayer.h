@@ -127,6 +127,12 @@ nsresult nsSSLIOLayerAddToSocket(int32_t family, const char* host, int32_t port,
                                  bool forSTARTTLS, uint32_t flags,
                                  uint32_t tlsFlags);
 
+SECStatus abridgedCertificatePass1Decode(const SECItem* input,
+                                         unsigned char* output,
+                                         size_t outputLen, size_t* usedLen);
+SECStatus abridgedCertificateDecode(const SECItem* input, unsigned char* output,
+                                    size_t outputLen, size_t* usedLen);
+
 SECStatus zlibCertificateDecode(const SECItem* input, unsigned char* output,
                                 size_t outputLen, size_t* usedLen);
 

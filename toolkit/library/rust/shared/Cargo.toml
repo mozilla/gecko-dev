@@ -38,12 +38,6 @@ log = {version = "0.4", features = ["release_max_level_info"]}
 cose-c = { version = "0.1.5" }
 jsrust_shared = { path = "../../../../js/src/rust/shared" }
 cascade_bloom_filter = { path = "../../../components/cascade_bloom_filter" }
-signature_cache = { path = "../../../../security/certverifier/signature_cache" }
-cert_storage = { path = "../../../../security/manager/ssl/cert_storage" }
-crypto_hash = { path = "../../../../security/manager/ssl/crypto_hash" }
-data_storage = { path = "../../../../security/manager/ssl/data_storage" }
-ipcclientcerts = { path = "../../../../security/manager/ssl/ipcclientcerts" }
-trust-anchors = { path = "../../../../security/manager/ssl/trust_anchors" }
 bitsdownload = { path = "../../../components/bitsdownload", optional = true }
 storage = { path = "../../../../storage/rust" }
 bookmark_sync = { path = "../../../components/places/bookmark_sync", optional = true }
@@ -82,7 +76,16 @@ dap_ffi = { path = "../../../components/telemetry/dap/ffi" }
 data-encoding-ffi = { path = "../../../../dom/fs/parent/rust/data-encoding-ffi" }
 binary_http = { path = "../../../../netwerk/protocol/http/binary_http" }
 oblivious_http = { path = "../../../../netwerk/protocol/http/oblivious_http" }
+
+abridged_certs = { path = "../../../../security/manager/ssl/abridged_certs" }
+cert_storage = { path = "../../../../security/manager/ssl/cert_storage" }
+crypto_hash = { path = "../../../../security/manager/ssl/crypto_hash" }
+data_storage = { path = "../../../../security/manager/ssl/data_storage" }
+ipcclientcerts = { path = "../../../../security/manager/ssl/ipcclientcerts" }
 mls_gk = { path = "../../../../security/mls/mls_gk" }
+trust-anchors = { path = "../../../../security/manager/ssl/trust_anchors" }
+signature_cache = { path = "../../../../security/certverifier/signature_cache" }
+
 mime-guess-ffi = { path = "../../../../dom/fs/parent/rust/mime-guess-ffi" }
 
 # Note: `modern_sqlite` means rusqlite's bindings file be for a sqlite with

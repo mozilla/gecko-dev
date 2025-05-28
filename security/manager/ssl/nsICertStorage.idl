@@ -195,6 +195,13 @@ interface nsICertStorage : nsISupports {
   void addCerts(in Array<nsICertInfo> certs, in nsICertStorageCallback callback);
 
   /**
+   * Synchronously add a certificate to the backing storage.
+   * See the documentation for nsICertInfo.
+   * This is a helper which should only be called from tests.
+   */
+  void TestHelperAddCert(in ACString cert, in ACString subject, in short trust);
+
+  /**
    * Asynchronously remove the certificates with the given sha-256 hashes from
    * the backing storage.
    * hashes is an array of base64-encoded bytes of the sha-256 hashes of each
@@ -206,10 +213,6 @@ interface nsICertStorage : nsISupports {
   [must_use]
   void removeCertsByHashes(in Array<ACString> hashes,
                            in nsICertStorageCallback callback);
-
-
-  /* Synchronous helper for testing */
-  void TestHelperAddCert(in ACString cert, in ACString subject, in short trust);
 
   /**
    * Find all certificates in the backing storage with the given subject

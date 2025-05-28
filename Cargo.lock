@@ -11,6 +11,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "abridged_certs"
+version = "0.1.0"
+dependencies = [
+ "base64 0.21.999",
+ "byteorder",
+ "cstr",
+ "hex",
+ "lazy_static",
+ "log",
+ "nserror",
+ "nsstring",
+ "thin-vec",
+ "xpcom",
+]
+
+[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2547,6 +2563,7 @@ name = "gkrust-shared"
 version = "0.1.0"
 dependencies = [
  "aa-stroke",
+ "abridged_certs",
  "app_services_logger",
  "audio_thread_priority",
  "audioipc2-client",

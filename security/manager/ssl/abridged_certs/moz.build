@@ -1,0 +1,9 @@
+if CONFIG["COMPILE_ENVIRONMENT"]:
+    CbindgenHeader(
+        "mozilla_abridged_certs_generated.h",
+        inputs=["/security/manager/ssl/abridged_certs"],
+    )
+
+    EXPORTS.mozilla.psm += [
+        "!mozilla_abridged_certs_generated.h",
+    ]

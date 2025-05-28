@@ -240,7 +240,10 @@ add_task(async function test_lookup_by_hash_fail() {
   );
   await addCerts([someCert1, someCert2, someCert3]);
   Assert.throws(
-    () => certStorage.findCertByHash(base64ToArray("aaaaaaaa")),
+    () =>
+      certStorage.findCertByHash(
+        base64ToArray("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa=")
+      ),
     /NS_ERROR_FAILURE/
   );
 });
@@ -281,7 +284,7 @@ add_task(async function test_lookup_by_hashes_fail() {
   let foundCerts = certStorage.hasAllCertsByHash([
     base64ToArray("j1vIqpiU0HMmx3zPNujlfGs/pY1vFBJCKpJEeVseeW0="),
     base64ToArray("c0iy21PfFlGAqqLnQYeSYYUoaF/JEc41lICBdZ7VFtk="),
-    base64ToArray("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+    base64ToArray("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa="),
   ]);
   Assert.equal(foundCerts, false);
 });

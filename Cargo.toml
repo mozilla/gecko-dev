@@ -9,6 +9,7 @@ members = [
   "js/src/rust",
   "netwerk/base/idna_glue",
   "netwerk/test/http3server",
+  "security/manager/ssl/abridged_certs",
   "security/manager/ssl/ipcclientcerts",
   "security/manager/ssl/osclientcerts",
   "security/manager/ssl/tests/unit/pkcs11testmodule",
