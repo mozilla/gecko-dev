@@ -45,9 +45,17 @@
   --urlbarView-result-button-size: 24px;
   --urlbarView-result-button-background-opacity: 60%;
   --urlbarView-result-button-selected-color: var(--toolbar-field-focus-color);
-  --urlbarView-result-button-selected-background-color: color-mix(in srgb, var(--toolbar-field-focus-background-color) var(--urlbarView-result-button-background-opacity), transparent);
+  --urlbarView-result-button-selected-background-color: color-mix(
+    in srgb,
+    var(--toolbar-field-focus-background-color) var(--urlbarView-result-button-background-opacity),
+    transparent
+  );
   --urlbarView-result-button-hover-color: var(--toolbar-field-focus-background-color);
-  --urlbarView-result-button-hover-background-color: color-mix(in srgb, var(--toolbar-field-focus-color) var(--urlbarView-result-button-background-opacity), transparent);
+  --urlbarView-result-button-hover-background-color: color-mix(
+    in srgb,
+    var(--toolbar-field-focus-color) var(--urlbarView-result-button-background-opacity),
+    transparent
+  );
 
   --urlbarView-labeled-row-margin-top: calc(1.46em + 4px);
   --urlbarView-labeled-row-label-top: calc(-1.27em - 2px);
@@ -75,8 +83,11 @@
   /* stylelint-disable-next-line media-query-no-invalid */
   @media -moz-pref("browser.urlbar.richSuggestions.featureGate") {
     --urlbarView-favicon-margin-start: calc((var(--urlbarView-rich-suggestion-default-icon-size) - var(--urlbarView-favicon-width)) / 2);
-    --urlbarView-favicon-margin-end: calc(var(--urlbar-icon-padding) + var(--identity-box-margin-inline) + ((var(--urlbarView-rich-suggestion-default-icon-size) - var(--urlbarView-favicon-width)) / 2));
-    }
+    --urlbarView-favicon-margin-end: calc(
+      var(--urlbar-icon-padding) + var(--identity-box-margin-inline) +
+        ((var(--urlbarView-rich-suggestion-default-icon-size) - var(--urlbarView-favicon-width)) / 2)
+    );
+  }
 }
 
 .urlbarView {
@@ -125,7 +136,9 @@
     }
     &[rich-suggestion][icon-size="24"] {
       --urlbarView-icon-margin-start: calc((var(--urlbarView-rich-suggestion-default-icon-size) - 24px) / 2);
-      --urlbarView-icon-margin-end: calc(var(--urlbar-icon-padding) + var(--identity-box-margin-inline) + ((var(--urlbarView-rich-suggestion-default-icon-size) - 24px) / 2));
+      --urlbarView-icon-margin-end: calc(
+        var(--urlbar-icon-padding) + var(--identity-box-margin-inline) + ((var(--urlbarView-rich-suggestion-default-icon-size) - 24px) / 2)
+      );
     }
   }
 
@@ -150,20 +163,20 @@
     color: var(--urlbarView-highlight-color);
   }
 
-  &:not([type=tip], [type=dynamic]) {
-    :root:not([uidensity=compact]) & {
+  &:not([type="tip"], [type="dynamic"]) {
+    :root:not([uidensity="compact"]) & {
       min-height: 32px;
     }
-    :root[uidensity=touch] & {
+    :root[uidensity="touch"] & {
       padding-block: 11px;
     }
   }
 
-  &[rich-suggestion][type=search] {
-    :root:not([uidensity=compact]) & {
+  &[rich-suggestion][type="search"] {
+    :root:not([uidensity="compact"]) & {
       min-height: 46px;
     }
-    :root[uidensity=touch] & {
+    :root[uidensity="touch"] & {
       padding-block: 4px;
     }
   }
@@ -183,7 +196,7 @@
   padding-inline: var(--urlbarView-item-inline-padding);
   padding-block: var(--urlbarView-item-block-padding);
 
-  :root:not([uidensity=compact]) & {
+  :root:not([uidensity="compact"]) & {
     min-height: 20px; /* row min-height 32px - (2 * padding-block 6px) */
   }
 }
@@ -194,8 +207,8 @@
   flex-shrink: 0;
 
   .urlbarView[action-override] .urlbarView-row[has-url] > .urlbarView-row-inner > &,
-  .urlbarView-row[has-url]:not([type$=tab]) > .urlbarView-row-inner > &,
-  .urlbarView-row[has-url]:is([type=remotetab], [sponsored]):is(:hover, [selected]) > .urlbarView-row-inner > & {
+  .urlbarView-row[has-url]:not([type$="tab"]) > .urlbarView-row-inner > &,
+  .urlbarView-row[has-url]:is([type="remotetab"], [sponsored]):is(:hover, [selected]) > .urlbarView-row-inner > & {
     /* We prioritize icons + title + action over the url, so they can grow freely,
        but the url should never disappear when it's visible */
     max-width: calc(70% - 2 * (var(--urlbarView-favicon-width) + (6px + 2px)));
@@ -231,16 +244,16 @@
     /* Note: switchtab entries show the url only in override mode,
        remotetab and sponsored ones only when selected or :hover. */
     .urlbarView[action-override] &[has-url]:not([restyled-search]),
-    &[has-url]:not([type$=tab], [sponsored], [restyled-search]),
-    &[has-url]:is([type=remotetab], [sponsored]):is(:hover, [selected]),
-    &[type=tabtosearch] {
+    &[has-url]:not([type$="tab"], [sponsored], [restyled-search]),
+    &[has-url]:is([type="remotetab"], [sponsored]):is(:hover, [selected]),
+    &[type="tabtosearch"] {
       /* This targets both rich and non-rich results, so not using the child selector here. */
       .urlbarView-title-separator {
         display: none;
       }
     }
 
-    &[type=tabtosearch] > .urlbarView-row-inner > .urlbarView-no-wrap {
+    &[type="tabtosearch"] > .urlbarView-row-inner > .urlbarView-no-wrap {
       flex-wrap: wrap;
 
       > .urlbarView-action {
@@ -308,7 +321,7 @@
     visibility: hidden;
   }
 
-  .urlbarView-row[type=tabtosearch]:not([selected]) > .urlbarView-row-inner > .urlbarView-no-wrap > & {
+  .urlbarView-row[type="tabtosearch"]:not([selected]) > .urlbarView-row-inner > .urlbarView-no-wrap > & {
     /* We use the URL color for this icon to inherit its accessibility
        properties, like adapting to high contrast modes. We also want to ensure
        contrast from the result highlight. */
@@ -332,7 +345,7 @@
   stroke: var(--toolbar-field-focus-background-color);
 
   /* Favicon badges have this priority: pinned > bookmark. */
-  .urlbarView-row[type=bookmark] > .urlbarView-row-inner > .urlbarView-no-wrap > & {
+  .urlbarView-row[type="bookmark"] > .urlbarView-row-inner > .urlbarView-no-wrap > & {
     background-image: url(chrome://browser/skin/bookmark-12.svg);
     fill: var(--toolbarbutton-icon-fill-attention);
   }
@@ -421,7 +434,7 @@
 
 .urlbarView-button:not(:empty):not(.urlbarView-button-menu) {
   border-radius: var(--toolbarbutton-border-radius);
-  padding: .5em 1em;
+  padding: 0.5em 1em;
   margin-inline-end: 1.4em;
   font-size: 0.93em;
   font-weight: var(--font-weight-bold);
@@ -454,7 +467,7 @@
 
 /* Tip rows */
 
-.urlbarView-row[type=tip] {
+.urlbarView-row[type="tip"] {
   padding-block: 18px;
   border-block: 0;
   border-radius: 0;
@@ -510,15 +523,15 @@
     }
   }
 
-  &:not([tip-type=dismissalAcknowledgment]) > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-favicon {
+  &:not([tip-type="dismissalAcknowledgment"]) > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-favicon {
     width: 24px;
     height: 24px;
     margin-inline-end: 12px;
     flex-basis: 24px;
-    flex-grow:  0;
+    flex-grow: 0;
   }
 
-  &[tip-type=dismissalAcknowledgment] {
+  &[tip-type="dismissalAcknowledgment"] {
     padding-block: 6px;
 
     &:last-child {
@@ -526,7 +539,6 @@
     }
   }
 }
-
 
 /* Row label (a.k.a. group label) */
 
@@ -560,7 +572,7 @@
      compensate so that the label remains the same distance from the previous
      row as it would have had we not moved the tip row down. +1px compensates
      for the tip's top 1px border. */
-  &[type=tip]::before {
+  &[type="tip"]::before {
     top: calc(var(--urlbarView-labeled-row-label-top) - var(--urlbarView-labeled-tip-margin-top-extra) + 1px);
   }
 
@@ -650,7 +662,7 @@
 .urlbarView-title-separator {
   &::before {
     content: "\2014";
-    margin: 0 .4em;
+    margin: 0 0.4em;
     opacity: 0.6;
   }
 
@@ -688,7 +700,7 @@
   }
 
   .urlbarView-row[sponsored]:not([selected]) > .urlbarView-row-inner > .urlbarView-no-wrap > & {
-    opacity: .6;
+    opacity: 0.6;
   }
 
   .urlbarView-row:not([has-action], [has-url], [restyled-search]) > .urlbarView-row-inner > .urlbarView-no-wrap > & {
@@ -712,7 +724,8 @@
    composition. We set opacity: 0 at the 0% keyframe to ensure the text is not
    seen by the user until after the delay. */
 @keyframes urlbarView-action-slide-in {
-  0%, 28.6% {
+  0%,
+  28.6% {
     translate: var(--urlbarView-action-slide-in-distance);
     opacity: 0;
   }
@@ -723,14 +736,14 @@
 }
 
 /* Switch-to-tab and Clipboard action text is styled as a chiclet. */
-.urlbarView-row[has-action]:is([type=switchtab], [type=remotetab], [type=clipboard]) {
+.urlbarView-row[has-action]:is([type="switchtab"], [type="remotetab"], [type="clipboard"]) {
   > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-action {
     border-radius: var(--toolbarbutton-border-radius);
     padding: 4px 8px;
     margin-block: -2px;
     margin-inline-start: 8px;
 
-    :root[uidensity=compact] & {
+    :root[uidensity="compact"] & {
       padding-block: 3px;
 
       &.urlbarView-userContext {
@@ -778,9 +791,9 @@
   }
 }
 
-.urlbarView:not([action-override]) .urlbarView-row[type=switchtab],
-.urlbarView-row[type=remotetab]:not([selected], :hover),
-.urlbarView-row[type=clipboard] {
+.urlbarView:not([action-override]) .urlbarView-row[type="switchtab"],
+.urlbarView-row[type="remotetab"]:not([selected], :hover),
+.urlbarView-row[type="clipboard"] {
   > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-title-separator::before {
     /* We make the title separator transparent so it stays in the accessibility
        tree. We want screen readers to pause between the result title and the
@@ -807,9 +820,9 @@
     color: var(--link-color);
   }
 
-  .urlbarView-row:is([type=remotetab], [sponsored]):not([selected], :hover) > .urlbarView-row-inner > &,
+  .urlbarView-row:is([type="remotetab"], [sponsored]):not([selected], :hover) > .urlbarView-row-inner > &,
   .urlbarView-row:is([show-action-text], [restyled-search]) > .urlbarView-row-inner > &,
-  .urlbarView:not([action-override]) .urlbarView-row[type=switchtab] > .urlbarView-row-inner > & {
+  .urlbarView:not([action-override]) .urlbarView-row[type="switchtab"] > .urlbarView-row-inner > & {
     /* Use visibility:collapse instead of display:none since the latter can
        confuse the overflow state of these elements when their content
        changes while they're hidden (bug 1549787). */
@@ -830,7 +843,7 @@
 .urlbarView-tag {
   border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
   padding: 0 4px;
-  margin-inline-start: .4em;
+  margin-inline-start: 0.4em;
   border-radius: 4px;
 }
 
@@ -924,13 +937,14 @@
   }
 }
 
+/* prettier-ignore */
 .urlbarView-row[rich-suggestion]:not([selected]) > .urlbarView-row-inner > .urlbarView-row-body > :is(.urlbarView-row-body-description, .urlbarView-row-body-bottom) {
   color: var(--urlbarView-secondary-text-color);
 }
 
 /* Sponsored Firefox Suggest rows */
 
-.urlbarView-row[type$=_adm_sponsored][icon-size="16"] > .urlbarView-row-inner {
+.urlbarView-row[type$="_adm_sponsored"][icon-size="16"] > .urlbarView-row-inner {
   /* Keep the status quo before these rows were rich suggestions, where the row
      height is roughly the same as usual rows. */
   padding-block: 0;
@@ -938,22 +952,22 @@
 
 /* Other Firefox Suggest rows */
 
-.urlbarView-row[type$=_amo][icon-size="24"] > .urlbarView-row-inner > .urlbarView-favicon {
+.urlbarView-row[type$="_amo"][icon-size="24"] > .urlbarView-row-inner > .urlbarView-favicon {
   padding: calc((var(--urlbarView-top-pick-large-icon-box-size) - 24px) / 2);
   background-color: var(--urlbar-box-focus-bgcolor);
   border-radius: 2px;
 }
 
-.urlbarView-row[type$=_amo][icon-size="24"]:is([selected], :hover) > .urlbarView-row-inner > .urlbarView-favicon {
+.urlbarView-row[type$="_amo"][icon-size="24"]:is([selected], :hover) > .urlbarView-row-inner > .urlbarView-favicon {
   background-color: var(--urlbarView-result-button-selected-background-color);
 }
 
-.urlbarView-row[type$=_vpn][icon-size="32"] > .urlbarView-row-inner > .urlbarView-favicon {
+.urlbarView-row[type$="_vpn"][icon-size="32"] > .urlbarView-row-inner > .urlbarView-favicon {
   padding: calc((var(--urlbarView-top-pick-large-icon-box-size) - 32px) / 2);
 }
 
-.urlbarView-row[dynamicType=weather],
-.urlbarView-row[type=weather] {
+.urlbarView-row[dynamicType="weather"],
+.urlbarView-row[type="weather"] {
   /* Use the colors in the icon SVG files except in HCM and when the row is
      selected. Note that the SVG uses light or dark colors as appropriate. */
   &:not([selected]) > .urlbarView-row-inner > .urlbarView-favicon {
@@ -966,6 +980,7 @@
      AccuWeather API response via Merino. These rules apply to both the older
      weather UI treatments ("simpler" and "full", which use a dynamic result)
      and the new treatment ("simplest", which is a standard rich suggestion). */
+  /* prettier-ignore */
   > .urlbarView-row-inner > .urlbarView-dynamic-weather-currentConditions > .urlbarView-dynamic-weather-currentTemperature > .urlbarView-dynamic-weather-weatherIcon,
   > .urlbarView-row-inner > .urlbarView-favicon {
     /* icon-variation="1" is "Sunny", which we'll use as the default to ensure an
@@ -1061,7 +1076,9 @@
 }
 
 .urlbarView-actions-container {
-  margin-inline-start: calc(var(--urlbarView-item-inline-padding) + var(--urlbarView-favicon-margin-start) + var(--urlbarView-favicon-width) + var(--urlbarView-icon-margin-end));
+  margin-inline-start: calc(
+    var(--urlbarView-item-inline-padding) + var(--urlbarView-favicon-margin-start) + var(--urlbarView-favicon-width) + var(--urlbarView-icon-margin-end)
+  );
   margin-block-end: var(--urlbarView-item-block-padding);
 }
 
@@ -1070,7 +1087,7 @@
   font-weight: var(--font-weight-bold);
   border-radius: var(--toolbarbutton-border-radius);
   border: 1px solid transparent;
-  padding: .4em .6em;
+  padding: 0.4em 0.6em;
   display: inline-flex;
   align-items: center;
   background-color: var(--urlbarView-action-button-background-color);
@@ -1079,7 +1096,7 @@
   > img {
     width: 16px;
     height: 16px;
-    margin-inline-end: .4em;
+    margin-inline-end: 0.4em;
     -moz-context-properties: fill, fill-opacity;
   }
 
@@ -1096,11 +1113,11 @@
     border-top-color: var(--identity-tab-color);
   }
 
-  .urlbarView[action-override] &[data-action=tabswitch] {
+  .urlbarView[action-override] &[data-action="tabswitch"] {
     display: none;
   }
 
-  &[data-action^=tabgroup-] {
+  &[data-action^="tabgroup-"] {
     color: light-dark(var(--tab-group-color-pale), var(--tab-group-label-text-dark));
     background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
     max-width: 30%;
@@ -1134,7 +1151,7 @@
   border-top: 1px solid var(--urlbarView-separator-color);
 }
 
-:root[uidensity=touch] #urlbar .search-one-offs:not([hidden]) {
+:root[uidensity="touch"] #urlbar .search-one-offs:not([hidden]) {
   padding-block: 15px;
 }
 
@@ -1171,7 +1188,7 @@
 
 #urlbar .search-setting-button {
   /* Force empty space before the button */
-  margin-inline-start: calc(32px - /* settings start padding */ 8px );
+  margin-inline-start: calc(32px - /* settings start padding */ 8px);
 }
 
 .urlbarView-row[source="bookmarks"] > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-favicon,
@@ -1226,7 +1243,7 @@
   --panel-border-color: var(--arrowpanel-border-color);
 }
 
-#PopupSearchAutoComplete::part(content)  {
+#PopupSearchAutoComplete::part(content) {
   --panel-padding: var(--panel-subview-body-padding);
   /* NOTE(emilio): Once bug 1551637 is fixed we don't need to use block layout
    * for this (though it doesn't really hurt) */
@@ -1234,9 +1251,9 @@
 }
 
 @media not (prefers-contrast) {
-  #PopupSearchAutoComplete::part(content)  {
+  #PopupSearchAutoComplete::part(content) {
     /* Remove the top border since the panel is flush with the input. */
-   border-top-width: 0;
+    border-top-width: 0;
   }
 }
 

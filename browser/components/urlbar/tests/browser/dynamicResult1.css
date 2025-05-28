@@ -5,7 +5,7 @@
   --testDynamicResult1: ok1;
 }
 
-.urlbarView-row[dynamicType=test] > .urlbarView-row-inner {
+.urlbarView-row[dynamicType="test"] > .urlbarView-row-inner {
   display: flex;
   align-items: center;
   min-height: 32px;
@@ -46,5 +46,8 @@
 .urlbarView-dynamic-test-button2[selected] {
   color: white;
   background-color: var(--urlbarView-primary-button-background);
-  box-shadow: 0 0 0 1px #0a84ff inset, 0 0 0 1px #0a84ff, 0 0 0 4px rgba(10, 132, 255, 0.3);
+  box-shadow:
+    0 0 0 1px #0a84ff inset,
+    0 0 0 1px #0a84ff,
+    0 0 0 4px rgba(10, 132, 255, 0.3);
 }
