@@ -90,7 +90,7 @@ RefPtr<layers::ImageContainer> OffscreenCanvasDisplayHelper::GetImageContainer()
 
 void OffscreenCanvasDisplayHelper::UpdateContext(
     OffscreenCanvas* aOffscreenCanvas, RefPtr<ThreadSafeWorkerRef>&& aWorkerRef,
-    CanvasContextType aType, const Maybe<int32_t>& aChildId) {
+    CanvasContextType aType, const Maybe<mozilla::ipc::ActorId>& aChildId) {
   RefPtr<layers::ImageContainer> imageContainer =
       MakeRefPtr<layers::ImageContainer>(
           layers::ImageUsageType::OffscreenCanvas,

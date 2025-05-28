@@ -68,7 +68,7 @@ class Shmem final {
   friend class IToplevelProtocol;
 
  public:
-  using id_t = int32_t;
+  using id_t = int64_t;
   // Low-level wrapper around platform shmem primitives.
   class Segment final : public SharedMemoryMapping {
     NS_INLINE_DECL_THREADSAFE_REFCOUNTING(Segment);
@@ -89,8 +89,8 @@ class Shmem final {
     // Prepare this to be shared with another process. Return an IPC message
     // that contains enough information for the other process to map this
     // segment in OpenExisting(), and the shmem.
-    std::tuple<UniquePtr<IPC::Message>, Shmem> Build(id_t aId, bool aUnsafe,
-                                                     int32_t aRoutingId);
+    std::tuple<UniquePtr<IPC::Message>, Shmem> Build(
+        id_t aId, bool aUnsafe, IPC::Message::routeid_t aRoutingId);
 
    private:
     size_t mSize;
@@ -169,7 +169,7 @@ class Shmem final {
   // contains enough information for the other process to unmap this
   // segment.  Return a new message if successful (owned by the
   // caller), nullptr if not.
-  UniquePtr<IPC::Message> MkDestroyedMessage(int32_t routingId);
+  UniquePtr<IPC::Message> MkDestroyedMessage(IPC::Message::routeid_t routingId);
 
   // Return a Segment instance in this process using the descriptor shared
   // to us by the process that created the underlying OS shmem resource.  The
