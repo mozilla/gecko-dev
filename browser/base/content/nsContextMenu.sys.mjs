@@ -41,13 +41,6 @@ ChromeUtils.defineLazyGetter(lazy, "ReferrerInfo", () =>
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "SCREENSHOT_BROWSER_COMPONENT",
-  "screenshots.browser.component.enabled",
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "TEXT_RECOGNITION_ENABLED",
   "dom.text-recognition.enabled",
   false
@@ -1648,19 +1641,11 @@ export class nsContextMenu {
   }
 
   takeScreenshot() {
-    if (lazy.SCREENSHOT_BROWSER_COMPONENT) {
-      Services.obs.notifyObservers(
-        this.window,
-        "menuitem-screenshot",
-        "ContextMenu"
-      );
-    } else {
-      Services.obs.notifyObservers(
-        null,
-        "menuitem-screenshot-extension",
-        "contextMenu"
-      );
-    }
+    Services.obs.notifyObservers(
+      this.window,
+      "menuitem-screenshot",
+      "ContextMenu"
+    );
   }
 
   pdfJSCmd(aName) {
