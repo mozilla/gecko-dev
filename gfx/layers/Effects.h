@@ -114,8 +114,21 @@ struct EffectNV12 : public EffectYCbCr {
   const char* Name() override { return "EffectNV12"; }
 };
 
+struct EffectRoundedClip : public Effect {
+  explicit EffectRoundedClip(const gfx::Rect& aRect,
+                             const gfx::RectCornerRadii& aRadii)
+      : Effect(EffectTypes::ROUNDED_CLIP), mRect(aRect), mRadii(aRadii) {}
+
+  virtual const char* Name() { return "EffectRoundedClip"; }
+  void PrintInfo(std::stringstream& aStream, const char* aPrefix) override;
+
+  gfx::Rect mRect;
+  gfx::RectCornerRadii mRadii;
+};
+
 struct EffectChain {
   RefPtr<Effect> mPrimaryEffect;
+  RefPtr<EffectRoundedClip> mRoundedClipEffect;
 };
 
 /**

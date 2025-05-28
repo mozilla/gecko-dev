@@ -133,6 +133,7 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(DiagnosticTypes)
  * See gfx/layers/Effects.h
  */
 enum class EffectTypes : uint8_t {
+  ROUNDED_CLIP,
   RGB,
   YCBCR,
   NV12,

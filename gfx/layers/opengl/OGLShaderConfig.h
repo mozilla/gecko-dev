@@ -40,6 +40,7 @@ enum ShaderFeatures {
   ENABLE_DYNAMIC_GEOMETRY = 0x4000,
   ENABLE_MASK_TEXTURE_RECT = 0x8000,
   ENABLE_TEXTURE_NV12_GA_SWITCH = 0x10000,
+  ENABLE_ROUNDED_CLIP = 0x20000,
 };
 
 class KnownUniform {
@@ -70,6 +71,8 @@ class KnownUniform {
     VisibleCenter,
     YuvColorMatrix,
     YuvOffsetVector,
+    RoundedClipRect,
+    RoundedClipRadii,
 
     KnownUniformCount
   };
@@ -214,6 +217,7 @@ class ShaderConfigOGL {
   void SetNoPremultipliedAlpha();
   void SetDynamicGeometry(bool aEnabled);
   void SetColorMultiplier(uint32_t aMultiplier);
+  void SetRoundedClip(bool aEnabled);
 
   bool operator<(const ShaderConfigOGL& other) const {
     return mFeatures < other.mFeatures ||

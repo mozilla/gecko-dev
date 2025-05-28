@@ -107,6 +107,21 @@ class ShaderProgramOGL {
     SetMatrixUniform(KnownUniform::LayerTransformInverse, aMatrix);
   }
 
+  void SetRoundedClipRect(const gfx::Rect& aRect) {
+    float vals[4] = {aRect.x, aRect.y, aRect.width, aRect.height};
+    SetUniform(KnownUniform::RoundedClipRect, 4, vals);
+  }
+
+  void SetRoundedClipRadii(const gfx::RectCornerRadii& aRadii) {
+    float vals[4] = {
+        aRadii.radii[eCornerTopLeft].width,
+        aRadii.radii[eCornerBottomLeft].width,
+        aRadii.radii[eCornerTopRight].width,
+        aRadii.radii[eCornerBottomRight].width,
+    };
+    SetUniform(KnownUniform::RoundedClipRadii, 4, vals);
+  }
+
   void SetDEAAEdges(const gfx::Point3D* aEdges) {
     SetArrayUniform(KnownUniform::SSEdges, 4, aEdges);
   }

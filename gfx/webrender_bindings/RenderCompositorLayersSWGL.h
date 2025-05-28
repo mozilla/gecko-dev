@@ -159,6 +159,8 @@ class RenderCompositorLayersSWGL : public RenderCompositor {
     gfx::Matrix4x4 mTransform;
     gfx::IntRect mClipRect;
     gfx::SamplingFilter mFilter;
+    gfx::Rect mRoundedClipRect;
+    gfx::RectCornerRadii mRoundedClipRadii;
   };
 
   virtual void HandleExternalImage(RenderTextureHost* aExternalImage,

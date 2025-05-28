@@ -316,8 +316,8 @@ class CompositorOGL final : public Compositor {
                                  const gfx::IntRect& aRenderBounds,
                                  const nsIntRegion& aOpaqueRegion);
 
-  ShaderConfigOGL GetShaderConfigFor(Effect* aEffect,
-                                     bool aDEAAEnabled = false) const;
+  ShaderConfigOGL GetShaderConfigFor(Effect* aEffect, bool aDEAAEnabled = false,
+                                     bool aRoundedClip = false) const;
 
   ShaderProgramOGL* GetShaderProgramFor(const ShaderConfigOGL& aConfig);
 

@@ -25,3 +25,8 @@ void TexturedEffect::PrintInfo(std::stringstream& aStream,
 
   aStream << " [filter=" << mSamplingFilter << "]";
 }
+
+void EffectRoundedClip::PrintInfo(std::stringstream& aStream,
+                                  const char* aPrefix) {
+  aStream << aPrefix << nsPrintfCString("EffectRoundedClip (0x%p)", this).get();
+}
