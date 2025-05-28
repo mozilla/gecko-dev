@@ -180,6 +180,7 @@ object DataGenerationHelper {
     fun getAvailableSearchEngines(): List<SearchEngine> {
         Log.i(TAG, "getAvailableSearchEngines: Trying to get the alternative search engines based on the region of the user")
         val searchEnginesList = TestHelper.appContext.components.core.store.state.search.availableSearchEngines
+        Assert.assertTrue("$TAG: Search engines list returned nothing", searchEnginesList.isNotEmpty())
         Log.i(TAG, "getAvailableSearchEngines: Got $searchEnginesList based on the region of the user")
         return searchEnginesList
     }

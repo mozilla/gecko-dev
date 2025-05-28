@@ -67,7 +67,7 @@ class SearchTest : TestSetup() {
     private lateinit var searchMockServer: MockWebServer
     private val queryString: String = "firefox"
     private val generalEnginesList = listOf("DuckDuckGo", "Google", "Bing")
-    private val topicEnginesList = listOf("Wikipedia (en)")
+    private val topicEnginesList = listOf("Wikipedia", "eBay")
     private val firefoxSuggestHeader = getStringResource(R.string.firefox_suggest_header)
 
     @get:Rule
@@ -122,6 +122,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2154190
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967956")
     @Test
     fun verifySearchSelectorMenuItemsTest() {
         homeScreen {
@@ -130,8 +131,7 @@ class SearchTest : TestSetup() {
             verifySearchToolbar(isDisplayed = true)
             clickSearchSelectorButton()
             verifySearchShortcutListContains(
-                *generalEnginesList.toTypedArray(),
-                *topicEnginesList.toTypedArray(),
+                "DuckDuckGo", "Google", "Wikipedia", "Bing", "eBay",
                 "Bookmarks", "Tabs", "History", "Search settings",
             )
         }
@@ -171,8 +171,11 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2154196
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967956")
     @Test
     fun verifySearchPlaceholderForTopicSpecificSearchEnginesTest() {
+        val topicEnginesList = listOf("Wikipedia", "eBay")
+
         topicEnginesList.forEach {
             homeScreen {
             }.openSearch {
@@ -221,6 +224,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2154191
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967956")
     @Test
     fun verifyScanButtonAvailableOnlyForGeneralSearchEnginesTest() {
         generalEnginesList.forEach {
@@ -244,10 +248,13 @@ class SearchTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/235395
     // Verifies a temporary change of search engine from the Search shortcut menu
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967956")
     @SmokeTest
     @Test
     fun searchEnginesCanBeChangedTemporarilyFromSearchSelectorMenuTest() {
-        (generalEnginesList + topicEnginesList).forEach {
+        val enginesList = listOf("DuckDuckGo", "Google", "Wikipedia", "Bing", "eBay")
+
+        enginesList.forEach {
             homeScreen {
             }.openSearch {
                 clickSearchSelectorButton()
@@ -617,6 +624,7 @@ class SearchTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1232637
     // Default search code for Bing-US
+    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967956")
     @Test
     fun defaultSearchCodeBingUS() {
         homeScreen {

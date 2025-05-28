@@ -33,7 +33,7 @@ object Constants {
 
     val searchEngineCodes = mapOf(
         "Google" to "client=firefox-b-m",
-        "Bing" to "MOZB&form=MOZMBA&q=firefox",
+        "Bing" to "firefox&pc=MOZB&form=MOZMBA",
         "DuckDuckGo" to "t=fpas",
     )
 
