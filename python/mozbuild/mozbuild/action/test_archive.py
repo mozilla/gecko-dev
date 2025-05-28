@@ -296,12 +296,6 @@ ARCHIVE_FILES = {
             "pattern": "IA2Typelib.tlb",
             "dest": "mochitest",
         },
-        {
-            "source": buildconfig.topobjdir,
-            "base": "dist/bin",
-            "pattern": "IA2Marshal.dll",
-            "dest": "mochitest",
-        },
     ],
     "mozharness": [
         {

@@ -4,21 +4,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-GeckoSharedLibrary("IA2Marshal", linkage=None)
-DEFINES["REGISTER_PROXY_DLL"] = True
-# {F9A6CC32-B0EF-490B-B102-179DDEEB08ED}
-DEFINES["PROXY_CLSID_IS"] = (
-    "{0xF9A6CC32,0xB0EF,0x490B,{0xB1,0x02,0x17,0x9D,0xDE,0xEB,0x08,0xED}}"
-)
-DEFFILE = "IA2Marshal.def"
-OS_LIBS += [
-    "uuid",
-    "kernel32",
-    "rpcrt4",
-    "ole32",
-    "oleaut32",
-]
-
 midl_enums = [
     "AccessibleEventId",
     "AccessibleRole",
@@ -105,20 +90,3 @@ GeneratedFile(
         TOPSRCDIR + "/other-licenses/ia2",
     ],
 )
-
-GeneratedFile(
-    "dlldata.c",
-    inputs=["!" + iface + "_dlldata.c" for iface in midl_interfaces],
-    script="/build/midl.py",
-    entry_point="merge_dlldata",
-)
-SOURCES += ["!dlldata.c"]
-
-# Suppress warnings from the MIDL generated code.
-if CONFIG["CC_TYPE"] == "clang-cl":
-    CFLAGS += [
-        "-Wno-extern-initializer",
-        "-Wno-incompatible-pointer-types",
-        "-Wno-missing-braces",
-        "-Wno-unused-const-variable",
-    ]
