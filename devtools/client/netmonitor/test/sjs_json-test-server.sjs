@@ -18,6 +18,9 @@ function handleRequest(request, response) {
     case "null":
       response.write('{ "greeting": null }');
       break;
+    case "root-null":
+      response.write(`null`);
+      break;
     case "nogrip":
       response.write('{"obj": {"type": "string" }}');
       break;
