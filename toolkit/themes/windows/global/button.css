@@ -17,7 +17,8 @@ button {
   background-color: ButtonFace;
   text-shadow: none;
   border: 1px solid ThreeDLightShadow;
-  padding: 2px 3px;
+  padding-block: 2px 3px;
+  padding-inline: 5px;
 
   &:where(:hover) {
     background-color: -moz-buttonhoverface;

@@ -17,7 +17,7 @@ tree {
   color: FieldText;
   appearance: auto;
   -moz-default-appearance: listbox;
-  @media (-moz-platform: linux) {
+  @media (-moz-platform: linux) or (-moz-platform: windows) {
     appearance: none;
     border: 1px solid ThreeDShadow;
   }
@@ -188,6 +188,7 @@ treechildren::-moz-tree-column(insertafter) {
   fill: currentColor;
   min-width: 0;
   padding: 1px 0;
+  border-block: 0;
   appearance: none;
 }
 
