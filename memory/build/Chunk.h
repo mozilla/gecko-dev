@@ -5,6 +5,8 @@
 #ifndef CHUNK_H
 #define CHUNK_H
 
+#include "mozilla/Atomics.h"
+
 #include "rb.h"
 
 #include "mozilla/DoublyLinkedList.h"
@@ -172,5 +174,20 @@ struct arena_chunk_t {
 
   bool IsEmpty();
 };
+
+[[nodiscard]] bool pages_commit(void* aAddr, size_t aSize);
+
+void pages_decommit(void* aAddr, size_t aSize);
+
+void chunks_init();
+
+void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase);
+
+void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType);
+#ifdef MOZ_DEBUG
+void chunk_assert_zero(void* aPtr, size_t aSize);
+#endif
+
+extern mozilla::Atomic<size_t> gRecycledSize;
 
 #endif /* ! CHUNK_H */

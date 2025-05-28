@@ -52,7 +52,8 @@ Main components
    Chunks are 1MiB contigous blocks of memory that the allocator will divide
    into pages and runs.
 
-   Currently this contains the arena_chunk_t data structure.
+   Currently this contains the arena_chunk_t data structure and declarations
+   for chunk and page allocation.
 
  * Constants.h, Globals.h, Globals_inc.h and Globals.cpp
 
