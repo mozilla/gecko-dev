@@ -28,9 +28,9 @@
 namespace mozilla {
 
 namespace dom {
-  class VideoEncoderConfigInternal;
-  class VideoDecoderConfigInternal;
-}
+class VideoEncoderConfigInternal;
+class VideoDecoderConfigInternal;
+}  // namespace dom
 
 #define WEBCODECS_MARKER(codecType, desc, options, markerType, ...)    \
   do {                                                                 \
@@ -358,9 +358,11 @@ uint32_t BytesPerSamples(const mozilla::dom::AudioSampleFormat& aFormat);
 
 // If resisting fingerprinting, remove all hardware/software preference.
 void ApplyResistFingerprintingIfNeeded(
-    const RefPtr<VideoEncoderConfigInternal>& aConfig, nsIGlobalObject* aGlobal);
+    const RefPtr<VideoEncoderConfigInternal>& aConfig,
+    nsIGlobalObject* aGlobal);
 void ApplyResistFingerprintingIfNeeded(
-    const RefPtr<VideoDecoderConfigInternal>& aConfig, nsIGlobalObject* aGlobal);
+    const RefPtr<VideoDecoderConfigInternal>& aConfig,
+    nsIGlobalObject* aGlobal);
 }  // namespace dom
 }  // namespace mozilla
 
