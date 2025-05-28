@@ -1147,9 +1147,8 @@ static bool Instant_toString(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool Instant_toLocaleString(JSContext* cx, const CallArgs& args) {
   // Steps 3-4.
-  Handle<PropertyName*> required = cx->names().any;
-  Handle<PropertyName*> defaults = cx->names().all;
-  return TemporalObjectToLocaleString(cx, args, required, defaults);
+  return intl::TemporalObjectToLocaleString(cx, args,
+                                            intl::DateTimeFormatKind::All);
 }
 
 /**

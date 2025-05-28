@@ -2758,11 +2758,10 @@ static bool ZonedDateTime_toLocaleString(JSContext* cx, const CallArgs& args) {
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
   // Steps 3-6.
-  Handle<PropertyName*> required = cx->names().any;
-  Handle<PropertyName*> defaults = cx->names().all;
   Rooted<Value> timeZone(cx,
                          StringValue(zonedDateTime.timeZone().identifier()));
-  return TemporalObjectToLocaleString(cx, args, required, defaults, timeZone);
+  return intl::TemporalObjectToLocaleString(
+      cx, args, intl::DateTimeFormatKind::All, timeZone);
 }
 
 /**

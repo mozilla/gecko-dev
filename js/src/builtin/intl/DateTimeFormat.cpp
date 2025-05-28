@@ -2813,10 +2813,9 @@ bool js::intl_FormatDateTimeRange(JSContext* cx, unsigned argc, Value* vp) {
              : FormatDateTimeRange(cx, df, dif, x, y, args.rval());
 }
 
-bool js::TemporalObjectToLocaleString(JSContext* cx, const CallArgs& args,
-                                      Handle<JSString*> required,
-                                      Handle<JSString*> defaults,
-                                      Handle<Value> toLocaleStringTimeZone) {
+bool js::intl::TemporalObjectToLocaleString(
+    JSContext* cx, const CallArgs& args, DateTimeFormatKind formatKind,
+    Handle<Value> toLocaleStringTimeZone) {
   MOZ_ASSERT(args.thisv().isObject());
 
   auto kind = ToDateTimeFormattable(args.thisv());
@@ -2826,21 +2825,21 @@ bool js::TemporalObjectToLocaleString(JSContext* cx, const CallArgs& args,
   MOZ_ASSERT_IF(kind == DateTimeValueKind::TemporalZonedDateTime,
                 toLocaleStringTimeZone.isString());
 
-  Rooted<DateTimeFormatObject*> dateTimeFormat(
-      cx, NewBuiltinClassInstance<DateTimeFormatObject>(cx));
+  HandleValue locales = args.get(0);
+  HandleValue options = args.get(1);
+
+  Rooted<DateTimeFormatObject*> dateTimeFormat(cx);
+  if (kind != DateTimeValueKind::TemporalZonedDateTime) {
+    dateTimeFormat =
+        GetOrCreateDateTimeFormat(cx, locales, options, formatKind);
+  } else {
+    // Cache doesn't yet support Temporal.ZonedDateTime.
+    dateTimeFormat = ::CreateDateTimeFormat(cx, locales, options,
+                                            toLocaleStringTimeZone, formatKind);
+  }
   if (!dateTimeFormat) {
     return false;
   }
-
-  Rooted<Value> thisValue(cx, ObjectValue(*dateTimeFormat));
-  Rooted<Value> ignored(cx);
-  if (!intl::InitializeDateTimeFormatObject(
-          cx, dateTimeFormat, thisValue, args.get(0), args.get(1), required,
-          defaults, toLocaleStringTimeZone, DateTimeFormatOptions::Standard,
-          &ignored)) {
-    return false;
-  }
-  MOZ_ASSERT(&ignored.toObject() == dateTimeFormat);
 
   JS::ClippedTime x;
   if (kind == DateTimeValueKind::TemporalZonedDateTime) {

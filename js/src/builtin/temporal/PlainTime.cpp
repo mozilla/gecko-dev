@@ -1526,9 +1526,8 @@ static bool PlainTime_toString(JSContext* cx, unsigned argc, Value* vp) {
  */
 static bool PlainTime_toLocaleString(JSContext* cx, const CallArgs& args) {
   // Steps 3-4.
-  Handle<PropertyName*> required = cx->names().time;
-  Handle<PropertyName*> defaults = cx->names().time;
-  return TemporalObjectToLocaleString(cx, args, required, defaults);
+  return intl::TemporalObjectToLocaleString(cx, args,
+                                            intl::DateTimeFormatKind::Time);
 }
 
 /**

@@ -229,14 +229,6 @@ class DateTimeFormatObject : public NativeObject {
                                                                unsigned argc,
                                                                JS::Value* vp);
 
-/**
- * Shared `toLocaleString` implementation for Temporal objects.
- */
-[[nodiscard]] extern bool TemporalObjectToLocaleString(
-    JSContext* cx, const JS::CallArgs& args, JS::Handle<JSString*> required,
-    JS::Handle<JSString*> defaults,
-    JS::Handle<JS::Value> toLocaleStringTimeZone = JS::UndefinedHandleValue);
-
 namespace intl {
 
 enum class DateTimeFormatKind {
@@ -279,6 +271,13 @@ enum class DateTimeFormatKind {
 [[nodiscard]] extern bool FormatDateTime(
     JSContext* cx, JS::Handle<DateTimeFormatObject*> dateTimeFormat,
     double millis, JS::MutableHandle<JS::Value> result);
+
+/**
+ * Shared `toLocaleString` implementation for Temporal objects.
+ */
+[[nodiscard]] extern bool TemporalObjectToLocaleString(
+    JSContext* cx, const JS::CallArgs& args, DateTimeFormatKind formatKind,
+    JS::Handle<JS::Value> toLocaleStringTimeZone = JS::UndefinedHandleValue);
 
 }  // namespace intl
 
