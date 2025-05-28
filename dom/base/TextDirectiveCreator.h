@@ -57,8 +57,8 @@ class TextDirectiveCreator {
    *
    * This function always returns a new range.
    */
-  static Result<RefPtr<AbstractRange>, ErrorResult>
-  ExtendRangeToBlockBoundaries(AbstractRange* aRange);
+  static Result<RefPtr<AbstractRange>, ErrorResult> ExtendRangeToWordBoundaries(
+      AbstractRange* aRange);
 
   /**
    * @brief Determines whether exact or range-based matching should be used.

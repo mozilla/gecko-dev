@@ -26,32 +26,25 @@ TextDirectiveCreator::CreateTextDirectiveFromRange(Document& aDocument,
                                                    AbstractRange* aInputRange) {
   MOZ_ASSERT(aInputRange);
   MOZ_ASSERT(!aInputRange->Collapsed());
-  auto maybeRangeContent = TextDirectiveUtil::RangeContentAsString(aInputRange);
-  if (MOZ_UNLIKELY(maybeRangeContent.isErr())) {
-    return maybeRangeContent.propagateErr();
-  }
-  auto rangeContent = maybeRangeContent.unwrap();
+  const nsString rangeContent =
+      MOZ_TRY(TextDirectiveUtil::RangeContentAsString(aInputRange));
   if (rangeContent.IsEmpty()) {
     TEXT_FRAGMENT_LOG("Input range does not contain text.");
     return VoidCString();
   }
 
-  Result<RefPtr<AbstractRange>, ErrorResult> maybeRange =
-      ExtendRangeToBlockBoundaries(aInputRange);
-  if (MOZ_UNLIKELY(maybeRange.isErr())) {
-    return maybeRange.propagateErr();
-  }
-  RefPtr range = maybeRange.unwrap();
-  if (!range) {
+  const RefPtr<AbstractRange> extendedRange =
+      MOZ_TRY(ExtendRangeToWordBoundaries(aInputRange));
+  if (!extendedRange) {
     return VoidCString();
   }
-  return CreateInstance(aDocument, range)
-      .andThen([](auto self) -> Result<nsCString, ErrorResult> {
-        MOZ_TRY(self->CollectContextTerms());
-        self->CollectContextTermWordBoundaryDistances();
-        MOZ_TRY(self->FindAllMatchingCandidates());
-        return self->CreateTextDirective();
-      });
+  UniquePtr<TextDirectiveCreator> instance =
+      MOZ_TRY(CreateInstance(aDocument, extendedRange));
+
+  MOZ_TRY(instance->CollectContextTerms());
+  instance->CollectContextTermWordBoundaryDistances();
+  MOZ_TRY(instance->FindAllMatchingCandidates());
+  return instance->CreateTextDirective();
 }
 
 /* static */ Result<bool, ErrorResult>
@@ -65,40 +58,36 @@ TextDirectiveCreator::MustUseRangeBasedMatching(AbstractRange* aRange) {
         "boundary.");
     return true;
   }
-  return TextDirectiveUtil::RangeContentAsString(aRange).andThen(
-      [](const nsString& content) -> Result<bool, ErrorResult> {
-        const uint32_t MAX_LENGTH = StaticPrefs::
-            dom_text_fragments_create_text_fragment_exact_match_max_length();
-        const bool rangeTooLong = content.Length() > MAX_LENGTH;
-        if (rangeTooLong) {
-          TEXT_FRAGMENT_LOG(
-              "Use range-based matching becase the target range is too long "
-              "({} chars > {} threshold)",
-              content.Length(), MAX_LENGTH);
-        } else {
-          TEXT_FRAGMENT_LOG("Use exact matching.");
-        }
-        return rangeTooLong;
-      });
+  const nsString rangeContent =
+      MOZ_TRY(TextDirectiveUtil::RangeContentAsString(aRange));
+
+  const uint32_t kMaxLength = StaticPrefs::
+      dom_text_fragments_create_text_fragment_exact_match_max_length();
+  const bool rangeTooLong = rangeContent.Length() > kMaxLength;
+  if (rangeTooLong) {
+    TEXT_FRAGMENT_LOG(
+        "Use range-based matching because the target range is too long "
+        "({} chars > {} threshold)",
+        rangeContent.Length(), kMaxLength);
+  } else {
+    TEXT_FRAGMENT_LOG("Use exact matching.");
+  }
+  return rangeTooLong;
 }
 
 Result<UniquePtr<TextDirectiveCreator>, ErrorResult>
 TextDirectiveCreator::CreateInstance(Document& aDocument,
                                      AbstractRange* aRange) {
-  return MustUseRangeBasedMatching(aRange).andThen(
-      [&aDocument, aRange](bool useRangeBased)
-          -> Result<UniquePtr<TextDirectiveCreator>, ErrorResult> {
-        return useRangeBased
-                   ? UniquePtr<TextDirectiveCreator>(
-                         new RangeBasedTextDirectiveCreator(aDocument, aRange))
-                   : UniquePtr<TextDirectiveCreator>(
-                         new ExactMatchTextDirectiveCreator(aDocument, aRange));
-      });
+  return MOZ_TRY(MustUseRangeBasedMatching(aRange))
+             ? UniquePtr<TextDirectiveCreator>(
+                   new RangeBasedTextDirectiveCreator(aDocument, aRange))
+             : UniquePtr<TextDirectiveCreator>(
+                   new ExactMatchTextDirectiveCreator(aDocument, aRange));
 }
 
 /*static*/
 Result<RefPtr<AbstractRange>, ErrorResult>
-TextDirectiveCreator::ExtendRangeToBlockBoundaries(AbstractRange* aRange) {
+TextDirectiveCreator::ExtendRangeToWordBoundaries(AbstractRange* aRange) {
   MOZ_ASSERT(aRange && !aRange->Collapsed());
   TEXT_FRAGMENT_LOG(
       "Input range :\n{}",
@@ -152,12 +141,7 @@ Result<Ok, ErrorResult> ExactMatchTextDirectiveCreator::CollectContextTerms() {
   TEXT_FRAGMENT_LOG("Collecting context terms for the target range.");
   MOZ_TRY(CollectPrefixContextTerm());
   MOZ_TRY(CollectSuffixContextTerm());
-  MOZ_TRY(TextDirectiveUtil::RangeContentAsString(mRange).andThen(
-      [start =
-           &mStartContent](const nsString& content) -> Result<Ok, ErrorResult> {
-        *start = content;
-        return Ok();
-      }));
+  mStartContent = MOZ_TRY(TextDirectiveUtil::RangeContentAsString(mRange));
   mStartFoldCaseContent = mStartContent;
   ToFoldedCase(mStartFoldCaseContent);
   TEXT_FRAGMENT_LOG("Start term:\n{}", NS_ConvertUTF16toUTF8(mStartContent));
@@ -183,12 +167,8 @@ Result<Ok, ErrorResult> RangeBasedTextDirectiveCreator::CollectContextTerms() {
       return Err(std::move(rv));
     }
     MOZ_DIAGNOSTIC_ASSERT(!startRange->Collapsed());
-    MOZ_TRY(TextDirectiveUtil::RangeContentAsString(startRange)
-                .andThen([start = &mStartContent](const nsString& content)
-                             -> Result<Ok, ErrorResult> {
-                  *start = content;
-                  return Ok();
-                }));
+    mStartContent =
+        MOZ_TRY(TextDirectiveUtil::RangeContentAsString(startRange));
     const Maybe<RangeBoundary> lastBlockBoundaryInRange =
         TextDirectiveUtil::FindBlockBoundaryInRange<TextScanDirection::Left>(
             *mRange);
@@ -202,19 +182,9 @@ Result<Ok, ErrorResult> RangeBasedTextDirectiveCreator::CollectContextTerms() {
       return Err(std::move(rv));
     }
     MOZ_DIAGNOSTIC_ASSERT(!endRange->Collapsed());
-    MOZ_TRY(TextDirectiveUtil::RangeContentAsString(endRange).andThen(
-        [end =
-             &mEndContent](const nsString& content) -> Result<Ok, ErrorResult> {
-          *end = content;
-          return Ok();
-        }));
+    mEndContent = MOZ_TRY(TextDirectiveUtil::RangeContentAsString(endRange));
   } else {
-    MOZ_TRY(TextDirectiveUtil::RangeContentAsString(mRange).andThen(
-        [start = &mStartContent](
-            const nsString& content) -> Result<Ok, ErrorResult> {
-          *start = content;
-          return Ok();
-        }));
+    mStartContent = MOZ_TRY(TextDirectiveUtil::RangeContentAsString(mRange));
     MOZ_DIAGNOSTIC_ASSERT(
         mStartContent.Length() >
         StaticPrefs::
@@ -248,12 +218,8 @@ Result<Ok, ErrorResult> TextDirectiveCreator::CollectPrefixContextTerm() {
     return Err(std::move(rv));
   }
   MOZ_ASSERT(prefixRange);
-  MOZ_TRY(TextDirectiveUtil::RangeContentAsString(prefixRange)
-              .andThen([prefix = &mPrefixContent](
-                           const nsString& content) -> Result<Ok, ErrorResult> {
-                *prefix = content;
-                return Ok();
-              }));
+  mPrefixContent =
+      MOZ_TRY(TextDirectiveUtil::RangeContentAsString(prefixRange));
   mPrefixFoldCaseContent = mPrefixContent;
   ToFoldedCase(mPrefixFoldCaseContent);
   TEXT_FRAGMENT_LOG("Maximum possible prefix term:\n{}",
@@ -273,12 +239,8 @@ Result<Ok, ErrorResult> TextDirectiveCreator::CollectSuffixContextTerm() {
     return Err(std::move(rv));
   }
   MOZ_ASSERT(suffixRange);
-  MOZ_TRY(TextDirectiveUtil::RangeContentAsString(suffixRange)
-              .andThen([suffix = &mSuffixContent](
-                           const nsString& content) -> Result<Ok, ErrorResult> {
-                *suffix = content;
-                return Ok();
-              }));
+  mSuffixContent =
+      MOZ_TRY(TextDirectiveUtil::RangeContentAsString(suffixRange));
   mSuffixFoldCaseContent = mSuffixContent;
   ToFoldedCase(mSuffixFoldCaseContent);
   TEXT_FRAGMENT_LOG("Maximum possible suffix term:\n{}",
@@ -380,13 +342,11 @@ ExactMatchTextDirectiveCreator::FindAllMatchingCandidates() {
       "Searching all occurrences of range content ({}) in the partial document "
       "from document begin to begin of target range.",
       NS_ConvertUTF16toUTF8(mStartContent));
-  return FindAllMatchingRanges(mStartContent, {&mDocument, 0u},
-                               mRange->StartRef())
-      .andThen([this](const nsTArray<RefPtr<AbstractRange>>& matchRanges)
-                   -> Result<Ok, ErrorResult> {
-        FindCommonSubstringLengths(matchRanges);
-        return Ok();
-      });
+  const nsTArray<RefPtr<AbstractRange>> matchRanges =
+      MOZ_TRY(FindAllMatchingRanges(mStartContent, {&mDocument, 0u},
+                                    mRange->StartRef()));
+  FindCommonSubstringLengths(matchRanges);
+  return Ok();
 }
 
 void ExactMatchTextDirectiveCreator::FindCommonSubstringLengths(
@@ -420,9 +380,9 @@ void ExactMatchTextDirectiveCreator::FindCommonSubstringLengths(
 
 Result<Ok, ErrorResult>
 RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
-  nsString firstWordOfStartContent(
+  const nsString firstWordOfStartContent(
       Substring(mStartContent, 0, mStartWordEndDistances[0]));
-  nsString lastWordOfEndContent(
+  const nsString lastWordOfEndContent(
       Substring(mEndContent, mEndContent.Length() - mEndWordBeginDistances[0]));
 
   TEXT_FRAGMENT_LOG(
@@ -430,13 +390,11 @@ RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
       "partial document from document begin to begin of the target range.",
       NS_ConvertUTF16toUTF8(firstWordOfStartContent));
 
-  MOZ_TRY(FindAllMatchingRanges(firstWordOfStartContent, {&mDocument, 0u},
-                                mRange->StartRef())
-              .andThen([this](const nsTArray<RefPtr<AbstractRange>>& ranges)
-                           -> Result<Ok, ErrorResult> {
-                FindStartMatchCommonSubstringLengths(ranges);
-                return Ok();
-              }));
+  const nsTArray<RefPtr<AbstractRange>> startContentRanges =
+      MOZ_TRY(FindAllMatchingRanges(firstWordOfStartContent, {&mDocument, 0u},
+                                    mRange->StartRef()));
+  FindStartMatchCommonSubstringLengths(startContentRanges);
+
   if (mWatchdog.IsDone()) {
     return Ok();
   }
@@ -452,13 +410,11 @@ RangeBasedTextDirectiveCreator::FindAllMatchingCandidates() {
   searchEnd =
       TextDirectiveUtil::FindWordBoundary<TextScanDirection::Left>(searchEnd);
 
-  return FindAllMatchingRanges(lastWordOfEndContent, mRange->StartRef(),
-                               searchEnd)
-      .andThen([self = this](const nsTArray<RefPtr<AbstractRange>>& ranges)
-                   -> Result<Ok, ErrorResult> {
-        self->FindEndMatchCommonSubstringLengths(ranges);
-        return Ok();
-      });
+  const nsTArray<RefPtr<AbstractRange>> endContentRanges =
+      MOZ_TRY(FindAllMatchingRanges(lastWordOfEndContent, mRange->StartRef(),
+                                    searchEnd));
+  FindEndMatchCommonSubstringLengths(endContentRanges);
+  return Ok();
 }
 
 void RangeBasedTextDirectiveCreator::FindStartMatchCommonSubstringLengths(
