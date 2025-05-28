@@ -7,9 +7,7 @@
 :host {
   --avatar-size: 80px;
   --profile-card-radius: 12px;
-  --profile-card-radius-inner: calc(
-    var(--profile-card-radius) - var(--border-width)
-  );
+  --profile-card-radius-inner: calc(var(--profile-card-radius) - var(--border-width));
 }
 
 .profile-card {
@@ -76,8 +74,7 @@
   background-position: center;
   -moz-context-properties: fill, stroke;
   fill: var(--icon-color);
-  border-radius: var(--profile-card-radius-inner)
-    var(--profile-card-radius-inner) 0 0;
+  border-radius: var(--profile-card-radius-inner) var(--profile-card-radius-inner) 0 0;
 }
 
 .profile-avatar {
