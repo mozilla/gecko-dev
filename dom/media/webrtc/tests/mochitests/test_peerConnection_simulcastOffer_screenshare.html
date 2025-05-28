@@ -159,22 +159,15 @@
         ["media.navigator.video.disable_h264_baseline", false],
       );
 
-    const isAndroid = navigator.userAgent.includes("Android");
     const codecs = [
       {mimeType: "video/VP8"},
+      {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*packetization-mode=1/},
+      {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*asymmetry-allowed=1$/},
+      {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*packetization-mode=1/},
+      {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*asymmetry-allowed=1$/},
       {mimeType: "video/VP9"},
       {mimeType: "video/AV1"},
     ];
-    if (!isAndroid || await hasH264()) {
-      // Can't check for emulator explicitly, but that's where we expect no
-      // h264 support currently.
-      codecs.push(
-        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*packetization-mode=1/},
-        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42e01f.*asymmetry-allowed=1$/},
-        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*packetization-mode=1/},
-        {mimeType: "video/H264", sdpFmtpLineRegex: /profile-level-id=42001f.*asymmetry-allowed=1$/},
-      );
-    }
 
     for (const codec of codecs) {
       info(`Testing codec ${codec.mimeType}`)
