@@ -96,7 +96,7 @@ export class UrlbarView {
     this.panel.setAttribute("noresults", "true");
 
     this.controller.setView(this);
-    this.controller.addQueryListener(this);
+    this.controller.addListener(this);
     // This is used by autoOpen to avoid flickering results when reopening
     // previously abandoned searches.
     this.queryContextCache = new QueryContextCache(5);

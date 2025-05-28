@@ -259,8 +259,8 @@ View (e.g. showing/hiding a panel). It is also responsible for reporting Telemet
     // Invoked by the ProvidersManager when results are available.
     receiveResults(queryContext);
     // Used by the View to listen for results.
-    addQueryListener(listener);
-    removeQueryListener(listener);
+    addListener(listener);
+    removeListener(listener);
   }
 
 

@@ -145,7 +145,7 @@ function promiseControllerNotification(
         get: (target, name) => {
           if (name == notification) {
             return (...args) => {
-              controller.removeQueryListener(proxifiedObserver);
+              controller.removeListener(proxifiedObserver);
               if (expected) {
                 resolve(args);
               } else {
@@ -157,7 +157,7 @@ function promiseControllerNotification(
         },
       }
     );
-    controller.addQueryListener(proxifiedObserver);
+    controller.addListener(proxifiedObserver);
   });
 }
 

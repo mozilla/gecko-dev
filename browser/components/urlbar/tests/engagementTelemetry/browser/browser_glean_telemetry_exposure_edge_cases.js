@@ -958,11 +958,11 @@ async function do_exposure_append_full_twice(showExposureResults) {
   let thirdQueryStartedPromise = new Promise(resolve => {
     let queryListener = {
       onQueryStarted: () => {
-        gURLBar.controller.removeQueryListener(queryListener);
+        gURLBar.controller.removeListener(queryListener);
         resolve();
       },
     };
-    gURLBar.controller.addQueryListener(queryListener);
+    gURLBar.controller.addListener(queryListener);
   });
 
   info("Starting third query");

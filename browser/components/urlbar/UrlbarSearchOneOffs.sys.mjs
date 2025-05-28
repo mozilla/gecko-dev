@@ -67,12 +67,12 @@ export class UrlbarSearchOneOffs extends SearchOneOffs {
       if (this.view.isOpen) {
         this._rebuild();
       }
-      this.view.controller.addQueryListener(this);
+      this.view.controller.addListener(this);
     } else {
       this.telemetryOrigin = null;
       this.style.display = "none";
       this.textbox = null;
-      this.view.controller.removeQueryListener(this);
+      this.view.controller.removeListener(this);
     }
   }
 

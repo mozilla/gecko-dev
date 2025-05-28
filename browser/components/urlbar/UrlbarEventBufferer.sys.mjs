@@ -86,7 +86,7 @@ export class UrlbarEventBufferer {
     };
 
     // Start listening for queries.
-    this.input.controller.addQueryListener(this);
+    this.input.controller.addListener(this);
   }
 
   // UrlbarController listener methods.

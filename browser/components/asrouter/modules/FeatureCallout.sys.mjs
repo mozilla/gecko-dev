@@ -149,7 +149,7 @@ export class FeatureCallout {
   _addPanelConflictListeners() {
     if (!this._panelConflictListenersRegistered) {
       this.win.addEventListener("popupshowing", this);
-      this.win.gURLBar.controller.addQueryListener(this);
+      this.win.gURLBar.controller.addListener(this);
       this._panelConflictListenersRegistered = true;
     }
   }
@@ -157,14 +157,14 @@ export class FeatureCallout {
   _removePanelConflictListeners() {
     if (this._panelConflictListenersRegistered) {
       this.win.removeEventListener("popupshowing", this);
-      this.win.gURLBar.controller.removeQueryListener(this);
+      this.win.gURLBar.controller.removeListener(this);
       this._panelConflictListenersRegistered = false;
     }
   }
 
   /**
    * Close the tour when the urlbar is opened in the chrome. Set up by
-   * gURLBar.controller.addQueryListener in _addPanelConflictListeners.
+   * gURLBar.controller.addListener in _addPanelConflictListeners.
    */
   onViewOpen() {
     this.endTour();

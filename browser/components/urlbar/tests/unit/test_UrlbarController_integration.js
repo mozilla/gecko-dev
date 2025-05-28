@@ -65,9 +65,9 @@ add_task(async function test_cancel_search() {
   );
 
   let delayResultsPromise = new Promise(resolve => {
-    controller.addQueryListener({
+    controller.addListener({
       async onQueryResults(queryContext) {
-        controller.removeQueryListener(this);
+        controller.removeListener(this);
         controller.cancelQuery(queryContext);
         resolve();
       },

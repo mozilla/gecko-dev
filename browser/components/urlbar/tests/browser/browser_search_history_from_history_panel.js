@@ -40,9 +40,9 @@ add_task(async function searchHistoryFromHistoryPanel() {
   EventUtils.synthesizeMouseAtCenter(searchHistoryButton, {});
 
   await new Promise(resolve => {
-    window.gURLBar.controller.addQueryListener({
+    window.gURLBar.controller.addListener({
       onViewOpen() {
-        window.gURLBar.controller.removeQueryListener(this);
+        window.gURLBar.controller.removeListener(this);
         resolve();
       },
     });
@@ -80,9 +80,9 @@ add_task(async function searchHistoryFromAppMenuHistoryButton() {
   EventUtils.synthesizeMouseAtCenter(searchHistoryButton, {});
 
   await new Promise(resolve => {
-    window.gURLBar.controller.addQueryListener({
+    window.gURLBar.controller.addListener({
       onViewOpen() {
-        window.gURLBar.controller.removeQueryListener(this);
+        window.gURLBar.controller.removeListener(this);
         resolve();
       },
     });

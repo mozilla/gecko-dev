@@ -718,9 +718,9 @@ export var UrlbarTestUtils = {
     }
     this.info("Waiting for the urlbar view to open");
     await new Promise(resolve => {
-      win.gURLBar.controller.addQueryListener({
+      win.gURLBar.controller.addListener({
         onViewOpen() {
-          win.gURLBar.controller.removeQueryListener(this);
+          win.gURLBar.controller.removeListener(this);
           resolve();
         },
       });
@@ -742,9 +742,9 @@ export var UrlbarTestUtils = {
         resolve();
         return;
       }
-      win.gURLBar.controller.addQueryListener({
+      win.gURLBar.controller.addListener({
         onViewClose() {
-          win.gURLBar.controller.removeQueryListener(this);
+          win.gURLBar.controller.removeListener(this);
           resolve();
         },
       });

@@ -211,12 +211,12 @@ export class UrlbarController {
   }
 
   /**
-   * Adds a listener for query actions and results.
+   * Adds a listener for Urlbar result notifications.
    *
    * @param {object} listener The listener to add.
    * @throws {TypeError} Throws if the listener is not an object.
    */
-  addQueryListener(listener) {
+  addListener(listener) {
     if (!listener || typeof listener != "object") {
       throw new TypeError("Expected listener to be an object");
     }
@@ -224,11 +224,11 @@ export class UrlbarController {
   }
 
   /**
-   * Removes a query listener.
+   * Removes a listener for Urlbar result notifications.
    *
-   * @param {object} listener The listener to add.
+   * @param {object} listener The listener to remove.
    */
-  removeQueryListener(listener) {
+  removeListener(listener) {
     this._listeners.delete(listener);
   }
 

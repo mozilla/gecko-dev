@@ -120,7 +120,7 @@ add_task(async function timerIsCancelled() {
       queryCancelled = true;
     },
   };
-  controller.addQueryListener(controllerListener);
+  controller.addListener(controllerListener);
 
   // Wait until FastProvider sends its results to the providers manager.
   // Then they will be queued up in a _heuristicProvidersTimer, waiting for
@@ -141,7 +141,7 @@ add_task(async function timerIsCancelled() {
 
   Assert.ok(queryCancelled, "At least one query was cancelled.");
   Assert.ok(queryRecieved, "At least one query finished.");
-  controller.removeQueryListener(controllerListener);
+  controller.removeListener(controllerListener);
 });
 
 /**
@@ -225,7 +225,7 @@ add_task(async function autofillIsCleared() {
       queryCancelled = true;
     },
   };
-  controller.addQueryListener(controllerListener);
+  controller.addListener(controllerListener);
 
   // Intentionally do not await this first query.
   controller.startQuery(firstContext);
@@ -233,6 +233,6 @@ add_task(async function autofillIsCleared() {
 
   Assert.ok(queryCancelled, "At least one query was cancelled.");
   Assert.ok(queryRecieved, "At least one query finished.");
-  controller.removeQueryListener(controllerListener);
+  controller.removeListener(controllerListener);
   await cleanupPlaces();
 });
