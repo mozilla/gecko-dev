@@ -129,7 +129,12 @@ class TabDrawerRobot(private val composeTestRule: ComposeTestRule) {
         }
     }
 
+    @OptIn(ExperimentalTestApi::class)
     fun verifyOpenTabsOrder(title: String, position: Int, isListViewEnabled: Boolean = false) {
+        composeTestRule.waitUntilAtLeastOneExists(
+            hasText(title),
+            waitingTime,
+        )
         Log.i(TAG, "verifyOpenTabsOrder: Trying to verify that the open tab at position: $position has title: $title")
         when (isListViewEnabled) {
            false -> {
