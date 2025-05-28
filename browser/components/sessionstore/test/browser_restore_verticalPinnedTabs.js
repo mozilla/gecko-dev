@@ -59,9 +59,7 @@ add_task(async function test_pinned_tabs_restored_position() {
 
   let tabStrip = document.getElementById("tabbrowser-tabs");
   let verticalTabs = document.querySelector("#vertical-tabs");
-  let verticalPinnedTabsContainer = document.querySelector(
-    "#vertical-pinned-tabs-container"
-  );
+  let pinnedTabsContainer = document.querySelector("#pinned-tabs-container");
 
   ok(BrowserTestUtils.isVisible(verticalTabs), "Vertical tabs slot is visible");
   is(
@@ -70,11 +68,11 @@ add_task(async function test_pinned_tabs_restored_position() {
     "Tabstrip is slotted into the sidebar vertical tabs container"
   );
   ok(
-    BrowserTestUtils.isVisible(verticalPinnedTabsContainer),
+    BrowserTestUtils.isVisible(pinnedTabsContainer),
     "Vertical pinned tabs container is visible"
   );
   is(
-    verticalPinnedTabsContainer.children.length,
+    pinnedTabsContainer.children.length,
     gBrowser.pinnedTabCount,
     "Three tabs are in the vertical pinned tabs container"
   );
