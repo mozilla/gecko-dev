@@ -745,6 +745,44 @@ impl SecurityState {
         Ok(())
     }
 
+    pub fn find_cert_by_hash(
+        &self,
+        cert_hash: &ThinVec<u8>,
+        maybe_cert_bytes_out: Option<&mut ThinVec<u8>>,
+    ) -> Result<bool, SecurityStateError> {
+        let env_and_store = match self.env_and_store.as_ref() {
+            Some(env_and_store) => env_and_store,
+            None => return Err(SecurityStateError::from("env and store not initialized?")),
+        };
+        let reader = env_and_store.env.read()?;
+        let cert_key = make_key!(PREFIX_CERT, &cert_hash);
+        if let Some(Value::Blob(cert_bytes_stored)) = env_and_store.store.get(&reader, &cert_key)? {
+            if let Some(maybe_cert_bytes_out) = maybe_cert_bytes_out {
+                maybe_cert_bytes_out.clear();
+                let cert = Cert::from_bytes(cert_bytes_stored)?;
+                maybe_cert_bytes_out.extend_from_slice(cert.der);
+            }
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
+    pub fn has_all_certs_by_hash(
+        &self,
+        cert_hashes: &ThinVec<ThinVec<u8>>,
+    ) -> Result<bool, SecurityStateError> {
+        // Bug 1950140 - Implement a cache for this function to improve performance,
+        // based on a caller-supplied key identifiying the list of hashes.
+        for cert_hash in cert_hashes {
+            match self.find_cert_by_hash(&cert_hash, None) {
+                Ok(true) => {}
+                Ok(false) => return Ok(false),
+                Err(err) => return Err(err),
+            }
+        }
+        Ok(true)
+    }
+
     fn note_memory_usage(&self) -> usize {
         let mut ops = MallocSizeOfOps::new(cert_storage_malloc_size_of, None);
         let size = self.size_of(&mut ops);
@@ -1531,6 +1569,21 @@ impl CertStorage {
         NS_OK
     }
 
+    // Synchronous helper for testing purposes only
+    unsafe fn TestHelperAddCert(
+        &self,
+        cert: *const nsACString,
+        subject: *const nsACString,
+        trust: i16,
+    ) -> nserror::nsresult {
+        let cert = nsCString::from(&*cert);
+        let subject = nsCString::from(&*subject);
+        let mut ss = self.security_state.write().unwrap();
+        ss.open_db().unwrap();
+        ss.add_certs(&[(cert, subject, trust)]).unwrap();
+        NS_OK
+    }
+
     unsafe fn RemoveCertsByHashes(
         &self,
         hashes: *const ThinVec<nsCString>,
@@ -1567,6 +1620,46 @@ impl CertStorage {
         match ss.find_certs_by_subject(&*subject, &mut *certs) {
             Ok(()) => NS_OK,
             Err(_) => NS_ERROR_FAILURE,
+        }
+    }
+
+    unsafe fn HasAllCertsByHash(
+        &self,
+        cert_hashes: *const ThinVec<ThinVec<u8>>,
+        found: *mut bool,
+    ) -> nserror::nsresult {
+        if cert_hashes.is_null() {
+            return NS_ERROR_NULL_POINTER;
+        }
+        let ss = get_security_state!(self);
+        match ss.has_all_certs_by_hash(&*cert_hashes) {
+            Ok(result) => {
+                *found = result;
+                NS_OK
+            }
+            Err(err) => {
+                log::error!("HasAllCertsByHash: {:?}", err);
+                NS_ERROR_FAILURE
+            }
+        }
+    }
+
+    unsafe fn FindCertByHash(
+        &self,
+        cert_hash: *const ThinVec<u8>,
+        cert_bytes: *mut ThinVec<u8>,
+    ) -> nserror::nsresult {
+        if cert_hash.is_null() || cert_bytes.is_null() {
+            return NS_ERROR_NULL_POINTER;
+        }
+        let ss = get_security_state!(self);
+        match ss.find_cert_by_hash(&*cert_hash, Some(&mut *cert_bytes)) {
+            Ok(true) => NS_OK,
+            Ok(false) => NS_ERROR_FAILURE,
+            Err(err) => {
+                log::error!("FindCertByHash: {:?}", err);
+                NS_ERROR_FAILURE
+            }
         }
     }
 }

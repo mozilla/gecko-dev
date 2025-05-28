@@ -200,6 +200,92 @@ add_task(async function test_removal() {
   await removeCertsByHashes(["vZn7GwDSabB/AVo0T+N26nUsfSXIIx4NgQtSi7/0p/w="]);
 });
 
+function base64ToArray(base64String) {
+  let binaryString = atob(base64String);
+  return stringToArray(binaryString);
+}
+
+add_task(async function test_lookup_by_hash_succeed() {
+  let someCert1 = new CertInfo("some certificate bytes 1", "common subject 1");
+  let someCert2 = new CertInfo(
+    "some certificate bytes 2",
+    "some common subject 2"
+  );
+  let someCert3 = new CertInfo(
+    "some certificate bytes 3",
+    "some common subject 3"
+  );
+  await addCerts([someCert1, someCert2, someCert3]);
+  // echo -n "some certificate bytes 2" | sha256sum | xxd -r -p | base64
+  let foundCert = certStorage.findCertByHash(
+    base64ToArray("j1vIqpiU0HMmx3zPNujlfGs/pY1vFBJCKpJEeVseeW0=")
+  );
+
+  Assert.deepEqual(
+    arrayToString(foundCert),
+    atob(someCert2.cert),
+    "should find expected cert"
+  );
+});
+
+add_task(async function test_lookup_by_hash_fail() {
+  let someCert1 = new CertInfo("some certificate bytes 1", "common subject 1");
+  let someCert2 = new CertInfo(
+    "some certificate bytes 2",
+    "some common subject 2"
+  );
+  let someCert3 = new CertInfo(
+    "some certificate bytes 3",
+    "some common subject 3"
+  );
+  await addCerts([someCert1, someCert2, someCert3]);
+  Assert.throws(
+    () => certStorage.findCertByHash(base64ToArray("aaaaaaaa")),
+    /NS_ERROR_FAILURE/
+  );
+});
+
+add_task(async function test_lookup_by_hashes_succeed() {
+  let someCert1 = new CertInfo("some certificate bytes 1", "common subject 1");
+  let someCert2 = new CertInfo(
+    "some certificate bytes 2",
+    "some common subject 2"
+  );
+  let someCert3 = new CertInfo(
+    "some certificate bytes 3",
+    "some common subject 3"
+  );
+  await addCerts([someCert1, someCert2, someCert3]);
+  // echo -n "some certificate bytes 2" | sha256sum | xxd -r -p | base64
+  // echo -n "some certificate bytes 1" | sha256sum | xxd -r -p | base64
+  let foundCerts = certStorage.hasAllCertsByHash([
+    base64ToArray("j1vIqpiU0HMmx3zPNujlfGs/pY1vFBJCKpJEeVseeW0="),
+    base64ToArray("c0iy21PfFlGAqqLnQYeSYYUoaF/JEc41lICBdZ7VFtk="),
+  ]);
+  Assert.equal(foundCerts, true);
+});
+
+add_task(async function test_lookup_by_hashes_fail() {
+  let someCert1 = new CertInfo("some certificate bytes 1", "common subject 1");
+  let someCert2 = new CertInfo(
+    "some certificate bytes 2",
+    "some common subject 2"
+  );
+  let someCert3 = new CertInfo(
+    "some certificate bytes 3",
+    "some common subject 3"
+  );
+  await addCerts([someCert1, someCert2, someCert3]);
+  // echo -n "some certificate bytes 2" | sha256sum | xxd -r -p | base64
+  // echo -n "some certificate bytes 1" | sha256sum | xxd -r -p | base64
+  let foundCerts = certStorage.hasAllCertsByHash([
+    base64ToArray("j1vIqpiU0HMmx3zPNujlfGs/pY1vFBJCKpJEeVseeW0="),
+    base64ToArray("c0iy21PfFlGAqqLnQYeSYYUoaF/JEc41lICBdZ7VFtk="),
+    base64ToArray("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  ]);
+  Assert.equal(foundCerts, false);
+});
+
 add_task(async function test_batched_removal() {
   let removalCert1 = new CertInfo(
     "batch removal certificate bytes 1",
