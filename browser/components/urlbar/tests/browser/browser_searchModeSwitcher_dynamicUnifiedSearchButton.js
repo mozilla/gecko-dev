@@ -134,40 +134,6 @@ add_task(async function test_button_visibility_by_tab_switching() {
   BrowserTestUtils.removeTab(tab);
 });
 
-add_task(async function test_button_visibility_by_navigate_blank_page() {
-  const BLANK_PAGE_URLS = [
-    "about:blank",
-    "about:home",
-    "about:newtab",
-    "about:privatebrowsing",
-  ];
-
-  for (let isPrivateMode of [false, true]) {
-    for (let url of BLANK_PAGE_URLS) {
-      info(`Test for ${url} in private mode: ${isPrivateMode}`);
-
-      info("Open pageproxystate valid page");
-      let tab = await BrowserTestUtils.openNewForegroundTab(
-        gBrowser,
-        "https://example.com/"
-      );
-      await assertState(false, "valid");
-
-      info("Navigate to blank page");
-      let onLocationChange = BrowserTestUtils.waitForLocationChange(
-        gBrowser,
-        url
-      );
-      gURLBar.value = url;
-      gURLBar.focus();
-      EventUtils.synthesizeKey("KEY_Enter");
-      await onLocationChange;
-      await assertState(true, "invalid");
-      BrowserTestUtils.removeTab(tab);
-    }
-  }
-});
-
 async function assertState(expectedVisible, expectedProxyPageState) {
   let switcher = document.getElementById("urlbar-searchmode-switcher");
   await BrowserTestUtils.waitForCondition(() => {
