@@ -1031,6 +1031,68 @@ nimbus_events:
       - project-nimbus@mozilla.com
     expires: never
 
+  startup_database_consistency:
+    type: event
+    description: >
+      Emitted during ExperimentManager startup with details about the
+      ExperimentDataStore compared to the NimbusEnrollments database table.
+    extra_keys:
+      total_db_count:
+        description: >
+         The total number of enrollments in the NimbusEnrollments table.
+        type: quantity
+        unit: enrollments
+
+      total_store_count:
+        description: >
+         The total number of enrollments in the ExperimentStore JSON file.
+        type: quantity
+        unit: enrollments
+
+      db_active_count:
+        description: >
+         The number of active enrollments in the NimbusEnrollments table.
+        type: quantity
+        unit: enrollments
+
+      store_active_count:
+        description: >
+         The number of active enrollments in the ExperimentStore JSON file.
+        type: quantity
+        unit: enrollments
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956079
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956080
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956079
+    notification_emails:
+      - beth@mozilla.com
+      - project-nimbus@mozilla.com
+    data_sensitivity:
+     - technical
+    expires: never
+
+  database_write:
+    type: event
+    description: >
+      Emitted when writing to the NimbusEnrollments database table.
+    extra_keys:
+      success:
+        type: boolean
+        description: Whether or not the write suceeded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956079
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956080
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956079
+    notification_emails:
+      - beth@mozilla.com
+      - project-nimbus@mozilla.com
+    data_sensitivity:
+     - technical
+    expires: never
+
+
 normandy:
   expose_nimbus_experiment:
     type: event
