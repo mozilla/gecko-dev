@@ -318,7 +318,9 @@ class TargetConfigurationActor extends Actor {
 
     this._setServiceWorkersTestingEnabled(false);
     this._setPrintSimulationEnabled(false);
-    this._setCacheDisabled(false);
+    if (this._resetCacheDisabledOnDestroy) {
+      this._setCacheDisabled(false);
+    }
     this._setTabOffline(false);
 
     // Restore the color scheme simulation only if it was explicitly updated
@@ -488,6 +490,7 @@ class TargetConfigurationActor extends Actor {
       : Ci.nsIRequest.LOAD_NORMAL;
     if (this._browsingContext.defaultLoadFlags != value) {
       this._browsingContext.defaultLoadFlags = value;
+      this._resetCacheDisabledOnDestroy = true;
     }
   }
 

@@ -240,6 +240,8 @@ https_first_disabled = true # Bug 1898241
 ["browser_net_details_copy.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
+["browser_net_disable_cache_rdm.js"]
+
 ["browser_net_domain-not-found.js"]
 
 ["browser_net_duration-sort.js"]
