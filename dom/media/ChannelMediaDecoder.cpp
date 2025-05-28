@@ -314,12 +314,11 @@ void ChannelMediaDecoder::NotifyDownloadEnded(nsresult aStatus) {
   if (NS_SUCCEEDED(aStatus) || aStatus == NS_BASE_STREAM_CLOSED) {
     nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
         "ChannelMediaDecoder::UpdatePlaybackRate",
-        [stats = mPlaybackStatistics,
-         res = RefPtr<BaseMediaResource>(mResource), duration = mDuration]() {
-          auto rate = ComputePlaybackRate(stats, res,
-                                          duration.match(DurationToTimeUnit()));
-          UpdatePlaybackRate(rate, res);
-        });
+      [playbackStats = mPlaybackStatistics,
+       res = RefPtr<BaseMediaResource>(mResource),
+       duration = mDuration.match(DurationToTimeUnit())]() {
+        Unused << UpdateResourceOfPlaybackByteRate(playbackStats, res, duration);
+      });
     nsresult rv = GetStateMachine()->OwnerThread()->Dispatch(r.forget());
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
     Unused << rv;
@@ -370,14 +369,14 @@ void ChannelMediaDecoder::OnPlaybackEvent(MediaPlaybackEvent&& aEvent) {
 void ChannelMediaDecoder::DurationChanged() {
   MOZ_ASSERT(NS_IsMainThread());
   MediaDecoder::DurationChanged();
-  // Duration has changed so we should recompute playback rate
+  // Duration has changed so we should recompute playback byte rate
   nsCOMPtr<nsIRunnable> r = NS_NewRunnableFunction(
       "ChannelMediaDecoder::UpdatePlaybackRate",
-      [stats = mPlaybackStatistics, res = RefPtr<BaseMediaResource>(mResource),
-       duration = mDuration]() {
-        auto rate = ComputePlaybackRate(stats, res,
-                                        duration.match(DurationToTimeUnit()));
-        UpdatePlaybackRate(rate, res);
+      [playbackStats = mPlaybackStatistics,
+       res = RefPtr<BaseMediaResource>(mResource),
+       duration = mDuration.match(DurationToTimeUnit())]() {
+        Unused << UpdateResourceOfPlaybackByteRate(
+            playbackStats, res, duration);
       });
   nsresult rv = GetStateMachine()->OwnerThread()->Dispatch(r.forget());
   MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv));
@@ -393,13 +392,13 @@ void ChannelMediaDecoder::DownloadProgressed() {
   using StatsPromise = MozPromise<MediaStatistics, bool, true>;
   InvokeAsync(GetStateMachine()->OwnerThread(), __func__,
               [playbackStats = mPlaybackStatistics,
-               res = RefPtr<BaseMediaResource>(mResource), duration = mDuration,
+               res = RefPtr<BaseMediaResource>(mResource),
+               duration = mDuration.match(DurationToTimeUnit()),
                pos = mPlaybackPosition]() {
-                auto rate = ComputePlaybackRate(
-                    playbackStats, res, duration.match(DurationToTimeUnit()));
-                UpdatePlaybackRate(rate, res);
-                MediaStatistics stats = GetStatistics(rate, res, pos);
-                return StatsPromise::CreateAndResolve(stats, __func__);
+                auto rateInfo = UpdateResourceOfPlaybackByteRate(
+                    playbackStats, res, duration);
+                return StatsPromise::CreateAndResolve(
+                  GetStatistics(rateInfo, res, pos), __func__);
               })
       ->Then(
           mAbstractMainThread, __func__,
@@ -417,41 +416,37 @@ void ChannelMediaDecoder::DownloadProgressed() {
           []() { MOZ_ASSERT_UNREACHABLE("Promise not resolved"); });
 }
 
-/* static */ ChannelMediaDecoder::PlaybackRateInfo
-ChannelMediaDecoder::ComputePlaybackRate(const MediaChannelStatistics& aStats,
-                                         BaseMediaResource* aResource,
-                                         const TimeUnit& aDuration) {
+/* static */
+ChannelMediaDecoder::PlaybackRateInfo
+ChannelMediaDecoder::UpdateResourceOfPlaybackByteRate(
+    const MediaChannelStatistics& aStats, BaseMediaResource* aResource,
+    const TimeUnit& aDuration) {
   MOZ_ASSERT(!NS_IsMainThread());
 
+  uint32_t byteRatePerSecond = 0;
   int64_t length = aResource->GetLength();
+  bool rateIsReliable = false;
   if (aDuration.IsValid() && !aDuration.IsInfinite() &&
       aDuration.IsPositive() && length >= 0 &&
       length / aDuration.ToSeconds() < UINT32_MAX) {
-    return {uint32_t(length / aDuration.ToSeconds()), true};
+    // Both the duration and total content length are known.
+    byteRatePerSecond = uint32_t(length / aDuration.ToSeconds());
+    rateIsReliable = true;
+  } else {
+    byteRatePerSecond = aStats.GetRate(&rateIsReliable);
   }
 
-  bool reliable = false;
-  uint32_t rate = aStats.GetRate(&reliable);
-  return {rate, reliable};
-}
-
-/* static */
-void ChannelMediaDecoder::UpdatePlaybackRate(const PlaybackRateInfo& aInfo,
-                                             BaseMediaResource* aResource) {
-  MOZ_ASSERT(!NS_IsMainThread());
-
-  uint32_t rate = aInfo.mRate;
-
-  if (aInfo.mReliable) {
+  // Adjust rate if necessary.
+  if (rateIsReliable) {
     // Avoid passing a zero rate
-    rate = std::max(rate, 1u);
+    byteRatePerSecond = std::max(byteRatePerSecond, 1u);
   } else {
     // Set a minimum rate of 10,000 bytes per second ... sometimes we just
     // don't have good data
-    rate = std::max(rate, 10000u);
+    byteRatePerSecond = std::max(byteRatePerSecond, 10000u);
   }
-
-  aResource->SetPlaybackRate(rate);
+  aResource->SetPlaybackRate(byteRatePerSecond);
+  return {byteRatePerSecond, rateIsReliable};
 }
 
 /* static */

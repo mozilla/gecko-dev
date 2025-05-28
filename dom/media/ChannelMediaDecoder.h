@@ -122,15 +122,13 @@ class ChannelMediaDecoder
     uint32_t mRate;  // Estimate of the current playback rate (bytes/second).
     bool mReliable;  // True if mRate is a reliable estimate.
   };
-  // The actual playback rate computation.
-  static PlaybackRateInfo ComputePlaybackRate(
+
+  // Return a PlaybackRateInfo and update the expected byte rate per second for
+  // playback in the media resource, which improves cache usage prediction
+  // accuracy. This can only be run off the main thread.
+  static PlaybackRateInfo UpdateResourceOfPlaybackByteRate(
       const MediaChannelStatistics& aStats, BaseMediaResource* aResource,
       const media::TimeUnit& aDuration);
-
-  // Something has changed that could affect the computed playback rate,
-  // so recompute it.
-  static void UpdatePlaybackRate(const PlaybackRateInfo& aInfo,
-                                 BaseMediaResource* aResource);
 
   // Return statistics. This is used for progress events and other things.
   // This can be called from any thread. It's only a snapshot of the
