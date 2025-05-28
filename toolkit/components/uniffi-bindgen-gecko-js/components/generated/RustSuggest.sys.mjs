@@ -661,50 +661,48 @@ export class GeonameType {}
  * Country
  */
 GeonameType.Country = class extends GeonameType{
-   constructor() {
+    constructor(
+        ) {
             super();
-    }
+        }
 }
 /**
  * A state, province, prefecture, district, borough, etc.
  */
 GeonameType.AdminDivision = class extends GeonameType{
-   constructor({level = undefined } = {}) {
-                super();
-            try {
-                FfiConverterUInt8.checkType(level);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("level");
-                }
-                throw e;
-            }
+    constructor(
+        level
+        ) {
+            super();
             this.level = level;
-    }
+        }
 }
 /**
  * AdminDivisionOther
  */
 GeonameType.AdminDivisionOther = class extends GeonameType{
-   constructor() {
+    constructor(
+        ) {
             super();
-    }
+        }
 }
 /**
  * A city, town, village, populated place, etc.
  */
 GeonameType.City = class extends GeonameType{
-   constructor() {
+    constructor(
+        ) {
             super();
-    }
+        }
 }
 /**
  * Other
  */
 GeonameType.Other = class extends GeonameType{
-   constructor() {
+    constructor(
+        ) {
             super();
-    }
+        }
 }
 
 // Export the FFIConverter object to make external types work.
@@ -713,17 +711,21 @@ export class FfiConverterTypeGeonameType extends FfiConverterArrayBuffer {
         // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
-                return new GeonameType.Country();
+                return new GeonameType.Country(
+                    );
             case 2:
-                return new GeonameType.AdminDivision({
-                    level: FfiConverterUInt8.read(dataStream)
-                });
+                return new GeonameType.AdminDivision(
+                    FfiConverterUInt8.read(dataStream)
+                    );
             case 3:
-                return new GeonameType.AdminDivisionOther();
+                return new GeonameType.AdminDivisionOther(
+                    );
             case 4:
-                return new GeonameType.City();
+                return new GeonameType.City(
+                    );
             case 5:
-                return new GeonameType.Other();
+                return new GeonameType.Other(
+                    );
             default:
                 throw new UniFFITypeError("Unknown GeonameType variant");
         }
@@ -1931,562 +1933,202 @@ export class Suggestion {}
  * Amp
  */
 Suggestion.Amp = class extends Suggestion{
-   constructor({title = undefined, url = undefined, rawUrl = undefined, icon = undefined, iconMimetype = undefined, fullKeyword = undefined, blockId = undefined, advertiser = undefined, iabCategory = undefined, impressionUrl = undefined, clickUrl = undefined, rawClickUrl = undefined, score = undefined, ftsMatchInfo = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(title);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("title");
-                }
-                throw e;
-            }
-            this.title = title;try {
-                FfiConverterString.checkType(url);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("url");
-                }
-                throw e;
-            }
-            this.url = url;try {
-                FfiConverterString.checkType(rawUrl);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("rawUrl");
-                }
-                throw e;
-            }
-            this.rawUrl = rawUrl;try {
-                FfiConverterOptionalBytes.checkType(icon);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("icon");
-                }
-                throw e;
-            }
-            this.icon = icon;try {
-                FfiConverterOptionalString.checkType(iconMimetype);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("iconMimetype");
-                }
-                throw e;
-            }
-            this.iconMimetype = iconMimetype;try {
-                FfiConverterString.checkType(fullKeyword);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("fullKeyword");
-                }
-                throw e;
-            }
-            this.fullKeyword = fullKeyword;try {
-                FfiConverterInt64.checkType(blockId);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("blockId");
-                }
-                throw e;
-            }
-            this.blockId = blockId;try {
-                FfiConverterString.checkType(advertiser);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("advertiser");
-                }
-                throw e;
-            }
-            this.advertiser = advertiser;try {
-                FfiConverterString.checkType(iabCategory);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("iabCategory");
-                }
-                throw e;
-            }
-            this.iabCategory = iabCategory;try {
-                FfiConverterString.checkType(impressionUrl);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("impressionUrl");
-                }
-                throw e;
-            }
-            this.impressionUrl = impressionUrl;try {
-                FfiConverterString.checkType(clickUrl);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("clickUrl");
-                }
-                throw e;
-            }
-            this.clickUrl = clickUrl;try {
-                FfiConverterString.checkType(rawClickUrl);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("rawClickUrl");
-                }
-                throw e;
-            }
-            this.rawClickUrl = rawClickUrl;try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
-            this.score = score;try {
-                FfiConverterOptionalTypeFtsMatchInfo.checkType(ftsMatchInfo);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("ftsMatchInfo");
-                }
-                throw e;
-            }
+    constructor(
+        title,
+        url,
+        rawUrl,
+        icon,
+        iconMimetype,
+        fullKeyword,
+        blockId,
+        advertiser,
+        iabCategory,
+        impressionUrl,
+        clickUrl,
+        rawClickUrl,
+        score,
+        ftsMatchInfo
+        ) {
+            super();
+            this.title = title;
+            this.url = url;
+            this.rawUrl = rawUrl;
+            this.icon = icon;
+            this.iconMimetype = iconMimetype;
+            this.fullKeyword = fullKeyword;
+            this.blockId = blockId;
+            this.advertiser = advertiser;
+            this.iabCategory = iabCategory;
+            this.impressionUrl = impressionUrl;
+            this.clickUrl = clickUrl;
+            this.rawClickUrl = rawClickUrl;
+            this.score = score;
             this.ftsMatchInfo = ftsMatchInfo;
-    }
+        }
 }
 /**
  * Pocket
  */
 Suggestion.Pocket = class extends Suggestion{
-   constructor({title = undefined, url = undefined, score = undefined, isTopPick = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(title);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("title");
-                }
-                throw e;
-            }
-            this.title = title;try {
-                FfiConverterString.checkType(url);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("url");
-                }
-                throw e;
-            }
-            this.url = url;try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
-            this.score = score;try {
-                FfiConverterBoolean.checkType(isTopPick);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("isTopPick");
-                }
-                throw e;
-            }
+    constructor(
+        title,
+        url,
+        score,
+        isTopPick
+        ) {
+            super();
+            this.title = title;
+            this.url = url;
+            this.score = score;
             this.isTopPick = isTopPick;
-    }
+        }
 }
 /**
  * Wikipedia
  */
 Suggestion.Wikipedia = class extends Suggestion{
-   constructor({title = undefined, url = undefined, icon = undefined, iconMimetype = undefined, fullKeyword = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(title);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("title");
-                }
-                throw e;
-            }
-            this.title = title;try {
-                FfiConverterString.checkType(url);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("url");
-                }
-                throw e;
-            }
-            this.url = url;try {
-                FfiConverterOptionalBytes.checkType(icon);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("icon");
-                }
-                throw e;
-            }
-            this.icon = icon;try {
-                FfiConverterOptionalString.checkType(iconMimetype);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("iconMimetype");
-                }
-                throw e;
-            }
-            this.iconMimetype = iconMimetype;try {
-                FfiConverterString.checkType(fullKeyword);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("fullKeyword");
-                }
-                throw e;
-            }
+    constructor(
+        title,
+        url,
+        icon,
+        iconMimetype,
+        fullKeyword
+        ) {
+            super();
+            this.title = title;
+            this.url = url;
+            this.icon = icon;
+            this.iconMimetype = iconMimetype;
             this.fullKeyword = fullKeyword;
-    }
+        }
 }
 /**
  * Amo
  */
 Suggestion.Amo = class extends Suggestion{
-   constructor({title = undefined, url = undefined, iconUrl = undefined, description = undefined, rating = undefined, numberOfRatings = undefined, guid = undefined, score = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(title);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("title");
-                }
-                throw e;
-            }
-            this.title = title;try {
-                FfiConverterString.checkType(url);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("url");
-                }
-                throw e;
-            }
-            this.url = url;try {
-                FfiConverterString.checkType(iconUrl);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("iconUrl");
-                }
-                throw e;
-            }
-            this.iconUrl = iconUrl;try {
-                FfiConverterString.checkType(description);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("description");
-                }
-                throw e;
-            }
-            this.description = description;try {
-                FfiConverterOptionalString.checkType(rating);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("rating");
-                }
-                throw e;
-            }
-            this.rating = rating;try {
-                FfiConverterInt64.checkType(numberOfRatings);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("numberOfRatings");
-                }
-                throw e;
-            }
-            this.numberOfRatings = numberOfRatings;try {
-                FfiConverterString.checkType(guid);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("guid");
-                }
-                throw e;
-            }
-            this.guid = guid;try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
+    constructor(
+        title,
+        url,
+        iconUrl,
+        description,
+        rating,
+        numberOfRatings,
+        guid,
+        score
+        ) {
+            super();
+            this.title = title;
+            this.url = url;
+            this.iconUrl = iconUrl;
+            this.description = description;
+            this.rating = rating;
+            this.numberOfRatings = numberOfRatings;
+            this.guid = guid;
             this.score = score;
-    }
+        }
 }
 /**
  * Yelp
  */
 Suggestion.Yelp = class extends Suggestion{
-   constructor({url = undefined, title = undefined, icon = undefined, iconMimetype = undefined, score = undefined, hasLocationSign = undefined, subjectExactMatch = undefined, subjectType = undefined, locationParam = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(url);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("url");
-                }
-                throw e;
-            }
-            this.url = url;try {
-                FfiConverterString.checkType(title);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("title");
-                }
-                throw e;
-            }
-            this.title = title;try {
-                FfiConverterOptionalBytes.checkType(icon);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("icon");
-                }
-                throw e;
-            }
-            this.icon = icon;try {
-                FfiConverterOptionalString.checkType(iconMimetype);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("iconMimetype");
-                }
-                throw e;
-            }
-            this.iconMimetype = iconMimetype;try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
-            this.score = score;try {
-                FfiConverterBoolean.checkType(hasLocationSign);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("hasLocationSign");
-                }
-                throw e;
-            }
-            this.hasLocationSign = hasLocationSign;try {
-                FfiConverterBoolean.checkType(subjectExactMatch);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("subjectExactMatch");
-                }
-                throw e;
-            }
-            this.subjectExactMatch = subjectExactMatch;try {
-                FfiConverterTypeYelpSubjectType.checkType(subjectType);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("subjectType");
-                }
-                throw e;
-            }
-            this.subjectType = subjectType;try {
-                FfiConverterString.checkType(locationParam);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("locationParam");
-                }
-                throw e;
-            }
+    constructor(
+        url,
+        title,
+        icon,
+        iconMimetype,
+        score,
+        hasLocationSign,
+        subjectExactMatch,
+        subjectType,
+        locationParam
+        ) {
+            super();
+            this.url = url;
+            this.title = title;
+            this.icon = icon;
+            this.iconMimetype = iconMimetype;
+            this.score = score;
+            this.hasLocationSign = hasLocationSign;
+            this.subjectExactMatch = subjectExactMatch;
+            this.subjectType = subjectType;
             this.locationParam = locationParam;
-    }
+        }
 }
 /**
  * Mdn
  */
 Suggestion.Mdn = class extends Suggestion{
-   constructor({title = undefined, url = undefined, description = undefined, score = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(title);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("title");
-                }
-                throw e;
-            }
-            this.title = title;try {
-                FfiConverterString.checkType(url);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("url");
-                }
-                throw e;
-            }
-            this.url = url;try {
-                FfiConverterString.checkType(description);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("description");
-                }
-                throw e;
-            }
-            this.description = description;try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
+    constructor(
+        title,
+        url,
+        description,
+        score
+        ) {
+            super();
+            this.title = title;
+            this.url = url;
+            this.description = description;
             this.score = score;
-    }
+        }
 }
 /**
  * Weather
  */
 Suggestion.Weather = class extends Suggestion{
-   constructor({city = undefined, score = undefined } = {}) {
-                super();
-            try {
-                FfiConverterOptionalTypeGeoname.checkType(city);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("city");
-                }
-                throw e;
-            }
-            this.city = city;try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
+    constructor(
+        city,
+        score
+        ) {
+            super();
+            this.city = city;
             this.score = score;
-    }
+        }
 }
 /**
  * Fakespot
  */
 Suggestion.Fakespot = class extends Suggestion{
-   constructor({fakespotGrade = undefined, productId = undefined, rating = undefined, title = undefined, totalReviews = undefined, url = undefined, icon = undefined, iconMimetype = undefined, score = undefined, matchInfo = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(fakespotGrade);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("fakespotGrade");
-                }
-                throw e;
-            }
-            this.fakespotGrade = fakespotGrade;try {
-                FfiConverterString.checkType(productId);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("productId");
-                }
-                throw e;
-            }
-            this.productId = productId;try {
-                FfiConverterFloat64.checkType(rating);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("rating");
-                }
-                throw e;
-            }
-            this.rating = rating;try {
-                FfiConverterString.checkType(title);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("title");
-                }
-                throw e;
-            }
-            this.title = title;try {
-                FfiConverterInt64.checkType(totalReviews);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("totalReviews");
-                }
-                throw e;
-            }
-            this.totalReviews = totalReviews;try {
-                FfiConverterString.checkType(url);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("url");
-                }
-                throw e;
-            }
-            this.url = url;try {
-                FfiConverterOptionalBytes.checkType(icon);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("icon");
-                }
-                throw e;
-            }
-            this.icon = icon;try {
-                FfiConverterOptionalString.checkType(iconMimetype);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("iconMimetype");
-                }
-                throw e;
-            }
-            this.iconMimetype = iconMimetype;try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
-            this.score = score;try {
-                FfiConverterOptionalTypeFtsMatchInfo.checkType(matchInfo);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("matchInfo");
-                }
-                throw e;
-            }
+    constructor(
+        fakespotGrade,
+        productId,
+        rating,
+        title,
+        totalReviews,
+        url,
+        icon,
+        iconMimetype,
+        score,
+        matchInfo
+        ) {
+            super();
+            this.fakespotGrade = fakespotGrade;
+            this.productId = productId;
+            this.rating = rating;
+            this.title = title;
+            this.totalReviews = totalReviews;
+            this.url = url;
+            this.icon = icon;
+            this.iconMimetype = iconMimetype;
+            this.score = score;
             this.matchInfo = matchInfo;
-    }
+        }
 }
 /**
  * Dynamic
  */
 Suggestion.Dynamic = class extends Suggestion{
-   constructor({suggestionType = undefined, data = undefined, dismissalKey = undefined, score = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(suggestionType);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("suggestionType");
-                }
-                throw e;
-            }
-            this.suggestionType = suggestionType;try {
-                FfiConverterOptionalTypeJsonValue.checkType(data);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("data");
-                }
-                throw e;
-            }
-            this.data = data;try {
-                FfiConverterOptionalString.checkType(dismissalKey);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("dismissalKey");
-                }
-                throw e;
-            }
-            this.dismissalKey = dismissalKey;try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
+    constructor(
+        suggestionType,
+        data,
+        dismissalKey,
+        score
+        ) {
+            super();
+            this.suggestionType = suggestionType;
+            this.data = data;
+            this.dismissalKey = dismissalKey;
             this.score = score;
-    }
+        }
 }
 
 // Export the FFIConverter object to make external types work.
@@ -2495,92 +2137,92 @@ export class FfiConverterTypeSuggestion extends FfiConverterArrayBuffer {
         // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
-                return new Suggestion.Amp({
-                    title: FfiConverterString.read(dataStream),
-                    url: FfiConverterString.read(dataStream),
-                    rawUrl: FfiConverterString.read(dataStream),
-                    icon: FfiConverterOptionalBytes.read(dataStream),
-                    iconMimetype: FfiConverterOptionalString.read(dataStream),
-                    fullKeyword: FfiConverterString.read(dataStream),
-                    blockId: FfiConverterInt64.read(dataStream),
-                    advertiser: FfiConverterString.read(dataStream),
-                    iabCategory: FfiConverterString.read(dataStream),
-                    impressionUrl: FfiConverterString.read(dataStream),
-                    clickUrl: FfiConverterString.read(dataStream),
-                    rawClickUrl: FfiConverterString.read(dataStream),
-                    score: FfiConverterFloat64.read(dataStream),
-                    ftsMatchInfo: FfiConverterOptionalTypeFtsMatchInfo.read(dataStream)
-                });
+                return new Suggestion.Amp(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterOptionalBytes.read(dataStream),
+                    FfiConverterOptionalString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterInt64.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterFloat64.read(dataStream),
+                    FfiConverterOptionalTypeFtsMatchInfo.read(dataStream)
+                    );
             case 2:
-                return new Suggestion.Pocket({
-                    title: FfiConverterString.read(dataStream),
-                    url: FfiConverterString.read(dataStream),
-                    score: FfiConverterFloat64.read(dataStream),
-                    isTopPick: FfiConverterBoolean.read(dataStream)
-                });
+                return new Suggestion.Pocket(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterFloat64.read(dataStream),
+                    FfiConverterBoolean.read(dataStream)
+                    );
             case 3:
-                return new Suggestion.Wikipedia({
-                    title: FfiConverterString.read(dataStream),
-                    url: FfiConverterString.read(dataStream),
-                    icon: FfiConverterOptionalBytes.read(dataStream),
-                    iconMimetype: FfiConverterOptionalString.read(dataStream),
-                    fullKeyword: FfiConverterString.read(dataStream)
-                });
+                return new Suggestion.Wikipedia(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterOptionalBytes.read(dataStream),
+                    FfiConverterOptionalString.read(dataStream),
+                    FfiConverterString.read(dataStream)
+                    );
             case 4:
-                return new Suggestion.Amo({
-                    title: FfiConverterString.read(dataStream),
-                    url: FfiConverterString.read(dataStream),
-                    iconUrl: FfiConverterString.read(dataStream),
-                    description: FfiConverterString.read(dataStream),
-                    rating: FfiConverterOptionalString.read(dataStream),
-                    numberOfRatings: FfiConverterInt64.read(dataStream),
-                    guid: FfiConverterString.read(dataStream),
-                    score: FfiConverterFloat64.read(dataStream)
-                });
+                return new Suggestion.Amo(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterOptionalString.read(dataStream),
+                    FfiConverterInt64.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterFloat64.read(dataStream)
+                    );
             case 5:
-                return new Suggestion.Yelp({
-                    url: FfiConverterString.read(dataStream),
-                    title: FfiConverterString.read(dataStream),
-                    icon: FfiConverterOptionalBytes.read(dataStream),
-                    iconMimetype: FfiConverterOptionalString.read(dataStream),
-                    score: FfiConverterFloat64.read(dataStream),
-                    hasLocationSign: FfiConverterBoolean.read(dataStream),
-                    subjectExactMatch: FfiConverterBoolean.read(dataStream),
-                    subjectType: FfiConverterTypeYelpSubjectType.read(dataStream),
-                    locationParam: FfiConverterString.read(dataStream)
-                });
+                return new Suggestion.Yelp(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterOptionalBytes.read(dataStream),
+                    FfiConverterOptionalString.read(dataStream),
+                    FfiConverterFloat64.read(dataStream),
+                    FfiConverterBoolean.read(dataStream),
+                    FfiConverterBoolean.read(dataStream),
+                    FfiConverterTypeYelpSubjectType.read(dataStream),
+                    FfiConverterString.read(dataStream)
+                    );
             case 6:
-                return new Suggestion.Mdn({
-                    title: FfiConverterString.read(dataStream),
-                    url: FfiConverterString.read(dataStream),
-                    description: FfiConverterString.read(dataStream),
-                    score: FfiConverterFloat64.read(dataStream)
-                });
+                return new Suggestion.Mdn(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterFloat64.read(dataStream)
+                    );
             case 7:
-                return new Suggestion.Weather({
-                    city: FfiConverterOptionalTypeGeoname.read(dataStream),
-                    score: FfiConverterFloat64.read(dataStream)
-                });
+                return new Suggestion.Weather(
+                    FfiConverterOptionalTypeGeoname.read(dataStream),
+                    FfiConverterFloat64.read(dataStream)
+                    );
             case 8:
-                return new Suggestion.Fakespot({
-                    fakespotGrade: FfiConverterString.read(dataStream),
-                    productId: FfiConverterString.read(dataStream),
-                    rating: FfiConverterFloat64.read(dataStream),
-                    title: FfiConverterString.read(dataStream),
-                    totalReviews: FfiConverterInt64.read(dataStream),
-                    url: FfiConverterString.read(dataStream),
-                    icon: FfiConverterOptionalBytes.read(dataStream),
-                    iconMimetype: FfiConverterOptionalString.read(dataStream),
-                    score: FfiConverterFloat64.read(dataStream),
-                    matchInfo: FfiConverterOptionalTypeFtsMatchInfo.read(dataStream)
-                });
+                return new Suggestion.Fakespot(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterFloat64.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterInt64.read(dataStream),
+                    FfiConverterString.read(dataStream),
+                    FfiConverterOptionalBytes.read(dataStream),
+                    FfiConverterOptionalString.read(dataStream),
+                    FfiConverterFloat64.read(dataStream),
+                    FfiConverterOptionalTypeFtsMatchInfo.read(dataStream)
+                    );
             case 9:
-                return new Suggestion.Dynamic({
-                    suggestionType: FfiConverterString.read(dataStream),
-                    data: FfiConverterOptionalTypeJsonValue.read(dataStream),
-                    dismissalKey: FfiConverterOptionalString.read(dataStream),
-                    score: FfiConverterFloat64.read(dataStream)
-                });
+                return new Suggestion.Dynamic(
+                    FfiConverterString.read(dataStream),
+                    FfiConverterOptionalTypeJsonValue.read(dataStream),
+                    FfiConverterOptionalString.read(dataStream),
+                    FfiConverterFloat64.read(dataStream)
+                    );
             default:
                 throw new UniFFITypeError("Unknown Suggestion variant");
         }
@@ -4178,26 +3820,14 @@ export class SuggestProviderConfig {}
  * Weather
  */
 SuggestProviderConfig.Weather = class extends SuggestProviderConfig{
-   constructor({score = undefined, minKeywordLength = undefined } = {}) {
-                super();
-            try {
-                FfiConverterFloat64.checkType(score);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("score");
-                }
-                throw e;
-            }
-            this.score = score;try {
-                FfiConverterInt32.checkType(minKeywordLength);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("minKeywordLength");
-                }
-                throw e;
-            }
+    constructor(
+        score,
+        minKeywordLength
+        ) {
+            super();
+            this.score = score;
             this.minKeywordLength = minKeywordLength;
-    }
+        }
 }
 
 // Export the FFIConverter object to make external types work.
@@ -4206,10 +3836,10 @@ export class FfiConverterTypeSuggestProviderConfig extends FfiConverterArrayBuff
         // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
-                return new SuggestProviderConfig.Weather({
-                    score: FfiConverterFloat64.read(dataStream),
-                    minKeywordLength: FfiConverterInt32.read(dataStream)
-                });
+                return new SuggestProviderConfig.Weather(
+                    FfiConverterFloat64.read(dataStream),
+                    FfiConverterInt32.read(dataStream)
+                    );
             default:
                 throw new UniFFITypeError("Unknown SuggestProviderConfig variant");
         }

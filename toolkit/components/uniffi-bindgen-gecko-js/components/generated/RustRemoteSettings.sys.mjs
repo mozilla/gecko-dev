@@ -553,42 +553,39 @@ export class RemoteSettingsServer {}
  * Prod
  */
 RemoteSettingsServer.Prod = class extends RemoteSettingsServer{
-   constructor() {
+    constructor(
+        ) {
             super();
-    }
+        }
 }
 /**
  * Stage
  */
 RemoteSettingsServer.Stage = class extends RemoteSettingsServer{
-   constructor() {
+    constructor(
+        ) {
             super();
-    }
+        }
 }
 /**
  * Dev
  */
 RemoteSettingsServer.Dev = class extends RemoteSettingsServer{
-   constructor() {
+    constructor(
+        ) {
             super();
-    }
+        }
 }
 /**
  * Custom
  */
 RemoteSettingsServer.Custom = class extends RemoteSettingsServer{
-   constructor({url = undefined } = {}) {
-                super();
-            try {
-                FfiConverterString.checkType(url);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("url");
-                }
-                throw e;
-            }
+    constructor(
+        url
+        ) {
+            super();
             this.url = url;
-    }
+        }
 }
 
 // Export the FFIConverter object to make external types work.
@@ -597,15 +594,18 @@ export class FfiConverterTypeRemoteSettingsServer extends FfiConverterArrayBuffe
         // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
-                return new RemoteSettingsServer.Prod();
+                return new RemoteSettingsServer.Prod(
+                    );
             case 2:
-                return new RemoteSettingsServer.Stage();
+                return new RemoteSettingsServer.Stage(
+                    );
             case 3:
-                return new RemoteSettingsServer.Dev();
+                return new RemoteSettingsServer.Dev(
+                    );
             case 4:
-                return new RemoteSettingsServer.Custom({
-                    url: FfiConverterString.read(dataStream)
-                });
+                return new RemoteSettingsServer.Custom(
+                    FfiConverterString.read(dataStream)
+                    );
             default:
                 throw new UniFFITypeError("Unknown RemoteSettingsServer variant");
         }
