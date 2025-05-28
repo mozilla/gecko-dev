@@ -38,12 +38,12 @@
   }
 
   runNetworkTest(async () => {
-    let hasH264 = await matchPlatformH264CodecPrefs();
     await pushPrefs(
       ["media.navigator.video.red_ulpfec_enabled", true],
       ["media.navigator.video.disable_h264_baseline", false],
       ["media.webrtc.codec.video.av1.enabled", true],
     );
+    let hasH264 = await checkPlatformH264CodecPrefs();
     const allPts = await supportedVideoPayloadTypes();
     const pts = {
       pts: allPts,

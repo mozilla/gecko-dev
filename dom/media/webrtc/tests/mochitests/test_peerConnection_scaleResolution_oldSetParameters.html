@@ -102,22 +102,20 @@
         ['media.peerconnection.video.lock_scaling', true],
         // Disable h264 hardware support, to ensure it is not prioritized over VP8
         ["media.webrtc.hw.h264.enabled", false],
-      );
-
-    await pushPrefs(
         // Use libwebrtc VP8 encoder to avoid unexpected resolution alignment on
         // some devices.
         ["media.webrtc.encoder_creation_strategy", 0],
       );
     await testScale("VP8");
-    await SpecialPowers.popPrefEnv();
 
-    await matchPlatformH264CodecPrefs();
-    if (navigator.userAgent.includes("Android")) {
+    const h264Support = checkPlatformH264CodecPrefs();
+    if (!h264Support.webrtc) {
       // MediaDataEncoder always uses 16-alignment.
       resolutionAlignment = 16;
     }
-    await testScale("H264");
+    if (h264Support.any) {
+      await testScale("H264");
+    }
   });
 </script>
 </pre>

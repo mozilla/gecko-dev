@@ -57,13 +57,14 @@
     }
   }
 
-  function getNumExpectedH264SendCodecs() {
-    if (!navigator.userAgent.includes("Android")) {
+  async function getNumExpectedH264SendCodecs() {
+    const h264Support = await checkPlatformH264CodecPrefs();
+    if (h264Support.webrtc) {
       // Constrained Baseline and Baseline multiplied with packetization-mode 0 and 1.
       return 4;
     }
-    // packetization-mode=0 is not supported with MediaDataEncoder, which is
-    // the only encoder on Android.
+    ok(h264Support.platform, "There should always be some H264 support");
+    // packetization-mode=0 is not supported with MediaDataEncoder.
     return 2;
   }
 
@@ -269,7 +270,7 @@ a=setup:passive
     },
 
     async function checkH264Sender() {
-      const numExpectedH264Codecs = getNumExpectedH264SendCodecs();
+      const numExpectedH264Codecs = await getNumExpectedH264SendCodecs();
       const pc1 = new RTCPeerConnection();
       const pc2 = new RTCPeerConnection();
       const {sender} = pc1.addTransceiver('video');
@@ -297,7 +298,7 @@ a=setup:passive
     },
 
     async function checkH264Receiver() {
-      const numExpectedH264Codecs = getNumExpectedH264SendCodecs();
+      const numExpectedH264Codecs = await getNumExpectedH264SendCodecs();
       const pc1 = new RTCPeerConnection();
       const pc2 = new RTCPeerConnection();
       pc1.addTransceiver('video');
@@ -321,7 +322,7 @@ a=setup:passive
     },
 
     async function checkH264NoLevelAsymmetryInOffer() {
-      const numExpectedH264Codecs = getNumExpectedH264SendCodecs();
+      const numExpectedH264Codecs = await getNumExpectedH264SendCodecs();
       const pc1 = new RTCPeerConnection();
       const pc2 = new RTCPeerConnection();
       pc1.addTransceiver('video');
@@ -348,7 +349,7 @@ a=setup:passive
     },
 
     async function checkH264NoLevelAsymmetryInAnswer() {
-      const numExpectedH264Codecs = getNumExpectedH264SendCodecs();
+      const numExpectedH264Codecs = await getNumExpectedH264SendCodecs();
       const pc1 = new RTCPeerConnection();
       const pc2 = new RTCPeerConnection();
       pc1.addTransceiver('video');

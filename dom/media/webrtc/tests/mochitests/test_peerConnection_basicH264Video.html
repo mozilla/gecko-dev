@@ -12,7 +12,7 @@
   });
 
   runNetworkTest(async function (options) {
-    const h264Support = await matchPlatformH264CodecPrefs();
+    const h264Support = checkPlatformH264CodecPrefs();
     ok(h264Support.any, "Should have some H264 support everywhere");
     if (!h264Support.any) {
       return;
