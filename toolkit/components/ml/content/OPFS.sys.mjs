@@ -81,20 +81,32 @@ async function getFileHandleFromOPFS(filePath, { create = false } = {}) {
  * @param {string} path - The path to delete, using "/" as the directory separator.
  * @param {object} options - Configuration object
  * @param {boolean} options.recursive - if `true` (default is false) a directory path
+ * @param {boolean} options.ignoreErrors - if `true` (default is true) errors are ignored
  *                                      is recursively deleted.
  * @returns {Promise<void>} A promise that resolves when the path has been successfully deleted.
  */
-async function removeFromOPFS(path, { recursive = false } = {}) {
+async function removeFromOPFS(
+  path,
+  { recursive = false, ignoreErrors = true } = {}
+) {
   // Extract the root directory and basename from the path.
   const lastSlashIndex = path.lastIndexOf("/");
   const fileName = path.substring(lastSlashIndex + 1);
   const dirPath = path.substring(0, lastSlashIndex);
 
   const directoryHandle = await getDirectoryHandleFromOPFS(dirPath);
-  if (!directoryHandle) {
+  if (!directoryHandle && !ignoreErrors) {
     throw new Error("Directory does not exist: " + dirPath);
   }
-  await directoryHandle.removeEntry(fileName, { recursive });
+  if (directoryHandle) {
+    try {
+      await directoryHandle.removeEntry(fileName, { recursive });
+    } catch (e) {
+      if (!ignoreErrors) {
+        throw e;
+      }
+    }
+  }
 }
 
 /**

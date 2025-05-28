@@ -1497,7 +1497,7 @@ add_task(async function test_getting_file_custom_hub() {
     file: "config.json",
     taskName: "task_model",
     modelHubRootUrl: FAKE_HUB,
-    modelHubUrlTemplate: "{model}/{revision}",
+    modelHubUrlTemplate: "{model}/resolve/{revision}",
   };
 
   let [array, headers] = await hub.getModelFileAsArrayBuffer(args);
