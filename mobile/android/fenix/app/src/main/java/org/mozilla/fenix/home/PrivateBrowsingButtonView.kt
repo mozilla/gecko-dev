@@ -6,6 +6,7 @@ package org.mozilla.fenix.home
 
 import android.view.View
 import android.widget.ToggleButton
+import androidx.core.view.isVisible
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
@@ -15,11 +16,13 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
  */
 class PrivateBrowsingButtonView(
     button: ToggleButton,
+    showPrivateBrowsingButton: Boolean,
     private val browsingModeManager: BrowsingModeManager,
     private val onClick: (BrowsingMode) -> Unit,
 ) : View.OnClickListener {
 
     init {
+        button.isVisible = showPrivateBrowsingButton
         button.contentDescription = button.context.getString(R.string.content_description_private_browsing_button)
         button.isChecked = browsingModeManager.mode.isPrivate
         button.setOnClickListener(this)

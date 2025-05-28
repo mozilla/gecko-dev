@@ -113,6 +113,7 @@ internal fun Homepage(
             .animateContentSize(),
     ) {
         HomepageHeader(
+            showPrivateBrowsingButton = state.showPrivateBrowsingButton,
             browsingMode = state.browsingMode,
             browsingModeChanged = interactor::onPrivateModeButtonClicked,
         )
@@ -478,6 +479,7 @@ private fun HomepagePreview() {
                     showBookmarks = true,
                     showRecentlyVisited = true,
                     showPocketStories = true,
+                    showPrivateBrowsingButton = true,
                     searchBarEnabled = false,
                     showSearchBar = true,
                     setupChecklistState = null,
@@ -516,8 +518,9 @@ private fun HomepagePreviewCollections() {
                 showBookmarks = false,
                 showRecentlyVisited = true,
                 showPocketStories = true,
-                searchBarEnabled = false,
+                showPrivateBrowsingButton = true,
                 showSearchBar = true,
+                searchBarEnabled = false,
                 setupChecklistState = null,
                 topSiteColors = TopSiteColors.colors(),
                 cardBackgroundColor = WallpaperState.default.cardBackgroundColor,
@@ -544,6 +547,7 @@ private fun PrivateHomepagePreview() {
         ) {
             Homepage(
                 HomepageState.Private(
+                    showPrivateBrowsingButton = true,
                     feltPrivateBrowsingEnabled = false,
                     bottomSpacerHeight = 188.dp,
                 ),

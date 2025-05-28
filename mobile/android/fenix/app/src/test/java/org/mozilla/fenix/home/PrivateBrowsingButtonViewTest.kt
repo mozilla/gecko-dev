@@ -5,6 +5,7 @@
 package org.mozilla.fenix.home
 
 import android.widget.ToggleButton
+import androidx.core.view.isVisible
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -30,12 +31,22 @@ class PrivateBrowsingButtonViewTest {
 
     @Test
     fun `WHEN constructing PrivateBrowsingButtonView THEN correctly sets click listener`() {
-        val view = PrivateBrowsingButtonView(button, browsingModeManager) {}
+        val view = PrivateBrowsingButtonView(
+            button = button,
+            showPrivateBrowsingButton = true,
+            browsingModeManager = browsingModeManager,
+        ) {}
+        verify { button.isVisible = true }
         verify { button.context.getString(R.string.content_description_private_browsing_button) }
         verify { button.setOnClickListener(view) }
 
         every { browsingModeManager.mode } returns BrowsingMode.Private
-        val privateView = PrivateBrowsingButtonView(button, browsingModeManager) {}
+        val privateView = PrivateBrowsingButtonView(
+            button = button,
+            showPrivateBrowsingButton = false,
+            browsingModeManager = browsingModeManager,
+        ) {}
+        verify { button.isVisible = false }
         verify { button.setOnClickListener(privateView) }
     }
 
@@ -43,7 +54,11 @@ class PrivateBrowsingButtonViewTest {
     fun `click listener calls onClick with inverted mode from normal mode`() {
         every { browsingModeManager.mode } returns BrowsingMode.Normal
         var mode: BrowsingMode? = null
-        val view = PrivateBrowsingButtonView(button, browsingModeManager) { mode = it }
+        val view = PrivateBrowsingButtonView(
+            button = button,
+            showPrivateBrowsingButton = true,
+            browsingModeManager = browsingModeManager,
+        ) { mode = it }
 
         view.onClick(button)
 
@@ -54,7 +69,11 @@ class PrivateBrowsingButtonViewTest {
     fun `click listener calls onClick with inverted mode from private mode`() {
         every { browsingModeManager.mode } returns BrowsingMode.Private
         var mode: BrowsingMode? = null
-        val view = PrivateBrowsingButtonView(button, browsingModeManager) { mode = it }
+        val view = PrivateBrowsingButtonView(
+            button = button,
+            showPrivateBrowsingButton = true,
+            browsingModeManager = browsingModeManager,
+        ) { mode = it }
 
         view.onClick(button)
 

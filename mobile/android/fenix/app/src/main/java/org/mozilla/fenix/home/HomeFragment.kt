@@ -866,9 +866,13 @@ class HomeFragment : Fragment() {
             initTabStrip()
         }
 
-        PrivateBrowsingButtonView(binding.privateBrowsingButton, browsingModeManager) { newMode ->
+        PrivateBrowsingButtonView(
+            button = binding.privateBrowsingButton,
+            showPrivateBrowsingButton = !requireContext().settings().enableHomepageAsNewTab,
+            browsingModeManager = browsingModeManager,
+        ) { newMode ->
             sessionControlInteractor.onPrivateModeButtonClicked(newMode)
-            Homepage.privateModeIconTapped.record(mozilla.telemetry.glean.private.NoExtras())
+            Homepage.privateModeIconTapped.record(NoExtras())
         }
 
         consumeFrom(requireComponents.core.store) {

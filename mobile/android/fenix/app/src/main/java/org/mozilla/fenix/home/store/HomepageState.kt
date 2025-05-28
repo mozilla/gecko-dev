@@ -47,14 +47,21 @@ internal sealed class HomepageState {
     abstract val bottomSpacerHeight: Dp
 
     /**
+     * Whether to show the private browsing button.
+     */
+    abstract val showPrivateBrowsingButton: Boolean
+
+    /**
      * State type corresponding with private browsing mode.
      *
      * @property feltPrivateBrowsingEnabled Whether felt private browsing is enabled.
+     * @property showPrivateBrowsingButton Whether to show the private browsing button.
      * @property bottomSpacerHeight Height in [Dp] for the bottom of the scrollable view, based on
      * what's currently visible on the screen.
      */
     internal data class Private(
         val feltPrivateBrowsingEnabled: Boolean,
+        override val showPrivateBrowsingButton: Boolean,
         override val bottomSpacerHeight: Dp,
     ) : HomepageState()
 
@@ -75,6 +82,7 @@ internal sealed class HomepageState {
      * @property showBookmarks Whether to show bookmarks.
      * @property showRecentlyVisited Whether to show recent history section.
      * @property showPocketStories Whether to show the pocket stories section.
+     * @property showPrivateBrowsingButton Whether to show the private browsing button.
      * @property showSearchBar Whether to show the middle search bar.
      * @property searchBarEnabled Whether the middle search bar is enabled or not.
      * @property setupChecklistState Optional state of the setup checklist feature.
@@ -101,6 +109,7 @@ internal sealed class HomepageState {
         val showBookmarks: Boolean,
         val showRecentlyVisited: Boolean,
         val showPocketStories: Boolean,
+        override val showPrivateBrowsingButton: Boolean,
         val showSearchBar: Boolean,
         val searchBarEnabled: Boolean,
         val setupChecklistState: SetupChecklistState?,
@@ -143,6 +152,7 @@ internal sealed class HomepageState {
             return with(appState) {
                 if (browsingModeManager.mode.isPrivate) {
                     Private(
+                        showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
                         feltPrivateBrowsingEnabled = settings.feltPrivateBrowsingEnabled,
                         bottomSpacerHeight = getBottomSpace(),
                     )
@@ -173,6 +183,7 @@ internal sealed class HomepageState {
                         showRecentlyVisited = settings.historyMetadataUIFeature && recentHistory.isNotEmpty(),
                         showPocketStories = settings.showPocketRecommendationsFeature &&
                             recommendationState.pocketStories.isNotEmpty() && firstFrameDrawn,
+                        showPrivateBrowsingButton = !settings.enableHomepageAsNewTab,
                         showSearchBar = shouldShowSearchBar(appState = appState),
                         searchBarEnabled = settings.enableHomepageSearchBar &&
                             settings.toolbarPosition == ToolbarPosition.TOP,
