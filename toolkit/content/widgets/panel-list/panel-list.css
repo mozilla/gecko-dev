@@ -31,7 +31,7 @@
   overflow-y: visible;
 }
 
-:host(:not([slot=submenu])) {
+:host(:not([slot="submenu"])) {
   max-height: 100%;
 }
 

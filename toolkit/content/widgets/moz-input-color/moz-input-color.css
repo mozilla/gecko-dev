@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
 :host {
   --moz-input-color-swatch-size: 24px;
 
@@ -25,7 +23,6 @@ label {
   background-color: var(--button-background-color-ghost);
 }
 
-
 label:hover {
   border-color: var(--border-color-interactive-hover);
   background-color: var(--button-background-color-ghost-hover);
@@ -33,9 +30,8 @@ label:hover {
 
 label:hover:active {
   border-color: var(--border-color-interactive-active);
-  background-color: var(--button-background-color-ghost-active)
+  background-color: var(--button-background-color-ghost-active);
 }
-
 
 label:focus-within {
   outline: var(--focus-outline);
@@ -67,5 +63,5 @@ label span {
 
 .icon {
   -moz-context-properties: fill;
-   fill: var(--icon-color);
+  fill: var(--icon-color);
 }

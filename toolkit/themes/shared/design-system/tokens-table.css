@@ -6,21 +6,21 @@
   --border-color-tokens-table: var(--color-gray-50);
   --table-border-outer: 2px solid var(--border-color-tokens-table);
   --table-border-inner: var(--border-width) solid var(--border-color-tokens-table);
-  --table-background-color: color-mix(in srgb,
-      var(--color-gray-50) 20%,
-      transparent);
+  --table-background-color: color-mix(in srgb, var(--color-gray-50) 20%, transparent);
   --outline-preview: 2px solid var(--color-gray-60);
   --background-color-icon-demo: var(--color-gray-60);
   --background-color-padding-demo: var(--color-blue-60);
   --background-color-space-demo: var(--color-blue-0);
-  --background-image-space-demo: linear-gradient(135deg,
-      var(--color-blue-30) 10%,
-      #0000 0,
-      #0000 50%,
-      var(--color-blue-30) 0,
-      var(--color-blue-30) 60%,
-      #0000 0,
-      #0000);
+  --background-image-space-demo: linear-gradient(
+    135deg,
+    var(--color-blue-30) 10%,
+    #0000 0,
+    #0000 50%,
+    var(--color-blue-30) 0,
+    var(--color-blue-30) 60%,
+    #0000 0,
+    #0000
+  );
   --link-outline-demo: 2px solid var(--color-blue-50);
 }
 
@@ -249,7 +249,8 @@ td:first-of-type {
 
 /** Default **/
 
-.default-preview, .shadow-preview {
+.default-preview,
+.shadow-preview {
   height: 50px;
   width: 100px;
   background-color: var(--button-background-color);

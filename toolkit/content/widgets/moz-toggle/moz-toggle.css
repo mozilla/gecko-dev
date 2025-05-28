@@ -141,7 +141,7 @@
 
   .toggle-button[aria-pressed="true"]:enabled::after {
     border: 1px solid var(--button-background-color);
-    content: '';
+    content: "";
     position: absolute;
     height: var(--toggle-height);
     width: var(--toggle-width);

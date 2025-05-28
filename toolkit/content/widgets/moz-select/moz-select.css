@@ -6,7 +6,7 @@
   --select-border: var(--button-border);
   --select-border-radius: var(--button-border-radius);
   --select-border-color-hover: var(--button-border-color-hover);
-  --select-background-color:  var(--button-background-color);
+  --select-background-color: var(--button-background-color);
   --select-background-color-hover: var(--button-background-color-hover);
   --select-background-color-disabled: var(--button-background-color-disabled);
   --select-margin-block: var(--input-margin-block-adjust);
@@ -23,7 +23,7 @@
 
 .select-wrapper {
   border-radius: var(--select-border-radius);
-  background-color:  var(--select-background-color);
+  background-color: var(--select-background-color);
   margin-block: var(--select-margin-block);
   margin-inline: var(--select-margin-inline);
   min-width: var(--select-min-width);
@@ -43,7 +43,7 @@ select {
   border: var(--select-border);
   border-radius: var(--select-border-radius);
   padding-block: var(--space-xsmall);
-  padding-inline:  var(--space-large) var(--space-xxlarge);
+  padding-inline: var(--space-large) var(--space-xxlarge);
   margin: 0;
   min-height: var(--select-min-height);
   width: 100%;
