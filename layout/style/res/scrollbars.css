@@ -62,7 +62,12 @@
   }
 }
 
-scrollbar, scrollbarbutton, scrollcorner, slider, thumb, resizer {
+scrollbar,
+scrollbarbutton,
+scrollcorner,
+slider,
+thumb,
+resizer {
   /* We need a display value that doesn't get blockified to preserve the
    * scrollbar sizing asserts. In practice it doesn't matter since these get
    * special frames */
@@ -77,7 +82,6 @@ scrollbar, scrollbarbutton, scrollcorner, slider, thumb, resizer {
   -moz-user-focus: ignore;
   user-select: none;
 }
-
 
 /********** resizer **********/
 
@@ -137,7 +141,9 @@ scrollbar[disabled] thumb {
 }
 
 @media (-moz-platform: android) {
-  scrollbar, resizer, scrollcorner {
+  scrollbar,
+  resizer,
+  scrollcorner {
     pointer-events: none;
   }
 }

@@ -4,7 +4,6 @@
 
 @namespace url(http://www.w3.org/1999/xhtml); /* set default namespace to HTML */
 
-
 /* Quirk: make orphaned LIs have inside bullet (b=1049) */
 
 /* force inside position for orphaned lis */
@@ -22,7 +21,6 @@ li :is(ul, ol) {
   list-style-position: unset;
 }
 
-
 /* Quirk: ensure that we get proper padding if the very first
  * node in an LI is another UL or OL. This is an ugly way to
  * fix the problem, because it extends the LI up into what
@@ -35,7 +33,6 @@ li > ol:-moz-first-node {
   padding-block-start: 1em;
 }
 
-
 table {
   text-align: start;
   white-space: normal; /* compatible with IE & spec */
@@ -47,7 +44,6 @@ table {
   font-style: initial;
   font-variant: initial;
 }
-
 
 /* Quirk: collapse top margin of BODY and TD and bottom margin of TD */
 
@@ -63,7 +59,8 @@ table {
   margin-block-start: 0;
 }
 
-td > p:-moz-last-node, th > p:-moz-last-node {
+td > p:-moz-last-node,
+th > p:-moz-last-node {
   margin-block-end: 0;
 }
 
@@ -80,11 +77,11 @@ td > p:-moz-last-node, th > p:-moz-last-node {
 }
 
 /* Quirk: Make floated images have a margin  (b=58899) */
-img[align=left] {
+img[align="left"] {
   margin-right: 3px;
 }
 
-img[align=right] {
+img[align="right"] {
   margin-left: 3px;
 }
 
@@ -95,7 +92,8 @@ img[align=right] {
 
 /* Note that all other <input>s already use border-box
    sizing, so we're ok with this selector */
-input:not([type=image]), textarea {
+input:not([type="image"]),
+textarea {
   box-sizing: border-box;
 }
 

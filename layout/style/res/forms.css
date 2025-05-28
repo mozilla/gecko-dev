@@ -6,7 +6,6 @@
   Styles for old GFX form widgets
  **/
 
-
 @namespace url(http://www.w3.org/1999/xhtml); /* set default namespace to HTML */
 
 *|*::-moz-fieldset-content {
@@ -118,7 +117,11 @@ textarea {
 }
 
 /* A few properties that we don't want to inherit by default: */
-input, textarea, select, button, ::file-selector-button {
+input,
+textarea,
+select,
+button,
+::file-selector-button {
   text-align: initial;
   text-indent: initial;
   text-shadow: initial;
@@ -189,12 +192,12 @@ input::-moz-text-control-preview {
   line-height: -moz-block-height !important;
 }
 
-input[type=password] {
+input[type="password"] {
   -moz-default-appearance: password-input;
 }
 
-input[type=password]::-moz-text-control-editing-root,
-input[type=password]::-moz-text-control-preview {
+input[type="password"]::-moz-text-control-editing-root,
+input[type="password"]::-moz-text-control-preview {
   /*
    * In password fields, any character should be put same direction.  Otherwise,
    * caret position at typing tells everybody whether the character is an RTL
@@ -401,7 +404,7 @@ optgroup:disabled {
 }
 
 /* hidden inputs */
-input[type=hidden] {
+input[type="hidden"] {
   appearance: none;
   -moz-default-appearance: none;
   display: none !important;
@@ -412,7 +415,7 @@ input[type=hidden] {
 }
 
 /* image buttons */
-input[type=image] {
+input[type="image"] {
   appearance: none;
   -moz-default-appearance: none;
   padding: unset;
@@ -423,7 +426,7 @@ input[type=image] {
   cursor: pointer;
 }
 
-input[type=image]:disabled {
+input[type="image"]:disabled {
   cursor: unset;
 }
 
@@ -440,7 +443,7 @@ input[type=image]:disabled {
 }
 
 /* radio buttons */
-input[type=radio] {
+input[type="radio"] {
   appearance: auto;
   -moz-default-appearance: radio;
   margin-block: 3px 0;
@@ -448,7 +451,7 @@ input[type=radio] {
 }
 
 /* check boxes */
-input[type=checkbox] {
+input[type="checkbox"] {
   appearance: auto;
   -moz-default-appearance: checkbox;
   margin-block: 3px;
@@ -457,8 +460,8 @@ input[type=checkbox] {
 
 /* Common features of radio buttons and check boxes */
 
-input[type=radio],
-input[type=checkbox] {
+input[type="radio"],
+input[type="checkbox"] {
   box-sizing: border-box;
   cursor: default;
   /* unset some values from the general 'input' rule above: */
@@ -468,11 +471,11 @@ input[type=checkbox] {
   color: unset;
 }
 
-input:is([type=radio], [type=checkbox]):is(:disabled, :disabled:active, :disabled:hover:active) {
+input:is([type="radio"], [type="checkbox"]):is(:disabled, :disabled:active, :disabled:hover:active) {
   cursor: unset;
 }
 
-input[type=search] {
+input[type="search"] {
   box-sizing: border-box;
 }
 
@@ -485,7 +488,7 @@ input[type=search] {
    input[type=color] */
 button,
 ::file-selector-button,
-input:is([type=color], [type=reset], [type=button], [type=submit]) {
+input:is([type="color"], [type="reset"], [type="button"], [type="submit"]) {
   appearance: auto;
   -moz-default-appearance: button;
   /* The sum of border and padding on block-start and block-end
@@ -504,7 +507,7 @@ input:is([type=color], [type=reset], [type=button], [type=submit]) {
    input[type=color] */
 button,
 ::file-selector-button,
-input:is([type=reset], [type=button], [type=submit]) {
+input:is([type="reset"], [type="button"], [type="submit"]) {
   color: ButtonText;
   font: -moz-button;
   white-space: pre;
@@ -512,14 +515,14 @@ input:is([type=reset], [type=button], [type=submit]) {
   padding-inline: 4px;
 }
 
-input[type=color] {
+input[type="color"] {
   inline-size: 64px;
   block-size: 32px;
   padding: 4px;
 }
 
 /* https://github.com/whatwg/html/issues/9976 */
-input:not([type=image i], [type=range i], [type=checkbox i], [type=radio i]) {
+input:not([type="image" i], [type="range" i], [type="checkbox" i], [type="radio" i]) {
   overflow: clip !important;
   overflow-clip-margin: 0 !important;
 }
@@ -569,14 +572,14 @@ button,
 
 ::file-selector-button:hover,
 button:hover,
-input:is([type=reset], [type=button], [type=submit], [type=color]):hover {
+input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):hover {
   color: -moz-buttonhovertext;
   background-color: -moz-buttonhoverface;
 }
 
 ::file-selector-button:active:hover,
 button:active:hover,
-input:is([type=reset], [type=button], [type=submit], [type=color]):active:hover {
+input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):active:hover {
   border-style: inset;
   color: -moz-buttonactivetext;
   background-color: -moz-buttonactiveface;
@@ -584,7 +587,7 @@ input:is([type=reset], [type=button], [type=submit], [type=color]):active:hover 
 
 :is(:disabled, :disabled:active)::file-selector-button,
 button:is(:disabled, :disabled:active),
-input:is([type=reset], [type=button], [type=submit], [type=color]):is(:disabled, :disabled:active),
+input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):is(:disabled, :disabled:active),
 select:is(:disabled, :disabled:active) > button {
   border-style: outset;
   cursor: unset;
@@ -592,14 +595,14 @@ select:is(:disabled, :disabled:active) > button {
 
 :is(:disabled, :disabled:active)::file-selector-button,
 button:is(:disabled, :disabled:active),
-input:is([type=reset], [type=button], [type=submit]):is(:disabled, :disabled:active),
+input:is([type="reset"], [type="button"], [type="submit"]):is(:disabled, :disabled:active),
 select:is(:disabled, :disabled:active) > button {
   color: GrayText;
   background-color: -moz-ButtonDisabledFace;
 }
 
 /* file selector */
-input[type=file] {
+input[type="file"] {
   white-space: nowrap !important;
   overflow-clip-box: padding-box;
   color: unset;
@@ -614,7 +617,7 @@ input[type=file] {
   padding: unset;
 }
 
-input[type=file] > label {
+input[type="file"] > label {
   display: inline-block;
   min-inline-size: 12em;
   text-align: match-parent;
@@ -632,23 +635,23 @@ input[type=file] > label {
   margin-inline-end: 5px;
 }
 
- /*
-  * Make form controls inherit 'unicode-bidi' transparently as required by
-  *  their various anonymous descendants and pseudo-elements:
-  *
-  * <textarea> and <input type=text>:
-  *  inherit into the scroll frame with pseudo ::-moz-text-control-editing-root
-  *  which is a (direct or indirect) child of the text control.
-  *
-  * Buttons (either <button>, <input type=submit>, <input type=button>
-  *          or <input type=reset>)
-  *  inherit into the ':-moz-button-content' pseudo-element.
-  *
-  * <select>:
-  *  inherit into the label and the <optgroup>'s ':before' pseudo-element,
-  *  which is where the label of the <optgroup> gets displayed. The <option>s
-  *  don't use anonymous boxes, so they need no special rules.
-  */
+/*
+ * Make form controls inherit 'unicode-bidi' transparently as required by
+ *  their various anonymous descendants and pseudo-elements:
+ *
+ * <textarea> and <input type=text>:
+ *  inherit into the scroll frame with pseudo ::-moz-text-control-editing-root
+ *  which is a (direct or indirect) child of the text control.
+ *
+ * Buttons (either <button>, <input type=submit>, <input type=button>
+ *          or <input type=reset>)
+ *  inherit into the ':-moz-button-content' pseudo-element.
+ *
+ * <select>:
+ *  inherit into the label and the <optgroup>'s ':before' pseudo-element,
+ *  which is where the label of the <optgroup> gets displayed. The <option>s
+ *  don't use anonymous boxes, so they need no special rules.
+ */
 ::placeholder,
 ::-moz-text-control-editing-root,
 *|*::-moz-button-content,
@@ -730,7 +733,7 @@ meter:-moz-meter-sub-sub-optimum::slider-fill {
   background: linear-gradient(#f77, #f77, #fcc 20%, #d44 45%, #d44 55%);
 }
 
-input[type=range] {
+input[type="range"] {
   appearance: auto;
   -moz-default-appearance: range;
   margin: 2px;
@@ -754,8 +757,8 @@ input[type=range] {
  * TODO(emilio, bug 1663819): Losen these restrictions once these
  * pseudo-elements are better spec'd out.
  */
-input[type=range]::-moz-range-track,
-input[type=range]::slider-track {
+input[type="range"]::-moz-range-track,
+input[type="range"]::slider-track {
   /* Prevent styling that would change the type of frame we construct. */
   display: block !important;
   float: none !important;
@@ -767,8 +770,8 @@ input[type=range]::slider-track {
   user-select: none !important;
 }
 
-input[type=range][orient=vertical]::-moz-range-track,
-input[type=range][orient=vertical]::slider-track {
+input[type="range"][orient="vertical"]::-moz-range-track,
+input[type="range"][orient="vertical"]::slider-track {
   inline-size: 0.2em; /* same as block-size above */
   block-size: 100%;
 }
@@ -781,8 +784,8 @@ input[type=range][orient=vertical]::slider-track {
  * property is ignored, and if the range range is vertical, the height property
  * is ignored.
  */
-input[type=range]::-moz-range-progress,
-input[type=range]::slider-fill {
+input[type="range"]::-moz-range-progress,
+input[type="range"]::slider-fill {
   /* Prevent styling that would change the type of frame we construct. */
   display: block !important;
   float: none !important;
@@ -803,8 +806,8 @@ input[type=range]::slider-fill {
  * logic to position it). Specifically the 'margin', 'top' and 'left'
  * properties are ignored.
  */
-input[type=range]::-moz-range-thumb,
-input[type=range]::slider-thumb {
+input[type="range"]::-moz-range-thumb,
+input[type="range"]::slider-thumb {
   /* Native theming is atomic for range. Set appearance on the range
    * to get rid of it. The thumb's appearance is fixed.
    */
@@ -821,16 +824,16 @@ input[type=range]::slider-thumb {
   height: 1em;
   border: 0.1em solid #999;
   border-radius: 0.5em;
-  background-color: #F0F0F0;
+  background-color: #f0f0f0;
   /* Prevent nsIFrame::HandlePress setting mouse capture to this element. */
   user-select: none !important;
 }
 
-input[type=number] {
+input[type="number"] {
   -moz-default-appearance: number-input;
 }
 
-input[type=number]::-moz-number-spin-box {
+input[type="number"]::-moz-number-spin-box {
   writing-mode: horizontal-tb;
   display: flex;
   flex-direction: column;
@@ -843,8 +846,8 @@ input[type=number]::-moz-number-spin-box {
   overflow: clip;
 }
 
-input[type=number]::-moz-number-spin-up,
-input[type=number]::-moz-number-spin-down {
+input[type="number"]::-moz-number-spin-up,
+input[type="number"]::-moz-number-spin-down {
   writing-mode: horizontal-tb;
   appearance: auto;
   -moz-default-appearance: spinner-upbutton;
@@ -853,7 +856,7 @@ input[type=number]::-moz-number-spin-down {
   cursor: default;
 }
 
-input[type=number]::-moz-number-spin-down {
+input[type="number"]::-moz-number-spin-down {
   -moz-default-appearance: spinner-downbutton;
 }
 
@@ -925,16 +928,18 @@ input:-moz-value-empty::-moz-search-clear-button {
   visibility: hidden;
 }
 
-input:is([type=date], [type=time], [type=datetime-local]) {
+input:is([type="date"], [type="time"], [type="datetime-local"]) {
   font-family: -moz-fixed;
   cursor: default;
 }
 
-input:is([type=date], [type=time], [type=datetime-local]):is(:disabled, :read-only) {
+input:is([type="date"], [type="time"], [type="datetime-local"]):is(:disabled, :read-only) {
   color: GrayText;
 }
 
-input:autofill, select:autofill, textarea:autofill {
+input:autofill,
+select:autofill,
+textarea:autofill {
   background-color: -moz-autofill-background !important;
   background-image: none !important;
   color: FieldText !important;

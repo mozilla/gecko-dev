@@ -1,2 +1,4 @@
 /* we're testing computed style on elements without frames */
-root { display: none }
+root {
+  display: none;
+}
