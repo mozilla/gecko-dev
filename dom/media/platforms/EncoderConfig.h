@@ -249,7 +249,7 @@ class EncoderConfig final {
   Usage mUsage{};
   // Video-only
   HardwarePreference mHardwarePreference{};
-  SampleFormat mFormat;
+  SampleFormat mFormat{};
   ScalabilityMode mScalabilityMode{};
   uint32_t mFramerate{};
   size_t mKeyframeInterval{};
