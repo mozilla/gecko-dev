@@ -23,7 +23,7 @@ Interface
    can use this to dynamic replace the malloc implementation for testing or
    to support DMD, logalloc or the profiler.
 
- * mozmemory_utils.h
+ * mozmemory_stall.h
 
    Low memory handling.  This interface enables "stalling" when the
    allocator can't get memory from the OS.  By stalling (pausing execution

@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozjemalloc_utils_h
-#define mozjemalloc_utils_h
+#ifndef mozjemalloc_stall_h
+#define mozjemalloc_stall_h
 
 #include <optional>
 #include <type_traits>
@@ -45,8 +45,8 @@ struct StallSpecs {
   // ```
   //
   template <typename DelayFunc, typename OpFunc>
-  auto StallAndRetry(DelayFunc&& aDelayFunc, OpFunc&& aOperation) const
-      -> decltype(aOperation()) {
+  auto StallAndRetry(DelayFunc&& aDelayFunc,
+                     OpFunc&& aOperation) const -> decltype(aOperation()) {
     {
       // Explicit typecheck for OpFunc, to provide an explicit error message.
       using detail::is_std_optional;
@@ -75,4 +75,4 @@ MOZ_JEMALLOC_API_NODISCARD void* MozVirtualAlloc(void* lpAddress, size_t dwSize,
 
 }  // namespace mozilla
 
-#endif  // mozjemalloc_utils_h
+#endif  // mozjemalloc_stall_h

@@ -13,7 +13,7 @@
 #include <sstream>
 #include <type_traits>
 
-#include "mozmemory_utils.h"
+#include "mozmemory_stall.h"
 #include "mozilla/Likely.h"
 
 static bool TESTS_FAILED = false;

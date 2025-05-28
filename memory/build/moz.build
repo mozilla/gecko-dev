@@ -9,7 +9,7 @@ EXPORTS += [
     "mozjemalloc_profiling.h",
     "mozjemalloc_types.h",
     "mozmemory.h",
-    "mozmemory_utils.h",
+    "mozmemory_stall.h",
     "mozmemory_wrap.h",
     "PHC.h",
 ]
