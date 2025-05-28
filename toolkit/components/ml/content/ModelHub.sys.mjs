@@ -19,6 +19,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   createFileUrl: "chrome://global/content/ml/Utils.sys.mjs",
   DEFAULT_ENGINE_ID: "chrome://global/content/ml/EngineProcess.sys.mjs",
   FILE_REGEX: "chrome://global/content/ml/EngineProcess.sys.mjs",
+  isPrivateBrowsing: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => {
@@ -1272,6 +1273,13 @@ class IndexedDBCache {
    *          An array of model identifiers.
    */
   async listModels() {
+    if (lazy.isPrivateBrowsing()) {
+      lazy.console.debug(
+        "Returning an empty list of models for private windows"
+      );
+      return [];
+    }
+
     // Get all keys (model/revision pairs) from the underlying store.
     const modelRevisions = await this.#getKeys({
       storeName: this.taskStoreName,

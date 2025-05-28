@@ -13,6 +13,7 @@ ChromeUtils.defineESModuleGetters(
     TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
     OPFS: "chrome://global/content/ml/OPFS.sys.mjs",
     FEATURES: "chrome://global/content/ml/EngineProcess.sys.mjs",
+    PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   },
   ES_MODULES_OPTIONS
 );
@@ -1082,4 +1083,14 @@ export function featureEngineIdToFluentId(engineId) {
 export function generateUUID() {
   lazy.console.debug("generating uuid");
   return crypto.randomUUID();
+}
+
+/**
+ * Checks if we are in private browsing mode
+ *
+ * @returns {boolean} True if we are in private browsing mode
+ */
+export function isPrivateBrowsing() {
+  const win = Services.wm.getMostRecentBrowserWindow() ?? null;
+  return lazy.PrivateBrowsingUtils.isWindowPrivate(win);
 }

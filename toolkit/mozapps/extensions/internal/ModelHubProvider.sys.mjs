@@ -188,6 +188,8 @@ export const ModelHubProvider = {
       return;
     }
 
+    this.clearAddonCache();
+
     const models = await this.modelHub.listModels();
 
     for (const model of models) {
