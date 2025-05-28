@@ -396,11 +396,16 @@ void ChannelMediaDecoder::DownloadProgressed() {
               [playbackStats = mPlaybackStatistics,
                res = RefPtr<BaseMediaResource>(mResource),
                duration = mDuration.match(DurationToTimeUnit()),
-               pos = mPlaybackByteOffset]() {
-                auto rateInfo = UpdateResourceOfPlaybackByteRate(
-                    playbackStats, res, duration);
-                return StatsPromise::CreateAndResolve(
-                  GetStatistics(rateInfo, res, pos), __func__);
+               playbackByteOffset = mPlaybackByteOffset]() {
+                auto rateInfo = UpdateResourceOfPlaybackByteRate(playbackStats, res, duration);
+                MediaStatistics result;
+                result.mDownloadByteRate = res->GetDownloadRate(&result.mDownloadByteRateReliable);
+                result.mDownloadBytePosition = res->GetCachedDataEnd(playbackByteOffset);
+                result.mTotalBytes = res->GetLength();
+                result.mPlaybackByteRate = rateInfo.mRate;
+                result.mPlaybackByteRateReliable = rateInfo.mReliable;
+                result.mPlaybackByteOffset = playbackByteOffset;
+                return StatsPromise::CreateAndResolve(result, __func__);
               })
       ->Then(
           mAbstractMainThread, __func__,
@@ -452,22 +457,6 @@ ChannelMediaDecoder::UpdateResourceOfPlaybackByteRate(
   return {byteRatePerSecond, rateIsReliable};
 }
 
-/* static */
-ChannelMediaDecoder::MediaStatistics ChannelMediaDecoder::GetStatistics(
-    const PlaybackRateInfo& aInfo, BaseMediaResource* aRes,
-    int64_t aPlaybackPosition) {
-  MOZ_ASSERT(!NS_IsMainThread());
-
-  MediaStatistics result;
-  result.mDownloadRate = aRes->GetDownloadRate(&result.mDownloadRateReliable);
-  result.mDownloadPosition = aRes->GetCachedDataEnd(aPlaybackPosition);
-  result.mTotalBytes = aRes->GetLength();
-  result.mPlaybackRate = aInfo.mRate;
-  result.mPlaybackRateReliable = aInfo.mReliable;
-  result.mPlaybackByteOffset = aPlaybackPosition;
-  return result;
-}
-
 bool ChannelMediaDecoder::ShouldThrottleDownload(
     const MediaStatistics& aStats) {
   // We throttle the download if either the throttle override pref is set
@@ -496,21 +485,21 @@ bool ChannelMediaDecoder::ShouldThrottleDownload(
     return true;
   }
 
-  if (!aStats.mDownloadRateReliable || !aStats.mPlaybackRateReliable) {
+  if (!aStats.mDownloadByteRateReliable || !aStats.mPlaybackByteRateReliable) {
     LOGD(
         "Not throttling download: download rate ({}) playback rate ({}) is not "
         "reliable",
-        aStats.mDownloadRate, aStats.mPlaybackRate);
+        aStats.mDownloadByteRate, aStats.mPlaybackByteRate);
     return false;
   }
   uint32_t factor =
       std::max(2u, Preferences::GetUint("media.throttle-factor", 2));
-  bool throttle = aStats.mDownloadRate > factor * aStats.mPlaybackRate;
+  bool throttle = aStats.mDownloadByteRate > factor * aStats.mPlaybackByteRate;
   LOGD(
       "ShouldThrottleDownload: {} (download rate({}) > factor({}) * playback "
       "rate({}))",
-      throttle ? "true" : "false", aStats.mDownloadRate, factor,
-      aStats.mPlaybackRate);
+      throttle ? "true" : "false", aStats.mDownloadByteRate, factor,
+      aStats.mPlaybackByteRate);
   return throttle;
 }
 
@@ -585,11 +574,11 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
   static const int64_t CAN_PLAY_THROUGH_MARGIN = 1;
 
   LOGD(
-      "CanPlayThrough: playback rate: {}, download rate: {}, total "
-      "bytes: {}, download position: {}, playback position: {}, download rate "
-      "reliable: {}, playback rate reliable: {}",
-      mPlaybackRate, mDownloadRate, mTotalBytes, mDownloadPosition,
-      mPlaybackByteOffset, mDownloadRateReliable, mPlaybackRateReliable);
+      "CanPlayThrough: mPlaybackByteRate: {}, mDownloadByteRate: {}, mTotalBytes"
+      ": {}, mDownloadBytePosition: {}, mPlaybackByteOffset: {}, "
+      "mDownloadByteRateReliable: {}, mPlaybackByteRateReliable: {}",
+      mPlaybackByteRate, mDownloadByteRate, mTotalBytes, mDownloadBytePosition,
+      mPlaybackByteOffset, mDownloadByteRateReliable, mPlaybackByteRateReliable);
 
   if ((mTotalBytes < 0 && mDownloadByteRateReliable) ||
       (mTotalBytes >= 0 && mTotalBytes == mDownloadBytePosition)) {
@@ -599,7 +588,7 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
 
   if (!mDownloadByteRateReliable || !mPlaybackByteRateReliable) {
     LOGD("CanPlayThrough: false (rate unreliable: download({})/playback({}))",
-        mDownloadRateReliable, mPlaybackRateReliable);
+        mDownloadByteRateReliable, mPlaybackByteRateReliable);
     return false;
   }
 
@@ -629,14 +618,14 @@ bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
 
 nsCString ChannelMediaDecoder::MediaStatistics::ToString() const {
   nsCString str;
-  str.AppendPrintf("MediaStatistics: ");
-  str.AppendPrintf(" mTotalBytes=%" PRId64, mTotalBytes);
-  str.AppendPrintf(" mDownloadPosition=%" PRId64, mDownloadPosition);
-  str.AppendPrintf(" mPlaybackByteOffset=%" PRId64, mPlaybackByteOffset);
-  str.AppendPrintf(" mDownloadRate=%f", mDownloadRate);
-  str.AppendPrintf(" mPlaybackRate=%f", mPlaybackRate);
-  str.AppendPrintf(" mDownloadRateReliable=%d", mDownloadRateReliable);
-  str.AppendPrintf(" mPlaybackRateReliable=%d", mPlaybackRateReliable);
+  str.AppendFmt("MediaStatistics: ");
+  str.AppendFmt(" mTotalBytes={}", mTotalBytes);
+  str.AppendFmt(" mDownloadBytePosition={}", mDownloadBytePosition);
+  str.AppendFmt(" mPlaybackByteOffset={}", mPlaybackByteOffset);
+  str.AppendFmt(" mDownloadByteRate={}", mDownloadByteRate);
+  str.AppendFmt(" mPlaybackByteRate={}", mPlaybackByteRate);
+  str.AppendFmt(" mDownloadByteRateReliable={}", mDownloadByteRateReliable);
+  str.AppendFmt(" mPlaybackByteRateReliable={}", mPlaybackByteRateReliable);
   return str;
 }
 
