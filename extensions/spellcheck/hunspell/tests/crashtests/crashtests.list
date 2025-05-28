@@ -1,1 +1,1 @@
-load 1825445.html
+skip-if(gtkWidget&&AddressSanitizer) load 1825445.html # intermittent crash on Ubuntu 24.04

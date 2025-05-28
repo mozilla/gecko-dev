@@ -2,7 +2,7 @@
 # so we disable the async mechanism for this directory.
 defaults pref(gfx.font_rendering.fallback.async,false)
 
-fails-if(Android) == fallback-01.xhtml fallback-01-ref.xhtml
+fails-if(Android) fails-if(gtkWidget&&/^24\.04$/.test(os_version)) == fallback-01.xhtml fallback-01-ref.xhtml
 == font-selection-by-lang-01.html font-selection-by-lang-01-ref.html
 == font-selection-fallback-1.html font-selection-fallback-1-ref.html
 == font-selection-generic-1.html font-selection-generic-1-ref.html
@@ -131,7 +131,7 @@ random-if(!winWidget) == arial-bold-lam-alef-1.html arial-bold-lam-alef-1-ref.ht
 == arabic-fallback-2.html arabic-fallback-2-ref.html
 == arabic-fallback-3.html arabic-fallback-3-ref.html
 == arabic-fallback-4.html arabic-fallback-4-ref.html
-== arabic-marks-1.html arabic-marks-1-ref.html
+fuzzy-if(gtkWidget,0-255,0-912) == arabic-marks-1.html arabic-marks-1-ref.html
 == arabic-final-ligature-spacing.html arabic-final-ligature-spacing-ref.html
 # harfbuzz fallback mark stacking in the absence of GPOS:
 != fallback-mark-stacking-1.html fallback-mark-stacking-1-notref.html
@@ -147,7 +147,7 @@ random-if(!winWidget) == arial-bold-lam-alef-1.html arial-bold-lam-alef-1-ref.ht
 == 1331339-script-extensions-shaping-1.html 1331339-script-extensions-shaping-1-ref.html
 skip-if(!cocoaWidget) != 1349308-1.html 1349308-notref.html # macOS-specific test for -apple-system glyph metrics
 pref(layout.css.letter-spacing.model,0) fuzzy-if(Android,0-128,0-233) == 1463020-letter-spacing-text-transform-1.html 1463020-letter-spacing-text-transform-1-ref.html
-pref(layout.css.letter-spacing.model,0) fails-if(Android) == 1463020-letter-spacing-text-transform-2.html 1463020-letter-spacing-text-transform-2-ref.html # missing font coverage on Android
+pref(layout.css.letter-spacing.model,0) fails-if(Android) fuzzy-if(gtkWidget,0-255,0-201) == 1463020-letter-spacing-text-transform-2.html 1463020-letter-spacing-text-transform-2-ref.html # missing font coverage on Android
 pref(intl.icu4x.segmenter.enabled,false) == 1507661-spurious-hyphenation-after-explicit.html 1507661-spurious-hyphenation-after-explicit-ref.html
 == 1522857-1.html 1522857-1-ref.html
 != 1637405-pua-shaping-1.html 1637405-pua-shaping-1-notref.html

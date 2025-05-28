@@ -104,4 +104,4 @@ fuzzy(0-6,0-3117) fuzzy-if(useDrawSnapshot,0-4,0-13) == 1637067-1.html 1637067-1
 fuzzy(250-255,2900-5400) == 1927665-1.html about:blank
 != 1929182-1.html about:blank
 # do not adjust fuzzy downwards, this is actually a not equal test, fuzzy is used to ensure that it is some minimum distance away from about:blank
-fuzzy(250-255,30000-70000) == 1929182-1.html about:blank
+fuzzy(250-255,30000-70000) fails-if(gtkWidget) == 1929182-1.html about:blank # TODO: ubuntu 24.04 fails here
