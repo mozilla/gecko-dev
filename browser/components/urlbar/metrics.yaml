@@ -557,6 +557,21 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
 
+  heuristic_result_missing:
+    type: rate
+    description: >
+      A uint recording the number of times the address bar handleCommand fallback
+      path is hit.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1650819
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1650819
+    notification_emails:
+      - fx-search-telemetry@mozilla.com
+    data_sensitivity:
+      - technical
+    expires: never
+
   exposure:
     type: event
     description: >
