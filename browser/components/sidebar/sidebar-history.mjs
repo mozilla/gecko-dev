@@ -34,11 +34,11 @@ export class SidebarHistory extends SidebarPage {
   constructor() {
     super();
     this.handlePopupEvent = this.handlePopupEvent.bind(this);
+    this.controller = new lazy.HistoryController(this, {
+      component: "sidebar",
+    });
+    this.selectedLists = new Set();
   }
-
-  controller = new lazy.HistoryController(this, {
-    component: "sidebar",
-  });
 
   connectedCallback() {
     super.connectedCallback();
@@ -54,6 +54,9 @@ export class SidebarHistory extends SidebarPage {
     );
     this._menu.addEventListener("command", this);
     this._menu.addEventListener("popuphidden", this.handlePopupEvent);
+    this.addEventListener("update-selection", this);
+    this.addEventListener("clear-selection", this);
+    this._contextMenu.addEventListener("popupshowing", this);
     this.addContextMenuListeners();
     this.addSidebarFocusedListeners();
     this.controller.updateCache();
@@ -63,8 +66,48 @@ export class SidebarHistory extends SidebarPage {
     super.disconnectedCallback();
     this._menu.removeEventListener("command", this);
     this._menu.removeEventListener("popuphidden", this.handlePopupEvent);
+    this.removeEventListener("update-selection", this);
+    this.removeEventListener("clear-selection", this);
+    this._contextMenu.removeEventListener("popupshowing", this);
     this.removeContextMenuListeners();
     this.removeSidebarFocusedListeners();
+  }
+
+  handleEvent(e) {
+    switch (e.type) {
+      case "update-selection":
+        this.selectedLists.add(e.originalTarget);
+        break;
+      case "clear-selection":
+        this.selectedLists.delete(e.originalTarget);
+        this.#clearSelection();
+        break;
+      case "popupshowing":
+        this.updateContextMenu();
+        break;
+      default:
+        super.handleEvent(e);
+    }
+  }
+
+  get isMultipleRowsSelected() {
+    return !!this.selectedLists.size;
+  }
+
+  /**
+   * Only show multiselect commands when multiple items are selected.
+   */
+  updateContextMenu() {
+    for (const child of this._contextMenu.children) {
+      const isMultiSelectCommand = child.classList.contains(
+        "sidebar-history-multiselect-command"
+      );
+      if (this.isMultipleRowsSelected) {
+        child.hidden = !isMultiSelectCommand;
+      } else {
+        child.hidden = isMultiSelectCommand;
+      }
+    }
   }
 
   handleContextMenuEvent(e) {
@@ -92,7 +135,10 @@ export class SidebarHistory extends SidebarPage {
         lazy.Sanitizer.showUI(this.topWindow);
         break;
       case "sidebar-history-context-delete-page":
-        this.controller.deleteFromHistory();
+        this.controller.deleteFromHistory().catch(console.error);
+        break;
+      case "sidebar-history-context-delete-pages":
+        this.controller.deleteMultipleFromHistory().catch(console.error);
         break;
       default:
         super.handleCommandEvent(e);
@@ -112,12 +158,17 @@ export class SidebarHistory extends SidebarPage {
   }
 
   onPrimaryAction(e) {
+    if (this.isMultipleRowsSelected) {
+      // Avoid opening multiple links at once.
+      return;
+    }
     navigateToLink(e);
+    this.#clearSelection();
   }
 
   onSecondaryAction(e) {
     this.triggerNode = e.detail.item;
-    this.controller.deleteFromHistory();
+    this.controller.deleteFromHistory().catch(console.error);
   }
 
   handleCardKeydown(e) {
@@ -126,6 +177,7 @@ export class SidebarHistory extends SidebarPage {
     }
     let nextSibling = e.target.nextElementSibling;
     let prevSibling = e.target.previousElementSibling;
+    let focusedRow = null;
     switch (e.code) {
       case "Tab":
         if (prevSibling.localName == "moz-card") {
@@ -139,7 +191,7 @@ export class SidebarHistory extends SidebarPage {
             // Going up from the first site card. Focus the date header.
             dateCard.summaryEl.focus();
           }
-          return;
+          break;
         }
         if (prevSibling.expanded) {
           let innerElement = prevSibling.contentSlotEl.assignedElements()[0];
@@ -149,15 +201,15 @@ export class SidebarHistory extends SidebarPage {
             const prevSite = prevSibling.lastElementChild;
             if (prevSite.expanded) {
               const prevTabList = prevSite.contentSlotEl.assignedElements()[0];
-              const lastRow = prevTabList.rowEls[prevTabList.rowEls.length - 1];
-              lastRow.focus();
+              focusedRow = prevTabList.rowEls[prevTabList.rowEls.length - 1];
+              focusedRow.focus();
             } else {
               prevSite.summaryEl.focus();
             }
           } else {
             // Not sorted by Date & Site, innerElement is a SidebarTabList.
-            let lastRow = innerElement.rowEls[innerElement.rowEls.length - 1];
-            lastRow.focus();
+            focusedRow = innerElement.rowEls[innerElement.rowEls.length - 1];
+            focusedRow.focus();
           }
         } else {
           prevSibling.summaryEl.focus();
@@ -171,7 +223,8 @@ export class SidebarHistory extends SidebarPage {
             innerElement.summaryEl.focus();
           } else {
             // Not sorted by Date & Site, innerElement is a SidebarTabList.
-            innerElement.rowEls[0].focus();
+            focusedRow = innerElement.rowEls[0];
+            focusedRow.focus();
           }
         } else if (nextSibling && nextSibling.localName == "moz-card") {
           nextSibling.summaryEl.focus();
@@ -189,6 +242,40 @@ export class SidebarHistory extends SidebarPage {
         e.target.expanded = true;
         break;
     }
+    this.#updateSelection(e, focusedRow);
+  }
+
+  /**
+   * When a row is focused while the shift key is held down, add it to the
+   * selection. If shift key was not held down, clear the selection.
+   *
+   * @param {KeyboardEvent} event
+   * @param {Element} rowEl
+   */
+  #updateSelection(event, rowEl) {
+    if (event.code !== "ArrowUp" && event.code !== "ArrowDown") {
+      return;
+    }
+    if (!event.shiftKey) {
+      this.#clearSelection();
+      return;
+    }
+    if (rowEl != null) {
+      const listForRow = rowEl.getRootNode().host;
+      listForRow.selectedGuids.add(rowEl.guid);
+      listForRow.requestVirtualListUpdate();
+      this.selectedLists.add(listForRow);
+    }
+  }
+
+  /**
+   * Clear the selection from all lists.
+   */
+  #clearSelection() {
+    for (const list of this.selectedLists) {
+      list.clearSelection();
+    }
+    this.selectedLists.clear();
   }
 
   /**

@@ -28,6 +28,8 @@ const OBSERVER_DEBOUNCE_TIMEOUT_MS = 5000;
  *   The page's title.
  * @property {string} url
  *   The page's URL.
+ * @property {string} guid
+ *   The page's GUID.
  */
 
 /**
@@ -157,7 +159,7 @@ export class PlacesQuery {
         : `WHERE visit_date >= (strftime('%s','now','localtime','start of day','-${Number(
             daysOld
           )} days','utc') * 1000000)`;
-    const sql = `SELECT MAX(visit_date) as visit_date, title, url
+    const sql = `SELECT MAX(visit_date) as visit_date, title, url, guid
       FROM moz_historyvisits v
       JOIN moz_places h
       ON v.place_id = h.id
@@ -201,7 +203,7 @@ export class PlacesQuery {
         orderBy = "url";
         break;
     }
-    const sql = `SELECT MAX(visit_date) as visit_date, title, url
+    const sql = `SELECT MAX(visit_date) as visit_date, title, url, guid
       FROM moz_historyvisits v
       JOIN moz_places h
       ON v.place_id = h.id
@@ -517,6 +519,8 @@ export class PlacesQuery {
       title: row.getResultByName("title"),
       // @ts-expect-error - Bug 1966462
       url: row.getResultByName("url"),
+      // @ts-expect-error - Bug 1966462
+      guid: row.getResultByName("guid"),
     };
   }
 
@@ -533,6 +537,7 @@ export class PlacesQuery {
       date: new Date(event.visitTime),
       title: event.lastKnownTitle,
       url: event.url,
+      guid: event.pageGuid,
     };
   }
 }

@@ -155,7 +155,7 @@ class HistoryInView extends ViewPage {
   }
 
   deleteFromHistory(e) {
-    this.controller.deleteFromHistory();
+    this.controller.deleteFromHistory().catch(console.error);
     this.recordContextMenuTelemetry("delete-from-history", e);
   }
 

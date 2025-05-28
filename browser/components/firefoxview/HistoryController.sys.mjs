@@ -94,7 +94,14 @@ export class HistoryController {
   }
 
   deleteFromHistory() {
-    lazy.PlacesUtils.history.remove(this.host.triggerNode.url);
+    return lazy.PlacesUtils.history.remove(this.host.triggerNode.url);
+  }
+
+  deleteMultipleFromHistory() {
+    const pageGuids = [...this.host.selectedLists].flatMap(
+      ({ selectedGuids }) => [...selectedGuids]
+    );
+    return lazy.PlacesUtils.history.remove(pageGuids);
   }
 
   onSearchQuery(e) {

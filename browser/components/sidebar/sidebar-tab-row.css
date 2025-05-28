@@ -18,6 +18,11 @@
   display: flex;
 }
 
+:host([selected]) {
+  background-color: var(--button-background-color-primary);
+  color: var(--button-text-color-primary);
+}
+
 .fxview-tab-row-main {
   padding-block: 4px;
   padding-inline: 8px 4px;
