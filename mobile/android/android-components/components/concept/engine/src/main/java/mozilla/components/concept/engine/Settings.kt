@@ -301,6 +301,18 @@ abstract class Settings {
     open var userCharacteristicPingCurrentVersion: Int by UnsupportedSetting()
 
     /**
+     * Setting to control whether privacy.baselineFingerprintingProtection is enabled.
+     * This is enabled by default in all modes.
+     */
+    open var baselineFingerprintingProtection: Boolean? by UnsupportedSetting()
+
+    /**
+     * Setting to enable or disable certain fingerprinting protection features
+     * of baseline fpp.
+     */
+    open var baselineFingerprintingProtectionOverrides: String? by UnsupportedSetting()
+
+    /**
      * Setting to control whether the desktop user agent is used.
      */
     open val desktopModeEnabled: Boolean by UnsupportedSetting()
@@ -397,6 +409,8 @@ data class DefaultSettings(
     override var fingerprintingProtectionPrivateBrowsing: Boolean? = null,
     override var fingerprintingProtectionOverrides: String? = null,
     override var fdlibmMathEnabled: Boolean = false,
+    override var baselineFingerprintingProtection: Boolean? = null,
+    override var baselineFingerprintingProtectionOverrides: String? = null,
     override var cookieBannerHandlingMode: CookieBannerHandlingMode = CookieBannerHandlingMode.DISABLED,
     override var cookieBannerHandlingModePrivateBrowsing: CookieBannerHandlingMode =
         CookieBannerHandlingMode.DISABLED,

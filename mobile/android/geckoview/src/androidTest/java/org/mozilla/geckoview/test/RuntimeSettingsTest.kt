@@ -585,6 +585,69 @@ class RuntimeSettingsTest : BaseSessionTest() {
     }
 
     @Test
+    fun baselineFpp() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        geckoRuntimeSettings.setBaselineFingerprintingProtection(false)
+
+        assertThat(
+            "baselineFpp setting should be set to the expected value",
+            geckoRuntimeSettings.baselineFingerprintingProtection,
+            equalTo(false),
+        )
+
+        val enabledFalse =
+            (sessionRule.getPrefs("privacy.baselineFingerprintingProtection").get(0)) as Boolean
+
+        assertThat(
+            "baselineFpp pref should be set to the expected value",
+            enabledFalse,
+            equalTo(false),
+        )
+
+        geckoRuntimeSettings.setBaselineFingerprintingProtection(true)
+
+        assertThat(
+            "baselineFpp setting should be set to the expected value",
+            geckoRuntimeSettings.baselineFingerprintingProtection,
+            equalTo(true),
+        )
+
+        val enabledTrue =
+            (sessionRule.getPrefs("privacy.baselineFingerprintingProtection").get(0)) as Boolean
+
+        assertThat(
+            "baselineFpp pref should be set to the expected value",
+            enabledTrue,
+            equalTo(true),
+        )
+    }
+
+    @Test
+    fun baselineFppOverrides() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        geckoRuntimeSettings.setBaselineFingerprintingProtectionOverrides(
+            "+NavigatorHWConcurrency,+CanvasRandomization",
+        )
+
+        assertThat(
+            "baselineFppOverrides setting should be set to the expected value",
+            geckoRuntimeSettings.baselineFingerprintingProtectionOverrides,
+            equalTo("+NavigatorHWConcurrency,+CanvasRandomization"),
+        )
+
+        val overrides =
+            (sessionRule.getPrefs("privacy.baselineFingerprintingProtection.overrides").get(0)) as String
+
+        assertThat(
+            "baselineFppOverrides pref should be set to the expected value",
+            overrides,
+            equalTo("+NavigatorHWConcurrency,+CanvasRandomization"),
+        )
+    }
+
+    @Test
     fun userCharacteristicPingCurrentVersion() {
         val geckoRuntimeSettings = sessionRule.runtime.settings
 
