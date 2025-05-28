@@ -37,11 +37,11 @@
 }
 
 .expandable-opening {
-  list-style: '+' outside;
+  list-style: "+" outside;
 }
 
 [open] > .expandable-opening {
-  list-style-type: '−';
+  list-style-type: "−";
 }
 
 .expandable-opening::marker {

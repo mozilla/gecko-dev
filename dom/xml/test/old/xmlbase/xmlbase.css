@@ -17,7 +17,9 @@ xlink|link {
   padding-left: +5px;
 }
 
-sect1,sect2,sect3 {
+sect1,
+sect2,
+sect3 {
   display: block;
   padding-left: +20px;
 }

@@ -1,5 +1,3 @@
-
-
 BookSet {
   display: block;
 }
@@ -15,12 +13,12 @@ Book {
 }
 
 BookCover {
- display: inline;
- float: left;
- margin-right: 10px;
- padding: 5px;
- width: 100px;
- height: 140px;
+  display: inline;
+  float: left;
+  margin-right: 10px;
+  padding: 5px;
+  width: 100px;
+  height: 140px;
 }
 
 Title {
@@ -45,23 +43,20 @@ Synopsis {
   background-color: #ddddff;
 }
 
-
 ListPrice {
   display: block;
   text-align: right;
   padding-right: 15px;
-  text-decoration: line-through;  
+  text-decoration: line-through;
 }
-
 
 Price {
   display: block;
-  color: rgb(20,100,0);
-  text-align:right; 
+  color: rgb(20, 100, 0);
+  text-align: right;
   padding-right: 15px;
   font-weight: bold;
 }
-
 
 Price:before {
   content: "Our Price: ";
@@ -72,7 +67,3 @@ ISBN {
   font-family: monospace;
   font-size: 8pt;
 }
-
-
-
-
