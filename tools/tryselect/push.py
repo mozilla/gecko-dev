@@ -264,10 +264,11 @@ def push_to_try(
             )
         else:
             job_id = push_to_lando_try(vcs, commit_message, changed_files)
-            print(
-                f"Follow the progress of your build on Treeherder: "
-                f"{TREEHERDER_LANDO_TRY_RUN_URL.format(job_id=job_id)}"
-            )
+            if job_id:
+                print(
+                    f"Follow the progress of your build on Treeherder: "
+                    f"{TREEHERDER_LANDO_TRY_RUN_URL.format(job_id=job_id)}"
+                )
 
             return job_id
     except MissingVCSExtension as e:
