@@ -8,11 +8,15 @@
 <script type="application/javascript">
   createHTML({
     bug: "1040346",
-    title: "Basic H.264 GMP video-only peer connection"
+    title: "Basic H.264 video-only peer connection"
   });
 
   runNetworkTest(async function (options) {
-    matchPlatformH264CodecPrefs();
+    const h264Support = await matchPlatformH264CodecPrefs();
+    ok(h264Support.any, "Should have some H264 support everywhere");
+    if (!h264Support.any) {
+      return;
+    }
     options = options || { };
     options.h264 = true;
     const test = new PeerConnectionTest(options);

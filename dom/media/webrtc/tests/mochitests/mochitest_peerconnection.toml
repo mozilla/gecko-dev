@@ -136,7 +136,6 @@ scheme = "http"
 ["test_peerConnection_basicAudio_forced_lower_rate.html"]
 
 ["test_peerConnection_basicH264Video.html"]
-skip-if = ["os == 'android' && is_emulator"]  # Bug 1355786, No h264 support on android emulator
 
 ["test_peerConnection_basicScreenshare.html"]
 skip-if = [
@@ -171,7 +170,6 @@ scheme = "http"
 ["test_peerConnection_bug1013809.html"]
 
 ["test_peerConnection_bug1042791.html"]
-skip-if = ["os == 'android' && is_emulator"] # Bug 1355786, No h264 support on android emulator
 
 ["test_peerConnection_bug1227781.html"]
 scheme = "http"
@@ -469,7 +467,6 @@ skip-if = ["os == 'android'"]
 ["test_peerConnection_verifyVideoAfterRenegotiation.html"]
 
 ["test_peerConnection_videoCodecs.html"]
-skip-if = ["os == 'android'"] # android(Bug 1614460)
 
 ["test_peerConnection_videoRenegotiationInactiveAnswer.html"]
 

@@ -82,18 +82,24 @@
           }
         });
       },
-      async function CHECK_VIDEO_FLOW() {
-        try {
-          const h = new VideoStreamHelper();
-          await h.checkVideoPlaying(
-              test.pcRemote.remoteMediaElements[0],
-              10, 10, 128);
-          ok(true, `Got video flow for codec ${codec.name}, offset ${codec.offset}`);
-        } catch(e) {
-          ok(false, `No video flow for codec ${codec.name}, offset ${codec.offset}: ${e}`);
-        }
-      },
     ]);
+
+    if (!navigator.userAgent.includes("Android")) {
+      // TODO: enable on Android when bug 1526207 is fixed.
+      test.chain.append([
+        async function CHECK_VIDEO_FLOW() {
+          try {
+            const h = new VideoStreamHelper();
+            await h.checkVideoPlaying(
+                test.pcRemote.remoteMediaElements[0],
+                10, 10, 128);
+            ok(true, `Got video flow for codec ${codec.name}, offset ${codec.offset}`);
+          } catch(e) {
+            ok(false, `No video flow for codec ${codec.name}, offset ${codec.offset}: ${e}`);
+          }
+        },
+      ]);
+    }
 
     await test.run();
   }
