@@ -9,7 +9,7 @@ EXPORTS += [
     "mozjemalloc_profiling.h",
     "mozjemalloc_types.h",
     "mozmemory.h",
-    "mozmemory_stall.h",
+    "mozmemory_utils.h",
     "mozmemory_wrap.h",
     "PHC.h",
 ]
@@ -36,24 +36,20 @@ if CONFIG["MOZ_PHC"]:
 
 if CONFIG["MOZ_MEMORY"]:
     UNIFIED_SOURCES += [
-        "BaseAlloc.cpp",
-        "Chunk.cpp",
-        "Globals.cpp",
         "mozjemalloc.cpp",
         "mozmemory_wrap.cpp",
         "Mutex.cpp",
-        "Utils.cpp",
     ]
 else:
     UNIFIED_SOURCES += [
-        "Fallback.cpp",
+        "fallback.cpp",
     ]
 
 if CONFIG["OS_TARGET"] == "Darwin" and (
     CONFIG["MOZ_REPLACE_MALLOC"] or CONFIG["MOZ_MEMORY"]
 ):
     SOURCES += [
-        "Zone.c",
+        "zone.c",
     ]
 
 Library("memory")

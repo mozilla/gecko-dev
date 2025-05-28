@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mozjemalloc_stall_h
-#define mozjemalloc_stall_h
+#ifndef mozjemalloc_utils_h
+#define mozjemalloc_utils_h
 
 #include <optional>
 #include <type_traits>
@@ -13,9 +13,6 @@
 #if defined(MOZ_MEMORY) && defined(XP_WIN)
 #  include "mozmemory_wrap.h"
 #endif
-
-// See
-// https://hacks.mozilla.org/2022/11/improving-firefox-stability-with-this-one-weird-trick/
 
 namespace mozilla {
 
@@ -78,4 +75,4 @@ MOZ_JEMALLOC_API_NODISCARD void* MozVirtualAlloc(void* lpAddress, size_t dwSize,
 
 }  // namespace mozilla
 
-#endif  // mozjemalloc_stall_h
+#endif  // mozjemalloc_utils_h

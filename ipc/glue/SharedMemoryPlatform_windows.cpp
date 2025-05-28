@@ -13,7 +13,7 @@
 
 #include "nsDebug.h"
 #ifdef MOZ_MEMORY
-#  include "mozmemory_stall.h"
+#  include "mozmemory_utils.h"
 #endif
 
 namespace {
