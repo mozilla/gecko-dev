@@ -5,6 +5,7 @@
 package org.mozilla.fenix.utils
 
 import android.accessibilityservice.AccessibilityServiceInfo.CAPABILITY_CAN_PERFORM_GESTURES
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.SharedPreferences
@@ -2462,7 +2463,10 @@ class Settings(private val appContext: Context) : PreferencesHolder {
      */
     var showSetupChecklist by lazyFeatureFlagPreference(
         key = appContext.getPreferenceKey(R.string.pref_key_setup_checklist_complete),
-        default = { FxNimbus.features.setupChecklist.value().enabled },
+        default = {
+            FxNimbus.features.setupChecklist.value().enabled &&
+                    canShowAddSearchWidgetPrompt(AppWidgetManager.getInstance(appContext))
+        },
         featureFlag = true,
     )
 }
