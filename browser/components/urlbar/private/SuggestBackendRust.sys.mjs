@@ -741,7 +741,7 @@ export class SuggestBackendRust extends SuggestBackend {
   #setRemoteSettingsConfig(options) {
     let { serverUrl, bucketName } = options || {};
     this.#remoteSettingsServer = serverUrl
-      ? new lazy.RemoteSettingsServer.Custom(serverUrl)
+      ? new lazy.RemoteSettingsServer.Custom({ url: serverUrl })
       : null;
     this.#remoteSettingsBucketName = bucketName;
   }
@@ -929,12 +929,12 @@ function liftSuggestion(suggestion) {
         return null;
       }
     }
-    return new lazy.Suggestion.Dynamic(
-      suggestion.suggestionType,
+    return new lazy.Suggestion.Dynamic({
+      suggestionType: suggestion.suggestionType,
       data,
-      suggestion.dismissalKey,
-      suggestion.score
-    );
+      dismissalKey: suggestion.dismissalKey,
+      score: suggestion.score,
+    });
   }
 
   return suggestion;
@@ -960,12 +960,12 @@ function lowerSuggestion(suggestion) {
     if (data !== null && data !== undefined) {
       data = JSON.stringify(data);
     }
-    return new lazy.Suggestion.Dynamic(
-      suggestion.suggestionType,
+    return new lazy.Suggestion.Dynamic({
+      suggestionType: suggestion.suggestionType,
       data,
-      suggestion.dismissalKey,
-      suggestion.score
-    );
+      dismissalKey: suggestion.dismissalKey,
+      score: suggestion.score,
+    });
   }
 
   return suggestion;

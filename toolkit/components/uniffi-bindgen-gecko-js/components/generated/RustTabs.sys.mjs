@@ -831,12 +831,18 @@ export class RemoteCommand {}
  * CloseTab
  */
 RemoteCommand.CloseTab = class extends RemoteCommand{
-    constructor(
-        url
-        ) {
-            super();
+   constructor({url = undefined } = {}) {
+                super();
+            try {
+                FfiConverterString.checkType(url);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("url");
+                }
+                throw e;
+            }
             this.url = url;
-        }
+    }
 }
 
 // Export the FFIConverter object to make external types work.
@@ -845,9 +851,9 @@ export class FfiConverterTypeRemoteCommand extends FfiConverterArrayBuffer {
         // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
-                return new RemoteCommand.CloseTab(
-                    FfiConverterString.read(dataStream)
-                    );
+                return new RemoteCommand.CloseTab({
+                    url: FfiConverterString.read(dataStream)
+                });
             default:
                 throw new UniFFITypeError("Unknown RemoteCommand variant");
         }
