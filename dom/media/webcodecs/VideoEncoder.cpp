@@ -5,13 +5,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/VideoEncoder.h"
+#include "EncoderConfig.h"
 #include "mozilla/dom/VideoEncoderBinding.h"
 #include "mozilla/dom/VideoColorSpaceBinding.h"
 #include "mozilla/dom/VideoColorSpace.h"
 #include "mozilla/dom/VideoFrame.h"
 
 #include "EncoderTraits.h"
-#include "ImageContainer.h"
 #include "VideoUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Logging.h"
@@ -24,8 +24,9 @@
 #include "mozilla/dom/VideoColorSpaceBinding.h"
 #include "mozilla/dom/VideoFrameBinding.h"
 #include "mozilla/dom/WebCodecsUtils.h"
+#include "nsIGlobalObject.h"
 #include "nsPrintfCString.h"
-#include "nsReadableUtils.h"
+#include "nsRFPService.h"
 
 extern mozilla::LazyLogModule gWebCodecsLog;
 
@@ -156,7 +157,7 @@ nsCString VideoEncoderConfigInternal::ToString() const {
 }
 
 template <typename T>
-bool MaybeAreEqual(const Maybe<T>& aLHS, const Maybe<T> aRHS) {
+bool MaybeAreEqual(const Maybe<T>& aLHS, const Maybe<T>& aRHS) {
   if (aLHS.isSome() && aRHS.isSome()) {
     return aLHS.value() == aRHS.value();
   }
@@ -344,7 +345,8 @@ VideoEncoderConfigInternal::Diff(
 }
 
 // https://w3c.github.io/webcodecs/#check-configuration-support
-static bool CanEncode(const RefPtr<VideoEncoderConfigInternal>& aConfig) {
+static bool CanEncode(const RefPtr<VideoEncoderConfigInternal>& aConfig,
+                      nsIGlobalObject* aGlobal) {
   // TODO: Enable WebCodecs on Android (Bug 1840508)
   if (IsOnAndroid()) {
     return false;
@@ -362,6 +364,9 @@ static bool CanEncode(const RefPtr<VideoEncoderConfigInternal>& aConfig) {
       return false;
     }
   }
+
+  ApplyResistFingerprintingIfNeeded(aConfig, aGlobal);
+
   return EncoderSupport::Supports(aConfig);
 }
 
@@ -408,7 +413,7 @@ static Result<Ok, nsresult> CloneConfiguration(
 /* static */
 bool VideoEncoderTraits::IsSupported(
     const VideoEncoderConfigInternal& aConfig) {
-  return CanEncode(MakeRefPtr<VideoEncoderConfigInternal>(aConfig));
+  return CanEncode(MakeRefPtr<VideoEncoderConfigInternal>(aConfig), nullptr);
 }
 
 // https://w3c.github.io/webcodecs/#valid-videoencoderconfig
@@ -562,7 +567,8 @@ already_AddRefed<Promise> VideoEncoder::IsConfigSupported(
     return p.forget();
   }
 
-  bool canEncode = CanEncode(MakeRefPtr<VideoEncoderConfigInternal>(config));
+  bool canEncode =
+      CanEncode(MakeRefPtr<VideoEncoderConfigInternal>(config), global);
   VideoEncoderSupport s;
   s.mConfig.Construct(std::move(config));
   s.mSupported.Construct(canEncode);
