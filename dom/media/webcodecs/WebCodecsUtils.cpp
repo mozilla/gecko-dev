@@ -697,4 +697,10 @@ void ApplyResistFingerprintingIfNeeded(
   ApplyResistFingerprintingImpl(aConfig, aGlobal);
 }
 
+void ApplyResistFingerprintingIfNeeded(
+    const RefPtr<VideoDecoderConfigInternal>& aConfig,
+    nsIGlobalObject* aGlobal) {
+  ApplyResistFingerprintingImpl(aConfig, aGlobal);
+}
+
 }  // namespace mozilla::dom
