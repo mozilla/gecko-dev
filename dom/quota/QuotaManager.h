@@ -344,6 +344,11 @@ class QuotaManager final : public BackgroundThreadObject {
       bool aCreateIfNonExistent = true,
       Maybe<RefPtr<ClientDirectoryLock>&> aPendingDirectoryLockOut = Nothing());
 
+  RefPtr<ClientDirectoryLockHandlePromise> OpenClientDirectoryImpl(
+      const ClientMetadata& aClientMetadata, bool aInitializeOrigins,
+      bool aCreateIfNonExistent,
+      Maybe<RefPtr<ClientDirectoryLock>&> aPendingDirectoryLockOut);
+
   RefPtr<ClientDirectoryLock> CreateDirectoryLock(
       const ClientMetadata& aClientMetadata, bool aExclusive);
 

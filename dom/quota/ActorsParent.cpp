@@ -5503,6 +5503,22 @@ QuotaManager::OpenClientDirectory(
     Maybe<RefPtr<ClientDirectoryLock>&> aPendingDirectoryLockOut) {
   AssertIsOnOwningThread();
 
+  RefPtr<ClientDirectoryLockHandlePromise> promise =
+      OpenClientDirectoryImpl(aClientMetadata, aInitializeOrigin,
+                              aCreateIfNonExistent, aPendingDirectoryLockOut);
+
+  NotifyClientDirectoryOpeningStarted(*this);
+
+  return promise;
+}
+
+RefPtr<QuotaManager::ClientDirectoryLockHandlePromise>
+QuotaManager::OpenClientDirectoryImpl(
+    const ClientMetadata& aClientMetadata, bool aInitializeOrigin,
+    bool aCreateIfNonExistent,
+    Maybe<RefPtr<ClientDirectoryLock>&> aPendingDirectoryLockOut) {
+  AssertIsOnOwningThread();
+
   const auto persistenceType = aClientMetadata.mPersistenceType;
 
   nsTArray<RefPtr<BoolPromise>> promises;
@@ -5574,95 +5590,89 @@ QuotaManager::OpenClientDirectory(
     aPendingDirectoryLockOut.ref() = clientDirectoryLock;
   }
 
-  RefPtr<ClientDirectoryLockHandlePromise> promise =
-      BoolPromise::All(GetCurrentSerialEventTarget(), promises)
-          ->Then(
-              GetCurrentSerialEventTarget(), __func__,
-              [](const CopyableTArray<bool>& aResolveValues) {
-                return BoolPromise::CreateAndResolve(true, __func__);
-              },
-              [](nsresult aRejectValue) {
-                return BoolPromise::CreateAndReject(aRejectValue, __func__);
-              })
-          ->Then(GetCurrentSerialEventTarget(), __func__,
-                 MaybeInitialize(std::move(storageDirectoryLock), this,
-                                 &QuotaManager::InitializeStorage))
-          ->Then(GetCurrentSerialEventTarget(), __func__,
-                 MaybeInitialize(std::move(temporaryStorageDirectoryLock), this,
-                                 &QuotaManager::InitializeTemporaryStorage))
-          ->Then(GetCurrentSerialEventTarget(), __func__,
-                 MaybeInitialize(std::move(groupDirectoryLock),
-                                 [self = RefPtr(this), aClientMetadata](
-                                     RefPtr<UniversalDirectoryLock>
-                                         groupDirectoryLock) mutable {
-                                   return self->InitializeTemporaryGroup(
-                                       aClientMetadata,
-                                       std::move(groupDirectoryLock));
-                                 }))
-          ->Then(GetCurrentSerialEventTarget(), __func__,
-                 MaybeInitialize(
-                     std::move(originDirectoryLock),
-                     [self = RefPtr(this), aClientMetadata,
-                      aCreateIfNonExistent](RefPtr<UniversalDirectoryLock>
-                                                originDirectoryLock) mutable {
-                       if (aClientMetadata.mPersistenceType ==
-                           PERSISTENCE_TYPE_PERSISTENT) {
-                         return self->InitializePersistentOrigin(
-                             aClientMetadata, std::move(originDirectoryLock));
-                       }
+  return BoolPromise::All(GetCurrentSerialEventTarget(), promises)
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [](const CopyableTArray<bool>& aResolveValues) {
+            return BoolPromise::CreateAndResolve(true, __func__);
+          },
+          [](nsresult aRejectValue) {
+            return BoolPromise::CreateAndReject(aRejectValue, __func__);
+          })
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             MaybeInitialize(std::move(storageDirectoryLock), this,
+                             &QuotaManager::InitializeStorage))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             MaybeInitialize(std::move(temporaryStorageDirectoryLock), this,
+                             &QuotaManager::InitializeTemporaryStorage))
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          MaybeInitialize(
+              std::move(groupDirectoryLock),
+              [self = RefPtr(this), aClientMetadata](
+                  RefPtr<UniversalDirectoryLock> groupDirectoryLock) mutable {
+                return self->InitializeTemporaryGroup(
+                    aClientMetadata, std::move(groupDirectoryLock));
+              }))
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          MaybeInitialize(
+              std::move(originDirectoryLock),
+              [self = RefPtr(this), aClientMetadata, aCreateIfNonExistent](
+                  RefPtr<UniversalDirectoryLock> originDirectoryLock) mutable {
+                if (aClientMetadata.mPersistenceType ==
+                    PERSISTENCE_TYPE_PERSISTENT) {
+                  return self->InitializePersistentOrigin(
+                      aClientMetadata, std::move(originDirectoryLock));
+                }
 
-                       return self->InitializeTemporaryOrigin(
-                           aClientMetadata, aCreateIfNonExistent,
-                           std::move(originDirectoryLock));
-                     }))
-          ->Then(
-              GetCurrentSerialEventTarget(), __func__,
-              MaybeInitialize(
-                  std::move(clientInitDirectoryLock),
-                  [self = RefPtr(this), aClientMetadata,
-                   aCreateIfNonExistent](RefPtr<UniversalDirectoryLock>
-                                             clientInitDirectoryLock) mutable {
-                    if (aClientMetadata.mPersistenceType ==
-                        PERSISTENCE_TYPE_PERSISTENT) {
-                      return self->InitializePersistentClient(
-                          aClientMetadata, std::move(clientInitDirectoryLock));
-                    }
+                return self->InitializeTemporaryOrigin(
+                    aClientMetadata, aCreateIfNonExistent,
+                    std::move(originDirectoryLock));
+              }))
+      ->Then(GetCurrentSerialEventTarget(), __func__,
+             MaybeInitialize(
+                 std::move(clientInitDirectoryLock),
+                 [self = RefPtr(this), aClientMetadata,
+                  aCreateIfNonExistent](RefPtr<UniversalDirectoryLock>
+                                            clientInitDirectoryLock) mutable {
+                   if (aClientMetadata.mPersistenceType ==
+                       PERSISTENCE_TYPE_PERSISTENT) {
+                     return self->InitializePersistentClient(
+                         aClientMetadata, std::move(clientInitDirectoryLock));
+                   }
 
-                    return self->InitializeTemporaryClient(
-                        aClientMetadata, aCreateIfNonExistent,
-                        std::move(clientInitDirectoryLock));
-                  }))
-          ->Then(
-              GetCurrentSerialEventTarget(), __func__,
-              [clientDirectoryLock = std::move(clientDirectoryLock)](
-                  const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-                if (aValue.IsReject()) {
+                   return self->InitializeTemporaryClient(
+                       aClientMetadata, aCreateIfNonExistent,
+                       std::move(clientInitDirectoryLock));
+                 }))
+      ->Then(
+          GetCurrentSerialEventTarget(), __func__,
+          [clientDirectoryLock = std::move(clientDirectoryLock)](
+              const BoolPromise::ResolveOrRejectValue& aValue) mutable {
+            if (aValue.IsReject()) {
+              DropDirectoryLockIfNotDropped(clientDirectoryLock);
+
+              return ClientDirectoryLockHandlePromise::CreateAndReject(
+                  aValue.RejectValue(), __func__);
+            }
+
+            QM_TRY(
+                ArtificialFailure(
+                    nsIQuotaArtificialFailure::CATEGORY_OPEN_CLIENT_DIRECTORY),
+                [&clientDirectoryLock](nsresult rv) {
                   DropDirectoryLockIfNotDropped(clientDirectoryLock);
 
                   return ClientDirectoryLockHandlePromise::CreateAndReject(
-                      aValue.RejectValue(), __func__);
-                }
+                      rv, __func__);
+                });
 
-                QM_TRY(
-                    ArtificialFailure(nsIQuotaArtificialFailure::
-                                          CATEGORY_OPEN_CLIENT_DIRECTORY),
-                    [&clientDirectoryLock](nsresult rv) {
-                      DropDirectoryLockIfNotDropped(clientDirectoryLock);
+            auto clientDirectoryLockHandle =
+                ClientDirectoryLockHandle(std::move(clientDirectoryLock));
 
-                      return ClientDirectoryLockHandlePromise::CreateAndReject(
-                          rv, __func__);
-                    });
-
-                auto clientDirectoryLockHandle =
-                    ClientDirectoryLockHandle(std::move(clientDirectoryLock));
-
-                return ClientDirectoryLockHandlePromise::CreateAndResolve(
-                    std::move(clientDirectoryLockHandle), __func__);
-              });
-
-  NotifyClientDirectoryOpeningStarted(*this);
-
-  return promise;
+            return ClientDirectoryLockHandlePromise::CreateAndResolve(
+                std::move(clientDirectoryLockHandle), __func__);
+          });
 }
 
 RefPtr<ClientDirectoryLock> QuotaManager::CreateDirectoryLock(
