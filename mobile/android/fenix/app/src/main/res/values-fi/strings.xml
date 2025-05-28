@@ -876,6 +876,8 @@
   <string name="preferences_search_browsing_history">Etsi selaushistoriasta</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">Etsi kirjanmerkeistä</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">Näytä oikotiet</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">Etsi synkronoiduista välilehdistä</string>
   <!-- Preference for account settings -->
@@ -975,6 +977,8 @@
   <string name="customize_toggle_recently_visited">Äskettäin vierailtu</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Ajatuksia herättäviä tarinoita</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">Tarinat</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Artikkelit tarjoaa %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
@@ -1055,6 +1059,8 @@
   <string name="alternative_app_icon_option_retro_2017">Retro 2017</string>
   <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
   <string name="alternative_app_icon_option_pride">Pride</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">Luonut @heyheymomodraws</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1645,14 +1651,30 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Sivusto on hidas tai ei toimi</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">Sivusto ei lataudu</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">Maksaminen, ostoskori tai ostosten tekeminen ei onnistu</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Kuvat tai videot</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Painikkeet, linkit ja muu sisältö</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Sisään- tai uloskirjautuminen</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">Sivusto on hidas</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">Video ei toistu tai lataudu</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">Puuttuva sisältö</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">Kirjautuminen tai rekisteröityminen ei onnistu</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Mainosten esto</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Sivusto pyysi poistamaan mainosteneston käytöstä</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">Selain ei ole tuettu tai se on estetty</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Jotain muuta</string>
   <!--
@@ -2922,6 +2944,8 @@
     Header text for a section on the home screen.
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Ajatuksia herättäviä tarinoita</string>
+  <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">Tarinat</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Tarinoita aiheittain</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->

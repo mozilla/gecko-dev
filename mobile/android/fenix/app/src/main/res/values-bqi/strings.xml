@@ -414,6 +414,8 @@
   <string name="search_suggestions_onboarding_allow_button">هشتن</string>
   <!-- Button in the search suggestions onboarding that does not allow search suggestions in private sessions -->
   <string name="search_suggestions_onboarding_do_not_allow_button">نشتن</string>
+  <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
+  <string name="search_suggestions_onboarding_text">%s هر چ ن ک من نوار نشۊوی هؽل کردینه ن و موتور پیتینیڌن افشنه.</string>
   <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
   <string name="search_engine_suggestions_title">پیتینیڌن من %s</string>
   <!-- Search engine suggestion description text -->
@@ -472,6 +474,8 @@
   <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">گشتن ٱمن وا پسندا قلوه</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_3">گشت گر ن سۊد بر ایما و ایسا هیاری اده تا شرکتا نترسته بۊن ایسا ن بؽڌاری من وب بنیرن وو و دین کونن.</string>
+  <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+  <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">بیشتر ز 100 ملیووݩ نفر هریم سیخومی خوسووݩ ن وا پسند گشت گری ک ن سۊد بر هڌ، زفت اکونن.</string>
   <!-- Text for the button to set firefox as default browser on the device -->
   <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">سامووݩ و عونوان گشت گر پؽش فرز</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -521,6 +525,8 @@
   <string name="onboarding_add_on_ublock_name" moz:removedIn="140" tools:ignore="UnusedResources">uBlock Origin</string>
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_privacy_badger_name" moz:removedIn="140" tools:ignore="UnusedResources">Privacy Badger</string>
+  <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_privacy_badger_description" moz:removedIn="140" tools:ignore="UnusedResources">تلای زد رڌجۊری. رڌجۊرا بؽڌاری وو تبلیقات جاسۊسی ن واڌارنین.</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_search_by_image_name" moz:removedIn="140" tools:ignore="UnusedResources">پیتینیڌن ز ری شؽوات</string>
   <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
@@ -640,6 +646,10 @@
   <string name="preferences_search_engines">موتورا پیتینیڌن</string>
   <!-- Preference for settings related to Search engines suggestions -->
   <string name="preferences_search_engines_suggestions">پؽشنهاڌا ز موتورا پیتینیڌن</string>
+  <!-- Preference Category for settings related to Search address bar -->
+  <string name="preferences_settings_address_bar">ترجیهات نوار نشۊوی</string>
+  <!-- Preference Category for settings to Firefox Suggest -->
+  <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">نوار نشۊوی - پؽشنهاڌا Firefox</string>
   <!-- Preference link to Learn more about Firefox Suggest -->
   <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">زبار پؽشنهاڌا Firefox قلوه دووسته بۊین</string>
   <!-- Preference link to rating Fenix on the Play Store -->
@@ -661,10 +671,24 @@
   <string name="preferences_private_browsing_options">گشتن سیخومی</string>
   <!-- Preference for opening links in a private tab -->
   <string name="preferences_open_links_in_a_private_tab">گۊشیڌن لینگ من ی بلگه سیخومی</string>
+  <!-- Preference for allowing screenshots to be taken while in a private tab -->
+  <string name="preferences_allow_screenshots_in_private_mode">هشتن گرؽڌن شؽوات ز بلگه من هالت سیخومی</string>
+  <!-- Will inform the user of the risk of activating Allow screenshots in private browsing option -->
+  <string name="preferences_screenshots_in_private_mode_disclaimer">ٱر هیشتین، مجال گۊشیڌن چند تا برنومه، بلگه یل سیخومی ن ترین بنیرین</string>
   <!-- Preference for adding private browsing shortcut -->
   <string name="preferences_add_private_browsing_shortcut">ٱووردن ر نهنگ گشت سیخومی</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">هالت تینا-Https</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">و کار گرؽڌن چفت بلگه سی بؽڌار کردن بلگه یل من گشتن سیخومی</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">بلگه یل ن وا جا کلکی، بۊگۊشین وا ری یا رزم بنیرین.</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">بلگه یل ن وا جا کلکی، رزم یا گۊشیڌن وا ری بنیرین.</string>
+  <!-- Label for cookie banner section in quick settings panel. -->
+  <string name="cookie_banner_blocker">مسدۊد کوݩ بنر کۊکی</string>
+  <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
+  <string name="preferences_cookie_banner_reduction_private_mode">مسدۊد کوݩ بنر کۊکی من گشتن سیخومی</string>
   <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_off_for_site">کۊر سی ای وبگه</string>
   <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
@@ -681,10 +705,22 @@
   <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">درخاست لادراری فشناڌه وابی</string>
   <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_unsupported_site">وبگه سکو لادراری نؽبۊ</string>
+  <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
+  <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">مسدۊد کوݩ بنر کۊکی سی %1$s فعال بۊ؟</string>
   <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. %1$s is a shortened URL of the current site. -->
   <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">مسدۊد کوݩ بنر کۊکی سی %1$s قیر فعال بۊ؟</string>
+  <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">‏%1$s نتره درخاستا کۊکی ای وبگه ن خوتکار رڌ کونه. ترین دیندا تر درخاستی سی لادراری ز ای وبگه بفشنین.</string>
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">کۊر کردن وو %1$s کۊکیا ن پاک کرده وو ای وبگه ن دووارته بارونی اکونه. یو گاشڌ ایسا ن ز سیستوم و در کونه وو سبتا استیڌنه پتی کونه.</string>
+  <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="reduce_cookie_banner_details_panel_description_on_for_site_3">فعال کردن وو %1$s قپ ریت اکونه پوی بنرا کۊکی ن من ای وبگه و جۊر خوتکار رڌ کونه.</string>
   <!-- Title for the cookie banner re-engagement CFR, the placeholder is replaced with app name. %1$s is the name of the app (for example "Firefox"). -->
   <string name="cookie_banner_cfr_title">%1$s کۊکیا ن سی ایسا رڌ کرد</string>
+  <!-- Message for the cookie banner re-engagement CFR -->
+  <string name="cookie_banner_cfr_message">هواس پردی کم تر، رڌجۊری کۊکیا کم تری من ای وبگه.</string>
+  <!-- Description of the preference to enable "HTTPS-Only" mode. -->
+  <string name="preferences_https_only_summary">و جۊر خوتکار سی قلوه کردن ٱمنیت قپ ریت اکونه وا و کار گرؽڌن بارت رزم ناهاڌن HTTPS و وبگه یل منپیز بۊ.</string>
   <!-- Summary of https only preference if https only is set to off -->
   <string name="preferences_https_only_off">کۊر</string>
   <!-- Summary of https only preference if https only is set to on in all tabs -->
@@ -699,6 +735,8 @@
   <string name="preferences_https_only_in_private_tabs">تینا من بلگه یل سیخومی و کار بوۊفته</string>
   <!-- Title shown in the error page for when trying to access a http website while https only mode is enabled. -->
   <string name="errorpage_httpsonly_title">وبگه ایمن من دسرس نؽ</string>
+  <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
+  <string name="errorpage_httpsonly_message_title">و ائتمال قلوه، وبگه ز HTTPS لادراری نؽکونه.</string>
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">دسرسی پزیری</string>
   <!-- Preference to override the Mozilla account server -->
@@ -774,6 +812,8 @@
   <string name="preferences_open_links_in_apps_always">هی</string>
   <!-- Preference for open links in third party apps ask before opening option -->
   <string name="preferences_open_links_in_apps_ask">پورس پؽش ز گۊشیڌن</string>
+  <!-- Preference for open links in third party apps never open in apps option -->
+  <string name="preferences_open_links_in_apps_never">هرگشت</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager">دؽوۉداری دانلود دری</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
@@ -959,8 +999,12 @@
   <string name="sync_syncing_in_progress">هونی هوم گوم ابۊ…</string>
   <!-- Label summary indicating that sync failed. %s is the date stamp showing last time it succeeded. -->
   <string name="sync_failed_summary">هوم گوم کردن ٱنجوم نگرؽڌ. مووفقیت دیندایی: %s</string>
+  <!-- Label summary showing never synced -->
+  <string name="sync_failed_never_synced_summary">هوم گوم کردن ٱنجوم نگرؽڌ. هوم گوم کردن دیندایی: هرگشت</string>
   <!-- Label summary the date we last synced. %s is date stamp showing last time sync was completed. -->
   <string name="sync_last_synced_summary">هوم گوم کردن دیندایی: %s</string>
+  <!-- Label summary showing never synced -->
+  <string name="sync_never_synced_summary">هوم گوم کردن دیندایی: هرگشت</string>
   <!--
     Text for displaying the default device name.
     %1$s is the name of the app (for example "Firefox"). %2$s is the device manufacturer name
@@ -995,6 +1039,8 @@
   <string name="fxa_tabs_closed_text">نشووݩ داڌن بلگه یلی ک سکو بسته وابین</string>
   <!-- Button in Exceptions Preference to turn on tracking protection for all sites (remove all exceptions) -->
   <string name="preferences_tracking_protection_exceptions_turn_on_for_all">رۊشن کردن سی پوی وبگه یل</string>
+  <!-- Text displayed when there are no exceptions -->
+  <string name="exceptions_empty_message_description">استسنایل هؽلن ک ایسا زفت وابیڌن ز رڌجۊری وبگه یل پسند بیڌه ن قیر فعال کۊنین.</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">قلوه دووسته بۊین</string>
   <!-- Preference switch for usage and technical learn more link -->
@@ -1122,6 +1168,8 @@
   <string name="tab_view_grid">شبکه ای</string>
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">بستن بلگه یل</string>
+  <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
+  <string name="close_tabs_manually">دستی</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">بئڌ ی رۊز</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
@@ -1857,14 +1905,24 @@
   <string name="sign_in_with_email">و جا هو ایمیل ن و کار بگر</string>
   <!-- Error message snackbar shown after the user tried to select a default folder which cannot be altered -->
   <string name="bookmark_cannot_edit_root">نترین دوبلگه یل پؽش فرز ن آلشت کۊنین</string>
+  <!-- Preference title for enhanced tracking protection settings -->
+  <string name="preference_enhanced_tracking_protection">زفت وابیڌن پؽش رئڌه جلاو رڌجۊری</string>
+  <!-- Accessibility text for the Standard protection information icon -->
+  <string name="preference_enhanced_tracking_protection_standard_info_button">اۊ چیه ک و دست زفت وابیڌن رڌجۊری استاندارد مسدۊد وابیڌه</string>
+  <!-- Accessibility text for the Strict protection information icon -->
+  <string name="preference_enhanced_tracking_protection_strict_info_button">اۊ چیه ک و دست زفت وابیڌن رڌجۊری سخت گرووه مسدۊد وابیڌه</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings -->
   <string name="preference_enhanced_tracking_protection_custom">سفارشی</string>
+  <!-- Accessibility text for the Strict protection information icon -->
+  <string name="preference_enhanced_tracking_protection_custom_info_button">اۊ چیه ک و دست زفت وابیڌن رڌجۊری سفارشی مسدۊد وابیڌه</string>
   <!--
     Header for categories that are being blocked by current Enhanced Tracking Protection settings
 
     Preference for enhanced tracking protection for the custom protection settings for cookies
   -->
   <string name="preference_enhanced_tracking_protection_custom_cookies">کۊکیا</string>
+  <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
+  <string name="preference_enhanced_tracking_protection_custom_tracking_content">موئتوا رڌجۊری</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->
   <string name="preference_enhanced_tracking_protection_custom_tracking_content_1">من پوی بلگه یل</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for tracking content -->
@@ -1875,8 +1933,25 @@
   <string name="enhanced_tracking_protection_blocked">مسدۊد وابیڌه</string>
   <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
   <string name="enhanced_tracking_protection_allowed">هشتسه</string>
+  <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_cookies_title">کۊکیا رڌجۊر منجا وبگهی</string>
+  <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_known_fingerprinters_description">جم کردن داده یل قابل دیاری کردن زبار دسگا ایسا ک تره سی رڌجۊری و کار روه، واڌاشته ابۊ.</string>
+  <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_tracking_content_title">موئتوا رڌجۊری</string>
+  <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_tracking_content_description">ز بارگرؽڌنی ک کود رهگیری منس هڌ، و در ز تبلیقات، فیلما وو پوی متالو واڌاشته ابۊ. گاشڌ ری کار کردن وبگه تئسیر بنه.</string>
+  <!-- Header for exceptions list for which sites enhanced tracking protection is always off -->
+  <string name="enhanced_tracking_protection_exceptions">زفت کردن جلاو و دین کردن سی ای وبگه کۊر هڌ</string>
+  <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_redirect_trackers_description">کۊکیا سامووݩ وابیڌه و دست آلشت تور و وبگه یل رڌجۊری اشناخته بیڌه ن پاک اکونه.</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">قلوه دووسته بۊین</string>
+  <!--
+    Content description (not visible, for screen readers etc.):
+    Enhanced tracking protection exception preference icon for ETP settings.
+  -->
+  <string name="preference_etp_exceptions_icon_description">آیکون ترجیهات استسنایل زفت کردن جلاو رڌجۊری پؽش رئڌه</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">قلوه دووسته بۊین</string>
   <!-- Content description for the "Info" button -->
@@ -1929,6 +2004,8 @@
   <string name="preferences_passwords_logins_and_passwords_2">رزما</string>
   <!-- Preference for managing the saving of logins and passwords in Fenix -->
   <string name="preferences_passwords_save_logins_2">زفت رزما</string>
+  <!-- Preference option for never saving passwords in Fenix -->
+  <string name="preferences_passwords_save_logins_never_save">هرگشت زفت مکوݩ</string>
   <!-- Preference option for adding a password -->
   <string name="preferences_logins_add_login_2">ٱووردن رزم</string>
   <!-- Preference for syncing saved passwords in Fenix -->
@@ -2293,6 +2370,10 @@
   <string name="translation_option_bottom_sheet_always_translate">هی پؽشنهاڌ ولرنیڌن ن بڌین</string>
   <!-- Toggle switch label that allows a user to set if they would like a given language to automatically translate or not. %1$s is the language name, for example, "Spanish". -->
   <string name="translation_option_bottom_sheet_always_translate_in_language">هی %1$s ن ولرنین</string>
+  <!-- Toggle switch label that allows a user to set if they would like to never be offered a translation of the given language. %1$s is the language name, for example, "Spanish". -->
+  <string name="translation_option_bottom_sheet_never_translate_in_language">هرگشت %1$s ن نولرنین</string>
+  <!-- Toggle switch label that allows a user to set the setting if they would like the browser to never translate the site the user is currently visiting. -->
+  <string name="translation_option_bottom_sheet_never_translate_site">هرگشت ای وبگه ن نولرنین</string>
   <!-- Button text for the button that will take the user to the translation settings dialog. -->
   <string name="translation_option_bottom_sheet_translation_settings">سامووا ولرنیڌن</string>
   <!-- Button text for the button that will take the user to a website to learn more about how translations works in the given app. %1$s is the name of the app (for example "Firefox"). -->
@@ -2307,6 +2388,8 @@
   <string name="translation_settings_toolbar_title">ولرنیڌنا</string>
   <!-- Toggle switch label that indicates that downloading files required for translating is permitted when using data saver mode in Android. -->
   <string name="translation_settings_always_download">هی زووانه من هالت زفت کردن داده دانلود کۊنین</string>
+  <!-- Button text for the button that will take the user to the never translate these sites dialog. On the never translate these sites dialog, the user can set if translations should never occur on certain websites. -->
+  <string name="translation_settings_automatic_never_translate_sites">هرگشت ای وبگه یل ن نولرنین</string>
   <!-- Button text for the button that will take the user to the download languages dialog. On the download languages dialog, the user can manage which languages they would like to download for translations. -->
   <string name="translation_settings_download_language">دانلود زوونا</string>
   <!--
@@ -2315,8 +2398,20 @@
     Title of the automatic translation preference screen that will appear on the toolbar.
   -->
   <string name="automatic_translation_toolbar_title_preference">ولرنیڌن خوتکار</string>
+  <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
+  <string name="automatic_translation_header_preference">ی زووݩ ن سی دؽوۉداری سامووا «هی ولرن» وو «هرگشت نولرن» پسند کۊنین.</string>
   <!-- Preference option for always translate. Radio button title text. -->
   <string name="automatic_translation_option_always_translate_title_preference">هی ولرن</string>
+  <!-- Preference option for never translate. Radio button title text. -->
+  <string name="automatic_translation_option_never_translate_title_preference">هرگشت نولرن</string>
+  <!-- Preference option for never translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="automatic_translation_option_never_translate_summary_preference">%1$s هرگشت پؽشنهاڌ ولرنیڌن وبگه یل ن من ای زووݩ نؽڌه.</string>
+  <!--
+    Never translate site preference screen
+
+    Title of the never translate site preference screen that will appear on the toolbar.
+  -->
+  <string name="never_translate_site_toolbar_title_preference">هرگشت ای وبگه یل ن نولرنین</string>
   <!--
     Content description (not visible, for screen readers etc.): For a never-translated site list item that is selected.
     %1$s is web site url (for example:"wikipedia.com")
@@ -2388,6 +2483,8 @@
   <string name="protection_panel_banner_not_secure_title">ویرت وا ای وبگه بۊ</string>
   <!-- Description text for the protection panel banner when the site is not secure. -->
   <string name="protection_panel_banner_not_secure_description">منپیز ایسا ایمن نؽ.</string>
+  <!-- Label text for the Enhanced Tracking Protection toggle. -->
+  <string name="protection_panel_etp_toggle_label">زفت وابیڌن پؽش رئڌه جلاو رڌجۊری</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">سامووا هریم سیخومی وو ٱمنیت</string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->

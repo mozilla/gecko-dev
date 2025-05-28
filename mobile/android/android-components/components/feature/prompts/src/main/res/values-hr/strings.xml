@@ -164,7 +164,7 @@
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Koristite %1$s kao davatelja usluge prijave</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Prijava u %1$s s %2$s računom podliježe njihovoj &lt;a href="%3$s"&gt;politici privatnosti&lt;/a&gt; i &lt;a href="%4$s"&gt;Uvjetima usluge&lt;/a&gt;</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Prijava u %1$s s %2$s računom podliježe njihovoj <a href=\"%3$s\">politici privatnosti</a> i <a href=\"%4$s\">uvjetima usluge</a>]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Nastavi</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->
