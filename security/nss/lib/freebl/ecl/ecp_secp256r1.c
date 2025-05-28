@@ -36,7 +36,11 @@ ec_secp256r1_pt_validate(const SECItem *pt)
         return res;
     }
 
+#ifndef UNSAFE_FUZZER_MODE
     bool b = Hacl_P256_validate_public_key(pt->data + 1);
+#else
+    bool b = PR_TRUE;
+#endif
 
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
@@ -65,7 +69,11 @@ ec_secp256r1_scalar_validate(const SECItem *scalar)
         return res;
     }
 
+#ifndef UNSAFE_FUZZER_MODE
     bool b = Hacl_P256_validate_private_key(scalar->data);
+#else
+    bool b = PR_TRUE;
+#endif
 
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
@@ -94,7 +102,11 @@ ec_secp256r1_pt_mul(SECItem *X, SECItem *k, SECItem *P)
             return res;
         }
 
+#ifndef UNSAFE_FUZZER_MODE
         bool b = Hacl_P256_dh_initiator(derived, k->data);
+#else
+        bool b = PR_TRUE;
+#endif
 
         if (!b) {
             PORT_SetError(SEC_ERROR_BAD_KEY);
@@ -206,8 +218,13 @@ ec_secp256r1_sign_digest(ECPrivateKey *ecPrivKey, SECItem *signature,
         memcpy(nonce, kb, 32);
     }
 
+#ifndef UNSAFE_FUZZER_MODE
     bool b = Hacl_P256_ecdsa_sign_p256_without_hash(
         signature->data, 32, hash, key, nonce);
+#else
+    bool b = key != NULL;                        /* Avoiding unused variable warnings */
+#endif
+
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_KEY);
         res = SECFailure;
@@ -280,10 +297,15 @@ ec_secp256r1_verify_digest(ECPublicKey *key, const SECItem *signature,
         memcpy(hash, digest->data, 32);
     }
 
+#ifndef UNSAFE_FUZZER_MODE
     bool b = Hacl_P256_ecdsa_verif_without_hash(
         32, hash,
         key->publicValue.data + 1,
         sig_r, sig_s);
+#else
+    bool b = (sig_r != NULL) && (sig_s != NULL); /* Avoiding unused variable warnings */
+#endif
+
     if (!b) {
         PORT_SetError(SEC_ERROR_BAD_SIGNATURE);
         res = SECFailure;
