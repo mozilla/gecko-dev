@@ -4271,13 +4271,6 @@ void Document::SetDocumentURI(nsIURI* aURI) {
     RefreshLinkHrefs();
   }
 
-  // Recalculate our base domain
-  mBaseDomain.Truncate();
-  ThirdPartyUtil* thirdPartyUtil = ThirdPartyUtil::GetInstance();
-  if (thirdPartyUtil) {
-    Unused << thirdPartyUtil->GetBaseDomain(mDocumentURI, mBaseDomain);
-  }
-
   // Tell our WindowGlobalParent that the document's URI has been changed.
   if (WindowGlobalChild* wgc = GetWindowGlobalChild()) {
     wgc->SetDocumentURI(mDocumentURI);
