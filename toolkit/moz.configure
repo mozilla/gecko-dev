@@ -2728,16 +2728,29 @@ with only_when(compile_environment & target_is_windows):
     set_config("MOZ_ANGLE_RENDERER", True)
 
 with only_when(target_is_windows):
+    # We only produce dxc builds for x86_64 and aarch64.
+    @depends(target)
+    def dxc_supports_target(target):
+        return target.cpu in ("x86_64", "aarch64")
+
     option(
         "--enable-dxcompiler",
         default=milestone.is_nightly,
         help="{Enable|Disable} DXC for WebGPU on Windows",
+        when=dxc_supports_target,
     )
 
-    @depends("--enable-dxcompiler", target, artifact_builds, valid_windows_sdk_dir)
+    @depends(
+        "--enable-dxcompiler",
+        target,
+        artifact_builds,
+        valid_windows_sdk_dir,
+        dxc_dll_path,
+        when=dxc_supports_target,
+    )
     @checking("for dxcompiler.dll and dxil.dll")
     @imports("os.path")
-    def dxcompiler(enable_dxc, target, artifact, windows_sdk_dir):
+    def dxcompiler(enable_dxc, target, artifact, windows_sdk_dir, dxc_path):
         if not windows_sdk_dir and not artifact:
             return namespace(enabled=False)
         if not enable_dxc:
@@ -2749,11 +2762,9 @@ with only_when(target_is_windows):
 
         dxc_name = "dxcompiler.dll"
         dxil_name = "dxil.dll"
-        dxc_path = ""
         dxil_path = ""
         if not artifact:
             sdk_d3d_path = os.path.join(windows_sdk_dir.path, "Redist", "D3D", arch)
-            dxc_path = os.path.join(sdk_d3d_path, dxc_name)
             dxil_path = os.path.join(sdk_d3d_path, dxil_name)
             if not os.path.exists(dxc_path):
                 die("Could not find dxcompiler.dll at {}", dxc_path)
