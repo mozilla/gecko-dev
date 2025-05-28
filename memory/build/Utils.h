@@ -117,6 +117,88 @@ class Fraction {
   size_t mDenominator;
 };
 
+// Fast division
+//
+// During deallocation we want to divide by the size class.  This class
+// provides a routine and sets up a constant as follows.
+//
+// To divide by a number D that is not a power of two we multiply by (2^17 /
+// D) and then right shift by 17 positions.
+//
+//   X / D
+//
+// becomes
+//
+//   (X * m) >> p
+//
+// Where m is calculated during the FastDivisor constructor similarly to:
+//
+//   m = 2^p / D
+//
+template <typename T>
+class FastDivisor {
+ private:
+  // The shift amount (p) is chosen to minimise the size of m while
+  // working for divisors up to 65536 in steps of 16.  I arrived at 17
+  // experimentally.  I wanted a low number to minimise the range of m
+  // so it can fit in a uint16_t, 16 didn't work but 17 worked perfectly.
+  //
+  // We'd need to increase this if we allocated memory on smaller boundaries
+  // than 16.
+  static const unsigned p = 17;
+
+  // We can fit the inverted divisor in 16 bits, but we template it here for
+  // convenience.
+  T m;
+
+ public:
+  // Needed so mBins can be constructed.
+  FastDivisor() : m(0) {}
+
+  FastDivisor(unsigned div, unsigned max) {
+    MOZ_ASSERT(div <= max);
+
+    // divide_inv_shift is large enough.
+    MOZ_ASSERT((1U << p) >= div);
+
+    // The calculation here for m is formula 26 from Section
+    // 10-9 "Unsigned Division by Divisors >= 1" in
+    // Henry S. Warren, Jr.'s Hacker's Delight, 2nd Ed.
+    unsigned m_ = ((1U << p) + div - 1 - (((1U << p) - 1) % div)) / div;
+
+    // Make sure that max * m does not overflow.
+    MOZ_DIAGNOSTIC_ASSERT(max < UINT_MAX / m_);
+
+    MOZ_ASSERT(m_ <= std::numeric_limits<T>::max());
+    m = static_cast<T>(m_);
+
+    // Initialisation made m non-zero.
+    MOZ_ASSERT(m);
+
+    // Test that all the divisions in the range we expected would work.
+#ifdef MOZ_DEBUG
+    for (unsigned num = 0; num < max; num += div) {
+      MOZ_ASSERT(num / div == divide(num));
+    }
+#endif
+  }
+
+  // Note that this always occurs in uint32_t regardless of m's type.  If m is
+  // a uint16_t it will be zero-extended before the multiplication.  We also use
+  // uint32_t rather than something that could possibly be larger because it is
+  // most-likely the cheapest multiplication.
+  inline uint32_t divide(uint32_t num) const {
+    // Check that m was initialised.
+    MOZ_ASSERT(m);
+    return (num * m) >> p;
+  }
+};
+
+template <typename T>
+unsigned inline operator/(unsigned num, FastDivisor<T> divisor) {
+  return divisor.divide(num);
+}
+
 // Return the offset between a and the nearest aligned address at or below a.
 #define ALIGNMENT_ADDR2OFFSET(a, alignment) \
   ((size_t)((uintptr_t)(a) & ((alignment) - 1)))
