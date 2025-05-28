@@ -345,21 +345,21 @@ sidebar-main,
   }
 }
 
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media -moz-pref("sidebar.visibility", "expand-on-hover") {
-    /* We need these rules to apply at all times when the sidebar.visibility
+/* stylelint-disable-next-line media-query-no-invalid */
+@media -moz-pref("sidebar.visibility", "expand-on-hover") {
+  /* We need these rules to apply at all times when the sidebar.visibility
     pref is set to "expand-on-hover" as opposed to when the "sidebar-expand-on-hover" attribute
     has been added to root. There are certain scenarios when that attribute is temporarily
     removed from root such as when toggling the sidebar to expand with the toolbar button. */
-    #sidebar-box {
-      --sidebar-border-color: light-dark(rgb(207, 207, 216), rgb(82, 82, 94));
-      > #sidebar {
-        box-shadow: none;
-        margin-block-start: 1px;
-        border: 0.5px solid var(--sidebar-border-color);
-      }
+  #sidebar-box {
+    --sidebar-border-color: light-dark(rgb(207, 207, 216), rgb(82, 82, 94));
+    > #sidebar {
+      box-shadow: none;
+      margin-block-start: 1px;
+      border: 0.5px solid var(--sidebar-border-color);
     }
   }
+}
 
 /* History Menu */
 #sidebar-history-sort-by-heading {

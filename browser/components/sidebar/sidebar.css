@@ -9,7 +9,7 @@
   --sidebar-box-border-color: light-dark(color-mix(in srgb, currentColor 10%, transparent), var(--border-color-deemphasized));
   --sidebar-box-border-width: 0.5px;
   --sidebar-box-border: var(--sidebar-box-border-width) solid var(--sidebar-box-border-color);
-  --sidebar-box-background: light-dark(rgba(0, 0, 0, .03), rgba(255, 255, 255, .05));
+  --sidebar-box-background: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.05));
   --sidebar-box-color: currentColor;
   background-color: transparent;
   color: var(--sidebar-text-color);
@@ -75,7 +75,7 @@ fxview-search-textbox {
 
   &::part(container) {
     width: 100%;
-    height: var(--size-item-large)
+    height: var(--size-item-large);
   }
 }
 
