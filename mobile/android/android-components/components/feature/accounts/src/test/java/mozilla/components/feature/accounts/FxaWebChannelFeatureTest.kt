@@ -864,6 +864,53 @@ class FxaWebChannelFeatureTest {
         verifyLogin("sessiontoken123", "foo@bar.com", "uid123", false, messageHandler.value, accountManager)
     }
 
+    @Test
+    fun `an invalid command responds with an error message`() = runTest {
+        val engineSession: EngineSession = mock()
+        val ext: WebExtension = mock()
+        val port: Port = mock()
+        val messageHandler = argumentCaptor<MessageHandler>()
+        val accountManager: FxaAccountManager = mock {
+            whenever(authenticatedAccount()).thenReturn(mock())
+        }
+        val jsonFromWebChannel = argumentCaptor<JSONObject>()
+        val webchannelFeature = prepareFeatureForTest(
+            ext = ext,
+            port = port,
+            engineSession = engineSession,
+            fxaCapabilities = setOf(FxaCapability.CHOOSE_WHAT_TO_SYNC),
+            accountManager = accountManager,
+        )
+        webchannelFeature.start()
+        shadowOf(getMainLooper()).idle()
+
+        verify(ext).registerContentMessageHandler(
+            eq(engineSession),
+            eq(FxaWebChannelFeature.WEB_CHANNEL_MESSAGING_ID),
+            messageHandler.capture(),
+        )
+
+        messageHandler.value.onPortConnected(port)
+
+        val jsonToWebChannelLogout = JSONObject(
+            """{
+             "message":{
+                "command": "fxaccounts:any_unknown_message",
+                "messageId":123
+             }
+            }
+            """.trimIndent(),
+        )
+
+        messageHandler.value.onPortMessage(jsonToWebChannelLogout, port)
+        verify(port).postMessage(jsonFromWebChannel.capture())
+
+        assertTrue(
+            jsonFromWebChannel.value.getError()!!
+                .contains("Unrecognized FxAccountsWebChannel command"),
+        )
+    }
+
     private fun JSONObject.getSupportedEngines(): List<String> {
         val engines = this.getJSONObject("message")
             .getJSONObject("data")
@@ -923,6 +970,12 @@ class FxaWebChannelFeatureTest {
         return this.getJSONObject("message")
             .getJSONObject("data")
             .getBoolean("ok")
+    }
+
+    private fun JSONObject.getError(): String? {
+        return this.getJSONObject("message")
+            .getJSONObject("data")
+            .getString("error")
     }
 
     private suspend fun verifyOauthLogin(action: String, expectedAuthType: AuthType, code: String, state: String, declined: Set<SyncEngine>?, messageHandler: MessageHandler, accountManager: FxaAccountManager) {

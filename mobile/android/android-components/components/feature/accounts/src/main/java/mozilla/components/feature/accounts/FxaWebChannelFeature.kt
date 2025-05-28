@@ -138,13 +138,14 @@ class FxaWebChannelFeature(
             }
 
             val payload: JSONObject
-            val command: WebChannelCommand
+            val command: WebChannelCommand?
+            val rawCommand: String?
             val messageId: String
 
             try {
                 payload = json.getJSONObject("message")
-                command = payload.getString("command").toWebChannelCommand() ?: throw
-                    JSONException("Couldn't get WebChannel command")
+                rawCommand = payload.getString("command")
+                command = rawCommand.toWebChannelCommand()
                 messageId = payload.optString("messageId", "")
             } catch (e: JSONException) {
                 // We don't have control over what messages we will get from the webchannel.
@@ -156,7 +157,7 @@ class FxaWebChannelFeature(
                 return
             }
 
-            logger.debug("Processing WebChannel command: $command")
+            logger.debug("Processing WebChannel command: $rawCommand")
 
             val response = when (command) {
                 WebChannelCommand.CAN_LINK_ACCOUNT -> processCanLinkAccountCommand(messageId)
@@ -165,11 +166,16 @@ class FxaWebChannelFeature(
                 WebChannelCommand.LOGIN -> processLoginCommand(accountManager, payload)
                 WebChannelCommand.SYNC_PREFERENCES -> processSyncPreferencesCommand(accountManager)
                 WebChannelCommand.LOGOUT, WebChannelCommand.DELETE_ACCOUNT -> processLogoutCommand(accountManager)
+                else -> processUnknownCommand(rawCommand)
             }
             response?.let { port.postMessage(it) }
 
-            // Finally, let any consumer be aware of the action to update any UI affordances.
-            onCommandExecuted(command)
+            // Finally, let any consumer be aware of the action to update any UI affordances
+            // for ONLY processed messages since we can receive unsupported ones too and we
+            // shouldn't forward that onwards.
+            command?.let {
+                onCommandExecuted(command)
+            }
         }
     }
 
@@ -438,6 +444,28 @@ class FxaWebChannelFeature(
         }
 
         /**
+         * Handles unknown message types by responding with a `data` json that only contains an
+         * `error` error message.
+         */
+        private fun processUnknownCommand(command: String): JSONObject {
+            return JSONObject().apply {
+                put("id", CHANNEL_ID)
+                put(
+                    "message",
+                    JSONObject().apply {
+                        put(
+                            "data",
+                            JSONObject().put(
+                                "error",
+                                "Unrecognized FxAccountsWebChannel command: $command",
+                            ),
+                        )
+                    },
+                )
+            }
+        }
+
+        /**
          * Handles the [COMMAND_SYNC_PREFERENCES] event from the web-channel. The UI affordances
          * will be handled by [FxaWebChannelFeature.onCommandExecuted].
          */
@@ -479,7 +507,7 @@ class FxaWebChannelFeature(
                 COMMAND_LOGOUT -> WebChannelCommand.LOGOUT
                 COMMAND_DELETE_ACCOUNT -> WebChannelCommand.DELETE_ACCOUNT
                 else -> {
-                    logger.warn("Unrecognized WebChannel command: $this")
+                    logger.warn("Unrecognized FxAccountsWebChannel command: $this")
                     null
                 }
             }
