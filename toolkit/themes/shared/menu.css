@@ -244,6 +244,7 @@ menucaption {
 
 .menu-icon,
 .menu-text,
+.menu-highlightable-text,
 .menu-accel {
   pointer-events: none;
 }
