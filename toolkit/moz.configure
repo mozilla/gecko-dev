@@ -2760,10 +2760,17 @@ with only_when(target_is_windows):
             "aarch64": "arm64",
         }.get(target.cpu, target.cpu)
 
-        dxc_name = "dxcompiler.dll"
-        if not artifact and not os.path.exists(dxc_path):
-            die("Could not find dxcompiler.dll at {}", dxc_path)
+        if not artifact:
+            if not dxc_path:
+                log.warning(
+                    "Missing dxcompiler.dll dependency. WebGPU will be disabled"
+                )
+                return namespace(enabled=False)
 
+            if not os.path.exists(dxc_path):
+                die("Could not find dxcompiler.dll at {}", dxc_path)
+
+        dxc_name = "dxcompiler.dll"
         return namespace(
             enabled=True,
             from_sdk=not artifact,

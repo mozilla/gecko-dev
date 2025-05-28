@@ -133,6 +133,12 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
   rejectIf(!StaticPrefs::dom_webgpu_enabled(),
            "WebGPU is disabled because the `dom.webgpu.enabled` pref. is set "
            "to `false`.");
+#ifdef WIN32
+#ifndef MOZ_DXCOMPILER
+  rejectIf(true, "WebGPU is disabled because dxcompiler is unavailable with this build configuration");
+#endif
+#endif
+
   if (rejectionMessage) {
     promise->MaybeRejectWithNotSupportedError(ToCString(*rejectionMessage));
     return promise.forget();

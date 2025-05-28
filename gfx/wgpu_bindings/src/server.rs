@@ -113,7 +113,7 @@ impl std::ops::Deref for Global {
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_server_new(owner: *mut c_void, use_dxc: bool) -> *mut Global {
+pub extern "C" fn wgpu_server_new(owner: *mut c_void) -> *mut Global {
     log::info!("Initializing WGPU server");
     let backends_pref = static_prefs::pref!("dom.webgpu.wgpu-backend").to_string();
     let backends = if backends_pref.is_empty() {
@@ -138,13 +138,9 @@ pub extern "C" fn wgpu_server_new(owner: *mut c_void, use_dxc: bool) -> *mut Glo
         instance_flags.insert(wgt::InstanceFlags::DISCARD_HAL_LABELS);
     }
 
-    let dx12_shader_compiler = if use_dxc {
-        wgt::Dx12Compiler::DynamicDxc {
-            dxc_path: "dxcompiler.dll".into(),
-            max_shader_model: wgt::DxcShaderModel::V6_6,
-        }
-    } else {
-        wgt::Dx12Compiler::Fxc
+    let dx12_shader_compiler = wgt::Dx12Compiler::DynamicDxc {
+        dxc_path: "dxcompiler.dll".into(),
+        max_shader_model: wgt::DxcShaderModel::V6_6,
     };
 
     let global = wgc::global::Global::new(
