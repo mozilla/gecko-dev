@@ -10,4 +10,14 @@ module.exports = {
   printWidth: 80,
   tabWidth: 2,
   trailingComma: "es5",
+  overrides: [
+    {
+      files: "*.css",
+      options: {
+        parser: "css",
+        // Using a larger printWidth to avoid wrapping selectors.
+        printWidth: 160,
+      },
+    },
+  ],
 };

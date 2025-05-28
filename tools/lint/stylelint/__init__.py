@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "eslint"))
-from eslint import setup_helper
+from eslint import prettier_utils, setup_helper
 from mozbuild.nodeutil import find_node_executable
 from mozlint import result
 
@@ -59,7 +59,7 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
             modified_paths += [path]
         else:
             joined_path = os.path.join(path, "**", exts)
-            if is_windows():
+            if prettier_utils.is_windows():
                 joined_path = joined_path.replace("\\", "/")
             modified_paths.append(joined_path)
 
@@ -76,48 +76,78 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
         return 1
 
     extra_args = lintargs.get("extra_args") or []
-    exclude_args = []
-    for path in config.get("exclude", []):
-        exclude_args.extend(
-            ["--ignore-pattern", os.path.relpath(path, lintargs["root"])]
+    result = {"results": [], "fixed": 0}
+
+    if not lintargs.get("formatonly", False):
+        exclude_args = []
+        for path in config.get("exclude", []):
+            exclude_args.extend(
+                ["--ignore-pattern", os.path.relpath(path, lintargs["root"])]
+            )
+
+        # Default to $topsrcdir/.stylelintrc.js, but allow override in stylelint.yml
+        stylelint_rc = config.get("stylelint-rc", ".stylelintrc.js")
+
+        # First run Stylelint
+        cmd_args = (
+            [
+                binary,
+                os.path.join(
+                    module_path, "node_modules", "stylelint", "bin", "stylelint.mjs"
+                ),
+                "--formatter",
+                "json",
+                "--allow-empty-input",
+                "--config",
+                os.path.join(lintargs["root"], stylelint_rc),
+            ]
+            + extra_args
+            + exclude_args
+            + modified_paths
         )
 
-    # Default to $topsrcdir/.stylelintrc.js, but allow override in stylelint.yml
-    stylelint_rc = config.get("stylelint-rc", ".stylelintrc.js")
+        if fix:
+            cmd_args.append("--fix")
 
-    # First run Stylelint
+        log.debug("Stylelint command: {}".format(" ".join(cmd_args)))
+
+        result = run(cmd_args, config, fix)
+        if result == 1:
+            return result
+
+    # Then run Prettier
     cmd_args = (
         [
             binary,
             os.path.join(
-                module_path, "node_modules", "stylelint", "bin", "stylelint.mjs"
+                module_path, "node_modules", "prettier", "bin", "prettier.cjs"
             ),
-            "--formatter",
-            "json",
-            "--allow-empty-input",
-            "--config",
-            os.path.join(lintargs["root"], stylelint_rc),
+            "--list-different",
+            "--no-error-on-unmatched-pattern",
+            "--ignore-path=.prettierignore",
+            "--ignore-path=.prettierignore-non-css",
         ]
-        + extra_args
-        + exclude_args
-        + modified_paths
+        # Prettier does not support exclude arguments.
+        # + exclude_args
+        + paths
     )
+    log.debug("Prettier command: {}".format(" ".join(cmd_args)))
 
     if fix:
-        cmd_args.append("--fix")
+        cmd_args.append("--write")
 
-    log.debug("Stylelint command: {}".format(" ".join(cmd_args)))
+    prettier_result = prettier_utils.run_prettier(cmd_args, config, fix)
+    if prettier_result == 1:
+        return prettier_result
 
-    result = run(cmd_args, config, fix)
-    if result == 1:
-        return result
-
+    result["results"].extend(prettier_result["results"])
+    result["fixed"] = result["fixed"] + prettier_result["fixed"]
     return result
 
 
 def run(cmd_args, config, fix):
     shell = False
-    if is_windows():
+    if prettier_utils.is_windows():
         # The stylelint binary needs to be run from a shell with msys
         shell = True
     encoding = "utf-8"
@@ -185,10 +215,3 @@ def run(cmd_args, config, fix):
             results.append(result.from_config(config, **err))
 
     return {"results": results, "fixed": fixed}
-
-
-def is_windows():
-    return (
-        os.environ.get("MSYSTEM") in ("MINGW32", "MINGW64")
-        or "MOZILLABUILD" in os.environ
-    )

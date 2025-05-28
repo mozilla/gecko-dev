@@ -180,7 +180,7 @@ a.treemapEntry {
     z-index: 1;
 
     > .treemapEntryContent {
-      opacity: 1.0;
+      opacity: 1;
       overflow: visible;
 
       > .treemapEntryText {
@@ -189,7 +189,6 @@ a.treemapEntry {
     }
   }
 }
-
 
 .accuracyWarning,
 .badInputWarning,

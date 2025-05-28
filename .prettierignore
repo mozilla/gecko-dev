@@ -8,6 +8,7 @@
 !*.xhtml
 !*.html
 !*.ts
+!*.css
 
 # Prettier currently fails to parse this.
 toolkit/components/extensions/types/ext-tabs-base.d.ts
@@ -20,7 +21,6 @@ toolkit/components/extensions/types/ext-tabs-base.d.ts
 !toolkit/content/tests/widgets/*.xhtml
 !toolkit/content/tests/widgets/*.html
 !toolkit/content/tests/chrome/test_preferencesBindings_setting.html
-!browser/components/preferences/tests/chrome/*.html
 
 # This should be re-enabled in bug 1827456.
 js/src/builtin/**/*.*
@@ -42,6 +42,7 @@ dom/security/test/sri/script*
 # Files that are intentionally broken for tests.
 dom/base/test/file_bug687859-charset.js
 dom/base/test/file_bug687859-inherit.js
+dom/security/test/sri/file_bug_1271796.css
 parser/htmlparser/tests/mochitest/broken_xml.xhtml
 parser/htmlparser/tests/mochitest/test_bug563322.xhtml
 
@@ -1253,6 +1254,96 @@ browser/extensions/translations/extension/
 toolkit/components/uniffi-bindgen-gecko-js/src/templates/js/
 toolkit/components/uniffi-bindgen-gecko-js/components/generated/*
 toolkit/components/uniffi-bindgen-gecko-js/tests/generated/*
+
+##############################################################################
+# The list below is copied from .stylelintignore. Prettier doesn't currently
+# support multiple ignore files or dynamic ignore configurations.
+# When this is implemented, we'll update the configuration below (bug 1825508)
+##############################################################################
+
+# These files are generated in some way.
+browser/components/pocket/content/panels/css/main.compiled.css
+browser/components/aboutwelcome/**/*.css
+browser/components/asrouter/**/*.css
+browser/extensions/newtab/**/*.css
+
+# Note that the debugger has its own stylelint setup, but that currently
+# produces errors. Bug 1831302 tracks making this better
+devtools/client/debugger/src/components/PrimaryPanes/Outline.css
+devtools/client/debugger/src/components/PrimaryPanes/Sources.css
+devtools/client/debugger/src/components/shared/AccessibleImage.css
+devtools/client/debugger/src/utils/editor/source-editor.css
+devtools/client/debugger/test/mochitest/examples/
+
+# These get their sourcemap annotations autofixed, though they produce
+# no errors at all.
+devtools/client/inspector/rules/test/doc_sourcemaps.css
+
+# This is intended to simulate a css file generated from a scss file in order to
+# test sourcemaps.
+devtools/client/inspector/rules/test/doc_sourcemaps2.css
+
+# Some of these produce parse errors, some have sourcemaps modified.
+# They're tests, so let's just ignore all of them:
+devtools/client/inspector/computed/test/doc_sourcemaps.css
+devtools/client/inspector/rules/test/doc_copystyles.css
+devtools/client/inspector/rules/test/doc_invalid_sourcemap.css
+devtools/client/shared/sourceeditor/test/css_statemachine_testcases.css
+devtools/client/webconsole/test/browser/*.css
+devtools/shared/commands/resource/tests/style_iframe.css
+devtools/shared/commands/resource/tests/style_document.css
+
+# Style editor tests check how it copes with invalid or "special" CSS,
+# so don't try to "fix" those.
+devtools/client/styleeditor/test/
+
+# These are empty or have funky charsets
+dom/base/test/bug466409-empty.css
+dom/encoding/test/file_utf16_be_bom.css
+dom/encoding/test/file_utf16_le_bom.css
+dom/security/test/cors/file_cors_logging_test.html.css
+dom/security/test/sri/test_bug_1271796.html
+dom/tests/mochitest/general/cssA.css
+dom/tests/mochitest/general/cssC.css
+
+# These are test-only and cause us to complain about font families or
+# similar, but we don't want to touch these tests at this point.
+dom/security/test/sri/file_bug_1271796.css
+dom/security/test/csp/file_CSP.css
+dom/security/test/sri/style2.css
+dom/xml/test/old/docbook.css
+dom/xml/test/old/toc/book.css
+dom/xml/test/old/toc/toc.css
+
+# Tests we don't want to modify at this point:
+layout/base/tests/stylesheet_change_events.css
+layout/inspector/tests/bug856317.css
+layout/inspector/tests/chrome/test_bug467669.css
+layout/inspector/tests/chrome/test_bug708874.css
+layout/style/test/gtest/example.css
+layout/style/test/mapped2.css
+layout/style/test/unstyled-frame.css
+
+# Bug 1893763
+mobile/android/android-components/components/feature/readerview/src/main/assets/extensions/readerview/readerview.css
+# Three dashes at top of file (for Jekyll?) cause syntax error:
+mobile/android/android-components/docs/assets/main.scss
+
+# Empty test files:
+netwerk/test/mochitests/test1.css
+netwerk/test/mochitests/test2.css
+
+# Has substitution gunk in it:
+python/mozbuild/mozbuild/test/backend/data/build/foo.css
+
+# This is third-party in a way:
+toolkit/components/pdfjs/content/web/debugger.css
+toolkit/components/pdfjs/content/web/viewer.css
+toolkit/components/pdfjs/content/web/viewer-geckoview.css
+build/pgo/blueprint/**/*.css
+
+# Ignore web-platform tests as they are not necessarily under our control.
+testing/web-platform/tests/
 
 ##############################################################################
 # The list below is copied from ThirdPartyPaths.txt. Prettier doesn't currently
