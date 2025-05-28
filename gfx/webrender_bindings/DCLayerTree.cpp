@@ -556,7 +556,6 @@ bool DCLayerTree::UseLayerCompositor() const {
 }
 
 void DCLayerTree::DisableNativeCompositor() {
-  MOZ_ASSERT(!UseLayerCompositor());
   MOZ_ASSERT(mCurrentSurface.isNothing());
   MOZ_ASSERT(mCurrentLayers.empty());
 
