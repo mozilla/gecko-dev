@@ -933,10 +933,6 @@ export class UrlbarInput {
     // the appropriate engine submission url.
     let browser = this.window.gBrowser.selectedBrowser;
     let lastLocationChange = browser.lastLocationChange;
-
-    // Increment rate denominator measuring how often Address Bar handleCommand fallback path is hit.
-    Glean.urlbar.heuristicResultMissing.addToDenominator(1);
-
     lazy.UrlbarUtils.getHeuristicResultFor(url, this.window)
       .then(newResult => {
         // Because this happens asynchronously, we must verify that the browser
@@ -955,10 +951,6 @@ export class UrlbarInput {
           // some parts of the profile are corrupt.
           // The urlbar should still allow to search or visit the typed string,
           // so that the user can look for help to resolve the problem.
-
-          // Increment rate numerator measuring how often Address Bar handleCommand fallback path is hit.
-          Glean.urlbar.heuristicResultMissing.addToNumerator(1);
-
           let flags =
             Ci.nsIURIFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS |
             Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP;

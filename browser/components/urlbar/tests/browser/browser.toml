@@ -718,9 +718,6 @@ tags = "search-telemetry"
 ["browser_urlbar_telemetry_handoff.js"]
 tags = "search-telemetry"
 
-["browser_urlbar_telemetry_heuristic.js"]
-tags = "search-telemetry"
-
 ["browser_urlbar_telemetry_persisted.js"]
 tags = "search-telemetry"
 skip-if = [
