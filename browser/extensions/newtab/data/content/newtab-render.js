@@ -4,7 +4,7 @@
 "use strict";
 
 // exported by activity-stream.bundle.js
-if (window.__FROM_STARTUP_CACHE__) {
+if (window.__FROM_STARTUP_CACHE__ && window.__STARTUP_STATE__) {
   window.NewtabRenderUtils.renderCache(window.__STARTUP_STATE__);
 } else {
   window.NewtabRenderUtils.renderWithoutState();

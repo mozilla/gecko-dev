@@ -5215,7 +5215,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     let editorsPicksCards = [];
     for (let index = 0; index < items; index++) {
       const rec = recs[index];
-      cards.push(topicsLoading || !rec || rec.placeholder || rec.flight_id && !spocsStartupCacheEnabled && this.props.App.isForStartupCache.App ? /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
+      cards.push(topicsLoading || !rec || rec.placeholder || rec.flight_id && !spocsStartupCacheEnabled && this.props.App.isForStartupCache.DiscoveryStream ? /*#__PURE__*/external_React_default().createElement(PlaceholderDSCard, {
         key: `dscard-${index}`
       }) : /*#__PURE__*/external_React_default().createElement(DSCard, {
         key: `dscard-${rec.id}`,
@@ -7394,6 +7394,9 @@ const INITIAL_STATE = {
     locale: "",
     isForStartupCache: {
       App: false,
+      TopSites: false,
+      DiscoveryStream: false,
+      Weather: false,
       Wallpaper: false,
     },
     customizeMenuVisible: false,
@@ -7551,18 +7554,28 @@ function App(prevState = INITIAL_STATE.App, action) {
         initialized: true,
       });
     case actionTypes.TOP_SITES_UPDATED:
-      // Toggle `isForStartupCache` when receiving the `TOP_SITES_UPDATE` action
+      // Toggle `isForStartupCache.TopSites` when receiving the `TOP_SITES_UPDATE` action
       // so that sponsored tiles can be rendered as usual. See Bug 1826360.
       return {
         ...prevState,
-        isForStartupCache: { ...prevState.isForStartupCache, App: false },
+        isForStartupCache: { ...prevState.isForStartupCache, TopSites: false },
       };
     case actionTypes.DISCOVERY_STREAM_SPOCS_UPDATE:
-      // Toggle `isForStartupCache` when receiving the `DISCOVERY_STREAM_SPOCS_UPDATE_STARTUPCACHE` action
+      // Toggle `isForStartupCache.DiscoveryStream` when receiving the `DISCOVERY_STREAM_SPOCS_UPDATE` action
       // so that spoc cards can be rendered as usual.
       return {
         ...prevState,
-        isForStartupCache: { ...prevState.isForStartupCache, App: false },
+        isForStartupCache: {
+          ...prevState.isForStartupCache,
+          DiscoveryStream: false,
+        },
+      };
+    case actionTypes.WEATHER_UPDATE:
+      // Toggle `isForStartupCache.Weather` when receiving the `WEATHER_UPDATE` action
+      // so that weather can be rendered as usual.
+      return {
+        ...prevState,
+        isForStartupCache: { ...prevState.isForStartupCache, Weather: false },
       };
     case actionTypes.WALLPAPERS_CUSTOM_SET:
       // Toggle `isForStartupCache.Wallpaper` when receiving the `WALLPAPERS_CUSTOM_SET` action
@@ -9527,7 +9540,7 @@ class _TopSiteList extends (external_React_default()).PureComponent {
       let topSiteLink;
       // Use a placeholder if the link is empty or it's rendering a sponsored
       // tile for the about:home startup cache.
-      if (!link || props.App.isForStartupCache.App && isSponsored(link) || topSites[i]?.isAddButton) {
+      if (!link || props.App.isForStartupCache.TopSites && isSponsored(link) || topSites[i]?.isAddButton) {
         if (link) {
           topSiteLink = /*#__PURE__*/external_React_default().createElement(TopSitePlaceholder, TopSite_extends({}, slotProps, commonProps, {
             isAddButton: topSites[i] && topSites[i].isAddButton,
@@ -13609,7 +13622,7 @@ class _Weather extends (external_React_default()).PureComponent {
     if (!isWeatherEnabled) {
       return false;
     }
-    if (!this.props.Weather.initialized) {
+    if (this.props.App.isForStartupCache.Weather || !this.props.Weather.initialized) {
       return /*#__PURE__*/external_React_default().createElement(WeatherPlaceholder, null);
     }
     const {
@@ -13706,6 +13719,7 @@ class _Weather extends (external_React_default()).PureComponent {
   }
 }
 const Weather_Weather = (0,external_ReactRedux_namespaceObject.connect)(state => ({
+  App: state.App,
   Weather: state.Weather,
   Prefs: state.Prefs,
   IntersectionObserver: globalThis.IntersectionObserver,
@@ -15224,6 +15238,9 @@ function renderWithoutState() {
   }), document.getElementById("root"));
 }
 function renderCache(initialState) {
+  if (initialState) {
+    initialState.App.isForStartupCache.App = false;
+  }
   const store = initStore(reducers, initialState);
   new DetectUserSessionStart(store).sendEventOrAddListener();
   doRequestWhenReady().then(() => {

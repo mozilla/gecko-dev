@@ -26,7 +26,9 @@ add_task(async function test_overwrite_cache() {
         </body>
         <script src="about:home?jscache"></script>
       </html>`,
-      "window.__FROM_STARTUP_CACHE__ = true;"
+      `
+      window.__FROM_STARTUP_CACHE__ = true;
+      window.__STARTUP_STATE__ = {"App": {"isForStartupCache": {"App": true}}};`
     );
     await simulateRestart(browser, { withAutoShutdownWrite: false });
 
