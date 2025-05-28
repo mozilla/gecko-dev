@@ -46,14 +46,14 @@ if CONFIG["MOZ_MEMORY"]:
     ]
 else:
     UNIFIED_SOURCES += [
-        "fallback.cpp",
+        "Fallback.cpp",
     ]
 
 if CONFIG["OS_TARGET"] == "Darwin" and (
     CONFIG["MOZ_REPLACE_MALLOC"] or CONFIG["MOZ_MEMORY"]
 ):
     SOURCES += [
-        "zone.c",
+        "Zone.c",
     ]
 
 Library("memory")

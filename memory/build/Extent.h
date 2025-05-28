@@ -8,7 +8,7 @@
 #include "mozjemalloc_types.h"
 
 #include "BaseAlloc.h"
-#include "rb.h"
+#include "RedBlackTree.h"
 
 #include "mozilla/UniquePtr.h"
 
