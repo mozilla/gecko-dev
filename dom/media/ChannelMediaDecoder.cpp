@@ -450,7 +450,7 @@ ChannelMediaDecoder::UpdateResourceOfPlaybackByteRate(
 }
 
 /* static */
-MediaStatistics ChannelMediaDecoder::GetStatistics(
+ChannelMediaDecoder::MediaStatistics ChannelMediaDecoder::GetStatistics(
     const PlaybackRateInfo& aInfo, BaseMediaResource* aRes,
     int64_t aPlaybackPosition) {
   MOZ_ASSERT(!NS_IsMainThread());
@@ -556,6 +556,60 @@ void ChannelMediaDecoder::GetDebugInfo(dom::MediaDecoderDebugInfo& aInfo) {
   if (mResource) {
     mResource->GetDebugInfo(aInfo.mResource);
   }
+}
+
+bool ChannelMediaDecoder::MediaStatistics::CanPlayThrough() const {
+  // Number of estimated seconds worth of data we need to have buffered
+  // ahead of the current playback position before we allow the media decoder
+  // to report that it can play through the entire media without the decode
+  // catching up with the download. Having this margin make the
+  // CanPlayThrough() calculation more stable in the case of
+  // fluctuating bitrates.
+  static const int64_t CAN_PLAY_THROUGH_MARGIN = 1;
+
+  if ((mTotalBytes < 0 && mDownloadByteRateReliable) ||
+      (mTotalBytes >= 0 && mTotalBytes == mDownloadBytePosition)) {
+    return true;
+  }
+
+  if (!mDownloadByteRateReliable || !mPlaybackByteRateReliable) {
+    return false;
+  }
+
+  int64_t bytesToDownload = mTotalBytes - mDownloadBytePosition;
+  int64_t bytesToPlayback = mTotalBytes - mPlaybackByteOffset;
+  double timeToDownload = bytesToDownload / mDownloadByteRate;
+  double timeToPlay = bytesToPlayback / mPlaybackByteRate;
+
+  if (timeToDownload  > timeToPlay) {
+    // Estimated time to download is greater than the estimated time to play.
+    // We probably can't play through without having to stop to buffer.
+    return false;
+  }
+
+  // Estimated time to download is less than the estimated time to play.
+  // We can probably play through without having to buffer, but ensure that
+  // we've got a reasonable amount of data buffered after the current
+  // playback position, so that if the bitrate of the media fluctuates, or if
+  // our download rate or decode rate estimation is otherwise inaccurate,
+  // we don't suddenly discover that we need to buffer. This is particularly
+  // required near the start of the media, when not much data is downloaded.
+  int64_t readAheadMargin =
+      static_cast<int64_t>(mPlaybackByteRate * CAN_PLAY_THROUGH_MARGIN);
+  return mDownloadBytePosition > mPlaybackByteOffset + readAheadMargin;
+}
+
+nsCString ChannelMediaDecoder::MediaStatistics::ToString() const {
+  nsCString str;
+  str.AppendPrintf("MediaStatistics: ");
+  str.AppendPrintf(" mTotalBytes=%" PRId64, mTotalBytes);
+  str.AppendPrintf(" mDownloadPosition=%" PRId64, mDownloadPosition);
+  str.AppendPrintf(" mPlaybackPosition=%" PRId64, mPlaybackPosition);
+  str.AppendPrintf(" mDownloadRate=%f", mDownloadRate);
+  str.AppendPrintf(" mPlaybackRate=%f", mPlaybackRate);
+  str.AppendPrintf(" mDownloadRateReliable=%d", mDownloadRateReliable);
+  str.AppendPrintf(" mPlaybackRateReliable=%d", mPlaybackRateReliable);
+  return str;
 }
 
 }  // namespace mozilla

@@ -14,7 +14,6 @@
 #  include "MediaFormatReader.h"
 #  include "MediaQueue.h"
 #  include "MediaSink.h"
-#  include "MediaStatistics.h"
 #  include "MediaTimer.h"
 #  include "SeekJob.h"
 #  include "mozilla/Atomics.h"

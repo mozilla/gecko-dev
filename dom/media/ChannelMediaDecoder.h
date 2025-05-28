@@ -99,6 +99,32 @@ class ChannelMediaDecoder
   void Resume() override;
 
  private:
+  struct MediaStatistics {
+    // Estimate of the current playback rate (bytes/second).
+    double mPlaybackRate;
+    // Estimate of the current download rate (bytes/second). This
+    // ignores time that the channel was paused by Gecko.
+    double mDownloadRate;
+    // Total length of media stream in bytes; -1 if not known
+    int64_t mTotalBytes;
+    // Current position of the download, in bytes. This is the offset of
+    // the first uncached byte after the decoder position.
+    int64_t mDownloadPosition;
+    // Current position of playback, in bytes
+    int64_t mPlaybackPosition;
+    // If false, then mDownloadRate cannot be considered a reliable
+    // estimate (probably because the download has only been running
+    // a short time).
+    bool mDownloadRateReliable;
+    // If false, then mPlaybackRate cannot be considered a reliable
+    // estimate (probably because playback has only been running
+    // a short time).
+    bool mPlaybackRateReliable;
+
+    bool CanPlayThrough() const;
+    nsCString ToString() const;
+  };
+
   void DownloadProgressed();
 
   // Create a new state machine to run this decoder.

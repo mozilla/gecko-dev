@@ -181,7 +181,6 @@ EXPORTS += [
     "MediaSegment.h",
     "MediaShutdownManager.h",
     "MediaSpan.h",
-    "MediaStatistics.h",
     "MediaStreamWindowCapturer.h",
     "MediaTimer.h",
     "MediaTrack.h",

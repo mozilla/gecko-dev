@@ -15,7 +15,6 @@
 #  include "MediaMetadataManager.h"
 #  include "MediaPromiseDefs.h"
 #  include "MediaResource.h"
-#  include "MediaStatistics.h"
 #  include "SeekTarget.h"
 #  include "TelemetryProbesReporter.h"
 #  include "TimeUnits.h"
