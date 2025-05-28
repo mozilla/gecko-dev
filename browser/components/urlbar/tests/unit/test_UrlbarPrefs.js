@@ -415,7 +415,7 @@ add_task(async function onNimbusChanged() {
   Assert.ok(
     observer.nimbusChangedList.includes("autoFillAdaptiveHistoryEnabled")
   );
-  doCleanup();
+  await doCleanup();
 });
 
 // Tests whether observer.onPrefChanged works.
@@ -467,5 +467,5 @@ add_task(async function onPrefChanged() {
   Services.prefs.clearUserPref(
     "browser.urlbar.autoFill.adaptiveHistory.enabled"
   );
-  doCleanup();
+  await doCleanup();
 });
