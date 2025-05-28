@@ -142,11 +142,10 @@ bool ForOfIterator::next(MutableHandleValue vp, bool* done) {
   return GetProperty(cx_, resultObj, resultObj, cx_->names().value, vp);
 }
 
-// ES 2017 draft 0f10dba4ad18de92d47d421f378233a2eae8f077 7.4.6.
-// When completion.[[Type]] is throw.
 void ForOfIterator::closeThrow() {
   MOZ_ASSERT(iterator);
 
+  // Store the original exception and its stack trace.
   RootedValue completionException(cx_);
   Rooted<SavedFrame*> completionExceptionStack(cx_);
   if (cx_->isExceptionPending()) {
@@ -157,41 +156,12 @@ void ForOfIterator::closeThrow() {
     }
   }
 
-  // Steps 1-2 (implicit)
+  // Perform IteratorClose on the iterator.
+  MOZ_ALWAYS_TRUE(CloseIterOperation(cx_, iterator, CompletionKind::Throw));
 
-  // Step 3 (partial).
-  RootedValue returnVal(cx_);
-  if (!GetProperty(cx_, iterator, iterator, cx_->names().return_, &returnVal)) {
-    return;
-  }
+  // CloseIterOperation clears any pending exception.
+  MOZ_ASSERT(!cx_->isExceptionPending());
 
-  // Step 4.
-  if (returnVal.isUndefined()) {
-    cx_->setPendingException(completionException, completionExceptionStack);
-    return;
-  }
-
-  // Step 3 (remaining part)
-  if (!returnVal.isObject()) {
-    JS_ReportErrorNumberASCII(cx_, GetErrorMessage, nullptr,
-                              JSMSG_RETURN_NOT_CALLABLE);
-    return;
-  }
-  RootedObject returnObj(cx_, &returnVal.toObject());
-  if (!returnObj->isCallable()) {
-    JS_ReportErrorNumberASCII(cx_, GetErrorMessage, nullptr,
-                              JSMSG_RETURN_NOT_CALLABLE);
-    return;
-  }
-
-  // Step 5.
-  RootedValue innerResultValue(cx_);
-  if (!js::Call(cx_, returnVal, iterator, &innerResultValue)) {
-    if (cx_->isExceptionPending()) {
-      cx_->clearPendingException();
-    }
-  }
-
-  // Step 6.
+  // Restore the original exception and its stack trace.
   cx_->setPendingException(completionException, completionExceptionStack);
 }

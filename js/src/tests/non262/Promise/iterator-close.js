@@ -122,7 +122,7 @@ test(MyPromiseThenThrows, ["all", "race"], {
             }
         });
     },
-    rejectReason: "return getter throws",
+    rejectReason: "then throws",
     closed: true,
 });
 test(MyPromiseThenThrows, ["all", "race"], {
@@ -135,7 +135,7 @@ test(MyPromiseThenThrows, ["all", "race"], {
             }
         });
     },
-    rejectType: TypeError,
+    rejectReason: "then throws",
     closed: true,
 });
 test(MyPromiseThenThrows, ["all", "race"], {
@@ -149,7 +149,7 @@ test(MyPromiseThenThrows, ["all", "race"], {
             }
         });
     },
-    rejectType: TypeError,
+    rejectReason: "then throws",
     closed: true,
 });
 
