@@ -699,6 +699,10 @@ saveToPocket:
   hasExposure: false
   isEarlyStartup: true
   variables:
+    enabled:
+      type: boolean
+      setPref: "extensions.pocket.enabled"
+      description: Enabled save to Pocket feature.
     emailButton:
       type: boolean
       fallbackPref: extensions.pocket.refresh.emailButton.enabled
