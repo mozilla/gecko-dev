@@ -8,6 +8,7 @@ import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
@@ -18,6 +19,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -42,6 +44,8 @@ import org.mozilla.fenix.theme.FirefoxTheme
 private val MENU_ITEM_HEIGHT_WITHOUT_DESC = 52.dp
 
 private val MENU_ITEM_HEIGHT_WITH_DESC = 56.dp
+
+private val BADGE_ROUNDED_CORNER = 100.dp
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
 
@@ -227,6 +231,32 @@ internal fun WebExtensionMenuItem(
             }
         },
     )
+}
+
+@Composable
+internal fun Badge(
+    badgeText: String,
+    state: MenuItemState = MenuItemState.ENABLED,
+    badgeBackgroundColor: Color?,
+) {
+    Column(
+        modifier = Modifier
+            .clip(shape = RoundedCornerShape(BADGE_ROUNDED_CORNER))
+            .background(
+                color = badgeBackgroundColor ?: FirefoxTheme.colors.layer2,
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = badgeText,
+            color = getLabelTextColor(state),
+            overflow = TextOverflow.Ellipsis,
+            style = FirefoxTheme.typography.subtitle2,
+            maxLines = 1,
+        )
+    }
 }
 
 /**

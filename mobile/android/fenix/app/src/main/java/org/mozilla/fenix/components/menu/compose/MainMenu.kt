@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
@@ -393,16 +394,20 @@ private fun ToolsAndActionsMenuGroup(
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
     ) {
     MenuGroup {
-        val labelId: Int
+        val labelId = R.string.browser_menu_desktop_site
+        val badgeText: String
         val iconId: Int
         val menuItemState: MenuItemState
+        val badgeBackgroundColor: Color
 
         if (isDesktopMode) {
-            labelId = R.string.browser_menu_switch_to_mobile_site
+            badgeText = stringResource(id = R.string.browser_feature_desktop_site_on)
+            badgeBackgroundColor = FirefoxTheme.colors.badgeActive
             iconId = R.drawable.mozac_ic_device_mobile_24
             menuItemState = MenuItemState.ACTIVE
         } else {
-            labelId = R.string.browser_menu_switch_to_desktop_site
+            badgeText = stringResource(id = R.string.browser_feature_desktop_site_off)
+            badgeBackgroundColor = FirefoxTheme.colors.layerSearch
             iconId = R.drawable.mozac_ic_device_desktop_24
             menuItemState = if (isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED
         }
@@ -427,7 +432,17 @@ private fun ToolsAndActionsMenuGroup(
                 beforeIconPainter = painterResource(id = iconId),
                 state = menuItemState,
                 onClick = onSwitchToDesktopSiteMenuClick,
+            ) {
+            if (menuItemState == MenuItemState.DISABLED) {
+                return@MenuItem
+            }
+
+            Badge(
+                badgeText = badgeText,
+                state = menuItemState,
+                badgeBackgroundColor = badgeBackgroundColor,
             )
+        }
 
         MenuItem(
             label = stringResource(id = R.string.browser_menu_find_in_page_2),

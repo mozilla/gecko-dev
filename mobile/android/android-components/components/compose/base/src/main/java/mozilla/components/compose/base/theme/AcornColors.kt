@@ -98,6 +98,7 @@ class AcornColors(
     ripple: Color,
     tabActive: Color,
     tabInactive: Color,
+    badgeActive: Color,
 ) {
     // Layers
 
@@ -418,6 +419,10 @@ class AcornColors(
     var tabInactive by mutableStateOf(tabInactive)
         private set
 
+    // Badge Active
+    var badgeActive by mutableStateOf(badgeActive)
+        private set
+
     /**
      * Updates the existing colors with the provided [AcornColors].
      */
@@ -503,6 +508,7 @@ class AcornColors(
         ripple = other.ripple
         tabActive = other.tabActive
         tabInactive = other.tabInactive
+        badgeActive = other.badgeActive
     }
 
     /**
@@ -673,6 +679,7 @@ class AcornColors(
         ripple = ripple,
         tabActive = tabActive,
         tabInactive = tabInactive,
+        badgeActive = badgeActive,
     )
 }
 
@@ -758,6 +765,7 @@ val darkColorPalette = AcornColors(
     ripple = PhotonColors.White,
     tabActive = PhotonColors.DarkGrey30,
     tabInactive = PhotonColors.DarkGrey80,
+    badgeActive = PhotonColors.Ink60,
 )
 
 val lightColorPalette = AcornColors(
@@ -842,6 +850,7 @@ val lightColorPalette = AcornColors(
     ripple = PhotonColors.Black,
     tabActive = PhotonColors.LightGrey10,
     tabInactive = PhotonColors.LightGrey20,
+    badgeActive = PhotonColors.Violet05,
 )
 
 val privateColorPalette = darkColorPalette.copy(

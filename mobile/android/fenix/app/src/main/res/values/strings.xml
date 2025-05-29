@@ -357,6 +357,8 @@
     <!-- Browser menu label that is displayed when the current page has been translated by the translation feature.
          %1$s is the name of the language that page was translated to (e.g. English). -->
     <string name="browser_menu_translated_to">Translated to %1$s</string>
+    <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+    <string name="browser_menu_translated">Translated</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Print…</string>
     <!-- Browser menu label for the Delete browsing data on quit feature.
@@ -1739,6 +1741,10 @@
     <string name="studies_on">On</string>
     <!-- Summary of studies data on quit preference if it is set to off -->
     <string name="studies_off">Off</string>
+    <!-- Toggle if desktop site is turned on -->
+    <string name="browser_feature_desktop_site_on">On</string>
+    <!-- Toggle if desktop site is turned off -->
+    <string name="browser_feature_desktop_site_off">Off</string>
     <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
     <string name="preferences_category_permissions">Permissions</string>
     <!-- Category header of a preference that allows a user to alter settings related to web content. -->

@@ -117,15 +117,19 @@ private fun TranslationMenuItem(
     isReaderViewActive: Boolean,
 ) {
     if (translationInfo.isTranslated) {
+        val state = if (isReaderViewActive || translationInfo.isPdf) MenuItemState.DISABLED else MenuItemState.ACTIVE
         MenuItem(
-            label = stringResource(
-                id = R.string.browser_menu_translated_to,
-                translationInfo.translatedLanguage,
-            ),
+            label = stringResource(id = R.string.browser_menu_translated),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_active_24),
-            state = if (isReaderViewActive || translationInfo.isPdf) MenuItemState.DISABLED else MenuItemState.ACTIVE,
+            state = state,
             onClick = translationInfo.onTranslatePageMenuClick,
-        )
+        ) {
+            Badge(
+                badgeText = translationInfo.translatedLanguage,
+                state = state,
+                badgeBackgroundColor = FirefoxTheme.colors.badgeActive,
+            )
+        }
     } else {
         MenuItem(
             label = stringResource(id = R.string.browser_menu_translate_page),
@@ -180,7 +184,7 @@ private fun MoreSettingsSubmenuPreview() {
                     translationInfo = TranslationInfo(
                         isTranslationSupported = true,
                         isPdf = false,
-                        isTranslated = false,
+                        isTranslated = true,
                         translatedLanguage = "English",
                         onTranslatePageMenuClick = {},
                     ),
