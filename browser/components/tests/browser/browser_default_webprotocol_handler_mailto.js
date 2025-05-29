@@ -185,7 +185,7 @@ add_task(async function check_no_button() {
     );
   });
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function check_x_button() {
@@ -246,7 +246,7 @@ add_task(async function check_x_button() {
     );
   });
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function check_x_button() {
@@ -262,7 +262,7 @@ add_task(async function check_x_button() {
     );
   });
 
-  cleanup();
+  await cleanup();
 });
 
 add_task(async function check_bar_is_not_shown() {
@@ -276,5 +276,5 @@ add_task(async function check_bar_is_not_shown() {
     );
   });
 
-  cleanup();
+  await cleanup();
 });
