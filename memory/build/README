@@ -65,6 +65,10 @@ Main components
    on the size of arena_chunk_t and the page size which is sometimes
    determined at runtime.  It depends on Chunk.h.
 
+ * Extent.h
+
+   The extent data structure.
+
  * fallback.cpp
 
    When building without mozjemalloc this file is compiled instead to add
