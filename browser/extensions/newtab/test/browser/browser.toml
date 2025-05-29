@@ -19,6 +19,7 @@ prefs = [
   "browser.newtabpage.activity-stream.feeds.section.topstories.options={\"provider_name\":\"\"}",
   "messaging-system.log=all",
 ]
+tags = "newtab"
 
 ["browser_as_load_location.js"]
 

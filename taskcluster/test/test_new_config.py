@@ -53,6 +53,7 @@ PARAMS_NEW_CONFIG.update(
                     and "a11y-checks" not in t.label
                     and "vt" not in t.label
                     and "ioi" not in t.label
+                    and "trainhop" not in t.label
                 )
             ),
             32,
@@ -84,6 +85,7 @@ def test_tasks_new_config_false(full_task_graph, filter_tasks, func, min_expecte
                     and "a11y-checks" not in t.label
                     and "vt" not in t.label
                     and "ioi" not in t.label
+                    and "trainhop" not in t.label
                 )
             ),
             32,

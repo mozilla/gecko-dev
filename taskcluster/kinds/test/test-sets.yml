@@ -152,6 +152,11 @@ mochitest-valgrind:
 desktop-screenshot-capture:
     - mochitest-browser-screenshots
 
+newtab-trainhop-tests:
+    - mochitest-browser-newtab-trainhop-beta
+    # Disabled until newtab as a built-in addon reaches the release channel
+    # - mochitest-browser-newtab-trainhop-release
+
 ### Specific platform test sets
 
 # Linux
@@ -177,6 +182,7 @@ linux1804-tests:
     - mochitest-browser-chrome
     - mochitest-browser-media
     - mochitest-browser-translations
+    - mochitest-browser-newtab-trainhop-beta
     - mochitest-chrome
     - mochitest-chrome-gpu
     - mochitest-devtools-chrome
