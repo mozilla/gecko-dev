@@ -99,6 +99,9 @@ skip-if = [
   "win11_2009", # Bug 1775931
 ]
 
+["browser_browsingContext_iframeWebProgress.js"]
+support-files = ["file_browsingContext_iframeWebProgress.html"]
+
 ["browser_browsingContext-01.js"]
 https_first_disabled = true
 

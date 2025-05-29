@@ -103,7 +103,7 @@ class BrowserProgressListener {
 }
 
 const PROGRESS_LISTENER_FLAGS =
-  Ci.nsIWebProgress.NOTIFY_STATE_ALL | Ci.nsIWebProgress.NOTIFY_LOCATION;
+  Ci.nsIWebProgress.NOTIFY_STATE_NETWORK | Ci.nsIWebProgress.NOTIFY_LOCATION;
 
 class ProgressListenerWrapper {
   constructor(window, listener) {

@@ -2906,18 +2906,12 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnStateChange(
     const WebProgressData& aWebProgressData, const RequestData& aRequestData,
     const uint32_t aStateFlags, const nsresult aStatus,
     const Maybe<WebProgressStateChangeData>& aStateChangeData) {
-  RefPtr<CanonicalBrowsingContext> browsingContext =
-      BrowsingContextForWebProgress(aWebProgressData);
-  if (!browsingContext) {
-    return IPC_OK();
-  }
-
+  RefPtr<CanonicalBrowsingContext> browsingContext;
   nsCOMPtr<nsIRequest> request;
-  if (aRequestData.requestURI()) {
-    request = MakeAndAddRef<RemoteWebProgressRequest>(
-        aRequestData.requestURI(), aRequestData.originalRequestURI(),
-        aRequestData.matchedList());
-    request->SetCanceledReason(aRequestData.canceledReason());
+  if (!ReceiveProgressListenerData(aWebProgressData, aRequestData,
+                                   getter_AddRefs(browsingContext),
+                                   getter_AddRefs(request))) {
+    return IPC_OK();
   }
 
   if (aStateChangeData.isSome()) {
@@ -2945,6 +2939,8 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnStateChange(
 }
 
 mozilla::ipc::IPCResult BrowserParent::RecvOnProgressChange(
+    const WebProgressData& aWebProgressData, const RequestData& aRequestData,
+    const int32_t aCurSelfProgress, const int32_t aMaxSelfProgress,
     const int32_t aCurTotalProgress, const int32_t aMaxTotalProgress) {
   // We only collect progress change notifications for the toplevel
   // BrowserParent.
@@ -2955,8 +2951,21 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnProgressChange(
     return IPC_OK();
   }
 
+  RefPtr<CanonicalBrowsingContext> browsingContext;
+  nsCOMPtr<nsIRequest> request;
+  if (!ReceiveProgressListenerData(aWebProgressData, aRequestData,
+                                   getter_AddRefs(browsingContext),
+                                   getter_AddRefs(request))) {
+    return IPC_OK();
+  }
+
+  // NOTE: We intentionally deliver the notification to the toplevel
+  // BrowsingContext rather than browsingContext, as we capture progress change
+  // notifications only on the top content in nsDocShell (and totalProgress
+  // reflects this).
   GetBrowsingContext()->GetWebProgress()->OnProgressChange(
-      nullptr, nullptr, 0, 0, aCurTotalProgress, aMaxTotalProgress);
+      browsingContext->GetWebProgress(), request, aCurSelfProgress,
+      aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress);
 
   return IPC_OK();
 }
@@ -2966,18 +2975,12 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnLocationChange(
     nsIURI* aLocation, const uint32_t aFlags, const bool aCanGoBack,
     const bool aCanGoBackIgnoringUserInteraction, const bool aCanGoForward,
     const Maybe<WebProgressLocationChangeData>& aLocationChangeData) {
-  RefPtr<CanonicalBrowsingContext> browsingContext =
-      BrowsingContextForWebProgress(aWebProgressData);
-  if (!browsingContext) {
-    return IPC_OK();
-  }
-
+  RefPtr<CanonicalBrowsingContext> browsingContext;
   nsCOMPtr<nsIRequest> request;
-  if (aRequestData.requestURI()) {
-    request = MakeAndAddRef<RemoteWebProgressRequest>(
-        aRequestData.requestURI(), aRequestData.originalRequestURI(),
-        aRequestData.matchedList());
-    request->SetCanceledReason(aRequestData.canceledReason());
+  if (!ReceiveProgressListenerData(aWebProgressData, aRequestData,
+                                   getter_AddRefs(browsingContext),
+                                   getter_AddRefs(request))) {
+    return IPC_OK();
   }
 
   browsingContext->SetCurrentRemoteURI(aLocation);
@@ -3027,18 +3030,19 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnLocationChange(
 }
 
 mozilla::ipc::IPCResult BrowserParent::RecvOnStatusChange(
-    const nsString& aMessage) {
-  // We only collect status change notifications for the toplevel
-  // BrowserParent.
-  // FIXME: In the future, consider merging in status change information from
-  // oop subframes.
-  if (!GetBrowsingContext()->IsTopContent() ||
-      !GetBrowsingContext()->GetWebProgress()) {
+    const WebProgressData& aWebProgressData, const RequestData& aRequestData,
+    nsresult aStatus, const nsString& aMessage) {
+  RefPtr<CanonicalBrowsingContext> browsingContext;
+  nsCOMPtr<nsIRequest> request;
+  if (!ReceiveProgressListenerData(aWebProgressData, aRequestData,
+                                   getter_AddRefs(browsingContext),
+                                   getter_AddRefs(request))) {
     return IPC_OK();
   }
 
-  GetBrowsingContext()->GetWebProgress()->OnStatusChange(nullptr, nullptr,
-                                                         NS_OK, aMessage.get());
+  if (auto* listener = browsingContext->GetWebProgress()) {
+    listener->OnStatusChange(listener, request, aStatus, aMessage.get());
+  }
 
   return IPC_OK();
 }
@@ -3115,13 +3119,16 @@ already_AddRefed<nsIBrowser> BrowserParent::GetBrowser() {
   return browser.forget();
 }
 
-already_AddRefed<CanonicalBrowsingContext>
-BrowserParent::BrowsingContextForWebProgress(
-    const WebProgressData& aWebProgressData) {
+bool BrowserParent::ReceiveProgressListenerData(
+    const WebProgressData& aWebProgressData, const RequestData& aRequestData,
+    CanonicalBrowsingContext** aBrowsingContext, nsIRequest** aRequest) {
+  *aBrowsingContext = nullptr;
+  *aRequest = nullptr;
+
   // Look up the BrowsingContext which this notification was fired for.
   if (aWebProgressData.browsingContext().IsNullOrDiscarded()) {
     NS_WARNING("WebProgress Ignored: BrowsingContext is null or discarded");
-    return nullptr;
+    return false;
   }
   RefPtr<CanonicalBrowsingContext> browsingContext =
       aWebProgressData.browsingContext().get_canonical();
@@ -3134,7 +3141,7 @@ BrowserParent::BrowsingContextForWebProgress(
     WindowGlobalParent* embedder = browsingContext->GetParentWindowContext();
     if (!embedder || embedder->GetBrowserParent() != this) {
       NS_WARNING("WebProgress Ignored: wrong embedder process");
-      return nullptr;
+      return false;
     }
   }
 
@@ -3145,7 +3152,7 @@ BrowserParent::BrowsingContextForWebProgress(
           browsingContext->GetCurrentWindowGlobal();
       current && current->GetBrowserParent() != this) {
     NS_WARNING("WebProgress Ignored: no longer current window global");
-    return nullptr;
+    return false;
   }
 
   if (RefPtr<BrowsingContextWebProgress> progress =
@@ -3153,7 +3160,17 @@ BrowserParent::BrowsingContextForWebProgress(
     progress->SetLoadType(aWebProgressData.loadType());
   }
 
-  return browsingContext.forget();
+  nsCOMPtr<nsIRequest> request;
+  if (aRequestData.requestURI()) {
+    request = MakeAndAddRef<RemoteWebProgressRequest>(
+        aRequestData.requestURI(), aRequestData.originalRequestURI(),
+        aRequestData.matchedList());
+    request->SetCanceledReason(aRequestData.canceledReason());
+  }
+
+  browsingContext.forget(aBrowsingContext);
+  request.forget(aRequest);
+  return true;
 }
 
 mozilla::ipc::IPCResult BrowserParent::RecvIntrinsicSizeOrRatioChanged(

@@ -505,11 +505,11 @@ export class ProgressListener {
 
     this.#deferredNavigation = new lazy.Deferred();
 
-    // Enable all location change and state notifications to get informed about an upcoming load
-    // as early as possible.
+    // Enable all location change and network state notifications to get
+    // informed about an upcoming load as early as possible.
     this.#webProgress.addProgressListener(
       this,
-      Ci.nsIWebProgress.NOTIFY_LOCATION | Ci.nsIWebProgress.NOTIFY_STATE_ALL
+      Ci.nsIWebProgress.NOTIFY_LOCATION | Ci.nsIWebProgress.NOTIFY_STATE_NETWORK
     );
 
     webProgressListeners.add(this);
@@ -548,10 +548,7 @@ export class ProgressListener {
     lazy.clearTimeout(this.#unloadTimerId);
     this.#unloadTimerId = null;
 
-    this.#webProgress.removeProgressListener(
-      this,
-      Ci.nsIWebProgress.NOTIFY_LOCATION | Ci.nsIWebProgress.NOTIFY_STATE_ALL
-    );
+    this.#webProgress.removeProgressListener(this);
     webProgressListeners.delete(this);
 
     if (!this.#targetURI) {
