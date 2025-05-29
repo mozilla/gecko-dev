@@ -49,13 +49,14 @@ Main components
    mozjemalloc's bookkeeping structures need dynamic allocation and this is
    what handles it.
 
- * Chunk.h
+ * Chunk.h and Chunk.cpp
 
    Chunks are 1MiB contigous blocks of memory that the allocator will divide
    into pages and runs.
 
-   Currently this contains the arena_chunk_t data structure and declarations
-   for chunk and page allocation.
+   These files contain the arena_chunk_t data structure, chunk and page
+   allocation functions.  All functions that get and return memory to the OS
+   belong here.
 
  * Constants.h, Globals.h, Globals_inc.h and Globals.cpp
 

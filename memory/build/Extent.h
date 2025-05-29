@@ -87,7 +87,7 @@ struct ExtentTreeBoundsTrait : public ExtentTreeTrait {
 using ExtentAlloc = TypedBaseAlloc<extent_node_t>;
 
 template <>
-extent_node_t* ExtentAlloc::sFirstFree = nullptr;
+extent_node_t* ExtentAlloc::sFirstFree;
 
 using UniqueBaseNode =
     mozilla::UniquePtr<extent_node_t, BaseAllocFreePolicy<extent_node_t>>;

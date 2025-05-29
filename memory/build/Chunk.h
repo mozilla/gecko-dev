@@ -191,4 +191,6 @@ void chunk_assert_zero(void* aPtr, size_t aSize);
 
 extern mozilla::Atomic<size_t> gRecycledSize;
 
+extern AddressRadixTree<(sizeof(void*) << 3) - LOG2(kChunkSize)> gChunkRTree;
+
 #endif /* ! CHUNK_H */
