@@ -66,7 +66,7 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeScreenViewModel
 import org.mozilla.fenix.settings.biometric.BiometricUtils
 import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
-import org.mozilla.fenix.settings.biometric.ext.isEnrolled
+import org.mozilla.fenix.settings.biometric.ext.isAuthenticatorAvailable
 import org.mozilla.fenix.settings.biometric.ext.isHardwareAvailable
 import org.mozilla.fenix.share.ShareFragment
 import org.mozilla.fenix.tabstray.browser.TabSorter
@@ -766,8 +766,9 @@ class TabsTrayFragment : AppCompatDialogFragment() {
      * This can only turn the feature ON and should not handle turning the feature OFF.
      */
     private fun onTabsTrayPbmLockedClick() {
-        val userHasEnabledCapability = BiometricManager.from(requireContext()).isEnrolled()
-        if (!userHasEnabledCapability) {
+        val isAuthenticatorAvailable =
+            BiometricManager.from(requireContext()).isAuthenticatorAvailable()
+        if (!isAuthenticatorAvailable) {
             findNavController().navigate(TabsTrayFragmentDirections.actionGlobalPrivateBrowsingFragment())
         } else {
             DefaultBiometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
