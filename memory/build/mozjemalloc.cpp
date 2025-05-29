@@ -233,7 +233,7 @@ static inline void* _mmap(void* addr, size_t length, int prot, int flags,
 #endif
 
 // The current amount of recycled bytes, updated atomically.
-static Atomic<size_t> gRecycledSize;
+Atomic<size_t> gRecycledSize;
 
 #ifdef MOZJEMALLOC_PROFILING_CALLBACKS
 // MallocProfilerCallbacks is refcounted so that one thread cannot destroy it
@@ -1437,11 +1437,6 @@ static detail::ThreadLocal<arena_t*, detail::ThreadLocalKeyStorage>
 // ***************************************************************************
 // Begin forward declarations.
 
-static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase);
-static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType);
-#ifdef MOZ_DEBUG
-static void chunk_assert_zero(void* aPtr, size_t aSize);
-#endif
 static void huge_dalloc(void* aPtr, arena_t* aArena);
 static bool malloc_init_hard();
 
@@ -1636,7 +1631,7 @@ void jemalloc_set_profiler_callbacks(
 
 // ***************************************************************************
 
-static inline void pages_decommit(void* aAddr, size_t aSize) {
+void pages_decommit(void* aAddr, size_t aSize) {
 #ifdef XP_WIN
   // The region starting at addr may have been allocated in multiple calls
   // to VirtualAlloc and recycled, so decommitting the entire region in one
@@ -1675,7 +1670,7 @@ static inline void pages_decommit(void* aAddr, size_t aSize) {
 }
 
 // Commit pages. Returns whether pages were committed.
-[[nodiscard]] static inline bool pages_commit(void* aAddr, size_t aSize) {
+[[nodiscard]] bool pages_commit(void* aAddr, size_t aSize) {
 #ifdef XP_WIN
   // The region starting at addr may have been allocated in multiple calls
   // to VirtualAlloc and recycled, so committing the entire region in one
@@ -2173,7 +2168,7 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment) {
   return ret;
 }
 
-static void chunks_init() MOZ_REQUIRES(gInitLock) {
+void chunks_init() MOZ_REQUIRES(gInitLock) {
   // Initialize chunks data.
   chunks_mtx.Init();
   MOZ_PUSH_IGNORE_THREAD_SAFETY
@@ -2198,7 +2193,7 @@ static void chunks_init() MOZ_REQUIRES(gInitLock) {
 // `zeroed` is an outvalue that returns whether the allocated memory is
 // guaranteed to be full of zeroes. It can be omitted when the caller doesn't
 // care about the result.
-static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase) {
+void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase) {
   void* ret = nullptr;
 
   MOZ_ASSERT(aSize != 0);
@@ -2226,7 +2221,7 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase) {
 }
 
 #ifdef MOZ_DEBUG
-static void chunk_assert_zero(void* aPtr, size_t aSize) {
+void chunk_assert_zero(void* aPtr, size_t aSize) {
 // Only run this expensive check in a vigilant mode.
 #  ifdef MALLOC_DEBUG_VIGILANT
   size_t i;
@@ -2313,7 +2308,7 @@ static void chunk_record(void* aChunk, size_t aSize, ChunkType aType) {
   gRecycledSize += aSize;
 }
 
-static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType) {
+void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType) {
   MOZ_ASSERT(aChunk);
   MOZ_ASSERT(GetChunkOffsetForPtr(aChunk) == 0);
   MOZ_ASSERT(aSize != 0);
