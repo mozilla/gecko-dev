@@ -636,6 +636,7 @@ function BuildConditionSandbox(aURL) {
   sandbox.aarch64 = mozinfo.processor == "aarch64";
 
   // build type
+  sandbox.mingw = mozinfo.mingw;
   sandbox.isDebugBuild = mozinfo.debug;
   sandbox.isCoverageBuild = mozinfo.ccov;
   sandbox.AddressSanitizer = mozinfo.asan;
