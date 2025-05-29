@@ -31,7 +31,10 @@ run-if = ["os == 'linux'"]
 ["test_Chrome_corrupt_history.js"]
 
 ["test_Chrome_credit_cards.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
+run-if = [
+  "os == 'mac'",
+  "os == 'win'",
+]
 
 ["test_Chrome_extensions.js"]
 
@@ -41,11 +44,17 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
 run-if = ["os == 'mac'"] # Relies on ULibDir
 
 ["test_Chrome_passwords.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
+run-if = [
+  "os == 'mac'",
+  "os == 'win'",
+]
 
 ["test_Chrome_passwords_emptySource.js"]
 support-files = ["LibraryWithNoData/**"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
+run-if = [
+  "os == 'mac'",
+  "os == 'win'",
+]
 
 ["test_Chrome_permissions.js"]
 

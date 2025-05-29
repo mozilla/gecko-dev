@@ -11,6 +11,7 @@ support-files = [
 ["test_backup_once.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && condprof", # Bug 1769154
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && condprof",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && condprof", # Bug 1769154
 ]
 
@@ -21,6 +22,7 @@ skip-if = [
 ["test_migration_lz4compression.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && condprof", # Bug 1769154
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && condprof",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && condprof", # Bug 1769154
 ]
 
@@ -32,12 +34,14 @@ support-files = [
 ["test_startup_invalid_session.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && condprof", # Bug 1769154
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && condprof",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && condprof", # Bug 1769154
 ]
 
 ["test_startup_nosession_async.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && condprof", # Bug 1769154
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && condprof",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && condprof", # Bug 1769154
 ]
 

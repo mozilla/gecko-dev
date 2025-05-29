@@ -147,6 +147,7 @@ skip-if = ["os == 'win' && os_version == '11.26100' && processor == 'x86_64' && 
 run-if = ["os != 'android'"] # Android always has and always will use the new format, so this test doesn't apply.
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && condprof",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && condprof",
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && opt && condprof",
 ]
 

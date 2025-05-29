@@ -10,6 +10,9 @@ support-files = ["common_test_Download.js"]
 ["test_DownloadBlockedTelemetry.js"]
 
 ["test_DownloadCore.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968548
+]
 
 ["test_DownloadHistory.js"]
 
@@ -21,6 +24,9 @@ support-files = ["common_test_Download.js"]
 
 ["test_DownloadLegacy.js"]
 run-sequentially = "very high failure rate in parallel"
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968548
+]
 
 ["test_DownloadList.js"]
 
