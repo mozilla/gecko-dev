@@ -518,7 +518,7 @@ export class PrefFlipsFeature {
     const entry = this.#prefs.get(pref);
 
     if (entry.branch !== branch || entry.value !== value) {
-      throw new PrefFlipsFailedError(pref, value);
+      throw new PrefFlipsFailedError(pref);
     }
 
     entry.slugs.add(slug);

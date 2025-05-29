@@ -204,14 +204,13 @@ add_task(async function test_checkExperimentSelfReference() {
 add_task(async function test_optIn_debug_disabled() {
   info("Testing users cannot opt-in when nimbus.debug is false");
 
-  const recipe = NimbusTestUtils.factories.recipe("foo", {
-    targeting: "false",
-  });
-  const { loader, initExperimentAPI, cleanup } =
+  const recipe = NimbusTestUtils.factories.recipe("foo");
+  const { sandbox, loader, initExperimentAPI, cleanup } =
     await NimbusTestUtils.setupTest({
       init: false,
       experiments: [recipe],
     });
+  sandbox.stub(loader, "updateRecipes").resolves();
 
   await initExperimentAPI();
 
@@ -239,11 +238,11 @@ add_task(async function test_optIn_studies_disabled() {
     "Testing users cannot opt-in when telemetry is disabled or studies are disabled."
   );
 
-  const recipe = NimbusTestUtils.factories.recipe("foo", {
-    targeting: "false",
-  });
-  const { loader, initExperimentAPI, cleanup } =
+  const recipe = NimbusTestUtils.factories.recipe("foo");
+  const { sandbox, loader, initExperimentAPI, cleanup } =
     await NimbusTestUtils.setupTest({ init: false, experiments: [recipe] });
+
+  sandbox.stub(loader, "updateRecipes").resolves();
 
   await initExperimentAPI();
 

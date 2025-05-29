@@ -158,7 +158,7 @@ decorate_task(
       );
       assertSurvey(heartbeatClassStub.args[0][1], SURVEY);
 
-      await doEnrollmentCleanup();
+      doEnrollmentCleanup();
     } finally {
       sandbox.restore();
     }
@@ -215,7 +215,7 @@ decorate_task(
       Assert.ok(result.valid);
       Assert.equal(payload.surveyVersion, "1");
 
-      await doEnrollmentCleanup();
+      doEnrollmentCleanup();
     } finally {
       ShowHeartbeatAction.overrideHeartbeatForTests();
       sandbox.restore();

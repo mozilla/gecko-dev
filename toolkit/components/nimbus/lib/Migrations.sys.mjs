@@ -9,8 +9,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   FirefoxLabs: "resource://nimbus/FirefoxLabs.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusTelemetry: "resource://nimbus/lib/Telemetry.sys.mjs",
-  ProfilesDatastoreService:
-    "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "log", () => {
@@ -86,122 +84,6 @@ function migrateMultiphase() {
     );
     Services.prefs.clearUserPref(LEGACY_NIMBUS_MIGRATION_PREF);
   }
-}
-
-async function migrateEnrollmentsToSql() {
-  if (
-    !Services.prefs.getBoolPref(
-      "nimbus.profilesdatastoreservice.enabled",
-      false
-    )
-  ) {
-    // We are in an xpcshell test that has not initialized the
-    // ProfilesDatastoreService.
-    //
-    // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
-    // and remove this check.
-    return;
-  }
-
-  const profileId = lazy.ExperimentAPI.profileId;
-
-  // This migration runs before the ExperimentManager is fully initialized. We
-  // need to initialize *just* the ExperimentStore so that we can copy its
-  // enrollments to the SQL database. This must occur *before* the
-  // ExperimentManager is initialized because that may cause unenrollments and
-  // those enrollments need to exist in both the ExperimentStore and SQL
-  // database.
-
-  const enrollments = await lazy.ExperimentAPI.manager.store.getAll();
-
-  // Likewise, the set of all recipes is
-  const { recipes } =
-    await lazy.ExperimentAPI._rsLoader.getRecipesFromAllCollections();
-
-  const recipesBySlug = new Map(recipes.map(r => [r.slug, r]));
-
-  const rows = enrollments.map(enrollment => {
-    const { active, slug, source } = enrollment;
-
-    let recipe;
-    if (source === "rs-loader") {
-      recipe = recipesBySlug.get(slug);
-    }
-    if (!recipe) {
-      // If this enrollment is not from the RemoteSettingsExperimentLoader or
-      // the experiment has since ended we re-create as much of the recipe as we
-      // can from the enrollment.
-      //
-      // We are early in Nimbus startup and we have not yet called
-      // ExperimentManager.onStartup. When the ExperimentManager is initialized
-      // later in ExperimentAPI.init() it may cause unenrollments due to state
-      // being changed (e.g., if studies have been disabled). To process those
-      // unenrollments, there needs to be an enrollment record
-      // in the database for *every* enrollment in the JSON store *and* each
-      // needs to have a valid `recipe` field because in bug 1956082 we will
-      // stop using ExperimentStoreData.json as the source-of-truth and rely
-      // entirely on the NimbusEnrollments table.
-      recipe = {
-        slug,
-        userFacingName: enrollment.userFacingName,
-        userFacingDescription: enrollment.userFacingDescription,
-        featureIds: enrollment.featureIds,
-        isRollout: enrollment.isRollout ?? false,
-        localizations: enrollment.localizations ?? null,
-        isFirefoxLabsOptIn: enrollment.isFirefoxLabsOptIn ?? false,
-        firefoxLabsTitle: enrollment.firefoxLabsTitle ?? false,
-        firefoxLabsDescription: enrollment.firefoxLabsDescription ?? null,
-        firefoxLabsDescriptionLinks:
-          enrollment.firefoxLabsDescriptionLinks ?? null,
-        firefoxLabsGroup: enrollment.firefoxLabsGroup ?? null,
-        requiresRestart: enrollment.requiresRestart ?? false,
-        branches: [
-          {
-            ...enrollment.branch,
-            ratio: enrollment.branch.ratio ?? 1,
-          },
-        ],
-      };
-    }
-
-    return {
-      profileId,
-      slug,
-      branchSlug: enrollment.branch.slug,
-      recipe: recipe ? JSON.stringify(recipe) : null,
-      active,
-      unenrollReason: active ? null : enrollment.unenrollReason,
-      lastSeen: enrollment.lastSeen ?? new Date().toJSON(),
-      setPrefs: enrollment.prefs ? JSON.stringify(enrollment.prefs) : null,
-      prefFlips: enrollment.prefFlips
-        ? JSON.stringify(enrollment.prefFlips)
-        : null,
-      source,
-    };
-  });
-
-  const conn = await lazy.ProfilesDatastoreService.getConnection();
-  await conn.executeTransaction(async () => {
-    for (const row of rows) {
-      await conn.execute(
-        `
-        INSERT INTO NimbusEnrollments VALUES(
-          null,
-          :profileId,
-          :slug,
-          :branchSlug,
-          jsonb(:recipe),
-          :active,
-          :unenrollReason,
-          :lastSeen,
-          jsonb(:setPrefs),
-          jsonb(:prefFlips),
-          :source
-        );`,
-        row
-      );
-    }
-  });
 }
 
 /**
@@ -289,6 +171,7 @@ async function migrateFirefoxLabsEnrollments() {
     { mode: "shared" }
   );
 }
+
 export class MigrationError extends Error {
   static Reason = Object.freeze({
     UNKNOWN: "unknown",
@@ -368,9 +251,7 @@ export const NimbusMigrations = {
       migration("multi-phase-migrations", migrateMultiphase),
     ],
 
-    [Phase.AFTER_STORE_INITIALIZED]: [
-      migration("import-enrollments-to-sql", migrateEnrollmentsToSql),
-    ],
+    [Phase.AFTER_STORE_INITIALIZED]: [],
 
     [Phase.AFTER_REMOTE_SETTINGS_UPDATE]: [
       migration("firefox-labs-enrollments", migrateFirefoxLabsEnrollments),

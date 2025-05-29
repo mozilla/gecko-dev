@@ -7,11 +7,8 @@ import { SharedDataMap } from "resource://nimbus/lib/SharedDataMap.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
-  ProfilesDatastoreService:
-    "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs",
 });
 
 // This branch is used to store experiment data
@@ -234,10 +231,6 @@ export class ExperimentStore extends SharedDataMap {
       this._emitFeatureUpdate(featureId, "feature-enrollments-loaded");
     }
 
-    await this._reportStartupDatabaseConsistency();
-
-    // Clean up the old recipes *after* we report database consistency so that
-    // we're not racing.
     Services.tm.idleDispatchToMainThread(() => this._cleanupOldRecipes());
   }
 
@@ -476,174 +469,5 @@ export class ExperimentStore extends SharedDataMap {
     super._deleteForTests(slugOrFeatureId);
     lazy.syncDataStore.deleteDefault(slugOrFeatureId);
     lazy.syncDataStore.delete(slugOrFeatureId);
-  }
-
-  async _addEnrollmentToDatabase(enrollment, recipe) {
-    if (
-      !Services.prefs.getBoolPref(
-        "nimbus.profilesdatastoreservice.enabled",
-        false
-      )
-    ) {
-      // We are in an xpcshell test that has not initialized the
-      // ProfilesDatastoreService.
-      //
-      // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
-      // and remove this check.
-      return;
-    }
-
-    const profileId = lazy.ExperimentAPI.profileId;
-
-    let success = true;
-    try {
-      const conn = await lazy.ProfilesDatastoreService.getConnection();
-      await conn.execute(
-        `
-        INSERT INTO NimbusEnrollments VALUES(
-          null,
-          :profileId,
-          :slug,
-          :branchSlug,
-          jsonb(:recipe),
-          :active,
-          :unenrollReason,
-          :lastSeen,
-          jsonb(:setPrefs),
-          jsonb(:prefFlips),
-          :source
-        )
-        ON CONFLICT(profileId, slug)
-        DO UPDATE SET
-          branchSlug = excluded.branchSlug,
-          recipe = excluded.recipe,
-          active = excluded.active,
-          unenrollReason = excluded.unenrollReason,
-          lastSeen = excluded.lastSeen,
-          setPrefs = excluded.setPrefs,
-          prefFlips = excluded.setPrefs,
-          source = excluded.source;
-        `,
-        {
-          profileId,
-          slug: enrollment.slug,
-          branchSlug: enrollment.branch.slug,
-          recipe: recipe ? JSON.stringify(recipe) : null,
-          active: enrollment.active,
-          unenrollReason: null,
-          lastSeen: enrollment.lastSeen,
-          setPrefs: enrollment.prefs ? JSON.stringify(enrollment.prefs) : null,
-          prefFlips: enrollment.prefFlips
-            ? JSON.stringify(enrollment.prefFlips)
-            : null,
-          source: enrollment.source,
-        }
-      );
-    } catch (e) {
-      console.error(
-        `ExperimentStore: Failed writing enrollment for ${enrollment.slug} to NimbusEnrollments`,
-        e
-      );
-      success = false;
-    }
-
-    Glean.nimbusEvents.databaseWrite.record({ success });
-  }
-
-  async _deactivateEnrollmentInDatabase(slug, unenrollReason = "unknown") {
-    if (
-      !Services.prefs.getBoolPref(
-        "nimbus.profilesdatastoreservice.enabled",
-        false
-      )
-    ) {
-      // We are in an xpcshell test that has not initialized the
-      // ProfilesDatastoreService.
-      //
-      // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
-      // and remove this check.
-      return;
-    }
-
-    const profileId = lazy.ExperimentAPI.profileId;
-
-    let success = true;
-    try {
-      const conn = await lazy.ProfilesDatastoreService.getConnection();
-      await conn.execute(
-        `
-        UPDATE NimbusEnrollments SET
-          active = false,
-          unenrollReason = :unenrollReason,
-          recipe = null,
-          prefFlips = null,
-          setPrefs = null
-        WHERE
-          profileId = :profileId AND
-          slug = :slug;
-      `,
-        {
-          slug,
-          profileId,
-          unenrollReason,
-        }
-      );
-    } catch (e) {
-      console.error(
-        `ExperimentStore: Failed writing unenrollment for ${slug} to NimbusEnrollments`,
-        e
-      );
-      success = false;
-    }
-
-    Glean.nimbusEvents.databaseWrite.record({ success });
-  }
-
-  async _reportStartupDatabaseConsistency() {
-    if (
-      !Services.prefs.getBoolPref(
-        "nimbus.profilesdatastoreservice.enabled",
-        false
-      )
-    ) {
-      // We are in an xpcshell test that has not initialized the
-      // ProfilesDatastoreService.
-      //
-      // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
-      // and remove this check.
-      return;
-    }
-
-    const conn = await lazy.ProfilesDatastoreService.getConnection();
-    const rows = await conn.execute(
-      `
-        SELECT
-          slug,
-          active
-        FROM NimbusEnrollments
-        WHERE
-          profileId = :profileId;
-      `,
-      {
-        profileId: lazy.ExperimentAPI.profileId,
-      }
-    );
-
-    const dbEnrollments = rows.map(row => row.getResultByName("active"));
-    const storeEnrollments = this.getAll().map(e => e.active);
-
-    function countActive(sum, active) {
-      return sum + Number(active);
-    }
-
-    const dbActiveCount = dbEnrollments.reduce(countActive, 0);
-    const storeActiveCount = storeEnrollments.reduce(countActive, 0);
-
-    Glean.nimbusEvents.startupDatabaseConsistency.record({
-      total_db_count: dbEnrollments.length,
-      total_store_count: storeEnrollments.length,
-      db_active_count: dbActiveCount,
-      store_active_count: storeActiveCount,
-    });
   }
 }

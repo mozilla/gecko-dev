@@ -482,10 +482,6 @@ export class ExperimentManager {
    *                 as `recipe` and re-enrollment is prevented.
    */
   async enroll(recipe, source, { reenroll = false, branchSlug } = {}) {
-    if (typeof source !== "string") {
-      throw new Error("source is required");
-    }
-
     let { slug, branches, bucketConfig, isFirefoxLabsOptIn } = recipe;
 
     const enrollment = this.store.get(slug);
@@ -577,11 +573,11 @@ export class ExperimentManager {
       }
     }
 
-    return this._enroll(recipe, branch.slug, source);
+    return this._enroll(recipe, branch, source);
   }
 
-  async _enroll(recipe, branchSlug, source) {
-    const {
+  async _enroll(
+    {
       slug,
       userFacingName,
       userFacingDescription,
@@ -594,9 +590,10 @@ export class ExperimentManager {
       firefoxLabsDescriptionLinks = null,
       firefoxLabsGroup,
       requiresRestart = false,
-    } = recipe;
-
-    const branch = recipe.branches.find(b => b.slug === branchSlug);
+    },
+    branch,
+    source
+  ) {
     const { prefs, prefsToSet } = this._getPrefsForBranch(branch, isRollout);
 
     // Unenroll in any conflicting prefFlips enrollments.
@@ -607,6 +604,7 @@ export class ExperimentManager {
       );
     }
 
+    /** @type {Enrollment} */
     const enrollment = {
       slug,
       branch,
@@ -636,14 +634,12 @@ export class ExperimentManager {
     }
 
     await this._prefFlips._annotateEnrollment(enrollment);
-
-    await this.store._addEnrollmentToDatabase(enrollment, recipe);
     this.store.addEnrollment(enrollment);
+
+    lazy.NimbusTelemetry.recordEnrollment(enrollment);
 
     this._setEnrollmentPrefs(prefsToSet);
     this._updatePrefObservers(enrollment);
-
-    lazy.NimbusTelemetry.recordEnrollment(enrollment);
 
     lazy.log.debug(
       `New ${isRollout ? "rollout" : "experiment"} started: ${slug}, ${
@@ -690,7 +686,7 @@ export class ExperimentManager {
         ...recipe,
         slug,
       },
-      branch.slug,
+      branch,
       lazy.NimbusTelemetry.EnrollmentSource.FORCE_ENROLLMENT
     );
 
@@ -875,17 +871,6 @@ export class ExperimentManager {
         `Cannot stop experiment "${slug}" because it is already expired`
       );
     }
-
-    // TODO(bug 1956082): This is an async method that we are not awaiting.
-    //
-    // Changing the entire unenrollment flow to be asynchronous requires changes
-    // to a lot of tests and it only really matters once we're actually checking
-    // the database contents.
-    //
-    // For now, we're going to return the promise which will make unenroll()
-    // awaitable in the few contexts that need to synchronize reads and writes
-    // right now (i.e., tests).
-    await this.store._deactivateEnrollmentInDatabase(slug, cause.reason);
 
     this.store.updateExperiment(slug, {
       active: false,

@@ -12,6 +12,9 @@ const { PanelTestProvider } = ChromeUtils.importESModule(
 const { TelemetryEnvironment } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryEnvironment.sys.mjs"
 );
+const { TelemetryTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TelemetryTestUtils.sys.mjs"
+);
 const { UnenrollmentCause } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
@@ -954,7 +957,7 @@ add_task(async function test_updateRecipes_rollout_bucketing() {
     }
   );
 
-  await manager.unenroll(experiment.slug);
+  manager.unenroll(experiment.slug);
 
   await cleanup();
 });
@@ -1005,7 +1008,7 @@ add_task(async function test_reenroll_rollout_resized() {
     "New enrollment should not have unenroll reason"
   );
 
-  await manager.unenroll(rollout.slug);
+  manager.unenroll(rollout.slug);
 
   await cleanup();
 });
@@ -1022,7 +1025,7 @@ add_task(async function test_experiment_reenroll() {
     "Should enroll in experiment"
   );
 
-  await manager.unenroll(experiment.slug);
+  manager.unenroll(experiment.slug);
   Assert.ok(
     !manager.store.getExperimentForFeature("testFeature"),
     "Should unenroll from experiment"
@@ -1159,8 +1162,8 @@ add_task(async function test_active_and_past_experiment_targeting() {
     ["experiment-a", "experiment-b", "rollout-a", "rollout-b"]
   );
 
-  await manager.unenroll("experiment-c");
-  await manager.unenroll("rollout-c");
+  manager.unenroll("experiment-c");
+  manager.unenroll("rollout-c");
 
   cleanupFeatures();
   await cleanup();
@@ -1326,12 +1329,14 @@ add_task(async function test_enrollment_targeting() {
     []
   );
 
-  await NimbusTestUtils.cleanupManager([
+  for (const slug of [
     "experiment-b",
     "experiment-c",
     "rollout-b",
     "rollout-c",
-  ]);
+  ]) {
+    manager.unenroll(slug);
+  }
 
   cleanupFeatures();
   await cleanup();
@@ -1420,7 +1425,7 @@ add_task(
     const isReadyEvents = Glean.nimbusEvents.isReady.testGetValue("events");
 
     Assert.equal(isReadyEvents.length, 3);
-    await manager.unenroll(recipe.slug);
+    manager.unenroll(recipe.slug);
 
     await cleanup();
   }
@@ -1589,7 +1594,7 @@ add_task(async function test_updateRecipes_optInsStayEnrolled() {
   await loader.updateRecipes();
   Assert.ok(manager.store.get("opt-in")?.active, "Opt-in stayed enrolled");
 
-  await manager.unenroll("opt-in");
+  manager.unenroll("opt-in");
 
   await cleanup();
 });
@@ -1909,8 +1914,8 @@ add_task(async function test_updateRecipes_enrollmentStatus_telemetry() {
     },
   ]);
 
-  await manager.unenroll("stays-enrolled");
-  await manager.unenroll("enrolls");
+  manager.unenroll("stays-enrolled");
+  manager.unenroll("enrolls");
 
   cleanupFeatures();
   await cleanup();
@@ -2022,8 +2027,8 @@ add_task(async function test_updateRecipes_enrollmentStatus_notEnrolled() {
     ]
   );
 
-  await manager.unenroll("enrolled-experiment");
-  await manager.unenroll("enrolled-rollout");
+  manager.unenroll("enrolled-experiment");
+  manager.unenroll("enrolled-rollout");
 
   cleanupFeatures();
   await cleanup();
@@ -2213,8 +2218,8 @@ add_task(async function testUnenrollsFirst() {
   await loader.updateRecipes();
   assertEnrollments(manager.store, ["e3", "r3"], ["e1", "e2", "r1", "r2"]);
 
-  await manager.unenroll("e3");
-  await manager.unenroll("r3");
+  manager.unenroll("e3");
+  manager.unenroll("r3");
 
   await cleanup();
 });

@@ -28,7 +28,6 @@ add_task(async function testHiddenWhenStudiesDisabled() {
   await SpecialPowers.pushPrefEnv({
     set: [["app.shield.optoutstudies.enabled", false]],
   });
-  await NimbusTestUtils.waitForActiveEnrollments([]);
   await waitForExperimentalFeaturesHidden(doc);
 
   ok(

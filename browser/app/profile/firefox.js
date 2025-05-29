@@ -2030,11 +2030,6 @@ pref("messaging-system.rsexperimentloader.collection_id", "nimbus-desktop-experi
 pref("nimbus.debug", false);
 pref("nimbus.validation.enabled", true);
 
-// Should Nimbus write to the shared ProfilesDatastoreService? Only used by tests.
-// TODO(bug 1967779): Require the ProfileDatastoreService by default and remove
-// this pref.
-pref("nimbus.profilesdatastoreservice.enabled", true);
-
 // Enable the targeting context telemetry by default, but allow it to be
 // disabled, e.g., for artifact builds.
 // See-also: https://bugzilla.mozilla.org/show_bug.cgi?id=1936317
