@@ -7,7 +7,7 @@
 //! [calc]: https://drafts.csswg.org/css-values/#calc-notation
 
 use crate::values::generics::length::GenericAnchorSizeFunction;
-use crate::values::generics::position::{AnchorSide, GenericAnchorFunction};
+use crate::values::generics::position::{GenericAnchorSide, GenericAnchorFunction};
 use num_traits::Zero;
 use smallvec::SmallVec;
 use std::fmt::{self, Write};
@@ -874,8 +874,8 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 GenericAnchorFunction {
                     target_element: f.target_element.clone(),
                     side: match &f.side {
-                        AnchorSide::Keyword(k) => AnchorSide::Keyword(*k),
-                        AnchorSide::Percentage(p) => AnchorSide::Percentage(Box::new(p.map_leaves_internal(map))),
+                        GenericAnchorSide::Keyword(k) => GenericAnchorSide::Keyword(*k),
+                        GenericAnchorSide::Percentage(p) => GenericAnchorSide::Percentage(Box::new(p.map_leaves_internal(map))),
                     },
                     fallback: f.fallback.as_ref().map(|fb| Box::new(fb.map_leaves_internal(map))).into(),
                 }
@@ -1710,7 +1710,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                 l.simplify();
             },
             Self::Anchor(ref mut f) => {
-                if let AnchorSide::Percentage(ref mut n) =  f.side {
+                if let GenericAnchorSide::Percentage(ref mut n) =  f.side {
                     n.simplify_and_sort();
                 }
                 if let Some(fallback) = f.fallback.as_mut() {
