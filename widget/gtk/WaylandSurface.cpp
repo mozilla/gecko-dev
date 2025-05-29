@@ -218,12 +218,7 @@ void WaylandSurface::ClearReadyToDrawCallbacks() {
 
 bool WaylandSurface::HasEmulatedFrameCallbackLocked(
     const WaylandSurfaceLock& aProofOfLock) const {
-  for (auto const& cb : mFrameCallbackHandlers) {
-    if (cb.mEmulated) {
-      return true;
-    }
-  }
-  return false;
+  return mFrameCallbackHandler && mFrameCallbackHandler.mEmulated;
 }
 
 void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
@@ -234,7 +229,7 @@ void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
 
   bool emulatedCallback = !aCallback && !aTime;
 
-  std::vector<FrameCallback> cbs;
+  FrameCallback cb;
   {
     WaylandSurfaceLock lock(this);
 
@@ -245,9 +240,8 @@ void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
 
     LOGVERBOSE(
         "WaylandSurface::FrameCallbackHandler() "
-        "persistent %zd emulated %d routed %d",
-        mFrameCallbackHandlers.size(), emulatedCallback,
-        aRoutedFromChildSurface);
+        "set %d emulated %d routed %d",
+        !!mFrameCallbackHandler, emulatedCallback, aRoutedFromChildSurface);
 
     // It's possible to get regular frame callback right after unmap
     // if frame callbacks was already in event queue so ignore it.
@@ -268,24 +262,19 @@ void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
       mBufferAttached = true;
     }
 
-    std::copy(mFrameCallbackHandlers.begin(), mFrameCallbackHandlers.end(),
-              back_inserter(cbs));
+    cb = mFrameCallbackHandler;
 
     // Fire frame callback again if there's any pending frame callback
     RequestFrameCallbackLocked(lock);
   }
 
   // We can't run the callbacks under WaylandSurfaceLock
-#ifdef MOZ_LOGGING
-  int callbackNum = 0;
-#endif
-  for (auto const& cb : cbs) {
-    LOGVERBOSE("  frame callback fire [%d]", callbackNum++);
-    const auto& [callback, runEmulated] = cb;
-    if (emulatedCallback && !runEmulated) {
-      continue;
-    }
-    callback(aCallback, aTime);
+  LOGVERBOSE("  frame callback fire");
+  if (emulatedCallback && !cb.mEmulated) {
+    return;
+  }
+  if (cb) {
+    cb.mCb(aCallback, aTime);
   }
 }
 
@@ -310,15 +299,7 @@ void WaylandSurface::RequestFrameCallbackLocked(
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
 
   // Frame callback will be added by Map.
-  if (!mIsMapped) {
-    return;
-  }
-
-  if (!mFrameCallbackEnabled) {
-    return;
-  }
-
-  if (mFrameCallbackHandlers.empty()) {
+  if (!mIsMapped || !mFrameCallbackEnabled || !mFrameCallbackHandler) {
     return;
   }
 
@@ -378,15 +359,17 @@ void WaylandSurface::ClearFrameCallbackLocked(
   MozClearPointer(mFrameCallback, wl_callback_destroy);
 }
 
-void WaylandSurface::AddFrameCallbackLocked(
+void WaylandSurface::SetFrameCallbackLocked(
     const WaylandSurfaceLock& aProofOfLock,
     const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler,
     bool aEmulateFrameCallback) {
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
-  LOGWAYLAND("WaylandSurface::AddFrameCallbackLocked()");
+  MOZ_DIAGNOSTIC_ASSERT(!mFrameCallbackHandler);
 
-  mFrameCallbackHandlers.push_back(
-      FrameCallback{aFrameCallbackHandler, aEmulateFrameCallback});
+  LOGWAYLAND("WaylandSurface::SetFrameCallbackLocked()");
+
+  mFrameCallbackHandler =
+      FrameCallback{aFrameCallbackHandler, aEmulateFrameCallback};
   RequestFrameCallbackLocked(aProofOfLock);
 }
 

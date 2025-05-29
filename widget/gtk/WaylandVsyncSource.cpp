@@ -76,7 +76,7 @@ void WaylandVsyncSource::Init() {
   // WaylandVsyncSource can be used by layour code after
   // nsWindow::Destroy()/WaylandVsyncSource::Shutdown() but
   // only as an empty shell.
-  mWaylandSurface->AddFrameCallbackLocked(
+  mWaylandSurface->SetFrameCallbackLocked(
       surfaceLock,
       [this, self = RefPtr{this}](wl_callback* aCallback,
                                   uint32_t aTime) -> void {
