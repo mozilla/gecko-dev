@@ -22,6 +22,7 @@ import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.helpers.AbstractBinding
 import mozilla.components.ui.widgets.SnackbarDelegate
+import org.mozilla.fenix.FeatureFlags
 import org.mozilla.fenix.GleanMetrics.SentFromFirefox
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserFragmentDirections
@@ -272,11 +273,17 @@ class SnackbarBinding(
                         snackbarDelegate.show(
                             text = context.getString(R.string.download_in_progress_snackbar),
                             duration = DOWNLOAD_SNACKBAR_DURATION_MS,
-                            action = context.getString(R.string.download_in_progress_snackbar_action_details),
+                            action = if (FeatureFlags.showLiveDownloads) {
+                                context.getString(R.string.download_in_progress_snackbar_action_details)
+                            } else {
+                                null
+                            },
                         ) {
-                            navController.navigate(
-                                BrowserFragmentDirections.actionGlobalDownloadsFragment(),
-                            )
+                            if (FeatureFlags.showLiveDownloads) {
+                                navController.navigate(
+                                    BrowserFragmentDirections.actionGlobalDownloadsFragment(),
+                                )
+                            }
                         }
 
                         appStore.dispatch(SnackbarAction.SnackbarShown)

@@ -60,4 +60,9 @@ object FeatureFlags {
      * ⚠️ DO NOT MODIFY THIS FLAG IN PRODUCTION.
      */
     val onboardingFeatureEnabled = !Config.channel.isDebug
+
+    /**
+     * Determines whether to show live downloads in progress in the UI.
+     */
+    val showLiveDownloads = Config.channel.isDebug
 }
