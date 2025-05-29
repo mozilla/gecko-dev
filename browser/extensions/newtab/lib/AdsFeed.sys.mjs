@@ -255,6 +255,10 @@ export class AdsFeed {
     }
 
     let fetchPromise;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+
     const options = {
       method: "POST",
       headers,
@@ -265,11 +269,13 @@ export class AdsFeed {
           count: counts[index],
         })),
         blocks: blockedSponsors.split(","),
+        credentials: "omit",
       }),
+      signal,
     };
 
     if (marsOhttpEnabled && ohttpConfigURL && ohttpRelayURL) {
-      let config = await this.ObliviousHTTP.getOHTTPConfig(ohttpConfigURL);
+      let config = await lazy.ObliviousHTTP.getOHTTPConfig(ohttpConfigURL);
       if (!config) {
         console.error(
           new Error(
@@ -278,7 +284,7 @@ export class AdsFeed {
         );
         return null;
       }
-      fetchPromise = this.ObliviousHTTP.ohttpRequest(
+      fetchPromise = lazy.ObliviousHTTP.ohttpRequest(
         ohttpRelayURL,
         config,
         fetchUrl,
