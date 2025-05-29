@@ -25,4 +25,11 @@ export default [
       strict: ["error", "global"],
     },
   },
+  {
+    files: "eslint-plugin-mozilla/lib/configs/",
+    rules: {
+      // Require object keys to be sorted.
+      "sort-keys": "error",
+    },
+  },
 ];

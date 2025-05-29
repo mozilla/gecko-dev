@@ -105,7 +105,6 @@ import config124 from "./toolkit/mozapps/extensions/.eslintrc.mjs";
 import config125 from "./toolkit/mozapps/extensions/test/browser/.eslintrc.mjs";
 import config126 from "./toolkit/mozapps/extensions/test/xpcshell/.eslintrc.mjs";
 import config127 from "./tools/lint/eslint/.eslintrc.mjs";
-import config128 from "./tools/lint/eslint/eslint-plugin-mozilla/lib/configs/.eslintrc.mjs";
 import config130 from "./tools/tryselect/selectors/chooser/.eslintrc.mjs";
 import config131 from "./tools/ts/.eslintrc.mjs";
 
@@ -331,10 +330,6 @@ export default [
     config126
   ),
   ...convertConfigurationFile("tools/lint/eslint/", config127),
-  ...convertConfigurationFile(
-    "tools/lint/eslint/eslint-plugin-mozilla/lib/configs/",
-    config128
-  ),
   ...convertConfigurationFile("tools/tryselect/selectors/chooser/", config130),
   ...convertConfigurationFile("tools/ts/", config131),
 ];
