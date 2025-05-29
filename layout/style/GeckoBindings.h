@@ -625,6 +625,12 @@ void Gecko_GetSafeAreaInsets(const nsPresContext*, float*, float*, float*,
 
 void Gecko_PrintfStderr(const nsCString*);
 
+bool Gecko_GetAnchorPosOffset(
+    const AnchorPosResolutionParams* aParams, const nsAtom* aAnchorName,
+    mozilla::StylePhysicalSide aPropSide,
+    mozilla::StyleAnchorSideKeyword aAnchorSideKeyword, float aPercentage,
+    mozilla::Length* aOut);
+
 }  // extern "C"
 
 #endif  // mozilla_GeckoBindings_h
