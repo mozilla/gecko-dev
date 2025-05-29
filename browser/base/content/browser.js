@@ -2236,8 +2236,6 @@ var XULBrowserWindow = {
 
     BrowserPageActions.onLocationChange();
 
-    SaveToPocket.onLocationChange(window);
-
     UrlbarProviderSearchTips.onLocationChange(
       window,
       aLocationURI,
@@ -4616,17 +4614,6 @@ var gPrivateBrowsingUI = {
     );
 
     gBrowser.updateTitlebar();
-
-    // Bug 1846583 - hide pocket button in PBM
-    if (gUseFeltPrivacyUI) {
-      const saveToPocketButton = document.getElementById(
-        "save-to-pocket-button"
-      );
-      if (saveToPocketButton) {
-        saveToPocketButton.remove();
-        document.documentElement.setAttribute("pocketdisabled", "true");
-      }
-    }
 
     if (PrivateBrowsingUtils.permanentPrivateBrowsing) {
       let hideNewWindowItem = (windowItem, privateWindowItem) => {
