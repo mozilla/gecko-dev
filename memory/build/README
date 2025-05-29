@@ -50,6 +50,17 @@ Main components
 
    Currently this contains the arena_chunk_t data structure.
 
+ * Constants.h, Globals.h, Globals_inc.h and Globals.cpp
+
+   Compile time constants and other global values.  Globals_inc.h is
+   included indirectly depending on whether page size is a compile time
+   constant or set at runtime.
+
+   Constants.h doesn't depend on any structure sizes (eg sizeof()) or
+   runtime values and may be included in other headers.  Globals.h depends
+   on the size of arena_chunk_t and the page size which is sometimes
+   determined at runtime.  It depends on Chunk.h.
+
  * fallback.cpp
 
    When building without mozjemalloc this file is compiled instead to add
