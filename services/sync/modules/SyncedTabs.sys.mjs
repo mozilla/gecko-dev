@@ -434,7 +434,7 @@ export var SyncedTabsManagement = {
   /// Enqueue a tab to close on a remote device.
   async enqueueTabToClose(deviceId, url) {
     let store = await this._getStore();
-    let command = new lazy.RemoteCommand.CloseTab(url);
+    let command = new lazy.RemoteCommand.CloseTab({ url });
     if (!store.addRemoteCommand(deviceId, command)) {
       lazy.log.warn(
         "Could not queue a remote tab close - it was already queued"
@@ -451,7 +451,7 @@ export var SyncedTabsManagement = {
   /// Remove a tab from the queue of commands for a remote device.
   async removePendingTabToClose(deviceId, url) {
     let store = await this._getStore();
-    let command = new lazy.RemoteCommand.CloseTab(url);
+    let command = new lazy.RemoteCommand.CloseTab({ url });
     if (!store.removeRemoteCommand(deviceId, command)) {
       lazy.log.warn("Could not remove a remote tab close - it was not queued");
     } else {

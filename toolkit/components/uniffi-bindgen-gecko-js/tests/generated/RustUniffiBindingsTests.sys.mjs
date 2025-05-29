@@ -2331,32 +2331,43 @@ export class EnumWithData {}
  * A
  */
 EnumWithData.A = class extends EnumWithData{
-    constructor(
-        value
-        ) {
-            super();
+   constructor({value = undefined } = {}) {
+                super();
+            try {
+                FfiConverterUInt8.checkType(value);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
             this.value = value;
-        }
+    }
 }
 /**
  * B
  */
 EnumWithData.B = class extends EnumWithData{
-    constructor(
-        value
-        ) {
-            super();
+   constructor({value = undefined } = {}) {
+                super();
+            try {
+                FfiConverterString.checkType(value);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
             this.value = value;
-        }
+    }
 }
 /**
  * C
  */
 EnumWithData.C = class extends EnumWithData{
-    constructor(
-        ) {
+   constructor() {
             super();
-        }
+    }
 }
 
 // Export the FFIConverter object to make external types work.
@@ -2365,16 +2376,15 @@ export class FfiConverterTypeEnumWithData extends FfiConverterArrayBuffer {
         // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
-                return new EnumWithData.A(
-                    FfiConverterUInt8.read(dataStream)
-                    );
+                return new EnumWithData.A({
+                    value: FfiConverterUInt8.read(dataStream)
+                });
             case 2:
-                return new EnumWithData.B(
-                    FfiConverterString.read(dataStream)
-                    );
+                return new EnumWithData.B({
+                    value: FfiConverterString.read(dataStream)
+                });
             case 3:
-                return new EnumWithData.C(
-                    );
+                return new EnumWithData.C();
             default:
                 throw new UniFFITypeError("Unknown EnumWithData variant");
         }
@@ -2431,34 +2441,52 @@ export class ComplexEnum {}
  * A
  */
 ComplexEnum.A = class extends ComplexEnum{
-    constructor(
-        value
-        ) {
-            super();
+   constructor({value = undefined } = {}) {
+                super();
+            try {
+                FfiConverterTypeEnumNoData.checkType(value);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
             this.value = value;
-        }
+    }
 }
 /**
  * B
  */
 ComplexEnum.B = class extends ComplexEnum{
-    constructor(
-        value
-        ) {
-            super();
+   constructor({value = undefined } = {}) {
+                super();
+            try {
+                FfiConverterTypeEnumWithData.checkType(value);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
             this.value = value;
-        }
+    }
 }
 /**
  * C
  */
 ComplexEnum.C = class extends ComplexEnum{
-    constructor(
-        value
-        ) {
-            super();
+   constructor({value = undefined } = {}) {
+                super();
+            try {
+                FfiConverterTypeSimpleRec.checkType(value);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("value");
+                }
+                throw e;
+            }
             this.value = value;
-        }
+    }
 }
 
 // Export the FFIConverter object to make external types work.
@@ -2467,17 +2495,17 @@ export class FfiConverterTypeComplexEnum extends FfiConverterArrayBuffer {
         // Use sequential indices (1-based) for the wire format to match the Rust scaffolding
         switch (dataStream.readInt32()) {
             case 1:
-                return new ComplexEnum.A(
-                    FfiConverterTypeEnumNoData.read(dataStream)
-                    );
+                return new ComplexEnum.A({
+                    value: FfiConverterTypeEnumNoData.read(dataStream)
+                });
             case 2:
-                return new ComplexEnum.B(
-                    FfiConverterTypeEnumWithData.read(dataStream)
-                    );
+                return new ComplexEnum.B({
+                    value: FfiConverterTypeEnumWithData.read(dataStream)
+                });
             case 3:
-                return new ComplexEnum.C(
-                    FfiConverterTypeSimpleRec.read(dataStream)
-                    );
+                return new ComplexEnum.C({
+                    value: FfiConverterTypeSimpleRec.read(dataStream)
+                });
             default:
                 throw new UniFFITypeError("Unknown ComplexEnum variant");
         }

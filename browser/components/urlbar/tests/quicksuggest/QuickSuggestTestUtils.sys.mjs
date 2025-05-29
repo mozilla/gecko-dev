@@ -477,22 +477,22 @@ class _QuickSuggestTestUtils {
 
     if (result.payload.source == "rust") {
       result.payload.iconBlob = iconBlob;
-      result.payload.suggestionObject = new lazy.Suggestion.Amp(
+      result.payload.suggestionObject = new lazy.Suggestion.Amp({
         title,
         url,
-        originalUrl, // rawUrl
-        null, // icon,
-        null, // iconMimetype
+        rawUrl: originalUrl,
+        icon: null,
+        iconMimetype: null,
         fullKeyword,
         blockId,
         advertiser,
         iabCategory,
         impressionUrl,
         clickUrl,
-        clickUrl, // rawClickUrl
-        0.3, // score
-        null // ftsMatchInfo
-      );
+        rawClickUrl: clickUrl,
+        score: 0.3,
+        ftsMatchInfo: null,
+      });
     } else {
       result.payload.icon = icon;
     }
@@ -569,13 +569,13 @@ class _QuickSuggestTestUtils {
     };
 
     if (source == "rust") {
-      result.payload.suggestionObject = new lazy.Suggestion.Wikipedia(
+      result.payload.suggestionObject = new lazy.Suggestion.Wikipedia({
         title,
         url,
-        null, // icon
-        null, // iconMimetype
-        fullKeyword
-      );
+        icon: null,
+        iconMimeType: null,
+        fullKeyword,
+      });
     }
 
     return result;
@@ -865,16 +865,16 @@ class _QuickSuggestTestUtils {
     };
 
     if (source == "rust") {
-      result.payload.suggestionObject = new lazy.Suggestion.Amo(
+      result.payload.suggestionObject = new lazy.Suggestion.Amo({
         title,
-        originalUrl, // url
-        icon,
+        url: originalUrl,
+        iconUrl: icon,
         description,
-        "4.7", // rating
-        1, // numberOfRatings
-        "amo-suggestion@example.com", // guid
-        0.2 // score
-      );
+        rating: "4.7",
+        numberOfRatings: 1,
+        guid: "amo-suggestion@example.com",
+        score: 0.2,
+      });
     }
 
     return result;
@@ -916,12 +916,12 @@ class _QuickSuggestTestUtils {
         bottomTextL10n: { id: "firefox-suggest-mdn-bottom-text" },
         source: "rust",
         provider: "Mdn",
-        suggestionObject: new lazy.Suggestion.Mdn(
+        suggestionObject: new lazy.Suggestion.Mdn({
           title,
           url,
           description,
-          0.2 // score
-        ),
+          score: 0.2,
+        }),
       },
     };
   }
@@ -935,6 +935,7 @@ class _QuickSuggestTestUtils {
    */
   yelpResult({
     url,
+    //TODO: Change the test so the title is never undefined
     title = undefined,
     titleL10n = undefined,
     source = "rust",
@@ -983,17 +984,20 @@ class _QuickSuggestTestUtils {
     };
 
     if (source == "rust") {
-      result.payload.suggestionObject = new lazy.Suggestion.Yelp(
-        originalUrl, // url
-        title,
-        null, // icon
-        null, // iconMimetype
-        0.2, // score
-        false, // hasLocationSign
-        false, // subjectExactMatch
-        suggestedType, // subjectType
-        "find_loc" // locationParam
-      );
+      result.payload.suggestionObject = new lazy.Suggestion.Yelp({
+        url: originalUrl,
+        //TODO: Remove this quick fix. Based on the Rust component, titles can never be undefined.
+        // Since introducing named parameters for enums (https://bugzilla.mozilla.org/show_bug.cgi?id=1954360)
+        // this tests fails if its undefined.
+        title: title ?? "",
+        icon: null,
+        iconMimeType: null,
+        score: 0.2,
+        hasLocationSign: false,
+        subjectExactMatch: false,
+        subjectType: suggestedType,
+        locationParam: "find_loc",
+      });
     }
 
     return result;
