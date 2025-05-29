@@ -178,7 +178,7 @@ def prettier(command_context, paths, extra_args=[], **kwargs):
     command_context._mach_context.commands.dispatch(
         "format",
         command_context._mach_context,
-        linters=["eslint"],
+        linters=["eslint", "stylelint"],
         paths=paths,
         argv=extra_args,
         **kwargs

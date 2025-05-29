@@ -78,6 +78,8 @@ def lint(paths, config, binary=None, fix=None, rules=[], setup=None, **lintargs)
     extra_args = lintargs.get("extra_args") or []
     result = {"results": [], "fixed": 0}
 
+    # If something passes formatonly, avoid running stylelint and only run prettier.
+    # This allows ./mach format and similar mechanisms to work correctly.
     if not lintargs.get("formatonly", False):
         exclude_args = []
         for path in config.get("exclude", []):
