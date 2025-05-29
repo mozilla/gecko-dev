@@ -205,7 +205,6 @@ add_task(async function test_replaceGroupWithWindow() {
   await extension.startup();
   let groupBefore = await extension.awaitMessage("initial_group");
   let oldPosition = tab._tPos;
-  let groupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemoved");
   let newWindow = gBrowser.replaceGroupWithWindow(group);
   let newWindowId = await extension.awaitMessage("created_windowId");
   let groupAfter = await extension.awaitMessage("moved_group");
@@ -225,7 +224,6 @@ add_task(async function test_replaceGroupWithWindow() {
     { newWindowId, newPosition: 0 },
     "Tab did indeed move to the new window"
   );
-  await groupRemoved;
   await extension.unload();
   await BrowserTestUtils.closeWindow(newWindow);
 });

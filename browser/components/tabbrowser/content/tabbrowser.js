@@ -3128,18 +3128,24 @@
      * @param {object} [options]
      * @param {number} [options.elementIndex]
      * @param {number} [options.tabIndex]
+     * @param {boolean} [options.selectTab]
      * @returns {MozTabbrowserTabGroup}
      */
-    adoptTabGroup(group, { elementIndex, tabIndex } = {}) {
+    adoptTabGroup(group, { elementIndex, tabIndex, selectTab } = {}) {
       if (group.ownerDocument == document) {
         return group;
       }
       group.removedByAdoption = true;
       group.saveOnWindowClose = false;
 
+      let oldSelectedTab = selectTab && group.ownerGlobal.gBrowser.selectedTab;
       let newTabs = [];
       for (let tab of group.tabs) {
-        let adoptedTab = this.adoptTab(tab, { elementIndex, tabIndex });
+        let adoptedTab = this.adoptTab(tab, {
+          elementIndex,
+          tabIndex,
+          selectTab: tab === oldSelectedTab,
+        });
         newTabs.push(adoptedTab);
         // Put next tab after current one.
         elementIndex = undefined;
@@ -5724,11 +5730,15 @@
     /**
      * Moves a tab to a new browser window, unless it's already the only tab
      * in the current window, in which case this will do nothing.
+     *
+     * @param {MozTabbrowserTab|MozTabbrowserTabGroup|MozTabbrowserTabGroup.labelElement} aTab
      */
     replaceTabWithWindow(aTab, aOptions) {
       if (this.tabs.length == 1) {
         return null;
       }
+      // TODO bug 1967925: Consider handling the case where aTab is a tab group
+      // and also the only tab group in its window.
 
       var options = "chrome,dialog=no,all";
       for (var name in aOptions) {
@@ -5741,7 +5751,7 @@
 
       // Play the tab closing animation to give immediate feedback while
       // waiting for the new window to appear.
-      if (!gReduceMotion) {
+      if (!gReduceMotion && this.isTab(aTab)) {
         aTab.style.maxWidth = ""; // ensure that fade-out transition happens
         aTab.removeAttribute("fadein");
       }
@@ -5762,6 +5772,7 @@
      */
     replaceTabsWithWindow(contextTab, aOptions = {}) {
       if (this.isTabGroupLabel(contextTab)) {
+        // TODO bug 1967937: Pass contextTab.group instead.
         return this.replaceTabWithWindow(contextTab, aOptions);
       }
 
@@ -5836,42 +5847,7 @@
      *   The tab group to move.
      */
     replaceGroupWithWindow(group) {
-      // The first tab added to the new window will be selected.
-      // If a tab in the group is selected, adopt it first.
-      let selectedIndex = group.tabs.indexOf(gBrowser.selectedTab);
-      if (selectedIndex < 0) {
-        // Otherwise, we'll first adopt the first tab in the group
-        selectedIndex = 0;
-      }
-      let firstTab = group.tabs[selectedIndex];
-      group.removedByAdoption = true;
-      let newWindow = this.replaceTabWithWindow(firstTab);
-
-      newWindow.addEventListener(
-        "before-initial-tab-adopted",
-        () => {
-          let tabsToGroup = group.tabs.map((tab, i) => {
-            // addtabGroup will handle adopting the other tabs, but we already
-            // started adopting the tab at selectedIndex so we need to swap
-            // the old tab out for the new one.
-            if (i == selectedIndex) {
-              return newWindow.gBrowser.visibleTabs[0];
-            }
-            return tab;
-          });
-          // The initial tab isn't fully adopted yet, but the tab object has been
-          // instantiated, so we can make a group now.
-          newWindow.gBrowser.addTabGroup(tabsToGroup, {
-            id: group.id,
-            label: group.label,
-            color: group.color,
-            isAdoptingGroup: true,
-          });
-          Glean.tabgroup.groupInteractions.move_window.add(1);
-        },
-        { once: true }
-      );
-      return newWindow;
+      return this.replaceTabWithWindow(group);
     }
 
     /**

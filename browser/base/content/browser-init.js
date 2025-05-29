@@ -271,8 +271,15 @@ var gBrowserInit = {
 
       let swapBrowsers = () => {
         if (gBrowser.isTabGroupLabel(tabToAdopt)) {
+          // TODO bug 1967937: Merge this case with the tab group case below.
           gBrowser.adoptTabGroup(tabToAdopt.group, { elementIndex: 0 });
           gBrowser.removeTab(gBrowser.selectedTab);
+        } else if (gBrowser.isTabGroup(tabToAdopt)) {
+          // Via gBrowser.replaceGroupWithWindow
+          let tempBlankTab = gBrowser.selectedTab;
+          gBrowser.adoptTabGroup(tabToAdopt, { tabIndex: 0, selectTab: true });
+          gBrowser.removeTab(tempBlankTab);
+          Glean.tabgroup.groupInteractions.move_window.add(1);
         } else {
           if (tabToAdopt.group) {
             Glean.tabgroup.tabInteractions.remove_new_window.add();
