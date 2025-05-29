@@ -1977,7 +1977,7 @@ inline bool OpIter<Policy>::readLinearMemoryAddress(
 
   uint8_t alignLog2 = flags & ((1 << 6) - 1);
   uint8_t hasMemoryIndex = flags & (1 << 6);
-  uint8_t undefinedBits = flags & ~((1 << 7) - 1);
+  uint32_t undefinedBits = flags & ~((1 << 7) - 1);
 
   if (undefinedBits != 0) {
     return fail("invalid memory flags");
