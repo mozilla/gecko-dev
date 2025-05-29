@@ -1,7 +1,8 @@
 include CHANGES README LICENSE Makefile pyproject.toml setup.py
 recursive-include lib/yaml *.py
 recursive-include lib/_yaml *.py
+recursive-include packaging *
 recursive-include examples *.py *.cfg *.yaml
-recursive-include tests/data *
-recursive-include tests/lib *.py
+recursive-include tests/legacy_tests/ *.py
+recursive-include tests/legacy_tests/data *
 recursive-include yaml *

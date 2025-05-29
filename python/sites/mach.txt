@@ -55,8 +55,17 @@ pth:tools/moztreedocs
 pth:xpcom/ds/tools
 pth:xpcom/geckoprocesstypes_generator
 pth:xpcom/idl-parser
+# glean-sdk may not be installable if a wheel isn't available
+# and it has to be built from source.
+pypi-optional:glean-sdk==64.3.1:telemetry will not be collected
+pypi-optional:orjson>=3.10.15:json operations will be slower in various tools
+# Mach gracefully handles the case where `psutil` is unavailable.
+# We aren't (yet) able to pin packages in automation, so we have to
+# support down to the oldest locally-installed version (5.4.2).
+pypi-optional:psutil>=5.4.2,<=5.9.4:telemetry will be missing some data
+pypi-optional:zstandard>=0.11.1,<=0.23.0:zstd archives will not be possible to extract
+vendored-fallback:pyyaml:third_party/python/pyyaml/lib/:faster native loading is disabled
 vendored:third_party/python/MarkupSafe/src
-vendored-fallback:pyyaml:third_party/python/PyYAML/lib/:faster native loading is disabled
 vendored:third_party/python/ansicon
 vendored:third_party/python/appdirs
 vendored:third_party/python/attrs
@@ -102,12 +111,3 @@ vendored:third_party/python/urllib3
 vendored:third_party/python/wcwidth
 vendored:third_party/python/wheel
 vendored:third_party/python/zipp
-# glean-sdk may not be installable if a wheel isn't available
-# and it has to be built from source.
-pypi-optional:glean-sdk==64.3.1:telemetry will not be collected
-# Mach gracefully handles the case where `psutil` is unavailable.
-# We aren't (yet) able to pin packages in automation, so we have to
-# support down to the oldest locally-installed version (5.4.2).
-pypi-optional:psutil>=5.4.2,<=5.9.4:telemetry will be missing some data
-pypi-optional:zstandard>=0.11.1,<=0.23.0:zstd archives will not be possible to extract
-pypi-optional:orjson>=3.10.15:json operations will be slower in various tools
