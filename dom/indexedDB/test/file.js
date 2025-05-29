@@ -234,7 +234,6 @@ function verifyBlobArray(blobs1, blobs2, expectedFileIds) {
 function verifyView(view1, view2) {
   is(view1.byteLength, view2.byteLength, "Correct byteLength");
   verifyBuffers(view1, view2);
-  continueToNextStep();
 }
 
 function verifyWasmModule(module1, module2) {

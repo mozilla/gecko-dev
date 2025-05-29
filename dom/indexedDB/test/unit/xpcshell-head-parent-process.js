@@ -461,7 +461,6 @@ function verifyBlob(blob1, blob2) {
 function verifyView(view1, view2) {
   is(view1.byteLength, view2.byteLength, "Correct byteLength");
   verifyBuffers(view1, view2);
-  continueToNextStep();
 }
 
 function grabFileUsageAndContinueHandler(request) {

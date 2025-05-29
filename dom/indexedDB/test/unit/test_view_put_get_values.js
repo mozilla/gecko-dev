@@ -3,12 +3,10 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
-/* exported testGenerator, disableWorkerTest */
+/* exported testSteps, disableWorkerTest */
 var disableWorkerTest = "Need a way to set temporary prefs from a worker";
 
-var testGenerator = testSteps();
-
-function* testSteps() {
+async function testSteps() {
   const name = this.window
     ? window.location.pathname
     : "test_view_put_get_values.js";
@@ -34,28 +32,24 @@ function* testSteps() {
 
   for (let test of tests) {
     if (test.external) {
-      if (this.window) {
-        info("Setting data threshold pref");
+      info("Setting data threshold pref");
 
-        SpecialPowers.pushPrefEnv(
-          { set: [["dom.indexedDB.dataThreshold", 0]] },
-          continueToNextStep
-        );
-        yield undefined;
+      if (this.window) {
+        await SpecialPowers.pushPrefEnv({
+          set: [["dom.indexedDB.dataThreshold", 0]],
+        });
       } else {
         setDataThreshold(0);
       }
     }
 
     if (test.preprocessing) {
-      if (this.window) {
-        info("Setting preprocessing pref");
+      info("Setting preprocessing pref");
 
-        SpecialPowers.pushPrefEnv(
-          { set: [["dom.indexedDB.preprocessing", true]] },
-          continueToNextStep
-        );
-        yield undefined;
+      if (this.window) {
+        await SpecialPowers.pushPrefEnv({
+          set: [["dom.indexedDB.preprocessing", true]],
+        });
       } else {
         enablePreprocessing();
       }
@@ -63,79 +57,91 @@ function* testSteps() {
 
     info("Opening database");
 
-    let request = indexedDB.open(name);
-    request.onerror = errorHandler;
-    request.onupgradeneeded = continueToNextStepSync;
-    request.onsuccess = unexpectedSuccessHandler;
-    yield undefined;
+    const db = await (async function () {
+      const request = indexedDB.open(name);
 
-    // upgradeneeded
-    request.onupgradeneeded = unexpectedSuccessHandler;
-    request.onsuccess = continueToNextStepSync;
+      {
+        const event = await expectingUpgrade(request);
 
-    info("Creating objectStore");
+        const database = event.target.result;
 
-    request.result.createObjectStore(objectStoreName);
+        database.createObjectStore(objectStoreName);
+      }
 
-    yield undefined;
+      const event = await expectingSuccess(request);
 
-    // success
-    let db = request.result;
-    db.onerror = errorHandler;
+      const database = event.target.result;
 
-    info("Storing view");
+      return database;
+    })();
 
-    let objectStore = db
-      .transaction([objectStoreName], "readwrite")
-      .objectStore(objectStoreName);
-    request = objectStore.add(viewData.view, viewData.key);
-    request.onsuccess = continueToNextStepSync;
-    yield undefined;
+    {
+      const objectStore = db
+        .transaction([objectStoreName], "readwrite")
+        .objectStore(objectStoreName);
 
-    is(request.result, viewData.key, "Got correct key");
+      info("Storing view");
 
-    info("Getting view");
+      {
+        const request = objectStore.add(viewData.view, viewData.key);
 
-    request = objectStore.get(viewData.key);
-    request.onsuccess = continueToNextStepSync;
-    yield undefined;
+        await requestSucceeded(request);
 
-    verifyView(request.result, viewData.view);
-    yield undefined;
+        is(request.result, viewData.key, "Got correct key");
+      }
+
+      info("Getting view");
+
+      {
+        const request = objectStore.get(viewData.key);
+
+        await requestSucceeded(request);
+
+        verifyView(request.result, viewData.view);
+      }
+    }
 
     info("Getting view in new transaction");
 
-    request = db
-      .transaction([objectStoreName])
-      .objectStore(objectStoreName)
-      .get(viewData.key);
-    request.onsuccess = continueToNextStepSync;
-    yield undefined;
+    {
+      const request = db
+        .transaction([objectStoreName])
+        .objectStore(objectStoreName)
+        .get(viewData.key);
 
-    verifyView(request.result, viewData.view);
-    yield undefined;
+      await requestSucceeded(request);
 
-    getCurrentUsage(grabFileUsageAndContinueHandler);
-    let fileUsage = yield undefined;
-
-    if (test.external) {
-      ok(fileUsage > 0, "File usage is not zero");
-    } else {
-      ok(fileUsage == 0, "File usage is zero");
+      verifyView(request.result, viewData.view);
     }
 
-    db.close();
+    info("Getting file usage");
 
-    request = indexedDB.deleteDatabase(name);
-    request.onerror = errorHandler;
-    request.onsuccess = continueToNextStepSync;
-    yield undefined;
+    {
+      const fileUsage = await new Promise(function (resolve) {
+        getCurrentUsage(function (request) {
+          resolve(request.result.fileUsage);
+        });
+      });
+
+      if (test.external) {
+        ok(fileUsage > 0, "File usage is not zero");
+      } else {
+        ok(fileUsage == 0, "File usage is zero");
+      }
+    }
+
+    info("Deleting database");
+
+    {
+      db.close();
+      const request = indexedDB.deleteDatabase(name);
+      await expectingSuccess(request);
+    }
+
+    info("Resetting prefs");
 
     if (this.window) {
-      info("Resetting prefs");
-
-      SpecialPowers.popPrefEnv(continueToNextStep);
-      yield undefined;
+      await SpecialPowers.popPrefEnv();
     } else {
       if (test.external) {
         resetDataThreshold();
@@ -146,6 +152,4 @@ function* testSteps() {
       }
     }
   }
-
-  finishTest();
 }
