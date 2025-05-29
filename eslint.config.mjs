@@ -140,13 +140,14 @@ let config = [
 
   {
     name: "define-globals-for-browser-env",
+    // Not available for sjs files.
     files: wrapPathsWithAllExts(["**"], ["sjs"]),
     ignores: [
-      // The browser environment is not available for system modules, sjs, workers
-      // or any of the xpcshell-test files.
+      // Also not available for various other scopes and tools.
       "**/*.sys.mjs",
       "**/?(*.)worker.?(m)js",
       ...wrapPathsWithAllExts(testPaths.xpcshell, ["mjs", "sjs"]),
+      "tools/lint/eslint/**",
     ],
     languageOptions: {
       globals: globals.browser,
@@ -156,7 +157,7 @@ let config = [
     // Generally we assume that all files, except mjs ones are in our
     // privileged and specific environment. mjs are handled separately by
     // the recommended configuration in eslint-plugin-mozilla.
-    name: "define-privileged-and-specific-globas-for-most-files",
+    name: "define-privileged-and-specific-globals-for-most-files",
     files: wrapPathsWithAllExts(["**"], ["json"]),
     ignores: ["browser/components/storybook/**", "tools"],
     languageOptions: {
