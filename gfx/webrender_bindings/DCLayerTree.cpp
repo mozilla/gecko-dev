@@ -817,6 +817,7 @@ void DCLayerTree::CreateSwapChainSurface(wr::NativeSurfaceId aId,
     if (!surface->Initialize()) {
       gfxCriticalNote << "Failed to initialize DCLayerSurface: "
                       << wr::AsUint64(aId);
+      RenderThread::Get()->HandleWebRenderError(WebRenderError::NEW_SURFACE);
       return;
     }
   } else {
@@ -824,6 +825,7 @@ void DCLayerTree::CreateSwapChainSurface(wr::NativeSurfaceId aId,
     if (!surface->Initialize()) {
       gfxCriticalNote << "Failed to initialize DCSwapChain: "
                       << wr::AsUint64(aId);
+      RenderThread::Get()->HandleWebRenderError(WebRenderError::NEW_SURFACE);
       return;
     }
   }
@@ -1505,22 +1507,41 @@ bool DCSwapChain::Initialize() {
 
   hr = dxgiFactory->CreateSwapChainForComposition(device, &desc, nullptr,
                                                   getter_AddRefs(mSwapChain));
-  MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
+  if (FAILED(hr)) {
+    gfxCriticalNote << "CreateSwapChainForComposition() failed: "
+                    << gfx::hexa(hr) << " Size : "
+                    << LayoutDeviceIntSize(mSize.width, mSize.height);
+    return false;
+  }
   mContentVisual->SetContent(mSwapChain);
 
-  ID3D11Texture2D* backBuffer;
-  hr = mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
-  MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
+  RefPtr<ID3D11Texture2D> backBuffer;
+  hr = mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
+                             (void**)getter_AddRefs(backBuffer));
+  if (hr == DXGI_ERROR_INVALID_CALL) {
+    // This happens on some GPUs/drivers when there's a TDR.
+    if (device->GetDeviceRemovedReason() != S_OK) {
+      gfxCriticalNote << "GetBuffer returned invalid call: " << gfx::hexa(hr)
+                      << " Size : "
+                      << LayoutDeviceIntSize(mSize.width, mSize.height);
+      return false;
+    }
+  }
 
   const EGLint pbuffer_attribs[]{LOCAL_EGL_WIDTH, mSize.width, LOCAL_EGL_HEIGHT,
                                  mSize.height, LOCAL_EGL_NONE};
-  const auto buffer = reinterpret_cast<EGLClientBuffer>(backBuffer);
+  const auto buffer = reinterpret_cast<EGLClientBuffer>(backBuffer.get());
   EGLConfig eglConfig = mDCLayerTree->GetEGLConfig();
 
   mEGLSurface = egl->fCreatePbufferFromClientBuffer(
       LOCAL_EGL_D3D_TEXTURE_ANGLE, buffer, eglConfig, pbuffer_attribs);
-  MOZ_RELEASE_ASSERT(mEGLSurface);
-  backBuffer->Release();
+  if (!mEGLSurface) {
+    EGLint err = egl->mLib->fGetError();
+    gfxCriticalNote << "Failed to create Pbuffer error: " << gfx::hexa(err)
+                    << " Size : "
+                    << LayoutDeviceIntSize(mSize.width, mSize.height);
+    return false;
+  }
 
   return true;
 }
@@ -1531,9 +1552,6 @@ void DCSwapChain::Bind(const wr::DeviceIntRect* aDirtyRects,
   const auto& gle = gl::GLContextEGL::Cast(gl);
 
   gle->SetEGLSurfaceOverride(mEGLSurface);
-  bool ok = gl->MakeCurrent();
-
-  MOZ_RELEASE_ASSERT(ok);
 }
 
 bool DCSwapChain::Resize(wr::DeviceIntSize aSize) {
@@ -1547,30 +1565,48 @@ bool DCSwapChain::Resize(wr::DeviceIntSize aSize) {
     mEGLSurface = EGL_NO_SURFACE;
   }
 
-  ID3D11Texture2D* backBuffer;
   DXGI_SWAP_CHAIN_DESC desc;
   HRESULT hr;
 
-  hr = mSwapChain->GetDesc(&desc);
-  MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
+  mSwapChain->GetDesc(&desc);
 
   hr = mSwapChain->ResizeBuffers(desc.BufferCount, aSize.width, aSize.height,
                                  DXGI_FORMAT_B8G8R8A8_UNORM, 0);
-  MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
+  if (FAILED(hr)) {
+    gfxCriticalNote << "Failed to resize swap chain buffers: " << gfx::hexa(hr)
+                    << " Size : "
+                    << LayoutDeviceIntSize(aSize.width, aSize.height);
+    return false;
+  }
 
-  hr = mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&backBuffer);
-  MOZ_RELEASE_ASSERT(SUCCEEDED(hr));
+  RefPtr<ID3D11Texture2D> backBuffer;
+  hr = mSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
+                             (void**)getter_AddRefs(backBuffer));
+  if (hr == DXGI_ERROR_INVALID_CALL) {
+    auto device = mDCLayerTree->GetDevice();
+    // This happens on some GPUs/drivers when there's a TDR.
+    if (device->GetDeviceRemovedReason() != S_OK) {
+      gfxCriticalNote << "GetBuffer returned invalid call: " << gfx::hexa(hr)
+                      << " Size : "
+                      << LayoutDeviceIntSize(aSize.width, aSize.height);
+      return false;
+    }
+  }
 
   const EGLint pbuffer_attribs[]{LOCAL_EGL_WIDTH, aSize.width, LOCAL_EGL_HEIGHT,
                                  aSize.height, LOCAL_EGL_NONE};
-  const auto buffer = reinterpret_cast<EGLClientBuffer>(backBuffer);
+  const auto buffer = reinterpret_cast<EGLClientBuffer>(backBuffer.get());
   EGLConfig eglConfig = mDCLayerTree->GetEGLConfig();
 
   mEGLSurface = egl->fCreatePbufferFromClientBuffer(
       LOCAL_EGL_D3D_TEXTURE_ANGLE, buffer, eglConfig, pbuffer_attribs);
-  MOZ_RELEASE_ASSERT(mEGLSurface);
-
-  backBuffer->Release();
+  if (!mEGLSurface) {
+    EGLint err = egl->mLib->fGetError();
+    gfxCriticalNote << "Failed to create Pbuffer error: " << gfx::hexa(err)
+                    << " Size : "
+                    << LayoutDeviceIntSize(aSize.width, aSize.height);
+    return false;
+  }
 
   mSize = aSize;
   return true;
@@ -1730,12 +1766,15 @@ void DCLayerCompositionSurface::Bind(const wr::DeviceIntRect* aDirtyRects,
 
   mEGLSurface = egl->fCreatePbufferFromClientBuffer(
       LOCAL_EGL_D3D_TEXTURE_ANGLE, buffer, eglConfig, pbuffer_attribs);
-  MOZ_RELEASE_ASSERT(mEGLSurface);
+  if (!mEGLSurface) {
+    EGLint err = egl->mLib->fGetError();
+    gfxCriticalNote << "Failed to create Pbuffer error: " << gfx::hexa(err)
+                    << " Size : "
+                    << LayoutDeviceIntSize(mSize.width, mSize.height);
+    return;
+  }
 
   gle->SetEGLSurfaceOverride(mEGLSurface);
-  bool ok = gl->MakeCurrent();
-
-  MOZ_RELEASE_ASSERT(ok);
 }
 
 bool DCLayerCompositionSurface::Resize(wr::DeviceIntSize aSize) {
