@@ -84,7 +84,8 @@ class WaylandVsyncSource final : public gfx::VsyncSource {
 
   void SetHiddenWindowVSync();
 
-  void SetVSyncEventsLocked(const MutexAutoLock& aProofOfLock, bool aEnabled);
+  void SetVSyncEventsStateLocked(const MutexAutoLock& aProofOfLock,
+                                 bool aEnabled);
 
   Mutex mMutex;
 
