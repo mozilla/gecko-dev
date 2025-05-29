@@ -8,7 +8,7 @@
 
 use crate::color::parsing::ChannelKeyword;
 use crate::parser::{ParserContext, Parse};
-use crate::values::generics::position::{AnchorSide, AnchorSideKeyword, GenericAnchorFunction};
+use crate::values::generics::position::{GenericAnchorSide, AnchorSideKeyword, GenericAnchorFunction};
 use crate::values::generics::length::GenericAnchorSizeFunction;
 use crate::values::generics::calc::{
     self as generic, CalcNodeLeaf, CalcUnits, MinMaxOp, ModRemOp, PositivePercentageBasis,
@@ -481,7 +481,7 @@ impl generic::CalcNodeLeaf for Leaf {
     }
 }
 
-impl AnchorSide<Box<CalcNode>> {
+impl GenericAnchorSide<Box<CalcNode>> {
     fn parse_in_calc<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -507,7 +507,7 @@ impl GenericAnchorFunction<Box<CalcNode>, Box<CalcNode>> {
         }
         input.parse_nested_block(|i| {
             let target_element = i.try_parse(|i| DashedIdent::parse(context, i)).ok();
-            let side = AnchorSide::parse_in_calc(context, i)?;
+            let side = GenericAnchorSide::parse_in_calc(context, i)?;
             let target_element = if target_element.is_none() {
                 i.try_parse(|i| DashedIdent::parse(context, i)).ok()
             } else {

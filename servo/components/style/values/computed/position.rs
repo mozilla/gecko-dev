@@ -8,7 +8,7 @@
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use crate::values::computed::{Integer, LengthPercentage, NonNegativeNumber, Percentage};
-use crate::values::generics::position::GenericAnchorFunction;
+use crate::values::generics::position::{GenericAnchorSide, GenericAnchorFunction};
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
@@ -34,6 +34,9 @@ pub type HorizontalPosition = LengthPercentage;
 
 /// The computed value of a CSS vertical position.
 pub type VerticalPosition = LengthPercentage;
+
+/// The computed value of anchor side.
+pub type AnchorSide = GenericAnchorSide<Percentage>;
 
 /// The computed value of an `anchor()` function.
 pub type AnchorFunction = GenericAnchorFunction<Percentage, LengthPercentage>;
