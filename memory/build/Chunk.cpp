@@ -26,7 +26,7 @@
 #include "Chunk.h"
 #include "Extent.h"
 #include "Globals.h"
-#include "rb.h"
+#include "RedBlackTree.h"
 
 #include "mozilla/Assertions.h"
 #include "mozilla/HelperMacros.h"

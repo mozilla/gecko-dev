@@ -8,7 +8,7 @@
 #include "mozilla/Atomics.h"
 
 #include "RadixTree.h"
-#include "rb.h"
+#include "RedBlackTree.h"
 
 #include "mozilla/DoublyLinkedList.h"
 

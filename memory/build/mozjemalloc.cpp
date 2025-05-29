@@ -173,7 +173,7 @@
 #include "Globals.h"
 #include "Mutex.h"
 #include "PHC.h"
-#include "rb.h"
+#include "RedBlackTree.h"
 #include "Utils.h"
 #include "Zero.h"
 

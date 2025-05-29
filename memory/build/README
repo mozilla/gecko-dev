@@ -73,7 +73,7 @@ Main components
 
    The extent data structure.
 
- * fallback.cpp
+ * Fallback.cpp
 
    When building without mozjemalloc this file is compiled instead to add
    functions that may be missing on some platforms (memalign) and wrap the
@@ -92,7 +92,7 @@ Utility code
 
    The mutex implementation used in the allocator.
 
- * rb.h
+ * RedBlackTree.h
 
    A red-black tree implementation.
 
