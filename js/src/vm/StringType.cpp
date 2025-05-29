@@ -590,10 +590,17 @@ JSExtensibleString& JSLinearString::makeExtensible(size_t capacity) {
   MOZ_ASSERT(!isAtom());
   MOZ_ASSERT(!isExternal());
   MOZ_ASSERT(capacity >= length());
-  js::RemoveCellMemory(this, allocSize(), js::MemoryUse::StringContents);
+  size_t oldSize = allocSize();
+  js::RemoveCellMemory(this, oldSize, js::MemoryUse::StringContents);
   setLengthAndFlags(length(), flags() | EXTENSIBLE_FLAGS);
   d.s.u3.capacity = capacity;
-  js::AddCellMemory(this, allocSize(), js::MemoryUse::StringContents);
+  size_t newSize = allocSize();
+  js::AddCellMemory(this, newSize, js::MemoryUse::StringContents);
+  MOZ_ASSERT(newSize >= oldSize);
+  if (!isTenured() && newSize > oldSize) {
+    auto& nursery = runtimeFromMainThread()->gc.nursery();
+    nursery.addMallocedBufferBytes(newSize - oldSize);
+  }
   return asExtensible();
 }
 

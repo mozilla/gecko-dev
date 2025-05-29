@@ -388,6 +388,8 @@ class Nursery {
     return mallocedBlockCache_.sizeOfExcludingThis(mallocSizeOf);
   }
 
+  inline void addMallocedBufferBytes(size_t nbytes);
+
   mozilla::TimeStamp lastCollectionEndTime() const;
 
  private:
@@ -435,8 +437,6 @@ class Nursery {
     return (currentEnd() - position()) +
            (maxChunkCount() - currentChunk() - 1) * gc::ChunkSize;
   }
-
-  inline void addMallocedBufferBytes(size_t nbytes);
 
   // Calculate the promotion rate of the most recent minor GC.
   // The valid_for_tenuring parameter is used to return whether this
