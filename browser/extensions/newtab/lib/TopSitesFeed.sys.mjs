@@ -554,6 +554,9 @@ export class ContileIntegration {
             .filter(item => item)
             .map(item => parseInt(item, 10));
 
+          const controller = new AbortController();
+          const { signal } = controller;
+
           const options = {
             method: "POST",
             headers,
@@ -564,7 +567,9 @@ export class ContileIntegration {
                 count: countsArray[index],
               })),
               blocks: blockedSponsors.split(","),
+              credentials: "omit",
             }),
+            signal,
           };
 
           if (marsOhttpEnabled && ohttpConfigURL && ohttpRelayURL) {
