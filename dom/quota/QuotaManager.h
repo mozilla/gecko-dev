@@ -913,26 +913,31 @@ class QuotaManager final : public BackgroundThreadObject {
   /**
    * Registers a ClientDirectoryLockHandle for the given origin.
    *
-   * Tracks the handle in internal bookkeeping to enable metadata updates. If
-   * this is the first active handle for the origin, and the origin is not
-   * persistent, this triggers an access time update (unless the system is
-   * shutting down).
+   * Tracks the handle in internal bookkeeping. If this is the first handle
+   * registered for the origin, the caller-provided update callback is invoked.
+   *
+   * The update callback can be used to perform first-time setup, such as
+   * updating the origin’s access time.
    */
-  void RegisterClientDirectoryLockHandle(const OriginMetadata& aOriginMetadata);
+  template <typename UpdateCallback>
+  void RegisterClientDirectoryLockHandle(const OriginMetadata& aOriginMetadata,
+                                         UpdateCallback&& aUpdateCallback);
 
   /**
    * Unregisters a ClientDirectoryLockHandle for the given origin.
    *
-   * Decreases the active handle count. If this was the last active handle for
-   * the origin, and the origin is not persistent, this triggers an access time
-   * update (unless the system is shutting down).
+   * Decreases the active handle count and removes the internal tracking entry
+   * if this was the last handle (in some shutdown cases, the entry may no
+   * longer exist; this is currently tolerated, see comment in implementation).
+   * If the handle being unregistered was the last one for the origin, the
+   * caller-provided update callback is invoked.
    *
-   * The internal tracking entry is removed when the handle count reaches zero.
-   * In some shutdown cases, the entry may no longer exist, which is currently
-   * tolerated (see comment in implementation).
+   * The update callback can be used to perform final cleanup, such as updating
+   * the origin’s access time.
    */
+  template <typename UpdateCallback>
   void UnregisterClientDirectoryLockHandle(
-      const OriginMetadata& aOriginMetadata);
+      const OriginMetadata& aOriginMetadata, UpdateCallback&& aUpdateCallback);
 
   /**
    * This wrapper is used by ClientDirectoryLockHandle to notify the
