@@ -55,3 +55,8 @@ experimental-features-link-previews-description-no-ai =
         [macos] To learn more about a webpage before you click, hover over a link and press Shift (⇧) plus Option (⌥) or Alt. Previews can include details like title and reading time. <a data-l10n-name="connect">Share feedback</a>
        *[other] To learn more about a webpage before you click, hover over a link and press Shift + Alt. Previews can include details like title and reading time. <a data-l10n-name="connect">Share feedback</a>
     }
+
+# New Tab Sections with follow and block
+experimental-features-newtab-sections-follow-block =
+    .label = Topic Sections and Follow/Block for New Tab Stories
+experimental-features-newtab-sections-follow-block-description = Organize the stories on your New Tab page into topic sections (Sports, Food, Entertainment and more) for a more structured and easy-to-scan experience. Use our new Follow and Block controls to customize what content you see. <a data-l10n-name="connect">Share feedback</a>
