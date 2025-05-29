@@ -19,8 +19,8 @@ Assert.deepEqual(
   new SimpleRec({ a: 42 })
 );
 Assert.deepEqual(
-  roundtripExtEnum(new EnumWithData.A(10)),
-  new EnumWithData.A(10)
+  roundtripExtEnum(new EnumWithData.A({ value: 10 })),
+  new EnumWithData.A({ value: 10 })
 );
 const interface = TestInterface.init(20);
 Assert.equal(roundtripExtInterface(interface).getValue(), 20);
