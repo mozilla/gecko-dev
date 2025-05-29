@@ -14,17 +14,12 @@ import reactHooks from "eslint-plugin-react-hooks";
 import fs from "fs";
 import globals from "globals";
 import path from "path";
-import { fileURLToPath } from "url";
 
 import globalIgnores from "./eslint-ignores.config.mjs";
 import testPathsConfig from "./eslint-test-paths.config.mjs";
 import repositoryGlobals from "./eslint-file-globals.config.mjs";
 import rollouts from "./eslint-rollouts.config.mjs";
 import subdirConfigs from "./eslint-subdirs.config.mjs";
-
-// Compatibility handling for Node v18. When we update to v20+, we can replace
-// this with `import.meta.dirname`.
-const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const testPaths = testPathsConfig.testPaths;
 
@@ -75,7 +70,7 @@ let config = [
     settings: {
       "import/extensions": [".mjs"],
       "import/resolver": {
-        [path.resolve(dirname, "srcdir-resolver.js")]: {},
+        [path.resolve(import.meta.dirname, "srcdir-resolver.js")]: {},
         node: {},
       },
     },
@@ -85,12 +80,19 @@ let config = [
     ignores: [
       ...globalIgnores,
       ...readFile(
-        path.join(dirname, "tools", "rewriting", "ThirdPartyPaths.txt")
+        path.join(
+          import.meta.dirname,
+          "tools",
+          "rewriting",
+          "ThirdPartyPaths.txt"
+        )
       ),
-      ...readFile(path.join(dirname, "tools", "rewriting", "Generated.txt")),
+      ...readFile(
+        path.join(import.meta.dirname, "tools", "rewriting", "Generated.txt")
+      ),
       ...readFile(
         path.join(
-          dirname,
+          import.meta.dirname,
           "devtools",
           "client",
           "debugger",
