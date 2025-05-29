@@ -10,9 +10,7 @@
 var rule = require("../lib/rules/reject-lazy-imports-into-globals");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({
-  parserOptions: { ecmaVersion: "latest", sourceType: "module" },
-});
+const ruleTester = new RuleTester();
 
 // ------------------------------------------------------------------------------
 // Tests

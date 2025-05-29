@@ -10,7 +10,7 @@
 var rule = require("../lib/rules/no-comparison-or-assignment-inside-ok");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
+const ruleTester = new RuleTester();
 
 // ------------------------------------------------------------------------------
 // Tests

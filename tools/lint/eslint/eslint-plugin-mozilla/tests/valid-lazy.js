@@ -10,9 +10,7 @@
 var rule = require("../lib/rules/valid-lazy");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({
-  parserOptions: { ecmaVersion: "latest", sourceType: "module" },
-});
+const ruleTester = new RuleTester();
 
 // ------------------------------------------------------------------------------
 // Tests

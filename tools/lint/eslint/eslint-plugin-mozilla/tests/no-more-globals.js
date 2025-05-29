@@ -10,7 +10,7 @@
 var rule = require("../lib/rules/no-more-globals");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
+const ruleTester = new RuleTester();
 
 function makeTest(code, errors = []) {
   return {

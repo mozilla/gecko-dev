@@ -8,9 +8,10 @@
 // ------------------------------------------------------------------------------
 
 var rule = require("../lib/rules/use-isInstance");
+const globals = require("globals");
 var RuleTester = require("eslint").RuleTester;
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: "latest" } });
+const ruleTester = new RuleTester();
 
 // ------------------------------------------------------------------------------
 // Tests
@@ -23,8 +24,6 @@ const errors = [
   },
 ];
 
-const env = { browser: true };
-
 /**
  * A test case boilerplate simulating chrome privileged script.
  * @param {string} code
@@ -33,7 +32,7 @@ function mockChromeScript(code) {
   return {
     code,
     filename: "foo.sys.mjs",
-    env,
+    languageOptions: { globals: globals.browser },
   };
 }
 
@@ -45,7 +44,7 @@ function mockContentScript(code) {
   return {
     code,
     filename: "foo.js",
-    env,
+    languageOptions: { globals: globals.browser },
   };
 }
 
@@ -75,7 +74,7 @@ ruleTester.run("use-isInstance", rule, {
     {
       code: "node instanceof Node",
       output: "Node.isInstance(node)",
-      env,
+      languageOptions: { globals: globals.browser },
       errors,
       filename: "foo.sys.mjs",
     },
@@ -94,7 +93,7 @@ ruleTester.run("use-isInstance", rule, {
     {
       code: "target instanceof File",
       output: "File.isInstance(target)",
-      env,
+      languageOptions: { globals: globals.browser },
       errors,
       filename: "foo.sys.mjs",
     },
@@ -113,14 +112,14 @@ ruleTester.run("use-isInstance", rule, {
     {
       code: "ChromeUtils.importESModule(''); node instanceof Node",
       output: "ChromeUtils.importESModule(''); Node.isInstance(node)",
-      env,
+      languageOptions: { globals: globals.browser },
       errors,
       filename: "foo.js",
     },
     {
       code: "ChromeUtils.importESModule(''); file instanceof File",
       output: "ChromeUtils.importESModule(''); File.isInstance(file)",
-      env,
+      languageOptions: { globals: globals.browser },
       errors,
       filename: "foo.js",
     },
