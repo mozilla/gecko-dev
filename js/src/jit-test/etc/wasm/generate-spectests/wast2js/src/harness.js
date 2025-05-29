@@ -19,6 +19,12 @@ if (!wasmIsSupported()) {
   quit();
 }
 
+function partialOobWriteMayWritePartialData() {
+  let arm_native = getBuildConfiguration("arm") && !getBuildConfiguration("arm-simulator");
+  let arm64_native = getBuildConfiguration("arm64") && !getBuildConfiguration("arm64-simulator");
+  return arm_native || arm64_native;
+}
+
 function bytes(type, bytes) {
   var typedBuffer = new Uint8Array(bytes);
   return wasmGlobalFromArrayBuffer(type, typedBuffer.buffer);
@@ -103,18 +109,6 @@ let externsym = Symbol("externref");
 function externref(s) {
   return { [externsym]: s };
 }
-function is_externref(x) {
-  return (x !== null && externsym in x) ? 1 : 0;
-}
-function is_funcref(x) {
-  return typeof x === "function" ? 1 : 0;
-}
-function eq_externref(x, y) {
-  return x === y ? 1 : 0;
-}
-function eq_funcref(x, y) {
-  return x === y ? 1 : 0;
-}
 
 class ExternRefResult {
   constructor(n) {
@@ -165,32 +159,36 @@ class HostRefResult {
   }
 }
 
-let spectest = {
-  externref: externref,
-  is_externref: is_externref,
-  is_funcref: is_funcref,
-  eq_externref: eq_externref,
-  eq_funcref: eq_funcref,
-  print: console.log.bind(console),
-  print_i32: console.log.bind(console),
-  print_i32_f32: console.log.bind(console),
-  print_f64_f64: console.log.bind(console),
-  print_f32: console.log.bind(console),
-  print_f64: console.log.bind(console),
-  global_i32: 666,
-  global_i64: 666n,
-  global_f32: 666,
-  global_f64: 666,
-  table: new WebAssembly.Table({
-    initial: 10,
-    maximum: 20,
-    element: "anyfunc",
-  }),
-  memory: new WebAssembly.Memory({ initial: 1, maximum: 2 }),
-};
-
+// https://github.com/WebAssembly/spec/blob/main/interpreter/README.md#spectest-host-module
 let linkage = {
-  spectest,
+  "spectest": {
+    global_i32: 666,
+    global_i64: 666n,
+    global_f32: 666.6,
+    global_f64: 666.6,
+
+    table: new WebAssembly.Table({
+      initial: 10,
+      maximum: 20,
+      element: "anyfunc",
+    }),
+    table64: new WebAssembly.Table({
+      address: "i64",
+      initial: 10n,
+      maximum: 20n,
+      element: "anyfunc",
+    }),
+
+    memory: new WebAssembly.Memory({ initial: 1, maximum: 2 }),
+
+    print: console.log.bind(console),
+    print_i32: console.log.bind(console),
+    print_i64: console.log.bind(console),
+    print_f32: console.log.bind(console),
+    print_f64: console.log.bind(console),
+    print_i32_f32: console.log.bind(console),
+    print_f64_f64: console.log.bind(console),
+  },
 };
 
 function module(source) {

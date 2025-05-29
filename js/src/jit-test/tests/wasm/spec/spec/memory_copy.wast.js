@@ -14163,3 +14163,14152 @@ assert_return(() => invoke($32, `checkRange`, [64827, 64834, 26]), [value("i32",
 
 // ./test/core/memory_copy.wast:5577
 assert_return(() => invoke($32, `checkRange`, [64834, 65536, 0]), [value("i32", -1)]);
+
+// ./test/core/memory_copy.wast:5580
+let $33 = instantiate(`(module
+  (memory (export "memory0") i64 1 1)
+  (data (i64.const 2) "\\03\\01\\04\\01")
+  (data (i64.const 12) "\\07\\05\\02\\03\\06")
+  (func (export "test")
+    (nop))
+  (func (export "load8_u") (param i64) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5589
+invoke($33, `test`, []);
+
+// ./test/core/memory_copy.wast:5591
+assert_return(() => invoke($33, `load8_u`, [0n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5592
+assert_return(() => invoke($33, `load8_u`, [1n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5593
+assert_return(() => invoke($33, `load8_u`, [2n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5594
+assert_return(() => invoke($33, `load8_u`, [3n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5595
+assert_return(() => invoke($33, `load8_u`, [4n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5596
+assert_return(() => invoke($33, `load8_u`, [5n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5597
+assert_return(() => invoke($33, `load8_u`, [6n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5598
+assert_return(() => invoke($33, `load8_u`, [7n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5599
+assert_return(() => invoke($33, `load8_u`, [8n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5600
+assert_return(() => invoke($33, `load8_u`, [9n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5601
+assert_return(() => invoke($33, `load8_u`, [10n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5602
+assert_return(() => invoke($33, `load8_u`, [11n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5603
+assert_return(() => invoke($33, `load8_u`, [12n]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5604
+assert_return(() => invoke($33, `load8_u`, [13n]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:5605
+assert_return(() => invoke($33, `load8_u`, [14n]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:5606
+assert_return(() => invoke($33, `load8_u`, [15n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5607
+assert_return(() => invoke($33, `load8_u`, [16n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5608
+assert_return(() => invoke($33, `load8_u`, [17n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5609
+assert_return(() => invoke($33, `load8_u`, [18n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5610
+assert_return(() => invoke($33, `load8_u`, [19n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5611
+assert_return(() => invoke($33, `load8_u`, [20n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5612
+assert_return(() => invoke($33, `load8_u`, [21n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5613
+assert_return(() => invoke($33, `load8_u`, [22n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5614
+assert_return(() => invoke($33, `load8_u`, [23n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5615
+assert_return(() => invoke($33, `load8_u`, [24n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5616
+assert_return(() => invoke($33, `load8_u`, [25n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5617
+assert_return(() => invoke($33, `load8_u`, [26n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5618
+assert_return(() => invoke($33, `load8_u`, [27n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5619
+assert_return(() => invoke($33, `load8_u`, [28n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5620
+assert_return(() => invoke($33, `load8_u`, [29n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5622
+let $34 = instantiate(`(module
+  (memory (export "memory0") i64 1 1)
+  (data (i64.const 2) "\\03\\01\\04\\01")
+  (data (i64.const 12) "\\07\\05\\02\\03\\06")
+  (func (export "test")
+    (memory.copy (i64.const 13) (i64.const 2) (i64.const 3)))
+  (func (export "load8_u") (param i64) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5631
+invoke($34, `test`, []);
+
+// ./test/core/memory_copy.wast:5633
+assert_return(() => invoke($34, `load8_u`, [0n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5634
+assert_return(() => invoke($34, `load8_u`, [1n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5635
+assert_return(() => invoke($34, `load8_u`, [2n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5636
+assert_return(() => invoke($34, `load8_u`, [3n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5637
+assert_return(() => invoke($34, `load8_u`, [4n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5638
+assert_return(() => invoke($34, `load8_u`, [5n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5639
+assert_return(() => invoke($34, `load8_u`, [6n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5640
+assert_return(() => invoke($34, `load8_u`, [7n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5641
+assert_return(() => invoke($34, `load8_u`, [8n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5642
+assert_return(() => invoke($34, `load8_u`, [9n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5643
+assert_return(() => invoke($34, `load8_u`, [10n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5644
+assert_return(() => invoke($34, `load8_u`, [11n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5645
+assert_return(() => invoke($34, `load8_u`, [12n]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5646
+assert_return(() => invoke($34, `load8_u`, [13n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5647
+assert_return(() => invoke($34, `load8_u`, [14n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5648
+assert_return(() => invoke($34, `load8_u`, [15n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5649
+assert_return(() => invoke($34, `load8_u`, [16n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5650
+assert_return(() => invoke($34, `load8_u`, [17n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5651
+assert_return(() => invoke($34, `load8_u`, [18n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5652
+assert_return(() => invoke($34, `load8_u`, [19n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5653
+assert_return(() => invoke($34, `load8_u`, [20n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5654
+assert_return(() => invoke($34, `load8_u`, [21n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5655
+assert_return(() => invoke($34, `load8_u`, [22n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5656
+assert_return(() => invoke($34, `load8_u`, [23n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5657
+assert_return(() => invoke($34, `load8_u`, [24n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5658
+assert_return(() => invoke($34, `load8_u`, [25n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5659
+assert_return(() => invoke($34, `load8_u`, [26n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5660
+assert_return(() => invoke($34, `load8_u`, [27n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5661
+assert_return(() => invoke($34, `load8_u`, [28n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5662
+assert_return(() => invoke($34, `load8_u`, [29n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5664
+let $35 = instantiate(`(module
+  (memory (export "memory0") i64 1 1)
+  (data (i64.const 2) "\\03\\01\\04\\01")
+  (data (i64.const 12) "\\07\\05\\02\\03\\06")
+  (func (export "test")
+    (memory.copy (i64.const 25) (i64.const 15) (i64.const 2)))
+  (func (export "load8_u") (param i64) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5673
+invoke($35, `test`, []);
+
+// ./test/core/memory_copy.wast:5675
+assert_return(() => invoke($35, `load8_u`, [0n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5676
+assert_return(() => invoke($35, `load8_u`, [1n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5677
+assert_return(() => invoke($35, `load8_u`, [2n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5678
+assert_return(() => invoke($35, `load8_u`, [3n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5679
+assert_return(() => invoke($35, `load8_u`, [4n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5680
+assert_return(() => invoke($35, `load8_u`, [5n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5681
+assert_return(() => invoke($35, `load8_u`, [6n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5682
+assert_return(() => invoke($35, `load8_u`, [7n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5683
+assert_return(() => invoke($35, `load8_u`, [8n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5684
+assert_return(() => invoke($35, `load8_u`, [9n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5685
+assert_return(() => invoke($35, `load8_u`, [10n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5686
+assert_return(() => invoke($35, `load8_u`, [11n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5687
+assert_return(() => invoke($35, `load8_u`, [12n]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5688
+assert_return(() => invoke($35, `load8_u`, [13n]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:5689
+assert_return(() => invoke($35, `load8_u`, [14n]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:5690
+assert_return(() => invoke($35, `load8_u`, [15n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5691
+assert_return(() => invoke($35, `load8_u`, [16n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5692
+assert_return(() => invoke($35, `load8_u`, [17n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5693
+assert_return(() => invoke($35, `load8_u`, [18n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5694
+assert_return(() => invoke($35, `load8_u`, [19n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5695
+assert_return(() => invoke($35, `load8_u`, [20n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5696
+assert_return(() => invoke($35, `load8_u`, [21n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5697
+assert_return(() => invoke($35, `load8_u`, [22n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5698
+assert_return(() => invoke($35, `load8_u`, [23n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5699
+assert_return(() => invoke($35, `load8_u`, [24n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5700
+assert_return(() => invoke($35, `load8_u`, [25n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5701
+assert_return(() => invoke($35, `load8_u`, [26n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5702
+assert_return(() => invoke($35, `load8_u`, [27n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5703
+assert_return(() => invoke($35, `load8_u`, [28n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5704
+assert_return(() => invoke($35, `load8_u`, [29n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5706
+let $36 = instantiate(`(module
+  (memory (export "memory0") i64 1 1)
+  (data (i64.const 2) "\\03\\01\\04\\01")
+  (data (i64.const 12) "\\07\\05\\02\\03\\06")
+  (func (export "test")
+    (memory.copy (i64.const 13) (i64.const 25) (i64.const 3)))
+  (func (export "load8_u") (param i64) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5715
+invoke($36, `test`, []);
+
+// ./test/core/memory_copy.wast:5717
+assert_return(() => invoke($36, `load8_u`, [0n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5718
+assert_return(() => invoke($36, `load8_u`, [1n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5719
+assert_return(() => invoke($36, `load8_u`, [2n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5720
+assert_return(() => invoke($36, `load8_u`, [3n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5721
+assert_return(() => invoke($36, `load8_u`, [4n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5722
+assert_return(() => invoke($36, `load8_u`, [5n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5723
+assert_return(() => invoke($36, `load8_u`, [6n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5724
+assert_return(() => invoke($36, `load8_u`, [7n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5725
+assert_return(() => invoke($36, `load8_u`, [8n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5726
+assert_return(() => invoke($36, `load8_u`, [9n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5727
+assert_return(() => invoke($36, `load8_u`, [10n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5728
+assert_return(() => invoke($36, `load8_u`, [11n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5729
+assert_return(() => invoke($36, `load8_u`, [12n]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5730
+assert_return(() => invoke($36, `load8_u`, [13n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5731
+assert_return(() => invoke($36, `load8_u`, [14n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5732
+assert_return(() => invoke($36, `load8_u`, [15n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5733
+assert_return(() => invoke($36, `load8_u`, [16n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5734
+assert_return(() => invoke($36, `load8_u`, [17n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5735
+assert_return(() => invoke($36, `load8_u`, [18n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5736
+assert_return(() => invoke($36, `load8_u`, [19n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5737
+assert_return(() => invoke($36, `load8_u`, [20n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5738
+assert_return(() => invoke($36, `load8_u`, [21n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5739
+assert_return(() => invoke($36, `load8_u`, [22n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5740
+assert_return(() => invoke($36, `load8_u`, [23n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5741
+assert_return(() => invoke($36, `load8_u`, [24n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5742
+assert_return(() => invoke($36, `load8_u`, [25n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5743
+assert_return(() => invoke($36, `load8_u`, [26n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5744
+assert_return(() => invoke($36, `load8_u`, [27n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5745
+assert_return(() => invoke($36, `load8_u`, [28n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5746
+assert_return(() => invoke($36, `load8_u`, [29n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5748
+let $37 = instantiate(`(module
+  (memory (export "memory0") i64 1 1)
+  (data (i64.const 2) "\\03\\01\\04\\01")
+  (data (i64.const 12) "\\07\\05\\02\\03\\06")
+  (func (export "test")
+    (memory.copy (i64.const 20) (i64.const 22) (i64.const 4)))
+  (func (export "load8_u") (param i64) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5757
+invoke($37, `test`, []);
+
+// ./test/core/memory_copy.wast:5759
+assert_return(() => invoke($37, `load8_u`, [0n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5760
+assert_return(() => invoke($37, `load8_u`, [1n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5761
+assert_return(() => invoke($37, `load8_u`, [2n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5762
+assert_return(() => invoke($37, `load8_u`, [3n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5763
+assert_return(() => invoke($37, `load8_u`, [4n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5764
+assert_return(() => invoke($37, `load8_u`, [5n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5765
+assert_return(() => invoke($37, `load8_u`, [6n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5766
+assert_return(() => invoke($37, `load8_u`, [7n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5767
+assert_return(() => invoke($37, `load8_u`, [8n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5768
+assert_return(() => invoke($37, `load8_u`, [9n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5769
+assert_return(() => invoke($37, `load8_u`, [10n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5770
+assert_return(() => invoke($37, `load8_u`, [11n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5771
+assert_return(() => invoke($37, `load8_u`, [12n]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5772
+assert_return(() => invoke($37, `load8_u`, [13n]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:5773
+assert_return(() => invoke($37, `load8_u`, [14n]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:5774
+assert_return(() => invoke($37, `load8_u`, [15n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5775
+assert_return(() => invoke($37, `load8_u`, [16n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5776
+assert_return(() => invoke($37, `load8_u`, [17n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5777
+assert_return(() => invoke($37, `load8_u`, [18n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5778
+assert_return(() => invoke($37, `load8_u`, [19n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5779
+assert_return(() => invoke($37, `load8_u`, [20n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5780
+assert_return(() => invoke($37, `load8_u`, [21n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5781
+assert_return(() => invoke($37, `load8_u`, [22n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5782
+assert_return(() => invoke($37, `load8_u`, [23n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5783
+assert_return(() => invoke($37, `load8_u`, [24n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5784
+assert_return(() => invoke($37, `load8_u`, [25n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5785
+assert_return(() => invoke($37, `load8_u`, [26n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5786
+assert_return(() => invoke($37, `load8_u`, [27n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5787
+assert_return(() => invoke($37, `load8_u`, [28n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5788
+assert_return(() => invoke($37, `load8_u`, [29n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5790
+let $38 = instantiate(`(module
+  (memory (export "memory0") i64 1 1)
+  (data (i64.const 2) "\\03\\01\\04\\01")
+  (data (i64.const 12) "\\07\\05\\02\\03\\06")
+  (func (export "test")
+    (memory.copy (i64.const 25) (i64.const 1) (i64.const 3)))
+  (func (export "load8_u") (param i64) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5799
+invoke($38, `test`, []);
+
+// ./test/core/memory_copy.wast:5801
+assert_return(() => invoke($38, `load8_u`, [0n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5802
+assert_return(() => invoke($38, `load8_u`, [1n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5803
+assert_return(() => invoke($38, `load8_u`, [2n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5804
+assert_return(() => invoke($38, `load8_u`, [3n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5805
+assert_return(() => invoke($38, `load8_u`, [4n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5806
+assert_return(() => invoke($38, `load8_u`, [5n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5807
+assert_return(() => invoke($38, `load8_u`, [6n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5808
+assert_return(() => invoke($38, `load8_u`, [7n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5809
+assert_return(() => invoke($38, `load8_u`, [8n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5810
+assert_return(() => invoke($38, `load8_u`, [9n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5811
+assert_return(() => invoke($38, `load8_u`, [10n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5812
+assert_return(() => invoke($38, `load8_u`, [11n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5813
+assert_return(() => invoke($38, `load8_u`, [12n]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5814
+assert_return(() => invoke($38, `load8_u`, [13n]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:5815
+assert_return(() => invoke($38, `load8_u`, [14n]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:5816
+assert_return(() => invoke($38, `load8_u`, [15n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5817
+assert_return(() => invoke($38, `load8_u`, [16n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5818
+assert_return(() => invoke($38, `load8_u`, [17n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5819
+assert_return(() => invoke($38, `load8_u`, [18n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5820
+assert_return(() => invoke($38, `load8_u`, [19n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5821
+assert_return(() => invoke($38, `load8_u`, [20n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5822
+assert_return(() => invoke($38, `load8_u`, [21n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5823
+assert_return(() => invoke($38, `load8_u`, [22n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5824
+assert_return(() => invoke($38, `load8_u`, [23n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5825
+assert_return(() => invoke($38, `load8_u`, [24n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5826
+assert_return(() => invoke($38, `load8_u`, [25n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5827
+assert_return(() => invoke($38, `load8_u`, [26n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5828
+assert_return(() => invoke($38, `load8_u`, [27n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5829
+assert_return(() => invoke($38, `load8_u`, [28n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5830
+assert_return(() => invoke($38, `load8_u`, [29n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5832
+let $39 = instantiate(`(module
+  (memory (export "memory0") i64 1 1)
+  (data (i64.const 2) "\\03\\01\\04\\01")
+  (data (i64.const 12) "\\07\\05\\02\\03\\06")
+  (func (export "test")
+    (memory.copy (i64.const 10) (i64.const 12) (i64.const 7)))
+  (func (export "load8_u") (param i64) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5841
+invoke($39, `test`, []);
+
+// ./test/core/memory_copy.wast:5843
+assert_return(() => invoke($39, `load8_u`, [0n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5844
+assert_return(() => invoke($39, `load8_u`, [1n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5845
+assert_return(() => invoke($39, `load8_u`, [2n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5846
+assert_return(() => invoke($39, `load8_u`, [3n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5847
+assert_return(() => invoke($39, `load8_u`, [4n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5848
+assert_return(() => invoke($39, `load8_u`, [5n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5849
+assert_return(() => invoke($39, `load8_u`, [6n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5850
+assert_return(() => invoke($39, `load8_u`, [7n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5851
+assert_return(() => invoke($39, `load8_u`, [8n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5852
+assert_return(() => invoke($39, `load8_u`, [9n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5853
+assert_return(() => invoke($39, `load8_u`, [10n]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5854
+assert_return(() => invoke($39, `load8_u`, [11n]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:5855
+assert_return(() => invoke($39, `load8_u`, [12n]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:5856
+assert_return(() => invoke($39, `load8_u`, [13n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5857
+assert_return(() => invoke($39, `load8_u`, [14n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5858
+assert_return(() => invoke($39, `load8_u`, [15n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5859
+assert_return(() => invoke($39, `load8_u`, [16n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5860
+assert_return(() => invoke($39, `load8_u`, [17n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5861
+assert_return(() => invoke($39, `load8_u`, [18n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5862
+assert_return(() => invoke($39, `load8_u`, [19n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5863
+assert_return(() => invoke($39, `load8_u`, [20n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5864
+assert_return(() => invoke($39, `load8_u`, [21n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5865
+assert_return(() => invoke($39, `load8_u`, [22n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5866
+assert_return(() => invoke($39, `load8_u`, [23n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5867
+assert_return(() => invoke($39, `load8_u`, [24n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5868
+assert_return(() => invoke($39, `load8_u`, [25n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5869
+assert_return(() => invoke($39, `load8_u`, [26n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5870
+assert_return(() => invoke($39, `load8_u`, [27n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5871
+assert_return(() => invoke($39, `load8_u`, [28n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5872
+assert_return(() => invoke($39, `load8_u`, [29n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5874
+let $40 = instantiate(`(module
+  (memory (export "memory0") i64 1 1)
+  (data (i64.const 2) "\\03\\01\\04\\01")
+  (data (i64.const 12) "\\07\\05\\02\\03\\06")
+  (func (export "test")
+    (memory.copy (i64.const 12) (i64.const 10) (i64.const 7)))
+  (func (export "load8_u") (param i64) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5883
+invoke($40, `test`, []);
+
+// ./test/core/memory_copy.wast:5885
+assert_return(() => invoke($40, `load8_u`, [0n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5886
+assert_return(() => invoke($40, `load8_u`, [1n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5887
+assert_return(() => invoke($40, `load8_u`, [2n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5888
+assert_return(() => invoke($40, `load8_u`, [3n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5889
+assert_return(() => invoke($40, `load8_u`, [4n]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5890
+assert_return(() => invoke($40, `load8_u`, [5n]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5891
+assert_return(() => invoke($40, `load8_u`, [6n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5892
+assert_return(() => invoke($40, `load8_u`, [7n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5893
+assert_return(() => invoke($40, `load8_u`, [8n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5894
+assert_return(() => invoke($40, `load8_u`, [9n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5895
+assert_return(() => invoke($40, `load8_u`, [10n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5896
+assert_return(() => invoke($40, `load8_u`, [11n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5897
+assert_return(() => invoke($40, `load8_u`, [12n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5898
+assert_return(() => invoke($40, `load8_u`, [13n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5899
+assert_return(() => invoke($40, `load8_u`, [14n]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5900
+assert_return(() => invoke($40, `load8_u`, [15n]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:5901
+assert_return(() => invoke($40, `load8_u`, [16n]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:5902
+assert_return(() => invoke($40, `load8_u`, [17n]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5903
+assert_return(() => invoke($40, `load8_u`, [18n]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5904
+assert_return(() => invoke($40, `load8_u`, [19n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5905
+assert_return(() => invoke($40, `load8_u`, [20n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5906
+assert_return(() => invoke($40, `load8_u`, [21n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5907
+assert_return(() => invoke($40, `load8_u`, [22n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5908
+assert_return(() => invoke($40, `load8_u`, [23n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5909
+assert_return(() => invoke($40, `load8_u`, [24n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5910
+assert_return(() => invoke($40, `load8_u`, [25n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5911
+assert_return(() => invoke($40, `load8_u`, [26n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5912
+assert_return(() => invoke($40, `load8_u`, [27n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5913
+assert_return(() => invoke($40, `load8_u`, [28n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5914
+assert_return(() => invoke($40, `load8_u`, [29n]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5916
+let $41 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 0) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:5924
+assert_trap(() => invoke($41, `run`, [65516, 0, 40]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:5927
+assert_return(() => invoke($41, `load8_u`, [0]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5928
+assert_return(() => invoke($41, `load8_u`, [1]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:5929
+assert_return(() => invoke($41, `load8_u`, [2]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:5930
+assert_return(() => invoke($41, `load8_u`, [3]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:5931
+assert_return(() => invoke($41, `load8_u`, [4]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:5932
+assert_return(() => invoke($41, `load8_u`, [5]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:5933
+assert_return(() => invoke($41, `load8_u`, [6]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:5934
+assert_return(() => invoke($41, `load8_u`, [7]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:5935
+assert_return(() => invoke($41, `load8_u`, [8]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:5936
+assert_return(() => invoke($41, `load8_u`, [9]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:5937
+assert_return(() => invoke($41, `load8_u`, [10]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:5938
+assert_return(() => invoke($41, `load8_u`, [11]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:5939
+assert_return(() => invoke($41, `load8_u`, [12]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:5940
+assert_return(() => invoke($41, `load8_u`, [13]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:5941
+assert_return(() => invoke($41, `load8_u`, [14]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:5942
+assert_return(() => invoke($41, `load8_u`, [15]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:5943
+assert_return(() => invoke($41, `load8_u`, [16]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:5944
+assert_return(() => invoke($41, `load8_u`, [17]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:5945
+assert_return(() => invoke($41, `load8_u`, [18]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:5946
+assert_return(() => invoke($41, `load8_u`, [19]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:5947
+assert_return(() => invoke($41, `load8_u`, [218]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5948
+assert_return(() => invoke($41, `load8_u`, [417]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5949
+assert_return(() => invoke($41, `load8_u`, [616]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5950
+assert_return(() => invoke($41, `load8_u`, [815]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5951
+assert_return(() => invoke($41, `load8_u`, [1014]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5952
+assert_return(() => invoke($41, `load8_u`, [1213]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5953
+assert_return(() => invoke($41, `load8_u`, [1412]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5954
+assert_return(() => invoke($41, `load8_u`, [1611]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5955
+assert_return(() => invoke($41, `load8_u`, [1810]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5956
+assert_return(() => invoke($41, `load8_u`, [2009]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5957
+assert_return(() => invoke($41, `load8_u`, [2208]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5958
+assert_return(() => invoke($41, `load8_u`, [2407]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5959
+assert_return(() => invoke($41, `load8_u`, [2606]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5960
+assert_return(() => invoke($41, `load8_u`, [2805]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5961
+assert_return(() => invoke($41, `load8_u`, [3004]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5962
+assert_return(() => invoke($41, `load8_u`, [3203]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5963
+assert_return(() => invoke($41, `load8_u`, [3402]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5964
+assert_return(() => invoke($41, `load8_u`, [3601]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5965
+assert_return(() => invoke($41, `load8_u`, [3800]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5966
+assert_return(() => invoke($41, `load8_u`, [3999]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5967
+assert_return(() => invoke($41, `load8_u`, [4198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5968
+assert_return(() => invoke($41, `load8_u`, [4397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5969
+assert_return(() => invoke($41, `load8_u`, [4596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5970
+assert_return(() => invoke($41, `load8_u`, [4795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5971
+assert_return(() => invoke($41, `load8_u`, [4994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5972
+assert_return(() => invoke($41, `load8_u`, [5193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5973
+assert_return(() => invoke($41, `load8_u`, [5392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5974
+assert_return(() => invoke($41, `load8_u`, [5591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5975
+assert_return(() => invoke($41, `load8_u`, [5790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5976
+assert_return(() => invoke($41, `load8_u`, [5989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5977
+assert_return(() => invoke($41, `load8_u`, [6188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5978
+assert_return(() => invoke($41, `load8_u`, [6387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5979
+assert_return(() => invoke($41, `load8_u`, [6586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5980
+assert_return(() => invoke($41, `load8_u`, [6785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5981
+assert_return(() => invoke($41, `load8_u`, [6984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5982
+assert_return(() => invoke($41, `load8_u`, [7183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5983
+assert_return(() => invoke($41, `load8_u`, [7382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5984
+assert_return(() => invoke($41, `load8_u`, [7581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5985
+assert_return(() => invoke($41, `load8_u`, [7780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5986
+assert_return(() => invoke($41, `load8_u`, [7979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5987
+assert_return(() => invoke($41, `load8_u`, [8178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5988
+assert_return(() => invoke($41, `load8_u`, [8377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5989
+assert_return(() => invoke($41, `load8_u`, [8576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5990
+assert_return(() => invoke($41, `load8_u`, [8775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5991
+assert_return(() => invoke($41, `load8_u`, [8974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5992
+assert_return(() => invoke($41, `load8_u`, [9173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5993
+assert_return(() => invoke($41, `load8_u`, [9372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5994
+assert_return(() => invoke($41, `load8_u`, [9571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5995
+assert_return(() => invoke($41, `load8_u`, [9770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5996
+assert_return(() => invoke($41, `load8_u`, [9969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5997
+assert_return(() => invoke($41, `load8_u`, [10168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5998
+assert_return(() => invoke($41, `load8_u`, [10367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:5999
+assert_return(() => invoke($41, `load8_u`, [10566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6000
+assert_return(() => invoke($41, `load8_u`, [10765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6001
+assert_return(() => invoke($41, `load8_u`, [10964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6002
+assert_return(() => invoke($41, `load8_u`, [11163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6003
+assert_return(() => invoke($41, `load8_u`, [11362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6004
+assert_return(() => invoke($41, `load8_u`, [11561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6005
+assert_return(() => invoke($41, `load8_u`, [11760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6006
+assert_return(() => invoke($41, `load8_u`, [11959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6007
+assert_return(() => invoke($41, `load8_u`, [12158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6008
+assert_return(() => invoke($41, `load8_u`, [12357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6009
+assert_return(() => invoke($41, `load8_u`, [12556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6010
+assert_return(() => invoke($41, `load8_u`, [12755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6011
+assert_return(() => invoke($41, `load8_u`, [12954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6012
+assert_return(() => invoke($41, `load8_u`, [13153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6013
+assert_return(() => invoke($41, `load8_u`, [13352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6014
+assert_return(() => invoke($41, `load8_u`, [13551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6015
+assert_return(() => invoke($41, `load8_u`, [13750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6016
+assert_return(() => invoke($41, `load8_u`, [13949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6017
+assert_return(() => invoke($41, `load8_u`, [14148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6018
+assert_return(() => invoke($41, `load8_u`, [14347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6019
+assert_return(() => invoke($41, `load8_u`, [14546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6020
+assert_return(() => invoke($41, `load8_u`, [14745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6021
+assert_return(() => invoke($41, `load8_u`, [14944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6022
+assert_return(() => invoke($41, `load8_u`, [15143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6023
+assert_return(() => invoke($41, `load8_u`, [15342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6024
+assert_return(() => invoke($41, `load8_u`, [15541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6025
+assert_return(() => invoke($41, `load8_u`, [15740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6026
+assert_return(() => invoke($41, `load8_u`, [15939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6027
+assert_return(() => invoke($41, `load8_u`, [16138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6028
+assert_return(() => invoke($41, `load8_u`, [16337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6029
+assert_return(() => invoke($41, `load8_u`, [16536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6030
+assert_return(() => invoke($41, `load8_u`, [16735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6031
+assert_return(() => invoke($41, `load8_u`, [16934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6032
+assert_return(() => invoke($41, `load8_u`, [17133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6033
+assert_return(() => invoke($41, `load8_u`, [17332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6034
+assert_return(() => invoke($41, `load8_u`, [17531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6035
+assert_return(() => invoke($41, `load8_u`, [17730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6036
+assert_return(() => invoke($41, `load8_u`, [17929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6037
+assert_return(() => invoke($41, `load8_u`, [18128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6038
+assert_return(() => invoke($41, `load8_u`, [18327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6039
+assert_return(() => invoke($41, `load8_u`, [18526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6040
+assert_return(() => invoke($41, `load8_u`, [18725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6041
+assert_return(() => invoke($41, `load8_u`, [18924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6042
+assert_return(() => invoke($41, `load8_u`, [19123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6043
+assert_return(() => invoke($41, `load8_u`, [19322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6044
+assert_return(() => invoke($41, `load8_u`, [19521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6045
+assert_return(() => invoke($41, `load8_u`, [19720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6046
+assert_return(() => invoke($41, `load8_u`, [19919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6047
+assert_return(() => invoke($41, `load8_u`, [20118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6048
+assert_return(() => invoke($41, `load8_u`, [20317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6049
+assert_return(() => invoke($41, `load8_u`, [20516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6050
+assert_return(() => invoke($41, `load8_u`, [20715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6051
+assert_return(() => invoke($41, `load8_u`, [20914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6052
+assert_return(() => invoke($41, `load8_u`, [21113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6053
+assert_return(() => invoke($41, `load8_u`, [21312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6054
+assert_return(() => invoke($41, `load8_u`, [21511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6055
+assert_return(() => invoke($41, `load8_u`, [21710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6056
+assert_return(() => invoke($41, `load8_u`, [21909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6057
+assert_return(() => invoke($41, `load8_u`, [22108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6058
+assert_return(() => invoke($41, `load8_u`, [22307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6059
+assert_return(() => invoke($41, `load8_u`, [22506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6060
+assert_return(() => invoke($41, `load8_u`, [22705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6061
+assert_return(() => invoke($41, `load8_u`, [22904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6062
+assert_return(() => invoke($41, `load8_u`, [23103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6063
+assert_return(() => invoke($41, `load8_u`, [23302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6064
+assert_return(() => invoke($41, `load8_u`, [23501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6065
+assert_return(() => invoke($41, `load8_u`, [23700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6066
+assert_return(() => invoke($41, `load8_u`, [23899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6067
+assert_return(() => invoke($41, `load8_u`, [24098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6068
+assert_return(() => invoke($41, `load8_u`, [24297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6069
+assert_return(() => invoke($41, `load8_u`, [24496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6070
+assert_return(() => invoke($41, `load8_u`, [24695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6071
+assert_return(() => invoke($41, `load8_u`, [24894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6072
+assert_return(() => invoke($41, `load8_u`, [25093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6073
+assert_return(() => invoke($41, `load8_u`, [25292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6074
+assert_return(() => invoke($41, `load8_u`, [25491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6075
+assert_return(() => invoke($41, `load8_u`, [25690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6076
+assert_return(() => invoke($41, `load8_u`, [25889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6077
+assert_return(() => invoke($41, `load8_u`, [26088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6078
+assert_return(() => invoke($41, `load8_u`, [26287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6079
+assert_return(() => invoke($41, `load8_u`, [26486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6080
+assert_return(() => invoke($41, `load8_u`, [26685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6081
+assert_return(() => invoke($41, `load8_u`, [26884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6082
+assert_return(() => invoke($41, `load8_u`, [27083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6083
+assert_return(() => invoke($41, `load8_u`, [27282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6084
+assert_return(() => invoke($41, `load8_u`, [27481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6085
+assert_return(() => invoke($41, `load8_u`, [27680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6086
+assert_return(() => invoke($41, `load8_u`, [27879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6087
+assert_return(() => invoke($41, `load8_u`, [28078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6088
+assert_return(() => invoke($41, `load8_u`, [28277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6089
+assert_return(() => invoke($41, `load8_u`, [28476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6090
+assert_return(() => invoke($41, `load8_u`, [28675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6091
+assert_return(() => invoke($41, `load8_u`, [28874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6092
+assert_return(() => invoke($41, `load8_u`, [29073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6093
+assert_return(() => invoke($41, `load8_u`, [29272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6094
+assert_return(() => invoke($41, `load8_u`, [29471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6095
+assert_return(() => invoke($41, `load8_u`, [29670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6096
+assert_return(() => invoke($41, `load8_u`, [29869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6097
+assert_return(() => invoke($41, `load8_u`, [30068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6098
+assert_return(() => invoke($41, `load8_u`, [30267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6099
+assert_return(() => invoke($41, `load8_u`, [30466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6100
+assert_return(() => invoke($41, `load8_u`, [30665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6101
+assert_return(() => invoke($41, `load8_u`, [30864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6102
+assert_return(() => invoke($41, `load8_u`, [31063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6103
+assert_return(() => invoke($41, `load8_u`, [31262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6104
+assert_return(() => invoke($41, `load8_u`, [31461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6105
+assert_return(() => invoke($41, `load8_u`, [31660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6106
+assert_return(() => invoke($41, `load8_u`, [31859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6107
+assert_return(() => invoke($41, `load8_u`, [32058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6108
+assert_return(() => invoke($41, `load8_u`, [32257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6109
+assert_return(() => invoke($41, `load8_u`, [32456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6110
+assert_return(() => invoke($41, `load8_u`, [32655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6111
+assert_return(() => invoke($41, `load8_u`, [32854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6112
+assert_return(() => invoke($41, `load8_u`, [33053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6113
+assert_return(() => invoke($41, `load8_u`, [33252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6114
+assert_return(() => invoke($41, `load8_u`, [33451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6115
+assert_return(() => invoke($41, `load8_u`, [33650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6116
+assert_return(() => invoke($41, `load8_u`, [33849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6117
+assert_return(() => invoke($41, `load8_u`, [34048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6118
+assert_return(() => invoke($41, `load8_u`, [34247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6119
+assert_return(() => invoke($41, `load8_u`, [34446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6120
+assert_return(() => invoke($41, `load8_u`, [34645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6121
+assert_return(() => invoke($41, `load8_u`, [34844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6122
+assert_return(() => invoke($41, `load8_u`, [35043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6123
+assert_return(() => invoke($41, `load8_u`, [35242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6124
+assert_return(() => invoke($41, `load8_u`, [35441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6125
+assert_return(() => invoke($41, `load8_u`, [35640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6126
+assert_return(() => invoke($41, `load8_u`, [35839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6127
+assert_return(() => invoke($41, `load8_u`, [36038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6128
+assert_return(() => invoke($41, `load8_u`, [36237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6129
+assert_return(() => invoke($41, `load8_u`, [36436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6130
+assert_return(() => invoke($41, `load8_u`, [36635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6131
+assert_return(() => invoke($41, `load8_u`, [36834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6132
+assert_return(() => invoke($41, `load8_u`, [37033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6133
+assert_return(() => invoke($41, `load8_u`, [37232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6134
+assert_return(() => invoke($41, `load8_u`, [37431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6135
+assert_return(() => invoke($41, `load8_u`, [37630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6136
+assert_return(() => invoke($41, `load8_u`, [37829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6137
+assert_return(() => invoke($41, `load8_u`, [38028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6138
+assert_return(() => invoke($41, `load8_u`, [38227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6139
+assert_return(() => invoke($41, `load8_u`, [38426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6140
+assert_return(() => invoke($41, `load8_u`, [38625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6141
+assert_return(() => invoke($41, `load8_u`, [38824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6142
+assert_return(() => invoke($41, `load8_u`, [39023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6143
+assert_return(() => invoke($41, `load8_u`, [39222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6144
+assert_return(() => invoke($41, `load8_u`, [39421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6145
+assert_return(() => invoke($41, `load8_u`, [39620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6146
+assert_return(() => invoke($41, `load8_u`, [39819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6147
+assert_return(() => invoke($41, `load8_u`, [40018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6148
+assert_return(() => invoke($41, `load8_u`, [40217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6149
+assert_return(() => invoke($41, `load8_u`, [40416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6150
+assert_return(() => invoke($41, `load8_u`, [40615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6151
+assert_return(() => invoke($41, `load8_u`, [40814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6152
+assert_return(() => invoke($41, `load8_u`, [41013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6153
+assert_return(() => invoke($41, `load8_u`, [41212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6154
+assert_return(() => invoke($41, `load8_u`, [41411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6155
+assert_return(() => invoke($41, `load8_u`, [41610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6156
+assert_return(() => invoke($41, `load8_u`, [41809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6157
+assert_return(() => invoke($41, `load8_u`, [42008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6158
+assert_return(() => invoke($41, `load8_u`, [42207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6159
+assert_return(() => invoke($41, `load8_u`, [42406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6160
+assert_return(() => invoke($41, `load8_u`, [42605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6161
+assert_return(() => invoke($41, `load8_u`, [42804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6162
+assert_return(() => invoke($41, `load8_u`, [43003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6163
+assert_return(() => invoke($41, `load8_u`, [43202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6164
+assert_return(() => invoke($41, `load8_u`, [43401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6165
+assert_return(() => invoke($41, `load8_u`, [43600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6166
+assert_return(() => invoke($41, `load8_u`, [43799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6167
+assert_return(() => invoke($41, `load8_u`, [43998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6168
+assert_return(() => invoke($41, `load8_u`, [44197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6169
+assert_return(() => invoke($41, `load8_u`, [44396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6170
+assert_return(() => invoke($41, `load8_u`, [44595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6171
+assert_return(() => invoke($41, `load8_u`, [44794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6172
+assert_return(() => invoke($41, `load8_u`, [44993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6173
+assert_return(() => invoke($41, `load8_u`, [45192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6174
+assert_return(() => invoke($41, `load8_u`, [45391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6175
+assert_return(() => invoke($41, `load8_u`, [45590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6176
+assert_return(() => invoke($41, `load8_u`, [45789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6177
+assert_return(() => invoke($41, `load8_u`, [45988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6178
+assert_return(() => invoke($41, `load8_u`, [46187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6179
+assert_return(() => invoke($41, `load8_u`, [46386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6180
+assert_return(() => invoke($41, `load8_u`, [46585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6181
+assert_return(() => invoke($41, `load8_u`, [46784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6182
+assert_return(() => invoke($41, `load8_u`, [46983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6183
+assert_return(() => invoke($41, `load8_u`, [47182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6184
+assert_return(() => invoke($41, `load8_u`, [47381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6185
+assert_return(() => invoke($41, `load8_u`, [47580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6186
+assert_return(() => invoke($41, `load8_u`, [47779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6187
+assert_return(() => invoke($41, `load8_u`, [47978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6188
+assert_return(() => invoke($41, `load8_u`, [48177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6189
+assert_return(() => invoke($41, `load8_u`, [48376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6190
+assert_return(() => invoke($41, `load8_u`, [48575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6191
+assert_return(() => invoke($41, `load8_u`, [48774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6192
+assert_return(() => invoke($41, `load8_u`, [48973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6193
+assert_return(() => invoke($41, `load8_u`, [49172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6194
+assert_return(() => invoke($41, `load8_u`, [49371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6195
+assert_return(() => invoke($41, `load8_u`, [49570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6196
+assert_return(() => invoke($41, `load8_u`, [49769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6197
+assert_return(() => invoke($41, `load8_u`, [49968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6198
+assert_return(() => invoke($41, `load8_u`, [50167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6199
+assert_return(() => invoke($41, `load8_u`, [50366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6200
+assert_return(() => invoke($41, `load8_u`, [50565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6201
+assert_return(() => invoke($41, `load8_u`, [50764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6202
+assert_return(() => invoke($41, `load8_u`, [50963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6203
+assert_return(() => invoke($41, `load8_u`, [51162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6204
+assert_return(() => invoke($41, `load8_u`, [51361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6205
+assert_return(() => invoke($41, `load8_u`, [51560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6206
+assert_return(() => invoke($41, `load8_u`, [51759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6207
+assert_return(() => invoke($41, `load8_u`, [51958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6208
+assert_return(() => invoke($41, `load8_u`, [52157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6209
+assert_return(() => invoke($41, `load8_u`, [52356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6210
+assert_return(() => invoke($41, `load8_u`, [52555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6211
+assert_return(() => invoke($41, `load8_u`, [52754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6212
+assert_return(() => invoke($41, `load8_u`, [52953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6213
+assert_return(() => invoke($41, `load8_u`, [53152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6214
+assert_return(() => invoke($41, `load8_u`, [53351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6215
+assert_return(() => invoke($41, `load8_u`, [53550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6216
+assert_return(() => invoke($41, `load8_u`, [53749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6217
+assert_return(() => invoke($41, `load8_u`, [53948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6218
+assert_return(() => invoke($41, `load8_u`, [54147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6219
+assert_return(() => invoke($41, `load8_u`, [54346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6220
+assert_return(() => invoke($41, `load8_u`, [54545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6221
+assert_return(() => invoke($41, `load8_u`, [54744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6222
+assert_return(() => invoke($41, `load8_u`, [54943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6223
+assert_return(() => invoke($41, `load8_u`, [55142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6224
+assert_return(() => invoke($41, `load8_u`, [55341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6225
+assert_return(() => invoke($41, `load8_u`, [55540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6226
+assert_return(() => invoke($41, `load8_u`, [55739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6227
+assert_return(() => invoke($41, `load8_u`, [55938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6228
+assert_return(() => invoke($41, `load8_u`, [56137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6229
+assert_return(() => invoke($41, `load8_u`, [56336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6230
+assert_return(() => invoke($41, `load8_u`, [56535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6231
+assert_return(() => invoke($41, `load8_u`, [56734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6232
+assert_return(() => invoke($41, `load8_u`, [56933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6233
+assert_return(() => invoke($41, `load8_u`, [57132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6234
+assert_return(() => invoke($41, `load8_u`, [57331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6235
+assert_return(() => invoke($41, `load8_u`, [57530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6236
+assert_return(() => invoke($41, `load8_u`, [57729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6237
+assert_return(() => invoke($41, `load8_u`, [57928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6238
+assert_return(() => invoke($41, `load8_u`, [58127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6239
+assert_return(() => invoke($41, `load8_u`, [58326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6240
+assert_return(() => invoke($41, `load8_u`, [58525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6241
+assert_return(() => invoke($41, `load8_u`, [58724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6242
+assert_return(() => invoke($41, `load8_u`, [58923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6243
+assert_return(() => invoke($41, `load8_u`, [59122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6244
+assert_return(() => invoke($41, `load8_u`, [59321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6245
+assert_return(() => invoke($41, `load8_u`, [59520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6246
+assert_return(() => invoke($41, `load8_u`, [59719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6247
+assert_return(() => invoke($41, `load8_u`, [59918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6248
+assert_return(() => invoke($41, `load8_u`, [60117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6249
+assert_return(() => invoke($41, `load8_u`, [60316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6250
+assert_return(() => invoke($41, `load8_u`, [60515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6251
+assert_return(() => invoke($41, `load8_u`, [60714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6252
+assert_return(() => invoke($41, `load8_u`, [60913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6253
+assert_return(() => invoke($41, `load8_u`, [61112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6254
+assert_return(() => invoke($41, `load8_u`, [61311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6255
+assert_return(() => invoke($41, `load8_u`, [61510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6256
+assert_return(() => invoke($41, `load8_u`, [61709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6257
+assert_return(() => invoke($41, `load8_u`, [61908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6258
+assert_return(() => invoke($41, `load8_u`, [62107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6259
+assert_return(() => invoke($41, `load8_u`, [62306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6260
+assert_return(() => invoke($41, `load8_u`, [62505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6261
+assert_return(() => invoke($41, `load8_u`, [62704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6262
+assert_return(() => invoke($41, `load8_u`, [62903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6263
+assert_return(() => invoke($41, `load8_u`, [63102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6264
+assert_return(() => invoke($41, `load8_u`, [63301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6265
+assert_return(() => invoke($41, `load8_u`, [63500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6266
+assert_return(() => invoke($41, `load8_u`, [63699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6267
+assert_return(() => invoke($41, `load8_u`, [63898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6268
+assert_return(() => invoke($41, `load8_u`, [64097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6269
+assert_return(() => invoke($41, `load8_u`, [64296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6270
+assert_return(() => invoke($41, `load8_u`, [64495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6271
+assert_return(() => invoke($41, `load8_u`, [64694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6272
+assert_return(() => invoke($41, `load8_u`, [64893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6273
+assert_return(() => invoke($41, `load8_u`, [65092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6274
+assert_return(() => invoke($41, `load8_u`, [65291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6275
+assert_return(() => invoke($41, `load8_u`, [65490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6277
+let $42 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 0) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13\\14")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:6285
+assert_trap(() => invoke($42, `run`, [65515, 0, 39]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:6288
+assert_return(() => invoke($42, `load8_u`, [0]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6289
+assert_return(() => invoke($42, `load8_u`, [1]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:6290
+assert_return(() => invoke($42, `load8_u`, [2]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:6291
+assert_return(() => invoke($42, `load8_u`, [3]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:6292
+assert_return(() => invoke($42, `load8_u`, [4]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:6293
+assert_return(() => invoke($42, `load8_u`, [5]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:6294
+assert_return(() => invoke($42, `load8_u`, [6]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:6295
+assert_return(() => invoke($42, `load8_u`, [7]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:6296
+assert_return(() => invoke($42, `load8_u`, [8]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:6297
+assert_return(() => invoke($42, `load8_u`, [9]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:6298
+assert_return(() => invoke($42, `load8_u`, [10]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:6299
+assert_return(() => invoke($42, `load8_u`, [11]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:6300
+assert_return(() => invoke($42, `load8_u`, [12]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:6301
+assert_return(() => invoke($42, `load8_u`, [13]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:6302
+assert_return(() => invoke($42, `load8_u`, [14]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:6303
+assert_return(() => invoke($42, `load8_u`, [15]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:6304
+assert_return(() => invoke($42, `load8_u`, [16]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:6305
+assert_return(() => invoke($42, `load8_u`, [17]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:6306
+assert_return(() => invoke($42, `load8_u`, [18]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:6307
+assert_return(() => invoke($42, `load8_u`, [19]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:6308
+assert_return(() => invoke($42, `load8_u`, [20]), [value("i32", 20)]);
+
+// ./test/core/memory_copy.wast:6309
+assert_return(() => invoke($42, `load8_u`, [219]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6310
+assert_return(() => invoke($42, `load8_u`, [418]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6311
+assert_return(() => invoke($42, `load8_u`, [617]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6312
+assert_return(() => invoke($42, `load8_u`, [816]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6313
+assert_return(() => invoke($42, `load8_u`, [1015]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6314
+assert_return(() => invoke($42, `load8_u`, [1214]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6315
+assert_return(() => invoke($42, `load8_u`, [1413]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6316
+assert_return(() => invoke($42, `load8_u`, [1612]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6317
+assert_return(() => invoke($42, `load8_u`, [1811]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6318
+assert_return(() => invoke($42, `load8_u`, [2010]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6319
+assert_return(() => invoke($42, `load8_u`, [2209]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6320
+assert_return(() => invoke($42, `load8_u`, [2408]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6321
+assert_return(() => invoke($42, `load8_u`, [2607]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6322
+assert_return(() => invoke($42, `load8_u`, [2806]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6323
+assert_return(() => invoke($42, `load8_u`, [3005]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6324
+assert_return(() => invoke($42, `load8_u`, [3204]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6325
+assert_return(() => invoke($42, `load8_u`, [3403]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6326
+assert_return(() => invoke($42, `load8_u`, [3602]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6327
+assert_return(() => invoke($42, `load8_u`, [3801]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6328
+assert_return(() => invoke($42, `load8_u`, [4000]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6329
+assert_return(() => invoke($42, `load8_u`, [4199]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6330
+assert_return(() => invoke($42, `load8_u`, [4398]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6331
+assert_return(() => invoke($42, `load8_u`, [4597]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6332
+assert_return(() => invoke($42, `load8_u`, [4796]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6333
+assert_return(() => invoke($42, `load8_u`, [4995]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6334
+assert_return(() => invoke($42, `load8_u`, [5194]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6335
+assert_return(() => invoke($42, `load8_u`, [5393]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6336
+assert_return(() => invoke($42, `load8_u`, [5592]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6337
+assert_return(() => invoke($42, `load8_u`, [5791]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6338
+assert_return(() => invoke($42, `load8_u`, [5990]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6339
+assert_return(() => invoke($42, `load8_u`, [6189]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6340
+assert_return(() => invoke($42, `load8_u`, [6388]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6341
+assert_return(() => invoke($42, `load8_u`, [6587]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6342
+assert_return(() => invoke($42, `load8_u`, [6786]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6343
+assert_return(() => invoke($42, `load8_u`, [6985]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6344
+assert_return(() => invoke($42, `load8_u`, [7184]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6345
+assert_return(() => invoke($42, `load8_u`, [7383]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6346
+assert_return(() => invoke($42, `load8_u`, [7582]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6347
+assert_return(() => invoke($42, `load8_u`, [7781]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6348
+assert_return(() => invoke($42, `load8_u`, [7980]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6349
+assert_return(() => invoke($42, `load8_u`, [8179]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6350
+assert_return(() => invoke($42, `load8_u`, [8378]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6351
+assert_return(() => invoke($42, `load8_u`, [8577]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6352
+assert_return(() => invoke($42, `load8_u`, [8776]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6353
+assert_return(() => invoke($42, `load8_u`, [8975]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6354
+assert_return(() => invoke($42, `load8_u`, [9174]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6355
+assert_return(() => invoke($42, `load8_u`, [9373]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6356
+assert_return(() => invoke($42, `load8_u`, [9572]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6357
+assert_return(() => invoke($42, `load8_u`, [9771]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6358
+assert_return(() => invoke($42, `load8_u`, [9970]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6359
+assert_return(() => invoke($42, `load8_u`, [10169]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6360
+assert_return(() => invoke($42, `load8_u`, [10368]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6361
+assert_return(() => invoke($42, `load8_u`, [10567]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6362
+assert_return(() => invoke($42, `load8_u`, [10766]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6363
+assert_return(() => invoke($42, `load8_u`, [10965]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6364
+assert_return(() => invoke($42, `load8_u`, [11164]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6365
+assert_return(() => invoke($42, `load8_u`, [11363]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6366
+assert_return(() => invoke($42, `load8_u`, [11562]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6367
+assert_return(() => invoke($42, `load8_u`, [11761]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6368
+assert_return(() => invoke($42, `load8_u`, [11960]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6369
+assert_return(() => invoke($42, `load8_u`, [12159]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6370
+assert_return(() => invoke($42, `load8_u`, [12358]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6371
+assert_return(() => invoke($42, `load8_u`, [12557]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6372
+assert_return(() => invoke($42, `load8_u`, [12756]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6373
+assert_return(() => invoke($42, `load8_u`, [12955]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6374
+assert_return(() => invoke($42, `load8_u`, [13154]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6375
+assert_return(() => invoke($42, `load8_u`, [13353]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6376
+assert_return(() => invoke($42, `load8_u`, [13552]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6377
+assert_return(() => invoke($42, `load8_u`, [13751]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6378
+assert_return(() => invoke($42, `load8_u`, [13950]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6379
+assert_return(() => invoke($42, `load8_u`, [14149]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6380
+assert_return(() => invoke($42, `load8_u`, [14348]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6381
+assert_return(() => invoke($42, `load8_u`, [14547]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6382
+assert_return(() => invoke($42, `load8_u`, [14746]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6383
+assert_return(() => invoke($42, `load8_u`, [14945]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6384
+assert_return(() => invoke($42, `load8_u`, [15144]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6385
+assert_return(() => invoke($42, `load8_u`, [15343]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6386
+assert_return(() => invoke($42, `load8_u`, [15542]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6387
+assert_return(() => invoke($42, `load8_u`, [15741]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6388
+assert_return(() => invoke($42, `load8_u`, [15940]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6389
+assert_return(() => invoke($42, `load8_u`, [16139]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6390
+assert_return(() => invoke($42, `load8_u`, [16338]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6391
+assert_return(() => invoke($42, `load8_u`, [16537]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6392
+assert_return(() => invoke($42, `load8_u`, [16736]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6393
+assert_return(() => invoke($42, `load8_u`, [16935]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6394
+assert_return(() => invoke($42, `load8_u`, [17134]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6395
+assert_return(() => invoke($42, `load8_u`, [17333]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6396
+assert_return(() => invoke($42, `load8_u`, [17532]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6397
+assert_return(() => invoke($42, `load8_u`, [17731]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6398
+assert_return(() => invoke($42, `load8_u`, [17930]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6399
+assert_return(() => invoke($42, `load8_u`, [18129]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6400
+assert_return(() => invoke($42, `load8_u`, [18328]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6401
+assert_return(() => invoke($42, `load8_u`, [18527]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6402
+assert_return(() => invoke($42, `load8_u`, [18726]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6403
+assert_return(() => invoke($42, `load8_u`, [18925]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6404
+assert_return(() => invoke($42, `load8_u`, [19124]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6405
+assert_return(() => invoke($42, `load8_u`, [19323]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6406
+assert_return(() => invoke($42, `load8_u`, [19522]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6407
+assert_return(() => invoke($42, `load8_u`, [19721]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6408
+assert_return(() => invoke($42, `load8_u`, [19920]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6409
+assert_return(() => invoke($42, `load8_u`, [20119]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6410
+assert_return(() => invoke($42, `load8_u`, [20318]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6411
+assert_return(() => invoke($42, `load8_u`, [20517]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6412
+assert_return(() => invoke($42, `load8_u`, [20716]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6413
+assert_return(() => invoke($42, `load8_u`, [20915]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6414
+assert_return(() => invoke($42, `load8_u`, [21114]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6415
+assert_return(() => invoke($42, `load8_u`, [21313]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6416
+assert_return(() => invoke($42, `load8_u`, [21512]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6417
+assert_return(() => invoke($42, `load8_u`, [21711]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6418
+assert_return(() => invoke($42, `load8_u`, [21910]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6419
+assert_return(() => invoke($42, `load8_u`, [22109]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6420
+assert_return(() => invoke($42, `load8_u`, [22308]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6421
+assert_return(() => invoke($42, `load8_u`, [22507]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6422
+assert_return(() => invoke($42, `load8_u`, [22706]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6423
+assert_return(() => invoke($42, `load8_u`, [22905]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6424
+assert_return(() => invoke($42, `load8_u`, [23104]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6425
+assert_return(() => invoke($42, `load8_u`, [23303]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6426
+assert_return(() => invoke($42, `load8_u`, [23502]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6427
+assert_return(() => invoke($42, `load8_u`, [23701]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6428
+assert_return(() => invoke($42, `load8_u`, [23900]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6429
+assert_return(() => invoke($42, `load8_u`, [24099]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6430
+assert_return(() => invoke($42, `load8_u`, [24298]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6431
+assert_return(() => invoke($42, `load8_u`, [24497]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6432
+assert_return(() => invoke($42, `load8_u`, [24696]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6433
+assert_return(() => invoke($42, `load8_u`, [24895]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6434
+assert_return(() => invoke($42, `load8_u`, [25094]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6435
+assert_return(() => invoke($42, `load8_u`, [25293]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6436
+assert_return(() => invoke($42, `load8_u`, [25492]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6437
+assert_return(() => invoke($42, `load8_u`, [25691]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6438
+assert_return(() => invoke($42, `load8_u`, [25890]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6439
+assert_return(() => invoke($42, `load8_u`, [26089]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6440
+assert_return(() => invoke($42, `load8_u`, [26288]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6441
+assert_return(() => invoke($42, `load8_u`, [26487]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6442
+assert_return(() => invoke($42, `load8_u`, [26686]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6443
+assert_return(() => invoke($42, `load8_u`, [26885]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6444
+assert_return(() => invoke($42, `load8_u`, [27084]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6445
+assert_return(() => invoke($42, `load8_u`, [27283]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6446
+assert_return(() => invoke($42, `load8_u`, [27482]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6447
+assert_return(() => invoke($42, `load8_u`, [27681]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6448
+assert_return(() => invoke($42, `load8_u`, [27880]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6449
+assert_return(() => invoke($42, `load8_u`, [28079]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6450
+assert_return(() => invoke($42, `load8_u`, [28278]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6451
+assert_return(() => invoke($42, `load8_u`, [28477]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6452
+assert_return(() => invoke($42, `load8_u`, [28676]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6453
+assert_return(() => invoke($42, `load8_u`, [28875]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6454
+assert_return(() => invoke($42, `load8_u`, [29074]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6455
+assert_return(() => invoke($42, `load8_u`, [29273]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6456
+assert_return(() => invoke($42, `load8_u`, [29472]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6457
+assert_return(() => invoke($42, `load8_u`, [29671]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6458
+assert_return(() => invoke($42, `load8_u`, [29870]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6459
+assert_return(() => invoke($42, `load8_u`, [30069]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6460
+assert_return(() => invoke($42, `load8_u`, [30268]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6461
+assert_return(() => invoke($42, `load8_u`, [30467]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6462
+assert_return(() => invoke($42, `load8_u`, [30666]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6463
+assert_return(() => invoke($42, `load8_u`, [30865]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6464
+assert_return(() => invoke($42, `load8_u`, [31064]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6465
+assert_return(() => invoke($42, `load8_u`, [31263]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6466
+assert_return(() => invoke($42, `load8_u`, [31462]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6467
+assert_return(() => invoke($42, `load8_u`, [31661]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6468
+assert_return(() => invoke($42, `load8_u`, [31860]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6469
+assert_return(() => invoke($42, `load8_u`, [32059]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6470
+assert_return(() => invoke($42, `load8_u`, [32258]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6471
+assert_return(() => invoke($42, `load8_u`, [32457]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6472
+assert_return(() => invoke($42, `load8_u`, [32656]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6473
+assert_return(() => invoke($42, `load8_u`, [32855]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6474
+assert_return(() => invoke($42, `load8_u`, [33054]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6475
+assert_return(() => invoke($42, `load8_u`, [33253]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6476
+assert_return(() => invoke($42, `load8_u`, [33452]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6477
+assert_return(() => invoke($42, `load8_u`, [33651]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6478
+assert_return(() => invoke($42, `load8_u`, [33850]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6479
+assert_return(() => invoke($42, `load8_u`, [34049]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6480
+assert_return(() => invoke($42, `load8_u`, [34248]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6481
+assert_return(() => invoke($42, `load8_u`, [34447]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6482
+assert_return(() => invoke($42, `load8_u`, [34646]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6483
+assert_return(() => invoke($42, `load8_u`, [34845]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6484
+assert_return(() => invoke($42, `load8_u`, [35044]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6485
+assert_return(() => invoke($42, `load8_u`, [35243]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6486
+assert_return(() => invoke($42, `load8_u`, [35442]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6487
+assert_return(() => invoke($42, `load8_u`, [35641]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6488
+assert_return(() => invoke($42, `load8_u`, [35840]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6489
+assert_return(() => invoke($42, `load8_u`, [36039]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6490
+assert_return(() => invoke($42, `load8_u`, [36238]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6491
+assert_return(() => invoke($42, `load8_u`, [36437]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6492
+assert_return(() => invoke($42, `load8_u`, [36636]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6493
+assert_return(() => invoke($42, `load8_u`, [36835]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6494
+assert_return(() => invoke($42, `load8_u`, [37034]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6495
+assert_return(() => invoke($42, `load8_u`, [37233]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6496
+assert_return(() => invoke($42, `load8_u`, [37432]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6497
+assert_return(() => invoke($42, `load8_u`, [37631]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6498
+assert_return(() => invoke($42, `load8_u`, [37830]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6499
+assert_return(() => invoke($42, `load8_u`, [38029]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6500
+assert_return(() => invoke($42, `load8_u`, [38228]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6501
+assert_return(() => invoke($42, `load8_u`, [38427]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6502
+assert_return(() => invoke($42, `load8_u`, [38626]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6503
+assert_return(() => invoke($42, `load8_u`, [38825]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6504
+assert_return(() => invoke($42, `load8_u`, [39024]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6505
+assert_return(() => invoke($42, `load8_u`, [39223]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6506
+assert_return(() => invoke($42, `load8_u`, [39422]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6507
+assert_return(() => invoke($42, `load8_u`, [39621]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6508
+assert_return(() => invoke($42, `load8_u`, [39820]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6509
+assert_return(() => invoke($42, `load8_u`, [40019]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6510
+assert_return(() => invoke($42, `load8_u`, [40218]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6511
+assert_return(() => invoke($42, `load8_u`, [40417]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6512
+assert_return(() => invoke($42, `load8_u`, [40616]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6513
+assert_return(() => invoke($42, `load8_u`, [40815]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6514
+assert_return(() => invoke($42, `load8_u`, [41014]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6515
+assert_return(() => invoke($42, `load8_u`, [41213]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6516
+assert_return(() => invoke($42, `load8_u`, [41412]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6517
+assert_return(() => invoke($42, `load8_u`, [41611]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6518
+assert_return(() => invoke($42, `load8_u`, [41810]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6519
+assert_return(() => invoke($42, `load8_u`, [42009]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6520
+assert_return(() => invoke($42, `load8_u`, [42208]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6521
+assert_return(() => invoke($42, `load8_u`, [42407]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6522
+assert_return(() => invoke($42, `load8_u`, [42606]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6523
+assert_return(() => invoke($42, `load8_u`, [42805]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6524
+assert_return(() => invoke($42, `load8_u`, [43004]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6525
+assert_return(() => invoke($42, `load8_u`, [43203]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6526
+assert_return(() => invoke($42, `load8_u`, [43402]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6527
+assert_return(() => invoke($42, `load8_u`, [43601]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6528
+assert_return(() => invoke($42, `load8_u`, [43800]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6529
+assert_return(() => invoke($42, `load8_u`, [43999]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6530
+assert_return(() => invoke($42, `load8_u`, [44198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6531
+assert_return(() => invoke($42, `load8_u`, [44397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6532
+assert_return(() => invoke($42, `load8_u`, [44596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6533
+assert_return(() => invoke($42, `load8_u`, [44795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6534
+assert_return(() => invoke($42, `load8_u`, [44994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6535
+assert_return(() => invoke($42, `load8_u`, [45193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6536
+assert_return(() => invoke($42, `load8_u`, [45392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6537
+assert_return(() => invoke($42, `load8_u`, [45591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6538
+assert_return(() => invoke($42, `load8_u`, [45790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6539
+assert_return(() => invoke($42, `load8_u`, [45989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6540
+assert_return(() => invoke($42, `load8_u`, [46188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6541
+assert_return(() => invoke($42, `load8_u`, [46387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6542
+assert_return(() => invoke($42, `load8_u`, [46586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6543
+assert_return(() => invoke($42, `load8_u`, [46785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6544
+assert_return(() => invoke($42, `load8_u`, [46984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6545
+assert_return(() => invoke($42, `load8_u`, [47183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6546
+assert_return(() => invoke($42, `load8_u`, [47382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6547
+assert_return(() => invoke($42, `load8_u`, [47581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6548
+assert_return(() => invoke($42, `load8_u`, [47780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6549
+assert_return(() => invoke($42, `load8_u`, [47979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6550
+assert_return(() => invoke($42, `load8_u`, [48178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6551
+assert_return(() => invoke($42, `load8_u`, [48377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6552
+assert_return(() => invoke($42, `load8_u`, [48576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6553
+assert_return(() => invoke($42, `load8_u`, [48775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6554
+assert_return(() => invoke($42, `load8_u`, [48974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6555
+assert_return(() => invoke($42, `load8_u`, [49173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6556
+assert_return(() => invoke($42, `load8_u`, [49372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6557
+assert_return(() => invoke($42, `load8_u`, [49571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6558
+assert_return(() => invoke($42, `load8_u`, [49770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6559
+assert_return(() => invoke($42, `load8_u`, [49969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6560
+assert_return(() => invoke($42, `load8_u`, [50168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6561
+assert_return(() => invoke($42, `load8_u`, [50367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6562
+assert_return(() => invoke($42, `load8_u`, [50566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6563
+assert_return(() => invoke($42, `load8_u`, [50765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6564
+assert_return(() => invoke($42, `load8_u`, [50964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6565
+assert_return(() => invoke($42, `load8_u`, [51163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6566
+assert_return(() => invoke($42, `load8_u`, [51362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6567
+assert_return(() => invoke($42, `load8_u`, [51561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6568
+assert_return(() => invoke($42, `load8_u`, [51760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6569
+assert_return(() => invoke($42, `load8_u`, [51959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6570
+assert_return(() => invoke($42, `load8_u`, [52158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6571
+assert_return(() => invoke($42, `load8_u`, [52357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6572
+assert_return(() => invoke($42, `load8_u`, [52556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6573
+assert_return(() => invoke($42, `load8_u`, [52755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6574
+assert_return(() => invoke($42, `load8_u`, [52954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6575
+assert_return(() => invoke($42, `load8_u`, [53153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6576
+assert_return(() => invoke($42, `load8_u`, [53352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6577
+assert_return(() => invoke($42, `load8_u`, [53551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6578
+assert_return(() => invoke($42, `load8_u`, [53750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6579
+assert_return(() => invoke($42, `load8_u`, [53949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6580
+assert_return(() => invoke($42, `load8_u`, [54148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6581
+assert_return(() => invoke($42, `load8_u`, [54347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6582
+assert_return(() => invoke($42, `load8_u`, [54546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6583
+assert_return(() => invoke($42, `load8_u`, [54745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6584
+assert_return(() => invoke($42, `load8_u`, [54944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6585
+assert_return(() => invoke($42, `load8_u`, [55143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6586
+assert_return(() => invoke($42, `load8_u`, [55342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6587
+assert_return(() => invoke($42, `load8_u`, [55541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6588
+assert_return(() => invoke($42, `load8_u`, [55740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6589
+assert_return(() => invoke($42, `load8_u`, [55939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6590
+assert_return(() => invoke($42, `load8_u`, [56138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6591
+assert_return(() => invoke($42, `load8_u`, [56337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6592
+assert_return(() => invoke($42, `load8_u`, [56536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6593
+assert_return(() => invoke($42, `load8_u`, [56735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6594
+assert_return(() => invoke($42, `load8_u`, [56934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6595
+assert_return(() => invoke($42, `load8_u`, [57133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6596
+assert_return(() => invoke($42, `load8_u`, [57332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6597
+assert_return(() => invoke($42, `load8_u`, [57531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6598
+assert_return(() => invoke($42, `load8_u`, [57730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6599
+assert_return(() => invoke($42, `load8_u`, [57929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6600
+assert_return(() => invoke($42, `load8_u`, [58128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6601
+assert_return(() => invoke($42, `load8_u`, [58327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6602
+assert_return(() => invoke($42, `load8_u`, [58526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6603
+assert_return(() => invoke($42, `load8_u`, [58725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6604
+assert_return(() => invoke($42, `load8_u`, [58924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6605
+assert_return(() => invoke($42, `load8_u`, [59123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6606
+assert_return(() => invoke($42, `load8_u`, [59322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6607
+assert_return(() => invoke($42, `load8_u`, [59521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6608
+assert_return(() => invoke($42, `load8_u`, [59720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6609
+assert_return(() => invoke($42, `load8_u`, [59919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6610
+assert_return(() => invoke($42, `load8_u`, [60118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6611
+assert_return(() => invoke($42, `load8_u`, [60317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6612
+assert_return(() => invoke($42, `load8_u`, [60516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6613
+assert_return(() => invoke($42, `load8_u`, [60715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6614
+assert_return(() => invoke($42, `load8_u`, [60914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6615
+assert_return(() => invoke($42, `load8_u`, [61113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6616
+assert_return(() => invoke($42, `load8_u`, [61312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6617
+assert_return(() => invoke($42, `load8_u`, [61511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6618
+assert_return(() => invoke($42, `load8_u`, [61710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6619
+assert_return(() => invoke($42, `load8_u`, [61909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6620
+assert_return(() => invoke($42, `load8_u`, [62108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6621
+assert_return(() => invoke($42, `load8_u`, [62307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6622
+assert_return(() => invoke($42, `load8_u`, [62506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6623
+assert_return(() => invoke($42, `load8_u`, [62705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6624
+assert_return(() => invoke($42, `load8_u`, [62904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6625
+assert_return(() => invoke($42, `load8_u`, [63103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6626
+assert_return(() => invoke($42, `load8_u`, [63302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6627
+assert_return(() => invoke($42, `load8_u`, [63501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6628
+assert_return(() => invoke($42, `load8_u`, [63700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6629
+assert_return(() => invoke($42, `load8_u`, [63899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6630
+assert_return(() => invoke($42, `load8_u`, [64098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6631
+assert_return(() => invoke($42, `load8_u`, [64297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6632
+assert_return(() => invoke($42, `load8_u`, [64496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6633
+assert_return(() => invoke($42, `load8_u`, [64695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6634
+assert_return(() => invoke($42, `load8_u`, [64894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6635
+assert_return(() => invoke($42, `load8_u`, [65093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6636
+assert_return(() => invoke($42, `load8_u`, [65292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6637
+assert_return(() => invoke($42, `load8_u`, [65491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6639
+let $43 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:6647
+assert_trap(() => invoke($43, `run`, [0, 65516, 40]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:6650
+assert_return(() => invoke($43, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6651
+assert_return(() => invoke($43, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6652
+assert_return(() => invoke($43, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6653
+assert_return(() => invoke($43, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6654
+assert_return(() => invoke($43, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6655
+assert_return(() => invoke($43, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6656
+assert_return(() => invoke($43, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6657
+assert_return(() => invoke($43, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6658
+assert_return(() => invoke($43, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6659
+assert_return(() => invoke($43, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6660
+assert_return(() => invoke($43, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6661
+assert_return(() => invoke($43, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6662
+assert_return(() => invoke($43, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6663
+assert_return(() => invoke($43, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6664
+assert_return(() => invoke($43, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6665
+assert_return(() => invoke($43, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6666
+assert_return(() => invoke($43, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6667
+assert_return(() => invoke($43, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6668
+assert_return(() => invoke($43, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6669
+assert_return(() => invoke($43, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6670
+assert_return(() => invoke($43, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6671
+assert_return(() => invoke($43, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6672
+assert_return(() => invoke($43, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6673
+assert_return(() => invoke($43, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6674
+assert_return(() => invoke($43, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6675
+assert_return(() => invoke($43, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6676
+assert_return(() => invoke($43, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6677
+assert_return(() => invoke($43, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6678
+assert_return(() => invoke($43, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6679
+assert_return(() => invoke($43, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6680
+assert_return(() => invoke($43, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6681
+assert_return(() => invoke($43, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6682
+assert_return(() => invoke($43, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6683
+assert_return(() => invoke($43, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6684
+assert_return(() => invoke($43, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6685
+assert_return(() => invoke($43, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6686
+assert_return(() => invoke($43, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6687
+assert_return(() => invoke($43, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6688
+assert_return(() => invoke($43, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6689
+assert_return(() => invoke($43, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6690
+assert_return(() => invoke($43, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6691
+assert_return(() => invoke($43, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6692
+assert_return(() => invoke($43, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6693
+assert_return(() => invoke($43, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6694
+assert_return(() => invoke($43, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6695
+assert_return(() => invoke($43, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6696
+assert_return(() => invoke($43, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6697
+assert_return(() => invoke($43, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6698
+assert_return(() => invoke($43, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6699
+assert_return(() => invoke($43, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6700
+assert_return(() => invoke($43, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6701
+assert_return(() => invoke($43, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6702
+assert_return(() => invoke($43, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6703
+assert_return(() => invoke($43, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6704
+assert_return(() => invoke($43, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6705
+assert_return(() => invoke($43, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6706
+assert_return(() => invoke($43, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6707
+assert_return(() => invoke($43, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6708
+assert_return(() => invoke($43, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6709
+assert_return(() => invoke($43, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6710
+assert_return(() => invoke($43, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6711
+assert_return(() => invoke($43, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6712
+assert_return(() => invoke($43, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6713
+assert_return(() => invoke($43, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6714
+assert_return(() => invoke($43, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6715
+assert_return(() => invoke($43, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6716
+assert_return(() => invoke($43, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6717
+assert_return(() => invoke($43, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6718
+assert_return(() => invoke($43, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6719
+assert_return(() => invoke($43, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6720
+assert_return(() => invoke($43, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6721
+assert_return(() => invoke($43, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6722
+assert_return(() => invoke($43, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6723
+assert_return(() => invoke($43, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6724
+assert_return(() => invoke($43, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6725
+assert_return(() => invoke($43, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6726
+assert_return(() => invoke($43, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6727
+assert_return(() => invoke($43, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6728
+assert_return(() => invoke($43, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6729
+assert_return(() => invoke($43, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6730
+assert_return(() => invoke($43, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6731
+assert_return(() => invoke($43, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6732
+assert_return(() => invoke($43, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6733
+assert_return(() => invoke($43, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6734
+assert_return(() => invoke($43, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6735
+assert_return(() => invoke($43, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6736
+assert_return(() => invoke($43, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6737
+assert_return(() => invoke($43, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6738
+assert_return(() => invoke($43, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6739
+assert_return(() => invoke($43, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6740
+assert_return(() => invoke($43, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6741
+assert_return(() => invoke($43, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6742
+assert_return(() => invoke($43, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6743
+assert_return(() => invoke($43, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6744
+assert_return(() => invoke($43, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6745
+assert_return(() => invoke($43, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6746
+assert_return(() => invoke($43, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6747
+assert_return(() => invoke($43, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6748
+assert_return(() => invoke($43, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6749
+assert_return(() => invoke($43, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6750
+assert_return(() => invoke($43, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6751
+assert_return(() => invoke($43, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6752
+assert_return(() => invoke($43, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6753
+assert_return(() => invoke($43, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6754
+assert_return(() => invoke($43, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6755
+assert_return(() => invoke($43, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6756
+assert_return(() => invoke($43, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6757
+assert_return(() => invoke($43, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6758
+assert_return(() => invoke($43, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6759
+assert_return(() => invoke($43, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6760
+assert_return(() => invoke($43, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6761
+assert_return(() => invoke($43, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6762
+assert_return(() => invoke($43, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6763
+assert_return(() => invoke($43, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6764
+assert_return(() => invoke($43, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6765
+assert_return(() => invoke($43, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6766
+assert_return(() => invoke($43, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6767
+assert_return(() => invoke($43, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6768
+assert_return(() => invoke($43, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6769
+assert_return(() => invoke($43, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6770
+assert_return(() => invoke($43, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6771
+assert_return(() => invoke($43, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6772
+assert_return(() => invoke($43, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6773
+assert_return(() => invoke($43, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6774
+assert_return(() => invoke($43, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6775
+assert_return(() => invoke($43, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6776
+assert_return(() => invoke($43, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6777
+assert_return(() => invoke($43, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6778
+assert_return(() => invoke($43, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6779
+assert_return(() => invoke($43, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6780
+assert_return(() => invoke($43, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6781
+assert_return(() => invoke($43, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6782
+assert_return(() => invoke($43, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6783
+assert_return(() => invoke($43, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6784
+assert_return(() => invoke($43, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6785
+assert_return(() => invoke($43, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6786
+assert_return(() => invoke($43, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6787
+assert_return(() => invoke($43, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6788
+assert_return(() => invoke($43, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6789
+assert_return(() => invoke($43, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6790
+assert_return(() => invoke($43, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6791
+assert_return(() => invoke($43, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6792
+assert_return(() => invoke($43, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6793
+assert_return(() => invoke($43, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6794
+assert_return(() => invoke($43, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6795
+assert_return(() => invoke($43, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6796
+assert_return(() => invoke($43, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6797
+assert_return(() => invoke($43, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6798
+assert_return(() => invoke($43, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6799
+assert_return(() => invoke($43, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6800
+assert_return(() => invoke($43, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6801
+assert_return(() => invoke($43, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6802
+assert_return(() => invoke($43, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6803
+assert_return(() => invoke($43, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6804
+assert_return(() => invoke($43, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6805
+assert_return(() => invoke($43, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6806
+assert_return(() => invoke($43, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6807
+assert_return(() => invoke($43, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6808
+assert_return(() => invoke($43, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6809
+assert_return(() => invoke($43, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6810
+assert_return(() => invoke($43, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6811
+assert_return(() => invoke($43, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6812
+assert_return(() => invoke($43, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6813
+assert_return(() => invoke($43, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6814
+assert_return(() => invoke($43, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6815
+assert_return(() => invoke($43, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6816
+assert_return(() => invoke($43, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6817
+assert_return(() => invoke($43, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6818
+assert_return(() => invoke($43, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6819
+assert_return(() => invoke($43, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6820
+assert_return(() => invoke($43, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6821
+assert_return(() => invoke($43, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6822
+assert_return(() => invoke($43, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6823
+assert_return(() => invoke($43, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6824
+assert_return(() => invoke($43, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6825
+assert_return(() => invoke($43, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6826
+assert_return(() => invoke($43, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6827
+assert_return(() => invoke($43, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6828
+assert_return(() => invoke($43, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6829
+assert_return(() => invoke($43, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6830
+assert_return(() => invoke($43, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6831
+assert_return(() => invoke($43, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6832
+assert_return(() => invoke($43, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6833
+assert_return(() => invoke($43, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6834
+assert_return(() => invoke($43, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6835
+assert_return(() => invoke($43, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6836
+assert_return(() => invoke($43, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6837
+assert_return(() => invoke($43, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6838
+assert_return(() => invoke($43, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6839
+assert_return(() => invoke($43, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6840
+assert_return(() => invoke($43, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6841
+assert_return(() => invoke($43, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6842
+assert_return(() => invoke($43, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6843
+assert_return(() => invoke($43, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6844
+assert_return(() => invoke($43, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6845
+assert_return(() => invoke($43, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6846
+assert_return(() => invoke($43, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6847
+assert_return(() => invoke($43, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6848
+assert_return(() => invoke($43, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6849
+assert_return(() => invoke($43, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6850
+assert_return(() => invoke($43, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6851
+assert_return(() => invoke($43, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6852
+assert_return(() => invoke($43, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6853
+assert_return(() => invoke($43, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6854
+assert_return(() => invoke($43, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6855
+assert_return(() => invoke($43, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6856
+assert_return(() => invoke($43, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6857
+assert_return(() => invoke($43, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6858
+assert_return(() => invoke($43, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6859
+assert_return(() => invoke($43, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6860
+assert_return(() => invoke($43, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6861
+assert_return(() => invoke($43, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6862
+assert_return(() => invoke($43, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6863
+assert_return(() => invoke($43, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6864
+assert_return(() => invoke($43, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6865
+assert_return(() => invoke($43, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6866
+assert_return(() => invoke($43, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6867
+assert_return(() => invoke($43, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6868
+assert_return(() => invoke($43, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6869
+assert_return(() => invoke($43, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6870
+assert_return(() => invoke($43, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6871
+assert_return(() => invoke($43, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6872
+assert_return(() => invoke($43, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6873
+assert_return(() => invoke($43, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6874
+assert_return(() => invoke($43, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6875
+assert_return(() => invoke($43, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6876
+assert_return(() => invoke($43, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6877
+assert_return(() => invoke($43, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6878
+assert_return(() => invoke($43, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6879
+assert_return(() => invoke($43, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6880
+assert_return(() => invoke($43, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6881
+assert_return(() => invoke($43, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6882
+assert_return(() => invoke($43, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6883
+assert_return(() => invoke($43, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6884
+assert_return(() => invoke($43, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6885
+assert_return(() => invoke($43, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6886
+assert_return(() => invoke($43, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6887
+assert_return(() => invoke($43, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6888
+assert_return(() => invoke($43, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6889
+assert_return(() => invoke($43, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6890
+assert_return(() => invoke($43, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6891
+assert_return(() => invoke($43, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6892
+assert_return(() => invoke($43, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6893
+assert_return(() => invoke($43, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6894
+assert_return(() => invoke($43, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6895
+assert_return(() => invoke($43, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6896
+assert_return(() => invoke($43, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6897
+assert_return(() => invoke($43, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6898
+assert_return(() => invoke($43, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6899
+assert_return(() => invoke($43, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6900
+assert_return(() => invoke($43, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6901
+assert_return(() => invoke($43, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6902
+assert_return(() => invoke($43, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6903
+assert_return(() => invoke($43, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6904
+assert_return(() => invoke($43, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6905
+assert_return(() => invoke($43, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6906
+assert_return(() => invoke($43, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6907
+assert_return(() => invoke($43, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6908
+assert_return(() => invoke($43, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6909
+assert_return(() => invoke($43, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6910
+assert_return(() => invoke($43, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6911
+assert_return(() => invoke($43, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6912
+assert_return(() => invoke($43, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6913
+assert_return(() => invoke($43, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6914
+assert_return(() => invoke($43, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6915
+assert_return(() => invoke($43, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6916
+assert_return(() => invoke($43, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6917
+assert_return(() => invoke($43, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6918
+assert_return(() => invoke($43, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6919
+assert_return(() => invoke($43, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6920
+assert_return(() => invoke($43, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6921
+assert_return(() => invoke($43, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6922
+assert_return(() => invoke($43, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6923
+assert_return(() => invoke($43, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6924
+assert_return(() => invoke($43, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6925
+assert_return(() => invoke($43, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6926
+assert_return(() => invoke($43, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6927
+assert_return(() => invoke($43, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6928
+assert_return(() => invoke($43, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6929
+assert_return(() => invoke($43, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6930
+assert_return(() => invoke($43, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6931
+assert_return(() => invoke($43, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6932
+assert_return(() => invoke($43, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6933
+assert_return(() => invoke($43, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6934
+assert_return(() => invoke($43, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6935
+assert_return(() => invoke($43, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6936
+assert_return(() => invoke($43, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6937
+assert_return(() => invoke($43, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6938
+assert_return(() => invoke($43, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6939
+assert_return(() => invoke($43, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6940
+assert_return(() => invoke($43, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6941
+assert_return(() => invoke($43, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6942
+assert_return(() => invoke($43, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6943
+assert_return(() => invoke($43, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6944
+assert_return(() => invoke($43, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6945
+assert_return(() => invoke($43, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6946
+assert_return(() => invoke($43, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6947
+assert_return(() => invoke($43, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6948
+assert_return(() => invoke($43, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6949
+assert_return(() => invoke($43, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6950
+assert_return(() => invoke($43, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6951
+assert_return(() => invoke($43, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6952
+assert_return(() => invoke($43, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6953
+assert_return(() => invoke($43, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6954
+assert_return(() => invoke($43, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6955
+assert_return(() => invoke($43, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6956
+assert_return(() => invoke($43, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6957
+assert_return(() => invoke($43, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6958
+assert_return(() => invoke($43, `load8_u`, [61490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6959
+assert_return(() => invoke($43, `load8_u`, [61689]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6960
+assert_return(() => invoke($43, `load8_u`, [61888]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6961
+assert_return(() => invoke($43, `load8_u`, [62087]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6962
+assert_return(() => invoke($43, `load8_u`, [62286]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6963
+assert_return(() => invoke($43, `load8_u`, [62485]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6964
+assert_return(() => invoke($43, `load8_u`, [62684]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6965
+assert_return(() => invoke($43, `load8_u`, [62883]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6966
+assert_return(() => invoke($43, `load8_u`, [63082]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6967
+assert_return(() => invoke($43, `load8_u`, [63281]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6968
+assert_return(() => invoke($43, `load8_u`, [63480]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6969
+assert_return(() => invoke($43, `load8_u`, [63679]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6970
+assert_return(() => invoke($43, `load8_u`, [63878]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6971
+assert_return(() => invoke($43, `load8_u`, [64077]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6972
+assert_return(() => invoke($43, `load8_u`, [64276]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6973
+assert_return(() => invoke($43, `load8_u`, [64475]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6974
+assert_return(() => invoke($43, `load8_u`, [64674]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6975
+assert_return(() => invoke($43, `load8_u`, [64873]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6976
+assert_return(() => invoke($43, `load8_u`, [65072]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6977
+assert_return(() => invoke($43, `load8_u`, [65271]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6978
+assert_return(() => invoke($43, `load8_u`, [65470]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6979
+assert_return(() => invoke($43, `load8_u`, [65516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:6980
+assert_return(() => invoke($43, `load8_u`, [65517]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:6981
+assert_return(() => invoke($43, `load8_u`, [65518]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:6982
+assert_return(() => invoke($43, `load8_u`, [65519]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:6983
+assert_return(() => invoke($43, `load8_u`, [65520]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:6984
+assert_return(() => invoke($43, `load8_u`, [65521]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:6985
+assert_return(() => invoke($43, `load8_u`, [65522]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:6986
+assert_return(() => invoke($43, `load8_u`, [65523]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:6987
+assert_return(() => invoke($43, `load8_u`, [65524]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:6988
+assert_return(() => invoke($43, `load8_u`, [65525]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:6989
+assert_return(() => invoke($43, `load8_u`, [65526]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:6990
+assert_return(() => invoke($43, `load8_u`, [65527]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:6991
+assert_return(() => invoke($43, `load8_u`, [65528]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:6992
+assert_return(() => invoke($43, `load8_u`, [65529]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:6993
+assert_return(() => invoke($43, `load8_u`, [65530]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:6994
+assert_return(() => invoke($43, `load8_u`, [65531]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:6995
+assert_return(() => invoke($43, `load8_u`, [65532]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:6996
+assert_return(() => invoke($43, `load8_u`, [65533]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:6997
+assert_return(() => invoke($43, `load8_u`, [65534]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:6998
+assert_return(() => invoke($43, `load8_u`, [65535]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:7000
+let $44 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 65515) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13\\14")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:7008
+assert_trap(() => invoke($44, `run`, [0, 65515, 39]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:7011
+assert_return(() => invoke($44, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7012
+assert_return(() => invoke($44, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7013
+assert_return(() => invoke($44, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7014
+assert_return(() => invoke($44, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7015
+assert_return(() => invoke($44, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7016
+assert_return(() => invoke($44, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7017
+assert_return(() => invoke($44, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7018
+assert_return(() => invoke($44, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7019
+assert_return(() => invoke($44, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7020
+assert_return(() => invoke($44, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7021
+assert_return(() => invoke($44, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7022
+assert_return(() => invoke($44, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7023
+assert_return(() => invoke($44, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7024
+assert_return(() => invoke($44, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7025
+assert_return(() => invoke($44, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7026
+assert_return(() => invoke($44, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7027
+assert_return(() => invoke($44, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7028
+assert_return(() => invoke($44, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7029
+assert_return(() => invoke($44, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7030
+assert_return(() => invoke($44, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7031
+assert_return(() => invoke($44, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7032
+assert_return(() => invoke($44, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7033
+assert_return(() => invoke($44, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7034
+assert_return(() => invoke($44, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7035
+assert_return(() => invoke($44, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7036
+assert_return(() => invoke($44, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7037
+assert_return(() => invoke($44, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7038
+assert_return(() => invoke($44, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7039
+assert_return(() => invoke($44, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7040
+assert_return(() => invoke($44, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7041
+assert_return(() => invoke($44, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7042
+assert_return(() => invoke($44, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7043
+assert_return(() => invoke($44, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7044
+assert_return(() => invoke($44, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7045
+assert_return(() => invoke($44, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7046
+assert_return(() => invoke($44, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7047
+assert_return(() => invoke($44, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7048
+assert_return(() => invoke($44, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7049
+assert_return(() => invoke($44, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7050
+assert_return(() => invoke($44, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7051
+assert_return(() => invoke($44, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7052
+assert_return(() => invoke($44, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7053
+assert_return(() => invoke($44, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7054
+assert_return(() => invoke($44, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7055
+assert_return(() => invoke($44, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7056
+assert_return(() => invoke($44, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7057
+assert_return(() => invoke($44, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7058
+assert_return(() => invoke($44, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7059
+assert_return(() => invoke($44, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7060
+assert_return(() => invoke($44, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7061
+assert_return(() => invoke($44, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7062
+assert_return(() => invoke($44, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7063
+assert_return(() => invoke($44, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7064
+assert_return(() => invoke($44, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7065
+assert_return(() => invoke($44, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7066
+assert_return(() => invoke($44, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7067
+assert_return(() => invoke($44, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7068
+assert_return(() => invoke($44, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7069
+assert_return(() => invoke($44, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7070
+assert_return(() => invoke($44, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7071
+assert_return(() => invoke($44, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7072
+assert_return(() => invoke($44, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7073
+assert_return(() => invoke($44, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7074
+assert_return(() => invoke($44, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7075
+assert_return(() => invoke($44, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7076
+assert_return(() => invoke($44, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7077
+assert_return(() => invoke($44, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7078
+assert_return(() => invoke($44, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7079
+assert_return(() => invoke($44, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7080
+assert_return(() => invoke($44, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7081
+assert_return(() => invoke($44, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7082
+assert_return(() => invoke($44, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7083
+assert_return(() => invoke($44, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7084
+assert_return(() => invoke($44, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7085
+assert_return(() => invoke($44, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7086
+assert_return(() => invoke($44, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7087
+assert_return(() => invoke($44, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7088
+assert_return(() => invoke($44, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7089
+assert_return(() => invoke($44, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7090
+assert_return(() => invoke($44, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7091
+assert_return(() => invoke($44, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7092
+assert_return(() => invoke($44, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7093
+assert_return(() => invoke($44, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7094
+assert_return(() => invoke($44, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7095
+assert_return(() => invoke($44, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7096
+assert_return(() => invoke($44, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7097
+assert_return(() => invoke($44, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7098
+assert_return(() => invoke($44, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7099
+assert_return(() => invoke($44, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7100
+assert_return(() => invoke($44, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7101
+assert_return(() => invoke($44, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7102
+assert_return(() => invoke($44, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7103
+assert_return(() => invoke($44, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7104
+assert_return(() => invoke($44, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7105
+assert_return(() => invoke($44, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7106
+assert_return(() => invoke($44, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7107
+assert_return(() => invoke($44, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7108
+assert_return(() => invoke($44, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7109
+assert_return(() => invoke($44, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7110
+assert_return(() => invoke($44, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7111
+assert_return(() => invoke($44, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7112
+assert_return(() => invoke($44, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7113
+assert_return(() => invoke($44, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7114
+assert_return(() => invoke($44, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7115
+assert_return(() => invoke($44, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7116
+assert_return(() => invoke($44, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7117
+assert_return(() => invoke($44, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7118
+assert_return(() => invoke($44, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7119
+assert_return(() => invoke($44, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7120
+assert_return(() => invoke($44, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7121
+assert_return(() => invoke($44, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7122
+assert_return(() => invoke($44, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7123
+assert_return(() => invoke($44, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7124
+assert_return(() => invoke($44, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7125
+assert_return(() => invoke($44, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7126
+assert_return(() => invoke($44, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7127
+assert_return(() => invoke($44, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7128
+assert_return(() => invoke($44, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7129
+assert_return(() => invoke($44, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7130
+assert_return(() => invoke($44, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7131
+assert_return(() => invoke($44, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7132
+assert_return(() => invoke($44, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7133
+assert_return(() => invoke($44, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7134
+assert_return(() => invoke($44, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7135
+assert_return(() => invoke($44, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7136
+assert_return(() => invoke($44, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7137
+assert_return(() => invoke($44, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7138
+assert_return(() => invoke($44, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7139
+assert_return(() => invoke($44, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7140
+assert_return(() => invoke($44, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7141
+assert_return(() => invoke($44, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7142
+assert_return(() => invoke($44, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7143
+assert_return(() => invoke($44, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7144
+assert_return(() => invoke($44, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7145
+assert_return(() => invoke($44, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7146
+assert_return(() => invoke($44, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7147
+assert_return(() => invoke($44, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7148
+assert_return(() => invoke($44, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7149
+assert_return(() => invoke($44, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7150
+assert_return(() => invoke($44, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7151
+assert_return(() => invoke($44, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7152
+assert_return(() => invoke($44, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7153
+assert_return(() => invoke($44, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7154
+assert_return(() => invoke($44, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7155
+assert_return(() => invoke($44, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7156
+assert_return(() => invoke($44, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7157
+assert_return(() => invoke($44, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7158
+assert_return(() => invoke($44, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7159
+assert_return(() => invoke($44, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7160
+assert_return(() => invoke($44, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7161
+assert_return(() => invoke($44, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7162
+assert_return(() => invoke($44, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7163
+assert_return(() => invoke($44, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7164
+assert_return(() => invoke($44, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7165
+assert_return(() => invoke($44, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7166
+assert_return(() => invoke($44, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7167
+assert_return(() => invoke($44, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7168
+assert_return(() => invoke($44, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7169
+assert_return(() => invoke($44, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7170
+assert_return(() => invoke($44, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7171
+assert_return(() => invoke($44, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7172
+assert_return(() => invoke($44, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7173
+assert_return(() => invoke($44, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7174
+assert_return(() => invoke($44, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7175
+assert_return(() => invoke($44, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7176
+assert_return(() => invoke($44, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7177
+assert_return(() => invoke($44, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7178
+assert_return(() => invoke($44, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7179
+assert_return(() => invoke($44, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7180
+assert_return(() => invoke($44, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7181
+assert_return(() => invoke($44, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7182
+assert_return(() => invoke($44, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7183
+assert_return(() => invoke($44, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7184
+assert_return(() => invoke($44, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7185
+assert_return(() => invoke($44, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7186
+assert_return(() => invoke($44, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7187
+assert_return(() => invoke($44, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7188
+assert_return(() => invoke($44, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7189
+assert_return(() => invoke($44, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7190
+assert_return(() => invoke($44, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7191
+assert_return(() => invoke($44, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7192
+assert_return(() => invoke($44, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7193
+assert_return(() => invoke($44, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7194
+assert_return(() => invoke($44, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7195
+assert_return(() => invoke($44, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7196
+assert_return(() => invoke($44, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7197
+assert_return(() => invoke($44, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7198
+assert_return(() => invoke($44, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7199
+assert_return(() => invoke($44, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7200
+assert_return(() => invoke($44, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7201
+assert_return(() => invoke($44, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7202
+assert_return(() => invoke($44, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7203
+assert_return(() => invoke($44, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7204
+assert_return(() => invoke($44, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7205
+assert_return(() => invoke($44, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7206
+assert_return(() => invoke($44, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7207
+assert_return(() => invoke($44, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7208
+assert_return(() => invoke($44, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7209
+assert_return(() => invoke($44, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7210
+assert_return(() => invoke($44, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7211
+assert_return(() => invoke($44, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7212
+assert_return(() => invoke($44, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7213
+assert_return(() => invoke($44, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7214
+assert_return(() => invoke($44, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7215
+assert_return(() => invoke($44, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7216
+assert_return(() => invoke($44, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7217
+assert_return(() => invoke($44, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7218
+assert_return(() => invoke($44, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7219
+assert_return(() => invoke($44, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7220
+assert_return(() => invoke($44, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7221
+assert_return(() => invoke($44, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7222
+assert_return(() => invoke($44, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7223
+assert_return(() => invoke($44, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7224
+assert_return(() => invoke($44, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7225
+assert_return(() => invoke($44, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7226
+assert_return(() => invoke($44, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7227
+assert_return(() => invoke($44, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7228
+assert_return(() => invoke($44, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7229
+assert_return(() => invoke($44, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7230
+assert_return(() => invoke($44, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7231
+assert_return(() => invoke($44, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7232
+assert_return(() => invoke($44, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7233
+assert_return(() => invoke($44, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7234
+assert_return(() => invoke($44, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7235
+assert_return(() => invoke($44, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7236
+assert_return(() => invoke($44, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7237
+assert_return(() => invoke($44, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7238
+assert_return(() => invoke($44, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7239
+assert_return(() => invoke($44, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7240
+assert_return(() => invoke($44, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7241
+assert_return(() => invoke($44, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7242
+assert_return(() => invoke($44, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7243
+assert_return(() => invoke($44, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7244
+assert_return(() => invoke($44, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7245
+assert_return(() => invoke($44, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7246
+assert_return(() => invoke($44, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7247
+assert_return(() => invoke($44, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7248
+assert_return(() => invoke($44, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7249
+assert_return(() => invoke($44, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7250
+assert_return(() => invoke($44, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7251
+assert_return(() => invoke($44, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7252
+assert_return(() => invoke($44, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7253
+assert_return(() => invoke($44, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7254
+assert_return(() => invoke($44, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7255
+assert_return(() => invoke($44, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7256
+assert_return(() => invoke($44, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7257
+assert_return(() => invoke($44, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7258
+assert_return(() => invoke($44, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7259
+assert_return(() => invoke($44, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7260
+assert_return(() => invoke($44, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7261
+assert_return(() => invoke($44, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7262
+assert_return(() => invoke($44, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7263
+assert_return(() => invoke($44, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7264
+assert_return(() => invoke($44, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7265
+assert_return(() => invoke($44, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7266
+assert_return(() => invoke($44, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7267
+assert_return(() => invoke($44, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7268
+assert_return(() => invoke($44, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7269
+assert_return(() => invoke($44, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7270
+assert_return(() => invoke($44, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7271
+assert_return(() => invoke($44, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7272
+assert_return(() => invoke($44, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7273
+assert_return(() => invoke($44, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7274
+assert_return(() => invoke($44, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7275
+assert_return(() => invoke($44, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7276
+assert_return(() => invoke($44, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7277
+assert_return(() => invoke($44, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7278
+assert_return(() => invoke($44, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7279
+assert_return(() => invoke($44, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7280
+assert_return(() => invoke($44, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7281
+assert_return(() => invoke($44, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7282
+assert_return(() => invoke($44, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7283
+assert_return(() => invoke($44, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7284
+assert_return(() => invoke($44, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7285
+assert_return(() => invoke($44, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7286
+assert_return(() => invoke($44, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7287
+assert_return(() => invoke($44, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7288
+assert_return(() => invoke($44, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7289
+assert_return(() => invoke($44, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7290
+assert_return(() => invoke($44, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7291
+assert_return(() => invoke($44, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7292
+assert_return(() => invoke($44, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7293
+assert_return(() => invoke($44, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7294
+assert_return(() => invoke($44, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7295
+assert_return(() => invoke($44, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7296
+assert_return(() => invoke($44, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7297
+assert_return(() => invoke($44, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7298
+assert_return(() => invoke($44, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7299
+assert_return(() => invoke($44, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7300
+assert_return(() => invoke($44, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7301
+assert_return(() => invoke($44, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7302
+assert_return(() => invoke($44, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7303
+assert_return(() => invoke($44, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7304
+assert_return(() => invoke($44, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7305
+assert_return(() => invoke($44, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7306
+assert_return(() => invoke($44, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7307
+assert_return(() => invoke($44, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7308
+assert_return(() => invoke($44, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7309
+assert_return(() => invoke($44, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7310
+assert_return(() => invoke($44, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7311
+assert_return(() => invoke($44, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7312
+assert_return(() => invoke($44, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7313
+assert_return(() => invoke($44, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7314
+assert_return(() => invoke($44, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7315
+assert_return(() => invoke($44, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7316
+assert_return(() => invoke($44, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7317
+assert_return(() => invoke($44, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7318
+assert_return(() => invoke($44, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7319
+assert_return(() => invoke($44, `load8_u`, [61490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7320
+assert_return(() => invoke($44, `load8_u`, [61689]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7321
+assert_return(() => invoke($44, `load8_u`, [61888]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7322
+assert_return(() => invoke($44, `load8_u`, [62087]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7323
+assert_return(() => invoke($44, `load8_u`, [62286]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7324
+assert_return(() => invoke($44, `load8_u`, [62485]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7325
+assert_return(() => invoke($44, `load8_u`, [62684]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7326
+assert_return(() => invoke($44, `load8_u`, [62883]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7327
+assert_return(() => invoke($44, `load8_u`, [63082]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7328
+assert_return(() => invoke($44, `load8_u`, [63281]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7329
+assert_return(() => invoke($44, `load8_u`, [63480]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7330
+assert_return(() => invoke($44, `load8_u`, [63679]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7331
+assert_return(() => invoke($44, `load8_u`, [63878]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7332
+assert_return(() => invoke($44, `load8_u`, [64077]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7333
+assert_return(() => invoke($44, `load8_u`, [64276]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7334
+assert_return(() => invoke($44, `load8_u`, [64475]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7335
+assert_return(() => invoke($44, `load8_u`, [64674]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7336
+assert_return(() => invoke($44, `load8_u`, [64873]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7337
+assert_return(() => invoke($44, `load8_u`, [65072]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7338
+assert_return(() => invoke($44, `load8_u`, [65271]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7339
+assert_return(() => invoke($44, `load8_u`, [65470]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7340
+assert_return(() => invoke($44, `load8_u`, [65515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7341
+assert_return(() => invoke($44, `load8_u`, [65516]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:7342
+assert_return(() => invoke($44, `load8_u`, [65517]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:7343
+assert_return(() => invoke($44, `load8_u`, [65518]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:7344
+assert_return(() => invoke($44, `load8_u`, [65519]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:7345
+assert_return(() => invoke($44, `load8_u`, [65520]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:7346
+assert_return(() => invoke($44, `load8_u`, [65521]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:7347
+assert_return(() => invoke($44, `load8_u`, [65522]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:7348
+assert_return(() => invoke($44, `load8_u`, [65523]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:7349
+assert_return(() => invoke($44, `load8_u`, [65524]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:7350
+assert_return(() => invoke($44, `load8_u`, [65525]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:7351
+assert_return(() => invoke($44, `load8_u`, [65526]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:7352
+assert_return(() => invoke($44, `load8_u`, [65527]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:7353
+assert_return(() => invoke($44, `load8_u`, [65528]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:7354
+assert_return(() => invoke($44, `load8_u`, [65529]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:7355
+assert_return(() => invoke($44, `load8_u`, [65530]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:7356
+assert_return(() => invoke($44, `load8_u`, [65531]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:7357
+assert_return(() => invoke($44, `load8_u`, [65532]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:7358
+assert_return(() => invoke($44, `load8_u`, [65533]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:7359
+assert_return(() => invoke($44, `load8_u`, [65534]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:7360
+assert_return(() => invoke($44, `load8_u`, [65535]), [value("i32", 20)]);
+
+// ./test/core/memory_copy.wast:7362
+let $45 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 65486) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:7370
+assert_trap(() => invoke($45, `run`, [65516, 65486, 40]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:7373
+assert_return(() => invoke($45, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7374
+assert_return(() => invoke($45, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7375
+assert_return(() => invoke($45, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7376
+assert_return(() => invoke($45, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7377
+assert_return(() => invoke($45, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7378
+assert_return(() => invoke($45, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7379
+assert_return(() => invoke($45, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7380
+assert_return(() => invoke($45, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7381
+assert_return(() => invoke($45, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7382
+assert_return(() => invoke($45, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7383
+assert_return(() => invoke($45, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7384
+assert_return(() => invoke($45, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7385
+assert_return(() => invoke($45, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7386
+assert_return(() => invoke($45, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7387
+assert_return(() => invoke($45, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7388
+assert_return(() => invoke($45, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7389
+assert_return(() => invoke($45, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7390
+assert_return(() => invoke($45, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7391
+assert_return(() => invoke($45, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7392
+assert_return(() => invoke($45, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7393
+assert_return(() => invoke($45, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7394
+assert_return(() => invoke($45, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7395
+assert_return(() => invoke($45, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7396
+assert_return(() => invoke($45, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7397
+assert_return(() => invoke($45, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7398
+assert_return(() => invoke($45, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7399
+assert_return(() => invoke($45, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7400
+assert_return(() => invoke($45, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7401
+assert_return(() => invoke($45, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7402
+assert_return(() => invoke($45, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7403
+assert_return(() => invoke($45, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7404
+assert_return(() => invoke($45, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7405
+assert_return(() => invoke($45, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7406
+assert_return(() => invoke($45, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7407
+assert_return(() => invoke($45, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7408
+assert_return(() => invoke($45, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7409
+assert_return(() => invoke($45, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7410
+assert_return(() => invoke($45, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7411
+assert_return(() => invoke($45, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7412
+assert_return(() => invoke($45, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7413
+assert_return(() => invoke($45, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7414
+assert_return(() => invoke($45, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7415
+assert_return(() => invoke($45, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7416
+assert_return(() => invoke($45, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7417
+assert_return(() => invoke($45, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7418
+assert_return(() => invoke($45, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7419
+assert_return(() => invoke($45, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7420
+assert_return(() => invoke($45, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7421
+assert_return(() => invoke($45, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7422
+assert_return(() => invoke($45, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7423
+assert_return(() => invoke($45, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7424
+assert_return(() => invoke($45, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7425
+assert_return(() => invoke($45, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7426
+assert_return(() => invoke($45, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7427
+assert_return(() => invoke($45, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7428
+assert_return(() => invoke($45, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7429
+assert_return(() => invoke($45, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7430
+assert_return(() => invoke($45, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7431
+assert_return(() => invoke($45, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7432
+assert_return(() => invoke($45, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7433
+assert_return(() => invoke($45, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7434
+assert_return(() => invoke($45, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7435
+assert_return(() => invoke($45, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7436
+assert_return(() => invoke($45, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7437
+assert_return(() => invoke($45, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7438
+assert_return(() => invoke($45, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7439
+assert_return(() => invoke($45, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7440
+assert_return(() => invoke($45, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7441
+assert_return(() => invoke($45, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7442
+assert_return(() => invoke($45, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7443
+assert_return(() => invoke($45, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7444
+assert_return(() => invoke($45, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7445
+assert_return(() => invoke($45, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7446
+assert_return(() => invoke($45, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7447
+assert_return(() => invoke($45, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7448
+assert_return(() => invoke($45, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7449
+assert_return(() => invoke($45, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7450
+assert_return(() => invoke($45, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7451
+assert_return(() => invoke($45, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7452
+assert_return(() => invoke($45, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7453
+assert_return(() => invoke($45, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7454
+assert_return(() => invoke($45, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7455
+assert_return(() => invoke($45, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7456
+assert_return(() => invoke($45, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7457
+assert_return(() => invoke($45, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7458
+assert_return(() => invoke($45, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7459
+assert_return(() => invoke($45, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7460
+assert_return(() => invoke($45, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7461
+assert_return(() => invoke($45, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7462
+assert_return(() => invoke($45, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7463
+assert_return(() => invoke($45, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7464
+assert_return(() => invoke($45, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7465
+assert_return(() => invoke($45, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7466
+assert_return(() => invoke($45, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7467
+assert_return(() => invoke($45, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7468
+assert_return(() => invoke($45, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7469
+assert_return(() => invoke($45, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7470
+assert_return(() => invoke($45, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7471
+assert_return(() => invoke($45, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7472
+assert_return(() => invoke($45, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7473
+assert_return(() => invoke($45, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7474
+assert_return(() => invoke($45, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7475
+assert_return(() => invoke($45, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7476
+assert_return(() => invoke($45, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7477
+assert_return(() => invoke($45, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7478
+assert_return(() => invoke($45, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7479
+assert_return(() => invoke($45, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7480
+assert_return(() => invoke($45, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7481
+assert_return(() => invoke($45, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7482
+assert_return(() => invoke($45, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7483
+assert_return(() => invoke($45, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7484
+assert_return(() => invoke($45, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7485
+assert_return(() => invoke($45, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7486
+assert_return(() => invoke($45, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7487
+assert_return(() => invoke($45, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7488
+assert_return(() => invoke($45, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7489
+assert_return(() => invoke($45, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7490
+assert_return(() => invoke($45, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7491
+assert_return(() => invoke($45, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7492
+assert_return(() => invoke($45, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7493
+assert_return(() => invoke($45, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7494
+assert_return(() => invoke($45, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7495
+assert_return(() => invoke($45, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7496
+assert_return(() => invoke($45, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7497
+assert_return(() => invoke($45, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7498
+assert_return(() => invoke($45, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7499
+assert_return(() => invoke($45, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7500
+assert_return(() => invoke($45, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7501
+assert_return(() => invoke($45, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7502
+assert_return(() => invoke($45, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7503
+assert_return(() => invoke($45, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7504
+assert_return(() => invoke($45, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7505
+assert_return(() => invoke($45, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7506
+assert_return(() => invoke($45, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7507
+assert_return(() => invoke($45, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7508
+assert_return(() => invoke($45, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7509
+assert_return(() => invoke($45, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7510
+assert_return(() => invoke($45, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7511
+assert_return(() => invoke($45, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7512
+assert_return(() => invoke($45, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7513
+assert_return(() => invoke($45, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7514
+assert_return(() => invoke($45, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7515
+assert_return(() => invoke($45, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7516
+assert_return(() => invoke($45, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7517
+assert_return(() => invoke($45, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7518
+assert_return(() => invoke($45, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7519
+assert_return(() => invoke($45, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7520
+assert_return(() => invoke($45, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7521
+assert_return(() => invoke($45, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7522
+assert_return(() => invoke($45, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7523
+assert_return(() => invoke($45, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7524
+assert_return(() => invoke($45, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7525
+assert_return(() => invoke($45, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7526
+assert_return(() => invoke($45, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7527
+assert_return(() => invoke($45, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7528
+assert_return(() => invoke($45, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7529
+assert_return(() => invoke($45, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7530
+assert_return(() => invoke($45, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7531
+assert_return(() => invoke($45, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7532
+assert_return(() => invoke($45, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7533
+assert_return(() => invoke($45, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7534
+assert_return(() => invoke($45, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7535
+assert_return(() => invoke($45, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7536
+assert_return(() => invoke($45, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7537
+assert_return(() => invoke($45, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7538
+assert_return(() => invoke($45, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7539
+assert_return(() => invoke($45, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7540
+assert_return(() => invoke($45, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7541
+assert_return(() => invoke($45, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7542
+assert_return(() => invoke($45, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7543
+assert_return(() => invoke($45, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7544
+assert_return(() => invoke($45, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7545
+assert_return(() => invoke($45, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7546
+assert_return(() => invoke($45, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7547
+assert_return(() => invoke($45, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7548
+assert_return(() => invoke($45, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7549
+assert_return(() => invoke($45, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7550
+assert_return(() => invoke($45, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7551
+assert_return(() => invoke($45, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7552
+assert_return(() => invoke($45, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7553
+assert_return(() => invoke($45, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7554
+assert_return(() => invoke($45, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7555
+assert_return(() => invoke($45, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7556
+assert_return(() => invoke($45, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7557
+assert_return(() => invoke($45, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7558
+assert_return(() => invoke($45, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7559
+assert_return(() => invoke($45, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7560
+assert_return(() => invoke($45, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7561
+assert_return(() => invoke($45, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7562
+assert_return(() => invoke($45, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7563
+assert_return(() => invoke($45, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7564
+assert_return(() => invoke($45, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7565
+assert_return(() => invoke($45, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7566
+assert_return(() => invoke($45, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7567
+assert_return(() => invoke($45, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7568
+assert_return(() => invoke($45, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7569
+assert_return(() => invoke($45, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7570
+assert_return(() => invoke($45, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7571
+assert_return(() => invoke($45, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7572
+assert_return(() => invoke($45, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7573
+assert_return(() => invoke($45, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7574
+assert_return(() => invoke($45, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7575
+assert_return(() => invoke($45, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7576
+assert_return(() => invoke($45, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7577
+assert_return(() => invoke($45, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7578
+assert_return(() => invoke($45, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7579
+assert_return(() => invoke($45, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7580
+assert_return(() => invoke($45, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7581
+assert_return(() => invoke($45, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7582
+assert_return(() => invoke($45, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7583
+assert_return(() => invoke($45, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7584
+assert_return(() => invoke($45, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7585
+assert_return(() => invoke($45, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7586
+assert_return(() => invoke($45, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7587
+assert_return(() => invoke($45, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7588
+assert_return(() => invoke($45, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7589
+assert_return(() => invoke($45, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7590
+assert_return(() => invoke($45, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7591
+assert_return(() => invoke($45, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7592
+assert_return(() => invoke($45, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7593
+assert_return(() => invoke($45, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7594
+assert_return(() => invoke($45, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7595
+assert_return(() => invoke($45, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7596
+assert_return(() => invoke($45, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7597
+assert_return(() => invoke($45, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7598
+assert_return(() => invoke($45, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7599
+assert_return(() => invoke($45, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7600
+assert_return(() => invoke($45, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7601
+assert_return(() => invoke($45, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7602
+assert_return(() => invoke($45, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7603
+assert_return(() => invoke($45, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7604
+assert_return(() => invoke($45, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7605
+assert_return(() => invoke($45, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7606
+assert_return(() => invoke($45, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7607
+assert_return(() => invoke($45, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7608
+assert_return(() => invoke($45, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7609
+assert_return(() => invoke($45, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7610
+assert_return(() => invoke($45, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7611
+assert_return(() => invoke($45, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7612
+assert_return(() => invoke($45, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7613
+assert_return(() => invoke($45, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7614
+assert_return(() => invoke($45, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7615
+assert_return(() => invoke($45, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7616
+assert_return(() => invoke($45, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7617
+assert_return(() => invoke($45, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7618
+assert_return(() => invoke($45, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7619
+assert_return(() => invoke($45, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7620
+assert_return(() => invoke($45, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7621
+assert_return(() => invoke($45, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7622
+assert_return(() => invoke($45, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7623
+assert_return(() => invoke($45, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7624
+assert_return(() => invoke($45, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7625
+assert_return(() => invoke($45, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7626
+assert_return(() => invoke($45, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7627
+assert_return(() => invoke($45, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7628
+assert_return(() => invoke($45, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7629
+assert_return(() => invoke($45, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7630
+assert_return(() => invoke($45, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7631
+assert_return(() => invoke($45, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7632
+assert_return(() => invoke($45, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7633
+assert_return(() => invoke($45, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7634
+assert_return(() => invoke($45, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7635
+assert_return(() => invoke($45, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7636
+assert_return(() => invoke($45, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7637
+assert_return(() => invoke($45, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7638
+assert_return(() => invoke($45, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7639
+assert_return(() => invoke($45, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7640
+assert_return(() => invoke($45, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7641
+assert_return(() => invoke($45, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7642
+assert_return(() => invoke($45, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7643
+assert_return(() => invoke($45, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7644
+assert_return(() => invoke($45, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7645
+assert_return(() => invoke($45, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7646
+assert_return(() => invoke($45, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7647
+assert_return(() => invoke($45, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7648
+assert_return(() => invoke($45, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7649
+assert_return(() => invoke($45, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7650
+assert_return(() => invoke($45, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7651
+assert_return(() => invoke($45, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7652
+assert_return(() => invoke($45, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7653
+assert_return(() => invoke($45, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7654
+assert_return(() => invoke($45, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7655
+assert_return(() => invoke($45, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7656
+assert_return(() => invoke($45, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7657
+assert_return(() => invoke($45, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7658
+assert_return(() => invoke($45, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7659
+assert_return(() => invoke($45, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7660
+assert_return(() => invoke($45, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7661
+assert_return(() => invoke($45, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7662
+assert_return(() => invoke($45, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7663
+assert_return(() => invoke($45, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7664
+assert_return(() => invoke($45, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7665
+assert_return(() => invoke($45, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7666
+assert_return(() => invoke($45, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7667
+assert_return(() => invoke($45, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7668
+assert_return(() => invoke($45, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7669
+assert_return(() => invoke($45, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7670
+assert_return(() => invoke($45, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7671
+assert_return(() => invoke($45, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7672
+assert_return(() => invoke($45, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7673
+assert_return(() => invoke($45, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7674
+assert_return(() => invoke($45, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7675
+assert_return(() => invoke($45, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7676
+assert_return(() => invoke($45, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7677
+assert_return(() => invoke($45, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7678
+assert_return(() => invoke($45, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7679
+assert_return(() => invoke($45, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7680
+assert_return(() => invoke($45, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7681
+assert_return(() => invoke($45, `load8_u`, [61490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7682
+assert_return(() => invoke($45, `load8_u`, [61689]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7683
+assert_return(() => invoke($45, `load8_u`, [61888]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7684
+assert_return(() => invoke($45, `load8_u`, [62087]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7685
+assert_return(() => invoke($45, `load8_u`, [62286]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7686
+assert_return(() => invoke($45, `load8_u`, [62485]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7687
+assert_return(() => invoke($45, `load8_u`, [62684]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7688
+assert_return(() => invoke($45, `load8_u`, [62883]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7689
+assert_return(() => invoke($45, `load8_u`, [63082]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7690
+assert_return(() => invoke($45, `load8_u`, [63281]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7691
+assert_return(() => invoke($45, `load8_u`, [63480]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7692
+assert_return(() => invoke($45, `load8_u`, [63679]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7693
+assert_return(() => invoke($45, `load8_u`, [63878]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7694
+assert_return(() => invoke($45, `load8_u`, [64077]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7695
+assert_return(() => invoke($45, `load8_u`, [64276]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7696
+assert_return(() => invoke($45, `load8_u`, [64475]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7697
+assert_return(() => invoke($45, `load8_u`, [64674]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7698
+assert_return(() => invoke($45, `load8_u`, [64873]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7699
+assert_return(() => invoke($45, `load8_u`, [65072]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7700
+assert_return(() => invoke($45, `load8_u`, [65271]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7701
+assert_return(() => invoke($45, `load8_u`, [65470]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7702
+assert_return(() => invoke($45, `load8_u`, [65486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7703
+assert_return(() => invoke($45, `load8_u`, [65487]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:7704
+assert_return(() => invoke($45, `load8_u`, [65488]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:7705
+assert_return(() => invoke($45, `load8_u`, [65489]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:7706
+assert_return(() => invoke($45, `load8_u`, [65490]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:7707
+assert_return(() => invoke($45, `load8_u`, [65491]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:7708
+assert_return(() => invoke($45, `load8_u`, [65492]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:7709
+assert_return(() => invoke($45, `load8_u`, [65493]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:7710
+assert_return(() => invoke($45, `load8_u`, [65494]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:7711
+assert_return(() => invoke($45, `load8_u`, [65495]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:7712
+assert_return(() => invoke($45, `load8_u`, [65496]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:7713
+assert_return(() => invoke($45, `load8_u`, [65497]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:7714
+assert_return(() => invoke($45, `load8_u`, [65498]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:7715
+assert_return(() => invoke($45, `load8_u`, [65499]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:7716
+assert_return(() => invoke($45, `load8_u`, [65500]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:7717
+assert_return(() => invoke($45, `load8_u`, [65501]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:7718
+assert_return(() => invoke($45, `load8_u`, [65502]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:7719
+assert_return(() => invoke($45, `load8_u`, [65503]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:7720
+assert_return(() => invoke($45, `load8_u`, [65504]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:7721
+assert_return(() => invoke($45, `load8_u`, [65505]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:7723
+let $46 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:7731
+assert_trap(() => invoke($46, `run`, [65486, 65516, 40]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:7734
+assert_return(() => invoke($46, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7735
+assert_return(() => invoke($46, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7736
+assert_return(() => invoke($46, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7737
+assert_return(() => invoke($46, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7738
+assert_return(() => invoke($46, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7739
+assert_return(() => invoke($46, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7740
+assert_return(() => invoke($46, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7741
+assert_return(() => invoke($46, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7742
+assert_return(() => invoke($46, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7743
+assert_return(() => invoke($46, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7744
+assert_return(() => invoke($46, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7745
+assert_return(() => invoke($46, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7746
+assert_return(() => invoke($46, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7747
+assert_return(() => invoke($46, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7748
+assert_return(() => invoke($46, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7749
+assert_return(() => invoke($46, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7750
+assert_return(() => invoke($46, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7751
+assert_return(() => invoke($46, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7752
+assert_return(() => invoke($46, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7753
+assert_return(() => invoke($46, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7754
+assert_return(() => invoke($46, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7755
+assert_return(() => invoke($46, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7756
+assert_return(() => invoke($46, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7757
+assert_return(() => invoke($46, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7758
+assert_return(() => invoke($46, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7759
+assert_return(() => invoke($46, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7760
+assert_return(() => invoke($46, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7761
+assert_return(() => invoke($46, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7762
+assert_return(() => invoke($46, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7763
+assert_return(() => invoke($46, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7764
+assert_return(() => invoke($46, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7765
+assert_return(() => invoke($46, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7766
+assert_return(() => invoke($46, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7767
+assert_return(() => invoke($46, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7768
+assert_return(() => invoke($46, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7769
+assert_return(() => invoke($46, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7770
+assert_return(() => invoke($46, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7771
+assert_return(() => invoke($46, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7772
+assert_return(() => invoke($46, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7773
+assert_return(() => invoke($46, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7774
+assert_return(() => invoke($46, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7775
+assert_return(() => invoke($46, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7776
+assert_return(() => invoke($46, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7777
+assert_return(() => invoke($46, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7778
+assert_return(() => invoke($46, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7779
+assert_return(() => invoke($46, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7780
+assert_return(() => invoke($46, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7781
+assert_return(() => invoke($46, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7782
+assert_return(() => invoke($46, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7783
+assert_return(() => invoke($46, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7784
+assert_return(() => invoke($46, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7785
+assert_return(() => invoke($46, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7786
+assert_return(() => invoke($46, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7787
+assert_return(() => invoke($46, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7788
+assert_return(() => invoke($46, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7789
+assert_return(() => invoke($46, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7790
+assert_return(() => invoke($46, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7791
+assert_return(() => invoke($46, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7792
+assert_return(() => invoke($46, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7793
+assert_return(() => invoke($46, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7794
+assert_return(() => invoke($46, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7795
+assert_return(() => invoke($46, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7796
+assert_return(() => invoke($46, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7797
+assert_return(() => invoke($46, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7798
+assert_return(() => invoke($46, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7799
+assert_return(() => invoke($46, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7800
+assert_return(() => invoke($46, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7801
+assert_return(() => invoke($46, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7802
+assert_return(() => invoke($46, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7803
+assert_return(() => invoke($46, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7804
+assert_return(() => invoke($46, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7805
+assert_return(() => invoke($46, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7806
+assert_return(() => invoke($46, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7807
+assert_return(() => invoke($46, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7808
+assert_return(() => invoke($46, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7809
+assert_return(() => invoke($46, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7810
+assert_return(() => invoke($46, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7811
+assert_return(() => invoke($46, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7812
+assert_return(() => invoke($46, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7813
+assert_return(() => invoke($46, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7814
+assert_return(() => invoke($46, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7815
+assert_return(() => invoke($46, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7816
+assert_return(() => invoke($46, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7817
+assert_return(() => invoke($46, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7818
+assert_return(() => invoke($46, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7819
+assert_return(() => invoke($46, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7820
+assert_return(() => invoke($46, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7821
+assert_return(() => invoke($46, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7822
+assert_return(() => invoke($46, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7823
+assert_return(() => invoke($46, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7824
+assert_return(() => invoke($46, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7825
+assert_return(() => invoke($46, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7826
+assert_return(() => invoke($46, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7827
+assert_return(() => invoke($46, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7828
+assert_return(() => invoke($46, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7829
+assert_return(() => invoke($46, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7830
+assert_return(() => invoke($46, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7831
+assert_return(() => invoke($46, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7832
+assert_return(() => invoke($46, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7833
+assert_return(() => invoke($46, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7834
+assert_return(() => invoke($46, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7835
+assert_return(() => invoke($46, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7836
+assert_return(() => invoke($46, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7837
+assert_return(() => invoke($46, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7838
+assert_return(() => invoke($46, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7839
+assert_return(() => invoke($46, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7840
+assert_return(() => invoke($46, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7841
+assert_return(() => invoke($46, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7842
+assert_return(() => invoke($46, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7843
+assert_return(() => invoke($46, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7844
+assert_return(() => invoke($46, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7845
+assert_return(() => invoke($46, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7846
+assert_return(() => invoke($46, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7847
+assert_return(() => invoke($46, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7848
+assert_return(() => invoke($46, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7849
+assert_return(() => invoke($46, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7850
+assert_return(() => invoke($46, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7851
+assert_return(() => invoke($46, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7852
+assert_return(() => invoke($46, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7853
+assert_return(() => invoke($46, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7854
+assert_return(() => invoke($46, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7855
+assert_return(() => invoke($46, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7856
+assert_return(() => invoke($46, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7857
+assert_return(() => invoke($46, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7858
+assert_return(() => invoke($46, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7859
+assert_return(() => invoke($46, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7860
+assert_return(() => invoke($46, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7861
+assert_return(() => invoke($46, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7862
+assert_return(() => invoke($46, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7863
+assert_return(() => invoke($46, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7864
+assert_return(() => invoke($46, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7865
+assert_return(() => invoke($46, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7866
+assert_return(() => invoke($46, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7867
+assert_return(() => invoke($46, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7868
+assert_return(() => invoke($46, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7869
+assert_return(() => invoke($46, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7870
+assert_return(() => invoke($46, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7871
+assert_return(() => invoke($46, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7872
+assert_return(() => invoke($46, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7873
+assert_return(() => invoke($46, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7874
+assert_return(() => invoke($46, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7875
+assert_return(() => invoke($46, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7876
+assert_return(() => invoke($46, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7877
+assert_return(() => invoke($46, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7878
+assert_return(() => invoke($46, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7879
+assert_return(() => invoke($46, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7880
+assert_return(() => invoke($46, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7881
+assert_return(() => invoke($46, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7882
+assert_return(() => invoke($46, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7883
+assert_return(() => invoke($46, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7884
+assert_return(() => invoke($46, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7885
+assert_return(() => invoke($46, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7886
+assert_return(() => invoke($46, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7887
+assert_return(() => invoke($46, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7888
+assert_return(() => invoke($46, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7889
+assert_return(() => invoke($46, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7890
+assert_return(() => invoke($46, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7891
+assert_return(() => invoke($46, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7892
+assert_return(() => invoke($46, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7893
+assert_return(() => invoke($46, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7894
+assert_return(() => invoke($46, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7895
+assert_return(() => invoke($46, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7896
+assert_return(() => invoke($46, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7897
+assert_return(() => invoke($46, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7898
+assert_return(() => invoke($46, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7899
+assert_return(() => invoke($46, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7900
+assert_return(() => invoke($46, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7901
+assert_return(() => invoke($46, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7902
+assert_return(() => invoke($46, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7903
+assert_return(() => invoke($46, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7904
+assert_return(() => invoke($46, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7905
+assert_return(() => invoke($46, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7906
+assert_return(() => invoke($46, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7907
+assert_return(() => invoke($46, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7908
+assert_return(() => invoke($46, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7909
+assert_return(() => invoke($46, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7910
+assert_return(() => invoke($46, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7911
+assert_return(() => invoke($46, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7912
+assert_return(() => invoke($46, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7913
+assert_return(() => invoke($46, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7914
+assert_return(() => invoke($46, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7915
+assert_return(() => invoke($46, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7916
+assert_return(() => invoke($46, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7917
+assert_return(() => invoke($46, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7918
+assert_return(() => invoke($46, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7919
+assert_return(() => invoke($46, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7920
+assert_return(() => invoke($46, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7921
+assert_return(() => invoke($46, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7922
+assert_return(() => invoke($46, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7923
+assert_return(() => invoke($46, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7924
+assert_return(() => invoke($46, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7925
+assert_return(() => invoke($46, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7926
+assert_return(() => invoke($46, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7927
+assert_return(() => invoke($46, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7928
+assert_return(() => invoke($46, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7929
+assert_return(() => invoke($46, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7930
+assert_return(() => invoke($46, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7931
+assert_return(() => invoke($46, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7932
+assert_return(() => invoke($46, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7933
+assert_return(() => invoke($46, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7934
+assert_return(() => invoke($46, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7935
+assert_return(() => invoke($46, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7936
+assert_return(() => invoke($46, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7937
+assert_return(() => invoke($46, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7938
+assert_return(() => invoke($46, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7939
+assert_return(() => invoke($46, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7940
+assert_return(() => invoke($46, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7941
+assert_return(() => invoke($46, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7942
+assert_return(() => invoke($46, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7943
+assert_return(() => invoke($46, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7944
+assert_return(() => invoke($46, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7945
+assert_return(() => invoke($46, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7946
+assert_return(() => invoke($46, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7947
+assert_return(() => invoke($46, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7948
+assert_return(() => invoke($46, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7949
+assert_return(() => invoke($46, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7950
+assert_return(() => invoke($46, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7951
+assert_return(() => invoke($46, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7952
+assert_return(() => invoke($46, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7953
+assert_return(() => invoke($46, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7954
+assert_return(() => invoke($46, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7955
+assert_return(() => invoke($46, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7956
+assert_return(() => invoke($46, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7957
+assert_return(() => invoke($46, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7958
+assert_return(() => invoke($46, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7959
+assert_return(() => invoke($46, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7960
+assert_return(() => invoke($46, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7961
+assert_return(() => invoke($46, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7962
+assert_return(() => invoke($46, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7963
+assert_return(() => invoke($46, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7964
+assert_return(() => invoke($46, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7965
+assert_return(() => invoke($46, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7966
+assert_return(() => invoke($46, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7967
+assert_return(() => invoke($46, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7968
+assert_return(() => invoke($46, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7969
+assert_return(() => invoke($46, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7970
+assert_return(() => invoke($46, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7971
+assert_return(() => invoke($46, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7972
+assert_return(() => invoke($46, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7973
+assert_return(() => invoke($46, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7974
+assert_return(() => invoke($46, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7975
+assert_return(() => invoke($46, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7976
+assert_return(() => invoke($46, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7977
+assert_return(() => invoke($46, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7978
+assert_return(() => invoke($46, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7979
+assert_return(() => invoke($46, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7980
+assert_return(() => invoke($46, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7981
+assert_return(() => invoke($46, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7982
+assert_return(() => invoke($46, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7983
+assert_return(() => invoke($46, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7984
+assert_return(() => invoke($46, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7985
+assert_return(() => invoke($46, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7986
+assert_return(() => invoke($46, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7987
+assert_return(() => invoke($46, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7988
+assert_return(() => invoke($46, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7989
+assert_return(() => invoke($46, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7990
+assert_return(() => invoke($46, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7991
+assert_return(() => invoke($46, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7992
+assert_return(() => invoke($46, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7993
+assert_return(() => invoke($46, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7994
+assert_return(() => invoke($46, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7995
+assert_return(() => invoke($46, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7996
+assert_return(() => invoke($46, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7997
+assert_return(() => invoke($46, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7998
+assert_return(() => invoke($46, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:7999
+assert_return(() => invoke($46, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8000
+assert_return(() => invoke($46, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8001
+assert_return(() => invoke($46, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8002
+assert_return(() => invoke($46, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8003
+assert_return(() => invoke($46, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8004
+assert_return(() => invoke($46, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8005
+assert_return(() => invoke($46, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8006
+assert_return(() => invoke($46, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8007
+assert_return(() => invoke($46, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8008
+assert_return(() => invoke($46, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8009
+assert_return(() => invoke($46, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8010
+assert_return(() => invoke($46, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8011
+assert_return(() => invoke($46, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8012
+assert_return(() => invoke($46, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8013
+assert_return(() => invoke($46, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8014
+assert_return(() => invoke($46, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8015
+assert_return(() => invoke($46, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8016
+assert_return(() => invoke($46, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8017
+assert_return(() => invoke($46, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8018
+assert_return(() => invoke($46, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8019
+assert_return(() => invoke($46, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8020
+assert_return(() => invoke($46, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8021
+assert_return(() => invoke($46, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8022
+assert_return(() => invoke($46, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8023
+assert_return(() => invoke($46, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8024
+assert_return(() => invoke($46, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8025
+assert_return(() => invoke($46, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8026
+assert_return(() => invoke($46, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8027
+assert_return(() => invoke($46, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8028
+assert_return(() => invoke($46, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8029
+assert_return(() => invoke($46, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8030
+assert_return(() => invoke($46, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8031
+assert_return(() => invoke($46, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8032
+assert_return(() => invoke($46, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8033
+assert_return(() => invoke($46, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8034
+assert_return(() => invoke($46, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8035
+assert_return(() => invoke($46, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8036
+assert_return(() => invoke($46, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8037
+assert_return(() => invoke($46, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8038
+assert_return(() => invoke($46, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8039
+assert_return(() => invoke($46, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8040
+assert_return(() => invoke($46, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8041
+assert_return(() => invoke($46, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8042
+assert_return(() => invoke($46, `load8_u`, [61490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8043
+assert_return(() => invoke($46, `load8_u`, [61689]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8044
+assert_return(() => invoke($46, `load8_u`, [61888]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8045
+assert_return(() => invoke($46, `load8_u`, [62087]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8046
+assert_return(() => invoke($46, `load8_u`, [62286]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8047
+assert_return(() => invoke($46, `load8_u`, [62485]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8048
+assert_return(() => invoke($46, `load8_u`, [62684]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8049
+assert_return(() => invoke($46, `load8_u`, [62883]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8050
+assert_return(() => invoke($46, `load8_u`, [63082]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8051
+assert_return(() => invoke($46, `load8_u`, [63281]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8052
+assert_return(() => invoke($46, `load8_u`, [63480]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8053
+assert_return(() => invoke($46, `load8_u`, [63679]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8054
+assert_return(() => invoke($46, `load8_u`, [63878]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8055
+assert_return(() => invoke($46, `load8_u`, [64077]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8056
+assert_return(() => invoke($46, `load8_u`, [64276]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8057
+assert_return(() => invoke($46, `load8_u`, [64475]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8058
+assert_return(() => invoke($46, `load8_u`, [64674]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8059
+assert_return(() => invoke($46, `load8_u`, [64873]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8060
+assert_return(() => invoke($46, `load8_u`, [65072]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8061
+assert_return(() => invoke($46, `load8_u`, [65271]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8062
+assert_return(() => invoke($46, `load8_u`, [65470]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8063
+assert_return(() => invoke($46, `load8_u`, [65516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8064
+assert_return(() => invoke($46, `load8_u`, [65517]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:8065
+assert_return(() => invoke($46, `load8_u`, [65518]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:8066
+assert_return(() => invoke($46, `load8_u`, [65519]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:8067
+assert_return(() => invoke($46, `load8_u`, [65520]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:8068
+assert_return(() => invoke($46, `load8_u`, [65521]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:8069
+assert_return(() => invoke($46, `load8_u`, [65522]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:8070
+assert_return(() => invoke($46, `load8_u`, [65523]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:8071
+assert_return(() => invoke($46, `load8_u`, [65524]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:8072
+assert_return(() => invoke($46, `load8_u`, [65525]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:8073
+assert_return(() => invoke($46, `load8_u`, [65526]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:8074
+assert_return(() => invoke($46, `load8_u`, [65527]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:8075
+assert_return(() => invoke($46, `load8_u`, [65528]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:8076
+assert_return(() => invoke($46, `load8_u`, [65529]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:8077
+assert_return(() => invoke($46, `load8_u`, [65530]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:8078
+assert_return(() => invoke($46, `load8_u`, [65531]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:8079
+assert_return(() => invoke($46, `load8_u`, [65532]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:8080
+assert_return(() => invoke($46, `load8_u`, [65533]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:8081
+assert_return(() => invoke($46, `load8_u`, [65534]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:8082
+assert_return(() => invoke($46, `load8_u`, [65535]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:8084
+let $47 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 65506) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:8092
+assert_trap(() => invoke($47, `run`, [65516, 65506, 40]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:8095
+assert_return(() => invoke($47, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8096
+assert_return(() => invoke($47, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8097
+assert_return(() => invoke($47, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8098
+assert_return(() => invoke($47, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8099
+assert_return(() => invoke($47, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8100
+assert_return(() => invoke($47, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8101
+assert_return(() => invoke($47, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8102
+assert_return(() => invoke($47, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8103
+assert_return(() => invoke($47, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8104
+assert_return(() => invoke($47, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8105
+assert_return(() => invoke($47, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8106
+assert_return(() => invoke($47, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8107
+assert_return(() => invoke($47, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8108
+assert_return(() => invoke($47, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8109
+assert_return(() => invoke($47, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8110
+assert_return(() => invoke($47, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8111
+assert_return(() => invoke($47, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8112
+assert_return(() => invoke($47, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8113
+assert_return(() => invoke($47, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8114
+assert_return(() => invoke($47, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8115
+assert_return(() => invoke($47, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8116
+assert_return(() => invoke($47, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8117
+assert_return(() => invoke($47, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8118
+assert_return(() => invoke($47, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8119
+assert_return(() => invoke($47, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8120
+assert_return(() => invoke($47, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8121
+assert_return(() => invoke($47, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8122
+assert_return(() => invoke($47, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8123
+assert_return(() => invoke($47, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8124
+assert_return(() => invoke($47, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8125
+assert_return(() => invoke($47, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8126
+assert_return(() => invoke($47, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8127
+assert_return(() => invoke($47, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8128
+assert_return(() => invoke($47, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8129
+assert_return(() => invoke($47, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8130
+assert_return(() => invoke($47, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8131
+assert_return(() => invoke($47, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8132
+assert_return(() => invoke($47, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8133
+assert_return(() => invoke($47, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8134
+assert_return(() => invoke($47, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8135
+assert_return(() => invoke($47, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8136
+assert_return(() => invoke($47, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8137
+assert_return(() => invoke($47, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8138
+assert_return(() => invoke($47, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8139
+assert_return(() => invoke($47, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8140
+assert_return(() => invoke($47, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8141
+assert_return(() => invoke($47, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8142
+assert_return(() => invoke($47, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8143
+assert_return(() => invoke($47, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8144
+assert_return(() => invoke($47, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8145
+assert_return(() => invoke($47, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8146
+assert_return(() => invoke($47, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8147
+assert_return(() => invoke($47, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8148
+assert_return(() => invoke($47, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8149
+assert_return(() => invoke($47, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8150
+assert_return(() => invoke($47, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8151
+assert_return(() => invoke($47, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8152
+assert_return(() => invoke($47, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8153
+assert_return(() => invoke($47, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8154
+assert_return(() => invoke($47, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8155
+assert_return(() => invoke($47, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8156
+assert_return(() => invoke($47, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8157
+assert_return(() => invoke($47, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8158
+assert_return(() => invoke($47, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8159
+assert_return(() => invoke($47, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8160
+assert_return(() => invoke($47, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8161
+assert_return(() => invoke($47, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8162
+assert_return(() => invoke($47, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8163
+assert_return(() => invoke($47, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8164
+assert_return(() => invoke($47, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8165
+assert_return(() => invoke($47, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8166
+assert_return(() => invoke($47, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8167
+assert_return(() => invoke($47, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8168
+assert_return(() => invoke($47, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8169
+assert_return(() => invoke($47, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8170
+assert_return(() => invoke($47, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8171
+assert_return(() => invoke($47, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8172
+assert_return(() => invoke($47, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8173
+assert_return(() => invoke($47, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8174
+assert_return(() => invoke($47, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8175
+assert_return(() => invoke($47, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8176
+assert_return(() => invoke($47, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8177
+assert_return(() => invoke($47, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8178
+assert_return(() => invoke($47, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8179
+assert_return(() => invoke($47, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8180
+assert_return(() => invoke($47, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8181
+assert_return(() => invoke($47, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8182
+assert_return(() => invoke($47, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8183
+assert_return(() => invoke($47, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8184
+assert_return(() => invoke($47, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8185
+assert_return(() => invoke($47, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8186
+assert_return(() => invoke($47, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8187
+assert_return(() => invoke($47, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8188
+assert_return(() => invoke($47, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8189
+assert_return(() => invoke($47, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8190
+assert_return(() => invoke($47, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8191
+assert_return(() => invoke($47, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8192
+assert_return(() => invoke($47, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8193
+assert_return(() => invoke($47, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8194
+assert_return(() => invoke($47, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8195
+assert_return(() => invoke($47, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8196
+assert_return(() => invoke($47, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8197
+assert_return(() => invoke($47, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8198
+assert_return(() => invoke($47, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8199
+assert_return(() => invoke($47, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8200
+assert_return(() => invoke($47, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8201
+assert_return(() => invoke($47, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8202
+assert_return(() => invoke($47, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8203
+assert_return(() => invoke($47, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8204
+assert_return(() => invoke($47, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8205
+assert_return(() => invoke($47, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8206
+assert_return(() => invoke($47, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8207
+assert_return(() => invoke($47, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8208
+assert_return(() => invoke($47, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8209
+assert_return(() => invoke($47, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8210
+assert_return(() => invoke($47, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8211
+assert_return(() => invoke($47, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8212
+assert_return(() => invoke($47, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8213
+assert_return(() => invoke($47, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8214
+assert_return(() => invoke($47, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8215
+assert_return(() => invoke($47, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8216
+assert_return(() => invoke($47, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8217
+assert_return(() => invoke($47, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8218
+assert_return(() => invoke($47, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8219
+assert_return(() => invoke($47, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8220
+assert_return(() => invoke($47, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8221
+assert_return(() => invoke($47, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8222
+assert_return(() => invoke($47, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8223
+assert_return(() => invoke($47, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8224
+assert_return(() => invoke($47, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8225
+assert_return(() => invoke($47, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8226
+assert_return(() => invoke($47, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8227
+assert_return(() => invoke($47, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8228
+assert_return(() => invoke($47, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8229
+assert_return(() => invoke($47, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8230
+assert_return(() => invoke($47, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8231
+assert_return(() => invoke($47, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8232
+assert_return(() => invoke($47, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8233
+assert_return(() => invoke($47, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8234
+assert_return(() => invoke($47, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8235
+assert_return(() => invoke($47, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8236
+assert_return(() => invoke($47, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8237
+assert_return(() => invoke($47, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8238
+assert_return(() => invoke($47, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8239
+assert_return(() => invoke($47, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8240
+assert_return(() => invoke($47, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8241
+assert_return(() => invoke($47, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8242
+assert_return(() => invoke($47, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8243
+assert_return(() => invoke($47, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8244
+assert_return(() => invoke($47, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8245
+assert_return(() => invoke($47, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8246
+assert_return(() => invoke($47, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8247
+assert_return(() => invoke($47, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8248
+assert_return(() => invoke($47, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8249
+assert_return(() => invoke($47, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8250
+assert_return(() => invoke($47, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8251
+assert_return(() => invoke($47, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8252
+assert_return(() => invoke($47, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8253
+assert_return(() => invoke($47, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8254
+assert_return(() => invoke($47, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8255
+assert_return(() => invoke($47, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8256
+assert_return(() => invoke($47, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8257
+assert_return(() => invoke($47, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8258
+assert_return(() => invoke($47, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8259
+assert_return(() => invoke($47, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8260
+assert_return(() => invoke($47, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8261
+assert_return(() => invoke($47, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8262
+assert_return(() => invoke($47, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8263
+assert_return(() => invoke($47, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8264
+assert_return(() => invoke($47, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8265
+assert_return(() => invoke($47, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8266
+assert_return(() => invoke($47, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8267
+assert_return(() => invoke($47, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8268
+assert_return(() => invoke($47, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8269
+assert_return(() => invoke($47, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8270
+assert_return(() => invoke($47, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8271
+assert_return(() => invoke($47, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8272
+assert_return(() => invoke($47, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8273
+assert_return(() => invoke($47, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8274
+assert_return(() => invoke($47, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8275
+assert_return(() => invoke($47, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8276
+assert_return(() => invoke($47, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8277
+assert_return(() => invoke($47, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8278
+assert_return(() => invoke($47, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8279
+assert_return(() => invoke($47, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8280
+assert_return(() => invoke($47, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8281
+assert_return(() => invoke($47, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8282
+assert_return(() => invoke($47, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8283
+assert_return(() => invoke($47, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8284
+assert_return(() => invoke($47, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8285
+assert_return(() => invoke($47, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8286
+assert_return(() => invoke($47, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8287
+assert_return(() => invoke($47, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8288
+assert_return(() => invoke($47, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8289
+assert_return(() => invoke($47, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8290
+assert_return(() => invoke($47, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8291
+assert_return(() => invoke($47, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8292
+assert_return(() => invoke($47, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8293
+assert_return(() => invoke($47, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8294
+assert_return(() => invoke($47, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8295
+assert_return(() => invoke($47, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8296
+assert_return(() => invoke($47, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8297
+assert_return(() => invoke($47, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8298
+assert_return(() => invoke($47, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8299
+assert_return(() => invoke($47, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8300
+assert_return(() => invoke($47, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8301
+assert_return(() => invoke($47, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8302
+assert_return(() => invoke($47, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8303
+assert_return(() => invoke($47, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8304
+assert_return(() => invoke($47, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8305
+assert_return(() => invoke($47, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8306
+assert_return(() => invoke($47, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8307
+assert_return(() => invoke($47, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8308
+assert_return(() => invoke($47, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8309
+assert_return(() => invoke($47, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8310
+assert_return(() => invoke($47, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8311
+assert_return(() => invoke($47, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8312
+assert_return(() => invoke($47, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8313
+assert_return(() => invoke($47, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8314
+assert_return(() => invoke($47, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8315
+assert_return(() => invoke($47, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8316
+assert_return(() => invoke($47, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8317
+assert_return(() => invoke($47, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8318
+assert_return(() => invoke($47, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8319
+assert_return(() => invoke($47, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8320
+assert_return(() => invoke($47, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8321
+assert_return(() => invoke($47, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8322
+assert_return(() => invoke($47, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8323
+assert_return(() => invoke($47, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8324
+assert_return(() => invoke($47, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8325
+assert_return(() => invoke($47, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8326
+assert_return(() => invoke($47, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8327
+assert_return(() => invoke($47, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8328
+assert_return(() => invoke($47, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8329
+assert_return(() => invoke($47, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8330
+assert_return(() => invoke($47, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8331
+assert_return(() => invoke($47, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8332
+assert_return(() => invoke($47, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8333
+assert_return(() => invoke($47, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8334
+assert_return(() => invoke($47, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8335
+assert_return(() => invoke($47, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8336
+assert_return(() => invoke($47, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8337
+assert_return(() => invoke($47, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8338
+assert_return(() => invoke($47, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8339
+assert_return(() => invoke($47, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8340
+assert_return(() => invoke($47, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8341
+assert_return(() => invoke($47, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8342
+assert_return(() => invoke($47, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8343
+assert_return(() => invoke($47, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8344
+assert_return(() => invoke($47, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8345
+assert_return(() => invoke($47, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8346
+assert_return(() => invoke($47, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8347
+assert_return(() => invoke($47, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8348
+assert_return(() => invoke($47, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8349
+assert_return(() => invoke($47, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8350
+assert_return(() => invoke($47, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8351
+assert_return(() => invoke($47, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8352
+assert_return(() => invoke($47, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8353
+assert_return(() => invoke($47, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8354
+assert_return(() => invoke($47, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8355
+assert_return(() => invoke($47, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8356
+assert_return(() => invoke($47, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8357
+assert_return(() => invoke($47, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8358
+assert_return(() => invoke($47, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8359
+assert_return(() => invoke($47, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8360
+assert_return(() => invoke($47, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8361
+assert_return(() => invoke($47, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8362
+assert_return(() => invoke($47, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8363
+assert_return(() => invoke($47, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8364
+assert_return(() => invoke($47, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8365
+assert_return(() => invoke($47, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8366
+assert_return(() => invoke($47, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8367
+assert_return(() => invoke($47, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8368
+assert_return(() => invoke($47, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8369
+assert_return(() => invoke($47, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8370
+assert_return(() => invoke($47, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8371
+assert_return(() => invoke($47, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8372
+assert_return(() => invoke($47, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8373
+assert_return(() => invoke($47, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8374
+assert_return(() => invoke($47, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8375
+assert_return(() => invoke($47, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8376
+assert_return(() => invoke($47, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8377
+assert_return(() => invoke($47, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8378
+assert_return(() => invoke($47, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8379
+assert_return(() => invoke($47, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8380
+assert_return(() => invoke($47, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8381
+assert_return(() => invoke($47, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8382
+assert_return(() => invoke($47, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8383
+assert_return(() => invoke($47, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8384
+assert_return(() => invoke($47, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8385
+assert_return(() => invoke($47, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8386
+assert_return(() => invoke($47, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8387
+assert_return(() => invoke($47, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8388
+assert_return(() => invoke($47, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8389
+assert_return(() => invoke($47, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8390
+assert_return(() => invoke($47, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8391
+assert_return(() => invoke($47, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8392
+assert_return(() => invoke($47, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8393
+assert_return(() => invoke($47, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8394
+assert_return(() => invoke($47, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8395
+assert_return(() => invoke($47, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8396
+assert_return(() => invoke($47, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8397
+assert_return(() => invoke($47, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8398
+assert_return(() => invoke($47, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8399
+assert_return(() => invoke($47, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8400
+assert_return(() => invoke($47, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8401
+assert_return(() => invoke($47, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8402
+assert_return(() => invoke($47, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8403
+assert_return(() => invoke($47, `load8_u`, [61490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8404
+assert_return(() => invoke($47, `load8_u`, [61689]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8405
+assert_return(() => invoke($47, `load8_u`, [61888]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8406
+assert_return(() => invoke($47, `load8_u`, [62087]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8407
+assert_return(() => invoke($47, `load8_u`, [62286]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8408
+assert_return(() => invoke($47, `load8_u`, [62485]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8409
+assert_return(() => invoke($47, `load8_u`, [62684]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8410
+assert_return(() => invoke($47, `load8_u`, [62883]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8411
+assert_return(() => invoke($47, `load8_u`, [63082]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8412
+assert_return(() => invoke($47, `load8_u`, [63281]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8413
+assert_return(() => invoke($47, `load8_u`, [63480]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8414
+assert_return(() => invoke($47, `load8_u`, [63679]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8415
+assert_return(() => invoke($47, `load8_u`, [63878]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8416
+assert_return(() => invoke($47, `load8_u`, [64077]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8417
+assert_return(() => invoke($47, `load8_u`, [64276]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8418
+assert_return(() => invoke($47, `load8_u`, [64475]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8419
+assert_return(() => invoke($47, `load8_u`, [64674]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8420
+assert_return(() => invoke($47, `load8_u`, [64873]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8421
+assert_return(() => invoke($47, `load8_u`, [65072]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8422
+assert_return(() => invoke($47, `load8_u`, [65271]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8423
+assert_return(() => invoke($47, `load8_u`, [65470]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8424
+assert_return(() => invoke($47, `load8_u`, [65506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8425
+assert_return(() => invoke($47, `load8_u`, [65507]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:8426
+assert_return(() => invoke($47, `load8_u`, [65508]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:8427
+assert_return(() => invoke($47, `load8_u`, [65509]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:8428
+assert_return(() => invoke($47, `load8_u`, [65510]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:8429
+assert_return(() => invoke($47, `load8_u`, [65511]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:8430
+assert_return(() => invoke($47, `load8_u`, [65512]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:8431
+assert_return(() => invoke($47, `load8_u`, [65513]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:8432
+assert_return(() => invoke($47, `load8_u`, [65514]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:8433
+assert_return(() => invoke($47, `load8_u`, [65515]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:8434
+assert_return(() => invoke($47, `load8_u`, [65516]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:8435
+assert_return(() => invoke($47, `load8_u`, [65517]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:8436
+assert_return(() => invoke($47, `load8_u`, [65518]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:8437
+assert_return(() => invoke($47, `load8_u`, [65519]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:8438
+assert_return(() => invoke($47, `load8_u`, [65520]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:8439
+assert_return(() => invoke($47, `load8_u`, [65521]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:8440
+assert_return(() => invoke($47, `load8_u`, [65522]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:8441
+assert_return(() => invoke($47, `load8_u`, [65523]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:8442
+assert_return(() => invoke($47, `load8_u`, [65524]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:8443
+assert_return(() => invoke($47, `load8_u`, [65525]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:8445
+let $48 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:8453
+assert_trap(() => invoke($48, `run`, [65506, 65516, 40]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:8456
+assert_return(() => invoke($48, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8457
+assert_return(() => invoke($48, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8458
+assert_return(() => invoke($48, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8459
+assert_return(() => invoke($48, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8460
+assert_return(() => invoke($48, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8461
+assert_return(() => invoke($48, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8462
+assert_return(() => invoke($48, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8463
+assert_return(() => invoke($48, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8464
+assert_return(() => invoke($48, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8465
+assert_return(() => invoke($48, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8466
+assert_return(() => invoke($48, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8467
+assert_return(() => invoke($48, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8468
+assert_return(() => invoke($48, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8469
+assert_return(() => invoke($48, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8470
+assert_return(() => invoke($48, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8471
+assert_return(() => invoke($48, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8472
+assert_return(() => invoke($48, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8473
+assert_return(() => invoke($48, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8474
+assert_return(() => invoke($48, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8475
+assert_return(() => invoke($48, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8476
+assert_return(() => invoke($48, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8477
+assert_return(() => invoke($48, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8478
+assert_return(() => invoke($48, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8479
+assert_return(() => invoke($48, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8480
+assert_return(() => invoke($48, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8481
+assert_return(() => invoke($48, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8482
+assert_return(() => invoke($48, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8483
+assert_return(() => invoke($48, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8484
+assert_return(() => invoke($48, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8485
+assert_return(() => invoke($48, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8486
+assert_return(() => invoke($48, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8487
+assert_return(() => invoke($48, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8488
+assert_return(() => invoke($48, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8489
+assert_return(() => invoke($48, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8490
+assert_return(() => invoke($48, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8491
+assert_return(() => invoke($48, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8492
+assert_return(() => invoke($48, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8493
+assert_return(() => invoke($48, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8494
+assert_return(() => invoke($48, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8495
+assert_return(() => invoke($48, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8496
+assert_return(() => invoke($48, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8497
+assert_return(() => invoke($48, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8498
+assert_return(() => invoke($48, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8499
+assert_return(() => invoke($48, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8500
+assert_return(() => invoke($48, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8501
+assert_return(() => invoke($48, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8502
+assert_return(() => invoke($48, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8503
+assert_return(() => invoke($48, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8504
+assert_return(() => invoke($48, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8505
+assert_return(() => invoke($48, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8506
+assert_return(() => invoke($48, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8507
+assert_return(() => invoke($48, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8508
+assert_return(() => invoke($48, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8509
+assert_return(() => invoke($48, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8510
+assert_return(() => invoke($48, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8511
+assert_return(() => invoke($48, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8512
+assert_return(() => invoke($48, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8513
+assert_return(() => invoke($48, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8514
+assert_return(() => invoke($48, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8515
+assert_return(() => invoke($48, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8516
+assert_return(() => invoke($48, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8517
+assert_return(() => invoke($48, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8518
+assert_return(() => invoke($48, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8519
+assert_return(() => invoke($48, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8520
+assert_return(() => invoke($48, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8521
+assert_return(() => invoke($48, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8522
+assert_return(() => invoke($48, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8523
+assert_return(() => invoke($48, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8524
+assert_return(() => invoke($48, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8525
+assert_return(() => invoke($48, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8526
+assert_return(() => invoke($48, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8527
+assert_return(() => invoke($48, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8528
+assert_return(() => invoke($48, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8529
+assert_return(() => invoke($48, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8530
+assert_return(() => invoke($48, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8531
+assert_return(() => invoke($48, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8532
+assert_return(() => invoke($48, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8533
+assert_return(() => invoke($48, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8534
+assert_return(() => invoke($48, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8535
+assert_return(() => invoke($48, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8536
+assert_return(() => invoke($48, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8537
+assert_return(() => invoke($48, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8538
+assert_return(() => invoke($48, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8539
+assert_return(() => invoke($48, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8540
+assert_return(() => invoke($48, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8541
+assert_return(() => invoke($48, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8542
+assert_return(() => invoke($48, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8543
+assert_return(() => invoke($48, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8544
+assert_return(() => invoke($48, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8545
+assert_return(() => invoke($48, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8546
+assert_return(() => invoke($48, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8547
+assert_return(() => invoke($48, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8548
+assert_return(() => invoke($48, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8549
+assert_return(() => invoke($48, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8550
+assert_return(() => invoke($48, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8551
+assert_return(() => invoke($48, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8552
+assert_return(() => invoke($48, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8553
+assert_return(() => invoke($48, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8554
+assert_return(() => invoke($48, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8555
+assert_return(() => invoke($48, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8556
+assert_return(() => invoke($48, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8557
+assert_return(() => invoke($48, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8558
+assert_return(() => invoke($48, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8559
+assert_return(() => invoke($48, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8560
+assert_return(() => invoke($48, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8561
+assert_return(() => invoke($48, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8562
+assert_return(() => invoke($48, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8563
+assert_return(() => invoke($48, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8564
+assert_return(() => invoke($48, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8565
+assert_return(() => invoke($48, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8566
+assert_return(() => invoke($48, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8567
+assert_return(() => invoke($48, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8568
+assert_return(() => invoke($48, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8569
+assert_return(() => invoke($48, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8570
+assert_return(() => invoke($48, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8571
+assert_return(() => invoke($48, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8572
+assert_return(() => invoke($48, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8573
+assert_return(() => invoke($48, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8574
+assert_return(() => invoke($48, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8575
+assert_return(() => invoke($48, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8576
+assert_return(() => invoke($48, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8577
+assert_return(() => invoke($48, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8578
+assert_return(() => invoke($48, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8579
+assert_return(() => invoke($48, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8580
+assert_return(() => invoke($48, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8581
+assert_return(() => invoke($48, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8582
+assert_return(() => invoke($48, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8583
+assert_return(() => invoke($48, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8584
+assert_return(() => invoke($48, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8585
+assert_return(() => invoke($48, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8586
+assert_return(() => invoke($48, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8587
+assert_return(() => invoke($48, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8588
+assert_return(() => invoke($48, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8589
+assert_return(() => invoke($48, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8590
+assert_return(() => invoke($48, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8591
+assert_return(() => invoke($48, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8592
+assert_return(() => invoke($48, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8593
+assert_return(() => invoke($48, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8594
+assert_return(() => invoke($48, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8595
+assert_return(() => invoke($48, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8596
+assert_return(() => invoke($48, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8597
+assert_return(() => invoke($48, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8598
+assert_return(() => invoke($48, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8599
+assert_return(() => invoke($48, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8600
+assert_return(() => invoke($48, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8601
+assert_return(() => invoke($48, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8602
+assert_return(() => invoke($48, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8603
+assert_return(() => invoke($48, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8604
+assert_return(() => invoke($48, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8605
+assert_return(() => invoke($48, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8606
+assert_return(() => invoke($48, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8607
+assert_return(() => invoke($48, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8608
+assert_return(() => invoke($48, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8609
+assert_return(() => invoke($48, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8610
+assert_return(() => invoke($48, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8611
+assert_return(() => invoke($48, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8612
+assert_return(() => invoke($48, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8613
+assert_return(() => invoke($48, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8614
+assert_return(() => invoke($48, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8615
+assert_return(() => invoke($48, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8616
+assert_return(() => invoke($48, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8617
+assert_return(() => invoke($48, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8618
+assert_return(() => invoke($48, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8619
+assert_return(() => invoke($48, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8620
+assert_return(() => invoke($48, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8621
+assert_return(() => invoke($48, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8622
+assert_return(() => invoke($48, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8623
+assert_return(() => invoke($48, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8624
+assert_return(() => invoke($48, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8625
+assert_return(() => invoke($48, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8626
+assert_return(() => invoke($48, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8627
+assert_return(() => invoke($48, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8628
+assert_return(() => invoke($48, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8629
+assert_return(() => invoke($48, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8630
+assert_return(() => invoke($48, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8631
+assert_return(() => invoke($48, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8632
+assert_return(() => invoke($48, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8633
+assert_return(() => invoke($48, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8634
+assert_return(() => invoke($48, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8635
+assert_return(() => invoke($48, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8636
+assert_return(() => invoke($48, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8637
+assert_return(() => invoke($48, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8638
+assert_return(() => invoke($48, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8639
+assert_return(() => invoke($48, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8640
+assert_return(() => invoke($48, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8641
+assert_return(() => invoke($48, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8642
+assert_return(() => invoke($48, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8643
+assert_return(() => invoke($48, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8644
+assert_return(() => invoke($48, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8645
+assert_return(() => invoke($48, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8646
+assert_return(() => invoke($48, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8647
+assert_return(() => invoke($48, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8648
+assert_return(() => invoke($48, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8649
+assert_return(() => invoke($48, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8650
+assert_return(() => invoke($48, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8651
+assert_return(() => invoke($48, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8652
+assert_return(() => invoke($48, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8653
+assert_return(() => invoke($48, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8654
+assert_return(() => invoke($48, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8655
+assert_return(() => invoke($48, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8656
+assert_return(() => invoke($48, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8657
+assert_return(() => invoke($48, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8658
+assert_return(() => invoke($48, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8659
+assert_return(() => invoke($48, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8660
+assert_return(() => invoke($48, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8661
+assert_return(() => invoke($48, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8662
+assert_return(() => invoke($48, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8663
+assert_return(() => invoke($48, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8664
+assert_return(() => invoke($48, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8665
+assert_return(() => invoke($48, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8666
+assert_return(() => invoke($48, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8667
+assert_return(() => invoke($48, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8668
+assert_return(() => invoke($48, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8669
+assert_return(() => invoke($48, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8670
+assert_return(() => invoke($48, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8671
+assert_return(() => invoke($48, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8672
+assert_return(() => invoke($48, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8673
+assert_return(() => invoke($48, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8674
+assert_return(() => invoke($48, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8675
+assert_return(() => invoke($48, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8676
+assert_return(() => invoke($48, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8677
+assert_return(() => invoke($48, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8678
+assert_return(() => invoke($48, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8679
+assert_return(() => invoke($48, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8680
+assert_return(() => invoke($48, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8681
+assert_return(() => invoke($48, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8682
+assert_return(() => invoke($48, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8683
+assert_return(() => invoke($48, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8684
+assert_return(() => invoke($48, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8685
+assert_return(() => invoke($48, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8686
+assert_return(() => invoke($48, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8687
+assert_return(() => invoke($48, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8688
+assert_return(() => invoke($48, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8689
+assert_return(() => invoke($48, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8690
+assert_return(() => invoke($48, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8691
+assert_return(() => invoke($48, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8692
+assert_return(() => invoke($48, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8693
+assert_return(() => invoke($48, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8694
+assert_return(() => invoke($48, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8695
+assert_return(() => invoke($48, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8696
+assert_return(() => invoke($48, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8697
+assert_return(() => invoke($48, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8698
+assert_return(() => invoke($48, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8699
+assert_return(() => invoke($48, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8700
+assert_return(() => invoke($48, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8701
+assert_return(() => invoke($48, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8702
+assert_return(() => invoke($48, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8703
+assert_return(() => invoke($48, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8704
+assert_return(() => invoke($48, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8705
+assert_return(() => invoke($48, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8706
+assert_return(() => invoke($48, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8707
+assert_return(() => invoke($48, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8708
+assert_return(() => invoke($48, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8709
+assert_return(() => invoke($48, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8710
+assert_return(() => invoke($48, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8711
+assert_return(() => invoke($48, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8712
+assert_return(() => invoke($48, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8713
+assert_return(() => invoke($48, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8714
+assert_return(() => invoke($48, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8715
+assert_return(() => invoke($48, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8716
+assert_return(() => invoke($48, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8717
+assert_return(() => invoke($48, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8718
+assert_return(() => invoke($48, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8719
+assert_return(() => invoke($48, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8720
+assert_return(() => invoke($48, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8721
+assert_return(() => invoke($48, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8722
+assert_return(() => invoke($48, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8723
+assert_return(() => invoke($48, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8724
+assert_return(() => invoke($48, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8725
+assert_return(() => invoke($48, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8726
+assert_return(() => invoke($48, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8727
+assert_return(() => invoke($48, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8728
+assert_return(() => invoke($48, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8729
+assert_return(() => invoke($48, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8730
+assert_return(() => invoke($48, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8731
+assert_return(() => invoke($48, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8732
+assert_return(() => invoke($48, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8733
+assert_return(() => invoke($48, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8734
+assert_return(() => invoke($48, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8735
+assert_return(() => invoke($48, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8736
+assert_return(() => invoke($48, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8737
+assert_return(() => invoke($48, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8738
+assert_return(() => invoke($48, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8739
+assert_return(() => invoke($48, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8740
+assert_return(() => invoke($48, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8741
+assert_return(() => invoke($48, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8742
+assert_return(() => invoke($48, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8743
+assert_return(() => invoke($48, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8744
+assert_return(() => invoke($48, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8745
+assert_return(() => invoke($48, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8746
+assert_return(() => invoke($48, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8747
+assert_return(() => invoke($48, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8748
+assert_return(() => invoke($48, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8749
+assert_return(() => invoke($48, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8750
+assert_return(() => invoke($48, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8751
+assert_return(() => invoke($48, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8752
+assert_return(() => invoke($48, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8753
+assert_return(() => invoke($48, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8754
+assert_return(() => invoke($48, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8755
+assert_return(() => invoke($48, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8756
+assert_return(() => invoke($48, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8757
+assert_return(() => invoke($48, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8758
+assert_return(() => invoke($48, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8759
+assert_return(() => invoke($48, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8760
+assert_return(() => invoke($48, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8761
+assert_return(() => invoke($48, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8762
+assert_return(() => invoke($48, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8763
+assert_return(() => invoke($48, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8764
+assert_return(() => invoke($48, `load8_u`, [61490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8765
+assert_return(() => invoke($48, `load8_u`, [61689]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8766
+assert_return(() => invoke($48, `load8_u`, [61888]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8767
+assert_return(() => invoke($48, `load8_u`, [62087]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8768
+assert_return(() => invoke($48, `load8_u`, [62286]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8769
+assert_return(() => invoke($48, `load8_u`, [62485]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8770
+assert_return(() => invoke($48, `load8_u`, [62684]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8771
+assert_return(() => invoke($48, `load8_u`, [62883]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8772
+assert_return(() => invoke($48, `load8_u`, [63082]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8773
+assert_return(() => invoke($48, `load8_u`, [63281]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8774
+assert_return(() => invoke($48, `load8_u`, [63480]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8775
+assert_return(() => invoke($48, `load8_u`, [63679]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8776
+assert_return(() => invoke($48, `load8_u`, [63878]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8777
+assert_return(() => invoke($48, `load8_u`, [64077]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8778
+assert_return(() => invoke($48, `load8_u`, [64276]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8779
+assert_return(() => invoke($48, `load8_u`, [64475]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8780
+assert_return(() => invoke($48, `load8_u`, [64674]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8781
+assert_return(() => invoke($48, `load8_u`, [64873]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8782
+assert_return(() => invoke($48, `load8_u`, [65072]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8783
+assert_return(() => invoke($48, `load8_u`, [65271]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8784
+assert_return(() => invoke($48, `load8_u`, [65470]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8785
+assert_return(() => invoke($48, `load8_u`, [65516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8786
+assert_return(() => invoke($48, `load8_u`, [65517]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:8787
+assert_return(() => invoke($48, `load8_u`, [65518]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:8788
+assert_return(() => invoke($48, `load8_u`, [65519]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:8789
+assert_return(() => invoke($48, `load8_u`, [65520]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:8790
+assert_return(() => invoke($48, `load8_u`, [65521]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:8791
+assert_return(() => invoke($48, `load8_u`, [65522]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:8792
+assert_return(() => invoke($48, `load8_u`, [65523]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:8793
+assert_return(() => invoke($48, `load8_u`, [65524]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:8794
+assert_return(() => invoke($48, `load8_u`, [65525]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:8795
+assert_return(() => invoke($48, `load8_u`, [65526]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:8796
+assert_return(() => invoke($48, `load8_u`, [65527]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:8797
+assert_return(() => invoke($48, `load8_u`, [65528]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:8798
+assert_return(() => invoke($48, `load8_u`, [65529]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:8799
+assert_return(() => invoke($48, `load8_u`, [65530]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:8800
+assert_return(() => invoke($48, `load8_u`, [65531]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:8801
+assert_return(() => invoke($48, `load8_u`, [65532]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:8802
+assert_return(() => invoke($48, `load8_u`, [65533]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:8803
+assert_return(() => invoke($48, `load8_u`, [65534]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:8804
+assert_return(() => invoke($48, `load8_u`, [65535]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:8806
+let $49 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:8814
+assert_trap(() => invoke($49, `run`, [65516, 65516, 40]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:8817
+assert_return(() => invoke($49, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8818
+assert_return(() => invoke($49, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8819
+assert_return(() => invoke($49, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8820
+assert_return(() => invoke($49, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8821
+assert_return(() => invoke($49, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8822
+assert_return(() => invoke($49, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8823
+assert_return(() => invoke($49, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8824
+assert_return(() => invoke($49, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8825
+assert_return(() => invoke($49, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8826
+assert_return(() => invoke($49, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8827
+assert_return(() => invoke($49, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8828
+assert_return(() => invoke($49, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8829
+assert_return(() => invoke($49, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8830
+assert_return(() => invoke($49, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8831
+assert_return(() => invoke($49, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8832
+assert_return(() => invoke($49, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8833
+assert_return(() => invoke($49, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8834
+assert_return(() => invoke($49, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8835
+assert_return(() => invoke($49, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8836
+assert_return(() => invoke($49, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8837
+assert_return(() => invoke($49, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8838
+assert_return(() => invoke($49, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8839
+assert_return(() => invoke($49, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8840
+assert_return(() => invoke($49, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8841
+assert_return(() => invoke($49, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8842
+assert_return(() => invoke($49, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8843
+assert_return(() => invoke($49, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8844
+assert_return(() => invoke($49, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8845
+assert_return(() => invoke($49, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8846
+assert_return(() => invoke($49, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8847
+assert_return(() => invoke($49, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8848
+assert_return(() => invoke($49, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8849
+assert_return(() => invoke($49, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8850
+assert_return(() => invoke($49, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8851
+assert_return(() => invoke($49, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8852
+assert_return(() => invoke($49, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8853
+assert_return(() => invoke($49, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8854
+assert_return(() => invoke($49, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8855
+assert_return(() => invoke($49, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8856
+assert_return(() => invoke($49, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8857
+assert_return(() => invoke($49, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8858
+assert_return(() => invoke($49, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8859
+assert_return(() => invoke($49, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8860
+assert_return(() => invoke($49, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8861
+assert_return(() => invoke($49, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8862
+assert_return(() => invoke($49, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8863
+assert_return(() => invoke($49, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8864
+assert_return(() => invoke($49, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8865
+assert_return(() => invoke($49, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8866
+assert_return(() => invoke($49, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8867
+assert_return(() => invoke($49, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8868
+assert_return(() => invoke($49, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8869
+assert_return(() => invoke($49, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8870
+assert_return(() => invoke($49, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8871
+assert_return(() => invoke($49, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8872
+assert_return(() => invoke($49, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8873
+assert_return(() => invoke($49, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8874
+assert_return(() => invoke($49, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8875
+assert_return(() => invoke($49, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8876
+assert_return(() => invoke($49, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8877
+assert_return(() => invoke($49, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8878
+assert_return(() => invoke($49, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8879
+assert_return(() => invoke($49, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8880
+assert_return(() => invoke($49, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8881
+assert_return(() => invoke($49, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8882
+assert_return(() => invoke($49, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8883
+assert_return(() => invoke($49, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8884
+assert_return(() => invoke($49, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8885
+assert_return(() => invoke($49, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8886
+assert_return(() => invoke($49, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8887
+assert_return(() => invoke($49, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8888
+assert_return(() => invoke($49, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8889
+assert_return(() => invoke($49, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8890
+assert_return(() => invoke($49, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8891
+assert_return(() => invoke($49, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8892
+assert_return(() => invoke($49, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8893
+assert_return(() => invoke($49, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8894
+assert_return(() => invoke($49, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8895
+assert_return(() => invoke($49, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8896
+assert_return(() => invoke($49, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8897
+assert_return(() => invoke($49, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8898
+assert_return(() => invoke($49, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8899
+assert_return(() => invoke($49, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8900
+assert_return(() => invoke($49, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8901
+assert_return(() => invoke($49, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8902
+assert_return(() => invoke($49, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8903
+assert_return(() => invoke($49, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8904
+assert_return(() => invoke($49, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8905
+assert_return(() => invoke($49, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8906
+assert_return(() => invoke($49, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8907
+assert_return(() => invoke($49, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8908
+assert_return(() => invoke($49, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8909
+assert_return(() => invoke($49, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8910
+assert_return(() => invoke($49, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8911
+assert_return(() => invoke($49, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8912
+assert_return(() => invoke($49, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8913
+assert_return(() => invoke($49, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8914
+assert_return(() => invoke($49, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8915
+assert_return(() => invoke($49, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8916
+assert_return(() => invoke($49, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8917
+assert_return(() => invoke($49, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8918
+assert_return(() => invoke($49, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8919
+assert_return(() => invoke($49, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8920
+assert_return(() => invoke($49, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8921
+assert_return(() => invoke($49, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8922
+assert_return(() => invoke($49, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8923
+assert_return(() => invoke($49, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8924
+assert_return(() => invoke($49, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8925
+assert_return(() => invoke($49, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8926
+assert_return(() => invoke($49, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8927
+assert_return(() => invoke($49, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8928
+assert_return(() => invoke($49, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8929
+assert_return(() => invoke($49, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8930
+assert_return(() => invoke($49, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8931
+assert_return(() => invoke($49, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8932
+assert_return(() => invoke($49, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8933
+assert_return(() => invoke($49, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8934
+assert_return(() => invoke($49, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8935
+assert_return(() => invoke($49, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8936
+assert_return(() => invoke($49, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8937
+assert_return(() => invoke($49, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8938
+assert_return(() => invoke($49, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8939
+assert_return(() => invoke($49, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8940
+assert_return(() => invoke($49, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8941
+assert_return(() => invoke($49, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8942
+assert_return(() => invoke($49, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8943
+assert_return(() => invoke($49, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8944
+assert_return(() => invoke($49, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8945
+assert_return(() => invoke($49, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8946
+assert_return(() => invoke($49, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8947
+assert_return(() => invoke($49, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8948
+assert_return(() => invoke($49, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8949
+assert_return(() => invoke($49, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8950
+assert_return(() => invoke($49, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8951
+assert_return(() => invoke($49, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8952
+assert_return(() => invoke($49, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8953
+assert_return(() => invoke($49, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8954
+assert_return(() => invoke($49, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8955
+assert_return(() => invoke($49, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8956
+assert_return(() => invoke($49, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8957
+assert_return(() => invoke($49, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8958
+assert_return(() => invoke($49, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8959
+assert_return(() => invoke($49, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8960
+assert_return(() => invoke($49, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8961
+assert_return(() => invoke($49, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8962
+assert_return(() => invoke($49, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8963
+assert_return(() => invoke($49, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8964
+assert_return(() => invoke($49, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8965
+assert_return(() => invoke($49, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8966
+assert_return(() => invoke($49, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8967
+assert_return(() => invoke($49, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8968
+assert_return(() => invoke($49, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8969
+assert_return(() => invoke($49, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8970
+assert_return(() => invoke($49, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8971
+assert_return(() => invoke($49, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8972
+assert_return(() => invoke($49, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8973
+assert_return(() => invoke($49, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8974
+assert_return(() => invoke($49, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8975
+assert_return(() => invoke($49, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8976
+assert_return(() => invoke($49, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8977
+assert_return(() => invoke($49, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8978
+assert_return(() => invoke($49, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8979
+assert_return(() => invoke($49, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8980
+assert_return(() => invoke($49, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8981
+assert_return(() => invoke($49, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8982
+assert_return(() => invoke($49, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8983
+assert_return(() => invoke($49, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8984
+assert_return(() => invoke($49, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8985
+assert_return(() => invoke($49, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8986
+assert_return(() => invoke($49, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8987
+assert_return(() => invoke($49, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8988
+assert_return(() => invoke($49, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8989
+assert_return(() => invoke($49, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8990
+assert_return(() => invoke($49, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8991
+assert_return(() => invoke($49, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8992
+assert_return(() => invoke($49, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8993
+assert_return(() => invoke($49, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8994
+assert_return(() => invoke($49, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8995
+assert_return(() => invoke($49, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8996
+assert_return(() => invoke($49, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8997
+assert_return(() => invoke($49, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8998
+assert_return(() => invoke($49, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:8999
+assert_return(() => invoke($49, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9000
+assert_return(() => invoke($49, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9001
+assert_return(() => invoke($49, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9002
+assert_return(() => invoke($49, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9003
+assert_return(() => invoke($49, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9004
+assert_return(() => invoke($49, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9005
+assert_return(() => invoke($49, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9006
+assert_return(() => invoke($49, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9007
+assert_return(() => invoke($49, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9008
+assert_return(() => invoke($49, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9009
+assert_return(() => invoke($49, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9010
+assert_return(() => invoke($49, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9011
+assert_return(() => invoke($49, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9012
+assert_return(() => invoke($49, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9013
+assert_return(() => invoke($49, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9014
+assert_return(() => invoke($49, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9015
+assert_return(() => invoke($49, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9016
+assert_return(() => invoke($49, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9017
+assert_return(() => invoke($49, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9018
+assert_return(() => invoke($49, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9019
+assert_return(() => invoke($49, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9020
+assert_return(() => invoke($49, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9021
+assert_return(() => invoke($49, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9022
+assert_return(() => invoke($49, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9023
+assert_return(() => invoke($49, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9024
+assert_return(() => invoke($49, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9025
+assert_return(() => invoke($49, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9026
+assert_return(() => invoke($49, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9027
+assert_return(() => invoke($49, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9028
+assert_return(() => invoke($49, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9029
+assert_return(() => invoke($49, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9030
+assert_return(() => invoke($49, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9031
+assert_return(() => invoke($49, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9032
+assert_return(() => invoke($49, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9033
+assert_return(() => invoke($49, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9034
+assert_return(() => invoke($49, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9035
+assert_return(() => invoke($49, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9036
+assert_return(() => invoke($49, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9037
+assert_return(() => invoke($49, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9038
+assert_return(() => invoke($49, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9039
+assert_return(() => invoke($49, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9040
+assert_return(() => invoke($49, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9041
+assert_return(() => invoke($49, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9042
+assert_return(() => invoke($49, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9043
+assert_return(() => invoke($49, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9044
+assert_return(() => invoke($49, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9045
+assert_return(() => invoke($49, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9046
+assert_return(() => invoke($49, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9047
+assert_return(() => invoke($49, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9048
+assert_return(() => invoke($49, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9049
+assert_return(() => invoke($49, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9050
+assert_return(() => invoke($49, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9051
+assert_return(() => invoke($49, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9052
+assert_return(() => invoke($49, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9053
+assert_return(() => invoke($49, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9054
+assert_return(() => invoke($49, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9055
+assert_return(() => invoke($49, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9056
+assert_return(() => invoke($49, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9057
+assert_return(() => invoke($49, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9058
+assert_return(() => invoke($49, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9059
+assert_return(() => invoke($49, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9060
+assert_return(() => invoke($49, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9061
+assert_return(() => invoke($49, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9062
+assert_return(() => invoke($49, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9063
+assert_return(() => invoke($49, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9064
+assert_return(() => invoke($49, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9065
+assert_return(() => invoke($49, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9066
+assert_return(() => invoke($49, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9067
+assert_return(() => invoke($49, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9068
+assert_return(() => invoke($49, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9069
+assert_return(() => invoke($49, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9070
+assert_return(() => invoke($49, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9071
+assert_return(() => invoke($49, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9072
+assert_return(() => invoke($49, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9073
+assert_return(() => invoke($49, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9074
+assert_return(() => invoke($49, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9075
+assert_return(() => invoke($49, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9076
+assert_return(() => invoke($49, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9077
+assert_return(() => invoke($49, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9078
+assert_return(() => invoke($49, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9079
+assert_return(() => invoke($49, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9080
+assert_return(() => invoke($49, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9081
+assert_return(() => invoke($49, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9082
+assert_return(() => invoke($49, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9083
+assert_return(() => invoke($49, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9084
+assert_return(() => invoke($49, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9085
+assert_return(() => invoke($49, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9086
+assert_return(() => invoke($49, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9087
+assert_return(() => invoke($49, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9088
+assert_return(() => invoke($49, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9089
+assert_return(() => invoke($49, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9090
+assert_return(() => invoke($49, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9091
+assert_return(() => invoke($49, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9092
+assert_return(() => invoke($49, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9093
+assert_return(() => invoke($49, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9094
+assert_return(() => invoke($49, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9095
+assert_return(() => invoke($49, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9096
+assert_return(() => invoke($49, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9097
+assert_return(() => invoke($49, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9098
+assert_return(() => invoke($49, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9099
+assert_return(() => invoke($49, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9100
+assert_return(() => invoke($49, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9101
+assert_return(() => invoke($49, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9102
+assert_return(() => invoke($49, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9103
+assert_return(() => invoke($49, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9104
+assert_return(() => invoke($49, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9105
+assert_return(() => invoke($49, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9106
+assert_return(() => invoke($49, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9107
+assert_return(() => invoke($49, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9108
+assert_return(() => invoke($49, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9109
+assert_return(() => invoke($49, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9110
+assert_return(() => invoke($49, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9111
+assert_return(() => invoke($49, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9112
+assert_return(() => invoke($49, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9113
+assert_return(() => invoke($49, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9114
+assert_return(() => invoke($49, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9115
+assert_return(() => invoke($49, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9116
+assert_return(() => invoke($49, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9117
+assert_return(() => invoke($49, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9118
+assert_return(() => invoke($49, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9119
+assert_return(() => invoke($49, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9120
+assert_return(() => invoke($49, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9121
+assert_return(() => invoke($49, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9122
+assert_return(() => invoke($49, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9123
+assert_return(() => invoke($49, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9124
+assert_return(() => invoke($49, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9125
+assert_return(() => invoke($49, `load8_u`, [61490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9126
+assert_return(() => invoke($49, `load8_u`, [61689]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9127
+assert_return(() => invoke($49, `load8_u`, [61888]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9128
+assert_return(() => invoke($49, `load8_u`, [62087]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9129
+assert_return(() => invoke($49, `load8_u`, [62286]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9130
+assert_return(() => invoke($49, `load8_u`, [62485]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9131
+assert_return(() => invoke($49, `load8_u`, [62684]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9132
+assert_return(() => invoke($49, `load8_u`, [62883]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9133
+assert_return(() => invoke($49, `load8_u`, [63082]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9134
+assert_return(() => invoke($49, `load8_u`, [63281]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9135
+assert_return(() => invoke($49, `load8_u`, [63480]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9136
+assert_return(() => invoke($49, `load8_u`, [63679]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9137
+assert_return(() => invoke($49, `load8_u`, [63878]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9138
+assert_return(() => invoke($49, `load8_u`, [64077]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9139
+assert_return(() => invoke($49, `load8_u`, [64276]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9140
+assert_return(() => invoke($49, `load8_u`, [64475]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9141
+assert_return(() => invoke($49, `load8_u`, [64674]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9142
+assert_return(() => invoke($49, `load8_u`, [64873]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9143
+assert_return(() => invoke($49, `load8_u`, [65072]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9144
+assert_return(() => invoke($49, `load8_u`, [65271]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9145
+assert_return(() => invoke($49, `load8_u`, [65470]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9146
+assert_return(() => invoke($49, `load8_u`, [65516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9147
+assert_return(() => invoke($49, `load8_u`, [65517]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:9148
+assert_return(() => invoke($49, `load8_u`, [65518]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:9149
+assert_return(() => invoke($49, `load8_u`, [65519]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:9150
+assert_return(() => invoke($49, `load8_u`, [65520]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:9151
+assert_return(() => invoke($49, `load8_u`, [65521]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:9152
+assert_return(() => invoke($49, `load8_u`, [65522]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:9153
+assert_return(() => invoke($49, `load8_u`, [65523]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:9154
+assert_return(() => invoke($49, `load8_u`, [65524]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:9155
+assert_return(() => invoke($49, `load8_u`, [65525]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:9156
+assert_return(() => invoke($49, `load8_u`, [65526]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:9157
+assert_return(() => invoke($49, `load8_u`, [65527]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:9158
+assert_return(() => invoke($49, `load8_u`, [65528]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:9159
+assert_return(() => invoke($49, `load8_u`, [65529]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:9160
+assert_return(() => invoke($49, `load8_u`, [65530]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:9161
+assert_return(() => invoke($49, `load8_u`, [65531]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:9162
+assert_return(() => invoke($49, `load8_u`, [65532]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:9163
+assert_return(() => invoke($49, `load8_u`, [65533]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:9164
+assert_return(() => invoke($49, `load8_u`, [65534]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:9165
+assert_return(() => invoke($49, `load8_u`, [65535]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:9167
+let $50 = instantiate(`(module
+  (memory (export "mem") 1  )
+  (data (i32.const 65516) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:9175
+assert_trap(() => invoke($50, `run`, [0, 65516, -4096]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:9178
+assert_return(() => invoke($50, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9179
+assert_return(() => invoke($50, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9180
+assert_return(() => invoke($50, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9181
+assert_return(() => invoke($50, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9182
+assert_return(() => invoke($50, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9183
+assert_return(() => invoke($50, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9184
+assert_return(() => invoke($50, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9185
+assert_return(() => invoke($50, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9186
+assert_return(() => invoke($50, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9187
+assert_return(() => invoke($50, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9188
+assert_return(() => invoke($50, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9189
+assert_return(() => invoke($50, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9190
+assert_return(() => invoke($50, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9191
+assert_return(() => invoke($50, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9192
+assert_return(() => invoke($50, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9193
+assert_return(() => invoke($50, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9194
+assert_return(() => invoke($50, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9195
+assert_return(() => invoke($50, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9196
+assert_return(() => invoke($50, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9197
+assert_return(() => invoke($50, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9198
+assert_return(() => invoke($50, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9199
+assert_return(() => invoke($50, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9200
+assert_return(() => invoke($50, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9201
+assert_return(() => invoke($50, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9202
+assert_return(() => invoke($50, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9203
+assert_return(() => invoke($50, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9204
+assert_return(() => invoke($50, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9205
+assert_return(() => invoke($50, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9206
+assert_return(() => invoke($50, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9207
+assert_return(() => invoke($50, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9208
+assert_return(() => invoke($50, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9209
+assert_return(() => invoke($50, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9210
+assert_return(() => invoke($50, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9211
+assert_return(() => invoke($50, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9212
+assert_return(() => invoke($50, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9213
+assert_return(() => invoke($50, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9214
+assert_return(() => invoke($50, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9215
+assert_return(() => invoke($50, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9216
+assert_return(() => invoke($50, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9217
+assert_return(() => invoke($50, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9218
+assert_return(() => invoke($50, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9219
+assert_return(() => invoke($50, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9220
+assert_return(() => invoke($50, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9221
+assert_return(() => invoke($50, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9222
+assert_return(() => invoke($50, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9223
+assert_return(() => invoke($50, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9224
+assert_return(() => invoke($50, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9225
+assert_return(() => invoke($50, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9226
+assert_return(() => invoke($50, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9227
+assert_return(() => invoke($50, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9228
+assert_return(() => invoke($50, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9229
+assert_return(() => invoke($50, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9230
+assert_return(() => invoke($50, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9231
+assert_return(() => invoke($50, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9232
+assert_return(() => invoke($50, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9233
+assert_return(() => invoke($50, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9234
+assert_return(() => invoke($50, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9235
+assert_return(() => invoke($50, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9236
+assert_return(() => invoke($50, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9237
+assert_return(() => invoke($50, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9238
+assert_return(() => invoke($50, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9239
+assert_return(() => invoke($50, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9240
+assert_return(() => invoke($50, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9241
+assert_return(() => invoke($50, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9242
+assert_return(() => invoke($50, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9243
+assert_return(() => invoke($50, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9244
+assert_return(() => invoke($50, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9245
+assert_return(() => invoke($50, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9246
+assert_return(() => invoke($50, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9247
+assert_return(() => invoke($50, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9248
+assert_return(() => invoke($50, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9249
+assert_return(() => invoke($50, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9250
+assert_return(() => invoke($50, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9251
+assert_return(() => invoke($50, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9252
+assert_return(() => invoke($50, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9253
+assert_return(() => invoke($50, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9254
+assert_return(() => invoke($50, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9255
+assert_return(() => invoke($50, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9256
+assert_return(() => invoke($50, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9257
+assert_return(() => invoke($50, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9258
+assert_return(() => invoke($50, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9259
+assert_return(() => invoke($50, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9260
+assert_return(() => invoke($50, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9261
+assert_return(() => invoke($50, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9262
+assert_return(() => invoke($50, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9263
+assert_return(() => invoke($50, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9264
+assert_return(() => invoke($50, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9265
+assert_return(() => invoke($50, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9266
+assert_return(() => invoke($50, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9267
+assert_return(() => invoke($50, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9268
+assert_return(() => invoke($50, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9269
+assert_return(() => invoke($50, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9270
+assert_return(() => invoke($50, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9271
+assert_return(() => invoke($50, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9272
+assert_return(() => invoke($50, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9273
+assert_return(() => invoke($50, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9274
+assert_return(() => invoke($50, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9275
+assert_return(() => invoke($50, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9276
+assert_return(() => invoke($50, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9277
+assert_return(() => invoke($50, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9278
+assert_return(() => invoke($50, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9279
+assert_return(() => invoke($50, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9280
+assert_return(() => invoke($50, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9281
+assert_return(() => invoke($50, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9282
+assert_return(() => invoke($50, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9283
+assert_return(() => invoke($50, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9284
+assert_return(() => invoke($50, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9285
+assert_return(() => invoke($50, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9286
+assert_return(() => invoke($50, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9287
+assert_return(() => invoke($50, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9288
+assert_return(() => invoke($50, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9289
+assert_return(() => invoke($50, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9290
+assert_return(() => invoke($50, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9291
+assert_return(() => invoke($50, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9292
+assert_return(() => invoke($50, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9293
+assert_return(() => invoke($50, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9294
+assert_return(() => invoke($50, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9295
+assert_return(() => invoke($50, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9296
+assert_return(() => invoke($50, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9297
+assert_return(() => invoke($50, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9298
+assert_return(() => invoke($50, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9299
+assert_return(() => invoke($50, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9300
+assert_return(() => invoke($50, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9301
+assert_return(() => invoke($50, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9302
+assert_return(() => invoke($50, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9303
+assert_return(() => invoke($50, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9304
+assert_return(() => invoke($50, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9305
+assert_return(() => invoke($50, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9306
+assert_return(() => invoke($50, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9307
+assert_return(() => invoke($50, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9308
+assert_return(() => invoke($50, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9309
+assert_return(() => invoke($50, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9310
+assert_return(() => invoke($50, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9311
+assert_return(() => invoke($50, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9312
+assert_return(() => invoke($50, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9313
+assert_return(() => invoke($50, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9314
+assert_return(() => invoke($50, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9315
+assert_return(() => invoke($50, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9316
+assert_return(() => invoke($50, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9317
+assert_return(() => invoke($50, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9318
+assert_return(() => invoke($50, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9319
+assert_return(() => invoke($50, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9320
+assert_return(() => invoke($50, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9321
+assert_return(() => invoke($50, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9322
+assert_return(() => invoke($50, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9323
+assert_return(() => invoke($50, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9324
+assert_return(() => invoke($50, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9325
+assert_return(() => invoke($50, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9326
+assert_return(() => invoke($50, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9327
+assert_return(() => invoke($50, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9328
+assert_return(() => invoke($50, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9329
+assert_return(() => invoke($50, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9330
+assert_return(() => invoke($50, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9331
+assert_return(() => invoke($50, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9332
+assert_return(() => invoke($50, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9333
+assert_return(() => invoke($50, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9334
+assert_return(() => invoke($50, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9335
+assert_return(() => invoke($50, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9336
+assert_return(() => invoke($50, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9337
+assert_return(() => invoke($50, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9338
+assert_return(() => invoke($50, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9339
+assert_return(() => invoke($50, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9340
+assert_return(() => invoke($50, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9341
+assert_return(() => invoke($50, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9342
+assert_return(() => invoke($50, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9343
+assert_return(() => invoke($50, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9344
+assert_return(() => invoke($50, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9345
+assert_return(() => invoke($50, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9346
+assert_return(() => invoke($50, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9347
+assert_return(() => invoke($50, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9348
+assert_return(() => invoke($50, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9349
+assert_return(() => invoke($50, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9350
+assert_return(() => invoke($50, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9351
+assert_return(() => invoke($50, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9352
+assert_return(() => invoke($50, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9353
+assert_return(() => invoke($50, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9354
+assert_return(() => invoke($50, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9355
+assert_return(() => invoke($50, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9356
+assert_return(() => invoke($50, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9357
+assert_return(() => invoke($50, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9358
+assert_return(() => invoke($50, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9359
+assert_return(() => invoke($50, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9360
+assert_return(() => invoke($50, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9361
+assert_return(() => invoke($50, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9362
+assert_return(() => invoke($50, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9363
+assert_return(() => invoke($50, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9364
+assert_return(() => invoke($50, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9365
+assert_return(() => invoke($50, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9366
+assert_return(() => invoke($50, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9367
+assert_return(() => invoke($50, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9368
+assert_return(() => invoke($50, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9369
+assert_return(() => invoke($50, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9370
+assert_return(() => invoke($50, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9371
+assert_return(() => invoke($50, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9372
+assert_return(() => invoke($50, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9373
+assert_return(() => invoke($50, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9374
+assert_return(() => invoke($50, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9375
+assert_return(() => invoke($50, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9376
+assert_return(() => invoke($50, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9377
+assert_return(() => invoke($50, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9378
+assert_return(() => invoke($50, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9379
+assert_return(() => invoke($50, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9380
+assert_return(() => invoke($50, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9381
+assert_return(() => invoke($50, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9382
+assert_return(() => invoke($50, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9383
+assert_return(() => invoke($50, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9384
+assert_return(() => invoke($50, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9385
+assert_return(() => invoke($50, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9386
+assert_return(() => invoke($50, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9387
+assert_return(() => invoke($50, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9388
+assert_return(() => invoke($50, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9389
+assert_return(() => invoke($50, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9390
+assert_return(() => invoke($50, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9391
+assert_return(() => invoke($50, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9392
+assert_return(() => invoke($50, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9393
+assert_return(() => invoke($50, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9394
+assert_return(() => invoke($50, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9395
+assert_return(() => invoke($50, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9396
+assert_return(() => invoke($50, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9397
+assert_return(() => invoke($50, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9398
+assert_return(() => invoke($50, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9399
+assert_return(() => invoke($50, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9400
+assert_return(() => invoke($50, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9401
+assert_return(() => invoke($50, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9402
+assert_return(() => invoke($50, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9403
+assert_return(() => invoke($50, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9404
+assert_return(() => invoke($50, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9405
+assert_return(() => invoke($50, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9406
+assert_return(() => invoke($50, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9407
+assert_return(() => invoke($50, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9408
+assert_return(() => invoke($50, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9409
+assert_return(() => invoke($50, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9410
+assert_return(() => invoke($50, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9411
+assert_return(() => invoke($50, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9412
+assert_return(() => invoke($50, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9413
+assert_return(() => invoke($50, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9414
+assert_return(() => invoke($50, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9415
+assert_return(() => invoke($50, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9416
+assert_return(() => invoke($50, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9417
+assert_return(() => invoke($50, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9418
+assert_return(() => invoke($50, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9419
+assert_return(() => invoke($50, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9420
+assert_return(() => invoke($50, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9421
+assert_return(() => invoke($50, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9422
+assert_return(() => invoke($50, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9423
+assert_return(() => invoke($50, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9424
+assert_return(() => invoke($50, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9425
+assert_return(() => invoke($50, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9426
+assert_return(() => invoke($50, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9427
+assert_return(() => invoke($50, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9428
+assert_return(() => invoke($50, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9429
+assert_return(() => invoke($50, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9430
+assert_return(() => invoke($50, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9431
+assert_return(() => invoke($50, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9432
+assert_return(() => invoke($50, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9433
+assert_return(() => invoke($50, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9434
+assert_return(() => invoke($50, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9435
+assert_return(() => invoke($50, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9436
+assert_return(() => invoke($50, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9437
+assert_return(() => invoke($50, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9438
+assert_return(() => invoke($50, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9439
+assert_return(() => invoke($50, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9440
+assert_return(() => invoke($50, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9441
+assert_return(() => invoke($50, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9442
+assert_return(() => invoke($50, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9443
+assert_return(() => invoke($50, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9444
+assert_return(() => invoke($50, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9445
+assert_return(() => invoke($50, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9446
+assert_return(() => invoke($50, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9447
+assert_return(() => invoke($50, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9448
+assert_return(() => invoke($50, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9449
+assert_return(() => invoke($50, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9450
+assert_return(() => invoke($50, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9451
+assert_return(() => invoke($50, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9452
+assert_return(() => invoke($50, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9453
+assert_return(() => invoke($50, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9454
+assert_return(() => invoke($50, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9455
+assert_return(() => invoke($50, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9456
+assert_return(() => invoke($50, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9457
+assert_return(() => invoke($50, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9458
+assert_return(() => invoke($50, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9459
+assert_return(() => invoke($50, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9460
+assert_return(() => invoke($50, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9461
+assert_return(() => invoke($50, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9462
+assert_return(() => invoke($50, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9463
+assert_return(() => invoke($50, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9464
+assert_return(() => invoke($50, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9465
+assert_return(() => invoke($50, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9466
+assert_return(() => invoke($50, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9467
+assert_return(() => invoke($50, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9468
+assert_return(() => invoke($50, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9469
+assert_return(() => invoke($50, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9470
+assert_return(() => invoke($50, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9471
+assert_return(() => invoke($50, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9472
+assert_return(() => invoke($50, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9473
+assert_return(() => invoke($50, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9474
+assert_return(() => invoke($50, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9475
+assert_return(() => invoke($50, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9476
+assert_return(() => invoke($50, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9477
+assert_return(() => invoke($50, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9478
+assert_return(() => invoke($50, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9479
+assert_return(() => invoke($50, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9480
+assert_return(() => invoke($50, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9481
+assert_return(() => invoke($50, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9482
+assert_return(() => invoke($50, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9483
+assert_return(() => invoke($50, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9484
+assert_return(() => invoke($50, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9485
+assert_return(() => invoke($50, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9486
+assert_return(() => invoke($50, `load8_u`, [61490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9487
+assert_return(() => invoke($50, `load8_u`, [61689]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9488
+assert_return(() => invoke($50, `load8_u`, [61888]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9489
+assert_return(() => invoke($50, `load8_u`, [62087]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9490
+assert_return(() => invoke($50, `load8_u`, [62286]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9491
+assert_return(() => invoke($50, `load8_u`, [62485]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9492
+assert_return(() => invoke($50, `load8_u`, [62684]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9493
+assert_return(() => invoke($50, `load8_u`, [62883]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9494
+assert_return(() => invoke($50, `load8_u`, [63082]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9495
+assert_return(() => invoke($50, `load8_u`, [63281]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9496
+assert_return(() => invoke($50, `load8_u`, [63480]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9497
+assert_return(() => invoke($50, `load8_u`, [63679]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9498
+assert_return(() => invoke($50, `load8_u`, [63878]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9499
+assert_return(() => invoke($50, `load8_u`, [64077]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9500
+assert_return(() => invoke($50, `load8_u`, [64276]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9501
+assert_return(() => invoke($50, `load8_u`, [64475]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9502
+assert_return(() => invoke($50, `load8_u`, [64674]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9503
+assert_return(() => invoke($50, `load8_u`, [64873]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9504
+assert_return(() => invoke($50, `load8_u`, [65072]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9505
+assert_return(() => invoke($50, `load8_u`, [65271]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9506
+assert_return(() => invoke($50, `load8_u`, [65470]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9507
+assert_return(() => invoke($50, `load8_u`, [65516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9508
+assert_return(() => invoke($50, `load8_u`, [65517]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:9509
+assert_return(() => invoke($50, `load8_u`, [65518]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:9510
+assert_return(() => invoke($50, `load8_u`, [65519]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:9511
+assert_return(() => invoke($50, `load8_u`, [65520]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:9512
+assert_return(() => invoke($50, `load8_u`, [65521]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:9513
+assert_return(() => invoke($50, `load8_u`, [65522]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:9514
+assert_return(() => invoke($50, `load8_u`, [65523]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:9515
+assert_return(() => invoke($50, `load8_u`, [65524]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:9516
+assert_return(() => invoke($50, `load8_u`, [65525]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:9517
+assert_return(() => invoke($50, `load8_u`, [65526]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:9518
+assert_return(() => invoke($50, `load8_u`, [65527]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:9519
+assert_return(() => invoke($50, `load8_u`, [65528]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:9520
+assert_return(() => invoke($50, `load8_u`, [65529]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:9521
+assert_return(() => invoke($50, `load8_u`, [65530]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:9522
+assert_return(() => invoke($50, `load8_u`, [65531]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:9523
+assert_return(() => invoke($50, `load8_u`, [65532]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:9524
+assert_return(() => invoke($50, `load8_u`, [65533]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:9525
+assert_return(() => invoke($50, `load8_u`, [65534]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:9526
+assert_return(() => invoke($50, `load8_u`, [65535]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:9528
+let $51 = instantiate(`(module
+  (memory (export "mem") 1 1 )
+  (data (i32.const 61440) "\\00\\01\\02\\03\\04\\05\\06\\07\\08\\09\\0a\\0b\\0c\\0d\\0e\\0f\\10\\11\\12\\13")
+  (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
+    (memory.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len)))
+  (func (export "load8_u") (param i32) (result i32)
+    (i32.load8_u (local.get 0))))`);
+
+// ./test/core/memory_copy.wast:9536
+assert_trap(() => invoke($51, `run`, [65516, 61440, -256]), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:9539
+assert_return(() => invoke($51, `load8_u`, [198]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9540
+assert_return(() => invoke($51, `load8_u`, [397]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9541
+assert_return(() => invoke($51, `load8_u`, [596]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9542
+assert_return(() => invoke($51, `load8_u`, [795]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9543
+assert_return(() => invoke($51, `load8_u`, [994]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9544
+assert_return(() => invoke($51, `load8_u`, [1193]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9545
+assert_return(() => invoke($51, `load8_u`, [1392]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9546
+assert_return(() => invoke($51, `load8_u`, [1591]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9547
+assert_return(() => invoke($51, `load8_u`, [1790]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9548
+assert_return(() => invoke($51, `load8_u`, [1989]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9549
+assert_return(() => invoke($51, `load8_u`, [2188]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9550
+assert_return(() => invoke($51, `load8_u`, [2387]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9551
+assert_return(() => invoke($51, `load8_u`, [2586]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9552
+assert_return(() => invoke($51, `load8_u`, [2785]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9553
+assert_return(() => invoke($51, `load8_u`, [2984]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9554
+assert_return(() => invoke($51, `load8_u`, [3183]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9555
+assert_return(() => invoke($51, `load8_u`, [3382]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9556
+assert_return(() => invoke($51, `load8_u`, [3581]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9557
+assert_return(() => invoke($51, `load8_u`, [3780]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9558
+assert_return(() => invoke($51, `load8_u`, [3979]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9559
+assert_return(() => invoke($51, `load8_u`, [4178]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9560
+assert_return(() => invoke($51, `load8_u`, [4377]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9561
+assert_return(() => invoke($51, `load8_u`, [4576]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9562
+assert_return(() => invoke($51, `load8_u`, [4775]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9563
+assert_return(() => invoke($51, `load8_u`, [4974]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9564
+assert_return(() => invoke($51, `load8_u`, [5173]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9565
+assert_return(() => invoke($51, `load8_u`, [5372]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9566
+assert_return(() => invoke($51, `load8_u`, [5571]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9567
+assert_return(() => invoke($51, `load8_u`, [5770]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9568
+assert_return(() => invoke($51, `load8_u`, [5969]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9569
+assert_return(() => invoke($51, `load8_u`, [6168]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9570
+assert_return(() => invoke($51, `load8_u`, [6367]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9571
+assert_return(() => invoke($51, `load8_u`, [6566]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9572
+assert_return(() => invoke($51, `load8_u`, [6765]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9573
+assert_return(() => invoke($51, `load8_u`, [6964]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9574
+assert_return(() => invoke($51, `load8_u`, [7163]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9575
+assert_return(() => invoke($51, `load8_u`, [7362]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9576
+assert_return(() => invoke($51, `load8_u`, [7561]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9577
+assert_return(() => invoke($51, `load8_u`, [7760]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9578
+assert_return(() => invoke($51, `load8_u`, [7959]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9579
+assert_return(() => invoke($51, `load8_u`, [8158]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9580
+assert_return(() => invoke($51, `load8_u`, [8357]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9581
+assert_return(() => invoke($51, `load8_u`, [8556]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9582
+assert_return(() => invoke($51, `load8_u`, [8755]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9583
+assert_return(() => invoke($51, `load8_u`, [8954]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9584
+assert_return(() => invoke($51, `load8_u`, [9153]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9585
+assert_return(() => invoke($51, `load8_u`, [9352]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9586
+assert_return(() => invoke($51, `load8_u`, [9551]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9587
+assert_return(() => invoke($51, `load8_u`, [9750]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9588
+assert_return(() => invoke($51, `load8_u`, [9949]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9589
+assert_return(() => invoke($51, `load8_u`, [10148]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9590
+assert_return(() => invoke($51, `load8_u`, [10347]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9591
+assert_return(() => invoke($51, `load8_u`, [10546]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9592
+assert_return(() => invoke($51, `load8_u`, [10745]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9593
+assert_return(() => invoke($51, `load8_u`, [10944]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9594
+assert_return(() => invoke($51, `load8_u`, [11143]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9595
+assert_return(() => invoke($51, `load8_u`, [11342]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9596
+assert_return(() => invoke($51, `load8_u`, [11541]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9597
+assert_return(() => invoke($51, `load8_u`, [11740]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9598
+assert_return(() => invoke($51, `load8_u`, [11939]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9599
+assert_return(() => invoke($51, `load8_u`, [12138]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9600
+assert_return(() => invoke($51, `load8_u`, [12337]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9601
+assert_return(() => invoke($51, `load8_u`, [12536]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9602
+assert_return(() => invoke($51, `load8_u`, [12735]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9603
+assert_return(() => invoke($51, `load8_u`, [12934]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9604
+assert_return(() => invoke($51, `load8_u`, [13133]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9605
+assert_return(() => invoke($51, `load8_u`, [13332]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9606
+assert_return(() => invoke($51, `load8_u`, [13531]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9607
+assert_return(() => invoke($51, `load8_u`, [13730]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9608
+assert_return(() => invoke($51, `load8_u`, [13929]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9609
+assert_return(() => invoke($51, `load8_u`, [14128]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9610
+assert_return(() => invoke($51, `load8_u`, [14327]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9611
+assert_return(() => invoke($51, `load8_u`, [14526]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9612
+assert_return(() => invoke($51, `load8_u`, [14725]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9613
+assert_return(() => invoke($51, `load8_u`, [14924]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9614
+assert_return(() => invoke($51, `load8_u`, [15123]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9615
+assert_return(() => invoke($51, `load8_u`, [15322]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9616
+assert_return(() => invoke($51, `load8_u`, [15521]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9617
+assert_return(() => invoke($51, `load8_u`, [15720]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9618
+assert_return(() => invoke($51, `load8_u`, [15919]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9619
+assert_return(() => invoke($51, `load8_u`, [16118]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9620
+assert_return(() => invoke($51, `load8_u`, [16317]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9621
+assert_return(() => invoke($51, `load8_u`, [16516]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9622
+assert_return(() => invoke($51, `load8_u`, [16715]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9623
+assert_return(() => invoke($51, `load8_u`, [16914]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9624
+assert_return(() => invoke($51, `load8_u`, [17113]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9625
+assert_return(() => invoke($51, `load8_u`, [17312]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9626
+assert_return(() => invoke($51, `load8_u`, [17511]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9627
+assert_return(() => invoke($51, `load8_u`, [17710]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9628
+assert_return(() => invoke($51, `load8_u`, [17909]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9629
+assert_return(() => invoke($51, `load8_u`, [18108]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9630
+assert_return(() => invoke($51, `load8_u`, [18307]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9631
+assert_return(() => invoke($51, `load8_u`, [18506]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9632
+assert_return(() => invoke($51, `load8_u`, [18705]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9633
+assert_return(() => invoke($51, `load8_u`, [18904]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9634
+assert_return(() => invoke($51, `load8_u`, [19103]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9635
+assert_return(() => invoke($51, `load8_u`, [19302]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9636
+assert_return(() => invoke($51, `load8_u`, [19501]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9637
+assert_return(() => invoke($51, `load8_u`, [19700]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9638
+assert_return(() => invoke($51, `load8_u`, [19899]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9639
+assert_return(() => invoke($51, `load8_u`, [20098]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9640
+assert_return(() => invoke($51, `load8_u`, [20297]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9641
+assert_return(() => invoke($51, `load8_u`, [20496]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9642
+assert_return(() => invoke($51, `load8_u`, [20695]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9643
+assert_return(() => invoke($51, `load8_u`, [20894]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9644
+assert_return(() => invoke($51, `load8_u`, [21093]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9645
+assert_return(() => invoke($51, `load8_u`, [21292]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9646
+assert_return(() => invoke($51, `load8_u`, [21491]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9647
+assert_return(() => invoke($51, `load8_u`, [21690]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9648
+assert_return(() => invoke($51, `load8_u`, [21889]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9649
+assert_return(() => invoke($51, `load8_u`, [22088]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9650
+assert_return(() => invoke($51, `load8_u`, [22287]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9651
+assert_return(() => invoke($51, `load8_u`, [22486]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9652
+assert_return(() => invoke($51, `load8_u`, [22685]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9653
+assert_return(() => invoke($51, `load8_u`, [22884]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9654
+assert_return(() => invoke($51, `load8_u`, [23083]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9655
+assert_return(() => invoke($51, `load8_u`, [23282]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9656
+assert_return(() => invoke($51, `load8_u`, [23481]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9657
+assert_return(() => invoke($51, `load8_u`, [23680]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9658
+assert_return(() => invoke($51, `load8_u`, [23879]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9659
+assert_return(() => invoke($51, `load8_u`, [24078]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9660
+assert_return(() => invoke($51, `load8_u`, [24277]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9661
+assert_return(() => invoke($51, `load8_u`, [24476]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9662
+assert_return(() => invoke($51, `load8_u`, [24675]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9663
+assert_return(() => invoke($51, `load8_u`, [24874]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9664
+assert_return(() => invoke($51, `load8_u`, [25073]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9665
+assert_return(() => invoke($51, `load8_u`, [25272]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9666
+assert_return(() => invoke($51, `load8_u`, [25471]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9667
+assert_return(() => invoke($51, `load8_u`, [25670]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9668
+assert_return(() => invoke($51, `load8_u`, [25869]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9669
+assert_return(() => invoke($51, `load8_u`, [26068]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9670
+assert_return(() => invoke($51, `load8_u`, [26267]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9671
+assert_return(() => invoke($51, `load8_u`, [26466]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9672
+assert_return(() => invoke($51, `load8_u`, [26665]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9673
+assert_return(() => invoke($51, `load8_u`, [26864]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9674
+assert_return(() => invoke($51, `load8_u`, [27063]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9675
+assert_return(() => invoke($51, `load8_u`, [27262]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9676
+assert_return(() => invoke($51, `load8_u`, [27461]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9677
+assert_return(() => invoke($51, `load8_u`, [27660]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9678
+assert_return(() => invoke($51, `load8_u`, [27859]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9679
+assert_return(() => invoke($51, `load8_u`, [28058]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9680
+assert_return(() => invoke($51, `load8_u`, [28257]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9681
+assert_return(() => invoke($51, `load8_u`, [28456]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9682
+assert_return(() => invoke($51, `load8_u`, [28655]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9683
+assert_return(() => invoke($51, `load8_u`, [28854]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9684
+assert_return(() => invoke($51, `load8_u`, [29053]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9685
+assert_return(() => invoke($51, `load8_u`, [29252]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9686
+assert_return(() => invoke($51, `load8_u`, [29451]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9687
+assert_return(() => invoke($51, `load8_u`, [29650]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9688
+assert_return(() => invoke($51, `load8_u`, [29849]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9689
+assert_return(() => invoke($51, `load8_u`, [30048]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9690
+assert_return(() => invoke($51, `load8_u`, [30247]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9691
+assert_return(() => invoke($51, `load8_u`, [30446]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9692
+assert_return(() => invoke($51, `load8_u`, [30645]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9693
+assert_return(() => invoke($51, `load8_u`, [30844]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9694
+assert_return(() => invoke($51, `load8_u`, [31043]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9695
+assert_return(() => invoke($51, `load8_u`, [31242]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9696
+assert_return(() => invoke($51, `load8_u`, [31441]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9697
+assert_return(() => invoke($51, `load8_u`, [31640]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9698
+assert_return(() => invoke($51, `load8_u`, [31839]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9699
+assert_return(() => invoke($51, `load8_u`, [32038]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9700
+assert_return(() => invoke($51, `load8_u`, [32237]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9701
+assert_return(() => invoke($51, `load8_u`, [32436]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9702
+assert_return(() => invoke($51, `load8_u`, [32635]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9703
+assert_return(() => invoke($51, `load8_u`, [32834]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9704
+assert_return(() => invoke($51, `load8_u`, [33033]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9705
+assert_return(() => invoke($51, `load8_u`, [33232]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9706
+assert_return(() => invoke($51, `load8_u`, [33431]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9707
+assert_return(() => invoke($51, `load8_u`, [33630]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9708
+assert_return(() => invoke($51, `load8_u`, [33829]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9709
+assert_return(() => invoke($51, `load8_u`, [34028]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9710
+assert_return(() => invoke($51, `load8_u`, [34227]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9711
+assert_return(() => invoke($51, `load8_u`, [34426]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9712
+assert_return(() => invoke($51, `load8_u`, [34625]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9713
+assert_return(() => invoke($51, `load8_u`, [34824]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9714
+assert_return(() => invoke($51, `load8_u`, [35023]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9715
+assert_return(() => invoke($51, `load8_u`, [35222]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9716
+assert_return(() => invoke($51, `load8_u`, [35421]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9717
+assert_return(() => invoke($51, `load8_u`, [35620]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9718
+assert_return(() => invoke($51, `load8_u`, [35819]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9719
+assert_return(() => invoke($51, `load8_u`, [36018]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9720
+assert_return(() => invoke($51, `load8_u`, [36217]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9721
+assert_return(() => invoke($51, `load8_u`, [36416]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9722
+assert_return(() => invoke($51, `load8_u`, [36615]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9723
+assert_return(() => invoke($51, `load8_u`, [36814]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9724
+assert_return(() => invoke($51, `load8_u`, [37013]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9725
+assert_return(() => invoke($51, `load8_u`, [37212]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9726
+assert_return(() => invoke($51, `load8_u`, [37411]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9727
+assert_return(() => invoke($51, `load8_u`, [37610]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9728
+assert_return(() => invoke($51, `load8_u`, [37809]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9729
+assert_return(() => invoke($51, `load8_u`, [38008]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9730
+assert_return(() => invoke($51, `load8_u`, [38207]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9731
+assert_return(() => invoke($51, `load8_u`, [38406]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9732
+assert_return(() => invoke($51, `load8_u`, [38605]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9733
+assert_return(() => invoke($51, `load8_u`, [38804]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9734
+assert_return(() => invoke($51, `load8_u`, [39003]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9735
+assert_return(() => invoke($51, `load8_u`, [39202]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9736
+assert_return(() => invoke($51, `load8_u`, [39401]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9737
+assert_return(() => invoke($51, `load8_u`, [39600]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9738
+assert_return(() => invoke($51, `load8_u`, [39799]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9739
+assert_return(() => invoke($51, `load8_u`, [39998]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9740
+assert_return(() => invoke($51, `load8_u`, [40197]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9741
+assert_return(() => invoke($51, `load8_u`, [40396]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9742
+assert_return(() => invoke($51, `load8_u`, [40595]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9743
+assert_return(() => invoke($51, `load8_u`, [40794]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9744
+assert_return(() => invoke($51, `load8_u`, [40993]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9745
+assert_return(() => invoke($51, `load8_u`, [41192]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9746
+assert_return(() => invoke($51, `load8_u`, [41391]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9747
+assert_return(() => invoke($51, `load8_u`, [41590]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9748
+assert_return(() => invoke($51, `load8_u`, [41789]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9749
+assert_return(() => invoke($51, `load8_u`, [41988]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9750
+assert_return(() => invoke($51, `load8_u`, [42187]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9751
+assert_return(() => invoke($51, `load8_u`, [42386]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9752
+assert_return(() => invoke($51, `load8_u`, [42585]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9753
+assert_return(() => invoke($51, `load8_u`, [42784]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9754
+assert_return(() => invoke($51, `load8_u`, [42983]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9755
+assert_return(() => invoke($51, `load8_u`, [43182]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9756
+assert_return(() => invoke($51, `load8_u`, [43381]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9757
+assert_return(() => invoke($51, `load8_u`, [43580]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9758
+assert_return(() => invoke($51, `load8_u`, [43779]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9759
+assert_return(() => invoke($51, `load8_u`, [43978]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9760
+assert_return(() => invoke($51, `load8_u`, [44177]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9761
+assert_return(() => invoke($51, `load8_u`, [44376]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9762
+assert_return(() => invoke($51, `load8_u`, [44575]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9763
+assert_return(() => invoke($51, `load8_u`, [44774]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9764
+assert_return(() => invoke($51, `load8_u`, [44973]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9765
+assert_return(() => invoke($51, `load8_u`, [45172]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9766
+assert_return(() => invoke($51, `load8_u`, [45371]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9767
+assert_return(() => invoke($51, `load8_u`, [45570]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9768
+assert_return(() => invoke($51, `load8_u`, [45769]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9769
+assert_return(() => invoke($51, `load8_u`, [45968]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9770
+assert_return(() => invoke($51, `load8_u`, [46167]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9771
+assert_return(() => invoke($51, `load8_u`, [46366]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9772
+assert_return(() => invoke($51, `load8_u`, [46565]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9773
+assert_return(() => invoke($51, `load8_u`, [46764]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9774
+assert_return(() => invoke($51, `load8_u`, [46963]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9775
+assert_return(() => invoke($51, `load8_u`, [47162]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9776
+assert_return(() => invoke($51, `load8_u`, [47361]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9777
+assert_return(() => invoke($51, `load8_u`, [47560]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9778
+assert_return(() => invoke($51, `load8_u`, [47759]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9779
+assert_return(() => invoke($51, `load8_u`, [47958]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9780
+assert_return(() => invoke($51, `load8_u`, [48157]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9781
+assert_return(() => invoke($51, `load8_u`, [48356]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9782
+assert_return(() => invoke($51, `load8_u`, [48555]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9783
+assert_return(() => invoke($51, `load8_u`, [48754]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9784
+assert_return(() => invoke($51, `load8_u`, [48953]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9785
+assert_return(() => invoke($51, `load8_u`, [49152]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9786
+assert_return(() => invoke($51, `load8_u`, [49351]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9787
+assert_return(() => invoke($51, `load8_u`, [49550]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9788
+assert_return(() => invoke($51, `load8_u`, [49749]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9789
+assert_return(() => invoke($51, `load8_u`, [49948]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9790
+assert_return(() => invoke($51, `load8_u`, [50147]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9791
+assert_return(() => invoke($51, `load8_u`, [50346]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9792
+assert_return(() => invoke($51, `load8_u`, [50545]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9793
+assert_return(() => invoke($51, `load8_u`, [50744]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9794
+assert_return(() => invoke($51, `load8_u`, [50943]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9795
+assert_return(() => invoke($51, `load8_u`, [51142]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9796
+assert_return(() => invoke($51, `load8_u`, [51341]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9797
+assert_return(() => invoke($51, `load8_u`, [51540]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9798
+assert_return(() => invoke($51, `load8_u`, [51739]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9799
+assert_return(() => invoke($51, `load8_u`, [51938]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9800
+assert_return(() => invoke($51, `load8_u`, [52137]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9801
+assert_return(() => invoke($51, `load8_u`, [52336]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9802
+assert_return(() => invoke($51, `load8_u`, [52535]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9803
+assert_return(() => invoke($51, `load8_u`, [52734]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9804
+assert_return(() => invoke($51, `load8_u`, [52933]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9805
+assert_return(() => invoke($51, `load8_u`, [53132]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9806
+assert_return(() => invoke($51, `load8_u`, [53331]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9807
+assert_return(() => invoke($51, `load8_u`, [53530]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9808
+assert_return(() => invoke($51, `load8_u`, [53729]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9809
+assert_return(() => invoke($51, `load8_u`, [53928]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9810
+assert_return(() => invoke($51, `load8_u`, [54127]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9811
+assert_return(() => invoke($51, `load8_u`, [54326]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9812
+assert_return(() => invoke($51, `load8_u`, [54525]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9813
+assert_return(() => invoke($51, `load8_u`, [54724]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9814
+assert_return(() => invoke($51, `load8_u`, [54923]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9815
+assert_return(() => invoke($51, `load8_u`, [55122]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9816
+assert_return(() => invoke($51, `load8_u`, [55321]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9817
+assert_return(() => invoke($51, `load8_u`, [55520]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9818
+assert_return(() => invoke($51, `load8_u`, [55719]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9819
+assert_return(() => invoke($51, `load8_u`, [55918]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9820
+assert_return(() => invoke($51, `load8_u`, [56117]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9821
+assert_return(() => invoke($51, `load8_u`, [56316]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9822
+assert_return(() => invoke($51, `load8_u`, [56515]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9823
+assert_return(() => invoke($51, `load8_u`, [56714]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9824
+assert_return(() => invoke($51, `load8_u`, [56913]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9825
+assert_return(() => invoke($51, `load8_u`, [57112]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9826
+assert_return(() => invoke($51, `load8_u`, [57311]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9827
+assert_return(() => invoke($51, `load8_u`, [57510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9828
+assert_return(() => invoke($51, `load8_u`, [57709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9829
+assert_return(() => invoke($51, `load8_u`, [57908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9830
+assert_return(() => invoke($51, `load8_u`, [58107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9831
+assert_return(() => invoke($51, `load8_u`, [58306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9832
+assert_return(() => invoke($51, `load8_u`, [58505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9833
+assert_return(() => invoke($51, `load8_u`, [58704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9834
+assert_return(() => invoke($51, `load8_u`, [58903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9835
+assert_return(() => invoke($51, `load8_u`, [59102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9836
+assert_return(() => invoke($51, `load8_u`, [59301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9837
+assert_return(() => invoke($51, `load8_u`, [59500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9838
+assert_return(() => invoke($51, `load8_u`, [59699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9839
+assert_return(() => invoke($51, `load8_u`, [59898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9840
+assert_return(() => invoke($51, `load8_u`, [60097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9841
+assert_return(() => invoke($51, `load8_u`, [60296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9842
+assert_return(() => invoke($51, `load8_u`, [60495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9843
+assert_return(() => invoke($51, `load8_u`, [60694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9844
+assert_return(() => invoke($51, `load8_u`, [60893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9845
+assert_return(() => invoke($51, `load8_u`, [61092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9846
+assert_return(() => invoke($51, `load8_u`, [61291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9847
+assert_return(() => invoke($51, `load8_u`, [61440]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9848
+assert_return(() => invoke($51, `load8_u`, [61441]), [value("i32", 1)]);
+
+// ./test/core/memory_copy.wast:9849
+assert_return(() => invoke($51, `load8_u`, [61442]), [value("i32", 2)]);
+
+// ./test/core/memory_copy.wast:9850
+assert_return(() => invoke($51, `load8_u`, [61443]), [value("i32", 3)]);
+
+// ./test/core/memory_copy.wast:9851
+assert_return(() => invoke($51, `load8_u`, [61444]), [value("i32", 4)]);
+
+// ./test/core/memory_copy.wast:9852
+assert_return(() => invoke($51, `load8_u`, [61445]), [value("i32", 5)]);
+
+// ./test/core/memory_copy.wast:9853
+assert_return(() => invoke($51, `load8_u`, [61446]), [value("i32", 6)]);
+
+// ./test/core/memory_copy.wast:9854
+assert_return(() => invoke($51, `load8_u`, [61447]), [value("i32", 7)]);
+
+// ./test/core/memory_copy.wast:9855
+assert_return(() => invoke($51, `load8_u`, [61448]), [value("i32", 8)]);
+
+// ./test/core/memory_copy.wast:9856
+assert_return(() => invoke($51, `load8_u`, [61449]), [value("i32", 9)]);
+
+// ./test/core/memory_copy.wast:9857
+assert_return(() => invoke($51, `load8_u`, [61450]), [value("i32", 10)]);
+
+// ./test/core/memory_copy.wast:9858
+assert_return(() => invoke($51, `load8_u`, [61451]), [value("i32", 11)]);
+
+// ./test/core/memory_copy.wast:9859
+assert_return(() => invoke($51, `load8_u`, [61452]), [value("i32", 12)]);
+
+// ./test/core/memory_copy.wast:9860
+assert_return(() => invoke($51, `load8_u`, [61453]), [value("i32", 13)]);
+
+// ./test/core/memory_copy.wast:9861
+assert_return(() => invoke($51, `load8_u`, [61454]), [value("i32", 14)]);
+
+// ./test/core/memory_copy.wast:9862
+assert_return(() => invoke($51, `load8_u`, [61455]), [value("i32", 15)]);
+
+// ./test/core/memory_copy.wast:9863
+assert_return(() => invoke($51, `load8_u`, [61456]), [value("i32", 16)]);
+
+// ./test/core/memory_copy.wast:9864
+assert_return(() => invoke($51, `load8_u`, [61457]), [value("i32", 17)]);
+
+// ./test/core/memory_copy.wast:9865
+assert_return(() => invoke($51, `load8_u`, [61458]), [value("i32", 18)]);
+
+// ./test/core/memory_copy.wast:9866
+assert_return(() => invoke($51, `load8_u`, [61459]), [value("i32", 19)]);
+
+// ./test/core/memory_copy.wast:9867
+assert_return(() => invoke($51, `load8_u`, [61510]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9868
+assert_return(() => invoke($51, `load8_u`, [61709]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9869
+assert_return(() => invoke($51, `load8_u`, [61908]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9870
+assert_return(() => invoke($51, `load8_u`, [62107]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9871
+assert_return(() => invoke($51, `load8_u`, [62306]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9872
+assert_return(() => invoke($51, `load8_u`, [62505]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9873
+assert_return(() => invoke($51, `load8_u`, [62704]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9874
+assert_return(() => invoke($51, `load8_u`, [62903]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9875
+assert_return(() => invoke($51, `load8_u`, [63102]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9876
+assert_return(() => invoke($51, `load8_u`, [63301]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9877
+assert_return(() => invoke($51, `load8_u`, [63500]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9878
+assert_return(() => invoke($51, `load8_u`, [63699]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9879
+assert_return(() => invoke($51, `load8_u`, [63898]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9880
+assert_return(() => invoke($51, `load8_u`, [64097]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9881
+assert_return(() => invoke($51, `load8_u`, [64296]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9882
+assert_return(() => invoke($51, `load8_u`, [64495]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9883
+assert_return(() => invoke($51, `load8_u`, [64694]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9884
+assert_return(() => invoke($51, `load8_u`, [64893]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9885
+assert_return(() => invoke($51, `load8_u`, [65092]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9886
+assert_return(() => invoke($51, `load8_u`, [65291]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9887
+assert_return(() => invoke($51, `load8_u`, [65490]), [value("i32", 0)]);
+
+// ./test/core/memory_copy.wast:9889
+assert_invalid(
+  () => instantiate(`(module
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (i64.const 20) (i64.const 30))))`),
+  `unknown memory 0`,
+);
+
+// ./test/core/memory_copy.wast:9895
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (i32.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9902
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (i32.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9909
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (i32.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9916
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (i32.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9923
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (f32.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9930
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (f32.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9937
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (f32.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9944
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (f32.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9951
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (i64.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9958
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (i64.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9965
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (i64.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9972
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (i64.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9979
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (f64.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9986
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (f64.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:9993
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (f64.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10000
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i32.const 10) (f64.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10007
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (i32.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10014
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (i32.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10021
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (i32.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10028
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (i32.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10035
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (f32.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10042
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (f32.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10049
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (f32.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10056
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (f32.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10063
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (i64.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10070
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (i64.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10077
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (i64.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10084
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (i64.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10091
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (f64.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10098
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (f64.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10105
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (f64.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10112
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f32.const 10) (f64.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10119
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (i32.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10126
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (i32.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10133
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (i32.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10140
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (i32.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10147
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (f32.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10154
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (f32.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10161
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (f32.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10168
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (f32.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10175
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (i64.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10182
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (i64.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10189
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (i64.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10196
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (f64.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10203
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (f64.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10210
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (f64.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10217
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (i64.const 10) (f64.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10224
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (i32.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10231
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (i32.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10238
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (i32.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10245
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (i32.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10252
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (f32.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10259
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (f32.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10266
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (f32.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10273
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (f32.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10280
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (i64.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10287
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (i64.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10294
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (i64.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10301
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (i64.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10308
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (f64.const 20) (i32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10315
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (f64.const 20) (f32.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10322
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (f64.const 20) (i64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10329
+assert_invalid(
+  () => instantiate(`(module
+    (memory i64 1 1)
+    (func (export "testfn")
+      (memory.copy (f64.const 10) (f64.const 20) (f64.const 30))))`),
+  `type mismatch`,
+);
+
+// ./test/core/memory_copy.wast:10337
+let $52 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.fill (i64.const 10) (i32.const 0x55) (i64.const 10))
+    (memory.copy (i64.const 9) (i64.const 10) (i64.const 5)))
+  
+  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
+    (loop $$cont
+      (if (i64.eq (local.get $$from) (local.get $$to))
+        (then
+          (return (i64.const -1))))
+      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+        (then
+          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
+          (br $$cont))))
+    (return (local.get $$from)))
+)`);
+
+// ./test/core/memory_copy.wast:10354
+invoke($52, `test`, []);
+
+// ./test/core/memory_copy.wast:10356
+assert_return(() => invoke($52, `checkRange`, [0n, 9n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10358
+assert_return(() => invoke($52, `checkRange`, [9n, 20n, 85]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10360
+assert_return(() => invoke($52, `checkRange`, [20n, 65536n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10363
+let $53 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.fill (i64.const 10) (i32.const 0x55) (i64.const 10))
+    (memory.copy (i64.const 16) (i64.const 15) (i64.const 5)))
+  
+  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
+    (loop $$cont
+      (if (i64.eq (local.get $$from) (local.get $$to))
+        (then
+          (return (i64.const -1))))
+      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+        (then
+          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
+          (br $$cont))))
+    (return (local.get $$from)))
+)`);
+
+// ./test/core/memory_copy.wast:10380
+invoke($53, `test`, []);
+
+// ./test/core/memory_copy.wast:10382
+assert_return(() => invoke($53, `checkRange`, [0n, 10n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10384
+assert_return(() => invoke($53, `checkRange`, [10n, 21n, 85]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10386
+assert_return(() => invoke($53, `checkRange`, [21n, 65536n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10389
+let $54 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0xFF00) (i64.const 0x8000) (i64.const 257))))`);
+
+// ./test/core/memory_copy.wast:10393
+assert_trap(() => invoke($54, `test`, []), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:10395
+let $55 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0xFFFFFF00) (i64.const 0x4000) (i64.const 257))))`);
+
+// ./test/core/memory_copy.wast:10399
+assert_trap(() => invoke($55, `test`, []), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:10401
+let $56 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0x8000) (i64.const 0xFF00) (i64.const 257))))`);
+
+// ./test/core/memory_copy.wast:10405
+assert_trap(() => invoke($56, `test`, []), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:10407
+let $57 = instantiate(`(module
+ (memory i64 1 1)
+ (func (export "test")
+   (memory.copy (i64.const 0x4000) (i64.const 0xFFFFFF00) (i64.const 257))))`);
+
+// ./test/core/memory_copy.wast:10411
+assert_trap(() => invoke($57, `test`, []), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:10413
+let $58 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.fill (i64.const 0x0000) (i32.const 0x55) (i64.const 0x8000))
+    (memory.fill (i64.const 0x8000) (i32.const 0xAA) (i64.const 0x8000))
+    (memory.copy (i64.const 0x9000) (i64.const 0x7000) (i64.const 0)))
+  
+  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
+    (loop $$cont
+      (if (i64.eq (local.get $$from) (local.get $$to))
+        (then
+          (return (i64.const -1))))
+      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+        (then
+          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
+          (br $$cont))))
+    (return (local.get $$from)))
+)`);
+
+// ./test/core/memory_copy.wast:10431
+invoke($58, `test`, []);
+
+// ./test/core/memory_copy.wast:10433
+assert_return(() => invoke($58, `checkRange`, [0n, 32768n, 85]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10435
+assert_return(() => invoke($58, `checkRange`, [32768n, 65536n, 170]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10437
+let $59 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0x10000) (i64.const 0x7000) (i64.const 0))))`);
+
+// ./test/core/memory_copy.wast:10441
+invoke($59, `test`, []);
+
+// ./test/core/memory_copy.wast:10443
+let $60 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0x20000) (i64.const 0x7000) (i64.const 0))))`);
+
+// ./test/core/memory_copy.wast:10447
+assert_trap(() => invoke($60, `test`, []), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:10449
+let $61 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0x9000) (i64.const 0x10000) (i64.const 0))))`);
+
+// ./test/core/memory_copy.wast:10453
+invoke($61, `test`, []);
+
+// ./test/core/memory_copy.wast:10455
+let $62 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0x9000) (i64.const 0x20000) (i64.const 0))))`);
+
+// ./test/core/memory_copy.wast:10459
+assert_trap(() => invoke($62, `test`, []), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:10461
+let $63 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0x10000) (i64.const 0x10000) (i64.const 0))))`);
+
+// ./test/core/memory_copy.wast:10465
+invoke($63, `test`, []);
+
+// ./test/core/memory_copy.wast:10467
+let $64 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.copy (i64.const 0x20000) (i64.const 0x20000) (i64.const 0))))`);
+
+// ./test/core/memory_copy.wast:10471
+assert_trap(() => invoke($64, `test`, []), `out of bounds memory access`);
+
+// ./test/core/memory_copy.wast:10473
+let $65 = instantiate(`(module
+  (memory i64 1 1)
+  (func (export "test")
+    (memory.fill (i64.const 17767) (i32.const 1) (i64.const 1344))
+    (memory.fill (i64.const 39017) (i32.const 2) (i64.const 1055))
+    (memory.fill (i64.const 56401) (i32.const 3) (i64.const 988))
+    (memory.fill (i64.const 37962) (i32.const 4) (i64.const 322))
+    (memory.fill (i64.const 7977) (i32.const 5) (i64.const 1994))
+    (memory.fill (i64.const 22714) (i32.const 6) (i64.const 3036))
+    (memory.fill (i64.const 16882) (i32.const 7) (i64.const 2372))
+    (memory.fill (i64.const 43491) (i32.const 8) (i64.const 835))
+    (memory.fill (i64.const 124) (i32.const 9) (i64.const 1393))
+    (memory.fill (i64.const 2132) (i32.const 10) (i64.const 2758))
+    (memory.fill (i64.const 8987) (i32.const 11) (i64.const 3098))
+    (memory.fill (i64.const 52711) (i32.const 12) (i64.const 741))
+    (memory.fill (i64.const 3958) (i32.const 13) (i64.const 2823))
+    (memory.fill (i64.const 49715) (i32.const 14) (i64.const 1280))
+    (memory.fill (i64.const 50377) (i32.const 15) (i64.const 1466))
+    (memory.fill (i64.const 20493) (i32.const 16) (i64.const 3158))
+    (memory.fill (i64.const 47665) (i32.const 17) (i64.const 544))
+    (memory.fill (i64.const 12451) (i32.const 18) (i64.const 2669))
+    (memory.fill (i64.const 24869) (i32.const 19) (i64.const 2651))
+    (memory.fill (i64.const 45317) (i32.const 20) (i64.const 1570))
+    (memory.fill (i64.const 43096) (i32.const 21) (i64.const 1691))
+    (memory.fill (i64.const 33886) (i32.const 22) (i64.const 646))
+    (memory.fill (i64.const 48555) (i32.const 23) (i64.const 1858))
+    (memory.fill (i64.const 53453) (i32.const 24) (i64.const 2657))
+    (memory.fill (i64.const 30363) (i32.const 25) (i64.const 981))
+    (memory.fill (i64.const 9300) (i32.const 26) (i64.const 1807))
+    (memory.fill (i64.const 50190) (i32.const 27) (i64.const 487))
+    (memory.fill (i64.const 62753) (i32.const 28) (i64.const 530))
+    (memory.fill (i64.const 36316) (i32.const 29) (i64.const 943))
+    (memory.fill (i64.const 6768) (i32.const 30) (i64.const 381))
+    (memory.fill (i64.const 51262) (i32.const 31) (i64.const 3089))
+    (memory.fill (i64.const 49729) (i32.const 32) (i64.const 658))
+    (memory.fill (i64.const 44540) (i32.const 33) (i64.const 1702))
+    (memory.fill (i64.const 33342) (i32.const 34) (i64.const 1092))
+    (memory.fill (i64.const 50814) (i32.const 35) (i64.const 1410))
+    (memory.fill (i64.const 47594) (i32.const 36) (i64.const 2204))
+    (memory.fill (i64.const 54123) (i32.const 37) (i64.const 2394))
+    (memory.fill (i64.const 55183) (i32.const 38) (i64.const 250))
+    (memory.fill (i64.const 22620) (i32.const 39) (i64.const 2097))
+    (memory.fill (i64.const 17132) (i32.const 40) (i64.const 3264))
+    (memory.fill (i64.const 54331) (i32.const 41) (i64.const 3299))
+    (memory.fill (i64.const 39474) (i32.const 42) (i64.const 2796))
+    (memory.fill (i64.const 36156) (i32.const 43) (i64.const 2070))
+    (memory.fill (i64.const 35308) (i32.const 44) (i64.const 2763))
+    (memory.fill (i64.const 32731) (i32.const 45) (i64.const 312))
+    (memory.fill (i64.const 63746) (i32.const 46) (i64.const 192))
+    (memory.fill (i64.const 30974) (i32.const 47) (i64.const 596))
+    (memory.fill (i64.const 16635) (i32.const 48) (i64.const 501))
+    (memory.fill (i64.const 57002) (i32.const 49) (i64.const 686))
+    (memory.fill (i64.const 34299) (i32.const 50) (i64.const 385))
+    (memory.fill (i64.const 60881) (i32.const 51) (i64.const 903))
+    (memory.fill (i64.const 61445) (i32.const 52) (i64.const 2390))
+    (memory.fill (i64.const 46972) (i32.const 53) (i64.const 1441))
+    (memory.fill (i64.const 25973) (i32.const 54) (i64.const 3162))
+    (memory.fill (i64.const 5566) (i32.const 55) (i64.const 2135))
+    (memory.fill (i64.const 35977) (i32.const 56) (i64.const 519))
+    (memory.fill (i64.const 44892) (i32.const 57) (i64.const 3280))
+    (memory.fill (i64.const 46760) (i32.const 58) (i64.const 1678))
+    (memory.fill (i64.const 46607) (i32.const 59) (i64.const 3168))
+    (memory.fill (i64.const 22449) (i32.const 60) (i64.const 1441))
+    (memory.fill (i64.const 58609) (i32.const 61) (i64.const 663))
+    (memory.fill (i64.const 32261) (i32.const 62) (i64.const 1671))
+    (memory.fill (i64.const 3063) (i32.const 63) (i64.const 721))
+    (memory.fill (i64.const 34025) (i32.const 64) (i64.const 84))
+    (memory.fill (i64.const 33338) (i32.const 65) (i64.const 2029))
+    (memory.fill (i64.const 36810) (i32.const 66) (i64.const 29))
+    (memory.fill (i64.const 19147) (i32.const 67) (i64.const 3034))
+    (memory.fill (i64.const 12616) (i32.const 68) (i64.const 1043))
+    (memory.fill (i64.const 18276) (i32.const 69) (i64.const 3324))
+    (memory.fill (i64.const 4639) (i32.const 70) (i64.const 1091))
+    (memory.fill (i64.const 16158) (i32.const 71) (i64.const 1997))
+    (memory.fill (i64.const 18204) (i32.const 72) (i64.const 2259))
+    (memory.fill (i64.const 50532) (i32.const 73) (i64.const 3189))
+    (memory.fill (i64.const 11028) (i32.const 74) (i64.const 1968))
+    (memory.fill (i64.const 15962) (i32.const 75) (i64.const 1455))
+    (memory.fill (i64.const 45406) (i32.const 76) (i64.const 1177))
+    (memory.fill (i64.const 54137) (i32.const 77) (i64.const 1568))
+    (memory.fill (i64.const 33083) (i32.const 78) (i64.const 1642))
+    (memory.fill (i64.const 61028) (i32.const 79) (i64.const 3284))
+    (memory.fill (i64.const 51729) (i32.const 80) (i64.const 223))
+    (memory.fill (i64.const 4361) (i32.const 81) (i64.const 2171))
+    (memory.fill (i64.const 57514) (i32.const 82) (i64.const 1322))
+    (memory.fill (i64.const 55724) (i32.const 83) (i64.const 2648))
+    (memory.fill (i64.const 24091) (i32.const 84) (i64.const 1045))
+    (memory.fill (i64.const 43183) (i32.const 85) (i64.const 3097))
+    (memory.fill (i64.const 32307) (i32.const 86) (i64.const 2796))
+    (memory.fill (i64.const 3811) (i32.const 87) (i64.const 2010))
+    (memory.fill (i64.const 54856) (i32.const 88) (i64.const 0))
+    (memory.fill (i64.const 49941) (i32.const 89) (i64.const 2069))
+    (memory.fill (i64.const 20411) (i32.const 90) (i64.const 2896))
+    (memory.fill (i64.const 33826) (i32.const 91) (i64.const 192))
+    (memory.fill (i64.const 9402) (i32.const 92) (i64.const 2195))
+    (memory.fill (i64.const 12413) (i32.const 93) (i64.const 24))
+    (memory.fill (i64.const 14091) (i32.const 94) (i64.const 577))
+    (memory.fill (i64.const 44058) (i32.const 95) (i64.const 2089))
+    (memory.fill (i64.const 36735) (i32.const 96) (i64.const 3436))
+    (memory.fill (i64.const 23288) (i32.const 97) (i64.const 2765))
+    (memory.fill (i64.const 6392) (i32.const 98) (i64.const 830))
+    (memory.fill (i64.const 33307) (i32.const 99) (i64.const 1938))
+    (memory.fill (i64.const 21941) (i32.const 100) (i64.const 2750))
+    (memory.copy (i64.const 59214) (i64.const 54248) (i64.const 2098))
+    (memory.copy (i64.const 63026) (i64.const 39224) (i64.const 230))
+    (memory.copy (i64.const 51833) (i64.const 23629) (i64.const 2300))
+    (memory.copy (i64.const 6708) (i64.const 23996) (i64.const 639))
+    (memory.copy (i64.const 6990) (i64.const 33399) (i64.const 1097))
+    (memory.copy (i64.const 19403) (i64.const 10348) (i64.const 3197))
+    (memory.copy (i64.const 27308) (i64.const 54406) (i64.const 100))
+    (memory.copy (i64.const 27221) (i64.const 43682) (i64.const 1717))
+    (memory.copy (i64.const 60528) (i64.const 8629) (i64.const 119))
+    (memory.copy (i64.const 5947) (i64.const 2308) (i64.const 658))
+    (memory.copy (i64.const 4787) (i64.const 51631) (i64.const 2269))
+    (memory.copy (i64.const 12617) (i64.const 19197) (i64.const 833))
+    (memory.copy (i64.const 11854) (i64.const 46505) (i64.const 3300))
+    (memory.copy (i64.const 11376) (i64.const 45012) (i64.const 2281))
+    (memory.copy (i64.const 34186) (i64.const 6697) (i64.const 2572))
+    (memory.copy (i64.const 4936) (i64.const 1690) (i64.const 1328))
+    (memory.copy (i64.const 63164) (i64.const 7637) (i64.const 1670))
+    (memory.copy (i64.const 44568) (i64.const 18344) (i64.const 33))
+    (memory.copy (i64.const 43918) (i64.const 22348) (i64.const 1427))
+    (memory.copy (i64.const 46637) (i64.const 49819) (i64.const 1434))
+    (memory.copy (i64.const 63684) (i64.const 8755) (i64.const 834))
+    (memory.copy (i64.const 33485) (i64.const 20131) (i64.const 3317))
+    (memory.copy (i64.const 40575) (i64.const 54317) (i64.const 3201))
+    (memory.copy (i64.const 25812) (i64.const 59254) (i64.const 2452))
+    (memory.copy (i64.const 19678) (i64.const 56882) (i64.const 346))
+    (memory.copy (i64.const 15852) (i64.const 35914) (i64.const 2430))
+    (memory.copy (i64.const 11824) (i64.const 35574) (i64.const 300))
+    (memory.copy (i64.const 59427) (i64.const 13957) (i64.const 3153))
+    (memory.copy (i64.const 34299) (i64.const 60594) (i64.const 1281))
+    (memory.copy (i64.const 8964) (i64.const 12276) (i64.const 943))
+    (memory.copy (i64.const 2827) (i64.const 10425) (i64.const 1887))
+    (memory.copy (i64.const 43194) (i64.const 43910) (i64.const 738))
+    (memory.copy (i64.const 63038) (i64.const 18949) (i64.const 122))
+    (memory.copy (i64.const 24044) (i64.const 44761) (i64.const 1755))
+    (memory.copy (i64.const 22608) (i64.const 14755) (i64.const 702))
+    (memory.copy (i64.const 11284) (i64.const 26579) (i64.const 1830))
+    (memory.copy (i64.const 23092) (i64.const 20471) (i64.const 1064))
+    (memory.copy (i64.const 57248) (i64.const 54770) (i64.const 2631))
+    (memory.copy (i64.const 25492) (i64.const 1025) (i64.const 3113))
+    (memory.copy (i64.const 49588) (i64.const 44220) (i64.const 975))
+    (memory.copy (i64.const 28280) (i64.const 41722) (i64.const 2336))
+    (memory.copy (i64.const 61289) (i64.const 230) (i64.const 2872))
+    (memory.copy (i64.const 22480) (i64.const 52506) (i64.const 2197))
+    (memory.copy (i64.const 40553) (i64.const 9578) (i64.const 1958))
+    (memory.copy (i64.const 29004) (i64.const 20862) (i64.const 2186))
+    (memory.copy (i64.const 53029) (i64.const 43955) (i64.const 1037))
+    (memory.copy (i64.const 25476) (i64.const 35667) (i64.const 1650))
+    (memory.copy (i64.const 58516) (i64.const 45819) (i64.const 1986))
+    (memory.copy (i64.const 38297) (i64.const 5776) (i64.const 1955))
+    (memory.copy (i64.const 28503) (i64.const 55364) (i64.const 2368))
+    (memory.copy (i64.const 62619) (i64.const 18108) (i64.const 1356))
+    (memory.copy (i64.const 50149) (i64.const 13861) (i64.const 382))
+    (memory.copy (i64.const 16904) (i64.const 36341) (i64.const 1900))
+    (memory.copy (i64.const 48098) (i64.const 11358) (i64.const 2807))
+    (memory.copy (i64.const 28512) (i64.const 40362) (i64.const 323))
+    (memory.copy (i64.const 35506) (i64.const 27856) (i64.const 1670))
+    (memory.copy (i64.const 62970) (i64.const 53332) (i64.const 1341))
+    (memory.copy (i64.const 14133) (i64.const 46312) (i64.const 644))
+    (memory.copy (i64.const 29030) (i64.const 19074) (i64.const 496))
+    (memory.copy (i64.const 44952) (i64.const 47577) (i64.const 2784))
+    (memory.copy (i64.const 39559) (i64.const 44661) (i64.const 1350))
+    (memory.copy (i64.const 10352) (i64.const 29274) (i64.const 1475))
+    (memory.copy (i64.const 46911) (i64.const 46178) (i64.const 1467))
+    (memory.copy (i64.const 4905) (i64.const 28740) (i64.const 1895))
+    (memory.copy (i64.const 38012) (i64.const 57253) (i64.const 1751))
+    (memory.copy (i64.const 26446) (i64.const 27223) (i64.const 1127))
+    (memory.copy (i64.const 58835) (i64.const 24657) (i64.const 1063))
+    (memory.copy (i64.const 61356) (i64.const 38790) (i64.const 766))
+    (memory.copy (i64.const 44160) (i64.const 2284) (i64.const 1520))
+    (memory.copy (i64.const 32740) (i64.const 47237) (i64.const 3014))
+    (memory.copy (i64.const 11148) (i64.const 21260) (i64.const 1011))
+    (memory.copy (i64.const 7665) (i64.const 31612) (i64.const 3034))
+    (memory.copy (i64.const 18044) (i64.const 12987) (i64.const 3320))
+    (memory.copy (i64.const 57306) (i64.const 55905) (i64.const 308))
+    (memory.copy (i64.const 24675) (i64.const 16815) (i64.const 1155))
+    (memory.copy (i64.const 19900) (i64.const 10115) (i64.const 722))
+    (memory.copy (i64.const 2921) (i64.const 5935) (i64.const 2370))
+    (memory.copy (i64.const 32255) (i64.const 50095) (i64.const 2926))
+    (memory.copy (i64.const 15126) (i64.const 17299) (i64.const 2607))
+    (memory.copy (i64.const 45575) (i64.const 28447) (i64.const 2045))
+    (memory.copy (i64.const 55149) (i64.const 36113) (i64.const 2596))
+    (memory.copy (i64.const 28461) (i64.const 54157) (i64.const 1168))
+    (memory.copy (i64.const 47951) (i64.const 53385) (i64.const 3137))
+    (memory.copy (i64.const 30646) (i64.const 45155) (i64.const 2649))
+    (memory.copy (i64.const 5057) (i64.const 4295) (i64.const 52))
+    (memory.copy (i64.const 6692) (i64.const 24195) (i64.const 441))
+    (memory.copy (i64.const 32984) (i64.const 27117) (i64.const 3445))
+    (memory.copy (i64.const 32530) (i64.const 59372) (i64.const 2785))
+    (memory.copy (i64.const 34361) (i64.const 8962) (i64.const 2406))
+    (memory.copy (i64.const 17893) (i64.const 54538) (i64.const 3381))
+    (memory.copy (i64.const 22685) (i64.const 44151) (i64.const 136))
+    (memory.copy (i64.const 59089) (i64.const 7077) (i64.const 1045))
+    (memory.copy (i64.const 42945) (i64.const 55028) (i64.const 2389))
+    (memory.copy (i64.const 44693) (i64.const 20138) (i64.const 877))
+    (memory.copy (i64.const 36810) (i64.const 25196) (i64.const 3447))
+    (memory.copy (i64.const 45742) (i64.const 31888) (i64.const 854))
+    (memory.copy (i64.const 24236) (i64.const 31866) (i64.const 1377))
+    (memory.copy (i64.const 33778) (i64.const 692) (i64.const 1594))
+    (memory.copy (i64.const 60618) (i64.const 18585) (i64.const 2987))
+    (memory.copy (i64.const 50370) (i64.const 41271) (i64.const 1406))
+  )
+  
+  (func (export "checkRange") (param $$from i64) (param $$to i64) (param $$expected i32) (result i64)
+    (loop $$cont
+      (if (i64.eq (local.get $$from) (local.get $$to))
+        (then
+          (return (i64.const -1))))
+      (if (i32.eq (i32.load8_u (local.get $$from)) (local.get $$expected))
+        (then
+          (local.set $$from (i64.add (local.get $$from) (i64.const 1)))
+          (br $$cont))))
+    (return (local.get $$from)))
+)`);
+
+// ./test/core/memory_copy.wast:10689
+invoke($65, `test`, []);
+
+// ./test/core/memory_copy.wast:10691
+assert_return(() => invoke($65, `checkRange`, [0n, 124n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10693
+assert_return(() => invoke($65, `checkRange`, [124n, 1517n, 9]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10695
+assert_return(() => invoke($65, `checkRange`, [1517n, 2132n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10697
+assert_return(() => invoke($65, `checkRange`, [2132n, 2827n, 10]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10699
+assert_return(() => invoke($65, `checkRange`, [2827n, 2921n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10701
+assert_return(() => invoke($65, `checkRange`, [2921n, 3538n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10703
+assert_return(() => invoke($65, `checkRange`, [3538n, 3786n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10705
+assert_return(() => invoke($65, `checkRange`, [3786n, 4042n, 97]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10707
+assert_return(() => invoke($65, `checkRange`, [4042n, 4651n, 99]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10709
+assert_return(() => invoke($65, `checkRange`, [4651n, 5057n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10711
+assert_return(() => invoke($65, `checkRange`, [5057n, 5109n, 99]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10713
+assert_return(() => invoke($65, `checkRange`, [5109n, 5291n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10715
+assert_return(() => invoke($65, `checkRange`, [5291n, 5524n, 72]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10717
+assert_return(() => invoke($65, `checkRange`, [5524n, 5691n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10719
+assert_return(() => invoke($65, `checkRange`, [5691n, 6552n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10721
+assert_return(() => invoke($65, `checkRange`, [6552n, 7133n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10723
+assert_return(() => invoke($65, `checkRange`, [7133n, 7665n, 99]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10725
+assert_return(() => invoke($65, `checkRange`, [7665n, 8314n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10727
+assert_return(() => invoke($65, `checkRange`, [8314n, 8360n, 62]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10729
+assert_return(() => invoke($65, `checkRange`, [8360n, 8793n, 86]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10731
+assert_return(() => invoke($65, `checkRange`, [8793n, 8979n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10733
+assert_return(() => invoke($65, `checkRange`, [8979n, 9373n, 79]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10735
+assert_return(() => invoke($65, `checkRange`, [9373n, 9518n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10737
+assert_return(() => invoke($65, `checkRange`, [9518n, 9934n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10739
+assert_return(() => invoke($65, `checkRange`, [9934n, 10087n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10741
+assert_return(() => invoke($65, `checkRange`, [10087n, 10206n, 5]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10743
+assert_return(() => invoke($65, `checkRange`, [10206n, 10230n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10745
+assert_return(() => invoke($65, `checkRange`, [10230n, 10249n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10747
+assert_return(() => invoke($65, `checkRange`, [10249n, 11148n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10749
+assert_return(() => invoke($65, `checkRange`, [11148n, 11356n, 74]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10751
+assert_return(() => invoke($65, `checkRange`, [11356n, 11380n, 93]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10753
+assert_return(() => invoke($65, `checkRange`, [11380n, 11939n, 74]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10755
+assert_return(() => invoke($65, `checkRange`, [11939n, 12159n, 68]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10757
+assert_return(() => invoke($65, `checkRange`, [12159n, 12575n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10759
+assert_return(() => invoke($65, `checkRange`, [12575n, 12969n, 79]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10761
+assert_return(() => invoke($65, `checkRange`, [12969n, 13114n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10763
+assert_return(() => invoke($65, `checkRange`, [13114n, 14133n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10765
+assert_return(() => invoke($65, `checkRange`, [14133n, 14404n, 76]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10767
+assert_return(() => invoke($65, `checkRange`, [14404n, 14428n, 57]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10769
+assert_return(() => invoke($65, `checkRange`, [14428n, 14458n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10771
+assert_return(() => invoke($65, `checkRange`, [14458n, 14580n, 32]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10773
+assert_return(() => invoke($65, `checkRange`, [14580n, 14777n, 89]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10775
+assert_return(() => invoke($65, `checkRange`, [14777n, 15124n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10777
+assert_return(() => invoke($65, `checkRange`, [15124n, 15126n, 36]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10779
+assert_return(() => invoke($65, `checkRange`, [15126n, 15192n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10781
+assert_return(() => invoke($65, `checkRange`, [15192n, 15871n, 96]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10783
+assert_return(() => invoke($65, `checkRange`, [15871n, 15998n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10785
+assert_return(() => invoke($65, `checkRange`, [15998n, 17017n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10787
+assert_return(() => invoke($65, `checkRange`, [17017n, 17288n, 76]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10789
+assert_return(() => invoke($65, `checkRange`, [17288n, 17312n, 57]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10791
+assert_return(() => invoke($65, `checkRange`, [17312n, 17342n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10793
+assert_return(() => invoke($65, `checkRange`, [17342n, 17464n, 32]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10795
+assert_return(() => invoke($65, `checkRange`, [17464n, 17661n, 89]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10797
+assert_return(() => invoke($65, `checkRange`, [17661n, 17727n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10799
+assert_return(() => invoke($65, `checkRange`, [17727n, 17733n, 5]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10801
+assert_return(() => invoke($65, `checkRange`, [17733n, 17893n, 96]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10803
+assert_return(() => invoke($65, `checkRange`, [17893n, 18553n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10805
+assert_return(() => invoke($65, `checkRange`, [18553n, 18744n, 42]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10807
+assert_return(() => invoke($65, `checkRange`, [18744n, 18801n, 76]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10809
+assert_return(() => invoke($65, `checkRange`, [18801n, 18825n, 57]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10811
+assert_return(() => invoke($65, `checkRange`, [18825n, 18876n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10813
+assert_return(() => invoke($65, `checkRange`, [18876n, 18885n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10815
+assert_return(() => invoke($65, `checkRange`, [18885n, 18904n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10817
+assert_return(() => invoke($65, `checkRange`, [18904n, 19567n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10819
+assert_return(() => invoke($65, `checkRange`, [19567n, 20403n, 96]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10821
+assert_return(() => invoke($65, `checkRange`, [20403n, 21274n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10823
+assert_return(() => invoke($65, `checkRange`, [21274n, 21364n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10825
+assert_return(() => invoke($65, `checkRange`, [21364n, 21468n, 74]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10827
+assert_return(() => invoke($65, `checkRange`, [21468n, 21492n, 93]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10829
+assert_return(() => invoke($65, `checkRange`, [21492n, 22051n, 74]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10831
+assert_return(() => invoke($65, `checkRange`, [22051n, 22480n, 68]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10833
+assert_return(() => invoke($65, `checkRange`, [22480n, 22685n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10835
+assert_return(() => invoke($65, `checkRange`, [22685n, 22694n, 68]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10837
+assert_return(() => invoke($65, `checkRange`, [22694n, 22821n, 10]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10839
+assert_return(() => invoke($65, `checkRange`, [22821n, 22869n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10841
+assert_return(() => invoke($65, `checkRange`, [22869n, 24107n, 97]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10843
+assert_return(() => invoke($65, `checkRange`, [24107n, 24111n, 37]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10845
+assert_return(() => invoke($65, `checkRange`, [24111n, 24236n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10847
+assert_return(() => invoke($65, `checkRange`, [24236n, 24348n, 72]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10849
+assert_return(() => invoke($65, `checkRange`, [24348n, 24515n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10851
+assert_return(() => invoke($65, `checkRange`, [24515n, 24900n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10853
+assert_return(() => invoke($65, `checkRange`, [24900n, 25136n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10855
+assert_return(() => invoke($65, `checkRange`, [25136n, 25182n, 85]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10857
+assert_return(() => invoke($65, `checkRange`, [25182n, 25426n, 68]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10859
+assert_return(() => invoke($65, `checkRange`, [25426n, 25613n, 89]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10861
+assert_return(() => invoke($65, `checkRange`, [25613n, 25830n, 96]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10863
+assert_return(() => invoke($65, `checkRange`, [25830n, 26446n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10865
+assert_return(() => invoke($65, `checkRange`, [26446n, 26517n, 10]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10867
+assert_return(() => invoke($65, `checkRange`, [26517n, 27468n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10869
+assert_return(() => invoke($65, `checkRange`, [27468n, 27503n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10871
+assert_return(() => invoke($65, `checkRange`, [27503n, 27573n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10873
+assert_return(() => invoke($65, `checkRange`, [27573n, 28245n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10875
+assert_return(() => invoke($65, `checkRange`, [28245n, 28280n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10877
+assert_return(() => invoke($65, `checkRange`, [28280n, 29502n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10879
+assert_return(() => invoke($65, `checkRange`, [29502n, 29629n, 42]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10881
+assert_return(() => invoke($65, `checkRange`, [29629n, 30387n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10883
+assert_return(() => invoke($65, `checkRange`, [30387n, 30646n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10885
+assert_return(() => invoke($65, `checkRange`, [30646n, 31066n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10887
+assert_return(() => invoke($65, `checkRange`, [31066n, 31131n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10889
+assert_return(() => invoke($65, `checkRange`, [31131n, 31322n, 42]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10891
+assert_return(() => invoke($65, `checkRange`, [31322n, 31379n, 76]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10893
+assert_return(() => invoke($65, `checkRange`, [31379n, 31403n, 57]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10895
+assert_return(() => invoke($65, `checkRange`, [31403n, 31454n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10897
+assert_return(() => invoke($65, `checkRange`, [31454n, 31463n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10899
+assert_return(() => invoke($65, `checkRange`, [31463n, 31482n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10901
+assert_return(() => invoke($65, `checkRange`, [31482n, 31649n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10903
+assert_return(() => invoke($65, `checkRange`, [31649n, 31978n, 72]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10905
+assert_return(() => invoke($65, `checkRange`, [31978n, 32145n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10907
+assert_return(() => invoke($65, `checkRange`, [32145n, 32530n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10909
+assert_return(() => invoke($65, `checkRange`, [32530n, 32766n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10911
+assert_return(() => invoke($65, `checkRange`, [32766n, 32812n, 85]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10913
+assert_return(() => invoke($65, `checkRange`, [32812n, 33056n, 68]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10915
+assert_return(() => invoke($65, `checkRange`, [33056n, 33660n, 89]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10917
+assert_return(() => invoke($65, `checkRange`, [33660n, 33752n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10919
+assert_return(() => invoke($65, `checkRange`, [33752n, 33775n, 36]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10921
+assert_return(() => invoke($65, `checkRange`, [33775n, 33778n, 32]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10923
+assert_return(() => invoke($65, `checkRange`, [33778n, 34603n, 9]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10925
+assert_return(() => invoke($65, `checkRange`, [34603n, 35218n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10927
+assert_return(() => invoke($65, `checkRange`, [35218n, 35372n, 10]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10929
+assert_return(() => invoke($65, `checkRange`, [35372n, 35486n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10931
+assert_return(() => invoke($65, `checkRange`, [35486n, 35605n, 5]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10933
+assert_return(() => invoke($65, `checkRange`, [35605n, 35629n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10935
+assert_return(() => invoke($65, `checkRange`, [35629n, 35648n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10937
+assert_return(() => invoke($65, `checkRange`, [35648n, 36547n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10939
+assert_return(() => invoke($65, `checkRange`, [36547n, 36755n, 74]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10941
+assert_return(() => invoke($65, `checkRange`, [36755n, 36767n, 93]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10943
+assert_return(() => invoke($65, `checkRange`, [36767n, 36810n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10945
+assert_return(() => invoke($65, `checkRange`, [36810n, 36839n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10947
+assert_return(() => invoke($65, `checkRange`, [36839n, 37444n, 96]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10949
+assert_return(() => invoke($65, `checkRange`, [37444n, 38060n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10951
+assert_return(() => invoke($65, `checkRange`, [38060n, 38131n, 10]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10953
+assert_return(() => invoke($65, `checkRange`, [38131n, 39082n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10955
+assert_return(() => invoke($65, `checkRange`, [39082n, 39117n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10957
+assert_return(() => invoke($65, `checkRange`, [39117n, 39187n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10959
+assert_return(() => invoke($65, `checkRange`, [39187n, 39859n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10961
+assert_return(() => invoke($65, `checkRange`, [39859n, 39894n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10963
+assert_return(() => invoke($65, `checkRange`, [39894n, 40257n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10965
+assert_return(() => invoke($65, `checkRange`, [40257n, 40344n, 89]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10967
+assert_return(() => invoke($65, `checkRange`, [40344n, 40371n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10969
+assert_return(() => invoke($65, `checkRange`, [40371n, 40804n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10971
+assert_return(() => invoke($65, `checkRange`, [40804n, 40909n, 5]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10973
+assert_return(() => invoke($65, `checkRange`, [40909n, 42259n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10975
+assert_return(() => invoke($65, `checkRange`, [42259n, 42511n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10977
+assert_return(() => invoke($65, `checkRange`, [42511n, 42945n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10979
+assert_return(() => invoke($65, `checkRange`, [42945n, 43115n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10981
+assert_return(() => invoke($65, `checkRange`, [43115n, 43306n, 42]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10983
+assert_return(() => invoke($65, `checkRange`, [43306n, 43363n, 76]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10985
+assert_return(() => invoke($65, `checkRange`, [43363n, 43387n, 57]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10987
+assert_return(() => invoke($65, `checkRange`, [43387n, 43438n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10989
+assert_return(() => invoke($65, `checkRange`, [43438n, 43447n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10991
+assert_return(() => invoke($65, `checkRange`, [43447n, 43466n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10993
+assert_return(() => invoke($65, `checkRange`, [43466n, 44129n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10995
+assert_return(() => invoke($65, `checkRange`, [44129n, 44958n, 96]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10997
+assert_return(() => invoke($65, `checkRange`, [44958n, 45570n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:10999
+assert_return(() => invoke($65, `checkRange`, [45570n, 45575n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11001
+assert_return(() => invoke($65, `checkRange`, [45575n, 45640n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11003
+assert_return(() => invoke($65, `checkRange`, [45640n, 45742n, 42]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11005
+assert_return(() => invoke($65, `checkRange`, [45742n, 45832n, 72]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11007
+assert_return(() => invoke($65, `checkRange`, [45832n, 45999n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11009
+assert_return(() => invoke($65, `checkRange`, [45999n, 46384n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11011
+assert_return(() => invoke($65, `checkRange`, [46384n, 46596n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11013
+assert_return(() => invoke($65, `checkRange`, [46596n, 46654n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11015
+assert_return(() => invoke($65, `checkRange`, [46654n, 47515n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11017
+assert_return(() => invoke($65, `checkRange`, [47515n, 47620n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11019
+assert_return(() => invoke($65, `checkRange`, [47620n, 47817n, 79]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11021
+assert_return(() => invoke($65, `checkRange`, [47817n, 47951n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11023
+assert_return(() => invoke($65, `checkRange`, [47951n, 48632n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11025
+assert_return(() => invoke($65, `checkRange`, [48632n, 48699n, 97]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11027
+assert_return(() => invoke($65, `checkRange`, [48699n, 48703n, 37]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11029
+assert_return(() => invoke($65, `checkRange`, [48703n, 49764n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11031
+assert_return(() => invoke($65, `checkRange`, [49764n, 49955n, 42]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11033
+assert_return(() => invoke($65, `checkRange`, [49955n, 50012n, 76]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11035
+assert_return(() => invoke($65, `checkRange`, [50012n, 50036n, 57]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11037
+assert_return(() => invoke($65, `checkRange`, [50036n, 50087n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11039
+assert_return(() => invoke($65, `checkRange`, [50087n, 50096n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11041
+assert_return(() => invoke($65, `checkRange`, [50096n, 50115n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11043
+assert_return(() => invoke($65, `checkRange`, [50115n, 50370n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11045
+assert_return(() => invoke($65, `checkRange`, [50370n, 51358n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11047
+assert_return(() => invoke($65, `checkRange`, [51358n, 51610n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11049
+assert_return(() => invoke($65, `checkRange`, [51610n, 51776n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11051
+assert_return(() => invoke($65, `checkRange`, [51776n, 51833n, 89]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11053
+assert_return(() => invoke($65, `checkRange`, [51833n, 52895n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11055
+assert_return(() => invoke($65, `checkRange`, [52895n, 53029n, 97]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11057
+assert_return(() => invoke($65, `checkRange`, [53029n, 53244n, 68]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11059
+assert_return(() => invoke($65, `checkRange`, [53244n, 54066n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11061
+assert_return(() => invoke($65, `checkRange`, [54066n, 54133n, 97]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11063
+assert_return(() => invoke($65, `checkRange`, [54133n, 54137n, 37]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11065
+assert_return(() => invoke($65, `checkRange`, [54137n, 55198n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11067
+assert_return(() => invoke($65, `checkRange`, [55198n, 55389n, 42]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11069
+assert_return(() => invoke($65, `checkRange`, [55389n, 55446n, 76]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11071
+assert_return(() => invoke($65, `checkRange`, [55446n, 55470n, 57]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11073
+assert_return(() => invoke($65, `checkRange`, [55470n, 55521n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11075
+assert_return(() => invoke($65, `checkRange`, [55521n, 55530n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11077
+assert_return(() => invoke($65, `checkRange`, [55530n, 55549n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11079
+assert_return(() => invoke($65, `checkRange`, [55549n, 56212n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11081
+assert_return(() => invoke($65, `checkRange`, [56212n, 57048n, 96]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11083
+assert_return(() => invoke($65, `checkRange`, [57048n, 58183n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11085
+assert_return(() => invoke($65, `checkRange`, [58183n, 58202n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11087
+assert_return(() => invoke($65, `checkRange`, [58202n, 58516n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11089
+assert_return(() => invoke($65, `checkRange`, [58516n, 58835n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11091
+assert_return(() => invoke($65, `checkRange`, [58835n, 58855n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11093
+assert_return(() => invoke($65, `checkRange`, [58855n, 59089n, 95]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11095
+assert_return(() => invoke($65, `checkRange`, [59089n, 59145n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11097
+assert_return(() => invoke($65, `checkRange`, [59145n, 59677n, 99]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11099
+assert_return(() => invoke($65, `checkRange`, [59677n, 60134n, 0]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11101
+assert_return(() => invoke($65, `checkRange`, [60134n, 60502n, 89]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11103
+assert_return(() => invoke($65, `checkRange`, [60502n, 60594n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11105
+assert_return(() => invoke($65, `checkRange`, [60594n, 60617n, 36]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11107
+assert_return(() => invoke($65, `checkRange`, [60617n, 60618n, 32]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11109
+assert_return(() => invoke($65, `checkRange`, [60618n, 60777n, 42]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11111
+assert_return(() => invoke($65, `checkRange`, [60777n, 60834n, 76]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11113
+assert_return(() => invoke($65, `checkRange`, [60834n, 60858n, 57]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11115
+assert_return(() => invoke($65, `checkRange`, [60858n, 60909n, 59]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11117
+assert_return(() => invoke($65, `checkRange`, [60909n, 60918n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11119
+assert_return(() => invoke($65, `checkRange`, [60918n, 60937n, 41]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11121
+assert_return(() => invoke($65, `checkRange`, [60937n, 61600n, 83]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11123
+assert_return(() => invoke($65, `checkRange`, [61600n, 62436n, 96]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11125
+assert_return(() => invoke($65, `checkRange`, [62436n, 63307n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11127
+assert_return(() => invoke($65, `checkRange`, [63307n, 63397n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11129
+assert_return(() => invoke($65, `checkRange`, [63397n, 63501n, 74]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11131
+assert_return(() => invoke($65, `checkRange`, [63501n, 63525n, 93]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11133
+assert_return(() => invoke($65, `checkRange`, [63525n, 63605n, 74]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11135
+assert_return(() => invoke($65, `checkRange`, [63605n, 63704n, 100]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11137
+assert_return(() => invoke($65, `checkRange`, [63704n, 63771n, 97]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11139
+assert_return(() => invoke($65, `checkRange`, [63771n, 63775n, 37]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11141
+assert_return(() => invoke($65, `checkRange`, [63775n, 64311n, 77]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11143
+assert_return(() => invoke($65, `checkRange`, [64311n, 64331n, 26]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11145
+assert_return(() => invoke($65, `checkRange`, [64331n, 64518n, 92]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11147
+assert_return(() => invoke($65, `checkRange`, [64518n, 64827n, 11]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11149
+assert_return(() => invoke($65, `checkRange`, [64827n, 64834n, 26]), [value("i64", -1n)]);
+
+// ./test/core/memory_copy.wast:11151
+assert_return(() => invoke($65, `checkRange`, [64834n, 65536n, 0]), [value("i64", -1n)]);

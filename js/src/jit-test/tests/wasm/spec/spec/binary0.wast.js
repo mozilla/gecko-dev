@@ -69,9 +69,9 @@ let $4 = instantiate(`(module binary
 assert_malformed(
   () => instantiate(`(module binary
     "\\00asm" "\\01\\00\\00\\00"
-    "\\05\\0a\\02"                          ;; Memory section with 2 entries
+    "\\05\\10\\02"                          ;; Memory section with 2 entries
     "\\00\\01"                             ;; no max, minimum 1
-    "\\00\\82\\80\\80\\80\\80\\00"              ;; no max, minimum 2 with one byte too many
+    "\\00\\82\\80\\80\\80\\80\\80\\80\\80\\80\\80\\80\\00"  ;; no max, minimum 2 with one byte too many
   )`),
   `integer representation too long`,
 );

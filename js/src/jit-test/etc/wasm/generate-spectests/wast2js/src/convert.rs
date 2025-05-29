@@ -133,7 +133,7 @@ fn convert_directive(
             if let Some(id) = module.id {
                 writeln!(out, "let ${} = module(`{}`);", id.name(), module_text)?;
             } else {
-                writeln!(out, "let _ = module(`{}`);", module_text)?;
+                writeln!(out, "let _anon_{} = module(`{}`);", line, module_text)?;
             }
         }
         ModuleDefinition(..) => bail!("unsupported module definition...definition"),

@@ -4,30 +4,9 @@ directive = "|jit-test| test-also=--wasm-compiler=optimizing; test-also=--wasm-c
 
 # Failing tests across all testsuites
 excluded_tests = [
-  # false-positive windows-specific failures
-  "align.wast",
-  # memory limits can be encoded with more bytes now
-  "binary.wast",
-  "binary-leb128.wast",
-  # testing that multiple tables fail (imports.wast:309)
-  "imports.wast",
-  # test harness doesn't acquire global values correctly
-  "exports.wast",
-  # false-positive windows-specific failure
-  "memory_trap.wast",
-  # some architectures observe partial writes when an unaligned store traps (bug 1666747)
-  "memory_trap1.wast",
-  # false-positive error on invalid UTF-8 custom section name (utf8-custom-section-id.wast:6)
-  "utf8-custom-section-id.wast",
-  # invalid table maximum length for web embeddings
-  "table.wast",
-  # fails after a bottom-type has been added to validation
-  "unreached-invalid.wast",
-  # argument is not wasm value
-  "^select.wast",
   # fiddly text-format rules we don't care about
-  "annotations.wast",
-  "id.wast",
+  "^annotations.wast",
+  "^id.wast",
 ]
 
 [[repos]]
@@ -37,39 +16,15 @@ branch = "wasm-3.0"
 excluded_tests = []
 directive = "; test-also=--no-avx; skip-variant-if: --no-avx, !getBuildConfiguration('x86') && !getBuildConfiguration('x64') || getBuildConfiguration('simulator')"
 
-[[repos]]
-name = "exception-handling"
-url = "https://github.com/WebAssembly/exception-handling"
-branch = "main"
-parent = "spec"
-directive = "; --setpref=wasm_exnref=true; skip-if: !wasmExnRefEnabled()"
-excluded_tests = [
-  # Old tests reflecting old limits on globals in constant expressions
-  "data.wast.js",
-  "elem.wast.js",
-  "global.wast.js",
-  # Tests asserting that multi-memory is invalid
-  "memory.wast.js",
-  # Old and less complete ref_null tests
-  "ref_null.wast.js",
-  # Irrelevant SIMD tests
-  "simd_lane.wast.js",
-  "simd_linking.wast.js",
-  "simd_load.wast.js",
-  "simd_store.wast.js",
-]
-
-[[repos]]
-name = "memory64"
-url = "https://github.com/WebAssembly/memory64"
-branch = "main"
-parent = "spec"
-directive = "; --setpref=wasm_memory64=true; skip-if: !wasmMemory64Enabled()"
-excluded_tests = []
-
-[[repos]]
-name = "gc"
-url = "https://github.com/WebAssembly/gc"
-branch = "main"
-parent = "spec"
-excluded_tests = []
+# Example proposal config:
+#
+# [[repos]]
+# name = "exception-handling"
+# url = "https://github.com/WebAssembly/exception-handling"
+# branch = "main"
+# parent = "spec"
+# directive = "; --setpref=wasm_exnref=true; skip-if: !wasmExnRefEnabled()"
+# excluded_tests = [
+#   "^data.wast.js",
+#   "^elem.wast.js",
+# ]

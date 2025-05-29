@@ -4475,6 +4475,600 @@ assert_trap(() => invoke($40, `test`, []), `out of bounds table access`);
 
 // ./test/core/table_copy.wast:2221
 let $41 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 28) (i64.const 1) (i64.const 3))
+    ))`);
+
+// ./test/core/table_copy.wast:2244
+assert_trap(() => invoke($41, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2246
+let $42 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 0xFFFFFFFE) (i64.const 1) (i64.const 2))
+    ))`);
+
+// ./test/core/table_copy.wast:2269
+assert_trap(() => invoke($42, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2271
+let $43 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 15) (i64.const 25) (i64.const 6))
+    ))`);
+
+// ./test/core/table_copy.wast:2294
+assert_trap(() => invoke($43, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2296
+let $44 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 15) (i64.const 0xFFFFFFFE) (i64.const 2))
+    ))`);
+
+// ./test/core/table_copy.wast:2319
+assert_trap(() => invoke($44, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2321
+let $45 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 15) (i64.const 25) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2344
+invoke($45, `test`, []);
+
+// ./test/core/table_copy.wast:2346
+let $46 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 30) (i64.const 15) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2369
+invoke($46, `test`, []);
+
+// ./test/core/table_copy.wast:2371
+let $47 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 31) (i64.const 15) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2394
+assert_trap(() => invoke($47, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2396
+let $48 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 15) (i64.const 30) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2419
+invoke($48, `test`, []);
+
+// ./test/core/table_copy.wast:2421
+let $49 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 15) (i64.const 31) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2444
+assert_trap(() => invoke($49, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2446
+let $50 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 30) (i64.const 30) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2469
+invoke($50, `test`, []);
+
+// ./test/core/table_copy.wast:2471
+let $51 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t0 $$t0 (i64.const 31) (i64.const 31) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2494
+assert_trap(() => invoke($51, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2496
+let $52 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 28) (i64.const 1) (i64.const 3))
+    ))`);
+
+// ./test/core/table_copy.wast:2519
+assert_trap(() => invoke($52, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2521
+let $53 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 0xFFFFFFFE) (i64.const 1) (i64.const 2))
+    ))`);
+
+// ./test/core/table_copy.wast:2544
+assert_trap(() => invoke($53, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2546
+let $54 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 15) (i64.const 25) (i64.const 6))
+    ))`);
+
+// ./test/core/table_copy.wast:2569
+assert_trap(() => invoke($54, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2571
+let $55 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 15) (i64.const 0xFFFFFFFE) (i64.const 2))
+    ))`);
+
+// ./test/core/table_copy.wast:2594
+assert_trap(() => invoke($55, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2596
+let $56 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 15) (i64.const 25) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2619
+invoke($56, `test`, []);
+
+// ./test/core/table_copy.wast:2621
+let $57 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 30) (i64.const 15) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2644
+invoke($57, `test`, []);
+
+// ./test/core/table_copy.wast:2646
+let $58 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 31) (i64.const 15) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2669
+assert_trap(() => invoke($58, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2671
+let $59 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 15) (i64.const 30) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2694
+invoke($59, `test`, []);
+
+// ./test/core/table_copy.wast:2696
+let $60 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 15) (i64.const 31) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2719
+assert_trap(() => invoke($60, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2721
+let $61 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 30) (i64.const 30) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2744
+invoke($61, `test`, []);
+
+// ./test/core/table_copy.wast:2746
+let $62 = instantiate(`(module
+  (table $$t0 i64 30 30 funcref)
+  (table $$t1 i64 30 30 funcref)
+  (elem (table $$t0) (i64.const 2) func 3 1 4 1)
+  (elem funcref
+    (ref.func 2) (ref.func 7) (ref.func 1) (ref.func 8))
+  (elem (table $$t0) (i64.const 12) func 7 5 2 3 6)
+  (elem funcref
+    (ref.func 5) (ref.func 9) (ref.func 2) (ref.func 7) (ref.func 6))
+  (func (result i32) (i32.const 0))
+  (func (result i32) (i32.const 1))
+  (func (result i32) (i32.const 2))
+  (func (result i32) (i32.const 3))
+  (func (result i32) (i32.const 4))
+  (func (result i32) (i32.const 5))
+  (func (result i32) (i32.const 6))
+  (func (result i32) (i32.const 7))
+  (func (result i32) (i32.const 8))
+  (func (result i32) (i32.const 9))
+  (func (export "test")
+    (table.copy $$t1 $$t0 (i64.const 31) (i64.const 31) (i64.const 0))
+    ))`);
+
+// ./test/core/table_copy.wast:2769
+assert_trap(() => invoke($62, `test`, []), `out of bounds table access`);
+
+// ./test/core/table_copy.wast:2771
+let $63 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 0)
@@ -4500,107 +5094,107 @@ let $41 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2247
-assert_trap(() => invoke($41, `run`, [24, 0, 16]), `out of bounds table access`);
+// ./test/core/table_copy.wast:2797
+assert_trap(() => invoke($63, `run`, [24, 0, 16]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2249
-assert_return(() => invoke($41, `test`, [0]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:2799
+assert_return(() => invoke($63, `test`, [0]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2250
-assert_return(() => invoke($41, `test`, [1]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:2800
+assert_return(() => invoke($63, `test`, [1]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2251
-assert_return(() => invoke($41, `test`, [2]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:2801
+assert_return(() => invoke($63, `test`, [2]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2252
-assert_return(() => invoke($41, `test`, [3]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:2802
+assert_return(() => invoke($63, `test`, [3]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2253
-assert_return(() => invoke($41, `test`, [4]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:2803
+assert_return(() => invoke($63, `test`, [4]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2254
-assert_return(() => invoke($41, `test`, [5]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:2804
+assert_return(() => invoke($63, `test`, [5]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2255
-assert_return(() => invoke($41, `test`, [6]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:2805
+assert_return(() => invoke($63, `test`, [6]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2256
-assert_return(() => invoke($41, `test`, [7]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:2806
+assert_return(() => invoke($63, `test`, [7]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2257
-assert_trap(() => invoke($41, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:2807
+assert_trap(() => invoke($63, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2258
-assert_trap(() => invoke($41, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:2808
+assert_trap(() => invoke($63, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2259
-assert_trap(() => invoke($41, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:2809
+assert_trap(() => invoke($63, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2260
-assert_trap(() => invoke($41, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:2810
+assert_trap(() => invoke($63, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2261
-assert_trap(() => invoke($41, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:2811
+assert_trap(() => invoke($63, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2262
-assert_trap(() => invoke($41, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:2812
+assert_trap(() => invoke($63, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2263
-assert_trap(() => invoke($41, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:2813
+assert_trap(() => invoke($63, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2264
-assert_trap(() => invoke($41, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:2814
+assert_trap(() => invoke($63, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2265
-assert_trap(() => invoke($41, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:2815
+assert_trap(() => invoke($63, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2266
-assert_trap(() => invoke($41, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:2816
+assert_trap(() => invoke($63, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2267
-assert_trap(() => invoke($41, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:2817
+assert_trap(() => invoke($63, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2268
-assert_trap(() => invoke($41, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:2818
+assert_trap(() => invoke($63, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2269
-assert_trap(() => invoke($41, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:2819
+assert_trap(() => invoke($63, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2270
-assert_trap(() => invoke($41, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:2820
+assert_trap(() => invoke($63, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2271
-assert_trap(() => invoke($41, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:2821
+assert_trap(() => invoke($63, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2272
-assert_trap(() => invoke($41, `test`, [23]), `uninitialized element`);
+// ./test/core/table_copy.wast:2822
+assert_trap(() => invoke($63, `test`, [23]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2273
-assert_trap(() => invoke($41, `test`, [24]), `uninitialized element`);
+// ./test/core/table_copy.wast:2823
+assert_trap(() => invoke($63, `test`, [24]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2274
-assert_trap(() => invoke($41, `test`, [25]), `uninitialized element`);
+// ./test/core/table_copy.wast:2824
+assert_trap(() => invoke($63, `test`, [25]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2275
-assert_trap(() => invoke($41, `test`, [26]), `uninitialized element`);
+// ./test/core/table_copy.wast:2825
+assert_trap(() => invoke($63, `test`, [26]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2276
-assert_trap(() => invoke($41, `test`, [27]), `uninitialized element`);
+// ./test/core/table_copy.wast:2826
+assert_trap(() => invoke($63, `test`, [27]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2277
-assert_trap(() => invoke($41, `test`, [28]), `uninitialized element`);
+// ./test/core/table_copy.wast:2827
+assert_trap(() => invoke($63, `test`, [28]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2278
-assert_trap(() => invoke($41, `test`, [29]), `uninitialized element`);
+// ./test/core/table_copy.wast:2828
+assert_trap(() => invoke($63, `test`, [29]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2279
-assert_trap(() => invoke($41, `test`, [30]), `uninitialized element`);
+// ./test/core/table_copy.wast:2829
+assert_trap(() => invoke($63, `test`, [30]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2280
-assert_trap(() => invoke($41, `test`, [31]), `uninitialized element`);
+// ./test/core/table_copy.wast:2830
+assert_trap(() => invoke($63, `test`, [31]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2282
-let $42 = instantiate(`(module
+// ./test/core/table_copy.wast:2832
+let $64 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 0)
@@ -4626,107 +5220,107 @@ let $42 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2308
-assert_trap(() => invoke($42, `run`, [23, 0, 15]), `out of bounds table access`);
+// ./test/core/table_copy.wast:2858
+assert_trap(() => invoke($64, `run`, [23, 0, 15]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2310
-assert_return(() => invoke($42, `test`, [0]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:2860
+assert_return(() => invoke($64, `test`, [0]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2311
-assert_return(() => invoke($42, `test`, [1]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:2861
+assert_return(() => invoke($64, `test`, [1]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2312
-assert_return(() => invoke($42, `test`, [2]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:2862
+assert_return(() => invoke($64, `test`, [2]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2313
-assert_return(() => invoke($42, `test`, [3]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:2863
+assert_return(() => invoke($64, `test`, [3]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2314
-assert_return(() => invoke($42, `test`, [4]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:2864
+assert_return(() => invoke($64, `test`, [4]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2315
-assert_return(() => invoke($42, `test`, [5]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:2865
+assert_return(() => invoke($64, `test`, [5]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2316
-assert_return(() => invoke($42, `test`, [6]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:2866
+assert_return(() => invoke($64, `test`, [6]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2317
-assert_return(() => invoke($42, `test`, [7]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:2867
+assert_return(() => invoke($64, `test`, [7]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2318
-assert_return(() => invoke($42, `test`, [8]), [value("i32", 8)]);
+// ./test/core/table_copy.wast:2868
+assert_return(() => invoke($64, `test`, [8]), [value("i32", 8)]);
 
-// ./test/core/table_copy.wast:2319
-assert_trap(() => invoke($42, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:2869
+assert_trap(() => invoke($64, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2320
-assert_trap(() => invoke($42, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:2870
+assert_trap(() => invoke($64, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2321
-assert_trap(() => invoke($42, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:2871
+assert_trap(() => invoke($64, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2322
-assert_trap(() => invoke($42, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:2872
+assert_trap(() => invoke($64, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2323
-assert_trap(() => invoke($42, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:2873
+assert_trap(() => invoke($64, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2324
-assert_trap(() => invoke($42, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:2874
+assert_trap(() => invoke($64, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2325
-assert_trap(() => invoke($42, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:2875
+assert_trap(() => invoke($64, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2326
-assert_trap(() => invoke($42, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:2876
+assert_trap(() => invoke($64, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2327
-assert_trap(() => invoke($42, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:2877
+assert_trap(() => invoke($64, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2328
-assert_trap(() => invoke($42, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:2878
+assert_trap(() => invoke($64, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2329
-assert_trap(() => invoke($42, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:2879
+assert_trap(() => invoke($64, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2330
-assert_trap(() => invoke($42, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:2880
+assert_trap(() => invoke($64, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2331
-assert_trap(() => invoke($42, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:2881
+assert_trap(() => invoke($64, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2332
-assert_trap(() => invoke($42, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:2882
+assert_trap(() => invoke($64, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2333
-assert_trap(() => invoke($42, `test`, [23]), `uninitialized element`);
+// ./test/core/table_copy.wast:2883
+assert_trap(() => invoke($64, `test`, [23]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2334
-assert_trap(() => invoke($42, `test`, [24]), `uninitialized element`);
+// ./test/core/table_copy.wast:2884
+assert_trap(() => invoke($64, `test`, [24]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2335
-assert_trap(() => invoke($42, `test`, [25]), `uninitialized element`);
+// ./test/core/table_copy.wast:2885
+assert_trap(() => invoke($64, `test`, [25]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2336
-assert_trap(() => invoke($42, `test`, [26]), `uninitialized element`);
+// ./test/core/table_copy.wast:2886
+assert_trap(() => invoke($64, `test`, [26]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2337
-assert_trap(() => invoke($42, `test`, [27]), `uninitialized element`);
+// ./test/core/table_copy.wast:2887
+assert_trap(() => invoke($64, `test`, [27]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2338
-assert_trap(() => invoke($42, `test`, [28]), `uninitialized element`);
+// ./test/core/table_copy.wast:2888
+assert_trap(() => invoke($64, `test`, [28]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2339
-assert_trap(() => invoke($42, `test`, [29]), `uninitialized element`);
+// ./test/core/table_copy.wast:2889
+assert_trap(() => invoke($64, `test`, [29]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2340
-assert_trap(() => invoke($42, `test`, [30]), `uninitialized element`);
+// ./test/core/table_copy.wast:2890
+assert_trap(() => invoke($64, `test`, [30]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2341
-assert_trap(() => invoke($42, `test`, [31]), `uninitialized element`);
+// ./test/core/table_copy.wast:2891
+assert_trap(() => invoke($64, `test`, [31]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2343
-let $43 = instantiate(`(module
+// ./test/core/table_copy.wast:2893
+let $65 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 24)
@@ -4752,107 +5346,107 @@ let $43 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2369
-assert_trap(() => invoke($43, `run`, [0, 24, 16]), `out of bounds table access`);
+// ./test/core/table_copy.wast:2919
+assert_trap(() => invoke($65, `run`, [0, 24, 16]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2371
-assert_trap(() => invoke($43, `test`, [0]), `uninitialized element`);
+// ./test/core/table_copy.wast:2921
+assert_trap(() => invoke($65, `test`, [0]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2372
-assert_trap(() => invoke($43, `test`, [1]), `uninitialized element`);
+// ./test/core/table_copy.wast:2922
+assert_trap(() => invoke($65, `test`, [1]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2373
-assert_trap(() => invoke($43, `test`, [2]), `uninitialized element`);
+// ./test/core/table_copy.wast:2923
+assert_trap(() => invoke($65, `test`, [2]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2374
-assert_trap(() => invoke($43, `test`, [3]), `uninitialized element`);
+// ./test/core/table_copy.wast:2924
+assert_trap(() => invoke($65, `test`, [3]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2375
-assert_trap(() => invoke($43, `test`, [4]), `uninitialized element`);
+// ./test/core/table_copy.wast:2925
+assert_trap(() => invoke($65, `test`, [4]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2376
-assert_trap(() => invoke($43, `test`, [5]), `uninitialized element`);
+// ./test/core/table_copy.wast:2926
+assert_trap(() => invoke($65, `test`, [5]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2377
-assert_trap(() => invoke($43, `test`, [6]), `uninitialized element`);
+// ./test/core/table_copy.wast:2927
+assert_trap(() => invoke($65, `test`, [6]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2378
-assert_trap(() => invoke($43, `test`, [7]), `uninitialized element`);
+// ./test/core/table_copy.wast:2928
+assert_trap(() => invoke($65, `test`, [7]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2379
-assert_trap(() => invoke($43, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:2929
+assert_trap(() => invoke($65, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2380
-assert_trap(() => invoke($43, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:2930
+assert_trap(() => invoke($65, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2381
-assert_trap(() => invoke($43, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:2931
+assert_trap(() => invoke($65, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2382
-assert_trap(() => invoke($43, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:2932
+assert_trap(() => invoke($65, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2383
-assert_trap(() => invoke($43, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:2933
+assert_trap(() => invoke($65, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2384
-assert_trap(() => invoke($43, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:2934
+assert_trap(() => invoke($65, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2385
-assert_trap(() => invoke($43, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:2935
+assert_trap(() => invoke($65, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2386
-assert_trap(() => invoke($43, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:2936
+assert_trap(() => invoke($65, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2387
-assert_trap(() => invoke($43, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:2937
+assert_trap(() => invoke($65, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2388
-assert_trap(() => invoke($43, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:2938
+assert_trap(() => invoke($65, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2389
-assert_trap(() => invoke($43, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:2939
+assert_trap(() => invoke($65, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2390
-assert_trap(() => invoke($43, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:2940
+assert_trap(() => invoke($65, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2391
-assert_trap(() => invoke($43, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:2941
+assert_trap(() => invoke($65, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2392
-assert_trap(() => invoke($43, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:2942
+assert_trap(() => invoke($65, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2393
-assert_trap(() => invoke($43, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:2943
+assert_trap(() => invoke($65, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2394
-assert_trap(() => invoke($43, `test`, [23]), `uninitialized element`);
+// ./test/core/table_copy.wast:2944
+assert_trap(() => invoke($65, `test`, [23]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2395
-assert_return(() => invoke($43, `test`, [24]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:2945
+assert_return(() => invoke($65, `test`, [24]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2396
-assert_return(() => invoke($43, `test`, [25]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:2946
+assert_return(() => invoke($65, `test`, [25]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2397
-assert_return(() => invoke($43, `test`, [26]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:2947
+assert_return(() => invoke($65, `test`, [26]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2398
-assert_return(() => invoke($43, `test`, [27]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:2948
+assert_return(() => invoke($65, `test`, [27]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2399
-assert_return(() => invoke($43, `test`, [28]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:2949
+assert_return(() => invoke($65, `test`, [28]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2400
-assert_return(() => invoke($43, `test`, [29]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:2950
+assert_return(() => invoke($65, `test`, [29]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2401
-assert_return(() => invoke($43, `test`, [30]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:2951
+assert_return(() => invoke($65, `test`, [30]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2402
-assert_return(() => invoke($43, `test`, [31]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:2952
+assert_return(() => invoke($65, `test`, [31]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2404
-let $44 = instantiate(`(module
+// ./test/core/table_copy.wast:2954
+let $66 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 23)
@@ -4878,107 +5472,107 @@ let $44 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2430
-assert_trap(() => invoke($44, `run`, [0, 23, 15]), `out of bounds table access`);
+// ./test/core/table_copy.wast:2980
+assert_trap(() => invoke($66, `run`, [0, 23, 15]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2432
-assert_trap(() => invoke($44, `test`, [0]), `uninitialized element`);
+// ./test/core/table_copy.wast:2982
+assert_trap(() => invoke($66, `test`, [0]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2433
-assert_trap(() => invoke($44, `test`, [1]), `uninitialized element`);
+// ./test/core/table_copy.wast:2983
+assert_trap(() => invoke($66, `test`, [1]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2434
-assert_trap(() => invoke($44, `test`, [2]), `uninitialized element`);
+// ./test/core/table_copy.wast:2984
+assert_trap(() => invoke($66, `test`, [2]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2435
-assert_trap(() => invoke($44, `test`, [3]), `uninitialized element`);
+// ./test/core/table_copy.wast:2985
+assert_trap(() => invoke($66, `test`, [3]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2436
-assert_trap(() => invoke($44, `test`, [4]), `uninitialized element`);
+// ./test/core/table_copy.wast:2986
+assert_trap(() => invoke($66, `test`, [4]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2437
-assert_trap(() => invoke($44, `test`, [5]), `uninitialized element`);
+// ./test/core/table_copy.wast:2987
+assert_trap(() => invoke($66, `test`, [5]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2438
-assert_trap(() => invoke($44, `test`, [6]), `uninitialized element`);
+// ./test/core/table_copy.wast:2988
+assert_trap(() => invoke($66, `test`, [6]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2439
-assert_trap(() => invoke($44, `test`, [7]), `uninitialized element`);
+// ./test/core/table_copy.wast:2989
+assert_trap(() => invoke($66, `test`, [7]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2440
-assert_trap(() => invoke($44, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:2990
+assert_trap(() => invoke($66, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2441
-assert_trap(() => invoke($44, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:2991
+assert_trap(() => invoke($66, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2442
-assert_trap(() => invoke($44, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:2992
+assert_trap(() => invoke($66, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2443
-assert_trap(() => invoke($44, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:2993
+assert_trap(() => invoke($66, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2444
-assert_trap(() => invoke($44, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:2994
+assert_trap(() => invoke($66, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2445
-assert_trap(() => invoke($44, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:2995
+assert_trap(() => invoke($66, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2446
-assert_trap(() => invoke($44, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:2996
+assert_trap(() => invoke($66, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2447
-assert_trap(() => invoke($44, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:2997
+assert_trap(() => invoke($66, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2448
-assert_trap(() => invoke($44, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:2998
+assert_trap(() => invoke($66, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2449
-assert_trap(() => invoke($44, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:2999
+assert_trap(() => invoke($66, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2450
-assert_trap(() => invoke($44, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:3000
+assert_trap(() => invoke($66, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2451
-assert_trap(() => invoke($44, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:3001
+assert_trap(() => invoke($66, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2452
-assert_trap(() => invoke($44, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:3002
+assert_trap(() => invoke($66, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2453
-assert_trap(() => invoke($44, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:3003
+assert_trap(() => invoke($66, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2454
-assert_trap(() => invoke($44, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:3004
+assert_trap(() => invoke($66, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2455
-assert_return(() => invoke($44, `test`, [23]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:3005
+assert_return(() => invoke($66, `test`, [23]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2456
-assert_return(() => invoke($44, `test`, [24]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:3006
+assert_return(() => invoke($66, `test`, [24]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2457
-assert_return(() => invoke($44, `test`, [25]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:3007
+assert_return(() => invoke($66, `test`, [25]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2458
-assert_return(() => invoke($44, `test`, [26]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:3008
+assert_return(() => invoke($66, `test`, [26]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2459
-assert_return(() => invoke($44, `test`, [27]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:3009
+assert_return(() => invoke($66, `test`, [27]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2460
-assert_return(() => invoke($44, `test`, [28]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:3010
+assert_return(() => invoke($66, `test`, [28]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2461
-assert_return(() => invoke($44, `test`, [29]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:3011
+assert_return(() => invoke($66, `test`, [29]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2462
-assert_return(() => invoke($44, `test`, [30]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:3012
+assert_return(() => invoke($66, `test`, [30]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2463
-assert_return(() => invoke($44, `test`, [31]), [value("i32", 8)]);
+// ./test/core/table_copy.wast:3013
+assert_return(() => invoke($66, `test`, [31]), [value("i32", 8)]);
 
-// ./test/core/table_copy.wast:2465
-let $45 = instantiate(`(module
+// ./test/core/table_copy.wast:3015
+let $67 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 11)
@@ -5004,107 +5598,107 @@ let $45 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2491
-assert_trap(() => invoke($45, `run`, [24, 11, 16]), `out of bounds table access`);
+// ./test/core/table_copy.wast:3041
+assert_trap(() => invoke($67, `run`, [24, 11, 16]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2493
-assert_trap(() => invoke($45, `test`, [0]), `uninitialized element`);
+// ./test/core/table_copy.wast:3043
+assert_trap(() => invoke($67, `test`, [0]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2494
-assert_trap(() => invoke($45, `test`, [1]), `uninitialized element`);
+// ./test/core/table_copy.wast:3044
+assert_trap(() => invoke($67, `test`, [1]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2495
-assert_trap(() => invoke($45, `test`, [2]), `uninitialized element`);
+// ./test/core/table_copy.wast:3045
+assert_trap(() => invoke($67, `test`, [2]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2496
-assert_trap(() => invoke($45, `test`, [3]), `uninitialized element`);
+// ./test/core/table_copy.wast:3046
+assert_trap(() => invoke($67, `test`, [3]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2497
-assert_trap(() => invoke($45, `test`, [4]), `uninitialized element`);
+// ./test/core/table_copy.wast:3047
+assert_trap(() => invoke($67, `test`, [4]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2498
-assert_trap(() => invoke($45, `test`, [5]), `uninitialized element`);
+// ./test/core/table_copy.wast:3048
+assert_trap(() => invoke($67, `test`, [5]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2499
-assert_trap(() => invoke($45, `test`, [6]), `uninitialized element`);
+// ./test/core/table_copy.wast:3049
+assert_trap(() => invoke($67, `test`, [6]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2500
-assert_trap(() => invoke($45, `test`, [7]), `uninitialized element`);
+// ./test/core/table_copy.wast:3050
+assert_trap(() => invoke($67, `test`, [7]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2501
-assert_trap(() => invoke($45, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:3051
+assert_trap(() => invoke($67, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2502
-assert_trap(() => invoke($45, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:3052
+assert_trap(() => invoke($67, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2503
-assert_trap(() => invoke($45, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:3053
+assert_trap(() => invoke($67, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2504
-assert_return(() => invoke($45, `test`, [11]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:3054
+assert_return(() => invoke($67, `test`, [11]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2505
-assert_return(() => invoke($45, `test`, [12]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:3055
+assert_return(() => invoke($67, `test`, [12]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2506
-assert_return(() => invoke($45, `test`, [13]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:3056
+assert_return(() => invoke($67, `test`, [13]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2507
-assert_return(() => invoke($45, `test`, [14]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:3057
+assert_return(() => invoke($67, `test`, [14]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2508
-assert_return(() => invoke($45, `test`, [15]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:3058
+assert_return(() => invoke($67, `test`, [15]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2509
-assert_return(() => invoke($45, `test`, [16]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:3059
+assert_return(() => invoke($67, `test`, [16]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2510
-assert_return(() => invoke($45, `test`, [17]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:3060
+assert_return(() => invoke($67, `test`, [17]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2511
-assert_return(() => invoke($45, `test`, [18]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:3061
+assert_return(() => invoke($67, `test`, [18]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2512
-assert_trap(() => invoke($45, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:3062
+assert_trap(() => invoke($67, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2513
-assert_trap(() => invoke($45, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:3063
+assert_trap(() => invoke($67, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2514
-assert_trap(() => invoke($45, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:3064
+assert_trap(() => invoke($67, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2515
-assert_trap(() => invoke($45, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:3065
+assert_trap(() => invoke($67, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2516
-assert_trap(() => invoke($45, `test`, [23]), `uninitialized element`);
+// ./test/core/table_copy.wast:3066
+assert_trap(() => invoke($67, `test`, [23]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2517
-assert_trap(() => invoke($45, `test`, [24]), `uninitialized element`);
+// ./test/core/table_copy.wast:3067
+assert_trap(() => invoke($67, `test`, [24]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2518
-assert_trap(() => invoke($45, `test`, [25]), `uninitialized element`);
+// ./test/core/table_copy.wast:3068
+assert_trap(() => invoke($67, `test`, [25]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2519
-assert_trap(() => invoke($45, `test`, [26]), `uninitialized element`);
+// ./test/core/table_copy.wast:3069
+assert_trap(() => invoke($67, `test`, [26]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2520
-assert_trap(() => invoke($45, `test`, [27]), `uninitialized element`);
+// ./test/core/table_copy.wast:3070
+assert_trap(() => invoke($67, `test`, [27]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2521
-assert_trap(() => invoke($45, `test`, [28]), `uninitialized element`);
+// ./test/core/table_copy.wast:3071
+assert_trap(() => invoke($67, `test`, [28]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2522
-assert_trap(() => invoke($45, `test`, [29]), `uninitialized element`);
+// ./test/core/table_copy.wast:3072
+assert_trap(() => invoke($67, `test`, [29]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2523
-assert_trap(() => invoke($45, `test`, [30]), `uninitialized element`);
+// ./test/core/table_copy.wast:3073
+assert_trap(() => invoke($67, `test`, [30]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2524
-assert_trap(() => invoke($45, `test`, [31]), `uninitialized element`);
+// ./test/core/table_copy.wast:3074
+assert_trap(() => invoke($67, `test`, [31]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2526
-let $46 = instantiate(`(module
+// ./test/core/table_copy.wast:3076
+let $68 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 24)
@@ -5130,107 +5724,107 @@ let $46 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2552
-assert_trap(() => invoke($46, `run`, [11, 24, 16]), `out of bounds table access`);
+// ./test/core/table_copy.wast:3102
+assert_trap(() => invoke($68, `run`, [11, 24, 16]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2554
-assert_trap(() => invoke($46, `test`, [0]), `uninitialized element`);
+// ./test/core/table_copy.wast:3104
+assert_trap(() => invoke($68, `test`, [0]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2555
-assert_trap(() => invoke($46, `test`, [1]), `uninitialized element`);
+// ./test/core/table_copy.wast:3105
+assert_trap(() => invoke($68, `test`, [1]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2556
-assert_trap(() => invoke($46, `test`, [2]), `uninitialized element`);
+// ./test/core/table_copy.wast:3106
+assert_trap(() => invoke($68, `test`, [2]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2557
-assert_trap(() => invoke($46, `test`, [3]), `uninitialized element`);
+// ./test/core/table_copy.wast:3107
+assert_trap(() => invoke($68, `test`, [3]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2558
-assert_trap(() => invoke($46, `test`, [4]), `uninitialized element`);
+// ./test/core/table_copy.wast:3108
+assert_trap(() => invoke($68, `test`, [4]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2559
-assert_trap(() => invoke($46, `test`, [5]), `uninitialized element`);
+// ./test/core/table_copy.wast:3109
+assert_trap(() => invoke($68, `test`, [5]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2560
-assert_trap(() => invoke($46, `test`, [6]), `uninitialized element`);
+// ./test/core/table_copy.wast:3110
+assert_trap(() => invoke($68, `test`, [6]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2561
-assert_trap(() => invoke($46, `test`, [7]), `uninitialized element`);
+// ./test/core/table_copy.wast:3111
+assert_trap(() => invoke($68, `test`, [7]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2562
-assert_trap(() => invoke($46, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:3112
+assert_trap(() => invoke($68, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2563
-assert_trap(() => invoke($46, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:3113
+assert_trap(() => invoke($68, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2564
-assert_trap(() => invoke($46, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:3114
+assert_trap(() => invoke($68, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2565
-assert_trap(() => invoke($46, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:3115
+assert_trap(() => invoke($68, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2566
-assert_trap(() => invoke($46, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:3116
+assert_trap(() => invoke($68, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2567
-assert_trap(() => invoke($46, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:3117
+assert_trap(() => invoke($68, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2568
-assert_trap(() => invoke($46, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:3118
+assert_trap(() => invoke($68, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2569
-assert_trap(() => invoke($46, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:3119
+assert_trap(() => invoke($68, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2570
-assert_trap(() => invoke($46, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:3120
+assert_trap(() => invoke($68, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2571
-assert_trap(() => invoke($46, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:3121
+assert_trap(() => invoke($68, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2572
-assert_trap(() => invoke($46, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:3122
+assert_trap(() => invoke($68, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2573
-assert_trap(() => invoke($46, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:3123
+assert_trap(() => invoke($68, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2574
-assert_trap(() => invoke($46, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:3124
+assert_trap(() => invoke($68, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2575
-assert_trap(() => invoke($46, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:3125
+assert_trap(() => invoke($68, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2576
-assert_trap(() => invoke($46, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:3126
+assert_trap(() => invoke($68, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2577
-assert_trap(() => invoke($46, `test`, [23]), `uninitialized element`);
+// ./test/core/table_copy.wast:3127
+assert_trap(() => invoke($68, `test`, [23]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2578
-assert_return(() => invoke($46, `test`, [24]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:3128
+assert_return(() => invoke($68, `test`, [24]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2579
-assert_return(() => invoke($46, `test`, [25]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:3129
+assert_return(() => invoke($68, `test`, [25]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2580
-assert_return(() => invoke($46, `test`, [26]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:3130
+assert_return(() => invoke($68, `test`, [26]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2581
-assert_return(() => invoke($46, `test`, [27]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:3131
+assert_return(() => invoke($68, `test`, [27]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2582
-assert_return(() => invoke($46, `test`, [28]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:3132
+assert_return(() => invoke($68, `test`, [28]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2583
-assert_return(() => invoke($46, `test`, [29]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:3133
+assert_return(() => invoke($68, `test`, [29]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2584
-assert_return(() => invoke($46, `test`, [30]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:3134
+assert_return(() => invoke($68, `test`, [30]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2585
-assert_return(() => invoke($46, `test`, [31]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:3135
+assert_return(() => invoke($68, `test`, [31]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2587
-let $47 = instantiate(`(module
+// ./test/core/table_copy.wast:3137
+let $69 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 21)
@@ -5256,107 +5850,107 @@ let $47 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2613
-assert_trap(() => invoke($47, `run`, [24, 21, 16]), `out of bounds table access`);
+// ./test/core/table_copy.wast:3163
+assert_trap(() => invoke($69, `run`, [24, 21, 16]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2615
-assert_trap(() => invoke($47, `test`, [0]), `uninitialized element`);
+// ./test/core/table_copy.wast:3165
+assert_trap(() => invoke($69, `test`, [0]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2616
-assert_trap(() => invoke($47, `test`, [1]), `uninitialized element`);
+// ./test/core/table_copy.wast:3166
+assert_trap(() => invoke($69, `test`, [1]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2617
-assert_trap(() => invoke($47, `test`, [2]), `uninitialized element`);
+// ./test/core/table_copy.wast:3167
+assert_trap(() => invoke($69, `test`, [2]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2618
-assert_trap(() => invoke($47, `test`, [3]), `uninitialized element`);
+// ./test/core/table_copy.wast:3168
+assert_trap(() => invoke($69, `test`, [3]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2619
-assert_trap(() => invoke($47, `test`, [4]), `uninitialized element`);
+// ./test/core/table_copy.wast:3169
+assert_trap(() => invoke($69, `test`, [4]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2620
-assert_trap(() => invoke($47, `test`, [5]), `uninitialized element`);
+// ./test/core/table_copy.wast:3170
+assert_trap(() => invoke($69, `test`, [5]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2621
-assert_trap(() => invoke($47, `test`, [6]), `uninitialized element`);
+// ./test/core/table_copy.wast:3171
+assert_trap(() => invoke($69, `test`, [6]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2622
-assert_trap(() => invoke($47, `test`, [7]), `uninitialized element`);
+// ./test/core/table_copy.wast:3172
+assert_trap(() => invoke($69, `test`, [7]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2623
-assert_trap(() => invoke($47, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:3173
+assert_trap(() => invoke($69, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2624
-assert_trap(() => invoke($47, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:3174
+assert_trap(() => invoke($69, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2625
-assert_trap(() => invoke($47, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:3175
+assert_trap(() => invoke($69, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2626
-assert_trap(() => invoke($47, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:3176
+assert_trap(() => invoke($69, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2627
-assert_trap(() => invoke($47, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:3177
+assert_trap(() => invoke($69, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2628
-assert_trap(() => invoke($47, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:3178
+assert_trap(() => invoke($69, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2629
-assert_trap(() => invoke($47, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:3179
+assert_trap(() => invoke($69, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2630
-assert_trap(() => invoke($47, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:3180
+assert_trap(() => invoke($69, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2631
-assert_trap(() => invoke($47, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:3181
+assert_trap(() => invoke($69, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2632
-assert_trap(() => invoke($47, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:3182
+assert_trap(() => invoke($69, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2633
-assert_trap(() => invoke($47, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:3183
+assert_trap(() => invoke($69, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2634
-assert_trap(() => invoke($47, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:3184
+assert_trap(() => invoke($69, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2635
-assert_trap(() => invoke($47, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:3185
+assert_trap(() => invoke($69, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2636
-assert_return(() => invoke($47, `test`, [21]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:3186
+assert_return(() => invoke($69, `test`, [21]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2637
-assert_return(() => invoke($47, `test`, [22]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:3187
+assert_return(() => invoke($69, `test`, [22]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2638
-assert_return(() => invoke($47, `test`, [23]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:3188
+assert_return(() => invoke($69, `test`, [23]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2639
-assert_return(() => invoke($47, `test`, [24]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:3189
+assert_return(() => invoke($69, `test`, [24]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2640
-assert_return(() => invoke($47, `test`, [25]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:3190
+assert_return(() => invoke($69, `test`, [25]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2641
-assert_return(() => invoke($47, `test`, [26]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:3191
+assert_return(() => invoke($69, `test`, [26]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2642
-assert_return(() => invoke($47, `test`, [27]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:3192
+assert_return(() => invoke($69, `test`, [27]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2643
-assert_return(() => invoke($47, `test`, [28]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:3193
+assert_return(() => invoke($69, `test`, [28]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2644
-assert_trap(() => invoke($47, `test`, [29]), `uninitialized element`);
+// ./test/core/table_copy.wast:3194
+assert_trap(() => invoke($69, `test`, [29]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2645
-assert_trap(() => invoke($47, `test`, [30]), `uninitialized element`);
+// ./test/core/table_copy.wast:3195
+assert_trap(() => invoke($69, `test`, [30]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2646
-assert_trap(() => invoke($47, `test`, [31]), `uninitialized element`);
+// ./test/core/table_copy.wast:3196
+assert_trap(() => invoke($69, `test`, [31]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2648
-let $48 = instantiate(`(module
+// ./test/core/table_copy.wast:3198
+let $70 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 24)
@@ -5382,107 +5976,107 @@ let $48 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2674
-assert_trap(() => invoke($48, `run`, [21, 24, 16]), `out of bounds table access`);
+// ./test/core/table_copy.wast:3224
+assert_trap(() => invoke($70, `run`, [21, 24, 16]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2676
-assert_trap(() => invoke($48, `test`, [0]), `uninitialized element`);
+// ./test/core/table_copy.wast:3226
+assert_trap(() => invoke($70, `test`, [0]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2677
-assert_trap(() => invoke($48, `test`, [1]), `uninitialized element`);
+// ./test/core/table_copy.wast:3227
+assert_trap(() => invoke($70, `test`, [1]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2678
-assert_trap(() => invoke($48, `test`, [2]), `uninitialized element`);
+// ./test/core/table_copy.wast:3228
+assert_trap(() => invoke($70, `test`, [2]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2679
-assert_trap(() => invoke($48, `test`, [3]), `uninitialized element`);
+// ./test/core/table_copy.wast:3229
+assert_trap(() => invoke($70, `test`, [3]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2680
-assert_trap(() => invoke($48, `test`, [4]), `uninitialized element`);
+// ./test/core/table_copy.wast:3230
+assert_trap(() => invoke($70, `test`, [4]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2681
-assert_trap(() => invoke($48, `test`, [5]), `uninitialized element`);
+// ./test/core/table_copy.wast:3231
+assert_trap(() => invoke($70, `test`, [5]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2682
-assert_trap(() => invoke($48, `test`, [6]), `uninitialized element`);
+// ./test/core/table_copy.wast:3232
+assert_trap(() => invoke($70, `test`, [6]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2683
-assert_trap(() => invoke($48, `test`, [7]), `uninitialized element`);
+// ./test/core/table_copy.wast:3233
+assert_trap(() => invoke($70, `test`, [7]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2684
-assert_trap(() => invoke($48, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:3234
+assert_trap(() => invoke($70, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2685
-assert_trap(() => invoke($48, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:3235
+assert_trap(() => invoke($70, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2686
-assert_trap(() => invoke($48, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:3236
+assert_trap(() => invoke($70, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2687
-assert_trap(() => invoke($48, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:3237
+assert_trap(() => invoke($70, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2688
-assert_trap(() => invoke($48, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:3238
+assert_trap(() => invoke($70, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2689
-assert_trap(() => invoke($48, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:3239
+assert_trap(() => invoke($70, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2690
-assert_trap(() => invoke($48, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:3240
+assert_trap(() => invoke($70, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2691
-assert_trap(() => invoke($48, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:3241
+assert_trap(() => invoke($70, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2692
-assert_trap(() => invoke($48, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:3242
+assert_trap(() => invoke($70, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2693
-assert_trap(() => invoke($48, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:3243
+assert_trap(() => invoke($70, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2694
-assert_trap(() => invoke($48, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:3244
+assert_trap(() => invoke($70, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2695
-assert_trap(() => invoke($48, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:3245
+assert_trap(() => invoke($70, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2696
-assert_trap(() => invoke($48, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:3246
+assert_trap(() => invoke($70, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2697
-assert_trap(() => invoke($48, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:3247
+assert_trap(() => invoke($70, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2698
-assert_trap(() => invoke($48, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:3248
+assert_trap(() => invoke($70, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2699
-assert_trap(() => invoke($48, `test`, [23]), `uninitialized element`);
+// ./test/core/table_copy.wast:3249
+assert_trap(() => invoke($70, `test`, [23]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2700
-assert_return(() => invoke($48, `test`, [24]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:3250
+assert_return(() => invoke($70, `test`, [24]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2701
-assert_return(() => invoke($48, `test`, [25]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:3251
+assert_return(() => invoke($70, `test`, [25]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2702
-assert_return(() => invoke($48, `test`, [26]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:3252
+assert_return(() => invoke($70, `test`, [26]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2703
-assert_return(() => invoke($48, `test`, [27]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:3253
+assert_return(() => invoke($70, `test`, [27]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2704
-assert_return(() => invoke($48, `test`, [28]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:3254
+assert_return(() => invoke($70, `test`, [28]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2705
-assert_return(() => invoke($48, `test`, [29]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:3255
+assert_return(() => invoke($70, `test`, [29]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2706
-assert_return(() => invoke($48, `test`, [30]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:3256
+assert_return(() => invoke($70, `test`, [30]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2707
-assert_return(() => invoke($48, `test`, [31]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:3257
+assert_return(() => invoke($70, `test`, [31]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2709
-let $49 = instantiate(`(module
+// ./test/core/table_copy.wast:3259
+let $71 = instantiate(`(module
   (type (func (result i32)))
   (table 32 64 funcref)
   (elem (i32.const 21)
@@ -5508,107 +6102,107 @@ let $49 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2735
-assert_trap(() => invoke($49, `run`, [21, 21, 16]), `out of bounds table access`);
+// ./test/core/table_copy.wast:3285
+assert_trap(() => invoke($71, `run`, [21, 21, 16]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2737
-assert_trap(() => invoke($49, `test`, [0]), `uninitialized element`);
+// ./test/core/table_copy.wast:3287
+assert_trap(() => invoke($71, `test`, [0]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2738
-assert_trap(() => invoke($49, `test`, [1]), `uninitialized element`);
+// ./test/core/table_copy.wast:3288
+assert_trap(() => invoke($71, `test`, [1]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2739
-assert_trap(() => invoke($49, `test`, [2]), `uninitialized element`);
+// ./test/core/table_copy.wast:3289
+assert_trap(() => invoke($71, `test`, [2]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2740
-assert_trap(() => invoke($49, `test`, [3]), `uninitialized element`);
+// ./test/core/table_copy.wast:3290
+assert_trap(() => invoke($71, `test`, [3]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2741
-assert_trap(() => invoke($49, `test`, [4]), `uninitialized element`);
+// ./test/core/table_copy.wast:3291
+assert_trap(() => invoke($71, `test`, [4]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2742
-assert_trap(() => invoke($49, `test`, [5]), `uninitialized element`);
+// ./test/core/table_copy.wast:3292
+assert_trap(() => invoke($71, `test`, [5]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2743
-assert_trap(() => invoke($49, `test`, [6]), `uninitialized element`);
+// ./test/core/table_copy.wast:3293
+assert_trap(() => invoke($71, `test`, [6]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2744
-assert_trap(() => invoke($49, `test`, [7]), `uninitialized element`);
+// ./test/core/table_copy.wast:3294
+assert_trap(() => invoke($71, `test`, [7]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2745
-assert_trap(() => invoke($49, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:3295
+assert_trap(() => invoke($71, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2746
-assert_trap(() => invoke($49, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:3296
+assert_trap(() => invoke($71, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2747
-assert_trap(() => invoke($49, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:3297
+assert_trap(() => invoke($71, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2748
-assert_trap(() => invoke($49, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:3298
+assert_trap(() => invoke($71, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2749
-assert_trap(() => invoke($49, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:3299
+assert_trap(() => invoke($71, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2750
-assert_trap(() => invoke($49, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:3300
+assert_trap(() => invoke($71, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2751
-assert_trap(() => invoke($49, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:3301
+assert_trap(() => invoke($71, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2752
-assert_trap(() => invoke($49, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:3302
+assert_trap(() => invoke($71, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2753
-assert_trap(() => invoke($49, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:3303
+assert_trap(() => invoke($71, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2754
-assert_trap(() => invoke($49, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:3304
+assert_trap(() => invoke($71, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2755
-assert_trap(() => invoke($49, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:3305
+assert_trap(() => invoke($71, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2756
-assert_trap(() => invoke($49, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:3306
+assert_trap(() => invoke($71, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2757
-assert_trap(() => invoke($49, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:3307
+assert_trap(() => invoke($71, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2758
-assert_return(() => invoke($49, `test`, [21]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:3308
+assert_return(() => invoke($71, `test`, [21]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2759
-assert_return(() => invoke($49, `test`, [22]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:3309
+assert_return(() => invoke($71, `test`, [22]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2760
-assert_return(() => invoke($49, `test`, [23]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:3310
+assert_return(() => invoke($71, `test`, [23]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2761
-assert_return(() => invoke($49, `test`, [24]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:3311
+assert_return(() => invoke($71, `test`, [24]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2762
-assert_return(() => invoke($49, `test`, [25]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:3312
+assert_return(() => invoke($71, `test`, [25]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2763
-assert_return(() => invoke($49, `test`, [26]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:3313
+assert_return(() => invoke($71, `test`, [26]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2764
-assert_return(() => invoke($49, `test`, [27]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:3314
+assert_return(() => invoke($71, `test`, [27]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2765
-assert_return(() => invoke($49, `test`, [28]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:3315
+assert_return(() => invoke($71, `test`, [28]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2766
-assert_return(() => invoke($49, `test`, [29]), [value("i32", 8)]);
+// ./test/core/table_copy.wast:3316
+assert_return(() => invoke($71, `test`, [29]), [value("i32", 8)]);
 
-// ./test/core/table_copy.wast:2767
-assert_return(() => invoke($49, `test`, [30]), [value("i32", 9)]);
+// ./test/core/table_copy.wast:3317
+assert_return(() => invoke($71, `test`, [30]), [value("i32", 9)]);
 
-// ./test/core/table_copy.wast:2768
-assert_return(() => invoke($49, `test`, [31]), [value("i32", 10)]);
+// ./test/core/table_copy.wast:3318
+assert_return(() => invoke($71, `test`, [31]), [value("i32", 10)]);
 
-// ./test/core/table_copy.wast:2770
-let $50 = instantiate(`(module
+// ./test/core/table_copy.wast:3320
+let $72 = instantiate(`(module
   (type (func (result i32)))
   (table 128 128 funcref)
   (elem (i32.const 112)
@@ -5634,395 +6228,395 @@ let $50 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2796
-assert_trap(() => invoke($50, `run`, [0, 112, -32]), `out of bounds table access`);
+// ./test/core/table_copy.wast:3346
+assert_trap(() => invoke($72, `run`, [0, 112, -32]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2798
-assert_trap(() => invoke($50, `test`, [0]), `uninitialized element`);
+// ./test/core/table_copy.wast:3348
+assert_trap(() => invoke($72, `test`, [0]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2799
-assert_trap(() => invoke($50, `test`, [1]), `uninitialized element`);
+// ./test/core/table_copy.wast:3349
+assert_trap(() => invoke($72, `test`, [1]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2800
-assert_trap(() => invoke($50, `test`, [2]), `uninitialized element`);
+// ./test/core/table_copy.wast:3350
+assert_trap(() => invoke($72, `test`, [2]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2801
-assert_trap(() => invoke($50, `test`, [3]), `uninitialized element`);
+// ./test/core/table_copy.wast:3351
+assert_trap(() => invoke($72, `test`, [3]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2802
-assert_trap(() => invoke($50, `test`, [4]), `uninitialized element`);
+// ./test/core/table_copy.wast:3352
+assert_trap(() => invoke($72, `test`, [4]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2803
-assert_trap(() => invoke($50, `test`, [5]), `uninitialized element`);
+// ./test/core/table_copy.wast:3353
+assert_trap(() => invoke($72, `test`, [5]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2804
-assert_trap(() => invoke($50, `test`, [6]), `uninitialized element`);
+// ./test/core/table_copy.wast:3354
+assert_trap(() => invoke($72, `test`, [6]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2805
-assert_trap(() => invoke($50, `test`, [7]), `uninitialized element`);
+// ./test/core/table_copy.wast:3355
+assert_trap(() => invoke($72, `test`, [7]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2806
-assert_trap(() => invoke($50, `test`, [8]), `uninitialized element`);
+// ./test/core/table_copy.wast:3356
+assert_trap(() => invoke($72, `test`, [8]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2807
-assert_trap(() => invoke($50, `test`, [9]), `uninitialized element`);
+// ./test/core/table_copy.wast:3357
+assert_trap(() => invoke($72, `test`, [9]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2808
-assert_trap(() => invoke($50, `test`, [10]), `uninitialized element`);
+// ./test/core/table_copy.wast:3358
+assert_trap(() => invoke($72, `test`, [10]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2809
-assert_trap(() => invoke($50, `test`, [11]), `uninitialized element`);
+// ./test/core/table_copy.wast:3359
+assert_trap(() => invoke($72, `test`, [11]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2810
-assert_trap(() => invoke($50, `test`, [12]), `uninitialized element`);
+// ./test/core/table_copy.wast:3360
+assert_trap(() => invoke($72, `test`, [12]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2811
-assert_trap(() => invoke($50, `test`, [13]), `uninitialized element`);
+// ./test/core/table_copy.wast:3361
+assert_trap(() => invoke($72, `test`, [13]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2812
-assert_trap(() => invoke($50, `test`, [14]), `uninitialized element`);
+// ./test/core/table_copy.wast:3362
+assert_trap(() => invoke($72, `test`, [14]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2813
-assert_trap(() => invoke($50, `test`, [15]), `uninitialized element`);
+// ./test/core/table_copy.wast:3363
+assert_trap(() => invoke($72, `test`, [15]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2814
-assert_trap(() => invoke($50, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:3364
+assert_trap(() => invoke($72, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2815
-assert_trap(() => invoke($50, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:3365
+assert_trap(() => invoke($72, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2816
-assert_trap(() => invoke($50, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:3366
+assert_trap(() => invoke($72, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2817
-assert_trap(() => invoke($50, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:3367
+assert_trap(() => invoke($72, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2818
-assert_trap(() => invoke($50, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:3368
+assert_trap(() => invoke($72, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2819
-assert_trap(() => invoke($50, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:3369
+assert_trap(() => invoke($72, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2820
-assert_trap(() => invoke($50, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:3370
+assert_trap(() => invoke($72, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2821
-assert_trap(() => invoke($50, `test`, [23]), `uninitialized element`);
+// ./test/core/table_copy.wast:3371
+assert_trap(() => invoke($72, `test`, [23]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2822
-assert_trap(() => invoke($50, `test`, [24]), `uninitialized element`);
+// ./test/core/table_copy.wast:3372
+assert_trap(() => invoke($72, `test`, [24]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2823
-assert_trap(() => invoke($50, `test`, [25]), `uninitialized element`);
+// ./test/core/table_copy.wast:3373
+assert_trap(() => invoke($72, `test`, [25]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2824
-assert_trap(() => invoke($50, `test`, [26]), `uninitialized element`);
+// ./test/core/table_copy.wast:3374
+assert_trap(() => invoke($72, `test`, [26]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2825
-assert_trap(() => invoke($50, `test`, [27]), `uninitialized element`);
+// ./test/core/table_copy.wast:3375
+assert_trap(() => invoke($72, `test`, [27]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2826
-assert_trap(() => invoke($50, `test`, [28]), `uninitialized element`);
+// ./test/core/table_copy.wast:3376
+assert_trap(() => invoke($72, `test`, [28]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2827
-assert_trap(() => invoke($50, `test`, [29]), `uninitialized element`);
+// ./test/core/table_copy.wast:3377
+assert_trap(() => invoke($72, `test`, [29]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2828
-assert_trap(() => invoke($50, `test`, [30]), `uninitialized element`);
+// ./test/core/table_copy.wast:3378
+assert_trap(() => invoke($72, `test`, [30]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2829
-assert_trap(() => invoke($50, `test`, [31]), `uninitialized element`);
+// ./test/core/table_copy.wast:3379
+assert_trap(() => invoke($72, `test`, [31]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2830
-assert_trap(() => invoke($50, `test`, [32]), `uninitialized element`);
+// ./test/core/table_copy.wast:3380
+assert_trap(() => invoke($72, `test`, [32]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2831
-assert_trap(() => invoke($50, `test`, [33]), `uninitialized element`);
+// ./test/core/table_copy.wast:3381
+assert_trap(() => invoke($72, `test`, [33]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2832
-assert_trap(() => invoke($50, `test`, [34]), `uninitialized element`);
+// ./test/core/table_copy.wast:3382
+assert_trap(() => invoke($72, `test`, [34]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2833
-assert_trap(() => invoke($50, `test`, [35]), `uninitialized element`);
+// ./test/core/table_copy.wast:3383
+assert_trap(() => invoke($72, `test`, [35]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2834
-assert_trap(() => invoke($50, `test`, [36]), `uninitialized element`);
+// ./test/core/table_copy.wast:3384
+assert_trap(() => invoke($72, `test`, [36]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2835
-assert_trap(() => invoke($50, `test`, [37]), `uninitialized element`);
+// ./test/core/table_copy.wast:3385
+assert_trap(() => invoke($72, `test`, [37]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2836
-assert_trap(() => invoke($50, `test`, [38]), `uninitialized element`);
+// ./test/core/table_copy.wast:3386
+assert_trap(() => invoke($72, `test`, [38]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2837
-assert_trap(() => invoke($50, `test`, [39]), `uninitialized element`);
+// ./test/core/table_copy.wast:3387
+assert_trap(() => invoke($72, `test`, [39]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2838
-assert_trap(() => invoke($50, `test`, [40]), `uninitialized element`);
+// ./test/core/table_copy.wast:3388
+assert_trap(() => invoke($72, `test`, [40]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2839
-assert_trap(() => invoke($50, `test`, [41]), `uninitialized element`);
+// ./test/core/table_copy.wast:3389
+assert_trap(() => invoke($72, `test`, [41]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2840
-assert_trap(() => invoke($50, `test`, [42]), `uninitialized element`);
+// ./test/core/table_copy.wast:3390
+assert_trap(() => invoke($72, `test`, [42]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2841
-assert_trap(() => invoke($50, `test`, [43]), `uninitialized element`);
+// ./test/core/table_copy.wast:3391
+assert_trap(() => invoke($72, `test`, [43]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2842
-assert_trap(() => invoke($50, `test`, [44]), `uninitialized element`);
+// ./test/core/table_copy.wast:3392
+assert_trap(() => invoke($72, `test`, [44]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2843
-assert_trap(() => invoke($50, `test`, [45]), `uninitialized element`);
+// ./test/core/table_copy.wast:3393
+assert_trap(() => invoke($72, `test`, [45]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2844
-assert_trap(() => invoke($50, `test`, [46]), `uninitialized element`);
+// ./test/core/table_copy.wast:3394
+assert_trap(() => invoke($72, `test`, [46]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2845
-assert_trap(() => invoke($50, `test`, [47]), `uninitialized element`);
+// ./test/core/table_copy.wast:3395
+assert_trap(() => invoke($72, `test`, [47]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2846
-assert_trap(() => invoke($50, `test`, [48]), `uninitialized element`);
+// ./test/core/table_copy.wast:3396
+assert_trap(() => invoke($72, `test`, [48]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2847
-assert_trap(() => invoke($50, `test`, [49]), `uninitialized element`);
+// ./test/core/table_copy.wast:3397
+assert_trap(() => invoke($72, `test`, [49]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2848
-assert_trap(() => invoke($50, `test`, [50]), `uninitialized element`);
+// ./test/core/table_copy.wast:3398
+assert_trap(() => invoke($72, `test`, [50]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2849
-assert_trap(() => invoke($50, `test`, [51]), `uninitialized element`);
+// ./test/core/table_copy.wast:3399
+assert_trap(() => invoke($72, `test`, [51]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2850
-assert_trap(() => invoke($50, `test`, [52]), `uninitialized element`);
+// ./test/core/table_copy.wast:3400
+assert_trap(() => invoke($72, `test`, [52]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2851
-assert_trap(() => invoke($50, `test`, [53]), `uninitialized element`);
+// ./test/core/table_copy.wast:3401
+assert_trap(() => invoke($72, `test`, [53]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2852
-assert_trap(() => invoke($50, `test`, [54]), `uninitialized element`);
+// ./test/core/table_copy.wast:3402
+assert_trap(() => invoke($72, `test`, [54]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2853
-assert_trap(() => invoke($50, `test`, [55]), `uninitialized element`);
+// ./test/core/table_copy.wast:3403
+assert_trap(() => invoke($72, `test`, [55]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2854
-assert_trap(() => invoke($50, `test`, [56]), `uninitialized element`);
+// ./test/core/table_copy.wast:3404
+assert_trap(() => invoke($72, `test`, [56]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2855
-assert_trap(() => invoke($50, `test`, [57]), `uninitialized element`);
+// ./test/core/table_copy.wast:3405
+assert_trap(() => invoke($72, `test`, [57]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2856
-assert_trap(() => invoke($50, `test`, [58]), `uninitialized element`);
+// ./test/core/table_copy.wast:3406
+assert_trap(() => invoke($72, `test`, [58]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2857
-assert_trap(() => invoke($50, `test`, [59]), `uninitialized element`);
+// ./test/core/table_copy.wast:3407
+assert_trap(() => invoke($72, `test`, [59]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2858
-assert_trap(() => invoke($50, `test`, [60]), `uninitialized element`);
+// ./test/core/table_copy.wast:3408
+assert_trap(() => invoke($72, `test`, [60]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2859
-assert_trap(() => invoke($50, `test`, [61]), `uninitialized element`);
+// ./test/core/table_copy.wast:3409
+assert_trap(() => invoke($72, `test`, [61]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2860
-assert_trap(() => invoke($50, `test`, [62]), `uninitialized element`);
+// ./test/core/table_copy.wast:3410
+assert_trap(() => invoke($72, `test`, [62]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2861
-assert_trap(() => invoke($50, `test`, [63]), `uninitialized element`);
+// ./test/core/table_copy.wast:3411
+assert_trap(() => invoke($72, `test`, [63]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2862
-assert_trap(() => invoke($50, `test`, [64]), `uninitialized element`);
+// ./test/core/table_copy.wast:3412
+assert_trap(() => invoke($72, `test`, [64]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2863
-assert_trap(() => invoke($50, `test`, [65]), `uninitialized element`);
+// ./test/core/table_copy.wast:3413
+assert_trap(() => invoke($72, `test`, [65]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2864
-assert_trap(() => invoke($50, `test`, [66]), `uninitialized element`);
+// ./test/core/table_copy.wast:3414
+assert_trap(() => invoke($72, `test`, [66]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2865
-assert_trap(() => invoke($50, `test`, [67]), `uninitialized element`);
+// ./test/core/table_copy.wast:3415
+assert_trap(() => invoke($72, `test`, [67]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2866
-assert_trap(() => invoke($50, `test`, [68]), `uninitialized element`);
+// ./test/core/table_copy.wast:3416
+assert_trap(() => invoke($72, `test`, [68]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2867
-assert_trap(() => invoke($50, `test`, [69]), `uninitialized element`);
+// ./test/core/table_copy.wast:3417
+assert_trap(() => invoke($72, `test`, [69]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2868
-assert_trap(() => invoke($50, `test`, [70]), `uninitialized element`);
+// ./test/core/table_copy.wast:3418
+assert_trap(() => invoke($72, `test`, [70]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2869
-assert_trap(() => invoke($50, `test`, [71]), `uninitialized element`);
+// ./test/core/table_copy.wast:3419
+assert_trap(() => invoke($72, `test`, [71]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2870
-assert_trap(() => invoke($50, `test`, [72]), `uninitialized element`);
+// ./test/core/table_copy.wast:3420
+assert_trap(() => invoke($72, `test`, [72]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2871
-assert_trap(() => invoke($50, `test`, [73]), `uninitialized element`);
+// ./test/core/table_copy.wast:3421
+assert_trap(() => invoke($72, `test`, [73]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2872
-assert_trap(() => invoke($50, `test`, [74]), `uninitialized element`);
+// ./test/core/table_copy.wast:3422
+assert_trap(() => invoke($72, `test`, [74]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2873
-assert_trap(() => invoke($50, `test`, [75]), `uninitialized element`);
+// ./test/core/table_copy.wast:3423
+assert_trap(() => invoke($72, `test`, [75]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2874
-assert_trap(() => invoke($50, `test`, [76]), `uninitialized element`);
+// ./test/core/table_copy.wast:3424
+assert_trap(() => invoke($72, `test`, [76]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2875
-assert_trap(() => invoke($50, `test`, [77]), `uninitialized element`);
+// ./test/core/table_copy.wast:3425
+assert_trap(() => invoke($72, `test`, [77]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2876
-assert_trap(() => invoke($50, `test`, [78]), `uninitialized element`);
+// ./test/core/table_copy.wast:3426
+assert_trap(() => invoke($72, `test`, [78]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2877
-assert_trap(() => invoke($50, `test`, [79]), `uninitialized element`);
+// ./test/core/table_copy.wast:3427
+assert_trap(() => invoke($72, `test`, [79]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2878
-assert_trap(() => invoke($50, `test`, [80]), `uninitialized element`);
+// ./test/core/table_copy.wast:3428
+assert_trap(() => invoke($72, `test`, [80]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2879
-assert_trap(() => invoke($50, `test`, [81]), `uninitialized element`);
+// ./test/core/table_copy.wast:3429
+assert_trap(() => invoke($72, `test`, [81]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2880
-assert_trap(() => invoke($50, `test`, [82]), `uninitialized element`);
+// ./test/core/table_copy.wast:3430
+assert_trap(() => invoke($72, `test`, [82]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2881
-assert_trap(() => invoke($50, `test`, [83]), `uninitialized element`);
+// ./test/core/table_copy.wast:3431
+assert_trap(() => invoke($72, `test`, [83]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2882
-assert_trap(() => invoke($50, `test`, [84]), `uninitialized element`);
+// ./test/core/table_copy.wast:3432
+assert_trap(() => invoke($72, `test`, [84]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2883
-assert_trap(() => invoke($50, `test`, [85]), `uninitialized element`);
+// ./test/core/table_copy.wast:3433
+assert_trap(() => invoke($72, `test`, [85]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2884
-assert_trap(() => invoke($50, `test`, [86]), `uninitialized element`);
+// ./test/core/table_copy.wast:3434
+assert_trap(() => invoke($72, `test`, [86]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2885
-assert_trap(() => invoke($50, `test`, [87]), `uninitialized element`);
+// ./test/core/table_copy.wast:3435
+assert_trap(() => invoke($72, `test`, [87]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2886
-assert_trap(() => invoke($50, `test`, [88]), `uninitialized element`);
+// ./test/core/table_copy.wast:3436
+assert_trap(() => invoke($72, `test`, [88]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2887
-assert_trap(() => invoke($50, `test`, [89]), `uninitialized element`);
+// ./test/core/table_copy.wast:3437
+assert_trap(() => invoke($72, `test`, [89]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2888
-assert_trap(() => invoke($50, `test`, [90]), `uninitialized element`);
+// ./test/core/table_copy.wast:3438
+assert_trap(() => invoke($72, `test`, [90]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2889
-assert_trap(() => invoke($50, `test`, [91]), `uninitialized element`);
+// ./test/core/table_copy.wast:3439
+assert_trap(() => invoke($72, `test`, [91]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2890
-assert_trap(() => invoke($50, `test`, [92]), `uninitialized element`);
+// ./test/core/table_copy.wast:3440
+assert_trap(() => invoke($72, `test`, [92]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2891
-assert_trap(() => invoke($50, `test`, [93]), `uninitialized element`);
+// ./test/core/table_copy.wast:3441
+assert_trap(() => invoke($72, `test`, [93]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2892
-assert_trap(() => invoke($50, `test`, [94]), `uninitialized element`);
+// ./test/core/table_copy.wast:3442
+assert_trap(() => invoke($72, `test`, [94]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2893
-assert_trap(() => invoke($50, `test`, [95]), `uninitialized element`);
+// ./test/core/table_copy.wast:3443
+assert_trap(() => invoke($72, `test`, [95]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2894
-assert_trap(() => invoke($50, `test`, [96]), `uninitialized element`);
+// ./test/core/table_copy.wast:3444
+assert_trap(() => invoke($72, `test`, [96]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2895
-assert_trap(() => invoke($50, `test`, [97]), `uninitialized element`);
+// ./test/core/table_copy.wast:3445
+assert_trap(() => invoke($72, `test`, [97]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2896
-assert_trap(() => invoke($50, `test`, [98]), `uninitialized element`);
+// ./test/core/table_copy.wast:3446
+assert_trap(() => invoke($72, `test`, [98]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2897
-assert_trap(() => invoke($50, `test`, [99]), `uninitialized element`);
+// ./test/core/table_copy.wast:3447
+assert_trap(() => invoke($72, `test`, [99]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2898
-assert_trap(() => invoke($50, `test`, [100]), `uninitialized element`);
+// ./test/core/table_copy.wast:3448
+assert_trap(() => invoke($72, `test`, [100]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2899
-assert_trap(() => invoke($50, `test`, [101]), `uninitialized element`);
+// ./test/core/table_copy.wast:3449
+assert_trap(() => invoke($72, `test`, [101]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2900
-assert_trap(() => invoke($50, `test`, [102]), `uninitialized element`);
+// ./test/core/table_copy.wast:3450
+assert_trap(() => invoke($72, `test`, [102]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2901
-assert_trap(() => invoke($50, `test`, [103]), `uninitialized element`);
+// ./test/core/table_copy.wast:3451
+assert_trap(() => invoke($72, `test`, [103]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2902
-assert_trap(() => invoke($50, `test`, [104]), `uninitialized element`);
+// ./test/core/table_copy.wast:3452
+assert_trap(() => invoke($72, `test`, [104]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2903
-assert_trap(() => invoke($50, `test`, [105]), `uninitialized element`);
+// ./test/core/table_copy.wast:3453
+assert_trap(() => invoke($72, `test`, [105]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2904
-assert_trap(() => invoke($50, `test`, [106]), `uninitialized element`);
+// ./test/core/table_copy.wast:3454
+assert_trap(() => invoke($72, `test`, [106]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2905
-assert_trap(() => invoke($50, `test`, [107]), `uninitialized element`);
+// ./test/core/table_copy.wast:3455
+assert_trap(() => invoke($72, `test`, [107]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2906
-assert_trap(() => invoke($50, `test`, [108]), `uninitialized element`);
+// ./test/core/table_copy.wast:3456
+assert_trap(() => invoke($72, `test`, [108]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2907
-assert_trap(() => invoke($50, `test`, [109]), `uninitialized element`);
+// ./test/core/table_copy.wast:3457
+assert_trap(() => invoke($72, `test`, [109]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2908
-assert_trap(() => invoke($50, `test`, [110]), `uninitialized element`);
+// ./test/core/table_copy.wast:3458
+assert_trap(() => invoke($72, `test`, [110]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2909
-assert_trap(() => invoke($50, `test`, [111]), `uninitialized element`);
+// ./test/core/table_copy.wast:3459
+assert_trap(() => invoke($72, `test`, [111]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2910
-assert_return(() => invoke($50, `test`, [112]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:3460
+assert_return(() => invoke($72, `test`, [112]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2911
-assert_return(() => invoke($50, `test`, [113]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:3461
+assert_return(() => invoke($72, `test`, [113]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2912
-assert_return(() => invoke($50, `test`, [114]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:3462
+assert_return(() => invoke($72, `test`, [114]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2913
-assert_return(() => invoke($50, `test`, [115]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:3463
+assert_return(() => invoke($72, `test`, [115]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2914
-assert_return(() => invoke($50, `test`, [116]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:3464
+assert_return(() => invoke($72, `test`, [116]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2915
-assert_return(() => invoke($50, `test`, [117]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:3465
+assert_return(() => invoke($72, `test`, [117]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2916
-assert_return(() => invoke($50, `test`, [118]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:3466
+assert_return(() => invoke($72, `test`, [118]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2917
-assert_return(() => invoke($50, `test`, [119]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:3467
+assert_return(() => invoke($72, `test`, [119]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2918
-assert_return(() => invoke($50, `test`, [120]), [value("i32", 8)]);
+// ./test/core/table_copy.wast:3468
+assert_return(() => invoke($72, `test`, [120]), [value("i32", 8)]);
 
-// ./test/core/table_copy.wast:2919
-assert_return(() => invoke($50, `test`, [121]), [value("i32", 9)]);
+// ./test/core/table_copy.wast:3469
+assert_return(() => invoke($72, `test`, [121]), [value("i32", 9)]);
 
-// ./test/core/table_copy.wast:2920
-assert_return(() => invoke($50, `test`, [122]), [value("i32", 10)]);
+// ./test/core/table_copy.wast:3470
+assert_return(() => invoke($72, `test`, [122]), [value("i32", 10)]);
 
-// ./test/core/table_copy.wast:2921
-assert_return(() => invoke($50, `test`, [123]), [value("i32", 11)]);
+// ./test/core/table_copy.wast:3471
+assert_return(() => invoke($72, `test`, [123]), [value("i32", 11)]);
 
-// ./test/core/table_copy.wast:2922
-assert_return(() => invoke($50, `test`, [124]), [value("i32", 12)]);
+// ./test/core/table_copy.wast:3472
+assert_return(() => invoke($72, `test`, [124]), [value("i32", 12)]);
 
-// ./test/core/table_copy.wast:2923
-assert_return(() => invoke($50, `test`, [125]), [value("i32", 13)]);
+// ./test/core/table_copy.wast:3473
+assert_return(() => invoke($72, `test`, [125]), [value("i32", 13)]);
 
-// ./test/core/table_copy.wast:2924
-assert_return(() => invoke($50, `test`, [126]), [value("i32", 14)]);
+// ./test/core/table_copy.wast:3474
+assert_return(() => invoke($72, `test`, [126]), [value("i32", 14)]);
 
-// ./test/core/table_copy.wast:2925
-assert_return(() => invoke($50, `test`, [127]), [value("i32", 15)]);
+// ./test/core/table_copy.wast:3475
+assert_return(() => invoke($72, `test`, [127]), [value("i32", 15)]);
 
-// ./test/core/table_copy.wast:2927
-let $51 = instantiate(`(module
+// ./test/core/table_copy.wast:3477
+let $73 = instantiate(`(module
   (type (func (result i32)))
   (table 128 128 funcref)
   (elem (i32.const 0)
@@ -6048,389 +6642,389 @@ let $51 = instantiate(`(module
   (func (export "run") (param $$targetOffs i32) (param $$srcOffs i32) (param $$len i32)
     (table.copy (local.get $$targetOffs) (local.get $$srcOffs) (local.get $$len))))`);
 
-// ./test/core/table_copy.wast:2953
-assert_trap(() => invoke($51, `run`, [112, 0, -32]), `out of bounds table access`);
+// ./test/core/table_copy.wast:3503
+assert_trap(() => invoke($73, `run`, [112, 0, -32]), `out of bounds table access`);
 
-// ./test/core/table_copy.wast:2955
-assert_return(() => invoke($51, `test`, [0]), [value("i32", 0)]);
+// ./test/core/table_copy.wast:3505
+assert_return(() => invoke($73, `test`, [0]), [value("i32", 0)]);
 
-// ./test/core/table_copy.wast:2956
-assert_return(() => invoke($51, `test`, [1]), [value("i32", 1)]);
+// ./test/core/table_copy.wast:3506
+assert_return(() => invoke($73, `test`, [1]), [value("i32", 1)]);
 
-// ./test/core/table_copy.wast:2957
-assert_return(() => invoke($51, `test`, [2]), [value("i32", 2)]);
+// ./test/core/table_copy.wast:3507
+assert_return(() => invoke($73, `test`, [2]), [value("i32", 2)]);
 
-// ./test/core/table_copy.wast:2958
-assert_return(() => invoke($51, `test`, [3]), [value("i32", 3)]);
+// ./test/core/table_copy.wast:3508
+assert_return(() => invoke($73, `test`, [3]), [value("i32", 3)]);
 
-// ./test/core/table_copy.wast:2959
-assert_return(() => invoke($51, `test`, [4]), [value("i32", 4)]);
+// ./test/core/table_copy.wast:3509
+assert_return(() => invoke($73, `test`, [4]), [value("i32", 4)]);
 
-// ./test/core/table_copy.wast:2960
-assert_return(() => invoke($51, `test`, [5]), [value("i32", 5)]);
+// ./test/core/table_copy.wast:3510
+assert_return(() => invoke($73, `test`, [5]), [value("i32", 5)]);
 
-// ./test/core/table_copy.wast:2961
-assert_return(() => invoke($51, `test`, [6]), [value("i32", 6)]);
+// ./test/core/table_copy.wast:3511
+assert_return(() => invoke($73, `test`, [6]), [value("i32", 6)]);
 
-// ./test/core/table_copy.wast:2962
-assert_return(() => invoke($51, `test`, [7]), [value("i32", 7)]);
+// ./test/core/table_copy.wast:3512
+assert_return(() => invoke($73, `test`, [7]), [value("i32", 7)]);
 
-// ./test/core/table_copy.wast:2963
-assert_return(() => invoke($51, `test`, [8]), [value("i32", 8)]);
+// ./test/core/table_copy.wast:3513
+assert_return(() => invoke($73, `test`, [8]), [value("i32", 8)]);
 
-// ./test/core/table_copy.wast:2964
-assert_return(() => invoke($51, `test`, [9]), [value("i32", 9)]);
+// ./test/core/table_copy.wast:3514
+assert_return(() => invoke($73, `test`, [9]), [value("i32", 9)]);
 
-// ./test/core/table_copy.wast:2965
-assert_return(() => invoke($51, `test`, [10]), [value("i32", 10)]);
+// ./test/core/table_copy.wast:3515
+assert_return(() => invoke($73, `test`, [10]), [value("i32", 10)]);
 
-// ./test/core/table_copy.wast:2966
-assert_return(() => invoke($51, `test`, [11]), [value("i32", 11)]);
+// ./test/core/table_copy.wast:3516
+assert_return(() => invoke($73, `test`, [11]), [value("i32", 11)]);
 
-// ./test/core/table_copy.wast:2967
-assert_return(() => invoke($51, `test`, [12]), [value("i32", 12)]);
+// ./test/core/table_copy.wast:3517
+assert_return(() => invoke($73, `test`, [12]), [value("i32", 12)]);
 
-// ./test/core/table_copy.wast:2968
-assert_return(() => invoke($51, `test`, [13]), [value("i32", 13)]);
+// ./test/core/table_copy.wast:3518
+assert_return(() => invoke($73, `test`, [13]), [value("i32", 13)]);
 
-// ./test/core/table_copy.wast:2969
-assert_return(() => invoke($51, `test`, [14]), [value("i32", 14)]);
+// ./test/core/table_copy.wast:3519
+assert_return(() => invoke($73, `test`, [14]), [value("i32", 14)]);
 
-// ./test/core/table_copy.wast:2970
-assert_return(() => invoke($51, `test`, [15]), [value("i32", 15)]);
+// ./test/core/table_copy.wast:3520
+assert_return(() => invoke($73, `test`, [15]), [value("i32", 15)]);
 
-// ./test/core/table_copy.wast:2971
-assert_trap(() => invoke($51, `test`, [16]), `uninitialized element`);
+// ./test/core/table_copy.wast:3521
+assert_trap(() => invoke($73, `test`, [16]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2972
-assert_trap(() => invoke($51, `test`, [17]), `uninitialized element`);
+// ./test/core/table_copy.wast:3522
+assert_trap(() => invoke($73, `test`, [17]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2973
-assert_trap(() => invoke($51, `test`, [18]), `uninitialized element`);
+// ./test/core/table_copy.wast:3523
+assert_trap(() => invoke($73, `test`, [18]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2974
-assert_trap(() => invoke($51, `test`, [19]), `uninitialized element`);
+// ./test/core/table_copy.wast:3524
+assert_trap(() => invoke($73, `test`, [19]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2975
-assert_trap(() => invoke($51, `test`, [20]), `uninitialized element`);
+// ./test/core/table_copy.wast:3525
+assert_trap(() => invoke($73, `test`, [20]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2976
-assert_trap(() => invoke($51, `test`, [21]), `uninitialized element`);
+// ./test/core/table_copy.wast:3526
+assert_trap(() => invoke($73, `test`, [21]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2977
-assert_trap(() => invoke($51, `test`, [22]), `uninitialized element`);
+// ./test/core/table_copy.wast:3527
+assert_trap(() => invoke($73, `test`, [22]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2978
-assert_trap(() => invoke($51, `test`, [23]), `uninitialized element`);
+// ./test/core/table_copy.wast:3528
+assert_trap(() => invoke($73, `test`, [23]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2979
-assert_trap(() => invoke($51, `test`, [24]), `uninitialized element`);
+// ./test/core/table_copy.wast:3529
+assert_trap(() => invoke($73, `test`, [24]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2980
-assert_trap(() => invoke($51, `test`, [25]), `uninitialized element`);
+// ./test/core/table_copy.wast:3530
+assert_trap(() => invoke($73, `test`, [25]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2981
-assert_trap(() => invoke($51, `test`, [26]), `uninitialized element`);
+// ./test/core/table_copy.wast:3531
+assert_trap(() => invoke($73, `test`, [26]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2982
-assert_trap(() => invoke($51, `test`, [27]), `uninitialized element`);
+// ./test/core/table_copy.wast:3532
+assert_trap(() => invoke($73, `test`, [27]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2983
-assert_trap(() => invoke($51, `test`, [28]), `uninitialized element`);
+// ./test/core/table_copy.wast:3533
+assert_trap(() => invoke($73, `test`, [28]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2984
-assert_trap(() => invoke($51, `test`, [29]), `uninitialized element`);
+// ./test/core/table_copy.wast:3534
+assert_trap(() => invoke($73, `test`, [29]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2985
-assert_trap(() => invoke($51, `test`, [30]), `uninitialized element`);
+// ./test/core/table_copy.wast:3535
+assert_trap(() => invoke($73, `test`, [30]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2986
-assert_trap(() => invoke($51, `test`, [31]), `uninitialized element`);
+// ./test/core/table_copy.wast:3536
+assert_trap(() => invoke($73, `test`, [31]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2987
-assert_trap(() => invoke($51, `test`, [32]), `uninitialized element`);
+// ./test/core/table_copy.wast:3537
+assert_trap(() => invoke($73, `test`, [32]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2988
-assert_trap(() => invoke($51, `test`, [33]), `uninitialized element`);
+// ./test/core/table_copy.wast:3538
+assert_trap(() => invoke($73, `test`, [33]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2989
-assert_trap(() => invoke($51, `test`, [34]), `uninitialized element`);
+// ./test/core/table_copy.wast:3539
+assert_trap(() => invoke($73, `test`, [34]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2990
-assert_trap(() => invoke($51, `test`, [35]), `uninitialized element`);
+// ./test/core/table_copy.wast:3540
+assert_trap(() => invoke($73, `test`, [35]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2991
-assert_trap(() => invoke($51, `test`, [36]), `uninitialized element`);
+// ./test/core/table_copy.wast:3541
+assert_trap(() => invoke($73, `test`, [36]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2992
-assert_trap(() => invoke($51, `test`, [37]), `uninitialized element`);
+// ./test/core/table_copy.wast:3542
+assert_trap(() => invoke($73, `test`, [37]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2993
-assert_trap(() => invoke($51, `test`, [38]), `uninitialized element`);
+// ./test/core/table_copy.wast:3543
+assert_trap(() => invoke($73, `test`, [38]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2994
-assert_trap(() => invoke($51, `test`, [39]), `uninitialized element`);
+// ./test/core/table_copy.wast:3544
+assert_trap(() => invoke($73, `test`, [39]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2995
-assert_trap(() => invoke($51, `test`, [40]), `uninitialized element`);
+// ./test/core/table_copy.wast:3545
+assert_trap(() => invoke($73, `test`, [40]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2996
-assert_trap(() => invoke($51, `test`, [41]), `uninitialized element`);
+// ./test/core/table_copy.wast:3546
+assert_trap(() => invoke($73, `test`, [41]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2997
-assert_trap(() => invoke($51, `test`, [42]), `uninitialized element`);
+// ./test/core/table_copy.wast:3547
+assert_trap(() => invoke($73, `test`, [42]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2998
-assert_trap(() => invoke($51, `test`, [43]), `uninitialized element`);
+// ./test/core/table_copy.wast:3548
+assert_trap(() => invoke($73, `test`, [43]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:2999
-assert_trap(() => invoke($51, `test`, [44]), `uninitialized element`);
+// ./test/core/table_copy.wast:3549
+assert_trap(() => invoke($73, `test`, [44]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3000
-assert_trap(() => invoke($51, `test`, [45]), `uninitialized element`);
+// ./test/core/table_copy.wast:3550
+assert_trap(() => invoke($73, `test`, [45]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3001
-assert_trap(() => invoke($51, `test`, [46]), `uninitialized element`);
+// ./test/core/table_copy.wast:3551
+assert_trap(() => invoke($73, `test`, [46]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3002
-assert_trap(() => invoke($51, `test`, [47]), `uninitialized element`);
+// ./test/core/table_copy.wast:3552
+assert_trap(() => invoke($73, `test`, [47]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3003
-assert_trap(() => invoke($51, `test`, [48]), `uninitialized element`);
+// ./test/core/table_copy.wast:3553
+assert_trap(() => invoke($73, `test`, [48]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3004
-assert_trap(() => invoke($51, `test`, [49]), `uninitialized element`);
+// ./test/core/table_copy.wast:3554
+assert_trap(() => invoke($73, `test`, [49]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3005
-assert_trap(() => invoke($51, `test`, [50]), `uninitialized element`);
+// ./test/core/table_copy.wast:3555
+assert_trap(() => invoke($73, `test`, [50]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3006
-assert_trap(() => invoke($51, `test`, [51]), `uninitialized element`);
+// ./test/core/table_copy.wast:3556
+assert_trap(() => invoke($73, `test`, [51]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3007
-assert_trap(() => invoke($51, `test`, [52]), `uninitialized element`);
+// ./test/core/table_copy.wast:3557
+assert_trap(() => invoke($73, `test`, [52]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3008
-assert_trap(() => invoke($51, `test`, [53]), `uninitialized element`);
+// ./test/core/table_copy.wast:3558
+assert_trap(() => invoke($73, `test`, [53]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3009
-assert_trap(() => invoke($51, `test`, [54]), `uninitialized element`);
+// ./test/core/table_copy.wast:3559
+assert_trap(() => invoke($73, `test`, [54]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3010
-assert_trap(() => invoke($51, `test`, [55]), `uninitialized element`);
+// ./test/core/table_copy.wast:3560
+assert_trap(() => invoke($73, `test`, [55]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3011
-assert_trap(() => invoke($51, `test`, [56]), `uninitialized element`);
+// ./test/core/table_copy.wast:3561
+assert_trap(() => invoke($73, `test`, [56]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3012
-assert_trap(() => invoke($51, `test`, [57]), `uninitialized element`);
+// ./test/core/table_copy.wast:3562
+assert_trap(() => invoke($73, `test`, [57]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3013
-assert_trap(() => invoke($51, `test`, [58]), `uninitialized element`);
+// ./test/core/table_copy.wast:3563
+assert_trap(() => invoke($73, `test`, [58]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3014
-assert_trap(() => invoke($51, `test`, [59]), `uninitialized element`);
+// ./test/core/table_copy.wast:3564
+assert_trap(() => invoke($73, `test`, [59]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3015
-assert_trap(() => invoke($51, `test`, [60]), `uninitialized element`);
+// ./test/core/table_copy.wast:3565
+assert_trap(() => invoke($73, `test`, [60]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3016
-assert_trap(() => invoke($51, `test`, [61]), `uninitialized element`);
+// ./test/core/table_copy.wast:3566
+assert_trap(() => invoke($73, `test`, [61]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3017
-assert_trap(() => invoke($51, `test`, [62]), `uninitialized element`);
+// ./test/core/table_copy.wast:3567
+assert_trap(() => invoke($73, `test`, [62]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3018
-assert_trap(() => invoke($51, `test`, [63]), `uninitialized element`);
+// ./test/core/table_copy.wast:3568
+assert_trap(() => invoke($73, `test`, [63]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3019
-assert_trap(() => invoke($51, `test`, [64]), `uninitialized element`);
+// ./test/core/table_copy.wast:3569
+assert_trap(() => invoke($73, `test`, [64]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3020
-assert_trap(() => invoke($51, `test`, [65]), `uninitialized element`);
+// ./test/core/table_copy.wast:3570
+assert_trap(() => invoke($73, `test`, [65]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3021
-assert_trap(() => invoke($51, `test`, [66]), `uninitialized element`);
+// ./test/core/table_copy.wast:3571
+assert_trap(() => invoke($73, `test`, [66]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3022
-assert_trap(() => invoke($51, `test`, [67]), `uninitialized element`);
+// ./test/core/table_copy.wast:3572
+assert_trap(() => invoke($73, `test`, [67]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3023
-assert_trap(() => invoke($51, `test`, [68]), `uninitialized element`);
+// ./test/core/table_copy.wast:3573
+assert_trap(() => invoke($73, `test`, [68]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3024
-assert_trap(() => invoke($51, `test`, [69]), `uninitialized element`);
+// ./test/core/table_copy.wast:3574
+assert_trap(() => invoke($73, `test`, [69]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3025
-assert_trap(() => invoke($51, `test`, [70]), `uninitialized element`);
+// ./test/core/table_copy.wast:3575
+assert_trap(() => invoke($73, `test`, [70]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3026
-assert_trap(() => invoke($51, `test`, [71]), `uninitialized element`);
+// ./test/core/table_copy.wast:3576
+assert_trap(() => invoke($73, `test`, [71]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3027
-assert_trap(() => invoke($51, `test`, [72]), `uninitialized element`);
+// ./test/core/table_copy.wast:3577
+assert_trap(() => invoke($73, `test`, [72]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3028
-assert_trap(() => invoke($51, `test`, [73]), `uninitialized element`);
+// ./test/core/table_copy.wast:3578
+assert_trap(() => invoke($73, `test`, [73]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3029
-assert_trap(() => invoke($51, `test`, [74]), `uninitialized element`);
+// ./test/core/table_copy.wast:3579
+assert_trap(() => invoke($73, `test`, [74]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3030
-assert_trap(() => invoke($51, `test`, [75]), `uninitialized element`);
+// ./test/core/table_copy.wast:3580
+assert_trap(() => invoke($73, `test`, [75]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3031
-assert_trap(() => invoke($51, `test`, [76]), `uninitialized element`);
+// ./test/core/table_copy.wast:3581
+assert_trap(() => invoke($73, `test`, [76]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3032
-assert_trap(() => invoke($51, `test`, [77]), `uninitialized element`);
+// ./test/core/table_copy.wast:3582
+assert_trap(() => invoke($73, `test`, [77]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3033
-assert_trap(() => invoke($51, `test`, [78]), `uninitialized element`);
+// ./test/core/table_copy.wast:3583
+assert_trap(() => invoke($73, `test`, [78]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3034
-assert_trap(() => invoke($51, `test`, [79]), `uninitialized element`);
+// ./test/core/table_copy.wast:3584
+assert_trap(() => invoke($73, `test`, [79]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3035
-assert_trap(() => invoke($51, `test`, [80]), `uninitialized element`);
+// ./test/core/table_copy.wast:3585
+assert_trap(() => invoke($73, `test`, [80]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3036
-assert_trap(() => invoke($51, `test`, [81]), `uninitialized element`);
+// ./test/core/table_copy.wast:3586
+assert_trap(() => invoke($73, `test`, [81]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3037
-assert_trap(() => invoke($51, `test`, [82]), `uninitialized element`);
+// ./test/core/table_copy.wast:3587
+assert_trap(() => invoke($73, `test`, [82]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3038
-assert_trap(() => invoke($51, `test`, [83]), `uninitialized element`);
+// ./test/core/table_copy.wast:3588
+assert_trap(() => invoke($73, `test`, [83]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3039
-assert_trap(() => invoke($51, `test`, [84]), `uninitialized element`);
+// ./test/core/table_copy.wast:3589
+assert_trap(() => invoke($73, `test`, [84]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3040
-assert_trap(() => invoke($51, `test`, [85]), `uninitialized element`);
+// ./test/core/table_copy.wast:3590
+assert_trap(() => invoke($73, `test`, [85]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3041
-assert_trap(() => invoke($51, `test`, [86]), `uninitialized element`);
+// ./test/core/table_copy.wast:3591
+assert_trap(() => invoke($73, `test`, [86]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3042
-assert_trap(() => invoke($51, `test`, [87]), `uninitialized element`);
+// ./test/core/table_copy.wast:3592
+assert_trap(() => invoke($73, `test`, [87]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3043
-assert_trap(() => invoke($51, `test`, [88]), `uninitialized element`);
+// ./test/core/table_copy.wast:3593
+assert_trap(() => invoke($73, `test`, [88]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3044
-assert_trap(() => invoke($51, `test`, [89]), `uninitialized element`);
+// ./test/core/table_copy.wast:3594
+assert_trap(() => invoke($73, `test`, [89]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3045
-assert_trap(() => invoke($51, `test`, [90]), `uninitialized element`);
+// ./test/core/table_copy.wast:3595
+assert_trap(() => invoke($73, `test`, [90]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3046
-assert_trap(() => invoke($51, `test`, [91]), `uninitialized element`);
+// ./test/core/table_copy.wast:3596
+assert_trap(() => invoke($73, `test`, [91]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3047
-assert_trap(() => invoke($51, `test`, [92]), `uninitialized element`);
+// ./test/core/table_copy.wast:3597
+assert_trap(() => invoke($73, `test`, [92]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3048
-assert_trap(() => invoke($51, `test`, [93]), `uninitialized element`);
+// ./test/core/table_copy.wast:3598
+assert_trap(() => invoke($73, `test`, [93]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3049
-assert_trap(() => invoke($51, `test`, [94]), `uninitialized element`);
+// ./test/core/table_copy.wast:3599
+assert_trap(() => invoke($73, `test`, [94]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3050
-assert_trap(() => invoke($51, `test`, [95]), `uninitialized element`);
+// ./test/core/table_copy.wast:3600
+assert_trap(() => invoke($73, `test`, [95]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3051
-assert_trap(() => invoke($51, `test`, [96]), `uninitialized element`);
+// ./test/core/table_copy.wast:3601
+assert_trap(() => invoke($73, `test`, [96]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3052
-assert_trap(() => invoke($51, `test`, [97]), `uninitialized element`);
+// ./test/core/table_copy.wast:3602
+assert_trap(() => invoke($73, `test`, [97]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3053
-assert_trap(() => invoke($51, `test`, [98]), `uninitialized element`);
+// ./test/core/table_copy.wast:3603
+assert_trap(() => invoke($73, `test`, [98]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3054
-assert_trap(() => invoke($51, `test`, [99]), `uninitialized element`);
+// ./test/core/table_copy.wast:3604
+assert_trap(() => invoke($73, `test`, [99]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3055
-assert_trap(() => invoke($51, `test`, [100]), `uninitialized element`);
+// ./test/core/table_copy.wast:3605
+assert_trap(() => invoke($73, `test`, [100]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3056
-assert_trap(() => invoke($51, `test`, [101]), `uninitialized element`);
+// ./test/core/table_copy.wast:3606
+assert_trap(() => invoke($73, `test`, [101]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3057
-assert_trap(() => invoke($51, `test`, [102]), `uninitialized element`);
+// ./test/core/table_copy.wast:3607
+assert_trap(() => invoke($73, `test`, [102]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3058
-assert_trap(() => invoke($51, `test`, [103]), `uninitialized element`);
+// ./test/core/table_copy.wast:3608
+assert_trap(() => invoke($73, `test`, [103]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3059
-assert_trap(() => invoke($51, `test`, [104]), `uninitialized element`);
+// ./test/core/table_copy.wast:3609
+assert_trap(() => invoke($73, `test`, [104]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3060
-assert_trap(() => invoke($51, `test`, [105]), `uninitialized element`);
+// ./test/core/table_copy.wast:3610
+assert_trap(() => invoke($73, `test`, [105]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3061
-assert_trap(() => invoke($51, `test`, [106]), `uninitialized element`);
+// ./test/core/table_copy.wast:3611
+assert_trap(() => invoke($73, `test`, [106]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3062
-assert_trap(() => invoke($51, `test`, [107]), `uninitialized element`);
+// ./test/core/table_copy.wast:3612
+assert_trap(() => invoke($73, `test`, [107]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3063
-assert_trap(() => invoke($51, `test`, [108]), `uninitialized element`);
+// ./test/core/table_copy.wast:3613
+assert_trap(() => invoke($73, `test`, [108]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3064
-assert_trap(() => invoke($51, `test`, [109]), `uninitialized element`);
+// ./test/core/table_copy.wast:3614
+assert_trap(() => invoke($73, `test`, [109]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3065
-assert_trap(() => invoke($51, `test`, [110]), `uninitialized element`);
+// ./test/core/table_copy.wast:3615
+assert_trap(() => invoke($73, `test`, [110]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3066
-assert_trap(() => invoke($51, `test`, [111]), `uninitialized element`);
+// ./test/core/table_copy.wast:3616
+assert_trap(() => invoke($73, `test`, [111]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3067
-assert_trap(() => invoke($51, `test`, [112]), `uninitialized element`);
+// ./test/core/table_copy.wast:3617
+assert_trap(() => invoke($73, `test`, [112]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3068
-assert_trap(() => invoke($51, `test`, [113]), `uninitialized element`);
+// ./test/core/table_copy.wast:3618
+assert_trap(() => invoke($73, `test`, [113]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3069
-assert_trap(() => invoke($51, `test`, [114]), `uninitialized element`);
+// ./test/core/table_copy.wast:3619
+assert_trap(() => invoke($73, `test`, [114]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3070
-assert_trap(() => invoke($51, `test`, [115]), `uninitialized element`);
+// ./test/core/table_copy.wast:3620
+assert_trap(() => invoke($73, `test`, [115]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3071
-assert_trap(() => invoke($51, `test`, [116]), `uninitialized element`);
+// ./test/core/table_copy.wast:3621
+assert_trap(() => invoke($73, `test`, [116]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3072
-assert_trap(() => invoke($51, `test`, [117]), `uninitialized element`);
+// ./test/core/table_copy.wast:3622
+assert_trap(() => invoke($73, `test`, [117]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3073
-assert_trap(() => invoke($51, `test`, [118]), `uninitialized element`);
+// ./test/core/table_copy.wast:3623
+assert_trap(() => invoke($73, `test`, [118]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3074
-assert_trap(() => invoke($51, `test`, [119]), `uninitialized element`);
+// ./test/core/table_copy.wast:3624
+assert_trap(() => invoke($73, `test`, [119]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3075
-assert_trap(() => invoke($51, `test`, [120]), `uninitialized element`);
+// ./test/core/table_copy.wast:3625
+assert_trap(() => invoke($73, `test`, [120]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3076
-assert_trap(() => invoke($51, `test`, [121]), `uninitialized element`);
+// ./test/core/table_copy.wast:3626
+assert_trap(() => invoke($73, `test`, [121]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3077
-assert_trap(() => invoke($51, `test`, [122]), `uninitialized element`);
+// ./test/core/table_copy.wast:3627
+assert_trap(() => invoke($73, `test`, [122]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3078
-assert_trap(() => invoke($51, `test`, [123]), `uninitialized element`);
+// ./test/core/table_copy.wast:3628
+assert_trap(() => invoke($73, `test`, [123]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3079
-assert_trap(() => invoke($51, `test`, [124]), `uninitialized element`);
+// ./test/core/table_copy.wast:3629
+assert_trap(() => invoke($73, `test`, [124]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3080
-assert_trap(() => invoke($51, `test`, [125]), `uninitialized element`);
+// ./test/core/table_copy.wast:3630
+assert_trap(() => invoke($73, `test`, [125]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3081
-assert_trap(() => invoke($51, `test`, [126]), `uninitialized element`);
+// ./test/core/table_copy.wast:3631
+assert_trap(() => invoke($73, `test`, [126]), `uninitialized element`);
 
-// ./test/core/table_copy.wast:3082
-assert_trap(() => invoke($51, `test`, [127]), `uninitialized element`);
+// ./test/core/table_copy.wast:3632
+assert_trap(() => invoke($73, `test`, [127]), `uninitialized element`);

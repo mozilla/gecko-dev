@@ -32,7 +32,7 @@ let $0 = instantiate(`(module
     (i31.get_u (ref.null i31))
   )
   (func (export "get_s-null") (result i32)
-    (i31.get_u (ref.null i31))
+    (i31.get_s (ref.null i31))
   )
 
   (global $$i (ref i31) (ref.i31 (i32.const 2)))

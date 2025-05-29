@@ -193,6 +193,10 @@ let $4 = instantiate(`(module
     (array.new_data $$vec $$d (i32.const 1) (i32.const 3))
   )
 
+  (func $$new-overflow (export "new-overflow") (result (ref $$vec))
+    (array.new_data $$vec $$d (i32.const 0x8000_0000) (i32.const 0x8000_0000))
+  )
+
   (func $$get_u (param $$i i32) (param $$v (ref $$vec)) (result i32)
     (array.get_u $$vec (local.get $$v) (local.get $$i))
   )
@@ -224,36 +228,52 @@ let $4 = instantiate(`(module
   (func (export "len") (result i32)
     (call $$len (call $$new))
   )
+
+  (func (export "drop_segs")
+    (data.drop $$d)
+  )
 )`);
 
-// ./test/core/gc/array.wast:194
+// ./test/core/gc/array.wast:202
 assert_return(() => invoke($4, `new`, []), [new RefWithType('arrayref')]);
 
-// ./test/core/gc/array.wast:195
+// ./test/core/gc/array.wast:203
 assert_return(() => invoke($4, `new`, []), [new RefWithType('eqref')]);
 
-// ./test/core/gc/array.wast:196
+// ./test/core/gc/array.wast:204
 assert_return(() => invoke($4, `get_u`, [2]), [value("i32", 255)]);
 
-// ./test/core/gc/array.wast:197
+// ./test/core/gc/array.wast:205
 assert_return(() => invoke($4, `get_s`, [2]), [value("i32", -1)]);
 
-// ./test/core/gc/array.wast:198
+// ./test/core/gc/array.wast:206
 assert_return(() => invoke($4, `set_get`, [1, 7]), [value("i32", 7)]);
 
-// ./test/core/gc/array.wast:199
+// ./test/core/gc/array.wast:207
 assert_return(() => invoke($4, `len`, []), [value("i32", 3)]);
 
-// ./test/core/gc/array.wast:201
+// ./test/core/gc/array.wast:209
+assert_trap(() => invoke($4, `new-overflow`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array.wast:210
 assert_trap(() => invoke($4, `get_u`, [10]), `out of bounds array access`);
 
-// ./test/core/gc/array.wast:202
+// ./test/core/gc/array.wast:211
 assert_trap(() => invoke($4, `get_s`, [10]), `out of bounds array access`);
 
-// ./test/core/gc/array.wast:203
+// ./test/core/gc/array.wast:212
 assert_trap(() => invoke($4, `set_get`, [10, 7]), `out of bounds array access`);
 
-// ./test/core/gc/array.wast:205
+// ./test/core/gc/array.wast:214
+assert_return(() => invoke($4, `drop_segs`, []), []);
+
+// ./test/core/gc/array.wast:216
+assert_trap(() => invoke($4, `new`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array.wast:217
+assert_trap(() => invoke($4, `new-overflow`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array.wast:219
 let $5 = instantiate(`(module
   (type $$bvec (array i8))
   (type $$vec (array (ref $$bvec)))
@@ -268,6 +288,10 @@ let $5 = instantiate(`(module
 
   (func $$new (export "new") (result (ref $$vec))
     (array.new_elem $$vec $$e (i32.const 0) (i32.const 2))
+  )
+
+  (func $$new-overflow (export "new-overflow") (result (ref $$vec))
+    (array.new_elem $$vec $$e (i32.const 0x8000_0000) (i32.const 0x8000_0000))
   )
 
   (func $$sub1 (result (ref $$nvec))
@@ -301,33 +325,49 @@ let $5 = instantiate(`(module
   (func (export "len") (result i32)
     (call $$len (call $$new))
   )
+
+  (func (export "drop_segs")
+    (elem.drop $$e)
+  )
 )`);
 
-// ./test/core/gc/array.wast:254
+// ./test/core/gc/array.wast:276
 assert_return(() => invoke($5, `new`, []), [new RefWithType('arrayref')]);
 
-// ./test/core/gc/array.wast:255
+// ./test/core/gc/array.wast:277
 assert_return(() => invoke($5, `new`, []), [new RefWithType('eqref')]);
 
-// ./test/core/gc/array.wast:256
+// ./test/core/gc/array.wast:278
 assert_return(() => invoke($5, `get`, [0, 0]), [value("i32", 7)]);
 
-// ./test/core/gc/array.wast:257
+// ./test/core/gc/array.wast:279
 assert_return(() => invoke($5, `get`, [1, 0]), [value("i32", 1)]);
 
-// ./test/core/gc/array.wast:258
+// ./test/core/gc/array.wast:280
 assert_return(() => invoke($5, `set_get`, [0, 1, 1]), [value("i32", 2)]);
 
-// ./test/core/gc/array.wast:259
+// ./test/core/gc/array.wast:281
 assert_return(() => invoke($5, `len`, []), [value("i32", 2)]);
 
-// ./test/core/gc/array.wast:261
+// ./test/core/gc/array.wast:283
+assert_trap(() => invoke($5, `new-overflow`, []), `out of bounds table access`);
+
+// ./test/core/gc/array.wast:284
 assert_trap(() => invoke($5, `get`, [10, 0]), `out of bounds array access`);
 
-// ./test/core/gc/array.wast:262
+// ./test/core/gc/array.wast:285
 assert_trap(() => invoke($5, `set_get`, [10, 0, 0]), `out of bounds array access`);
 
-// ./test/core/gc/array.wast:264
+// ./test/core/gc/array.wast:287
+assert_return(() => invoke($5, `drop_segs`, []), []);
+
+// ./test/core/gc/array.wast:289
+assert_trap(() => invoke($5, `new`, []), `out of bounds table access`);
+
+// ./test/core/gc/array.wast:290
+assert_trap(() => invoke($5, `new-overflow`, []), `out of bounds table access`);
+
+// ./test/core/gc/array.wast:292
 assert_invalid(
   () => instantiate(`(module
     (type $$a (array i64))
@@ -338,7 +378,7 @@ assert_invalid(
   `array is immutable`,
 );
 
-// ./test/core/gc/array.wast:274
+// ./test/core/gc/array.wast:302
 assert_invalid(
   () => instantiate(`(module
     (type $$bvec (array i8))
@@ -352,7 +392,7 @@ assert_invalid(
   `constant expression required`,
 );
 
-// ./test/core/gc/array.wast:287
+// ./test/core/gc/array.wast:315
 assert_invalid(
   () => instantiate(`(module
     (type $$bvec (array i8))
@@ -367,7 +407,7 @@ assert_invalid(
   `constant expression required`,
 );
 
-// ./test/core/gc/array.wast:304
+// ./test/core/gc/array.wast:332
 let $6 = instantiate(`(module
   (type $$t (array (mut i32)))
   (func (export "array.get-null")
@@ -378,8 +418,8 @@ let $6 = instantiate(`(module
   )
 )`);
 
-// ./test/core/gc/array.wast:314
+// ./test/core/gc/array.wast:342
 assert_trap(() => invoke($6, `array.get-null`, []), `null array reference`);
 
-// ./test/core/gc/array.wast:315
+// ./test/core/gc/array.wast:343
 assert_trap(() => invoke($6, `array.set-null`, []), `null array reference`);

@@ -169,3 +169,127 @@ assert_return(() => invoke($0, `array_init_data`, [0, 0, 0]), []);
 
 // ./test/core/gc/array_init_data.wast:110
 assert_trap(() => invoke($0, `array_init_data`, [0, 0, 1]), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:113
+let $1 = instantiate(`(module
+  (type $$a32 (array (mut i32)))
+  (type $$a64 (array (mut i64)))
+
+  (data $$data0 "")
+  (data $$data1 "1")
+  (data $$data2 "12")
+  (data $$data3 "123")
+  (data $$data4 "1234")
+  (data $$data7 "1234567")
+  (data $$data9 "123456789")
+
+  (func (export "f0")
+    (array.init_data $$a32 $$data0
+      (array.new_default $$a32 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "f1")
+    (array.init_data $$a32 $$data1
+      (array.new_default $$a32 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "f2")
+    (array.init_data $$a32 $$data2
+      (array.new_default $$a32 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "f3")
+    (array.init_data $$a32 $$data3
+      (array.new_default $$a32 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "f4")
+    (array.init_data $$a32 $$data4
+      (array.new_default $$a32 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "f9")
+    (array.init_data $$a32 $$data9
+      (array.new_default $$a32 (i32.const 1))
+      (i32.const 0) (i32.const 6) (i32.const 1)
+    )
+  )
+
+  (func (export "g0")
+    (array.init_data $$a64 $$data0
+      (array.new_default $$a64 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "g1")
+    (array.init_data $$a64 $$data1
+      (array.new_default $$a64 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "g4")
+    (array.init_data $$a64 $$data4
+      (array.new_default $$a64 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "g7")
+    (array.init_data $$a64 $$data7
+      (array.new_default $$a64 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "g8")
+    (array.init_data $$a64 $$data9
+      (array.new_default $$a64 (i32.const 1))
+      (i32.const 0) (i32.const 0) (i32.const 1)
+    )
+  )
+  (func (export "g9")
+    (array.init_data $$a64 $$data9
+      (array.new_default $$a64 (i32.const 1))
+      (i32.const 0) (i32.const 2) (i32.const 1)
+    )
+  )
+)`);
+
+// ./test/core/gc/array_init_data.wast:200
+assert_trap(() => invoke($1, `f0`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:201
+assert_trap(() => invoke($1, `f1`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:202
+assert_trap(() => invoke($1, `f2`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:203
+assert_trap(() => invoke($1, `f3`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:204
+assert_return(() => invoke($1, `f4`, []), []);
+
+// ./test/core/gc/array_init_data.wast:205
+assert_trap(() => invoke($1, `f9`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:207
+assert_trap(() => invoke($1, `g0`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:208
+assert_trap(() => invoke($1, `g1`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:209
+assert_trap(() => invoke($1, `g4`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:210
+assert_trap(() => invoke($1, `g7`, []), `out of bounds memory access`);
+
+// ./test/core/gc/array_init_data.wast:211
+assert_return(() => invoke($1, `g8`, []), []);
+
+// ./test/core/gc/array_init_data.wast:212
+assert_trap(() => invoke($1, `g9`, []), `out of bounds memory access`);
