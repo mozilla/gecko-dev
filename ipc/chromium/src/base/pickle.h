@@ -217,6 +217,8 @@ class Pickle {
   struct Header {
     uint32_t payload_size;  // Specifies the size of the payload.
   };
+  static_assert(std::has_unique_object_representations_v<Header>,
+                "Header must not contain padding bytes");
 
   // Returns the header, cast to a user-specified type T.  The type T must be a
   // subclass of Header and its size must correspond to the header_size passed

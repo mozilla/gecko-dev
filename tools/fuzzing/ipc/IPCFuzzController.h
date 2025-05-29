@@ -52,6 +52,7 @@ namespace ipc {
 // We can't include ProtocolUtils.h here
 class IProtocol;
 typedef IPCMessageStart ProtocolId;
+typedef IPC::Message::routeid_t ActorId;
 
 class NodeChannel;
 }  // namespace ipc
@@ -59,9 +60,10 @@ class NodeChannel;
 namespace fuzzing {
 
 class IPCFuzzController {
-  typedef std::pair<int32_t, uint64_t> SeqNoPair;
+  typedef std::pair<IPC::Message::seqno_t, uint64_t> SeqNoPair;
 
-  typedef std::pair<int32_t, mozilla::ipc::ProtocolId> ActorIdPair;
+  typedef std::pair<mozilla::ipc::ActorId, mozilla::ipc::ProtocolId>
+      ActorIdPair;
 
   class IPCFuzzLoop final : public Runnable {
     friend class IPCFuzzController;
@@ -87,8 +89,9 @@ class IPCFuzzController {
   bool MakeTargetDecision(uint8_t portIndex, uint8_t portInstanceIndex,
                           uint8_t actorIndex, uint8_t actorProtocolIndex,
                           uint16_t typeOffset,
-                          mojo::core::ports::PortName* name, int32_t* seqno,
-                          uint64_t* fseqno, int32_t* actorId, uint32_t* type,
+                          mojo::core::ports::PortName* name,
+                          IPC::Message::seqno_t* seqno, uint64_t* fseqno,
+                          mozilla::ipc::ActorId* actorId, uint32_t* type,
                           bool* is_cons, bool update = true);
 
   void OnActorConnected(mozilla::ipc::IProtocol* protocol);
@@ -159,7 +162,7 @@ class IPCFuzzController {
   Atomic<uint32_t> useLastActor;
 
   // If this is non-zero, we want a specific actor ID instead of the last.
-  Atomic<int32_t> maybeLastActorId;
+  Atomic<mozilla::ipc::ActorId> maybeLastActorId;
 
   // If this is non-empty and in certain configurations, we only use a fixed
   // set of messages, rather than sending any message type for that actor.

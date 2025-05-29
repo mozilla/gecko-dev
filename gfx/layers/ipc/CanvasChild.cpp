@@ -765,7 +765,7 @@ already_AddRefed<gfx::SourceSurface> CanvasChild::SnapshotExternalCanvas(
       RecordedResolveExternalSnapshot(syncId, gfx::ReferencePtr(surface)));
 
   uint32_t managerId = static_cast<gfx::CanvasManagerChild*>(Manager())->Id();
-  int32_t canvasId = aActor->Id();
+  ActorId canvasId = aActor->Id();
 
   // Actually send the request via IPDL to snapshot the external WebGL canvas.
   SendSnapshotExternalCanvas(syncId, managerId, canvasId);

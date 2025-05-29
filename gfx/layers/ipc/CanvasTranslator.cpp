@@ -1660,7 +1660,7 @@ void CanvasTranslator::SyncTranslation(uint64_t aSyncId) {
 }
 
 mozilla::ipc::IPCResult CanvasTranslator::RecvSnapshotExternalCanvas(
-    uint64_t aSyncId, uint32_t aManagerId, int32_t aCanvasId) {
+    uint64_t aSyncId, uint32_t aManagerId, ActorId aCanvasId) {
   if (NS_WARN_IF(!IsInTaskQueue())) {
     return IPC_FAIL(this,
                     "RecvSnapshotExternalCanvas used outside of task queue.");
