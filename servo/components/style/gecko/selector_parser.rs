@@ -318,6 +318,66 @@ impl<'a> SelectorParser<'a> {
     }
 }
 
+/// Parse the functional pseudo-element with the function name.
+pub fn parse_functional_pseudo_element_with_name<'i, 't>(
+    name: CowRcStr<'i>,
+    parser: &mut Parser<'i, 't>,
+) -> Result<PseudoElement, ParseError<'i>> {
+    if starts_with_ignore_ascii_case(&name, "-moz-tree-") {
+        // Tree pseudo-elements can have zero or more arguments, separated
+        // by either comma or space.
+        let mut args = ThinVec::new();
+        loop {
+            let location = parser.current_source_location();
+            match parser.next() {
+                Ok(&Token::Ident(ref ident)) => args.push(Atom::from(ident.as_ref())),
+                Ok(&Token::Comma) => {},
+                Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
+                Err(BasicParseError {
+                    kind: BasicParseErrorKind::EndOfInput,
+                    ..
+                }) => break,
+                _ => unreachable!("Parser::next() shouldn't return any other error"),
+            }
+        }
+        return PseudoElement::tree_pseudo_element(&name, args).ok_or(parser.new_custom_error(
+            SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
+        ));
+    }
+
+    // <pt-name-selector> = '*' | <custom-ident>
+    // https://drafts.csswg.org/css-view-transitions-1/#named-view-transition-pseudo
+    let parse_pt_name = |input: &mut Parser<'i, '_>| {
+        use crate::values::CustomIdent;
+        if input.try_parse(|i| i.expect_delim('*')).is_ok() {
+            Ok(AtomIdent::new(atom!("*")))
+        } else {
+            CustomIdent::parse(input, &[]).map(|c| AtomIdent::new(c.0))
+        }
+    };
+
+    Ok(match_ignore_ascii_case! { &name,
+        "highlight" => {
+            PseudoElement::Highlight(AtomIdent::from(parser.expect_ident()?.as_ref()))
+        },
+        "view-transition-group" => {
+            PseudoElement::ViewTransitionGroup(parse_pt_name(parser)?)
+        },
+        "view-transition-image-pair" => {
+            PseudoElement::ViewTransitionImagePair(parse_pt_name(parser)?)
+        },
+        "view-transition-old" => {
+            PseudoElement::ViewTransitionOld(parse_pt_name(parser)?)
+        },
+        "view-transition-new" => {
+            PseudoElement::ViewTransitionNew(parse_pt_name(parser)?)
+        },
+        _ => return Err(parser.new_custom_error(
+            SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)
+        ))
+    })
+}
+
 impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     type Impl = SelectorImpl;
     type Error = StyleParseErrorKind<'i>;
@@ -449,63 +509,9 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         name: CowRcStr<'i>,
         parser: &mut Parser<'i, 't>,
     ) -> Result<PseudoElement, ParseError<'i>> {
-        if starts_with_ignore_ascii_case(&name, "-moz-tree-") {
-            // Tree pseudo-elements can have zero or more arguments, separated
-            // by either comma or space.
-            let mut args = ThinVec::new();
-            loop {
-                let location = parser.current_source_location();
-                match parser.next() {
-                    Ok(&Token::Ident(ref ident)) => args.push(Atom::from(ident.as_ref())),
-                    Ok(&Token::Comma) => {},
-                    Ok(t) => return Err(location.new_unexpected_token_error(t.clone())),
-                    Err(BasicParseError {
-                        kind: BasicParseErrorKind::EndOfInput,
-                        ..
-                    }) => break,
-                    _ => unreachable!("Parser::next() shouldn't return any other error"),
-                }
-            }
-            if let Some(pseudo) = PseudoElement::tree_pseudo_element(&name, args) {
-                if self.is_pseudo_element_enabled(&pseudo) {
-                    return Ok(pseudo);
-                }
-            }
-        } else {
-            // <pt-name-selector> = '*' | <custom-ident>
-            // https://drafts.csswg.org/css-view-transitions-1/#named-view-transition-pseudo
-            let parse_pt_name = |input: &mut Parser<'i, '_>| {
-                use crate::values::CustomIdent;
-                if input.try_parse(|i| i.expect_delim('*')).is_ok() {
-                    Ok(AtomIdent::new(atom!("*")))
-                } else {
-                    CustomIdent::parse(input, &[]).map(|c| AtomIdent::new(c.0))
-                }
-            };
-
-            let pseudo = match_ignore_ascii_case! { &name,
-                "highlight" => {
-                    PseudoElement::Highlight(AtomIdent::from(parser.expect_ident()?.as_ref()))
-                },
-                "view-transition-group" => {
-                    PseudoElement::ViewTransitionGroup(parse_pt_name(parser)?)
-                },
-                "view-transition-image-pair" => {
-                    PseudoElement::ViewTransitionImagePair(parse_pt_name(parser)?)
-                },
-                "view-transition-old" => {
-                    PseudoElement::ViewTransitionOld(parse_pt_name(parser)?)
-                },
-                "view-transition-new" => {
-                    PseudoElement::ViewTransitionNew(parse_pt_name(parser)?)
-                },
-                _ => return Err(parser.new_custom_error(
-                    SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name)
-                ))
-            };
-            if self.is_pseudo_element_enabled(&pseudo) {
-                return Ok(pseudo);
-            }
+        let pseudo = parse_functional_pseudo_element_with_name(name.clone(), parser)?;
+        if self.is_pseudo_element_enabled(&pseudo) {
+            return Ok(pseudo);
         }
 
         Err(
