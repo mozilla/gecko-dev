@@ -15,36 +15,37 @@ const {
   "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/tests/generated/RustUniffiBindingsTests.sys.mjs"
 );
 
+// Assert.deepEqual(roundtripEnumNoData(EnumNoData.A), EnumNoData.A);
+// Assert.deepEqual(roundtripEnumNoData(EnumNoData.B), EnumNoData.B);
+// Assert.deepEqual(roundtripEnumNoData(EnumNoData.C), EnumNoData.C);
 // Passing in a value outside the enum bounds should throw
 Assert.throws(() => roundtripEnumNoData(EnumNoData.A - 1), /TypeError/);
 Assert.throws(() => roundtripEnumNoData(EnumNoData.C + 1), /TypeError/);
 
 Assert.deepEqual(
-  roundtripEnumWithData(new EnumWithData.A({ value: 10 })),
-  new EnumWithData.A({ value: 10 })
+  roundtripEnumWithData(new EnumWithData.A(10)),
+  new EnumWithData.A(10)
 );
 Assert.deepEqual(
-  roundtripEnumWithData(new EnumWithData.B({ value: "Ten" })),
-  new EnumWithData.B({ value: "Ten" })
+  roundtripEnumWithData(new EnumWithData.B("Ten")),
+  new EnumWithData.B("Ten")
 );
 Assert.deepEqual(
-  roundtripEnumWithData(new EnumWithData.C({})),
-  new EnumWithData.C({})
+  roundtripEnumWithData(new EnumWithData.C()),
+  new EnumWithData.C()
 );
 
 Assert.deepEqual(
-  roundtripComplexEnum(new ComplexEnum.A({ value: EnumNoData.C })),
-  new ComplexEnum.A({ value: EnumNoData.C })
+  roundtripComplexEnum(new ComplexEnum.A(EnumNoData.C)),
+  new ComplexEnum.A(EnumNoData.C)
 );
 Assert.deepEqual(
-  roundtripComplexEnum(
-    new ComplexEnum.B({ value: new EnumWithData.A({ value: 20 }) })
-  ),
-  new ComplexEnum.B({ value: new EnumWithData.A({ value: 20 }) })
+  roundtripComplexEnum(new ComplexEnum.B(new EnumWithData.A(20))),
+  new ComplexEnum.B(new EnumWithData.A(20))
 );
 Assert.deepEqual(
-  roundtripComplexEnum(new ComplexEnum.C({ value: new SimpleRec({ a: 30 }) })),
-  new ComplexEnum.C({ value: new SimpleRec({ a: 30 }) })
+  roundtripComplexEnum(new ComplexEnum.C(new SimpleRec({ a: 30 }))),
+  new ComplexEnum.C(new SimpleRec({ a: 30 }))
 );
 
 // Test that the enum discriminant values
