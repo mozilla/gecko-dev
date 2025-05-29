@@ -12,7 +12,7 @@ extern Mutex base_mtx;
 extern size_t base_mapped MOZ_GUARDED_BY(base_mtx);
 extern size_t base_committed MOZ_GUARDED_BY(base_mtx);
 
-void base_init();
+void base_init() MOZ_REQUIRES(gInitLock);
 
 void* base_alloc(size_t aSize);
 
