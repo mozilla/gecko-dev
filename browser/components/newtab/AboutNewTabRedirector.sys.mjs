@@ -464,9 +464,15 @@ class BaseAboutNewTabRedirector {
 export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
   #addonInitialized = false;
   #suspendedChannels = [];
+  #addonInitializedPromise = null;
+  #addonInitializedResolver = null;
 
   constructor() {
     super();
+
+    let { promise, resolve } = Promise.withResolvers();
+    this.#addonInitializedPromise = promise;
+    this.#addonInitializedResolver = resolve;
 
     ChromeUtils.registerWindowActor("AboutNewTab", {
       parent: {
@@ -499,18 +505,30 @@ export class AboutNewTabRedirectorParent extends BaseAboutNewTabRedirector {
    * Waits for the AddonManager to be fully initialized, and for the built-in
    * addon to be ready. Once that's done, it tterates any suspended channels and
    * resumes them, now that the built-in addon has been set up.
-   *
-   * @returns {Promise<undefined>}
-   *   Resolves when the built-in addon has initialized and all suspended
-   *   channels are resumed.
    */
-  builtInAddonInitialized() {
+  notifyBuiltInAddonInitialized() {
     this.#addonInitialized = true;
 
     for (let suspendedChannel of this.#suspendedChannels) {
       suspendedChannel.resume();
     }
     this.#suspendedChannels = [];
+    this.#addonInitializedResolver();
+  }
+
+  /**
+   * Returns a Promise that reoslves when the newtab built-in addon has notified
+   * that it has finished initializing. If this is somehow checked when
+   * BROWSER_NEWTAB_AS_ADDON is not true, then this always resolves.
+   *
+   * @type {Promise<undefined>}
+   */
+  get promiseBuiltInAddonInitialized() {
+    if (!AppConstants.BROWSER_NEWTAB_AS_ADDON) {
+      return Promise.resolve();
+    }
+
+    return this.#addonInitializedPromise;
   }
 
   newChannel(uri, loadInfo) {
