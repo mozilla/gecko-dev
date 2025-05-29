@@ -94,6 +94,7 @@ StallSpecs GetAllocatorStallSpecs() {
 //
 // Ref:
 // https://docs.microsoft.com/en-us/troubleshoot/windows-client/performance/slow-page-file-growth-memory-allocation-errors
+// https://hacks.mozilla.org/2022/11/improving-firefox-stability-with-this-one-weird-trick/
 void* MozVirtualAlloc(void* lpAddress, size_t dwSize, uint32_t flAllocationType,
                       uint32_t flProtect) {
   using namespace MozAllocRetries;

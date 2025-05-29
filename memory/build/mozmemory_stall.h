@@ -14,6 +14,9 @@
 #  include "mozmemory_wrap.h"
 #endif
 
+// See
+// https://hacks.mozilla.org/2022/11/improving-firefox-stability-with-this-one-weird-trick/
+
 namespace mozilla {
 
 namespace detail {
