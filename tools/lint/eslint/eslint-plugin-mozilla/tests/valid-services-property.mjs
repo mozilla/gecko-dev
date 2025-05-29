@@ -1,14 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-"use strict";
-
 // ------------------------------------------------------------------------------
 // Requirements
 // ------------------------------------------------------------------------------
 
-var rule = require("../lib/rules/valid-services-property");
-var RuleTester = require("eslint").RuleTester;
+import rule from "../lib/rules/valid-services-property.mjs";
+import { RuleTester } from "eslint";
 
 const ruleTester = new RuleTester();
 
@@ -20,7 +18,7 @@ function invalidCode(code, messageId, data) {
   return { code, errors: [{ messageId, data }] };
 }
 
-process.env.MOZ_XPT_ARTIFACTS_DIR = `${__dirname}/xpidl`;
+process.env.MOZ_XPT_ARTIFACTS_DIR = `${import.meta.dirname}/xpidl`;
 
 ruleTester.run("valid-services-property", rule, {
   valid: [

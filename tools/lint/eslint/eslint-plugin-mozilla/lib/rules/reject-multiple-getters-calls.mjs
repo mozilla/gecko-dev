@@ -4,9 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-const helpers = require("../helpers");
+import helpers from "../helpers.js";
 
 function findStatement(node) {
   while (node && node.type !== "ExpressionStatement") {
@@ -20,7 +18,7 @@ function isIdentifier(node, id) {
   return node && node.type === "Identifier" && node.name === id;
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/reject-multiple-getters-calls.html",

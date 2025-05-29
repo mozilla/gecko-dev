@@ -7,8 +7,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
 function isPrefixed(name) {
   return name.length >= 2 && /^a[A-Z]/.test(name);
 }
@@ -17,7 +15,7 @@ function deHungarianize(name) {
   return name.substring(1, 2).toLowerCase() + name.substring(2, name.length);
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/no-aArgs.html",

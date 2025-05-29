@@ -7,13 +7,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
+import path from "path";
+import helpers from "../helpers.js";
+import browserWindowEnv from "../environments/browser-window.js";
 
-var path = require("path");
-var helpers = require("../helpers");
-var browserWindowEnv = require("../environments/browser-window");
-
-module.exports = {
+export default {
   // This rule currently has no messages.
   // eslint-disable-next-line eslint-plugin/prefer-message-ids
   meta: {
@@ -36,11 +34,11 @@ module.exports = {
         }
 
         if (browserWindowEnv.browserjsScripts?.includes(relativePath)) {
-          for (let global in browserWindowEnv.globals) {
+          for (let envGlobal in browserWindowEnv.globals) {
             helpers.addVarToScope(
-              global,
+              envGlobal,
               context.sourceCode.getScope(node),
-              browserWindowEnv.globals[global]
+              browserWindowEnv.globals[envGlobal]
             );
           }
         }

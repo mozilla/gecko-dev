@@ -4,20 +4,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
+import { dirname, join } from "path";
 
-// This is still a commonjs module, as ideally we need to be able to dynamically
-// import, but ESLint can't currently handle async rules. Hopefully ESLint will
-// get the feature in future.
-// https://github.com/eslint/eslint/issues/15394
-
-const { dirname, join } = require("path");
-
-const eslintBasePath = dirname(require.resolve("eslint"));
+const eslintBasePath = dirname(import.meta.resolve("eslint"));
 
 const noredeclarePath = join(eslintBasePath, "rules/no-redeclare.js");
-const baseRule = require(noredeclarePath);
-const astUtils = require(join(eslintBasePath, "rules/utils/ast-utils.js"));
+// eslint-disable-next-line no-unsanitized/method
+const baseRule = (await import(noredeclarePath)).default;
+const astUtils = // eslint-disable-next-line no-unsanitized/method
+  (await import(join(eslintBasePath, "rules/utils/ast-utils.js"))).default;
 
 // Hack alert: our eslint env is pretty confused about `require` and
 // `loader` for devtools modules - so ignore it for now.
@@ -116,7 +111,7 @@ function trapReport(context) {
   };
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/no-redeclare-with-import-autofix.html",

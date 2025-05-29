@@ -7,8 +7,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
 function isIdentifier(node, id) {
   return node && node.type === "Identifier" && node.name === id;
 }
@@ -19,7 +17,7 @@ function isIdentifier(node, id) {
  */
 const BlockStack = [];
 
-module.exports = {
+export default {
   meta: {
     docs: {
       description: "disallow multiple document.l10n.formatValue calls",

@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
 function funcForBooleanLength(context, node, conditionCheck) {
   let newText = "";
   const sourceCode = context.sourceCode;
@@ -56,7 +54,7 @@ function funcForBooleanLength(context, node, conditionCheck) {
   return newText;
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/prefer-boolean-length-check.html",

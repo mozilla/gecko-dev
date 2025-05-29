@@ -6,8 +6,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
 function isCr(object) {
   return object.type === "Identifier" && object.name === "Cr";
 }
@@ -36,7 +34,7 @@ function fixT(context, node, argument, fixer) {
   return fixer.replaceText(node, `Components.Exception("", ${sourceText})`);
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/no-throw-cr-literal.html",

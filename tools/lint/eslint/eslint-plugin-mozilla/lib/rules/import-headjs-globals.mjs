@@ -7,11 +7,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-var fs = require("fs");
-var helpers = require("../helpers");
-var globals = require("../globals");
+import fs from "fs";
+import helpers from "../helpers.js";
+import globals from "../globals.js";
 
 function importHead(context, path, node) {
   try {
@@ -27,7 +25,7 @@ function importHead(context, path, node) {
   helpers.addGlobals(newGlobals, context.sourceCode.getScope(node));
 }
 
-module.exports = {
+export default {
   // This rule currently has no messages.
   // eslint-disable-next-line eslint-plugin/prefer-message-ids
   meta: {

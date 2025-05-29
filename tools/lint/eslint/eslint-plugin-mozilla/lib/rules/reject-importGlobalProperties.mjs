@@ -6,13 +6,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
+import path from "path";
+import privilegedEnv from "../environments/privileged.js";
 
-const path = require("path");
-
-const privilegedGlobals = Object.keys(
-  require("../environments/privileged.js").globals
-);
+const privilegedGlobals = Object.keys(privilegedEnv.globals);
 
 function getMessageId(context) {
   return path.extname(context.filename) == ".sjs"
@@ -20,7 +17,7 @@ function getMessageId(context) {
     : "unexpectedCall";
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/reject-importGlobalProperties.html",

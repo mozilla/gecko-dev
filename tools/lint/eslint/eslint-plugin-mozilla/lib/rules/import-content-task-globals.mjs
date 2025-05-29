@@ -10,13 +10,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
+import helpers from "../helpers.js";
+import frameScriptEnv from "../environments/frame-script.js";
+import sandboxEnv from "../environments/special-powers-sandbox.js";
 
-var helpers = require("../helpers");
-var frameScriptEnv = require("../environments/frame-script");
-var sandboxEnv = require("../environments/special-powers-sandbox");
-
-module.exports = {
+export default {
   // eslint-disable-next-line eslint-plugin/prefer-message-ids
   meta: {
     docs: {
@@ -63,9 +61,9 @@ module.exports = {
             "content",
             "docShell",
           ];
-          for (let global of globals) {
+          for (let envGlobal of globals) {
             helpers.addVarToScope(
-              global,
+              envGlobal,
               context.sourceCode.getScope(node),
               false
             );
@@ -86,9 +84,9 @@ module.exports = {
             "windowGlobalParent",
             "browsingContext",
           ];
-          for (let global of globals) {
+          for (let envGlobal of globals) {
             helpers.addVarToScope(
-              global,
+              envGlobal,
               context.sourceCode.getScope(node),
               false
             );

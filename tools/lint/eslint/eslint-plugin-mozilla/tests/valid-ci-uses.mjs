@@ -1,15 +1,13 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-"use strict";
-
 // ------------------------------------------------------------------------------
 // Requirements
 // ------------------------------------------------------------------------------
 
-var os = require("os");
-var rule = require("../lib/rules/valid-ci-uses");
-var RuleTester = require("eslint").RuleTester;
+import os from "os";
+import rule from "../lib/rules/valid-ci-uses.mjs";
+import { RuleTester } from "eslint";
 
 const ruleTester = new RuleTester();
 
@@ -21,7 +19,7 @@ function invalidCode(code, messageId, data) {
   return { code, errors: [{ messageId, data }] };
 }
 
-process.env.MOZ_XPT_ARTIFACTS_DIR = `${__dirname}/xpidl`;
+process.env.MOZ_XPT_ARTIFACTS_DIR = `${import.meta.dirname}/xpidl`;
 
 const tests = {
   valid: ["Ci.nsIURIFixup", "Ci.nsIURIFixup.FIXUP_FLAG_NONE"],

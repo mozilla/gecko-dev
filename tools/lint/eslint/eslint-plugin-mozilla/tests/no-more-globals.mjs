@@ -1,14 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-"use strict";
-
 // ------------------------------------------------------------------------------
 // Requirements
 // ------------------------------------------------------------------------------
 
-var rule = require("../lib/rules/no-more-globals");
-var RuleTester = require("eslint").RuleTester;
+import rule from "../lib/rules/no-more-globals.mjs";
+import { RuleTester } from "eslint";
 
 const ruleTester = new RuleTester();
 
@@ -16,7 +14,7 @@ function makeTest(code, errors = []) {
   return {
     code,
     errors,
-    filename: __dirname + "/helper-no-more-globals.js",
+    filename: import.meta.dirname + "/helper-no-more-globals.js",
   };
 }
 

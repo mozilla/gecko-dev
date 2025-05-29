@@ -1,14 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-"use strict";
-
 // ------------------------------------------------------------------------------
 // Requirements
 // ------------------------------------------------------------------------------
 
-var rule = require("../lib/rules/no-define-cc-etc");
-var RuleTester = require("eslint").RuleTester;
+import rule from "../lib/rules/no-define-cc-etc.mjs";
+import { RuleTester } from "eslint";
 
 const ruleTester = new RuleTester();
 
@@ -22,10 +20,10 @@ function invalidCode(code, varNames) {
   }
   return {
     code,
-    errors: varNames.map(name => {
+    errors: varNames.map(variableName => {
       return {
         messageId: "noSeparateDefinition",
-        data: { name },
+        data: { name: variableName },
         type: "VariableDeclarator",
       };
     }),

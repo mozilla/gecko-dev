@@ -6,15 +6,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-var helpers = require("../helpers");
+import helpers from "../helpers.js";
 
 const isRelativePath = function (path) {
   return path.startsWith("./") || path.startsWith("../");
 };
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/reject-relative-requires.html",

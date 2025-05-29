@@ -6,15 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
+import fs from "fs";
+import helpers from "../helpers.js";
+import privilegedEnv from "../environments/privileged.js";
 
-const fs = require("fs");
-
-const { maybeGetMemberPropertyName } = require("../helpers");
-
-const privilegedGlobals = Object.keys(
-  require("../environments/privileged.js").globals
-);
+const privilegedGlobals = Object.keys(privilegedEnv.globals);
 
 // -----------------------------------------------------------------------------
 // Rule Definition
@@ -53,7 +49,7 @@ function refersToEnvironmentGlobals(currentScope, id) {
  */
 function pointsToDOMInterface(currentScope, node) {
   if (node.type === "MemberExpression") {
-    const objectName = maybeGetMemberPropertyName(node.object);
+    const objectName = helpers.maybeGetMemberPropertyName(node.object);
     if (objectName === "lazy") {
       // lazy.Foo is probably a non-IDL import.
       return false;
@@ -105,7 +101,7 @@ function isChromeContext(context) {
   );
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/use-isInstance.html",

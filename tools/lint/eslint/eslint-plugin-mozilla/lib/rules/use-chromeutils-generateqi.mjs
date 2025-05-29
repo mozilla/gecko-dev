@@ -7,8 +7,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
 function isIdentifier(node, id) {
   return node && node.type === "Identifier" && node.name === id;
 }
@@ -39,7 +37,7 @@ function funcToGenerateQI(context, node) {
   return `ChromeUtils.generateQI([${ifaces}])`;
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/use-chromeutils-generateqi.html",

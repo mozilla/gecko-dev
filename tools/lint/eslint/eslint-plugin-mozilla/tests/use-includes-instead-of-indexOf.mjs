@@ -1,14 +1,12 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-"use strict";
-
 // ------------------------------------------------------------------------------
 // Requirements
 // ------------------------------------------------------------------------------
 
-var rule = require("../lib/rules/use-includes-instead-of-indexOf");
-var RuleTester = require("eslint").RuleTester;
+import rule from "../lib/rules/use-includes-instead-of-indexOf.mjs";
+import { RuleTester } from "eslint";
 
 const ruleTester = new RuleTester();
 

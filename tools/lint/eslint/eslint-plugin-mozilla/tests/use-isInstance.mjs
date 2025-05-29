@@ -1,15 +1,13 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-"use strict";
-
 // ------------------------------------------------------------------------------
 // Requirements
 // ------------------------------------------------------------------------------
 
-var rule = require("../lib/rules/use-isInstance");
-const globals = require("globals");
-var RuleTester = require("eslint").RuleTester;
+import rule from "../lib/rules/use-isInstance.mjs";
+import globals from "globals";
+import { RuleTester } from "eslint";
 
 const ruleTester = new RuleTester();
 

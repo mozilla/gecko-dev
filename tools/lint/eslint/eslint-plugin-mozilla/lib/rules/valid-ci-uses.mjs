@@ -7,10 +7,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-const os = require("os");
-const helpers = require("../helpers");
+import os from "os";
+import helpers from "../helpers.js";
 
 // These interfaces are all platform specific, so may be not present
 // on all platforms.
@@ -90,7 +88,7 @@ function interfaceHasProperty(interfaceName, propertyName) {
   return true;
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/valid-ci-uses.html",

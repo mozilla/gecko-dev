@@ -6,9 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
+import globals from "../globals.js";
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/import-globals.html",
@@ -17,5 +17,5 @@ module.exports = {
     type: "problem",
   },
 
-  create: require("../globals").getESLintGlobalParser,
+  create: globals.getESLintGlobalParser,
 };

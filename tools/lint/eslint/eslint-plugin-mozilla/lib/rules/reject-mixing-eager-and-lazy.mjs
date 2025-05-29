@@ -7,8 +7,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-const helpers = require("../helpers");
+import helpers from "../helpers.js";
 
 function isIdentifier(node, id) {
   return node.type === "Identifier" && node.name === id;
@@ -34,7 +33,7 @@ function checkMixed(loadedModules, context, node, type, resourceURI) {
   });
 }
 
-module.exports = {
+export default {
   meta: {
     docs: {
       url: "https://firefox-source-docs.mozilla.org/code-quality/lint/linters/eslint-plugin-mozilla/rules/reject-mixing-eager-and-lazy.html",
