@@ -803,10 +803,13 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       aColor = mHeaderBarInactive.mFg;
       break;
     case ColorID::Threedface:
-    case ColorID::Buttonface:
     case ColorID::MozButtondisabledface:
       // 3-D face color
       aColor = mWindow.mBg;
+      break;
+
+    case ColorID::Buttonface:
+      aColor = mButton.mBg;
       break;
 
     case ColorID::Buttontext:
@@ -2312,7 +2315,8 @@ void nsLookAndFeel::PerThemeData::Init() {
   mButtonBorder = GDK_RGBA_TO_NS_RGBA(color);
   mButton = GetColorPair(style);
   mButtonHover = GetColorPair(style, GTK_STATE_FLAG_PRELIGHT);
-  mButtonActive = GetColorPair(style, GTK_STATE_FLAG_ACTIVE);
+  mButtonActive = GetColorPair(
+      style, GtkStateFlags(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE));
   if (!NS_GET_A(mButtonHover.mBg)) {
     mButtonHover.mBg = mWindow.mBg;
   }
