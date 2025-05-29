@@ -16,6 +16,7 @@ use selectors::matching::{ElementSelectorFlags, MatchingForInvalidation, Selecto
 use selectors::{Element, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow};
 use smallvec::SmallVec;
+use style::values::generics::Optional;
 use std::collections::BTreeSet;
 use std::fmt::Write;
 use std::iter;
@@ -9910,14 +9911,35 @@ impl AnchorPositioningFunctionResolution {
     }
 }
 
+fn resolve_anchor_fallback(
+    fallback: &Optional<computed::LengthPercentage>
+) -> AnchorPositioningFunctionResolution {
+    fallback.as_ref().map_or(AnchorPositioningFunctionResolution::Invalid,
+        |fb| AnchorPositioningFunctionResolution::ResolvedReference(fb as *const _),
+    )
+}
+
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorFunction(
     func: &AnchorFunction,
     params: &AnchorPosResolutionParams,
-    side: PhysicalSide,
+    prop_side: PhysicalSide,
     out: &mut AnchorPositioningFunctionResolution,
 ) {
-    *out = AnchorPositioningFunctionResolution::new(func.resolve(side, params.mPosition));
+    if !func.valid_for(prop_side, params.mPosition) {
+        *out = resolve_anchor_fallback(&func.fallback);
+        return;
+    }
+    let result = AnchorFunction::resolve(
+        &func.target_element,
+        &func.side,
+        prop_side,
+        params
+    );
+    *out = match result {
+        Ok(l) => AnchorPositioningFunctionResolution::Resolved(computed::LengthPercentage::new_length(l)),
+        Err(()) => resolve_anchor_fallback(&func.fallback),
+    };
 }
 
 #[no_mangle]

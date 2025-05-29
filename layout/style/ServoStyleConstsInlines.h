@@ -1290,6 +1290,10 @@ inline StylePhysicalSide ToStylePhysicalSide(mozilla::Side aSide) {
   return static_cast<StylePhysicalSide>(static_cast<uint8_t>(aSide));
 }
 
+inline mozilla::Side ToSide(StylePhysicalSide aSide) {
+  return static_cast<mozilla::Side>(static_cast<uint8_t>(aSide));
+}
+
 #define DEFINE_LENGTH_PERCENTAGE_CTOR(ty_)                               \
   template <>                                                            \
   inline Style##ty_::StyleGeneric##ty_(const StyleLengthPercentage& aLP) \
