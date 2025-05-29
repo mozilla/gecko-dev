@@ -6,6 +6,11 @@
 
 "use strict";
 
+// This is still a commonjs module, as ideally we need to be able to dynamically
+// import, but ESLint can't currently handle async rules. Hopefully ESLint will
+// get the feature in future.
+// https://github.com/eslint/eslint/issues/15394
+
 const { dirname, join } = require("path");
 
 const eslintBasePath = dirname(require.resolve("eslint"));
