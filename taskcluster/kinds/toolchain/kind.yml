@@ -39,7 +39,6 @@ tasks-from:
     - gn.yml
     - grcov.yml
     - hostutils.yml
-    - jj.yml
     - libunwind.yml
     - libxml2.yml
     - llvm-symbolizer.yml
