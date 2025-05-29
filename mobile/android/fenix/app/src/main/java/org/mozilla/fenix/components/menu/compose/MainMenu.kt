@@ -19,8 +19,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -40,7 +46,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -547,28 +552,70 @@ private fun LibraryMenuGroup(
     onDownloadsMenuClick: () -> Unit,
     onPasswordsMenuClick: () -> Unit,
 ) {
-    MenuGroup {
-        MenuItem(
-            label = stringResource(id = R.string.library_bookmarks),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_bookmark_tray_fill_24),
-            onClick = onBookmarksMenuClick,
-        )
+    val spacerWidth = 2.dp
+    val innerRounding = 4.dp
+    val outerRounding = 28.dp
 
-        MenuItem(
-            label = stringResource(id = R.string.library_history),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_history_24),
+    val leftShape = RoundedCornerShape(
+        topStart = outerRounding, topEnd = innerRounding,
+        bottomStart = outerRounding, bottomEnd = innerRounding,
+    )
+    val middleShape = RoundedCornerShape(innerRounding)
+    val rightShape = RoundedCornerShape(
+        topStart = innerRounding,
+        topEnd = outerRounding, bottomStart = innerRounding, bottomEnd = outerRounding,
+    )
+
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        LibraryMenuItem(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            iconRes = R.drawable.mozac_ic_history_24,
+            labelRes = R.string.library_history,
+            shape = leftShape,
             onClick = onHistoryMenuClick,
         )
 
-        MenuItem(
-            label = stringResource(id = R.string.library_downloads),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_download_24),
+        Spacer(Modifier.width(spacerWidth))
+
+        LibraryMenuItem(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            iconRes = R.drawable.mozac_ic_bookmark_tray_fill_24,
+            labelRes = R.string.library_bookmarks,
+            shape = middleShape,
+            onClick = onBookmarksMenuClick,
+        )
+
+        Spacer(Modifier.width(spacerWidth))
+
+        LibraryMenuItem(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            iconRes = R.drawable.mozac_ic_download_24,
+            labelRes = R.string.library_downloads,
+            shape = middleShape,
             onClick = onDownloadsMenuClick,
         )
 
-        MenuItem(
-            label = stringResource(id = R.string.browser_menu_passwords),
-            beforeIconPainter = painterResource(id = R.drawable.mozac_ic_login_24),
+        Spacer(Modifier.width(spacerWidth))
+
+        LibraryMenuItem(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            iconRes = R.drawable.mozac_ic_login_24,
+            labelRes = R.string.browser_menu_passwords,
+            shape = rightShape,
             onClick = onPasswordsMenuClick,
         )
     }
