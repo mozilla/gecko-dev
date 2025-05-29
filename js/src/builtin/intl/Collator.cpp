@@ -437,7 +437,7 @@ static mozilla::intl::Collator* GetOrCreateCollator(
 }
 
 static bool intl_CompareStrings(JSContext* cx, mozilla::intl::Collator* coll,
-                                HandleString str1, HandleString str2,
+                                JSString* str1, JSString* str2,
                                 MutableHandleValue result) {
   MOZ_ASSERT(str1);
   MOZ_ASSERT(str2);
@@ -480,8 +480,8 @@ bool js::intl_CompareStrings(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Use the UCollator to actually compare the strings.
-  RootedString str1(cx, args[1].toString());
-  RootedString str2(cx, args[2].toString());
+  JSString* str1 = args[1].toString();
+  JSString* str2 = args[2].toString();
   return intl_CompareStrings(cx, coll, str1, str2, args.rval());
 }
 
