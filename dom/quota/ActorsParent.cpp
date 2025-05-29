@@ -11,10 +11,10 @@
 #include "ClientUsageArray.h"
 #include "Flatten.h"
 #include "FirstInitializationAttemptsImpl.h"
-#include "InitializationUtils.h"
 #include "GroupInfo.h"
 #include "GroupInfoPair.h"
 #include "NormalOriginOperationBase.h"
+#include "OpenClientDirectoryUtils.h"
 #include "OriginOperationBase.h"
 #include "OriginOperations.h"
 #include "OriginParser.h"
@@ -5611,45 +5611,29 @@ QuotaManager::OpenClientDirectoryImpl(
                        std::move(clientInitDirectoryLock));
                  }))
       ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [self = RefPtr(this), aClientMetadata,
-           clientDirectoryLock = std::move(clientDirectoryLock)](
-              const BoolPromise::ResolveOrRejectValue& aValue) mutable {
-            if (aValue.IsReject()) {
-              DropDirectoryLockIfNotDropped(clientDirectoryLock);
+          GetCurrentSerialEventTarget(), __func__ /* clang formatting anchor */,
+          MaybeFinalize(
+              std::move(clientDirectoryLock),
+              [self = RefPtr(this), aClientMetadata](
+                  RefPtr<ClientDirectoryLock> clientDirectoryLock) mutable {
+                auto clientDirectoryLockHandle =
+                    ClientDirectoryLockHandle(std::move(clientDirectoryLock));
 
-              return ClientDirectoryLockHandlePromise::CreateAndReject(
-                  aValue.RejectValue(), __func__);
-            }
+                self->RegisterClientDirectoryLockHandle(
+                    aClientMetadata, [&self = *self, &aClientMetadata]() {
+                      if (aClientMetadata.mPersistenceType !=
+                          PERSISTENCE_TYPE_PERSISTENT) {
+                        if (!IsShuttingDown()) {
+                          self.UpdateOriginAccessTime(aClientMetadata);
+                        }
+                      }
+                    });
 
-            QM_TRY(
-                ArtificialFailure(
-                    nsIQuotaArtificialFailure::CATEGORY_OPEN_CLIENT_DIRECTORY),
-                [&clientDirectoryLock](nsresult rv) {
-                  DropDirectoryLockIfNotDropped(clientDirectoryLock);
+                clientDirectoryLockHandle.SetRegistered(true);
 
-                  return ClientDirectoryLockHandlePromise::CreateAndReject(
-                      rv, __func__);
-                });
-
-            auto clientDirectoryLockHandle =
-                ClientDirectoryLockHandle(std::move(clientDirectoryLock));
-
-            self->RegisterClientDirectoryLockHandle(
-                aClientMetadata, [&self = *self, &aClientMetadata]() {
-                  if (aClientMetadata.mPersistenceType !=
-                      PERSISTENCE_TYPE_PERSISTENT) {
-                    if (!IsShuttingDown()) {
-                      self.UpdateOriginAccessTime(aClientMetadata);
-                    }
-                  }
-                });
-
-            clientDirectoryLockHandle.SetRegistered(true);
-
-            return ClientDirectoryLockHandlePromise::CreateAndResolve(
-                std::move(clientDirectoryLockHandle), __func__);
-          });
+                return ClientDirectoryLockHandlePromise::CreateAndResolve(
+                    std::move(clientDirectoryLockHandle), __func__);
+              }));
 }
 
 RefPtr<ClientDirectoryLock> QuotaManager::CreateDirectoryLock(

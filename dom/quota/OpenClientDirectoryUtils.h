@@ -4,13 +4,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef DOM_QUOTA_INITIALIZATIONUTILS_H_
-#define DOM_QUOTA_INITIALIZATIONUTILS_H_
+#ifndef DOM_QUOTA_OPENCLIENTDIRECTORYUTILS_H_
+#define DOM_QUOTA_OPENCLIENTDIRECTORYUTILS_H_
 
 #include <functional>
 
 #include "mozilla/MozPromise.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/dom/quota/ArtificialFailure.h"
+#include "mozilla/dom/quota/ClientDirectoryLock.h"
+#include "mozilla/dom/quota/ClientDirectoryLockHandle.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
@@ -90,6 +93,49 @@ auto MaybeInitialize(RefPtr<UniversalDirectoryLock> aDirectoryLock,
       });
 }
 
+// XXX: Consider renaming the finalization class and function below to make
+// their purpose more specific
+template <typename Callable>
+class MaybeFinalizeHelper final {
+ public:
+  MaybeFinalizeHelper(RefPtr<ClientDirectoryLock> aClientDirectoryLock,
+                      Callable&& aCallable)
+      : mClientDirectoryLock(std::move(aClientDirectoryLock)),
+        mCallable(std::move(aCallable)) {}
+
+  RefPtr<QuotaManager::ClientDirectoryLockHandlePromise> operator()(
+      const BoolPromise::ResolveOrRejectValue& aValue) {
+    if (aValue.IsReject()) {
+      DropDirectoryLockIfNotDropped(mClientDirectoryLock);
+
+      return QuotaManager::ClientDirectoryLockHandlePromise::CreateAndReject(
+          aValue.RejectValue(), __func__);
+    }
+
+    QM_TRY(ArtificialFailure(
+               nsIQuotaArtificialFailure::CATEGORY_OPEN_CLIENT_DIRECTORY),
+           [this](nsresult rv) {
+             DropDirectoryLock(mClientDirectoryLock);
+
+             return QuotaManager::ClientDirectoryLockHandlePromise::
+                 CreateAndReject(rv, __func__);
+           });
+
+    return mCallable(std::move(mClientDirectoryLock));
+  }
+
+ private:
+  RefPtr<ClientDirectoryLock> mClientDirectoryLock;
+  Callable mCallable;
+};
+
+template <typename Callable>
+auto MaybeFinalize(RefPtr<ClientDirectoryLock> aClientDirectoryLock,
+                   Callable&& aCallable) {
+  return MaybeFinalizeHelper(std::move(aClientDirectoryLock),
+                             std::forward<Callable>(aCallable));
+}
+
 }  // namespace mozilla::dom::quota
 
-#endif  // DOM_QUOTA_INITIALIZATIONUTILS_H_
+#endif  // DOM_QUOTA_OPENCLIENTDIRECTORYUTILS_H_
