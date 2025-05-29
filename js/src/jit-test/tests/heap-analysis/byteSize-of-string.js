@@ -14,6 +14,20 @@
 gczeal(0); // Need to control when tenuring happens
 gcparam('semispaceNurseryEnabled', 0);
 
+// When values change, it's nice to see *all* of the failures, rather than
+// stopping at the first.
+var checkFailures = 0;
+function checkEq(expect, receive) {
+  if (expect === receive) {
+    return;
+  }
+
+  const e = new Error();
+  const [_, line] = e.stack.match(/[^\n]*\n[^\n]*?tests\/([^\n]*:\d+):\d+\n/);
+  printErr(`TEST-UNEXPECTED-FAIL | ${line} | Error: Assertion failed. Got ${receive}, expected ${expect}`);
+  checkFailures++;
+}
+
 // Hack to skip this test if strings are not allocated in the nursery.
 {
   const sample_nursery = "x" + "abc".substr(1);
@@ -129,93 +143,93 @@ const EN = m32 ? 16 : 24; // ExternalString
 const Nursery = m32 ? s => s + 4 + 4 : s => s + 8 + 0;
 
 // Latin-1
-assertEq(tByteSize(""),                                               s(TA, TA));
-assertEq(tByteSize("1"),                                              s(TA, TA));
-assertEq(tByteSize("1234567"),                                        s(TN, TN));
-assertEq(tByteSize("12345678"),                                       s(TN, TN));
-assertEq(tByteSize("123456789"),                                      s(FN, TN));
-assertEq(tByteSize("123456789.12345"),                                s(FN, TN));
-assertEq(tByteSize("123456789.123456"),                               s(FN, TN));
-assertEq(tByteSize("123456789.1234567"),                              s(FN, FN));
-assertEq(tByteSize("123456789.123456789.123"),                        s(FN, FN));
-assertEq(tByteSize("123456789.123456789.1234"),                       s(FN, FN));
-assertEq(tByteSize("123456789.123456789.12345"),                      s(XN+32, XN+32));
-assertEq(tByteSize("123456789.123456789.123456789.1"),                s(XN+32, XN+32));
-assertEq(tByteSize("123456789.123456789.123456789.12"),               s(XN+32, XN+32));
-assertEq(tByteSize("123456789.123456789.123456789.123"),              s(XN+64, XN+64));
+checkEq(tByteSize(""),                                               s(TA, TA));
+checkEq(tByteSize("1"),                                              s(TA, TA));
+checkEq(tByteSize("1234567"),                                        s(TN, TN));
+checkEq(tByteSize("12345678"),                                       s(TN, TN));
+checkEq(tByteSize("123456789"),                                      s(FN, TN));
+checkEq(tByteSize("123456789.12345"),                                s(FN, TN));
+checkEq(tByteSize("123456789.123456"),                               s(FN, TN));
+checkEq(tByteSize("123456789.1234567"),                              s(FN, FN));
+checkEq(tByteSize("123456789.123456789.123"),                        s(FN, FN));
+checkEq(tByteSize("123456789.123456789.1234"),                       s(FN, FN));
+checkEq(tByteSize("123456789.123456789.12345"),                      s(XN+32, XN+32));
+checkEq(tByteSize("123456789.123456789.123456789.1"),                s(XN+32, XN+32));
+checkEq(tByteSize("123456789.123456789.123456789.12"),               s(XN+32, XN+32));
+checkEq(tByteSize("123456789.123456789.123456789.123"),              s(XN+64, XN+64));
 
-assertEq(nByteSize(""),                                               s(TA, TA));
-assertEq(nByteSize("1"),                                              s(TA, TA));
-assertEq(nByteSize("1234567"),                                        s(Nursery(TN), Nursery(TN)));
-assertEq(nByteSize("12345678"),                                       s(Nursery(TN), Nursery(TN)));
-assertEq(nByteSize("123456789"),                                      s(Nursery(FN), Nursery(TN)));
-assertEq(nByteSize("123456789.12345"),                                s(Nursery(FN), Nursery(TN)));
-assertEq(nByteSize("123456789.123456"),                               s(Nursery(FN), Nursery(TN)));
-assertEq(nByteSize("123456789.1234567"),                              s(Nursery(FN), Nursery(FN)));
-assertEq(nByteSize("123456789.123456789.123"),                        s(Nursery(FN), Nursery(FN)));
-assertEq(nByteSize("123456789.123456789.1234"),                       s(Nursery(FN), Nursery(FN)));
-assertEq(nByteSize("123456789.123456789.12345"),                      s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("123456789.123456789.123456789.1"),                s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("123456789.123456789.123456789.12"),               s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("123456789.123456789.123456789.123"),              s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize(""),                                               s(TA, TA));
+checkEq(nByteSize("1"),                                              s(TA, TA));
+checkEq(nByteSize("1234567"),                                        s(Nursery(TN), Nursery(TN)));
+checkEq(nByteSize("12345678"),                                       s(Nursery(TN), Nursery(TN)));
+checkEq(nByteSize("123456789"),                                      s(Nursery(FN), Nursery(TN)));
+checkEq(nByteSize("123456789.12345"),                                s(Nursery(FN), Nursery(TN)));
+checkEq(nByteSize("123456789.123456"),                               s(Nursery(FN), Nursery(TN)));
+checkEq(nByteSize("123456789.1234567"),                              s(Nursery(FN), Nursery(FN)));
+checkEq(nByteSize("123456789.123456789.123"),                        s(Nursery(FN), Nursery(FN)));
+checkEq(nByteSize("123456789.123456789.1234"),                       s(Nursery(FN), Nursery(FN)));
+checkEq(nByteSize("123456789.123456789.12345"),                      s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("123456789.123456789.123456789.1"),                s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("123456789.123456789.123456789.12"),               s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("123456789.123456789.123456789.123"),              s(Nursery(XN), Nursery(XN)));
 
 function Atom(s) { return Object.keys({ [s]: true })[0]; }
-assertEq(byteSize(Atom("1234567")),                                   s(TA, TA));
-assertEq(byteSize(Atom("12345678")),                                  s(TA, FA));
-assertEq(byteSize(Atom("123456789.12")),                              s(TA, FA));
-assertEq(byteSize(Atom("123456789.123")),                             s(FA, FA));
-assertEq(byteSize(Atom("123456789.12345")),                           s(FA, FA));
-assertEq(byteSize(Atom("123456789.123456")),                          s(FA, FA));
-assertEq(byteSize(Atom("123456789.1234567")),                         s(FA, FA));
-assertEq(byteSize(Atom("123456789.123456789.")),                      s(FA, FA));
-assertEq(byteSize(Atom("123456789.123456789.1")),                     s(NA+32, NA+32));
-assertEq(byteSize(Atom("123456789.123456789.123")),                   s(NA+32, NA+32));
-assertEq(byteSize(Atom("123456789.123456789.1234")),                  s(NA+32, NA+32));
-assertEq(byteSize(Atom("123456789.123456789.12345")),                 s(NA+32, NA+32));
-assertEq(byteSize(Atom("123456789.123456789.123456789.1")),           s(NA+32, NA+32));
-assertEq(byteSize(Atom("123456789.123456789.123456789.12")),          s(NA+32, NA+32));
-assertEq(byteSize(Atom("123456789.123456789.123456789.123")),         s(NA+48, NA+48));
+checkEq(byteSize(Atom("1234567")),                                   s(TA, TA));
+checkEq(byteSize(Atom("12345678")),                                  s(TA, FA));
+checkEq(byteSize(Atom("123456789.12")),                              s(TA, FA));
+checkEq(byteSize(Atom("123456789.123")),                             s(FA, FA));
+checkEq(byteSize(Atom("123456789.12345")),                           s(FA, FA));
+checkEq(byteSize(Atom("123456789.123456")),                          s(FA, FA));
+checkEq(byteSize(Atom("123456789.1234567")),                         s(FA, FA));
+checkEq(byteSize(Atom("123456789.123456789.")),                      s(FA, FA));
+checkEq(byteSize(Atom("123456789.123456789.1")),                     s(NA+32, NA+32));
+checkEq(byteSize(Atom("123456789.123456789.123")),                   s(NA+32, NA+32));
+checkEq(byteSize(Atom("123456789.123456789.1234")),                  s(NA+32, NA+32));
+checkEq(byteSize(Atom("123456789.123456789.12345")),                 s(NA+32, NA+32));
+checkEq(byteSize(Atom("123456789.123456789.123456789.1")),           s(NA+32, NA+32));
+checkEq(byteSize(Atom("123456789.123456789.123456789.12")),          s(NA+32, NA+32));
+checkEq(byteSize(Atom("123456789.123456789.123456789.123")),         s(NA+48, NA+48));
 
 // Inline char16_t atoms.
 // "Impassionate gods have never seen the red that is the Tatsuta River."
 //   - Ariwara no Narihira
-assertEq(tByteSize("千"),						s(TA, TA));
-assertEq(tByteSize("千早"),						s(TN, TN));
-assertEq(tByteSize("千早ぶ"),						s(TN, TN));
-assertEq(tByteSize("千早ぶる"),						s(TN, TN));
-assertEq(tByteSize("千早ぶる神"),						s(FN, TN));
-assertEq(tByteSize("千早ぶる神代"),					s(FN, TN));
-assertEq(tByteSize("千早ぶる神代も"),					s(FN, TN));
-assertEq(tByteSize("千早ぶる神代もき"),					s(FN, TN));
-assertEq(tByteSize("千早ぶる神代もきか"),					s(FN, FN));
-assertEq(tByteSize("千早ぶる神代もきかず龍"),				s(FN, FN));
-assertEq(tByteSize("千早ぶる神代もきかず龍田"),				s(FN, FN));
-assertEq(tByteSize("千早ぶる神代もきかず龍田川"),				s(XN+32, XN+32));
-assertEq(tByteSize("千早ぶる神代もきかず龍田川 か"),				s(XN+32, XN+32));
-assertEq(tByteSize("千早ぶる神代もきかず龍田川 から"),			s(XN+32, XN+32));
-assertEq(tByteSize("千早ぶる神代もきかず龍田川 からく"),		s(XN+64, XN+64));
-assertEq(tByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水く"),		s(XN+64, XN+64));
-assertEq(tByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水くく"),		s(XN+64, XN+64));
-assertEq(tByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水くくるとは"),	s(XN+64, XN+64));
+checkEq(tByteSize("千"),						s(TA, TA));
+checkEq(tByteSize("千早"),						s(TN, TN));
+checkEq(tByteSize("千早ぶ"),						s(TN, TN));
+checkEq(tByteSize("千早ぶる"),						s(TN, TN));
+checkEq(tByteSize("千早ぶる神"),						s(FN, TN));
+checkEq(tByteSize("千早ぶる神代"),					s(FN, TN));
+checkEq(tByteSize("千早ぶる神代も"),					s(FN, TN));
+checkEq(tByteSize("千早ぶる神代もき"),					s(FN, TN));
+checkEq(tByteSize("千早ぶる神代もきか"),					s(FN, FN));
+checkEq(tByteSize("千早ぶる神代もきかず龍"),				s(FN, FN));
+checkEq(tByteSize("千早ぶる神代もきかず龍田"),				s(FN, FN));
+checkEq(tByteSize("千早ぶる神代もきかず龍田川"),				s(XN+32, XN+32));
+checkEq(tByteSize("千早ぶる神代もきかず龍田川 か"),				s(XN+32, XN+32));
+checkEq(tByteSize("千早ぶる神代もきかず龍田川 から"),			s(XN+32, XN+32));
+checkEq(tByteSize("千早ぶる神代もきかず龍田川 からく"),		s(XN+64, XN+64));
+checkEq(tByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水く"),		s(XN+64, XN+64));
+checkEq(tByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水くく"),		s(XN+64, XN+64));
+checkEq(tByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水くくるとは"),	s(XN+64, XN+64));
 
-assertEq(nByteSize("千"),						s(TA, TA));
-assertEq(nByteSize("千早"),						s(Nursery(TN), Nursery(TN)));
-assertEq(nByteSize("千早ぶ"),						s(Nursery(TN), Nursery(TN)));
-assertEq(nByteSize("千早ぶる"),						s(Nursery(TN), Nursery(TN)));
-assertEq(nByteSize("千早ぶる神"),						s(Nursery(FN), Nursery(TN)));
-assertEq(nByteSize("千早ぶる神代"),					s(Nursery(FN), Nursery(TN)));
-assertEq(nByteSize("千早ぶる神代も"),					s(Nursery(FN), Nursery(TN)));
-assertEq(nByteSize("千早ぶる神代もき"),					s(Nursery(FN), Nursery(TN)));
-assertEq(nByteSize("千早ぶる神代もきか"),					s(Nursery(FN), Nursery(FN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍"),				s(Nursery(FN), Nursery(FN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍田"),				s(Nursery(FN), Nursery(FN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍田川"),				s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍田川 か"),				s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍田川 から"),			s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍田川 からく"),		s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水く"),		s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水くく"),		s(Nursery(XN), Nursery(XN)));
-assertEq(nByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水くくるとは"),	s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("千"),						s(TA, TA));
+checkEq(nByteSize("千早"),						s(Nursery(TN), Nursery(TN)));
+checkEq(nByteSize("千早ぶ"),						s(Nursery(TN), Nursery(TN)));
+checkEq(nByteSize("千早ぶる"),						s(Nursery(TN), Nursery(TN)));
+checkEq(nByteSize("千早ぶる神"),						s(Nursery(FN), Nursery(TN)));
+checkEq(nByteSize("千早ぶる神代"),					s(Nursery(FN), Nursery(TN)));
+checkEq(nByteSize("千早ぶる神代も"),					s(Nursery(FN), Nursery(TN)));
+checkEq(nByteSize("千早ぶる神代もき"),					s(Nursery(FN), Nursery(TN)));
+checkEq(nByteSize("千早ぶる神代もきか"),					s(Nursery(FN), Nursery(FN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍"),				s(Nursery(FN), Nursery(FN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍田"),				s(Nursery(FN), Nursery(FN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍田川"),				s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍田川 か"),				s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍田川 から"),			s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍田川 からく"),		s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水く"),		s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水くく"),		s(Nursery(XN), Nursery(XN)));
+checkEq(nByteSize("千早ぶる神代もきかず龍田川 からくれなゐに水くくるとは"),	s(Nursery(XN), Nursery(XN)));
 
 // A Latin-1 rope. This changes size when flattened.
 // "In a village of La Mancha, the name of which I have no desire to call to mind"
@@ -225,11 +239,11 @@ var rope8 = fragment8;
 for (var i = 0; i < 10; i++) // 1024 repetitions
   rope8 = rope8 + rope8;
 
-assertEq(byteSize(rope8),                                               s(Nursery(RN), Nursery(RN)));
+checkEq(byteSize(rope8),                                               s(Nursery(RN), Nursery(RN)));
 minorgc();
-assertEq(byteSize(rope8),                                               s(RN, RN));
+checkEq(byteSize(rope8),                                               s(RN, RN));
 var matches8 = rope8.match(/(de cuyo nombre no quiero acordarme)/);
-assertEq(byteSize(rope8),                                               s(XN + 64 * 1024, XN + 64 * 1024));
+checkEq(byteSize(rope8),                                               s(XN + 64 * 1024, XN + 64 * 1024));
 var ext8 = rope8; // Stop calling it what it's not (though it'll change again soon.)
 
 // Test extensible strings.
@@ -239,24 +253,24 @@ var ext8 = rope8; // Stop calling it what it's not (though it'll change again so
 // Flattening that should turn the original rope into a dependent string, and
 // yield a new linear string, of the same size as the original.
 var rope8a = ext8 + fragment8;
-assertEq(byteSize(rope8a),                                              s(Nursery(RN), Nursery(RN)));
-rope8a.match(/x/, function() { assertEq(true, false); });
-assertEq(byteSize(rope8a),                                              s(Nursery(XN) + 65536, Nursery(XN) + 65536));
-assertEq(byteSize(ext8),                                                s(DN, DN));
+checkEq(byteSize(rope8a),                                              s(Nursery(RN), Nursery(RN)));
+rope8a.match(/x/, function() { checkEq(true, false); });
+checkEq(byteSize(rope8a),                                              s(Nursery(XN) + 65536, Nursery(XN) + 65536));
+checkEq(byteSize(ext8),                                                s(DN, DN));
 
 // Latin-1 dependent strings in the nursery.
-assertEq(byteSize(ext8.substr(1000, 2000)),                             s(Nursery(DN), Nursery(DN)));
-assertEq(byteSize(matches8[0]),                                         s(Nursery(DN), Nursery(DN)));
-assertEq(byteSize(matches8[1]),                                         s(Nursery(DN), Nursery(DN)));
+checkEq(byteSize(ext8.substr(1000, 2000)),                             s(Nursery(DN), Nursery(DN)));
+checkEq(byteSize(matches8[0]),                                         s(Nursery(DN), Nursery(DN)));
+checkEq(byteSize(matches8[1]),                                         s(Nursery(DN), Nursery(DN)));
 
 // Tenure everything and do it again.
 ext8 = copyString(ext8);
 rope8a = ext8 + fragment8;
 minorgc();
-assertEq(byteSize(rope8a),                                              s(RN, RN));
-rope8a.match(/x/, function() { assertEq(true, false); });
-assertEq(byteSize(rope8a),                                              s(XN + 65536, XN + 65536));
-assertEq(byteSize(rope8),                                               s(RN, RN));
+checkEq(byteSize(rope8a),                                              s(RN, RN));
+rope8a.match(/x/, function() { checkEq(true, false); });
+checkEq(byteSize(rope8a),                                              s(XN + 65536, XN + 65536));
+checkEq(byteSize(rope8),                                               s(RN, RN));
 
 // Latin-1 tenured dependent strings.
 function tenure(s) {
@@ -264,9 +278,9 @@ function tenure(s) {
   return s;
 }
 var sub = tenure(rope8.substr(1000, 2000));
-assertEq(byteSize(sub),                                                 s_ifDependent(sub, [DN, DN], [LN+2048, LN+2048]));
-assertEq(byteSize(matches8[0]),                                         s_ifDependent(matches8[0], [DN, DN], [LN+48, LN+48]));
-assertEq(byteSize(matches8[1]),                                         s_ifDependent(matches8[0], [DN, DN], [LN+48, LN+48]));
+checkEq(byteSize(sub),                                                 s_ifDependent(sub, [DN, DN], [LN+2048, LN+2048]));
+checkEq(byteSize(matches8[0]),                                         s_ifDependent(matches8[0], [DN, DN], [LN+48, LN+48]));
+checkEq(byteSize(matches8[1]),                                         s_ifDependent(matches8[0], [DN, DN], [LN+48, LN+48]));
 
 // A char16_t rope. This changes size when flattened.
 // "From the Heliconian Muses let us begin to sing"
@@ -275,15 +289,15 @@ var fragment16 = "μουσάων Ἑλικωνιάδων ἀρχώμεθ᾽ ἀ�
 var rope16 = fragment16;
 for (var i = 0; i < 10; i++) // 1024 repetitions
   rope16 = rope16 + rope16;
-assertEq(byteSize(rope16),                                              s(Nursery(RN), Nursery(RN)));
+checkEq(byteSize(rope16),                                              s(Nursery(RN), Nursery(RN)));
 let matches16 = rope16.match(/(Ἑλικωνιάδων ἀρχώμεθ᾽)/);
-assertEq(byteSize(rope16),                                              s(Nursery(XN) + 128 * 1024, Nursery(XN) + 128 * 1024));
+checkEq(byteSize(rope16),                                              s(Nursery(XN) + 128 * 1024, Nursery(XN) + 128 * 1024));
 var ext16 = rope16;
 
 // char16_t dependent strings in the nursery.
-assertEq(byteSize(ext16.substr(1000, 2000)),                            s(Nursery(DN), Nursery(DN)));
-assertEq(byteSize(matches16[0]),                                        s(Nursery(DN), Nursery(DN)));
-assertEq(byteSize(matches16[1]),                                        s(Nursery(DN), Nursery(DN)));
+checkEq(byteSize(ext16.substr(1000, 2000)),                            s(Nursery(DN), Nursery(DN)));
+checkEq(byteSize(matches16[0]),                                        s(Nursery(DN), Nursery(DN)));
+checkEq(byteSize(matches16[1]),                                        s(Nursery(DN), Nursery(DN)));
 
 // Test extensible strings.
 //
@@ -292,10 +306,10 @@ assertEq(byteSize(matches16[1]),                                        s(Nurser
 // Flattening that should turn the original rope into a dependent string, and
 // yield a new linear string, of the some size as the original.
 rope16a = ext16 + fragment16;
-assertEq(byteSize(rope16a),                                             s(Nursery(RN), Nursery(RN)));
-rope16a.match(/x/, function() { assertEq(true, false); });
-assertEq(byteSize(rope16a),                                             s(Nursery(XN) + 128 * 1024, Nursery(XN) + 128 * 1024));
-assertEq(byteSize(ext16),                                               s(Nursery(DN), Nursery(DN)));
+checkEq(byteSize(rope16a),                                             s(Nursery(RN), Nursery(RN)));
+rope16a.match(/x/, function() { checkEq(true, false); });
+checkEq(byteSize(rope16a),                                             s(Nursery(XN) + 128 * 1024, Nursery(XN) + 128 * 1024));
+checkEq(byteSize(ext16),                                               s(Nursery(DN), Nursery(DN)));
 
 // Tenure everything and try again. This time it should steal the extensible
 // characters and convert the root into an extensible string using them.
@@ -303,10 +317,10 @@ ext16 = copyString(ext16);
 rope16a = ext16 + fragment16;
 minorgc();
 finishBackgroundFree();
-assertEq(byteSize(rope16a),                                             s(RN, RN));
-rope16a.match(/x/, function() { assertEq(true, false); });
-assertEq(byteSize(rope16a),                                             s(XN + 128 * 1024, XN + 128 * 1024));
-assertEq(byteSize(ext16),                                               s(RN, RN));
+checkEq(byteSize(rope16a),                                             s(RN, RN));
+rope16a.match(/x/, function() { checkEq(true, false); });
+checkEq(byteSize(rope16a),                                             s(XN + 128 * 1024, XN + 128 * 1024));
+checkEq(byteSize(ext16),                                               s(RN, RN));
 
 // Test external strings.
 //
@@ -315,24 +329,26 @@ assertEq(byteSize(ext16),                                               s(RN, RN
 // cases. Also note that on Windows mozmalloc's smallest allocation size is
 // two words compared to one word on other platforms.
 if (getBuildConfiguration("windows")) {
-  assertEq(byteSize(newString("", {external: true})),                        s(EN+8, EN+16));
-  assertEq(byteSize(newString("1", {external: true})),                       s(EN+8, EN+16));
-  assertEq(byteSize(newString("12", {external: true})),                      s(EN+8, EN+16));
-  assertEq(byteSize(newString("123", {external: true})),                     s(EN+8, EN+16));
-  assertEq(byteSize(newString("1234", {external: true})),                    s(EN+8, EN+16));
+  checkEq(byteSize(newString("", {external: true})),                        s(EN+8, EN+16));
+  checkEq(byteSize(newString("1", {external: true})),                       s(EN+8, EN+16));
+  checkEq(byteSize(newString("12", {external: true})),                      s(EN+8, EN+16));
+  checkEq(byteSize(newString("123", {external: true})),                     s(EN+8, EN+16));
+  checkEq(byteSize(newString("1234", {external: true})),                    s(EN+8, EN+16));
 } else {
-  assertEq(byteSize(newString("", {external: true})),                        s(EN+4, EN+8));
-  assertEq(byteSize(newString("1", {external: true})),                       s(EN+4, EN+8));
-  assertEq(byteSize(newString("12", {external: true})),                      s(EN+4, EN+8));
-  assertEq(byteSize(newString("123", {external: true})),                     s(EN+8, EN+8));
-  assertEq(byteSize(newString("1234", {external: true})),                    s(EN+8, EN+8));
+  checkEq(byteSize(newString("", {external: true})),                        s(EN+4, EN+8));
+  checkEq(byteSize(newString("1", {external: true})),                       s(EN+4, EN+8));
+  checkEq(byteSize(newString("12", {external: true})),                      s(EN+4, EN+8));
+  checkEq(byteSize(newString("123", {external: true})),                     s(EN+8, EN+8));
+  checkEq(byteSize(newString("1234", {external: true})),                    s(EN+8, EN+8));
 }
-assertEq(byteSize(newString("12345", {external: true})),                     s(EN+16, EN+16));
-assertEq(byteSize(newString("123456789.123456789.1234", {external: true})),  s(EN+48, EN+48));
-assertEq(byteSize(newString("123456789.123456789.12345", {external: true})), s(EN+64, EN+64));
+checkEq(byteSize(newString("12345", {external: true})),                     s(EN+16, EN+16));
+checkEq(byteSize(newString("123456789.123456789.1234", {external: true})),  s(EN+48, EN+48));
+checkEq(byteSize(newString("123456789.123456789.12345", {external: true})), s(EN+64, EN+64));
 
 // Nursery-allocated chars.
 //
 // byteSize will not include the space used by the nursery for the chars.
-assertEq(byteSize(newString("123456789.123456789.12345")), s(Nursery(XN)+0,Nursery(XN)+0));
-assertEq(byteSize(newString("123456789.123456789.123456789.123")), s(Nursery(XN)+0,Nursery(XN)+0));
+checkEq(byteSize(newString("123456789.123456789.12345")), s(Nursery(XN)+0,Nursery(XN)+0));
+checkEq(byteSize(newString("123456789.123456789.123456789.123")), s(Nursery(XN)+0,Nursery(XN)+0));
+
+assertEq(`${checkFailures} failure(s)`, "0 failure(s)");
