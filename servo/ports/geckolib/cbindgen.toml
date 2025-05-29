@@ -329,6 +329,7 @@ include = [
   "ViewTransitionName",
   "Inset",
   "AnchorFunction",
+  "AnchorSide",
   "AnchorSizeFunction",
   "Margin",
   "PositionProperty",
