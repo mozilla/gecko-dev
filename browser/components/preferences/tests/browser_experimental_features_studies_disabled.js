@@ -21,14 +21,28 @@ add_task(async function testHiddenWhenStudiesDisabled() {
 
   await waitForExperimentalFeaturesShown(doc);
 
+  const enrollPromises = [
+    promiseNimbusStoreUpdate("nimbus-qa-1", true),
+    promiseNimbusStoreUpdate("nimbus-qa-2", true),
+  ];
+
   await enrollByClick(doc.getElementById("nimbus-qa-1"), true);
   await enrollByClick(doc.getElementById("nimbus-qa-2"), true);
+
+  await enrollPromises;
+
+  const unenrollPromises = [
+    promiseNimbusStoreUpdate("nimbus-qa-1", false),
+    promiseNimbusStoreUpdate("nimbus-qa-2", false),
+  ];
 
   // Disabling studies should remove the experimental pane.
   await SpecialPowers.pushPrefEnv({
     set: [["app.shield.optoutstudies.enabled", false]],
   });
+
   await waitForExperimentalFeaturesHidden(doc);
+  await unenrollPromises;
 
   ok(
     !ExperimentAPI._manager.store.get("nimbus-qa-1")?.active,

@@ -135,7 +135,7 @@ add_task(async function test_enroll_optin_recipe_branch_selection() {
   Assert.ok(
     manager._enroll.calledOnceWith(
       optInRecipe,
-      optInRecipe.branches[0],
+      optInRecipe.branches[0].slug,
       "test"
     ),
     "should call ._enroll() with the correct arguments"
@@ -871,7 +871,7 @@ add_task(async function test_featureIds_is_stored() {
     "Has expected value"
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 
   await cleanup();
 });
@@ -907,7 +907,7 @@ add_task(async function experiment_and_rollout_enroll_and_cleanup() {
     )
   );
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
 
   Assert.ok(
     !Services.prefs.getBoolPref(
@@ -921,7 +921,7 @@ add_task(async function experiment_and_rollout_enroll_and_cleanup() {
     )
   );
 
-  doRolloutCleanup();
+  await doRolloutCleanup();
 
   Assert.ok(
     !Services.prefs.getBoolPref(
