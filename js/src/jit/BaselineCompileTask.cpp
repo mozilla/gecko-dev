@@ -148,6 +148,14 @@ void BaselineSnapshot::trace(JSTracer* trc) {
   TraceOffthreadGCPtr(trc, script_, "baseline-snapshot-script");
   TraceOffthreadGCPtr(trc, globalLexical_, "baseline-snapshot-lexical");
   TraceOffthreadGCPtr(trc, globalThis_, "baseline-snapshot-this");
+  if (callObjectTemplate_) {
+    TraceOffthreadGCPtr(trc, callObjectTemplate_,
+                        "baseline-snapshot-call-object-template");
+  }
+  if (namedLambdaTemplate_) {
+    TraceOffthreadGCPtr(trc, namedLambdaTemplate_,
+                        "baseline-snapshot-named-lambda-template");
+  }
 }
 
 void BaselineCompileTask::trace(JSTracer* trc) {

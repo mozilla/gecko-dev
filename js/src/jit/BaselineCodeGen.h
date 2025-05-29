@@ -16,6 +16,8 @@
 
 namespace js {
 
+class NamedLambdaObject;
+
 namespace jit {
 
 class BaselineSnapshot;
@@ -304,8 +306,13 @@ class BaselineCompilerHandler {
   JSScript* script_;
   jsbytecode* pc_;
 
+  size_t nargs_;
+
   JSObject* globalLexicalEnvironment_;
   JSObject* globalThis_;
+
+  CallObject* callObjectTemplate_;
+  NamedLambdaObject* namedLambdaTemplate_;
 
   // Index of the current ICEntry in the script's JitScript.
   uint32_t icEntryIndex_;
@@ -347,8 +354,16 @@ class BaselineCompilerHandler {
   JSScript* script() const { return script_; }
   JSScript* maybeScript() const { return script_; }
 
-  JSFunction* function() const { return script_->function(); }
-  JSFunction* maybeFunction() const { return function(); }
+  size_t nargs() const {
+    MOZ_ASSERT(isFunction());
+    return nargs_;
+  }
+  CallObject* callObjectTemplate() const { return callObjectTemplate_; }
+  NamedLambdaObject* namedLambdaTemplate() const {
+    return namedLambdaTemplate_;
+  }
+
+  bool isFunction() const { return !!script_->function(); }
 
   ModuleObject* module() const { return script_->module(); }
 
@@ -508,7 +523,6 @@ class BaselineInterpreterHandler {
   jsbytecode* maybePC() const { return nullptr; }
   bool isDefinitelyLastOp() const { return false; }
   JSScript* maybeScript() const { return nullptr; }
-  JSFunction* maybeFunction() const { return nullptr; }
 
   bool shouldEmitDebugEpilogueAtReturnOp() const {
     // The interpreter doesn't use the return address -> pc mapping and doesn't
