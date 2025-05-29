@@ -640,7 +640,9 @@ const char gc::ZealModeHelpText[] =
 "    24: (CheckWeakMapMarking) Check weak map marking invariants after every\n"
 "        GC\n"
 "    25: (YieldWhileGrayMarking) Incremental GC in two slices that yields\n"
-"        during gray marking\n";
+"        during gray marking\n"
+"    26: (CheckHeapBeforeMinorGC) Check for invariant violations before every\n"
+"        minor GC\n";
 // clang-format on
 
 // The set of zeal modes that yield at specific points in collection.

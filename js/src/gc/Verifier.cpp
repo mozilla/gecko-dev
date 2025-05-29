@@ -993,7 +993,20 @@ bool CheckHeapTracer::cellIsValid(Cell* cell) {
   }
 
   MOZ_ASSERT(gcType == GCType::VerifyPostBarriers);
-  return !runtime()->gc.nursery().inCollectedRegion(cell);
+
+  // No reachable Cell* should be in the collected part of the nursery.
+  if (runtime()->gc.nursery().inCollectedRegion(cell)) {
+    return false;
+  }
+
+  // String data should also not be in the collected part of nursery.
+  if (cell->is<JSString>() && cell->as<JSString>()->isLinear()) {
+    if (cell->as<JSString>()->asLinear().hasCharsInCollectedNurseryRegion()) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void CheckHeapTracer::check(AutoHeapSession& session) {
@@ -1192,6 +1205,28 @@ void GCRuntime::verifyPostBarriers(AutoHeapSession& session) {
   // have been tracked by the store buffer.
   CheckHeapTracer tracer(rt, CheckHeapTracer::GCType::VerifyPostBarriers);
   tracer.check(session);
+}
+
+void GCRuntime::checkHeapBeforeMinorGC(AutoHeapSession& session) {
+  // Similar to verifyPostBarriers but run before a minor GC. Checks for tenured
+  // dependent strings pointing to nursery chars but not in the store buffer. If
+  // a tenured string cell points to a nursery string cell, then it will be in
+  // the store buffer and is fine. So this looks for tenured strings that point
+  // to tenured strings but contain nursery data.
+
+  for (ZonesIter zone(rt, SkipAtoms); !zone.done(); zone.next()) {
+    for (ArenaIter aiter(zone, gc::AllocKind::STRING); !aiter.done();
+         aiter.next()) {
+      for (ArenaCellIterUnderGC cell(aiter.get()); !cell.done(); cell.next()) {
+        if (cell->is<JSString>() && cell->as<JSString>()->isDependent()) {
+          JSDependentString* str = &cell->as<JSString>()->asDependent();
+          if (str->isTenured() && str->base()->isTenured()) {
+            MOZ_RELEASE_ASSERT(!str->hasCharsInCollectedNurseryRegion());
+          }
+        }
+      }
+    }
+  }
 }
 #endif
 

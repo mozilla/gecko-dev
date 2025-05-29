@@ -1639,6 +1639,12 @@ js::Nursery::CollectionResult js::Nursery::doCollection(AutoGCSession& session,
   AutoDisableProxyCheck disableStrictProxyChecking;
   mozilla::DebugOnly<AutoEnterOOMUnsafeRegion> oomUnsafeRegion;
 
+#ifdef JS_GC_ZEAL
+  if (gc->hasZealMode(ZealMode::CheckHeapBeforeMinorGC)) {
+    gc->checkHeapBeforeMinorGC(session);
+  }
+#endif
+
   // Swap nursery spaces.
   swapSpaces();
   MOZ_ASSERT(toSpace.isEmpty());

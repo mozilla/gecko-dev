@@ -1376,6 +1376,14 @@ template JSString* js::ConcatStrings<NoGC>(JSContext* cx, JSString* const& left,
                                            JSString* const& right,
                                            gc::Heap heap);
 
+bool JSLinearString::hasCharsInCollectedNurseryRegion() const {
+  auto& nursery = runtimeFromAnyThread()->gc.nursery();
+  if (isInline()) {
+    return nursery.inCollectedRegion(this);
+  }
+  return nursery.inCollectedRegion(nonInlineCharsRaw());
+}
+
 #if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW)
 void JSDependentString::dumpOwnRepresentationFields(
     js::JSONPrinter& json) const {

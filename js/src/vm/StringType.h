@@ -1198,6 +1198,8 @@ class JSLinearString : public JSString {
   // compacting GC.
   inline bool hasMovableChars() const;
 
+  bool hasCharsInCollectedNurseryRegion() const;
+
   void maybeInitializeIndexValue(uint32_t index, bool allowAtom = false) {
     MOZ_ASSERT(JSString::isLinear());
     MOZ_ASSERT_IF(hasIndexValue(), getIndexValue() == index);
