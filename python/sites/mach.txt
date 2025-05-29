@@ -64,7 +64,7 @@ pypi-optional:orjson>=3.10.15:json operations will be slower in various tools
 # support down to the oldest locally-installed version (5.4.2).
 pypi-optional:psutil>=5.4.2,<=5.9.4:telemetry will be missing some data
 pypi-optional:zstandard>=0.11.1,<=0.23.0:zstd archives will not be possible to extract
-vendored-fallback:pyyaml:third_party/python/PyYAML/lib/:faster native loading is disabled
+vendored-fallback:pyyaml:third_party/python/pyyaml/lib/:faster native loading is disabled
 vendored:third_party/python/MarkupSafe/src
 vendored:third_party/python/ansicon
 vendored:third_party/python/appdirs

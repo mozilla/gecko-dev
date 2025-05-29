@@ -22,7 +22,6 @@ pypi:sphinxcontrib-mermaid==1.0.0
 pypi:tox==2.7.0
 pypi:typed-ast==1.4.2; python_version < '3.8'
 pypi:virtualenv==20.24.7
-vendored:third_party/python/PyYAML/lib/
 vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp
 vendored:third_party/python/aiosignal
@@ -46,6 +45,7 @@ vendored:third_party/python/propcache
 vendored:third_party/python/pygments
 vendored:third_party/python/python_dateutil
 vendored:third_party/python/python_slugify
+vendored:third_party/python/pyyaml/lib/
 vendored:third_party/python/redo
 vendored:third_party/python/requests_unixsocket
 vendored:third_party/python/rich
