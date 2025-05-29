@@ -2555,59 +2555,6 @@ JS_PUBLIC_API JSString* JS::NewStringFromKnownLiveUTF8Buffer(
   return ::NewStringFromUTF8Buffer(cx, buffer, length);
 }
 
-template <typename CharT>
-static bool PtrIsWithinRange(const CharT* ptr,
-                             const mozilla::Range<const CharT>& valid) {
-  return size_t(ptr - valid.begin().get()) <= valid.length();
-}
-
-/* static */
-template <typename CharT>
-void JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
-  MOZ_ASSERT(!InCollectedNurseryRegion(str), "str should have been promoted");
-  MOZ_ASSERT(str->isDependent());
-  JSLinearString* root = str->asDependent().rootBaseDuringMinorGC();
-  if (InCollectedNurseryRegion(root)) {
-    // Can still fixup the original chars pointer.
-    return;
-  }
-
-  // If the base has not moved its chars, continue using them.
-  JS::AutoCheckCannotGC nogc;
-  const CharT* chars = str->chars<CharT>(nogc);
-  if (PtrIsWithinRange(chars, root->range<CharT>(nogc))) {
-    return;
-  }
-
-  // Clone the chars.
-  js::AutoEnterOOMUnsafeRegion oomUnsafe;
-  size_t len = str->length();
-  size_t nbytes = len * sizeof(CharT);
-  CharT* data =
-      str->zone()->pod_arena_malloc<CharT>(js::StringBufferArena, len);
-  if (!data) {
-    oomUnsafe.crash("cloning at-risk dependent string");
-  }
-  js_memcpy(data, chars, nbytes);
-
-  // Overwrite the dest string with a new linear string.
-  new (str) JSLinearString(data, len, false /* hasBuffer */);
-  if (str->isTenured()) {
-    str->zone()->addCellMemory(str, nbytes, js::MemoryUse::StringContents);
-  } else {
-    AutoEnterOOMUnsafeRegion oomUnsafe;
-    JSRuntime* rt = str->runtimeFromAnyThread();
-    if (!rt->gc.nursery().registerMallocedBuffer(data, nbytes)) {
-      oomUnsafe.crash("maybeCloneCharsOnPromotionTyped");
-    }
-  }
-}
-
-template void JSLinearString::maybeCloneCharsOnPromotionTyped<JS::Latin1Char>(
-    JSLinearString* str);
-template void JSLinearString::maybeCloneCharsOnPromotionTyped<char16_t>(
-    JSLinearString* str);
-
 #if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW)
 void JSExtensibleString::dumpOwnRepresentationFields(
     js::JSONPrinter& json) const {

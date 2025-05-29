@@ -1327,6 +1327,19 @@ class JSDependentString : public JSLinearString {
 
   inline void updateToPromotedBase(JSLinearString* base);
 
+  // Avoid creating a dependent string if no more than 6.25% (1/16) of the base
+  // string are used, to prevent tiny dependent strings keeping large base
+  // strings alive. (The percentage was chosen as a somewhat arbitrary threshold
+  // that is easy to compute.)
+  //
+  // Note that currently this limit only applies during tenuring; in the
+  // nursery, small dependent strings will be created but then cloned into
+  // unshared strings during tenuring. (The base string will not be marked in
+  // this case.)
+  static bool smallComparedToBase(size_t sharedChars, size_t baseChars) {
+    return sharedChars <= (baseChars >> 4);
+  }
+
 #if defined(DEBUG) || defined(JS_JITSPEW) || defined(JS_CACHEIR_SPEW)
   void dumpOwnRepresentationFields(js::JSONPrinter& json) const;
 #endif

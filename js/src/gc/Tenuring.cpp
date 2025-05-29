@@ -634,16 +634,39 @@ void JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
   MOZ_ASSERT(!InCollectedNurseryRegion(str), "str should have been promoted");
   MOZ_ASSERT(str->isDependent());
   JSLinearString* root = str->asDependent().rootBaseDuringMinorGC();
-  if (InCollectedNurseryRegion(root)) {
-    // Can still fixup the original chars pointer.
-    return;
-  }
-
-  // If the base has not moved its chars, continue using them.
   JS::AutoCheckCannotGC nogc;
   const CharT* chars = str->chars<CharT>(nogc);
-  if (PtrIsWithinRange(chars, root->range<CharT>(nogc))) {
-    return;
+
+  // If a dependent string is using a small percentage of its base string's
+  // data, and it is not (yet) known whether anything else might be keeping
+  // that base string alive, then clone the chars (and avoid marking the base)
+  // in order to hopefully allow the base to be freed (assuming nothing later
+  // during marking needs the base for other reasons).
+  //
+  // "Nothing else is yet known to keep the base alive" == "the base is not
+  // currently forwarded".
+  bool baseKnownLiveYet = IsForwarded(root);
+  bool cloneToSaveSpace =
+      !baseKnownLiveYet &&
+      JSDependentString::smallComparedToBase(str->length(), root->length());
+
+  if (!cloneToSaveSpace) {
+    // If the root base (going through the nursery) is going to be collected,
+    // then it will record enough information for this dependent string's chars
+    // to be updated.
+    if (InCollectedNurseryRegion(root)) {
+      return; // Remain dependent.
+    }
+
+    // If the base has not moved its chars, continue using them.
+    if (PtrIsWithinRange(chars, root->range<CharT>(nogc))) {
+      return; // Remain dependent.
+    }
+
+    // Must clone for correctness. The reachable root base string has already
+    // been promoted (and so can't store information needed for fixup) and the
+    // dependent string uses chars from somewhere else. Clone the chars before
+    // the minor GC ends and frees or reuses them.
   }
 
   // Clone the chars.
@@ -1200,7 +1223,7 @@ JSString* js::gc::TenuringTracer::promoteString(JSString* src) {
     MOZ_ASSERT(!promotedBase->isDependent());
 
     dst->asDependent().setBase(&promotedBase->asLinear());
-    if (InCollectedNurseryRegion(base)) {
+    if (base != promotedBase) {
       dst->asDependent().updateToPromotedBase(base);
     }
 

@@ -65,6 +65,31 @@ function tByteSize(str) {
   return byteSize(str);
 }
 
+// If a dependent string uses a small percentage of its base's characters, then
+// it will be cloned if nothing else is keeping the base alive. This introduces
+// a tracing order dependency, and so both possibilities must be allowed.
+function s_ifDependent(str, depSize, clonedSize) {
+  // Resolve 32/64 bit width.
+  depSize = s(...depSize);
+  clonedSize = s(...clonedSize);
+
+  if (this.stringRepresentation) {
+    if (JSON.parse(stringRepresentation(str)).flags.includes("DEPENDENT_BIT")) {
+      return depSize;
+    } else {
+      return clonedSize;
+    }
+  } else {
+    // If it matches one of the options, then expect that size.
+    const size = byteSize(str);
+    if (size == depSize) {
+      return depSize;
+    } else {
+      return clonedSize;
+    }
+  }
+}
+
 // There are four representations of linear strings, with the following
 // capacities:
 //
@@ -90,7 +115,8 @@ const FA = m32 ? 32 : 32; // FatInlineAtom (includes a hash value)
 const NA = m32 ? 24 : 32; // NormalAtom
 const TN = m32 ? 16 : 24; // ThinInlineString
 const FN = m32 ? 32 : 32; // FatInlineString
-const XN = m32 ? 16 : 24; // ExtensibleString, has additional storage buffer
+const LN = m32 ? 16 : 24; // LinearString, has additional storage
+const XN = m32 ? 16 : 24; // ExtensibleString, has additional storage
 const RN = m32 ? 16 : 24; // Rope
 const DN = m32 ? 16 : 24; // DependentString
 const EN = m32 ? 16 : 24; // ExternalString
@@ -237,9 +263,10 @@ function tenure(s) {
   minorgc();
   return s;
 }
-assertEq(byteSize(tenure(rope8.substr(1000, 2000))),                    s(DN, DN));
-assertEq(byteSize(matches8[0]),                                         s(DN, DN));
-assertEq(byteSize(matches8[1]),                                         s(DN, DN));
+var sub = tenure(rope8.substr(1000, 2000));
+assertEq(byteSize(sub),                                                 s_ifDependent(sub, [DN, DN], [LN+2048, LN+2048]));
+assertEq(byteSize(matches8[0]),                                         s_ifDependent(matches8[0], [DN, DN], [LN+48, LN+48]));
+assertEq(byteSize(matches8[1]),                                         s_ifDependent(matches8[0], [DN, DN], [LN+48, LN+48]));
 
 // A char16_t rope. This changes size when flattened.
 // "From the Heliconian Muses let us begin to sing"
