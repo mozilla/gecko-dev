@@ -327,26 +327,9 @@ const extraRules = [
   },
 ];
 
-const legacyConfig = {
-  extends: ["eslint:recommended"],
-
-  overrides: structuredClone(extraRules),
-
-  parserOptions: {
-    // If this changes, ensure the version in `flatConfig` is updated, as well
-    // as the return value of `helpers.getECMAVersion()`.
-    ecmaVersion: "latest",
-  },
-
-  // When adding items to this file please check for effects on sub-directories.
-  plugins: ["no-unsanitized"],
-
-  rules: coreRules.rules,
-};
-
-// Note: plugins are added in the top-level index.js file. This is to avoid
-// needing to import them multiple times for different configs.
-const flatConfig = [
+module.exports = [
+  // Note: plugins are added in the top-level index.js file. This is to avoid
+  // needing to import them multiple times for different configs.
   {
     files: [`**/*.{${allFileExtensions.join(",")}}`],
     languageOptions: {
@@ -362,12 +345,3 @@ const flatConfig = [
   },
   ...structuredClone(extraRules),
 ];
-
-module.exports = {
-  getConfig(configType) {
-    if (configType == "flat") {
-      return flatConfig;
-    }
-    return legacyConfig;
-  },
-};

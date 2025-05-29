@@ -107,36 +107,6 @@ const configurations = [
 ];
 
 /**
- * Clones a legacy configuration section, adjusting fields so that ESLint won't
- * fail.
- *
- * @param {object} section
- *   The section to clone.
- * @returns {object}
- *   The cloned section.
- */
-function cloneLegacySection(section) {
-  let config = structuredClone(section);
-
-  // The legacy config doesn't support names, so get rid of those.
-  delete config.name;
-
-  if (config.overrides) {
-    for (let overridesSection of config.overrides) {
-      // The legacy config doesn't support names in sections, so get rid of those.
-      delete overridesSection.name;
-      // Also, the legacy config supports "excludedFiles" rather than "ignores".
-      if (overridesSection.ignores) {
-        overridesSection.excludedFiles = overridesSection.ignores;
-        delete overridesSection.ignores;
-      }
-    }
-  }
-
-  return config;
-}
-
-/**
  * Clones a flat configuration section, adjusting fields so that ESLint won't
  * fail.
  *
@@ -209,14 +179,12 @@ for (let configName of configurations) {
   let config = require(`./configs/${configName}`);
 
   if (configName == "recommended") {
-    plugin.configs[configName] = cloneLegacySection(config.getConfig("legacy"));
-    plugin.configs[`flat/${configName}`] = config
-      .getConfig("flat")
-      .map(section => cloneFlatSection(section));
+    plugin.configs[`flat/${configName}`] = config.map(section =>
+      cloneFlatSection(section)
+    );
     continue;
   }
 
-  plugin.configs[configName] = cloneLegacySection(config);
   plugin.configs[`flat/${configName}`] = cloneFlatSection(config);
 }
 
