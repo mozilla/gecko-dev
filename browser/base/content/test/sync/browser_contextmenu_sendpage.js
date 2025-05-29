@@ -38,10 +38,6 @@ add_setup(async function () {
     });
   sinon.stub(Weave.Service.clientsEngine, "getClientType").returns("desktop");
   await BrowserTestUtils.openNewForegroundTab(gBrowser, "about:mozilla");
-  // Bug 1968055 - Temporarily enabled pocket pref while we remove the pref entirely
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.pocket.enabled", true]],
-  });
 });
 
 add_task(async function test_page_contextmenu() {
@@ -124,7 +120,6 @@ add_task(async function test_link_contextmenu() {
     "context-sep-open",
     "context-bookmarklink",
     "context-savelink",
-    "context-savelinktopocket",
     "context-copylink",
     ...(expectStripOnShareLink ? ["context-stripOnShareLink"] : []),
     "context-sendlinktodevice",
