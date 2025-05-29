@@ -77,10 +77,10 @@ SIGNING_SCOPE_ALIAS_TO_PROJECT = [
 
 """Map the signing scope aliases to the actual scopes.
 """
-SIGNING_CERT_SCOPES = {
-    "all-release-branches": "signing:cert:release-signing",
-    "all-nightly-branches": "signing:cert:nightly-signing",
-    "default": "signing:cert:dep-signing",
+SIGNING_TYPES = {
+    "all-release-branches": "release-signing",
+    "all-nightly-branches": "nightly-signing",
+    "default": "dep-signing",
 }
 
 DEVEDITION_SIGNING_SCOPE_ALIAS_TO_PROJECT = [
@@ -92,9 +92,9 @@ DEVEDITION_SIGNING_SCOPE_ALIAS_TO_PROJECT = [
     ]
 ]
 
-DEVEDITION_SIGNING_CERT_SCOPES = {
-    "beta": "signing:cert:nightly-signing",
-    "default": "signing:cert:dep-signing",
+DEVEDITION_SIGNING_TYPES = {
+    "beta": "nightly-signing",
+    "default": "dep-signing",
 }
 
 """Map beetmover scope aliases to sets of projects.
@@ -288,6 +288,26 @@ def with_scope_prefix(f):
     return wrapper
 
 
+def get_signing_type_from_project(
+    config, alias_to_project_map, alias_to_signing_type_map
+):
+    """Determine the restricted scope from `config.params['project']`.
+
+    Args:
+        config (TransformConfig): The configuration for the kind being transformed.
+        alias_to_project_map (list of lists): each list pair contains the
+            alias and the set of projects that match.  This is ordered.
+        alias_to_signing_type_map (dict): the alias to signing type
+
+    Returns:
+        string: the scope to use.
+    """
+    for alias, projects in alias_to_project_map:
+        if config.params["project"] in projects and alias in alias_to_signing_type_map:
+            return alias_to_signing_type_map[alias]
+    return alias_to_signing_type_map["default"]
+
+
 # scope functions {{{1
 @with_scope_prefix
 def get_scope_from_project(config, alias_to_project_map, alias_to_scope_map):
@@ -345,16 +365,16 @@ def get_phase_from_target_method(config, alias_to_tasks_map, alias_to_phase_map)
     return alias_to_phase_map["default"]
 
 
-get_signing_cert_scope = functools.partial(
-    get_scope_from_project,
+get_signing_type = functools.partial(
+    get_signing_type_from_project,
     alias_to_project_map=SIGNING_SCOPE_ALIAS_TO_PROJECT,
-    alias_to_scope_map=SIGNING_CERT_SCOPES,
+    alias_to_signing_type_map=SIGNING_TYPES,
 )
 
-get_devedition_signing_cert_scope = functools.partial(
-    get_scope_from_project,
+get_devedition_signing_type = functools.partial(
+    get_signing_type_from_project,
     alias_to_project_map=DEVEDITION_SIGNING_SCOPE_ALIAS_TO_PROJECT,
-    alias_to_scope_map=DEVEDITION_SIGNING_CERT_SCOPES,
+    alias_to_signing_type_map=DEVEDITION_SIGNING_TYPES,
 )
 
 get_beetmover_bucket_scope = functools.partial(
@@ -420,12 +440,12 @@ def get_release_config(config):
     return release_config
 
 
-def get_signing_cert_scope_per_platform(build_platform, is_shippable, config):
+def get_signing_type_per_platform(build_platform, is_shippable, config):
     if "devedition" in build_platform:
-        return get_devedition_signing_cert_scope(config)
+        return get_devedition_signing_type(config)
     if is_shippable:
-        return get_signing_cert_scope(config)
-    return add_scope_prefix(config, "signing:cert:dep-signing")
+        return get_signing_type(config)
+    return "dep-signing"
 
 
 # generate_beetmover_upstream_artifacts {{{1

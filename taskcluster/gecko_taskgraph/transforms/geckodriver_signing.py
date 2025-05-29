@@ -12,7 +12,7 @@ from voluptuous import Optional
 
 from gecko_taskgraph.transforms.task import task_description_schema
 from gecko_taskgraph.util.attributes import copy_attributes_from_dependent_job
-from gecko_taskgraph.util.scriptworker import get_signing_cert_scope_per_platform
+from gecko_taskgraph.util.scriptworker import get_signing_type_per_platform
 
 repackage_signing_description_schema = Schema(
     {
@@ -71,15 +71,13 @@ def make_signing_description(config, jobs):
 
         build_platform = dep_job.attributes.get("build_platform")
         is_shippable = dep_job.attributes.get("shippable")
-        signing_cert_scope = get_signing_cert_scope_per_platform(
+        signing_type = get_signing_type_per_platform(
             build_platform, is_shippable, config
         )
 
         upstream_artifacts = _craft_upstream_artifacts(
             dep_job, dep_job.kind, build_platform
         )
-
-        scopes = [signing_cert_scope]
 
         platform = build_platform.rsplit("-", 1)[0]
 
@@ -89,9 +87,9 @@ def make_signing_description(config, jobs):
             "worker-type": "linux-signing",
             "worker": {
                 "implementation": "scriptworker-signing",
+                "signing-type": signing_type,
                 "upstream-artifacts": upstream_artifacts,
             },
-            "scopes": scopes,
             "dependencies": dependencies,
             "attributes": attributes,
             "treeherder": treeherder,

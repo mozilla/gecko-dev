@@ -4,7 +4,8 @@
 
 import os
 
-import android_taskgraph
+from android_taskgraph import register as register_android_taskgraph
+from mozilla_taskgraph import register as register_mozilla_taskgraph
 from taskgraph import config as taskgraph_config
 from taskgraph import generator
 from taskgraph import morph as taskgraph_morph
@@ -72,7 +73,8 @@ def register(graph_config):
     # (see comment over there)
     del registry["skip-unless-changed"]
 
-    android_taskgraph.register(graph_config)
+    register_mozilla_taskgraph(graph_config)
+    register_android_taskgraph(graph_config)
 
     # Don't use the upstream verifications, and replace them with our own.
     # TODO Investigate merging our verifications with upstream.
