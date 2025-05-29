@@ -6,8 +6,17 @@ import json
 import logging
 import os
 import shutil
-import subprocess
 import tempfile
+
+import requests
+from redo import retry
+
+
+class RemoteVCSError(Exception):
+    """Raised when vcs server (e.g., hg or git) responds with an error code that is not 404 (i.e. when there is an outage)"""
+
+    def __init__(self, msg) -> None:
+        super().__init__(msg)
 
 
 def generate_browser_desktop_entry_file_text(
@@ -48,7 +57,7 @@ def _create_fluent_localizations(
     fluent_resource_loader, fluent_localization, release_type, release_product, log
 ):
     brand_fluent_filename = "brand.ftl"
-    l10n_central_repo = "https://github.com/mozilla-l10n/firefox-l10n"
+    l10n_central_url = "https://raw.githubusercontent.com/mozilla-l10n/firefox-l10n"
     desktop_entry_fluent_filename = "linuxDesktopEntry.ftl"
 
     l10n_dir = tempfile.mkdtemp()
@@ -65,93 +74,69 @@ def _create_fluent_localizations(
         brand_fluent_filename, release_type, release_product
     )
 
-    all_revisions = {val["revision"] for val in linux_l10n_changesets.values()}
-    assert len(all_revisions) == 1
-    l10n_revision = all_revisions.pop()
-
-    with tempfile.TemporaryDirectory() as l10n_repo_clone:
-        subprocess.check_call(["git", "init", l10n_repo_clone])
-        subprocess.check_call(
-            ["git", "remote", "add", "origin", l10n_central_repo], cwd=l10n_repo_clone
+    for locale in locales:
+        locale_dir = os.path.join(l10n_dir, locale)
+        os.mkdir(locale_dir)
+        localized_desktop_entry_filename = os.path.join(
+            locale_dir, desktop_entry_fluent_filename
         )
-        subprocess.check_call(
-            [
-                "git",
-                "fetch",
-                "--no-progress",
-                "--depth=1",
-                "origin",
-                l10n_revision,
-            ],
-            cwd=l10n_repo_clone,
-        )
-        subprocess.check_call(
-            [
-                "git",
-                "reset",
-                "--hard",
-                "FETCH_HEAD",
-            ],
-            cwd=l10n_repo_clone,
-        )
-
-        for locale in locales:
-            locale_dir = os.path.join(l10n_dir, locale)
-            os.mkdir(locale_dir)
-            localized_desktop_entry_filename = os.path.join(
-                locale_dir, desktop_entry_fluent_filename
+        if locale == "en-US":
+            en_US_desktop_entry_fluent_filename = os.path.join(
+                "browser", "locales", "en-US", "browser", desktop_entry_fluent_filename
             )
-            if locale == "en-US":
-                en_US_desktop_entry_fluent_filename = os.path.join(
-                    "browser",
-                    "locales",
-                    "en-US",
-                    "browser",
-                    desktop_entry_fluent_filename,
-                )
-                shutil.copyfile(
-                    en_US_desktop_entry_fluent_filename,
-                    localized_desktop_entry_filename,
-                )
-            else:
-                non_en_US_fluent_resource_file_name = os.path.join(
-                    f"{l10n_repo_clone}",
-                    f"{locale}",
-                    "browser",
-                    "browser",
-                    f"{desktop_entry_fluent_filename}",
-                )
-                print("locale", locale, non_en_US_fluent_resource_file_name)
-                if not os.path.isfile(non_en_US_fluent_resource_file_name):
-                    log(
-                        logging.WARNING,
-                        "repackage-deb",
-                        {
-                            "fluent_resource_file_name": desktop_entry_fluent_filename,
-                            "locale": locale,
-                            "resource_file_name": non_en_US_fluent_resource_file_name,
-                        },
-                        "Missing {fluent_resource_file_name} for {locale}: {resource_file_name}",
-                    )
-                    continue
-                shutil.copyfile(
-                    non_en_US_fluent_resource_file_name,
-                    localized_desktop_entry_filename,
-                )
-
             shutil.copyfile(
-                en_US_brand_fluent_filename,
-                os.path.join(locale_dir, brand_fluent_filename),
+                en_US_desktop_entry_fluent_filename,
+                localized_desktop_entry_filename,
             )
+        else:
+            non_en_US_fluent_resource_file_url = f"{l10n_central_url}/{linux_l10n_changesets[locale]['revision']}/{locale}/browser/browser/{desktop_entry_fluent_filename}"
+            response = requests.get(non_en_US_fluent_resource_file_url)
+            response = retry(
+                requests.get,
+                args=[non_en_US_fluent_resource_file_url],
+                attempts=5,
+                sleeptime=3,
+                jitter=2,
+            )
+            mgs = "Missing {fluent_resource_file_name} for {locale}: received HTTP {status_code} for GET {resource_file_url}"
+            params = {
+                "fluent_resource_file_name": desktop_entry_fluent_filename,
+                "locale": locale,
+                "resource_file_url": non_en_US_fluent_resource_file_url,
+                "status_code": response.status_code,
+            }
+            action = "repackage-deb"
+            if response.status_code == 404:
+                log(
+                    logging.WARNING,
+                    action,
+                    params,
+                    mgs,
+                )
+                continue
+            if response.status_code != 200:
+                log(
+                    logging.ERROR,
+                    action,
+                    params,
+                    mgs,
+                )
+                raise RemoteVCSError(mgs.format(**params))
 
-            fallbacks = [locale]
-            if locale != "en-US":
-                fallbacks.append("en-US")
-            localizations[locale] = fluent_localization(
-                fallbacks,
-                [desktop_entry_fluent_filename, brand_fluent_filename],
-                loader,
-            )
+            with open(localized_desktop_entry_filename, "w", encoding="utf-8") as f:
+                f.write(response.text)
+
+        shutil.copyfile(
+            en_US_brand_fluent_filename,
+            os.path.join(locale_dir, brand_fluent_filename),
+        )
+
+        fallbacks = [locale]
+        if locale != "en-US":
+            fallbacks.append("en-US")
+        localizations[locale] = fluent_localization(
+            fallbacks, [desktop_entry_fluent_filename, brand_fluent_filename], loader
+        )
 
     return localizations
 
