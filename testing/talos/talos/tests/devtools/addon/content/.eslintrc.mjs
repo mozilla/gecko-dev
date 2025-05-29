@@ -19,7 +19,10 @@ export default [
       },
     },
     rules: {
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", vars: "all" }],
+      "no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", caughtErrors: "none", vars: "all" },
+      ],
       // These are the rules that have been configured so far to match the
       // devtools coding style.
 

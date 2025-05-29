@@ -6,7 +6,10 @@ export default [
   {
     rules: {
       "no-inner-declarations": "error",
-      "no-unused-vars": ["error", { vars: "all", argsIgnorePattern: "^_" }],
+      "no-unused-vars": [
+        "error",
+        { vars: "all", caughtErrors: "none", argsIgnorePattern: "^_" },
+      ],
     },
   },
 ];

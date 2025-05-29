@@ -1,6 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
-/* eslint no-unused-vars: [2, {"vars": "local"}] */
+/* eslint no-unused-vars: [2, {"vars": "local", caughtErrors: "none"}] */
 
 /* import-globals-from ../../inspector/test/shared-head.js */
 

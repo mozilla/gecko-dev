@@ -258,7 +258,10 @@ export default [
       "no-unreachable": 2,
       // Disallow global and local variables that arent used. Allow unused function arguments
       // that are prefixed with `_`.
-      "no-unused-vars": [2, { vars: "all", argsIgnorePattern: "^_" }],
+      "no-unused-vars": [
+        2,
+        { vars: "all", caughtErrors: "none", argsIgnorePattern: "^_" },
+      ],
       // Allow using variables before they are defined.
       "no-use-before-define": 0,
       // We use var-only-at-top-level instead of no-var as we allow top level

@@ -1,5 +1,5 @@
 "use strict";
-/* exported global doRet doThrow */
+/* exported doRet, doThrow */
 
 function ret() {
   return 2;

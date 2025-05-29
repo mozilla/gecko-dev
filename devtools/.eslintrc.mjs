@@ -103,7 +103,10 @@ export default [
       "no-return-assign": "error",
       // Disallow global and local variables that aren't used. Allow unused
       // function arguments prefixed with `_`.
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", vars: "all" }],
+      "no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", caughtErrors: "none", vars: "all" },
+      ],
       // Enforce using `let` only when variables are reassigned.
       "prefer-const": ["error", { destructuring: "all" }],
       // Require use of the second argument for parseInt().
@@ -192,7 +195,10 @@ export default [
     // For all head*.js files, turn off no-unused-vars at a global level
     files: ["**/head*.js"],
     rules: {
-      "no-unused-vars": ["error", { argsIgnorePattern: "^_", vars: "local" }],
+      "no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", caughtErrors: "none", vars: "local" },
+      ],
     },
   },
   {

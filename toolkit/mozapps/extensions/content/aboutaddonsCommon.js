@@ -5,12 +5,11 @@
 
 "use strict";
 
-/* exported attachUpdateHandler, detachUpdateHandler,
- *          getBrowserElement, installAddonsFromFilePicker,
- *          isCorrectlySigned, isDisabledUnsigned, isDiscoverEnabled,
- *          isPending, loadReleaseNotes, openOptionsInTab, promiseEvent,
- *          shouldShowPermissionsPrompt, showPermissionsPrompt,
- *          PREF_UI_LASTCATEGORY */
+/* exported attachUpdateHandler, detachUpdateHandler, getBrowserElement,
+     installAddonsFromFilePicker, isCorrectlySigned, isDisabledUnsigned,
+     isDiscoverEnabled, isPending, loadReleaseNotes, openOptionsInTab,
+     promiseEvent, shouldShowPermissionsPrompt, showPermissionsPrompt,
+     PREF_UI_LASTCATEGORY */
 
 const { AddonSettings } = ChromeUtils.importESModule(
   "resource://gre/modules/addons/AddonSettings.sys.mjs"

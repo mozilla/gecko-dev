@@ -7,7 +7,11 @@ export default [
     rules: {
       "no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^end_test$" },
+        {
+          argsIgnorePattern: "^_",
+          caughtErrors: "none",
+          varsIgnorePattern: "^end_test$",
+        },
       ],
     },
   },
@@ -18,6 +22,7 @@ export default [
         "error",
         {
           argsIgnorePattern: "^_",
+          caughtErrors: "none",
           vars: "local",
         },
       ],

@@ -255,6 +255,7 @@ let config = [
         "error",
         {
           argsIgnorePattern: "^_",
+          caughtErrors: "none",
           vars: "local",
         },
       ],
@@ -274,6 +275,7 @@ let config = [
         "error",
         {
           argsIgnorePattern: "^_",
+          caughtErrors: "none",
           vars: "all",
         },
       ],

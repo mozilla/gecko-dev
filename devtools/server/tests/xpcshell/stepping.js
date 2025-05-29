@@ -1,5 +1,5 @@
 "use strict";
-/* exported global arithmetic composition chaining nested */
+/* exported arithmetic, composition, chaining, nested */
 
 const obj = { b };
 

@@ -3,7 +3,6 @@
  */
 
 /* eslint "mozilla/no-aArgs": 1 */
-/* eslint "no-unused-vars": [2, {"argsIgnorePattern": "^_", "varsIgnorePattern": "^(Cc|Ci|Cr|Cu|EXPORTED_SYMBOLS)$"}] */
 /* eslint "semi": [2, "always"] */
 
 const CERTDB_CONTRACTID = "@mozilla.org/security/x509certdb;1";

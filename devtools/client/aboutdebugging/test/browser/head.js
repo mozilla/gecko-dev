@@ -3,9 +3,6 @@
 
 "use strict";
 
-/* eslint-env browser */
-/* eslint no-unused-vars: [2, {"vars": "local"}] */
-
 // Load the shared-head file first.
 Services.scriptloader.loadSubScript(
   "chrome://mochitests/content/browser/devtools/client/shared/test/shared-head.js",

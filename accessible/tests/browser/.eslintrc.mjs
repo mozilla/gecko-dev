@@ -20,7 +20,10 @@ export default [
       "no-multi-str": "error",
       "no-proto": "error",
       "no-return-assign": "error",
-      "no-unused-vars": ["error", { vars: "all", argsIgnorePattern: "^_" }],
+      "no-unused-vars": [
+        "error",
+        { vars: "all", caughtErrors: "none", argsIgnorePattern: "^_" },
+      ],
       "one-var": ["error", "never"],
       radix: "error",
       strict: ["error", "global"],

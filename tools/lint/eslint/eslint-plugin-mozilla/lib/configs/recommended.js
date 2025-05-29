@@ -204,6 +204,7 @@ const coreRules = {
       "error",
       {
         argsIgnorePattern: "^_",
+        caughtErrors: "none",
         vars: "local",
       },
     ],
@@ -272,6 +273,7 @@ const extraRules = [
         "error",
         {
           argsIgnorePattern: "^_",
+          caughtErrors: "none",
           vars: "all",
         },
       ],

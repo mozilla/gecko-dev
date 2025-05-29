@@ -34,6 +34,7 @@ export default [
         "error",
         {
           argsIgnorePattern: "^_",
+          caughtErrors: "none",
           vars: "local",
           varsIgnorePattern: "(debug|warn)",
         },

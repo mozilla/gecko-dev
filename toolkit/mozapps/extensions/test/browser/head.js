@@ -3,7 +3,7 @@
  */
 /* globals end_test */
 
-/* eslint no-unused-vars: ["error", {vars: "local", args: "none"}] */
+/* eslint no-unused-vars: ["error", {vars: "local", caughtErrors: "none", args: "none"}] */
 
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"

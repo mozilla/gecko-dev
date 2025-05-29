@@ -4,7 +4,7 @@
 
 "use strict";
 
-/* eslint no-unused-vars: [2, {"vars": "local"}] */
+/* eslint no-unused-vars: [2, {"vars": "local", caughtErrors: "none"}] */
 /* import-globals-from ../../shared/test/shared-head.js */
 
 // Sometimes HTML pages have a `clear` function that cleans up the storage they
