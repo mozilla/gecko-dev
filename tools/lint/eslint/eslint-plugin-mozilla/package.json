@@ -18,7 +18,7 @@
     "url": "https://hg.mozilla.org/mozilla-central/"
   },
   "author": "Mike Ratcliffe",
-  "main": "lib/index.js",
+  "main": "lib/index.mjs",
   "dependencies": {
     "eslint-scope": "^8.0.1",
     "eslint-visitor-keys": "^4.0.0",

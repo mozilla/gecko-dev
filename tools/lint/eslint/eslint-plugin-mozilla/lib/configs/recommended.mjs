@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
+import js from "@eslint/js";
+import helpers from "../helpers.js";
 
-const js = require("@eslint/js");
-const { allFileExtensions } = require("../helpers.js");
+const { allFileExtensions } = helpers;
 
 /**
  * The configuration is based on eslint:recommended config. It defines the
@@ -327,7 +327,7 @@ const extraRules = [
   },
 ];
 
-module.exports = [
+export default [
   // Note: plugins are added in the top-level index.js file. This is to avoid
   // needing to import them multiple times for different configs.
   {

@@ -6,105 +6,166 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
+import globals from "globals";
+import helpers from "./helpers.js";
+import packageData from "../package.json" with { type: "json" };
 
-const path = require("path");
-const globals = require("globals");
-const { allFileExtensions, turnOff } = require("./helpers.js");
+import noUnsanitizedPlugin from "eslint-plugin-no-unsanitized";
+import sdlPlugin from "@microsoft/eslint-plugin-sdl";
+import promisePlugin from "eslint-plugin-promise";
+import jsdocPlugin from "eslint-plugin-jsdoc";
 
-const { name, version } = require(path.join(__dirname, "..", "package.json"));
+let { allFileExtensions, turnOff } = helpers;
 
-const plugin = {
-  meta: { name, version },
+let plugin = {
+  meta: { name: packageData.name, version: packageData.version },
   configs: {
-    // Filled in below.
+    // Filled in below due to circular references.
   },
   environments: {
-    "browser-window": require("./environments/browser-window.js"),
-    "chrome-script": require("./environments/chrome-script.js"),
-    "frame-script": require("./environments/frame-script.js"),
-    sysmjs: require("./environments/sysmjs.js"),
-    privileged: require("./environments/privileged.js"),
-    "process-script": require("./environments/process-script.js"),
-    "remote-page": require("./environments/remote-page.js"),
-    simpletest: require("./environments/simpletest.js"),
-    sjs: require("./environments/sjs.js"),
-    "special-powers-sandbox": require("./environments/special-powers-sandbox.js"),
-    specific: require("./environments/specific"),
-    testharness: require("./environments/testharness.js"),
-    xpcshell: require("./environments/xpcshell.js"),
+    "browser-window": (await import("./environments/browser-window.js"))
+      .default,
+    "chrome-script": (await import("./environments/chrome-script.js")).default,
+    "frame-script": (await import("./environments/frame-script.js")).default,
+    sysmjs: (await import("./environments/sysmjs.js")).default,
+    privileged: (await import("./environments/privileged.js")).default,
+    "process-script": (await import("./environments/process-script.js"))
+      .default,
+    "remote-page": (await import("./environments/remote-page.js")).default,
+    simpletest: (await import("./environments/simpletest.js")).default,
+    sjs: (await import("./environments/sjs.js")).default,
+    "special-powers-sandbox": (
+      await import("./environments/special-powers-sandbox.js")
+    ).default,
+    specific: (await import("./environments/specific.js")).default,
+    testharness: (await import("./environments/testharness.js")).default,
+    xpcshell: (await import("./environments/xpcshell.js")).default,
   },
   rules: {
-    "avoid-Date-timing": require("./rules/avoid-Date-timing"),
-    "avoid-removeChild": require("./rules/avoid-removeChild"),
-    "balanced-listeners": require("./rules/balanced-listeners"),
-    "balanced-observers": require("./rules/balanced-observers"),
-    "import-browser-window-globals": require("./rules/import-browser-window-globals"),
-    "import-content-task-globals": require("./rules/import-content-task-globals"),
-    "import-globals": require("./rules/import-globals"),
-    "import-headjs-globals": require("./rules/import-headjs-globals"),
-    "lazy-getter-object-name": require("./rules/lazy-getter-object-name"),
-    "mark-test-function-used": require("./rules/mark-test-function-used"),
-    "no-aArgs": require("./rules/no-aArgs"),
-    "no-addtask-setup": require("./rules/no-addtask-setup"),
-    "no-arbitrary-setTimeout": require("./rules/no-arbitrary-setTimeout"),
-    "no-browser-refs-in-toolkit": require("./rules/no-browser-refs-in-toolkit"),
-    "no-compare-against-boolean-literals": require("./rules/no-compare-against-boolean-literals"),
-    "no-comparison-or-assignment-inside-ok": require("./rules/no-comparison-or-assignment-inside-ok"),
-    "no-cu-reportError": require("./rules/no-cu-reportError"),
-    "no-define-cc-etc": require("./rules/no-define-cc-etc"),
-    "no-more-globals": require("./rules/no-more-globals"),
-    "no-redeclare-with-import-autofix": require("./rules/no-redeclare-with-import-autofix"),
-    "no-throw-cr-literal": require("./rules/no-throw-cr-literal"),
-    "no-useless-parameters": require("./rules/no-useless-parameters"),
-    "no-useless-removeEventListener": require("./rules/no-useless-removeEventListener"),
-    "no-useless-run-test": require("./rules/no-useless-run-test"),
-    "prefer-boolean-length-check": require("./rules/prefer-boolean-length-check"),
-    "prefer-formatValues": require("./rules/prefer-formatValues"),
-    "reject-addtask-only": require("./rules/reject-addtask-only"),
-    "reject-eager-module-in-lazy-getter": require("./rules/reject-eager-module-in-lazy-getter"),
-    "reject-globalThis-modification": require("./rules/reject-globalThis-modification"),
-    "reject-import-system-module-from-non-system": require("./rules/reject-import-system-module-from-non-system"),
-    "reject-importGlobalProperties": require("./rules/reject-importGlobalProperties"),
-    "reject-lazy-imports-into-globals": require("./rules/reject-lazy-imports-into-globals"),
-    "reject-mixing-eager-and-lazy": require("./rules/reject-mixing-eager-and-lazy"),
-    "reject-multiple-await": require("./rules/reject-multiple-await.js"),
-    "reject-multiple-getters-calls": require("./rules/reject-multiple-getters-calls"),
-    "reject-scriptableunicodeconverter": require("./rules/reject-scriptableunicodeconverter"),
-    "reject-relative-requires": require("./rules/reject-relative-requires"),
-    "reject-some-requires": require("./rules/reject-some-requires"),
-    "reject-top-level-await": require("./rules/reject-top-level-await"),
-    "rejects-requires-await": require("./rules/rejects-requires-await"),
-    "use-cc-etc": require("./rules/use-cc-etc"),
-    "use-chromeutils-generateqi": require("./rules/use-chromeutils-generateqi"),
-    "use-console-createInstance": require("./rules/use-console-createInstance"),
-    "use-default-preference-values": require("./rules/use-default-preference-values"),
-    "use-ownerGlobal": require("./rules/use-ownerGlobal"),
-    "use-includes-instead-of-indexOf": require("./rules/use-includes-instead-of-indexOf"),
-    "use-isInstance": require("./rules/use-isInstance"),
-    "use-returnValue": require("./rules/use-returnValue"),
-    "use-services": require("./rules/use-services"),
-    "use-static-import": require("./rules/use-static-import"),
-    "valid-ci-uses": require("./rules/valid-ci-uses"),
-    "valid-lazy": require("./rules/valid-lazy"),
-    "valid-services": require("./rules/valid-services"),
-    "valid-services-property": require("./rules/valid-services-property"),
-    "var-only-at-top-level": require("./rules/var-only-at-top-level"),
+    "avoid-Date-timing": (await import("./rules/avoid-Date-timing.js")).default,
+    "avoid-removeChild": (await import("./rules/avoid-removeChild.js")).default,
+    "balanced-listeners": (await import("./rules/balanced-listeners.js"))
+      .default,
+    "balanced-observers": (await import("./rules/balanced-observers.js"))
+      .default,
+    "import-browser-window-globals": (
+      await import("./rules/import-browser-window-globals.js")
+    ).default,
+    "import-content-task-globals": (
+      await import("./rules/import-content-task-globals.js")
+    ).default,
+    "import-globals": (await import("./rules/import-globals.js")).default,
+    "import-headjs-globals": (await import("./rules/import-headjs-globals.js"))
+      .default,
+    "lazy-getter-object-name": (
+      await import("./rules/lazy-getter-object-name.js")
+    ).default,
+    "mark-test-function-used": (
+      await import("./rules/mark-test-function-used.js")
+    ).default,
+    "no-aArgs": (await import("./rules/no-aArgs.js")).default,
+    "no-addtask-setup": (await import("./rules/no-addtask-setup.js")).default,
+    "no-arbitrary-setTimeout": (
+      await import("./rules/no-arbitrary-setTimeout.js")
+    ).default,
+    "no-browser-refs-in-toolkit": (
+      await import("./rules/no-browser-refs-in-toolkit.js")
+    ).default,
+    "no-compare-against-boolean-literals": (
+      await import("./rules/no-compare-against-boolean-literals.js")
+    ).default,
+    "no-comparison-or-assignment-inside-ok": (
+      await import("./rules/no-comparison-or-assignment-inside-ok.js")
+    ).default,
+    "no-cu-reportError": (await import("./rules/no-cu-reportError.js")).default,
+    "no-define-cc-etc": (await import("./rules/no-define-cc-etc.js")).default,
+    "no-more-globals": (await import("./rules/no-more-globals.js")).default,
+    "no-redeclare-with-import-autofix": (
+      await import("./rules/no-redeclare-with-import-autofix.js")
+    ).default,
+    "no-throw-cr-literal": (await import("./rules/no-throw-cr-literal.js"))
+      .default,
+    "no-useless-parameters": (await import("./rules/no-useless-parameters.js"))
+      .default,
+    "no-useless-removeEventListener": (
+      await import("./rules/no-useless-removeEventListener.js")
+    ).default,
+    "no-useless-run-test": (await import("./rules/no-useless-run-test.js"))
+      .default,
+    "prefer-boolean-length-check": (
+      await import("./rules/prefer-boolean-length-check.js")
+    ).default,
+    "prefer-formatValues": (await import("./rules/prefer-formatValues.js"))
+      .default,
+    "reject-addtask-only": (await import("./rules/reject-addtask-only.js"))
+      .default,
+    "reject-eager-module-in-lazy-getter": (
+      await import("./rules/reject-eager-module-in-lazy-getter.js")
+    ).default,
+    "reject-globalThis-modification": (
+      await import("./rules/reject-globalThis-modification.js")
+    ).default,
+    "reject-import-system-module-from-non-system": (
+      await import("./rules/reject-import-system-module-from-non-system.js")
+    ).default,
+    "reject-importGlobalProperties": (
+      await import("./rules/reject-importGlobalProperties.js")
+    ).default,
+    "reject-lazy-imports-into-globals": (
+      await import("./rules/reject-lazy-imports-into-globals.js")
+    ).default,
+    "reject-mixing-eager-and-lazy": (
+      await import("./rules/reject-mixing-eager-and-lazy.js")
+    ).default,
+    "reject-multiple-await": (await import("./rules/reject-multiple-await.js"))
+      .default,
+    "reject-multiple-getters-calls": (
+      await import("./rules/reject-multiple-getters-calls.js")
+    ).default,
+    "reject-scriptableunicodeconverter": (
+      await import("./rules/reject-scriptableunicodeconverter.js")
+    ).default,
+    "reject-relative-requires": (
+      await import("./rules/reject-relative-requires.js")
+    ).default,
+    "reject-some-requires": (await import("./rules/reject-some-requires.js"))
+      .default,
+    "reject-top-level-await": (
+      await import("./rules/reject-top-level-await.js")
+    ).default,
+    "rejects-requires-await": (
+      await import("./rules/rejects-requires-await.js")
+    ).default,
+    "use-cc-etc": (await import("./rules/use-cc-etc.js")).default,
+    "use-chromeutils-generateqi": (
+      await import("./rules/use-chromeutils-generateqi.js")
+    ).default,
+    "use-console-createInstance": (
+      await import("./rules/use-console-createInstance.js")
+    ).default,
+    "use-default-preference-values": (
+      await import("./rules/use-default-preference-values.js")
+    ).default,
+    "use-ownerGlobal": (await import("./rules/use-ownerGlobal.js")).default,
+    "use-includes-instead-of-indexOf": (
+      await import("./rules/use-includes-instead-of-indexOf.js")
+    ).default,
+    "use-isInstance": (await import("./rules/use-isInstance.js")).default,
+    "use-returnValue": (await import("./rules/use-returnValue.js")).default,
+    "use-services": (await import("./rules/use-services.js")).default,
+    "use-static-import": (await import("./rules/use-static-import.js")).default,
+    "valid-ci-uses": (await import("./rules/valid-ci-uses.js")).default,
+    "valid-lazy": (await import("./rules/valid-lazy.js")).default,
+    "valid-services": (await import("./rules/valid-services.js")).default,
+    "valid-services-property": (
+      await import("./rules/valid-services-property.js")
+    ).default,
+    "var-only-at-top-level": (await import("./rules/var-only-at-top-level.js"))
+      .default,
   },
   allFileExtensions,
   turnOff,
 };
-
-const configurations = [
-  "browser-test",
-  "chrome-test",
-  "general-test",
-  "mochitest-test",
-  "recommended",
-  "require-jsdoc",
-  "valid-jsdoc",
-  "xpcshell-test",
-];
 
 /**
  * Clones a flat configuration section, adjusting fields so that ESLint won't
@@ -123,10 +184,10 @@ function cloneFlatSection(section) {
   // now this is simpler.
   config.plugins = {
     mozilla: plugin,
-    "no-unsanitized": require("eslint-plugin-no-unsanitized"),
-    "@microsoft/sdl": require("@microsoft/eslint-plugin-sdl"),
-    promise: require("eslint-plugin-promise"),
-    jsdoc: require("eslint-plugin-jsdoc"),
+    "no-unsanitized": noUnsanitizedPlugin,
+    "@microsoft/sdl": sdlPlugin,
+    promise: promisePlugin,
+    jsdoc: jsdocPlugin,
   };
   if (!config.languageOptions) {
     config.languageOptions = {};
@@ -175,17 +236,31 @@ function cloneFlatSection(section) {
   return config;
 }
 
-for (let configName of configurations) {
-  let config = require(`./configs/${configName}`);
+plugin.configs = {
+  "flat/browser-test": cloneFlatSection(
+    (await import("./configs/browser-test.mjs")).default
+  ),
+  "flat/chrome-test": cloneFlatSection(
+    (await import("./configs/chrome-test.mjs")).default
+  ),
+  "flat/general-test": cloneFlatSection(
+    (await import("./configs/general-test.mjs")).default
+  ),
+  "flat/mochitest-test": cloneFlatSection(
+    (await import("./configs/mochitest-test.mjs")).default
+  ),
+  "flat/recommended": (await import("./configs/recommended.mjs")).default.map(
+    section => cloneFlatSection(section)
+  ),
+  "flat/require-jsdoc": cloneFlatSection(
+    (await import("./configs/require-jsdoc.mjs")).default
+  ),
+  "flat/valid-jsdoc": cloneFlatSection(
+    (await import("./configs/valid-jsdoc.mjs")).default
+  ),
+  "flat/xpcshell-test": cloneFlatSection(
+    (await import("./configs/xpcshell-test.mjs")).default
+  ),
+};
 
-  if (configName == "recommended") {
-    plugin.configs[`flat/${configName}`] = config.map(section =>
-      cloneFlatSection(section)
-    );
-    continue;
-  }
-
-  plugin.configs[`flat/${configName}`] = cloneFlatSection(config);
-}
-
-module.exports = plugin;
+export default plugin;

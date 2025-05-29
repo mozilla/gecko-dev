@@ -1,9 +1,12 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 // Parent config file for all test files.
 // This should be applied by the configuration before any other test
 // configurations.
-"use strict";
 
-module.exports = {
+export default {
   name: "mozilla/general-test",
   plugins: ["mozilla", "@microsoft/sdl", "no-unsanitized"],
 
