@@ -681,16 +681,18 @@ enum ReactionRecordSlots {
   //   the 'fulfill' function of a promise P2, so that resolving P1 resolves P2
   //   in the same way, P1 gets a reaction record with the
   //   REACTION_FLAG_DEFAULT_RESOLVING_HANDLER flag set and whose
-  //   ReactionRecordSlot_GeneratorOrPromiseToResolve slot holds P2.
+  //   ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator
+  //   slot holds P2.
   //
   // - When you await a promise. When an async function or generator awaits a
   //   value V, then the await expression generates an internal promise P,
   //   resolves it to V, and then gives P a reaction record with the
   //   REACTION_FLAG_ASYNC_FUNCTION or REACTION_FLAG_ASYNC_GENERATOR flag set
-  //   and whose ReactionRecordSlot_GeneratorOrPromiseToResolve slot holds the
-  //   generator object. (Typically V is a promise, so resolving P to V gives V
-  //   a REACTION_FLAGS_DEFAULT_RESOLVING_HANDLER reaction record as described
-  //   above.)
+  //   and whose
+  //   ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator
+  //   slot holds the generator object. (Typically V is a promise, so resolving
+  //   P to V gives V a REACTION_FLAGS_DEFAULT_RESOLVING_HANDLER reaction record
+  //   as described above.)
   //
   // - When JS::AddPromiseReactions{,IgnoringUnhandledRejection} cause the
   //   reaction to be created.  (These functions act as if they had created a
@@ -741,7 +743,9 @@ enum ReactionRecordSlots {
   // - When the REACTION_FLAG_DEFAULT_RESOLVING_HANDLER flag is set, this
   //   slot stores the promise to resolve when conceptually "calling" the
   //   OnFulfilled or OnRejected handlers.
-  ReactionRecordSlot_GeneratorOrPromiseToResolve,
+  // - When the REACTION_FLAG_ASYNC_FROM_SYNC_ITERATOR is set, this slot stores
+  //   the async-from-sync iterator object.
+  ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator,
 
   ReactionRecordSlots,
 };
@@ -768,17 +772,18 @@ class PromiseReactionRecord : public NativeObject {
 
   // If this flag is set, this reaction record is created for resolving
   // one promise P1 to another promise P2, and
-  // ReactionRecordSlot_GeneratorOrPromiseToResolve slot holds P2.
+  // ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator slot
+  // holds P2.
   static constexpr uint32_t REACTION_FLAG_DEFAULT_RESOLVING_HANDLER = 0x4;
 
   // If this flag is set, this reaction record is created for async function
-  // and ReactionRecordSlot_GeneratorOrPromiseToResolve slot holds
-  // internal generator object of the async function.
+  // and ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator
+  // slot holds internal generator object of the async function.
   static constexpr uint32_t REACTION_FLAG_ASYNC_FUNCTION = 0x8;
 
   // If this flag is set, this reaction record is created for async generator
-  // and ReactionRecordSlot_GeneratorOrPromiseToResolve slot holds
-  // the async generator object of the async generator.
+  // and ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator
+  // slot holds the async generator object of the async generator.
   static constexpr uint32_t REACTION_FLAG_ASYNC_GENERATOR = 0x10;
 
   // If this flag is set, this reaction record is created only for providing
@@ -792,6 +797,12 @@ class PromiseReactionRecord : public NativeObject {
   // Otherwise, promise object should be created on-demand for unhandled
   // rejection.
   static constexpr uint32_t REACTION_FLAG_IGNORE_UNHANDLED_REJECTION = 0x40;
+
+  // If this flag is set, this reaction record is created for async-from-sync
+  // iterators and
+  // ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator slot
+  // holds the async-from-sync iterator object.
+  static constexpr uint32_t REACTION_FLAG_ASYNC_FROM_SYNC_ITERATOR = 0x80;
 
   template <typename KnownF, typename UnknownF>
   static void forEachReactionFlag(uint32_t flags, KnownF known,
@@ -864,8 +875,9 @@ class PromiseReactionRecord : public NativeObject {
 
   void setIsDefaultResolvingHandler(PromiseObject* promiseToResolve) {
     setFlagOnInitialState(REACTION_FLAG_DEFAULT_RESOLVING_HANDLER);
-    setFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve,
-                 ObjectValue(*promiseToResolve));
+    setFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator,
+        ObjectValue(*promiseToResolve));
   }
   bool isDefaultResolvingHandler() const {
     int32_t flags = this->flags();
@@ -873,15 +885,16 @@ class PromiseReactionRecord : public NativeObject {
   }
   PromiseObject* defaultResolvingPromise() {
     MOZ_ASSERT(isDefaultResolvingHandler());
-    const Value& promiseToResolve =
-        getFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve);
+    const Value& promiseToResolve = getFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator);
     return &promiseToResolve.toObject().as<PromiseObject>();
   }
 
   void setIsAsyncFunction(AsyncFunctionGeneratorObject* genObj) {
     setFlagOnInitialState(REACTION_FLAG_ASYNC_FUNCTION);
-    setFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve,
-                 ObjectValue(*genObj));
+    setFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator,
+        ObjectValue(*genObj));
   }
   bool isAsyncFunction() const {
     int32_t flags = this->flags();
@@ -889,15 +902,16 @@ class PromiseReactionRecord : public NativeObject {
   }
   AsyncFunctionGeneratorObject* asyncFunctionGenerator() {
     MOZ_ASSERT(isAsyncFunction());
-    const Value& generator =
-        getFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve);
+    const Value& generator = getFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator);
     return &generator.toObject().as<AsyncFunctionGeneratorObject>();
   }
 
   void setIsAsyncGenerator(AsyncGeneratorObject* generator) {
     setFlagOnInitialState(REACTION_FLAG_ASYNC_GENERATOR);
-    setFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve,
-                 ObjectValue(*generator));
+    setFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator,
+        ObjectValue(*generator));
   }
   bool isAsyncGenerator() const {
     int32_t flags = this->flags();
@@ -905,9 +919,26 @@ class PromiseReactionRecord : public NativeObject {
   }
   AsyncGeneratorObject* asyncGenerator() {
     MOZ_ASSERT(isAsyncGenerator());
-    const Value& generator =
-        getFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve);
+    const Value& generator = getFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator);
     return &generator.toObject().as<AsyncGeneratorObject>();
+  }
+
+  void setIsAsyncFromSyncIterator(AsyncFromSyncIteratorObject* iterator) {
+    setFlagOnInitialState(REACTION_FLAG_ASYNC_FROM_SYNC_ITERATOR);
+    setFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator,
+        ObjectValue(*iterator));
+  }
+  bool isAsyncFromSyncIterator() const {
+    int32_t flags = this->flags();
+    return flags & REACTION_FLAG_ASYNC_FROM_SYNC_ITERATOR;
+  }
+  AsyncFromSyncIteratorObject* asyncFromSyncIterator() {
+    MOZ_ASSERT(isAsyncFromSyncIterator());
+    const Value& iterator = getFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator);
+    return &iterator.toObject().as<AsyncFromSyncIteratorObject>();
   }
 
   void setIsDebuggerDummy() {
@@ -2341,7 +2372,21 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp) {
       handlerResult = JS::UndefinedValue();
     }
 #endif
-    else {
+    else if (handlerNum == PromiseHandler::AsyncFromSyncIteratorClose) {
+      MOZ_ASSERT(reaction->isAsyncFromSyncIterator());
+
+      // 27.1.6.4 AsyncFromSyncIteratorContinuation
+      //
+      // Step 13.a.i. Return ? IteratorClose(syncIteratorRecord,
+      //              ThrowCompletion(error)).
+      //
+      // https://tc39.es/ecma262/#sec-asyncfromsynciteratorcontinuation
+      Rooted<JSObject*> iter(cx, reaction->asyncFromSyncIterator()->iterator());
+      MOZ_ALWAYS_TRUE(CloseIterOperation(cx, iter, CompletionKind::Throw));
+
+      resolutionMode = RejectMode;
+      handlerResult = argument;
+    } else {
       // Special case for Async-from-Sync Iterator.
 
       MOZ_ASSERT(handlerNum ==
@@ -2351,7 +2396,12 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp) {
 
       bool done =
           handlerNum == PromiseHandler::AsyncFromSyncIteratorValueUnwrapDone;
-      // 25.1.4.2.5 Async-from-Sync Iterator Value Unwrap Functions, steps 1-2.
+
+      // 27.1.6.4 AsyncFromSyncIteratorContinuation
+      //
+      // Step 9.a. Return CreateIteratorResultObject(v, done).
+      //
+      // https://tc39.es/ecma262/#sec-asyncfromsynciteratorcontinuation
       PlainObject* resultObj = CreateIterResultObject(cx, argument, done);
       if (!resultObj) {
         return false;
@@ -5802,7 +5852,7 @@ template <typename T>
 }
 
 /**
- * ES2024 draft rev 53454a9a596d90473d2152ef04656d605162cd4c
+ * ES2026 draft rev d14670224281909f5bb552e8ebe4a8e958646c16
  *
  * %AsyncFromSyncIteratorPrototype%.next ( [ value ] )
  * https://tc39.es/ecma262/#sec-%asyncfromsynciteratorprototype%.next
@@ -5813,7 +5863,8 @@ template <typename T>
  * %AsyncFromSyncIteratorPrototype%.throw ( [ value ] )
  * https://tc39.es/ecma262/#sec-%asyncfromsynciteratorprototype%.throw
  *
- * AsyncFromSyncIteratorContinuation ( result, promiseCapability )
+ * AsyncFromSyncIteratorContinuation ( result, promiseCapability,
+ *                                     syncIteratorRecord, closeOnRejection )
  * https://tc39.es/ecma262/#sec-asyncfromsynciteratorcontinuation
  */
 bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
@@ -5842,7 +5893,8 @@ bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
   // or
   //
   // return() / throw():
-  // Step 4. Let syncIterator be O.[[SyncIteratorRecord]].[[Iterator]].
+  // Step 4. Let syncIteratorRecord be O.[[SyncIteratorRecord]].
+  // Step 5. Let syncIterator be syncIteratorRecord.[[Iterator]].
   RootedObject iter(cx, asyncIter->iterator());
 
   RootedValue func(cx);
@@ -5850,18 +5902,18 @@ bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
     // next() preparing for steps 5-6.
     func.set(asyncIter->nextMethod());
   } else if (completionKind == CompletionKind::Return) {
-    // return() steps 5-7.
-    // Step 5. Let return be Completion(GetMethod(syncIterator, "return")).
-    // Step 6. IfAbruptRejectPromise(return, promiseCapability).
+    // return() steps 6-8.
+    // Step 6. Let return be Completion(GetMethod(syncIterator, "return")).
+    // Step 7. IfAbruptRejectPromise(return, promiseCapability).
     if (!GetProperty(cx, iter, iter, cx->names().return_, &func)) {
       return AbruptRejectPromise(cx, args, resultPromise, nullptr);
     }
 
-    // Step 7. If return is undefined, then
+    // Step 8. If return is undefined, then
     // (Note: GetMethod contains a step that changes `null` to `undefined`;
     // we omit that step above, and check for `null` here instead.)
     if (func.isNullOrUndefined()) {
-      // Step 7.a. Let iterResult be CreateIterResultObject(value, true).
+      // Step 8.a. Let iterResult be CreateIterResultObject(value, true).
       PlainObject* resultObj = CreateIterResultObject(cx, args.get(0), true);
       if (!resultObj) {
         return AbruptRejectPromise(cx, args, resultPromise, nullptr);
@@ -5869,37 +5921,58 @@ bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
 
       RootedValue resultVal(cx, ObjectValue(*resultObj));
 
-      // Step 7.b. Perform ! Call(promiseCapability.[[Resolve]], undefined,
+      // Step 8.b. Perform ! Call(promiseCapability.[[Resolve]], undefined,
       //                          « iterResult »).
       if (!ResolvePromiseInternal(cx, resultPromise, resultVal)) {
         return AbruptRejectPromise(cx, args, resultPromise, nullptr);
       }
 
-      // Step 7.c. Return promiseCapability.[[Promise]].
+      // Step 8.c. Return promiseCapability.[[Promise]].
       args.rval().setObject(*resultPromise);
       return true;
     }
   } else {
-    // throw() steps 5-7.
+    // throw() steps 6-8.
     MOZ_ASSERT(completionKind == CompletionKind::Throw);
 
-    // Step 5. Let throw be Completion(GetMethod(syncIterator, "throw")).
-    // Step 6. IfAbruptRejectPromise(throw, promiseCapability).
+    // Step 6. Let throw be Completion(GetMethod(syncIterator, "throw")).
+    // Step 7. IfAbruptRejectPromise(throw, promiseCapability).
     if (!GetProperty(cx, iter, iter, cx->names().throw_, &func)) {
       return AbruptRejectPromise(cx, args, resultPromise, nullptr);
     }
 
-    // Step 7. If throw is undefined, then
+    // Step 8. If throw is undefined, then
     // (Note: GetMethod contains a step that changes `null` to `undefined`;
     // we omit that step above, and check for `null` here instead.)
     if (func.isNullOrUndefined()) {
-      // Step 7.a. Perform ! Call(promiseCapability.[[Reject]], undefined,
-      //                          « value »).
-      if (!RejectPromiseInternal(cx, resultPromise, args.get(0))) {
+      // Step 8.a. NOTE: If syncIterator does not have a throw method, close it
+      //           to give it a chance to clean up before we reject the
+      //           capability.
+      // Step 8.b. Let closeCompletion be NormalCompletion(empty).
+      // Step 8.c. Let result be Completion(IteratorClose(syncIteratorRecord,
+      //           closeCompletion)).
+      // Step 8.d. IfAbruptRejectPromise(result, promiseCapability).
+      if (!CloseIterOperation(cx, iter, CompletionKind::Normal)) {
         return AbruptRejectPromise(cx, args, resultPromise, nullptr);
       }
 
-      // Step 7.b. Return promiseCapability.[[Promise]].
+      // Step 8.e. NOTE: The next step throws a TypeError to indicate that there
+      //           was a protocol violation: syncIterator does not have a throw
+      //           method.
+      // Step 8.f. NOTE: If closing syncIterator does not throw then the result
+      //           of that operation is ignored, even if it yields a rejected
+      //           promise.
+      // Step 8.g. Perform ! Call(_promiseCapability_.[[Reject]], *undefined*,
+      //           « a newly created *TypeError* object »).
+      Rooted<Value> noThrowMethodError(cx);
+      if (!GetTypeError(cx, JSMSG_ITERATOR_NO_THROW, &noThrowMethodError)) {
+        return AbruptRejectPromise(cx, args, resultPromise, nullptr);
+      }
+      if (!RejectPromiseInternal(cx, resultPromise, noThrowMethodError)) {
+        return AbruptRejectPromise(cx, args, resultPromise, nullptr);
+      }
+
+      // Step 8.h. Return promiseCapability.[[Promise]].
       args.rval().setObject(*resultPromise);
       return true;
     }
@@ -5915,18 +5988,18 @@ bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
   // or
   //
   // return():
-  // Step 8. If value is present, then
-  // Step 8.a. Let result be Completion(Call(return, syncIterator,
+  // Step 9. If value is present, then
+  // Step 9.a. Let result be Completion(Call(return, syncIterator,
   //                                         « value »)).
-  // Step 9. Else,
-  // Step 9.a. Let result be Completion(Call(return, syncIterator)).
+  // Step 10. Else,
+  // Step 10.a. Let result be Completion(Call(return, syncIterator)).
   //
   // throw():
-  // Step 8. If value is present, then
-  // Step 8.a. Let result be Completion(Call(throw, syncIterator,
+  // Step 9. If value is present, then
+  // Step 9.a. Let result be Completion(Call(throw, syncIterator,
   //                                         « value »)).
-  // Step 9. Else,
-  // Step 9.a. Let result be Completion(Call(throw, syncIterator)).
+  // Step 10. Else,
+  // Step 10.a. Let result be Completion(Call(throw, syncIterator)).
   RootedValue iterVal(cx, ObjectValue(*iter));
   RootedValue resultVal(cx);
   bool ok;
@@ -5940,22 +6013,22 @@ bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
     // Step 7. IfAbruptRejectPromise(result, promiseCapability).
     //
     // return() / throw():
-    // Step 10. IfAbruptRejectPromise(result, promiseCapability).
+    // Step 11. IfAbruptRejectPromise(result, promiseCapability).
     return AbruptRejectPromise(cx, args, resultPromise, nullptr);
   }
 
   // next() steps 5-6 -> IteratorNext:
-  // Step 3. If result is not an Object, throw a TypeError exception.
+  // Step 5. If result is not an Object, throw a TypeError exception.
   // next():
   // Step 7. IfAbruptRejectPromise(result, promiseCapability).
   //
   // or
   //
   // return() / throw():
-  // Step 11. If result is not an Object, then
-  // Step 11.a. Perform ! Call(promiseCapability.[[Reject]], undefined,
+  // Step 12. If result is not an Object, then
+  // Step 12.a. Perform ! Call(promiseCapability.[[Reject]], undefined,
   //                           « a newly created TypeError object »).
-  // Step 11.b. Return promiseCapability.[[Promise]].
+  // Step 12.b. Return promiseCapability.[[Promise]].
   if (!resultVal.isObject()) {
     CheckIsObjectKind kind;
     switch (completionKind) {
@@ -5977,11 +6050,25 @@ bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
 
   // next():
   // Step 8. Return AsyncFromSyncIteratorContinuation(result,
-  //                                                  promiseCapability).
+  //                                                  promiseCapability,
+  //                                                  syncIteratorRecord,
+  //                                                  true).
   //
-  // return() / throw():
-  // Step 12. Return AsyncFromSyncIteratorContinuation(result,
-  //                                                   promiseCapability).
+  // return():
+  // Step 13. Return AsyncFromSyncIteratorContinuation(result,
+  //                                                   promiseCapability,
+  //                                                   syncIteratorRecord,
+  //                                                   false).
+  //
+  // throw():
+  // Step 13. Return AsyncFromSyncIteratorContinuation(result,
+  //                                                   promiseCapability,
+  //                                                   syncIteratorRecord,
+  //                                                   true).
+
+  // AsyncFromSyncIteratorContinuation is passed |closeOnRejection = true| iff
+  // completion-kind is not "return".
+  bool closeOnRejection = completionKind != CompletionKind::Return;
 
   // The step numbers below are for AsyncFromSyncIteratorContinuation().
   //
@@ -6003,33 +6090,72 @@ bool js::AsyncFromSyncIteratorMethod(JSContext* cx, CallArgs& args,
     return AbruptRejectPromise(cx, args, resultPromise, nullptr);
   }
 
-  // Step 8. Let unwrap be a new Abstract Closure with parameters (v) that
+  // Step 9. Let unwrap be a new Abstract Closure with parameters (v) that
   //         captures done and performs the following steps when called:
-  // Step 8.a. Return CreateIterResultObject(v, done).
-  // Step 9. Let onFulfilled be CreateBuiltinFunction(unwrap, 1, "", « »).
-  // Step 10. NOTE: onFulfilled is used when processing the "value" property
+  // Step 9.a. Return CreateIterResultObject(v, done).
+  // Step 10. Let onFulfilled be CreateBuiltinFunction(unwrap, 1, "", « »).
+  // Step 11. NOTE: onFulfilled is used when processing the "value" property
   //          of an IteratorResult object in order to wait for its value if it
   //          is a promise and re-package the result in a new "unwrapped"
   //          IteratorResult object.
   PromiseHandler onFulfilled =
       done ? PromiseHandler::AsyncFromSyncIteratorValueUnwrapDone
            : PromiseHandler::AsyncFromSyncIteratorValueUnwrapNotDone;
-  PromiseHandler onRejected = PromiseHandler::Thrower;
 
-  // Steps 6-7 and 11 are identical to some steps in Await; we have a utility
+  // Step 12. If done is true, or if closeOnRejection is false, then
+  // Step 12.a. Let onRejected be undefined.
+  // Step 13. Else,
+  // Step 13.a. Let closeIterator be a new Abstract Closure with parameters
+  //            (error) that captures syncIteratorRecord and performs the
+  //            following steps when called:
+  // Step 13.a.i. Return ? IteratorClose(syncIteratorRecord,
+  //                                     ThrowCompletion(error)).
+  // Step 13.b. Let onRejected be CreateBuiltinFunction(closeIterator, 1, "",
+  //            «»).
+  // Step 13.c. NOTE: onRejected is used to close the Iterator when the "value"
+  //            property of an IteratorResult object it yields is a rejected
+  //            promise.
+  PromiseHandler onRejected = done || !closeOnRejection
+                                  ? PromiseHandler::Thrower
+                                  : PromiseHandler::AsyncFromSyncIteratorClose;
+
+  // Steps 6, 8, and 14 are identical to some steps in Await; we have a utility
   // function InternalAwait() that implements the idiom.
   //
   // Step 6. Let valueWrapper be Completion(PromiseResolve(%Promise%, value)).
-  // Step 7. IfAbruptRejectPromise(valueWrapper, promiseCapability).
-  // Step 11. Perform PerformPromiseThen(valueWrapper, onFulfilled,
-  //                                     undefined, promiseCapability).
-  auto extra = [](Handle<PromiseReactionRecord*> reaction) {};
+  // Step 8. IfAbruptRejectPromise(valueWrapper, promiseCapability).
+  // Step 14. Perform PerformPromiseThen(valueWrapper, onFulfilled,
+  //                                     onRejected, promiseCapability).
+  auto extra = [&](Handle<PromiseReactionRecord*> reaction) {
+    if (onRejected == PromiseHandler::AsyncFromSyncIteratorClose) {
+      reaction->setIsAsyncFromSyncIterator(asyncIter);
+    }
+  };
   if (!InternalAwait(cx, value, resultPromise, onFulfilled, onRejected,
                      extra)) {
+    // Reordering step 7 to this point is fine, because there are no other
+    // user-observable operations between steps 7-8 and 14. And |InternalAwait|,
+    // apart from the initial PromiseResolve, can only fail due to OOM. Since
+    // out-of-memory handling is not defined in the spec, we're also free
+    // reorder its effects. So w.r.t. spec-observable steps, calling
+    // |IteratorCloseForException| after |InternalAwait| has the same effect as
+    // performing IteratorClose directly after PromiseResolve.
+    //
+    // Step 7. If valueWrapper is an abrupt completion, done is false, and
+    //         closeOnRejection is true, then
+    // Step 7.a. Set valueWrapper to Completion(IteratorClose(
+    //           syncIteratorRecord, valueWrapper)).
+    //
+    // Check |cx->isExceptionPending()| because we don't want to perform
+    // IteratorClose for uncatchable exceptions. (IteratorCloseForException will
+    // also assert when there's no pending exception.)
+    if (cx->isExceptionPending() && !done && closeOnRejection) {
+      (void)IteratorCloseForException(cx, iter);
+    }
     return AbruptRejectPromise(cx, args, resultPromise, nullptr);
   }
 
-  // Step 12. Return promiseCapability.[[Promise]].
+  // Step 15. Return promiseCapability.[[Promise]].
   args.rval().setObject(*resultPromise);
   return true;
 }
@@ -6877,21 +7003,24 @@ void PromiseReactionRecord::dumpOwnFields(js::JSONPrinter& json) const {
 
   if (isDefaultResolvingHandler()) {
     js::GenericPrinter& out = json.beginStringProperty("promiseToResolve");
-    getFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve)
+    getFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator)
         .dumpStringContent(out);
     json.endStringProperty();
   }
 
   if (isAsyncFunction()) {
     js::GenericPrinter& out = json.beginStringProperty("generator");
-    getFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve)
+    getFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator)
         .dumpStringContent(out);
     json.endStringProperty();
   }
 
   if (isAsyncGenerator()) {
     js::GenericPrinter& out = json.beginStringProperty("generator");
-    getFixedSlot(ReactionRecordSlot_GeneratorOrPromiseToResolve)
+    getFixedSlot(
+        ReactionRecordSlot_GeneratorOrPromiseToResolveOrAsyncFromSyncIterator)
         .dumpStringContent(out);
     json.endStringProperty();
   }

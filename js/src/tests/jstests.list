@@ -665,22 +665,6 @@ skip script test262/language/statements/with/set-mutable-binding-idref-with-prox
 skip script test262/language/statements/with/get-binding-value-idref-with-proxy-env.js
 skip script test262/language/statements/with/set-mutable-binding-idref-compound-assign-with-proxy-env.js
 
-# Failures in AsyncFromSyncIteratorPrototype, see bug 1877862.
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined-poisoned-return.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined-return-object.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined-return-not-object.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-null.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-result-poisoned-wrapper.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/iterator-result-rejected-promise-close.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/throw/throw-undefined-get-return-undefined.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/next-result-poisoned-wrapper.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/for-await-iterator-next-rejected-promise-close.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/yield-iterator-next-rejected-promise-close.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/for-await-next-rejected-promise-close.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/iterator-result-poisoned-wrapper.js
-skip script test262/built-ins/AsyncFromSyncIteratorPrototype/next/yield-next-rejected-promise-close.js
-
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1934808
 skip script test262/built-ins/Iterator/concat/fresh-iterator-result.js
 skip script test262/built-ins/Iterator/concat/next-method-returns-throwing-value.js
@@ -730,9 +714,6 @@ skip script test262/intl402/Temporal/PlainDateTime/prototype/yearOfWeek/non-iso-
 
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1962010
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/rule-change-without-offset-transition.js
-
-# https://github.com/tc39/proposal-array-from-async/issues/49
-skip script test262/built-ins/Array/fromAsync/sync-iterable-with-rejecting-thenable-closes.js
 
 
 ###########################################################
