@@ -100,7 +100,7 @@ Utility code
 
    A radix tree implementation.
 
- * Utils.h
+ * Utils.h and Utils.cpp
 
    Other utility code.
 

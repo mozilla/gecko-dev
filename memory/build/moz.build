@@ -42,6 +42,7 @@ if CONFIG["MOZ_MEMORY"]:
         "mozjemalloc.cpp",
         "mozmemory_wrap.cpp",
         "Mutex.cpp",
+        "Utils.cpp",
     ]
 else:
     UNIFIED_SOURCES += [
