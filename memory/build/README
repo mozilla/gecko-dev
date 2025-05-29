@@ -41,7 +41,14 @@ Main components
 
  * mozjemalloc.cpp
 
-   The complete allocator.
+   The majority of the allocator.
+
+ * Chunk.h
+
+   Chunks are 1MiB contigous blocks of memory that the allocator will divide
+   into pages and runs.
+
+   Currently this contains the arena_chunk_t data structure.
 
  * fallback.cpp
 
