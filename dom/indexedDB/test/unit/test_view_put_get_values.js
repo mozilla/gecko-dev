@@ -7,13 +7,24 @@
 var disableWorkerTest = "Need a way to set temporary prefs from a worker";
 
 async function testSteps() {
+  // Setting dom.indexedDB.dataThreshold to 99999 ensures that the first random
+  // view (size 100000) is stored as a separate file when
+  // dom.indexedDB.preprocessing is true. The second random view (size 10000)
+  // is always stored directly in the database. This setup creates a scenario
+  // where requests in a transaction are processed in the wrong order if they
+  // are not properly queued internally, which is still the case.
+  const dataThreshold = 99999;
+
   const name = this.window
     ? window.location.pathname
     : "test_view_put_get_values.js";
 
   const objectStoreName = "Views";
 
-  const viewData = { key: 1, view: getRandomView(100000) };
+  const viewDataArray = [
+    { key: 1, view: getRandomView(100000) },
+    { key: 2, view: getRandomView(10000) },
+  ];
 
   const tests = [
     {
@@ -36,10 +47,10 @@ async function testSteps() {
 
       if (this.window) {
         await SpecialPowers.pushPrefEnv({
-          set: [["dom.indexedDB.dataThreshold", 0]],
+          set: [["dom.indexedDB.dataThreshold", dataThreshold]],
         });
       } else {
-        setDataThreshold(0);
+        setDataThreshold(dataThreshold);
       }
     }
 
@@ -80,9 +91,9 @@ async function testSteps() {
         .transaction([objectStoreName], "readwrite")
         .objectStore(objectStoreName);
 
-      info("Storing view");
+      info("Storing views");
 
-      {
+      for (const viewData of viewDataArray) {
         const request = objectStore.add(viewData.view, viewData.key);
 
         await requestSucceeded(request);
@@ -90,9 +101,9 @@ async function testSteps() {
         is(request.result, viewData.key, "Got correct key");
       }
 
-      info("Getting view");
+      info("Getting views");
 
-      {
+      for (const viewData of viewDataArray) {
         const request = objectStore.get(viewData.key);
 
         await requestSucceeded(request);
@@ -101,9 +112,9 @@ async function testSteps() {
       }
     }
 
-    info("Getting view in new transaction");
+    info("Getting views in separate transactions");
 
-    {
+    for (const viewData of viewDataArray) {
       const request = db
         .transaction([objectStoreName])
         .objectStore(objectStoreName)
@@ -127,6 +138,39 @@ async function testSteps() {
         ok(fileUsage > 0, "File usage is not zero");
       } else {
         ok(fileUsage == 0, "File usage is zero");
+      }
+    }
+
+    info("Getting views in parallel");
+
+    {
+      const objectStore = db
+        .transaction([objectStoreName])
+        .objectStore(objectStoreName);
+
+      const promises = [];
+      const keys = [];
+
+      for (const viewData of viewDataArray) {
+        const request = objectStore.get(viewData.key);
+
+        promises.push(
+          requestSucceeded(request, function () {
+            keys.push(viewData.key);
+          })
+        );
+      }
+
+      await Promise.all(promises);
+
+      is(keys.length, viewDataArray.length, "Correct number of keys");
+
+      for (let i = 0; i < keys.length; i++) {
+        if (test.preprocessing) {
+          todo(keys[i] === viewDataArray[i].key, "Correct key");
+        } else {
+          is(keys[i], viewDataArray[i].key, "Correct key");
+        }
       }
     }
 

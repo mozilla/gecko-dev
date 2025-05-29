@@ -581,13 +581,16 @@ function expectingUpgrade(request) {
   });
 }
 
-function requestSucceeded(request) {
+function requestSucceeded(request, optionalSyncSuccessCallback) {
   return new Promise(function (resolve, reject) {
     request.onerror = function (event) {
       ok(false, "indexedDB error, '" + event.target.error.name + "'");
       reject(event);
     };
     request.onsuccess = function (event) {
+      if (optionalSyncSuccessCallback) {
+        optionalSyncSuccessCallback();
+      }
       resolve(event);
     };
   });
