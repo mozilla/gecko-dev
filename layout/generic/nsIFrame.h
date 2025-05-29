@@ -1484,8 +1484,7 @@ class nsIFrame : public nsQueryFrame {
                                      mozilla::LogicalMargin aMargin) const {
     mozilla::WritingMode wm = GetWritingMode();
     // aMargin assumed to be in `wm`.
-    const auto m = aMargin
-                       .ApplySkipSides(GetLogicalSkipSides())
+    const auto m = aMargin.ApplySkipSides(GetLogicalSkipSides())
                        .ConvertTo(aWritingMode, wm);
     const auto size = GetLogicalSize(aWritingMode);
     return mozilla::LogicalSize(
