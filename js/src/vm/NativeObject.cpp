@@ -1182,6 +1182,10 @@ static MOZ_ALWAYS_INLINE bool CallAddPropertyHook(JSContext* cx,
       return false;
     }
   }
+  if (MOZ_UNLIKELY(obj->hasUnpreservedWrapper())) {
+    MaybePreserveDOMWrapper(cx, obj);
+    return JSObject::setFlag(cx, obj, ObjectFlag::HasPreservedWrapper);
+  }
   return true;
 }
 
@@ -1205,6 +1209,11 @@ static MOZ_ALWAYS_INLINE bool CallAddPropertyHookDense(
       obj->setDenseElementHole(index);
       return false;
     }
+  }
+
+  if (MOZ_UNLIKELY(obj->hasUnpreservedWrapper())) {
+    MaybePreserveDOMWrapper(cx, obj);
+    return JSObject::setFlag(cx, obj, ObjectFlag::HasPreservedWrapper);
   }
   return true;
 }
@@ -1422,17 +1431,23 @@ static MOZ_ALWAYS_INLINE bool AddDataProperty(JSContext* cx,
 
 bool js::AddSlotAndCallAddPropHook(JSContext* cx, Handle<NativeObject*> obj,
                                    HandleValue v, Handle<Shape*> newShape) {
-  MOZ_ASSERT(obj->getClass()->getAddProperty());
   MOZ_ASSERT(newShape->asShared().lastProperty().isDataProperty());
 
   RootedId id(cx, newShape->asShared().lastProperty().key());
   MOZ_ASSERT(!id.isInt());
+
+  bool hasUnpreservedWrapper = obj->hasUnpreservedWrapper();
 
   uint32_t slot = newShape->asShared().lastProperty().slot();
   if (!obj->setShapeAndAddNewSlot(cx, &newShape->asShared(), slot)) {
     return false;
   }
   obj->initSlot(slot, v);
+
+  if (MOZ_UNLIKELY(hasUnpreservedWrapper)) {
+    MaybePreserveDOMWrapper(cx, obj);
+    MOZ_ASSERT(!obj->hasUnpreservedWrapper());
+  }
 
   return CallAddPropertyHook(cx, obj, id, v);
 }

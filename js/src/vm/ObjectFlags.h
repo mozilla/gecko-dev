@@ -86,6 +86,9 @@ enum class ObjectFlag : uint16_t {
   // with it, and thus we must trap on changes to said property.
   HasFuseProperty = 1 << 14,
 
+  // If set, we have already called the preserveWrapper hook for this object.
+  // This should only be set if `obj->getClass()->preservesWrapper()` is true.
+  HasPreservedWrapper = 1 << 15,
 };
 
 using ObjectFlags = EnumFlags<ObjectFlag>;

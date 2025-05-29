@@ -895,6 +895,7 @@ MOZ_ALWAYS_INLINE bool AddDataPropertyToPlainObject(
   obj->initSlot(*resultSlot, v);
 
   MOZ_ASSERT(!obj->getClass()->getAddProperty());
+  MOZ_ASSERT(!obj->getClass()->preservesWrapper());
   return true;
 }
 

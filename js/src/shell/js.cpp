@@ -11314,11 +11314,11 @@ static const JSClassOps FakeDOMObjectClassOps = {
     nullptr,
 };
 
-static const JSClass dom_class = {"FakeDOMObject",
-                                  JSCLASS_IS_DOMJSCLASS |
-                                      JSCLASS_HAS_RESERVED_SLOTS(2) |
-                                      JSCLASS_BACKGROUND_FINALIZE,
-                                  &FakeDOMObjectClassOps};
+static const JSClass dom_class = {
+    "FakeDOMObject",
+    JSCLASS_IS_DOMJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(2) |
+        JSCLASS_BACKGROUND_FINALIZE | JSCLASS_PRESERVES_WRAPPER,
+    &FakeDOMObjectClassOps};
 
 static const JSClass* GetDomClass() { return &dom_class; }
 
