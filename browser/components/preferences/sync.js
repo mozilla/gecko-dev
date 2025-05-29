@@ -312,12 +312,6 @@ var gSyncPane = {
       {
         closingCallback: event => {
           if (event.detail.button == "accept") {
-            // Record when the user saves sync settings regardless of the
-            // `isAlreadySyncing` status.
-            fxAccounts.telemetry.recordSaveSyncSettings().catch(err => {
-              console.error("Failed to record save sync settings event", err);
-            });
-
             // Sync wasn't previously configured, but the user has accepted
             // so we want to now start syncing!
             if (!isSyncConfigured) {

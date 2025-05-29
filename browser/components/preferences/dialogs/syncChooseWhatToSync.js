@@ -4,6 +4,14 @@
 
 /* import-globals-from /toolkit/content/preferencesBindings.js */
 
+const lazy = {};
+
+ChromeUtils.defineLazyGetter(lazy, "fxAccounts", () => {
+  return ChromeUtils.importESModule(
+    "resource://gre/modules/FxAccounts.sys.mjs"
+  ).getFxAccountsSingleton();
+});
+
 Preferences.addAll([
   { id: "services.sync.engine.addons", type: "bool" },
   { id: "services.sync.engine.bookmarks", type: "bool" },
@@ -17,6 +25,7 @@ Preferences.addAll([
 
 let gSyncChooseWhatToSync = {
   init() {
+    this._setupEventListeners();
     this._adjustForPrefs();
     let options = window.arguments[0];
     if (options.disconnectFun) {
@@ -55,6 +64,52 @@ let gSyncChooseWhatToSync = {
         elt.hidden = true;
       }
     }
+  },
+  _setupEventListeners() {
+    document.addEventListener("dialogaccept", () => {
+      // Record when the user saves sync settings.
+      let settings = this._getSyncEngineEnablementChanges();
+      lazy.fxAccounts.telemetry.recordSaveSyncSettings(settings).catch(err => {
+        console.error("Failed to record save sync settings event", err);
+      });
+    });
+  },
+  _getSyncEngineEnablementChanges() {
+    let engines = [
+      "addons",
+      "bookmarks",
+      "history",
+      "tabs",
+      "prefs",
+      "passwords",
+      "addresses",
+      "creditcards",
+    ];
+    let settings = {
+      enabledEngines: [],
+      disabledEngines: [],
+    };
+
+    for (let engine of engines) {
+      let enabledPref = "services.sync.engine." + engine;
+      let checkboxId = "syncEngine" + engine[0].toUpperCase() + engine.slice(1);
+      let checkboxValue = document.getElementById(checkboxId).checked;
+
+      // Check if the engine's stored pref value is the same as the engine's
+      // checkbox value in the choose what to sync menu. If they aren't equal
+      // and the checkbox is checked, we add the engine to the enabled list; if
+      // the checkbox isn't checked we add the engine to the disabled list. If
+      // the pref and the checkbox value are equal we do nothing as nothing was
+      // changed.
+      if (Services.prefs.getBoolPref(enabledPref, false) !== checkboxValue) {
+        if (checkboxValue === true) {
+          settings.enabledEngines.push(engine);
+        } else if (checkboxValue === false) {
+          settings.disabledEngines.push(engine);
+        }
+      }
+    }
+    return settings;
   },
 };
 

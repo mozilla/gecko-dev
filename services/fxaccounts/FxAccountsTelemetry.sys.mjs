@@ -110,9 +110,18 @@ export class FxAccountsTelemetry {
   }
 
   // Record when the user saves sync settings.
-  async recordSaveSyncSettings() {
+  async recordSaveSyncSettings(settings = null) {
     try {
-      Glean.syncSettings.save.record();
+      let extra = {};
+
+      if (settings && (settings.enabledEngines || settings.disabledEngines)) {
+        extra.enabled_engines = settings.enabledEngines.toString();
+        extra.disabled_engines = settings.disabledEngines.toString();
+
+        Glean.syncSettings.save.record(extra);
+      } else {
+        Glean.syncSettings.save.record();
+      }
     } catch (ex) {
       log.error("Failed to record save sync settings telemetry", ex);
       console.error("Failed to record save sync settings telemetry", ex);
