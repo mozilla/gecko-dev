@@ -5512,7 +5512,8 @@ static bool IsRelevantBlockFrame(const nsIFrame* aFrame) {
     return false;
   }
   if (aFrame->GetContent() &&
-      aFrame->GetContent()->IsInNativeAnonymousSubtree()) {
+      aFrame->GetContent()->IsInNativeAnonymousSubtree() &&
+      !aFrame->GetContent()->HasBeenInUAWidget()) {
     // This helps skipping things like scrollbar parts.
     return false;
   }
