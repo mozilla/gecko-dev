@@ -51,15 +51,11 @@ class GeckoNetworkManager final
     nsAutoCString host = NS_ConvertUTF16toUTF8(aHost->ToString().get());
     nsAutoCString pacFileUrl =
         NS_ConvertUTF16toUTF8(aPacFileUrl->ToString().get());
-    int size = aExclusionList->Length();
-    JNIEnv* env = jni::GetEnvForThread();
+    jni::ObjectArray::LocalRef exclusions = aExclusionList;
     nsTArray<nsCString> exclusionList;
-    for (int32_t i = 0; i < size; i++) {
-      jstring javaString =
-          (jstring)(env->GetObjectArrayElement(aExclusionList.Get(), i));
-      const char* rawString = env->GetStringUTFChars(javaString, 0);
-      exclusionList.AppendElement(nsCString(rawString));
-      env->ReleaseStringUTFChars(javaString, rawString);
+    for (size_t i = 0; i < exclusions->Length(); i++) {
+      jni::String::LocalRef exclusion = exclusions->GetElement(i);
+      exclusionList.AppendElement(exclusion->ToCString());
     }
 
     sp->SetSystemProxyInfo(host, aPort, pacFileUrl, exclusionList);
