@@ -46,12 +46,6 @@ support-files = ["readerModeArticleHiddenNodes.html"]
 ["browser_readerMode_menu.js"]
 support-files = ["readerModeArticleShort.html"]
 
-["browser_readerMode_pocket.js"]
-support-files = [
-  "readerModeArticleShort.html",
-  "readerModeArticleMedium.html",
-]
-
 ["browser_readerMode_readingTime.js"]
 support-files = [
   "readerModeArticle.html",
