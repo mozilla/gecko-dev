@@ -72,6 +72,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
  * @param isExtensionsExpanded Whether or not the extensions menu is expanded.
+ * @param isMoreMenuExpanded Whether or not the more menu is expanded.
  * @param isBookmarked Whether or not the current tab is bookmarked.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
@@ -82,6 +83,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param extensionsMenuItemDescription The label of extensions menu item description.
  * @param scrollState The [ScrollState] used for vertical scrolling.
  * @param webExtensionMenuCount The number of web extensions.
+ * @param onMoreMenuClick Invoked when the user clicks on the more menu item.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
  * @param onBookmarkPageMenuClick Invoked when the user clicks on the bookmark page menu item.
@@ -114,6 +116,7 @@ fun MainMenu(
     accountState: AccountState,
     showQuitMenu: Boolean,
     isExtensionsExpanded: Boolean,
+    isMoreMenuExpanded: Boolean,
     isBookmarked: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
@@ -124,6 +127,7 @@ fun MainMenu(
     extensionsMenuItemDescription: String,
     scrollState: ScrollState,
     webExtensionMenuCount: Int,
+    onMoreMenuClick: () -> Unit,
     onMozillaAccountButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
     onBookmarkPageMenuClick: () -> Unit,
@@ -186,6 +190,7 @@ fun MainMenu(
                 extensionsMenuItemDescription = extensionsMenuItemDescription,
                 isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                 isExtensionsExpanded = isExtensionsExpanded,
+                moreMenuExpanded = isMoreMenuExpanded,
                 webExtensionMenuCount = webExtensionMenuCount,
                 allWebExtensionsDisabled = allWebExtensionsDisabled,
                 onExtensionsMenuClick = onExtensionsMenuClick,
@@ -196,6 +201,7 @@ fun MainMenu(
                 onToolsMenuClick = onToolsMenuClick,
                 onSaveMenuClick = onSaveMenuClick,
                 extensionSubmenu = extensionSubmenu,
+                onMoreMenuClick = onMoreMenuClick,
             )
         }
 
@@ -298,7 +304,7 @@ private fun ExtensionsMenuItem(
 
         MenuItemAnimation(
             isExpanded = isExtensionsExpanded,
-            extensionSubmenu = extensionSubmenu,
+            submenu = extensionSubmenu,
         )
     }
 }
@@ -306,7 +312,7 @@ private fun ExtensionsMenuItem(
 @Composable
 private fun MenuItemAnimation(
     isExpanded: Boolean,
-    extensionSubmenu: @Composable ColumnScope.() -> Unit,
+    submenu: @Composable ColumnScope.() -> Unit,
 ) {
     AnimatedVisibility(
         visible = isExpanded,
@@ -336,7 +342,7 @@ private fun MenuItemAnimation(
         ),
     ) {
         Column {
-            extensionSubmenu()
+            submenu()
         }
     }
 }
@@ -369,6 +375,7 @@ private fun ToolsAndActionsMenuGroup(
     isExtensionsProcessDisabled: Boolean,
     extensionsMenuItemDescription: String,
     isExtensionsExpanded: Boolean,
+    moreMenuExpanded: Boolean,
     webExtensionMenuCount: Int,
     allWebExtensionsDisabled: Boolean,
     onExtensionsMenuClick: () -> Unit,
@@ -379,6 +386,7 @@ private fun ToolsAndActionsMenuGroup(
     onToolsMenuClick: () -> Unit,
     onSaveMenuClick: () -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
+    onMoreMenuClick: () -> Unit,
 ) {
     MenuGroup {
         val labelId: Int
@@ -463,6 +471,52 @@ private fun ToolsAndActionsMenuGroup(
             onExtensionsMenuClick = onExtensionsMenuClick,
             extensionSubmenu = extensionSubmenu,
         )
+
+        MoreMenuButtonGroup(
+            moreMenuExpanded = moreMenuExpanded,
+            onMoreMenuClick = onMoreMenuClick,
+        )
+
+        MenuItemAnimation(
+            isExpanded = moreMenuExpanded,
+        ) {}
+    }
+}
+
+@Composable
+private fun MoreMenuButtonGroup(
+    moreMenuExpanded: Boolean,
+    onMoreMenuClick: () -> Unit,
+) {
+    MenuItem(
+        label = if (moreMenuExpanded) {
+            stringResource(id = R.string.browser_menu_less_settings)
+        } else {
+            stringResource(id = R.string.browser_menu_more_settings)
+        },
+        beforeIconPainter = painterResource(id = R.drawable.mozac_ic_ellipsis_horizontal_24),
+        onClick = onMoreMenuClick,
+    ) {
+        Row(
+            modifier = Modifier
+                .background(
+                    color = FirefoxTheme.colors.layerSearch,
+                    shape = RoundedCornerShape(16.dp),
+                )
+                .padding(2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = if (moreMenuExpanded) {
+                    painterResource(id = R.drawable.mozac_ic_chevron_up_20)
+                } else {
+                    painterResource(id = R.drawable.mozac_ic_chevron_down_20)
+                },
+                contentDescription = null,
+                tint = FirefoxTheme.colors.iconPrimary,
+            )
+        }
     }
 }
 
@@ -753,6 +807,7 @@ private fun MenuDialogPreview() {
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = true,
                 isExtensionsExpanded = false,
+                isMoreMenuExpanded = true,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
                 webExtensionMenuCount = 1,
@@ -777,6 +832,7 @@ private fun MenuDialogPreview() {
                 onForwardButtonClick = {},
                 onRefreshButtonClick = {},
                 onShareButtonClick = {},
+                onMoreMenuClick = {},
             ) {
             }
         }
@@ -798,6 +854,7 @@ private fun MenuDialogPrivatePreview() {
                 isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
+                isMoreMenuExpanded = true,
                 isTranslationSupported = true,
                 isWebCompatReporterSupported = true,
                 showQuitMenu = true,
@@ -827,6 +884,7 @@ private fun MenuDialogPrivatePreview() {
                 onForwardButtonClick = {},
                 onRefreshButtonClick = {},
                 onShareButtonClick = {},
+                onMoreMenuClick = {},
             ) {
                 Addons(
                     accessPoint = MenuAccessPoint.Home,

@@ -413,6 +413,8 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                     var isExtensionsExpanded by remember { mutableStateOf(false) }
 
+                    var isMoreMenuExpanded by remember { mutableStateOf(false) }
+
                     AnimatedContent(
                         targetState = contentState,
                         transitionSpec = {
@@ -466,6 +468,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                     isExtensionsExpanded = isExtensionsExpanded,
+                                    isMoreMenuExpanded = isMoreMenuExpanded,
                                     isBookmarked = isBookmarked,
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
@@ -525,6 +528,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         } else {
                                             isExtensionsExpanded = !isExtensionsExpanded
                                         }
+                                    },
+                                    onMoreMenuClick = {
+                                        isMoreMenuExpanded = !isMoreMenuExpanded
                                     },
                                     onBookmarksMenuClick = {
                                         view?.slideDown {
