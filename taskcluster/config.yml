@@ -74,8 +74,6 @@ treeherder:
         'MSIs': 'Signing of Repacked installers of MSIs'
         'MSIX': 'Repack into MSIX package'
         'MSIXs': 'Signing of Repack into MSIX package'
-        'nt-trainhop': 'Desktop newtab trainhop tests'
-        'nt-trainhop-cf': 'Desktop newtab trainhop tests for confirm failure'
         'Pup': "Puppeteer tests"
         'R': 'Reftests'
         'R-ioi': 'Reftests with incremental origin initialization enabled'

@@ -47,7 +47,6 @@ linux1804-64-qr/opt:
         - web-platform-tests-backlog
         - talos
         - browsertime
-        - newtab-trainhop-tests
 
 linux1804-64-shippable-qr/opt:
     build-platform: linux64-shippable/opt
@@ -255,7 +254,6 @@ windows11-64-24h2/opt:
         - windows-talos
         - browsertime
         - windows-talos-webgl
-        - newtab-trainhop-tests
 
 windows11-64-24h2-shippable/opt:
     build-platform: win64-shippable/opt
@@ -351,7 +349,6 @@ macosx1470-64/opt:
         - web-platform-tests-backlog
         - webgpu
         - browsertime
-        - newtab-trainhop-tests
 
 macosx1470-64/debug:
     build-platform: macosx64/debug
