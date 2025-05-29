@@ -1383,8 +1383,7 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
     }
     case StyleInset::Tag::AnchorFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
-      Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(), aSide,
-                                  aParams.mPosition, &resolved);
+      Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(), &aParams, aSide, &resolved);
       if (resolved.IsInvalid()) {
         return Auto();
       }

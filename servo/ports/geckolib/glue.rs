@@ -66,6 +66,7 @@ use style::gecko_bindings::structs::nsCSSPropertyID;
 use style::gecko_bindings::structs::nsChangeHint;
 use style::gecko_bindings::structs::nsCompatibility;
 use style::gecko_bindings::structs::nsresult;
+use style::gecko_bindings::structs::AnchorPosResolutionParams;
 use style::gecko_bindings::structs::CallerType;
 use style::gecko_bindings::structs::CompositeOperation;
 use style::gecko_bindings::structs::DeclarationBlockMutationClosure;
@@ -9912,11 +9913,11 @@ impl AnchorPositioningFunctionResolution {
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorFunction(
     func: &AnchorFunction,
+    params: &AnchorPosResolutionParams,
     side: PhysicalSide,
-    prop: PositionProperty,
     out: &mut AnchorPositioningFunctionResolution,
 ) {
-    *out = AnchorPositioningFunctionResolution::new(func.resolve(side, prop));
+    *out = AnchorPositioningFunctionResolution::new(func.resolve(side, params.mPosition));
 }
 
 #[no_mangle]
