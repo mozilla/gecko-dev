@@ -6,7 +6,7 @@
 
 :host {
   --avatar-size: 80px;
-  --profile-card-radius: 12px;
+  --profile-card-radius: var(--border-radius-large);
   --profile-card-radius-inner: calc(var(--profile-card-radius) - var(--border-width));
 }
 

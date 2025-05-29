@@ -2,6 +2,7 @@
   "border/radius/circle": 9999,
   "border/radius/small": 4,
   "border/radius/medium": 8,
+  "border/radius/large": 12,
   "border/width": 1,
   "button/border/radius": "{Primitives$border/radius/small}",
   "button/min/height": "{Primitives$size/item/large}",

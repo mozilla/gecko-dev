@@ -147,6 +147,9 @@
       },
       "medium": {
         "value": "8px"
+      },
+      "large": {
+        "value": "12px"
       }
     },
     "width": {
