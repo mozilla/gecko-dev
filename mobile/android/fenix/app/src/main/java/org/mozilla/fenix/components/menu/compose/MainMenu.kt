@@ -676,6 +676,7 @@ internal fun Addons(
     onAddonSettingsClick: (Addon) -> Unit,
     onAddonClick: (Addon) -> Unit,
     onInstallAddonClick: (Addon) -> Unit,
+    onManageExtensionsMenuClick: () -> Unit,
     onDiscoverMoreExtensionsMenuClick: () -> Unit,
     onWebExtensionMenuItemClick: () -> Unit,
 ) {
@@ -696,6 +697,8 @@ internal fun Addons(
             WebExtensionMenuItems(
                 webExtensionMenuItems = webExtensionMenuItems,
                 onWebExtensionMenuItemClick = onWebExtensionMenuItemClick,
+                availableAddons = availableAddons,
+                onSettingsClick = { onAddonSettingsClick(it) },
             )
         } else if (recommendedAddons.isNotEmpty()) {
             AddonsMenuItems(
@@ -709,13 +712,17 @@ internal fun Addons(
             )
         }
 
-        val label = if (availableAddons.size != webExtensionMenuItems.size && accessPoint == MenuAccessPoint.Browser) {
-            stringResource(id = R.string.browser_menu_manage_extensions)
+        if (availableAddons.isNotEmpty()) {
+            MoreExtensionsMenuItem(
+                onManageExtensionsMenuClick,
+                stringResource(id = R.string.browser_menu_manage_extensions),
+            )
         } else {
-            stringResource(id = R.string.browser_menu_discover_more_extensions)
+            MoreExtensionsMenuItem(
+                onDiscoverMoreExtensionsMenuClick,
+                stringResource(id = R.string.browser_menu_discover_more_extensions),
+            )
         }
-
-        DiscoverMoreExtensionsMenuItem(onDiscoverMoreExtensionsMenuClick, label)
     }
 }
 
@@ -754,12 +761,16 @@ private fun AddonsMenuItems(
 private fun WebExtensionMenuItems(
     webExtensionMenuItems: List<WebExtensionMenuItem>,
     onWebExtensionMenuItemClick: () -> Unit,
+    availableAddons: List<Addon> = emptyList(),
+    onSettingsClick: (Addon) -> Unit,
 ) {
     Column(
         modifier = Modifier.padding(top = 2.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         for (webExtensionMenuItem in webExtensionMenuItems) {
+            val addon = availableAddons.find { it.id == webExtensionMenuItem.id }
+
             WebExtensionMenuItem(
                 label = webExtensionMenuItem.label,
                 iconPainter = webExtensionMenuItem.icon?.let { icon ->
@@ -768,11 +779,14 @@ private fun WebExtensionMenuItems(
                     ?: painterResource(R.drawable.mozac_ic_web_extension_default_icon),
                 enabled = webExtensionMenuItem.enabled,
                 badgeText = webExtensionMenuItem.badgeText,
-                badgeTextColor = webExtensionMenuItem.badgeTextColor,
-                badgeBackgroundColor = webExtensionMenuItem.badgeBackgroundColor,
                 onClick = {
                     onWebExtensionMenuItemClick()
                     webExtensionMenuItem.onClick()
+                },
+                onSettingsClick = {
+                    if (addon != null) {
+                        onSettingsClick(addon)
+                    }
                 },
             )
         }
@@ -780,7 +794,7 @@ private fun WebExtensionMenuItems(
 }
 
 @Composable
-private fun DiscoverMoreExtensionsMenuItem(
+private fun MoreExtensionsMenuItem(
     onClick: () -> Unit,
     label: String,
 ) {
@@ -860,6 +874,7 @@ private fun MenuDialogPreview() {
     }
 }
 
+@Suppress("LongMethod")
 @Preview
 @Composable
 private fun MenuDialogPrivatePreview() {
@@ -928,6 +943,7 @@ private fun MenuDialogPrivatePreview() {
                         onAddonSettingsClick = {},
                         onAddonClick = {},
                         onInstallAddonClick = {},
+                        onManageExtensionsMenuClick = {},
                         onDiscoverMoreExtensionsMenuClick = {},
                         onWebExtensionMenuItemClick = {},
                     )

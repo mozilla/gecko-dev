@@ -10,8 +10,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -24,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -108,7 +111,7 @@ internal fun MenuItem(
                 }
             }
             .wrapContentSize()
-            .clip(shape = RoundedCornerShape(4.dp))
+            .clip(shape = ROUNDED_CORNER_SHAPE)
             .background(
                 color = FirefoxTheme.colors.layer3,
             ),
@@ -173,61 +176,71 @@ internal fun MenuTextItem(
  *
  * @param label The label in the list item.
  * @param iconPainter [Painter] used to display an [Icon] before the list item.
- * @param iconTint Tint color to be applied on the [Icon].
  * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
  * be clickable.
  * @param badgeText WebExtension badge text.
- * @param badgeTextColor WebExtension badge text color.
- * @param badgeBackgroundColor WebExtension badge background color.
- * @param modifier [Modifier] to be applied to the layout.
  * @param onClick Called when the user clicks on the item.
+ * @param onSettingsClick Called when the user clicks on the settings icon.
  */
 @Composable
 internal fun WebExtensionMenuItem(
     label: String,
     iconPainter: Painter,
-    iconTint: Color? = null,
     enabled: Boolean?,
     badgeText: String?,
-    badgeTextColor: Int?,
-    badgeBackgroundColor: Int?,
-    modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    onSettingsClick: (() -> Unit)? = null,
 ) {
     ImageListItem(
         label = label,
         iconPainter = iconPainter,
-        iconTint = iconTint,
         enabled = enabled == true,
-        modifier = modifier.background(
-            color = FirefoxTheme.colors.layer3,
-            shape = ROUNDED_CORNER_SHAPE,
-        )
-            .clip(shape = ROUNDED_CORNER_SHAPE),
         onClick = onClick,
-        afterListAction = {
-            if (badgeText.isNullOrEmpty()) {
-                return@ImageListItem
+        modifier = Modifier.clickable(
+            interactionSource = remember { MutableInteractionSource() },
+            indication = LocalIndication.current,
+            enabled = enabled == true,
+        ) { onClick?.invoke() }
+            .clearAndSetSemantics {
+                role = Role.Button
+                this.contentDescription = label
             }
-
-            Column(
-                modifier = Modifier
-                    .background(
-                        color = badgeBackgroundColor?.let { Color(it) }
-                            ?: FirefoxTheme.colors.layer2,
-                        shape = ROUNDED_CORNER_SHAPE,
-                    )
-                    .clip(shape = ROUNDED_CORNER_SHAPE)
-                    .padding(8.dp),
+            .wrapContentSize()
+            .clip(shape = ROUNDED_CORNER_SHAPE)
+            .background(
+                color = FirefoxTheme.colors.layer3,
+            ),
+        afterListAction = {
+            Row(
+                modifier = Modifier.padding(start = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.End),
             ) {
-                Text(
-                    text = badgeText,
-                    color = badgeTextColor?.let { Color(it) }
-                        ?: Color.White,
-                    overflow = TextOverflow.Ellipsis,
-                    style = FirefoxTheme.typography.subtitle1,
-                    maxLines = 1,
+                if (!badgeText.isNullOrEmpty()) {
+                    Badge(
+                        badgeText = badgeText,
+                        badgeBackgroundColor = FirefoxTheme.colors.layerSearch,
+                    )
+                }
+
+                Divider(
+                    modifier = Modifier
+                        .padding(vertical = 6.dp)
+                        .fillMaxHeight()
+                        .width(1.dp),
+                    color = FirefoxTheme.colors.borderPrimary,
                 )
+
+                IconButton(
+                    modifier = Modifier.size(24.dp),
+                    onClick = onSettingsClick ?: {},
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.mozac_ic_settings_24),
+                        tint = FirefoxTheme.colors.iconPrimary,
+                        contentDescription = null,
+                    )
+                }
             }
         },
     )
@@ -324,10 +337,9 @@ private fun WebExtensionMenuItemPreview() {
                 label = "label",
                 iconPainter = painterResource(R.drawable.mozac_ic_web_extension_default_icon),
                 enabled = true,
-                badgeText = "badgeText",
-                badgeTextColor = Color.Black.toArgb(),
-                badgeBackgroundColor = Color.Gray.toArgb(),
+                badgeText = "17",
                 onClick = {},
+                onSettingsClick = {},
             )
         }
     }

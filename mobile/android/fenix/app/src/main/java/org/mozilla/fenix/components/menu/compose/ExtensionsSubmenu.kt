@@ -106,8 +106,6 @@ internal fun ExtensionsSubmenu(
                         } ?: painterResource(R.drawable.mozac_ic_web_extension_default_icon),
                         enabled = webExtensionMenuItem.enabled,
                         badgeText = webExtensionMenuItem.badgeText,
-                        badgeTextColor = webExtensionMenuItem.badgeTextColor,
-                        badgeBackgroundColor = webExtensionMenuItem.badgeBackgroundColor,
                         onClick = {
                             webExtensionMenuItemClick()
                             webExtensionMenuItem.onClick()
@@ -229,6 +227,7 @@ private fun ExtensionsSubmenuPreview() {
                 ),
                 webExtensionMenuItems = listOf(
                     WebExtensionMenuItem(
+                        id = "id",
                         label = "label",
                         enabled = true,
                         icon = BitmapFactory.decodeResource(
@@ -278,6 +277,7 @@ private fun ExtensionsSubmenuPrivatePreview() {
                 ),
                 webExtensionMenuItems = listOf(
                     WebExtensionMenuItem(
+                        id = "id",
                         label = "label",
                         enabled = true,
                         icon = BitmapFactory.decodeResource(

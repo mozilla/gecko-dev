@@ -127,6 +127,7 @@ data class BookmarkState(
 /**
  * Installed extensions actions to display relevant to the browser as a whole.
  *
+ * @property id The id of the web extension.
  * @property label The label of the web extension menu item.
  * @property enabled Indicates if web extension menu item should be enabled or disabled.
  * @property icon The icon that should be shown in the menu.
@@ -136,6 +137,7 @@ data class BookmarkState(
  * @property onClick A callback to be executed when the web extension menu item is clicked.
  */
 data class WebExtensionMenuItem(
+    val id: String,
     val label: String,
     val enabled: Boolean?,
     val icon: Bitmap?,

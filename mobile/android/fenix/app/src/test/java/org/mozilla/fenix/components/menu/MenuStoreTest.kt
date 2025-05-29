@@ -382,6 +382,7 @@ class MenuStoreTest {
             val store = MenuStore(initialState = initialState)
             val webExtensionMenuItemList = listOf(
                 WebExtensionMenuItem(
+                    id = "id",
                     label = "label",
                     enabled = true,
                     icon = null,
