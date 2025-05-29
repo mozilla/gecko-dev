@@ -99,7 +99,6 @@ extern size_t gPageSize;
 
 void DefineGlobals();
 #endif
-}  // namespace mozilla
 
 // Max size class for bins.
 #define gMaxBinClass \
@@ -137,5 +136,49 @@ static inline arena_chunk_t* GetChunkForPtr(const void* aPtr) {
 static inline size_t GetChunkOffsetForPtr(const void* aPtr) {
   return (size_t)(uintptr_t(aPtr) & kChunkSizeMask);
 }
+
+// Maximum number of dirty pages per arena.
+#define DIRTY_MAX_DEFAULT (1U << 8)
+
+enum PoisonType {
+  NONE,
+  SOME,
+  ALL,
+};
+
+extern size_t opt_dirty_max;
+
+#define OPT_JUNK_DEFAULT false
+#define OPT_ZERO_DEFAULT false
+#ifdef EARLY_BETA_OR_EARLIER
+#  define OPT_POISON_DEFAULT ALL
+#else
+#  define OPT_POISON_DEFAULT SOME
+#endif
+// Keep this larger than and ideally a multiple of kCacheLineSize;
+#define OPT_POISON_SIZE_DEFAULT 256
+
+#ifdef MALLOC_RUNTIME_CONFIG
+
+extern bool opt_junk;
+extern bool opt_zero;
+extern PoisonType opt_poison;
+extern size_t opt_poison_size;
+
+#else
+
+constexpr bool opt_junk = OPT_JUNK_DEFAULT;
+constexpr bool opt_zero = OPT_ZERO_DEFAULT;
+constexpr PoisonType opt_poison = OPT_POISON_DEFAULT;
+constexpr size_t opt_poison_size = OPT_POISON_SIZE_DEFAULT;
+
+static_assert(opt_poison_size >= kCacheLineSize);
+static_assert((opt_poison_size % kCacheLineSize) == 0);
+
+#endif
+
+extern bool opt_randomize_small;
+
+}  // namespace mozilla
 
 #endif  // ! GLOBALS_H

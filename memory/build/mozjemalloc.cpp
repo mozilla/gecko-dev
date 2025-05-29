@@ -184,22 +184,6 @@
 
 using namespace mozilla;
 
-#ifdef XP_WIN
-
-// Implement getenv without using malloc.
-static char mozillaMallocOptionsBuf[64];
-
-#  define getenv xgetenv
-static char* getenv(const char* name) {
-  if (GetEnvironmentVariableA(name, mozillaMallocOptionsBuf,
-                              sizeof(mozillaMallocOptionsBuf)) > 0) {
-    return mozillaMallocOptionsBuf;
-  }
-
-  return nullptr;
-}
-#endif
-
 // Some tools, such as /dev/dsp wrappers, LD_PRELOAD libraries that
 // happen to override mmap() and call dlsym() from their overridden
 // mmap(). The problem is that dlsym() calls malloc(), and this ends
@@ -248,11 +232,6 @@ static inline void* _mmap(void* addr, size_t length, int prot, int flags,
 
 // The current amount of recycled bytes, updated atomically.
 static Atomic<size_t> gRecycledSize;
-
-// Maximum number of dirty pages per arena.
-#define DIRTY_MAX_DEFAULT (1U << 8)
-
-static size_t opt_dirty_max = DIRTY_MAX_DEFAULT;
 
 #ifdef MOZJEMALLOC_PROFILING_CALLBACKS
 // MallocProfilerCallbacks is refcounted so that one thread cannot destroy it
@@ -1522,39 +1501,6 @@ static MOZ_THREAD_LOCAL(arena_t*) thread_arena;
 static detail::ThreadLocal<arena_t*, detail::ThreadLocalKeyStorage>
     thread_arena;
 #endif
-
-// *****************************
-// Runtime configuration options.
-
-#ifdef MALLOC_RUNTIME_CONFIG
-#  define MALLOC_RUNTIME_VAR static
-#else
-#  define MALLOC_RUNTIME_VAR static const
-#endif
-
-enum PoisonType {
-  NONE,
-  SOME,
-  ALL,
-};
-
-MALLOC_RUNTIME_VAR bool opt_junk = false;
-MALLOC_RUNTIME_VAR bool opt_zero = false;
-
-#ifdef EARLY_BETA_OR_EARLIER
-MALLOC_RUNTIME_VAR PoisonType opt_poison = ALL;
-#else
-MALLOC_RUNTIME_VAR PoisonType opt_poison = SOME;
-#endif
-
-// Keep this larger than and ideally a multiple of kCacheLineSize;
-MALLOC_RUNTIME_VAR size_t opt_poison_size = 256;
-#ifndef MALLOC_RUNTIME_CONFIG
-static_assert(opt_poison_size >= kCacheLineSize);
-static_assert((opt_poison_size % kCacheLineSize) == 0);
-#endif
-
-static bool opt_randomize_small = true;
 
 // ***************************************************************************
 // Begin forward declarations.
