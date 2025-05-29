@@ -140,6 +140,15 @@ void NativeLayerRootWayland::Init() {
         }
       });
 
+  mSurface->SetFrameCallbackStateHandlerLocked(
+      lock, [this, self = RefPtr{this}](bool aState) -> void {
+        LOGVERBOSE("FrameCallbackStateHandlerLocked");
+        MutexAutoLock lock(mMutex);
+        for (RefPtr<NativeLayerWayland>& layer : mSublayers) {
+          layer->SetFrameCallbackState(aState);
+        }
+      });
+
   // Get the best DMABuf format for root wl_surface. We use the same
   // for child surfaces as we expect them to share the same window/monitor.
   //
@@ -770,6 +779,12 @@ bool NativeLayerWayland::Map(WaylandSurfaceLock* aParentWaylandSurfaceLock) {
 
   mNeedsMainThreadUpdate = MainThreadUpdate::Map;
   return true;
+}
+
+void NativeLayerWayland::SetFrameCallbackState(bool aState) {
+  MutexAutoLock lock(mMutex);
+  LOGVERBOSE("NativeLayerWayland::SetFrameCallbackState() %d", aState);
+  mSurface->SetFrameCallbackState(aState);
 }
 
 void NativeLayerWayland::MainThreadMap() {
