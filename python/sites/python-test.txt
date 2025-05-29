@@ -9,8 +9,8 @@ pypi:dataclasses==0.6
 pypi:docutils==0.18.1
 pypi:fluent.pygments==1.0
 pypi:imagesize==1.4.1
-pypi:pytest-mock==3.12.0
 pypi:pytest==7.0.1
+pypi:pytest-mock==3.12.0
 pypi:pytz==2022.7.1
 pypi:rstcheck==6.2.4
 pypi:ruff==0.9.0

@@ -1,6 +1,4 @@
 requires-python:>=3.8
-# The following are only required by autodoc
-pth:python/mozpack/test
 pth:tools/lint/eslint/
 pypi:Sphinx==7.1.2 ; python_version <= '3.8'
 pypi:Sphinx==7.4.7 ; python_version > '3.8'
@@ -9,15 +7,18 @@ pypi:fluent.pygments==1.0
 pypi:livereload==2.6.3
 pypi:mots==0.13.1
 pypi:myst-parser==2.0
-pypi:pytest==7.2.1
-pypi:pywatchman==1.4.1
 pypi:sphinx-copybutton==0.5.2
 pypi:sphinx-design==0.5.0
 pypi:sphinx-js==3.2.2
+pypi:sphinx-tabs==3.4.7
 pypi:sphinx-markdown-tables==0.0.17
 pypi:sphinx-rtd-theme==2.0.0
-pypi:sphinx-tabs==3.4.7
 pypi:sphinxcontrib-mermaid==1.0.0
+
+# The following are only required by autodoc
+pth:python/mozpack/test
+pypi:pytest==7.2.1
+pypi:pywatchman==1.4.1
 vendored:third_party/python/PyYAML/lib/
 vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp

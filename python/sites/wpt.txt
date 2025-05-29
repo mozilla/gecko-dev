@@ -1,10 +1,4 @@
 requires-python:>=3.8
-pypi:aioquic==1.2.0
-# Bug 1823701 - tomli is a pytest dependency that isn't pulled into WPT's
-# vendor dir for some reason
-pypi:tomli==2.2.1
-pypi:tox==3.12.1
-pypi:ujson==5.7.0
 vendored:testing/web-platform/tests/tools/third_party/h2/src
 vendored:testing/web-platform/tests/tools/third_party/hpack/src
 vendored:testing/web-platform/tests/tools/third_party/html5lib
@@ -14,3 +8,9 @@ vendored:testing/web-platform/tests/tools/third_party/webencodings
 vendored:testing/web-platform/tests/tools/wptrunner
 vendored:testing/web-platform/tests/tools/wptserve
 vendored:third_party/python/redo
+pypi:tox==3.12.1
+pypi:ujson==5.7.0
+pypi:aioquic==1.2.0
+# Bug 1823701 - tomli is a pytest dependency that isn't pulled into WPT's
+# vendor dir for some reason
+pypi:tomli==2.2.1
