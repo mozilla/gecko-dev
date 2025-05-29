@@ -24,14 +24,14 @@
 //! The assertions in the constructor methods ensure that the tag getter matches
 //! our expectations.
 
-use super::{Context, Length, Percentage, ToComputedValue, position::AnchorSide};
+use super::{Context, Length, Percentage, PositionProperty, ToComputedValue};
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::structs::GeckoFontMetrics;
+use crate::logical_geometry::PhysicalSide;
 use crate::values::animated::{Animate, Context as AnimatedContext, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::values::generics::calc::{CalcUnits, PositivePercentageBasis};
 use crate::values::generics::length::AnchorResolutionResult;
-use crate::values::generics::position::{AnchorSideKeyword, GenericAnchorSide};
 use crate::values::generics::{calc, NonNegative};
 use crate::values::resolved::{Context as ResolvedContext, ToResolvedValue};
 use crate::values::specified::length::{FontBaseSize, LineHeightBase};
@@ -909,29 +909,44 @@ pub struct CalcLengthPercentage {
     node: CalcNode,
 }
 
-/// Type for anchor side in `calc()` and other math fucntions.
-pub type CalcAnchorSide = GenericAnchorSide<Box<CalcNode>>;
+fn resolve_anchor_functions(
+    node: &CalcNode,
+    info: &CalcAnchorFunctionResolutionInfo,
+) -> Result<Option<CalcNode>, ()> {
+    let resolution = match node {
+        CalcNode::Anchor(f) => {
+            let side = info.side.expect("Unexpected anchor()");
+            // Invalid use of `anchor()` (i.e. Outside of inset properties) should've been
+            // caught at parse time.
+            f.resolve(side, info.position_property)
+        },
+        CalcNode::AnchorSize(f) => f.resolve(info.position_property),
+        _ => return Ok(None),
+    };
 
-impl CalcAnchorSide {
-    /// Break down given anchor side into its equivalent keyword and percentage.
-    pub fn keyword_and_percentage(&self) -> (AnchorSideKeyword, f32) {
-        let p = match self {
-            Self::Percentage(p) => p,
-            Self::Keyword(k) => return if matches!(k, AnchorSideKeyword::Center) {
-                (AnchorSideKeyword::Start, 0.5)
-            } else {
-                (*k, 1.0)
-            },
-        };
-
-        if let CalcNode::Leaf(l) = &**p {
-            if let CalcLengthPercentageLeaf::Percentage(v) = l {
-                return (AnchorSideKeyword::Start, v.0);
-            }
-        }
-        debug_assert!(false, "Parsed non-percentage?");
-        (AnchorSideKeyword::Start, 1.0)
+    match resolution {
+        AnchorResolutionResult::Invalid => Err(()),
+        AnchorResolutionResult::Fallback(fb) => {
+            // TODO(dshin, bug 1923759): At least for now, fallbacks should not contain any anchor function.
+            Ok(Some(*fb.clone()))
+        },
+        AnchorResolutionResult::Resolved(v) => Ok(Some(*v.clone())),
     }
+}
+
+/// Information required for resolving anchor functions.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CalcAnchorFunctionResolutionInfo {
+    /// Which side we're resolving anchor functions for.
+    /// This is only relevant for `anchor()`, which requires
+    /// the property using the function to be in the side[1].
+    /// `None` if we aren't expecting `anchor()`, like in size
+    /// properties, where only `anchor-size()` is allowed.
+    /// [1]: https://drafts.csswg.org/css-anchor-position-1/#anchor-valid
+    pub side: Option<PhysicalSide>,
+    /// `position` property of the box for which this style is being resolved.
+    pub position_property: PositionProperty,
 }
 
 /// Result of resolving `CalcLengthPercentage`
@@ -940,27 +955,6 @@ pub struct CalcLengthPercentageResolution {
     pub result: Length,
     /// Did the resolution of this calc node require resolving percentages?
     pub percentage_used: bool,
-}
-
-#[cfg(feature="gecko")]
-use crate::{
-    gecko_bindings::structs::AnchorPosResolutionParams,
-    logical_geometry::PhysicalSide,
-};
-
-impl From<&CalcAnchorSide> for AnchorSide {
-    fn from(value: &CalcAnchorSide) -> Self {
-        match value {
-            CalcAnchorSide::Keyword(k) => Self::Keyword(*k),
-            CalcAnchorSide::Percentage(p) => {
-                if let CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(p)) = **p {
-                    Self::Percentage(p)
-                } else {
-                    unreachable!("Should have parsed simplified percentage.");
-                }
-            }
-        }
-    }
 }
 
 impl CalcLengthPercentage {
@@ -988,69 +982,12 @@ impl CalcLengthPercentage {
     /// Return a clone of this node with all anchor functions computed and replaced with
     /// corresponding values, returning error if the resolution is invalid.
     #[inline]
-    #[cfg(feature="gecko")]
     pub fn resolve_anchor(
         &self,
-        side: Option<PhysicalSide>,
-        params: &AnchorPosResolutionParams,
+        anchor_resolution_info: CalcAnchorFunctionResolutionInfo,
     ) -> Result<(CalcNode, AllowedNumericType), ()> {
-        use crate::values::{computed::AnchorFunction, generics::position::GenericAnchorFunction};
-
-        fn resolve_anchor_function<'a>(
-            f: &'a GenericAnchorFunction<Box<CalcNode>, Box<CalcNode>>,
-            side: PhysicalSide,
-            params: &AnchorPosResolutionParams,
-        ) -> AnchorResolutionResult<'a, Box<CalcNode>> {
-            let anchor_side: &CalcAnchorSide = &f.side;
-            let resolved = if f.valid_for(side, params.mPosition) {
-                AnchorFunction::resolve(
-                    &f.target_element,
-                    &anchor_side.into(),
-                    side,
-                    params,
-                ).ok()
-            } else {
-                None
-            };
-
-            resolved.map_or_else(
-                || {
-                    if let Some(fb) = f.fallback.as_ref() {
-                        AnchorResolutionResult::Fallback(fb)
-                    } else {
-                        AnchorResolutionResult::Invalid
-                    }
-                },
-                |v| AnchorResolutionResult::Resolved(Box::new(CalcNode::Leaf(CalcLengthPercentageLeaf::Length(v))))
-            )
-        }
-
-        fn resolve_anchor_functions(
-            node: &CalcNode,
-            side: Option<PhysicalSide>,
-            params: &AnchorPosResolutionParams,
-        ) -> Result<Option<CalcNode>, ()> {
-            let resolution = match node {
-                CalcNode::Anchor(f) => {
-                    let prop_side = side.expect("Side not given for anchor() resolution");
-                    resolve_anchor_function(f, prop_side, params)
-                },
-                CalcNode::AnchorSize(f) => f.resolve(params.mPosition),
-                _ => return Ok(None),
-            };
-
-            match resolution {
-                AnchorResolutionResult::Invalid => Err(()),
-                AnchorResolutionResult::Fallback(fb) => {
-                    // TODO(dshin, bug 1923759): At least for now, fallbacks should not contain any anchor function.
-                    Ok(Some(*fb.clone()))
-                },
-                AnchorResolutionResult::Resolved(v) => Ok(Some(*v.clone())),
-            }
-        }
-
         let mut node = self.node.clone();
-        node.map_node(|node| resolve_anchor_functions(node, side, params))?;
+        node.map_node(|node| resolve_anchor_functions(node, &anchor_resolution_info))?;
         Ok((node, self.clamping_mode))
     }
 }

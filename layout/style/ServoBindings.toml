@@ -279,7 +279,6 @@ allowlist-types = [
     "mozilla::dom::MediaList",
     "mozilla::StyleRuleInclusion",
     "NodeSelectorFlags",
-    "AnchorPosResolutionParams",
 ]
 opaque-types = [
     "mozilla::StyleThinArc", # https://github.com/rust-lang/rust-bindgen/issues/1557
@@ -641,7 +640,6 @@ cbindgen-types = [
     { gecko = "StylePositionProperty", servo = "crate::values::computed::PositionProperty" },
     { gecko = "StyleQueryFontMetricsFlags", servo = "crate::values::specified::font::QueryFontMetricsFlags" },
     { gecko = "StyleWritingModeProperty", servo = "crate::values::computed::box_::WritingModeProperty" },
-    { gecko = "StyleGenericAnchorSide", servo = "crate::values::generics::position::GenericAnchorSide" },
 ]
 
 mapped-generic-types = [

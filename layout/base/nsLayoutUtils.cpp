@@ -1263,18 +1263,24 @@ SideBits nsLayoutUtils::GetSideBitsForFixedPositionContent(
   SideBits sides = SideBits::eNone;
   if (aFixedPosFrame) {
     const nsStylePosition* position = aFixedPosFrame->StylePosition();
-    const auto params = AnchorPosResolutionParams::UseCBFrameSize(
-        aFixedPosFrame, StylePositionProperty::Fixed);
-    if (!position->GetAnchorResolvedInset(eSideRight, params)->IsAuto()) {
+    if (!position
+             ->GetAnchorResolvedInset(eSideRight, StylePositionProperty::Fixed)
+             ->IsAuto()) {
       sides |= SideBits::eRight;
     }
-    if (!position->GetAnchorResolvedInset(eSideLeft, params)->IsAuto()) {
+    if (!position
+             ->GetAnchorResolvedInset(eSideLeft, StylePositionProperty::Fixed)
+             ->IsAuto()) {
       sides |= SideBits::eLeft;
     }
-    if (!position->GetAnchorResolvedInset(eSideBottom, params)->IsAuto()) {
+    if (!position
+             ->GetAnchorResolvedInset(eSideBottom, StylePositionProperty::Fixed)
+             ->IsAuto()) {
       sides |= SideBits::eBottom;
     }
-    if (!position->GetAnchorResolvedInset(eSideTop, params)->IsAuto()) {
+    if (!position
+             ->GetAnchorResolvedInset(eSideTop, StylePositionProperty::Fixed)
+             ->IsAuto()) {
       sides |= SideBits::eTop;
     }
   }
@@ -2282,8 +2288,8 @@ nsLayoutUtils::TransformResult nsLayoutUtils::TransformRect(
   return TRANSFORM_SUCCEEDED;
 }
 
-nsRect nsLayoutUtils::GetRectRelativeToFrame(const Element* aElement,
-                                             const nsIFrame* aFrame) {
+nsRect nsLayoutUtils::GetRectRelativeToFrame(Element* aElement,
+                                             nsIFrame* aFrame) {
   if (!aElement || !aFrame) {
     return nsRect();
   }

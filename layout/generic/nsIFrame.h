@@ -1179,14 +1179,16 @@ class nsIFrame : public nsQueryFrame {
   mozilla::LogicalSize ContentSize() const {
     return ContentSize(GetWritingMode());
   }
-
   mozilla::LogicalSize ContentSize(mozilla::WritingMode aWritingMode) const {
-    return SizeReducedBy(aWritingMode,
-                         GetLogicalUsedBorderAndPadding(GetWritingMode()));
-  }
-
-  mozilla::LogicalSize PaddingSize(mozilla::WritingMode aWritingMode) const {
-    return SizeReducedBy(aWritingMode, GetLogicalUsedBorder(GetWritingMode()));
+    mozilla::WritingMode wm = GetWritingMode();
+    const auto bp = GetLogicalUsedBorderAndPadding(wm)
+                        .ApplySkipSides(GetLogicalSkipSides())
+                        .ConvertTo(aWritingMode, wm);
+    const auto size = GetLogicalSize(aWritingMode);
+    return mozilla::LogicalSize(
+        aWritingMode,
+        std::max(0, size.ISize(aWritingMode) - bp.IStartEnd(aWritingMode)),
+        std::max(0, size.BSize(aWritingMode) - bp.BStartEnd(aWritingMode)));
   }
   nscoord ContentISize(mozilla::WritingMode aWritingMode) const {
     return ContentSize(aWritingMode).ISize(aWritingMode);
@@ -1479,19 +1481,6 @@ class nsIFrame : public nsQueryFrame {
   bool ShouldBreakBetween(const nsStyleDisplay* aDisplay,
                           const mozilla::StyleBreakBetween aBreakBetween,
                           const ReflowInput::BreakType aBreakType) const;
-
-  mozilla::LogicalSize SizeReducedBy(mozilla::WritingMode aWritingMode,
-                                     mozilla::LogicalMargin aMargin) const {
-    mozilla::WritingMode wm = GetWritingMode();
-    // aMargin assumed to be in `wm`.
-    const auto m = aMargin.ApplySkipSides(GetLogicalSkipSides())
-                       .ConvertTo(aWritingMode, wm);
-    const auto size = GetLogicalSize(aWritingMode);
-    return mozilla::LogicalSize(
-        aWritingMode,
-        std::max(0, size.ISize(aWritingMode) - m.IStartEnd(aWritingMode)),
-        std::max(0, size.BSize(aWritingMode) - m.BStartEnd(aWritingMode)));
-  }
 
   // The value that the CSS page-name "auto" keyword resolves to for children
   // of this frame.

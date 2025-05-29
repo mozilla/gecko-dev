@@ -7026,27 +7026,19 @@ LogicalSize nsIFrame::ComputeAbsolutePosAutoSize(
       aSizeOverrides.mStyleBSize
           ? AnchorResolvedSizeHelper::Overridden(*aSizeOverrides.mStyleBSize)
           : stylePos->BSize(aWM, positionProperty);
-  const auto anchorResolutionParams =
-      AnchorPosResolutionParams::UseCBFrameSize(this, positionProperty);
   const auto iStartOffsetIsAuto =
       stylePos
-          ->GetAnchorResolvedInset(LogicalSide::IStart, aWM,
-                                   anchorResolutionParams)
+          ->GetAnchorResolvedInset(LogicalSide::IStart, aWM, positionProperty)
           ->IsAuto();
   const auto iEndOffsetIsAuto =
-      stylePos
-          ->GetAnchorResolvedInset(LogicalSide::IEnd, aWM,
-                                   anchorResolutionParams)
+      stylePos->GetAnchorResolvedInset(LogicalSide::IEnd, aWM, positionProperty)
           ->IsAuto();
   const auto bStartOffsetIsAuto =
       stylePos
-          ->GetAnchorResolvedInset(LogicalSide::BStart, aWM,
-                                   anchorResolutionParams)
+          ->GetAnchorResolvedInset(LogicalSide::BStart, aWM, positionProperty)
           ->IsAuto();
   const auto bEndOffsetIsAuto =
-      stylePos
-          ->GetAnchorResolvedInset(LogicalSide::BEnd, aWM,
-                                   anchorResolutionParams)
+      stylePos->GetAnchorResolvedInset(LogicalSide::BEnd, aWM, positionProperty)
           ->IsAuto();
   const auto boxSizingAdjust = stylePos->mBoxSizing == StyleBoxSizing::Border
                                    ? aBorderPadding

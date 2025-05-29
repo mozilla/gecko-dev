@@ -16,7 +16,6 @@ use selectors::matching::{ElementSelectorFlags, MatchingForInvalidation, Selecto
 use selectors::{Element, OpaqueElement};
 use servo_arc::{Arc, ArcBorrow};
 use smallvec::SmallVec;
-use style::values::generics::Optional;
 use std::collections::BTreeSet;
 use std::fmt::Write;
 use std::iter;
@@ -67,7 +66,6 @@ use style::gecko_bindings::structs::nsCSSPropertyID;
 use style::gecko_bindings::structs::nsChangeHint;
 use style::gecko_bindings::structs::nsCompatibility;
 use style::gecko_bindings::structs::nsresult;
-use style::gecko_bindings::structs::AnchorPosResolutionParams;
 use style::gecko_bindings::structs::CallerType;
 use style::gecko_bindings::structs::CompositeOperation;
 use style::gecko_bindings::structs::DeclarationBlockMutationClosure;
@@ -153,6 +151,7 @@ use style::values::computed::font::{
     FamilyName, FontFamily, FontFamilyList, FontStretch, FontStyle, FontWeight, GenericFontFamily,
 };
 use style::values::computed::length::AnchorSizeFunction;
+use style::values::computed::length_percentage::CalcAnchorFunctionResolutionInfo;
 use style::values::computed::position::AnchorFunction;
 use style::values::computed::{self, ContentVisibility, Context, PositionProperty, ToComputedValue};
 use style::values::distance::ComputeSquaredDistance;
@@ -8492,11 +8491,14 @@ pub enum CalcAnchorPositioningFunctionResolution {
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorFunctionsInCalcPercentage(
     calc: &computed::length_percentage::CalcLengthPercentage,
-    prop_side: Option<&PhysicalSide>,
-    params: &AnchorPosResolutionParams,
+    side: Option<&PhysicalSide>,
+    position_property: PositionProperty,
     out: &mut CalcAnchorPositioningFunctionResolution,
 ) {
-    let resolved = calc.resolve_anchor(prop_side.copied(), params);
+    let resolved = calc.resolve_anchor(CalcAnchorFunctionResolutionInfo {
+        side: side.copied(),
+        position_property,
+    });
 
     match resolved {
         Err(()) => *out = CalcAnchorPositioningFunctionResolution::Invalid,
@@ -9907,35 +9909,14 @@ impl AnchorPositioningFunctionResolution {
     }
 }
 
-fn resolve_anchor_fallback(
-    fallback: &Optional<computed::LengthPercentage>
-) -> AnchorPositioningFunctionResolution {
-    fallback.as_ref().map_or(AnchorPositioningFunctionResolution::Invalid,
-        |fb| AnchorPositioningFunctionResolution::ResolvedReference(fb as *const _),
-    )
-}
-
 #[no_mangle]
 pub extern "C" fn Servo_ResolveAnchorFunction(
     func: &AnchorFunction,
-    params: &AnchorPosResolutionParams,
-    prop_side: PhysicalSide,
+    side: PhysicalSide,
+    prop: PositionProperty,
     out: &mut AnchorPositioningFunctionResolution,
 ) {
-    if !func.valid_for(prop_side, params.mPosition) {
-        *out = resolve_anchor_fallback(&func.fallback);
-        return;
-    }
-    let result = AnchorFunction::resolve(
-        &func.target_element,
-        &func.side,
-        prop_side,
-        params
-    );
-    *out = match result {
-        Ok(l) => AnchorPositioningFunctionResolution::Resolved(computed::LengthPercentage::new_length(l)),
-        Err(()) => resolve_anchor_fallback(&func.fallback),
-    };
+    *out = AnchorPositioningFunctionResolution::new(func.resolve(side, prop));
 }
 
 #[no_mangle]
