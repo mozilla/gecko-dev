@@ -4,8 +4,11 @@
 
 import os
 
+import android_taskgraph
 from taskgraph import config as taskgraph_config
+from taskgraph import generator
 from taskgraph import morph as taskgraph_morph
+from taskgraph.transforms.task import payload_builders
 from taskgraph.util import schema
 from taskgraph.util import taskcluster as tc_util
 
@@ -38,6 +41,12 @@ schema.EXCEPTED_SCHEMA_IDENTIFIERS.extend(
     ]
 )
 
+# TODO: These are temporarily redefined in gecko_taskgraph. Remove them from
+# upstream until they can be consolidated.
+del payload_builders["beetmover"]
+del payload_builders["docker-worker"]
+del payload_builders["generic-worker"]
+
 
 def register(graph_config):
     """Used to register Gecko specific extensions.
@@ -45,30 +54,25 @@ def register(graph_config):
     Args:
         graph_config: The graph configuration object.
     """
-    import android_taskgraph
-    from taskgraph import generator
+    from taskgraph.optimize.base import registry
+
+    from gecko_taskgraph import (  # noqa
+        filter_tasks,
+        morph,
+        target_tasks,  # trigger target task method registration
+    )
+    from gecko_taskgraph.parameters import register_parameters
+    from gecko_taskgraph.util import (
+        dependencies,  # noqa - trigger group_by registration
+    )
+    from gecko_taskgraph.util.verify import verifications
 
     # TODO: Remove along with
     # `gecko_taskgraph.optimize.strategies.SkipUnlessChanged`
     # (see comment over there)
-    from taskgraph.optimize.base import registry
-
     del registry["skip-unless-changed"]
 
-    from gecko_taskgraph import (  # noqa
-        # trigger target task method registration
-        morph,  # noqa
-        filter_tasks,
-        target_tasks,
-    )
-
     android_taskgraph.register(graph_config)
-
-    from gecko_taskgraph.parameters import register_parameters
-
-    # trigger group_by registration
-    from gecko_taskgraph.util import dependencies  # noqa
-    from gecko_taskgraph.util.verify import verifications
 
     # Don't use the upstream verifications, and replace them with our own.
     # TODO Investigate merging our verifications with upstream.
