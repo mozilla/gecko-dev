@@ -36,20 +36,26 @@ const tests = {
 
 // For ESLint tests, we only have a couple of xpt examples in the xpidl directory.
 // Therefore we can pretend that these interfaces no longer exist.
-switch (os.platform) {
-  case "windows":
+switch (os.platform()) {
+  case "win32":
     tests.invalid.push(
-      invalidCode("Ci.nsIJumpListShortcut", "missingInterface")
+      invalidCode("Ci.nsIJumpListShortcut", "missingInterface", {
+        interface: "nsIJumpListShortcut",
+      })
     );
     break;
   case "darwin":
     tests.invalid.push(
-      invalidCode("Ci.nsIMacShellService", "missingInterface")
+      invalidCode("Ci.nsIMacShellService", "missingInterface", {
+        interface: "nsIMacShellService",
+      })
     );
     break;
   case "linux":
     tests.invalid.push(
-      invalidCode("Ci.mozISandboxReporter", "missingInterface")
+      invalidCode("Ci.mozISandboxReporter", "missingInterface", {
+        interface: "mozISandboxReporter",
+      })
     );
 }
 

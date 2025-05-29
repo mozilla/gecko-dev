@@ -29,11 +29,13 @@ export default {
       Program(node) {
         let filename = context.filename;
         let code = context.sourceCode.getText();
-        let currentGlobals = globals.getGlobalsForCode(code, {}, false);
+        let currentGlobals = globals.getGlobalsForCode(code, {});
         let knownGlobals;
         try {
           knownGlobals = new Set(
-            JSON.parse(fs.readFileSync(filename + ".globals"))
+            JSON.parse(
+              fs.readFileSync(filename + ".globals", { encoding: "utf-8" })
+            )
           );
         } catch (ex) {
           context.report({

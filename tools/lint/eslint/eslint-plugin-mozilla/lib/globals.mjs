@@ -530,8 +530,7 @@ let globalUtils = {
     // Parse the content into an AST
     let { ast, scopeManager, visitorKeys } = helpers.parseCode(
       code,
-      astOptions,
-      { useBabel: false }
+      astOptions
     );
 
     // Discover global declarations

@@ -92,7 +92,9 @@ export default {
       if (!file.endsWith(".xpt")) {
         continue;
       }
-      let data = JSON.parse(fs.readFileSync(path.join(`${xpidlDir}`, file)));
+      let data = JSON.parse(
+        fs.readFileSync(path.join(`${xpidlDir}`, file), { encoding: "utf-8" })
+      );
       for (let details of data) {
         xpidlData.set(details.name, details);
       }
@@ -110,17 +112,14 @@ export default {
    * @param  {object} astOptions
    *         Extra configuration to pass to the espree parser, these will override
    *         the configuration from getPermissiveConfig().
-   * @param  {object} configOptions
-   *         Extra options for getPermissiveConfig().
-   *
    * @returns {object}
    *         Returns an object containing `ast`, `scopeManager` and
    *         `visitorKeys`
    */
-  parseCode(sourceText, astOptions = {}, configOptions = {}) {
+  parseCode(sourceText, astOptions = {}) {
     // Use a permissive config file to allow parsing of anything that Espree
     // can parse.
-    let config = { ...this.getPermissiveConfig(configOptions), ...astOptions };
+    let config = { ...this.getPermissiveConfig(), ...astOptions };
 
     let parseResult = parser.parse(sourceText, config);
 
@@ -669,7 +668,9 @@ export default {
           let possibleFile = path.join(dirName, "package.json");
           if (fs.existsSync(possibleFile)) {
             try {
-              let packageData = JSON.parse(fs.readFileSync(possibleFile));
+              let packageData = JSON.parse(
+                fs.readFileSync(possibleFile, { encoding: "utf-8" })
+              );
               if (packageData.nonPublishedName == "mozilla-central") {
                 return dirName;
               }
@@ -762,7 +763,9 @@ export default {
   getSavedEnvironmentItems(environment) {
     if (!savedGlobals) {
       savedGlobals = JSON.parse(
-        fs.readFileSync(path.join("environments", "saved-globals.json"))
+        fs.readFileSync(path.join("environments", "saved-globals.json"), {
+          encoding: "utf-8",
+        })
       );
     }
     return savedGlobals.environments[environment];
@@ -772,7 +775,7 @@ export default {
     var output = execFileSync(
       path.join(this.rootDir, "mach"),
       ["environment", "--format=json"],
-      { silent: true }
+      { encoding: "utf-8" }
     );
     return JSON.parse(output);
   },

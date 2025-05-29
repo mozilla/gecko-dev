@@ -96,7 +96,7 @@ export default {
     messages: {
       missingInterface:
         "{{ interface }} is defined in this rule's platform specific list, but is not available",
-      unknownInterface: "Use of unknown interface Ci.{{ interface}}",
+      unknownInterface: "Use of unknown interface Ci.{{ interface }}",
       unknownProperty:
         "Use of unknown property Ci.{{ interface }}.{{ property }}",
     },
@@ -127,7 +127,7 @@ export default {
                   interface: node.property.name,
                 },
               });
-            } else if (platformSpecific == os.platform) {
+            } else if (platformSpecific == os.platform()) {
               context.report({
                 node,
                 messageId: "missingInterface",
