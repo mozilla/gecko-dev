@@ -12,6 +12,20 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
+ * @typedef {object} LegacySearchButton
+ * @property {boolean} open
+ *   Whether the button is in an open state.
+ * @property {nsISearchEngine} engine
+ *   The search engine associated with the button.
+ */
+
+/**
+ *  A XULElement augmented at runtime with additional properties.
+ *
+ *  @typedef {XULElement & LegacySearchButton} LegacySearchOneOffButton
+ */
+
+/**
  * Defines the search one-off button elements. These are displayed at the bottom
  * of the address bar and search bar. The address bar buttons are a subclass in
  * browser/components/urlbar/UrlbarSearchOneOffs.sys.mjs. If you are adding a new
@@ -276,7 +290,7 @@ export class SearchOneOffs {
    * The selected one-off including the add-engine button
    * and the search-settings button.
    *
-   * @param {XULElement|null} val
+   * @param {LegacySearchOneOffButton|null} val
    *        The selected one-off button. Null if no one-off is selected.
    */
   set selectedButton(val) {
@@ -300,10 +314,7 @@ export class SearchOneOffs {
       }
     }
 
-    let event = new CustomEvent("SelectedOneOffButtonChanged", {
-      previousSelectedButton: previousButton,
-    });
-    this.dispatchEvent(event);
+    this.dispatchEvent(new CustomEvent("SelectedOneOffButtonChanged"));
   }
 
   get selectedButton() {
@@ -871,12 +882,14 @@ export class SearchOneOffs {
     }
     if (
       MouseEvent.isInstance(event) &&
+      Element.isInstance(target) &&
       target.classList.contains("searchbar-engine-one-off-item")
     ) {
       return true;
     }
     if (
       this.window.XULCommandEvent.isInstance(event) &&
+      Element.isInstance(target) &&
       target.classList.contains("search-one-offs-context-open-in-new-tab")
     ) {
       return true;
@@ -898,6 +911,7 @@ export class SearchOneOffs {
    * @returns {boolean} True if the view is open.
    */
   get isViewOpen() {
+    // @ts-expect-error - MozSearchAutocompleteRichlistboxPopup is defined in JS and lacks type declarations.
     return this.popup && this.popup.popupOpen;
   }
 
@@ -905,6 +919,7 @@ export class SearchOneOffs {
    * @returns {number} The selected index in the view or -1 if no selection.
    */
   get selectedViewIndex() {
+    // @ts-expect-error - MozSearchAutocompleteRichlistboxPopup is defined in JS and lacks type declarations.
     return this.popup.selectedIndex;
   }
 
@@ -915,6 +930,7 @@ export class SearchOneOffs {
    *        The selected index or -1 if no selection.
    */
   set selectedViewIndex(val) {
+    // @ts-expect-error - MozSearchAutocompleteRichlistboxPopup is defined in JS and lacks type declarations.
     this.popup.selectedIndex = val;
   }
 
@@ -938,6 +954,7 @@ export class SearchOneOffs {
    */
   handleSearchCommand(event, engine, forceNewTab = false) {
     let { where, params } = this._whereToOpen(event, forceNewTab);
+    // @ts-expect-error - MozSearchAutocompleteRichlistboxPopup is defined in JS and lacks type declarations.
     this.popup.handleOneOffSearch(event, engine, where, params);
   }
 
@@ -945,7 +962,7 @@ export class SearchOneOffs {
    * Sets the tooltip for a one-off button with an engine.  This should set
    * either the `tooltiptext` attribute or the relevant l10n ID.
    *
-   * @param {XULElement} button
+   * @param {LegacySearchOneOffButton} button
    *        The one-off button.
    */
   setTooltipForEngineButton(button) {
@@ -975,6 +992,7 @@ export class SearchOneOffs {
 
     if (!this.textbox.value) {
       if (event.shiftKey) {
+        // @ts-expect-error - MozSearchAutocompleteRichlistboxPopup is defined in JS and lacks type declarations.
         this.popup.openSearchForm(event, engine);
       }
       return;
@@ -1021,6 +1039,7 @@ export class SearchOneOffs {
       if (this.textbox.value) {
         this.handleSearchCommand(event, this.selectedButton.engine, true);
       } else {
+        // @ts-expect-error - MozSearchAutocompleteRichlistboxPopup is defined in JS and lacks type declarations.
         this.popup.openSearchForm(event, this.selectedButton.engine, true);
       }
     }
