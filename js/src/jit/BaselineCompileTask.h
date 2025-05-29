@@ -44,8 +44,7 @@ class BaselineSnapshot {
         compileDebugInstrumentation_(compileDebugInstrumentation) {
     if (script->needsFunctionEnvironmentObjects()) {
       auto [callObjectTemplate, namedLambdaTemplate] =
-       script->jitScript()->functionEnvironmentTemplates(
-           script->function());
+          script->jitScript()->functionEnvironmentTemplates(script->function());
       callObjectTemplate_.init(callObjectTemplate);
       namedLambdaTemplate_.init(namedLambdaTemplate);
     }
@@ -57,7 +56,9 @@ class BaselineSnapshot {
   }
   JSObject* globalThis() const { return globalThis_; }
   CallObject* callObjectTemplate() const { return callObjectTemplate_; }
-  NamedLambdaObject* namedLambdaTemplate() const { return namedLambdaTemplate_; }
+  NamedLambdaObject* namedLambdaTemplate() const {
+    return namedLambdaTemplate_;
+  }
   size_t nargs() const { return nargs_; }
   uint32_t baseWarmUpThreshold() const { return baseWarmUpThreshold_; }
   bool isIonCompileable() const { return isIonCompileable_; }
