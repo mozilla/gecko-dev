@@ -163,7 +163,7 @@ mod foreign {
         },
         resource::{
             BufferAccessError, CreateBufferError, CreateQuerySetError, CreateSamplerError,
-            CreateTextureError, CreateTextureViewError, DestroyError,
+            CreateTextureError, CreateTextureViewError,
         },
     };
     use wgt::RequestAdapterError;
@@ -641,12 +641,6 @@ mod foreign {
             // We can't classify this ourselves, because inner error classification is private. We
             // may need some upstream work to do this properly. For now, we trust that this opaque
             // type only ever represents `Validation`.
-            ErrorBufferType::Validation
-        }
-    }
-
-    impl HasErrorBufferType for DestroyError {
-        fn error_type(&self) -> ErrorBufferType {
             ErrorBufferType::Validation
         }
     }

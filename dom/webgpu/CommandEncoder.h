@@ -72,10 +72,14 @@ class CommandEncoder final : public ObjectBase, public ChildOf<Device> {
   void EndComputePass(ffi::WGPURecordedComputePass& aPass);
   void EndRenderPass(ffi::WGPURecordedRenderPass& aPass);
 
+  void CopyBufferToBuffer(const Buffer& aSource, const Buffer& aDestination,
+                          const dom::Optional<BufferAddress>& aSize) {
+    this->CopyBufferToBuffer(aSource, 0, aDestination, 0, aSize);
+  }
   void CopyBufferToBuffer(const Buffer& aSource, BufferAddress aSourceOffset,
                           const Buffer& aDestination,
                           BufferAddress aDestinationOffset,
-                          BufferAddress aSize);
+                          const dom::Optional<BufferAddress>& aSize);
   void CopyBufferToTexture(const dom::GPUTexelCopyBufferInfo& aSource,
                            const dom::GPUTexelCopyTextureInfo& aDestination,
                            const dom::GPUExtent3D& aCopySize);

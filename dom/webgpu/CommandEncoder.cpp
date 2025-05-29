@@ -102,18 +102,33 @@ void CommandEncoder::TrackPresentationContext(CanvasContext* aTargetContext) {
   }
 }
 
-void CommandEncoder::CopyBufferToBuffer(const Buffer& aSource,
-                                        BufferAddress aSourceOffset,
-                                        const Buffer& aDestination,
-                                        BufferAddress aDestinationOffset,
-                                        BufferAddress aSize) {
+void CommandEncoder::CopyBufferToBuffer(
+    const Buffer& aSource, BufferAddress aSourceOffset,
+    const Buffer& aDestination, BufferAddress aDestinationOffset,
+    const dom::Optional<BufferAddress>& aSize) {
   if (!mBridge->CanSend()) {
     return;
   }
 
+  // In Javascript, `size === undefined` means "copy from source offset to end
+  // of buffer". wgpu_command_encoder_copy_buffer_to_buffer uses a value of
+  // UINT64_MAX to encode this. If the requested copy size was UINT64_MAX, fudge
+  // it to a different value that will still be rejected for misalignment on the
+  // device timeline.
+  BufferAddress size;
+  if (aSize.WasPassed()) {
+    if (aSize.Value() == std::numeric_limits<uint64_t>::max()) {
+      size = std::numeric_limits<uint64_t>::max() - 4;
+    } else {
+      size = aSize.Value();
+    }
+  } else {
+    size = std::numeric_limits<uint64_t>::max();
+  }
+
   ipc::ByteBuf bb;
   ffi::wgpu_command_encoder_copy_buffer_to_buffer(
-      aSource.mId, aSourceOffset, aDestination.mId, aDestinationOffset, aSize,
+      aSource.mId, aSourceOffset, aDestination.mId, aDestinationOffset, size,
       ToFFI(&bb));
   mBridge->SendCommandEncoderAction(mId, mParent->mId, std::move(bb));
 }

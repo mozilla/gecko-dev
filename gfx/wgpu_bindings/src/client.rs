@@ -1237,6 +1237,14 @@ pub unsafe extern "C" fn wgpu_command_encoder_copy_buffer_to_buffer(
     size: wgt::BufferAddress,
     bb: &mut ByteBuf,
 ) {
+    // In Javascript, `size === undefined` means "copy from src_offset to end of
+    // buffer". The `size` argument to this function uses a value of
+    // `wgt::BufferAddress::MAX` to encode that case. (Valid copy
+    // sizes must be multiples of four, so in the case that the application
+    // really asked to copy BufferAddress::MAX bytes,
+    // CommandEncoder::CopyBufferToBuffer decrements it by four, which
+    // will still fail for mis-alignment.)
+    let size = (size != wgt::BufferAddress::MAX).then_some(size);
     let action = CommandEncoderAction::CopyBufferToBuffer {
         src,
         src_offset,
