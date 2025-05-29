@@ -1775,6 +1775,10 @@ class PresShell final : public nsStubDocumentObserver,
     return mSelectionNodeCache;
   }
 
+  // Record that a frame is an orthogonal flow and may need to be reflowed
+  // on resize.
+  void AddOrthogonalFlow(nsIFrame* aFrame) { mOrthogonalFlows.Insert(aFrame); }
+
  private:
   ~PresShell();
 
@@ -3218,6 +3222,10 @@ class PresShell final : public nsStubDocumentObserver,
   nsTHashSet<nsIContent*> mHiddenContentInForcedLayout;
 
   nsTHashSet<nsIFrame*> mContentVisibilityAutoFrames;
+
+  // Set of orthogonal-flow frames that need to be reflowed on a resize reflow
+  // because their layout may have been dependent on the ICB size.
+  nsTHashSet<nsIFrame*> mOrthogonalFlows;
 
   // The type of content relevancy to update the next time content relevancy
   // updates are triggered for `content-visibility: auto` frames.
