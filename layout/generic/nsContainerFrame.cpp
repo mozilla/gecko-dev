@@ -2248,7 +2248,9 @@ LogicalSize nsContainerFrame::ComputeSizeWithIntrinsicDimensions(
                                              aBorderPadding.ISize(aWM) -
                                              boxSizingAdjust.ISize(aWM);
 
-  nscoord iSize, minISize, maxISize, bSize, minBSize, maxBSize;
+  // We don't expect these intial values of iSize/bSize to be used, but this
+  // silences a GCC warning about them being uninitialized.
+  nscoord minISize, maxISize, minBSize, maxBSize, iSize = 0, bSize = 0;
   enum class FillCB {
     // No stretching or clamping in the relevant axis.
     No,
