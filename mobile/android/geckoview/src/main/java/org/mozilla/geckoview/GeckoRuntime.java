@@ -1132,6 +1132,17 @@ public final class GeckoRuntime implements Parcelable {
   }
 
   /**
+   * Notifies Gecko observers of a telemetry preference change.
+   *
+   * @param isEnabled Whether telemetry is enabled or disabled.
+   */
+  @AnyThread
+  public void notifyTelemetryPrefChanged(final boolean isEnabled) {
+    GeckoAppShell.notifyObservers(
+        "mobile-telemetry-pref-changed", isEnabled ? "enabled" : "disabled");
+  }
+
+  /**
    * Appends notes to crash report.
    *
    * @param notes The application notes to append to the crash report.

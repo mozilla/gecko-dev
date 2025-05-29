@@ -267,6 +267,14 @@ interface Engine : WebExtensionRuntime, TranslationsRuntime, DataCleanable {
         throw UnsupportedOperationException("Web notification clicks not yet supported in this engine")
 
     /**
+     * Notifies the engine of a change in telemetry pref
+     *
+     * @param enabled Whether the user enabled or disabled telemetry
+     */
+    fun notifyTelemetryPrefChanged(enabled: Boolean): Unit =
+        throw UnsupportedOperationException("notifyTelemetryPrefChanged is not supported by this engine.")
+
+    /**
      * Fetch a list of trackers logged for a given [session] .
      *
      * @param session the session where the trackers were logged.
