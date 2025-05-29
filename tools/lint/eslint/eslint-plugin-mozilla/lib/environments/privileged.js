@@ -10,8 +10,7 @@
 
 module.exports = {
   globals: {
-    // Intl and WebAssembly are available everywhere but are not webIDL definitions.
-    Intl: false,
+    // WebAssembly is available everywhere but is not a webIDL definition.
     WebAssembly: false,
     // This list of items is currently obtained manually from the list of
     // mozilla::dom::constructor::id::ID enumerations in an object directory

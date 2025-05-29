@@ -5,10 +5,10 @@
   "repository": {},
   "license": "MPL-2.0",
   "devDependencies": {
-    "@microsoft/eslint-plugin-sdl": "0.2.2",
+    "@microsoft/eslint-plugin-sdl": "1.0.0",
     "@stylistic/stylelint-plugin": "3.1.1",
     "@types/gecko": "file:tools/@types",
-    "eslint": "8.57.1",
+    "eslint": "9.6.0",
     "eslint-config-prettier": "10.0.1",
     "eslint-plugin-eslint-plugin": "6.4.0",
     "eslint-plugin-html": "8.1.2",
@@ -30,6 +30,9 @@
     "stylelint-config-recommended": "14.0.1",
     "stylelint-config-standard-scss": "14.0.0",
     "yarn": "1.22.22"
+  },
+  "overrides": {
+    "eslint": "9.6.0"
   },
   "notes(private)": "We don't want to publish to npm, so this is marked as private",
   "private": true

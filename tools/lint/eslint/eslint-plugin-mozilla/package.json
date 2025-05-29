@@ -20,20 +20,20 @@
   "author": "Mike Ratcliffe",
   "main": "lib/index.js",
   "dependencies": {
-    "eslint-scope": "^7.2.2",
-    "eslint-visitor-keys": "^3.4.3",
-    "espree": "^9.6.1",
+    "eslint-scope": "^8.0.1",
+    "eslint-visitor-keys": "^4.0.0",
+    "espree": "^10.0.1",
     "estraverse": "^5.3.0",
     "htmlparser2": "^9.1.0",
     "toml-eslint-parser": "0.10.0"
   },
   "devDependencies": {
-    "eslint": "8.57.1",
-    "mocha": "10.8.2"
+    "eslint": "9.0.0",
+    "mocha": "11.4.0"
   },
   "peerDependencies": {
-    "@microsoft/eslint-plugin-sdl": "^0.2.2 || ^1.0.0",
-    "eslint": "^8.57.1 || ^9.0.0",
+    "@microsoft/eslint-plugin-sdl": "^1.0.0",
+    "eslint": "^9.0.0",
     "eslint-plugin-no-unsanitized": "^4.1.0",
     "eslint-plugin-promise": "^7.2.1",
     "eslint-plugin-jsdoc": "^50.6.3"
@@ -47,7 +47,7 @@
     }
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "prepack": "node scripts/createExports.js",

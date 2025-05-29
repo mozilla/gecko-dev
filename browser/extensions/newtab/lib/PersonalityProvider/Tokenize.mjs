@@ -29,8 +29,8 @@ const REGEXP_SPLITS = new RegExp(
   `[${UNICODE_SPACE}${UNICODE_SYMBOL}${UNICODE_PUNCT}]+`
 );
 // Match all token characters, so okay for regex to split multiple code points
-// eslint-disable-next-line no-misleading-character-class
 const REGEXP_ALPHANUMS = new RegExp(
+  // eslint-disable-next-line no-misleading-character-class
   `^[${UNICODE_NUMBER}${UNICODE_MARK}${UNICODE_LETTER}]+$`
 );
 
