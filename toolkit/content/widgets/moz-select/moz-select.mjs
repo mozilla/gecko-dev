@@ -2,13 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import {
-  createRef,
-  html,
-  ref,
-  classMap,
-  ifDefined,
-} from "../vendor/lit.all.mjs";
+import { createRef, html, ref } from "../vendor/lit.all.mjs";
 import { MozBaseInputElement, MozLitElement } from "../lit-utils.mjs";
 
 /**
@@ -44,7 +38,7 @@ export default class MozSelect extends MozBaseInputElement {
   firstUpdated(changedProperties) {
     super.firstUpdated(changedProperties);
     this.optionsMutationObserver.observe(this, {
-      attributeFilter: ["label", "value", "iconsrc"],
+      attributeFilter: ["label", "value"],
       childList: true,
       subtree: true,
     });
@@ -58,14 +52,6 @@ export default class MozSelect extends MozBaseInputElement {
     }
   }
 
-  get _selectedOptionIconSrc() {
-    if (!this.inputEl) {
-      return "";
-    }
-    const selectedOption = this.options[this.inputEl.selectedIndex];
-    return selectedOption?.iconSrc ?? "";
-  }
-
   /**
    * Internal - populates the select element with options from the light DOM slot.
    */
@@ -76,12 +62,7 @@ export default class MozSelect extends MozBaseInputElement {
       if (node.localName === "moz-option") {
         const optionValue = node.getAttribute("value");
         const optionLabel = node.getAttribute("label");
-        const optionIconSrc = node.getAttribute("iconsrc");
-        this.options.push({
-          value: optionValue,
-          label: optionLabel,
-          iconSrc: optionIconSrc,
-        });
+        this.options.push({ value: optionValue, label: optionLabel });
       }
     }
   }
@@ -106,26 +87,9 @@ export default class MozSelect extends MozBaseInputElement {
     />`;
   }
 
-  selectedOptionIconTemplate() {
-    if (this._selectedOptionIconSrc) {
-      return html`<img
-        src=${this._selectedOptionIconSrc}
-        role="presentation"
-        class="select-option-icon"
-      />`;
-    }
-    return null;
-  }
-
   inputTemplate() {
-    const classes = classMap({
-      "select-wrapper": true,
-      "with-icon": !!this._selectedOptionIconSrc,
-    });
-
     return html`
-      <div class=${ifDefined(classes)}>
-        ${this.selectedOptionIconTemplate()}
+      <div class="select-wrapper">
         <select
           id="input"
           name=${this.name}
@@ -139,18 +103,13 @@ export default class MozSelect extends MozBaseInputElement {
             option => html`
               <option
                 value=${option.value}
-                ?selected=${option.value == this.value}
+                ?selected=${option.value === this.value}
               >
                 ${option.label}
               </option>
             `
           )}
         </select>
-        <img
-          src="chrome://global/skin/icons/arrow-down.svg"
-          role="presentation"
-          class="select-chevron-icon"
-        />
       </div>
       <slot
         @slotchange=${this.populateOptions}
@@ -168,22 +127,19 @@ customElements.define("moz-select", MozSelect);
  * @tagname moz-option
  * @property {string} value - The value of the option
  * @property {string} label - The label of the option
- * @property {string} iconSrc - The path to the icon of the the option
  */
 export class MozOption extends MozLitElement {
   static properties = {
     // Reflect the attribute so that moz-select can detect changes with a MutationObserver
     value: { type: String, reflect: true },
     // Reflect the attribute so that moz-select can detect changes with a MutationObserver
-    label: { type: String, reflect: true, fluent: true },
-    iconSrc: { type: String, reflect: true },
+    label: { type: String, reflect: true },
   };
 
   constructor() {
     super();
     this.value = "";
     this.label = "";
-    this.iconSrc = "";
   }
 
   render() {

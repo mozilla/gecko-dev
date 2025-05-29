@@ -6,11 +6,9 @@
   --select-border: var(--button-border);
   --select-border-radius: var(--button-border-radius);
   --select-border-color-hover: var(--button-border-color-hover);
-  --select-border-color-disabled: var(--button-border-color-disabled);
   --select-background-color: var(--button-background-color);
   --select-background-color-hover: var(--button-background-color-hover);
   --select-background-color-disabled: var(--button-background-color-disabled);
-  --select-opacity-disabled: var(--button-opacity-disabled);
   --select-margin-block: var(--input-margin-block-adjust);
   --select-margin-inline: var(--input-margin-inline-start-adjust) var(--space-small);
   --select-min-height: var(--button-min-height);
@@ -19,40 +17,25 @@
   --select-option-font-weight: var(--font-weight);
   --select-text-color: var(--button-text-color);
   --select-text-color-hover: var(--button-text-color-hover);
-  --select-text-color-disabled: var(--button-text-color-disabled);
   --select-option-text-color: var(--text-color);
   --select-icon-fill: var(--button-icon-fill);
 }
 
 .select-wrapper {
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
   border-radius: var(--select-border-radius);
   background-color: var(--select-background-color);
   margin-block: var(--select-margin-block);
   margin-inline: var(--select-margin-inline);
   min-width: var(--select-min-width);
   max-width: var(--select-max-width);
-  -moz-context-properties: fill;
-  fill: var(--select-icon-fill);
 
   &:has(select:hover),
   &:has(select:open) {
     background-color: var(--select-background-color-hover);
-    color: var(--select-text-color-hover);
   }
 
   &:has(select:disabled) {
     background-color: var(--select-background-color-disabled);
-    color: var(--select-text-color-disabled);
-    opacity: var(--select-opacity-disabled);
-  }
-
-  &:has(select:focus-visible) {
-    outline: var(--focus-outline);
-    outline-offset: var(--focus-outline-offset);
   }
 }
 
@@ -67,71 +50,32 @@ select {
   font-size: var(--select-font-size);
   font-weight: var(--select-font-weight);
   appearance: none;
-  color: inherit;
+  color: var(--select-text-color);
   background-color: transparent;
+  background-image: url("chrome://global/skin/icons/arrow-down.svg");
+  background-repeat: no-repeat;
+  background-position: calc(100% - var(--space-medium));
+  background-size: var(--icon-size-default);
+  -moz-context-properties: fill;
+  fill: var(--select-icon-fill);
+
+  &:dir(rtl) {
+    background-position-x: left var(--space-medium);
+  }
 
   &:hover,
   &:open {
     border-color: var(--select-border-color-hover);
-  }
-
-  &:disabled {
-    border-color: var(--select-border-color-disabled);
+    color: var(--select-text-color-hover);
   }
 
   &:focus-visible {
-    outline: none;
-    outline-offset: unset;
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-offset);
   }
 
   & option {
     font-weight: var(--select-option-font-weight);
     color: var(--select-option-text-color);
-  }
-}
-
-.select-option-icon,
-.select-chevron-icon {
-  position: absolute;
-  width: var(--icon-size-default);
-  height: var(--icon-size-default);
-  pointer-events: none;
-}
-
-.select-option-icon {
-  inset-inline-start: var(--space-large);
-  opacity: 0;
-  transform: scale(0);
-  transition:
-    opacity 0.3s ease,
-    transform 0.3s ease;
-
-  @media (prefers-reduced-motion) {
-    transition: unset;
-  }
-}
-
-.select-chevron-icon {
-  inset-inline-end: var(--space-medium);
-}
-
-.with-icon select {
-  padding-inline-start: calc(var(--space-large) + var(--icon-size-default) + var(--space-small));
-  transform: translateX(calc(-1 * (var(--icon-size-default) + var(--space-small))));
-  transition: transform 0.3s ease;
-
-  @media (prefers-reduced-motion) {
-    transition: unset;
-  }
-}
-
-.with-icon:has(select:not(:open)) {
-  select {
-    transform: translateX(0);
-  }
-
-  .select-option-icon {
-    opacity: 1;
-    transform: scale(1);
   }
 }

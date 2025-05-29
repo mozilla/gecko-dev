@@ -115,28 +115,6 @@
         );
         is(options[1].value, "ii", "Second option value updated");
       });
-
-      add_task(async function testMozSelectOptionWithIcon() {
-        let target = await testHelpers.renderTemplate();
-        let select = target.querySelector("moz-select");
-        await select.updateComplete;
-
-        is(select.value, "1", "First option is selected");
-
-        let selectWrapper = select.shadowRoot.querySelector(".select-wrapper");
-        ok(
-          !selectWrapper.classList.contains("with-icon"),
-          "Select doesn't have an icon"
-        );
-
-        let mozOptions = select.querySelectorAll("moz-option");
-        mozOptions[0].iconSrc = "chrome://global/skin/icons/info.svg";
-        await TestUtils.waitForTick();
-        await select.updateComplete;
-
-        info("New iconSrc value was added to the selected option.");
-        ok(selectWrapper.classList.contains("with-icon"), "Select has an icon");
-      });
     </script>
   </head>
   <body></body>
