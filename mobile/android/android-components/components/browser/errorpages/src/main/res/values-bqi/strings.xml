@@ -24,14 +24,22 @@
   <string name="mozac_browser_errorpages_security_bad_cert_accept_temporary">قوۊل کردن ای ختر وو رئڌن وا پؽش</string>
   <!-- The document title and heading of the error page shown when a website uses HSTS. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_title">ای وبگه منپیز ایمن ن اخو.</string>
+  <!-- The error message shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_message"><![CDATA[<ul> <li>بلگه ای ک اخۊین نیرین نتره نشووݩ داڌه بۊ چیناکه ای وبگه منپیز ایمن ن اخو.</li> <li>و ائتمال قلوه موشکل ز وبگه هڌ وو کاری سی هل کردنس ز دست ایسا بر نیا.</li> <li>ترین موشکل ن و دؽوۉدار وبگه وارسۊوی کۊنین.</li> </ul>]]></string>
   <!-- The text shown inside the advanced button used to expand the advanced options. It's only shown when a website uses HSTS. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_advanced">پؽش رئڌه…</string>
+  <!-- The advanced certificate information shown when a website uses HSTS. The %1$s will be replaced by the website URL and %2$s will be replaced by the app name. It's only shown when a website uses HSTS. -->
+  <string name="mozac_browser_errorpages_security_bad_hsts_cert_techInfo2"><![CDATA[<label> <b>%1$s</b> ی خت میشی ٱمنیتی و نوم HTTP Strict Transport Security (HSTS) داره، و ای معنی ک <b>%2$s</b> تینا تره و جۊر ایمن و هو منپیز بۊ. ایسا نترین استسنایی سی نیشتن ای وبگه بیارین. </label>]]></string>
   <!-- The text shown inside the advanced options button used to go back. It's only shown if the user has expanded the advanced options. -->
   <string name="mozac_browser_errorpages_security_bad_hsts_cert_back">وورگرت</string>
   <!-- The document title and heading of the error page shown when the user's network connection is interrupted while connecting to a website. -->
   <string name="mozac_browser_errorpages_net_interrupt_title">منپیز قت وابی</string>
+  <!-- The error message shown when the user's network connection is interrupted while connecting to a website. -->
+  <string name="mozac_browser_errorpages_net_interrupt_message"><![CDATA[<p>گشت گر وا مووفقیت منپیز وابی، ٱما مجال جا گورویی دووسمندیا، منپیز قت وابی. ز نۊ قپ ریت کۊنین.</p> <ul> <li>وبگه گاشڌ مووقتن من دسرس نبۊ یا قلوه شۊلۊغ بۊ. ی دمووݩ دی ز نۊ قپ ریت کۊنین.</li> <li>ٱر نترین هیچ بلگه ای ن بار ونی کۊنین، منپیز داده دسگا یا وای فای خوتووݩ ن واجۊری کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website takes too long to load. -->
   <string name="mozac_browser_errorpages_net_timeout_title">موئلت منپیز تموم وابی</string>
+  <!-- The error message shown when a website took long to load. -->
+  <string name="mozac_browser_errorpages_net_timeout_message"><![CDATA[<p>وبگه درخاست وابیڌه و تقازا منپیز گشت گر ولوم نڌاد وو گشت گر مندیر بیڌن سی ولوم ن واڌاشت.</p> <ul> <li>گاشڌ سرور گرفکار تقازا بیشتر ز هندا وابیڌه یا مووقتن ی موشکل داره؟ دیندا تر دووارته قپ ریت کۊنین.</li> <li>نترین من وبگه یل دیری هم گردین؟ منپیز شبکه دسگا ن واجۊری کۊنین.</li> <li>دسگا یا شبکه ایسا و دست دیوار تش یا پروکسی زفت ابۊ؟ سامووا اشتوا ز گشتن من وبگه جلاوگری اکونن.</li> <li>هنی هم موشکل دارین؟ سی گرؽڌن هیاری وا دؽوۉدار شبکه یا جۊر کوݩ اینترنت تووݩ گوفت ۉ لوفت کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website could not be reached. -->
   <string name="mozac_browser_errorpages_connection_failure_title">نتره منپیز بۊوه</string>
   <!-- The error message shown when a website could not be reached. -->
@@ -74,6 +82,7 @@
   <string name="mozac_browser_errorpages_no_internet_refresh_button">گۊشیڌن دووارته</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_malformed_uri_title">نشۊوی زبال نؽ</string>
+  <string name="mozac_browser_errorpages_malformed_uri_message"><![CDATA[<p>نشۊوی جۊر وابیڌه قالووس زبال نؽ. ز نڌاشتن اشتوا من نوار جاگه اتمینووݩ داشته بۊین وو دووارته قپ ریت کۊنین.</p>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_malformed_uri_title_alternative">نشۊوی زبال نؽ</string>
   <!-- This string contains markup. The URL should not be localized. -->
@@ -82,6 +91,7 @@
   <string name="mozac_browser_errorpages_unknown_protocol_title">نشۊوی نشناخته</string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_file_not_found_title">فایل ن نجوست</string>
+  <string name="mozac_browser_errorpages_file_not_found_message"><![CDATA[<ul> <li>گاشڌ فایلی ک ز دینس هڌین، آلشت نوم یا جاگه داڌه بۊ یا پاک وابیڌه؟</li> <li>موشکل املایی، گپی یا کوچیری هۊرۊف یا موشکلا دیر هؽل کردنی من نشۊوی هڌ؟</li> <li>موجوزا دسرسی ک بس بۊن سی و دست ٱووردن ای نشۊوی ن دارین؟</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_file_access_denied_title">دسرسی و ای فایل رڌ ابۊ</string>
   <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[<ul> <li>گاشڌ پاک،‌ جا گورو وابیڌه یا موجوزاس ز دسرسی جلاوگری اکونه.</li> </ul>]]></string>
@@ -99,6 +109,10 @@
   <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_title">موشکل وبگه نخاسته</string>
   <!-- The %1$s will be replaced by the malicious website URL -->
   <string name="mozac_browser_errorpages_safe_browsing_unwanted_uri_message"><![CDATA[<p>وبگه %1$s و عونوان ی وبگه ک برنومه یل نخاسته ن و منتور اده گوزارش وابیڌه وو و ری ترجیهات ٱمنیتی ایسا مسدۊد وابیڌه.</p>]]></string>
+  <!-- The document title and heading of an error page. -->
+  <string name="mozac_browser_errorpages_safe_harmful_uri_title">موشکل وبگه خراوی و بار</string>
+  <!-- The %1$s will be replaced by the malicious website URL -->
+  <string name="mozac_browser_errorpages_safe_harmful_uri_message"><![CDATA[<p>وبگه %1$s و عونوان ی وبگه چول کونی گوزارش وابیڌه وو و ری ترجیهات ٱمنیتی ایسا مسدۊد وابیڌه.</p>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_safe_phishing_uri_title">موشکل وبگه بلا کوݩ</string>
   <!-- The %1$s will be replaced by the malicious website URL -->
