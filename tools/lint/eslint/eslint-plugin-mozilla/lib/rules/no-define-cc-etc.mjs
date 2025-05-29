@@ -6,7 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-const componentsBlacklist = ["Cc", "Ci", "Cr", "Cu"];
+const componentsList = ["Cc", "Ci", "Cr", "Cu"];
 
 export default {
   meta: {
@@ -26,7 +26,7 @@ export default {
       VariableDeclarator(node) {
         if (
           node.id.type == "Identifier" &&
-          componentsBlacklist.includes(node.id.name)
+          componentsList.includes(node.id.name)
         ) {
           context.report({
             node,
@@ -39,7 +39,7 @@ export default {
           for (let property of node.id.properties) {
             if (
               property.type == "Property" &&
-              componentsBlacklist.includes(property.value.name)
+              componentsList.includes(property.value.name)
             ) {
               context.report({
                 node,
