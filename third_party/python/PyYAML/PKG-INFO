@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: PyYAML
-Version: 6.0.2
+Version: 6.0.1
 Summary: YAML parser and emitter for Python
 Home-page: https://pyyaml.org/
 Download-URL: https://pypi.org/project/PyYAML/
@@ -20,17 +20,17 @@ Classifier: Operating System :: OS Independent
 Classifier: Programming Language :: Cython
 Classifier: Programming Language :: Python
 Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
+Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: 3.9
 Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
-Classifier: Programming Language :: Python :: 3.12
-Classifier: Programming Language :: Python :: 3.13
 Classifier: Programming Language :: Python :: Implementation :: CPython
 Classifier: Programming Language :: Python :: Implementation :: PyPy
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Classifier: Topic :: Text Processing :: Markup
-Requires-Python: >=3.8
+Requires-Python: >=3.6
 License-File: LICENSE
 
 YAML is a data serialization format designed for human readability
