@@ -251,7 +251,7 @@ export class AboutPreferences {
         "description",
         detailVbox
       );
-      description.classList.add("indent", "text-deemphasized");
+      description.classList.add("text-deemphasized");
       document.l10n.setAttributes(
         description,
         this.getString(descString),
@@ -295,7 +295,6 @@ export class AboutPreferences {
         if (nested.eventSource) {
           this.setupUserEvent(subcheck, nested.eventSource);
         }
-        subcheck.classList.add("indent");
         document.l10n.setAttributes(subcheck, nested.titleString);
 
         linkPref(subcheck, nested.name, "bool");
