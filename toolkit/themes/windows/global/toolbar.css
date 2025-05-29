@@ -18,8 +18,7 @@ toolbar:first-child {
 }
 
 toolbarseparator {
-  appearance: auto;
-  -moz-default-appearance: separator;
+  min-width: 2px;
 }
 
 toolbarspacer {
