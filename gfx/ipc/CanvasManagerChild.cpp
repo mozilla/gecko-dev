@@ -229,7 +229,7 @@ layers::ActiveResourceTracker* CanvasManagerChild::GetActiveResourceTracker() {
 }
 
 already_AddRefed<DataSourceSurface> CanvasManagerChild::GetSnapshot(
-    uint32_t aManagerId, int32_t aProtocolId,
+    uint32_t aManagerId, ActorId aProtocolId,
     const Maybe<RemoteTextureOwnerId>& aOwnerId,
     const Maybe<RawId>& aCommandEncoderId, SurfaceFormat aFormat,
     bool aPremultiply, bool aYFlip) {

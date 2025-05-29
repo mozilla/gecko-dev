@@ -159,10 +159,12 @@ GetStatsPromiseForThisProcess(const nsAString& aPcIdFilter) {
              std::move(UnwrapUniquePtrs));
 }
 
-static std::map<int32_t, dom::Sequence<nsString>>& GetWebrtcGlobalLogStash() {
-  static StaticAutoPtr<std::map<int32_t, dom::Sequence<nsString>>> sStash;
+static std::map<mozilla::ipc::ActorId, dom::Sequence<nsString>>&
+GetWebrtcGlobalLogStash() {
+  static StaticAutoPtr<std::map<mozilla::ipc::ActorId, dom::Sequence<nsString>>>
+      sStash;
   if (!sStash) {
-    sStash = new std::map<int32_t, dom::Sequence<nsString>>();
+    sStash = new std::map<mozilla::ipc::ActorId, dom::Sequence<nsString>>();
     ClearOnShutdown(&sStash);
   }
   return *sStash;
