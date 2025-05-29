@@ -869,6 +869,9 @@ features:
       - channel: nightly
         value:
           enabled: true
+      - channel: beta
+        value:
+          enabled: true
       - channel: developer
         value:
           enabled: true
