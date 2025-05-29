@@ -11992,6 +11992,24 @@ fx_suggest:
     expires: never
     send_in_pings:
       - fx-suggest
+  country:
+    type: string
+    description: >
+      Records the home region of the user as determined by MLS, the same used for configuring
+      region specific search providers.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1969155
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D251690
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - android-probes@mozilla.com
+      - ttran@mozilla.com
+      - najiang@mozilla.com
+    expires: never
+    send_in_pings:
+      - fx-suggest
   position:
     type: quantity
     unit: non-negative integer

@@ -5,8 +5,10 @@
 package mozilla.components.feature.fxsuggest
 
 import mozilla.components.browser.state.action.AwesomeBarAction
+import mozilla.components.browser.state.search.RegionState
 import mozilla.components.browser.state.state.AwesomeBarState
 import mozilla.components.browser.state.state.BrowserState
+import mozilla.components.browser.state.state.SearchState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.feature.fxsuggest.facts.FxSuggestFacts
@@ -65,6 +67,7 @@ class FxSuggestFactsMiddlewareTest {
                     ),
                     clickedSuggestion = providerGroupSuggestions[1],
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -107,6 +110,7 @@ class FxSuggestFactsMiddlewareTest {
                         visibleProviderGroups = mapOf(providerGroup to providerGroupSuggestions),
                     ),
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -125,6 +129,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -144,6 +149,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertTrue(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 
@@ -180,6 +188,7 @@ class FxSuggestFactsMiddlewareTest {
                         visibleProviderGroups = mapOf(providerGroup to providerGroupSuggestions),
                     ),
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -198,6 +207,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -217,6 +227,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 
@@ -254,6 +267,7 @@ class FxSuggestFactsMiddlewareTest {
                     ),
                     clickedSuggestion = providerGroupSuggestions[0],
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -272,6 +286,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -291,6 +306,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 
@@ -328,6 +346,7 @@ class FxSuggestFactsMiddlewareTest {
                     ),
                     clickedSuggestion = providerGroupSuggestions[1],
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -346,6 +365,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -365,13 +385,23 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
         processor.facts[1].apply {
             assertEquals(Component.FEATURE_FXSUGGEST, component)
             assertEquals(Action.INTERACTION, action)
             assertEquals(FxSuggestFacts.Items.AMP_SUGGESTION_CLICKED, item)
 
-            assertEquals(setOf(FxSuggestFacts.MetadataKeys.INTERACTION_INFO, FxSuggestFacts.MetadataKeys.POSITION), metadata?.keys)
+            assertEquals(
+                setOf(
+                    FxSuggestFacts.MetadataKeys.INTERACTION_INFO,
+                    FxSuggestFacts.MetadataKeys.POSITION,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
+                ),
+                metadata?.keys,
+            )
 
             val clickInfo = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.INTERACTION_INFO) as? FxSuggestInteractionInfo.Amp)
             assertEquals(123, clickInfo.blockId)
@@ -382,6 +412,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val position = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.POSITION) as? Long)
             assertEquals(2, position)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 
@@ -438,6 +471,7 @@ class FxSuggestFactsMiddlewareTest {
                         visibleProviderGroups = mapOf(providerGroup to providerGroupSuggestions),
                     ),
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -456,6 +490,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -475,6 +510,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
         processor.facts[1].apply {
             assertEquals(Component.FEATURE_FXSUGGEST, component)
@@ -487,6 +525,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -506,6 +545,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 
@@ -563,6 +605,7 @@ class FxSuggestFactsMiddlewareTest {
                     ),
                     clickedSuggestion = providerGroupSuggestions[2],
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -581,6 +624,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -600,6 +644,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
         processor.facts[1].apply {
             assertEquals(Component.FEATURE_FXSUGGEST, component)
@@ -612,6 +659,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -631,6 +679,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 
@@ -688,6 +739,7 @@ class FxSuggestFactsMiddlewareTest {
                     ),
                     clickedSuggestion = providerGroupSuggestions[3],
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -706,6 +758,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -725,6 +778,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
         processor.facts[1].apply {
             assertEquals(Component.FEATURE_FXSUGGEST, component)
@@ -737,6 +793,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -756,13 +813,23 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
         processor.facts[2].apply {
             assertEquals(Component.FEATURE_FXSUGGEST, component)
             assertEquals(Action.INTERACTION, action)
             assertEquals(FxSuggestFacts.Items.AMP_SUGGESTION_CLICKED, item)
 
-            assertEquals(setOf(FxSuggestFacts.MetadataKeys.INTERACTION_INFO, FxSuggestFacts.MetadataKeys.POSITION), metadata?.keys)
+            assertEquals(
+                setOf(
+                    FxSuggestFacts.MetadataKeys.INTERACTION_INFO,
+                    FxSuggestFacts.MetadataKeys.POSITION,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
+                ),
+                metadata?.keys,
+            )
 
             val clickInfo = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.INTERACTION_INFO) as? FxSuggestInteractionInfo.Amp)
             assertEquals(456, clickInfo.blockId)
@@ -773,6 +840,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val position = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.POSITION) as? Long)
             assertEquals(4, position)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 
@@ -801,6 +871,7 @@ class FxSuggestFactsMiddlewareTest {
                         visibleProviderGroups = mapOf(providerGroup to providerGroupSuggestions),
                     ),
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -819,6 +890,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -834,6 +906,9 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 
@@ -863,6 +938,7 @@ class FxSuggestFactsMiddlewareTest {
                     ),
                     clickedSuggestion = providerGroupSuggestions[1],
                 ),
+                search = SearchState(region = RegionState(home = "AQ", current = "AQ")),
             ),
             middleware = listOf(FxSuggestFactsMiddleware()),
         )
@@ -881,6 +957,7 @@ class FxSuggestFactsMiddlewareTest {
                     FxSuggestFacts.MetadataKeys.POSITION,
                     FxSuggestFacts.MetadataKeys.IS_CLICKED,
                     FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                 ),
                 metadata?.keys,
             )
@@ -896,19 +973,32 @@ class FxSuggestFactsMiddlewareTest {
 
             val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
             assertFalse(engagementAbandoned)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
         processor.facts[1].apply {
             assertEquals(Component.FEATURE_FXSUGGEST, component)
             assertEquals(Action.INTERACTION, action)
             assertEquals(FxSuggestFacts.Items.WIKIPEDIA_SUGGESTION_CLICKED, item)
 
-            assertEquals(setOf(FxSuggestFacts.MetadataKeys.INTERACTION_INFO, FxSuggestFacts.MetadataKeys.POSITION), metadata?.keys)
+            assertEquals(
+                setOf(
+                    FxSuggestFacts.MetadataKeys.INTERACTION_INFO,
+                    FxSuggestFacts.MetadataKeys.POSITION,
+                    FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
+                ),
+                metadata?.keys,
+            )
 
             val clickInfo = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.INTERACTION_INFO) as? FxSuggestInteractionInfo.Wikipedia)
             assertEquals("c303282d-f2e6-46ca-a04a-35d3d873712d", clickInfo.contextId)
 
             val position = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.POSITION) as? Long)
             assertEquals(2, position)
+
+            val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+            assertEquals("AQ", clientCountry)
         }
     }
 }

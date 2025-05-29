@@ -30,6 +30,7 @@ class FxSuggestFactsTest {
                     contextId = "c303282d-f2e6-46ca-a04a-35d3d873712d",
                 ),
                 positionInAwesomeBar = 0,
+                clientCountry = "TZ",
             )
 
             assertEquals(1, facts.size)
@@ -42,6 +43,7 @@ class FxSuggestFactsTest {
                     setOf(
                         FxSuggestFacts.MetadataKeys.INTERACTION_INFO,
                         FxSuggestFacts.MetadataKeys.POSITION,
+                        FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                     ),
                     metadata?.keys,
                 )
@@ -55,6 +57,9 @@ class FxSuggestFactsTest {
 
                 val positionInAwesomebar = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.POSITION) as? Long)
                 assertEquals(0, positionInAwesomebar)
+
+                val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+                assertEquals("TZ", clientCountry)
             }
         }
     }
@@ -74,6 +79,7 @@ class FxSuggestFactsTest {
                 positionInAwesomeBar = 0,
                 isClicked = true,
                 engagementAbandoned = false,
+                clientCountry = "TZ",
             )
 
             assertEquals(1, facts.size)
@@ -88,6 +94,7 @@ class FxSuggestFactsTest {
                         FxSuggestFacts.MetadataKeys.POSITION,
                         FxSuggestFacts.MetadataKeys.IS_CLICKED,
                         FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                        FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                     ),
                     metadata?.keys,
                 )
@@ -107,6 +114,9 @@ class FxSuggestFactsTest {
 
                 val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
                 assertFalse(engagementAbandoned)
+
+                val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+                assertEquals("TZ", clientCountry)
             }
         }
     }
@@ -120,6 +130,7 @@ class FxSuggestFactsTest {
                     contextId = "c303282d-f2e6-46ca-a04a-35d3d873712d",
                 ),
                 positionInAwesomeBar = 0,
+                clientCountry = "TZ",
             )
 
             assertEquals(1, facts.size)
@@ -132,6 +143,7 @@ class FxSuggestFactsTest {
                     setOf(
                         FxSuggestFacts.MetadataKeys.INTERACTION_INFO,
                         FxSuggestFacts.MetadataKeys.POSITION,
+                        FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                     ),
                     metadata?.keys,
                 )
@@ -141,6 +153,9 @@ class FxSuggestFactsTest {
 
                 val positionInAwesomebar = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.POSITION) as? Long)
                 assertEquals(0, positionInAwesomebar)
+
+                val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+                assertEquals("TZ", clientCountry)
             }
         }
     }
@@ -156,6 +171,7 @@ class FxSuggestFactsTest {
                 positionInAwesomeBar = 0,
                 isClicked = true,
                 engagementAbandoned = false,
+                clientCountry = "TZ",
             )
 
             assertEquals(1, facts.size)
@@ -170,6 +186,7 @@ class FxSuggestFactsTest {
                         FxSuggestFacts.MetadataKeys.POSITION,
                         FxSuggestFacts.MetadataKeys.IS_CLICKED,
                         FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED,
+                        FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY,
                     ),
                     metadata?.keys,
                 )
@@ -185,6 +202,9 @@ class FxSuggestFactsTest {
 
                 val engagementAbandoned = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.ENGAGEMENT_ABANDONED) as? Boolean)
                 assertFalse(engagementAbandoned)
+
+                val clientCountry = requireNotNull(metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)
+                assertEquals("TZ", clientCountry)
             }
         }
     }

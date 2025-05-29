@@ -361,6 +361,9 @@ internal class ReleaseMetricController(
 
             // Submit a separate `fx-suggest` ping for this click. These pings do not include the `client_id`.
             FxSuggest.pingType.set("fxsuggest-click")
+            (metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)?.let {
+                FxSuggest.country.set(it)
+            }
             FxSuggest.isClicked.set(true)
             (metadata?.get(FxSuggestFacts.MetadataKeys.POSITION) as? Long)?.let {
                 FxSuggest.position.set(it)
@@ -411,6 +414,9 @@ internal class ReleaseMetricController(
             // and we submit them for engaged search sessions only.
             if (!engagementAbandoned) {
                 FxSuggest.pingType.set("fxsuggest-impression")
+                (metadata?.get(FxSuggestFacts.MetadataKeys.CLIENT_COUNTRY) as? String)?.let {
+                    FxSuggest.country.set(it)
+                }
                 (metadata?.get(FxSuggestFacts.MetadataKeys.IS_CLICKED) as? Boolean)?.let {
                     FxSuggest.isClicked.set(it)
                 }
