@@ -76,7 +76,7 @@ void WaylandVsyncSource::Init() {
   // WaylandVsyncSource can be used by layour code after
   // nsWindow::Destroy()/WaylandVsyncSource::Shutdown() but
   // only as an empty shell.
-  mWaylandSurface->SetFrameCallbackLocked(
+  mWaylandSurface->AddPersistentFrameCallbackLocked(
       surfaceLock,
       [this, self = RefPtr{this}](wl_callback* aCallback,
                                   uint32_t aTime) -> void {
@@ -141,8 +141,8 @@ void WaylandVsyncSource::SetHiddenWindowVSync() {
   }
 }
 
-void WaylandVsyncSource::SetVSyncEventsStateLocked(
-    const MutexAutoLock& aProofOfLock, bool aEnabled) {
+void WaylandVsyncSource::SetVSyncEventsLocked(const MutexAutoLock& aProofOfLock,
+                                              bool aEnabled) {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
   mMutex.AssertCurrentThreadOwns();
   if (aEnabled) {
@@ -162,7 +162,7 @@ void WaylandVsyncSource::EnableVsync() {
     return;
   }
   mVsyncEnabled = true;
-  SetVSyncEventsStateLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
+  SetVSyncEventsLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
 }
 
 void WaylandVsyncSource::DisableVsync() {
@@ -174,7 +174,7 @@ void WaylandVsyncSource::DisableVsync() {
     return;
   }
   mVsyncEnabled = false;
-  SetVSyncEventsStateLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
+  SetVSyncEventsLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
 }
 
 void WaylandVsyncSource::EnableVSyncSource() {
@@ -185,7 +185,7 @@ void WaylandVsyncSource::EnableVSyncSource() {
 
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(mWaylandSurface);
-  SetVSyncEventsStateLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
+  SetVSyncEventsLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
 }
 
 void WaylandVsyncSource::DisableVSyncSource() {
@@ -196,7 +196,7 @@ void WaylandVsyncSource::DisableVSyncSource() {
 
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(mWaylandSurface);
-  SetVSyncEventsStateLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
+  SetVSyncEventsLocked(lock, mVsyncEnabled && mVsyncSourceEnabled);
 }
 
 bool WaylandVsyncSource::HiddenWindowCallback() {
