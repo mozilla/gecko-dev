@@ -25,15 +25,4 @@ export default [
       strict: ["error", "global"],
     },
   },
-  {
-    files: ["eslint-plugin-mozilla/scripts/createExports.js"],
-    languageOptions: {
-      sourceType: "script",
-      parserOptions: {
-        ecmaFeatures: {
-          globalReturn: true,
-        },
-      },
-    },
-  },
 ];

@@ -8,11 +8,10 @@
 // This is a non-production script.
 /* eslint-disable no-console */
 
-"use strict";
-
-var fs = require("fs");
-var path = require("path");
-var helpers = require("../lib/helpers");
+import fsPromises from "fs/promises";
+import path from "path";
+import helpers from "../lib/helpers.mjs";
+import plugin from "../lib/index.mjs";
 
 const eslintDir = path.join(helpers.rootDir, "tools", "lint", "eslint");
 
@@ -41,22 +40,14 @@ const shipServicesFile = path.join(
   "services.json"
 );
 
-fs.writeFileSync(shipServicesFile, fs.readFileSync(servicesFile));
+await fsPromises.copyFile(servicesFile, shipServicesFile);
 
 console.log("Generating globals file");
 
 // Export the environments.
-let environmentGlobals = require("../lib/index.js").environments;
-
-return fs.writeFile(
+await fsPromises.writeFile(
   globalsFile,
-  JSON.stringify({ environments: environmentGlobals }),
-  err => {
-    if (err) {
-      console.error(err);
-      process.exit(1);
-    }
-
-    console.log("Globals file generation complete");
-  }
+  JSON.stringify({ environments: plugin.environments })
 );
+
+console.log("Globals file generation complete");
