@@ -1,5 +1,5 @@
 /**
- * @fileoverview For scripts included in browser-window, this will automatically
+ * @file For scripts included in browser-window, this will automatically
  *               inject the browser-window global scopes into the file.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

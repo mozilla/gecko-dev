@@ -1,5 +1,5 @@
 /**
- * @fileoverview Require providing a second parameter to get*Pref
+ * @file Require providing a second parameter to get*Pref
  * methods instead of using a try/catch block.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

@@ -26,7 +26,7 @@ const gIgnoredImports = new Set(["loader", "require"]);
  * Returns a function that forwards to `report` but provides a fixer
  * for redeclared imports that just removes those imports.
  *
- * @return {function}
+ * @returns {Function}
  */
 function trapReport(context) {
   return function (obj) {

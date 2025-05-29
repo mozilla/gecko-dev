@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject `add_task(async function setup` or similar patterns in
+ * @file Reject `add_task(async function setup` or similar patterns in
  * favour of add_setup.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

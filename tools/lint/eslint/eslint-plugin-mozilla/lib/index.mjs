@@ -1,5 +1,5 @@
 /**
- * @fileoverview A collection of rules that help enforce JavaScript coding
+ * @file A collection of rules that help enforce JavaScript coding
  * standard and avoid common errors in the Mozilla project.
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this

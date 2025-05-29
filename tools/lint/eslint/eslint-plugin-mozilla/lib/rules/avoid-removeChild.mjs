@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject using element.parentNode.removeChild(element) when
+ * @file Reject using element.parentNode.removeChild(element) when
  *               element.remove() can be used instead.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

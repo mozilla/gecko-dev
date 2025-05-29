@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject calls to removeEventListenter where {once: true} could
+ * @file Reject calls to removeEventListenter where {once: true} could
  *               be used instead.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

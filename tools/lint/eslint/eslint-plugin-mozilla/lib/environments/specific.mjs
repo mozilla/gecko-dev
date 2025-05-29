@@ -1,5 +1,5 @@
 /**
- * @fileoverview Defines the environment for the Firefox browser. Allows global
+ * @file Defines the environment for the Firefox browser. Allows global
  *               variables which are non-standard and specific to Firefox.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

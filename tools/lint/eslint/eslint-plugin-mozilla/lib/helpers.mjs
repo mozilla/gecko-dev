@@ -1,5 +1,5 @@
 /**
- * @fileoverview A collection of helper functions.
+ * @file A collection of helper functions.
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -105,15 +105,15 @@ export default {
    * in sourceText. This matches the results for an eslint parser, see
    * https://eslint.org/docs/developer-guide/working-with-custom-parsers.
    *
-   * @param  {String} sourceText
+   * @param  {string} sourceText
    *         Text containing valid JavaScript.
-   * @param  {Object} astOptions
+   * @param  {object} astOptions
    *         Extra configuration to pass to the espree parser, these will override
    *         the configuration from getPermissiveConfig().
-   * @param  {Object} configOptions
+   * @param  {object} configOptions
    *         Extra options for getPermissiveConfig().
    *
-   * @return {Object}
+   * @returns {object}
    *         Returns an object containing `ast`, `scopeManager` and
    *         `visitorKeys`
    */
@@ -142,10 +142,10 @@ export default {
   /**
    * A simplistic conversion of some AST nodes to a standard string form.
    *
-   * @param  {Object} node
+   * @param  {object} node
    *         The AST node to convert.
    *
-   * @return {String}
+   * @returns {string}
    *         The JS source for the node.
    */
   getASTSource(node, context) {
@@ -205,7 +205,7 @@ export default {
    * listener. The listener is expected to be a simple function
    * which accepts node type, node and parents arguments.
    *
-   * @param  {Object} ast
+   * @param  {object} ast
    *         The AST to walk.
    * @param  {Array} visitorKeys
    *         The visitor keys to use for the AST.
@@ -241,13 +241,13 @@ export default {
    * Add a variable to the current scope.
    * HACK: This relies on eslint internals so it could break at any time.
    *
-   * @param {String} name
+   * @param {string} name
    *        The variable name to add to the scope.
    * @param {ASTScope} scope
    *        The scope to add to.
    * @param {boolean} writable
    *        Whether the global can be overwritten.
-   * @param {Object} [node]
+   * @param {object} [node]
    *        The AST node that defined the globals.
    */
   addVarToScope(name, scope, writable, node) {
@@ -291,7 +291,7 @@ export default {
    *        An array of global variable names.
    * @param {ASTScope} scope
    *        The scope.
-   * @param {Object} [node]
+   * @param {object} [node]
    *        The AST node that defined the globals.
    */
   addGlobals(globalVars, scope, node) {
@@ -304,11 +304,11 @@ export default {
    * To allow espree to parse almost any JavaScript we need as many features as
    * possible turned on. This method returns that config.
    *
-   * @param {Object} options
+   * @param {object} options
    *        {
    *          useBabel: {boolean} whether to set babelOptions.
    *        }
-   * @return {Object}
+   * @returns {object}
    *         Espree compatible permissive config.
    */
   getPermissiveConfig() {
@@ -326,7 +326,7 @@ export default {
    * Returns the ECMA version as the latest. It is generally assumed that we will
    * always use the latest version in the configuration.
    *
-   * @return {string} The ECMA version to use.
+   * @returns {string} The ECMA version to use.
    */
   getECMAVersion() {
     return "latest";
@@ -338,7 +338,7 @@ export default {
    * @param {Array} ancestors
    *        The parents of the current node.
    *
-   * @return {Boolean}
+   * @returns {boolean}
    *         True or false
    */
   getIsTopLevelScript(ancestors) {
@@ -376,7 +376,7 @@ export default {
    * @param {Array} ancestors
    *        The parents of the current node.
    *
-   * @return {Boolean}
+   * @returns {boolean}
    *         True or false
    */
   getIsGlobalThis(ancestors) {
@@ -398,7 +398,7 @@ export default {
    * @param {Array} ancestors
    *        The parents of the current node.
    *
-   * @return {Boolean}
+   * @returns {boolean}
    *         True or false
    */
   getIsTopLevelAndUnconditionallyExecuted(ancestors) {
@@ -454,7 +454,7 @@ export default {
    *         You should pass this from within a rule
    *         e.g. helpers.getIsHeadFile(context)
    *
-   * @return {Boolean}
+   * @returns {boolean}
    *         True or false
    */
   getIsHeadFile(scope) {
@@ -470,7 +470,7 @@ export default {
    *         You should pass this from within a rule
    *         e.g. helpers.getIsHeadFile(context)
    *
-   * @return {String[]}
+   * @returns {string[]}
    *         Paths to head files to load for the test
    */
   getTestHeadFiles(scope) {
@@ -495,10 +495,10 @@ export default {
   /**
    * Gets all the test manifest data for a directory
    *
-   * @param  {String} dir
+   * @param  {string} dir
    *         The directory
    *
-   * @return {Array}
+   * @returns {Array}
    *         An array of objects with file and manifest properties
    */
   getManifestsForDirectory(dir) {
@@ -561,7 +561,7 @@ export default {
    *         You should pass this from within a rule
    *         e.g. helpers.getIsHeadFile(context)
    *
-   * @return {String}
+   * @returns {string}
    *         The path to the test manifest file
    */
   getTestManifest(scope) {
@@ -586,7 +586,7 @@ export default {
    *         You should pass this from within a rule
    *         e.g. helpers.getIsTest(context)
    *
-   * @return {Boolean}
+   * @returns {boolean}
    *         True or false
    */
   getIsTest(scope) {
@@ -615,7 +615,7 @@ export default {
    *         You should pass this from within a rule
    *         e.g. helpers.getIsHeadFile(context)
    *
-   * @return {String or null}
+   * @returns {String or null}
    *         Test type: xpcshell, browser, chrome, mochitest
    */
   getTestType(scope) {
@@ -665,7 +665,7 @@ export default {
    * If this fails, the same procedure will be attempted from the current
    * working dir.
    *
-   * @return {String} The absolute path of the repository directory
+   * @returns {string} The absolute path of the repository directory
    */
   get rootDir() {
     if (!gRootDir) {
@@ -714,8 +714,9 @@ export default {
    * The value returned by context.getFileName() varies because of this.
    * This helper function makes sure to return an absolute file path for the
    * current context, by looking at process.cwd().
+   *
    * @param {Context} context
-   * @return {String} The absolute path
+   * @returns {string} The absolute path
    */
   getAbsoluteFilePath(context) {
     var fileName = this.cleanUpPath(context.getFilename());
@@ -807,6 +808,7 @@ export default {
 
   /**
    * Returns property name from MemberExpression. Also accepts Identifier for consistency.
+   *
    * @param {import("estree").MemberExpression | import("estree").Identifier} node
    * @returns {string | null}
    *

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Don't allow accidental assignments inside `ok()`,
+ * @file Don't allow accidental assignments inside `ok()`,
  *               and encourage people to use appropriate alternatives
  *               when using comparisons between 2 values.
  *

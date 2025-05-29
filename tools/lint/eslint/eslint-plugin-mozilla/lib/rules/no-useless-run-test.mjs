@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject run_test() definitions where they aren't necessary.
+ * @file Reject run_test() definitions where they aren't necessary.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this

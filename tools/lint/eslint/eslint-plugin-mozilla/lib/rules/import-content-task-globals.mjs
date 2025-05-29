@@ -1,5 +1,5 @@
 /**
- * @fileoverview For ContentTask.spawn, this will automatically declare the
+ * @file For ContentTask.spawn, this will automatically declare the
  *               frame script variables in the global scope.
  *               Note: due to the way ESLint works, it appears it is only
  *               easy to declare these variables on a file-global scope, rather

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Check that there's a removeEventListener for each
+ * @file Check that there's a removeEventListener for each
  * addEventListener and an off for each on.
  * Note that for now, this rule is rather simple in that it only checks that
  * for each event name there is both an add and remove listener. It doesn't

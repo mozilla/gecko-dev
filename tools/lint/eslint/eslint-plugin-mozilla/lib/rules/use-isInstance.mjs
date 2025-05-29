@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject use of instanceof against DOM interfaces
+ * @file Reject use of instanceof against DOM interfaces
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,6 +19,7 @@ const privilegedGlobals = Object.keys(privilegedEnv.globals);
 /**
  * Whether an identifier is defined by eslint configuration.
  * `env: { browser: true }` or `globals: []` for example.
+ *
  * @param {import("eslint-scope").Scope} currentScope
  * @param {import("estree").Identifier} id
  */

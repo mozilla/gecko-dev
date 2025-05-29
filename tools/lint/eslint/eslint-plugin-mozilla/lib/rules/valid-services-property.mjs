@@ -1,5 +1,5 @@
 /**
- * @fileoverview Ensures that property accesses on Services.<alias> are valid.
+ * @file Ensures that property accesses on Services.<alias> are valid.
  * Although this largely duplicates the valid-services rule, the checks here
  * require an objdir and a manual run.
  *

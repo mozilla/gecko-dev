@@ -1,5 +1,5 @@
 /**
- * @fileoverview Add environment defaults to SpiderMonkey's self-hosted JS.
+ * @file Add environment defaults to SpiderMonkey's self-hosted JS.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -20,7 +20,7 @@ let gRootDir = null;
  * working dir.
  * Copied from `tools/lint/eslint/eslint-plugin-mozilla/lib/helpers.js`.
  *
- * @return {String} The absolute path of the repository directory
+ * @returns {string} The absolute path of the repository directory
  */
 function getRootDir() {
   if (!gRootDir) {

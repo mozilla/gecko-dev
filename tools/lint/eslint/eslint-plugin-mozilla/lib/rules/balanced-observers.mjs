@@ -1,5 +1,5 @@
 /**
- * @fileoverview Check that there's a Services.(prefs|obs).removeObserver for
+ * @file Check that there's a Services.(prefs|obs).removeObserver for
  * each addObserver.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

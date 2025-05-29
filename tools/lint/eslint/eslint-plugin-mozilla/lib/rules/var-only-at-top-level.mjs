@@ -1,5 +1,5 @@
 /**
- * @fileoverview Marks all var declarations that are not at the top level
+ * @file Marks all var declarations that are not at the top level
  *               invalid.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

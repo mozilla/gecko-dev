@@ -1,5 +1,5 @@
 /**
- * @fileoverview functions for scanning an AST for globals including
+ * @file functions for scanning an AST for globals including
  *               traversing referenced scripts.
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -52,7 +52,7 @@ const workerImportFilenameMatch = /(.*\/)*((.*?)\.js)/;
  *
  * @param {string} string The string to parse.
  * @param {Comment} comment The comment node which has the string.
- * @returns {Object} Result map object of names and boolean values
+ * @returns {object} Result map object of names and boolean values
  */
 function parseBooleanConfig(string, comment) {
   let items = {};
@@ -107,12 +107,12 @@ var lastHTMLGlobals = {};
  * Attempts to convert an CallExpressions that look like module imports
  * into global variable definitions.
  *
- * @param  {Object} node
+ * @param  {object} node
  *         The AST node to convert.
  * @param  {boolean} isGlobal
  *         True if the current node is in the global scope.
  *
- * @return {Array}
+ * @returns {Array}
  *         An array of objects that contain details about the globals:
  *         - {String} name
  *                    The name of the global.
@@ -219,12 +219,12 @@ function convertCallExpressionToGlobals(node, isGlobal) {
  * Attempts to convert an AssignmentExpression into a global variable
  * definition if it applies to `this` in the global scope.
  *
- * @param  {Object} node
+ * @param  {object} node
  *         The AST node to convert.
  * @param  {boolean} isGlobal
  *         True if the current node is in the global scope.
  *
- * @return {Array}
+ * @returns {Array}
  *         An array of objects that contain details about the globals:
  *         - {String} name
  *                    The name of the global.
@@ -249,12 +249,12 @@ function convertThisAssignmentExpressionToGlobals(node, isGlobal) {
  * Attempts to convert an ExpressionStatement to likely global variable
  * definitions.
  *
- * @param  {Object} node
+ * @param  {object} node
  *         The AST node to convert.
  * @param  {boolean} isGlobal
  *         True if the current node is in the global scope.
  *
- * @return {Array}
+ * @returns {Array}
  *         An array of objects that contain details about the globals:
  *         - {String} name
  *                    The name of the global.
@@ -342,7 +342,7 @@ function getGlobalsForScript(src, type, dir) {
  * parents parameter which is a list of the parent nodes of the current node.
  * Each returns an array of globals found.
  *
- * @param  {String} filePath
+ * @param  {string} filePath
  *         The absolute path of the file being parsed.
  */
 function GlobalsForNode(filePath, context) {
@@ -456,11 +456,11 @@ let globalUtils = {
    * import-globals-from directives and also includes globals defined by
    * standard eslint directives.
    *
-   * @param  {String} filePath
+   * @param  {string} filePath
    *         The absolute path of the file to be parsed.
-   * @param  {Object} astOptions
+   * @param  {object} astOptions
    *         Extra options to pass to the parser.
-   * @return {Array}
+   * @returns {Array}
    *         An array of objects that contain details about the globals:
    *         - {String} name
    *                    The name of the global.
@@ -515,11 +515,11 @@ let globalUtils = {
    * Returns all globals for a code.
    * This is only for testing.
    *
-   * @param  {String} code
+   * @param  {string} code
    *         The JS code
-   * @param  {Object} astOptions
+   * @param  {object} astOptions
    *         Extra options to pass to the parser.
-   * @return {Array}
+   * @returns {Array}
    *         An array of objects that contain details about the globals:
    *         - {String} name
    *                    The name of the global.
@@ -563,9 +563,9 @@ let globalUtils = {
    * this to be called sequentially for each chunk of a HTML file, rather
    * than chucks of different files in random order.
    *
-   * @param  {String} filePath
+   * @param  {string} filePath
    *         The absolute path of the file to be parsed.
-   * @return {Array}
+   * @returns {Array}
    *         An array of objects that contain details about the globals:
    *         - {String} name
    *                    The name of the global.
@@ -621,7 +621,7 @@ let globalUtils = {
    * Intended to be used as-is for an ESLint rule that parses for globals in
    * the current file and recurses through import-globals-from directives.
    *
-   * @param  {Object} context
+   * @param  {object} context
    *         The ESLint parsing context.
    */
   getESLintGlobalParser(context) {

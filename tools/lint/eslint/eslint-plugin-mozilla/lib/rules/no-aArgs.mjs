@@ -1,5 +1,5 @@
 /**
- * @fileoverview warns against using hungarian notation in function arguments
+ * @file warns against using hungarian notation in function arguments
  * (i.e. aArg).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Defines the environment for scripts that use the SimpleTest
+ * @file Defines the environment for scripts that use the SimpleTest
  *               mochitest harness. Imports the globals from the relevant files.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

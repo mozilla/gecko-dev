@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject use of XPCOMUtils.generateQI and JS-implemented
+ * @file Reject use of XPCOMUtils.generateQI and JS-implemented
  *               QueryInterface methods in favor of ChromeUtils.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

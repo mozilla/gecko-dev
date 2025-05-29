@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject uses of unknown interfaces on Ci and properties of those
+ * @file Reject uses of unknown interfaces on Ci and properties of those
  * interfaces.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

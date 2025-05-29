@@ -1,5 +1,5 @@
 /**
- * @fileoverview Ensures that definitions and uses of properties on the
+ * @file Ensures that definitions and uses of properties on the
  * ``lazy`` object are valid.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

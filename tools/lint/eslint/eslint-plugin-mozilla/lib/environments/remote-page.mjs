@@ -1,5 +1,5 @@
 /**
- * @fileoverview Defines the environment for remote page.
+ * @file Defines the environment for remote page.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this

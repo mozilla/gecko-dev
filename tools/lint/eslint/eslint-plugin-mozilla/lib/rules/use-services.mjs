@@ -1,5 +1,5 @@
 /**
- * @fileoverview Require use of Services.* rather than getService.
+ * @file Require use of Services.* rather than getService.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this

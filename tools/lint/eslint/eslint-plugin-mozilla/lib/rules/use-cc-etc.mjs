@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject use of Components.classes etc, prefer the shorthand instead.
+ * @file Reject use of Components.classes etc, prefer the shorthand instead.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this

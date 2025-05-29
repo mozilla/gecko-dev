@@ -1,5 +1,5 @@
 /**
- * @fileoverview Provides utilities for setting up environments.
+ * @file Provides utilities for setting up environments.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -13,9 +13,9 @@ import globals from "../globals.mjs";
 /**
  * Obtains the globals for a list of files.
  *
- * @param {Array.<String>} files
+ * @param {Array.<string>} files
  *   The array of files to get globals for. The paths are relative to the topsrcdir.
- * @returns {Object}
+ * @returns {object}
  *   Returns an object with keys of the global names and values of if they are
  *   writable or not.
  */

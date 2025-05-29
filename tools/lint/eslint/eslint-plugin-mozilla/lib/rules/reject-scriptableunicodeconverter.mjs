@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject calls into Ci.nsIScriptableUnicodeConverter. We're phasing this out in
+ * @file Reject calls into Ci.nsIScriptableUnicodeConverter. We're phasing this out in
  * favour of TextEncoder or TextDecoder.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

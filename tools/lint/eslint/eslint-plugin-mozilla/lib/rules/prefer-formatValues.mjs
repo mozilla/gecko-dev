@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject multiple calls to document.l10n.formatValue in the same
+ * @file Reject multiple calls to document.l10n.formatValue in the same
  * code block.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

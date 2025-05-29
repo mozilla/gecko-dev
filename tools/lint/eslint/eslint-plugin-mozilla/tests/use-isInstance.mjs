@@ -24,6 +24,7 @@ const errors = [
 
 /**
  * A test case boilerplate simulating chrome privileged script.
+ *
  * @param {string} code
  */
 function mockChromeScript(code) {
@@ -36,6 +37,7 @@ function mockChromeScript(code) {
 
 /**
  * A test case boilerplate simulating content script.
+ *
  * @param {string} code
  */
 function mockContentScript(code) {

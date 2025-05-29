@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject use of lazy getters for modules that's loaded early in
+ * @file Reject use of lazy getters for modules that's loaded early in
  *               the startup process and not necessarily be lazy.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

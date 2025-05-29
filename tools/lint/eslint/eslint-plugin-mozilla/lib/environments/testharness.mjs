@@ -1,5 +1,5 @@
 /**
- * @fileoverview Defines the environment for testharness.js files. This
+ * @file Defines the environment for testharness.js files. This
  * is automatically included in (x)html files including
  * /resources/testharness.js.
  *

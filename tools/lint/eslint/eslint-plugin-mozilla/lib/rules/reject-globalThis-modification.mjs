@@ -1,5 +1,5 @@
 /**
- * @fileoverview Enforce the standard object name for
+ * @file Enforce the standard object name for
  * ChromeUtils.defineESMGetters
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

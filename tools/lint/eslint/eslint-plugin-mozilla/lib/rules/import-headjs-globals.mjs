@@ -1,5 +1,5 @@
 /**
- * @fileoverview Import globals from head.js and from any files that were
+ * @file Import globals from head.js and from any files that were
  * imported by head.js (as far as we can correctly resolve the path).
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

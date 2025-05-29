@@ -1,5 +1,5 @@
 /**
- * @fileoverview Defines the environment when in the browser.xhtml window.
+ * @file Defines the environment when in the browser.xhtml window.
  *               Imports many globals from various files.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

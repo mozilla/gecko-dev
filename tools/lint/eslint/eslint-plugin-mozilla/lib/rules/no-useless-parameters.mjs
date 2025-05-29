@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject common XPCOM methods called with useless optional
+ * @file Reject common XPCOM methods called with useless optional
  *               parameters, or non-existent parameters.
  *
  * This Source Code Form is subject to the terms of the Mozilla Public

@@ -1,5 +1,5 @@
 /**
- * @fileoverview Reject use of browser/-based references from code in
+ * @file Reject use of browser/-based references from code in
  *               directories like toolkit/ that ought not to depend on
  *               running inside desktop Firefox.
  *
