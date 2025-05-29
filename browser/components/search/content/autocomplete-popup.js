@@ -258,7 +258,6 @@
      * This is called when a one-off is clicked and when "search in new tab"
      * is selected from a one-off context menu.
      */
-    /* eslint-disable-next-line valid-jsdoc */
     handleOneOffSearch(event, engine, where, params) {
       this.searchbar.handleSearchCommandWhere(event, engine, where, params);
     }

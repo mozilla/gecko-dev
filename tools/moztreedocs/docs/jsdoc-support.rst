@@ -7,7 +7,7 @@ ESLint support
 If you are looking to enable JSDoc generation for your documents, please also
 enable the ESLint plugin for JSDoc if it is not already enabled.
 
-In the top-level :searchfox:`.eslintrc-rollouts.js file <.eslintrc-rollouts.js>`
+In the top-level :searchfox:`eslintrc-rollouts.config.mjs file <eslintrc-rollouts.config.mjs>`
 there are currently two sections where the ``valid-jsdoc`` and ``require-jsdoc``
 rules are enabled. Please check that your component is not excluded from these
 sections. If it is, you should remove the exclusion and fix any instances that

@@ -10,8 +10,6 @@
  * add code here or elsewhere.
  */
 
-/* eslint "valid-jsdoc": [2, {requireReturn: false, requireReturnDescription: false, prefer: {return: "returns"}}] */
-
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 import { XPIExports } from "resource://gre/modules/addons/XPIExports.sys.mjs";
