@@ -158,16 +158,18 @@ impl PseudoElement {
     }
 
     /// Construct a `PseudoStyleType` from a pseudo-element
+    // FIXME: we probably have to return the arguments of -moz-tree. However, they are multiple
+    // names, so we skip them for now (until we really need them).
     #[inline]
-    pub fn pseudo_type(&self) -> PseudoStyleType {
+    pub fn pseudo_type_and_argument(&self) -> (PseudoStyleType, Option< &AtomIdent>) {
         match *self {
             % for pseudo in PSEUDOS:
             % if pseudo.is_tree_pseudo_element():
-                PseudoElement::${pseudo.capitalized_pseudo()}(..) => PseudoStyleType::XULTree,
+                PseudoElement::${pseudo.capitalized_pseudo()}(..) => (PseudoStyleType::XULTree, None),
             % elif pseudo.pseudo_ident == "highlight" or pseudo.is_named_view_transition_pseudo():
-                PseudoElement::${pseudo.capitalized_pseudo()}(..) => PseudoStyleType::${pseudo.pseudo_ident},
+                PseudoElement::${pseudo.capitalized_pseudo()}(ref value) => (PseudoStyleType::${pseudo.pseudo_ident}, Some(value)),
             % else:
-                PseudoElement::${pseudo.capitalized_pseudo()} => PseudoStyleType::${pseudo.pseudo_ident},
+                PseudoElement::${pseudo.capitalized_pseudo()} => (PseudoStyleType::${pseudo.pseudo_ident}, None),
             % endif
             % endfor
             PseudoElement::UnknownWebkit(..) => unreachable!(),
