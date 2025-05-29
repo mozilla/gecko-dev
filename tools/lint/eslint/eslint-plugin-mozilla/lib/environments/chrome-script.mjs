@@ -6,11 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
+import specialPowersSandboxGlobals from "./special-powers-sandbox.mjs";
 
-var { globals } = require("./special-powers-sandbox");
-
-module.exports = {
+export default {
   globals: {
     // testing/specialpowers/content/SpecialPowersParent.sys.mjs
     // SPLoadChromeScript block
@@ -20,6 +18,6 @@ module.exports = {
     removeMessageListener: false,
     actorParent: false,
 
-    ...globals,
+    ...specialPowersSandboxGlobals.globals,
   },
 };

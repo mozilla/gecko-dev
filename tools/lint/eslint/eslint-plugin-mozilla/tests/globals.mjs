@@ -2,7 +2,7 @@
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
 import assert from "assert";
-import globalsUtils from "../lib/globals.js";
+import globalsUtils from "../lib/globals.mjs";
 
 var { getGlobalsForCode } = globalsUtils;
 

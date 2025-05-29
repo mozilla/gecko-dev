@@ -6,11 +6,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-var path = require("path");
-var helpers = require("../helpers");
-var globals = require("../globals");
+import path from "path";
+import helpers from "../helpers.mjs";
+import globals from "../globals.mjs";
 
 /**
  * Obtains the globals for a list of files.
@@ -38,25 +36,23 @@ function getGlobalsForScripts(environmentName, files, extraDefinitions) {
   }
 
   var globalObjects = {};
-  for (let global of fileGlobals) {
-    globalObjects[global.name] = global.writable;
+  for (let { name: globalName, writable } of fileGlobals) {
+    globalObjects[globalName] = writable;
   }
   return globalObjects;
 }
 
-module.exports = {
-  getScriptGlobals(
-    environmentName,
-    files,
-    extraDefinitions = [],
-    extraEnv = {}
-  ) {
-    if (helpers.isMozillaCentralBased()) {
-      return {
-        globals: getGlobalsForScripts(environmentName, files, extraDefinitions),
-        ...extraEnv,
-      };
-    }
-    return helpers.getSavedEnvironmentItems(environmentName);
-  },
-};
+export function getScriptGlobals(
+  environmentName,
+  files,
+  extraDefinitions = [],
+  extraEnv = {}
+) {
+  if (helpers.isMozillaCentralBased()) {
+    return {
+      globals: getGlobalsForScripts(environmentName, files, extraDefinitions),
+      ...extraEnv,
+    };
+  }
+  return helpers.getSavedEnvironmentItems(environmentName);
+}

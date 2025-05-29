@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-module.exports = {
+export default {
   globals: {
     // dom/chrome-webidl/MessageManager.webidl
 

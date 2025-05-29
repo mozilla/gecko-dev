@@ -8,8 +8,8 @@
  */
 
 import path from "path";
-import helpers from "../helpers.js";
-import browserWindowEnv from "../environments/browser-window.js";
+import helpers from "../helpers.mjs";
+import browserWindowEnv from "../environments/browser-window.mjs";
 
 export default {
   // This rule currently has no messages.

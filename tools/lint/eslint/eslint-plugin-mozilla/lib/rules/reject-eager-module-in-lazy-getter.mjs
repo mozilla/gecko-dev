@@ -7,7 +7,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import helpers from "../helpers.js";
+import helpers from "../helpers.mjs";
 
 function isString(node) {
   return node.type === "Literal" && typeof node.value === "string";

@@ -6,13 +6,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-const path = require("path");
-const fs = require("fs");
-const helpers = require("./helpers");
-const htmlparser = require("htmlparser2");
-const testharnessEnvironment = require("./environments/testharness.js");
+import path from "path";
+import fs from "fs";
+import helpers from "./helpers.mjs";
+import * as htmlparser from "htmlparser2";
+import testharnessEnvironment from "./environments/testharness.mjs";
 
 const callExpressionDefinitions = [
   /^loader\.lazyGetter\((?:globalThis|this), "(\w+)"/,
@@ -279,7 +277,7 @@ function convertWorkerExpressionToGlobals(node, isGlobal, dirname) {
         if (!match[1]) {
           let filePath = path.resolve(dirname, match[2]);
           if (fs.existsSync(filePath)) {
-            let additionalGlobals = module.exports.getGlobalsForFile(filePath);
+            let additionalGlobals = globalUtils.getGlobalsForFile(filePath);
             results = results.concat(additionalGlobals);
           }
         }
@@ -330,7 +328,7 @@ function getGlobalsForScript(src, type, dir) {
     scriptName = path.join(dir, src);
   }
   if (scriptName && fs.existsSync(scriptName)) {
-    return module.exports.getGlobalsForFile(scriptName, {
+    return globalUtils.getGlobalsForFile(scriptName, {
       ecmaVersion: helpers.getECMAVersion(),
       sourceType: type,
     });
@@ -416,7 +414,7 @@ GlobalsForNode.prototype = {
       } else {
         filePath = path.join(helpers.rootDir, filePath);
       }
-      globals = globals.concat(module.exports.getGlobalsForFile(filePath));
+      globals = globals.concat(globalUtils.getGlobalsForFile(filePath));
     }
 
     return globals;
@@ -452,7 +450,7 @@ GlobalsForNode.prototype = {
   },
 };
 
-module.exports = {
+let globalUtils = {
   /**
    * Returns all globals for a given file. Recursively searches through
    * import-globals-from directives and also includes globals defined by
@@ -638,7 +636,7 @@ module.exports = {
 
     let extraHTMLGlobals = [];
     if (filename.endsWith(".html") || filename.endsWith(".xhtml")) {
-      extraHTMLGlobals = module.exports.getImportedGlobalsForHTMLFile(filename);
+      extraHTMLGlobals = globalUtils.getImportedGlobalsForHTMLFile(filename);
     }
 
     // Install thin wrappers around GlobalsForNode
@@ -666,3 +664,5 @@ module.exports = {
     return parser;
   },
 };
+
+export default globalUtils;

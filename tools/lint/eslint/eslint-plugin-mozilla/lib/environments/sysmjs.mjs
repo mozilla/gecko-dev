@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-module.exports = {
+export default {
   globals: {
     // These globals are hard-coded and available in .sys.mjs scopes.
     // https://searchfox.org/mozilla-central/rev/dcb0cfb66e4ed3b9c7fbef1e80572426ff5f3c3a/js/xpconnect/loader/mozJSModuleLoader.cpp#222-223

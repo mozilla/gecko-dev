@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-var { getScriptGlobals } = require("./utils");
+import { getScriptGlobals } from "./utils.mjs";
 
 const extraGlobals = [
   // Defined in XPCShellImpl.cpp
@@ -50,7 +48,7 @@ const extraGlobals = [
   "saveStack",
 ];
 
-module.exports = getScriptGlobals(
+export default getScriptGlobals(
   "xpcshell",
   ["testing/xpcshell/head.js"],
   extraGlobals.map(g => {

@@ -10,9 +10,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import helpers from "../helpers.js";
-import frameScriptEnv from "../environments/frame-script.js";
-import sandboxEnv from "../environments/special-powers-sandbox.js";
+import helpers from "../helpers.mjs";
+import frameScriptEnv from "../environments/frame-script.mjs";
+import sandboxEnv from "../environments/special-powers-sandbox.mjs";
 
 export default {
   // eslint-disable-next-line eslint-plugin/prefer-message-ids

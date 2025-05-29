@@ -7,7 +7,7 @@
  */
 
 import path from "path";
-import privilegedEnv from "../environments/privileged.js";
+import privilegedEnv from "../environments/privileged.mjs";
 
 const privilegedGlobals = Object.keys(privilegedEnv.globals);
 

@@ -7,15 +7,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
 // -----------------------------------------------------------------------------
 // Rule Definition
 // -----------------------------------------------------------------------------
 
-var fs = require("fs");
-var helpers = require("../helpers");
-var { getScriptGlobals } = require("./utils");
+import fs from "fs";
+import helpers from "../helpers.mjs";
+import { getScriptGlobals } from "./utils.mjs";
 
 // When updating EXTRA_SCRIPTS or MAPPINGS, be sure to also update the
 // 'support-files' config in `tools/lint/eslint.yml`.
@@ -113,7 +111,7 @@ function getGlobalScripts() {
   return results;
 }
 
-module.exports = getScriptGlobals(
+export default getScriptGlobals(
   "browser-window",
   getGlobalScripts().concat(EXTRA_SCRIPTS),
   extraDefinitions,

@@ -7,8 +7,8 @@
  */
 
 import fs from "fs";
-import helpers from "../helpers.js";
-import privilegedEnv from "../environments/privileged.js";
+import helpers from "../helpers.mjs";
+import privilegedEnv from "../environments/privileged.mjs";
 
 const privilegedGlobals = Object.keys(privilegedEnv.globals);
 

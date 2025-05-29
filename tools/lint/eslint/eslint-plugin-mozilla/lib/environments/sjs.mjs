@@ -6,9 +6,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
-module.exports = {
+export default {
   globals: {
     // All these variables are hard-coded to be available for sjs scopes only.
     // https://searchfox.org/mozilla-central/rev/26a1b0fce12e6dd495a954c542bb1e7bd6e0d548/netwerk/test/httpserver/httpd.js#2879

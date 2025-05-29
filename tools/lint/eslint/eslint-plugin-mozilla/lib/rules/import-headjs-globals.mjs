@@ -8,8 +8,8 @@
  */
 
 import fs from "fs";
-import helpers from "../helpers.js";
-import globals from "../globals.js";
+import helpers from "../helpers.mjs";
+import globals from "../globals.mjs";
 
 function importHead(context, path, node) {
   try {

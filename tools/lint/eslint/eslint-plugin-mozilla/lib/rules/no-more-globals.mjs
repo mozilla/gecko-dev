@@ -5,7 +5,7 @@
  */
 
 import fs from "fs";
-import globals from "../globals.js";
+import globals from "../globals.mjs";
 
 export default {
   meta: {

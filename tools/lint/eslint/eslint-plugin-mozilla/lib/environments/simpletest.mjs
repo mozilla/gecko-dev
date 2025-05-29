@@ -7,14 +7,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
 // -----------------------------------------------------------------------------
 // Rule Definition
 // -----------------------------------------------------------------------------
 
-var path = require("path");
-var { getScriptGlobals } = require("./utils");
+import path from "path";
+import { getScriptGlobals } from "./utils.mjs";
 
 // When updating this list, be sure to also update the 'support-files' config
 // in `tools/lint/eslint.yml`.
@@ -30,7 +28,7 @@ const simpleTestFiles = [
 ];
 const simpleTestPath = "testing/mochitest/tests/SimpleTest";
 
-module.exports = getScriptGlobals(
+export default getScriptGlobals(
   "simpletest",
   simpleTestFiles.map(file => path.join(simpleTestPath, file))
 );

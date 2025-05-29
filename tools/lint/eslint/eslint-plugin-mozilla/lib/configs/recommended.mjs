@@ -3,7 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import js from "@eslint/js";
-import helpers from "../helpers.js";
+import helpers from "../helpers.mjs";
 
 const { allFileExtensions } = helpers;
 

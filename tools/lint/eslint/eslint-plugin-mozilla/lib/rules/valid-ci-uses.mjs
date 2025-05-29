@@ -8,7 +8,7 @@
  */
 
 import os from "os";
-import helpers from "../helpers.js";
+import helpers from "../helpers.mjs";
 
 // These interfaces are all platform specific, so may be not present
 // on all platforms.

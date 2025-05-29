@@ -7,7 +7,7 @@
  */
 
 import globals from "globals";
-import helpers from "./helpers.js";
+import helpers from "./helpers.mjs";
 import packageData from "../package.json" with { type: "json" };
 
 import noUnsanitizedPlugin from "eslint-plugin-no-unsanitized";
@@ -23,23 +23,23 @@ let plugin = {
     // Filled in below due to circular references.
   },
   environments: {
-    "browser-window": (await import("./environments/browser-window.js"))
+    "browser-window": (await import("./environments/browser-window.mjs"))
       .default,
-    "chrome-script": (await import("./environments/chrome-script.js")).default,
-    "frame-script": (await import("./environments/frame-script.js")).default,
-    sysmjs: (await import("./environments/sysmjs.js")).default,
-    privileged: (await import("./environments/privileged.js")).default,
-    "process-script": (await import("./environments/process-script.js"))
+    "chrome-script": (await import("./environments/chrome-script.mjs")).default,
+    "frame-script": (await import("./environments/frame-script.mjs")).default,
+    sysmjs: (await import("./environments/sysmjs.mjs")).default,
+    privileged: (await import("./environments/privileged.mjs")).default,
+    "process-script": (await import("./environments/process-script.mjs"))
       .default,
-    "remote-page": (await import("./environments/remote-page.js")).default,
-    simpletest: (await import("./environments/simpletest.js")).default,
-    sjs: (await import("./environments/sjs.js")).default,
+    "remote-page": (await import("./environments/remote-page.mjs")).default,
+    simpletest: (await import("./environments/simpletest.mjs")).default,
+    sjs: (await import("./environments/sjs.mjs")).default,
     "special-powers-sandbox": (
-      await import("./environments/special-powers-sandbox.js")
+      await import("./environments/special-powers-sandbox.mjs")
     ).default,
-    specific: (await import("./environments/specific.js")).default,
-    testharness: (await import("./environments/testharness.js")).default,
-    xpcshell: (await import("./environments/xpcshell.js")).default,
+    specific: (await import("./environments/specific.mjs")).default,
+    testharness: (await import("./environments/testharness.mjs")).default,
+    xpcshell: (await import("./environments/xpcshell.mjs")).default,
   },
   rules: {
     "avoid-Date-timing": (await import("./rules/avoid-Date-timing.mjs"))

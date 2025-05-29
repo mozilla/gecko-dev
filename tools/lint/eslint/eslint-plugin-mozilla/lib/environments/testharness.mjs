@@ -8,12 +8,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-"use strict";
-
 // These globals are taken from dom/imptests/testharness.js, via the expose
 // function.
 
-module.exports = {
+export default {
   globals: {
     EventWatcher: false,
     test: false,

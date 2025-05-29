@@ -4,22 +4,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-"use strict";
 
-const parser = require("espree");
-const { analyze } = require("eslint-scope");
-const { KEYS: defaultVisitorKeys } = require("eslint-visitor-keys");
-const estraverse = require("estraverse");
-const path = require("path");
-const fs = require("fs");
-const toml = require("toml-eslint-parser");
+import * as parser from "espree";
+import { analyze } from "eslint-scope";
+import { KEYS as defaultVisitorKeys } from "eslint-visitor-keys";
+import estraverse from "estraverse";
+import path from "path";
+import fs from "fs";
+import toml from "toml-eslint-parser";
+import servicesData from "./services.json" with { type: "json" };
+import { execFileSync } from "child_process";
 
-var gRootDir = null;
-var directoryManifests = new Map();
+let gRootDir = null;
+let directoryManifests = new Map();
+let savedGlobals = null;
+let savedRulesData = null;
 
 let xpidlData;
 
-module.exports = {
+export default {
   /**
    * The list of file extensions that we support when linting. This should be
    * kept in sync with the list in tools/lint/eslint.yml.
@@ -46,7 +49,7 @@ module.exports = {
   },
 
   get servicesData() {
-    return require("./services.json");
+    return servicesData;
   },
 
   /**
@@ -672,9 +675,13 @@ module.exports = {
         while (parsed.root !== dirName) {
           let possibleFile = path.join(dirName, "package.json");
           if (fs.existsSync(possibleFile)) {
-            let packageData = require(possibleFile);
-            if (packageData.nonPublishedName == "mozilla-central") {
-              return dirName;
+            try {
+              let packageData = JSON.parse(fs.readFileSync(possibleFile));
+              if (packageData.nonPublishedName == "mozilla-central") {
+                return dirName;
+              }
+            } catch {
+              // Ok to ignore, just try the level above.
             }
           }
           // Move up a level
@@ -684,7 +691,7 @@ module.exports = {
         return null;
       }
 
-      let possibleRoot = searchUpForPackage(path.dirname(module.filename));
+      let possibleRoot = searchUpForPackage(path.dirname(import.meta.filename));
       if (!possibleRoot) {
         possibleRoot = searchUpForPackage(path.resolve());
       }
@@ -759,17 +766,24 @@ module.exports = {
   },
 
   getSavedEnvironmentItems(environment) {
-    return require("./environments/saved-globals.json").environments[
-      environment
-    ];
+    if (!savedGlobals) {
+      savedGlobals = JSON.parse(
+        fs.readFileSync(path.join("environments", "saved-globals.json"))
+      );
+    }
+    return savedGlobals.environments[environment];
   },
 
   getSavedRuleData(rule) {
-    return require("./rules/saved-rules-data.json").rulesData[rule];
+    if (!savedRulesData) {
+      savedRulesData = JSON.parse(
+        fs.readFileSync(path.join("rules", "saved-rules-data.json"))
+      );
+    }
+    return savedRulesData.rulesData[rule];
   },
 
   getBuildEnvironment() {
-    var { execFileSync } = require("child_process");
     var output = execFileSync(
       path.join(this.rootDir, "mach"),
       ["environment", "--format=json"],
