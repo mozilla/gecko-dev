@@ -4515,32 +4515,14 @@ void AsyncPanZoomController::ScaleWithFocus(float aScale,
 }
 
 /*static*/
-gfx::IntSize AsyncPanZoomController::GetDisplayportAlignmentMultiplier(
+gfx::Size AsyncPanZoomController::GetDisplayportAlignmentMultiplier(
     const ScreenSize& aBaseSize) {
-  gfx::IntSize multiplier(1, 1);
-  float baseWidth = aBaseSize.width;
-  while (baseWidth > 500) {
-    baseWidth /= 2;
-    multiplier.width *= 2;
-    if (multiplier.width >= 8) {
-      break;
-    }
-  }
-  float baseHeight = aBaseSize.height;
-  while (baseHeight > 500) {
-    baseHeight /= 2;
-    multiplier.height *= 2;
-    if (multiplier.height >= 8) {
-      break;
-    }
-  }
-  return multiplier;
+  return gfx::Size(std::min(double(aBaseSize.width) / 250.0, 8.0),
+                   std::min(double(aBaseSize.height) / 250.0, 8.0));
 }
 
-/**
- * Enlarges the displayport along both axes based on the velocity.
- */
-static CSSSize CalculateDisplayPortSize(
+/*static*/
+CSSSize AsyncPanZoomController::CalculateDisplayPortSize(
     const CSSSize& aCompositionSize, const CSSPoint& aVelocity,
     AsyncPanZoomController::ZoomInProgress aZoomInProgress,
     const CSSToScreenScale2D& aDpPerCSS) {
@@ -4590,7 +4572,7 @@ static CSSSize CalculateDisplayPortSize(
   // calculation doesn't cancel exactly the increased margin from applying
   // the alignment multiplier, but this is simple and should provide
   // reasonable behaviour in most cases.
-  gfx::IntSize alignmentMultipler =
+  gfx::Size alignmentMultipler =
       AsyncPanZoomController::GetDisplayportAlignmentMultiplier(
           aCompositionSize * aDpPerCSS);
   if (xMultiplier > 1) {

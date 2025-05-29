@@ -269,7 +269,7 @@ static nsRect GetDisplayPortFromMarginsData(
     // always using a 128 alignment, so the displayport multipliers are also
     // correspondingly smaller when WR is enabled to prevent the displayport
     // from becoming too big.
-    IntSize multiplier =
+    gfx::Size multiplier =
         layers::apz::GetDisplayportAlignmentMultiplier(screenRect.Size());
     alignment = ScreenSize(128 * multiplier.width, 128 * multiplier.height);
   }
