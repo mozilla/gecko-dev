@@ -279,6 +279,7 @@ allowlist-types = [
     "mozilla::dom::MediaList",
     "mozilla::StyleRuleInclusion",
     "NodeSelectorFlags",
+    "AnchorPosResolutionParams",
 ]
 opaque-types = [
     "mozilla::StyleThinArc", # https://github.com/rust-lang/rust-bindgen/issues/1557
