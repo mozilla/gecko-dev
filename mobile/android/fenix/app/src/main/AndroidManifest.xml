@@ -54,11 +54,6 @@
     This is NOT required for the adjust plugin. -->
     <uses-permission android:name="com.adjust.preinstall.READ_PERMISSION"/>
 
-    <!-- Makes the app available in cars -->
-    <uses-feature
-        android:name="android.hardware.type.automotive"
-        android:required="false"/>
-
     <application
         android:name=".FenixApplication"
         android:allowBackup="false"
