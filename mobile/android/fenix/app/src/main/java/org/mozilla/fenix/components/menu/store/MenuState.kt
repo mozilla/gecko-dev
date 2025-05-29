@@ -144,3 +144,20 @@ data class WebExtensionMenuItem(
     val badgeBackgroundColor: Int?,
     val onClick: () -> Unit,
 )
+
+/**
+ * Properties for the translation menu.
+ *
+ * @property isTranslationSupported Whether or not the page is supported for translation.
+ * @property isPdf Whether or not the page is a PDF.
+ * @property isTranslated Whether or not the page is already translated.
+ * @property translatedLanguage The language the page is translated to.
+ * @property onTranslatePageMenuClick A callback to be executed when the translate page menu
+ */
+data class TranslationInfo(
+    val isTranslationSupported: Boolean,
+    val isPdf: Boolean,
+    val isTranslated: Boolean,
+    val translatedLanguage: String,
+    val onTranslatePageMenuClick: () -> Unit,
+)

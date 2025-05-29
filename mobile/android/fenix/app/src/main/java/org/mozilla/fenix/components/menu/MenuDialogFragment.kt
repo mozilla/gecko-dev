@@ -65,6 +65,7 @@ import org.mozilla.fenix.components.menu.compose.ExtensionsSubmenu
 import org.mozilla.fenix.components.menu.compose.MainMenu
 import org.mozilla.fenix.components.menu.compose.MenuCFRState
 import org.mozilla.fenix.components.menu.compose.MenuDialogBottomSheet
+import org.mozilla.fenix.components.menu.compose.MoreSettingsSubmenu
 import org.mozilla.fenix.components.menu.compose.SaveSubmenu
 import org.mozilla.fenix.components.menu.compose.ToolsSubmenu
 import org.mozilla.fenix.components.menu.middleware.MenuDialogMiddleware
@@ -75,6 +76,7 @@ import org.mozilla.fenix.components.menu.store.ExtensionMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
+import org.mozilla.fenix.components.menu.store.TranslationInfo
 import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
@@ -394,6 +396,29 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         MenuAccessPoint.External -> Route.CustomTabMenu
                     }
 
+                    val translationInfo = TranslationInfo(
+                        isTranslationSupported = isTranslationSupported,
+                        isPdf = isPdf,
+                        isTranslated = selectedTab?.translationsState?.isTranslated
+                            ?: false,
+                        translatedLanguage = if (
+                            translateLanguageCode != null && supportedLanguages != null
+                        ) {
+                            TranslationSupport(
+                                fromLanguages = supportedLanguages.fromLanguages,
+                                toLanguages = supportedLanguages.toLanguages,
+                            ).findLanguage(translateLanguageCode)?.localizedDisplayName
+                                ?: ""
+                        } else {
+                            ""
+                        },
+                        onTranslatePageMenuClick = {
+                            selectedTab?.let {
+                                store.dispatch(MenuAction.Navigate.Translate)
+                            }
+                        },
+                    )
+
                     var contentState: Route by remember { mutableStateOf(initRoute) }
 
                     BackHandler {
@@ -459,6 +484,12 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 val account by syncStore.observeAsState(initialValue = null) { state -> state.account }
                                 val accountState by syncStore.observeAsState(initialValue = NotAuthenticated) { state ->
                                     state.accountState
+                                }
+
+                                val appLinksRedirect = if (selectedTab?.content?.url != null) {
+                                    appLinksUseCases.appLinkRedirect(selectedTab.content.url)
+                                } else {
+                                    null
                                 }
 
                                 MainMenu(
@@ -574,6 +605,50 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                         selectedTab?.let {
                                             store.dispatch(MenuAction.Navigate.Share)
                                         }
+                                    },
+                                    moreSettingsSubmenu = {
+                                        MoreSettingsSubmenu(
+                                            isReaderViewActive = isReaderViewActive,
+                                            isWebCompatEnabled = isWebCompatEnabled,
+                                            isPinned = isPinned,
+                                            isInstallable = webAppUseCases.isInstallable(),
+                                            hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,
+                                            externalAppName = appLinksRedirect?.appName ?: "",
+                                            isWebCompatReporterSupported = isWebCompatReporterSupported,
+                                            translationInfo = translationInfo,
+                                            onWebCompatReporterClick = {
+                                                store.dispatch(MenuAction.Navigate.WebCompatReporter)
+                                            },
+                                            onShortcutsMenuClick = {
+                                                if (!isPinned) {
+                                                    store.dispatch(MenuAction.AddShortcut)
+                                                } else {
+                                                    store.dispatch(MenuAction.RemoveShortcut)
+                                                }
+                                            },
+                                            onAddToHomeScreenMenuClick = {
+                                                store.dispatch(MenuAction.Navigate.AddToHomeScreen)
+                                            },
+                                            onSaveToCollectionMenuClick = {
+                                                store.dispatch(
+                                                    MenuAction.Navigate.SaveToCollection(
+                                                        hasCollection =
+                                                            tabCollectionStorage.cachedTabCollections.isNotEmpty(),
+                                                    ),
+                                                )
+                                            },
+                                            onSaveAsPDFMenuClick = {
+                                                saveToPdfUseCase()
+                                                dismiss()
+                                            },
+                                            onPrintMenuClick = {
+                                                printContentUseCase()
+                                                dismiss()
+                                            },
+                                            onOpenInAppMenuClick = {
+                                                store.dispatch(MenuAction.OpenInApp)
+                                            },
+                                        )
                                     },
                                     extensionSubmenu = {
                                         Addons(

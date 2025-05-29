@@ -106,6 +106,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param onForwardButtonClick Invoked when the user clicks on the forward button.
  * @param onRefreshButtonClick Invoked when the user clicks on the refresh button.
  * @param onShareButtonClick Invoked when the user clicks on the share button.
+ * @param moreSettingsSubmenu The content of more menu item.
  * @param extensionSubmenu The content of extensions menu item to avoid configuration during animation.
  */
 @Suppress("LongParameterList", "LongMethod")
@@ -148,6 +149,7 @@ fun MainMenu(
     onForwardButtonClick: (longPress: Boolean) -> Unit,
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
     onShareButtonClick: () -> Unit,
+    moreSettingsSubmenu: @Composable ColumnScope.() -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
 ) {
     MenuScaffold(
@@ -200,9 +202,10 @@ fun MainMenu(
                 onFindInPageMenuClick = onFindInPageMenuClick,
                 onToolsMenuClick = onToolsMenuClick,
                 onSaveMenuClick = onSaveMenuClick,
-                extensionSubmenu = extensionSubmenu,
                 onMoreMenuClick = onMoreMenuClick,
-            )
+                moreSettingsSubmenu = moreSettingsSubmenu,
+                extensionSubmenu = extensionSubmenu,
+                )
         }
 
         LibraryMenuGroup(
@@ -385,9 +388,10 @@ private fun ToolsAndActionsMenuGroup(
     onFindInPageMenuClick: () -> Unit,
     onToolsMenuClick: () -> Unit,
     onSaveMenuClick: () -> Unit,
-    extensionSubmenu: @Composable ColumnScope.() -> Unit,
     onMoreMenuClick: () -> Unit,
-) {
+    moreSettingsSubmenu: @Composable ColumnScope.() -> Unit,
+    extensionSubmenu: @Composable ColumnScope.() -> Unit,
+    ) {
     MenuGroup {
         val labelId: Int
         val iconId: Int
@@ -479,7 +483,8 @@ private fun ToolsAndActionsMenuGroup(
 
         MenuItemAnimation(
             isExpanded = moreMenuExpanded,
-        ) {}
+            submenu = moreSettingsSubmenu,
+        )
     }
 }
 
@@ -802,12 +807,12 @@ private fun MenuDialogPreview() {
                 isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
-                isTranslationSupported = true,
-                isWebCompatReporterSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = true,
                 isExtensionsExpanded = false,
                 isMoreMenuExpanded = true,
+                isTranslationSupported = true,
+                isWebCompatReporterSupported = true,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
                 webExtensionMenuCount = 1,
@@ -833,8 +838,9 @@ private fun MenuDialogPreview() {
                 onRefreshButtonClick = {},
                 onShareButtonClick = {},
                 onMoreMenuClick = {},
-            ) {
-            }
+                moreSettingsSubmenu = {},
+                extensionSubmenu = {},
+            )
         }
     }
 }
@@ -854,12 +860,12 @@ private fun MenuDialogPrivatePreview() {
                 isBookmarked = false,
                 isDesktopMode = false,
                 isPdf = false,
+                showQuitMenu = true,
+                isExtensionsExpanded = true,
                 isMoreMenuExpanded = true,
                 isTranslationSupported = true,
                 isWebCompatReporterSupported = true,
-                showQuitMenu = true,
                 isExtensionsProcessDisabled = false,
-                isExtensionsExpanded = true,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
                 webExtensionMenuCount = 0,
@@ -885,31 +891,33 @@ private fun MenuDialogPrivatePreview() {
                 onRefreshButtonClick = {},
                 onShareButtonClick = {},
                 onMoreMenuClick = {},
-            ) {
-                Addons(
-                    accessPoint = MenuAccessPoint.Home,
-                    availableAddons = listOf(),
-                    webExtensionMenuItems = listOf(),
-                    addonInstallationInProgress = null,
-                    recommendedAddons = listOf(
-                        Addon(
-                            id = "id",
-                            translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
-                            translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
+                moreSettingsSubmenu = {},
+                extensionSubmenu = {
+                    Addons(
+                        accessPoint = MenuAccessPoint.Home,
+                        availableAddons = listOf(),
+                        webExtensionMenuItems = listOf(),
+                        addonInstallationInProgress = null,
+                        recommendedAddons = listOf(
+                            Addon(
+                                id = "id",
+                                translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
+                                translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
+                            ),
+                            Addon(
+                                id = "id",
+                                translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
+                                translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
+                            ),
                         ),
-                        Addon(
-                            id = "id",
-                            translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
-                            translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
-                        ),
-                    ),
-                    onAddonSettingsClick = {},
-                    onAddonClick = {},
-                    onInstallAddonClick = {},
-                    onDiscoverMoreExtensionsMenuClick = {},
-                    onWebExtensionMenuItemClick = {},
-                )
-            }
+                        onAddonSettingsClick = {},
+                        onAddonClick = {},
+                        onInstallAddonClick = {},
+                        onDiscoverMoreExtensionsMenuClick = {},
+                        onWebExtensionMenuItemClick = {},
+                    )
+                },
+            )
         }
     }
 }
