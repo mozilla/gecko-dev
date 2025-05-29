@@ -14,7 +14,7 @@ This can be a useful risk mitigation for data collections we do not wish to asso
 ## Can I use OHTTP for my Data?
 
 Any data collection that meets the following criteria can use OHTTP:
-* Your data must be solely collected on Firefox Desktop
+* Your data must be solely collected on Firefox Desktop, Fenix, or Focus.
     * At this time, no other Mozilla project supports OHTTP.
 * Your data must be recorded via Glean.
     * It is the sole data collection system at Mozilla that supports OHTTP.
