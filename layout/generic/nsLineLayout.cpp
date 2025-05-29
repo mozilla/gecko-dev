@@ -668,14 +668,18 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
 
   const nsStylePosition* pos = aFrame->StylePosition();
   const auto iSize = pos->ISize(aWM, positionProperty);
+  const auto anchorPosResolutionParams =
+      AnchorPosResolutionParams::UseCBFrameSize(aFrame, positionProperty);
   if ((nsStylePosition::ISizeDependsOnContainer(iSize) && !iSize->IsAuto()) ||
       nsStylePosition::MaxISizeDependsOnContainer(
           pos->MaxISize(aWM, positionProperty)) ||
       nsStylePosition::MinISizeDependsOnContainer(
           pos->MinISize(aWM, positionProperty)) ||
-      pos->GetAnchorResolvedInset(LogicalSide::IStart, aWM, positionProperty)
+      pos->GetAnchorResolvedInset(LogicalSide::IStart, aWM,
+                                  anchorPosResolutionParams)
           ->HasPercent() ||
-      pos->GetAnchorResolvedInset(LogicalSide::IEnd, aWM, positionProperty)
+      pos->GetAnchorResolvedInset(LogicalSide::IEnd, aWM,
+                                  anchorPosResolutionParams)
           ->HasPercent()) {
     return true;
   }

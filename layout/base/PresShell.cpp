@@ -3945,8 +3945,10 @@ bool PresShell::ScrollFrameIntoView(
     // scroll-padding on the direction we're stuck.
     const auto* stylePosition = aFrame->StylePosition();
     const auto positionProperty = aFrame->StyleDisplay()->mPosition;
+    const auto anchorResolutionParams =
+        AnchorPosResolutionParams::UseCBFrameSize(aFrame, positionProperty);
     for (auto side : AllPhysicalSides()) {
-      if (stylePosition->GetAnchorResolvedInset(side, positionProperty)
+      if (stylePosition->GetAnchorResolvedInset(side, anchorResolutionParams)
               ->IsAuto()) {
         continue;
       }

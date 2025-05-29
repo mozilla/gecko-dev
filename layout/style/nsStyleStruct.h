@@ -742,6 +742,39 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePage {
 using AnchorResolvedInset =
     mozilla::UniqueOrNonOwningPtr<const mozilla::StyleInset>;
 
+struct AnchorPosResolutionParams {
+  // Frame of the anchor positioned element.
+  // If nullptr, skips anchor lookup and returns invalid, resolving fallbacks.
+  const nsIFrame* mFrame;
+  // Size of the containing block for the anchor positioned element.
+  // This needs to be set only if all of the following conditions are true:
+  //
+  //   * The resolution is happening during reflow (i.e. Containing block
+  //   doesn't have its rect set)
+  //   * The caller needs the correct size, not just its type (e.g. Just
+  //     checking `HasPercent()` of the inset resolved value)
+  const mozilla::LogicalSize* mCBSize;
+  // Position property of the element in question.
+  mozilla::StylePositionProperty mPosition;
+
+  static AnchorPosResolutionParams UseCBFrameSize(
+      const nsIFrame* aFrame, mozilla::StylePositionProperty aPosition) {
+    return {aFrame, nullptr, aPosition};
+  }
+
+  static AnchorPosResolutionParams ExplicitCBFrameSize(
+      const nsIFrame* aFrame, const mozilla::LogicalSize* aCBSize,
+      mozilla::StylePositionProperty aPosition) {
+    return {aFrame, aCBSize, aPosition};
+  }
+
+ private:
+  AnchorPosResolutionParams(const nsIFrame* aFrame,
+                            const mozilla::LogicalSize* aCBSize,
+                            mozilla::StylePositionProperty aPosition)
+      : mFrame{aFrame}, mCBSize{aCBSize}, mPosition{aPosition} {}
+};
+
 struct AnchorResolvedInsetHelper {
   static const mozilla::StyleInset& AutoValue() {
     static const auto value = mozilla::StyleInset::Auto();
@@ -750,12 +783,11 @@ struct AnchorResolvedInsetHelper {
 
   static AnchorResolvedInset FromUnresolved(
       const mozilla::StyleInset& aValue, mozilla::Side aSide,
-      mozilla::StylePositionProperty aPosition) {
+      const AnchorPosResolutionParams& aParams) {
     if (!aValue.HasAnchorPositioningFunction()) {
       return AnchorResolvedInset::NonOwning(&aValue);
     }
-    return ResolveAnchor(aValue, mozilla::ToStylePhysicalSide(aSide),
-                         aPosition);
+    return ResolveAnchor(aValue, mozilla::ToStylePhysicalSide(aSide), aParams);
   }
 
  private:
@@ -765,7 +797,7 @@ struct AnchorResolvedInsetHelper {
 
   static AnchorResolvedInset ResolveAnchor(
       const mozilla::StyleInset& aValue, mozilla::StylePhysicalSide aSide,
-      mozilla::StylePositionProperty aPosition);
+      const AnchorPosResolutionParams& aParams);
 };
 
 using AnchorResolvedSize =
@@ -883,17 +915,24 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   // Returns whether we need to compute an hypothetical position if we were
   // absolutely positioned.
   bool NeedsHypotheticalPositionIfAbsPos() const {
-    return (GetAnchorResolvedInset(mozilla::eSideRight,
-                                   mozilla::StylePositionProperty::Absolute)
+    // NOTE(dshin): By passing in nullptr for frames, we're guaranteeing that
+    // no anchor is found, instead considering fallbacks or anchor-invalid
+    // values. Since anchor resolved value can never be auto, this is
+    // guaranteed to be correct, if not pessimistic.
+    // TODO(dshin): Probably nicer if we try to resolve. Two tricky parts:
+    //   * `CalcDifference`: Need to pass in the changing frame somehow.
+    //   * Reflow cases where containing block is not yet set (Mainly when
+    //     `nsBlockFrame` is about to run another reflow for clearance)
+    const auto anchorResolutionParams =
+        AnchorPosResolutionParams::UseCBFrameSize(
+            nullptr, mozilla::StylePositionProperty::Absolute);
+    return (GetAnchorResolvedInset(mozilla::eSideRight, anchorResolutionParams)
                 ->IsAuto() &&
-            GetAnchorResolvedInset(mozilla::eSideLeft,
-                                   mozilla::StylePositionProperty::Absolute)
+            GetAnchorResolvedInset(mozilla::eSideLeft, anchorResolutionParams)
                 ->IsAuto()) ||
-           (GetAnchorResolvedInset(mozilla::eSideTop,
-                                   mozilla::StylePositionProperty::Absolute)
+           (GetAnchorResolvedInset(mozilla::eSideTop, anchorResolutionParams)
                 ->IsAuto() &&
-            GetAnchorResolvedInset(mozilla::eSideBottom,
-                                   mozilla::StylePositionProperty::Absolute)
+            GetAnchorResolvedInset(mozilla::eSideBottom, anchorResolutionParams)
                 ->IsAuto());
   }
 
@@ -1014,13 +1053,14 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   // TODO(dshin): These inset getters are to be removed when
   // interleaving computation is implemented.
   AnchorResolvedInset GetAnchorResolvedInset(
-      mozilla::Side aSide, mozilla::StylePositionProperty aPosition) const {
+      mozilla::Side aSide, const AnchorPosResolutionParams& aParams) const {
     return AnchorResolvedInsetHelper::FromUnresolved(mOffset.Get(aSide), aSide,
-                                                     aPosition);
+                                                     aParams);
   }
+
   inline AnchorResolvedInset GetAnchorResolvedInset(
       mozilla::LogicalSide aSide, WritingMode aWM,
-      mozilla::StylePositionProperty aPosition) const;
+      const AnchorPosResolutionParams& aParams) const;
 
   AnchorResolvedSize GetWidth(mozilla::StylePositionProperty aProp) const {
     return AnchorResolvedSizeHelper::FromUnresolved(mWidth, aProp);

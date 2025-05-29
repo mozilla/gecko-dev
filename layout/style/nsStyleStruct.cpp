@@ -1365,8 +1365,8 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
 }
 
 AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
-    const StyleInset& aValue, StylePhysicalSide aSide,
-    StylePositionProperty aPosition) {
+    const mozilla::StyleInset& aValue, mozilla::StylePhysicalSide aSide,
+    const AnchorPosResolutionParams& aParams) {
   MOZ_ASSERT(aValue.HasAnchorPositioningFunction(),
              "Calling anchor resolution without using it?");
   switch (aValue.tag) {
@@ -1374,8 +1374,8 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
       const auto& lp = aValue.AsAnchorContainingCalcFunction();
       const auto& c = lp.AsCalc();
       auto result = StyleCalcAnchorPositioningFunctionResolution::Invalid();
-      Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &aSide, aPosition,
-                                                   &result);
+      Servo_ResolveAnchorFunctionsInCalcPercentage(&c, &aSide,
+                                                   aParams.mPosition, &result);
       if (result.IsInvalid()) {
         return Auto();
       }
@@ -1383,8 +1383,8 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
     }
     case StyleInset::Tag::AnchorFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
-      Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(), aSide, aPosition,
-                                  &resolved);
+      Servo_ResolveAnchorFunction(&*aValue.AsAnchorFunction(), aSide,
+                                  aParams.mPosition, &resolved);
       if (resolved.IsInvalid()) {
         return Auto();
       }
@@ -1399,7 +1399,7 @@ AnchorResolvedInset AnchorResolvedInsetHelper::ResolveAnchor(
     case StyleInset::Tag::AnchorSizeFunction: {
       auto resolved = StyleAnchorPositioningFunctionResolution::Invalid();
       Servo_ResolveAnchorSizeFunction(&*aValue.AsAnchorSizeFunction(),
-                                      aPosition, &resolved);
+                                      aParams.mPosition, &resolved);
       if (resolved.IsInvalid()) {
         return Auto();
       }
