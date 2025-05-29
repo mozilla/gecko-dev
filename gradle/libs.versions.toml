@@ -1,7 +1,7 @@
 [versions]
 # AGP
-android-gradle-plugin = "8.10.0" # Keep lint version in sync
-lint = "31.10.0"
+android-gradle-plugin = "8.10.1" # Keep lint version in sync
+lint = "31.10.1"
 
 python-envs-plugin = "0.0.31"
 maven-ant-tasks = "2.1.3"
