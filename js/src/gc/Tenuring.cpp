@@ -655,12 +655,12 @@ void JSLinearString::maybeCloneCharsOnPromotionTyped(JSLinearString* str) {
     // then it will record enough information for this dependent string's chars
     // to be updated.
     if (InCollectedNurseryRegion(root)) {
-      return; // Remain dependent.
+      return;  // Remain dependent.
     }
 
     // If the base has not moved its chars, continue using them.
     if (PtrIsWithinRange(chars, root->range<CharT>(nogc))) {
-      return; // Remain dependent.
+      return;  // Remain dependent.
     }
 
     // Must clone for correctness. The reachable root base string has already
