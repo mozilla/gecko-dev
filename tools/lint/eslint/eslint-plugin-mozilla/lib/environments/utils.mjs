@@ -13,7 +13,9 @@ import globals from "../globals.mjs";
 /**
  * Obtains the globals for a list of files.
  *
- * @param {Array.<string>} files
+ * @param {string} environmentName
+ *   The name of the environment that globals are being obtained for.
+ * @param {string[]} files
  *   The array of files to get globals for. The paths are relative to the topsrcdir.
  * @returns {object}
  *   Returns an object with keys of the global names and values of if they are

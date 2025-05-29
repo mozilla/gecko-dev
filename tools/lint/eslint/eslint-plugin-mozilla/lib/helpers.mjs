@@ -304,12 +304,8 @@ export default {
    * To allow espree to parse almost any JavaScript we need as many features as
    * possible turned on. This method returns that config.
    *
-   * @param {object} options
-   *        {
-   *          useBabel: {boolean} whether to set babelOptions.
-   *        }
    * @returns {object}
-   *         Espree compatible permissive config.
+   *   Espree compatible permissive config.
    */
   getPermissiveConfig() {
     return {
@@ -611,12 +607,10 @@ export default {
   /**
    * Gets the type of test or null if this isn't a test.
    *
-   * @param  {RuleContext} scope
-   *         You should pass this from within a rule
-   *         e.g. helpers.getIsHeadFile(context)
-   *
-   * @returns {String or null}
-   *         Test type: xpcshell, browser, chrome, mochitest
+   * @param {RuleContext} scope
+   *   You should pass this from within a rule e.g. helpers.getIsHeadFile(context)
+   * @returns {string|null}
+   *   Test type: xpcshell, browser, chrome, mochitest
    */
   getTestType(scope) {
     let testTypes = ["browser", "xpcshell", "chrome", "mochitest", "a11y"];
