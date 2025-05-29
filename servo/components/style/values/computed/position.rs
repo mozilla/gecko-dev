@@ -8,7 +8,7 @@
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use crate::values::computed::{Integer, LengthPercentage, NonNegativeNumber, Percentage};
-use crate::values::generics::position::{GenericAnchorSide, GenericAnchorFunction};
+use crate::values::generics::position::{AnchorSideKeyword, GenericAnchorFunction, GenericAnchorSide};
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
@@ -38,8 +38,61 @@ pub type VerticalPosition = LengthPercentage;
 /// The computed value of anchor side.
 pub type AnchorSide = GenericAnchorSide<Percentage>;
 
+impl AnchorSide {
+    /// Break down given anchor side into its equivalent keyword and percentage.
+    pub fn keyword_and_percentage(&self) -> (AnchorSideKeyword, Percentage) {
+        match self {
+            Self::Percentage(p) => (AnchorSideKeyword::Start, *p),
+            Self::Keyword(k) => if matches!(k, AnchorSideKeyword::Center) {
+                (AnchorSideKeyword::Start, Percentage(0.5))
+            } else {
+                (*k, Percentage::hundred())
+            },
+        }
+    }
+}
+
 /// The computed value of an `anchor()` function.
 pub type AnchorFunction = GenericAnchorFunction<Percentage, LengthPercentage>;
+
+#[cfg(feature="gecko")]
+use crate::{
+    gecko_bindings::structs::AnchorPosResolutionParams,
+    logical_geometry::PhysicalSide,
+    values::{DashedIdent, computed::Length},
+};
+
+impl AnchorFunction {
+    /// Resolve the anchor function with the given resolver. Returns `Err()` if no anchor is found.
+    #[cfg(feature="gecko")]
+    pub fn resolve(
+        anchor_name: &DashedIdent,
+        anchor_side: &AnchorSide,
+        prop_side: PhysicalSide,
+        params: &AnchorPosResolutionParams,
+    ) -> Result<Length, ()> {
+        use crate::gecko_bindings::structs::Gecko_GetAnchorPosOffset;
+
+        let (keyword, percentage) = anchor_side.keyword_and_percentage();
+        let mut offset = Length::zero();
+        let valid = unsafe {
+            Gecko_GetAnchorPosOffset(
+                params,
+                anchor_name.0.as_ptr(),
+                prop_side as u8,
+                keyword as u8,
+                percentage.0,
+                &mut offset,
+            )
+        };
+
+        if !valid {
+            return Err(());
+        }
+
+        Ok(offset)
+    }
+}
 
 /// A computed type for `inset` properties.
 pub type Inset = GenericInset<Percentage, LengthPercentage>;

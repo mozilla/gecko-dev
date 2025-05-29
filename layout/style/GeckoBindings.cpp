@@ -28,6 +28,7 @@
 #include "mozilla/dom/ViewTransition.h"
 #include "nsILoadContext.h"
 #include "nsIFrame.h"
+#include "nsIFrameInlines.h"
 #include "nsINode.h"
 #include "nsIURI.h"
 #include "nsFontMetrics.h"
@@ -1817,4 +1818,194 @@ StyleFontFamilyList StyleFontFamilyList::WithOneUnquotedFamily(
   names.AppendElement(StyleSingleFontFamily::FamilyName(
       {StyleAtom(NS_Atomize(aName)), StyleFontFamilyNameSyntax::Identifiers}));
   return WithNames(std::move(names));
+}
+
+// Find the aContainer's child that is the ancestor of aDescendant.
+static const nsIFrame* TraverseUpToContainerChild(const nsIFrame* aContainer,
+                                                  const nsIFrame* aDescendant) {
+  const auto* current = aDescendant;
+  while (true) {
+    const auto* parent = current->GetParent();
+    if (!parent) {
+      return nullptr;
+    }
+    if (parent == aContainer) {
+      return current;
+    }
+    current = parent;
+  }
+}
+
+static bool AnchorSideUsesCBWM(
+    const StyleAnchorSideKeyword& aAnchorSideKeyword) {
+  switch (aAnchorSideKeyword) {
+    case StyleAnchorSideKeyword::SelfStart:
+    case StyleAnchorSideKeyword::SelfEnd:
+      return false;
+    case StyleAnchorSideKeyword::Inside:
+    case StyleAnchorSideKeyword::Outside:
+    case StyleAnchorSideKeyword::Start:
+    case StyleAnchorSideKeyword::End:
+    case StyleAnchorSideKeyword::Center:
+      return true;
+    // Return value shouldn't matter for these physical keywords.
+    case StyleAnchorSideKeyword::Left:
+    case StyleAnchorSideKeyword::Right:
+    case StyleAnchorSideKeyword::Top:
+    case StyleAnchorSideKeyword::Bottom:
+      return true;
+  }
+}
+
+struct AnchorPosInfo {
+  // Border-box of the anchor frame, offset against `mContainingBlock`'s padding
+  // box.
+  nsRect mRect;
+  const nsIFrame* mContainingBlock;
+};
+
+static Maybe<AnchorPosInfo> GetAnchorPosRect(const nsIFrame* aPositioned,
+                                             const nsAtom* aAnchorName,
+                                             bool aCBRectIsvalid) {
+  if (!aPositioned) {
+    return Nothing{};
+  }
+  const auto* presShell = aPositioned->PresShell();
+  MOZ_ASSERT(presShell, "No PresShell for frame?");
+
+  const auto* anchorName = aAnchorName;
+  if (!anchorName || anchorName->IsEmpty()) {
+    const auto* stylePos = aPositioned->StylePosition();
+    if (!stylePos->mPositionAnchor.IsIdent()) {
+      // No valid anchor specified, bail.
+      // TODO(dshin): Implicit anchor should be looked at here.
+      return Nothing{};
+    }
+    anchorName = stylePos->mPositionAnchor.AsIdent().AsAtom();
+  }
+  const auto* anchor = presShell->GetAnchorPosAnchor(anchorName);
+  if (!anchor) {
+    return Nothing{};
+  }
+
+  MOZ_ASSERT(aPositioned->HasAnyStateBits(NS_FRAME_OUT_OF_FLOW),
+             "Calling GetAnchorPoseRect on non-abspos frame?");
+  // We're assuming that the caller already check for abspos.
+  const auto* containingBlock = aPositioned->GetParent();
+  auto rect = [&]() -> Maybe<nsRect> {
+    if (aCBRectIsvalid) {
+      nsRect result = anchor->GetRectRelativeToSelf();
+      nsLayoutUtils::TransformRect(anchor, containingBlock, result);
+      // Easy, just use the existing function.
+      return Some(result);
+    }
+
+    // Ok, containing block doesn't have its rect fully resolved. Figure out
+    // rect relative to the child of containing block that is also the ancestor
+    // of the anchor, and manually compute the offset.
+    // TODO(dshin): This wouldn't handle anchor in a previous top layer.
+    const auto* containerChild =
+        TraverseUpToContainerChild(containingBlock, anchor);
+    if (!containerChild) {
+      return Nothing{};
+    }
+
+    if (anchor == containerChild) {
+      // Anchor is the direct child of anchor's CBWM.
+      return Some(anchor->GetRect());
+    }
+
+    // TODO(dshin): Already traversed up to find `containerChild`, and we're
+    // going to do it again here, which feels a little wasteful.
+    nsRect rectToContainerChild = anchor->GetRectRelativeToSelf();
+    nsLayoutUtils::TransformRect(anchor, containerChild, rectToContainerChild);
+
+    return Some(rectToContainerChild + containerChild->GetPosition());
+  }();
+  return rect.map([&](const nsRect& aRect) {
+    // We need to position the border box of the anchor within the abspos
+    // containing block's size - So the rectangle's size (i.e. Anchor size)
+    // stays the same, while "the outer rectangle" (i.e. The abspos cb size)
+    // "shrinks" by shifting the position.
+    const auto border = containingBlock->GetUsedBorder();
+    const nsPoint borderTopLeft{border.left, border.top};
+    return AnchorPosInfo{
+        .mRect = aRect - borderTopLeft,
+        .mContainingBlock = containingBlock,
+    };
+  });
+}
+
+bool Gecko_GetAnchorPosOffset(
+    const AnchorPosResolutionParams* aParams, const nsAtom* aAnchorName,
+    StylePhysicalSide aPropSide,
+    mozilla::StyleAnchorSideKeyword aAnchorSideKeyword, float aPercentage,
+    mozilla::Length* aOut) {
+  if (!aParams || !aParams->mFrame) {
+    return false;
+  }
+  const auto info =
+      GetAnchorPosRect(aParams->mFrame, aAnchorName, !aParams->mCBSize);
+  if (info.isNothing()) {
+    return false;
+  }
+  // Compute the offset here in C++, where translating between physical/logical
+  // coordinates is easier.
+  const auto& rect = info.ref().mRect;
+  const auto* containingBlock = info.ref().mContainingBlock;
+  const auto usesCBWM = AnchorSideUsesCBWM(aAnchorSideKeyword);
+  const auto cbwm = containingBlock->GetWritingMode();
+  const auto wm = usesCBWM ? aParams->mFrame->GetWritingMode() : cbwm;
+  const auto logicalCBSize = aParams->mCBSize
+                                 ? aParams->mCBSize->ConvertTo(wm, cbwm)
+                                 : containingBlock->PaddingSize(wm);
+  const LogicalRect logicalAnchorRect{wm, rect,
+                                      logicalCBSize.GetPhysicalSize(wm)};
+  const auto logicalPropSide = wm.LogicalSideForPhysicalSide(ToSide(aPropSide));
+  const auto propAxis = GetAxis(logicalPropSide);
+  const auto propEdge = GetEdge(logicalPropSide);
+
+  const auto anchorEdge = [&]() {
+    switch (aAnchorSideKeyword) {
+      case StyleAnchorSideKeyword::Left:
+        return GetEdge(wm.LogicalSideForPhysicalSide(eSideLeft));
+      case StyleAnchorSideKeyword::Right:
+        return GetEdge(wm.LogicalSideForPhysicalSide(eSideRight));
+      case StyleAnchorSideKeyword::Top:
+        return GetEdge(wm.LogicalSideForPhysicalSide(eSideTop));
+      case StyleAnchorSideKeyword::Bottom:
+        return GetEdge(wm.LogicalSideForPhysicalSide(eSideBottom));
+      case StyleAnchorSideKeyword::Inside:
+      case StyleAnchorSideKeyword::Outside:
+        return propEdge;
+      case StyleAnchorSideKeyword::Start:
+      case StyleAnchorSideKeyword::SelfStart:
+      case StyleAnchorSideKeyword::Center:
+        return LogicalEdge::Start;
+      case StyleAnchorSideKeyword::End:
+      case StyleAnchorSideKeyword::SelfEnd:
+        return LogicalEdge::End;
+    }
+  }();
+
+  // Do we need to flip the computed offset by containing block's size?
+  const auto opposite =
+      propEdge != anchorEdge && propEdge != LogicalEdge::Start;
+  const auto size = logicalCBSize.Size(propAxis, wm);
+  const auto offset = anchorEdge == LogicalEdge::Start
+                          ? logicalAnchorRect.Start(propAxis, wm)
+                          : logicalAnchorRect.End(propAxis, wm);
+  const auto side = opposite ? size - offset : offset;
+  nscoord result = side;
+  if (aPercentage != 1.0f) {
+    // Apply the percentage value, with the percentage basis as the anchor
+    // element's size in the relevant axis.
+    const LogicalSize anchorSize{wm, rect.Size()};
+    result = side + (opposite ? -1 : 1) *
+                        NSToCoordRoundWithClamp(
+                            aPercentage *
+                            static_cast<float>(anchorSize.Size(propAxis, wm)));
+  }
+  *aOut = Length::FromPixels(CSSPixel::FromAppUnits(result));
+  return true;
 }
