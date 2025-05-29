@@ -7,6 +7,7 @@
 
 #include "mozilla/Atomics.h"
 
+#include "RadixTree.h"
 #include "rb.h"
 
 #include "mozilla/DoublyLinkedList.h"
