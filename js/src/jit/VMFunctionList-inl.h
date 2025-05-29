@@ -78,6 +78,7 @@ namespace jit {
     js::jit::BaselineCompileFromBaselineInterpreter)                           \
   _(BaselineDebugPrologue, js::jit::DebugPrologue)                             \
   _(BaselineGetFunctionThis, js::jit::BaselineGetFunctionThis)                 \
+  _(BaselineScriptOSREntryForFrame, js::jit::BaselineScript::OSREntryForFrame) \
   _(BigIntAdd, JS::BigInt::add)                                                \
   _(BigIntAsIntN, js::jit::BigIntAsIntN)                                       \
   _(BigIntAsUintN, js::jit::BigIntAsUintN)                                     \

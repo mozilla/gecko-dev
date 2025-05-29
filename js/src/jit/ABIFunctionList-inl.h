@@ -138,7 +138,6 @@ namespace jit {
   _(js::jit::AtomicsStore64)                                                   \
   _(js::jit::AtomizeStringNoGC)                                                \
   _(js::jit::Bailout)                                                          \
-  _(js::jit::BaselineScript::OSREntryForFrame)                                 \
   _(js::jit::BigIntNumberEqual<js::jit::EqualityKind::Equal>)                  \
   _(js::jit::BigIntNumberEqual<js::jit::EqualityKind::NotEqual>)               \
   _(js::jit::BigIntNumberCompare<js::jit::ComparisonKind::LessThan>)           \

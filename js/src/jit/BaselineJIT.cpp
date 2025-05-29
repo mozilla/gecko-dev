@@ -975,11 +975,10 @@ void BaselineScript::computeResumeNativeOffsets(
                  computeNative);
 }
 
-uint8_t* BaselineScript::OSREntryForFrame(BaselineFrame* frame) {
-  AutoUnsafeCallWithABI unsafe;
+bool BaselineScript::OSREntryForFrame(JSContext* cx, BaselineFrame* frame,
+                                      uint8_t** entry) {
   MOZ_ASSERT(frame->runningInInterpreter());
 
-  uint8_t* entry = nullptr;
   JSScript* script = frame->script();
   BaselineScript* baselineScript = script->baselineScript();
   jsbytecode* pc = frame->interpreterPC();
@@ -1007,10 +1006,8 @@ uint8_t* BaselineScript::OSREntryForFrame(BaselineFrame* frame) {
     // baseline. Since h is already compiled in baseline, execution jumps
     // directly into baseline code. This is incorrect as h's baseline script
     // does not have debug instrumentation.
-    JSContext* cx = TlsContext.get();
-    if (!RecompileBaselineScriptForDebugMode(cx, script, DebugAPI::Observing)) {
-      cx->recoverFromOutOfMemory();
-      return nullptr;
+    if (!DebugAPI::ensureExecutionObservabilityOfOsrFrame(cx, frame)) {
+      return false;
     }
     baselineScript = script->baselineScript();
   }
@@ -1018,13 +1015,13 @@ uint8_t* BaselineScript::OSREntryForFrame(BaselineFrame* frame) {
   if (JSOp(*pc) == JSOp::LoopHead) {
     MOZ_ASSERT(pc > script->code(),
                "Prologue vs OSR cases must not be ambiguous");
-    entry = baselineScript->nativeCodeForOSREntry(pcOffset);
+    *entry = baselineScript->nativeCodeForOSREntry(pcOffset);
   } else {
-    entry = baselineScript->warmUpCheckPrologueAddr();
+    *entry = baselineScript->warmUpCheckPrologueAddr();
   }
 
   frame->prepareForBaselineInterpreterToJitOSR();
-  return entry;
+  return true;
 }
 
 void BaselineScript::copyRetAddrEntries(const RetAddrEntry* entries) {
