@@ -2290,8 +2290,8 @@ nsLayoutUtils::TransformResult nsLayoutUtils::TransformRect(
   return TRANSFORM_SUCCEEDED;
 }
 
-nsRect nsLayoutUtils::GetRectRelativeToFrame(Element* aElement,
-                                             nsIFrame* aFrame) {
+nsRect nsLayoutUtils::GetRectRelativeToFrame(const Element* aElement,
+                                             const nsIFrame* aFrame) {
   if (!aElement || !aFrame) {
     return nsRect();
   }
