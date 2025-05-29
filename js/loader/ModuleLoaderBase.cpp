@@ -17,7 +17,6 @@
 #include "js/ContextOptions.h"        // JS::ContextOptionsRef
 #include "js/ErrorReport.h"           // JSErrorBase
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
-#include "js/friend/StackLimits.h"    // js::AutoCheckRecursionLimit
 #include "js/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
 #include "js/SourceText.h"
@@ -1061,20 +1060,6 @@ void ModuleLoadRequest::ChildLoadComplete(bool aSuccess) {
     return;
   }
 
-  AutoJSAPI jsapi;
-  if (!jsapi.Init(mLoader->GetGlobalObject())) {
-    return;
-  }
-
-  js::AutoCheckRecursionLimit recursion(jsapi.cx());
-  if (!recursion.check(jsapi.cx())) {
-    // Call LoadFinished on root module directly, as LoadFailed might trigger
-    // another recursive call to sub-modules.
-    mRootModule->SetReady();
-    mRootModule->LoadFinished();
-    return;
-  }
-
   if (!aSuccess) {
     parent->ModuleErrored();
   } else if (parent->mAwaitingImports == 0) {
@@ -1245,16 +1230,6 @@ bool ModuleLoaderBase::HasDynamicImport(
 
 JS::Value ModuleLoaderBase::FindFirstParseError(ModuleLoadRequest* aRequest) {
   MOZ_ASSERT(aRequest);
-
-  AutoJSAPI jsapi;
-  if (!jsapi.Init(mGlobalObject)) {
-    return JS::UndefinedValue();
-  }
-
-  js::AutoCheckRecursionLimit recursion(jsapi.cx());
-  if (!recursion.check(jsapi.cx())) {
-    return JS::UndefinedValue();
-  }
 
   ModuleScript* moduleScript = aRequest->mModuleScript;
   MOZ_ASSERT(moduleScript);
