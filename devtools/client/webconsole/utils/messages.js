@@ -674,6 +674,7 @@ function areMessagesSimilar(message1, message2) {
  * @param {Message} message2
  * @returns {Boolean}
  */
+// eslint-disable-next-line complexity
 function areMessagesParametersSimilar(message1, message2) {
   const message1ParamsLength = message1.parameters?.length;
   if (message1ParamsLength !== message2.parameters?.length) {

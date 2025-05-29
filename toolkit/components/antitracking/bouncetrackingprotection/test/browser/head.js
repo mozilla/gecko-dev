@@ -287,6 +287,7 @@ async function waitForRecordBounces(browser) {
  * after the bounce completes before the extended navigation ends as the result
  * of a timeout or user interaction.
  */
+// eslint-disable-next-line complexity
 async function runTestBounce(options = {}) {
   let {
     bounceType,

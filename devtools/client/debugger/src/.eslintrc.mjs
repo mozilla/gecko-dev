@@ -97,7 +97,7 @@ export default [
       // Require camel case names
       camelcase: ["error", { properties: "never" }],
       // Warn about cyclomatic complexity in functions.
-      complexity: ["error", { max: 22 }],
+      complexity: ["error", { max: 23 }],
       // Don't warn for inconsistent naming when capturing this (not so important
       // with auto-binding fat arrow functions).
       "consistent-this": 0,

@@ -431,6 +431,7 @@ export class RemoteSettingsClient extends EventEmitter {
    *   Verify the signature of the local data (default: `false`).
    * @return {Promise<object[]>}
    */
+  // eslint-disable-next-line complexity
   async get(options = {}) {
     const {
       filters = {},
@@ -663,6 +664,7 @@ export class RemoteSettingsClient extends EventEmitter {
    * @return {Promise<void>}
    *   which rejects on sync or process failure.
    */
+  // eslint-disable-next-line complexity
   async maybeSync(expectedTimestamp, options = {}) {
     // Should the clients try to load JSON dump? (mainly disabled in tests)
     const {

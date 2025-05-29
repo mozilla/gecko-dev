@@ -14,7 +14,7 @@
 
 // TODO (Bug 1641220) getFixupURIInfo has a complex logic, that likely could be
 // simplified, but the risk of regressing its behavior is high.
-/* eslint complexity: ["error", 43] */
+/* eslint complexity: ["error", 46] */
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 

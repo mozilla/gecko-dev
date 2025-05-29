@@ -4214,6 +4214,7 @@ async function synthesizePlainDragAndCancel(
  *                MockDragController that the function should use.  This
  *                function will automatically generate one if none is given.
  */
+// eslint-disable-next-line complexity
 async function synthesizeMockDragAndDrop(aParams) {
   const {
     srcElement,

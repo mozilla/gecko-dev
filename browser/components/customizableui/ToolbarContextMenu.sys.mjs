@@ -137,6 +137,7 @@ export var ToolbarContextMenu = {
    * @param {DOMNode} aInsertPoint
    *   The point within the menupopup to insert the controls for each toolbar.
    */
+  // eslint-disable-next-line complexity
   onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
     var popup = aEvent.target;
     let window = popup.ownerGlobal;

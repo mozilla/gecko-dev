@@ -2268,6 +2268,7 @@
       }
     }
 
+    // eslint-disable-next-line complexity
     _animateTabMove(event) {
       let draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
       let dragData = draggedTab._dragData;

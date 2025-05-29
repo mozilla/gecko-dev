@@ -1374,6 +1374,8 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       role: "presentation"
     }));
   }
+
+  // eslint-disable-next-line complexity
   render() {
     const {
       autoAdvance,

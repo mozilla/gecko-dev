@@ -77,7 +77,10 @@ export default [
       // complex functions from being introduced. However, because Mozilla's eslintrc has
       // some other value defined, we need to override it here. See bug 1553449 for more
       // information on complex DevTools functions that are currently excluded.
-      complexity: ["error", 20],
+      // Note: this was increased to 25 in May 2025, to account for the ESLint v9 upgrade
+      // which changed the rule to take into account optional chaining and default values
+      // in destructuring patterns and parameters
+      complexity: ["error", 24],
       // componentDidUnmount is not a real lifecycle method, use componentWillUnmount.
       "id-denylist": ["error", "componentDidUnmount"],
       // Maximum depth callbacks can be nested.

@@ -532,6 +532,7 @@ export class ProtonScreen extends React.PureComponent {
     );
   }
 
+  // eslint-disable-next-line complexity
   render() {
     const {
       autoAdvance,

@@ -196,6 +196,7 @@ function getCleanedPacket(key, packet) {
   return res;
 }
 
+// eslint-disable-next-line complexity
 function cleanTimeStamp(packet) {
   // We want to have the same timestamp for every stub, so they won't be re-sorted when
   // adding them to the store.

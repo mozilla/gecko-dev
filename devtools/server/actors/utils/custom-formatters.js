@@ -138,6 +138,7 @@ exports.customFormatterHeader = customFormatterHeader;
  *
  * @returns {Object} See customFormatterHeader jsdoc, it returns the same object.
  */
+// eslint-disable-next-line complexity
 function processFormatterForHeader({
   configDbgObj,
   customFormatterObjectTagDepth,
