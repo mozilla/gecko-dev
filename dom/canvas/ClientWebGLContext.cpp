@@ -2400,14 +2400,20 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
 
         switch (pname) {
           case dom::WEBGL_debug_renderer_info_Binding::UNMASKED_RENDERER_WEBGL:
-            ret = GetUnmaskedRenderer();
-            if (ret && StaticPrefs::webgl_sanitize_unmasked_renderer()) {
-              *ret = webgl::SanitizeRenderer(*ret);
+            if (ShouldResistFingerprinting(RFPTarget::WebGLRenderInfo)) {
+              ret = Some("Mozilla"_ns);
+            } else {
+              ret = GetUnmaskedRenderer();
+              if (ret && StaticPrefs::webgl_sanitize_unmasked_renderer()) {
+                ret = Some(webgl::SanitizeRenderer(*ret));
+              }
             }
             break;
 
           case dom::WEBGL_debug_renderer_info_Binding::UNMASKED_VENDOR_WEBGL:
-            ret = GetUnmaskedVendor();
+            ret = ShouldResistFingerprinting(RFPTarget::WebGLRenderInfo)
+                      ? Some("Mozilla"_ns)
+                      : GetUnmaskedVendor();
             break;
 
           default:
@@ -5896,8 +5902,7 @@ bool ClientWebGLContext::IsExtensionForbiddenForCaller(
       return true;
 
     case WebGLExtensionID::WEBGL_debug_renderer_info:
-      return ShouldResistFingerprinting(RFPTarget::WebGLRenderInfo) ||
-             !StaticPrefs::webgl_enable_debug_renderer_info();
+      return !StaticPrefs::webgl_enable_debug_renderer_info();
 
     case WebGLExtensionID::WEBGL_debug_shaders:
       return ShouldResistFingerprinting(RFPTarget::WebGLRenderInfo);
