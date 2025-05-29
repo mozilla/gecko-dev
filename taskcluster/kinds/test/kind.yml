@@ -14,6 +14,7 @@ kind-dependencies:
     - repackage
     - fetch
     - toolchain
+    - build-extensions
 
 transforms:
     - gecko_taskgraph.transforms.test:transforms

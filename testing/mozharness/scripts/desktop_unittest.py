@@ -47,6 +47,7 @@ SUITE_CATEGORIES = [
 SUITE_DEFAULT_E10S = ["mochitest", "reftest"]
 SUITE_NO_E10S = ["xpcshell"]
 SUITE_REPEATABLE = ["mochitest", "reftest", "xpcshell"]
+SUITE_INSTALL_EXTENSIONS = ["mochitest"]
 
 
 # DesktopUnittest {{{1
@@ -384,6 +385,18 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     "Examples: 'plain', 'browser'",
                 },
             ],
+            [
+                ["--install-extension"],
+                {
+                    "action": "append",
+                    "default": [],
+                    "dest": "install_extension",
+                    "help": "Specify one or more extensions to install in the testing profile."
+                    "This is currently only supported for mochitest tests, and is"
+                    "ignored for other types. Paths are relative to the fetches"
+                    "directory.",
+                },
+            ],
         ]
         + copy.deepcopy(testing_config_options)
         + copy.deepcopy(code_coverage_config_options)
@@ -699,6 +712,17 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                         f"--repeat not supported in {suite_category}",
                         level=WARNING,
                     )
+
+            if suite_category in SUITE_INSTALL_EXTENSIONS and len(
+                c.get("install_extension", [])
+            ):
+                fetches_dir = os.environ.get("MOZ_FETCHES_DIR", '""')
+                base_cmd.extend(
+                    [
+                        f"--install-extension={os.path.join(fetches_dir, e)}"
+                        for e in c["install_extension"]
+                    ]
+                )
 
             # do not add --disable fission if we don't have --disable-e10s
             if c["disable_fission"] and suite_category not in [
