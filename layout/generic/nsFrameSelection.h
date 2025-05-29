@@ -489,6 +489,9 @@ class nsFrameSelection final {
    */
   MOZ_CAN_RUN_SCRIPT void AddHighlightSelection(
       nsAtom* aHighlightName, mozilla::dom::Highlight& aHighlight);
+
+  void RepaintHighlightSelection(nsAtom* aHighlightName);
+
   /**
    * @brief Removes the Highlight selection identified by `aHighlightName`.
    */

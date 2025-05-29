@@ -90,6 +90,8 @@ class HighlightRegistry final : public nsISupports, public nsWrapperCache {
    */
   MOZ_CAN_RUN_SCRIPT void RemoveHighlightSelection(Highlight& aHighlight);
 
+  void RepaintHighlightSelection(Highlight& aHighlight);
+
   // WebIDL interface
 
   Document* GetParentObject() const { return mDocument; };

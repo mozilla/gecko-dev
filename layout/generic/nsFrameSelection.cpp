@@ -1641,6 +1641,18 @@ void nsFrameSelection::AddHighlightSelection(
   }
 }
 
+void nsFrameSelection::RepaintHighlightSelection(nsAtom* aHighlightName) {
+  if (auto iter =
+          std::find_if(mHighlightSelections.begin(), mHighlightSelections.end(),
+                       [&aHighlightName](auto const& aElm) {
+                         return aElm.first() == aHighlightName;
+                       });
+      iter != mHighlightSelections.end()) {
+    RefPtr selection = iter->second();
+    selection->Repaint(mPresShell->GetPresContext());
+  }
+}
+
 void nsFrameSelection::RemoveHighlightSelection(nsAtom* aHighlightName) {
   if (auto iter =
           std::find_if(mHighlightSelections.begin(), mHighlightSelections.end(),
