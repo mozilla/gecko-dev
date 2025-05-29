@@ -69,7 +69,7 @@ static_assert((CompilingScript & SpecialScriptBit) != 0);
 static BaselineScript* const BaselineDisabledScriptPtr =
     reinterpret_cast<BaselineScript*>(DisabledScript);
 static BaselineScript* const BaselineQueuedScriptPtr =
-    reinterpret_cast<BaselineScript*>(DisabledScript);
+    reinterpret_cast<BaselineScript*>(QueuedScript);
 static BaselineScript* const BaselineCompilingScriptPtr =
     reinterpret_cast<BaselineScript*>(CompilingScript);
 
