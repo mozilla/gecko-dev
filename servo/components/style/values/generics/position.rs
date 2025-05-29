@@ -14,7 +14,7 @@ use style_traits::ToCss;
 use crate::logical_geometry::PhysicalSide;
 use crate::values::animated::ToAnimatedZero;
 use crate::values::generics::box_::PositionProperty;
-use crate::values::generics::length::GenericAnchorSizeFunction;
+use crate::values::generics::length::{AnchorResolutionResult, GenericAnchorSizeFunction};
 use crate::values::generics::ratio::Ratio;
 use crate::values::generics::Optional;
 use crate::values::DashedIdent;
@@ -358,7 +358,7 @@ pub struct GenericAnchorFunction<Percentage, LengthPercentage> {
     pub target_element: DashedIdent,
     /// Where relative to the target anchor element to position
     /// the anchored element to.
-    pub side: GenericAnchorSide<Percentage>,
+    pub side: AnchorSide<Percentage>,
     /// Value to use in case the anchor function is invalid.
     pub fallback: Optional<LengthPercentage>,
 }
@@ -388,13 +388,22 @@ where
 }
 
 impl<Percentage, LengthPercentage> GenericAnchorFunction<Percentage, LengthPercentage> {
-    /// Is the anchor valid for given property?
-    pub fn valid_for(
-        &self,
+    /// Resolve the anchor function. On failure, return reference to fallback, if exists.
+    pub fn resolve<'a>(
+        &'a self,
         side: PhysicalSide,
         position_property: PositionProperty,
-    ) -> bool {
-        position_property.is_absolutely_positioned() && self.side.valid_for(side)
+    ) -> AnchorResolutionResult<'a, LengthPercentage> {
+        if !position_property.is_absolutely_positioned() {
+            return AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref());
+        }
+
+        if !self.side.valid_for(side) {
+            return AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref());
+        }
+
+        // TODO(dshin): Do the actual anchor resolution here.
+        AnchorResolutionResult::new_anchor_invalid(self.fallback.as_ref())
     }
 }
 
@@ -483,14 +492,14 @@ impl AnchorSideKeyword {
     Deserialize,
 )]
 #[repr(C)]
-pub enum GenericAnchorSide<P> {
+pub enum AnchorSide<P> {
     /// A keyword value for the anchor side.
     Keyword(AnchorSideKeyword),
     /// Percentage value between the `start` and `end` sides.
     Percentage(P),
 }
 
-impl<P> GenericAnchorSide<P> {
+impl<P> AnchorSide<P> {
     /// Is this anchor side valid for a given side?
     pub fn valid_for(&self, side: PhysicalSide) -> bool {
         match self {

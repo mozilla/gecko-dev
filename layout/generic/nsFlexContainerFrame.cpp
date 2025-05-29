@@ -4655,18 +4655,14 @@ void nsFlexContainerFrame::Reflow(nsPresContext* aPresContext,
   const nsStylePosition* stylePos = StylePosition();
   const auto positionProperty = StyleDisplay()->mPosition;
   const auto bsize = stylePos->BSize(wm, positionProperty);
-  const auto anchorPosResolutionParams =
-      AnchorPosResolutionParams::UseCBFrameSize(this, positionProperty);
   if (bsize->HasPercent() ||
       (StyleDisplay()->IsAbsolutelyPositionedStyle() &&
        (bsize->IsAuto() || !bsize->IsLengthPercentage()) &&
        !stylePos
-            ->GetAnchorResolvedInset(LogicalSide::BStart, wm,
-                                     anchorPosResolutionParams)
+            ->GetAnchorResolvedInset(LogicalSide::BStart, wm, positionProperty)
             ->IsAuto() &&
        !stylePos
-            ->GetAnchorResolvedInset(LogicalSide::BEnd, wm,
-                                     anchorPosResolutionParams)
+            ->GetAnchorResolvedInset(LogicalSide::BEnd, wm, positionProperty)
             ->IsAuto())) {
     AddStateBits(NS_FRAME_CONTAINS_RELATIVE_BSIZE);
   }

@@ -16,7 +16,7 @@ use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
 use crate::values::generics::position::ZIndex as GenericZIndex;
-use crate::values::generics::position::{GenericAnchorSide, AspectRatio as GenericAspectRatio};
+use crate::values::generics::position::{AnchorSide, AspectRatio as GenericAspectRatio};
 use crate::values::generics::position::{GenericAnchorFunction, GenericInset};
 use crate::values::specified;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage, NonNegativeNumber};
@@ -1804,7 +1804,7 @@ impl Parse for AnchorFunction {
         input.expect_function_matching("anchor")?;
         input.parse_nested_block(|i| {
             let target_element = i.try_parse(|i| DashedIdent::parse(context, i)).ok();
-            let side = GenericAnchorSide::parse(context, i)?;
+            let side = AnchorSide::parse(context, i)?;
             let target_element = if target_element.is_none() {
                 i.try_parse(|i| DashedIdent::parse(context, i)).ok()
             } else {

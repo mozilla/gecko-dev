@@ -347,15 +347,12 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     // FIXME(emilio): Should the BSize(wm).IsAuto() check also for the extremum
     // lengths?
     const auto bSize = pos->BSize(wm, positionProperty);
-    const auto anchorPosResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(f, positionProperty);
     if ((nsStylePosition::BSizeDependsOnContainer(bSize) &&
          !(bSize->IsAuto() &&
-           pos->GetAnchorResolvedInset(LogicalSide::BEnd, wm,
-                                       anchorPosResolutionParams)
+           pos->GetAnchorResolvedInset(LogicalSide::BEnd, wm, positionProperty)
                ->IsAuto() &&
            !pos->GetAnchorResolvedInset(LogicalSide::BStart, wm,
-                                        anchorPosResolutionParams)
+                                        positionProperty)
                 ->IsAuto())) ||
         nsStylePosition::MinBSizeDependsOnContainer(
             pos->MinBSize(wm, positionProperty)) ||
@@ -382,10 +379,8 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
   // sides (left and top) that we use to store coordinates, these tests
   // are easier to do using physical coordinates rather than logical.
   if (aCBWidthChanged) {
-    const auto anchorResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(f, positionProperty);
     if (!IsFixedOffset(
-            pos->GetAnchorResolvedInset(eSideLeft, anchorResolutionParams))) {
+            pos->GetAnchorResolvedInset(eSideLeft, positionProperty))) {
       return true;
     }
     // Note that even if 'left' is a length, our position can still
@@ -397,22 +392,18 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     // sure of.
     if ((wm.GetInlineDir() == WritingMode::InlineDir::RTL ||
          wm.GetBlockDir() == WritingMode::BlockDir::RL) &&
-        !pos->GetAnchorResolvedInset(eSideRight, anchorResolutionParams)
-             ->IsAuto()) {
+        !pos->GetAnchorResolvedInset(eSideRight, positionProperty)->IsAuto()) {
       return true;
     }
   }
   if (aCBHeightChanged) {
-    const auto anchorResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(f, positionProperty);
     if (!IsFixedOffset(
-            pos->GetAnchorResolvedInset(eSideTop, anchorResolutionParams))) {
+            pos->GetAnchorResolvedInset(eSideTop, positionProperty))) {
       return true;
     }
     // See comment above for width changes.
     if (wm.GetInlineDir() == WritingMode::InlineDir::BTT &&
-        !pos->GetAnchorResolvedInset(eSideBottom, anchorResolutionParams)
-             ->IsAuto()) {
+        !pos->GetAnchorResolvedInset(eSideBottom, positionProperty)->IsAuto()) {
       return true;
     }
   }
@@ -958,25 +949,23 @@ void nsAbsoluteContainingBlock::ReflowAbsoluteFrame(
     // https://drafts.csswg.org/css-position-3/#abspos-layout
     const auto* stylePos = aKidFrame->StylePosition();
     auto positionProperty = aKidFrame->StyleDisplay()->mPosition;
-    const auto anchorPosResolutionParams =
-        AnchorPosResolutionParams::UseCBFrameSize(aKidFrame, positionProperty);
     const bool iInsetAuto =
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::IStart, outerWM,
-                                     anchorPosResolutionParams)
+                                     positionProperty)
             ->IsAuto() ||
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::IEnd, outerWM,
-                                     anchorPosResolutionParams)
+                                     positionProperty)
             ->IsAuto();
     const bool bInsetAuto =
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::BStart, outerWM,
-                                     anchorPosResolutionParams)
+                                     positionProperty)
             ->IsAuto() ||
         stylePos
             ->GetAnchorResolvedInset(LogicalSide::BEnd, outerWM,
-                                     anchorPosResolutionParams)
+                                     positionProperty)
             ->IsAuto();
     const LogicalSize logicalCBSizeOuterWM(outerWM, aContainingBlock.Size());
     const LogicalSize kidMarginBox{

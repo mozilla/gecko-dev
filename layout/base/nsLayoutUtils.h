@@ -1011,8 +1011,8 @@ class nsLayoutUtils {
    * Get the border-box of aElement's primary frame, transformed it to be
    * relative to aFrame.
    */
-  static nsRect GetRectRelativeToFrame(const mozilla::dom::Element* aElement,
-                                       const nsIFrame* aFrame);
+  static nsRect GetRectRelativeToFrame(mozilla::dom::Element* aElement,
+                                       nsIFrame* aFrame);
 
   /**
    * Returns true if aRect with border inflation of size aInflateSize contains

@@ -44,7 +44,7 @@ class nsPresContext;
 class nsSimpleContentList;
 class imgRequestProxy;
 struct nsCSSValueSharedList;
-struct AnchorPosResolutionParams;
+
 class gfxFontFeatureValueSet;
 struct GeckoFontMetrics;
 namespace mozilla {
