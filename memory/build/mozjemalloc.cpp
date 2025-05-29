@@ -171,7 +171,7 @@
 #include "Utils.h"
 
 #if defined(XP_WIN)
-#  include "mozmemory_utils.h"
+#  include "mozmemory_stall.h"
 #endif
 
 // For GetGeckoProcessType(), when it's used.

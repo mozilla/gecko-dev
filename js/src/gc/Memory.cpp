@@ -15,7 +15,7 @@
 #include "js/Utility.h"
 
 #ifdef MOZ_MEMORY
-#  include "mozmemory_utils.h"
+#  include "mozmemory_stall.h"
 #endif
 
 #include "util/Memory.h"
