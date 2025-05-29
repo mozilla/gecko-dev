@@ -158,7 +158,11 @@ mod server_events;
 mod settings;
 mod stream_type_reader;
 
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::{
+    cell::RefCell,
+    fmt::{self, Debug, Display, Formatter},
+    rc::Rc,
+};
 
 use buffered_send_stream::BufferedStream;
 pub use client_events::{Http3ClientEvent, WebTransportEvent};
@@ -411,8 +415,8 @@ impl ::std::error::Error for Error {
     }
 }
 
-impl ::std::fmt::Display for Error {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "HTTP/3 error: {self:?}")
     }
 }

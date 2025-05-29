@@ -15,7 +15,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use neqo_common::{qdebug, qtrace, Role};
+use neqo_common::{qdebug, qtrace, Role, MAX_VARINT};
 
 use crate::{
     frame::FrameType,
@@ -283,8 +283,13 @@ where
         self.frame_pending
     }
 
-    pub const fn next_limit(&self) -> u64 {
-        self.retired + self.max_active
+    pub fn next_limit(&self) -> u64 {
+        min(
+            self.retired + self.max_active,
+            // Flow control limits are encoded as QUIC varints and are thus
+            // limited to the maximum QUIC varint value.
+            MAX_VARINT,
+        )
     }
 
     pub const fn max_active(&self) -> u64 {
@@ -655,7 +660,7 @@ mod test {
         time::{Duration, Instant},
     };
 
-    use neqo_common::{qdebug, Encoder, Role};
+    use neqo_common::{qdebug, Encoder, Role, MAX_VARINT};
     use neqo_crypto::random;
 
     use super::{LocalStreamLimits, ReceiverFlowControl, RemoteStreamLimits, SenderFlowControl};
@@ -665,7 +670,7 @@ mod test {
         recv_stream::MAX_RECV_WINDOW_SIZE,
         stats::FrameStats,
         stream_id::{StreamId, StreamType},
-        Error, Res, INITIAL_RECV_WINDOW_SIZE,
+        ConnectionParameters, Error, Res, INITIAL_RECV_WINDOW_SIZE,
     };
 
     #[test]
@@ -1220,5 +1225,26 @@ mod test {
         }
 
         Ok(())
+    }
+
+    #[test]
+    fn max_active_larger_max_varint() {
+        // Instead of doing proper connection flow control, Neqo simply sets
+        // the largest connection flow control limit possible.
+        let max_data = ConnectionParameters::default().get_max_data();
+        assert_eq!(max_data, MAX_VARINT);
+        let mut fc = ReceiverFlowControl::new((), max_data);
+
+        // Say that the remote consumes 1 byte of that connection flow control
+        // limit and then requests a connection flow control update.
+        fc.consume(1).unwrap();
+        fc.add_retired(1);
+        fc.send_flowc_update();
+
+        // Neqo should never attempt writing a connection flow control update
+        // larger than the largest possible QUIC varint value.
+        let mut builder = PacketBuilder::short(Encoder::new(), false, None::<&[u8]>);
+        let mut tokens = Vec::new();
+        fc.write_frames(&mut builder, &mut tokens, &mut FrameStats::default());
     }
 }

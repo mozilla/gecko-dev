@@ -19,6 +19,7 @@ mod token;
 
 use std::{
     cmp::{max, min},
+    fmt::{self, Display, Formatter},
     ops::RangeInclusive,
     time::{Duration, Instant},
 };
@@ -507,7 +508,7 @@ impl LossRecovery {
 
     #[must_use]
     pub fn largest_acknowledged_pn(&self, pn_space: PacketNumberSpace) -> Option<PacketNumber> {
-        self.spaces.get(pn_space).and_then(|sp| sp.largest_acked)
+        self.spaces.get(pn_space)?.largest_acked
     }
 
     pub fn set_qlog(&mut self, qlog: NeqoQlog) {
@@ -780,8 +781,9 @@ impl LossRecovery {
     // Calculate PTO time for the given space.
     fn pto_time(&self, rtt: &RttEstimate, pn_space: PacketNumberSpace) -> Option<Instant> {
         self.spaces
-            .get(pn_space)
-            .and_then(|space| space.pto_base_time().map(|t| t + self.pto_period(rtt)))
+            .get(pn_space)?
+            .pto_base_time()
+            .map(|t| t + self.pto_period(rtt))
     }
 
     /// Find the earliest PTO time for all active packet number spaces.
@@ -903,6 +905,11 @@ impl LossRecovery {
         qtrace!("[{self}] get send profile {now:?}");
         let sender = path.sender();
         let mtu = path.plpmtu();
+        #[allow(
+            clippy::allow_attributes,
+            clippy::return_and_then,
+            reason = "TODO: False positive on nightly; function isn't returning Option or Result"
+        )]
         if let Some(profile) = self
             .pto_state
             .as_mut()
@@ -933,8 +940,8 @@ impl LossRecovery {
     }
 }
 
-impl ::std::fmt::Display for LossRecovery {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for LossRecovery {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "LossRecovery")
     }
 }

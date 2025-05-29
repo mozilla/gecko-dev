@@ -104,7 +104,7 @@ fn bad_tls_version() {
     // Do a bad, bad thing.
     client
         .crypto
-        .tls
+        .tls_mut()
         .set_option(neqo_crypto::Opt::Tls13CompatMode, true)
         .unwrap();
     let mut server = default_server();

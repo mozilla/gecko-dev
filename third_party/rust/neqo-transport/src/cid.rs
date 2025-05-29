@@ -10,6 +10,7 @@ use std::{
     borrow::Borrow,
     cell::{Ref, RefCell},
     cmp::{max, min},
+    fmt::{self, Debug, Display, Formatter},
     ops::Deref,
     rc::Rc,
 };
@@ -33,7 +34,7 @@ const CONNECTION_ID_SEQNO_EMPTY: u64 = u64::MAX - 1;
 
 #[derive(Clone, Default, Eq, Hash, PartialEq)]
 pub struct ConnectionId {
-    pub(crate) cid: SmallVec<[u8; MAX_CONNECTION_ID_LEN]>,
+    cid: SmallVec<[u8; MAX_CONNECTION_ID_LEN]>,
 }
 
 impl ConnectionId {
@@ -100,14 +101,14 @@ impl Deref for ConnectionId {
     }
 }
 
-impl ::std::fmt::Debug for ConnectionId {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Debug for ConnectionId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "CID {}", hex_with_len(&self.cid))
     }
 }
 
-impl ::std::fmt::Display for ConnectionId {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for ConnectionId {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", hex(&self.cid))
     }
 }
@@ -123,14 +124,14 @@ pub struct ConnectionIdRef<'a> {
     cid: &'a [u8],
 }
 
-impl ::std::fmt::Debug for ConnectionIdRef<'_> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Debug for ConnectionIdRef<'_> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "CID {}", hex_with_len(self.cid))
     }
 }
 
-impl ::std::fmt::Display for ConnectionIdRef<'_> {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for ConnectionIdRef<'_> {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", hex(self.cid))
     }
 }
@@ -314,11 +315,6 @@ impl ConnectionIdEntry<[u8; 16]> {
         true
     }
 
-    #[allow(
-        clippy::allow_attributes,
-        clippy::missing_const_for_fn,
-        reason = "TODO: False positive on nightly."
-    )]
     pub fn is_empty(&self) -> bool {
         self.seqno == CONNECTION_ID_SEQNO_EMPTY || self.cid.is_empty()
     }

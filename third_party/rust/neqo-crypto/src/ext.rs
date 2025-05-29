@@ -11,6 +11,7 @@
 
 use std::{
     cell::RefCell,
+    fmt::{self, Debug, Formatter},
     os::raw::{c_uint, c_void},
     pin::Pin,
     rc::Rc,
@@ -176,8 +177,8 @@ impl ExtensionTracker {
     }
 }
 
-impl std::fmt::Debug for ExtensionTracker {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Debug for ExtensionTracker {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "ExtensionTracker: {:?}", self.extension)
     }
 }

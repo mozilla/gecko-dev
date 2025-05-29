@@ -4,7 +4,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use std::{fmt::Debug, io::Write as _};
+use std::fmt::{Debug, Write as _};
 
 use neqo_common::{Decoder, Encoder};
 use neqo_crypto::random;
@@ -146,15 +146,10 @@ impl HFrame {
                 element_id,
                 priority,
             } => {
-                let mut update_frame = Encoder::new();
-                update_frame.encode_varint(*element_id);
-
-                let mut priority_enc: Vec<u8> = Vec::new();
-                write!(priority_enc, "{priority}").unwrap();
-
-                update_frame.encode(&priority_enc);
-                enc.encode_varint(update_frame.len() as u64);
-                enc.encode(update_frame.as_ref());
+                enc.encode_vvec_with(|enc_inner| {
+                    enc_inner.encode_varint(*element_id);
+                    write!(enc_inner, "{priority}").expect("write OK");
+                });
             }
         }
     }

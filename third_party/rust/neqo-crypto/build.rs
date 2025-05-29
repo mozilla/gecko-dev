@@ -4,7 +4,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![expect(clippy::unwrap_used, reason = " OK in a build script.")]
+#![expect(
+    clippy::unwrap_used,
+    clippy::iter_over_hash_type,
+    reason = "OK in a build script."
+)]
 
 use std::{
     collections::HashMap,

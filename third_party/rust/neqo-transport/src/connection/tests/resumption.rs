@@ -222,8 +222,8 @@ fn address_validation_token_resume() {
     // Now try to complete the handshake after giving time for a client PTO.
     now += AT_LEAST_PTO;
     connect_with_rtt(&mut client, &mut server, now, RTT);
-    assert!(client.crypto.tls.info().unwrap().resumed());
-    assert!(server.crypto.tls.info().unwrap().resumed());
+    assert!(client.crypto.tls().info().unwrap().resumed());
+    assert!(server.crypto.tls().info().unwrap().resumed());
 }
 
 fn can_resume(token: impl AsRef<[u8]>, initial_has_token: bool) {

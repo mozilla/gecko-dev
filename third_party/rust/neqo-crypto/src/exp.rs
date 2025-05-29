@@ -12,13 +12,19 @@ macro_rules! experimental_api {
         #[allow(clippy::allow_attributes, clippy::missing_safety_doc, reason = "Inherent in macro use.")]
         #[allow(clippy::allow_attributes, clippy::missing_errors_doc, reason = "Inherent in macro use.")]
         pub unsafe fn $n ( $( $a : $t ),* ) -> Result<(), $crate::err::Error> {
-            const EXP_FUNCTION: &str = stringify!($n);
-            let n = ::std::ffi::CString::new(EXP_FUNCTION)?;
-            let f = $crate::ssl::SSL_GetExperimentalAPI(n.as_ptr());
-            if f.is_null() {
+            struct ExperimentalAPI(*mut std::ffi::c_void);
+            unsafe impl Send for ExperimentalAPI {}
+            unsafe impl Sync for ExperimentalAPI {}
+            static EXP_API: ::std::sync::OnceLock<ExperimentalAPI> = ::std::sync::OnceLock::new();
+            let f = EXP_API.get_or_init(|| {
+                const EXP_FUNCTION: &str = stringify!($n);
+                let Ok(n) = ::std::ffi::CString::new(EXP_FUNCTION) else { return ExperimentalAPI(std::ptr::null_mut()); };
+                ExperimentalAPI($crate::ssl::SSL_GetExperimentalAPI(n.as_ptr()))
+            });
+            if f.0.is_null() {
                 return Err($crate::err::Error::InternalError);
             }
-            let f: unsafe extern "C" fn( $( $t ),* ) -> $crate::ssl::SECStatus = ::std::mem::transmute(f);
+            let f: unsafe extern "C" fn( $( $t ),* ) -> $crate::ssl::SECStatus = ::std::mem::transmute(f.0);
             let rv = f( $( $a ),* );
             $crate::err::secstatus_to_res(rv)
         }

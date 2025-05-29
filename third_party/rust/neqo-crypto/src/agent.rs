@@ -16,6 +16,7 @@
 use std::{
     cell::RefCell,
     ffi::{CStr, CString},
+    fmt::{self, Debug, Display, Formatter},
     mem::MaybeUninit,
     ops::{Deref, DerefMut},
     os::raw::{c_uint, c_void},
@@ -637,11 +638,6 @@ impl SecretAgent {
     }
 
     /// Return any fatal alert that the TLS stack might have sent.
-    #[allow(
-        clippy::allow_attributes,
-        clippy::missing_const_for_fn,
-        reason = "TODO: False positive on nightly."
-    )]
     #[must_use]
     pub fn alert(&self) -> Option<&Alert> {
         (*self.alert).as_ref()
@@ -811,11 +807,6 @@ impl SecretAgent {
     }
 
     /// Get the active ECH configuration, which is empty if ECH is disabled.
-    #[allow(
-        clippy::allow_attributes,
-        clippy::missing_const_for_fn,
-        reason = "TODO: False positive on nightly."
-    )]
     #[must_use]
     pub fn ech_config(&self) -> &[u8] {
         &self.ech_config
@@ -828,8 +819,8 @@ impl Drop for SecretAgent {
     }
 }
 
-impl ::std::fmt::Display for SecretAgent {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for SecretAgent {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Agent {:p}", self.fd)
     }
 }
@@ -933,11 +924,6 @@ impl Client {
         ssl::SECSuccess
     }
 
-    #[allow(
-        clippy::allow_attributes,
-        clippy::missing_const_for_fn,
-        reason = "TODO: False positive on nightly."
-    )]
     #[must_use]
     pub fn server_name(&self) -> &str {
         &self.server_name
@@ -1026,8 +1012,8 @@ impl DerefMut for Client {
     }
 }
 
-impl ::std::fmt::Display for Client {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for Client {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Client {:p}", self.agent.fd)
     }
 }
@@ -1047,7 +1033,7 @@ pub enum ZeroRttCheckResult {
 
 /// A `ZeroRttChecker` is used by the agent to validate the application token (as provided by
 /// `send_ticket`)
-pub trait ZeroRttChecker: std::fmt::Debug + Unpin {
+pub trait ZeroRttChecker: Debug + Unpin {
     fn check(&self, token: &[u8]) -> ZeroRttCheckResult;
 }
 
@@ -1234,8 +1220,8 @@ impl DerefMut for Server {
     }
 }
 
-impl ::std::fmt::Display for Server {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+impl Display for Server {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "Server {:p}", self.agent.fd)
     }
 }

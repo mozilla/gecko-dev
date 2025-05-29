@@ -366,9 +366,7 @@ fn receive_request(server: &Http3Server) -> Option<Http3OrWebTransportStream> {
 }
 
 #[test]
-// Ignoring this test as it is panicking at wt.create_wt_stream_client
-// Issue # 1386 is created to track this
-#[ignore]
+#[ignore = "Is panicking at wt.create_wt_stream_client; see issue #1386"]
 fn wt_close_session_cannot_be_sent_at_once() {
     const BUF: &[u8] = &[0; 443];
     const ERROR_NUM: u32 = 23;
