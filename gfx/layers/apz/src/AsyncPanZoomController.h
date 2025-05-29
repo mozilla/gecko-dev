@@ -361,21 +361,13 @@ class AsyncPanZoomController {
   /**
    * See documentation on corresponding method in APZPublicUtils.h
    */
-  static gfx::Size GetDisplayportAlignmentMultiplier(
+  static gfx::IntSize GetDisplayportAlignmentMultiplier(
       const ScreenSize& aBaseSize);
 
   enum class ZoomInProgress {
     No,
     Yes,
   };
-
-  /**
-   * Enlarges the displayport along both axes based on the velocity.
-   */
-  static CSSSize CalculateDisplayPortSize(
-      const CSSSize& aCompositionSize, const CSSPoint& aVelocity,
-      AsyncPanZoomController::ZoomInProgress aZoomInProgress,
-      const CSSToScreenScale2D& aDpPerCSS);
 
   /**
    * Recalculates the displayport. Ideally, this should paint an area bigger

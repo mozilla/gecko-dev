@@ -10,7 +10,6 @@ UNIFIED_SOURCES += [
     "MockHitTester.cpp",
     "TestAxisLock.cpp",
     "TestBasic.cpp",
-    "TestDisplayPort.cpp",
     "TestEventRegions.cpp",
     "TestEventResult.cpp",
     "TestFlingAcceleration.cpp",

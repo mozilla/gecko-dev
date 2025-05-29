@@ -27,7 +27,7 @@ namespace apz {
       aFrameMetrics, aVelocity, AsyncPanZoomController::ZoomInProgress::No);
 }
 
-/*static*/ gfx::Size GetDisplayportAlignmentMultiplier(
+/*static*/ gfx::IntSize GetDisplayportAlignmentMultiplier(
     const ScreenSize& aBaseSize) {
   return AsyncPanZoomController::GetDisplayportAlignmentMultiplier(aBaseSize);
 }

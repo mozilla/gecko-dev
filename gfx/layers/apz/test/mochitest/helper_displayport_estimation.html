@@ -18,8 +18,18 @@ html {
 </body>
 <script>
 // Displayport alignment multiplier calculation; see AsyncPanZoomController::GetDisplayportAlignmentMultiplier
+// https://searchfox.org/mozilla-central/rev/380b8fd795e7d96d8a5a3e6ec2b50a9f2b65854a/gfx/layers/apz/src/AsyncPanZoomController.cpp#4467-4472
 function GetDisplayportAlignmentMultiplier(aBaseHeight) {
-  return Math.min(aBaseHeight / 250, 8.0);
+  let multiplier = 1;
+  let baseHeight = aBaseHeight;
+  while (baseHeight > 500) {
+    baseHeight /= 2;
+    multiplier *= 2;
+    if (multiplier >= 8) {
+      break;
+    }
+  }
+  return multiplier;
 }
 
 async function test() {
