@@ -56,6 +56,7 @@ skip-if = ["verify && debug && os == 'mac'"]
 ["browser_policy_disable_password_reveal.js"]
 
 ["browser_policy_disable_pocket.js"]
+skip-if = ["true"] # Bug 1968144 will remove this test
 
 ["browser_policy_disable_popup_blocker.js"]
 
