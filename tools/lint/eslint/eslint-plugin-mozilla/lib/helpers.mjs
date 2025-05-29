@@ -18,7 +18,6 @@ import { execFileSync } from "child_process";
 let gRootDir = null;
 let directoryManifests = new Map();
 let savedGlobals = null;
-let savedRulesData = null;
 
 let xpidlData;
 
@@ -772,15 +771,6 @@ export default {
       );
     }
     return savedGlobals.environments[environment];
-  },
-
-  getSavedRuleData(rule) {
-    if (!savedRulesData) {
-      savedRulesData = JSON.parse(
-        fs.readFileSync(path.join("rules", "saved-rules-data.json"))
-      );
-    }
-    return savedRulesData.rulesData[rule];
   },
 
   getBuildEnvironment() {
