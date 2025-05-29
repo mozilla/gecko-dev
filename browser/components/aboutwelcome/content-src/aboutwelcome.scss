@@ -1819,7 +1819,7 @@ html {
         position: relative;
         padding-top: 5px;
         border: 2px solid var(--single-select-border-color);
-        border-radius: 12px;
+        border-radius: var(--border-radius-large);
 
         &:has(.input:focus),
         &:has(.selected) {
@@ -1833,7 +1833,7 @@ html {
 
         &:has(.selected) {
           border: 3px solid var(--in-content-primary-button-background);
-          border-radius: 12px;
+          border-radius: var(--border-radius-large);
         }
 
         &:hover {

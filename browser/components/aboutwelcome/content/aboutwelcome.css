@@ -2681,7 +2681,7 @@ html {
   position: relative;
   padding-top: 5px;
   border: 2px solid var(--single-select-border-color);
-  border-radius: 12px;
+  border-radius: var(--border-radius-large);
 }
 .onboardingContainer .tiles-single-select-section.single-select .select-item:has(.input:focus), .onboardingContainer .tiles-single-select-section.single-select .select-item:has(.selected), .onboardingContainer .tiles-single-select-section.theme .select-item:has(.input:focus), .onboardingContainer .tiles-single-select-section.theme .select-item:has(.selected) {
   outline: none;
@@ -2692,7 +2692,7 @@ html {
 }
 .onboardingContainer .tiles-single-select-section.single-select .select-item:has(.selected), .onboardingContainer .tiles-single-select-section.theme .select-item:has(.selected) {
   border: 3px solid var(--in-content-primary-button-background);
-  border-radius: 12px;
+  border-radius: var(--border-radius-large);
 }
 .onboardingContainer .tiles-single-select-section.single-select .select-item:hover, .onboardingContainer .tiles-single-select-section.theme .select-item:hover {
   background-color: var(--single-select-hover-color);
