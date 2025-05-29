@@ -630,6 +630,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">เรียกดูเว็บได้อย่างรวดเร็วและปลอดภัย</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">ยินยอมและดำเนินต่อ</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">ดำเนินการต่อ</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">เมื่อดำเนินการต่อ แสดงว่าคุณยอมรับ%1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -770,6 +772,12 @@
   <string name="preferences_add_private_browsing_shortcut">เพิ่มทางลัดการเรียกดูแบบส่วนตัว</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">โหมด HTTPS-Only</string>
+  <!-- Preference title for using the screen lock to hide tabs in private browsing -->
+  <string name="preferences_pbm_lock_screen_title">ใช้การล็อกหน้าจอเพื่อซ่อนแท็บในการเรียกดูแบบส่วนตัว</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">ดูแท็บต่างๆ ด้วยลายนิ้วมือ การปลดล็อกด้วยใบหน้า หรือ PIN</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">ดูแท็บต่างๆ ด้วยลายนิ้วมือ PIN หรือการปลดล็อกด้วยใบหน้า</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">ตัวปิดกั้นแบนเนอร์คุกกี้</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1443,6 +1451,11 @@
     Text for the snackbar to confirm that multiple downloads items have been removed
   -->
   <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">การดาวน์โหลดถูกลบ</string>
+  <!--
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">จำนวนรายการที่ลบ: %1$d</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">เอา %1$s ออกแล้ว</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
@@ -1470,12 +1483,33 @@
   <string name="download_multi_select_title">เลือกอยู่ %1$d</string>
   <!-- Text for the button to remove a single download item -->
   <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">เอาออก</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">มีเนื้อที่ไม่พอ</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[อุปกรณ์นี้ไม่มีเนื้อที่พอให้ดาวน์โหลด <b>%s</b>]]></string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">จัดการไฟล์</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">ยกเลิก</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">ลบ</string>
   <!-- Content description for the toolbar "Navigate back" button -->
   <string name="download_navigate_back_description">นำทางย้อนกลับ</string>
   <!-- Content description for the toolbar "Navigate up" button -->
   <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">นำทางขึ้นไปด้านบน</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">ย้อนกลับและปิดการค้นหา</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">ล้าง</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">แบ่งปัน URL</string>
   <!-- Text for the button to share the download file -->
@@ -1502,6 +1536,13 @@
   <string name="download_time_period_last_30_days">30 วันที่ผ่านมา</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">เก่ากว่า</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • เหลือ %3$s</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" tools:ignore="UnusedResources">ถูกหยุดชั่วคราว</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -1628,6 +1669,8 @@
   <string name="bookmark_menu_copy_button">คัดลอก</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">แบ่งปัน</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">เลือกทั้งหมด</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">เปิดในแท็บใหม่</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1640,6 +1683,8 @@
   <string name="bookmark_menu_delete_button">ลบ</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">บันทึก</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">เรียงลำดับแบบกำหนดเอง</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">เรียงตามใหม่ล่าสุด</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -3174,6 +3219,8 @@
   <string name="protection_panel_no_trackers_blocked">ไม่พบตัวติดตาม</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">การตั้งค่าความเป็นส่วนตัวและความปลอดภัย</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">การกำหนดสิทธิ์</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3360,6 +3407,28 @@
   -->
   <string name="glean_debug_tools_title">เครื่องมือดีบั๊ก Glean</string>
   <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">เครื่องมือภูมิภาค</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">เขียนทับค่าภูมิภาคบ้านและภูมิภาคปัจจุบันชั่วคราวเพื่อการทดสอบ</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">ภูมิภาคบ้าน</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">ภูมิภาคปัจจุบัน</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">เขียนทับภูมิภาคบ้าน</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">เขียนทับภูมิภาคปัจจุบัน</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">เขียนทับภูมิภาคบ้านและปัจจุบัน</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">เขียนทับภูมิภาคบ้านถาวร</string>
+  <!--
     Messages explaining how to exit fullscreen mode
 
     Message shown to explain how to exit fullscreen mode when gesture navigation is enabled.
@@ -3437,10 +3506,46 @@
     Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="setup_checklist_subtitle_3_steps_initial_state">ทำตาม 3 ขั้นตอนเหล่านี้เพื่อตั้งค่า %1$s ให้ได้รับประสบการณ์การท่องเว็บที่ดีที่สุด</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">เริ่มต้นได้ดี! คุณทำสำเร็จแล้ว 1 ขั้นตอนจากทั้งหมด 3 ขั้นตอน</string>
   <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
   <string name="setup_checklist_subtitle_3_steps_second_step">ใกล้เสร็จแล้ว! เสร็จไปแล้ว 2 ขั้นตอน เหลืออีกแค่ 1 ขั้นตอน</string>
   <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_3_steps_completed_state">คุณได้ทำทั้ง 3 ขั้นตอนแล้ว เพลิดเพลินไปกับความเร็ว ความเป็นส่วนตัว และความปลอดภัยของ %1$s</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">ทำตาม 6 ขั้นตอนเหล่านี้เพื่อตั้งค่า %1$s ให้ได้รับประสบการณ์การท่องเว็บที่ดีที่สุด</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">เริ่มต้นได้ดี! คุณทำสำเร็จแล้ว 1 ขั้นตอนจากทั้งหมด 6 ขั้นตอน</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">คุณทำสำเร็จแล้ว 2 ขั้นตอนจากทั้งหมด 6 ขั้นตอน คืบหน้าไปมากเลย!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">คุณไปได้ครึ่งทางแล้ว! ตอนนี้เสร็จไป 3 ขั้นตอนแล้ว และเหลืออีก 3 ขั้นตอน</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">คุณทำเสร็จไปแล้ว 4 ขั้นตอน เหลืออีกแค่ 2 ขั้นตอนเท่านั้น!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">ใกล้ถึงขั้นสุดท้ายแล้ว! คุณเหลือแค่ขั้นตอนเดียวเท่านั้น</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">คุณได้ทำสำเร็จทั้ง 6 ขั้นตอนแล้ว เพลิดเพลินไปกับความเร็ว ความเป็นส่วนตัว และความปลอดภัยของ %1$s</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">ทำตาม 5 ขั้นตอนเหล่านี้เพื่อตั้งค่า %1$s ให้ได้รับประสบการณ์การท่องเว็บที่ดีที่สุด</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">เริ่มต้นได้ดี! คุณทำสำเร็จแล้ว 1 ขั้นตอนจากทั้งหมด 5 ขั้นตอน</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">คุณทำสำเร็จแล้ว 2 ขั้นตอนจากทั้งหมด 5 ขั้นตอน คืบหน้าไปมากเลย!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">คุณไปได้ครึ่งทางแล้ว! ตอนนี้เสร็จไป 3 ขั้นตอนแล้ว และเหลืออีก 2 ขั้นตอน</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">ใกล้ถึงขั้นสุดท้ายแล้ว! คุณเหลือแค่ขั้นตอนเดียวเท่านั้น</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">คุณได้ทำสำเร็จทั้ง 5 ขั้นตอนแล้ว เพลิดเพลินไปกับความเร็ว ความเป็นส่วนตัว และความปลอดภัยของ %1$s</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3451,8 +3556,18 @@
   <string name="setup_checklist_task_account_sync">ลงชื่อเข้าบัญชีของคุณ</string>
   <!-- The title of the theme selection task for the setup checklist -->
   <string name="setup_checklist_task_theme_selection">เลือกชุดตกแต่ง</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">เลือกการวางแถบเครื่องมือ</string>
   <!-- The title of the explore extensions task for the setup checklist -->
   <string name="setup_checklist_task_explore_extensions">สำรวจส่วนขยาย</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget">ติดตั้งวิดเจ็ตค้นหา</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">สิ่งสำคัญใน %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">ปรับแต่ง %1$s ของคุณ</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
@@ -3481,4 +3596,16 @@
   <string name="pbm_authentication_unlock">ปลดล็อก</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">ปลดล็อคแท็บส่วนตัว</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">เปิดใช้งานการล็อกหน้าจอสำหรับแท็บส่วนตัว</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">ปิดใช้งานการล็อกหน้าจอสำหรับแท็บส่วนตัว</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">ตั้งค่าการล็อกหน้าจอเพื่อซ่อนแท็บ</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">ใช้การล็อกหน้าจอเพื่อซ่อนแท็บส่วนตัวหรือไม่?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">ไม่เป็นไร ขอบคุณ</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">ล็อกแท็บ</string>
 </resources>
