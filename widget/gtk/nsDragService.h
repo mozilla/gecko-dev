@@ -266,6 +266,8 @@ class nsDragSession : public nsBaseDragSession, public nsIObserver {
   static GdkAtom sFilePromiseURLMimeAtom;
   static GdkAtom sFilePromiseMimeAtom;
   static GdkAtom sNativeImageMimeAtom;
+  static GdkAtom sUTF8STRINGMimeAtom;
+  static GdkAtom sSTRINGMimeAtom;
 
   nsDragSession();
 
