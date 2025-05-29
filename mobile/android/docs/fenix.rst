@@ -40,6 +40,11 @@ To sign your release builds with your debug key automatically, add the following
 
     autosignReleaseWithDebugKey
 
+Or you can remove the following from your mozconfig:
+
+.. code-block:: shell
+
+    ac_add_options --enable-release
 
 Run Fenix or other Android projects using command line
 ---------------------------------------------------------
