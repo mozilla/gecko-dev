@@ -204,11 +204,11 @@ bool nsLookAndFeel::RecomputeDBusAppearanceSetting(const nsACString& aKey,
     mDBusSettings.mColorScheme = [&] {
       switch (g_variant_get_uint32(aValue)) {
         default:
-          MOZ_FALLTHROUGH_ASSERT("Unexpected color-scheme query return value");
-        case 0:
+          MOZ_ASSERT_UNREACHABLE("Unexpected color-scheme query return value");
           break;
         case 1:
           return Some(ColorScheme::Dark);
+        case 0:
         case 2:
           return Some(ColorScheme::Light);
       }
