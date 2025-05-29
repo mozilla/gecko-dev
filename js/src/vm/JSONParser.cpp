@@ -1111,12 +1111,9 @@ inline bool JSONReviveHandler<CharT>::objectOpen(Vector<StackEntry, 10>& stack,
                                                  PropertyVector** properties) {
   ParseRecordObject* newParseRecord =
       ParseRecordObject::create(context(), JS::Value());
-  Rooted<ParseRecordObject::EntryMap*> newEntryMap(
-      context(), NewPlainObjectWithProto(context(), nullptr));
-  if (!newParseRecord || !newEntryMap) {
+  if (!newParseRecord) {
     return false;
   }
-  newParseRecord->setEntries(context(), newEntryMap);
   if (!parseRecordStack.append(newParseRecord)) {
     return false;
   }
@@ -1139,10 +1136,7 @@ inline bool JSONReviveHandler<CharT>::finishObjectMember(
 
   Rooted<JS::PropertyKey> key(context(), (*properties)->back().id);
 
-  Rooted<ParseRecordObject::EntryMap*> entries(context(), nullptr);
-  parseRecordStack.back()->getEntries(context(), &entries);
-
-  return finishMemberParseRecord(key, memberRecord, entries);
+  return parseRecordStack.back()->addEntries(context(), key, memberRecord);
 }
 
 template <typename CharT>
@@ -1159,14 +1153,11 @@ inline bool JSONReviveHandler<CharT>::finishObject(
 template <typename CharT>
 inline bool JSONReviveHandler<CharT>::arrayOpen(Vector<StackEntry, 10>& stack,
                                                 ElementVector** elements) {
-  Rooted<ParseRecordObject::EntryMap*> newEntryMap(
-      context(), NewPlainObjectWithProto(context(), nullptr));
   ParseRecordObject* newParseRecord =
       ParseRecordObject::create(context(), JS::Value());
-  if (!newParseRecord || !newEntryMap) {
+  if (!newParseRecord) {
     return false;
   }
-  newParseRecord->setEntries(context(), newEntryMap);
   if (!parseRecordStack.append(newParseRecord)) {
     return false;
   }
@@ -1188,11 +1179,7 @@ inline bool JSONReviveHandler<CharT>::arrayElement(
   Rooted<JS::PropertyKey> key(context(), js::PropertyKey::Int(int32_t(index)));
 
   Rooted<ParseRecordObject*> parseRecord(context(), parseRecordStack.popCopy());
-
-  Rooted<ParseRecordObject::EntryMap*> entries(context(), nullptr);
-  parseRecordStack.back()->getEntries(context(), &entries);
-
-  return finishMemberParseRecord(key, parseRecord, entries);
+  return parseRecordStack.back()->addEntries(context(), key, parseRecord);
 }
 
 template <typename CharT>
@@ -1204,15 +1191,6 @@ inline bool JSONReviveHandler<CharT>::finishArray(
   }
   parseRecordStack.back()->setValue(vp);
   return true;
-}
-
-template <typename CharT>
-inline bool JSONReviveHandler<CharT>::finishMemberParseRecord(
-    Handle<JS::PropertyKey> key, Handle<ParseRecordObject*> parseRecord,
-    Handle<ParseRecordObject::EntryMap*> parseEntry) {
-  parseRecord->setKey(context(), key.get());
-  Rooted<Value> pro(context(), ObjectValue(*parseRecord));
-  return JS_SetPropertyById(context(), parseEntry, key, pro);
 }
 
 template <typename CharT>

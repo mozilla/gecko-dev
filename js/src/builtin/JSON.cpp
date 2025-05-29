@@ -1718,7 +1718,7 @@ static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
   }
 
   RootedObject context(cx);
-  Rooted<ParseRecordObject::EntryMap*> entries(cx);
+  Rooted<ParseRecordObject*> entries(cx);
   if (JS::Prefs::experimental_json_parse_with_source()) {
     // https://tc39.es/proposal-json-parse-with-source/#sec-internalizejsonproperty
     if (parseRecord) {
@@ -1741,7 +1741,7 @@ static bool InternalizeJSONProperty(JSContext* cx, HandleObject holder,
             return false;
           }
         }
-        parseRecord->getEntries(cx, &entries);
+        entries.set(parseRecord);
       }
     }
     if (!context) {

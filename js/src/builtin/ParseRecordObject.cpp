@@ -8,6 +8,7 @@
 
 #include "jsapi.h"  // JS_ValueToId, JS_IdToValue
 #include "builtin/Object.h"
+#include "js/PropertyAndElement.h"  // JS_SetPropertyById
 #include "vm/PlainObject.h"
 
 #include "vm/JSObject-inl.h"  // NewBuiltinClassInstance
@@ -60,14 +61,10 @@ bool ParseRecordObject::setKey(JSContext* cx, const JS::PropertyKey& key) {
   return true;
 }
 
-void ParseRecordObject::setEntries(JSContext* cx, Handle<EntryMap*> entries) {
-  setSlot(EntriesSlot, ObjectValue(*entries));
-}
-
-void ParseRecordObject::getEntries(JSContext* cx,
-                                   MutableHandle<EntryMap*> entries) {
-  const Value& entryVal = getSlot(EntriesSlot);
-  if (entryVal.isObject()) {
-    entries.set(&entryVal.toObject());
-  }
+bool ParseRecordObject::addEntries(JSContext* cx, Handle<JS::PropertyKey> key,
+                                   Handle<ParseRecordObject*> parseRecord) {
+  parseRecord->setKey(cx, key.get());
+  Rooted<Value> pro(cx, ObjectValue(*parseRecord));
+  Rooted<JSObject*> obj(cx, this);
+  return JS_SetPropertyById(cx, obj, key, pro);
 }
