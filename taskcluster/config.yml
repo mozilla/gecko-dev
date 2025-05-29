@@ -749,12 +749,12 @@ workers:
                     staging: '{trust-domain}-t-signing'
         mac-depsigning:
             provisioner: scriptworker-prov-v1
-            implementation: scriptworker-signing
+            implementation: iscript
             os: macosx
             worker-type: dep-gecko-signing-mac14m2
         mac-signing:
             provisioner: scriptworker-prov-v1
-            implementation: scriptworker-signing
+            implementation: iscript
             os: macosx
             worker-type:
                 by-release-level:

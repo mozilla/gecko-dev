@@ -86,6 +86,7 @@ def make_signing_description(config, jobs):
             upstream_artifact["formats"] = ["mac_single_file"]
             upstream_artifact["singleFileGlobs"] = ["libgmpopenh264.dylib"]
             worker_type = "mac-signing"
+            worker["implementation"] = "iscript"
             worker["mac-behavior"] = "mac_notarize_single_file"
         else:
             upstream_artifact["formats"] = ["gcp_prod_autograph_gpg"]
