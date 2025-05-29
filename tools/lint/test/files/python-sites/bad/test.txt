@@ -1,0 +1,3 @@
+vendored:third_party/python/blessed
+vendored:third_party/python/dlmanager
+pth:third_party/python/vsdownload
