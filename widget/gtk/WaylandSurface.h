@@ -48,17 +48,13 @@ class WaylandSurface final {
 
   void FrameCallbackHandler(struct wl_callback* aCallback, uint32_t aTime,
                             bool aRoutedFromChildSurface);
-  // Run only once at most.
-  void AddOneTimeFrameCallbackLocked(
-      const WaylandSurfaceLock& aProofOfLock,
-      const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler);
 
   // Run frame callback repeatedly. Callback is removed on Unmap.
   // If aEmulateFrameCallback is set to true and WaylandSurface is mapped and
   // ready to draw and we don't have buffer attached yet,
   // fire aFrameCallbackHandler without frame callback from
   // compositor in sFrameCheckTimeoutMs.
-  void AddPersistentFrameCallbackLocked(
+  void AddFrameCallbackLocked(
       const WaylandSurfaceLock& aProofOfLock,
       const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler,
       bool aEmulateFrameCallback = false);
@@ -378,9 +374,7 @@ class WaylandSurface final {
 
   bool mFrameCallbackEnabled = true;
   // Frame callback handlers called every frame
-  std::vector<FrameCallback> mPersistentFrameCallbackHandlers;
-  // Frame callback handlers called only once
-  std::vector<FrameCallback> mOneTimeFrameCallbackHandlers;
+  std::vector<FrameCallback> mFrameCallbackHandlers;
 
   // WaylandSurface is used from Compositor/Rendering/Main threads.
   mozilla::Mutex mMutex{"WaylandSurface"};
