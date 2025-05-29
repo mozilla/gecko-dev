@@ -175,6 +175,7 @@
 #include "PHC.h"
 #include "rb.h"
 #include "Utils.h"
+#include "Zero.h"
 
 #if defined(XP_WIN)
 #  include "mozmemory_stall.h"
@@ -1250,32 +1251,6 @@ extern "C" MOZ_EXPORT int pthread_atfork(void (*)(void), void (*)(void),
 
 // ***************************************************************************
 // Begin Utility functions/macros.
-
-static inline void MaybePoison(void* aPtr, size_t aSize) {
-  size_t size;
-  switch (opt_poison) {
-    case NONE:
-      return;
-    case SOME:
-      size = std::min(aSize, opt_poison_size);
-      break;
-    case ALL:
-      size = aSize;
-      break;
-  }
-  MOZ_ASSERT(size != 0 && size <= aSize);
-  memset(aPtr, kAllocPoison, size);
-}
-
-// Fill the given range of memory with zeroes or junk depending on opt_junk and
-// opt_zero.
-static inline void ApplyZeroOrJunk(void* aPtr, size_t aSize) {
-  if (opt_junk) {
-    memset(aPtr, kAllocJunk, aSize);
-  } else if (opt_zero) {
-    memset(aPtr, 0, aSize);
-  }
-}
 
 #ifdef MOZJEMALLOC_PROFILING_CALLBACKS
 namespace mozilla {
