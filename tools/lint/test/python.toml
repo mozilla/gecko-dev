@@ -41,8 +41,6 @@ skip-if = ["os == 'win'"]
 
 ["test_perfdocs_helpers.py"]
 
-["test_python_sites.py"]
-
 ["test_rst.py"]
 
 ["test_ruff.py"]
