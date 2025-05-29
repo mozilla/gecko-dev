@@ -57,6 +57,9 @@ document.addEventListener(
         case "context-savelink":
           gContextMenu.saveLink();
           break;
+        case "context-savelinktopocket":
+          Pocket.savePage(gContextMenu.browser, gContextMenu.linkURL);
+          break;
         case "context-copyemail":
           gContextMenu.copyEmail();
           break;
@@ -162,6 +165,13 @@ document.addEventListener(
           break;
         case "context-savepage":
           gContextMenu.savePageAs();
+          break;
+        case "context-pocket":
+          Pocket.savePage(
+            gContextMenu.browser,
+            gContextMenu.browser.currentURI.spec,
+            gContextMenu.browser.contentTitle
+          );
           break;
         case "fill-login-generated-password":
           gContextMenu.useGeneratedPassword();

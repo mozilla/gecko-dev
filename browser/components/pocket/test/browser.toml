@@ -1,0 +1,25 @@
+[DEFAULT]
+support-files = [
+  "head.js",
+  "test.html",
+]
+
+prefs = [
+  "extensions.pocket.enabled=true",
+]
+
+["browser_pocket_button_icon_state.js"]
+
+["browser_pocket_context_menu_action.js"]
+
+["browser_pocket_home_panel.js"]
+
+["browser_pocket_panel.js"]
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1781272
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt", # Bug 1781272
+]
+
+["browser_pocket_panel_closemenu.js"]
+
+["browser_pocket_ui_check.js"]

@@ -129,6 +129,27 @@ let JSWINDOWACTORS = {
     matches: ["about:messagepreview", "about:messagepreview?*"],
   },
 
+  AboutPocket: {
+    parent: {
+      esModuleURI: "resource:///actors/AboutPocketParent.sys.mjs",
+    },
+    child: {
+      esModuleURI: "resource:///actors/AboutPocketChild.sys.mjs",
+
+      events: {
+        DOMDocElementInserted: { capture: true },
+      },
+    },
+
+    remoteTypes: ["privilegedabout"],
+    matches: [
+      "about:pocket-saved*",
+      "about:pocket-signup*",
+      "about:pocket-home*",
+      "about:pocket-style-guide*",
+    ],
+  },
+
   AboutPrivateBrowsing: {
     parent: {
       esModuleURI: "resource:///actors/AboutPrivateBrowsingParent.sys.mjs",

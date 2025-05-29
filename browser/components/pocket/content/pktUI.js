@@ -51,6 +51,7 @@ ChromeUtils.defineESModuleGetters(this, {
   pktTelemetry: "chrome://pocket/content/pktTelemetry.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
+  SaveToPocket: "chrome://pocket/content/SaveToPocket.sys.mjs",
 });
 
 const POCKET_HOME_PREF = "extensions.pocket.showHome";
@@ -217,6 +218,7 @@ var pktUI = (function () {
 
   function onShowSignup() {
     // Ensure opening the signup panel clears the icon state from any previous sessions.
+    SaveToPocket.itemDeleted();
     pktTelemetry.submitPocketButtonPing("click", "save_button");
   }
 
@@ -292,6 +294,7 @@ var pktUI = (function () {
           ho2,
         };
         pktUIMessaging.sendMessageToPanel(saveLinkMessageId, successResponse);
+        SaveToPocket.itemSaved();
 
         if (
           !Services.prefs.getBoolPref(

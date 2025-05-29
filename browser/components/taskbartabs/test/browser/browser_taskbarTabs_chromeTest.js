@@ -32,6 +32,12 @@ function checkWindowChrome(win) {
   ok(!win.menubar.visible, "menubar barprop should not be visible");
   ok(!win.personalbar.visible, "personalbar barprop should not be visible");
 
+  is(
+    document.getAttribute("pocketdisabled"),
+    "true",
+    "Pocket button should be disabled"
+  );
+
   let starButton = win.document.querySelector("#star-button-box");
   is(
     win.getComputedStyle(starButton).display,

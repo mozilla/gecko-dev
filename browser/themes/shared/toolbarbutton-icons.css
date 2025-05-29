@@ -254,6 +254,17 @@
   list-style-image: url("chrome://browser/skin/library.svg");
 }
 
+#save-to-pocket-button {
+  list-style-image: url("chrome://global/skin/icons/pocket-outline.svg");
+  fill: var(--toolbarbutton-icon-fill);
+}
+
+#save-to-pocket-button[open="true"],
+#save-to-pocket-button[pocketed="true"] {
+  list-style-image: url("chrome://global/skin/icons/pocket.svg");
+  fill: var(--pocket-icon-fill);
+}
+
 /* Bookmark toolbar buttons and menu items */
 
 .bookmark-item {

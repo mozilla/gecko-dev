@@ -109,6 +109,9 @@
       <menuitem id="context-savelink"
                 data-l10n-id="main-context-menu-save-link"
                 />
+      <menuitem id="context-savelinktopocket"
+                data-l10n-id="main-context-menu-save-link-to-pocket"
+                />
       <menuitem id="context-copyemail"
                 data-l10n-id="main-context-menu-copy-email"
                 />
@@ -259,6 +262,9 @@
 #endif
       <menuitem id="context-savepage"
                 data-l10n-id="main-context-menu-page-save"
+                />
+      <menuitem id="context-pocket"
+                data-l10n-id="main-context-menu-save-to-pocket"
                 />
       <menu id="context-sendpagetodevice"
             class="sync-ui-item"

@@ -7,6 +7,8 @@ browser.jar:
   content/pocket/pktApi.sys.mjs (content/pktApi.sys.mjs)
   content/pocket/pktTelemetry.sys.mjs (content/pktTelemetry.sys.mjs)
   content/pocket/pktUI.js (content/pktUI.js)
+  content/pocket/Pocket.sys.mjs (content/Pocket.sys.mjs)
+  content/pocket/SaveToPocket.sys.mjs (content/SaveToPocket.sys.mjs)
   content/pocket/panels/css (content/panels/css/*)
   content/pocket/panels/fonts (content/panels/fonts/*)
   content/pocket/panels/img (content/panels/img/*)

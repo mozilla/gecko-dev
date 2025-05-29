@@ -14,6 +14,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   BinarySearch: "resource://gre/modules/BinarySearch.sys.mjs",
   PageThumbs: "resource://gre/modules/PageThumbs.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
+  Pocket: "chrome://pocket/content/Pocket.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
 });
 
@@ -1526,11 +1527,10 @@ var ActivityStreamLinks = {
    *
    *@returns {Promise} Returns a promise at completion
    */
-  addPocketEntry(aUrl, aTitle, _aBrowser) {
+  addPocketEntry(aUrl, aTitle, aBrowser) {
     // If the user is not logged in, show the panel to prompt them to log in
     if (!lazy.pktApi.isUserLoggedIn()) {
-      // TODO: Pocket API use and methods will be removed in
-      // https://bugzilla.mozilla.org/show_bug.cgi?id=1968800
+      lazy.Pocket.savePage(aBrowser, aUrl, aTitle);
       return Promise.resolve(null);
     }
 
