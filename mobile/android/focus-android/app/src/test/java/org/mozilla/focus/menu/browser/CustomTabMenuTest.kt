@@ -4,6 +4,9 @@
 
 package org.mozilla.focus.menu.browser
 
+import android.content.Context
+import android.content.res.Resources
+import android.util.TypedValue
 import mozilla.components.browser.menu.item.BrowserMenuCategory
 import mozilla.components.browser.menu.item.BrowserMenuDivider
 import mozilla.components.browser.menu.item.BrowserMenuImageSwitch
@@ -12,19 +15,44 @@ import mozilla.components.browser.menu.item.BrowserMenuItemToolbar
 import mozilla.components.browser.menu.item.SimpleBrowserMenuItem
 import mozilla.components.browser.menu.item.WebExtensionPlaceholderMenuItem
 import mozilla.components.browser.state.store.BrowserStore
-import mozilla.components.support.test.robolectric.testContext
+import mozilla.components.support.test.any
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.anyInt
+import org.mockito.Mockito.eq
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 
-@RunWith(RobolectricTestRunner::class)
 class CustomTabMenuTest {
+
+    private lateinit var context: Context
+    private lateinit var mockTheme: Resources.Theme
+
+    @Before
+    fun setup() {
+        context = mock()
+        mockTheme = mock()
+
+        `when`(context.getString(anyInt())).thenReturn("string")
+        `when`(context.getString(anyInt(), anyString())).thenReturn("Powered by Focus")
+
+        `when`(context.theme).thenReturn(mockTheme)
+
+        `when`(mockTheme.resolveAttribute(anyInt(), any(), eq(true)))
+            .thenAnswer { invocation ->
+                val typedValueArg = invocation.arguments[1] as TypedValue
+                typedValueArg.resourceId = 1
+                true
+            }
+    }
+
     @Test
     fun `WHEN is onboarding tab is false THEN menu items contains all menu items`() {
         val customTabMenu = CustomTabMenu(
-            context = testContext,
+            context = context,
             store = BrowserStore(),
             currentTabId = "",
             isOnboardingTab = false,
@@ -59,7 +87,7 @@ class CustomTabMenuTest {
     @Test
     fun `WHEN is onboarding tab is true THEN menu items contains only sandboxed menu items`() {
         val customTabMenu = CustomTabMenu(
-            context = testContext,
+            context = context,
             store = BrowserStore(),
             currentTabId = "",
             isOnboardingTab = true,
