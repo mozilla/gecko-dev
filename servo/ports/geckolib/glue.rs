@@ -4796,35 +4796,6 @@ pub unsafe extern "C" fn Servo_ParseStyleAttribute(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ParsePseudoElement(
-    data: &nsAString,
-    request: &mut structs::PseudoStyleRequest, /* output */
-) -> bool {
-    let string = data.to_string();
-    let mut input = ParserInput::new(&string);
-    let mut parser = Parser::new(&mut input);
-    // This is unspecced, but we'd like to match other browsers' behavior, so we reject the
-    // preceding whitespaces and trailing whitespaces.
-    // FIXME: Bug 1845712. Figure out if it is necessary to reject preceding and trailing
-    // whitespaces.
-    if parser.try_parse(|i| i.expect_whitespace()).is_ok() {
-        return false;
-    }
-    let Ok(pseudo) = PseudoElement::parse_ignore_enabled_state(&mut parser) else { return false };
-    // The trailing tokens are not allowed, including whitespaces.
-    if parser.next_including_whitespace().is_ok() {
-        return false;
-    }
-
-    let (pseudo_type, name) = pseudo.pseudo_type_and_argument();
-    let name_ptr = name.map_or(std::ptr::null_mut(), |name| name.0.as_ptr());
-    request.mType = pseudo_type;
-    request.mIdentifier = unsafe { RefPtr::new(name_ptr).forget() };
-
-    true
-}
-
-#[no_mangle]
 pub extern "C" fn Servo_DeclarationBlock_CreateEmpty() -> Strong<LockedDeclarationBlock> {
     let global_style_data = &*GLOBAL_STYLE_DATA;
     Arc::new(

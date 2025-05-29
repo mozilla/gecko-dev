@@ -16,9 +16,8 @@ use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
 use crate::string_cache::Atom;
 use crate::values::serialize_atom_identifier;
 use crate::values::AtomIdent;
-use cssparser::{ToCss, Parser};
+use cssparser::ToCss;
 use static_prefs::pref;
-use style_traits::ParseError;
 use std::fmt;
 
 include!(concat!(
@@ -297,51 +296,5 @@ impl PseudoElement {
         }
 
         true
-    }
-
-    /// Parse the pseudo-element string without the check of enabled state. This may includes
-    /// all possible PseudoElement, including tree pseudo-elements and anonymous box.
-    // TODO: Bug 1845712. Merge this with the pseudo element part in parse_one_simple_selector().
-    pub fn parse_ignore_enabled_state<'i, 't>(
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        use crate::gecko::selector_parser;
-        use cssparser::Token;
-        use selectors::parser::{is_css2_pseudo_element, SelectorParseErrorKind};
-        use style_traits::StyleParseErrorKind;
-
-        // The pseudo-element string should start with ':'.
-        input.expect_colon()?;
-
-        let location = input.current_source_location();
-        let next = input.next_including_whitespace()?;
-        if !matches!(next, Token::Colon) {
-            // Parse a CSS2 pseudo-element.
-            let name = match next {
-                Token::Ident(name) if is_css2_pseudo_element(&name) => name,
-                _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-            };
-            return PseudoElement::from_slice(&name, false).ok_or(location.new_custom_error(
-                SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name.clone()),
-            ))
-        }
-
-        // Now we have double colons, so check the following tokens.
-        match input.next_including_whitespace()?.clone() {
-            Token::Ident(name) => {
-                // We don't need to parse unknown ::-webkit-* pseudo-elements in this function.
-                PseudoElement::from_slice(&name, false).ok_or(input.new_custom_error(
-                    SelectorParseErrorKind::UnsupportedPseudoClassOrElement(name),
-                ))
-            },
-            Token::Function(name) => {
-                // Note: ::slotted() and ::part() are not accepted in getComputedStyle().
-                // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
-                input.parse_nested_block(|input| {
-                    selector_parser::parse_functional_pseudo_element_with_name(name, input)
-                })
-            },
-            t => return Err(input.new_unexpected_token_error(t)),
-        }
     }
 }

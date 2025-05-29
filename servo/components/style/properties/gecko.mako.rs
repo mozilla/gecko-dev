@@ -221,7 +221,7 @@ impl ComputedValuesInner {
 
     fn to_outer(self, pseudo: Option<<&PseudoElement>) -> Arc<ComputedValues> {
         let pseudo_ty = match pseudo {
-            Some(p) => p.pseudo_type_and_argument().0,
+            Some(p) => p.pseudo_type(),
             None => structs::PseudoStyleType::NotPseudo,
         };
         unsafe {

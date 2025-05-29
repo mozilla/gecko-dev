@@ -3438,7 +3438,7 @@ where
 /// Returns whether the name corresponds to a CSS2 pseudo-element that
 /// can be specified with the single colon syntax (in addition to the
 /// double-colon syntax, which can be used for all pseudo-elements).
-pub fn is_css2_pseudo_element(name: &str) -> bool {
+fn is_css2_pseudo_element(name: &str) -> bool {
     // ** Do not add to this list! **
     match_ignore_ascii_case! { name,
         "before" | "after" | "first-line" | "first-letter" => true,
