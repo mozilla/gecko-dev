@@ -20,6 +20,7 @@
 // Chunk.h is required for sizeof(arena_chunk_t), but it's inconvenient that
 // Chunk.h can't access any constants.
 #include "Chunk.h"
+#include "Mutex.h"
 #include "Utils.h"
 
 // Define MALLOC_RUNTIME_CONFIG depending on MOZ_DEBUG. Overriding this as

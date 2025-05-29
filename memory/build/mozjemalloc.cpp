@@ -268,7 +268,7 @@ static Atomic<bool, MemoryOrdering::Relaxed> malloc_initialized;
 #endif
 
 // This lock must be held while bootstrapping us.
-static StaticMutex gInitLock MOZ_UNANNOTATED = {STATIC_MUTEX_INIT};
+StaticMutex gInitLock MOZ_UNANNOTATED = {STATIC_MUTEX_INIT};
 
 // ***************************************************************************
 // Statistics data structures.

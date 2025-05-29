@@ -264,4 +264,6 @@ using MutexAutoLock = AutoLock<Mutex>;
 
 using MaybeMutexAutoLock = AutoLock<MaybeMutex>;
 
+extern StaticMutex gInitLock MOZ_UNANNOTATED;
+
 #endif
