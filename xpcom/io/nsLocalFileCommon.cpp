@@ -118,6 +118,7 @@ const char* const sExecutableExts[] = {
   ".settingcontent-ms",
   ".shb",
   ".shs",
+  ".terminal",    // macOS terminal files
   ".url",
   ".vb",
   ".vbe",
