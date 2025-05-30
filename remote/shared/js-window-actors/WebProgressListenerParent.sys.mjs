@@ -8,6 +8,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   notifyFragmentNavigated:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
+  notifyHistoryUpdated:
+    "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifySameDocumentChanged:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifyNavigationFailed:
@@ -33,6 +35,10 @@ export class WebProgressListenerParent extends JSWindowActorParent {
       switch (name) {
         case "WebProgressListenerChild:fragmentNavigated": {
           lazy.notifyFragmentNavigated(payload);
+          break;
+        }
+        case "WebProgressListenerChild:historyUpdated": {
+          lazy.notifyHistoryUpdated(payload);
           break;
         }
         case "WebProgressListenerChild:sameDocumentChanged": {

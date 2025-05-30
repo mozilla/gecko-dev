@@ -15,6 +15,7 @@ add_task(async function testDocumentOpenWriteClose() {
 
   const navigationManager = new NavigationManager();
   navigationManager.on("fragment-navigated", onEvent);
+  navigationManager.on("history-updated", onEvent);
   navigationManager.on("navigation-started", onEvent);
   navigationManager.on("navigation-stopped", onEvent);
   navigationManager.on("same-document-changed", onEvent);
@@ -43,29 +44,38 @@ add_task(async function testDocumentOpenWriteClose() {
     );
   });
 
-  // See Bug 1844517.
-  // document.open/write/close is identical to same-url + same-hash navigations.
-  todo_is(events.length, 0, "No event recorded after replacing the document");
+  is(events.length, 1, "No event recorded after replacing the document");
+  is(
+    events[0].name,
+    "history-updated",
+    "Received a single history-updated event"
+  );
+  is(
+    events[0].data.navigationId,
+    undefined,
+    "history-updated event should not have a navigation id set"
+  );
+  is(events[0].data.url, url, "history-updated has the expected url");
 
   info("Reload the page, which should trigger a navigation");
   await loadURL(browser, url);
 
-  if (
-    Services.prefs.getBoolPref(
-      "remote.experimental-parent-navigation.enabled",
-      false
-    )
-  ) {
-    is(events.length, 2, "Recorded navigation events");
-  } else {
-    // See Bug 1844517.
-    // document.open/write/close is identical to same-url + same-hash navigations.
-    todo_is(events.length, 2, "Recorded navigation events");
-  }
-
+  is(events.length, 3, "Recorded 2 navigation events");
+  is(
+    events[1].name,
+    "navigation-started",
+    "Received a navigation-started event"
+  );
+  is(
+    events[2].name,
+    "navigation-stopped",
+    "Received a navigation-stopped event"
+  );
   navigationManager.off("fragment-navigated", onEvent);
+  navigationManager.off("history-updated", onEvent);
   navigationManager.off("navigation-started", onEvent);
   navigationManager.off("navigation-stopped", onEvent);
   navigationManager.off("same-document-changed", onEvent);
+
   navigationManager.stopMonitoring();
 });

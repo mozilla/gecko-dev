@@ -12,6 +12,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   notifyFragmentNavigated:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
+  notifyHistoryUpdated:
+    "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifySameDocumentChanged:
     "chrome://remote/content/shared/NavigationManager.sys.mjs",
   notifyNavigationFailed:
@@ -87,6 +89,15 @@ export class ParentWebProgressListener {
         contextDetails: { context },
         url: location.spec,
       };
+
+      if (progress.loadType & Ci.nsIDocShell.LOAD_CMD_PUSHSTATE) {
+        this.#trace(
+          lazy.truncate`Location=historyUpdated: ${location.spec}`,
+          context.id
+        );
+        lazy.notifyHistoryUpdated(payload);
+        return;
+      }
 
       if (location.hasRef) {
         // If the target URL contains a hash, handle the navigation as a
