@@ -47,9 +47,11 @@ uint64_t XULMenuitemAccessible::NativeState() const {
 
   // Has Popup?
   if (mContent->NodeInfo()->Equals(nsGkAtoms::menu, kNameSpaceID_XUL)) {
-    state |= states::HASPOPUP | states::EXPANDABLE;
+    state |= states::HASPOPUP;
     if (mContent->AsElement()->HasAttr(nsGkAtoms::open)) {
       state |= states::EXPANDED;
+    } else {
+      state |= states::COLLAPSED;
     }
   }
 
@@ -337,8 +339,7 @@ uint64_t XULMenupopupAccessible::NativeState() const {
 
 #ifdef DEBUG
   // We are onscreen if our parent is active
-  nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
-  bool isActive = menuPopupFrame ? menuPopupFrame->IsOpen() : false;
+  bool isActive = mContent->AsElement()->HasAttr(nsGkAtoms::menuactive);
   if (!isActive) {
     LocalAccessible* parent = LocalParent();
     if (parent) {
@@ -352,13 +353,9 @@ uint64_t XULMenupopupAccessible::NativeState() const {
                "XULMenupopup doesn't have INVISIBLE when it's inactive");
 #endif
 
-  if (state & states::INVISIBLE) {
-    state |= states::OFFSCREEN;
-  } else {
-    state |= states::EXPANDED;
-  }
+  if (state & states::INVISIBLE) state |= states::OFFSCREEN | states::COLLAPSED;
 
-  return state | states::EXPANDABLE;
+  return state;
 }
 
 ENameValueFlag XULMenupopupAccessible::NativeName(nsString& aName) const {
