@@ -6,7 +6,6 @@ import os
 import shutil
 import subprocess
 import tempfile
-from pathlib import Path
 from unittest.mock import Mock
 
 import mozunit
@@ -16,11 +15,6 @@ from mozbuild.vendor.vendor_python import VendorPython
 
 
 def test_up_to_date_vendor():
-    fetches_dir = os.environ.get("MOZ_FETCHES_DIR", "")
-    uv_dir = Path(fetches_dir) / "uv"
-    if uv_dir.is_dir():
-        os.environ["PATH"] = os.pathsep.join([str(uv_dir), os.environ["PATH"]])
-
     with tempfile.TemporaryDirectory() as work_dir:
         subprocess.check_call(["hg", "init", work_dir])
         os.makedirs(os.path.join(work_dir, "third_party"))
