@@ -537,7 +537,6 @@
             android:autoRemoveFromRecents="false"
             android:configChanges="keyboard|keyboardHidden|mcc|mnc|orientation|screenSize|layoutDirection|smallestScreenSize|screenLayout"
             android:exported="false"
-            android:label="@string/app_name"
             android:persistableMode="persistNever"
             android:taskAffinity=""
             android:resizeableActivity="true"

@@ -508,28 +508,6 @@
     </issue>
 
     <issue
-        id="RedundantLabel"
-        message="Redundant label can be removed"
-        errorLine1="            android:label=&quot;@string/app_name&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/AndroidManifest.xml"
-            line="113"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="RedundantLabel"
-        message="Redundant label can be removed"
-        errorLine1="            android:label=&quot;@string/app_name&quot;"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/AndroidManifest.xml"
-            line="138"
-            column="13"/>
-    </issue>
-
-    <issue
         id="VectorRaster"
         message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
         errorLine1="    android:width=&quot;640dp&quot;"
