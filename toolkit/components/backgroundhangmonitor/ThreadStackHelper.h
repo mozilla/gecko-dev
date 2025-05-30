@@ -33,6 +33,13 @@
 #    define MOZ_THREADSTACKHELPER_NATIVE_STACK
 #  endif
 
+// There are frequent crashes on Android 32 bit ARM builds during EHABI
+// stackwalking. See bug 1969481.
+#  if defined(__ANDROID__) && defined(__arm__)
+#    undef MOZ_THREADSTACKHELPER_PROFILING_STACK
+#    undef MOZ_THREADSTACKHELPER_NATIVE_STACK
+#  endif
+
 namespace mozilla {
 
 /**
