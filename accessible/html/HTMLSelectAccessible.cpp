@@ -313,11 +313,9 @@ uint64_t HTMLComboboxAccessible::NativeState() const {
   nsComboboxControlFrame* comboFrame = do_QueryFrame(GetFrame());
   if (comboFrame && comboFrame->IsDroppedDown()) {
     state |= states::EXPANDED;
-  } else {
-    state |= states::COLLAPSED;
   }
 
-  state |= states::HASPOPUP;
+  state |= states::HASPOPUP | states::EXPANDABLE;
   return state;
 }
 
