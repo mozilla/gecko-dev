@@ -564,6 +564,9 @@ tasks.register('generateLocaleList') {
         generatedLocaleListDir.mkdir()
         localeList.delete()
         localeList.createNewFile()
+        localeList << "/* This Source Code Form is subject to the terms of the Mozilla Public" << "\n"
+        localeList << " * License, v. 2.0. If a copy of the MPL was not distributed with this" << "\n"
+        localeList << " * file, You can obtain one at http://mozilla.org/MPL/2.0/. */" << "\n" << "\n"
         localeList << "package org.mozilla.focus.generated" << "\n" << "\n"
         localeList << "import java.util.Collections" << "\n"
         localeList << "\n"
