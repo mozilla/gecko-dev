@@ -197,6 +197,36 @@
 
 namespace js {
 
+// Because the LifoAlloc just drops its contents on the floor, it should only be
+// used for types that are trivially destructible, or that have been whitelisted
+// (either because they are ok with not having their destructors run, or are
+// manually torn down before the LifoAlloc is cleared.)
+
+template <typename T, typename = void>
+struct CanLifoAlloc : std::false_type {};
+
+// Pointers can be dropped.
+template <typename T>
+struct CanLifoAlloc<T*> : std::true_type {};
+
+// Use this to wrap a return type for a function that returns a T* stored within
+// a LifoAlloc. It will fail SFINAE if it should not be used.
+//
+// Example:
+//
+//   template <typename T> auto new_(int x, int y) -> js::lifo_alloc_pointer<T*>
+//   { ... }
+//
+// If a type has a nontrivial destructor but should still be allowed, allowlist
+// it with CanLifoAlloc<T>:
+//
+//   template <> struct CanLifoAlloc<MyType> : std::true_type {};
+//
+template <typename T>
+using lifo_alloc_pointer =
+    typename std::enable_if<js::CanLifoAlloc<typename std::remove_pointer<T>::type>::value || std::is_trivially_destructible_v<typename std::remove_pointer<T>::type>,
+                   T>::type;
+
 namespace detail {
 
 template <typename T, typename D>
@@ -850,7 +880,8 @@ class LifoAlloc {
   }
 
   template <typename T, typename... Args>
-  MOZ_ALWAYS_INLINE T* newWithSize(size_t n, Args&&... args) {
+  MOZ_ALWAYS_INLINE auto newWithSize(size_t n, Args&&... args)
+      -> js::lifo_alloc_pointer<T*> {
     MOZ_ASSERT(n >= sizeof(T), "must request enough space to store a T");
     static_assert(alignof(T) <= detail::LIFO_ALLOC_ALIGN,
                   "LifoAlloc must provide enough alignment to store T");
