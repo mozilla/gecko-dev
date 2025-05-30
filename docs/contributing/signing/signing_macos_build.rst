@@ -104,11 +104,16 @@ allowing a signing certificate and provisioning profile to be generated. The
 provisioning profile used with Development certificates limits the signed
 application to Mozilla developer machines via a hardware ID. Employees can file
 a bug `here <https://bugzilla.mozilla.org/enter_bug.cgi?product=App%20Stores&component=App%20Store%20Access>`__
-to request an account. Once the developer's Apple account is setup as a member
+to request an account.
+
+Once the developer's Apple account is setup as a member
 of Mozilla's Apple account, Xcode can be used to download a Developer signing
-certificate and provisioning profile for development use. Use Keychain Access to
-get the codesigning identifier for your development cert which should be passed
-as the ``-s`` codesigning identity to ``mach macos-sign``:
+certificate and provisioning profile for development use. See
+:doc:`Configure Development Certificate <../signing/configure_development_certificate>`
+for instructions on how to set up a development certificate and provisioning
+profile using Xcode. Use Keychain Access to get the codesigning identifier for
+your development cert which should be passed as the ``-s`` codesigning identity
+to ``mach macos-sign``:
 
 .. code-block:: shell
 
