@@ -450,6 +450,7 @@ class TabsUseCases(
                     private = private,
                     source = source,
                     initialLoadFlags = flags,
+                    desktopMode = store.state.desktopMode,
                 )
                 store.dispatch(TabListAction.AddTabAction(tab, select = true))
                 store.dispatch(

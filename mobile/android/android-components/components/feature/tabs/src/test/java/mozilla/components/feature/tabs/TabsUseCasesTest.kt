@@ -7,6 +7,7 @@ package mozilla.components.feature.tabs
 import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.session.storage.RecoverableBrowserState
 import mozilla.components.browser.session.storage.SessionStorage
+import mozilla.components.browser.state.action.DefaultDesktopModeAction
 import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.action.TabListAction
 import mozilla.components.browser.state.engine.EngineMiddleware
@@ -558,6 +559,29 @@ class TabsUseCasesTest {
 
         assertEquals(2, store.state.tabs.size)
         assertEquals(store.state.selectedTabId, tabID)
+    }
+
+    @Test
+    fun `selectOrAddTab adds new tab when store desktop mode is false and tab's desktop mode matches`() {
+        assertEquals(false, store.state.desktopMode)
+
+        val tabID = tabsUseCases.selectOrAddTab(url = "https://firefox.com")
+        store.waitUntilIdle()
+
+        assertEquals(store.state.selectedTabId, tabID)
+        assertEquals(false, store.state.selectedTab?.content?.desktopMode)
+    }
+
+    @Test
+    fun `selectOrAddTab adds new tab when store desktop mode is true and tab's desktop mode matches`() {
+        store.dispatch(DefaultDesktopModeAction.ToggleDesktopMode).joinBlocking()
+        assertEquals(true, store.state.desktopMode)
+
+        val tabID = tabsUseCases.selectOrAddTab(url = "https://firefox.com")
+        store.waitUntilIdle()
+
+        assertEquals(store.state.selectedTabId, tabID)
+        assertEquals(true, store.state.selectedTab?.content?.desktopMode)
     }
 
     private fun assertTabsDuplicates(tab: TabSessionState, dup: TabSessionState) {
