@@ -29,11 +29,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.BuildConfig
 import org.mozilla.fenix.R
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.utils.LinkTextView
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class WebExtensionPromptFeatureTest {
 
     private lateinit var webExtensionPromptFeature: WebExtensionPromptFeature

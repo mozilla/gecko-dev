@@ -10,10 +10,10 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class TabsTrayDialogTest {
     @Test
     fun `WHEN onBackPressed THEN invoke interactor`() {

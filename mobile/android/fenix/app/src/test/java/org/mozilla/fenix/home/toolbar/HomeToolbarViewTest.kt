@@ -24,11 +24,11 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.databinding.FragmentHomeBinding
 import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.home.HomeFragment
 import org.mozilla.fenix.home.HomeMenuView
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class HomeToolbarViewTest {
 
     private lateinit var binding: FragmentHomeBinding

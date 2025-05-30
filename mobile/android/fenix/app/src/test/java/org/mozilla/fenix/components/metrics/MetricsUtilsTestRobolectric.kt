@@ -20,13 +20,12 @@ import org.mozilla.experiments.nimbus.NimbusEventStore
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.Metrics
 import org.mozilla.fenix.components.metrics.MetricsUtilsTest.Companion.ENGINE_SOURCE_IDENTIFIER
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 
 /**
  * Just the Robolectric tests for MetricsUtil. Splitting these files out means our other tests will run more quickly.
- * FenixRobolectricTestRunner also breaks our ability to use mockkStatic on Base64.
  */
-@RunWith(FenixRobolectricTestRunner::class) // for gleanTestRule
+@RunWith(RobolectricTestRunner::class) // for gleanTestRule
 class MetricsUtilsTestRobolectric {
 
     @get:Rule

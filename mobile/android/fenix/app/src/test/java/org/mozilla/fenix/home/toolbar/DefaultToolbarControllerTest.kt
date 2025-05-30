@@ -28,10 +28,10 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class) // For gleanTestRule
+@RunWith(RobolectricTestRunner::class) // For gleanTestRule
 class DefaultToolbarControllerTest {
 
     @get:Rule

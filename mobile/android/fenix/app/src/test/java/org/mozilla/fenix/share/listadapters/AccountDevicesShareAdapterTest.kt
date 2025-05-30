@@ -15,11 +15,11 @@ import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.share.ShareInteractor
 import org.mozilla.fenix.share.viewholders.AccountDeviceViewHolder
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class AccountDevicesShareAdapterTest {
     private val interactor: ShareInteractor = mockk(relaxed = true)
 

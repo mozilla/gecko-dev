@@ -13,10 +13,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.ext.clearAndCommit
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.helpers.perf.TestStrictModeManager
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class WhatsNewTest {
 
     private lateinit var storage: SharedPreferenceWhatsNewStorage

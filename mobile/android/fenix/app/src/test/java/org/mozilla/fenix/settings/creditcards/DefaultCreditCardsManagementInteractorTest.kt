@@ -16,11 +16,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.CreditCards
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.creditcards.controller.CreditCardsManagementController
 import org.mozilla.fenix.settings.creditcards.interactor.DefaultCreditCardsManagementInteractor
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class DefaultCreditCardsManagementInteractorTest {
 
     @get:Rule

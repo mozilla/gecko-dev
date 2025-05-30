@@ -27,11 +27,11 @@ import org.mozilla.fenix.GleanMetrics.Addresses
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.FragmentAddressEditorBinding
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.address.interactor.AddressEditorInteractor
 import org.mozilla.fenix.settings.address.view.AddressEditorView
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class) // For gleanTestRule
+@RunWith(RobolectricTestRunner::class) // For gleanTestRule
 class AddressEditorViewTest {
 
     private lateinit var view: View

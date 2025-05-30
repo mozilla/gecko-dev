@@ -38,16 +38,16 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.search.SearchDialogFragmentStore
 import org.mozilla.fenix.search.SearchEngineSource
 import org.mozilla.fenix.search.SearchFragmentAction.SearchDefaultEngineSelected
 import org.mozilla.fenix.search.SearchFragmentAction.SearchHistoryEngineSelected
 import org.mozilla.fenix.search.SearchFragmentState
 import org.mozilla.fenix.utils.Settings
+import org.robolectric.RobolectricTestRunner
 import java.util.UUID
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class SearchSelectorToolbarActionTest {
 
     private lateinit var store: SearchDialogFragmentStore

@@ -26,12 +26,12 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.experiments.nimbus.internal.EnrolledExperiment
 import org.mozilla.fenix.R
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.studies.CustomViewHolder.SectionViewHolder
 import org.mozilla.fenix.settings.studies.CustomViewHolder.StudyViewHolder
 import org.mozilla.fenix.settings.studies.StudiesAdapter.Section
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class StudiesAdapterTest {
     @RelaxedMockK
     private lateinit var delegate: StudiesAdapterDelegate

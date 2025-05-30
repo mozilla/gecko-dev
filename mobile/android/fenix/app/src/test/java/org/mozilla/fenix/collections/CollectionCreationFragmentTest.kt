@@ -21,15 +21,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.helpers.perf.TestStrictModeManager
+import org.robolectric.RobolectricTestRunner
 
 private const val URL_MOZILLA = "www.mozilla.org"
 private const val SESSION_ID_MOZILLA = "0"
 private const val URL_BCC = "www.bcc.co.uk"
 private const val SESSION_ID_BCC = "1"
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class CollectionCreationFragmentTest {
 
     private val publicSuffixList = mockk<PublicSuffixList>(relaxed = true)

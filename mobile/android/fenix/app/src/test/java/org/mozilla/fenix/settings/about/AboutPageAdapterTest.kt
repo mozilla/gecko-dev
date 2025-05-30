@@ -17,10 +17,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.databinding.AboutListItemBinding
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.about.viewholders.AboutItemViewHolder
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class AboutPageAdapterTest {
     private val aboutList: List<AboutPageItem> =
         listOf(

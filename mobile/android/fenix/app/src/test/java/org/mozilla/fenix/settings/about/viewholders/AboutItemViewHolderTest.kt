@@ -13,12 +13,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.about.AboutItem
 import org.mozilla.fenix.settings.about.AboutPageItem
 import org.mozilla.fenix.settings.about.AboutPageListener
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class AboutItemViewHolderTest {
 
     private val item = AboutPageItem(AboutItem.Libraries, "Libraries")

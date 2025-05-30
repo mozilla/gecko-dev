@@ -11,9 +11,9 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.debugsettings.tabs.MAX_TABS_GENERATED
 import org.mozilla.fenix.debugsettings.tabs.validateTextField
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class TabToolsTabCreationErrorTest {
 
     @Test

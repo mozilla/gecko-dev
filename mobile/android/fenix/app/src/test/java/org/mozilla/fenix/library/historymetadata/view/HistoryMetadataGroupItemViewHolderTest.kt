@@ -16,13 +16,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.databinding.HistoryMetadataGroupListItemBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.library.history.History
 import org.mozilla.fenix.library.history.HistoryItemTimeGroup
 import org.mozilla.fenix.library.historymetadata.interactor.HistoryMetadataGroupInteractor
 import org.mozilla.fenix.selection.SelectionHolder
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class HistoryMetadataGroupItemViewHolderTest {
 
     private lateinit var binding: HistoryMetadataGroupListItemBinding

@@ -18,8 +18,11 @@ import io.mockk.spyk
 import io.mockk.verify
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mozilla.fenix.navigation.NavControllerProvider
+import org.robolectric.RobolectricTestRunner
 
+@RunWith(RobolectricTestRunner::class)
 class FragmentTest {
 
     private val navDirections: NavDirections = mockk(relaxed = true)

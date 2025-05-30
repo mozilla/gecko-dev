@@ -20,11 +20,11 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.logins.SavedLoginsSortingStrategyMenu.Item
 import org.mozilla.fenix.settings.logins.interactor.SavedLoginsInteractor
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class SavedLoginsSortingStrategyMenuTest {
 
     private lateinit var context: Context

@@ -19,7 +19,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.components.TabCollectionStorage
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 
 private const val URL_MOZILLA = "www.mozilla.org"
 private const val SESSION_ID_MOZILLA = "0"
@@ -29,7 +29,7 @@ private const val SESSION_ID_BCC = "1"
 private const val SESSION_ID_BAD_1 = "not a real session id"
 private const val SESSION_ID_BAD_2 = "definitely not a real session id"
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class CollectionCreationStoreTest {
 
     @MockK private lateinit var tabCollectionStorage: TabCollectionStorage

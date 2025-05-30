@@ -27,11 +27,11 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.SyncAuth
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
+import org.robolectric.RobolectricTestRunner
 
 // For gleanTestRule
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class BackgroundServicesTest {
 
     @get:Rule

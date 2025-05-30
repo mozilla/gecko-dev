@@ -17,11 +17,11 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.databinding.AccountShareListItemBinding
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.share.ShareToAccountDevicesInteractor
 import org.mozilla.fenix.share.listadapters.SyncShareOption
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class AccountDeviceViewHolderTest {
 
     private val baseDevice = Device(

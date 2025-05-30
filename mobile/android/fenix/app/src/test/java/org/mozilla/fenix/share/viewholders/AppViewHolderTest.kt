@@ -16,11 +16,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.AppShareListItemBinding
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.share.ShareToAppsInteractor
 import org.mozilla.fenix.share.listadapters.AppShareOption
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class AppViewHolderTest {
 
     private lateinit var binding: AppShareListItemBinding

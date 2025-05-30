@@ -19,7 +19,7 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.ReviewPrompt
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -33,7 +33,7 @@ class TestReviewSettings(
         get() = isDefault
 }
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class ReviewPromptControllerTest {
 
     @get:Rule

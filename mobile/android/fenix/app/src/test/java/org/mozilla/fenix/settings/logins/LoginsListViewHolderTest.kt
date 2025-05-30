@@ -16,11 +16,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.databinding.LoginsItemBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.logins.interactor.SavedLoginsInteractor
 import org.mozilla.fenix.settings.logins.view.LoginsListViewHolder
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class LoginsListViewHolderTest {
 
     private val baseLogin = SavedLogin(

@@ -13,13 +13,13 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.logins.controller.LoginsListController
 import org.mozilla.fenix.settings.logins.controller.SavedLoginsStorageController
 import org.mozilla.fenix.settings.logins.interactor.SavedLoginsInteractor
+import org.robolectric.RobolectricTestRunner
 import kotlin.random.Random
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class SavedLoginsInteractorTest {
     private val listController: LoginsListController = mockk(relaxed = true)
     private val savedLoginsStorageController: SavedLoginsStorageController = mockk(relaxed = true)

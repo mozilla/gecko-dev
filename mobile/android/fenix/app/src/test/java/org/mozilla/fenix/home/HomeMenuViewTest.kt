@@ -29,13 +29,13 @@ import org.mozilla.fenix.components.accounts.AccountState
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.whatsnew.WhatsNew
+import org.robolectric.RobolectricTestRunner
 import java.lang.ref.WeakReference
 import org.mozilla.fenix.GleanMetrics.HomeMenu as HomeMenuMetrics
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class HomeMenuViewTest {
 
     @get:Rule

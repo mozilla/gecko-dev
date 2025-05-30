@@ -18,9 +18,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class AutofillSelectBarBehaviorTest {
     private val loginsBar = mockk<FrameLayout>(relaxed = true)
     private var layoutParams = CoordinatorLayout.LayoutParams(0, 0)

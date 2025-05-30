@@ -24,9 +24,9 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.ReleaseChannel
 import org.mozilla.fenix.components.Components
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class StrictModeManagerTest {
 
     private lateinit var debugManager: StrictModeManager

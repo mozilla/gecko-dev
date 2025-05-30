@@ -27,12 +27,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.settings.biometric.ext.isEnrolled
 import org.mozilla.fenix.settings.biometric.ext.isHardwareAvailable
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class BiometricPromptFeatureTest {
 
     lateinit var fragment: Fragment

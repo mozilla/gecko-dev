@@ -24,9 +24,9 @@ import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.ext.getRootView
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class StandardSnackbarErrorBindingTest {
 
     @get:Rule

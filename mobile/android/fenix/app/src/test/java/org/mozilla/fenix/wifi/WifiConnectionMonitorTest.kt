@@ -16,11 +16,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
+import org.robolectric.RobolectricTestRunner
 import kotlin.collections.removeFirst as removeFirstKt
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class WifiConnectionMonitorTest {
     lateinit var settings: Settings
     lateinit var connectivityManager: ConnectivityManager

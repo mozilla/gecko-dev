@@ -19,10 +19,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 import org.mozilla.fenix.GleanMetrics.StorageStats as Metrics
 
-@RunWith(FenixRobolectricTestRunner::class) // gleanTestRule
+@RunWith(RobolectricTestRunner::class) // gleanTestRule
 class StorageStatsMetricsTest {
 
     @get:Rule

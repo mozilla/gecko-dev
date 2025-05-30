@@ -15,11 +15,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.settings
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.trackingprotection.TrackingProtectionMode.CUSTOM
 import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class TrackingProtectionBlockingFragmentTest {
     @Test
     fun `GIVEN total cookie protection is enabled WHEN showing details about the protection options THEN show update details for tracking protection`() {

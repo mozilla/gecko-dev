@@ -19,9 +19,9 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.crashes.CrashContentView.Companion.TAP_INCREASE_DP
 import org.mozilla.fenix.ext.increaseTapArea
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class CrashContentViewTest {
     @Test
     fun `WHEN show is called THEN remember the controller, inflate and display the View`() {

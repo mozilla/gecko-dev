@@ -19,10 +19,10 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.BookmarksManagement
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
+import org.robolectric.RobolectricTestRunner
 
 @SuppressWarnings("TooManyFunctions", "LargeClass")
-@RunWith(FenixRobolectricTestRunner::class) // For GleanTestRule
+@RunWith(RobolectricTestRunner::class) // For GleanTestRule
 class BookmarkFragmentInteractorTest {
 
     @get:Rule

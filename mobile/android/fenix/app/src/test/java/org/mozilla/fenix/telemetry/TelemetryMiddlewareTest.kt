@@ -49,14 +49,14 @@ import org.mozilla.fenix.components.metrics.Event
 import org.mozilla.fenix.components.metrics.MetricController
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
+import org.robolectric.RobolectricTestRunner
 import org.robolectric.shadows.ShadowLooper
 import org.mozilla.fenix.GleanMetrics.EngineTab as EngineMetrics
 
 private const val SEARCH_ENGINE_NAME = "Test"
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class TelemetryMiddlewareTest {
 
     private lateinit var store: BrowserStore

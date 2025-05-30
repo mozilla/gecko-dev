@@ -32,11 +32,11 @@ import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.recordEventInNimbus
 import org.mozilla.fenix.helpers.FenixGleanTestRule
-import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.geckoview.GeckoSession
+import org.robolectric.RobolectricTestRunner
 import java.io.IOException
 
-@RunWith(FenixRobolectricTestRunner::class)
+@RunWith(RobolectricTestRunner::class)
 class SaveToPDFMiddlewareTest {
     private lateinit var appStore: AppStore
 
