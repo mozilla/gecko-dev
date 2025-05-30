@@ -40,7 +40,7 @@ const DEFERRED_TASK_MAX_IDLE_WAIT_MS = 2 * 60000;
 const DEFAULT_CHUNK_SIZE = 50;
 const ONE_MiB = 1024 * 1024;
 
-export class PlacesSemanticHistoryManager {
+class PlacesSemanticHistoryManager {
   #promiseConn;
   #engine = undefined;
   #embeddingSize;
@@ -756,4 +756,29 @@ export class PlacesSemanticHistoryManager {
   stopProcess() {
     this.#finalize();
   }
+}
+
+// internal holder for the singleton
+let gSingleton = null;
+
+/**
+ * Get the one shared semantic‐history manager.
+ * @param {Object} [options] invokes PlacesSemanticHistoryManager constructor on first call or if recreate==true
+ * @param {boolean} recreate set could true only for testing purposes and should not be true in production
+ */
+export function getPlacesSemanticHistoryManager(
+  options = {
+    embeddingSize: 384,
+    rowLimit: 600,
+    samplingAttrib: "frecency",
+    changeThresholdCount: 3,
+    distanceThreshold: 0.75,
+    testFlag: false,
+  },
+  recreate = false
+) {
+  if (!gSingleton || recreate) {
+    gSingleton = new PlacesSemanticHistoryManager(options);
+  }
+  return gSingleton;
 }

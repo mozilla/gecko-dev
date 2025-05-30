@@ -12,7 +12,7 @@ import {
   UrlbarProvider,
   UrlbarUtils,
 } from "resource:///modules/UrlbarUtils.sys.mjs";
-import { PlacesSemanticHistoryManager } from "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs";
+import { getPlacesSemanticHistoryManager as PlacesSemanticHistoryManager } from "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs";
 
 const lazy = {};
 
@@ -64,7 +64,7 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
         "places.semanticHistory.distanceThreshold",
         0.75
       );
-      this.#semanticManager = new PlacesSemanticHistoryManager({
+      this.#semanticManager = PlacesSemanticHistoryManager({
         embeddingSize: 384,
         rowLimit: 10000,
         samplingAttrib: "frecency",
