@@ -10082,8 +10082,8 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   if (MOZ_LIKELY(!IsSubgrid())) {
     return gridRI.mCols.SumOfGridTracksAndGaps();
   }
-  const auto& last = gridRI.mCols.mSizes.LastElement();
-  return last.mPosition + last.mBase;
+  return gridRI.mCols.GridLineEdge(gridRI.mCols.mSizes.Length(),
+                                   GridLineSide::BeforeGridGap);
 }
 
 nscoord nsGridContainerFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
