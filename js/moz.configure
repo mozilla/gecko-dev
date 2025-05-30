@@ -1048,26 +1048,6 @@ set_config("ENABLE_WASM_MEMORY_CONTROL", wasm_memory_control)
 set_define("ENABLE_WASM_MEMORY_CONTROL", wasm_memory_control)
 
 
-# Support for WebAssembly Multi Memory.
-# =====================================
-
-
-option(
-    "--disable-wasm-multi-memory",
-    help="{Enable|Disable} WebAssembly multi-memory",
-)
-
-
-@depends("--disable-wasm-multi-memory")
-def wasm_multi_memory(value):
-    if value:
-        return True
-
-
-set_config("ENABLE_WASM_MULTI_MEMORY", wasm_multi_memory)
-set_define("ENABLE_WASM_MULTI_MEMORY", wasm_multi_memory)
-
-
 # Support for WebAssembly Branch-hinting.
 # ===========================
 

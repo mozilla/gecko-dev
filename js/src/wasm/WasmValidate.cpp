@@ -2970,10 +2970,6 @@ static bool DecodeGlobalType(Decoder& d, const SharedTypeContext& types,
 
 static bool DecodeMemoryTypeAndLimits(Decoder& d, CodeMetadata* codeMeta,
                                       MemoryDescVector* memories) {
-  if (!codeMeta->features().multiMemory && codeMeta->numMemories() == 1) {
-    return d.fail("already have default memory");
-  }
-
   if (codeMeta->numMemories() >= MaxMemories) {
     return d.fail("too many memories");
   }
@@ -3309,10 +3305,6 @@ static bool DecodeMemorySection(Decoder& d, CodeMetadata* codeMeta) {
   uint32_t numMemories;
   if (!d.readVarU32(&numMemories)) {
     return d.fail("failed to read number of memories");
-  }
-
-  if (!codeMeta->features().multiMemory && numMemories > 1) {
-    return d.fail("the number of memories must be at most one");
   }
 
   for (uint32_t i = 0; i < numMemories; ++i) {

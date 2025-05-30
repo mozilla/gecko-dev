@@ -135,11 +135,7 @@ function memorySection2() {
 }
 
 wasmEval(moduleWithSections([memorySection0()]));
-if (wasmMultiMemoryEnabled()) {
-    wasmEval(moduleWithSections([memorySection2()]));
-} else {
-    assertErrorMessage(() => wasmEval(moduleWithSections([memorySection2()])), CompileError, /number of memories must be at most one/);
-}
+wasmEval(moduleWithSections([memorySection2()]));
 
 // Test early 'end'
 const bodyMismatch = /(function body length mismatch)|(operators remaining after end of function)/;
