@@ -445,6 +445,7 @@ class ChromeActions {
       supportsMouseWheelZoomMetaKey:
         Services.prefs.getIntPref("mousewheel.with_meta.action") === 3,
       supportsPinchToZoom: Services.prefs.getBoolPref("apz.allow_zooming"),
+      supportsPrinting: Services.prefs.getBoolPref("print.enabled"),
       supportsCaretBrowsingMode: Services.prefs.getBoolPref(
         caretBrowsingModePref
       ),
