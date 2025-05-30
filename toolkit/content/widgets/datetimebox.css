@@ -42,10 +42,9 @@
 
 .datetime-calendar-button {
   -moz-context-properties: fill;
-  color: inherit;
+  color: color-mix(in srgb, currentColor 65%, transparent);
   font-size: inherit;
   fill: currentColor;
-  opacity: 0.65;
   background-color: transparent;
   border: none;
   border-radius: 0.2em;
@@ -61,11 +60,10 @@
 
   &:focus-visible,
   &:hover {
-    opacity: 1;
+    color: inherit;
   }
 
   @media (prefers-contrast) {
-    opacity: 1;
     background-color: ButtonFace;
     color: ButtonText;
 
