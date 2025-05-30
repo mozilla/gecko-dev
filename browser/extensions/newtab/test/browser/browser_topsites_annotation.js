@@ -265,6 +265,37 @@ function unpin(link) {
 }
 
 add_setup(async function () {
+  // Bug 1570686 renamed UrlbarController.addQueryListener and
+  // UrlbarController.removeQueryListener to addListener and removeListener,
+  // respectively. This happened in 141, and the UrlbarTestUtils was updated
+  // to call those methods. UrlbarTestUtils is included in the test package
+  // that we download when doing trainhop tests, so when we run our trainhop
+  // automated tests, UrlbarTestUtils calls UrlbarController.addListener
+  // and UrlbarController.removeListener when those methods don't exist (since
+  // 140 is still using addQueryListener and removeQueryListener).
+  //
+  // We workaround this temporarily by checking the app version, and
+  // monkey-patching a redirect of addListener and removeListener to
+  // addQueryListener and removeQueryListener.
+  if (AppConstants.MOZ_APP_VERSION === "140.0") {
+    let { UrlbarController } = ChromeUtils.importESModule(
+      "resource:///modules/UrlbarController.sys.mjs"
+    );
+
+    UrlbarController.prototype.addListener = function (...args) {
+      this.addQueryListener(...args);
+    };
+
+    UrlbarController.prototype.removeListener = function (...args) {
+      this.removeQueryListener(...args);
+    };
+
+    registerCleanupFunction(() => {
+      delete UrlbarController.prototype.addListener;
+      delete UrlbarController.prototype.removeListener;
+    });
+  }
+
   await clearHistoryAndBookmarks();
   registerCleanupFunction(async () => {
     await clearHistoryAndBookmarks();
