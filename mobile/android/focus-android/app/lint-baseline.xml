@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.9.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.9.0)" variant="all" version="8.9.0">
+<issues format="6" by="lint 8.10.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.10.1)" variant="all" version="8.10.1">
 
     <issue
         id="CommitTransaction"
@@ -8,7 +8,7 @@
         errorLine2="             ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/focus/navigation/MainActivityNavigation.kt"
-            line="254"
+            line="260"
             column="14"/>
     </issue>
 
@@ -19,7 +19,7 @@
         errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/focus/settings/privacy/TrackingProtectionPanel.kt"
-            line="160"
+            line="161"
             column="38"/>
     </issue>
 
@@ -30,19 +30,19 @@
         errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/focus/settings/privacy/TrackingProtectionPanel.kt"
-            line="160"
+            line="161"
             column="38"/>
     </issue>
 
     <issue
-        id="UnusedAttribute"
-        message="Attribute `usesCleartextTraffic` is only used in API level 23 and higher (current min is 21)"
-        errorLine1="        android:usesCleartextTraffic=&quot;true&quot;>"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="InlinedApi"
+        message="Field requires API level 24 (current min is 21): `android.accessibilityservice.AccessibilityServiceInfo#CAPABILITY_CAN_PERFORM_GESTURES`"
+        errorLine1="            it.capabilities.and(AccessibilityServiceInfo.CAPABILITY_CAN_PERFORM_GESTURES) == 1"
+        errorLine2="                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/AndroidManifest.xml"
-            line="70"
-            column="9"/>
+            file="src/main/java/org/mozilla/focus/ext/Context.kt"
+            line="72"
+            column="33"/>
     </issue>
 
     <issue
@@ -63,7 +63,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/item_custom_domain.xml"
-            line="13"
+            line="14"
             column="5"/>
     </issue>
 
@@ -444,12 +444,12 @@
     <issue
         id="AppBundleLocaleChanges"
         message="Found dynamic locale changes, but did not find corresponding Play Core library calls for downloading languages and splitting by language is not disabled in the `bundle` configuration"
-        errorLine1="        configuration.setLocale(currentLocale)"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="            configuration.setLocale(locale)"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/org/mozilla/focus/locale/Locales.kt"
-            line="104"
-            column="9"/>
+            file="src/main/java/org/mozilla/focus/locale/screen/LanguageMiddleware.kt"
+            line="85"
+            column="13"/>
     </issue>
 
     <issue
@@ -481,7 +481,7 @@
         errorLine2="         ~~~~~~">
         <location
             file="src/main/res/layout/fragment_search_suggestions.xml"
-            line="107"
+            line="108"
             column="10"/>
     </issue>
 
@@ -943,7 +943,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/focus/open/AppViewHolder.kt"
-            line="43"
+            line="38"
             column="31"/>
     </issue>
 
@@ -1097,7 +1097,7 @@
         errorLine2="     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/fragment_search_suggestions.xml"
-            line="88"
+            line="89"
             column="6"/>
     </issue>
 
@@ -1121,6 +1121,17 @@
             file="src/main/java/org/mozilla/focus/exceptions/ExceptionsListFragment.kt"
             line="218"
             column="21"/>
+    </issue>
+
+    <issue
+        id="Overdraw"
+        message="Possible overdraw: Root element paints background `@color/settings_background` with a theme that also paints a background (inferred theme is `@style/Theme.App.Starting`)"
+        errorLine1="    android:background=&quot;@color/settings_background&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/layout/activity_main.xml"
+            line="9"
+            column="5"/>
     </issue>
 
     <issue
@@ -1301,6 +1312,17 @@
 
     <issue
         id="UnusedResources"
+        message="The resource `R.color.accent` appears to be unused"
+        errorLine1="    &lt;color name=&quot;accent&quot;>@color/photonPink70&lt;/color>"
+        errorLine2="           ~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="30"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
         message="The resource `R.color.homeGradient1` appears to be unused"
         errorLine1="    &lt;color name=&quot;homeGradient1&quot;>#D3D4FA&lt;/color>"
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~">
@@ -1466,6 +1488,28 @@
 
     <issue
         id="UnusedResources"
+        message="The resource `R.color.onboarding_indicator_default` appears to be unused"
+        errorLine1="    &lt;color name=&quot;onboarding_indicator_default&quot;>#7FFFFFFF&lt;/color>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="82"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.color.onboarding_indicator_selected` appears to be unused"
+        errorLine1="    &lt;color name=&quot;onboarding_indicator_selected&quot;>#FFFFFFFF&lt;/color>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/colors.xml"
+            line="83"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
         message="The resource `R.color.onboardingCloseButtonColor` appears to be unused"
         errorLine1="    &lt;color name=&quot;onboardingCloseButtonColor&quot;>#F2F2F7&lt;/color>"
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -1625,7 +1669,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="19"
+            line="15"
             column="12"/>
     </issue>
 
@@ -1636,7 +1680,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="22"
+            line="18"
             column="12"/>
     </issue>
 
@@ -1647,7 +1691,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="23"
+            line="19"
             column="12"/>
     </issue>
 
@@ -1658,7 +1702,29 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="24"
+            line="20"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.firstrun_card_width` appears to be unused"
+        errorLine1="    &lt;dimen name=&quot;firstrun_card_width&quot;>300dp&lt;/dimen>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="22"
+            column="12"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.dimen.firstrun_card_height` appears to be unused"
+        errorLine1="    &lt;dimen name=&quot;firstrun_card_height&quot;>460dp&lt;/dimen>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/dimens.xml"
+            line="23"
             column="12"/>
     </issue>
 
@@ -1669,7 +1735,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="29"
+            line="25"
             column="12"/>
     </issue>
 
@@ -1680,7 +1746,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="30"
+            line="26"
             column="12"/>
     </issue>
 
@@ -1691,7 +1757,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="32"
+            line="28"
             column="12"/>
     </issue>
 
@@ -1702,7 +1768,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="36"
+            line="32"
             column="12"/>
     </issue>
 
@@ -1713,7 +1779,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="50"
+            line="46"
             column="12"/>
     </issue>
 
@@ -1724,7 +1790,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="51"
+            line="47"
             column="12"/>
     </issue>
 
@@ -1735,7 +1801,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="52"
+            line="48"
             column="12"/>
     </issue>
 
@@ -1746,7 +1812,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="53"
+            line="49"
             column="12"/>
     </issue>
 
@@ -1757,7 +1823,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="54"
+            line="50"
             column="12"/>
     </issue>
 
@@ -1768,7 +1834,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="55"
+            line="51"
             column="12"/>
     </issue>
 
@@ -1779,7 +1845,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="56"
+            line="52"
             column="12"/>
     </issue>
 
@@ -1790,7 +1856,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="57"
+            line="53"
             column="12"/>
     </issue>
 
@@ -1801,7 +1867,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="58"
+            line="54"
             column="12"/>
     </issue>
 
@@ -1812,7 +1878,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="59"
+            line="55"
             column="12"/>
     </issue>
 
@@ -1823,7 +1889,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="60"
+            line="56"
             column="12"/>
     </issue>
 
@@ -1834,7 +1900,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="61"
+            line="57"
             column="12"/>
     </issue>
 
@@ -1845,7 +1911,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="63"
+            line="59"
             column="12"/>
     </issue>
 
@@ -1856,7 +1922,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="65"
+            line="61"
             column="12"/>
     </issue>
 
@@ -1867,7 +1933,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="66"
+            line="62"
             column="12"/>
     </issue>
 
@@ -1878,7 +1944,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="67"
+            line="63"
             column="12"/>
     </issue>
 
@@ -1889,7 +1955,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="68"
+            line="64"
             column="12"/>
     </issue>
 
@@ -1900,7 +1966,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="70"
+            line="66"
             column="12"/>
     </issue>
 
@@ -1911,7 +1977,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/dimens.xml"
-            line="71"
+            line="67"
             column="12"/>
     </issue>
 
@@ -2122,8 +2188,41 @@
 
     <issue
         id="UnusedResources"
+        message="The resource `R.drawable.indicator_onboarding` appears to be unused"
+        errorLine1="&lt;selector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/indicator_onboarding.xml"
+            line="5"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.indicator_onboarding_default` appears to be unused"
+        errorLine1="&lt;layer-list xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/indicator_onboarding_default.xml"
+            line="5"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.indicator_onboarding_selected` appears to be unused"
+        errorLine1="&lt;layer-list xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/indicator_onboarding_selected.xml"
+            line="5"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
         message="The resource `R.layout.item_indicator_menu_button` appears to be unused"
-        errorLine1="&lt;merge xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine1="&lt;merge"
         errorLine2="^">
         <location
             file="src/main/res/layout/item_indicator_menu_button.xml"
@@ -2237,7 +2336,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="76"
+            line="75"
             column="13"/>
     </issue>
 
@@ -2248,7 +2347,18 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/preference_keys.xml"
-            line="80"
+            line="79"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.new_onboarding_enabled` appears to be unused"
+        errorLine1="    &lt;string name=&quot;new_onboarding_enabled&quot; translatable=&quot;false&quot;>&lt;xliff:g id=&quot;preference_key&quot;>new_onboarding_enabled&lt;/xliff:g>&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/preference_keys.xml"
+            line="119"
             column="13"/>
     </issue>
 
@@ -2727,12 +2837,89 @@
 
     <issue
         id="UnusedResources"
+        message="The resource `R.string.firstrun_defaultbrowser_text2` appears to be unused"
+        errorLine1="    &lt;string name=&quot;firstrun_defaultbrowser_text2&quot;>Take private browsing to the next level. Block ads and other content that can track you across sites and bog down page load times.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="551"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.firstrun_search_text` appears to be unused"
+        errorLine1="    &lt;string name=&quot;firstrun_search_text&quot;>Searching for something different? Choose another default search engine in Settings.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="556"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.firstrun_shortcut_text` appears to be unused"
+        errorLine1="    &lt;string name=&quot;firstrun_shortcut_text&quot;>Return to your favorite sites in %1$s quickly. Just select “Add to Home screen” from the %1$s menu.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="561"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.firstrun_privacy_text` appears to be unused"
+        errorLine1="    &lt;string name=&quot;firstrun_privacy_text&quot;>Set %1$s as your default browser and get the benefits of private browsing when you open webpages from other apps.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="566"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.firstrun_close_button` appears to be unused"
+        errorLine1="    &lt;string name=&quot;firstrun_close_button&quot;>OK, got it!&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="568"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.firstrun_skip_button` appears to be unused"
+        errorLine1="    &lt;string name=&quot;firstrun_skip_button&quot;>Skip&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="569"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.firstrun_next_button` appears to be unused"
+        errorLine1="    &lt;string name=&quot;firstrun_next_button&quot;>Next&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="570"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
         message="The resource `R.string.content_blocking_disabled` appears to be unused"
         errorLine1="    &lt;string name=&quot;content_blocking_disabled&quot;>-&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="570"
+            line="573"
             column="13"/>
     </issue>
 
@@ -2743,7 +2930,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="575"
+            line="578"
             column="13"/>
     </issue>
 
@@ -2754,7 +2941,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="580"
+            line="583"
             column="13"/>
     </issue>
 
@@ -2765,7 +2952,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="603"
+            line="606"
             column="13"/>
     </issue>
 
@@ -2776,7 +2963,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="638"
+            line="616"
             column="13"/>
     </issue>
 
@@ -2787,7 +2974,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="639"
+            line="617"
             column="13"/>
     </issue>
 
@@ -2798,7 +2985,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="640"
+            line="618"
             column="13"/>
     </issue>
 
@@ -2809,7 +2996,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="644"
+            line="622"
             column="13"/>
     </issue>
 
@@ -2820,7 +3007,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="645"
+            line="623"
             column="13"/>
     </issue>
 
@@ -2831,7 +3018,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="647"
+            line="625"
             column="13"/>
     </issue>
 
@@ -2842,7 +3029,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="650"
+            line="628"
             column="13"/>
     </issue>
 
@@ -2853,7 +3040,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="657"
+            line="635"
             column="13"/>
     </issue>
 
@@ -2864,7 +3051,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="662"
+            line="640"
             column="13"/>
     </issue>
 
@@ -2875,7 +3062,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="666"
+            line="644"
             column="13"/>
     </issue>
 
@@ -2886,7 +3073,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="669"
+            line="647"
             column="13"/>
     </issue>
 
@@ -2897,7 +3084,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="671"
+            line="649"
             column="13"/>
     </issue>
 
@@ -2908,7 +3095,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="673"
+            line="651"
             column="13"/>
     </issue>
 
@@ -2919,7 +3106,73 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="676"
+            line="654"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.preference_studies` appears to be unused"
+        errorLine1="    &lt;string name=&quot;preference_studies&quot; moz:removedIn=&quot;140&quot;>Studies&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="801"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.preference_studies_summary` appears to be unused"
+        errorLine1="    &lt;string name=&quot;preference_studies_summary&quot; tools:ignore=&quot;BrandUsage&quot; moz:removedIn=&quot;140&quot;>Firefox may install and run studies from time to time.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="804"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.studies_learn_more` appears to be unused"
+        errorLine1="    &lt;string name=&quot;studies_learn_more&quot; moz:removedIn=&quot;140&quot;>Learn more&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="807"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.studies_remove` appears to be unused"
+        errorLine1="    &lt;string name=&quot;studies_remove&quot; moz:removedIn=&quot;140&quot;>Remove&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="810"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.studies_active` appears to be unused"
+        errorLine1="    &lt;string name=&quot;studies_active&quot; moz:removedIn=&quot;140&quot;>Active&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="813"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.studies_completed` appears to be unused"
+        errorLine1="    &lt;string name=&quot;studies_completed&quot; moz:removedIn=&quot;140&quot;>Completed&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="816"
             column="13"/>
     </issue>
 
@@ -2930,7 +3183,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="857"
+            line="832"
             column="13"/>
     </issue>
 
@@ -2941,7 +3194,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="864"
+            line="839"
             column="13"/>
     </issue>
 
@@ -2952,7 +3205,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="868"
+            line="843"
             column="13"/>
     </issue>
 
@@ -2963,7 +3216,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="893"
+            line="868"
             column="13"/>
     </issue>
 
@@ -2974,7 +3227,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="898"
+            line="873"
             column="13"/>
     </issue>
 
@@ -2985,7 +3238,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="903"
+            line="878"
             column="13"/>
     </issue>
 
@@ -2996,7 +3249,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="909"
+            line="884"
             column="13"/>
     </issue>
 
@@ -3007,7 +3260,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="915"
+            line="890"
             column="13"/>
     </issue>
 
@@ -3018,7 +3271,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="920"
+            line="895"
             column="13"/>
     </issue>
 
@@ -3029,7 +3282,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="923"
+            line="898"
             column="13"/>
     </issue>
 
@@ -3040,7 +3293,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="926"
+            line="901"
             column="13"/>
     </issue>
 
@@ -3051,7 +3304,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="929"
+            line="904"
             column="13"/>
     </issue>
 
@@ -3062,7 +3315,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="953"
+            line="928"
             column="13"/>
     </issue>
 
@@ -3073,7 +3326,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="956"
+            line="931"
             column="13"/>
     </issue>
 
@@ -3084,7 +3337,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1031"
+            line="1006"
             column="13"/>
     </issue>
 
@@ -3095,7 +3348,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1034"
+            line="1009"
             column="13"/>
     </issue>
 
@@ -3106,7 +3359,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1040"
+            line="1015"
             column="13"/>
     </issue>
 
@@ -3117,8 +3370,19 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="1055"
+            line="1030"
             column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.style.Theme_CrashActivityTheme` appears to be unused"
+        errorLine1="    &lt;style name=&quot;Theme.CrashActivityTheme&quot; parent=&quot;Theme.AppCompat.NoActionBar&quot;>"
+        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/styles.xml"
+            line="40"
+            column="12"/>
     </issue>
 
     <issue
@@ -3128,7 +3392,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="125"
+            line="118"
             column="12"/>
     </issue>
 
@@ -3139,7 +3403,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="138"
+            line="131"
             column="12"/>
     </issue>
 
@@ -3150,7 +3414,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="159"
+            line="152"
             column="12"/>
     </issue>
 
@@ -3161,7 +3425,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="167"
+            line="160"
             column="12"/>
     </issue>
 
@@ -3172,7 +3436,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="172"
+            line="165"
             column="12"/>
     </issue>
 
@@ -3183,7 +3447,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="182"
+            line="175"
             column="12"/>
     </issue>
 
@@ -3194,7 +3458,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="204"
+            line="197"
             column="12"/>
     </issue>
 
@@ -3205,7 +3469,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="212"
+            line="205"
             column="12"/>
     </issue>
 
@@ -3216,7 +3480,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="217"
+            line="210"
             column="12"/>
     </issue>
 
@@ -3227,7 +3491,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="221"
+            line="214"
             column="12"/>
     </issue>
 
@@ -3238,7 +3502,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="225"
+            line="218"
             column="12"/>
     </issue>
 
@@ -3249,7 +3513,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="229"
+            line="222"
             column="12"/>
     </issue>
 
@@ -3260,7 +3524,7 @@
         errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/styles.xml"
-            line="234"
+            line="227"
             column="12"/>
     </issue>
 
@@ -3334,22 +3598,8 @@
     </issue>
 
     <issue
-        id="IconDensities"
-        message="Missing the following drawables in `drawable-xhdpi`: focus_search_widget.png, focus_search_widget_promote_dialog.png, focus_snackbar_background.xml">
-        <location
-            file="src/main/res/drawable-xhdpi"/>
-    </issue>
-
-    <issue
-        id="IconDensities"
-        message="Missing the following drawables in `drawable-xxhdpi`: focus_search_widget.png, focus_search_widget_promote_dialog.png, focus_snackbar_background.xml">
-        <location
-            file="src/main/res/drawable-xxhdpi"/>
-    </issue>
-
-    <issue
         id="IconMissingDensityFolder"
-        message="Missing density variation folders in `src/main/res`: drawable-mdpi">
+        message="Missing density variation folders in `src/main/res`: drawable-mdpi, drawable-xhdpi, drawable-xxhdpi">
         <location
             file="src/main/res"/>
     </issue>
@@ -3383,7 +3633,7 @@
         errorLine2="     ~~~~~~~~~">
         <location
             file="src/main/res/layout/item_indicator_menu_button.xml"
-            line="7"
+            line="9"
             column="6"/>
     </issue>
 
@@ -3394,7 +3644,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/item_custom_domain.xml"
-            line="35"
+            line="36"
             column="9"/>
     </issue>
 
@@ -3405,7 +3655,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/item_custom_domain.xml"
-            line="40"
+            line="41"
             column="9"/>
     </issue>
 

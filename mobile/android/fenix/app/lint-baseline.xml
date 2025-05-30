@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<issues format="6" by="lint 8.9.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.9.0)" variant="all" version="8.9.0">
+<issues format="6" by="lint 8.10.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.10.1)" variant="all" version="8.10.1">
 
     <issue
         id="ScrollViewSize"
@@ -206,7 +206,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="143"
+            line="494"
             column="17"/>
     </issue>
 
@@ -217,7 +217,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="145"
+            line="496"
             column="17"/>
     </issue>
 
@@ -228,7 +228,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="147"
+            line="498"
             column="17"/>
     </issue>
 
@@ -239,7 +239,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="149"
+            line="500"
             column="17"/>
     </issue>
 
@@ -250,7 +250,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="151"
+            line="502"
             column="17"/>
     </issue>
 
@@ -261,7 +261,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="153"
+            line="504"
             column="17"/>
     </issue>
 
@@ -272,7 +272,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="155"
+            line="506"
             column="17"/>
     </issue>
 
@@ -283,7 +283,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="157"
+            line="508"
             column="17"/>
     </issue>
 
@@ -294,7 +294,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="159"
+            line="510"
             column="17"/>
     </issue>
 
@@ -305,7 +305,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="161"
+            line="512"
             column="17"/>
     </issue>
 
@@ -316,7 +316,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="163"
+            line="514"
             column="17"/>
     </issue>
 
@@ -327,7 +327,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="165"
+            line="516"
             column="17"/>
     </issue>
 
@@ -338,7 +338,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="167"
+            line="518"
             column="17"/>
     </issue>
 
@@ -349,7 +349,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="169"
+            line="520"
             column="17"/>
     </issue>
 
@@ -360,7 +360,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="171"
+            line="522"
             column="17"/>
     </issue>
 
@@ -371,7 +371,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="173"
+            line="524"
             column="17"/>
     </issue>
 
@@ -382,7 +382,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="175"
+            line="526"
             column="17"/>
     </issue>
 
@@ -393,7 +393,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="177"
+            line="528"
             column="17"/>
     </issue>
 
@@ -404,7 +404,18 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="179"
+            line="530"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="IntentFilterUniqueDataAttributes"
+        message="Consider splitting data tag into multiple tags with individual attributes to avoid confusion"
+        errorLine1="                &lt;data android:scheme=&quot;${deepLinkScheme}&quot;"
+        errorLine2="                ^">
+        <location
+            file="src/main/AndroidManifest.xml"
+            line="532"
             column="17"/>
     </issue>
 
@@ -448,7 +459,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/library/bookmarks/viewholders/BookmarkNodeViewHolder.kt"
-            line="125"
+            line="129"
             column="31"/>
     </issue>
 
@@ -580,7 +591,7 @@
         errorLine2="                              ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/home/topsites/TopSiteItemViewHolder.kt"
-            line="182"
+            line="167"
             column="31"/>
     </issue>
 
@@ -624,6 +635,17 @@
         errorLine2="                   ~~~~~">
         <location
             file="src/main/res/drawable/ic_high_five.xml"
+            line="6"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;811dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/debug/res/drawable/ic_launcher_foreground.xml"
             line="6"
             column="20"/>
     </issue>
@@ -833,19 +855,8 @@
         errorLine2="                                              ~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/components/appstate/AppStoreReducer.kt"
-            line="79"
+            line="80"
             column="47"/>
-    </issue>
-
-    <issue
-        id="VisibleForTests"
-        message="This method should only be accessed from tests or within private scope"
-        errorLine1="                    if (getCurrentTab()?.content?.loading == true) {"
-        errorLine2="                        ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/browser/BrowserFragment.kt"
-            line="258"
-            column="25"/>
     </issue>
 
     <issue
@@ -855,7 +866,7 @@
         errorLine2="        ~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/browser/BrowserFragment.kt"
-            line="639"
+            line="574"
             column="9"/>
     </issue>
 
@@ -906,8 +917,8 @@
     <issue
         id="VisibleForTests"
         message="This method should only be accessed from tests or within private scope"
-        errorLine1="                    it.items.size >= SEARCH_GROUP_MINIMUM_SITES"
-        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="                    it.items.size >= searchGroupMinimumSites"
+        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/components/history/PagedHistoryProvider.kt"
             line="133"
@@ -934,6 +945,17 @@
             file="src/main/java/org/mozilla/fenix/exceptions/trackingprotection/TrackingProtectionExceptionsView.kt"
             line="25"
             column="14"/>
+    </issue>
+
+    <issue
+        id="ComposableNaming"
+        message="Composable functions that return Unit should start with an uppercase letter"
+        errorLine1="private fun updateToolbar("
+        errorLine2="            ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/org/mozilla/fenix/settings/doh/DohSettingsNavHost.kt"
+            line="175"
+            column="13"/>
     </issue>
 
     <issue
@@ -970,28 +992,6 @@
     </issue>
 
     <issue
-        id="NotifyUsage"
-        message="Using Android NOTIFY instead of base component"
-        errorLine1="        notificationManagerCompat.notify(TABS_CLOSED_TAG, notificationId, notification)"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/components/NotificationManager.kt"
-            line="125"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="NotifyUsage"
-        message="Using Android NOTIFY instead of base component"
-        errorLine1="                notify(RECEIVE_TABS_TAG, notificationId, notification)"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/components/NotificationManager.kt"
-            line="170"
-            column="17"/>
-    </issue>
-
-    <issue
         id="SetJavaScriptEnabled"
         message="Using `setJavaScriptEnabled` can introduce XSS vulnerabilities into your application, review carefully"
         errorLine1="        webView.settings.javaScriptEnabled = true"
@@ -1009,7 +1009,7 @@
         errorLine2="         ~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="383"
+            line="728"
             column="10"/>
     </issue>
 
@@ -1020,7 +1020,7 @@
         errorLine2="                             ~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="59"
+            line="64"
             column="30"/>
     </issue>
 
@@ -1086,7 +1086,7 @@
         errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/layout/fragment_add_on_details.xml"
-            line="160"
+            line="163"
             column="10"/>
     </issue>
 
@@ -1108,7 +1108,7 @@
         errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/library/history/HistoryView.kt"
-            line="140"
+            line="144"
             column="9"/>
     </issue>
 
@@ -1297,17 +1297,6 @@
             file="src/main/java/org/mozilla/fenix/debugsettings/ui/DebugOverlay.kt"
             line="83"
             column="45"/>
-    </issue>
-
-    <issue
-        id="AutoboxingStateCreation"
-        message="Prefer `mutableLongStateOf` instead of `mutableStateOf`"
-        errorLine1="    var lastClickTime: Long by remember { mutableStateOf(0) }"
-        errorLine2="                                          ~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/compose/ext/Modifier.kt"
-            line="87"
-            column="43"/>
     </issue>
 
     <issue
@@ -1609,12 +1598,12 @@
 
     <issue
         id="Overdraw"
-        message="Possible overdraw: Root element paints background `?android:windowBackground` with a theme that also paints a background (inferred theme is `@style/NormalTheme`)"
-        errorLine1="    android:background=&quot;?android:windowBackground&quot;"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        message="Possible overdraw: Root element paints background `?attr/layer1` with a theme that also paints a background (inferred theme is `@style/NormalTheme`)"
+        errorLine1="    android:background=&quot;?attr/layer1&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/res/layout/start_download_dialog_layout.xml"
-            line="13"
+            file="src/main/res/layout/suggest_strong_password_bar.xml"
+            line="11"
             column="5"/>
     </issue>
 
@@ -1747,6 +1736,17 @@
     </issue>
 
     <issue
+        id="TypographyFractions"
+        message="Use fraction character ⅓ (&amp;#8531;) instead of 1/3?"
+        errorLine1="  &lt;string name=&quot;setup_checklist_subtitle_3_steps_first_step&quot;>Khởi đầu tuyệt vời! Bạn đã hoàn thành 1 / 3 bước.&lt;/string>"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-vi/strings.xml"
+            line="3582"
+            column="62"/>
+    </issue>
+
+    <issue
         id="IconXmlAndPng"
         message="The following images appear both as density independent `.xml` files and as bitmap files: src/main/res/drawable-hdpi/ic_logo_wordmark_normal.webp, src/main/res/drawable-night/ic_logo_wordmark_normal.xml">
         <location
@@ -1761,41 +1761,6 @@
             file="src/main/res/drawable-mdpi/ic_logo_wordmark_normal.webp"/>
         <location
             file="src/main/res/drawable-hdpi/ic_logo_wordmark_normal.webp"/>
-    </issue>
-
-    <issue
-        id="IconLocation"
-        message="Found bitmap drawable `res/drawable/ic_baidu.webp` in densityless folder">
-        <location
-            file="src/main/res/drawable/ic_baidu.webp"/>
-    </issue>
-
-    <issue
-        id="IconLocation"
-        message="Found bitmap drawable `res/drawable/ic_jd.webp` in densityless folder">
-        <location
-            file="src/main/res/drawable/ic_jd.webp"/>
-    </issue>
-
-    <issue
-        id="IconLocation"
-        message="Found bitmap drawable `res/drawable/ic_meituan.webp` in densityless folder">
-        <location
-            file="src/main/res/drawable/ic_meituan.webp"/>
-    </issue>
-
-    <issue
-        id="IconLocation"
-        message="Found bitmap drawable `res/drawable/ic_pdd.webp` in densityless folder">
-        <location
-            file="src/main/res/drawable/ic_pdd.webp"/>
-    </issue>
-
-    <issue
-        id="IconLocation"
-        message="Found bitmap drawable `res/drawable/ic_tc.webp` in densityless folder">
-        <location
-            file="src/main/res/drawable/ic_tc.webp"/>
     </issue>
 
     <issue
@@ -1847,7 +1812,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="388"
+            line="401"
             column="17"/>
     </issue>
 
@@ -1858,7 +1823,7 @@
         errorLine2="                                                         ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="388"
+            line="401"
             column="58"/>
     </issue>
 
@@ -1869,7 +1834,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="398"
+            line="411"
             column="17"/>
     </issue>
 
@@ -1880,7 +1845,7 @@
         errorLine2="                                                         ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="398"
+            line="411"
             column="58"/>
     </issue>
 
@@ -1891,7 +1856,7 @@
         errorLine2="                ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="404"
+            line="417"
             column="17"/>
     </issue>
 
@@ -1902,7 +1867,7 @@
         errorLine2="                                                         ^">
         <location
             file="src/main/java/org/mozilla/fenix/search/SearchDialogFragment.kt"
-            line="404"
+            line="417"
             column="58"/>
     </issue>
 
@@ -1915,17 +1880,6 @@
             file="src/main/java/org/mozilla/fenix/browser/SwipeGestureLayout.kt"
             line="128"
             column="18"/>
-    </issue>
-
-    <issue
-        id="AccessibilityFocus"
-        message="Do not force accessibility focus, as this interferes with screen readers and gives an inconsistent user experience, especially across apps"
-        errorLine1="                            performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null)"
-        errorLine2="                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/downloads/dialog/StartDownloadDialog.kt"
-            line="197"
-            column="29"/>
     </issue>
 
     <issue
