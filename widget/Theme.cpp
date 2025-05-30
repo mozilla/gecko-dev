@@ -52,8 +52,6 @@ static constexpr gfx::sRGBColor sColorGrey10Alpha50(
     gfx::sRGBColor::UnusualFromARGB(0x7fe9e9ed));
 static constexpr gfx::sRGBColor sColorGrey20(
     gfx::sRGBColor::UnusualFromARGB(0xffd0d0d7));
-static constexpr gfx::sRGBColor sColorGrey30(
-    gfx::sRGBColor::UnusualFromARGB(0xffb1b1b9));
 static constexpr gfx::sRGBColor sColorGrey40(
     gfx::sRGBColor::UnusualFromARGB(0xff8f8f9d));
 static constexpr gfx::sRGBColor sColorGrey40Alpha50(
