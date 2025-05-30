@@ -14,7 +14,6 @@
 #include <stdint.h>
 
 #include "ds/InlineTable.h"
-#include "ds/LifoAlloc.h"
 
 namespace js::jit {
 
@@ -36,7 +35,7 @@ namespace js::jit {
 //   5 => 0x11110000
 //
 // SparseBitSet ensures words in the map are never 0.
-template <typename AllocPolicy, typename Owner>
+template <typename AllocPolicy>
 class SparseBitSet {
   // Note: use uint32_t (instead of uintptr_t or uint64_t) to not waste space in
   // InlineMap's array of inline entries. It uses a struct for each key/value
@@ -125,8 +124,8 @@ class SparseBitSet {
 //   for (Set::Iterator iter(set); iter; ++iter) {
 //     MOZ_ASSERT(set.contains(*iter));
 //   }
-template <typename AllocPolicy, typename Owner>
-class SparseBitSet<AllocPolicy, Owner>::Iterator {
+template <typename AllocPolicy>
+class SparseBitSet<AllocPolicy>::Iterator {
 #ifdef DEBUG
   SparseBitSet& bitSet_;
 #endif
@@ -187,16 +186,5 @@ class SparseBitSet<AllocPolicy, Owner>::Iterator {
 };
 
 }  // namespace js::jit
-
-namespace js {
-
-// A SparseBitSet may be LifoAllocated only if it is owned by a stack-allocated
-// class, since that will cause it to be destroyed when the owner's scope ends.
-// Otherwise, this could leak memory.
-template <typename T, typename Owner>
-struct CanLifoAlloc<js::jit::SparseBitSet<T, Owner>> : Owner::IsStackAllocated {
-};
-
-}  // namespace js
 
 #endif /* jit_SparseBitSet_h */

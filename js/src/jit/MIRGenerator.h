@@ -59,7 +59,7 @@ class MIRGenerator final {
   }
 
   template <typename T>
-  js::lifo_alloc_pointer<T*> allocate(size_t count = 1) {
+  T* allocate(size_t count = 1) {
     size_t bytes;
     if (MOZ_UNLIKELY(!CalculateAllocSize<T>(count, &bytes))) {
       return nullptr;
