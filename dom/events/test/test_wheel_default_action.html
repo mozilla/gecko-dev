@@ -17,7 +17,8 @@
 SimpleTest.waitForExplicitFinish();
 SimpleTest.requestFlakyTimeout("untriaged");
 SpecialPowers.pushPrefEnv({"set": [
-    ["mousewheel.system_scroll_override.enabled", false]
+    ["mousewheel.system_scroll_override.enabled", false],
+    ["layout.scroll.disable-pixel-alignment", true]
 ]}, runTest);
 
 var subWin = null;
