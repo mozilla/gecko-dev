@@ -238,6 +238,48 @@ add_task(
 add_task(clear_state);
 
 add_task(
+  async function test_get_returns_an_empty_list_when_database_is_empty() {
+    const data = await client.get({ syncIfEmpty: false });
+
+    ok(Array.isArray(data), "data is an array");
+    equal(data.length, 0, "data is empty");
+  }
+);
+add_task(clear_state);
+
+add_task(async function test_get_doesnt_affect_other_calls() {
+  const c1 = RemoteSettings("password-fields");
+  const c2 = RemoteSettings("password-fields");
+
+  const result1 = await c1.get({ syncIfEmpty: false });
+  Assert.deepEqual(result1, [], "data1 is empty");
+
+  try {
+    await c2.get({ syncIfEmpty: false, emptyListFallback: false });
+    Assert.ok(false, "get() should throw");
+  } catch (error) {
+    Assert.equal(
+      error.toString(),
+      'EmptyDatabaseError: Collection "main/password-fields" is empty'
+    );
+  }
+});
+add_task(clear_state);
+
+add_task(async function test_get_throws_if_no_empty_fallback_and_no_sync() {
+  try {
+    await client.get({ syncIfEmpty: false, emptyListFallback: false });
+    Assert.ok(false, ".get() should throw");
+  } catch (error) {
+    Assert.equal(
+      error.toString(),
+      'EmptyDatabaseError: Collection "main/password-fields" is empty'
+    );
+  }
+});
+add_task(clear_state);
+
+add_task(
   async function test_get_loads_default_records_from_a_local_dump_when_database_is_empty() {
     if (IS_ANDROID) {
       // Skip test: we don't ship remote settings dumps on Android (see package-manifest).

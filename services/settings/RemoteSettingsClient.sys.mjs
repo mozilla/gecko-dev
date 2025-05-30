@@ -191,6 +191,13 @@ class UnknownCollectionError extends Error {
   }
 }
 
+class EmptyDatabaseError extends Error {
+  constructor(cid) {
+    super(`Collection "${cid}" is empty`);
+    this.name = "EmptyDatabaseError";
+  }
+}
+
 class AttachmentDownloader extends Downloader {
   constructor(client) {
     super(client.bucketName, client.collectionName);
@@ -298,6 +305,9 @@ export class RemoteSettingsClient extends EventEmitter {
   }
   static get UnknownCollectionError() {
     return UnknownCollectionError;
+  }
+  static get EmptyDatabaseError() {
+    return EmptyDatabaseError;
   }
 
   constructor(
@@ -457,6 +467,9 @@ export class RemoteSettingsClient extends EventEmitter {
             return true; // No need to re-verify signature after sync.
           })();
         }
+      } else if (!syncIfEmpty && !hasLocalData && !emptyListFallback) {
+        // The local database is empty, we neither want to sync nor fallback to an empty list.
+        throw new RemoteSettingsClient.EmptyDatabaseError(this.identifier);
       } else if (syncIfEmpty && !hasLocalData) {
         // .get() was called before we had the chance to synchronize the local database.
         // We'll try to avoid returning an empty list.
@@ -550,7 +563,8 @@ export class RemoteSettingsClient extends EventEmitter {
         }
       }
 
-      // Read from the local DB.
+      // If the database is empty for this collection, the database will return
+      // an empty list.
       data = await this.db.list({ filters, order });
     } catch (e) {
       // If the local DB cannot be read (for unknown reasons, Bug 1649393)
