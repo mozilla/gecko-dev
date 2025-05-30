@@ -1432,6 +1432,24 @@ newtabRefinedCardsLayout:
         pref: browser.newtabpage.activity-stream.discoverystream.refinedCardsLayout.enabled
       description: Enables the refined cards layout for newtab
 
+newtabTrendingSearchWidget:
+  description: >-
+      Adds trending search results widget to new tab
+  owner: nbarrett@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.trendingSearch.enabled
+      description: Enables the refined cards layout for newtab
+    variant:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.trendingSearch.variant
+      description: Determines the layout variant for the trending search widget
 
 pocketNewtab:
   description: The Pocket section in newtab

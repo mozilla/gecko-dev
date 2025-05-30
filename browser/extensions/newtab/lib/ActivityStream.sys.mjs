@@ -841,6 +841,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "trendingSearch.variant",
+    {
+      title: "Determines the layout variant for the trending search widget",
+      value: "",
+    },
+  ],
+  [
     "improvesearch.noDefaultSearchTile",
     {
       title: "Remove tiles that are the same as the default search",
