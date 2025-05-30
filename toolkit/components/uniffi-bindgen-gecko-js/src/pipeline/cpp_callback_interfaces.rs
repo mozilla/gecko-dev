@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use heck::{ToSnakeCase, ToUpperCamelCase};
 
 use super::*;
@@ -65,30 +65,6 @@ pub fn pass(root: &mut Root) -> Result<()> {
             Ok(())
         })?;
 
-    let mut seen_async_complete_handlers = HashSet::new();
-    root.cpp_scaffolding.async_callback_method_handler_bases = root
-        .cpp_scaffolding
-        .callback_interfaces
-        .try_map(|callback_interfaces| {
-            let mut async_callback_method_handler_bases = vec![];
-            callback_interfaces.try_visit(|meth: &CppCallbackInterfaceMethod| {
-                let Some(async_data) = &meth.async_data else {
-                    return Ok(());
-                };
-                if seen_async_complete_handlers
-                    .insert(async_data.callback_handler_base_class.clone())
-                {
-                    async_callback_method_handler_bases.push(AsyncCallbackMethodHandlerBase {
-                        class_name: async_data.callback_handler_base_class.clone(),
-                        complete_callback_type_name: async_data.complete_callback_type_name.clone(),
-                        result_type_name: async_data.result_type_name.clone(),
-                        return_type: meth.return_ty.clone(),
-                    });
-                };
-                Ok(())
-            })?;
-            Ok(async_callback_method_handler_bases)
-        })?;
     Ok(())
 }
 
@@ -109,20 +85,6 @@ fn map_method(
         None => (None, FfiType::VoidPointer),
     };
     Ok(CppCallbackInterfaceMethod {
-        async_data: meth
-            .callable
-            .async_data
-            .as_ref()
-            .map(|async_data| {
-                anyhow::Ok(CppCallbackInterfaceMethodAsyncData {
-                    callback_handler_base_class: async_callback_method_handler_base_class(
-                        &meth.callable,
-                    )?,
-                    complete_callback_type_name: async_data.ffi_foreign_future_complete.0.clone(),
-                    result_type_name: async_data.ffi_foreign_future_result.0.clone(),
-                })
-            })
-            .transpose()?,
         arguments: meth
             .callable
             .arguments
@@ -139,13 +101,6 @@ fn map_method(
             interface_name.to_snake_case(),
             meth.callable.name.to_snake_case(),
         ),
-        base_class_name: match &meth.callable.async_data {
-            // Note: non-async callbacks are currently always treated as fire-and-forget methods.
-            // These fire-and-forget methods inherit from `AsyncCallbackMethodHandlerBase` directly
-            // and have a no-op `HandleReturn` method.
-            None => "AsyncCallbackMethodHandlerBase".to_string(),
-            Some(_) => async_callback_method_handler_base_class(&meth.callable)?,
-        },
         handler_class_name: format!(
             "CallbackInterfaceMethod{}{}{}",
             module_name.to_upper_camel_case(),
@@ -158,36 +113,5 @@ fn map_method(
             ..FfiTypeNode::default()
         },
         ffi_func,
-    })
-}
-
-fn async_callback_method_handler_base_class(callable: &Callable) -> Result<String> {
-    let return_type = callable.return_type.ty.as_ref().map(|ty| &ty.ffi_type.ty);
-    Ok(match return_type {
-        None => "AsyncCallbackMethodHandlerBaseVoid".to_string(),
-        Some(return_type) => match return_type {
-            FfiType::RustArcPtr {
-                module_name,
-                object_name,
-            } => {
-                format!(
-                    "AsyncCallbackMethodHandlerBaseRustArcPtr{}_{}",
-                    module_name.to_upper_camel_case(),
-                    object_name.to_upper_camel_case()
-                )
-            }
-            FfiType::UInt8 => "AsyncCallbackMethodHandlerBaseUInt8".to_string(),
-            FfiType::Int8 => "AsyncCallbackMethodHandlerBaseInt8".to_string(),
-            FfiType::UInt16 => "AsyncCallbackMethodHandlerBaseUInt16".to_string(),
-            FfiType::Int16 => "AsyncCallbackMethodHandlerBaseInt16".to_string(),
-            FfiType::UInt32 => "AsyncCallbackMethodHandlerBaseUInt32".to_string(),
-            FfiType::Int32 => "AsyncCallbackMethodHandlerBaseInt32".to_string(),
-            FfiType::UInt64 => "AsyncCallbackMethodHandlerBaseUInt64".to_string(),
-            FfiType::Int64 => "AsyncCallbackMethodHandlerBaseInt64".to_string(),
-            FfiType::Float32 => "AsyncCallbackMethodHandlerBaseFloat32".to_string(),
-            FfiType::Float64 => "AsyncCallbackMethodHandlerBaseFloat64".to_string(),
-            FfiType::RustBuffer(_) => "AsyncCallbackMethodHandlerBaseRustBuffer".to_string(),
-            ty => bail!("Async return type not supported: {ty:?}"),
-        },
     })
 }

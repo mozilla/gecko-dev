@@ -2,8 +2,6 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 const {
-  asyncCallbackInterfaceCallGetValue,
-  asyncCallbackInterfaceCallThrowError,
   asyncRoundtripU8,
   asyncRoundtripI8,
   asyncRoundtripU16,
@@ -18,9 +16,7 @@ const {
   asyncRoundtripVec,
   asyncRoundtripMap,
   asyncRoundtripObj,
-  asyncThrowError,
   AsyncInterface,
-  Failure1,
 } = ChromeUtils.importESModule(
   "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/tests/generated/RustUniffiBindingsTests.sys.mjs"
 );
@@ -53,36 +49,4 @@ add_task(async function asyncInterfaces() {
   Assert.equal(await obj.name(), "Alice");
   const obj2 = await asyncRoundtripObj(obj);
   Assert.equal(await obj2.name(), "Alice");
-});
-
-add_task(async function asyncErrors() {
-  await Assert.rejects(asyncThrowError(), e => e instanceof Failure1);
-});
-
-add_task(async function asyncCallbackInterfaces() {
-  /**
-   *
-   */
-  class AsyncCallbackInterface {
-    constructor(value) {
-      this.value = value;
-      this.getValueCount = 0;
-    }
-
-    async getValue() {
-      this.getValueCount += 1;
-      return this.value;
-    }
-
-    async throwError() {
-      throw new Failure1();
-    }
-  }
-
-  const callback = new AsyncCallbackInterface(42);
-  Assert.equal(await asyncCallbackInterfaceCallGetValue(callback), 42);
-  await Assert.rejects(
-    asyncCallbackInterfaceCallThrowError(callback),
-    e => e instanceof Failure1
-  );
 });

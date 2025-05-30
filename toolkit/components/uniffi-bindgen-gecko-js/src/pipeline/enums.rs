@@ -20,7 +20,6 @@ pub fn pass(en: &mut Enum) -> Result<()> {
                 ty: FfiType::UInt8,
                 type_name: "uint8_t".to_string(),
             },
-            ..TypeNode::default()
         },
     };
 

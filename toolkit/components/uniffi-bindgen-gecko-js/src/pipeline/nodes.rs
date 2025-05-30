@@ -6,7 +6,6 @@ use indexmap::IndexMap;
 
 use anyhow::Result;
 use askama::Template;
-use uniffi_bindgen::backend::filters::to_askama_error;
 use uniffi_pipeline::{AsRef, Node};
 
 use crate::Config;
@@ -28,7 +27,6 @@ pub struct CppScaffolding {
     pub scaffolding_calls: CombinedItems<ScaffoldingCall>,
     pub pointer_types: CombinedItems<PointerType>,
     pub callback_interfaces: CombinedItems<CppCallbackInterface>,
-    pub async_callback_method_handler_bases: CombinedItems<AsyncCallbackMethodHandlerBase>,
 }
 
 // A Scaffolding call implemented in the C++ code
@@ -91,37 +89,12 @@ pub struct CppCallbackInterface {
 pub struct CppCallbackInterfaceMethod {
     /// Name of the handler function
     pub fn_name: String,
-    pub async_data: Option<CppCallbackInterfaceMethodAsyncData>,
-    pub base_class_name: String,
-    /// Name of the subclass
+    /// Name of the UniffiCallbackMethodHandlerBase subclass
     pub handler_class_name: String,
     pub ffi_func: FfiFunctionType,
     pub arguments: Vec<FfiValueArgument>,
     pub return_ty: Option<FfiValueReturnType>,
     pub out_pointer_ty: FfiTypeNode,
-}
-
-#[derive(Debug, Clone, Node)]
-pub struct CppCallbackInterfaceMethodAsyncData {
-    pub callback_handler_base_class: String,
-    pub complete_callback_type_name: String,
-    pub result_type_name: String,
-}
-
-/// Base class for an async callback method handler
-///
-/// This derives from `UniffiCallbackMethodHandlerBase` and adds support for returning data to
-/// Rust.  The final callback method handler derives from this and adds support for argument
-/// handling.
-///
-/// Splitting the classes this way reduces memory usage.  We only need to create one of these base
-/// classes for each return type rather than one per method.
-#[derive(Debug, Clone, Node)]
-pub struct AsyncCallbackMethodHandlerBase {
-    pub class_name: String,
-    pub complete_callback_type_name: String,
-    pub result_type_name: String,
-    pub return_type: Option<FfiValueReturnType>,
 }
 
 #[derive(Debug, Clone, Node, Template)]
@@ -456,9 +429,6 @@ pub struct ExternalType {
 #[as_ref]
 pub struct TypeNode {
     pub ty: Type,
-    /// Name of the JS class for this type (only set for user-defined types like
-    /// enums/records/interfaces).
-    pub class_name: Option<String>,
     pub canonical_name: String,
     pub ffi_converter: String,
     pub is_used_as_error: bool,
@@ -676,8 +646,8 @@ pub struct ApiModuleDocs {
 /// Combines fixture and non-fixture template items
 #[derive(Debug, Clone, Node)]
 pub struct CombinedItems<T> {
-    pub items: Vec<T>,
-    pub fixture_items: Vec<T>,
+    items: Vec<T>,
+    fixture_items: Vec<T>,
 }
 
 impl<T> CombinedItems<T> {
@@ -754,27 +724,6 @@ impl<T> CombinedItems<T> {
         ]
         .into_iter()
     }
-
-    /// Create a new CombinedItems value by mapping the items and fixture_items lists to new lists.
-    pub fn map<F, U>(&self, mut f: F) -> CombinedItems<U>
-    where
-        F: FnMut(&Vec<T>) -> Vec<U>,
-    {
-        CombinedItems {
-            items: f(&self.items),
-            fixture_items: f(&self.fixture_items),
-        }
-    }
-
-    pub fn try_map<F, U>(&self, mut f: F) -> Result<CombinedItems<U>>
-    where
-        F: FnMut(&Vec<T>) -> Result<Vec<U>>,
-    {
-        Ok(CombinedItems {
-            items: f(&self.items)?,
-            fixture_items: f(&self.fixture_items)?,
-        })
-    }
 }
 
 #[derive(Default)]
@@ -815,29 +764,12 @@ impl FfiFunctionType {
     }
 }
 
-impl CppCallbackInterfaceMethod {
-    fn is_async(&self) -> bool {
-        self.async_data.is_some()
-    }
-}
-
 pub mod filters {
     use super::*;
     use askama::Result;
 
     pub fn ffi_converter(ty: impl AsRef<TypeNode>) -> Result<String> {
         Ok(ty.as_ref().ffi_converter.to_string())
-    }
-
-    pub fn class_name(ty: impl AsRef<TypeNode>) -> Result<String> {
-        let ty = ty.as_ref();
-        match &ty.class_name {
-            Some(class_name) => Ok(class_name.clone()),
-            None => Err(to_askama_error(&format!(
-                "Trying to get class name for {:?}",
-                ty
-            ))),
-        }
     }
 
     pub fn lift_fn(ty: impl AsRef<TypeNode>) -> Result<String> {
@@ -871,19 +803,5 @@ pub mod filters {
             Type::Record { .. } => format!("{first_obj}.{name}.equals({second_obj}.{name})"),
             _ => format!("{first_obj}.{name} == {second_obj}.{name}"),
         })
-    }
-
-    // Remove the trailing comma from a block of text.
-    //
-    // This can make generating argument lists more convenient.
-    pub fn remove_trailing_comma<T: std::fmt::Display>(text: T) -> Result<String> {
-        let text = text.to_string();
-        let Some(last_comma) = text.rfind(',') else {
-            return Ok(text.to_string());
-        };
-        if !text[last_comma + 1..].chars().all(char::is_whitespace) {
-            return Ok(text.to_string());
-        }
-        Ok(text[..last_comma].to_string())
     }
 }

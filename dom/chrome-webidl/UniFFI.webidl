@@ -73,7 +73,7 @@ dictionary UniFFIScaffoldingCallResult {
 // `UniFFICallbackHandler.release()` to remove the entry in the map.
 [Exposed=Window]
 callback interface UniFFICallbackHandler {
-    Promise<UniFFIScaffoldingCallResult> callAsync(UniFFICallbackObjectHandle objectHandle, unsigned long methodIndex, UniFFIScaffoldingValue... args);
+    UniFFIScaffoldingValue? call(UniFFICallbackObjectHandle objectHandle, unsigned long methodIndex, UniFFIScaffoldingValue... args);
     undefined destroy(UniFFICallbackObjectHandle objectHandle);
 };
 

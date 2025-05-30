@@ -9,7 +9,6 @@
 
 #include "mozilla/StaticPtr.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/UniFFIScaffolding.h"
 #include "mozilla/uniffi/FfiValue.h"
 #include "mozilla/uniffi/Rust.h"
@@ -37,100 +36,59 @@ void RegisterCallbackHandler(uint64_t aInterfaceId,
 void DeregisterCallbackHandler(uint64_t aInterfaceId, ErrorResult& aError);
 
 /**
- * Base class for async callback interface method handlers
- *
- * In addition to handling actual async methods this also handles
- * fire-and-forget methods.  These are sync methods wrapped to be async, where
- * we ignore the return value.
+ * Implemented by generated code for each callback interface.
  *
  * The generated subclass handles the specifics of each call, while the code in
  * the base class handles generic aspects of the call
  *
  * The generated subclass stores all data needed to make the call, including the
  * arguments passed from Rust internally. MakeCall must only be called
- * once-per-object, since it may consume some of the arguments. We create a new
- * UniffiCallbackMethodHandlerBase subclass instance for each callback interface
- * call from Rust.
+ * once-per-object, since it may consume some of the arguments. This means that
+ * we create a new UniffiCallbackMethodHandlerBase subclass instance for each
+ * callback interface call from Rust.
  */
-class AsyncCallbackMethodHandlerBase {
- public:
-  AsyncCallbackMethodHandlerBase(const char* aUniffiMethodName,
-                                 uint64_t aUniffiHandle)
-      : mUniffiMethodName(aUniffiMethodName), mUniffiHandle(aUniffiHandle) {}
+class UniffiCallbackMethodHandlerBase {
+ protected:
+  // Name of the callback interface
+  const char* mUniffiInterfaceName;
+  FfiValueInt<uint64_t> mUniffiHandle;
 
   // Invoke the callback method using a JS handler
-  //
-  // For fire-and-forget callbacks, this will return `nullptr`
   MOZ_CAN_RUN_SCRIPT
-  virtual already_AddRefed<dom::Promise> MakeCall(
-      JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler,
-      ErrorResult& aError) = 0;
+  virtual void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler,
+                        ErrorResult& aError) = 0;
 
-  // Handle returning a value to Rust.
-  //
-  // The default implementation does nothing, this is what we use for the `free`
-  // callback and also fire-and-forget callbacks.  For async callbacks, we
-  // generate a subclass for each return type.
-  //
-  // HandleReturn will be called on the main thread, and can be invoked
-  // synchronously in error cases.
-  virtual void HandleReturn(
-      const RootedDictionary<UniFFIScaffoldingCallResult>& aReturnValue,
-      ErrorResult& aError) {}
+ public:
+  UniffiCallbackMethodHandlerBase(const char* aInterfaceName,
+                                  uint64_t aUniffiHandle)
+      : mUniffiInterfaceName(aInterfaceName),
+        mUniffiHandle(FfiValueInt<uint64_t>::FromRust(aUniffiHandle)) {}
 
-  virtual ~AsyncCallbackMethodHandlerBase() = default;
+  virtual ~UniffiCallbackMethodHandlerBase() = default;
 
   // ---- Generic entry points ----
 
-  // Queue an async call on the JS main thread
-  static void ScheduleAsyncCall(
-      UniquePtr<AsyncCallbackMethodHandlerBase> aHandler,
-      StaticRefPtr<dom::UniFFICallbackHandler>* aJsHandler);
-
- protected:
-  // Name of the callback interface method
-  const char* mUniffiMethodName;
-  FfiValueInt<uint64_t> mUniffiHandle;
-
- private:
-  // PromiseNativeHandler for async callback interface methods
+  // Queue the method to be called asynchronously and ignore the return value.
   //
-  // This is appended to the end of the JS promise chain to call the Rust
-  // complete function.
-  class PromiseHandler final : public dom::PromiseNativeHandler {
-   public:
-    NS_DECL_ISUPPORTS
-
-    PromiseHandler(UniquePtr<AsyncCallbackMethodHandlerBase> aHandler)
-        : mHandler(std::move(aHandler)) {}
-
-    MOZ_CAN_RUN_SCRIPT
-    virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                                  ErrorResult& aRv) override;
-    MOZ_CAN_RUN_SCRIPT
-    virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
-                                  ErrorResult& aRv) override;
-
-   private:
-    UniquePtr<AsyncCallbackMethodHandlerBase> mHandler;
-
-    ~PromiseHandler() = default;
-  };
+  // This is for fire-and-forget callbacks where the caller doesn't care about
+  // the return value and doesn't want to wait for the call to finish.  A good
+  // use case for this is logging.
+  //
+  // FireAndForget is responsible for checking that the aJsHandler is non-null,
+  // this way we don't need to duplicate the null check in the generated code.
+  static void FireAndForget(
+      UniquePtr<UniffiCallbackMethodHandlerBase> aHandler,
+      StaticRefPtr<dom::UniFFICallbackHandler>* aJsHandler);
 };
-
-NS_IMPL_ISUPPORTS0(AsyncCallbackMethodHandlerBase::PromiseHandler);
 
 // Class to handle the free method, this is an implicit method for each callback
 // interface. In inputs no arguments and has index=0.
-class CallbackFreeHandler : public AsyncCallbackMethodHandlerBase {
+class UniffiCallbackFreeHandler : public UniffiCallbackMethodHandlerBase {
  public:
-  CallbackFreeHandler(const char* aUniffiMethodName, uint64_t aUniffiHandle)
-      : AsyncCallbackMethodHandlerBase(aUniffiMethodName, aUniffiHandle) {}
-
-  MOZ_CAN_RUN_SCRIPT
-  already_AddRefed<dom::Promise> MakeCall(
-      JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler,
-      ErrorResult& aError) override;
+  UniffiCallbackFreeHandler(const char* aInterfaceName, uint64_t aObjectHandle)
+      : UniffiCallbackMethodHandlerBase(aInterfaceName, aObjectHandle) {}
+  void MakeCall(JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler,
+                ErrorResult& aError) override;
 };
 
 }  // namespace mozilla::uniffi
