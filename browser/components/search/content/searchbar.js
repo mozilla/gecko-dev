@@ -795,6 +795,7 @@
           } else {
             this.textbox.select();
           }
+          aEvent.preventDefault();
           return true;
         }
         return false;

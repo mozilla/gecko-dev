@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Esc clears search input</title>
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<input type=search>
+<script>
+const kEsc = '\uE00C';
+let input = document.querySelector("input");
+promise_test(async function() {
+  input.focus();
+  await test_driver.send_keys(input, "abc");
+  assert_equals(input.value, "abc");
+  let inputEvent = false;
+  let changeEvent = false;
+  input.addEventListener("input", function() {
+    inputEvent = true;
+  }, { once: true });
+  await test_driver.send_keys(input, kEsc);
+  assert_equals(input.value, "", "should've been cleared");
+  assert_true(inputEvent, "input event should've fired");
+  await test_driver.send_keys(input, "abc");
+  assert_equals(input.value, "abc", "Should've been able to type again");
+  input.readOnly = true;
+  await test_driver.send_keys(input, kEsc);
+  assert_equals(input.value, "abc", "Shouldn't have cleared on readonly input");
+});
+</script>
