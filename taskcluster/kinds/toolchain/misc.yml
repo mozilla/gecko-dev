@@ -593,6 +593,26 @@ linux64-makecab:
             - linux64-rust-toolchain
             - sysroot-x86_64-linux-gnu
 
+linux64-samply:
+    description: "samply toolchain build"
+    treeherder:
+        symbol: TL(samply)
+    worker:
+        env:
+            FETCH: samply/samply
+    run:
+        script: build-rust-based-toolchain.sh
+        arguments: ['x86_64-unknown-linux-gnu']
+        toolchain-artifact: public/build/samply.tar.zst
+    run-on-projects: []
+    fetches:
+        fetch:
+            - samply
+        toolchain:
+            - linux64-clang-toolchain
+            - linux64-rust-toolchain
+            - sysroot-x86_64-linux-gnu
+
 win64-mozmake:
     description: "mozmake for Windows"
     attributes:

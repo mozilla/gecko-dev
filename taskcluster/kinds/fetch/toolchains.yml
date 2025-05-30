@@ -554,6 +554,13 @@ makecab:
         repo: https://github.com/luser/rust-makecab/
         revision: 236cd02baefa754fc7a61b161c71d2aa13a87c2a
 
+samply:
+    description: samply source code
+    fetch:
+        type: git
+        repo: https://github.com/mstange/samply
+        revision: da75c28f367454c621e690eeb4e44ec2ebb29a78
+
 nodejs-12-linux64:
     description: nodejs 12 for x64 linux
     fetch:
