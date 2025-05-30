@@ -104,15 +104,12 @@ impl SuggestDao<'_> {
             })
             .collect();
 
-        let mut matches =
-            // Step 2: Parse the query words into a list of token paths.
+        // Step 2: Parse the query words into a list of token paths.
+        let raw_token_paths =
             filter_map_chunks::<Token>(&words, max_chunk_size, |chunk, chunk_i, path| {
                 // Find all token types that match the chunk.
                 let mut all_tokens: Option<Vec<Token>> = None;
-                for tt in [
-                    TokenType::Geoname,
-                    TokenType::WeatherKeyword,
-                ] {
+                for tt in [TokenType::Geoname, TokenType::WeatherKeyword] {
                     let mut tokens = self.match_weather_tokens(tt, path, chunk, chunk_i == 0)?;
                     if !tokens.is_empty() {
                         let mut ts = all_tokens.take().unwrap_or_default();
@@ -122,58 +119,87 @@ impl SuggestDao<'_> {
                 }
                 // If no tokens were matched, `all_tokens` will be `None`.
                 Ok(all_tokens)
-            })?
-            .into_iter()
-            // Step 3: Map each token path to a `TokenPath`, which is just a
-            // convenient representation of the path.
-            .map(TokenPath::from)
-            // Step 4: Filter in paths with the right combination of tokens.
-            // Along with step 2, this is the core of the matching logic.
-            .filter(|tp| {
-                if let Some(cm) = &tp.city_match {
-                    // city name typed in full ("new york")
-                    (cm.match_type.is_name() && !cm.prefix)
-                        // city abbreviation typed in full + another related
-                        // geoname typed in full ("ny new york")
-                        || (cm.match_type.is_abbreviation()
-                            && !cm.prefix
-                            && tp.any_other_geoname_typed_in_full)
-                        // any kind of city + weather keyword ("ny weather",
-                        // "weather new y")
-                        || tp.keyword_match
-                            .as_ref()
-                            .map(|kwm| kwm.is_min_keyword_length).unwrap_or(false)
-                } else {
-                    // weather keyword by itself ("weather")
-                    tp.keyword_match.is_some() && !tp.any_other_geoname_matched
-                }
-            })
-            // Step 5: Map each path to its city, an `Option<Geoname>`. Paths
-            // without cities will end up as `None` values.
-            .map(|tp| tp.city_match.map(|cm| cm.geoname))
-            // Step 6: Dedupe. We'll end up with an `Option<Geoname>` for each
-            // unique matching city + one `None` value if any keywords by
-            // themselves were matched.
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .collect::<Vec<_>>();
+            })?;
 
-        // Sort the matches so cities with larger populations are first.
-        matches.sort_by(|city1, city2| match (&city1, &city2) {
-            (Some(_), None) => Ordering::Less,
-            (None, Some(_)) => Ordering::Greater,
-            (Some(c1), Some(c2)) => c2.population.cmp(&c1.population),
-            (None, None) => Ordering::Equal,
+        // Step 3: Map each valid token path to a `TokenPath` and discard
+        // invalid paths. Save the paths that include cities, but for paths that
+        // include keywords alone, only set a flag.
+        let mut kw_alone = false;
+        let mut city_token_paths: Vec<_> = raw_token_paths
+            .into_iter()
+            .filter_map(|rtp| {
+                TokenPath::from_raw_token_path(rtp).and_then(|tp| match tp {
+                    TokenPath::City(ctp) => Some(ctp),
+                    TokenPath::WeatherKeyword => {
+                        kw_alone = true;
+                        None
+                    }
+                })
+            })
+            .collect();
+
+        // Step 4: Sort city token paths, first by city match length descending
+        // and then by other geoname match length descending. The idea is that
+        // the more of a name the user matched, the better the match. If two
+        // paths are still equal, break the tie by population descending.
+        city_token_paths.sort_by(|ctp1, ctp2| {
+            let city_cmp = ctp2.city_match_len.cmp(&ctp1.city_match_len);
+            if city_cmp != Ordering::Equal {
+                city_cmp
+            } else {
+                let other_cmp = ctp2
+                    .other_geoname_match_len
+                    .cmp(&ctp1.other_geoname_match_len);
+                if other_cmp != Ordering::Equal {
+                    other_cmp
+                } else {
+                    ctp2.city_match
+                        .geoname
+                        .population
+                        .cmp(&ctp1.city_match.geoname.population)
+                }
+            }
         });
 
-        // Finally, map matches to suggestions.
-        Ok(matches
-            .into_iter()
-            .map(|city| Suggestion::Weather {
-                city,
+        // Step 5: Map token paths to `Suggestion`s.
+        //
+        // The cities with the max match lengths are now at the front of the
+        // list. There may be multiple matches with the max match lengths, and
+        // the same city may be represented multiple times since it may have
+        // been matched in different paths.
+        //
+        // Take all the matches with the same (max) match lengths at the front
+        // of the list and create a `Suggestion` for each unique city.
+        if let Some(first_ctp) = city_token_paths.first() {
+            let mut geoname_ids = HashSet::new();
+            let (max_city_match_len, max_other_geoname_match_len) =
+                (first_ctp.city_match_len, first_ctp.other_geoname_match_len);
+            Ok(city_token_paths
+                .into_iter()
+                .take_while(|ctp| {
+                    ctp.city_match_len == max_city_match_len
+                        && ctp.other_geoname_match_len == max_other_geoname_match_len
+                })
+                .filter_map(|ctp| {
+                    if geoname_ids.contains(&ctp.city_match.geoname.geoname_id) {
+                        None
+                    } else {
+                        geoname_ids.insert(ctp.city_match.geoname.geoname_id);
+                        Some(Suggestion::Weather {
+                            city: Some(ctp.city_match.geoname),
+                            score: w_cache.score,
+                        })
+                    }
+                })
+                .collect())
+        } else if kw_alone {
+            Ok(vec![Suggestion::Weather {
+                city: None,
                 score: w_cache.score,
-            })
-            .collect())
+            }])
+        } else {
+            Ok(Vec::new())
+        }
     }
 
     fn match_weather_tokens(
@@ -202,7 +228,10 @@ impl SuggestDao<'_> {
                         },
                     )?
                     .into_iter()
-                    .map(Token::Geoname)
+                    .map(|geoname_match| Token::Geoname {
+                        geoname_match,
+                        match_len: candidate.len(),
+                    })
                     .collect())
             }
             TokenType::WeatherKeyword => {
@@ -223,19 +252,19 @@ impl SuggestDao<'_> {
                     Ok(self
                         .match_weather_keywords(candidate, !is_first_chunk || len > 0)?
                         .into_iter()
-                        .map(|keyword| {
-                            Token::WeatherKeyword(WeatherKeywordMatch {
-                                keyword,
-                                is_min_keyword_length: (len as usize) <= candidate.len(),
-                            })
-                        })
+                        .map(Token::WeatherKeyword)
                         .collect())
                 }
             }
         }
     }
 
-    fn match_weather_keywords(&self, candidate: &str, prefix: bool) -> Result<Vec<String>> {
+    fn match_weather_keywords(
+        &self,
+        candidate: &str,
+        prefix: bool,
+    ) -> Result<Vec<WeatherKeywordMatch>> {
+        let min_keyword_len = self.weather_cache().min_keyword_length as usize;
         self.conn.query_rows_and_then_cached(
             r#"
             SELECT
@@ -259,7 +288,13 @@ impl SuggestDao<'_> {
                 ":keyword": candidate,
                 ":provider": SuggestionProvider::Weather
             },
-            |row| -> Result<String> { Ok(row.get("keyword")?) },
+            |row| -> Result<WeatherKeywordMatch> {
+                Ok(WeatherKeywordMatch {
+                    keyword: row.get("keyword")?,
+                    is_prefix: row.get("matched_prefix")?,
+                    is_min_keyword_length: min_keyword_len <= candidate.len(),
+                })
+            },
         )
     }
 
@@ -356,16 +391,18 @@ enum TokenType {
 }
 
 #[derive(Clone, Debug)]
-#[allow(clippy::large_enum_variant)]
 enum Token {
-    Geoname(GeonameMatch),
+    Geoname {
+        geoname_match: GeonameMatch,
+        match_len: usize,
+    },
     WeatherKeyword(WeatherKeywordMatch),
 }
 
 impl Token {
     fn geoname_match(&self) -> Option<&GeonameMatch> {
         match self {
-            Self::Geoname(gm) => Some(gm),
+            Self::Geoname { geoname_match, .. } => Some(geoname_match),
             _ => None,
         }
     }
@@ -374,38 +411,95 @@ impl Token {
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 struct WeatherKeywordMatch {
     keyword: String,
+    is_prefix: bool,
     is_min_keyword_length: bool,
 }
 
-#[derive(Default)]
-struct TokenPath {
-    keyword_match: Option<WeatherKeywordMatch>,
-    city_match: Option<GeonameMatch>,
-    any_other_geoname_matched: bool,
-    any_other_geoname_typed_in_full: bool,
+#[allow(clippy::large_enum_variant)]
+enum TokenPath {
+    City(CityTokenPath),
+    WeatherKeyword,
 }
 
-impl From<Vec<Token>> for TokenPath {
-    fn from(tokens: Vec<Token>) -> Self {
-        let mut tp = Self::default();
-        for t in tokens {
+struct CityTokenPath {
+    city_match: GeonameMatch,
+    city_match_len: usize,
+    other_geoname_match_len: usize,
+}
+
+impl TokenPath {
+    fn from_raw_token_path(rtp: Vec<Token>) -> Option<Self> {
+        let mut kw_matched = false;
+        let mut all_kw_matches_min_len = true;
+        let mut all_kw_matches_full = true;
+
+        let mut city_match: Option<GeonameMatch> = None;
+        let mut city_match_len = 0;
+        let mut any_other_geoname_full = false;
+        let mut max_other_geoname_match_len = 0;
+
+        for t in rtp {
             match t {
                 Token::WeatherKeyword(kwm) => {
-                    tp.keyword_match = Some(kwm);
+                    kw_matched = true;
+                    all_kw_matches_min_len = all_kw_matches_min_len && kwm.is_min_keyword_length;
+                    all_kw_matches_full = all_kw_matches_full && !kwm.is_prefix;
                 }
-                Token::Geoname(gm) => {
-                    if gm.geoname.feature_class == "P" {
-                        tp.city_match = Some(gm);
-                    } else {
-                        tp.any_other_geoname_matched = true;
-                        if !gm.prefix {
-                            tp.any_other_geoname_typed_in_full = true;
+                Token::Geoname {
+                    geoname_match,
+                    match_len,
+                } => {
+                    if geoname_match.geoname.geoname_type == crate::geoname::GeonameType::City {
+                        if city_match.is_some() {
+                            // We already matched a city, so the path includes
+                            // more than one, which is invalid.
+                            return None;
                         }
+                        city_match = Some(geoname_match);
+                        city_match_len = match_len;
+                    } else {
+                        any_other_geoname_full = any_other_geoname_full || !geoname_match.prefix;
+                        max_other_geoname_match_len =
+                            std::cmp::max(max_other_geoname_match_len, match_len)
                     }
                 }
             }
         }
-        tp
+
+        if let Some(cm) = city_match {
+            let is_valid =
+                // city name typed in full ("new york")
+                (!cm.prefix && cm.match_type.is_name())
+                    // city abbreviation typed in full + another related
+                    // geoname typed in full ("ny new york")
+                    || (!cm.prefix
+                        && cm.match_type.is_abbreviation()
+                        && any_other_geoname_full)
+                    // city abbreviation or airport code typed in full + weather
+                    // keyword(s) or prefixes ("ny wea", "pdx wea")
+                    || (!cm.prefix
+                        && (cm.match_type.is_abbreviation() ||
+                            cm.match_type.is_airport_code())
+                        && kw_matched
+                        && all_kw_matches_min_len)
+                    // all weather keyword(s) typed in full ("weather new y" but
+                    // not "weather new wea")
+                    || (kw_matched
+                        && all_kw_matches_min_len
+                        && all_kw_matches_full);
+            if is_valid {
+                return Some(Self::City(CityTokenPath {
+                    city_match: cm,
+                    city_match_len,
+                    other_geoname_match_len: max_other_geoname_match_len,
+                }));
+            }
+        } else if kw_matched && max_other_geoname_match_len == 0 {
+            // weather keyword(s) alone ("weather")
+            return Some(Self::WeatherKeyword);
+        }
+
+        None
     }
 }
 
@@ -570,938 +664,1305 @@ mod tests {
     fn cities_and_regions() -> anyhow::Result<()> {
         before_each();
 
-        let mut store = geoname::tests::new_test_store();
-        store
-            .client_mut()
-            .add_record(SuggestionProvider::Weather.record(
-                "weather-1",
-                json!({
-                    // Include a keyword that's a prefix of another keyword --
-                    // "weather" and "weather near me" -- so that when a test
-                    // matches both we can verify only one suggestion is returned,
-                    // not two.
-                    "keywords": ["ab", "xyz", "weather", "weather near me"],
-                    "min_keyword_length": 5,
-                    "score": 0.24
-                }),
-            ));
-
-        store.ingest(SuggestIngestionConstraints {
-            providers: Some(vec![SuggestionProvider::Weather]),
-            ..SuggestIngestionConstraints::all_providers()
+        let record_json = json!({
+            "keywords": [
+                "ab",
+                "xyz",
+                // "weather" is a prefix of "weather near me" -- when a
+                // test matches both one suggestion should be returned
+                "weather",
+                "weather near me",
+                // These are suffixes of two place names that both start
+                // with "New"
+                "york",
+                "orleans",
+                // This is an admin division name
+                "iowa",
+            ],
+            "score": 0.24
         });
 
-        let tests: &[(&str, Vec<Suggestion>)] = &[
-            (
-                "act",
-                vec![],
-            ),
-            (
-                "act w",
-                vec![],
-            ),
-            (
-                "act we",
-                vec![],
-            ),
-            (
-                "act wea",
-                vec![],
-            ),
-            (
-                "act weat",
-                vec![],
-            ),
-            (
-                // `min_keyword_length` = 5, so there should be a match.
-                "act weath",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "act weathe",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "act weather",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "weather a",
-                vec![
-                    // A suggestion without a city is returned because the query
-                    // also matches a keyword ("weather") + a prefix of another
-                    // keyword ("ab").
-                    Suggestion::Weather {
-                        score: 0.24,
-                        city: None,
-                    },
-                ],
-            ),
-            (
-                "weather ac",
-                vec![],
-            ),
-            (
-                "weather act",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "act t",
-                vec![],
-            ),
-            (
-                "act tx",
-                vec![],
-            ),
-            (
-                "act tx w",
-                vec![],
-            ),
-            (
-                "act tx we",
-                vec![],
-            ),
-            (
-                "act tx wea",
-                vec![],
-            ),
-            (
-                "act tx weat",
-                vec![],
-            ),
-            (
-                // `min_keyword_length` = 5, so there should be a match.
-                "act tx weath",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "act tx weathe",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "act tx weather",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "tx a",
-                vec![],
-            ),
-            (
-                "tx ac",
-                vec![],
-            ),
-            (
-                "tx act",
-                vec![],
-            ),
-            (
-                "tx act w",
-                vec![],
-            ),
-            (
-                "tx act we",
-                vec![],
-            ),
-            (
-                "tx act wea",
-                vec![],
-            ),
-            (
-                "tx act weat",
-                vec![],
-            ),
-            (
-                // `min_keyword_length` = 5, so there should be a match.
-                "tx act weath",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "tx act weathe",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "tx act weather",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "act te",
-                vec![],
-            ),
-            (
-                "act tex",
-                vec![],
-            ),
-            (
-                "act texa",
-                vec![],
-            ),
-            (
-                "act texas",
-                vec![],
-            ),
-            (
-                "act texas w",
-                vec![],
-            ),
-            (
-                "act texas we",
-                vec![],
-            ),
-            (
-                "act texas wea",
-                vec![],
-            ),
-            (
-                "act texas weat",
-                vec![],
-            ),
-            (
-                // `min_keyword_length` = 5, so there should be a match.
-                "act texas weath",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "act texas weathe",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "act texas weather",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "texas a",
-                vec![],
-            ),
-            (
-                "texas ac",
-                vec![],
-            ),
-            (
-                "texas act",
-                vec![],
-            ),
-            (
-                "texas act w",
-                vec![],
-            ),
-            (
-                "texas act we",
-                vec![],
-            ),
-            (
-                "texas act wea",
-                vec![],
-            ),
-            (
-                "texas act weat",
-                vec![],
-            ),
-            (
-                // `min_keyword_length` = 5, so there should be a match.
-                "texas act weath",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "texas act weathe",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "texas act weather",
-                vec![geoname::tests::waco().into()],
-            ),
-            (
-                "ia w",
-                vec![],
-            ),
-            (
-                "ia wa",
-                vec![],
-            ),
-            (
-                "ia wat",
-                vec![],
-            ),
-            (
-                "ia wate",
-                vec![],
-            ),
-            (
-                "ia water",
-                vec![],
-            ),
-            (
-                "ia waterl",
-                vec![],
-            ),
-            (
-                "ia waterlo",
-                vec![],
-            ),
-            (
-                "waterloo",
-                vec![
-                    // Matches should be returned by population descending.
+        // Each test is run twice, once with a weather record where
+        // `min_keyword_length` is 0 and once where it's 5.
+        struct Test<'a> {
+            query: &'a str,
+            // expected suggestions per `min_keyword_length`
+            min_keyword_len_0: Vec<Suggestion>,
+            min_keyword_len_5: Vec<Suggestion>,
+        }
+
+        const KW_SUGGESTION: Suggestion = Suggestion::Weather {
+            score: 0.24,
+            city: None,
+        };
+
+        let tests: &[Test] = &[
+            // For these "act" queries, "act" is Waco's airport code. When
+            // `min_keyword_length` is zero, a suggestion should be returned
+            // once any prefix of "weather" is in the query.
+            Test {
+                query: "act",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act w",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act we",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act wea",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act weat",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act weath",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![geoname::tests::waco().into()],
+            },
+            Test {
+                query: "act weather",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![geoname::tests::waco().into()],
+            },
+            Test {
+                // A suggestion without a city should be returned because the
+                // query also matches a keyword ("weather") + a prefix of
+                // another keyword ("ab").
+                query: "weather a",
+                min_keyword_len_0: vec![KW_SUGGESTION.clone()],
+                min_keyword_len_5: vec![KW_SUGGESTION.clone()],
+            },
+            Test {
+                query: "weather ac",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "weather act",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![geoname::tests::waco().into()],
+            },
+            Test {
+                query: "act t",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act tx",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act tx w",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act tx weat",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act tx weath",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![geoname::tests::waco().into()],
+            },
+            Test {
+                query: "tx a",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "tx ac",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "tx act",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "tx act w",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "tx act weat",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "tx act weath",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![geoname::tests::waco().into()],
+            },
+            Test {
+                query: "act te",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act tex",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act texa",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act texas",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act texas w",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act texas weat",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "act texas weath",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![geoname::tests::waco().into()],
+            },
+            Test {
+                query: "texas a",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "texas ac",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "texas act",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "texas act w",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "texas act weat",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "texas act weath",
+                min_keyword_len_0: vec![geoname::tests::waco().into()],
+                min_keyword_len_5: vec![geoname::tests::waco().into()],
+            },
+
+            Test {
+                query: "ia w",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ia wa",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ia wat",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ia wate",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ia water",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ia waterl",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ia waterlo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ia waterloo",
+                min_keyword_len_0: vec![geoname::tests::waterloo_ia().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_ia().into()],
+            },
+
+            Test {
+                query: "w",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "wa",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "wat",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "wate",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "water",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "waterl",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "waterlo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "waterloo",
+                // Matches should be returned by population descending.
+                min_keyword_len_0: vec![
                     geoname::tests::waterloo_on().into(),
                     geoname::tests::waterloo_ia().into(),
                     geoname::tests::waterloo_al().into(),
                 ],
-            ),
-            (
-                "waterloo i",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "waterloo ia",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "waterloo io",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "waterloo iow",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "waterloo iowa",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "ia waterloo",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "waterloo al",
-                vec![geoname::tests::waterloo_al().into()],
-            ),
-            (
-                "al waterloo",
-                vec![geoname::tests::waterloo_al().into()],
-            ),
-            ("waterloo ia al", vec![]),
-            ("waterloo ny", vec![]),
-            (
-                "ia",
-                vec![],
-            ),
-            (
-                "iowa",
-                vec![],
-            ),
-            (
-                "al",
-                vec![],
-            ),
-            (
-                "alabama",
-                vec![],
-            ),
-            (
-                "new york",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york new york",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny ny ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny n",
-                vec![],
-            ),
-            (
-                "ny ne",
-                vec![],
-            ),
-            (
-                "ny new",
-                vec![],
-            ),
-            (
-                "ny new ",
-                vec![],
-            ),
-            (
-                "ny new y",
-                vec![],
-            ),
-            (
-                "ny new yo",
-                vec![],
-            ),
-            (
-                "ny new yor",
-                vec![],
-            ),
-            (
-                "ny new york",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny w",
-                vec![],
-            ),
-            (
-                "ny we",
-                vec![],
-            ),
-            (
-                "ny wea",
-                vec![],
-            ),
-            (
-                "ny weat",
-                vec![],
-            ),
-            (
-                // `min_keyword_length` = 5, so there should be a match.
-                "ny weath",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny weathe",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather ny ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny weather ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny ny weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "rochester ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "ny rochester",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather rochester ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester weather ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester ny weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather ny rochester",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "ny weather rochester",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "ny rochester weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather new york",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new weather york",
-                vec![],
-            ),
-            (
-                "new york weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather new york new york",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york weather new york",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york new york weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather water",
-                vec![
+                min_keyword_len_5: vec![
                     geoname::tests::waterloo_on().into(),
                     geoname::tests::waterloo_ia().into(),
                     geoname::tests::waterloo_al().into(),
                 ],
-            ),
-            (
-                "waterloo w",
-                vec![
+            },
+
+            Test {
+                query: "i",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ia",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "io",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "iow",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                // "iowa" is a also weather keyword.
+                query: "iowa",
+                min_keyword_len_0: vec![KW_SUGGESTION.clone()],
+                min_keyword_len_5: vec![],
+            },
+
+            Test {
+                query: "waterloo al",
+                min_keyword_len_0: vec![geoname::tests::waterloo_al().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_al().into()],
+            },
+            Test {
+                query: "al waterloo",
+                min_keyword_len_0: vec![geoname::tests::waterloo_al().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_al().into()],
+            },
+
+            Test {
+                query: "waterloo ia al",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "waterloo ny",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+
+            Test {
+                query: "al",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "alabama",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+
+            Test {
+                query: "new york",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york new york",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "ny ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "ny ny ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            Test {
+                query: "ny n",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ny ne",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ny new",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ny new ",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+
+            // "york" is also a weather keyword.
+            Test {
+                query: "ny new y",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ny new yo",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ny new yor",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![],
+            },
+
+            Test {
+                query: "ny new york",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            Test {
+                query: "weather ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            Test {
+                query: "ny w",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ny weat",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ny weath",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "ny weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            Test {
+                query: "weather ny ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "ny weather ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "ny ny weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            Test {
+                query: "rochester ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "ny rochester",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather rochester ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester weather ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester ny weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather ny rochester",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "ny weather rochester",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "ny rochester weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+
+            Test {
+                query: "weather new york",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new weather york",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "new york weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "weather new york new york",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york weather new york",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york new york weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            Test {
+                query: "weather water",
+                min_keyword_len_0: vec![
                     geoname::tests::waterloo_on().into(),
                     geoname::tests::waterloo_ia().into(),
                     geoname::tests::waterloo_al().into(),
                 ],
-            ),
-            (
-                // "w" matches "waco", "waterloo", and "weather"
-                "weather w w",
-                vec![
-                    geoname::tests::waco().into(),
-                    geoname::tests::waterloo_on().into(),
-                    geoname::tests::waterloo_ia().into(),
-                    geoname::tests::waterloo_al().into(),
-                    Suggestion::Weather {
-                        score: 0.24,
-                        city: None,
-                    },
-                ],
-            ),
-            ("weather w water", vec![
-                    geoname::tests::waterloo_on().into(),
-                    geoname::tests::waterloo_ia().into(),
-                    geoname::tests::waterloo_al().into(),
-            ]),
-            ("weather w waterloo", vec![
-                    geoname::tests::waterloo_on().into(),
-                    geoname::tests::waterloo_ia().into(),
-                    geoname::tests::waterloo_al().into(),
-            ]),
-            ("weather water w", vec![
-                    geoname::tests::waterloo_on().into(),
-                    geoname::tests::waterloo_ia().into(),
-                    geoname::tests::waterloo_al().into(),
-            ]),
-            ("weather waterloo water", vec![
-                    geoname::tests::waterloo_on().into(),
-                    geoname::tests::waterloo_ia().into(),
-                    geoname::tests::waterloo_al().into(),
-            ]),
-            ("weather water water", vec![
-                    geoname::tests::waterloo_on().into(),
-                    geoname::tests::waterloo_ia().into(),
-                    geoname::tests::waterloo_al().into(),
-            ]),
-            ("weather water waterloo", vec![
-                    geoname::tests::waterloo_on().into(),
-                    geoname::tests::waterloo_ia().into(),
-                    geoname::tests::waterloo_al().into(),
-            ]),
-            ("waterloo foo", vec![]),
-            ("waterloo weather foo", vec![]),
-            ("foo waterloo", vec![]),
-            ("foo waterloo weather", vec![]),
-            ("weather waterloo foo", vec![]),
-            ("weather foo waterloo", vec![]),
-            ("weather water foo", vec![]),
-            ("weather foo water", vec![]),
-            (
-                "waterloo on",
-                vec![geoname::tests::waterloo_on().into()],
-            ),
-            (
-                "waterloo ont",
-                vec![geoname::tests::waterloo_on().into()],
-            ),
-            (
-                "waterloo ont.",
-                vec![geoname::tests::waterloo_on().into()],
-            ),
-            (
-                "waterloo ontario",
-                vec![geoname::tests::waterloo_on().into()],
-            ),
-            (
-                "waterloo canada",
-                vec![geoname::tests::waterloo_on().into()],
-            ),
-            (
-                "waterloo on canada",
-                vec![geoname::tests::waterloo_on().into()],
-            ),
-            (
-                "waterloo on us",
-                vec![],
-            ),
-            (
-                "waterloo al canada",
-                vec![],
-            ),
-            (
-                "ny",
-                vec![],
-            ),
-            (
-                "nyc",
-                vec![],
-            ),
-            (
-                "roc",
-                vec![],
-            ),
-            (
-                "nyc ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "ny nyc",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "roc ny",
-                vec![],
-            ),
-            (
-                "ny roc",
-                vec![],
-            ),
-            (
-                "nyc weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather nyc",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "roc weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather roc",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "liverpool",
-                vec![geoname::tests::liverpool_city().into()],
-            ),
-            (
-                "liverpool eng",
-                vec![geoname::tests::liverpool_city().into()],
-            ),
-            (
-                "liverpool england",
-                vec![geoname::tests::liverpool_city().into()],
-            ),
-            (
-                "liverpool uk",
-                vec![geoname::tests::liverpool_city().into()],
-            ),
-            (
-                "liverpool england uk",
-                vec![geoname::tests::liverpool_city().into()],
-            ),
-            (
-                geoname::tests::LONG_NAME,
-                vec![geoname::tests::long_name_city().into()],
-            ),
-            (
-                "     waterloo iowa",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "   WaTeRlOo   ",
-                vec![
+                min_keyword_len_5: vec![
                     geoname::tests::waterloo_on().into(),
                     geoname::tests::waterloo_ia().into(),
                     geoname::tests::waterloo_al().into(),
                 ],
-            ),
-            (
-                "     waterloo ia",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "waterloo     ia",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "waterloo ia     ",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "  waterloo   ia    ",
-                vec![geoname::tests::waterloo_ia().into()],
-            ),
-            (
-                "     new york weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new     york weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york     weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york weather     ",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "rochester,",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester ,",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester , ",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester,ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester, ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester ,ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester , ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather rochester,",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather rochester, ",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather rochester , ",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather rochester,ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather rochester, ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather rochester ,ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "weather rochester , ny",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester,weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester, weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester ,weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester , weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester,ny weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester, ny weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester ,ny weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "rochester , ny weather",
-                vec![geoname::tests::rochester().into()],
-            ),
-            (
-                "new york,",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york ,",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york , ",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york,ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york, ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york ,ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york , ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather new york,ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather new york, ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather new york ,ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "weather new york , ny",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york,weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york, weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york ,weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york , weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york,ny weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york, ny weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york ,ny weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                "new york , ny weather",
-                vec![geoname::tests::nyc().into()],
-            ),
-            (
-                &format!("{} weather", geoname::tests::LONG_NAME),
-                vec![geoname::tests::long_name_city().into()],
-            ),
-            (
-                &format!("weather {}", geoname::tests::LONG_NAME),
-                vec![geoname::tests::long_name_city().into()],
-            ),
-            (
-                &format!("{} and some other words that don't match anything but that is neither here nor there", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("and some other words that don't match anything {} but that is neither here nor there", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("and some other words that don't match anything but that is neither here nor there {}", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("weather {} and some other words that don't match anything but that is neither here nor there", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("{} weather and some other words that don't match anything but that is neither here nor there", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("{} and some other words that don't match anything weather but that is neither here nor there", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("{} and some other words that don't match anything but that is neither here nor there weather", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("weather and some other words that don't match anything {} but that is neither here nor there", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("weather and some other words that don't match anything but that is neither here nor there {}", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("and some other words that don't match anything weather {} but that is neither here nor there", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("and some other words that don't match anything but that is neither here nor there weather {}", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("{} weather and then this also doesn't match anything down here", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("{} and then this also doesn't match anything down here weather", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("and then this also doesn't match anything down here {} weather", geoname::tests::LONG_NAME),
-                vec![]
-            ),
-            (
-                &format!("and then this also doesn't match anything down here weather {}", geoname::tests::LONG_NAME),
-                vec![]
-            ),
+            },
+            Test {
+                query: "waterloo w",
+                min_keyword_len_0: vec![
+                    geoname::tests::waterloo_on().into(),
+                    geoname::tests::waterloo_ia().into(),
+                    geoname::tests::waterloo_al().into(),
+                ],
+                min_keyword_len_5: vec![
+                    geoname::tests::waterloo_on().into(),
+                    geoname::tests::waterloo_ia().into(),
+                    geoname::tests::waterloo_al().into(),
+                ],
+            },
+            Test {
+                query: "weather w w",
+                min_keyword_len_0: vec![KW_SUGGESTION.clone()],
+                min_keyword_len_5: vec![KW_SUGGESTION.clone()],
+            },
+            Test {
+                query: "weather w water",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                // "waterloo" is a full city name match and "w" is a "weather"
+                // keyword prefix.
+                query: "weather w waterloo",
+                min_keyword_len_0: vec![
+                    geoname::tests::waterloo_on().into(),
+                    geoname::tests::waterloo_ia().into(),
+                    geoname::tests::waterloo_al().into(),
+                ],
+                min_keyword_len_5: vec![
+                    geoname::tests::waterloo_on().into(),
+                    geoname::tests::waterloo_ia().into(),
+                    geoname::tests::waterloo_al().into(),
+                ],
+            },
+            Test {
+                query: "weather water w",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "weather waterloo water",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "weather water water",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "weather water waterloo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+
+            Test {
+                query: "waterloo foo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "waterloo weather foo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "foo waterloo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "foo waterloo weather",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "weather waterloo foo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "weather foo waterloo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "weather water foo",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "weather foo water",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+
+            Test {
+                query: "waterloo on",
+                min_keyword_len_0: vec![geoname::tests::waterloo_on().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_on().into()],
+            },
+            Test {
+                query: "waterloo ont",
+                min_keyword_len_0: vec![geoname::tests::waterloo_on().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_on().into()],
+            },
+            Test {
+                query: "waterloo ont.",
+                min_keyword_len_0: vec![geoname::tests::waterloo_on().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_on().into()],
+            },
+            Test {
+                query: "waterloo ontario",
+                min_keyword_len_0: vec![geoname::tests::waterloo_on().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_on().into()],
+            },
+            Test {
+                query: "waterloo canada",
+                min_keyword_len_0: vec![geoname::tests::waterloo_on().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_on().into()],
+            },
+            Test {
+                query: "waterloo on canada",
+                min_keyword_len_0: vec![geoname::tests::waterloo_on().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_on().into()],
+            },
+
+            Test {
+                query: "waterloo on us",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "waterloo al canada",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+
+            Test {
+                query: "ny",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "nyc",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "roc",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "roc ny",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: "ny roc",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+
+            Test {
+                query: "nyc ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "ny nyc",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "nyc weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "weather nyc",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "roc weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather roc",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+
+            Test {
+                // full "weather" keyword + name prefix
+                query: "weather new",
+                min_keyword_len_0: vec![
+                    geoname::tests::nyc().into(),
+                    geoname::tests::new_orleans().into(),
+                ],
+                min_keyword_len_5: vec![
+                    geoname::tests::nyc().into(),
+                    geoname::tests::new_orleans().into(),
+                ],
+            },
+            Test {
+                // full "weather" keyword + name prefix + "xyz" keyword prefix,
+                // invalid
+                query: "weather new xy",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                // full "weather" keyword + name prefix + "weather" keyword
+                // prefix, invalid
+                query: "weather new we",
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+
+            // These should match New York even though there's also a weather
+            // keyword called "york".
+            Test {
+                query: "weather new y",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "weather new yo",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "weather new yor",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            // These should match New Orleans even though there's also a weather
+            // keyword "orleans".
+            Test {
+                query: "weather new o",
+                min_keyword_len_0: vec![geoname::tests::new_orleans().into()],
+                min_keyword_len_5: vec![geoname::tests::new_orleans().into()],
+            },
+            Test {
+                query: "weather new or",
+                min_keyword_len_0: vec![geoname::tests::new_orleans().into()],
+                min_keyword_len_5: vec![geoname::tests::new_orleans().into()],
+            },
+            Test {
+                query: "weather new orl",
+                min_keyword_len_0: vec![geoname::tests::new_orleans().into()],
+                min_keyword_len_5: vec![geoname::tests::new_orleans().into()],
+            },
+            Test {
+                query: "weather new orle",
+                min_keyword_len_0: vec![geoname::tests::new_orleans().into()],
+                min_keyword_len_5: vec![geoname::tests::new_orleans().into()],
+            },
+            Test {
+                query: "weather new orlea",
+                min_keyword_len_0: vec![geoname::tests::new_orleans().into()],
+                min_keyword_len_5: vec![geoname::tests::new_orleans().into()],
+            },
+            Test {
+                query: "weather new orlean",
+                min_keyword_len_0: vec![geoname::tests::new_orleans().into()],
+                min_keyword_len_5: vec![geoname::tests::new_orleans().into()],
+            },
+            Test {
+                query: "weather new orleans",
+                min_keyword_len_0: vec![geoname::tests::new_orleans().into()],
+                min_keyword_len_5: vec![geoname::tests::new_orleans().into()],
+            },
+
+            // Query with a weather keyword that's also an admin division name:
+            // This should match only Waterloo, IA even though "iowa" is also a
+            // weather keyword.
+            Test {
+                query: "weather waterloo iowa",
+                min_keyword_len_0: vec![geoname::tests::waterloo_ia().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_ia().into()],
+            },
+
+            Test {
+                query: "weather san diego",
+                min_keyword_len_0: vec![geoname::tests::san_diego().into()],
+                min_keyword_len_5: vec![geoname::tests::san_diego().into()],
+            },
+
+            // This should match "san diego" (the city) and "ca" (the state). It
+            // should not match Carlsbad, CA even though Carlsbad starts with
+            // "ca" and it's in San Diego County.
+            Test {
+                query: "weather san diego ca",
+                min_keyword_len_0: vec![geoname::tests::san_diego().into()],
+                min_keyword_len_5: vec![geoname::tests::san_diego().into()],
+            },
+
+            // These should match Carlsbad since it's in San Diego County.
+            Test {
+                query: "weather san diego car",
+                min_keyword_len_0: vec![geoname::tests::carlsbad().into()],
+                min_keyword_len_5: vec![geoname::tests::carlsbad().into()],
+            },
+            Test {
+                query: "weather san diego carlsbad",
+                min_keyword_len_0: vec![geoname::tests::carlsbad().into()],
+                min_keyword_len_5: vec![geoname::tests::carlsbad().into()],
+            },
+
+            Test {
+                query: "liverpool",
+                min_keyword_len_0: vec![geoname::tests::liverpool_city().into()],
+                min_keyword_len_5: vec![geoname::tests::liverpool_city().into()],
+            },
+            Test {
+                query: "liverpool",
+                min_keyword_len_0: vec![geoname::tests::liverpool_city().into()],
+                min_keyword_len_5: vec![geoname::tests::liverpool_city().into()],
+            },
+            Test {
+                query: "liverpool eng",
+                min_keyword_len_0: vec![geoname::tests::liverpool_city().into()],
+                min_keyword_len_5: vec![geoname::tests::liverpool_city().into()],
+            },
+            Test {
+                query: "liverpool england",
+                min_keyword_len_0: vec![geoname::tests::liverpool_city().into()],
+                min_keyword_len_5: vec![geoname::tests::liverpool_city().into()],
+            },
+            Test {
+                query: "liverpool uk",
+                min_keyword_len_0: vec![geoname::tests::liverpool_city().into()],
+                min_keyword_len_5: vec![geoname::tests::liverpool_city().into()],
+            },
+            Test {
+                query: "liverpool england uk",
+                min_keyword_len_0: vec![geoname::tests::liverpool_city().into()],
+                min_keyword_len_5: vec![geoname::tests::liverpool_city().into()],
+            },
+
+            Test {
+                query: geoname::tests::LONG_NAME,
+                min_keyword_len_0: vec![geoname::tests::long_name_city().into()],
+                min_keyword_len_5: vec![geoname::tests::long_name_city().into()],
+            },
+
+            Test {
+                query: "     waterloo iowa",
+                min_keyword_len_0: vec![geoname::tests::waterloo_ia().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_ia().into()],
+            },
+            Test {
+                query: "     waterloo ia",
+                min_keyword_len_0: vec![geoname::tests::waterloo_ia().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_ia().into()],
+            },
+
+            Test {
+                query: "waterloo     ia",
+                min_keyword_len_0: vec![geoname::tests::waterloo_ia().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_ia().into()],
+            },
+            Test {
+                query: "waterloo ia     ",
+                min_keyword_len_0: vec![geoname::tests::waterloo_ia().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_ia().into()],
+            },
+            Test {
+                query: "  waterloo   ia    ",
+                min_keyword_len_0: vec![geoname::tests::waterloo_ia().into()],
+                min_keyword_len_5: vec![geoname::tests::waterloo_ia().into()],
+            },
+            Test {
+                query: "   WaTeRlOo   ",
+                min_keyword_len_0: vec![
+                    geoname::tests::waterloo_on().into(),
+                    geoname::tests::waterloo_ia().into(),
+                    geoname::tests::waterloo_al().into(),
+                ],
+                min_keyword_len_5: vec![
+                    geoname::tests::waterloo_on().into(),
+                    geoname::tests::waterloo_ia().into(),
+                    geoname::tests::waterloo_al().into(),
+                ],
+            },
+
+            Test {
+                query: "     new york weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new     york weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york     weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york weather     ",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            Test {
+                query: "rochester",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester ,",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester , ",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester,ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester, ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester ,ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester , ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather rochester,",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather rochester, ",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather rochester , ",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather rochester,ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather rochester, ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather rochester ,ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "weather rochester , ny",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester,weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester, weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester ,weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester , weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester,ny weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester, ny weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester ,ny weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+            Test {
+                query: "rochester , ny weather",
+                min_keyword_len_0: vec![geoname::tests::rochester().into()],
+                min_keyword_len_5: vec![geoname::tests::rochester().into()],
+            },
+
+            Test {
+                query: "new york,",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york ,",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york , ",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york,ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york, ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york ,ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york , ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "weather new york,ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "weather new york, ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "weather new york ,ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "weather new york , ny",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york,weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york, weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york ,weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york , weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york,ny weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york, ny weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york ,ny weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+            Test {
+                query: "new york , ny weather",
+                min_keyword_len_0: vec![geoname::tests::nyc().into()],
+                min_keyword_len_5: vec![geoname::tests::nyc().into()],
+            },
+
+            Test {
+                query: &format!("{} weather", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![geoname::tests::long_name_city().into()],
+                min_keyword_len_5: vec![geoname::tests::long_name_city().into()],
+            },
+            Test {
+                query: &format!("weather {}", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![geoname::tests::long_name_city().into()],
+                min_keyword_len_5: vec![geoname::tests::long_name_city().into()],
+            },
+
+            Test {
+                query: &format!("{} and some other words that don't match anything but that is neither here nor there", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("and some other words that don't match anything {} but that is neither here nor there", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("and some other words that don't match anything but that is neither here nor there {}", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("weather {} and some other words that don't match anything but that is neither here nor there", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("{} weather and some other words that don't match anything but that is neither here nor there", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("{} and some other words that don't match anything weather but that is neither here nor there", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("{} and some other words that don't match anything but that is neither here nor there weather", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("weather and some other words that don't match anything {} but that is neither here nor there", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("weather and some other words that don't match anything but that is neither here nor there {}", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("and some other words that don't match anything weather {} but that is neither here nor there", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("and some other words that don't match anything but that is neither here nor there weather {}", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("{} weather and then this also doesn't match anything down here", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("{} and then this also doesn't match anything down here weather", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("and then this also doesn't match anything down here {} weather", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
+            Test {
+                query: &format!("and then this also doesn't match anything down here weather {}", geoname::tests::LONG_NAME),
+                min_keyword_len_0: vec![],
+                min_keyword_len_5: vec![],
+            },
         ];
 
-        for (query, expected_suggestions) in tests {
-            assert_eq!(
-                &store.fetch_suggestions(SuggestionQuery::weather(query)),
-                expected_suggestions,
-                "Query: {:?}",
-                query
-            );
+        for min_keyword_length in [0, 5] {
+            let mut store = geoname::tests::new_test_store();
+            store
+                .client_mut()
+                .add_record(SuggestionProvider::Weather.record(
+                    "weather-1",
+                    record_json.clone().merge(json!({
+                        "min_keyword_length": min_keyword_length,
+                    })),
+                ));
+
+            store.ingest(SuggestIngestionConstraints {
+                providers: Some(vec![SuggestionProvider::Weather]),
+                ..SuggestIngestionConstraints::all_providers()
+            });
+
+            for test in tests {
+                assert_eq!(
+                    &store.fetch_suggestions(SuggestionQuery::weather(test.query)),
+                    match min_keyword_length {
+                        0 => &test.min_keyword_len_0,
+                        5 => &test.min_keyword_len_5,
+                        _ => std::unreachable!(),
+                    },
+                    "Query: {:?}, min_keyword_length={}",
+                    test.query,
+                    min_keyword_length
+                );
+            }
         }
 
         Ok(())
