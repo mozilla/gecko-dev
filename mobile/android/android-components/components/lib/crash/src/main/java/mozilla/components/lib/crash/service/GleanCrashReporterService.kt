@@ -321,6 +321,14 @@ class GleanCrashReporterService(
             val startup: Boolean = false,
         ) : GleanCrashAction() {
             override fun submit() {
+                // Disabling and enabling the crash ping will clear the
+                // associated stored metrics. We want to clear the metrics in
+                // case a previous crash submission attempt was aborted due to
+                // an unexpected exception and the metrics were left
+                // partially-populated. See bug 1961202.
+                Pings.crash.setEnabled(false)
+                Pings.crash.setEnabled(true)
+
                 GleanEnvironment.uptime.setRawNanos(uptimeNanos)
                 GleanCrash.processType.set(processType)
                 GleanCrash.time.set(Date(timeMillis))
