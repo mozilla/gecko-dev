@@ -100,6 +100,22 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
     return true;
   }
 
+  bool jsStringBuiltinsAvailable = false;
+#ifdef ENABLE_WASM_JS_STRING_BUILTINS
+  jsStringBuiltinsAvailable = JSStringBuiltinsAvailable(cx);
+#endif  // ENABLE_WASM_JS_STRING_BUILTINS
+  bool isPrivilegedContext = IsPrivilegedContext(cx);
+
+  if (!jsStringBuiltinsAvailable && !isPrivilegedContext) {
+    // Skip checking for a compile options object if we don't have a feature
+    // enabled yet that requires it. Once js-string-builtins is standardized
+    // and shipped we will always need to check for it.
+    MOZ_ASSERT(!this->disableOptimizingCompiler);
+    MOZ_ASSERT(!this->jsStringConstants);
+    MOZ_ASSERT(!this->jsStringBuiltins);
+    return true;
+  }
+
   if (!val.isObject()) {
     JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
                              JSMSG_WASM_BAD_COMPILE_OPTIONS);
@@ -107,7 +123,7 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
   }
   RootedObject obj(cx, &val.toObject());
 
-  if (IsPrivilegedContext(cx)) {
+  if (isPrivilegedContext) {
     RootedValue disableOptimizingCompiler(cx);
     if (!JS_GetProperty(cx, obj, "disableOptimizingCompiler",
                         &disableOptimizingCompiler)) {
@@ -119,81 +135,85 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
     MOZ_ASSERT(!this->disableOptimizingCompiler);
   }
 
-  // Check the 'importedStringConstants' option
-  RootedValue importedStringConstants(cx);
-  if (!JS_GetProperty(cx, obj, "importedStringConstants",
-                      &importedStringConstants)) {
-    return false;
-  }
-
-  if (importedStringConstants.isNullOrUndefined()) {
-    this->jsStringConstants = false;
-  } else {
-    this->jsStringConstants = true;
-
-    RootedString importedStringConstantsString(
-        cx, JS::ToString(cx, importedStringConstants));
-    if (!importedStringConstantsString) {
+#ifdef ENABLE_WASM_JS_STRING_BUILTINS
+  if (jsStringBuiltinsAvailable) {
+    // Check the 'importedStringConstants' option
+    RootedValue importedStringConstants(cx);
+    if (!JS_GetProperty(cx, obj, "importedStringConstants",
+                        &importedStringConstants)) {
       return false;
     }
 
-    UniqueChars jsStringConstantsNamespace =
-        StringToNewUTF8CharsZ(cx, *importedStringConstantsString);
-    if (!jsStringConstantsNamespace) {
-      return false;
-    }
+    if (importedStringConstants.isNullOrUndefined()) {
+      this->jsStringConstants = false;
+    } else {
+      this->jsStringConstants = true;
 
-    this->jsStringConstantsNamespace =
-        js_new<ShareableChars>(std::move(jsStringConstantsNamespace));
-    if (!this->jsStringConstantsNamespace) {
-      return false;
-    }
-  }
-
-  // Get the `builtins` iterable
-  RootedValue builtins(cx);
-  if (!JS_GetProperty(cx, obj, "builtins", &builtins)) {
-    return false;
-  }
-
-  if (!builtins.isUndefined()) {
-    JS::ForOfIterator iterator(cx);
-
-    if (!iterator.init(builtins, JS::ForOfIterator::ThrowOnNonIterable)) {
-      return false;
-    }
-
-    RootedValue jsStringModule(cx, StringValue(cx->names().jsStringModule));
-    RootedValue nextBuiltin(cx);
-    while (true) {
-      bool done;
-      if (!iterator.next(&nextBuiltin, &done)) {
-        return false;
-      }
-      if (done) {
-        break;
-      }
-
-      bool jsStringBuiltins;
-      if (!JS::LooselyEqual(cx, nextBuiltin, jsStringModule,
-                            &jsStringBuiltins)) {
+      RootedString importedStringConstantsString(
+          cx, JS::ToString(cx, importedStringConstants));
+      if (!importedStringConstantsString) {
         return false;
       }
 
-      // We ignore unknown builtins
-      if (!jsStringBuiltins) {
-        continue;
-      }
-
-      // You cannot request the same builtin twice
-      if (this->jsStringBuiltins && jsStringBuiltins) {
-        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                                 JSMSG_WASM_DUPLICATE_BUILTIN);
+      UniqueChars jsStringConstantsNamespace =
+          StringToNewUTF8CharsZ(cx, *importedStringConstantsString);
+      if (!jsStringConstantsNamespace) {
         return false;
       }
-      this->jsStringBuiltins = jsStringBuiltins;
+
+      this->jsStringConstantsNamespace =
+          js_new<ShareableChars>(std::move(jsStringConstantsNamespace));
+      if (!this->jsStringConstantsNamespace) {
+        return false;
+      }
+    }
+
+    // Get the `builtins` iterable
+    RootedValue builtins(cx);
+    if (!JS_GetProperty(cx, obj, "builtins", &builtins)) {
+      return false;
+    }
+
+    if (!builtins.isUndefined()) {
+      JS::ForOfIterator iterator(cx);
+
+      if (!iterator.init(builtins, JS::ForOfIterator::ThrowOnNonIterable)) {
+        return false;
+      }
+
+      RootedValue jsStringModule(cx, StringValue(cx->names().jsStringModule));
+      RootedValue nextBuiltin(cx);
+      while (true) {
+        bool done;
+        if (!iterator.next(&nextBuiltin, &done)) {
+          return false;
+        }
+        if (done) {
+          break;
+        }
+
+        bool jsStringBuiltins;
+        if (!JS::LooselyEqual(cx, nextBuiltin, jsStringModule,
+                              &jsStringBuiltins)) {
+          return false;
+        }
+
+        // We ignore unknown builtins
+        if (!jsStringBuiltins) {
+          continue;
+        }
+
+        // You cannot request the same builtin twice
+        if (this->jsStringBuiltins && jsStringBuiltins) {
+          JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                   JSMSG_WASM_DUPLICATE_BUILTIN);
+          return false;
+        }
+        this->jsStringBuiltins = jsStringBuiltins;
+      }
     }
   }
+#endif
 
   return true;
 }
@@ -211,10 +231,15 @@ FeatureArgs FeatureArgs::build(JSContext* cx, const FeatureOptions& options) {
 
   features.simd = jit::JitSupportsWasmSimd();
   features.isBuiltinModule = options.isBuiltinModule;
-  features.builtinModules.jsString = options.jsStringBuiltins;
-  features.builtinModules.jsStringConstants = options.jsStringConstants;
-  features.builtinModules.jsStringConstantsNamespace =
-      options.jsStringConstantsNamespace;
+  if (features.jsStringBuiltins) {
+    features.builtinModules.jsString = options.jsStringBuiltins;
+    features.builtinModules.jsStringConstants = options.jsStringConstants;
+    features.builtinModules.jsStringConstantsNamespace =
+        options.jsStringConstantsNamespace;
+  }
+  if (options.requireExnref) {
+    features.exnref = true;
+  }
 
   return features;
 }
@@ -355,16 +380,16 @@ BytecodeSource::BytecodeSource(const uint8_t* begin, size_t length) {
   BytecodeRange codeRange;
   BytecodeRange tailRange;
   if (StartsCodeSection(begin, begin + length, &codeRange)) {
-    if (codeRange.end <= length) {
+    if (codeRange.end() <= length) {
       envRange = BytecodeRange(0, codeRange.start);
-      tailRange = BytecodeRange(codeRange.end, length - codeRange.end);
+      tailRange = BytecodeRange(codeRange.end(), length - codeRange.end());
     } else {
       MOZ_RELEASE_ASSERT(codeRange.start <= length);
       // If the specified code range is larger than the buffer, clamp it to the
       // the buffer size. This buffer will be rejected later.
       envRange = BytecodeRange(0, codeRange.start);
       codeRange = BytecodeRange(codeRange.start, length - codeRange.start);
-      MOZ_RELEASE_ASSERT(codeRange.end == length);
+      MOZ_RELEASE_ASSERT(codeRange.end() == length);
       tailRange = BytecodeRange(length, 0);
     }
   } else {
@@ -392,7 +417,7 @@ BytecodeBuffer::BytecodeBuffer(const ShareableBytes* env,
 bool BytecodeBuffer::fromSource(const BytecodeSource& bytecodeSource,
                                 BytecodeBuffer* bytecodeBuffer) {
   SharedBytes env;
-  if (!bytecodeSource.envRange().isEmpty()) {
+  if (bytecodeSource.envRange().size) {
     env = ShareableBytes::fromSpan(bytecodeSource.envSpan());
     if (!env) {
       return false;
@@ -400,8 +425,7 @@ bool BytecodeBuffer::fromSource(const BytecodeSource& bytecodeSource,
   }
 
   SharedBytes code;
-  if (bytecodeSource.hasCodeSection() &&
-      !bytecodeSource.codeRange().isEmpty()) {
+  if (bytecodeSource.hasCodeSection() && bytecodeSource.codeRange().size) {
     code = ShareableBytes::fromSpan(bytecodeSource.codeSpan());
     if (!code) {
       return false;
@@ -409,8 +433,7 @@ bool BytecodeBuffer::fromSource(const BytecodeSource& bytecodeSource,
   }
 
   SharedBytes tail;
-  if (bytecodeSource.hasCodeSection() &&
-      !bytecodeSource.tailRange().isEmpty()) {
+  if (bytecodeSource.hasCodeSection() && bytecodeSource.tailRange().size) {
     tail = ShareableBytes::fromSpan(bytecodeSource.tailSpan());
     if (!tail) {
       return false;
@@ -1152,7 +1175,7 @@ SharedModule wasm::CompileStreaming(
       return nullptr;
     }
 
-    MOZ_RELEASE_ASSERT(codeMeta.codeSectionRange->size() == codeBytes.length());
+    MOZ_RELEASE_ASSERT(codeMeta.codeSectionRange->size == codeBytes.length());
     MOZ_RELEASE_ASSERT(d.done());
   }
 
@@ -1191,7 +1214,7 @@ SharedModule wasm::CompileStreaming(
   const ShareableBytes& tailBytes = *streamEnd.tailBytes;
 
   {
-    Decoder d(tailBytes.vector, codeMeta.codeSectionRange->end, error,
+    Decoder d(tailBytes.vector, codeMeta.codeSectionRange->end(), error,
               warnings);
 
     if (!DecodeModuleTail(d, &codeMeta, moduleMeta)) {

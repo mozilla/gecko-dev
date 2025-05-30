@@ -65,6 +65,33 @@ for (let [name, enabled, test] of releasedFeaturesMaybeDisabledAnyway) {
 
 let releasedFeatures = [
   ['threads', wasmThreadsEnabled(), `(module (memory 1 1 shared))`],
+  [
+    'multi-memory',
+    wasmMultiMemoryEnabled(),
+    `(module (memory 0) (memory 0))`,
+  ],
+  [
+    'exnref',
+    wasmExnRefEnabled(),
+    `(module (func try_table end))`
+  ],
+  [
+    'memory64',
+    wasmMemory64Enabled(),
+    `(module (memory i64 0))`,
+  ],
+  [
+    'js-string-builtins',
+    wasmJSStringBuiltinsEnabled(),
+    `(module
+      (import "wasm:js-string" "concat"
+        (func
+          (param externref externref)
+          (result (ref extern)))
+      )
+    )`,
+    {builtins: ['js-string']}
+  ]
 ];
 
 for (let [name, enabled, test, options] of releasedFeatures) {

@@ -2066,12 +2066,18 @@ bool wasm::ValidateOps(ValidatingOpIter& iter, T& dumper,
         break;
       }
       case uint16_t(Op::ThrowRef): {
+        if (!codeMeta.exnrefEnabled()) {
+          return iter.unrecognizedOpcode(&op);
+        }
         if (!iter.readThrowRef(&nothing)) {
           return false;
         }
         break;
       }
       case uint16_t(Op::TryTable): {
+        if (!codeMeta.exnrefEnabled()) {
+          return iter.unrecognizedOpcode(&op);
+        }
         TryTableCatchVector catches;
         if (!iter.readTryTable(&blockType, &catches)) {
           return false;
@@ -2832,9 +2838,16 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
     limits->shared = Shareable::False;
   }
 
+#ifdef ENABLE_WASM_MEMORY64
   limits->addressType = (flags & uint8_t(LimitsFlags::IsI64))
                             ? AddressType::I64
                             : AddressType::I32;
+#else
+  limits->addressType = AddressType::I32;
+  if (flags & uint8_t(LimitsFlags::IsI64)) {
+    return d.fail("i64 is not supported for memory or table limits");
+  }
+#endif
 
   uint64_t initial;
   if (!DecodeLimitBound(d, limits->addressType, &initial)) {
@@ -2898,6 +2911,10 @@ static bool DecodeTableType(Decoder& d, CodeMetadata* codeMeta, bool isImport) {
     return false;
   }
 
+  if (limits.addressType == AddressType::I64 && !codeMeta->memory64Enabled()) {
+    return d.fail("memory64 is disabled");
+  }
+
   // If there's a maximum, check it is in range.  The check to exclude
   // initial > maximum is carried out by the DecodeLimits call above, so
   // we don't repeat it here.
@@ -2953,6 +2970,10 @@ static bool DecodeGlobalType(Decoder& d, const SharedTypeContext& types,
 
 static bool DecodeMemoryTypeAndLimits(Decoder& d, CodeMetadata* codeMeta,
                                       MemoryDescVector* memories) {
+  if (!codeMeta->features().multiMemory && codeMeta->numMemories() == 1) {
+    return d.fail("already have default memory");
+  }
+
   if (codeMeta->numMemories() >= MaxMemories) {
     return d.fail("too many memories");
   }
@@ -2975,6 +2996,10 @@ static bool DecodeMemoryTypeAndLimits(Decoder& d, CodeMetadata* codeMeta,
   if (limits.shared == Shareable::True &&
       codeMeta->sharedMemoryEnabled() == Shareable::False) {
     return d.fail("shared memory is disabled");
+  }
+
+  if (limits.addressType == AddressType::I64 && !codeMeta->memory64Enabled()) {
+    return d.fail("memory64 is disabled");
   }
 
   return memories->emplaceBack(MemoryDesc(limits));
@@ -3284,6 +3309,10 @@ static bool DecodeMemorySection(Decoder& d, CodeMetadata* codeMeta) {
   uint32_t numMemories;
   if (!d.readVarU32(&numMemories)) {
     return d.fail("failed to read number of memories");
+  }
+
+  if (!codeMeta->features().multiMemory && numMemories > 1) {
+    return d.fail("the number of memories must be at most one");
   }
 
   for (uint32_t i = 0; i < numMemories; ++i) {
@@ -3790,7 +3819,7 @@ bool wasm::StartsCodeSection(const uint8_t* begin, const uint8_t* end,
     }
 
     if (id == uint8_t(SectionId::Code)) {
-      if (range.size() > MaxCodeSectionBytes) {
+      if (range.size > MaxCodeSectionBytes) {
         return false;
       }
 
@@ -3798,7 +3827,7 @@ bool wasm::StartsCodeSection(const uint8_t* begin, const uint8_t* end,
       return true;
     }
 
-    if (!d.readBytes(range.size())) {
+    if (!d.readBytes(range.size)) {
       return false;
     }
   }
@@ -3965,7 +3994,7 @@ bool wasm::DecodeModuleEnvironment(Decoder& d, CodeMetadata* codeMeta,
   }
 
   if (codeMeta->codeSectionRange &&
-      codeMeta->codeSectionRange->size() > MaxCodeSectionBytes) {
+      codeMeta->codeSectionRange->size > MaxCodeSectionBytes) {
     return d.fail("code section too big");
   }
 
@@ -4239,7 +4268,7 @@ static bool DecodeNameSection(Decoder& d, CodeMetadata* codeMeta,
     goto finish;
   }
 
-  while (d.currentOffset() < range->end) {
+  while (d.currentOffset() < range->end()) {
     if (!d.skipNameSubsection()) {
       goto finish;
     }

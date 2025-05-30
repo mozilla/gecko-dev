@@ -697,6 +697,9 @@ inline bool Decoder::readPackedType(const TypeContext& types,
     }
     case uint8_t(TypeCode::ExnRef):
     case uint8_t(TypeCode::NullExnRef): {
+      if (!features.exnref) {
+        return fail("exnref not enabled");
+      }
       *type = RefType::fromTypeCode(TypeCode(code), true);
       return true;
     }
@@ -764,6 +767,9 @@ inline bool Decoder::readHeapType(const TypeContext& types,
         return true;
       case uint8_t(TypeCode::ExnRef):
       case uint8_t(TypeCode::NullExnRef): {
+        if (!features.exnref) {
+          return fail("exnref not enabled");
+        }
         *type = RefType::fromTypeCode(TypeCode(code), nullable);
         return true;
       }

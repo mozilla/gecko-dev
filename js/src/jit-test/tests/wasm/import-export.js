@@ -400,6 +400,12 @@ wasmFailValidateText('(module (export "a" (global 0)))', /exported global index 
 wasmFailValidateText('(module (export "a" (memory 0)))', /exported memory index out of bounds/);
 wasmFailValidateText('(module (export "a" (table 0)))', /exported table index out of bounds/);
 
+// Default memory/table rules
+if (!wasmMultiMemoryEnabled()) {
+    wasmFailValidateText('(module (import "a" "b" (memory 1 1)) (memory 1 1))', /already have default memory/);
+    wasmFailValidateText('(module (import "a" "b" (memory 1 1)) (import "x" "y" (memory 2 2)))', /already have default memory/);
+}
+
 // Data segments on imports
 
 var m = new Module(wasmTextToBinary(`

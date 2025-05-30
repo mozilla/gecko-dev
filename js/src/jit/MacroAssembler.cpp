@@ -6716,6 +6716,7 @@ void MacroAssembler::wasmBoundsCheckRange32(
   bind(&ok);
 }
 
+#ifdef ENABLE_WASM_MEMORY64
 void MacroAssembler::wasmClampTable64Address(Register64 address, Register out) {
   Label oob;
   Label ret;
@@ -6727,6 +6728,7 @@ void MacroAssembler::wasmClampTable64Address(Register64 address, Register out) {
   move32(Imm32(UINT32_MAX), out);
   bind(&ret);
 };
+#endif
 
 BranchWasmRefIsSubtypeRegisters MacroAssembler::regsForBranchWasmRefIsSubtype(
     wasm::RefType type) {

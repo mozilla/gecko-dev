@@ -8909,6 +8909,22 @@
     mirror: always
     set_spidermonkey_pref: startup
 
+-   name: javascript.options.wasm_exnref
+    type: bool
+    value: true
+    mirror: always
+    set_spidermonkey_pref: startup
+
+-   name: javascript.options.wasm_gc
+    type: bool
+#if defined(ENABLE_WASM_GC)
+    value: true
+#else
+    value: false
+#endif
+    mirror: always
+    set_spidermonkey_pref: always
+
 -   name: javascript.options.wasm_memory_control
     type: bool
     value: false
@@ -8936,6 +8952,42 @@
     set_spidermonkey_pref: startup
 #endif
 #endif
+
+-   name: javascript.options.wasm_memory64
+    type: bool
+#if defined(ENABLE_WASM_MEMORY64)
+    value: true
+#else
+    value: false
+#endif
+    mirror: always
+    set_spidermonkey_pref: always
+
+-   name: javascript.options.wasm_multi_memory
+    type: bool
+#if defined(ENABLE_WASM_MULTI_MEMORY)
+    value: true
+#else
+    value: false
+#endif
+    mirror: always
+    set_spidermonkey_pref: always
+
+-   name: javascript.options.wasm_js_string_builtins
+    type: bool
+    value: true
+    mirror: always
+    set_spidermonkey_pref: always
+
+-   name: javascript.options.wasm_tail_calls
+    type: bool
+#if defined(ENABLE_WASM_TAIL_CALLS)
+    value: true
+#else
+    value: false
+#endif
+    mirror: always
+    set_spidermonkey_pref: always
 
 -   name: javascript.options.wasm_js_promise_integration
     type: bool

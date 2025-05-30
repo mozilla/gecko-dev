@@ -2,7 +2,7 @@
 
 // Basic structured cloning tests (specific to SpiderMonkey shell)
 
-var memtypes = ['i32', 'i64'];
+var memtypes = wasmMemory64Enabled() ? ['i32', 'i64'] : [''];
 
 function makeMemoryDesc(memtype, d) {
     if (memtype != '') {

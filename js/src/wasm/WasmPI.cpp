@@ -1035,6 +1035,7 @@ class SuspendingFunctionModuleFactory {
                      ValTypeVector&& results) {
     FeatureOptions options;
     options.isBuiltinModule = true;
+    options.requireExnref = true;
 
     ScriptedCaller scriptedCaller;
     SharedCompileArgs compileArgs =

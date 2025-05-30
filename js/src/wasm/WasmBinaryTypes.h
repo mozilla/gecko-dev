@@ -7,8 +7,6 @@
 #ifndef wasm_WasmBinaryTypes_h
 #define wasm_WasmBinaryTypes_h
 
-#include "mozilla/Assertions.h"
-#include "mozilla/CheckedInt.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Span.h"
 #include "mozilla/Vector.h"
@@ -26,45 +24,23 @@ using BytecodeSpan = mozilla::Span<const uint8_t>;
 // This struct captures a range of bytecode.
 struct BytecodeRange {
   BytecodeRange() = default;
-
-  // Infallible constructor for when we're sure the start and size are valid.
-  BytecodeRange(uint32_t start, uint32_t size) : start(start), end(start) {
-    mozilla::CheckedUint32 checkedEnd(start);
-    checkedEnd += size;
-    MOZ_RELEASE_ASSERT(checkedEnd.isValid());
-    end = checkedEnd.value();
-  }
-
-  // Fallible constructor for when there could be overflow.
-  [[nodiscard]] static bool fromStartAndSize(uint32_t start, uint32_t size,
-                                             BytecodeRange* range) {
-    mozilla::CheckedUint32 checkedEnd(start);
-    checkedEnd += size;
-    if (!checkedEnd.isValid()) {
-      return false;
-    }
-    range->start = start;
-    range->end = checkedEnd.value();
-    return true;
-  }
+  BytecodeRange(uint32_t start, uint32_t size) : start(start), size(size) {}
 
   uint32_t start = 0;
-  uint32_t end = 0;
+  uint32_t size = 0;
 
-  WASM_CHECK_CACHEABLE_POD(start, end);
+  WASM_CHECK_CACHEABLE_POD(start, size);
 
-  uint32_t size() const { return end - start; }
-
-  bool isEmpty() const { return start == end; }
+  uint32_t end() const { return start + size; }
 
   // Returns whether a range is a non-strict subset of this range.
   bool contains(const BytecodeRange& other) const {
-    return other.start >= start && other.end <= end;
+    return other.start >= start && other.end() <= end();
   }
 
   // Returns whether an offset is contained in this range.
   bool containsOffset(uint32_t bytecodeOffset) const {
-    return bytecodeOffset >= start && bytecodeOffset < end;
+    return bytecodeOffset >= start && bytecodeOffset < end();
   }
 
   // Compare where an offset falls relative to this range. This returns `0` if
@@ -77,31 +53,31 @@ struct BytecodeRange {
     if (bytecodeOffset < start) {
       return -1;
     }
-    MOZ_ASSERT(bytecodeOffset >= end);
+    MOZ_ASSERT(bytecodeOffset >= end());
     return 1;
   }
 
   bool operator==(const BytecodeRange& rhs) const {
-    return start == rhs.start && end == rhs.end;
+    return start == rhs.start && size == rhs.size;
   }
 
   // Returns a range that represents `this` relative to `other`. `this` must
   // be wholly contained in `other`, no partial overlap is allowed.
   BytecodeRange relativeTo(const BytecodeRange& other) const {
     MOZ_RELEASE_ASSERT(other.contains(*this));
-    return BytecodeRange(start - other.start, size());
+    return BytecodeRange(start - other.start, size);
   }
 
   // Gets the span that this range represents from a span of bytecode.
   BytecodeSpan toSpan(BytecodeSpan bytecode) const {
-    MOZ_RELEASE_ASSERT(end <= bytecode.size());
-    return BytecodeSpan(bytecode.begin() + start, bytecode.begin() + end);
+    MOZ_RELEASE_ASSERT(end() <= bytecode.size());
+    return BytecodeSpan(bytecode.begin() + start, bytecode.begin() + end());
   }
 
   // Gets the span that this range represents from a vector of bytecode.
   BytecodeSpan toSpan(const ShareableBytes& bytecode) const {
-    MOZ_RELEASE_ASSERT(end <= bytecode.length());
-    return BytecodeSpan(bytecode.begin() + start, bytecode.begin() + end);
+    MOZ_RELEASE_ASSERT(end() <= bytecode.length());
+    return BytecodeSpan(bytecode.begin() + start, bytecode.begin() + end());
   }
 };
 

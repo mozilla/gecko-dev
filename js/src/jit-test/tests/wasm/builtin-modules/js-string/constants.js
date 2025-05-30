@@ -1,3 +1,5 @@
+// |jit-test| skip-if: !wasmJSStringBuiltinsEnabled();
+
 function wasmEvalWithConstants(text, namespace) {
   return wasmEvalText(text, {}, { importedStringConstants: namespace }).exports;
 }

@@ -1108,7 +1108,7 @@ bool ModuleGenerator::startCompleteTier() {
   // shrinkStorageToFit calls at the end will trim off unneeded capacity.
 
   size_t codeSectionSize =
-      codeMeta_->codeSectionRange ? codeMeta_->codeSectionRange->size() : 0;
+      codeMeta_->codeSectionRange ? codeMeta_->codeSectionRange->size : 0;
 
   size_t estimatedCodeSize =
       size_t(1.2 * EstimateCompiledCodeSize(tier(), codeSectionSize));
@@ -1169,7 +1169,7 @@ bool ModuleGenerator::startPartialTier(uint32_t funcIndex) {
     return false;
   }
   uint32_t bytecodeLength =
-      partialTieringCode_->codeTailMeta().funcDefRange(funcIndex).size();
+      partialTieringCode_->codeTailMeta().funcDefRange(funcIndex).size;
   JS_LOG(wasmPerf, Info,
          "CM=..%06lx  ModuleGenerator::startPartialTier  fI=%-5u  sz=%-5u  %s",
          (unsigned long)(uintptr_t(codeMeta_) & 0xFFFFFFL), funcIndex,

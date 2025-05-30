@@ -442,6 +442,7 @@ MSG_DEF(JSMSG_WASM_BAD_IMP_MAX,        1, JSEXN_WASMLINKERROR, "imported {0} wit
 MSG_DEF(JSMSG_WASM_IMP_SHARED_REQD,    0, JSEXN_WASMLINKERROR, "imported unshared memory but shared required")
 MSG_DEF(JSMSG_WASM_IMP_SHARED_BANNED,  0, JSEXN_WASMLINKERROR, "imported shared memory but unshared required")
 MSG_DEF(JSMSG_WASM_NO_SHMEM_LINK,      0, JSEXN_WASMLINKERROR, "shared memory is disabled")
+MSG_DEF(JSMSG_WASM_NO_MEM64_LINK,      0, JSEXN_WASMLINKERROR, "memory64 is disabled")
 MSG_DEF(JSMSG_WASM_BAD_GLOB_MUT_LINK,  0, JSEXN_WASMLINKERROR, "imported global mutability mismatch")
 MSG_DEF(JSMSG_WASM_BAD_GLOB_TYPE_LINK, 0, JSEXN_WASMLINKERROR, "imported global type mismatch")
 MSG_DEF(JSMSG_WASM_BAD_TBL_TYPE_LINK,  0, JSEXN_WASMLINKERROR, "imported table type mismatch")

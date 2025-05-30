@@ -1,3 +1,4 @@
+// |jit-test| skip-if: !wasmJSStringBuiltinsEnabled();
 let module = new WebAssembly.Module(wasmTextToBinary(`(module
   (func
     (import "wasm:js-string" "test")

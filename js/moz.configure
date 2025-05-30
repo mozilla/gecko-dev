@@ -750,6 +750,28 @@ def wasm_jspi(value, jit_enabled, simulator, no_experimental, target):
 set_config("ENABLE_WASM_JSPI", wasm_jspi)
 set_define("ENABLE_WASM_JSPI", wasm_jspi)
 
+# Support for WebAssembly JS String Builtins
+# ==========================================
+
+
+option(
+    "--disable-wasm-js-string-builtins",
+    default=True,
+    help="{Enable|Disable} WebAssembly JS String Builtins",
+)
+
+
+@depends("--disable-wasm-js-string-builtins")
+def wasm_js_string_builtins(value):
+    if not value:
+        return
+
+    return True
+
+
+set_config("ENABLE_WASM_JS_STRING_BUILTINS", wasm_js_string_builtins)
+set_define("ENABLE_WASM_JS_STRING_BUILTINS", wasm_js_string_builtins)
+
 # Support for WebAssembly shared memory and atomics.
 #
 # This affects the JS shell only.
@@ -963,6 +985,39 @@ def wasm_moz_intgemm(value, no_experimental):
 set_config("ENABLE_WASM_MOZ_INTGEMM", wasm_moz_intgemm)
 set_define("ENABLE_WASM_MOZ_INTGEMM", wasm_moz_intgemm)
 
+# Support for WebAssembly Memory64.
+# ===========================
+
+
+@depends(target)
+def default_wasm_memory64(target):
+    if target.cpu == "mips32":
+        return
+
+    return True
+
+
+option(
+    "--enable-wasm-memory64",
+    default=default_wasm_memory64,
+    help="{Enable|Disable} WebAssembly Memory64",
+)
+
+
+@depends("--enable-wasm-memory64", target)
+def wasm_memory64(value, target):
+    if not value:
+        return
+
+    if target.cpu == "mips32":
+        die("Memory64 is incompatible with MIPS32 target")
+
+    return True
+
+
+set_config("ENABLE_WASM_MEMORY64", wasm_memory64)
+set_define("ENABLE_WASM_MEMORY64", wasm_memory64)
+
 
 # Support for WebAssembly memory control.
 # ===========================
@@ -991,6 +1046,26 @@ def wasm_memory_control(value, no_experimental):
 
 set_config("ENABLE_WASM_MEMORY_CONTROL", wasm_memory_control)
 set_define("ENABLE_WASM_MEMORY_CONTROL", wasm_memory_control)
+
+
+# Support for WebAssembly Multi Memory.
+# =====================================
+
+
+option(
+    "--disable-wasm-multi-memory",
+    help="{Enable|Disable} WebAssembly multi-memory",
+)
+
+
+@depends("--disable-wasm-multi-memory")
+def wasm_multi_memory(value):
+    if value:
+        return True
+
+
+set_config("ENABLE_WASM_MULTI_MEMORY", wasm_multi_memory)
+set_define("ENABLE_WASM_MULTI_MEMORY", wasm_multi_memory)
 
 
 # Support for WebAssembly Branch-hinting.

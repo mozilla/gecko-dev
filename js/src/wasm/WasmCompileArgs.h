@@ -105,7 +105,8 @@ struct FeatureOptions {
       : disableOptimizingCompiler(false),
         isBuiltinModule(false),
         jsStringBuiltins(false),
-        jsStringConstants(false) {}
+        jsStringConstants(false),
+        requireExnref(false) {}
 
   // Whether we should try to disable our optimizing compiler. Only available
   // with `IsSimdPrivilegedContext`.
@@ -114,12 +115,16 @@ struct FeatureOptions {
   // Enables builtin module opcodes, only set in WasmBuiltinModule.cpp.
   bool isBuiltinModule;
 
-  // Enable JS String builtins for this module.
+  // Enable JS String builtins for this module, only available if the feature
+  // is also enabled.
   bool jsStringBuiltins;
   // Enable imported string constants for this module, only available if the
   // feature is also enabled.
   bool jsStringConstants;
   SharedChars jsStringConstantsNamespace;
+
+  // Enable exnref support.
+  bool requireExnref;
 
   // Parse the compile options bag.
   [[nodiscard]] bool init(JSContext* cx, HandleValue val);
@@ -414,12 +419,12 @@ class BytecodeSource {
   }
   BytecodeSpan getSpan(const BytecodeRange& range) const {
     // Check if this range is within the env span
-    if (range.end <= codeOffset()) {
+    if (range.end() <= codeOffset()) {
       return range.toSpan(env_);
     }
 
     // Check if this range is within the code span
-    if (range.end <= tailOffset()) {
+    if (range.end() <= tailOffset()) {
       // The range cannot cross the span boundary
       MOZ_RELEASE_ASSERT(range.start >= codeOffset());
       return range.relativeTo(codeRange()).toSpan(code_);

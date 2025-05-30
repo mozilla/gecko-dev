@@ -169,6 +169,7 @@ RegI32 BaseCompiler::popConstMemoryAccess<RegI32>(MemoryAccessDesc* access,
   return r;
 }
 
+#ifdef ENABLE_WASM_MEMORY64
 template <>
 RegI64 BaseCompiler::popConstMemoryAccess<RegI64>(MemoryAccessDesc* access,
                                                   AccessCheck* check) {
@@ -201,6 +202,7 @@ RegI64 BaseCompiler::popConstMemoryAccess<RegI64>(MemoryAccessDesc* access,
   moveImm64(int64_t(addr), r);
   return r;
 }
+#endif
 
 template <typename RegType>
 RegType BaseCompiler::popMemoryAccess(MemoryAccessDesc* access,
@@ -268,26 +270,30 @@ void BaseCompiler::branchAddNoOverflow(uint64_t offset, RegI32 ptr, Label* ok) {
   masm.branchAdd32(Assembler::CarryClear, Imm32(uint32_t(offset)), ptr, ok);
 }
 
+#ifdef ENABLE_WASM_MEMORY64
 void BaseCompiler::branchAddNoOverflow(uint64_t offset, RegI64 ptr, Label* ok) {
-#if defined(JS_64BIT)
+#  if defined(JS_64BIT)
   masm.branchAddPtr(Assembler::CarryClear, ImmWord(offset), Register64(ptr).reg,
                     ok);
-#else
+#  else
   masm.branchAdd64(Assembler::CarryClear, Imm64(offset), ptr, ok);
-#endif
+#  endif
 }
+#endif
 
 void BaseCompiler::branchTestLowZero(RegI32 ptr, Imm32 mask, Label* ok) {
   masm.branchTest32(Assembler::Zero, ptr, mask, ok);
 }
 
+#ifdef ENABLE_WASM_MEMORY64
 void BaseCompiler::branchTestLowZero(RegI64 ptr, Imm32 mask, Label* ok) {
-#ifdef JS_64BIT
+#  ifdef JS_64BIT
   masm.branchTestPtr(Assembler::Zero, Register64(ptr).reg, mask, ok);
-#else
+#  else
   masm.branchTestPtr(Assembler::Zero, ptr.low, mask, ok);
-#endif
+#  endif
 }
+#endif
 
 void BaseCompiler::boundsCheck4GBOrLargerAccess(uint32_t memoryIndex,
                                                 RegPtr instance, RegI32 ptr,
@@ -364,7 +370,9 @@ static inline void ToValidIndex(MacroAssembler& masm, RegI32 ptr) {
 #endif
 }
 
+#if defined(ENABLE_WASM_MEMORY64)
 static inline void ToValidIndex(MacroAssembler& masm, RegI64 ptr) {}
+#endif
 
 // RegAddressType is RegI32 for Memory32 and RegI64 for Memory64.
 template <typename RegAddressType>
@@ -628,38 +636,40 @@ void BaseCompiler::load(MemoryAccessDesc* access, AccessCheck* check,
   executeLoad(access, check, instance, memoryBase, ptr, dest, temp);
 }
 
+#ifdef ENABLE_WASM_MEMORY64
 void BaseCompiler::load(MemoryAccessDesc* access, AccessCheck* check,
                         RegPtr instance, RegPtr memoryBase, RegI64 ptr,
                         AnyReg dest, RegI64 temp) {
   prepareMemoryAccess(access, check, instance, ptr);
 
-#if !defined(JS_64BIT)
+#  if !defined(JS_64BIT)
   // On 32-bit systems we have a maximum 2GB heap and bounds checking has
   // been applied to ensure that the 64-bit pointer is valid.
   return executeLoad(access, check, instance, memoryBase, RegI32(ptr.low), dest,
                      maybeFromI64(temp));
-#elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64)
+#  elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64)
   // On x64 and arm64 the 32-bit code simply assumes that the high bits of the
   // 64-bit pointer register are zero and performs a 64-bit add.  Thus the code
   // generated is the same for the 64-bit and the 32-bit case.
   return executeLoad(access, check, instance, memoryBase, RegI32(ptr.reg), dest,
                      maybeFromI64(temp));
-#elif defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64)
+#  elif defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64)
   // On mips64 and loongarch64, the 'prepareMemoryAccess' function will make
   // sure that ptr holds a valid 64-bit index value. Thus the code generated in
   // 'executeLoad' is the same for the 64-bit and the 32-bit case.
   return executeLoad(access, check, instance, memoryBase, RegI32(ptr.reg), dest,
                      maybeFromI64(temp));
-#elif defined(JS_CODEGEN_RISCV64)
+#  elif defined(JS_CODEGEN_RISCV64)
   // RISCV the 'prepareMemoryAccess' function will make
   // sure that ptr holds a valid 64-bit index value. Thus the code generated in
   // 'executeLoad' is the same for the 64-bit and the 32-bit case.
   return executeLoad(access, check, instance, memoryBase, RegI32(ptr.reg), dest,
                      maybeFromI64(temp));
-#else
+#  else
   MOZ_CRASH("Missing platform hook");
-#endif
+#  endif
 }
+#endif
 
 void BaseCompiler::executeStore(MemoryAccessDesc* access, AccessCheck* check,
                                 RegPtr instance, RegPtr memoryBase, RegI32 ptr,
@@ -771,23 +781,25 @@ void BaseCompiler::store(MemoryAccessDesc* access, AccessCheck* check,
   executeStore(access, check, instance, memoryBase, ptr, src, temp);
 }
 
+#ifdef ENABLE_WASM_MEMORY64
 void BaseCompiler::store(MemoryAccessDesc* access, AccessCheck* check,
                          RegPtr instance, RegPtr memoryBase, RegI64 ptr,
                          AnyReg src, RegI64 temp) {
   prepareMemoryAccess(access, check, instance, ptr);
   // See comments in load()
-#if !defined(JS_64BIT)
+#  if !defined(JS_64BIT)
   return executeStore(access, check, instance, memoryBase, RegI32(ptr.low), src,
                       maybeFromI64(temp));
-#elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64) ||    \
-    defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
-    defined(JS_CODEGEN_RISCV64)
+#  elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64) ||    \
+      defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
+      defined(JS_CODEGEN_RISCV64)
   return executeStore(access, check, instance, memoryBase, RegI32(ptr.reg), src,
                       maybeFromI64(temp));
-#else
+#  else
   MOZ_CRASH("Missing platform hook");
-#endif
+#  endif
 }
+#endif
 
 template <typename RegType>
 void BaseCompiler::doLoadCommon(MemoryAccessDesc* access, AccessCheck check,
@@ -883,7 +895,11 @@ void BaseCompiler::loadCommon(MemoryAccessDesc* access, AccessCheck check,
   if (isMem32(access->memoryIndex())) {
     doLoadCommon<RegI32>(access, check, type);
   } else {
+#ifdef ENABLE_WASM_MEMORY64
     doLoadCommon<RegI64>(access, check, type);
+#else
+    MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
   }
 }
 
@@ -973,7 +989,11 @@ void BaseCompiler::storeCommon(MemoryAccessDesc* access, AccessCheck check,
   if (isMem32(access->memoryIndex())) {
     doStoreCommon<RegI32>(access, check, type);
   } else {
+#ifdef ENABLE_WASM_MEMORY64
     doStoreCommon<RegI64>(access, check, type);
+#else
+    MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
   }
 }
 
@@ -981,10 +1001,12 @@ void BaseCompiler::storeCommon(MemoryAccessDesc* access, AccessCheck check,
 // used in an access.
 
 static inline Register ToRegister(RegI32 r) { return Register(r); }
-#ifdef JS_PUNBOX64
+#ifdef ENABLE_WASM_MEMORY64
+#  ifdef JS_PUNBOX64
 static inline Register ToRegister(RegI64 r) { return r.reg; }
-#else
+#  else
 static inline Register ToRegister(RegI64 r) { return r.low; }
+#  endif
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1122,7 +1144,11 @@ void BaseCompiler::atomicLoad(MemoryAccessDesc* access, ValType type) {
   if (isMem32(access->memoryIndex())) {
     atomicLoad64<RegI32>(access);
   } else {
+#  ifdef ENABLE_WASM_MEMORY64
     atomicLoad64<RegI64>(access);
+#  else
+    MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#  endif
   }
 #else
   MOZ_CRASH("Should not happen");
@@ -1143,7 +1169,11 @@ void BaseCompiler::atomicStore(MemoryAccessDesc* access, ValType type) {
   if (isMem32(access->memoryIndex())) {
     atomicXchg64<RegI32>(access, WantResult(false));
   } else {
+#  ifdef ENABLE_WASM_MEMORY64
     atomicXchg64<RegI64>(access, WantResult(false));
+#  else
+    MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#  endif
   }
 #else
   MOZ_CRASH("Should not happen");
@@ -1161,14 +1191,22 @@ void BaseCompiler::atomicRMW(MemoryAccessDesc* access, ValType type,
     if (isMem32(access->memoryIndex())) {
       atomicRMW32<RegI32>(access, type, op);
     } else {
+#ifdef ENABLE_WASM_MEMORY64
       atomicRMW32<RegI64>(access, type, op);
+#else
+      MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
     }
   } else {
     MOZ_ASSERT(type == ValType::I64 && Scalar::byteSize(viewType) == 8);
     if (isMem32(access->memoryIndex())) {
       atomicRMW64<RegI32>(access, type, op);
     } else {
+#ifdef ENABLE_WASM_MEMORY64
       atomicRMW64<RegI64>(access, type, op);
+#else
+      MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
     }
   }
 }
@@ -1564,14 +1602,22 @@ void BaseCompiler::atomicXchg(MemoryAccessDesc* access, ValType type) {
     if (isMem32(access->memoryIndex())) {
       atomicXchg32<RegI32>(access, type);
     } else {
+#ifdef ENABLE_WASM_MEMORY64
       atomicXchg32<RegI64>(access, type);
+#else
+      MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
     }
   } else {
     MOZ_ASSERT(type == ValType::I64 && Scalar::byteSize(viewType) == 8);
     if (isMem32(access->memoryIndex())) {
       atomicXchg64<RegI32>(access, WantResult(true));
     } else {
+#ifdef ENABLE_WASM_MEMORY64
       atomicXchg64<RegI64>(access, WantResult(true));
+#else
+      MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
     }
   }
 }
@@ -1895,14 +1941,22 @@ void BaseCompiler::atomicCmpXchg(MemoryAccessDesc* access, ValType type) {
     if (isMem32(access->memoryIndex())) {
       atomicCmpXchg32<RegI32>(access, type);
     } else {
+#ifdef ENABLE_WASM_MEMORY64
       atomicCmpXchg32<RegI64>(access, type);
+#else
+      MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
     }
   } else {
     MOZ_ASSERT(type == ValType::I64 && Scalar::byteSize(viewType) == 8);
     if (isMem32(access->memoryIndex())) {
       atomicCmpXchg64<RegI32>(access, type);
     } else {
+#ifdef ENABLE_WASM_MEMORY64
       atomicCmpXchg64<RegI64>(access, type);
+#else
+      MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
     }
   }
 }
@@ -2184,6 +2238,7 @@ void Deallocate<RegI32>(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
 // for the rexpect.high.  And we can't push anything onto the stack while we're
 // popping the memory address because the memory address may be on the stack.
 
+#  ifdef ENABLE_WASM_MEMORY64
 template <>
 void PopAndAllocate<RegI64>(BaseCompiler* bc, RegI64* rexpect, RegI64* rnew,
                             RegI64* rd) {
@@ -2222,6 +2277,7 @@ void Deallocate<RegI64>(BaseCompiler* bc, RegI64 rexpect, RegI64 rnew) {
   // separately in the caller, so just free ecx.
   bc->free(bc->specific_.ecx);
 }
+#  endif
 
 #elif defined(JS_CODEGEN_ARM)
 
@@ -2346,7 +2402,11 @@ bool BaseCompiler::atomicWait(ValType type, MemoryAccessDesc* access) {
       if (isMem32(access->memoryIndex())) {
         computeEffectiveAddress<RegI32>(access);
       } else {
+#ifdef ENABLE_WASM_MEMORY64
         computeEffectiveAddress<RegI64>(access);
+#else
+        MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
       }
 
       pushI32(val);
@@ -2366,20 +2426,24 @@ bool BaseCompiler::atomicWait(ValType type, MemoryAccessDesc* access) {
       if (isMem32(access->memoryIndex())) {
         computeEffectiveAddress<RegI32>(access);
       } else {
-#ifdef JS_CODEGEN_X86
+#ifdef ENABLE_WASM_MEMORY64
+#  ifdef JS_CODEGEN_X86
         {
           ScratchPtr scratch(*this);
           stashI64(scratch, val);
           freeI64(val);
         }
-#endif
+#  endif
         computeEffectiveAddress<RegI64>(access);
-#ifdef JS_CODEGEN_X86
+#  ifdef JS_CODEGEN_X86
         {
           ScratchPtr scratch(*this);
           val = needI64();
           unstashI64(scratch, val);
         }
+#  endif
+#else
+        MOZ_CRASH("Memory64 not enabled / supported on this platform");
 #endif
       }
 
@@ -2408,9 +2472,13 @@ bool BaseCompiler::atomicNotify(MemoryAccessDesc* access) {
     RegI32 byteOffset = popI32();
     pushI32(byteOffset);
   } else {
+#ifdef ENABLE_WASM_MEMORY64
     computeEffectiveAddress<RegI64>(access);
     RegI64 byteOffset = popI64();
     pushI64(byteOffset);
+#else
+    MOZ_CRASH("Memory64 not enabled / supported on this platform");
+#endif
   }
 
   pushI32(count);

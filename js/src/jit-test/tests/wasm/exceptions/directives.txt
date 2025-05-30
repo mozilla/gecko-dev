@@ -1,1 +1,1 @@
-|jit-test| test-also=-P wasm_lazy_tiering --setpref=wasm_lazy_tiering_synchronous; test-also=--wasm-compiler=optimizing; test-also=--wasm-compiler=baseline; test-also=--setpref=wasm_test_serialization=true; test-also=--test-wasm-await-tier2; include:wasm.js
+|jit-test| test-also=--setpref=wasm_exnref=true; test-also=-P wasm_lazy_tiering --setpref=wasm_lazy_tiering_synchronous; test-also=--wasm-compiler=optimizing; test-also=--wasm-compiler=baseline; test-also=--setpref=wasm_test_serialization=true; test-also=--test-wasm-await-tier2; include:wasm.js

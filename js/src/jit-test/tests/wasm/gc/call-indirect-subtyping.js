@@ -1,3 +1,5 @@
+// |jit-test| test-also=--setpref=wasm_tail_calls=true
+
 // Test that call_indirect will respect subtyping by defining a bunch of types
 // and checking every combination of (expected, actual) type.
 //

@@ -990,7 +990,7 @@ CoderResult CodeBuiltinModuleIds(Coder<mode>& coder,
 template <CoderMode mode>
 CoderResult CodeFeatureArgs(Coder<mode>& coder,
                             CoderArg<mode, FeatureArgs> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(FeatureArgs, 32);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(FeatureArgs, 40);
 #define WASM_FEATURE(NAME, LOWER_NAME, ...) \
   MOZ_TRY(CodePod(coder, &item->LOWER_NAME));
   JS_FOR_WASM_FEATURES(WASM_FEATURE)
@@ -1005,7 +1005,7 @@ CoderResult CodeFeatureArgs(Coder<mode>& coder,
 template <CoderMode mode>
 CoderResult CodeCompileArgs(Coder<mode>& coder,
                             CoderArg<mode, CompileArgs> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CompileArgs, 72);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CompileArgs, 80);
   MOZ_TRY((CodeScriptedCaller(coder, &item->scriptedCaller)));
   MOZ_TRY((CodeUniqueChars(coder, &item->sourceMapURL)));
   MOZ_TRY((CodePod(coder, &item->baselineEnabled)));

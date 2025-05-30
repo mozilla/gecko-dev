@@ -10531,8 +10531,14 @@ bool BaseCompiler::emitBody() {
       case uint16_t(Op::Rethrow):
         CHECK_NEXT(emitRethrow());
       case uint16_t(Op::ThrowRef):
+        if (!codeMeta_.exnrefEnabled()) {
+          return iter_.unrecognizedOpcode(&op);
+        }
         CHECK_NEXT(emitThrowRef());
       case uint16_t(Op::TryTable):
+        if (!codeMeta_.exnrefEnabled()) {
+          return iter_.unrecognizedOpcode(&op);
+        }
         CHECK_NEXT(emitTryTable());
       case uint16_t(Op::Br):
         CHECK_NEXT(emitBr());

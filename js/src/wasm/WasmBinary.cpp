@@ -75,7 +75,9 @@ bool Decoder::readSectionHeader(uint8_t* id, BytecodeRange* range) {
     return false;
   }
 
-  return BytecodeRange::fromStartAndSize(currentOffset(), size, range);
+  range->start = currentOffset();
+  range->size = size;
+  return true;
 }
 
 bool Decoder::startSection(SectionId id, CodeMetadata* codeMeta,
@@ -131,9 +133,8 @@ bool Decoder::startSection(SectionId id, CodeMetadata* codeMeta,
   }
 
   range->emplace();
-  if (!BytecodeRange::fromStartAndSize(currentOffset(), size, range->ptr())) {
-    goto fail;
-  }
+  (*range)->start = currentOffset();
+  (*range)->size = size;
   return true;
 
 rewind:
@@ -147,7 +148,7 @@ fail:
 
 bool Decoder::finishSection(const BytecodeRange& range,
                             const char* sectionName) {
-  if (range.end != currentOffset()) {
+  if (range.size != currentOffset() - range.start) {
     return failf("byte size mismatch in %s section", sectionName);
   }
   return true;
@@ -174,29 +175,30 @@ bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
       goto rewind;
     }
 
-    if (bytesRemain() < (*range)->size()) {
-      goto fail;
-    }
-
-    uint32_t sectionNameSize;
-    if (!readVarU32(&sectionNameSize) || sectionNameSize > bytesRemain()) {
-      goto fail;
-    }
-
-    // A custom section name must be valid UTF-8
-    if (!IsUtf8(AsChars(mozilla::Span(cur_, sectionNameSize)))) {
+    if (bytesRemain() < (*range)->size) {
       goto fail;
     }
 
     CustomSectionRange secRange;
-    secRange.name = BytecodeRange(currentOffset(), sectionNameSize);
-    // The payload starts after the name, and goes to the end of the custom
-    // section.
-    if (secRange.name.end > (*range)->end) {
+    if (!readVarU32(&secRange.name.size) ||
+        secRange.name.size > bytesRemain()) {
       goto fail;
     }
-    secRange.payload.start = secRange.name.end;
-    secRange.payload.end = (*range)->end;
+
+    // A custom section name must be valid UTF-8
+    if (!IsUtf8(AsChars(mozilla::Span(cur_, secRange.name.size)))) {
+      goto fail;
+    }
+
+    secRange.name.start = currentOffset();
+    secRange.payload.start = secRange.name.end();
+
+    uint32_t payloadEnd = (*range)->start + (*range)->size;
+    if (secRange.payload.start > payloadEnd) {
+      goto fail;
+    }
+
+    secRange.payload.size = payloadEnd - secRange.payload.start;
 
     // Now that we have a valid custom section, record its offsets in the
     // metadata which can be queried by the user via Module.customSections.
@@ -207,9 +209,9 @@ bool Decoder::startCustomSection(const char* expected, size_t expectedLength,
     }
 
     // If this is the expected custom section, we're done.
-    if (!expected || (expectedLength == secRange.name.size() &&
-                      !memcmp(cur_, expected, secRange.name.size()))) {
-      cur_ += secRange.name.size();
+    if (!expected || (expectedLength == secRange.name.size &&
+                      !memcmp(cur_, expected, secRange.name.size))) {
+      cur_ += secRange.name.size;
       return true;
     }
 
@@ -240,14 +242,14 @@ bool Decoder::finishCustomSection(const char* name,
   }
 
   uint32_t actualSize = currentOffset() - range.start;
-  if (range.size() != actualSize) {
-    if (actualSize < range.size()) {
+  if (range.size != actualSize) {
+    if (actualSize < range.size) {
       warnf("in the '%s' custom section: %" PRIu32 " unconsumed bytes", name,
-            uint32_t(range.size() - actualSize));
+            uint32_t(range.size - actualSize));
     } else {
       warnf("in the '%s' custom section: %" PRIu32
             " bytes consumed past the end",
-            name, uint32_t(actualSize - range.size()));
+            name, uint32_t(actualSize - range.size));
     }
     skipAndFinishCustomSection(range);
     return false;
@@ -260,7 +262,7 @@ bool Decoder::finishCustomSection(const char* name,
 void Decoder::skipAndFinishCustomSection(const BytecodeRange& range) {
   MOZ_ASSERT(cur_ >= beg_);
   MOZ_ASSERT(cur_ <= end_);
-  cur_ = beg_ + (range.end - offsetInModule_);
+  cur_ = (beg_ + (range.start - offsetInModule_)) + range.size;
   MOZ_ASSERT(cur_ <= end_);
   clearError();
 }
