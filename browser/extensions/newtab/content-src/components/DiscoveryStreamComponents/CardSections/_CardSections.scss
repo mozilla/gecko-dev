@@ -6,7 +6,11 @@
   padding: var(--space-large);
 
   &.refined-cards.ds-card.sections-card-ui {
-    height: fit-content;
+    box-shadow: var(--box-shadow-card);
+
+    &:hover {
+      box-shadow: var(--box-shadow-card-hover);
+    }
   }
 
   &.refined-cards {
@@ -21,7 +25,8 @@
     }
 
     .meta {
-      padding: 0;
+      padding-inline: 0;
+      padding-block: 0 var(--space-xsmall);
       min-height: 125px;
 
       .info-wrap {
@@ -29,10 +34,15 @@
       }
 
       .sections-card-footer {
-        max-width: 120px;
-        inset-inline-end: var(--space-xsmall);
-        inset-block-end: var(--space-large);
+        max-width: 114px;
         min-height: unset;
+        position: initial;
+        margin-block-start: auto;
+
+        .source {
+          word-break: normal;
+          width: 114px;
+        }
       }
     }
 
@@ -43,15 +53,28 @@
     .card-stp-button-position-wrapper {
       // context menu should match the padding for the parent
       inset-inline-end: var(--space-large);
-      inset-block-end: var(--space-large);
+      inset-block-end: var(--space-small);
+
     }
+
+    .context-menu-position-container .context-menu-button {
+      height: 32px;
+      width: 32px;
+    }
+
+    .card-stp-thumbs-buttons-wrapper {
+      .card-stp-thumbs-buttons {
+        gap: var(--space-small);
+      }
+    }
+
 
     &:hover,
     &:active,
     &:focus-visible,
     &.active {
       .card-stp-thumbs-buttons-wrapper {
-        display: block;
+        visibility: visible;
       }
 
       .meta {
@@ -67,7 +90,7 @@
   }
 
   .card-stp-thumbs-buttons-wrapper {
-    display: none;
+    visibility: hidden;
   }
 
   .ds-card-link {
@@ -143,6 +166,11 @@
 
   &.refined-cards.ds-card.sections-card-ui {
     height: unset;
+    box-shadow: var(--box-shadow-card);
+
+    &:hover {
+      box-shadow: var(--box-shadow-card-hover);
+    }
   }
 
   &.refined-cards {
@@ -165,7 +193,7 @@
       }
 
       .sections-card-footer {
-        max-width: 230px;
+        max-width: 225px;
         inset-inline-end: initial;
         inset-block-end: initial;
         min-height: 28px;
@@ -174,12 +202,28 @@
           max-width: 175px;
         }
       }
+
+      &:has(.story-footer .story-sponsored-label) {
+        .sections-card-footer {
+          display: none;
+        }
+
+        .story-footer {
+          margin-block: auto 0;
+
+        }
+      }
+    }
+
+    .context-menu-position-container .context-menu-button {
+      height: 32px;
+      width: 32px;
     }
 
     .card-stp-button-position-wrapper {
       // context menu should match the padding for the parent
       inset-inline-end: var(--space-large);
-      inset-block-end: var(--space-medium);
+      inset-block-end: var(--space-small);
     }
 
     .card-stp-button-hover-background {
@@ -258,16 +302,17 @@
   grid-column: span 2;
 
   &.refined-cards.ds-card.sections-card-ui {
-    height: fit-content;
+    box-shadow: var(--box-shadow-card);
 
     @media ($break-point-layout-variant <=width < $break-point-widest),
       (min-width: $break-point-sections-variant) {
       .ds-card-link {
+        gap: var(--space-small);
         padding: var(--space-small);
       }
 
       .meta {
-        padding: var(--space-large) 0;
+        padding: var(--space-large) var(--space-small);
         color: var(--newtab-text-primary-color);
 
         .info-wrap .excerpt {
@@ -275,7 +320,7 @@
         }
 
         .sections-card-footer {
-          max-width: 250px;
+          max-width: 260px;
 
           .source-wrapper {
             max-width: 175px;
@@ -296,6 +341,10 @@
           display: block;
         }
       }
+    }
+
+    &:hover {
+      box-shadow: var(--box-shadow-card-hover);
     }
   }
 

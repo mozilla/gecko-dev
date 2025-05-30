@@ -253,6 +253,12 @@ module.exports = function (config) {
                 lines: 86,
                 functions: 83,
               },
+            "content-src/components/DiscoveryStreamComponents/DSThumbsUpDownButtons/DSThumbsUpDownButtons.jsx":
+              {
+                statements: 75,
+                lines: 75,
+                branches: 50,
+              },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,

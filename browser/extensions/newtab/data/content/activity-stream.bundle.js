@@ -3433,13 +3433,10 @@ function DSThumbsUpDownButtons({
   onThumbsUpClick,
   onThumbsDownClick,
   isThumbsUpActive,
-  isThumbsDownActive
+  isThumbsDownActive,
+  refinedCardsLayout
 }) {
-  return /*#__PURE__*/external_React_default().createElement("div", {
-    className: "card-stp-thumbs-buttons-wrapper"
-  }, !sponsor && /*#__PURE__*/external_React_default().createElement("div", {
-    className: "card-stp-thumbs-buttons"
-  }, /*#__PURE__*/external_React_default().createElement("button", {
+  let thumbsButtons = /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("button", {
     onClick: onThumbsUpClick,
     className: `card-stp-thumbs-button icon icon-thumbs-up ${isThumbsUpActive ? "is-active" : null}`,
     "data-l10n-id": "newtab-pocket-thumbs-up-tooltip"
@@ -3447,7 +3444,27 @@ function DSThumbsUpDownButtons({
     onClick: onThumbsDownClick,
     className: `card-stp-thumbs-button icon icon-thumbs-down ${isThumbsDownActive ? "is-active" : null}`,
     "data-l10n-id": "newtab-pocket-thumbs-down-tooltip"
-  })));
+  }));
+  if (refinedCardsLayout) {
+    thumbsButtons = /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("moz-button", {
+      iconsrc: "chrome://global/skin/icons/thumbs-up-20.svg",
+      onClick: onThumbsUpClick,
+      className: `card-stp-thumbs-button icon icon-thumbs-up refined-layout ${isThumbsUpActive ? "is-active" : null}`,
+      "data-l10n-id": "newtab-pocket-thumbs-up-tooltip",
+      type: "icon ghost"
+    }), /*#__PURE__*/external_React_default().createElement("moz-button", {
+      iconsrc: "chrome://global/skin/icons/thumbs-down-20.svg",
+      onClick: onThumbsDownClick,
+      className: `card-stp-thumbs-button icon icon-thumbs-down ${isThumbsDownActive ? "is-active" : null}`,
+      "data-l10n-id": "newtab-pocket-thumbs-down-tooltip",
+      type: "icon ghost"
+    }));
+  }
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    className: "card-stp-thumbs-buttons-wrapper"
+  }, !sponsor && /*#__PURE__*/external_React_default().createElement("div", {
+    className: "card-stp-thumbs-buttons"
+  }, thumbsButtons));
 }
 
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/DSCard/DSCard.jsx
@@ -3487,8 +3504,12 @@ const DSSource = ({
   context,
   sponsor,
   sponsored_by_override,
-  icon_src
+  icon_src,
+  refinedCardsLayout
 }) => {
+  // refinedCard styles will have a larger favicon size
+  const faviconSize = refinedCardsLayout ? 24 : 16;
+
   // First try to display sponsored label or time to read here.
   if (newSponsoredLabel) {
     // If we can display something for spocs, do so.
@@ -3522,8 +3543,8 @@ const DSSource = ({
     className: "source-wrapper"
   }, icon_src && /*#__PURE__*/external_React_default().createElement("img", {
     src: icon_src,
-    height: "16",
-    width: "16",
+    height: faviconSize,
+    width: faviconSize,
     alt: ""
   }), /*#__PURE__*/external_React_default().createElement("p", {
     className: "source clamp"
@@ -3591,13 +3612,15 @@ const DefaultMeta = ({
     context: context,
     sponsor: sponsor,
     sponsored_by_override: sponsored_by_override,
-    icon_src: icon_src
+    icon_src: icon_src,
+    refinedCardsLayout: refinedCardsLayout
   }), (shouldHaveThumbs || refinedCardsLayout) && /*#__PURE__*/external_React_default().createElement(DSThumbsUpDownButtons, {
     onThumbsDownClick: onThumbsDownClick,
     onThumbsUpClick: onThumbsUpClick,
     sponsor: sponsor,
     isThumbsDownActive: state.isThumbsDownActive,
-    isThumbsUpActive: state.isThumbsUpActive
+    isThumbsUpActive: state.isThumbsUpActive,
+    refinedCardsLayout: refinedCardsLayout
   }), showTopics && /*#__PURE__*/external_React_default().createElement("span", {
     className: "ds-card-topic",
     "data-l10n-id": `newtab-topic-label-${topic}`

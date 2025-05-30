@@ -1,6 +1,5 @@
 .card-stp-thumbs-buttons-wrapper {
   margin-block-start: var(--space-medium);
-  z-index: 1;
   visibility: hidden;
   opacity: 0;
 
@@ -57,7 +56,6 @@
     }
   }
 }
-
 
 .ds-card {
   &.active,
