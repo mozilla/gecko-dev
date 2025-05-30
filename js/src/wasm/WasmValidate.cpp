@@ -2066,18 +2066,12 @@ bool wasm::ValidateOps(ValidatingOpIter& iter, T& dumper,
         break;
       }
       case uint16_t(Op::ThrowRef): {
-        if (!codeMeta.exnrefEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         if (!iter.readThrowRef(&nothing)) {
           return false;
         }
         break;
       }
       case uint16_t(Op::TryTable): {
-        if (!codeMeta.exnrefEnabled()) {
-          return iter.unrecognizedOpcode(&op);
-        }
         TryTableCatchVector catches;
         if (!iter.readTryTable(&blockType, &catches)) {
           return false;

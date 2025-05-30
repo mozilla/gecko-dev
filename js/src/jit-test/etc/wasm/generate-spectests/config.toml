@@ -23,7 +23,6 @@ directive = "; test-also=--no-avx; skip-variant-if: --no-avx, !getBuildConfigura
 # url = "https://github.com/WebAssembly/exception-handling"
 # branch = "main"
 # parent = "spec"
-# directive = "; --setpref=wasm_exnref=true; skip-if: !wasmExnRefEnabled()"
 # excluded_tests = [
 #   "^data.wast.js",
 #   "^elem.wast.js",

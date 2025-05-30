@@ -237,9 +237,6 @@ FeatureArgs FeatureArgs::build(JSContext* cx, const FeatureOptions& options) {
     features.builtinModules.jsStringConstantsNamespace =
         options.jsStringConstantsNamespace;
   }
-  if (options.requireExnref) {
-    features.exnref = true;
-  }
 
   return features;
 }
