@@ -5,6 +5,7 @@
 import json
 import logging
 import os
+import subprocess
 import tempfile
 import zipfile
 from contextlib import nullcontext as does_not_raise
@@ -141,16 +142,42 @@ Name[zh_TW]=zh-TW-desktop-action-open-profile-manager
 
 
 def test_generate_deb_desktop_entry_file_text(monkeypatch):
-    def responsive(url):
-        assert "zh-TW" in url
-        return Mock(
-            **{
-                "status_code": 200,
-                "text": ZH_TW_FTL,
-            }
-        )
 
-    monkeypatch.setattr(desktop_file.requests, "get", responsive)
+    def check_call(cmd=[], cwd=None):
+        assert len(cmd) > 1
+        assert cmd[0] == "git"
+        assert cmd[1] in ["init", "remote", "fetch", "reset"]
+
+        if cmd[1] == "init":
+            assert cwd is None
+            test_generate_deb_desktop_entry_file_text.l10n_repo_clone = cmd[2]
+
+        if cmd[1] == "remote":
+            assert cwd is not None
+            assert cmd[2] == "add"
+            assert cmd[3] == "origin"
+            assert cmd[4] == "https://github.com/mozilla-l10n/firefox-l10n"
+
+        if cmd[1] == "fetch":
+            assert cwd is not None
+            assert cmd[2] == "--no-progress"
+            assert cmd[3] == "--depth=1"
+            assert cmd[4] == "origin"
+            assert cmd[5] == "default"
+
+        if cmd[1] == "reset":
+            assert cwd is not None
+            assert cmd[2] == "--hard"
+            assert cmd[3] == "FETCH_HEAD"
+
+            desktop_zhTW_file = os.path.join(
+                cwd, "zh-TW", "browser", "browser", "linuxDesktopEntry.ftl"
+            )
+            os.makedirs(os.path.dirname(desktop_zhTW_file))
+            with open(desktop_zhTW_file, "w", encoding="utf-8") as zhTW:
+                zhTW.write(ZH_TW_FTL)
+
+    monkeypatch.setattr(desktop_file.subprocess, "check_call", check_call)
 
     output_stream = StringIO()
     logger = logging.getLogger("mozbuild:test:repackaging")
@@ -186,6 +213,53 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
     release_product = "firefox"
     release_type = "nightly"
 
+    def mock_copy(source_path, destination_path):
+        assert source_path in [
+            os.path.join(
+                "browser", "locales", "en-US", "browser", "linuxDesktopEntry.ftl"
+            ),
+            os.path.join(
+                "browser", "branding", "nightly", "locales", "en-US", "brand.ftl"
+            ),
+            os.path.join(
+                "browser", "branding", "aurora", "locales", "en-US", "brand.ftl"
+            ),
+            os.path.join(
+                test_generate_deb_desktop_entry_file_text.l10n_repo_clone,
+                "zh-TW",
+                "browser",
+                "browser",
+                "linuxDesktopEntry.ftl",
+            ),
+        ]
+
+        if source_path == os.path.join(
+            "browser", "locales", "en-US", "browser", "linuxDesktopEntry.ftl"
+        ):
+            assert os.path.join("en-US", "linuxDesktopEntry.ftl") in destination_path
+
+        if source_path in [
+            os.path.join(
+                "browser", "branding", "nightly", "locales", "en-US", "brand.ftl"
+            ),
+            os.path.join(
+                "browser", "branding", "aurora", "locales", "en-US", "brand.ftl"
+            ),
+        ]:
+            destination_path_subdir = os.path.sep.join(
+                destination_path.split(os.path.sep)[-2:]
+            )
+            assert destination_path_subdir in [
+                os.path.join("en-US", "brand.ftl"),
+                os.path.join("zh-TW", "brand.ftl"),
+            ]
+
+        with open(source_path, encoding="utf-8") as src:
+            with open(destination_path, "w", encoding="utf-8") as dest:
+                dest.write(src.read())
+
+    monkeypatch.setattr(desktop_file.shutil, "copyfile", mock_copy)
+
     desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
         log,
         build_variables,
@@ -194,6 +268,8 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
         fluent_localization,
         fluent_resource_loader,
     )
+
+    assert test_generate_deb_desktop_entry_file_text.l10n_repo_clone is not None
 
     assert desktop_entry_file_text == NIGHTLY_DESKTOP_ENTRY_FILE_TEXT
 
@@ -215,12 +291,12 @@ def test_generate_deb_desktop_entry_file_text(monkeypatch):
 
     assert desktop_entry_file_text == DEVEDITION_DESKTOP_ENTRY_FILE_TEXT
 
-    def outage(url):
-        return Mock(**{"status_code": 500})
+    def outage(cmd=[], cwd=None):
+        raise subprocess.CalledProcessError(cmd=cmd, returncode=42)
 
-    monkeypatch.setattr(desktop_file.requests, "get", outage)
+    monkeypatch.setattr(desktop_file.subprocess, "check_call", outage)
 
-    with pytest.raises(desktop_file.RemoteVCSError):
+    with pytest.raises(subprocess.CalledProcessError):
         desktop_entry_file_text = desktop_file.generate_browser_desktop_entry_file_text(
             log,
             build_variables,
