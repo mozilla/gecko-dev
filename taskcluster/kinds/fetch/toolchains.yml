@@ -799,3 +799,10 @@ dxc-src:
         type: git
         repo: https://github.com/FirefoxGraphics/DirectXShaderCompiler
         revision: 81378be83a1690cac0e727941e1a963518d67c26
+
+jj:
+    description: jj 0.29.0 source code
+    fetch:
+        type: git
+        repo: https://github.com/jj-vcs/jj
+        revision: 94269d2e7228ff502b2116258e5ae6b3b07ec434
