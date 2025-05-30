@@ -19,6 +19,7 @@
 #include "mozilla/dom/Promise.h"
 #include "nsStringFwd.h"
 #include "nsTArray.h"
+#include "onnxruntime_c_api.h"
 #include "mozilla/dom/ToJSValue.h"
 
 extern mozilla::LazyLogModule gONNXLog;

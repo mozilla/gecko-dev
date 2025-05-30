@@ -10,7 +10,6 @@ with Files("*"):
 EXPORTS.mozilla.dom += [
     "InferenceSession.h",
     "onnxruntime_c_api.h",
-    "OnxRunTimeIncludeWrapper.h",
     "Tensor.h",
 ]
 

@@ -19,7 +19,7 @@
 #include "nsWrapperCache.h"
 #include "mozilla/dom/Record.h"
 #include "nsIGlobalObject.h"
-#include "OnxRunTimeIncludeWrapper.h"
+#include "onnxruntime_c_api.h"
 
 namespace mozilla::dom {
 OrtApi* GetOrtAPI();

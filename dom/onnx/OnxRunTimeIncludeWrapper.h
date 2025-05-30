@@ -1,6 +1,0 @@
-#ifndef DOM_ONNX_ONXRUNTIMEINCLUDEWRAPPER_H
-#define DOM_ONNX_ONXRUNTIMEINCLUDEWRAPPER_H
-
-#include "mozilla/dom/onnxruntime_c_api.h"
-
-#endif  // DOM_ONNX_ONXRUNTIMEINCLUDEWRAPPER_H
