@@ -10,7 +10,6 @@ import os
 import socket
 import sys
 
-import six
 from mach.decorators import Command
 from mach.util import get_state_dir
 from mozbuild.base import BinaryNotFoundException, MozbuildObject
@@ -107,8 +106,8 @@ class TalosRunner(MozbuildObject):
 
     def write_config(self):
         try:
-            config_file = open(self.config_file_path, "wb")
-            config_file.write(six.ensure_binary(json.dumps(self.config)))
+            with open(self.config_file_path, "wb") as config_file:
+                config_file.write(json.dumps(self.config).encode("utf-8"))
         except OSError as e:
             err_str = "Error writing to Talos Mozharness config file {0}:{1}"
             print(err_str.format(self.config_file_path, str(e)))

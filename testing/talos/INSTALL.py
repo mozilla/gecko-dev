@@ -13,8 +13,7 @@ installation script for talos. This script:
 import os
 import subprocess
 import sys
-
-import six
+import urllib.request
 
 try:
     from subprocess import check_call as call
@@ -50,7 +49,7 @@ def main(args=sys.argv[1:]):
             [sys.executable, "-", "--system-site-packages", here], stdin=subprocess.PIPE
         )
         stdout, stderr = process.communicate(
-            input=six.moves.urllib.request.urlopen(VIRTUALENV).read()
+            input=urllib.request.urlopen(VIRTUALENV).read()
         )
 
     # find the virtualenv's python

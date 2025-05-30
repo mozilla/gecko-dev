@@ -9,10 +9,10 @@ import pathlib
 import sys
 import time
 import traceback
+import urllib.parse
 
 import mozinfo
 import mozversion
-import six
 from mozgeckoprofiler import view_gecko_profile
 from mozlog import get_proxy_logger
 from wptserve import server
@@ -134,8 +134,7 @@ def run_tests(config, browser_config):
                     test[path] = utils.interpolate(test[path])
         if test.get("tpmanifest"):
             test["tpmanifest"] = os.path.normpath(
-                "file:/%s"
-                % (six.moves.urllib.parse.quote(test["tpmanifest"], "/\\t:\\"))
+                "file:/%s" % (urllib.parse.quote(test["tpmanifest"], "/\\t:\\"))
             )
             test["preferences"]["talos.tpmanifest"] = test["tpmanifest"]
 
