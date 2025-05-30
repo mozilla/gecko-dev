@@ -25,8 +25,33 @@ export default class MozInputSearch extends MozInputText {
     ariaLabel: { type: String, mapped: true },
   };
 
+  // The amount of milliseconds that we wait before firing the "search" event.
+  static #searchDebounceDelayMs = 500;
+
+  #searchTimer = null;
+
+  #clearSearchTimer() {
+    if (this.#searchTimer) {
+      clearTimeout(this.#searchTimer);
+    }
+    this.#searchTimer = null;
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.#clearSearchTimer();
+  }
+
   inputStylesTemplate() {
     return html`${super.inputStylesTemplate()}`;
+  }
+
+  handleInput(e) {
+    super.handleInput(e);
+    this.#clearSearchTimer();
+    this.#searchTimer = setTimeout(() => {
+      this.dispatchEvent(new CustomEvent("MozInputSearch:search"));
+    }, MozInputSearch.#searchDebounceDelayMs);
   }
 
   inputTemplate() {

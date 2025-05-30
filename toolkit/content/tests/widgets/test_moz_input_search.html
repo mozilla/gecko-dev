@@ -53,6 +53,19 @@
       add_task(async function testMozInputSearchAriaLabel() {
         await testHelpers.verifyAriaLabel("moz-input-search");
       });
+
+      add_task(async function testMozInputSearchSearchEvent() {
+        const mozInputSearch = document.querySelector("moz-input-search");
+        const inputElement = mozInputSearch.shadowRoot.querySelector("#input");
+        let searchEvent = new Promise(r => {
+          mozInputSearch.addEventListener("MozInputSearch:search", r, {
+            once: true,
+          });
+        });
+        SpecialPowers.wrap(inputElement).setUserInput("abc");
+        await searchEvent;
+        ok(true, "Typing some text eventually fires a debounced search event");
+      });
     </script>
   </head>
   <body>
