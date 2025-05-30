@@ -740,7 +740,6 @@ static bool IsPenEvent(GdkEvent* aEvent, bool* isEraser) {
     *isEraser = true;
     return true;
   } else {
-
 #ifdef MOZ_X11
     // Workaround : When using Xwayland, pens are reported as
     // GDK_SOURCE_TOUCHSCREEN If eSource is GDK_SOURCE_TOUCHSCREEN and the
@@ -899,7 +898,7 @@ bool nsWindow::ToplevelUsesCSD() const {
 #ifdef MOZ_WAYLAND
   if (GdkIsWaylandDisplay()) {
     static auto sGdkWaylandDisplayPrefersSsd =
-        (gboolean (*)(const GdkWaylandDisplay*))dlsym(
+        (gboolean(*)(const GdkWaylandDisplay*))dlsym(
             RTLD_DEFAULT, "gdk_wayland_display_prefers_ssd");
     // NOTE(emilio): Not using GDK_WAYLAND_DISPLAY to avoid bug 1946088.
     return !sGdkWaylandDisplayPrefersSsd ||
@@ -5082,7 +5081,7 @@ void nsWindow::OnScrollEvent(GdkEventScroll* aEvent) {
         if (StaticPrefs::apz_gtk_pangesture_enabled() &&
             gtk_check_version(3, 20, 0) == nullptr) {
           static auto sGdkEventIsScrollStopEvent =
-              (gboolean (*)(const GdkEvent*))dlsym(
+              (gboolean(*)(const GdkEvent*))dlsym(
                   RTLD_DEFAULT, "gdk_event_is_scroll_stop_event");
 
           LOG("[%d] pan smooth event dx=%f dy=%f inprogress=%d\n", aEvent->time,
@@ -7414,11 +7413,16 @@ MOZ_CAN_RUN_SCRIPT static void WaylandDragWorkaround(nsWindow* aWindow,
 
   buttonPressCountWithDrag++;
   if (buttonPressCountWithDrag > 1) {
+    LOGDRAG(
+        "WaylandDragWorkaround applied [buttonPressCountWithDrag %d], quit D&D "
+        "session",
+        buttonPressCountWithDrag);
+
     NS_WARNING(
         "Quit unfinished Wayland Drag and Drop operation. Buggy Wayland "
         "compositor?");
     buttonPressCountWithDrag = 0;
-    currentDragSession->EndDragSession(false, 0);
+    currentDragSession->EndDragSession(true, 0);
   }
 }
 
