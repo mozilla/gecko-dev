@@ -114,8 +114,7 @@ struct FeatureOptions {
   // Enables builtin module opcodes, only set in WasmBuiltinModule.cpp.
   bool isBuiltinModule;
 
-  // Enable JS String builtins for this module, only available if the feature
-  // is also enabled.
+  // Enable JS String builtins for this module.
   bool jsStringBuiltins;
   // Enable imported string constants for this module, only available if the
   // feature is also enabled.

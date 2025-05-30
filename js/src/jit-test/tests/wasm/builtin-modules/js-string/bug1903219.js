@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmJSStringBuiltinsEnabled();
-
 // Check if we can expose builtin function.
 
 var ins = wasmEvalText(`

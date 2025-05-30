@@ -65,18 +65,6 @@ for (let [name, enabled, test] of releasedFeaturesMaybeDisabledAnyway) {
 
 let releasedFeatures = [
   ['threads', wasmThreadsEnabled(), `(module (memory 1 1 shared))`],
-  [
-    'js-string-builtins',
-    wasmJSStringBuiltinsEnabled(),
-    `(module
-      (import "wasm:js-string" "concat"
-        (func
-          (param externref externref)
-          (result (ref extern)))
-      )
-    )`,
-    {builtins: ['js-string']}
-  ]
 ];
 
 for (let [name, enabled, test, options] of releasedFeatures) {

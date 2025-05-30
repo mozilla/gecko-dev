@@ -307,7 +307,6 @@ static BuiltinModuleFuncId IntGemmFuncs[] = {
     BuiltinModuleFuncId::I8SelectColumnsOfB};
 #endif  // ENABLE_WASM_MOZ_INTGEMM
 
-#ifdef ENABLE_WASM_JS_STRING_BUILTINS
 static BuiltinModuleFuncId JSStringFuncs[] = {
     BuiltinModuleFuncId::StringTest,
     BuiltinModuleFuncId::StringCast,
@@ -323,11 +322,9 @@ static BuiltinModuleFuncId JSStringFuncs[] = {
     BuiltinModuleFuncId::StringEquals,
     BuiltinModuleFuncId::StringCompare};
 static const char* JSStringModuleName = "wasm:js-string";
-#endif  // ENABLE_WASM_JS_STRING_BUILTINS
 
 Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
     mozilla::Span<const char> importName, BuiltinModuleIds enabledBuiltins) {
-#ifdef ENABLE_WASM_JS_STRING_BUILTINS
   if (enabledBuiltins.jsString &&
       importName == mozilla::MakeStringSpan(JSStringModuleName)) {
     return Some(BuiltinModuleId::JSString);
@@ -338,7 +335,6 @@ Maybe<BuiltinModuleId> wasm::ImportMatchesBuiltinModule(
               enabledBuiltins.jsStringConstantsNamespace->chars.get())) {
     return Some(BuiltinModuleId::JSStringConstants);
   }
-#endif  // ENABLE_WASM_JS_STRING_BUILTINS
   // Not supported for implicit instantiation yet
   MOZ_RELEASE_ASSERT(!enabledBuiltins.selfTest && !enabledBuiltins.intGemm);
   return Nothing();
@@ -348,7 +344,6 @@ bool wasm::ImportMatchesBuiltinModuleFunc(mozilla::Span<const char> importName,
                                           BuiltinModuleId module,
                                           const BuiltinModuleFunc** matchedFunc,
                                           BuiltinModuleFuncId* matchedFuncId) {
-#ifdef ENABLE_WASM_JS_STRING_BUILTINS
   // Imported string constants don't define any functions
   if (module == BuiltinModuleId::JSStringConstants) {
     return false;
@@ -365,7 +360,6 @@ bool wasm::ImportMatchesBuiltinModuleFunc(mozilla::Span<const char> importName,
       return true;
     }
   }
-#endif  // ENABLE_WASM_JS_STRING_BUILTINS
   return false;
 }
 
@@ -380,12 +374,10 @@ bool wasm::CompileBuiltinModule(JSContext* cx, BuiltinModuleId module,
       return CompileBuiltinModule(cx, IntGemmFuncs, Some(Shareable::False),
                                   result);
 #endif  // ENABLE_WASM_MOZ_INTGEMM
-#ifdef ENABLE_WASM_JS_STRING_BUILTINS
     case BuiltinModuleId::JSString:
       return CompileBuiltinModule(cx, JSStringFuncs, Nothing(), result);
     case BuiltinModuleId::JSStringConstants:
       MOZ_CRASH();
-#endif  // ENABLE_WASM_JS_STRING_BUILTINS
     default:
       MOZ_CRASH();
   }

@@ -233,8 +233,6 @@
 
 #endif // ENABLE_WASM_MOZ_INTGEMM
 
-#if defined(ENABLE_WASM_JS_STRING_BUILTINS)
-
 - op: StringTest
   symbolic_address:
     name: StringTest
@@ -431,8 +429,6 @@
   result: 'i32'
   fail_mode: FailOnMaxI32
   uses_memory: false
-
-#endif // ENABLE_WASM_JS_STRING_BUILTINS
 
 #if defined(ENABLE_WASM_JSPI)
 

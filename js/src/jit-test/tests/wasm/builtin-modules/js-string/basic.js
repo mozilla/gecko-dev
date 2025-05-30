@@ -1,5 +1,3 @@
-// |jit-test| skip-if: !wasmJSStringBuiltinsEnabled();
-
 let testModule = `(module
   (type $arrayMutI16 (array (mut i16)))
 

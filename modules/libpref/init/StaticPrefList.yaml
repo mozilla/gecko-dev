@@ -8937,12 +8937,6 @@
 #endif
 #endif
 
--   name: javascript.options.wasm_js_string_builtins
-    type: bool
-    value: true
-    mirror: always
-    set_spidermonkey_pref: always
-
 -   name: javascript.options.wasm_js_promise_integration
     type: bool
     value: false
