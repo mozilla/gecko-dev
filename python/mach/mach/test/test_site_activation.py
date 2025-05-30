@@ -50,14 +50,16 @@ class ActivationContext:
 
 
 def test_new_package_metadta_is_found():
+    pkg = "xdg"
+    version = "5.1.1"
     try:
-        # "carrot" was chosen as the package to use because:
+        # "xdg" was chosen as the package to use because:
         # * It has to be a package that doesn't exist in-scope at the start (so,
-        #   all vendored modules included in the test virtualenv aren't usage).
+        #   all vendored modules included in the test virtualenv aren't usable).
         # * It must be on our internal PyPI mirror.
-        # Of the options, "carrot" is a small install that fits these requirements.
-        importlib.metadata.distribution("carrot")
-        assert False, "Expected to not find 'carrot' as the initial state of the test"
+        # Of the options, "xdg" is a small install that fits these requirements.
+        importlib.metadata.distribution(pkg)
+        assert False, f"Expected to not find '{pkg}' as the initial state of the test"
     except importlib.metadata.PackageNotFoundError:
         pass
 
@@ -72,7 +74,7 @@ def test_new_package_metadta_is_found():
         )
 
         venv = PythonVirtualenv(venv_dir)
-        venv.pip_install(["carrot==0.10.7"])
+        venv.pip_install([f"{pkg}=={version}"])
 
         initial_metadata = MozSiteMetadata.from_runtime()
         try:
@@ -80,7 +82,7 @@ def test_new_package_metadta_is_found():
             with metadata.update_current_site(venv.python_path):
                 activate_virtualenv(venv)
 
-            assert importlib.metadata.distribution("carrot").version == "0.10.7"
+            assert importlib.metadata.distribution(pkg).version == version
         finally:
             MozSiteMetadata.current = initial_metadata
 
@@ -355,7 +357,7 @@ def _run_activation_script(
     source: str,
     site_name: str,
     invoking_python: str,
-    **kwargs
+    **kwargs,
 ) -> CompletedProcess:
     return subprocess.run(
         [

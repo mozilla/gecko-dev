@@ -1,0 +1,12 @@
+---
+python-sites:
+    description: |
+        Checks specifically for the python site files found in 'python/sites/'
+    include:
+        - python/sites/
+    extensions:
+        - .txt
+    support-files:
+        - 'tools/lint/python-sites/**'
+    type: external
+    payload: python-sites:lint

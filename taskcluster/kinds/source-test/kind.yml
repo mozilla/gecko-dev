@@ -45,6 +45,7 @@ tasks-from:
 
 task-defaults:
     use-python: default
+    use-uv: true
     attributes:
         retrigger: true
     task-context:

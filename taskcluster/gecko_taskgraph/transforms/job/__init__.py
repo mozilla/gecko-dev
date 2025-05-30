@@ -12,6 +12,7 @@ run-using handlers in `taskcluster/gecko_taskgraph/transforms/job`.
 
 import json
 import logging
+import os
 
 import mozpack.path as mozpath
 from packaging.version import Version
@@ -65,6 +66,8 @@ job_description_schema = Schema(
         ],
         Optional("use-sccache"): task_description_schema["use-sccache"],
         Optional("use-python"): Any("system", "default", Coerce(Version)),
+        # Fetch uv binary and add it to PATH
+        Optional("use-uv"): bool,
         Optional("priority"): task_description_schema["priority"],
         # The "when" section contains descriptions of the circumstances under which
         # this task should be included in the task graph.  This will be converted
@@ -184,6 +187,20 @@ def get_attribute(dict, key, attributes, attribute_name):
         dict[key] = value
 
 
+def get_platform(job):
+    if "win" in job["worker"]["os"]:
+        return "win64"
+    elif "linux" in job["worker"]["os"]:
+        platform = "linux64"
+        if "aarch64" in job["worker-type"] or "arm64" in job["worker-type"]:
+            return f"{platform}-aarch64"
+        return platform
+    elif "macosx" in job["worker"]["os"]:
+        return "macosx64"
+    else:
+        raise ValueError(f"unexpected worker.os value {job['worker']['os']}")
+
+
 @transforms.add
 def use_system_python(config, jobs):
     for job in jobs:
@@ -198,18 +215,7 @@ def use_system_python(config, jobs):
 
             fetches = job.setdefault("fetches", {})
             toolchain = fetches.setdefault("toolchain", [])
-            if "win" in job["worker"]["os"]:
-                platform = "win64"
-            elif "linux" in job["worker"]["os"]:
-                platform = "linux64"
-                if "aarch64" in job["worker-type"] or "arm64" in job["worker-type"]:
-                    platform = f"{platform}-aarch64"
-            elif "macosx" in job["worker"]["os"]:
-                platform = "macosx64"
-            else:
-                raise ValueError(
-                    "unexpected worker.os value {}".format(job["worker"]["os"])
-                )
+            platform = get_platform(job)
 
             toolchain.append(f"{platform}-{python_version}")
 
@@ -219,6 +225,26 @@ def use_system_python(config, jobs):
             moz_fetches_dir = env.get("MOZ_FETCHES_DIR", "fetches")
             moz_python_home = mozpath.join(moz_fetches_dir, "python")
             env["MOZ_PYTHON_HOME"] = moz_python_home
+
+            yield job
+
+
+@transforms.add
+def use_uv(config, jobs):
+    for job in jobs:
+        if not job.pop("use-uv", False):
+            yield job
+        else:
+            fetches = job.setdefault("fetches", {})
+            toolchain = fetches.setdefault("toolchain", [])
+            platform = get_platform(job)
+
+            toolchain.append(f"{platform}-uv")
+
+            worker = job.setdefault("worker", {})
+            env = worker.setdefault("env", {})
+            moz_fetches_dir = env.get("MOZ_FETCHES_DIR", "fetches")
+            env["MOZ_UV_HOME"] = os.path.join(moz_fetches_dir, "uv")
 
             yield job
 

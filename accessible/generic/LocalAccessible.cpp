@@ -1602,26 +1602,14 @@ void LocalAccessible::ARIAGroupPosition(int32_t* aLevel, int32_t* aSetSize,
   }
 }
 
-uint64_t LocalAccessible::State() {
+uint64_t LocalAccessible::ExplicitState() const {
   if (IsDefunct()) return states::DEFUNCT;
 
   uint64_t state = NativeState();
   // Apply ARIA states to be sure accessible states will be overridden.
   ApplyARIAState(&state);
 
-  const uint32_t kExpandCollapseStates = states::COLLAPSED | states::EXPANDED;
-  if ((state & kExpandCollapseStates) == kExpandCollapseStates) {
-    // Cannot be both expanded and collapsed -- this happens in ARIA expanded
-    // combobox because of limitation of ARIAMap.
-    // XXX: Perhaps we will be able to make this less hacky if we support
-    // extended states in ARIAMap, e.g. derive COLLAPSED from
-    // EXPANDABLE && !EXPANDED.
-    state &= ~states::COLLAPSED;
-  }
-
   if (!(state & states::UNAVAILABLE)) {
-    state |= states::ENABLED | states::SENSITIVE;
-
     // If the object is a current item of container widget then mark it as
     // ACTIVE. This allows screen reader virtual buffer modes to know which
     // descendant is the current one that would get focus if the user navigates
@@ -1630,9 +1618,11 @@ uint64_t LocalAccessible::State() {
     if (widget && widget->CurrentItem() == this) state |= states::ACTIVE;
   }
 
-  if ((state & states::COLLAPSED) || (state & states::EXPANDED)) {
-    state |= states::EXPANDABLE;
-  }
+  return state;
+}
+
+uint64_t LocalAccessible::State() {
+  uint64_t state = ExplicitState();
 
   ApplyImplicitState(state);
   return state;
@@ -1675,18 +1665,7 @@ void LocalAccessible::ApplyARIAState(uint64_t* aState) const {
     }
   }
 
-  if (*aState & states::FOCUSABLE) {
-    // Propogate aria-disabled from ancestors down to any focusable descendant.
-    const LocalAccessible* ancestor = this;
-    while ((ancestor = ancestor->LocalParent()) && !ancestor->IsDoc()) {
-      dom::Element* el = ancestor->Elm();
-      if (el && nsAccUtils::ARIAAttrValueIs(el, nsGkAtoms::aria_disabled,
-                                            nsGkAtoms::_true, eCaseMatters)) {
-        *aState |= states::UNAVAILABLE;
-        break;
-      }
-    }
-  } else {
+  if (!(*aState & states::FOCUSABLE)) {
     // Sometimes, we use aria-activedescendant targeting something which isn't
     // actually a descendant. This is technically a spec violation, but it's a
     // useful hack which makes certain things much easier. For example, we use
@@ -2090,10 +2069,10 @@ void LocalAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
       return;
 
     case eOpenCloseAction:
-      if (State() & states::COLLAPSED) {
-        aName.AssignLiteral("open");
-      } else {
+      if (State() & states::EXPANDED) {
         aName.AssignLiteral("close");
+      } else {
+        aName.AssignLiteral("open");
       }
       return;
 
@@ -2110,10 +2089,10 @@ void LocalAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
       return;
 
     case eExpandAction:
-      if (State() & states::COLLAPSED) {
-        aName.AssignLiteral("expand");
-      } else {
+      if (State() & states::EXPANDED) {
         aName.AssignLiteral("collapse");
+      } else {
+        aName.AssignLiteral("expand");
       }
       return;
   }
@@ -3938,7 +3917,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     if (IsInitialPush(CacheDomain::State)) {
       // Most states are updated using state change events, so we only send
       // these for the initial cache push.
-      uint64_t state = State();
+      uint64_t state = ExplicitState();
       // Exclude states which must be calculated by RemoteAccessible.
       state &= ~kRemoteCalculatedStates;
       fields->SetAttribute(CacheKey::State, state);

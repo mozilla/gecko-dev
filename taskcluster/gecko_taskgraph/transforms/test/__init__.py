@@ -296,6 +296,8 @@ test_description_schema = Schema(
         Optional("supports-artifact-builds"): bool,
         # Version of python used to run the task
         Optional("use-python"): job_description_schema["use-python"],
+        # Fetch uv binary and add it to PATH
+        Optional("use-uv"): bool,
         # Cache mounts / volumes to set up
         Optional("use-caches"): optionally_keyed_by(
             "test-platform", run_task_schema["use-caches"]
@@ -367,6 +369,7 @@ def set_defaults(config, tasks):
         task.setdefault("variants", [])
         task.setdefault("supports-artifact-builds", True)
         task.setdefault("use-python", "system")
+        task.setdefault("use-uv", True)
         task.setdefault("use-caches", ["checkout", "pip", "uv"])
 
         task["mozharness"].setdefault("extra-options", [])

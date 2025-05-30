@@ -265,6 +265,15 @@ mozversioncontrol:
     run:
         using: python-test
         subsuite: mozversioncontrol
+    fetches:
+        toolchain:
+            by-platform:
+                linux1804-64/opt:
+                    - linux64-jj
+                macosx1470-64/opt:
+                    - macosx64-jj
+                windows11-64/opt:
+                    - win64-jj
     when:
         files-changed:
             - 'python/mozversioncontrol/**'
