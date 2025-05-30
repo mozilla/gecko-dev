@@ -3,6 +3,56 @@
     {
       "stash": {
         "blocked": [
+          "{f09ff4ee-5216-4c51-b3bf-31e1f4bf5b5c}:1.0.5",
+          "{f09ff4ee-5216-4c51-b3bf-31e1f4bf5b5c}:1.0.7",
+          "{f09ff4ee-5216-4c51-b3bf-31e1f4bf5b5c}:1.0.9",
+          "{f09ff4ee-5216-4c51-b3bf-31e1f4bf5b5c}:1.0.11",
+          "footokx-scores@opensourcefora.site:1.5",
+          "footokx-scores@opensourcefora.site:13.5",
+          "footokx-scores@opensourcefora.site:13.7",
+          "footokx-scores@opensourcefora.site:13.8",
+          "footokx-scores@opensourcefora.site:13.11"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1748284571776,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1748370907296,
+      "id": "d3bcc414-367d-46c9-9210-395d57e22155",
+      "last_modified": 1748370984313
+    },
+    {
+      "stash": {
+        "blocked": [
+          "suiwallet@example.com:1.2"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1748268762319,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1748284505318,
+      "id": "078ad199-6e80-42aa-a2b8-961d06d420b2",
+      "last_modified": 1748284571653
+    },
+    {
+      "stash": {
+        "blocked": [
+          "{4966a25b-b88d-408e-a71c-96b5bff561f6}:1.0"
+        ],
+        "unblocked": [],
+        "softblocked": []
+      },
+      "schema": 1748003780355,
+      "key_format": "{guid}:{version}",
+      "stash_time": 1748262906516,
+      "id": "bc93c8eb-c162-4859-9b72-c427574c6b8b",
+      "last_modified": 1748262979293
+    },
+    {
+      "stash": {
+        "blocked": [
           "glu@prod:2025.5"
         ],
         "unblocked": [],
@@ -438,5 +488,5 @@
       "last_modified": 1739466430716
     }
   ],
-  "timestamp": 1748003780182
+  "timestamp": 1748370984313
 }

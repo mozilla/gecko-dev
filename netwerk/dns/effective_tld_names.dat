@@ -5,8 +5,8 @@
 // Please pull this list from, and only from https://publicsuffix.org/list/public_suffix_list.dat,
 // rather than any other VCS sites. Pulling from any other URL is not guaranteed to be supported.
 
-// VERSION: 2025-05-22_06-02-01_UTC
-// COMMIT: 76b8e30f1913de596c835ac65b2efe5b5fe9eb43
+// VERSION: 2025-05-28_07-01-50_UTC
+// COMMIT: faa2e8d226ac537daab3f45b43bed152ee21a2c4
 
 // Instructions on pulling and using this list can be found at https://publicsuffix.org/list/.
 
@@ -1385,6 +1385,7 @@ biz.id
 co.id
 desa.id
 go.id
+kop.id
 mil.id
 my.id
 net.id
@@ -12703,6 +12704,17 @@ dedyn.io
 deta.app
 deta.dev
 
+// Dfinity Foundation: https://dfinity.org/
+// Submitted by Dfinity Team <domains@dfinity.org>
+caffeine.ai
+id.ai
+icp-api.io
+icp0.io
+*.raw.icp0.io
+icp1.io
+*.raw.icp1.io
+caffeine.site
+
 // dhosting.pl Sp. z o.o. : https://dhosting.pl/
 // Submitted by Michal Kokoszkiewicz <bok@dhosting.pl>
 dfirma.pl
@@ -13926,6 +13938,7 @@ is-a.dev
 // Submitted by Kim Brodowski <info@iserv.de>
 iservschule.de
 mein-iserv.de
+schuldock.de
 schulplattform.de
 schulserver.de
 test-iserv.de
