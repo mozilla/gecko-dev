@@ -172,6 +172,9 @@ export const INITIAL_STATE = {
     locationSearchString: "",
     suggestedLocations: [],
   },
+  TrendingSearch: {
+    suggestions: [],
+  },
 };
 
 function App(prevState = INITIAL_STATE.App, action) {
@@ -1102,6 +1105,15 @@ function Ads(prevState = INITIAL_STATE.Ads, action) {
   }
 }
 
+function TrendingSearch(prevState = INITIAL_STATE.TrendingSearch, action) {
+  switch (action.type) {
+    case at.TRENDING_SEARCH_UPDATE:
+      return { suggestions: action.data };
+    default:
+      return prevState;
+  }
+}
+
 export const reducers = {
   TopSites,
   App,
@@ -1116,6 +1128,7 @@ export const reducers = {
   InferredPersonalization,
   DiscoveryStream,
   Search,
+  TrendingSearch,
   Wallpapers,
   Weather,
 };

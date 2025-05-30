@@ -271,6 +271,7 @@ for (const type of [
   "TOP_SITES_UPDATED",
   "TOTAL_BOOKMARKS_REQUEST",
   "TOTAL_BOOKMARKS_RESPONSE",
+  "TRENDING_SEARCH_UPDATE",
   "UNBLOCK_SECTION",
   "UNFOLLOW_SECTION",
   "UNINIT",
@@ -7568,6 +7569,9 @@ const INITIAL_STATE = {
     locationSearchString: "",
     suggestedLocations: [],
   },
+  TrendingSearch: {
+    suggestions: [],
+  },
 };
 
 function App(prevState = INITIAL_STATE.App, action) {
@@ -8498,6 +8502,15 @@ function Ads(prevState = INITIAL_STATE.Ads, action) {
   }
 }
 
+function TrendingSearch(prevState = INITIAL_STATE.TrendingSearch, action) {
+  switch (action.type) {
+    case actionTypes.TRENDING_SEARCH_UPDATE:
+      return { suggestions: action.data };
+    default:
+      return prevState;
+  }
+}
+
 const reducers = {
   TopSites,
   App,
@@ -8512,6 +8525,7 @@ const reducers = {
   InferredPersonalization,
   DiscoveryStream,
   Search,
+  TrendingSearch,
   Wallpapers,
   Weather,
 };

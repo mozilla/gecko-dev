@@ -40,6 +40,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   TelemetryFeed: "resource://newtab/lib/TelemetryFeed.sys.mjs",
   TopSitesFeed: "resource://newtab/lib/TopSitesFeed.sys.mjs",
   TopStoriesFeed: "resource://newtab/lib/TopStoriesFeed.sys.mjs",
+  TrendingSearchFeed: "resource://newtab/lib/TrendingSearchFeed.sys.mjs",
   WallpaperFeed: "resource://newtab/lib/WallpaperFeed.sys.mjs",
   WeatherFeed: "resource://newtab/lib/WeatherFeed.sys.mjs",
 });
@@ -833,6 +834,13 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "trendingSearch.enabled",
+    {
+      title: "Enables the trending search widget",
+      value: false,
+    },
+  ],
+  [
     "improvesearch.noDefaultSearchTile",
     {
       title: "Remove tiles that are the same as the default search",
@@ -1360,6 +1368,12 @@ const FEEDS_DATA = [
     name: "newtabmessaging",
     factory: () => new lazy.NewTabMessaging(),
     title: "Handles fetching and triggering ASRouter messages in newtab",
+    value: true,
+  },
+  {
+    name: "trendingseachfeed",
+    factory: () => new lazy.TrendingSearchFeed(),
+    title: "Handles fetching the google trending search API",
     value: true,
   },
 ];
