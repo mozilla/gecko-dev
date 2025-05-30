@@ -53,14 +53,13 @@ const ScreenMargin CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics, const ParentLayerPoint& aVelocity);
 
 /**
- * Returns a width and height multiplier, each of which is a power of two
- * between 1 and 8 inclusive. The multiplier is chosen based on the provided
- * base size, such that multiplier is larger when the base size is larger.
- * The exact details are somewhat arbitrary and tuned by hand.
+ * Returns a width and height multiplier, each of which between 1 and 8
+ * inclusive. The multiplier is chosen based on the provided base size, such
+ * that multiplier is larger when the base size is larger.
  * We use a large displayport alignment because moving the displayport is
  * relatively expensive with WebRender.
  */
-gfx::IntSize GetDisplayportAlignmentMultiplier(const ScreenSize& aBaseSize);
+gfx::Size GetDisplayportAlignmentMultiplier(const ScreenSize& aBaseSize);
 
 /**
  * Calculate the physics parameters for smooth scroll animations for the
