@@ -8,7 +8,7 @@
     "@microsoft/eslint-plugin-sdl": "1.0.0",
     "@stylistic/stylelint-plugin": "3.1.1",
     "@types/gecko": "file:tools/@types",
-    "eslint": "9.6.0",
+    "eslint": "9.16.0",
     "eslint-config-prettier": "10.0.1",
     "eslint-plugin-eslint-plugin": "6.4.0",
     "eslint-plugin-html": "8.1.2",
@@ -32,7 +32,7 @@
     "yarn": "1.22.22"
   },
   "overrides": {
-    "eslint": "9.6.0"
+    "eslint": "9.16.0"
   },
   "notes(private)": "We don't want to publish to npm, so this is marked as private",
   "private": true
