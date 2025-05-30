@@ -65,6 +65,9 @@ struct nr_ice_candidate_ {
   nr_transport_addr addr;             /* The advertised address;
                                          JDR calls this the candidate */
   nr_transport_addr base;             /* The base address (S 2.1)*/
+  /* This is mainly to avoid forgetting tcp/tls relay protocol, since the base
+   * of relay candidates is the TURN server's allocation address, which will be UDP */
+  UCHAR local_protocol;    /* IPPROTO_TCP, IPPROTO_UDP. */
   char *mdns_addr;                    /* MDNS address, if any */
   char *foundation;                   /* Foundation for the candidate (S 4) */
   UINT4 priority;                     /* The priority value (S 5.4 */

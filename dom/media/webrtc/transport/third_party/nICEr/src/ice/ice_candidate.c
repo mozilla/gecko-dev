@@ -138,6 +138,9 @@ int nr_ice_candidate_create(nr_ice_ctx *ctx,nr_ice_component *comp,nr_ice_socket
     if(r=nr_socket_getaddr(cand->isock->sock,&cand->base))
       ABORT(r);
 
+    /* The base might change protocol when a TURN allocation completes */
+    cand->local_protocol = cand->base.protocol;
+
     switch(ctype) {
       case HOST:
         snprintf(label, sizeof(label), "host(%s)", cand->base.as_string);
@@ -418,48 +421,48 @@ int nr_ice_candidate_compute_priority(nr_ice_candidate *cand)
     UCHAR direction_priority=0;
     int r,_status;
 
-    if (cand->base.protocol != IPPROTO_UDP && cand->base.protocol != IPPROTO_TCP){
+    if (cand->local_protocol != IPPROTO_UDP && cand->local_protocol != IPPROTO_TCP){
       r_log(LOG_ICE,LOG_ERR,"Unknown protocol type %u",
-            (unsigned int)cand->base.protocol);
+            (unsigned int)cand->local_protocol);
       ABORT(R_INTERNAL);
     }
 
     switch(cand->type){
       case HOST:
-        if(cand->base.protocol == IPPROTO_UDP) {
+        if(cand->local_protocol == IPPROTO_UDP) {
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_HOST,&type_preference))
             ABORT(r);
-        } else if(cand->base.protocol == IPPROTO_TCP) {
+        } else if(cand->local_protocol == IPPROTO_TCP) {
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_HOST_TCP,&type_preference))
             ABORT(r);
         }
         stun_priority=0;
         break;
       case RELAYED:
-        if(cand->base.protocol == IPPROTO_UDP) {
+        if(cand->local_protocol == IPPROTO_UDP) {
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_RELAYED,&type_preference))
             ABORT(r);
-        } else if(cand->base.protocol == IPPROTO_TCP) {
+        } else if(cand->local_protocol == IPPROTO_TCP) {
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_RELAYED_TCP,&type_preference))
             ABORT(r);
         }
         stun_priority=31-cand->stun_server->id;
         break;
       case SERVER_REFLEXIVE:
-        if(cand->base.protocol == IPPROTO_UDP) {
+        if(cand->local_protocol == IPPROTO_UDP) {
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_SRV_RFLX,&type_preference))
             ABORT(r);
-        } else if(cand->base.protocol == IPPROTO_TCP) {
+        } else if(cand->local_protocol == IPPROTO_TCP) {
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_SRV_RFLX_TCP,&type_preference))
             ABORT(r);
         }
         stun_priority=31-cand->stun_server->id;
         break;
       case PEER_REFLEXIVE:
-        if(cand->base.protocol == IPPROTO_UDP) {
+        if(cand->local_protocol == IPPROTO_UDP) {
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_PEER_RFLX,&type_preference))
             ABORT(r);
-        } else if(cand->base.protocol == IPPROTO_TCP) {
+        } else if(cand->local_protocol == IPPROTO_TCP) {
           if(r=NR_reg_get_uchar(NR_ICE_REG_PREF_TYPE_PEER_RFLX_TCP,&type_preference))
             ABORT(r);
         }
@@ -469,7 +472,7 @@ int nr_ice_candidate_compute_priority(nr_ice_candidate *cand)
         ABORT(R_INTERNAL);
     }
 
-    if(cand->base.protocol == IPPROTO_TCP){
+    if(cand->local_protocol == IPPROTO_TCP){
       switch (cand->tcp_type) {
         case TCP_TYPE_ACTIVE:
           if (cand->type == HOST)
