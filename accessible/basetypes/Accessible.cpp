@@ -698,6 +698,24 @@ void Accessible::ApplyImplicitState(uint64_t& aState) const {
   if (Opacity() == 1.0f && !(aState & states::INVISIBLE)) {
     aState |= states::OPAQUE1;
   }
+
+  const uint32_t kExpandCollapseStates = states::COLLAPSED | states::EXPANDED;
+  if ((aState & kExpandCollapseStates) == kExpandCollapseStates) {
+    // Cannot be both expanded and collapsed -- this happens in ARIA expanded
+    // combobox because of limitation of ARIAMap.
+    // XXX: Perhaps we will be able to make this less hacky if we support
+    // extended states in ARIAMap, e.g. derive COLLAPSED from
+    // EXPANDABLE && !EXPANDED. See bug 1898654.
+    aState &= ~states::COLLAPSED;
+  }
+
+  if (aState & states::EXPANDABLE && !(aState & states::EXPANDED)) {
+    aState |= states::COLLAPSED;
+  }
+
+  if (!(aState & states::UNAVAILABLE)) {
+    aState |= states::ENABLED | states::SENSITIVE;
+  }
 }
 
 bool Accessible::NameIsEmpty() const {

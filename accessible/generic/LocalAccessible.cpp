@@ -1602,26 +1602,14 @@ void LocalAccessible::ARIAGroupPosition(int32_t* aLevel, int32_t* aSetSize,
   }
 }
 
-uint64_t LocalAccessible::State() {
+uint64_t LocalAccessible::ExplicitState() const {
   if (IsDefunct()) return states::DEFUNCT;
 
   uint64_t state = NativeState();
   // Apply ARIA states to be sure accessible states will be overridden.
   ApplyARIAState(&state);
 
-  const uint32_t kExpandCollapseStates = states::COLLAPSED | states::EXPANDED;
-  if ((state & kExpandCollapseStates) == kExpandCollapseStates) {
-    // Cannot be both expanded and collapsed -- this happens in ARIA expanded
-    // combobox because of limitation of ARIAMap.
-    // XXX: Perhaps we will be able to make this less hacky if we support
-    // extended states in ARIAMap, e.g. derive COLLAPSED from
-    // EXPANDABLE && !EXPANDED.
-    state &= ~states::COLLAPSED;
-  }
-
   if (!(state & states::UNAVAILABLE)) {
-    state |= states::ENABLED | states::SENSITIVE;
-
     // If the object is a current item of container widget then mark it as
     // ACTIVE. This allows screen reader virtual buffer modes to know which
     // descendant is the current one that would get focus if the user navigates
@@ -1630,9 +1618,19 @@ uint64_t LocalAccessible::State() {
     if (widget && widget->CurrentItem() == this) state |= states::ACTIVE;
   }
 
-  if ((state & states::COLLAPSED) || (state & states::EXPANDED)) {
+  if (state & (states::COLLAPSED | states::EXPANDED)) {
+    // XXX: This has to be here because remote accessibles can have an
+    // intermediate state between an EXPANDED removal and COLLAPSED addition
+    // where they have neither, but need to preserve the EXPANDABLE state.
+    // We should derive COLLAPSED from EXPANDABLE && !EXPANDED. See bug 1898654.
     state |= states::EXPANDABLE;
   }
+
+  return state;
+}
+
+uint64_t LocalAccessible::State() {
+  uint64_t state = ExplicitState();
 
   ApplyImplicitState(state);
   return state;
@@ -3938,7 +3936,7 @@ already_AddRefed<AccAttributes> LocalAccessible::BundleFieldsForCache(
     if (IsInitialPush(CacheDomain::State)) {
       // Most states are updated using state change events, so we only send
       // these for the initial cache push.
-      uint64_t state = State();
+      uint64_t state = ExplicitState();
       // Exclude states which must be calculated by RemoteAccessible.
       state &= ~kRemoteCalculatedStates;
       fields->SetAttribute(CacheKey::State, state);
