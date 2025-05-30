@@ -533,8 +533,9 @@ void DCLayerTree::WaitForCommitCompletion() {
   for (auto it = mDCSurfaces.begin(); it != mDCSurfaces.end(); it++) {
     auto* surface = it->second->AsDCSwapChain();
     if (surface) {
-      surface->Present(nullptr, 0);
-      surface->Present(nullptr, 0);
+      for (int i = 0; i < surface->mSwapChainBufferCount; i++) {
+        surface->Present(nullptr, 0);
+      }
     }
   }
 
@@ -1454,6 +1455,16 @@ DCTile* DCSurface::GetTile(int32_t aX, int32_t aY) const {
   return tile_it->second.get();
 }
 
+DCSwapChain::DCSwapChain(wr::DeviceIntSize aSize, bool aIsOpaque,
+                         DCLayerTree* aDCLayerTree)
+    : DCLayerSurface(aIsOpaque, aDCLayerTree),
+      mSwapChainBufferCount(gfx::gfxVars::UseWebRenderTripleBufferingWin() ? 3
+                                                                           : 2),
+      mSize(aSize),
+      mEGLSurface(EGL_NO_SURFACE) {
+  MOZ_ASSERT(mSwapChainBufferCount == 2 || mSwapChainBufferCount == 3);
+}
+
 DCSwapChain::~DCSwapChain() {
   if (mEGLSurface) {
     const auto gl = mDCLayerTree->GetGLContext();
@@ -1497,7 +1508,7 @@ bool DCSwapChain::Initialize() {
   desc.SampleDesc.Count = 1;
   desc.SampleDesc.Quality = 0;
   desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-  desc.BufferCount = 2;
+  desc.BufferCount = mSwapChainBufferCount;
   // DXGI_SCALING_NONE caused swap chain creation failure.
   desc.Scaling = DXGI_SCALING_STRETCH;
   desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;

@@ -405,10 +405,7 @@ class DCLayerSurface : public DCSurface {
 class DCSwapChain : public DCLayerSurface {
  public:
   DCSwapChain(wr::DeviceIntSize aSize, bool aIsOpaque,
-              DCLayerTree* aDCLayerTree)
-      : DCLayerSurface(aIsOpaque, aDCLayerTree),
-        mSize(aSize),
-        mEGLSurface(EGL_NO_SURFACE) {}
+              DCLayerTree* aDCLayerTree);
   virtual ~DCSwapChain();
 
   bool Initialize() override;
@@ -420,6 +417,8 @@ class DCSwapChain : public DCLayerSurface {
                size_t aNumDirtyRects) override;
 
   DCSwapChain* AsDCSwapChain() override { return this; }
+
+  const int mSwapChainBufferCount;
 
  private:
   wr::DeviceIntSize mSize;
