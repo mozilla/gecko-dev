@@ -20,6 +20,7 @@ import androidx.annotation.ColorRes
 import androidx.annotation.StringRes
 import androidx.annotation.VisibleForTesting
 import androidx.appcompat.app.AppCompatDialogFragment
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import kotlinx.parcelize.Parcelize
@@ -115,7 +116,7 @@ class DownloadCancelDialogFragment : AppCompatDialogFragment() {
 
             with(promptStyling) {
                 positiveButtonBackgroundColor?.let {
-                    val backgroundTintList = ContextCompat.getColorStateList(requireContext(), it)
+                    val backgroundTintList = AppCompatResources.getColorStateList(requireContext(), it)
                     acceptButton.backgroundTintList = backgroundTintList
 
                     // It appears there is not guaranteed way to get background color of a button,

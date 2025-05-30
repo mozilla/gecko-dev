@@ -4,13 +4,13 @@
 
 package mozilla.components.compose.browser.toolbar
 
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.content.ContextCompat
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
@@ -78,7 +78,7 @@ private fun ActionContainerPreview() {
         ActionContainer(
             actions = listOf(
                 DropdownAction(
-                    icon = ContextCompat.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,
+                    icon = AppCompatResources.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,
                     contentDescription = R.string.mozac_clear_button_description,
                     menu = { emptyList() },
                 ),

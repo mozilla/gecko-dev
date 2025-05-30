@@ -8,6 +8,7 @@ import android.view.View
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.VisibleForTesting
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.content.ContextCompat
 import mozilla.components.browser.menu.BrowserMenu
@@ -79,9 +80,9 @@ class BrowserMenuImageTextCheckboxButton(
         val buttonText = if (isInPrimaryState()) primaryLabel else secondaryLabel
         val tintColor = ContextCompat.getColor(button.context, tintColorResource)
         val buttonDrawableIcon = if (isInPrimaryState()) {
-            ContextCompat.getDrawable(button.context, primaryStateIconResource)
+            AppCompatResources.getDrawable(button.context, primaryStateIconResource)
         } else {
-            ContextCompat.getDrawable(button.context, secondaryStateIconResource)
+            AppCompatResources.getDrawable(button.context, secondaryStateIconResource)
         }
         buttonDrawableIcon?.setTint(tintColor)
         val displayMetrics = button.context.resources.displayMetrics

@@ -17,7 +17,7 @@ import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
-import androidx.core.content.ContextCompat
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.view.isVisible
 import mozilla.components.support.utils.DrawableUtils
 import mozilla.components.ui.tabcounter.databinding.MozacUiTabcounterLayoutBinding
@@ -49,7 +49,7 @@ class TabCounterView @JvmOverloads constructor(
         context.obtainStyledAttributes(attrs, R.styleable.TabCounterView, defStyle, 0).apply {
             counterColor = getColorStateList(
                 R.styleable.TabCounterView_tabCounterTintColor,
-            ) ?: ContextCompat.getColorStateList(context, R.color.mozac_ui_tabcounter_default_tint)
+            ) ?: AppCompatResources.getColorStateList(context, R.color.mozac_ui_tabcounter_default_tint)
 
             counterColor?.let {
                 setColor(it)
@@ -124,7 +124,7 @@ class TabCounterView @JvmOverloads constructor(
         val currentCounterColor = counterColor
         val backgroundDrawable = when (currentCounterColor != null) {
             true -> DrawableUtils.loadAndTintDrawable(context, drawableRes, currentCounterColor)
-            false -> ContextCompat.getDrawable(context, drawableRes)
+            false -> AppCompatResources.getDrawable(context, drawableRes)
         }
 
         backgroundDrawable?.let { counterBox.background = it }

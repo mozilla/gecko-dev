@@ -4,6 +4,7 @@
 
 package mozilla.components.compose.browser.toolbar
 
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,7 +28,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import mozilla.components.compose.base.theme.AcornTheme
 import mozilla.components.compose.browser.toolbar.concept.Action
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
@@ -181,7 +181,7 @@ private fun BrowserEditToolbarPreview() {
             useComposeTextField = true,
             editActionsStart = listOf(
                 DropdownAction(
-                    icon = ContextCompat.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,
+                    icon = AppCompatResources.getDrawable(LocalContext.current, iconsR.drawable.mozac_ic_search_24)!!,
                     contentDescription = android.R.string.untitled,
                     menu = { emptyList() },
                 ),

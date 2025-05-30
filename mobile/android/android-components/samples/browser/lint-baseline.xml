@@ -13,17 +13,6 @@
     </issue>
 
     <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="    return ContextCompat.getDrawable(context, drawable)!!"
-        errorLine2="           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/samples/browser/integration/ReaderViewIntegration.kt"
-            line="83"
-            column="12"/>
-    </issue>
-
-    <issue
         id="PrivateResource"
         message="The resource `@color/browser_actions_divider_color` is marked as private in androidx.browser:browser:1.8.0"
         errorLine1="                    dividerColor = androidxBrowserR.color.browser_actions_divider_color,"

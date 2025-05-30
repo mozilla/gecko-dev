@@ -10,7 +10,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
 import android.view.textclassifier.TextClassifier
-import androidx.core.content.ContextCompat
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.graphics.drawable.toBitmap
 import mozilla.components.concept.awesomebar.AwesomeBar
 import mozilla.components.concept.engine.Engine
@@ -81,7 +81,7 @@ class ClipboardSuggestionProvider(
 
     private fun getSearchIcon(): Bitmap? {
         val drawable = iconsR.drawable.mozac_ic_search_24
-        return ContextCompat.getDrawable(context, drawable)?.toBitmap()
+        return AppCompatResources.getDrawable(context, drawable)?.toBitmap()
     }
 }
 

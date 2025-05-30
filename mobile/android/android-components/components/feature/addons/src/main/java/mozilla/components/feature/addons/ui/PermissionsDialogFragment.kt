@@ -21,6 +21,7 @@ import android.widget.LinearLayout.LayoutParams
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.VisibleForTesting
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
@@ -372,7 +373,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         }
         if (backgroundColor != DEFAULT_VALUE) {
             val backgroundTintList =
-                ContextCompat.getColorStateList(requireContext(), backgroundColor)
+                AppCompatResources.getColorStateList(requireContext(), backgroundColor)
             button.backgroundTintList = backgroundTintList
         }
 

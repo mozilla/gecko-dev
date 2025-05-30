@@ -45,48 +45,4 @@
             column="10"/>
     </issue>
 
-    <issue
-        id="UnsafeCompatGetColorStateList"
-        message="This call can lead to crashes, replace with AppCompatResources.getColorStateList"
-        errorLine1="                ContextCompat.getColorStateList(requireContext(), confirmButtonBackgroundColor)"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/mozilla/components/feature/addons/ui/AddonInstallationDialogFragment.kt"
-            line="161"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="UnsafeCompatGetColorStateList"
-        message="This call can lead to crashes, replace with AppCompatResources.getColorStateList"
-        errorLine1="                ContextCompat.getColorStateList(requireContext(), backgroundColor)"
-        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/mozilla/components/feature/addons/ui/PermissionsDialogFragment.kt"
-            line="375"
-            column="17"/>
-    </issue>
-
-    <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="                imageView.setImageDrawable(ContextCompat.getDrawable(imageView.context, it))"
-        errorLine2="                                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/mozilla/components/feature/addons/ui/AddonsManagerAdapter.kt"
-            line="471"
-            column="44"/>
-    </issue>
-
-    <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="        ContextCompat.getDrawable("
-        errorLine2="        ^">
-        <location
-            file="src/main/java/mozilla/components/feature/addons/ui/Extensions.kt"
-            line="156"
-            column="9"/>
-    </issue>
-
 </issues>

@@ -10,8 +10,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
+import androidx.appcompat.content.res.AppCompatResources
 import androidx.appcompat.widget.AppCompatImageView
-import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getColor
 import mozilla.components.browser.menu.BrowserMenu
 import mozilla.components.browser.menu.BrowserMenuItem
@@ -26,13 +26,13 @@ internal const val NO_ID = -1
 
 internal fun ImageView.setTintResource(@ColorRes tintColorResource: Int) {
     if (tintColorResource != NO_ID) {
-        imageTintList = ContextCompat.getColorStateList(context, tintColorResource)
+        imageTintList = AppCompatResources.getColorStateList(context, tintColorResource)
     }
 }
 
 internal fun TextView.setColorResource(@ColorRes textColorResource: Int) {
     if (textColorResource != NO_ID) {
-        setTextColor(ContextCompat.getColor(context, textColorResource))
+        setTextColor(getColor(context, textColorResource))
     }
 }
 

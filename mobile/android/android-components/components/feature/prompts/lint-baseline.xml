@@ -23,26 +23,4 @@
             column="6"/>
     </issue>
 
-    <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="        ContextCompat.getDrawable(itemView.context, R.drawable.color_picker_row_bg)?.getPadding(backgroundPadding)"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/mozilla/components/feature/prompts/dialog/BasicColorAdapter.kt"
-            line="90"
-            column="9"/>
-    </issue>
-
-    <issue
-        id="UnsafeCompatGetDrawable"
-        message="This call can lead to crashes, replace with AppCompatResources.getDrawable"
-        errorLine1="        ContextCompat.getDrawable(itemView.context, R.drawable.color_picker_checkmark)?.apply {"
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/mozilla/components/feature/prompts/dialog/BasicColorAdapter.kt"
-            line="93"
-            column="9"/>
-    </issue>
-
 </issues>

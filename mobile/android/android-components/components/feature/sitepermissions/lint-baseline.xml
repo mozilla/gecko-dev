@@ -12,15 +12,4 @@
             column="6"/>
     </issue>
 
-    <issue
-        id="UnsafeCompatGetColorStateList"
-        message="This call can lead to crashes, replace with AppCompatResources.getColorStateList"
-        errorLine1="            val backgroundTintList = ContextCompat.getColorStateList(requireContext(), positiveButtonBackgroundColor)"
-        errorLine2="                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/mozilla/components/feature/sitepermissions/SitePermissionsDialogFragment.kt"
-            line="186"
-            column="38"/>
-    </issue>
-
 </issues>
