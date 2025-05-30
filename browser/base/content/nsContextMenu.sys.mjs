@@ -909,18 +909,6 @@ export class nsContextMenu {
       let frameOsPid =
         this.actor.manager.browsingContext.currentWindowGlobal.osPid;
       this.setItemAttr("context-frameOsPid", "label", "PID: " + frameOsPid);
-
-      // We need to check if "Take Screenshot" should be displayed in the "This Frame"
-      // context menu
-      let shouldShowTakeScreenshotFrame = this.shouldShowTakeScreenshot();
-      this.showItem(
-        "context-take-frame-screenshot",
-        shouldShowTakeScreenshotFrame
-      );
-      this.showItem(
-        "context-sep-frame-screenshot",
-        shouldShowTakeScreenshotFrame
-      );
     }
 
     this.showAndFormatSearchContextItem();
@@ -1433,7 +1421,7 @@ export class nsContextMenu {
   }
 
   initScreenshotItem() {
-    let shouldShow = this.shouldShowTakeScreenshot() && !this.inFrame;
+    let shouldShow = this.shouldShowTakeScreenshot();
 
     this.showItem("context-sep-screenshots", shouldShow);
     this.showItem("context-take-screenshot", shouldShow);

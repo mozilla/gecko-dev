@@ -429,10 +429,6 @@ main-context-menu-take-screenshot =
     .label = Take Screenshot
     .accesskey = T
 
-main-context-menu-take-frame-screenshot =
-    .label = Take Screenshot
-    .accesskey = o
-
 main-context-menu-view-page-source =
     .label = View Page Source
     .accesskey = V

@@ -390,10 +390,6 @@
                     data-l10n-id="main-context-menu-frame-print"
                     />
           <menuseparator/>
-          <menuitem id="context-take-frame-screenshot"
-                    data-l10n-id="main-context-menu-take-frame-screenshot"
-                    />
-          <menuseparator id="context-sep-frame-screenshot"/>
           <menuitem id="context-viewframesource"
                     data-l10n-id="main-context-menu-frame-view-source"
                     />

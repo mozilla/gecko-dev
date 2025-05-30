@@ -275,9 +275,6 @@ document.addEventListener(
         case "context-printframe":
           gContextMenu.printFrame();
           break;
-        case "context-take-frame-screenshot":
-          gContextMenu.takeScreenshot();
-          break;
         case "context-viewframesource":
           gContextMenu.viewFrameSource();
           break;
