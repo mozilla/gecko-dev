@@ -58,19 +58,19 @@ def test_is_full_test_variants_fail():
     assert not fp.is_full_test_variants_fail("build_type1")
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}}})
-    fp.failures["build_type1"] = {"test_variant2"}
+    fp.failures["build_type1"] = {"test_variant2": 1}
     assert not fp.is_full_test_variants_fail("build_type1")
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}}})
-    fp.failures["build_type1"] = {"test_variant1"}
+    fp.failures["build_type1"] = {"test_variant1": 1}
     assert fp.is_full_test_variants_fail("build_type1")
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}, "test_variant2": {}}})
-    fp.failures["build_type1"] = {"test_variant1"}
+    fp.failures["build_type1"] = {"test_variant1": 1}
     assert not fp.is_full_test_variants_fail("build_type1")
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}, "test_variant2": {}}})
-    fp.failures["build_type1"] = {"test_variant1", "test_variant2"}
+    fp.failures["build_type1"] = {"test_variant1": 1, "test_variant2": 1}
     assert fp.is_full_test_variants_fail("build_type1")
 
 
@@ -87,27 +87,27 @@ def test_is_full_fail():
     assert not fp.is_full_fail()
 
     fp = FailedPlatform({"build_type1": {}})
-    fp.failures["build_type1"] = set()
+    fp.failures["build_type1"] = {}
     assert not fp.is_full_fail()
 
     fp = FailedPlatform({"build_type1": {}})
-    fp.failures["build_type2"] = set()
+    fp.failures["build_type2"] = {}
     assert not fp.is_full_fail()
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}}})
-    fp.failures["build_type1"] = set()
+    fp.failures["build_type1"] = {}
     assert not fp.is_full_fail()
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}}})
-    fp.failures["build_type1"] = {"test_variant1"}
+    fp.failures["build_type1"] = {"test_variant1": 1}
     assert fp.is_full_fail()
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}, "test_variant2": {}}})
-    fp.failures["build_type1"] = {"test_variant1"}
+    fp.failures["build_type1"] = {"test_variant1": 1}
     assert not fp.is_full_fail()
 
     fp = FailedPlatform({"build_type1": {"test_variant1": {}, "test_variant2": {}}})
-    fp.failures["build_type1"] = {"test_variant1", "test_variant2"}
+    fp.failures["build_type1"] = {"test_variant1": 1, "test_variant2": 1}
     assert fp.is_full_fail()
 
     fp = FailedPlatform(
@@ -116,7 +116,7 @@ def test_is_full_fail():
             "build_type2": {"test_variant1": {}, "test_variant2": {}},
         }
     )
-    fp.failures["build_type1"] = {"test_variant1", "test_variant2"}
+    fp.failures["build_type1"] = {"test_variant1": 1, "test_variant2": 1}
     assert not fp.is_full_fail()
 
     fp = FailedPlatform(
@@ -125,8 +125,8 @@ def test_is_full_fail():
             "build_type2": {"test_variant1": {}, "test_variant2": {}},
         }
     )
-    fp.failures["build_type1"] = {"test_variant1", "test_variant2"}
-    fp.failures["build_type2"] = {"test_variant1", "test_variant2"}
+    fp.failures["build_type1"] = {"test_variant1": 1, "test_variant2": 1}
+    fp.failures["build_type2"] = {"test_variant1": 1, "test_variant2": 1}
     assert fp.is_full_fail()
 
 
@@ -279,6 +279,62 @@ def test_get_test_variant_condition():
     )
 
 
+def test_is_full_high_freq_fail():
+    """Test is_full_high_freq_fail"""
+
+    # One build type
+    fp = FailedPlatform({"build_type1": {"no_variant": {}}})
+    assert not fp.is_full_high_freq_fail()
+
+    for i in range(0, 6):
+        fp.get_skip_string(" && ", "build_type1", "no_variant")
+        assert not fp.is_full_high_freq_fail()
+
+    fp.get_skip_string(" && ", "build_type1", "no_variant")
+    assert fp.is_full_high_freq_fail()
+
+    # Several build types
+    fp = FailedPlatform(
+        {"build_type1": {"no_variant": {}}, "build_type2": {"no_variant": {}}}
+    )
+    assert not fp.is_full_high_freq_fail()
+
+    for i in range(0, 7):
+        fp.get_skip_string(" && ", "build_type1", "no_variant")
+        assert not fp.is_full_high_freq_fail()
+
+    for i in range(0, 6):
+        fp.get_skip_string(" && ", "build_type2", "no_variant")
+        assert not fp.is_full_high_freq_fail()
+
+    fp.get_skip_string(" && ", "build_type2", "no_variant")
+    assert fp.is_full_high_freq_fail()
+
+    # Several build types and test variants
+    fp = FailedPlatform(
+        {
+            "build_type1": {"no_variant": {}, "test_variant1": {}},
+            "build_type2": {"no_variant": {}, "test_variant1": {}},
+        }
+    )
+    assert not fp.is_full_high_freq_fail()
+
+    for i in range(0, 7):
+        fp.get_skip_string(
+            " && ", "build_type1", "no_variant" if i < 3 else "test_variant1"
+        )
+        assert not fp.is_full_high_freq_fail()
+
+    for i in range(0, 6):
+        fp.get_skip_string(
+            " && ", "build_type2", "no_variant" if i < 3 else "test_variant1"
+        )
+        assert not fp.is_full_high_freq_fail()
+
+    fp.get_skip_string(" && ", "build_type2", "no_variant")
+    assert fp.is_full_high_freq_fail()
+
+
 def test_get_skip_string():
     """Test get_skip_string"""
 
@@ -419,6 +475,60 @@ def test_get_skip_string():
         == " && build_type2 && test_variant1"
     )
     assert fp.get_skip_string(" && ", "build_type2", "test_variant2") == ""
+
+
+def test_get_skip_string_high_freq():
+    """Test get_skip_string using high freq flag"""
+
+    # Only return skip string if at least 7 failures
+    fp = FailedPlatform(
+        {
+            "build_type1": {},
+            "build_type2": {},
+        },
+        high_freq=True,
+    )
+    for i in range(0, 6):
+        assert fp.get_skip_string(" && ", "build_type1", "no_variant") is None
+    assert fp.get_skip_string(" && ", "build_type1", "no_variant") == " && build_type1"
+
+    # Skip whole platform if all build types failed
+    fp = FailedPlatform(
+        {
+            "build_type1": {},
+            "build_type2": {},
+        },
+        high_freq=True,
+    )
+    for i in range(0, 6):
+        assert fp.get_skip_string(" && ", "build_type1", "no_variant") is None
+    assert fp.get_skip_string(" && ", "build_type1", "no_variant") == " && build_type1"
+    for i in range(0, 6):
+        assert fp.get_skip_string(" && ", "build_type2", "no_variant") is None
+    assert fp.get_skip_string(" && ", "build_type2", "no_variant") == ""
+
+    # Skip specific test_variant if it has more than 75% failures
+    fp = FailedPlatform(
+        {
+            "build_type1": {"test_variant1": {}, "test_variant2": {}},
+            "build_type2": {},
+        },
+        high_freq=True,
+    )
+    for i in range(0, 6):
+        assert fp.get_skip_string(" && ", "build_type1", "test_variant1") is None
+    assert (
+        fp.get_skip_string(" && ", "build_type1", "test_variant1")
+        == " && build_type1 && test_variant1"
+    )
+    for i in range(0, 2):
+        assert (
+            fp.get_skip_string(" && ", "build_type1", "test_variant2")
+            == " && build_type1 && test_variant1"
+        )
+    assert (
+        fp.get_skip_string(" && ", "build_type1", "test_variant2") == " && build_type1"
+    )
 
 
 if __name__ == "__main__":
