@@ -189,6 +189,10 @@ android {
         }
     }
 
+    compileOptions {
+        coreLibraryDesugaringEnabled = true
+    }
+
     namespace = 'org.mozilla.focus'
 }
 
@@ -238,6 +242,8 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 dependencies {
+    coreLibraryDesugaring libs.desugar.jdk.libs
+
     implementation libs.androidx.activity
     implementation libs.androidx.appcompat
     implementation libs.androidx.browser
