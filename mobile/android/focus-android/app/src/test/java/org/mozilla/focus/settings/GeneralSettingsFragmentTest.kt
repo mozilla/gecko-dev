@@ -9,14 +9,11 @@ import mozilla.components.support.test.whenever
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.Mockito.doCallRealMethod
 import org.mockito.Mockito.doReturn
 import org.mozilla.focus.R
 import org.mozilla.focus.locale.screen.LanguageStorage.Companion.LOCALE_SYSTEM_DEFAULT
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
 class GeneralSettingsFragmentTest {
 
     private lateinit var fragment: GeneralSettingsFragment
