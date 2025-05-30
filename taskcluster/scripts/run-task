@@ -919,7 +919,6 @@ def main(args):
         "UPLOAD_DIR",
         "UV_CACHE_DIR",
         "npm_config_cache",
-        "MOZ_UV_HOME",
     ):
         if k in os.environ:
             # Normalize paths to use forward slashes. Some shell scripts
@@ -978,16 +977,6 @@ def main(args):
 
             print_line(b'setup',
                        b'updated PATH with python artifact: '
-                       + new.encode() + b'\n')
-
-        if 'MOZ_UV_HOME' in os.environ:
-            print_line(b'setup',
-                       b'Adding uv to PATH\n')
-            current_env = [os.environ['PATH']] if 'PATH' in os.environ else []
-            moz_python_bindir = os.environ['MOZ_UV_HOME']
-            new = os.environ['PATH'] = os.pathsep.join([moz_python_bindir] + current_env)
-            print_line(b'setup',
-                       b'updated PATH with uv artifact: '
                        + new.encode() + b'\n')
 
     return run_and_prefix_output(b'task', task_args, cwd=args.task_cwd)

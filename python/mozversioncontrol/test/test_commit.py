@@ -2,7 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import re
 from datetime import datetime
 from pathlib import Path
 
@@ -27,7 +26,7 @@ STEPS = {
     ],
     "jj": [
         """
-        jj describe -m "Ignore file for testing"
+        jj describe -m 'Ignore file for testing'
         echo foo > .gitignore
         jj new
         """,
@@ -107,32 +106,9 @@ def test_commit(repo):
 
     # Verify only the intended file was added to the commit
     patch = vcs._run(*patch_cmd)
-
-    def find_diff_marker(patch: str, filename: str):
-        patterns = [
-            rf"^diff --git a/{re.escape(filename)} b/{re.escape(filename)}$",
-            rf"^Modified regular file {re.escape(filename)}:$",
-        ]
-
-        matches = [
-            line
-            for line in patch.splitlines()
-            if any(re.fullmatch(p, line) for p in patterns)
-        ]
-
-        assert matches, f"No diff marker found for '{filename}'"
-        assert (
-            len(matches) == 1
-        ), f"More than one diff marker for '{filename}': {matches}"
-
-        return matches[0]
-
-    marker = find_diff_marker(patch, "bar")
-
-    assert marker in [
-        "diff --git a/bar b/bar",
-        "Modified regular file bar:",
-    ]
+    diffs = [line for line in patch.splitlines() if "diff --git" in line]
+    assert len(diffs) == 1
+    assert diffs[0] == "diff --git a/bar b/bar"
 
 
 if __name__ == "__main__":
