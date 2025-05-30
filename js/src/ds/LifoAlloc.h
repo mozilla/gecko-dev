@@ -223,9 +223,10 @@ struct CanLifoAlloc<T*> : std::true_type {};
 //   template <> struct CanLifoAlloc<MyType> : std::true_type {};
 //
 template <typename T>
-using lifo_alloc_pointer =
-    typename std::enable_if<js::CanLifoAlloc<typename std::remove_pointer<T>::type>::value || std::is_trivially_destructible_v<typename std::remove_pointer<T>::type>,
-                   T>::type;
+using lifo_alloc_pointer = typename std::enable_if<
+    js::CanLifoAlloc<typename std::remove_pointer<T>::type>::value ||
+        std::is_trivially_destructible_v<typename std::remove_pointer<T>::type>,
+    T>::type;
 
 namespace detail {
 
