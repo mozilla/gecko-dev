@@ -375,7 +375,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Adicionar favorito, atalho, tela inicial, coleção, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Adicionar aos favoritos</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Adicionar aos favoritos</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Editar favorito</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1513,13 +1513,13 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">“%1$s” excluído</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Download em andamento…</string>
+  <string name="download_in_progress_snackbar">Download em andamento…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
-  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detalhes</string>
+  <string name="download_in_progress_snackbar_action_details">Detalhes</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
-  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Download concluído</string>
+  <string name="download_completed_snackbar">Download concluído</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Abrir</string>
+  <string name="download_completed_snackbar_action_open">Abrir</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">Desfazer</string>
   <!-- Text shown when no download exists -->
@@ -1600,7 +1600,7 @@
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">pendente</string>
   <!-- Text to indicate that a download has failed to download. -->
-  <string name="download_item_status_failed" tools:ignore="UnusedResources">Falha ao baixar arquivo</string>
+  <string name="download_item_status_failed">Falha ao baixar arquivo</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Pesquisar nos arquivos baixados</string>
   <!-- Text to indicate that no downloads match the search query. -->

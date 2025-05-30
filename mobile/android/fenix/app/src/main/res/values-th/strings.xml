@@ -375,7 +375,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">เพิ่มที่คั่นหน้า, ทางลัด, หน้าแรก, คอลเลกชัน, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">เพิ่มที่คั่นหน้าสำหรับหน้านี้</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">เพิ่มที่คั่นหน้าสำหรับหน้านี้</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">แก้ไขที่คั่นหน้า</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1461,13 +1461,13 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">ลบ “%1$s” แล้ว</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">กำลังดาวน์โหลด…</string>
+  <string name="download_in_progress_snackbar">กำลังดาวน์โหลด…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
-  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">รายละเอียด</string>
+  <string name="download_in_progress_snackbar_action_details">รายละเอียด</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
-  <string name="download_completed_snackbar" tools:ignore="UnusedResources">การดาวน์โหลดเสร็จสมบูรณ์</string>
+  <string name="download_completed_snackbar">การดาวน์โหลดเสร็จสมบูรณ์</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">เปิด</string>
+  <string name="download_completed_snackbar_action_open">เปิด</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">เลิกทำ</string>
   <!-- Text shown when no download exists -->
@@ -1548,7 +1548,7 @@
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">กำลังรอ</string>
   <!-- Text to indicate that a download has failed to download. -->
-  <string name="download_item_status_failed" tools:ignore="UnusedResources">การดาวน์โหลดล้มเหลว</string>
+  <string name="download_item_status_failed">การดาวน์โหลดล้มเหลว</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">ค้นหาการดาวน์โหลด</string>
   <!-- Text to indicate that no downloads match the search query. -->

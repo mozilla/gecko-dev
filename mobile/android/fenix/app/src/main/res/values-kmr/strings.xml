@@ -373,7 +373,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Favoriyekê lê zêde bike, Kurterê, Têketin, Koleksiyon, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Vê rûpelê têxe nav favoriyan</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Vê rûpelê têxe nav favoriyan</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Favoriyan serast bike</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1235,7 +1235,7 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s hate rakirin</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Veke</string>
+  <string name="download_completed_snackbar_action_open">Veke</string>
   <!-- Text shown when no download exists -->
   <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Ti tişt nehatiye daxistin</string>
   <!--

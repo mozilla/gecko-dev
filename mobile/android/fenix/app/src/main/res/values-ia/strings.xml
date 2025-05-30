@@ -249,6 +249,8 @@
   <string name="browser_menu_extensions_disabled_description">Temporarimente disactivate</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Nulle extensiones activate</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Essaya un extension recommendate</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Informationes del conto</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -375,7 +377,9 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Adder marcapaginas, Vias breve, Initio, Collection, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Adder un marcapaginas pro iste pagina</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Adder un marcapaginas pro iste pagina</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Adder pagina al marcapaginas</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Rediger marcapagina</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1513,13 +1517,13 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Delite “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Discargamento in curso…</string>
+  <string name="download_in_progress_snackbar">Discargamento in curso…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
-  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detalios</string>
+  <string name="download_in_progress_snackbar_action_details">Detalios</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
-  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Discargamento completate</string>
+  <string name="download_completed_snackbar">Discargamento completate</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Aperir</string>
+  <string name="download_completed_snackbar_action_open">Aperir</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">Disfacer</string>
   <!-- Text shown when no download exists -->
@@ -1600,7 +1604,9 @@
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">pendente</string>
   <!-- Text to indicate that a download has failed to download. -->
-  <string name="download_item_status_failed" tools:ignore="UnusedResources">Discargamento fallite</string>
+  <string name="download_item_status_failed">Discargamento fallite</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Detalios</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Cercar in le discargamentos</string>
   <!-- Text to indicate that no downloads match the search query. -->

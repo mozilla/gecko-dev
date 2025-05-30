@@ -332,7 +332,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">පොත්යොමු, කෙටිමං, මුල් පිටු, එකතු, PDF එක් කරන්න</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">මෙම පිටුවට පොත්යොමුවක්</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">මෙම පිටුවට පොත්යොමුවක්</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">පොත්යොමුව සංස්කරණය</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->

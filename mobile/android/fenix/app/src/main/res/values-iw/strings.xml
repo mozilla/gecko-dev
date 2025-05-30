@@ -249,6 +249,8 @@
   <string name="browser_menu_extensions_disabled_description">מושבתות באופן זמני</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">אין הרחבות פעילות</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">נסו הרחבה מומלצת</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">מידע על החשבון</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -373,7 +375,9 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">הוספת סימנייה, קיצור דרך, בית אוסף, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">יצירת סימנייה לדף זה</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">יצירת סימנייה לדף זה</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">הוספת העמוד לסימניות</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">עריכת סימנייה</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1511,13 +1515,13 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">נמחק ״%1$s״</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">ההורדה מתבצעת…</string>
+  <string name="download_in_progress_snackbar">ההורדה מתבצעת…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
-  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">פרטים</string>
+  <string name="download_in_progress_snackbar_action_details">פרטים</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
-  <string name="download_completed_snackbar" tools:ignore="UnusedResources">ההורדה הושלמה</string>
+  <string name="download_completed_snackbar">ההורדה הושלמה</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">פתיחה</string>
+  <string name="download_completed_snackbar_action_open">פתיחה</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">ביטול פעולה</string>
   <!-- Text shown when no download exists -->
@@ -1598,7 +1602,9 @@
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">בהמתנה</string>
   <!-- Text to indicate that a download has failed to download. -->
-  <string name="download_item_status_failed" tools:ignore="UnusedResources">ההורדה נכשלה</string>
+  <string name="download_item_status_failed">ההורדה נכשלה</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">פרטים</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">חיפוש בהורדות</string>
   <!-- Text to indicate that no downloads match the search query. -->

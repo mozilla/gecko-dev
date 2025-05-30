@@ -375,7 +375,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Rnu ticraḍ n yisebtar, inegzumen, asebtar agejdan, tafrant, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Creḍ asebter-a</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Creḍ asebter-a</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Ẓreg tacreḍt n usebter</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1504,13 +1504,13 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Yettwakkes “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Asader iteddu…</string>
+  <string name="download_in_progress_snackbar">Asader iteddu…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
-  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Aglam leqqayen</string>
+  <string name="download_in_progress_snackbar_action_details">Aglam leqqayen</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
-  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Asader yemmed</string>
+  <string name="download_completed_snackbar">Asader yemmed</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Ldi</string>
+  <string name="download_completed_snackbar_action_open">Ldi</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">Sefsex</string>
   <!-- Text shown when no download exists -->
@@ -1591,7 +1591,7 @@
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">ittraju</string>
   <!-- Text to indicate that a download has failed to download. -->
-  <string name="download_item_status_failed" tools:ignore="UnusedResources">Ifuyla ittwazedmen</string>
+  <string name="download_item_status_failed">Ifuyla ittwazedmen</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Nadi isadaren</string>
   <!-- Text to indicate that no downloads match the search query. -->
