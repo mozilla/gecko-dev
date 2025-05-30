@@ -11,7 +11,6 @@ from typing import List, Optional
 
 import requests
 from clean_skipfails import CleanSkipfails
-from high_freq_skipfails import HighFreqSkipfails
 from mach.decorators import Command, CommandArgument, SubCommand
 from mozbuild.base import BuildEnvironmentNotFoundException
 from mozbuild.base import MachCommandConditions as conditions
@@ -1309,37 +1308,6 @@ def skipfails(
         use_failures,
         max_failures,
     )
-
-
-@SubCommand(
-    "manifest",
-    "high-freq-skip-fails",
-    description="Update manifests to skip failing tests",
-)
-@CommandArgument(
-    "-f",
-    "--failures",
-    default="30",
-    dest="failures",
-    help="Minimum number of failures for the bug to be skipped",
-)
-@CommandArgument(
-    "-d",
-    "--days",
-    default="7",
-    dest="days",
-    help="Number of days to look for failures since now",
-)
-def high_freq_skipfails(command_context, failures: str, days: str):
-    try:
-        failures_num = int(failures)
-    except ValueError:
-        failures_num = 30
-    try:
-        days_num = int(days)
-    except ValueError:
-        days_num = 7
-    HighFreqSkipfails(command_context, failures_num, days_num).run()
 
 
 @SubCommand(
