@@ -118,6 +118,12 @@ export class NetworkResponseListener {
    */
   #sink = null;
   /**
+   * Used to decode the response body.
+   *
+   * @type {TextDecoder}
+   */
+  #textDecoder = null;
+  /**
    * Indicates if the response had a size greater than response body limit.
    *
    * @type {boolean}
@@ -204,6 +210,34 @@ export class NetworkResponseListener {
     stream.asyncWait(listener, 0, 0, Services.tm.mainThread);
   }
 
+  #convertToUnicode(text, charset) {
+    if (!this.#textDecoder) {
+      this.#textDecoder = new TextDecoder(charset || "UTF-8", { fatal: true });
+    }
+    const u8 = Uint8Array.from(text, c => c.charCodeAt(0));
+    try {
+      return this.#textDecoder.decode(u8, { stream: true });
+    } catch (e) {
+      return text;
+    }
+  }
+
+  #finishConvertToUnicode() {
+    if (!this.#textDecoder) {
+      return;
+    }
+    try {
+      // Call decode with stream false to check if the decoder contains
+      // incomplete bytes in the internal buffer.
+      this.#textDecoder.decode(new Uint8Array());
+    } catch (e) {
+      // Unfortunately we have no way to retrieve bytes from the internal
+      // buffer. Set #truncated instead.
+      this.#truncated = true;
+    }
+    this.#textDecoder = null;
+  }
+
   /**
    * Stores the received data, if request/response body logging is enabled. It
    * also does limit the number of stored bytes, based on the
@@ -228,7 +262,7 @@ export class NetworkResponseListener {
         "devtools.netmonitor.responseBodyLimit"
       );
       if (this.#receivedData.length <= limit || limit == 0) {
-        this.#receivedData += lazy.NetworkHelper.convertToUnicode(
+        this.#receivedData += this.#convertToUnicode(
           data,
           request.contentCharset
         );
@@ -259,6 +293,7 @@ export class NetworkResponseListener {
     // We need to track the offset for the onDataAvailable calls where
     // we pass the data from our pipe to the converter.
     this.#offset = 0;
+    this.#textDecoder = null;
 
     const channel = this.#request;
 
@@ -450,23 +485,25 @@ export class NetworkResponseListener {
       this.#fetchCacheInformation();
     }
 
+    let charset;
+    try {
+      charset = this.#request.contentCharset;
+    } catch (e) {
+      // Accessing the charset sometimes throws NS_ERROR_NOT_AVAILABLE when
+      // reloading the page
+    }
+    if (!charset) {
+      charset = this.#httpActivity.charset;
+    }
+
     if (!this.#httpActivity.discardResponseBody && this.#receivedData.length) {
+      this.#finishConvertToUnicode();
       this.#onComplete(this.#receivedData);
     } else if (
       !this.#httpActivity.discardResponseBody &&
       responseStatus == 304
     ) {
       // Response is cached, so we load it from cache.
-      let charset;
-      try {
-        charset = this.#request.contentCharset;
-      } catch (e) {
-        // Accessing the charset sometimes throws NS_ERROR_NOT_AVAILABLE when
-        // reloading the page
-      }
-      if (!charset) {
-        charset = this.#httpActivity.charset;
-      }
       lazy.NetworkHelper.loadFromCache(
         this.#httpActivity.url,
         charset,
