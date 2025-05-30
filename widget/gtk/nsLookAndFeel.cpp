@@ -20,6 +20,7 @@
 
 #include "GRefPtr.h"
 #include "GUniquePtr.h"
+#include "gtk/gtk.h"
 #include "nsGtkUtils.h"
 #include "gfxPlatformGtk.h"
 #include "mozilla/FontPropertyTypes.h"
@@ -534,37 +535,6 @@ static bool GetColorFromImagePattern(const GValue* aValue, nscolor* aColor) {
   return false;
 }
 
-// Sets |aLightColor| and |aDarkColor| to colors from |aContext|.  Returns
-// true if |aContext| uses these colors to render a visible border.
-// If returning false, then the colors returned are a fallback from the
-// border-color value even though |aContext| does not use these colors to
-// render a border.
-static Maybe<nscolor> GetBorderColor(GtkStyleContext* aContext) {
-  // Determine whether the border on this style context is visible.
-  GtkStateFlags state = gtk_style_context_get_state(aContext);
-  GtkBorderStyle borderStyle = GTK_BORDER_STYLE_NONE;
-  gtk_style_context_get(aContext, state, GTK_STYLE_PROPERTY_BORDER_STYLE,
-                        &borderStyle, nullptr);
-  if (borderStyle == GTK_BORDER_STYLE_NONE ||
-      borderStyle == GTK_BORDER_STYLE_HIDDEN) {
-    return {};
-  }
-  // GTK has an initial value of zero for border-widths, and so themes
-  // need to explicitly set border-widths to make borders visible.
-  GtkBorder border;
-  gtk_style_context_get_border(aContext, state, &border);
-  if (!border.top && !border.right && !border.bottom && !border.left) {
-    return {};
-  }
-
-  // The initial value for the border-color is the foreground color, and so
-  // this will usually return a color distinct from the background even if
-  // there is no visible border detected.
-  GdkRGBA color{};
-  gtk_style_context_get_border_color(aContext, state, &color);
-  return Some(GDK_RGBA_TO_NS_RGBA(color));
-}
-
 // Finds ideal cell highlight colors used for unfocused+selected cells distinct
 // from both Highlight, used as focused+selected background, and the listbox
 // background which is assumed to be similar to -moz-field
@@ -803,18 +773,8 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       aColor = mHeaderBarInactive.mFg;
       break;
     case ColorID::Threedface:
-    case ColorID::MozButtondisabledface:
       // 3-D face color
       aColor = mWindow.mBg;
-      break;
-
-    case ColorID::Buttonface:
-      aColor = mButton.mBg;
-      break;
-
-    case ColorID::Buttontext:
-      // text on push buttons
-      aColor = mButton.mFg;
       break;
 
     case ColorID::Buttonhighlight:
@@ -825,9 +785,30 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       aColor = mFrameBorder;
       break;
 
-    case ColorID::Buttonborder:
-      aColor = mButtonBorder;
+#define HANDLE_BUTTON(Prefix, member_) \
+  case ColorID::Prefix##border: {      \
+    aColor = (member_).mBorder;        \
+    break;                             \
+  }                                    \
+  case ColorID::Prefix##face: {        \
+    aColor = (member_).mBg;            \
+    break;                             \
+  }                                    \
+  case ColorID::Prefix##text: {        \
+    aColor = (member_).mFg;            \
+    break;                             \
+  }
+
+      HANDLE_BUTTON(Button, mButton);
+      HANDLE_BUTTON(MozButtonhover, mButtonHover);
+      HANDLE_BUTTON(MozButtonactive, mButtonActive);
+    case ColorID::MozButtondisabledface:
+      aColor = mButtonDisabled.mBg;
       break;
+    case ColorID::MozButtondisabledborder:
+      aColor = mButtonDisabled.mBorder;
+      break;
+
     case ColorID::Threedlightshadow:
     case ColorID::MozDisabledfield:
       aColor = mIsDark ? *GenericDarkColor(aID) : NS_RGB(0xE0, 0xE0, 0xE0);
@@ -850,18 +831,6 @@ nsresult nsLookAndFeel::PerThemeData::GetColor(ColorID aID,
       break;
     case ColorID::MozSidebarborder:
       aColor = mSidebarBorder;
-      break;
-    case ColorID::MozButtonhoverface:
-      aColor = mButtonHover.mBg;
-      break;
-    case ColorID::MozButtonhovertext:
-      aColor = mButtonHover.mFg;
-      break;
-    case ColorID::MozButtonactiveface:
-      aColor = mButtonActive.mBg;
-      break;
-    case ColorID::MozButtonactivetext:
-      aColor = mButtonActive.mFg;
       break;
     case ColorID::MozMenuhover:
       aColor = mMenuHover.mBg;
@@ -1493,9 +1462,12 @@ void nsLookAndFeel::MaybeApplyColorOverrides() {
     // https://gitlab.gnome.org/GNOME/libadwaita/-/blob/main/src/stylesheet/widgets/_buttons.scss
     // (which is somewhat confusingly also reused for fields).
     auto ApplyLibadwaitaButtonColors = [](PerThemeData& aTheme) {
-      aTheme.mButtonBorder = NS_TRANSPARENT;
-      aTheme.mButton = aTheme.mButtonHover = aTheme.mButtonActive =
-          aTheme.mField = aTheme.mWindow;
+      // TODO: Technically adwaita doesn't have borders, but we apply this
+      // border to checkboxes and textfields as well, so for now let it be.
+      // aTheme.mButton.mBorder = aTheme.mButtonHover.mBorder =
+      //     aTheme.mButtonActive.mBorder = NS_TRANSPARENT;
+      aTheme.mField.mFg = aTheme.mButton.mFg = aTheme.mButtonHover.mFg =
+          aTheme.mButtonActive.mFg = aTheme.mWindow.mFg;
       // Window background combined with 10%, 15% and 30% of the foreground
       // color, respectively.
       aTheme.mButton.mBg = aTheme.mField.mBg = NS_ComposeColors(
@@ -1918,6 +1890,37 @@ static nscolor GetBackgroundColor(
   return NS_TRANSPARENT;
 }
 
+// Sets |aLightColor| and |aDarkColor| to colors from |aContext|.  Returns
+// true if |aContext| uses these colors to render a visible border.
+// If returning false, then the colors returned are a fallback from the
+// border-color value even though |aContext| does not use these colors to
+// render a border.
+static Maybe<nscolor> GetBorderColor(
+    GtkStyleContext* aContext, GtkStateFlags aState = GTK_STATE_FLAG_NORMAL) {
+  // Determine whether the border on this style context is visible.
+  GtkBorderStyle borderStyle = GTK_BORDER_STYLE_NONE;
+  gtk_style_context_get(aContext, aState, GTK_STYLE_PROPERTY_BORDER_STYLE,
+                        &borderStyle, nullptr);
+  if (borderStyle == GTK_BORDER_STYLE_NONE ||
+      borderStyle == GTK_BORDER_STYLE_HIDDEN) {
+    return {};
+  }
+  // GTK has an initial value of zero for border-widths, and so themes
+  // need to explicitly set border-widths to make borders visible.
+  GtkBorder border;
+  gtk_style_context_get_border(aContext, aState, &border);
+  if (!border.top && !border.right && !border.bottom && !border.left) {
+    return {};
+  }
+
+  // The initial value for the border-color is the foreground color, and so
+  // this will usually return a color distinct from the background even if
+  // there is no visible border detected.
+  GdkRGBA color{};
+  gtk_style_context_get_border_color(aContext, aState, &color);
+  return Some(GDK_RGBA_TO_NS_RGBA(color));
+}
+
 static nscolor GetTextColor(GtkStyleContext* aStyle,
                             GtkStateFlags aState = GTK_STATE_FLAG_NORMAL) {
   GdkRGBA color;
@@ -1930,6 +1933,16 @@ static ColorPair GetColorPair(GtkStyleContext* aStyle,
                               GtkStateFlags aState = GTK_STATE_FLAG_NORMAL) {
   ColorPair result;
   result.mFg = GetTextColor(aStyle, aState);
+  result.mBg = GetBackgroundColor(aStyle, result.mFg, aState);
+  return result;
+}
+
+using ButtonColors = nsLookAndFeel::ButtonColors;
+static ButtonColors GetButtonColors(
+    GtkStyleContext* aStyle, GtkStateFlags aState = GTK_STATE_FLAG_NORMAL) {
+  ButtonColors result;
+  result.mFg = GetTextColor(aStyle, aState);
+  result.mBorder = GetBorderColor(aStyle, aState).valueOr(NS_TRANSPARENT);
   result.mBg = GetBackgroundColor(aStyle, result.mFg, aState);
   return result;
 }
@@ -2311,12 +2324,11 @@ void nsLookAndFeel::PerThemeData::Init() {
     g_object_unref(labelStyle);
   }
 
-  gtk_style_context_get_border_color(style, GTK_STATE_FLAG_NORMAL, &color);
-  mButtonBorder = GDK_RGBA_TO_NS_RGBA(color);
-  mButton = GetColorPair(style);
-  mButtonHover = GetColorPair(style, GTK_STATE_FLAG_PRELIGHT);
-  mButtonActive = GetColorPair(
+  mButton = GetButtonColors(style);
+  mButtonHover = GetButtonColors(style, GTK_STATE_FLAG_PRELIGHT);
+  mButtonActive = GetButtonColors(
       style, GtkStateFlags(GTK_STATE_FLAG_PRELIGHT | GTK_STATE_FLAG_ACTIVE));
+  mButtonDisabled = GetButtonColors(style, GTK_STATE_FLAG_INSENSITIVE);
   if (!NS_GET_A(mButtonHover.mBg)) {
     mButtonHover.mBg = mWindow.mBg;
   }

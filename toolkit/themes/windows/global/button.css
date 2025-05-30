@@ -16,17 +16,19 @@ button {
   color: ButtonText;
   background-color: ButtonFace;
   text-shadow: none;
-  border: 1px solid ThreeDLightShadow;
+  border: 1px solid Buttonborder;
   padding-block: 2px 3px;
   padding-inline: 5px;
 
   &:where(:hover) {
     background-color: -moz-buttonhoverface;
+    border-color: -moz-buttonhoverborder;
     color: -moz-buttonhovertext;
   }
 
   &:where(:hover:active) {
     background-color: -moz-buttonactiveface;
+    border-color: -moz-buttonactiveborder;
     color: -moz-buttonactivetext;
   }
 
@@ -36,7 +38,8 @@ button {
 
   &:where([disabled="true"]) {
     color: GrayText;
-    background-color: ButtonFace;
+    border-color: -moz-buttondisabledborder;
+    background-color: -moz-buttondisabledface;
   }
 
   &.plain {

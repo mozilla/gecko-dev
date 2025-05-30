@@ -147,6 +147,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
     switch (aID) {
       case ColorID::MozButtonhoverface:
       case ColorID::MozButtonactivetext:
+      case ColorID::MozButtonactiveborder:
         return mHighContrastOn;
       case ColorID::MozMenuhover:
         return !UseNonNativeMenuColors();
@@ -166,6 +167,7 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
   auto IsHighlightTextColor = [&] {
     switch (aID) {
       case ColorID::MozButtonhovertext:
+      case ColorID::MozButtonhoverborder:
       case ColorID::MozButtonactiveface:
         return mHighContrastOn;
       case ColorID::MozMenubarhovertext:
@@ -399,6 +401,9 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       break;
     case ColorID::Threedlightshadow:
     case ColorID::Buttonborder:
+    case ColorID::Buttonhoverborder:
+    case ColorID::Buttonactiveborder:
+    case ColorID::Buttondisabledborder:
     case ColorID::MozSidebarborder:
       idx = COLOR_3DLIGHT;
       break;

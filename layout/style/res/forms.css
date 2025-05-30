@@ -574,6 +574,7 @@ button,
 button:hover,
 input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):hover {
   color: -moz-buttonhovertext;
+  border-color: -moz-buttonhoverborder;
   background-color: -moz-buttonhoverface;
 }
 
@@ -581,6 +582,7 @@ input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):hover
 button:active:hover,
 input:is([type="reset"], [type="button"], [type="submit"], [type="color"]):active:hover {
   border-style: inset;
+  border-color: -moz-buttonactiveborder;
   color: -moz-buttonactivetext;
   background-color: -moz-buttonactiveface;
 }

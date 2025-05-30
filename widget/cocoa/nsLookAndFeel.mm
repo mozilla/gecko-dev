@@ -271,6 +271,9 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
     case ColorID::Threedlightshadow:
     case ColorID::Buttonborder:
     case ColorID::MozDisabledfield:
+    case ColorID::MozButtonhoverborder:
+    case ColorID::MozButtonactiveborder:
+    case ColorID::MozButtondisabledborder:
       aColor = aScheme == ColorScheme::Dark ? *GenericDarkColor(aID)
                                             : NS_RGB(0xDA, 0xDA, 0xDA);
       break;
