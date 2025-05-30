@@ -31,6 +31,7 @@
 # Ignore Python .egg-info directories.
 # This is only relevant for first-party modules, but adding that directory for
 # third-party packages is dealt with by the script vendoring them.
+# lint-ignore-next-line: syntax-difference
 .*\.egg-info/
 
 # Vim swap files.
