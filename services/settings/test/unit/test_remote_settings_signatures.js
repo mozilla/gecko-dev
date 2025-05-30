@@ -45,6 +45,8 @@ add_setup(() => {
   Policy.getChannel = () => "nightly";
 
   registerCleanupFunction(() => {
+    Services.prefs.clearUserPref("services.settings.loglevel");
+    Services.prefs.clearUserPref(PREF_SETTINGS_SERVER);
     Policy.getChannel = oldGetChannel;
     server.stop(() => {});
   });
@@ -85,6 +87,119 @@ add_task(async function test_check_signatures() {
       Ci.nsIX509CertDB.AppXPCShellRoot
     )
   );
+});
+
+add_task(async function test_bad_signature_does_not_lead_to_empty_list() {
+  Services.prefs.setStringPref(
+    PREF_SETTINGS_SERVER,
+    `http://localhost:${server.identity.primaryPort}/v1`
+  );
+  const x5u = `http://localhost:${server.identity.primaryPort}/x5u.pem`;
+
+  const networkCalls = [];
+
+  server.registerPathHandler(
+    "/v1/buckets/monitor/collections/changes/changeset",
+    (request, response) => {
+      response.write(
+        JSON.stringify({
+          changes: [
+            {
+              bucket: "main",
+              collection: "no-dump-no-local-data",
+              last_modified: 42,
+            },
+          ],
+        })
+      );
+      response.setHeader("Content-Type", "application/json; charset=UTF-8");
+      response.setStatusLine(null, 200, "OK");
+    }
+  );
+  server.registerPathHandler(
+    "/v1/buckets/monitor/collections/changes/changeset",
+    (request, response) => {
+      networkCalls.push(request);
+      response.write(
+        JSON.stringify({
+          changes: [
+            {
+              bucket: "main",
+              collection: "no-dump-no-local-data",
+              last_modified: 42,
+            },
+          ],
+        })
+      );
+      response.setHeader("Content-Type", "application/json; charset=UTF-8");
+      response.setStatusLine(null, 200, "OK");
+    }
+  );
+  server.registerPathHandler(
+    "/v1/buckets/main/collections/no-dump-no-local-data/changeset",
+    (request, response) => {
+      response.write(
+        JSON.stringify({
+          timestamp: 42,
+          changes: [],
+          metadata: {
+            signature: {
+              signature: "bad-signature",
+              x5u,
+            },
+          },
+        })
+      );
+      response.setHeader("Content-Type", "application/json; charset=UTF-8");
+      response.setStatusLine(null, 200, "OK");
+    }
+  );
+  server.registerPathHandler("/x5u.pem", (request, response) => {
+    response.write(getCertChain()); // At least cert will be valid.
+    response.setHeader("Content-Type", "text/plain; charset=UTF-8");
+    response.setStatusLine(null, 200, "OK");
+  });
+
+  const clientEmpty = RemoteSettings("no-dump-no-local-data");
+  clientEmpty.verifySignature = true; // default
+
+  // Check that client.get() will initiate a sync,
+  // and that it will throw since the signature is bad,
+  // and not return an empty list (`emptyListFallback: false`)
+  let error;
+  try {
+    await clientEmpty.get({
+      emptyListFallback: false,
+      syncIfEmpty: true, // default value
+    });
+  } catch (exc) {
+    error = exc;
+  }
+  equal(error.name, "InvalidSignatureError");
+
+  // Even running client.sync() will throw and won't leave
+  // anything in the database.
+  error = null;
+  try {
+    await clientEmpty.sync();
+  } catch (exc) {
+    error = exc;
+  }
+  equal(error.name, "InvalidSignatureError");
+  equal(await clientEmpty.db.getLastModified(), null);
+
+  // Call .get() again will initiate another sync.
+  networkCalls.length = 0;
+  try {
+    await clientEmpty.get({
+      emptyListFallback: false,
+      syncIfEmpty: true, // default value
+    });
+  } catch (exc) {
+    error = exc;
+  }
+  Assert.greater(networkCalls.length, 0, "Network calls were made");
+  equal(error.name, "InvalidSignatureError");
 });
 
 add_task(async function test_check_synchronization_with_signatures() {

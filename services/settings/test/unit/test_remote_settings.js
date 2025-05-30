@@ -446,6 +446,29 @@ add_task(async function test_get_throws_if_no_empty_fallback() {
 });
 add_task(clear_state);
 
+add_task(
+  async function test_get_throws_on_network_error_with_no_empty_fallback() {
+    const backup = Utils.fetch;
+    Utils.fetch = async () => {
+      throw new Error("Fake Network error");
+    };
+
+    const clientEmpty = RemoteSettings("no-dump-no-local-data");
+    let error;
+    try {
+      await clientEmpty.get({
+        emptyListFallback: false,
+        syncIfEmpty: true, // default value
+      });
+    } catch (exc) {
+      error = exc;
+    }
+
+    equal(error.toString(), "Error: Fake Network error");
+    Utils.fetch = backup;
+  }
+);
+
 add_task(async function test_get_verify_signature_no_sync() {
   client.verifySignature = true;
   // No signature in metadata, and no sync if empty.
