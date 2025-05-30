@@ -66,7 +66,7 @@ class PocketCategoriesViewHolder(
 
         var (selectedBackgroundColor, unselectedBackgroundColor, selectedTextColor, unselectedTextColor) =
             SelectableChipColors.buildColors()
-        wallpaperState.composeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
+        wallpaperState.ComposeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
             if (isSystemInDarkTheme()) {
                 selectedBackgroundColor = cardColorDark
                 unselectedBackgroundColor = cardColorLight

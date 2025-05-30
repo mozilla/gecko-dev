@@ -51,7 +51,7 @@ class CustomizeHomeButtonViewHolder(
             .observeAsComposableState { state -> state.wallpaperState }.value ?: WallpaperState.default
         var buttonColor: Color = FirefoxTheme.colors.actionTertiary
 
-        wallpaperState.composeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
+        wallpaperState.ComposeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
             buttonColor = if (isSystemInDarkTheme()) {
                 cardColorDark
             } else {

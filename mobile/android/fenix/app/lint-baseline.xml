@@ -937,39 +937,6 @@
     </issue>
 
     <issue
-        id="ComposableNaming"
-        message="Composable functions that return Unit should start with an uppercase letter"
-        errorLine1="private fun updateToolbar("
-        errorLine2="            ~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/settings/doh/DohSettingsNavHost.kt"
-            line="175"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="ComposableNaming"
-        message="Composable functions with a return type should start with a lowercase letter"
-        errorLine1="fun EagerFlingBehavior("
-        errorLine2="    ~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/compose/LazyListEagerFlingBehavior.kt"
-            line="21"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="ComposableNaming"
-        message="Composable functions that return Unit should start with an uppercase letter"
-        errorLine1="    fun composeRunIfWallpaperCardColorsAreAvailable("
-        errorLine2="        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/java/org/mozilla/fenix/wallpapers/WallpaperState.kt"
-            line="72"
-            column="9"/>
-    </issue>
-
-    <issue
         id="DiscouragedApi"
         message="Use of this function is discouraged because resource reflection makes it harder to perform build optimizations and compile-time verification of code. It is much more efficient to retrieve resources by identifier (e.g. `R.foo.bar`) than by name (e.g. `getIdentifier(&quot;bar&quot;, &quot;foo&quot;, null)`)."
         errorLine1="        val resId = context.resources.getIdentifier(projectIdKey, &quot;string&quot;, context.packageName)"

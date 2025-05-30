@@ -280,7 +280,7 @@ data class TopSiteColors(
 
             var faviconCardBackgroundColor = FirefoxTheme.colors.layer2
 
-            wallpaperState.composeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
+            wallpaperState.ComposeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
                 faviconCardBackgroundColor = if (isSystemInDarkTheme()) {
                     cardColorDark
                 } else {

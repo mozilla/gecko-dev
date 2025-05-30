@@ -219,7 +219,7 @@ private val showSyncedTab: Boolean
 private fun WallpaperState.customizeHomeButtonBackgroundColor(): Color {
     var buttonColor: Color = FirefoxTheme.colors.actionTertiary
 
-    composeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
+    ComposeRunIfWallpaperCardColorsAreAvailable { cardColorLight, cardColorDark ->
         buttonColor = if (isSystemInDarkTheme()) {
             cardColorDark
         } else {

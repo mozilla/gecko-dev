@@ -32,7 +32,7 @@ internal fun DohSettingsNavHost(
     val navController = rememberNavController()
     val store = buildStore(navController)
 
-    updateToolbar(navController = navController, onUpdateToolbar = onUpdateToolbar)
+    UpdateToolbar(navController = navController, onUpdateToolbar = onUpdateToolbar)
 
     NavHost(
         navController = navController,
@@ -172,7 +172,7 @@ internal fun DohSettingsNavHost(
 }
 
 @Composable
-private fun updateToolbar(
+private fun UpdateToolbar(
     navController: NavHostController,
     onUpdateToolbar: (Int) -> Unit,
 ) {
