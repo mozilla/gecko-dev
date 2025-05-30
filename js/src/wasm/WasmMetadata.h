@@ -226,7 +226,7 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
 
   size_t codeSectionSize() const {
     if (codeSectionRange) {
-      return codeSectionRange->size;
+      return codeSectionRange->size();
     }
     return 0;
   }

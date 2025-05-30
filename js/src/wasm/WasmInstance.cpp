@@ -2742,7 +2742,7 @@ int32_t Instance::computeInitialHotnessCounter(uint32_t funcIndex,
                                                size_t codeSectionSize) {
   MOZ_ASSERT(code().mode() == CompileMode::LazyTiering);
   MOZ_ASSERT(codeSectionSize > 0);
-  uint32_t bodyLength = codeTailMeta().funcDefRange(funcIndex).size;
+  uint32_t bodyLength = codeTailMeta().funcDefRange(funcIndex).size();
   return LazyTieringHeuristics::estimateIonCompilationCost(bodyLength,
                                                            codeSectionSize);
 }
@@ -2874,7 +2874,7 @@ void Instance::submitCallRefHints(uint32_t funcIndex) {
       uint32_t totalTargetBodySize = 0;
       for (size_t i = 0; i < numCandidates; i++) {
         totalTargetBodySize +=
-            codeTailMeta().funcDefRange(candidates[i].funcIndex).size;
+            codeTailMeta().funcDefRange(candidates[i].funcIndex).size();
       }
       if (totalCount < 2 * totalTargetBodySize) {
         skipReason = "(callsite too cold)";

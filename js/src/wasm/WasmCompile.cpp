@@ -355,16 +355,16 @@ BytecodeSource::BytecodeSource(const uint8_t* begin, size_t length) {
   BytecodeRange codeRange;
   BytecodeRange tailRange;
   if (StartsCodeSection(begin, begin + length, &codeRange)) {
-    if (codeRange.end() <= length) {
+    if (codeRange.end <= length) {
       envRange = BytecodeRange(0, codeRange.start);
-      tailRange = BytecodeRange(codeRange.end(), length - codeRange.end());
+      tailRange = BytecodeRange(codeRange.end, length - codeRange.end);
     } else {
       MOZ_RELEASE_ASSERT(codeRange.start <= length);
       // If the specified code range is larger than the buffer, clamp it to the
       // the buffer size. This buffer will be rejected later.
       envRange = BytecodeRange(0, codeRange.start);
       codeRange = BytecodeRange(codeRange.start, length - codeRange.start);
-      MOZ_RELEASE_ASSERT(codeRange.end() == length);
+      MOZ_RELEASE_ASSERT(codeRange.end == length);
       tailRange = BytecodeRange(length, 0);
     }
   } else {
@@ -392,7 +392,7 @@ BytecodeBuffer::BytecodeBuffer(const ShareableBytes* env,
 bool BytecodeBuffer::fromSource(const BytecodeSource& bytecodeSource,
                                 BytecodeBuffer* bytecodeBuffer) {
   SharedBytes env;
-  if (bytecodeSource.envRange().size) {
+  if (!bytecodeSource.envRange().isEmpty()) {
     env = ShareableBytes::fromSpan(bytecodeSource.envSpan());
     if (!env) {
       return false;
@@ -400,7 +400,8 @@ bool BytecodeBuffer::fromSource(const BytecodeSource& bytecodeSource,
   }
 
   SharedBytes code;
-  if (bytecodeSource.hasCodeSection() && bytecodeSource.codeRange().size) {
+  if (bytecodeSource.hasCodeSection() &&
+      !bytecodeSource.codeRange().isEmpty()) {
     code = ShareableBytes::fromSpan(bytecodeSource.codeSpan());
     if (!code) {
       return false;
@@ -408,7 +409,8 @@ bool BytecodeBuffer::fromSource(const BytecodeSource& bytecodeSource,
   }
 
   SharedBytes tail;
-  if (bytecodeSource.hasCodeSection() && bytecodeSource.tailRange().size) {
+  if (bytecodeSource.hasCodeSection() &&
+      !bytecodeSource.tailRange().isEmpty()) {
     tail = ShareableBytes::fromSpan(bytecodeSource.tailSpan());
     if (!tail) {
       return false;
@@ -1150,7 +1152,7 @@ SharedModule wasm::CompileStreaming(
       return nullptr;
     }
 
-    MOZ_RELEASE_ASSERT(codeMeta.codeSectionRange->size == codeBytes.length());
+    MOZ_RELEASE_ASSERT(codeMeta.codeSectionRange->size() == codeBytes.length());
     MOZ_RELEASE_ASSERT(d.done());
   }
 
@@ -1189,7 +1191,7 @@ SharedModule wasm::CompileStreaming(
   const ShareableBytes& tailBytes = *streamEnd.tailBytes;
 
   {
-    Decoder d(tailBytes.vector, codeMeta.codeSectionRange->end(), error,
+    Decoder d(tailBytes.vector, codeMeta.codeSectionRange->end, error,
               warnings);
 
     if (!DecodeModuleTail(d, &codeMeta, moduleMeta)) {
