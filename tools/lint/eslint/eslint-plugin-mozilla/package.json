@@ -10,13 +10,12 @@
     "firefox"
   ],
   "bugs": {
-    "url": "https://bugzilla.mozilla.org/enter_bug.cgi?component=Lint%20and%20Formatting&product=Developer%20Infrastructure"
+    "url": "https://bugzilla.mozilla.org/enter_bug.cgi?product=Testing&component=Lint"
   },
   "homepage": "http://firefox-source-docs.mozilla.org/tools/lint/linters/eslint-plugin-mozilla.html",
   "repository": {
-    "type": "git",
-    "url": "https://github.com/mozilla-firefox/firefox.git",
-    "directory": "tools/lint/eslint/eslint-plugin-mozilla/"
+    "type": "hg",
+    "url": "https://hg.mozilla.org/mozilla-central/"
   },
   "author": "Mike Ratcliffe",
   "main": "lib/index.mjs",
@@ -29,15 +28,15 @@
     "toml-eslint-parser": "0.10.0"
   },
   "devDependencies": {
-    "eslint": "9.16.0",
+    "eslint": "9.0.0",
     "mocha": "11.4.0"
   },
   "peerDependencies": {
     "@microsoft/eslint-plugin-sdl": "^1.0.0",
     "eslint": "^9.0.0",
-    "eslint-plugin-jsdoc": "^50.6.3",
     "eslint-plugin-no-unsanitized": "^4.1.0",
-    "eslint-plugin-promise": "^7.2.1"
+    "eslint-plugin-promise": "^7.2.1",
+    "eslint-plugin-jsdoc": "^50.6.3"
   },
   "peerDependenciesMeta": {
     "@eslint-plugin-jsdoc": {
