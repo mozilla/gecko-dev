@@ -62,6 +62,7 @@ enable = true
 main_thread = [
   "RemoteSettings.new",
   "RemoteSettingsService.new",
+  "RemoteSettingsService.update_config",
 ]
 
 [error_support.async_wrappers]

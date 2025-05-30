@@ -108,6 +108,9 @@ with Files("PrivateBrowsingUtils.sys.mjs"):
 with Files("Promise*.sys.mjs"):
     BUG_COMPONENT = ("Toolkit", "Async Tooling")
 
+with Files("RustSharedRemoteSettingsService.sys.mjs"):
+    BUG_COMPONENT = ("Application Services", "Remote Settings")
+
 with Files("ShortcutUtils.sys.mjs"):
     BUG_COMPONENT = ("Firefox", "Toolbars and Customization")
 
@@ -125,7 +128,6 @@ with Files("WindowsLaunchOnLogin.sys.mjs"):
 
 with Files("WindowsRegistry.sys.mjs"):
     BUG_COMPONENT = ("Toolkit", "General")
-
 
 XPCSHELL_TESTS_MANIFESTS += ["tests/xpcshell/xpcshell.toml"]
 BROWSER_CHROME_MANIFESTS += ["tests/browser/browser.toml"]
@@ -199,6 +201,7 @@ EXTRA_JS_MODULES += [
     "Region.sys.mjs",
     "RemotePageAccessManager.sys.mjs",
     "ResetProfile.sys.mjs",
+    "RustSharedRemoteSettingsService.sys.mjs",
     "SelectionUtils.sys.mjs",
     "ServiceRequest.sys.mjs",
     "ShortcutUtils.sys.mjs",

@@ -919,6 +919,14 @@ class _QuickSuggest {
       this.#initStarted = false;
       this.#initResolvers = Promise.withResolvers();
     }
+
+    if (this.rustBackend) {
+      // Make sure to await any queued ingests before re-initializing.  Otherwise there could be a race
+      // between when that ingestion finishes and when the test finishes and calls
+      // `SharedRemoteSettingsService.updateServer()` to reset the remote settings server.
+      await this.rustBackend.ingestPromise;
+    }
+
     await this.init(testOverrides);
   }
 

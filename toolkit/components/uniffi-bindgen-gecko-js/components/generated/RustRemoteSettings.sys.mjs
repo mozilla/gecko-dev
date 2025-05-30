@@ -2453,11 +2453,11 @@ export class RemoteSettingsService {
      * Only intended for QA/debugging.  Swapping the remote settings server in the middle of
      * execution can cause weird effects.
      */
-    async updateConfig(
+    updateConfig(
         config) {
        
         FfiConverterTypeRemoteSettingsConfig2.checkType(config);
-        const result = await UniFFIScaffolding.callAsyncWrapper(
+        const result = UniFFIScaffolding.callSync(
             31, // uniffi_remote_settings_fn_method_remotesettingsservice_update_config
             FfiConverterTypeRemoteSettingsService.lower(this),
             FfiConverterTypeRemoteSettingsConfig2.lower(config),
