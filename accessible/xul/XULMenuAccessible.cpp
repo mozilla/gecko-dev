@@ -339,7 +339,8 @@ uint64_t XULMenupopupAccessible::NativeState() const {
 
 #ifdef DEBUG
   // We are onscreen if our parent is active
-  bool isActive = mContent->AsElement()->HasAttr(nsGkAtoms::menuactive);
+  nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
+  bool isActive = menuPopupFrame ? menuPopupFrame->IsOpen() : false;
   if (!isActive) {
     LocalAccessible* parent = LocalParent();
     if (parent) {
