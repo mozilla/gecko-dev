@@ -30,18 +30,20 @@
           ['media.peerconnection.treat_warnings_as_errors', false],
           ['media.getusermedia.insecure.enabled', true]);
 
-      let turnServer = iceServersArray.find(server => "username" in server);
+      let turnServer = structuredClone(
+        iceServersArray.find(server => "username" in server));
       // Disable TCP-based TURN; this goes through the NAT simulator much more
       // quickly than UDP, and can result in TURN TCP establishment happening
       // before srflx is even attempted.
-      turnServer.urls = turnServer.urls.filter(u => u.indexOf("turns:") == -1 && u.indexOf("transport=t") == -1);
-      let stunServer = iceServersArray.find(server => !("username" in server));
+      turnServer.urls = turnServer.urls.filter(
+        u => u.indexOf("turns:") == -1 && u.indexOf("transport=t") == -1);
+      let stunServer = structuredClone(
+        iceServersArray.find(server => !("username" in server)));
 
       // This is a somewhat contrived situation. What we're trying to do is
       // cause the non-controlling side to learn about the controller's relay
-      // candidate from a STUN check, instead of trickle. At the same time,
-      // we're trying to ensure that the non-controlling side learns about the
-      // controller's srflx through trickle.
+      // candidate from a STUN check, but learn about the srflx through
+      // trickle.
       const pc1 = new RTCPeerConnection({iceServers: [turnServer]});
       const pc2 = new RTCPeerConnection({iceServers: [stunServer]});
 
@@ -63,18 +65,19 @@
       };
       const transceiver = pc1.addTransceiver('audio');
       await pc1.setLocalDescription();
-      // Remove any candidates in the offer.
-      let mungedOffer = {
-        type: "offer",
-        sdp: pc1.localDescription.sdp.replaceAll("a=candidate:", "a=candid8:")
-      };
-      await pc2.setRemoteDescription(mungedOffer);
       // Wait for gathering to complete.
       await new Promise(r => pc1.onicegatheringstatechange = () => {
         if (pc1.iceGatheringState == "complete") {
           r();
         }
       });
+
+      // Remove any candidates in the offer.
+      let mungedOffer = {
+        type: "offer",
+        sdp: pc1.localDescription.sdp.replaceAll("a=candidate:", "a=candid8:")
+      };
+      await pc2.setRemoteDescription(mungedOffer);
 
       ok(ipAddrsWithSrflx.size != 0, "PC1 was able to reach the TURN server with at least one address");
 
@@ -117,18 +120,139 @@
       ok(maxRelayPriority < minSrflxPriority, `relay priorities should be less than srflx priorities (${maxRelayPriority} vs ${minSrflxPriority})`);
       await SpecialPowers.popPrefEnv();
     },
+
+    async function checkTurnTcpPriority() {
+      await pushPrefs(
+          ['media.peerconnection.ice.obfuscate_host_addresses', false],
+          ['media.peerconnection.nat_simulator.filtering_type', 'ENDPOINT_INDEPENDENT'],
+          ['media.peerconnection.nat_simulator.mapping_type', 'ENDPOINT_INDEPENDENT'],
+          ['media.peerconnection.nat_simulator.network_delay_ms', 150],
+          ['media.peerconnection.nat_simulator.block_udp', false],
+          ['media.peerconnection.nat_simulator.block_tcp', false],
+          ['media.peerconnection.nat_simulator.block_tls', false],
+          ['media.peerconnection.ice.loopback', true],
+          // The above triggers warning about 5 ICE servers
+          ['media.peerconnection.treat_warnings_as_errors', false],
+          ['media.getusermedia.insecure.enabled', true]);
+
+      let turnServer = structuredClone(
+        iceServersArray.find(server => "username" in server));
+      turnServer.urls = turnServer.urls.filter(u => u.indexOf("turns:") == -1);
+      let stunServer = structuredClone(
+        iceServersArray.find(server => !("username" in server)));
+
+      const pc1 = new RTCPeerConnection(
+        {iceServers: [turnServer], iceTransportPolicy: "relay"});
+      const pc2 = new RTCPeerConnection({iceServers: [stunServer]});
+
+      // We will not allow the relay-only side (pc1) to trickle candidates. pc2
+      // will learn about those relay candidates as prflx, as long as it
+      // trickles its srflx.
+      pc2.onicecandidate = e => {
+        if (e.candidate && e.candidate.type == "srflx") {
+          pc1.addIceCandidate(e.candidate);
+        }
+      };
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const sender = pc1.addTrack(stream.getTracks()[0]);
+
+      await pc1.setLocalDescription();
+
+      // Ensure that the relay candidates are gathered and ready to go.
+      await new Promise(r => pc1.onicegatheringstatechange = () => {
+        if (pc1.iceGatheringState == "complete") {
+          r();
+        }
+      });
+
+      // Finish negotiation while removing any candidates in SDP
+      let mungedOffer = {
+        type: "offer",
+        sdp: pc1.localDescription.sdp.replaceAll("a=candidate:", "a=candid8:")
+      };
+      await pc2.setRemoteDescription(mungedOffer);
+
+      await pc2.setLocalDescription();
+      let mungedAnswer = {
+        type: "answer",
+        sdp: pc2.localDescription.sdp.replaceAll("a=candidate:", "a=candid8:")
+      };
+
+      await pc1.setRemoteDescription(mungedAnswer);
+
+      await Promise.all([iceConnected(pc1), iceConnected(pc2)]);
+      info("ICE connected");
+      const offererStats = await pc1.getStats();
+      const answererStats = await pc2.getStats();
+      info("Have all stats");
+      offererStats.forEach((value, key) => {
+        info(`${key} => ${JSON.stringify(value)}`);
+      });
+      answererStats.forEach((value, key) => {
+        info(`${key} => ${JSON.stringify(value)}`);
+      });
+
+      const turnUdpLocalCandidates = [...offererStats.values().filter(s => {
+        return s.type == "local-candidate" &&
+          s.candidateType == "relay" && s.relayProtocol == "udp";
+      })];
+      const turnTcpLocalCandidates = [...offererStats.values().filter(s => {
+        return s.type == "local-candidate" &&
+          s.candidateType == "relay" && s.relayProtocol == "tcp";
+      })];
+
+      // Remote candidates don't have relay protocol, but we can find them by
+      // matching ports.
+      const turnUdpPorts = [...turnUdpLocalCandidates.map(c => c.port)];
+      const turnTcpPorts = [...turnTcpLocalCandidates.map(c => c.port)];
+
+      // The relay candidates will be prflx, and we'll be able to tell which is
+      // which by port number.
+      const turnUdpRemoteCandidates = [...answererStats.values().filter(s => {
+        return s.type == "remote-candidate" &&
+          s.candidateType == "prflx" && turnUdpPorts.includes(s.port);
+      })];
+      const turnTcpRemoteCandidates = [...answererStats.values().filter(s => {
+        return s.type == "remote-candidate" &&
+          s.candidateType == "prflx" && turnTcpPorts.includes(s.port);
+      })];
+
+      ok(turnTcpLocalCandidates.length,
+        "There are local TURN TCP candidates");
+      ok(turnUdpLocalCandidates.length,
+        "There are local TURN UDP candidates");
+      ok(turnTcpRemoteCandidates.length,
+        "There are remote TURN TCP candidates");
+      ok(turnUdpRemoteCandidates.length,
+        "There are remote TURN UDP candidates");
+      const maxLocalTurnTcpPriority =
+        Math.max(...turnTcpLocalCandidates.map(c => c.priority));
+      const maxRemoteTurnTcpPriority =
+        Math.max(...turnTcpRemoteCandidates.map(c => c.priority));
+      const minLocalTurnUdpPriority =
+        Math.min(...turnUdpLocalCandidates.map(c => c.priority));
+      const minRemoteTurnUdpPriority =
+        Math.min(...turnUdpRemoteCandidates.map(c => c.priority));
+
+      ok(minLocalTurnUdpPriority > 2 * maxLocalTurnTcpPriority,
+        `Local TURN UDP candidates all have much higher priority than` +
+        ` local TURN TCP candidates` +
+        ` (${minLocalTurnUdpPriority} vs ${maxLocalTurnTcpPriority})`);
+      ok(minRemoteTurnUdpPriority > 2 * maxRemoteTurnTcpPriority,
+        `Remote TURN UDP candidates all have much higher priority than` +
+        ` remote TURN TCP candidates` +
+        ` (${minRemoteTurnUdpPriority} vs ${maxRemoteTurnTcpPriority})`);
+
+      await SpecialPowers.popPrefEnv();
+    },
   ];
 
+if (!("mediaDevices" in navigator)) {
+  SpecialPowers.pushPrefEnv({set: [['media.devices.insecure.enabled', true]]},
+                            () => location.reload());
+} else {
   runNetworkTest(async () => {
-    const turnServer = iceServersArray.find(server => "username" in server);
-    username = turnServer.username;
-    credential = turnServer.credential;
-    // Just use the first url. It might make sense to look for TURNS first,
-    // since that will always use a hostname, but on CI we don't have TURNS
-    // support anyway (see bug 1323439).
-    const turnHostname = getTurnHostname(turnServer.urls[0]);
-    turnAddressV4 = await dnsLookupV4(turnHostname);
-
     for (const test of tests) {
       info(`Running test: ${test.name}`);
       try {
@@ -144,6 +268,8 @@
 
     await SpecialPowers.popPrefEnv();
   }, { useIceServer: true });
+}
+
 </script>
 </pre>
 </body>
