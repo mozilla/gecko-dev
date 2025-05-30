@@ -1,4 +1,6 @@
 requires-python:>=3.8
+pypi:tcfetch==0.4.0
+pypi:wpt-interop==0.2.0
 vendored:testing/web-platform/tests/tools/third_party/h2/src
 vendored:testing/web-platform/tests/tools/third_party/hpack/src
 vendored:testing/web-platform/tests/tools/third_party/html5lib
@@ -7,5 +9,3 @@ vendored:testing/web-platform/tests/tools/third_party/pywebsocket3
 vendored:testing/web-platform/tests/tools/third_party/webencodings
 vendored:testing/web-platform/tests/tools/wptrunner
 vendored:testing/web-platform/tests/tools/wptserve
-pypi:tcfetch==0.4.0
-pypi:wpt-interop==0.2.0
