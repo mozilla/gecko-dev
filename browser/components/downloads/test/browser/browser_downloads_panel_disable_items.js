@@ -168,7 +168,14 @@ add_task(async function test_downloads_panel_new_download_mouse() {
 
   let newTab = await newTabPromise;
 
-  // click 6 times at 100ms intervals.
+  // Click 6 times at 100ms intervals. We are deliberately clicking a disabled,
+  // unfocusable item to check what happens. Our a11y tests assume things tests
+  // click ought to be focusable and enabled, so we have to temporarily turn
+  // off those checks to avoid them failing.
+  AccessibilityUtils.setEnv({
+    focusableRule: false,
+    mustBeEnabled: false,
+  });
   let firstDownload = downloadsListBox.querySelector("richlistitem");
   EventUtils.synthesizeMouseAtCenter(firstDownload, {}, window);
   for (let i = 0; i < 5; i++) {
@@ -187,6 +194,8 @@ add_task(async function test_downloads_panel_new_download_mouse() {
     { attributeFilter: ["disabled"] },
     () => !downloadsListBox.hasAttribute("disabled")
   );
+  AccessibilityUtils.resetEnv();
+
   Assert.greater(
     Date.now(),
     clickTime + 750,
