@@ -4200,8 +4200,7 @@ void nsGridContainerFrame::UsedTrackSizes::ResolveSubgridTrackSizesForAxis(
   grid.mGridRowEnd = aSubgrid->mGridRowEnd;
   gridRI.CalculateTrackSizesForAxis(aAxis, grid, aContentBoxSize,
                                     SizingConstraint::NoConstraint);
-  const auto& tracks =
-      aAxis == LogicalAxis::Inline ? gridRI.mCols : gridRI.mRows;
+  const auto& tracks = gridRI.TracksFor(aAxis);
   mSizes[aAxis].Assign(tracks.mSizes);
   mCanResolveLineRangeSize[aAxis] = tracks.mCanResolveLineRangeSize;
   MOZ_ASSERT(mCanResolveLineRangeSize[aAxis]);
@@ -4210,7 +4209,7 @@ void nsGridContainerFrame::UsedTrackSizes::ResolveSubgridTrackSizesForAxis(
 void nsGridContainerFrame::GridReflowInput::CalculateTrackSizesForAxis(
     LogicalAxis aAxis, const Grid& aGrid, nscoord aContentBoxSize,
     SizingConstraint aConstraint) {
-  auto& tracks = aAxis == LogicalAxis::Inline ? mCols : mRows;
+  auto& tracks = TracksFor(aAxis);
   const auto& sizingFunctions =
       aAxis == LogicalAxis::Inline ? mColFunctions : mRowFunctions;
   const auto& gapStyle = aAxis == LogicalAxis::Inline ? mGridStyle->mColumnGap
@@ -5867,8 +5866,7 @@ static nscoord ContentContribution(const GridItemInfo& aGridItem,
         if (subgridExtent > 1) {
           nscoord subgridGap =
               nsLayoutUtils::ResolveGapToLength(gapStyle, NS_UNCONSTRAINEDSIZE);
-          auto& tracks =
-              aAxis == LogicalAxis::Block ? aGridRI.mRows : aGridRI.mCols;
+          const auto& tracks = aGridRI.TracksFor(aAxis);
           auto gapDelta = subgridGap - tracks.mGridGap;
           if (!itemEdgeBits) {
             extraMargin += gapDelta;
