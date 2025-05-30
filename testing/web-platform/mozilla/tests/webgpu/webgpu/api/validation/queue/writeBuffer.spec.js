@@ -57,27 +57,27 @@ desc(
 fn((t) => {
   const queue = t.device.queue;
 
-  function runTest(arrayType, testBuffer) {
-    const elementSize = arrayType.BYTES_PER_ELEMENT;
+  function runTest(ArrayType, testBuffer) {
+    const elementSize = ArrayType.BYTES_PER_ELEMENT;
     const bufferSize = 16 * elementSize;
     const buffer = t.createBufferTracked({
       size: bufferSize,
       usage: GPUBufferUsage.COPY_DST
     });
     const arraySm = testBuffer ?
-    new arrayType(8).buffer :
-    new arrayType(8);
+    new ArrayType(8).buffer :
+    new ArrayType(8);
     const arrayMd = testBuffer ?
-    new arrayType(16).buffer :
-    new arrayType(16);
+    new ArrayType(16).buffer :
+    new ArrayType(16);
     const arrayLg = testBuffer ?
-    new arrayType(32).buffer :
-    new arrayType(32);
+    new ArrayType(32).buffer :
+    new ArrayType(32);
 
     if (elementSize < 4) {
       const array15 = testBuffer ?
-      new arrayType(15).buffer :
-      new arrayType(15);
+      new ArrayType(15).buffer :
+      new ArrayType(15);
 
       // Writing the full buffer that isn't 4-byte aligned.
       t.shouldThrow('OperationError', () => queue.writeBuffer(buffer, 0, array15));

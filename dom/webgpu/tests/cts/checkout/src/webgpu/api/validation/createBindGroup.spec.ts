@@ -156,7 +156,7 @@ g.test('binding_must_contain_resource_defined_in_layout')
 
     const resource = vtu.getBindingResource(t, resourceType);
 
-    const IsStorageTextureResourceType = (resourceType: BindableResource) => {
+    const isStorageTextureResourceType = (resourceType: BindableResource) => {
       switch (resourceType) {
         case 'readonlyStorageTex':
         case 'readwriteStorageTex':
@@ -180,7 +180,7 @@ g.test('binding_must_contain_resource_defined_in_layout')
       case 'readonlyStorageTex':
       case 'readwriteStorageTex':
       case 'writeonlyStorageTex':
-        resourceBindingIsCompatible = IsStorageTextureResourceType(resourceType);
+        resourceBindingIsCompatible = isStorageTextureResourceType(resourceType);
         break;
       default:
         resourceBindingIsCompatible = info.resource === resourceType;

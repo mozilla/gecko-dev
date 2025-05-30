@@ -9,7 +9,7 @@ import { kMaxSafeMultipleOf8 } from '../../../../util/math.js';
 import * as vtu from '../../validation_test_utils.js';
 
 class F extends AllFeaturesMaxLimitsGPUTest {
-  TestClearBuffer(options)
+  testClearBuffer(options)
 
 
 
@@ -70,7 +70,7 @@ fn((t) => {
     })
   );
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset: 0,
     size,
@@ -93,7 +93,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset,
     size,
@@ -115,7 +115,7 @@ fn((t) => {
     usage
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset: 0,
     size: 16,
@@ -150,7 +150,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset: 0,
     size,
@@ -184,7 +184,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset,
     size: 8,
@@ -208,7 +208,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset,
     size,
@@ -236,7 +236,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestClearBuffer({
+  t.testClearBuffer({
     buffer,
     offset,
     size,

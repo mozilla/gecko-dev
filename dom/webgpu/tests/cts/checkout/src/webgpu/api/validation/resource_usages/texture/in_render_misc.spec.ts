@@ -10,7 +10,7 @@ import * as vtu from '../../validation_test_utils.js';
 import {
   TextureBindingType,
   kTextureBindingTypes,
-  IsReadOnlyTextureBindingType,
+  isReadOnlyTextureBindingType,
 } from '../texture/in_render_common.spec.js';
 
 function skipIfStorageTexturesUsedAndNotAvailableInFragmentStage(
@@ -168,7 +168,7 @@ g.test('subresources,set_bind_group_on_same_index_color_texture')
     renderPassEncoder.end();
 
     const noConflict =
-      (IsReadOnlyTextureBindingType(view1Binding) && IsReadOnlyTextureBindingType(view2Binding)) ||
+      (isReadOnlyTextureBindingType(view1Binding) && isReadOnlyTextureBindingType(view2Binding)) ||
       view1Binding === view2Binding;
     t.expectValidationError(() => {
       encoder.finish();
@@ -483,8 +483,8 @@ g.test('subresources,set_unused_bind_group')
     //   the render pass’s usage scope.
     const success =
       !inRenderPass ||
-      (IsReadOnlyTextureBindingType(textureUsage0) &&
-        IsReadOnlyTextureBindingType(textureUsage1)) ||
+      (isReadOnlyTextureBindingType(textureUsage0) &&
+        isReadOnlyTextureBindingType(textureUsage1)) ||
       textureUsage0 === textureUsage1;
     t.expectValidationError(() => {
       encoder.finish();
@@ -540,7 +540,7 @@ g.test('subresources,texture_usages_in_copy_and_render_pass')
       }),
     });
 
-    const UseTextureOnCommandEncoder = (
+    const useTextureOnCommandEncoder = (
       texture: GPUTexture,
       usage: 'copy-src' | 'copy-dst' | 'color-attachment' | TextureBindingType,
       encoder: GPUCommandEncoder
@@ -597,8 +597,8 @@ g.test('subresources,texture_usages_in_copy_and_render_pass')
       }
     };
     const encoder = t.device.createCommandEncoder();
-    UseTextureOnCommandEncoder(texture, usage0, encoder);
-    UseTextureOnCommandEncoder(texture, usage1, encoder);
+    useTextureOnCommandEncoder(texture, usage0, encoder);
+    useTextureOnCommandEncoder(texture, usage1, encoder);
     t.expectValidationError(() => {
       encoder.finish();
     }, false);

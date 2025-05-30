@@ -156,7 +156,7 @@ fn((t) => {
 
   const resource = vtu.getBindingResource(t, resourceType);
 
-  const IsStorageTextureResourceType = (resourceType) => {
+  const isStorageTextureResourceType = (resourceType) => {
     switch (resourceType) {
       case 'readonlyStorageTex':
       case 'readwriteStorageTex':
@@ -180,7 +180,7 @@ fn((t) => {
     case 'readonlyStorageTex':
     case 'readwriteStorageTex':
     case 'writeonlyStorageTex':
-      resourceBindingIsCompatible = IsStorageTextureResourceType(resourceType);
+      resourceBindingIsCompatible = isStorageTextureResourceType(resourceType);
       break;
     default:
       resourceBindingIsCompatible = info.resource === resourceType;

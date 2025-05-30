@@ -676,3 +676,53 @@ params((u) => u.combine('test', keysOf(kDispatchTests))).
 fn(async (t) => {
   await kDispatchTests[t.params.test](t);
 });
+
+const kAddEventListenerTests = {
+  EventHandler: async (t) => {
+    const result = await raceWithRejectOnTimeout(
+      new Promise((resolve) => {
+        t.device.addEventListener('foo', resolve, { once: true });
+        t.device.dispatchEvent(new Event('foo'));
+      }),
+      500,
+      'timeout'
+    );
+    const event = result;
+    t.expect(() => event instanceof Event, 'event');
+    t.expect(() => event.type === 'foo');
+  },
+  EventListener: async (t) => {
+    const result = await raceWithRejectOnTimeout(
+      new Promise((resolve) => {
+        t.device.addEventListener(
+          'foo',
+          {
+            handleEvent: resolve
+          },
+          { once: true }
+        );
+        t.device.dispatchEvent(new Event('foo'));
+      }),
+      500,
+      'timeout'
+    );
+    const event = result;
+    t.expect(() => event instanceof Event, 'event');
+    t.expect(() => event.type === 'foo');
+  }
+};
+
+g.test('device,addEventListener').
+desc(
+  `
+Test that addEventListener works with both an EventListener and an EventHandler
+
+* https://dom.spec.whatwg.org/#interface-eventtarget
+* https://html.spec.whatwg.org/multipage/webappapis.html#eventhandler
+
+`
+).
+params((u) => u.combine('test', keysOf(kAddEventListenerTests))).
+fn(async (t) => {
+  await kAddEventListenerTests[t.params.test](t);
+});

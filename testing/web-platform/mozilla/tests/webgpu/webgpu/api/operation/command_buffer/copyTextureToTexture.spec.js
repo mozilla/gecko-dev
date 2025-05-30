@@ -37,7 +37,7 @@ import { findFailedPixels } from '../../../util/texture/texture_ok.js';
 const dataGenerator = new DataArrayGenerator();
 
 class F extends AllFeaturesMaxLimitsGPUTest {
-  GetInitialDataPerMipLevel(
+  getInitialDataPerMipLevel(
   dimension,
   textureSize,
   format,
@@ -52,7 +52,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     return dataGenerator.generateView(byteSize);
   }
 
-  GetInitialStencilDataPerMipLevel(
+  getInitialStencilDataPerMipLevel(
   textureSize,
   format,
   mipLevel)
@@ -67,7 +67,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     return dataGenerator.generateView(byteSize);
   }
 
-  DoCopyTextureToTextureTest(
+  doCopyTextureToTextureTest(
   dimension,
   srcTextureSize,
   dstTextureSize,
@@ -113,7 +113,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     const dstTexture = this.createTextureTracked(dstTextureDesc);
 
     // Fill the whole subresource of srcTexture at srcCopyLevel with initialSrcData.
-    const initialSrcData = this.GetInitialDataPerMipLevel(
+    const initialSrcData = this.getInitialDataPerMipLevel(
       dimension,
       srcTextureSize,
       srcFormat,
@@ -397,7 +397,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     });
   }
 
-  InitializeStencilAspect(
+  initializeStencilAspect(
   sourceTexture,
   initialStencilData,
   srcCopyLevel,
@@ -417,7 +417,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     );
   }
 
-  VerifyStencilAspect(
+  verifyStencilAspect(
   destinationTexture,
   initialStencilData,
   dstCopyLevel,
@@ -468,7 +468,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     this.expectGPUBufferValuesEqual(outputBuffer, expectedStencilData);
   }
 
-  GetRenderPipelineForT2TCopyWithDepthTests(
+  getRenderPipelineForT2TCopyWithDepthTests(
   bindGroupLayout,
   hasColorAttachment,
   depthStencil)
@@ -515,7 +515,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     return this.device.createRenderPipeline(renderPipelineDescriptor);
   }
 
-  GetBindGroupLayoutForT2TCopyWithDepthTests() {
+  getBindGroupLayoutForT2TCopyWithDepthTests() {
     return this.device.createBindGroupLayout({
       entries: [
       {
@@ -531,7 +531,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     });
   }
 
-  GetBindGroupForT2TCopyWithDepthTests(
+  getBindGroupForT2TCopyWithDepthTests(
   bindGroupLayout,
   totalCopyArrayLayers)
   {
@@ -562,7 +562,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
   }
 
   /** Initialize the depth aspect of sourceTexture with draw calls */
-  InitializeDepthAspect(
+  initializeDepthAspect(
   sourceTexture,
   depthFormat,
   srcCopyLevel,
@@ -571,13 +571,13 @@ class F extends AllFeaturesMaxLimitsGPUTest {
   {
     // Prepare a renderPipeline with depthCompareFunction == 'always' and depthWriteEnabled == true
     // for the initializations of the depth attachment.
-    const bindGroupLayout = this.GetBindGroupLayoutForT2TCopyWithDepthTests();
-    const renderPipeline = this.GetRenderPipelineForT2TCopyWithDepthTests(bindGroupLayout, false, {
+    const bindGroupLayout = this.getBindGroupLayoutForT2TCopyWithDepthTests();
+    const renderPipeline = this.getRenderPipelineForT2TCopyWithDepthTests(bindGroupLayout, false, {
       format: depthFormat,
       depthWriteEnabled: true,
       depthCompare: 'always'
     });
-    const bindGroup = this.GetBindGroupForT2TCopyWithDepthTests(bindGroupLayout, copySize[2]);
+    const bindGroup = this.getBindGroupForT2TCopyWithDepthTests(bindGroupLayout, copySize[2]);
 
     const hasStencil = isStencilTextureFormat(sourceTexture.format);
     const encoder = this.device.createCommandEncoder();
@@ -606,7 +606,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     this.queue.submit([encoder.finish()]);
   }
 
-  VerifyDepthAspect(
+  verifyDepthAspect(
   destinationTexture,
   depthFormat,
   dstCopyLevel,
@@ -615,13 +615,13 @@ class F extends AllFeaturesMaxLimitsGPUTest {
   {
     // Prepare a renderPipeline with depthCompareFunction == 'equal' and depthWriteEnabled == false
     // for the comparison of the depth attachment.
-    const bindGroupLayout = this.GetBindGroupLayoutForT2TCopyWithDepthTests();
-    const renderPipeline = this.GetRenderPipelineForT2TCopyWithDepthTests(bindGroupLayout, true, {
+    const bindGroupLayout = this.getBindGroupLayoutForT2TCopyWithDepthTests();
+    const renderPipeline = this.getRenderPipelineForT2TCopyWithDepthTests(bindGroupLayout, true, {
       format: depthFormat,
       depthWriteEnabled: false,
       depthCompare: 'equal'
     });
-    const bindGroup = this.GetBindGroupForT2TCopyWithDepthTests(bindGroupLayout, copySize[2]);
+    const bindGroup = this.getBindGroupForT2TCopyWithDepthTests(bindGroupLayout, copySize[2]);
 
     const outputColorTexture = this.createTextureTracked({
       format: 'rgba8unorm',
@@ -861,7 +861,7 @@ fn((t) => {
     dstCopyLevel
   } = t.params;
 
-  t.DoCopyTextureToTextureTest(
+  t.doCopyTextureToTextureTest(
     dimension,
     srcTextureSize,
     dstTextureSize,
@@ -937,7 +937,7 @@ fn((t) => {
   const { blockWidth: dstBlockWidth, blockHeight: dstBlockHeight } =
   getBlockInfoForColorTextureFormat(dstFormat);
 
-  t.DoCopyTextureToTextureTest(
+  t.doCopyTextureToTextureTest(
     dimension,
     {
       width: textureSizeInBlocks.src.width * srcBlockWidth,
@@ -1016,7 +1016,7 @@ fn((t) => {
     dstCopyLevel
   } = t.params;
 
-  t.DoCopyTextureToTextureTest(
+  t.doCopyTextureToTextureTest(
     dimension,
     textureSize.srcTextureSize,
     textureSize.dstTextureSize,
@@ -1079,7 +1079,7 @@ fn((t) => {
   const { blockWidth: dstBlockWidth, blockHeight: dstBlockHeight } =
   getBlockInfoForColorTextureFormat(dstFormat);
 
-  t.DoCopyTextureToTextureTest(
+  t.doCopyTextureToTextureTest(
     dimension,
     {
       width: textureSizeInBlocks.src.width * srcBlockWidth,
@@ -1189,7 +1189,7 @@ fn((t) => {
   const srcFormat = 'rgba8unorm';
   const dstFormat = 'rgba8unorm';
 
-  t.DoCopyTextureToTextureTest(
+  t.doCopyTextureToTextureTest(
     dimension,
     textureSize,
     textureSize,
@@ -1277,8 +1277,8 @@ fn((t) => {
 
   let initialStencilData = undefined;
   if (isStencilTextureFormat(format)) {
-    initialStencilData = t.GetInitialStencilDataPerMipLevel(srcTextureSize, format, srcCopyLevel);
-    t.InitializeStencilAspect(
+    initialStencilData = t.getInitialStencilDataPerMipLevel(srcTextureSize, format, srcCopyLevel);
+    t.initializeStencilAspect(
       sourceTexture,
       initialStencilData,
       srcCopyLevel,
@@ -1287,7 +1287,7 @@ fn((t) => {
     );
   }
   if (isDepthTextureFormat(format)) {
-    t.InitializeDepthAspect(sourceTexture, format, srcCopyLevel, srcCopyBaseArrayLayer, copySize);
+    t.initializeDepthAspect(sourceTexture, format, srcCopyLevel, srcCopyBaseArrayLayer, copySize);
   }
 
   const encoder = t.device.createCommandEncoder();
@@ -1308,7 +1308,7 @@ fn((t) => {
 
   if (isStencilTextureFormat(format)) {
     assert(initialStencilData !== undefined);
-    t.VerifyStencilAspect(
+    t.verifyStencilAspect(
       destinationTexture,
       initialStencilData,
       dstCopyLevel,
@@ -1317,7 +1317,7 @@ fn((t) => {
     );
   }
   if (isDepthTextureFormat(format)) {
-    t.VerifyDepthAspect(
+    t.verifyDepthAspect(
       destinationTexture,
       format,
       dstCopyLevel,

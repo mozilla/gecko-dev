@@ -19,7 +19,7 @@ import {
 import { AllFeaturesMaxLimitsGPUTest } from '../../../gpu_test.js';
 import { kValidShaderStages } from '../../../util/shader.js';
 
-function ComponentCount(format) {
+function getComponentCountForFormat(format) {
   switch (format) {
     case 'r32float':
     case 'r32sint':
@@ -60,14 +60,14 @@ class F extends AllFeaturesMaxLimitsGPUTest {
 
     const texelData = new ArrayBuffer(bytesPerBlock * width * height * depthOrArrayLayers);
     const texelTypedDataView = this.getTypedArrayBufferViewForTexelData(texelData, format);
-    const componentCount = ComponentCount(format);
+    const componentCount = getComponentCountForFormat(format);
     const outputBufferData = new ArrayBuffer(4 * 4 * width * height * depthOrArrayLayers);
     const outputBufferTypedData = this.getTypedArrayBufferForOutputBufferData(
       outputBufferData,
       format
     );
 
-    const SetData = (
+    const setData = (
     texelValue,
     outputValue,
     texelDataIndex,
@@ -94,18 +94,18 @@ class F extends AllFeaturesMaxLimitsGPUTest {
               case 'rgba16uint':
               case 'rgba32uint':{
                   const texelValue = 4 * texelDataIndex + component + 1;
-                  SetData(texelValue, texelValue, texelDataIndex, component);
+                  setData(texelValue, texelValue, texelDataIndex, component);
                   break;
                 }
               case 'rgba8uint':{
                   const texelValue = (4 * texelDataIndex + component + 1) % 256;
-                  SetData(texelValue, texelValue, texelDataIndex, component);
+                  setData(texelValue, texelValue, texelDataIndex, component);
                   break;
                 }
               case 'rgba8unorm':{
                   const texelValue = (4 * texelDataIndex + component + 1) % 256;
                   const outputValue = texelValue / 255.0;
-                  SetData(texelValue, outputValue, texelDataIndex, component);
+                  setData(texelValue, outputValue, texelDataIndex, component);
                   break;
                 }
               case 'bgra8unorm':{
@@ -114,7 +114,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
                   // BGRA -> RGBA
                   assert(component < 4);
                   const outputComponent = [2, 1, 0, 3][component];
-                  SetData(texelValue, outputValue, texelDataIndex, component, outputComponent);
+                  setData(texelValue, outputValue, texelDataIndex, component, outputComponent);
                   break;
                 }
               case 'r32sint':
@@ -123,32 +123,32 @@ class F extends AllFeaturesMaxLimitsGPUTest {
               case 'rgba32sint':{
                   const texelValue =
                   (texelDataIndex & 1 ? 1 : -1) * (4 * texelDataIndex + component + 1);
-                  SetData(texelValue, texelValue, texelDataIndex, component);
+                  setData(texelValue, texelValue, texelDataIndex, component);
                   break;
                 }
               case 'rgba8sint':{
                   const texelValue = (4 * texelDataIndex + component + 1) % 256 - 128;
-                  SetData(texelValue, texelValue, texelDataIndex, component);
+                  setData(texelValue, texelValue, texelDataIndex, component);
                   break;
                 }
               case 'rgba8snorm':{
                   const texelValue = (4 * texelDataIndex + component + 1) % 256 - 128;
                   const outputValue = Math.max(texelValue / 127.0, -1.0);
-                  SetData(texelValue, outputValue, texelDataIndex, component);
+                  setData(texelValue, outputValue, texelDataIndex, component);
                   break;
                 }
               case 'r32float':
               case 'rg32float':
               case 'rgba32float':{
                   const texelValue = (4 * texelDataIndex + component + 1) / 10.0;
-                  SetData(texelValue, texelValue, texelDataIndex, component);
+                  setData(texelValue, texelValue, texelDataIndex, component);
                   break;
                 }
               case 'rgba16float':{
                   const texelValue = (4 * texelDataIndex + component + 1) / 10.0;
                   const f16Array = new Float16Array(1);
                   f16Array[0] = texelValue;
-                  SetData(texelValue, f16Array[0], texelDataIndex, component);
+                  setData(texelValue, f16Array[0], texelDataIndex, component);
                   break;
                 }
               default:

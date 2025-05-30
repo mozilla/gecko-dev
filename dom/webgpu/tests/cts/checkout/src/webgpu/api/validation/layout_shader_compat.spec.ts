@@ -113,7 +113,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     });
   }
 
-  GetBindableResourceShaderDeclaration(bindableResource: BindableResourceType): string {
+  getBindableResourceShaderDeclaration(bindableResource: BindableResourceType): string {
     switch (bindableResource) {
       case 'compareSamp':
         return 'var tmp : sampler_comparison';
@@ -140,7 +140,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
   }
 }
 
-const BindingResourceCompatibleWithShaderStages = function (
+const bindingResourceCompatibleWithShaderStages = function (
   bindingResource: BindableResourceType,
   shaderStages: number
 ): boolean {
@@ -180,11 +180,11 @@ g.test('pipeline_layout_shader_exact_match')
           // We don't test using non-filtering sampler in shader because it has the same declaration
           // as filtering sampler.
           p.bindingInShader === 'nonFiltSamp' ||
-          !BindingResourceCompatibleWithShaderStages(
+          !bindingResourceCompatibleWithShaderStages(
             p.bindingInPipelineLayout,
             p.pipelineLayoutVisibility
           ) ||
-          !BindingResourceCompatibleWithShaderStages(p.bindingInShader, p.shaderStageWithBinding)
+          !bindingResourceCompatibleWithShaderStages(p.bindingInShader, p.shaderStageWithBinding)
       )
   )
   .fn(t => {
@@ -237,7 +237,7 @@ g.test('pipeline_layout_shader_exact_match')
     }
 
     const layout = t.createPipelineLayout(bindingInPipelineLayout, pipelineLayoutVisibility);
-    const bindResourceDeclaration = `@group(0) @binding(0) ${t.GetBindableResourceShaderDeclaration(
+    const bindResourceDeclaration = `@group(0) @binding(0) ${t.getBindableResourceShaderDeclaration(
       bindingInShader
     )}`;
     const staticallyUseBinding = isBindingStaticallyUsed ? '_ = tmp; ' : '';

@@ -10,7 +10,7 @@ TODO:
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { assert, TypedArrayBufferView, unreachable } from '../../../../common/util/util.js';
 import {
-  IsDualSourceBlendingFactor,
+  IsDualSourceBlendingFactor as isDualSourceBlendingFactor,
   kBlendFactors,
   kBlendOperations,
 } from '../../../capability_info.js';
@@ -208,8 +208,8 @@ g.test('blending,GPUBlendComponent')
   )
   .fn(t => {
     if (
-      IsDualSourceBlendingFactor(t.params.srcFactor) ||
-      IsDualSourceBlendingFactor(t.params.dstFactor)
+      isDualSourceBlendingFactor(t.params.srcFactor) ||
+      isDualSourceBlendingFactor(t.params.dstFactor)
     ) {
       t.skipIfDeviceDoesNotHaveFeature('dual-source-blending');
     }
@@ -254,8 +254,8 @@ g.test('blending,GPUBlendComponent')
     }
 
     const useBlendSrc1 =
-      IsDualSourceBlendingFactor(t.params.srcFactor) ||
-      IsDualSourceBlendingFactor(t.params.dstFactor);
+      isDualSourceBlendingFactor(t.params.srcFactor) ||
+      isDualSourceBlendingFactor(t.params.dstFactor);
 
     const pipeline = t.device.createRenderPipeline({
       layout: 'auto',

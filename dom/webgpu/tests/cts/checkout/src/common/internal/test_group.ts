@@ -615,46 +615,11 @@ class RunCaseSpecific implements RunCase {
           };
 
           for (const subParams of this.subcases) {
-            // Make a recorder that will defer all calls until `allPreviousSubcasesFinalizedPromise`
-            // resolves. Waiting on `allPreviousSubcasesFinalizedPromise` ensures that
-            // logs from all the previous subcases have been flushed before flushing new logs.
-            const subcasePrefix = 'subcase: ' + stringifyPublicParams(subParams);
-            const subRec = new Proxy(rec, {
-              get: (target, k: keyof TestCaseRecorder) => {
-                const prop = rec[k] ?? TestCaseRecorder.prototype[k];
-                if (typeof prop === 'function') {
-                  testHeartbeatCallback();
-                  return function (...args: Parameters<typeof prop>) {
-                    void allPreviousSubcasesFinalizedPromise.then(() => {
-                      // Prepend the subcase name to all error messages.
-                      for (const arg of args) {
-                        if (arg instanceof Error) {
-                          try {
-                            arg.message = subcasePrefix + '\n' + arg.message;
-                          } catch {
-                            // If that fails (e.g. on DOMException), try to put it in the stack:
-                            let stack = subcasePrefix;
-                            if (arg.stack) stack += '\n' + arg.stack;
-                            try {
-                              arg.stack = stack;
-                            } catch {
-                              // If that fails too, just silence it.
-                            }
-                          }
-                        }
-                      }
-
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      const rv = (prop as any).apply(target, args);
-                      // Because this proxy executes functions in a deferred manner,
-                      // it should never be used for functions that need to return a value.
-                      assert(rv === undefined);
-                    });
-                  };
-                }
-                return prop;
-              },
-            });
+            // Defer subcase logs so that they appear in the correct order.
+            const subRec = rec.makeDeferredSubRecorder(
+              `(in subcase: ${stringifyPublicParams(subParams)}) `,
+              allPreviousSubcasesFinalizedPromise
+            );
 
             const params = mergeParams(this.params, subParams);
             const subcaseQuery = new TestQuerySingleCase(
@@ -684,16 +649,16 @@ class RunCaseSpecific implements RunCase {
               getExpectedStatus(subcaseQuery)
             )
               .then(() => {
-                subRec.info(new Error('OK'));
+                subRec.info(new Error('subcase ran'));
               })
               .catch(ex => {
                 if (ex instanceof SkipTestCase) {
-                  // Convert SkipTestCase to info messages
+                  // Convert SkipTestCase to an info message so it won't skip the whole test
                   ex.message = 'subcase skipped: ' + ex.message;
-                  subRec.info(ex);
+                  subRec.info(new Error('subcase skipped'));
                   ++skipCount;
                 } else {
-                  // Since we are catching all error inside runTest(), this should never happen
+                  // We are catching all other errors inside runTest(), so this should never happen
                   subRec.threw(ex);
                 }
               })

@@ -11,7 +11,7 @@ import * as ttu from '../../../../texture_test_utils.js';
 import { TexelView } from '../../../../util/texture/texel_view.js';
 
 class VertexAndIndexStateTrackingTest extends AllFeaturesMaxLimitsGPUTest {
-  GetRenderPipelineForTest(arrayStride) {
+  getRenderPipelineForTest(arrayStride) {
     return this.device.createRenderPipeline({
       layout: 'auto',
       vertex: {
@@ -128,7 +128,7 @@ fn((t) => {
 
   vertexBuffer.unmap();
 
-  const renderPipeline = t.GetRenderPipelineForTest(t.kVertexAttributeSize);
+  const renderPipeline = t.getRenderPipelineForTest(t.kVertexAttributeSize);
 
   const outputTextureSize = [kPositions.length - 1, 1, 1];
   const outputTexture = t.createTextureTracked({
@@ -222,7 +222,7 @@ fn((t) => {
 
   vertexBuffer.unmap();
 
-  const renderPipeline = t.GetRenderPipelineForTest(t.kVertexAttributeSize);
+  const renderPipeline = t.getRenderPipelineForTest(t.kVertexAttributeSize);
 
   const outputTextureSize = [kPositions.length, 1, 1];
   const outputTexture = t.createTextureTracked({
@@ -321,8 +321,8 @@ fn((t) => {
   vertexBuffer.unmap();
 
   // Create two render pipelines with different vertex attribute strides
-  const renderPipeline1 = t.GetRenderPipelineForTest(t.kVertexAttributeSize);
-  const renderPipeline2 = t.GetRenderPipelineForTest(t.kVertexAttributeSize * 2);
+  const renderPipeline1 = t.getRenderPipelineForTest(t.kVertexAttributeSize);
+  const renderPipeline2 = t.getRenderPipelineForTest(t.kVertexAttributeSize * 2);
 
   const kPointsCount = kPositions.length - 1;
   const outputTextureSize = [kPointsCount, 1, 1];
@@ -582,7 +582,7 @@ fn((t) => {
   // Initialize the index buffer with 2 uint16 indices (2, 3).
   const indexBuffer = t.makeBufferWithContents(new Uint16Array([2, 3]), GPUBufferUsage.INDEX);
 
-  const renderPipeline = t.GetRenderPipelineForTest(t.kVertexAttributeSize);
+  const renderPipeline = t.getRenderPipelineForTest(t.kVertexAttributeSize);
 
   const kPointsCount = 4;
   const outputTextureSize = [kPointsCount, 1, 1];

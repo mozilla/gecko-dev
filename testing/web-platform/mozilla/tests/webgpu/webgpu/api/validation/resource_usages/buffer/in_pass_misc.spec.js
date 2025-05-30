@@ -258,20 +258,20 @@ combine('usage1', [
 ).
 combine('pass', ['render', 'compute']).
 unless(({ usage0, usage1, pass }) => {
-  const IsCopy = (usage) => {
+  const isCopy = (usage) => {
     return usage === 'copy-src' || usage === 'copy-dst';
   };
   // We intend to test copy usages in this test.
-  if (!IsCopy(usage0) && !IsCopy(usage1)) {
+  if (!isCopy(usage0) && !isCopy(usage1)) {
     return true;
   }
   // When both usage0 and usage1 are copy usages, 'pass' is meaningless so in such situation
   // we just need to reserve one value as 'pass'.
-  if (IsCopy(usage0) && IsCopy(usage1)) {
+  if (isCopy(usage0) && isCopy(usage1)) {
     return pass === 'compute';
   }
 
-  const IsValidComputeUsage = (usage) => {
+  const isValidComputeUsage = (usage) => {
     switch (usage) {
       case 'vertex':
       case 'index':
@@ -282,7 +282,7 @@ unless(({ usage0, usage1, pass }) => {
     }
   };
   if (pass === 'compute') {
-    return !IsValidComputeUsage(usage0) || !IsValidComputeUsage(usage1);
+    return !isValidComputeUsage(usage0) || !isValidComputeUsage(usage1);
   }
 
   return false;
@@ -317,7 +317,7 @@ fn((t) => {
     usage: kUsages
   });
 
-  const UseBufferOnCommandEncoder = (
+  const useBufferOnCommandEncoder = (
   usage,
 
 
@@ -424,8 +424,8 @@ fn((t) => {
   };
 
   const encoder = t.device.createCommandEncoder();
-  UseBufferOnCommandEncoder(usage0, encoder);
-  UseBufferOnCommandEncoder(usage1, encoder);
+  useBufferOnCommandEncoder(usage0, encoder);
+  useBufferOnCommandEncoder(usage1, encoder);
   t.expectValidationError(() => {
     encoder.finish();
   }, false);

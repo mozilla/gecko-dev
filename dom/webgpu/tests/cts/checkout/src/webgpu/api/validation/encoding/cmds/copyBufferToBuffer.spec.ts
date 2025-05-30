@@ -30,7 +30,7 @@ import { kMaxSafeMultipleOf8 } from '../../../../util/math.js';
 import * as vtu from '../../validation_test_utils.js';
 
 class F extends AllFeaturesMaxLimitsGPUTest {
-  TestCopyBufferToBuffer(options: {
+  testCopyBufferToBuffer(options: {
     srcBuffer: GPUBuffer;
     srcOffset: number;
     dstBuffer: GPUBuffer;
@@ -83,7 +83,7 @@ g.test('buffer_state')
       ? 'FinishError'
       : 'SubmitError';
 
-    t.TestCopyBufferToBuffer({
+    t.testCopyBufferToBuffer({
       srcBuffer,
       srcOffset: 0,
       dstBuffer,
@@ -122,7 +122,7 @@ g.test('buffer,device_mismatch')
       })
     );
 
-    t.TestCopyBufferToBuffer({
+    t.testCopyBufferToBuffer({
       srcBuffer,
       srcOffset: 0,
       dstBuffer,
@@ -153,7 +153,7 @@ g.test('buffer_usage')
     const isSuccess = srcUsage === GPUBufferUsage.COPY_SRC && dstUsage === GPUBufferUsage.COPY_DST;
     const expectation = isSuccess ? 'Success' : 'FinishError';
 
-    t.TestCopyBufferToBuffer({
+    t.testCopyBufferToBuffer({
       srcBuffer,
       srcOffset: 0,
       dstBuffer,
@@ -183,7 +183,7 @@ g.test('copy_size_alignment')
       usage: GPUBufferUsage.COPY_DST,
     });
 
-    t.TestCopyBufferToBuffer({
+    t.testCopyBufferToBuffer({
       srcBuffer,
       srcOffset: 0,
       dstBuffer,
@@ -218,7 +218,7 @@ g.test('copy_offset_alignment')
       usage: GPUBufferUsage.COPY_DST,
     });
 
-    t.TestCopyBufferToBuffer({
+    t.testCopyBufferToBuffer({
       srcBuffer,
       srcOffset,
       dstBuffer,
@@ -255,7 +255,7 @@ g.test('copy_overflow')
       usage: GPUBufferUsage.COPY_DST,
     });
 
-    t.TestCopyBufferToBuffer({
+    t.testCopyBufferToBuffer({
       srcBuffer,
       srcOffset,
       dstBuffer,
@@ -290,7 +290,7 @@ g.test('copy_out_of_bounds')
       usage: GPUBufferUsage.COPY_DST,
     });
 
-    t.TestCopyBufferToBuffer({
+    t.testCopyBufferToBuffer({
       srcBuffer,
       srcOffset,
       dstBuffer,
@@ -315,7 +315,7 @@ g.test('copy_within_same_buffer')
       usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
     });
 
-    t.TestCopyBufferToBuffer({
+    t.testCopyBufferToBuffer({
       srcBuffer: buffer,
       srcOffset,
       dstBuffer: buffer,

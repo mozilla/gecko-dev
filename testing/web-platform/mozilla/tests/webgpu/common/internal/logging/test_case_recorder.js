@@ -181,4 +181,43 @@ export class TestCaseRecorder {
 
     this.logs.push(logMessage);
   }
+
+  /**
+   * Make a recorder that will defer all calls until `deferUntilPromise` resolves.
+   * This is used for running subcases, which run concurrently, to ensure that
+   * logs from all the previous subcases have been flushed before flushing new logs,
+   * so all logs are in order as if the subcases had not been concurrent.
+   */
+  makeDeferredSubRecorder(prefix, deferUntilPromise) {
+    return new Proxy(this, {
+      get: (target, k) => {
+        switch (k) {
+          case 'logImpl':
+            return function (level, name, baseException) {
+              globalTestConfig.testHeartbeatCallback();
+              void deferUntilPromise.then(() => {
+                target.logImpl(level, prefix + name, baseException);
+              });
+            };
+          case 'beginSubCase':
+            return function () {
+              globalTestConfig.testHeartbeatCallback();
+              void deferUntilPromise.then(() => {
+                target.beginSubCase();
+              });
+            };
+          case 'endSubCase':
+            return function (expectedStatus) {
+              globalTestConfig.testHeartbeatCallback();
+              void deferUntilPromise.then(() => {
+                target.endSubCase(expectedStatus);
+              });
+            };
+          default:
+
+            return target[k];
+        }
+      }
+    });
+  }
 }

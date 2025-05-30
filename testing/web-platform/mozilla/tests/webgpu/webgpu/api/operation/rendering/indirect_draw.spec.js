@@ -16,7 +16,7 @@ const notFilled = new Uint8Array([0, 0, 0, 0]);
 const kRenderTargetFormat = 'rgba8unorm';
 
 class F extends AllFeaturesMaxLimitsGPUTest {
-  MakeIndexBuffer() {
+  makeIndexBuffer() {
     return this.makeBufferWithContents(
       new Uint32Array([
       0, 1, 2, // The bottom left triangle
@@ -26,7 +26,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     );
   }
 
-  MakeVertexBuffer(isIndexed) {
+  makeVertexBuffer(isIndexed) {
 
     const vertices = isIndexed ?
     [
@@ -49,7 +49,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     return this.makeBufferWithContents(new Float32Array(vertices), GPUBufferUsage.VERTEX);
   }
 
-  MakeIndirectBuffer(isIndexed, indirectOffset) {
+  makeIndirectBuffer(isIndexed, indirectOffset) {
     const o = indirectOffset / Uint32Array.BYTES_PER_ELEMENT;
 
     const parametersSize = isIndexed ?
@@ -165,8 +165,8 @@ expand('indirectOffset', (p) => {
 fn((t) => {
   const { isIndexed, indirectOffset } = t.params;
 
-  const vertexBuffer = t.MakeVertexBuffer(isIndexed);
-  const indirectBuffer = t.MakeIndirectBuffer(isIndexed, indirectOffset);
+  const vertexBuffer = t.makeVertexBuffer(isIndexed);
+  const indirectBuffer = t.makeIndirectBuffer(isIndexed, indirectOffset);
 
   const pipeline = t.device.createRenderPipeline({
     layout: 'auto',
@@ -226,7 +226,7 @@ fn((t) => {
   renderPass.setVertexBuffer(0, vertexBuffer, 0);
 
   if (isIndexed) {
-    renderPass.setIndexBuffer(t.MakeIndexBuffer(), 'uint32', 0);
+    renderPass.setIndexBuffer(t.makeIndexBuffer(), 'uint32', 0);
     renderPass.drawIndexedIndirect(indirectBuffer, indirectOffset);
   } else {
     renderPass.drawIndirect(indirectBuffer, indirectOffset);

@@ -20,7 +20,7 @@ import { align, lcm } from '../../../../util/math.js';
 import * as vtu from '../../validation_test_utils.js';
 
 class F extends AllFeaturesMaxLimitsGPUTest {
-  TestCopyTextureToTexture(
+  testCopyTextureToTexture(
     source: GPUTexelCopyTextureInfo,
     destination: GPUTexelCopyTextureInfo,
     copySize: GPUExtent3D,
@@ -41,7 +41,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     }
   }
 
-  GetPhysicalSubresourceSize(
+  getPhysicalSubresourceSize(
     dimension: GPUTextureDimension,
     textureSize: Required<GPUExtent3DDict>,
     format: GPUTextureFormat,
@@ -101,7 +101,7 @@ g.test('copy_with_invalid_or_destroyed_texture')
         : 'SubmitError'
       : 'FinishError';
 
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture },
       { texture: dstTexture },
       { width: 1, height: 1, depthOrArrayLayers: 1 },
@@ -143,7 +143,7 @@ g.test('texture,device_mismatch')
       })
     );
 
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture },
       { texture: dstTexture },
       { width: 1, height: 1, depthOrArrayLayers: 1 },
@@ -196,7 +196,7 @@ Test copyTextureToTexture must specify mipLevels that are in range.
     });
 
     const isSuccess = srcCopyLevel < srcLevelCount && dstCopyLevel < dstLevelCount;
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture, mipLevel: srcCopyLevel },
       { texture: dstTexture, mipLevel: dstCopyLevel },
       { width: 1, height: 1, depthOrArrayLayers: 1 },
@@ -234,7 +234,7 @@ Test that copyTextureToTexture source/destination need COPY_SRC/COPY_DST usages.
     const isSuccess =
       srcUsage === GPUTextureUsage.COPY_SRC && dstUsage === GPUTextureUsage.COPY_DST;
 
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture },
       { texture: dstTexture },
       { width: 1, height: 1, depthOrArrayLayers: 1 },
@@ -278,7 +278,7 @@ Test that textures in copyTextureToTexture must have the same sample count.
     });
 
     const isSuccess = srcSampleCount === dstSampleCount;
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture },
       { texture: dstTexture },
       { width: 4, height: 4, depthOrArrayLayers: 1 },
@@ -338,7 +338,7 @@ TODO: Check the source and destination constraints separately.
     });
 
     const isSuccess = copyWidth === kWidth && copyHeight === kHeight;
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture, origin: srcCopyOrigin },
       { texture: dstTexture, origin: dstCopyOrigin },
       { width: copyWidth, height: copyHeight, depthOrArrayLayers: 1 },
@@ -402,7 +402,7 @@ Test the formats of textures in copyTextureToTexture must be copy-compatible.
       getBaseFormatForTextureFormat(dstFormat as ColorTextureFormat) ?? dstFormat;
     const isSuccess = srcBaseFormat === dstBaseFormat;
 
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture },
       { texture: dstTexture },
       textureSize,
@@ -465,8 +465,8 @@ Note: this is only tested for 2D textures as it is the only dimension compatible
       usage: GPUTextureUsage.COPY_DST,
     });
 
-    const srcSizeAtLevel = t.GetPhysicalSubresourceSize('2d', srcTextureSize, format, srcCopyLevel);
-    const dstSizeAtLevel = t.GetPhysicalSubresourceSize('2d', dstTextureSize, format, dstCopyLevel);
+    const srcSizeAtLevel = t.getPhysicalSubresourceSize('2d', srcTextureSize, format, srcCopyLevel);
+    const dstSizeAtLevel = t.getPhysicalSubresourceSize('2d', dstTextureSize, format, dstCopyLevel);
 
     const copyOrigin = { x: copyBoxOffsets.x, y: copyBoxOffsets.y, z: 0 };
 
@@ -483,13 +483,13 @@ Note: this is only tested for 2D textures as it is the only dimension compatible
       copyHeight === srcSizeAtLevel.height &&
       copyWidth === dstSizeAtLevel.width &&
       copyHeight === dstSizeAtLevel.height;
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture, origin: { x: 0, y: 0, z: 0 }, mipLevel: srcCopyLevel },
       { texture: dstTexture, origin: copyOrigin, mipLevel: dstCopyLevel },
       { width: copyWidth, height: copyHeight, depthOrArrayLayers: 1 },
       isSuccess ? 'Success' : 'FinishError'
     );
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture, origin: copyOrigin, mipLevel: srcCopyLevel },
       { texture: dstTexture, origin: { x: 0, y: 0, z: 0 }, mipLevel: dstCopyLevel },
       { width: copyWidth, height: copyHeight, depthOrArrayLayers: 1 },
@@ -564,13 +564,13 @@ Test that copyTextureToTexture copy boxes must be in range of the subresource.
       usage: GPUTextureUsage.COPY_DST,
     });
 
-    const srcSizeAtLevel = t.GetPhysicalSubresourceSize(
+    const srcSizeAtLevel = t.getPhysicalSubresourceSize(
       dimension,
       textureSize,
       kFormat,
       srcCopyLevel
     );
-    const dstSizeAtLevel = t.GetPhysicalSubresourceSize(
+    const dstSizeAtLevel = t.getPhysicalSubresourceSize(
       dimension,
       textureSize,
       kFormat,
@@ -609,7 +609,7 @@ Test that copyTextureToTexture copy boxes must be in range of the subresource.
           copyOrigin.z + copyDepth <= textureSize.depthOrArrayLayers;
       }
 
-      t.TestCopyTextureToTexture(
+      t.testCopyTextureToTexture(
         { texture: srcTexture, origin: { x: 0, y: 0, z: 0 }, mipLevel: srcCopyLevel },
         { texture: dstTexture, origin: copyOrigin, mipLevel: dstCopyLevel },
         { width: copyWidth, height: copyHeight, depthOrArrayLayers: copyDepth },
@@ -636,7 +636,7 @@ Test that copyTextureToTexture copy boxes must be in range of the subresource.
           copyOrigin.z + copyDepth <= textureSize.depthOrArrayLayers;
       }
 
-      t.TestCopyTextureToTexture(
+      t.testCopyTextureToTexture(
         { texture: srcTexture, origin: copyOrigin, mipLevel: srcCopyLevel },
         { texture: dstTexture, origin: { x: 0, y: 0, z: 0 }, mipLevel: dstCopyLevel },
         { width: copyWidth, height: copyHeight, depthOrArrayLayers: copyDepth },
@@ -675,7 +675,7 @@ TODO: Extend to 1D and 3D textures.`
     const isSuccess =
       Math.min(srcCopyOriginZ, dstCopyOriginZ) + copyExtentDepth <=
       Math.max(srcCopyOriginZ, dstCopyOriginZ);
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: testTexture, origin: { x: 0, y: 0, z: srcCopyOriginZ } },
       { texture: testTexture, origin: { x: 0, y: 0, z: dstCopyOriginZ } },
       { width: 16, height: 16, depthOrArrayLayers: copyExtentDepth },
@@ -734,7 +734,7 @@ Test the validations on the member 'aspect' of GPUTexelCopyTextureInfo in CopyTe
     const isSourceAspectValid = kValidAspectsForFormat[format].includes(sourceAspect);
     const isDestinationAspectValid = kValidAspectsForFormat[format].includes(destinationAspect);
 
-    t.TestCopyTextureToTexture(
+    t.testCopyTextureToTexture(
       { texture: srcTexture, origin: { x: 0, y: 0, z: 0 }, aspect: sourceAspect },
       { texture: dstTexture, origin: { x: 0, y: 0, z: 0 }, aspect: destinationAspect },
       kTextureSize,
@@ -808,13 +808,13 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
       usage: GPUTextureUsage.COPY_DST,
     });
 
-    const srcSizeAtLevel = t.GetPhysicalSubresourceSize(
+    const srcSizeAtLevel = t.getPhysicalSubresourceSize(
       dimension,
       kTextureSize,
       format,
       srcCopyLevel
     );
-    const dstSizeAtLevel = t.GetPhysicalSubresourceSize(
+    const dstSizeAtLevel = t.getPhysicalSubresourceSize(
       dimension,
       kTextureSize,
       format,
@@ -853,7 +853,7 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
         copyOrigin.y + copyHeight <= dstSizeAtLevel.height &&
         copyOrigin.z + copyDepth <= kTextureSize.depthOrArrayLayers;
 
-      t.TestCopyTextureToTexture(
+      t.testCopyTextureToTexture(
         { texture: srcTexture, origin: { x: 0, y: 0, z: 0 }, mipLevel: srcCopyLevel },
         { texture: dstTexture, origin: copyOrigin, mipLevel: dstCopyLevel },
         { width: copyWidth, height: copyHeight, depthOrArrayLayers: copyDepth },
@@ -870,7 +870,7 @@ TODO: Express the offsets in "block size" so as to be able to test non-4x4 compr
         copyHeight <= dstSizeAtLevel.height &&
         copyOrigin.z + copyDepth <= kTextureSize.depthOrArrayLayers;
 
-      t.TestCopyTextureToTexture(
+      t.testCopyTextureToTexture(
         { texture: srcTexture, origin: copyOrigin, mipLevel: srcCopyLevel },
         { texture: dstTexture, origin: { x: 0, y: 0, z: 0 }, mipLevel: dstCopyLevel },
         { width: copyWidth, height: copyHeight, depthOrArrayLayers: copyDepth },

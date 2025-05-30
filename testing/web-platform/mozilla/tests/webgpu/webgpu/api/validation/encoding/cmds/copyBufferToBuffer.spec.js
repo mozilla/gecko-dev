@@ -30,7 +30,7 @@ import { kMaxSafeMultipleOf8 } from '../../../../util/math.js';
 import * as vtu from '../../validation_test_utils.js';
 
 class F extends AllFeaturesMaxLimitsGPUTest {
-  TestCopyBufferToBuffer(options)
+  testCopyBufferToBuffer(options)
 
 
 
@@ -83,7 +83,7 @@ fn((t) => {
   'FinishError' :
   'SubmitError';
 
-  t.TestCopyBufferToBuffer({
+  t.testCopyBufferToBuffer({
     srcBuffer,
     srcOffset: 0,
     dstBuffer,
@@ -122,7 +122,7 @@ fn((t) => {
     })
   );
 
-  t.TestCopyBufferToBuffer({
+  t.testCopyBufferToBuffer({
     srcBuffer,
     srcOffset: 0,
     dstBuffer,
@@ -153,7 +153,7 @@ fn((t) => {
   const isSuccess = srcUsage === GPUBufferUsage.COPY_SRC && dstUsage === GPUBufferUsage.COPY_DST;
   const expectation = isSuccess ? 'Success' : 'FinishError';
 
-  t.TestCopyBufferToBuffer({
+  t.testCopyBufferToBuffer({
     srcBuffer,
     srcOffset: 0,
     dstBuffer,
@@ -183,7 +183,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestCopyBufferToBuffer({
+  t.testCopyBufferToBuffer({
     srcBuffer,
     srcOffset: 0,
     dstBuffer,
@@ -218,7 +218,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestCopyBufferToBuffer({
+  t.testCopyBufferToBuffer({
     srcBuffer,
     srcOffset,
     dstBuffer,
@@ -255,7 +255,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestCopyBufferToBuffer({
+  t.testCopyBufferToBuffer({
     srcBuffer,
     srcOffset,
     dstBuffer,
@@ -290,7 +290,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_DST
   });
 
-  t.TestCopyBufferToBuffer({
+  t.testCopyBufferToBuffer({
     srcBuffer,
     srcOffset,
     dstBuffer,
@@ -315,7 +315,7 @@ fn((t) => {
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
   });
 
-  t.TestCopyBufferToBuffer({
+  t.testCopyBufferToBuffer({
     srcBuffer: buffer,
     srcOffset,
     dstBuffer: buffer,

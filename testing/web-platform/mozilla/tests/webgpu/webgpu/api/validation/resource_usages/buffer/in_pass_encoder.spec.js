@@ -126,7 +126,7 @@ export class BufferResourceUsageTest extends AllFeaturesMaxLimitsGPUTest {
   }
 }
 
-function IsBufferUsageInBindGroup(bufferUsage) {
+function isBufferUsageInBindGroup(bufferUsage) {
   switch (bufferUsage) {
     case 'uniform':
     case 'storage':
@@ -461,7 +461,7 @@ combine('hasOverlap', [true, false])
 fn((t) => {
   const { usage0, usage1, inSamePass, hasOverlap } = t.params;
 
-  const UseBufferOnComputePassEncoder = (
+  const useBufferOnComputePassEncoder = (
   computePassEncoder,
   buffer,
   usage,
@@ -505,15 +505,15 @@ fn((t) => {
 
   const offset0 = 0;
   const offset1 = hasOverlap ? offset0 : kBoundBufferSize;
-  UseBufferOnComputePassEncoder(computePassEncoder, buffer, usage0, offset0);
+  useBufferOnComputePassEncoder(computePassEncoder, buffer, usage0, offset0);
 
   if (inSamePass) {
-    UseBufferOnComputePassEncoder(computePassEncoder, buffer, usage1, offset1);
+    useBufferOnComputePassEncoder(computePassEncoder, buffer, usage1, offset1);
     computePassEncoder.end();
   } else {
     computePassEncoder.end();
     const anotherComputePassEncoder = encoder.beginComputePass();
-    UseBufferOnComputePassEncoder(anotherComputePassEncoder, buffer, usage1, offset1);
+    useBufferOnComputePassEncoder(anotherComputePassEncoder, buffer, usage1, offset1);
     anotherComputePassEncoder.end();
   }
 
@@ -537,9 +537,9 @@ combine('usage1', ['uniform', 'storage', 'read-only-storage', 'vertex', 'index']
 beginSubcases().
 combine('hasOverlap', [true, false]).
 combine('visibility0', ['compute', 'fragment']).
-unless((t) => t.visibility0 === 'compute' && !IsBufferUsageInBindGroup(t.usage0)).
+unless((t) => t.visibility0 === 'compute' && !isBufferUsageInBindGroup(t.usage0)).
 combine('visibility1', ['compute', 'fragment']).
-unless((t) => t.visibility1 === 'compute' && !IsBufferUsageInBindGroup(t.usage1))
+unless((t) => t.visibility1 === 'compute' && !isBufferUsageInBindGroup(t.usage1))
 ).
 fn((t) => {
   const { usage0, usage1, hasOverlap, visibility0, visibility1 } = t.params;
@@ -558,7 +558,7 @@ fn((t) => {
     numStorageBuffersNeededInFragmentStage
   );
 
-  const UseBufferOnRenderPassEncoder = (
+  const useBufferOnRenderPassEncoder = (
   buffer,
   offset,
   type,
@@ -600,9 +600,9 @@ fn((t) => {
   const encoder = t.device.createCommandEncoder();
   const renderPassEncoder = t.beginSimpleRenderPass(encoder);
   const offset0 = 0;
-  UseBufferOnRenderPassEncoder(buffer, offset0, usage0, visibility0, renderPassEncoder);
+  useBufferOnRenderPassEncoder(buffer, offset0, usage0, visibility0, renderPassEncoder);
   const offset1 = hasOverlap ? offset0 : kBoundBufferSize;
-  UseBufferOnRenderPassEncoder(buffer, offset1, usage1, visibility1, renderPassEncoder);
+  useBufferOnRenderPassEncoder(buffer, offset1, usage1, visibility1, renderPassEncoder);
   renderPassEncoder.end();
 
   const fail = usage0 === 'storage' !== (usage1 === 'storage');
@@ -734,7 +734,7 @@ fn((t) => {
     GPUBufferUsage.INDIRECT
   });
 
-  const UseBufferOnRenderPassEncoder = (
+  const useBufferOnRenderPassEncoder = (
   bufferAccessibleInDraw,
   bufferIndex,
   offset,
@@ -772,7 +772,7 @@ fn((t) => {
     }
   };
 
-  const MakeDrawCallWithOneUsage = (
+  const makeDrawCallWithOneUsage = (
   usage,
   offset,
   renderPassEncoder) =>
@@ -811,7 +811,7 @@ fn((t) => {
   const bufferIndex0 = visibility0 === 'fragment' ? 0 : 1;
   const usedBindGroupLayouts = [];
 
-  UseBufferOnRenderPassEncoder(
+  useBufferOnRenderPassEncoder(
     usage0AccessibleInDraw,
     bufferIndex0,
     offset0,
@@ -838,7 +838,7 @@ fn((t) => {
     if (!usage0AccessibleInDraw) {
       renderPassEncoder.draw(1);
     } else {
-      MakeDrawCallWithOneUsage(usage0, offset0, renderPassEncoder);
+      makeDrawCallWithOneUsage(usage0, offset0, renderPassEncoder);
     }
   }
 
@@ -851,14 +851,14 @@ fn((t) => {
   } else if (visibility0 === 'fragment' && usage0AccessibleInDraw) {
     // When buffer is bound to different bind groups or bound as vertex buffers in one render pass
     // encoder, the second buffer binding should consume the slot 1.
-    if (IsBufferUsageInBindGroup(usage0) && IsBufferUsageInBindGroup(usage1)) {
+    if (isBufferUsageInBindGroup(usage0) && isBufferUsageInBindGroup(usage1)) {
       bufferIndex1 = 1;
     } else if (usage0 === 'vertex' && usage1 === 'vertex') {
       bufferIndex1 = 1;
     }
   }
 
-  UseBufferOnRenderPassEncoder(
+  useBufferOnRenderPassEncoder(
     usage1AccessibleInDraw,
     bufferIndex1,
     offset1,
@@ -885,9 +885,9 @@ fn((t) => {
     if (!usage0AccessibleInDraw && !usage1AccessibleInDraw) {
       renderPassEncoder.draw(1);
     } else if (usage0AccessibleInDraw && !usage1AccessibleInDraw) {
-      MakeDrawCallWithOneUsage(usage0, offset0, renderPassEncoder);
+      makeDrawCallWithOneUsage(usage0, offset0, renderPassEncoder);
     } else if (!usage0AccessibleInDraw && usage1AccessibleInDraw) {
-      MakeDrawCallWithOneUsage(usage1, offset1, renderPassEncoder);
+      makeDrawCallWithOneUsage(usage1, offset1, renderPassEncoder);
     } else {
       if (usage1 === 'indexedIndirect') {
         // If the index buffer has already been set (as usage0), we won't need to set another
@@ -961,7 +961,7 @@ fn((t) => {
     numStorageBuffersNeededInFragmentStage
   );
 
-  const UseBufferOnRenderPassEncoderInDrawCall = (
+  const useBufferOnRenderPassEncoderInDrawCall = (
   offset,
   usage,
   renderPassEncoder) =>
@@ -1020,16 +1020,16 @@ fn((t) => {
   const renderPassEncoder = t.beginSimpleRenderPass(encoder);
 
   const offset0 = 0;
-  UseBufferOnRenderPassEncoderInDrawCall(offset0, usage0, renderPassEncoder);
+  useBufferOnRenderPassEncoderInDrawCall(offset0, usage0, renderPassEncoder);
 
   const offset1 = hasOverlap ? offset0 : kBoundBufferSize;
   if (inSamePass) {
-    UseBufferOnRenderPassEncoderInDrawCall(offset1, usage1, renderPassEncoder);
+    useBufferOnRenderPassEncoderInDrawCall(offset1, usage1, renderPassEncoder);
     renderPassEncoder.end();
   } else {
     renderPassEncoder.end();
     const anotherRenderPassEncoder = t.beginSimpleRenderPass(encoder);
-    UseBufferOnRenderPassEncoderInDrawCall(offset1, usage1, anotherRenderPassEncoder);
+    useBufferOnRenderPassEncoderInDrawCall(offset1, usage1, anotherRenderPassEncoder);
     anotherRenderPassEncoder.end();
   }
 
