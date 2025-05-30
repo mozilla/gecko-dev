@@ -401,9 +401,9 @@ nsresult nsLookAndFeel::NativeGetColor(ColorID aID, ColorScheme aScheme,
       break;
     case ColorID::Threedlightshadow:
     case ColorID::Buttonborder:
-    case ColorID::Buttonhoverborder:
-    case ColorID::Buttonactiveborder:
-    case ColorID::Buttondisabledborder:
+    case ColorID::MozButtonhoverborder:
+    case ColorID::MozButtonactiveborder:
+    case ColorID::MozButtondisabledborder:
     case ColorID::MozSidebarborder:
       idx = COLOR_3DLIGHT;
       break;
