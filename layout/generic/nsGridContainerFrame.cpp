@@ -3296,6 +3296,15 @@ struct MOZ_STACK_CLASS nsGridContainerFrame::GridReflowInput {
                                   SizingConstraint aConstraint);
 
   /**
+   * Invalidate track sizes for the given axis by clearing track sizing bits for
+   * all grid items and mark the track sizes and positions as needing recompute.
+   *
+   * This helper must be called before invoking CalculateTrackSizesForAxis()
+   * again in aAxis; otherwise, assertions will fire.
+   */
+  void InvalidateTrackSizesForAxis(LogicalAxis aAxis);
+
+  /**
    * Return the percentage basis for a grid item in its writing-mode.
    * If aAxis is LogicalAxis::Inline then we return NS_UNCONSTRAINEDSIZE in
    * both axes since we know all track sizes are indefinite at this point
@@ -4307,6 +4316,14 @@ void nsGridContainerFrame::GridReflowInput::CalculateTrackSizesForAxis(
 
   // positions and sizes are now final
   tracks.mCanResolveLineRangeSize = true;
+}
+
+void nsGridContainerFrame::GridReflowInput::InvalidateTrackSizesForAxis(
+    LogicalAxis aAxis) {
+  for (auto& item : mGridItems) {
+    item.ResetTrackSizingBits(aAxis);
+  }
+  TracksFor(aAxis).mCanResolveLineRangeSize = false;
 }
 
 // Align an item's margin box in its aAxis inside aCBSize.
@@ -9198,11 +9215,8 @@ nscoord nsGridContainerFrame::ComputeBSizeForResolvingRowSizes(
   }
   result = aGridRI.mReflowInput->ApplyMinMaxBSize(result);
 
-  // Reset the track sizing bits before re-resolving the row sizes in Reflow().
-  for (auto& item : aGridRI.mGridItems) {
-    item.ResetTrackSizingBits(LogicalAxis::Block);
-  }
-  aGridRI.mRows.mCanResolveLineRangeSize = false;
+  // Invalidate the row sizes before re-resolving them in Reflow().
+  aGridRI.InvalidateTrackSizesForAxis(LogicalAxis::Block);
 
   return result;
 }
@@ -10056,11 +10070,8 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     gridRI.CalculateTrackSizesForAxis(LogicalAxis::Block, grid, contentBoxBSize,
                                       SizingConstraint::NoConstraint);
 
-    // Reset the track sizing bits before re-resolving the column sizes.
-    for (auto& item : gridRI.mGridItems) {
-      item.ResetTrackSizingBits(LogicalAxis::Inline);
-    }
-    gridRI.mCols.mCanResolveLineRangeSize = false;
+    // Invalidate the column sizes before re-resolving them.
+    gridRI.InvalidateTrackSizesForAxis(LogicalAxis::Inline);
 
     // Re-resolve the column sizes, using the resolved row sizes establish
     // above. See 12.1.3 of the Grid Sizing Algorithm for more scenarios where
