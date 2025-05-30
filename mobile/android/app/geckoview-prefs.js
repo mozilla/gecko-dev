@@ -327,6 +327,14 @@ pref("media.navigator.permission.device", true);
 // this is to preserve battery and data (bug 1540573)
 pref("media.throttle-cellular-regardless-of-download-rate", true);
 
+// Number of video frames we buffer while decoding video.
+// On Android this is decided by a similar value which varies for
+// each OMX decoder |OMX_PARAM_PORTDEFINITIONTYPE::nBufferCountMin|. This
+// number must be less than the OMX equivalent or gecko will think it is
+// chronically starved of video frames. All decoders seen so far have a value
+// of at least 4. (bug 973408)
+pref("media.video-queue.default-size", 3);
+
 // The maximum number of queued frames to send to the compositor.
 // On Android, it needs to be throttled because SurfaceTexture contains only one
 // (the most recent) image data. (bug 1299068)

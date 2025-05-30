@@ -325,16 +325,6 @@ already_AddRefed<MediaDataDecoder> AndroidDecoderModule::CreateVideoDecoder(
     return nullptr;
   }
 
-  // Don't use SW VPX MediaCodecs. Prefering VPXDecoder over MediaCodec SW
-  // decoder implementation allow us to have more consistent cross-platform VPX
-  // playback experience and be able to get upstream bug fixes/improvements more
-  // frequently.
-  if (VPXDecoder::IsVPX(aParams.VideoConfig().mMimeType) &&
-      !SupportsMimeType(aParams.VideoConfig().mMimeType)
-           .contains(DecodeSupport::HardwareDecode)) {
-    return nullptr;
-  }
-
   nsString drmStubId;
   if (mProxy) {
     drmStubId = mProxy->GetMediaDrmStubId();
