@@ -269,12 +269,12 @@ void BaseCompiler::branchAddNoOverflow(uint64_t offset, RegI32 ptr, Label* ok) {
 }
 
 void BaseCompiler::branchAddNoOverflow(uint64_t offset, RegI64 ptr, Label* ok) {
-#  if defined(JS_64BIT)
+#if defined(JS_64BIT)
   masm.branchAddPtr(Assembler::CarryClear, ImmWord(offset), Register64(ptr).reg,
                     ok);
-#  else
+#else
   masm.branchAdd64(Assembler::CarryClear, Imm64(offset), ptr, ok);
-#  endif
+#endif
 }
 
 void BaseCompiler::branchTestLowZero(RegI32 ptr, Imm32 mask, Label* ok) {
@@ -282,11 +282,11 @@ void BaseCompiler::branchTestLowZero(RegI32 ptr, Imm32 mask, Label* ok) {
 }
 
 void BaseCompiler::branchTestLowZero(RegI64 ptr, Imm32 mask, Label* ok) {
-#  ifdef JS_64BIT
+#ifdef JS_64BIT
   masm.branchTestPtr(Assembler::Zero, Register64(ptr).reg, mask, ok);
-#  else
+#else
   masm.branchTestPtr(Assembler::Zero, ptr.low, mask, ok);
-#  endif
+#endif
 }
 
 void BaseCompiler::boundsCheck4GBOrLargerAccess(uint32_t memoryIndex,
@@ -633,32 +633,32 @@ void BaseCompiler::load(MemoryAccessDesc* access, AccessCheck* check,
                         AnyReg dest, RegI64 temp) {
   prepareMemoryAccess(access, check, instance, ptr);
 
-#  if !defined(JS_64BIT)
+#if !defined(JS_64BIT)
   // On 32-bit systems we have a maximum 2GB heap and bounds checking has
   // been applied to ensure that the 64-bit pointer is valid.
   return executeLoad(access, check, instance, memoryBase, RegI32(ptr.low), dest,
                      maybeFromI64(temp));
-#  elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64)
+#elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64)
   // On x64 and arm64 the 32-bit code simply assumes that the high bits of the
   // 64-bit pointer register are zero and performs a 64-bit add.  Thus the code
   // generated is the same for the 64-bit and the 32-bit case.
   return executeLoad(access, check, instance, memoryBase, RegI32(ptr.reg), dest,
                      maybeFromI64(temp));
-#  elif defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64)
+#elif defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64)
   // On mips64 and loongarch64, the 'prepareMemoryAccess' function will make
   // sure that ptr holds a valid 64-bit index value. Thus the code generated in
   // 'executeLoad' is the same for the 64-bit and the 32-bit case.
   return executeLoad(access, check, instance, memoryBase, RegI32(ptr.reg), dest,
                      maybeFromI64(temp));
-#  elif defined(JS_CODEGEN_RISCV64)
+#elif defined(JS_CODEGEN_RISCV64)
   // RISCV the 'prepareMemoryAccess' function will make
   // sure that ptr holds a valid 64-bit index value. Thus the code generated in
   // 'executeLoad' is the same for the 64-bit and the 32-bit case.
   return executeLoad(access, check, instance, memoryBase, RegI32(ptr.reg), dest,
                      maybeFromI64(temp));
-#  else
+#else
   MOZ_CRASH("Missing platform hook");
-#  endif
+#endif
 }
 
 void BaseCompiler::executeStore(MemoryAccessDesc* access, AccessCheck* check,
@@ -776,17 +776,17 @@ void BaseCompiler::store(MemoryAccessDesc* access, AccessCheck* check,
                          AnyReg src, RegI64 temp) {
   prepareMemoryAccess(access, check, instance, ptr);
   // See comments in load()
-#  if !defined(JS_64BIT)
+#if !defined(JS_64BIT)
   return executeStore(access, check, instance, memoryBase, RegI32(ptr.low), src,
                       maybeFromI64(temp));
-#  elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64) ||    \
-      defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
-      defined(JS_CODEGEN_RISCV64)
+#elif defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_ARM64) ||    \
+    defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
+    defined(JS_CODEGEN_RISCV64)
   return executeStore(access, check, instance, memoryBase, RegI32(ptr.reg), src,
                       maybeFromI64(temp));
-#  else
+#else
   MOZ_CRASH("Missing platform hook");
-#  endif
+#endif
 }
 
 template <typename RegType>

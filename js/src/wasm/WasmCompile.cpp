@@ -188,7 +188,7 @@ bool FeatureOptions::init(JSContext* cx, HandleValue val) {
       // You cannot request the same builtin twice
       if (this->jsStringBuiltins && jsStringBuiltins) {
         JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                                  JSMSG_WASM_DUPLICATE_BUILTIN);
+                                 JSMSG_WASM_DUPLICATE_BUILTIN);
         return false;
       }
       this->jsStringBuiltins = jsStringBuiltins;
