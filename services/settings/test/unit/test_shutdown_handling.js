@@ -3,6 +3,13 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+add_setup(() => {
+  Services.prefs.setStringPref("services.settings.loglevel", "debug");
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref("services.settings.loglevel");
+  });
+});
+
 add_task(async function test_shutdown_abort_after_start() {
   // Start a forever transaction:
   let counter = 0;
@@ -84,8 +91,8 @@ add_task(async function test_shutdown_immediate_abort() {
 
 add_task(async function test_shutdown_worker() {
   let client = new RemoteSettingsClient("language-dictionaries");
-  const before = await client.get({ syncIfEmpty: false });
-  Assert.equal(before.length, 0);
+  const before = await client.db.getLastModified();
+  Assert.equal(before, null);
 
   let records = [{}];
   let importPromise = RemoteSettingsWorker._execute(
@@ -115,8 +122,8 @@ add_task(async function test_shutdown_worker() {
     /shutting down/,
     "Ensure imports get aborted during shutdown"
   );
-  const after = await client.get({ syncIfEmpty: false });
-  Assert.equal(after.length, 0);
+  const after = await client.db.getLastModified();
+  Assert.equal(after, null);
   await TestUtils.waitForCondition(() => !RemoteSettingsWorker.worker);
   Assert.ok(
     !RemoteSettingsWorker.worker,

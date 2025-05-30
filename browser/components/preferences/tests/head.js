@@ -511,6 +511,12 @@ async function setupLabsTest(recipes) {
     recipes ?? DEFAULT_LABS_RECIPES,
     { clear: true }
   );
+  await ExperimentAPI._rsLoader.remoteSettingsClients.secureExperiments.db.importChanges(
+    {},
+    Date.now(),
+    [],
+    { clear: true }
+  );
 
   await ExperimentAPI._rsLoader.updateRecipes("test");
 

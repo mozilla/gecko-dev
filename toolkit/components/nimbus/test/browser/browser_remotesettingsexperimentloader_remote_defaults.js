@@ -58,7 +58,13 @@ add_setup(function () {
   const client = RemoteSettings("nimbus-desktop-experiments");
   sinon.stub(client, "get").resolves([]);
 
-  registerCleanupFunction(() => client.get.restore());
+  const secureClient = RemoteSettings("nimbus-secure-experiments");
+  sinon.stub(secureClient, "get").resolves([]);
+
+  registerCleanupFunction(() => {
+    client.get.restore();
+    secureClient.get.restore();
+  });
 });
 
 function setup(configuration) {
@@ -66,6 +72,8 @@ function setup(configuration) {
   client.get.resolves(
     configuration ?? [REMOTE_CONFIGURATION_FOO, REMOTE_CONFIGURATION_BAR]
   );
+  const secureClient = RemoteSettings("nimbus-secure-experiments");
+  secureClient.get.resolves([]);
 
   // Simulate a state where no experiment exists.
   const cleanup = () => client.get.resolves([]);

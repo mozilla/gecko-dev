@@ -98,6 +98,24 @@ add_task(async function test_records_obtained_from_server_are_stored_in_db() {
 });
 add_task(clear_state);
 
+add_task(async function test_client_db_throws_if_not_synced() {
+  try {
+    await client.db.list();
+    Assert.ok(false, "db.list() should throw");
+  } catch (e) {
+    Assert.equal(
+      e.toString(),
+      'EmptyDatabaseError: "main/password-fields" has not been synced yet'
+    );
+  }
+
+  await client.maybeSync(2000);
+
+  const list = await client.db.list();
+  Assert.ok(Array.isArray(list), "data is an array");
+});
+add_task(clear_state);
+
 add_task(
   async function test_records_from_dump_are_listed_as_created_in_event() {
     if (IS_ANDROID) {
@@ -260,7 +278,7 @@ add_task(async function test_get_doesnt_affect_other_calls() {
   } catch (error) {
     Assert.equal(
       error.toString(),
-      'EmptyDatabaseError: Collection "main/password-fields" is empty'
+      'EmptyDatabaseError: "main/password-fields" has not been synced yet'
     );
   }
 });
@@ -273,7 +291,7 @@ add_task(async function test_get_throws_if_no_empty_fallback_and_no_sync() {
   } catch (error) {
     Assert.equal(
       error.toString(),
-      'EmptyDatabaseError: Collection "main/password-fields" is empty'
+      'EmptyDatabaseError: "main/password-fields" has not been synced yet'
     );
   }
 });
@@ -511,16 +529,46 @@ add_task(
   }
 );
 
-add_task(async function test_get_verify_signature_no_sync() {
+add_task(async function test_get_verify_signature_empty_no_sync() {
   client.verifySignature = true;
-  // No signature in metadata, and no sync if empty.
+  // No data, hence no signature in metadata, and no sync if empty.
   let error;
   try {
-    await client.get({ verifySignature: true, syncIfEmpty: false });
+    await client.get({
+      verifySignature: true,
+      syncIfEmpty: false,
+      emptyListFallback: false,
+    });
+    Assert.ok(false, "get() should throw");
   } catch (e) {
     error = e;
   }
-  equal(error.message, "Missing signature (main/password-fields)");
+  equal(
+    error.toString(),
+    'EmptyDatabaseError: "main/password-fields" has not been synced yet'
+  );
+});
+add_task(clear_state);
+
+add_task(async function test_get_verify_signature_no_metadata_no_sync() {
+  client.verifySignature = true;
+  // Store records but no metadata.
+  await client.db.importChanges(undefined, 42, []);
+  let error;
+  try {
+    await client.get({
+      verifySignature: true,
+      syncIfEmpty: false,
+      emptyListFallback: false,
+    });
+    Assert.ok(false, "get() should throw");
+  } catch (e) {
+    error = e;
+  }
+  equal(
+    error.toString(),
+    "MissingSignatureError: Missing signature (main/password-fields)"
+  );
 });
 add_task(clear_state);
 
@@ -1040,8 +1088,8 @@ add_task(async function test_telemetry_reports_if_fetching_signature_fails() {
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_unknown_errors() {
-  const backup = client.db.list;
-  client.db.list = () => {
+  const backup = client.db.getLastModified;
+  client.db.getLastModified = () => {
     throw new Error("Internal");
   };
   const startSnapshot = getUptakeTelemetrySnapshot(
@@ -1053,7 +1101,7 @@ add_task(async function test_telemetry_reports_unknown_errors() {
     await client.maybeSync(2000);
   } catch (e) {}
 
-  client.db.list = backup;
+  client.db.getLastModified = backup;
   const endSnapshot = getUptakeTelemetrySnapshot(
     TELEMETRY_COMPONENT,
     client.identifier
@@ -1090,8 +1138,8 @@ add_task(async function test_telemetry_reports_indexeddb_as_custom_1() {
 add_task(clear_state);
 
 add_task(async function test_telemetry_reports_error_name_as_event_nightly() {
-  const backup = client.db.list;
-  client.db.list = () => {
+  const backup = client.db.getLastModified;
+  client.db.getLastModified = () => {
     const e = new Error("Some unknown error");
     e.name = "ThrownError";
     throw e;
@@ -1119,7 +1167,7 @@ add_task(async function test_telemetry_reports_error_name_as_event_nightly() {
     TELEMETRY_EVENTS_FILTERS
   );
 
-  client.db.list = backup;
+  client.db.getLastModified = backup;
 });
 add_task(clear_state);
 
@@ -1769,3 +1817,4 @@ add_task(async function test_hasAttachments_works_as_expected() {
   res = await client.db.hasAttachments();
   Assert.equal(res, false, "Should return false after attachments are pruned");
 });
+add_task(clear_state);

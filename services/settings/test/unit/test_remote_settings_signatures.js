@@ -520,7 +520,6 @@ add_task(async function test_check_synchronization_with_signatures() {
 
   equal((await client.get()).length, 2);
 
-  console.info("---------------------------------------------------------");
   //
   // 5.
   // - collection: [RECORD2, RECORD3] -> [RECORD2, RECORD3]
@@ -675,8 +674,9 @@ add_task(async function test_check_synchronization_with_signatures() {
   };
 
   const badLocalContentGoodSigResponses = {
+    "GET:/v1/buckets/main/collections/signed/changeset?_expected=5000&_since=%223900%22":
+      [RESPONSE_COMPLETE_BAD_SIG],
     "GET:/v1/buckets/main/collections/signed/changeset?_expected=5000": [
-      RESPONSE_COMPLETE_BAD_SIG,
       RESPONSE_COMPLETE_INITIAL,
     ],
   };
@@ -690,7 +690,7 @@ add_task(async function test_check_synchronization_with_signatures() {
   const localId = "0602b1b2-12ab-4d3a-b6fb-593244e7b035";
   await client.db.importChanges(
     { signature: { x5u, signature: "abc" } },
-    null,
+    3900,
     [
       { ...RECORD2, last_modified: 1234567890, serialNumber: "abc" },
       { id: localId },

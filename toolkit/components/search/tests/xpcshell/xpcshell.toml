@@ -70,7 +70,7 @@ support-files = [
 ["test_engine_selector_remote_override.js"]
 
 ["test_engine_selector_remote_settings.js"]
-tags = "remotesettings searchmain"
+tags = "remote-settings searchmain"
 
 ["test_engine_selector_subvariants.js"]
 

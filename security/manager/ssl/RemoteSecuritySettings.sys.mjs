@@ -38,6 +38,10 @@ ChromeUtils.defineLazyGetter(lazy, "log", () => {
     maxLogLevelPref: LOGLEVEL_PREF,
   });
 });
+ChromeUtils.defineESModuleGetters(lazy, {
+  RemoteSettingsClient:
+    "resource://services-settings/RemoteSettingsClient.sys.mjs",
+});
 
 // Converts a JS string to an array of bytes consisting of the char code at each
 // index in the string.
@@ -288,14 +292,16 @@ class IntermediatePreloads {
     );
     // If we don't have prior data, make it so we re-load everything.
     if (!hasPriorCertData) {
-      let current;
+      let current = [];
       try {
         current = await this.client.db.list();
       } catch (err) {
-        lazy.log.warn(
-          `Unable to list intermediate preloading collection: ${err}`
-        );
-        return;
+        if (!(err instanceof lazy.RemoteSettingsClient.EmptyDatabaseError)) {
+          lazy.log.warn(
+            `Unable to list intermediate preloading collection: ${err}`
+          );
+          return;
+        }
       }
       const toReset = current.filter(record => record.cert_import_complete);
       try {
@@ -321,14 +327,16 @@ class IntermediatePreloads {
       );
     }
 
-    let current;
+    let current = [];
     try {
       current = await this.client.db.list();
     } catch (err) {
-      lazy.log.warn(
-        `Unable to list intermediate preloading collection: ${err}`
-      );
-      return;
+      if (!(err instanceof lazy.RemoteSettingsClient.EmptyDatabaseError)) {
+        lazy.log.warn(
+          `Unable to list intermediate preloading collection: ${err}`
+        );
+        return;
+      }
     }
     const waiting = current.filter(record => !record.cert_import_complete);
 
@@ -514,7 +522,16 @@ class CRLiteFilters {
       // for channel A (and all other channels) with loaded_into_cert_storage =
       // false. If we don't do this, then the user will fail to reinstall the
       // channel A artifacts if they switch back to channel A.
-      let records = await this.client.db.list();
+      let records;
+      try {
+        records = await this.client.db.list();
+      } catch (err) {
+        if (err instanceof lazy.RemoteSettingsClient.EmptyDatabaseError) {
+          // Likely during tests, less likely in production.
+          return;
+        }
+        throw err;
+      }
       let newChannel = Services.prefs.getStringPref(
         CRLITE_FILTER_CHANNEL_PREF,
         "none"
@@ -529,7 +546,14 @@ class CRLiteFilters {
   }
 
   async getFilteredRecords() {
-    let records = await this.client.db.list();
+    let records = [];
+    try {
+      records = await this.client.db.list();
+    } catch (err) {
+      if (!(err instanceof lazy.RemoteSettingsClient.EmptyDatabaseError)) {
+        throw err;
+      }
+    }
     records = await this.client._filterEntries(records);
     return records;
   }

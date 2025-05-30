@@ -133,12 +133,14 @@ const getCFRExperiment = async () => {
 };
 
 const client = RemoteSettings("nimbus-desktop-experiments");
+const secureClient = RemoteSettings("nimbus-secure-experiments");
 
 // no `add_task` because we want to run this setup before each test not before
 // the entire test suite.
 async function setup(experiment) {
   // Store the experiment in RS local db to bypass synchronization.
   await client.db.importChanges({}, Date.now(), [experiment], { clear: true });
+  await secureClient.db.importChanges({}, Date.now(), [], { clear: true });
   await SpecialPowers.pushPrefEnv({
     set: [
       ["app.shield.optoutstudies.enabled", true],
@@ -153,6 +155,7 @@ async function setup(experiment) {
 
 async function cleanup() {
   await client.db.clear();
+  await secureClient.db.clear();
   await SpecialPowers.popPrefEnv();
   // Reload the provider
   await ASRouter._updateMessageProviders();

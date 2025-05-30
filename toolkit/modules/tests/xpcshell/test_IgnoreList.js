@@ -173,8 +173,8 @@ add_task(async function test_ignoreList_db_modification() {
     "Should have called the get() function twice."
   );
 
-  const databaseEntries = await db.list();
-  Assert.equal(databaseEntries.length, 0, "Should have cleared the database.");
+  const dbTimestamp = await db.getLastModified();
+  Assert.equal(dbTimestamp, null, "Should have cleared the database.");
 
   Assert.deepEqual(
     result,
@@ -200,8 +200,8 @@ add_task(async function test_ignoreList_db_modification_never_succeeds() {
     "Should have called the get() function twice."
   );
 
-  const databaseEntries = await db.list();
-  Assert.equal(databaseEntries.length, 0, "Should have cleared the database.");
+  const dbTimestamp = await db.getLastModified();
+  Assert.equal(dbTimestamp, null, "Should have cleared the database.");
 
   Assert.deepEqual(result, [], "Should have returned an empty result.");
 });
