@@ -5,6 +5,7 @@
 
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal">
@@ -16,7 +17,7 @@
         android:layout_weight="1"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/content_description_forward"
-        android:src="@drawable/mozac_ic_forward_24"/>
+        app:srcCompat="@drawable/mozac_ic_forward_24"/>
 
     <ImageButton
         android:id="@+id/refresh"
@@ -25,14 +26,14 @@
         android:layout_weight="1"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/content_description_reload"
-        android:src="@drawable/mozac_ic_arrow_clockwise_24"/>
+        app:srcCompat="@drawable/mozac_ic_arrow_clockwise_24"/>
 
     <ImageButton
         android:id="@+id/stop"
         android:layout_width="0dp"
         android:layout_height="48dp"
         android:layout_weight="1"
-        android:src="@drawable/mozac_ic_stop"
+        app:srcCompat="@drawable/mozac_ic_stop"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/content_description_stop" />
 </LinearLayout>
