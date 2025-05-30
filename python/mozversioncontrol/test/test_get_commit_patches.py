@@ -35,11 +35,10 @@ STEPS = {
         jj new -m "FIRST PATCH"
         echo bar >> bar
         """,
-        # snapshot, since bug 1962245 suppresses automatic ones
         """
         jj new -m "SECOND PATCH"
         printf "baz\\r\\nqux" > baz
-        jj log -n0
+        jj log -n0 # snapshot, since bug 1962245 suppresses automatic ones
        """,
     ],
 }

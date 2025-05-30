@@ -1,7 +1,4 @@
 requires-python:>=3.8
-pypi:Flask==2.1.3
-pypi:auth0-python==4.4.1
-pypi:werkzeug==2.1.2
 vendored:testing/web-platform/tests/tools/third_party/h2/src
 vendored:testing/web-platform/tests/tools/third_party/hpack/src
 vendored:testing/web-platform/tests/tools/third_party/html5lib
@@ -10,6 +7,7 @@ vendored:testing/web-platform/tests/tools/third_party/pywebsocket3
 vendored:testing/web-platform/tests/tools/third_party/webencodings
 vendored:testing/web-platform/tests/tools/wptrunner
 vendored:testing/web-platform/tests/tools/wptserve
+vendored:third_party/python/PyYAML/lib/
 vendored:third_party/python/aiohappyeyeballs
 vendored:third_party/python/aiohttp
 vendored:third_party/python/aiosignal
@@ -43,7 +41,6 @@ vendored:third_party/python/pygments
 vendored:third_party/python/pylru
 vendored:third_party/python/python_dateutil
 vendored:third_party/python/python_slugify
-vendored:third_party/python/pyyaml/lib/
 vendored:third_party/python/redo
 vendored:third_party/python/requests_unixsocket
 vendored:third_party/python/responses
@@ -58,3 +55,7 @@ vendored:third_party/python/types_python_dateutil
 vendored:third_party/python/voluptuous
 vendored:third_party/python/yamllint
 vendored:third_party/python/yarl
+
+pypi:auth0-python==4.4.1
+pypi:Flask==2.1.3
+pypi:werkzeug==2.1.2

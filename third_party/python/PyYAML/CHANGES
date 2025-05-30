@@ -2,10 +2,7 @@
 For a complete changelog, see:
 
 * https://github.com/yaml/pyyaml/commits/
-
-6.0.2 (2024-08-06)
-
-* https://github.com/yaml/pyyaml/pull/808 -- Support for Cython 3.x and Python 3.13
+* https://bitbucket.org/xi/pyyaml/commits/
 
 6.0.1 (2023-07-18)
 

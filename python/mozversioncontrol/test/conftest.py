@@ -3,10 +3,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
-import platform
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 from typing import List
 
@@ -55,12 +53,13 @@ SETUP = {
         git config user.email "<test@example.org>"
         git add *
         git commit -am "Initial commit"
-        jj git init --colocate
-        jj config set --repo user.name "Testing McTesterson"
-        jj config set --repo user.email "test@example.org"
-        jj describe --reset-author --no-edit
         """,
         """
+        # Pass in user name/email via env vars because the initial commit
+        # will use them before we have a chance to configure them.
+        JJ_USER="Testing McTesterson" JJ_EMAIL="test@example.org" jj git init --colocate
+        jj config set --repo user.name "Testing McTesterson"
+        jj config set --repo user.email "test@example.org"
         jj git remote add upstream ../remoterepo
         jj git fetch --remote upstream
         jj bookmark track master@upstream
@@ -97,27 +96,17 @@ def shell(cmd, working_dir):
 
 
 @pytest.fixture(params=["git", "hg", "jj", "src"])
-def repo(request):
+def repo(tmpdir, request):
     if request.param == "jj":
-        if os.getenv("MOZ_AUTOMATION") == 1:
-            fetches_dir = os.environ.get("MOZ_FETCHES_DIR", "")
-            jj_dir = Path(fetches_dir) / "jj"
-            if jj_dir.is_dir():
-                os.environ["PATH"] = os.pathsep.join([str(jj_dir), os.environ["PATH"]])
-            if platform.system() == "Darwin":
-                pytest.skip(
-                    "jj tests disabled for MacOS CI due to incompatible git on workers"
-                )
         if os.getenv("MOZ_AVOID_JJ_VCS") not in (None, "0", ""):
             pytest.skip("jj support disabled")
         try:
             subprocess.call(["jj", "--version"], stdout=subprocess.DEVNULL)
         except OSError:
             pytest.skip("jj unavailable")
+
+    tmpdir = Path(tmpdir)
     vcs = request.param
-    # Use tempfile since pytest's tempdir is too long for jj on Windows
-    td = tempfile.TemporaryDirectory(prefix=f"{vcs}-repo")
-    tmpdir = Path(td.name)
     steps = SETUP[vcs]
 
     if hasattr(request.module, "STEPS"):

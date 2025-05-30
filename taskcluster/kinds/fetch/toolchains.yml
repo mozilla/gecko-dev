@@ -780,11 +780,11 @@ chromium-depot-tools:
         include-dot-git: true
 
 uv:
-    description: uv 0.7.2 source code
+    description: uv 0.5.9 source code
     fetch:
         type: git
         repo: https://github.com/astral-sh/uv
-        revision: 481d05d8dfb8627612dec72840a02c17b926b263
+        revision: 0652800cb018eb086fbbf220a1f73af7e320be54
 
 dxc-src:
     description: Source code for mozilla's DXC fork
@@ -792,10 +792,3 @@ dxc-src:
         type: git
         repo: https://github.com/FirefoxGraphics/DirectXShaderCompiler
         revision: 81378be83a1690cac0e727941e1a963518d67c26
-
-jj:
-    description: jj 0.29.0 source code
-    fetch:
-        type: git
-        repo: https://github.com/jj-vcs/jj
-        revision: 94269d2e7228ff502b2116258e5ae6b3b07ec434

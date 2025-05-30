@@ -1,3 +1,3 @@
 requires-python:>=3.8
 pypi:mergedeep
-vendored:third_party/python/pyyaml/lib/
+vendored:third_party/python/PyYAML/lib/

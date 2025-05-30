@@ -206,8 +206,9 @@ uint64_t HTMLButtonAccessible::NativeState() const {
     if (!popoverAcc || !popoverAcc->IsAncestorOf(this)) {
       if (popover->IsPopoverOpen()) {
         state |= states::EXPANDED;
+      } else {
+        state |= states::COLLAPSED;
       }
-      state |= states::EXPANDABLE;
     }
   }
 

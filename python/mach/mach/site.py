@@ -43,19 +43,10 @@ _is_windows = sys.platform == "cygwin" or (sys.platform == "win32" and os.sep ==
 
 @lru_cache(maxsize=None)
 def use_uv():
-    return (
-        os.environ.get("MACH_NO_UV", "").lower()
-        not in (
-            "1",
-            "true",
-        )
-        and get_uv_executable()
-    )
-
-
-@lru_cache(maxsize=None)
-def get_uv_executable():
-    return shutil.which("uv")
+    return os.environ.get("MACH_NO_UV", "").lower() not in (
+        "1",
+        "true",
+    ) and shutil.which("uv")
 
 
 @lru_cache(maxsize=None)
@@ -65,12 +56,9 @@ def show_pip_output():
 
 def pip_command(*, python_executable, subcommand=None, args=None, non_uv_args=None):
     if use_uv():
-        uv_executable = get_uv_executable()
-        command = [uv_executable, "pip"]
+        command = ["uv", "pip"]
         if subcommand:
             command.append(subcommand)
-            python_root = Path(python_executable).parent.parent
-            command.append(f"--python={python_root}")
         full_command = command + (args or [])
     else:
         command = [python_executable, "-m", "pip"]
