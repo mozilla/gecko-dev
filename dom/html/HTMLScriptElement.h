@@ -19,10 +19,10 @@ namespace mozilla::dom {
 
 class OwningTrustedScriptOrNullIsEmptyString;
 class OwningTrustedScriptOrString;
-class OwningTrustedScriptURLOrString;
+class OwningTrustedScriptURLOrUSVString;
 class TrustedScriptOrNullIsEmptyString;
 class TrustedScriptOrString;
-class TrustedScriptURLOrString;
+class TrustedScriptURLOrUSVString;
 
 class HTMLScriptElement final : public nsGenericHTMLElement,
                                 public ScriptElement {
@@ -111,9 +111,9 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
   }
 
   // @param aSrc will always be of type `String`.
-  void GetSrc(OwningTrustedScriptURLOrString& aSrc);
+  void GetSrc(OwningTrustedScriptURLOrUSVString& aSrc);
 
-  MOZ_CAN_RUN_SCRIPT void SetSrc(const TrustedScriptURLOrString& aSrc,
+  MOZ_CAN_RUN_SCRIPT void SetSrc(const TrustedScriptURLOrUSVString& aSrc,
                                  nsIPrincipal* aSubjectPrincipal,
                                  ErrorResult& aRv);
 

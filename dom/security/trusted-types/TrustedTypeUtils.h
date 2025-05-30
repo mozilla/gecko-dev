@@ -109,6 +109,11 @@ MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
     ErrorResult& aError);
 MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
+    const TrustedScriptURLOrUSVString& aInput, const nsAString& aSink,
+    const nsAString& aSinkGroup, const nsINode& aNode,
+    nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,
+    ErrorResult& aError);
+MOZ_CAN_RUN_SCRIPT const nsAString* GetTrustedTypesCompliantString(
     const OwningTrustedScriptURLOrString& aInput, const nsAString& aSink,
     const nsAString& aSinkGroup, nsIGlobalObject& aGlobalObject,
     nsIPrincipal* aPrincipalOrNull, Maybe<nsAutoString>& aResultHolder,

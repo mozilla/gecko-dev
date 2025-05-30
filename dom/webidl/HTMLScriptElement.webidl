@@ -13,7 +13,7 @@ interface HTMLScriptElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions, SetterNeedsSubjectPrincipal=NonSystem, SetterThrows]
-  attribute (TrustedScriptURL or DOMString) src;
+  attribute (TrustedScriptURL or USVString) src;
   [CEReactions, SetterThrows]
   attribute DOMString type;
   [CEReactions, SetterThrows]

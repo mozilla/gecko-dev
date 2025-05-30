@@ -235,11 +235,11 @@ void HTMLScriptElement::SetTrustedScriptOrStringTextContent(
   SetTextContentInternal(*compliantString, aSubjectPrincipal, aError);
 }
 
-void HTMLScriptElement::GetSrc(OwningTrustedScriptURLOrString& aSrc) {
-  GetURIAttr(nsGkAtoms::src, nullptr, aSrc.SetAsString());
+void HTMLScriptElement::GetSrc(OwningTrustedScriptURLOrUSVString& aSrc) {
+  GetURIAttr(nsGkAtoms::src, nullptr, aSrc.SetAsUSVString());
 }
 
-void HTMLScriptElement::SetSrc(const TrustedScriptURLOrString& aSrc,
+void HTMLScriptElement::SetSrc(const TrustedScriptURLOrUSVString& aSrc,
                                nsIPrincipal* aSubjectPrincipal,
                                ErrorResult& aRv) {
   constexpr nsLiteralString sink = u"HTMLScriptElement src"_ns;
