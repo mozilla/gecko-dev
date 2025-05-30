@@ -1,0 +1,31 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xxsmall);
+
+  moz-button:first-child::part(button) {
+    border-end-end-radius: 0;
+    border-start-end-radius: 0;
+  }
+
+  moz-button:last-child::part(button) {
+    border-end-start-radius: 0;
+    border-start-start-radius: 0;
+  }
+}
+
+#avatars::part(inputs) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-xsmall);
+  width: 253px;
+}
+
+.avatar-button::part(button) {
+  --button-icon-fill: transparent;
+  --button-icon-stroke: currentColor;
+}

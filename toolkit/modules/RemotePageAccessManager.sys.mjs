@@ -177,6 +177,7 @@ export let RemotePageAccessManager = {
         "Profiles:MoreThemes",
         "Profiles:PageHide",
       ],
+      RPMGetBoolPref: ["browser.profiles.updated-avatar-selector"],
     },
     "about:newprofile": {
       RPMSendQuery: [
@@ -191,7 +192,10 @@ export let RemotePageAccessManager = {
         "Profiles:MoreThemes",
         "Profiles:PageHide",
       ],
-      RPMGetBoolPref: ["browser.profiles.profile-name.updated"],
+      RPMGetBoolPref: [
+        "browser.profiles.profile-name.updated",
+        "browser.profiles.updated-avatar-selector",
+      ],
       RPMGetFormatURLPref: ["app.support.baseURL"],
     },
     "about:protections": {

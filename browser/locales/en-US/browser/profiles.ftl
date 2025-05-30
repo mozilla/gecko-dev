@@ -44,6 +44,10 @@ edit-profile-page-avatar-header-2 =
 edit-profile-page-delete-button =
     .label = Delete
 
+edit-profile-page-avatar-selector-opener-link = Edit
+avatar-selector-icon-tab = Icon
+avatar-selector-custom-tab = Custom
+
 edit-profile-page-no-name = Name this profile to help you find it later. Rename it any time.
 edit-profile-page-duplicate-name = Profile name already in use. Try a new name.
 

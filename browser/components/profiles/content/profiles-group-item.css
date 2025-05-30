@@ -2,18 +2,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-.wrapper ::slotted(*:first-of-type) {
+.wrapper ::slotted(:not(moz-button):first-of-type) {
   display: block;
   outline-offset: var(--focus-outline-offset);
   border: 1px solid var(--border-color-interactive);
 }
 
-.wrapper[checked] ::slotted(*:first-of-type) {
+.wrapper[checked] ::slotted(:not(moz-button):first-of-type) {
   border: var(--focus-outline);
   border-width: 1px;
 }
 
-.wrapper:focus-within ::slotted(*:first-of-type) {
+.wrapper:focus-within ::slotted(:not(moz-button):first-of-type) {
   outline: var(--focus-outline);
 }
 

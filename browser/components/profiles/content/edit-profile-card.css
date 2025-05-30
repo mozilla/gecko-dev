@@ -23,6 +23,22 @@
   border: var(--card-border);
 }
 
+.avatar-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-small);
+  align-items: center;
+
+  .avatar-selector-parent {
+    position: relative;
+  }
+
+  profile-avatar-selector {
+    position: absolute;
+    inset-inline-start: -140px;
+  }
+}
+
 #profile-name-area {
   display: flex;
   flex-direction: column;

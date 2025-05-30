@@ -13,6 +13,8 @@ browser.jar:
     content/browser/profiles/edit-profile.html    (content/edit-profile.html)
     content/browser/profiles/new-profile-card.mjs (content/new-profile-card.mjs)
     content/browser/profiles/new-profile.html     (content/new-profile.html)
+    content/browser/profiles/profile-avatar-selector.css (content/profile-avatar-selector.css)
+    content/browser/profiles/profile-avatar-selector.mjs (content/profile-avatar-selector.mjs)
     content/browser/profiles/profile-card.css     (content/profile-card.css)
     content/browser/profiles/profile-card.mjs     (content/profile-card.mjs)
     content/browser/profiles/profile-selector.css (content/profile-selector.css)
