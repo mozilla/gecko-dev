@@ -994,15 +994,9 @@ static bool WasmMaxMemoryPages(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
   if (StringEqualsLiteral(ls, "i64")) {
-#ifdef ENABLE_WASM_MEMORY64
-    if (wasm::Memory64Available(cx)) {
-      args.rval().setInt32(
-          int32_t(wasm::MaxMemoryPages(wasm::AddressType::I64).value()));
-      return true;
-    }
-#endif
-    JS_ReportErrorASCII(cx, "memory64 not enabled");
-    return false;
+    args.rval().setInt32(
+        int32_t(wasm::MaxMemoryPages(wasm::AddressType::I64).value()));
+    return true;
   }
   JS_ReportErrorASCII(cx, "bad address type");
   return false;

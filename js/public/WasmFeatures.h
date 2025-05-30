@@ -42,16 +42,11 @@
 #else
 #  define WASM_RELAXED_SIMD_ENABLED 0
 #endif
-#ifdef ENABLE_WASM_MEMORY64
-#  define WASM_MEMORY64_ENABLED 1
-#else
-#  define WASM_MEMORY64_ENABLED 0
-#endif
 #ifdef ENABLE_WASM_MEMORY_CONTROL
 #  define WASM_MEMORY_CONTROL_ENABLED 1
 #else
 #  define WASM_MEMORY_CONTROL_ENABLED 0
-#endif
+#endif 
 #ifdef ENABLE_WASM_JSPI
 #  define WASM_JSPI_ENABLED 1
 #else
@@ -102,15 +97,6 @@
     /* flag force enable  */ false,                                     \
     /* flag fuzz enable   */ true,                                      \
     /* preference name    */ relaxed_simd)                              \
-  FEATURE(                                                              \
-    /* capitalized name   */ Memory64,                                  \
-    /* lower case name    */ memory64,                                  \
-    /* compile predicate  */ WASM_MEMORY64_ENABLED,                     \
-    /* compiler predicate */ AnyCompilerAvailable(cx),                  \
-    /* flag predicate     */ true,                                      \
-    /* flag force enable  */ false,                                     \
-    /* flag fuzz enable   */ true,                                      \
-    /* preference name    */ memory64)                                  \
   FEATURE(                                                              \
     /* capitalized name   */ MemoryControl,                             \
     /* lower case name    */ memoryControl,                             \

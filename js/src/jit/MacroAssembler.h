@@ -3888,9 +3888,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   CodeOffset wasmMarkedSlowCall(const wasm::CallSiteDesc& desc,
                                 const Register reg) PER_SHARED_ARCH;
 
-#ifdef ENABLE_WASM_MEMORY64
   void wasmClampTable64Address(Register64 address, Register out);
-#endif
 
   // WasmTableCallIndexReg must contain the index of the indirect call.  This is
   // for wasm calls only.

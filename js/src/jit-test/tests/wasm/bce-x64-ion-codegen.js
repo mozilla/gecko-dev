@@ -16,22 +16,17 @@
 // buffer of some kind) that certain optimizations triggered, and then check the
 // log.
 
-var memTypes = [''];
-if (wasmMemory64Enabled()) {
-    memTypes.push('i64')
-}
+var memTypes = ['i32', 'i64'];
 
 for ( let memType of memTypes ) {
-    let dataType = memType ? memType : 'i32';
-
     // Make sure the check for the second load is removed: the two load
     // instructions should appear back-to-back in the output.
     codegenTestX64_adhoc(
 `(module
    (memory ${memType} 1)
-   (func (export "f") (param ${dataType}) (result i32)
-     (local ${dataType})
-     (local.set 1 (${dataType}.add (local.get 0) (${dataType}.const 8)))
+   (func (export "f") (param ${memType}) (result i32)
+     (local ${memType})
+     (local.set 1 (${memType}.add (local.get 0) (${memType}.const 8)))
      (i32.load (local.get 1))
      drop
      (i32.load (local.get 1))))`,
@@ -48,7 +43,7 @@ for ( let memType of memTypes ) {
 `(module
    (memory ${memType} 1)
    (func (export "f") (result i32)
-     (i32.load (${dataType}.const 16))))`,
+     (i32.load (${memType}.const 16))))`,
     'f',
     `41 8b 47 10               movl 0x10\\(%r15\\), %eax`);
 
@@ -59,7 +54,7 @@ for ( let memType of memTypes ) {
 `(module
    (memory ${memType} 1)
    (func (export "f") (result i32)
-     (i32.load (${dataType}.const 65535))))`,
+     (i32.load (${memType}.const 65535))))`,
     'f',
 `
 b8 ff ff 00 00            mov \\$0xFFFF, %eax

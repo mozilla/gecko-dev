@@ -985,39 +985,6 @@ def wasm_moz_intgemm(value, no_experimental):
 set_config("ENABLE_WASM_MOZ_INTGEMM", wasm_moz_intgemm)
 set_define("ENABLE_WASM_MOZ_INTGEMM", wasm_moz_intgemm)
 
-# Support for WebAssembly Memory64.
-# ===========================
-
-
-@depends(target)
-def default_wasm_memory64(target):
-    if target.cpu == "mips32":
-        return
-
-    return True
-
-
-option(
-    "--enable-wasm-memory64",
-    default=default_wasm_memory64,
-    help="{Enable|Disable} WebAssembly Memory64",
-)
-
-
-@depends("--enable-wasm-memory64", target)
-def wasm_memory64(value, target):
-    if not value:
-        return
-
-    if target.cpu == "mips32":
-        die("Memory64 is incompatible with MIPS32 target")
-
-    return True
-
-
-set_config("ENABLE_WASM_MEMORY64", wasm_memory64)
-set_define("ENABLE_WASM_MEMORY64", wasm_memory64)
-
 
 # Support for WebAssembly memory control.
 # ===========================

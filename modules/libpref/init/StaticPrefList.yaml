@@ -8943,16 +8943,6 @@
 #endif
 #endif
 
--   name: javascript.options.wasm_memory64
-    type: bool
-#if defined(ENABLE_WASM_MEMORY64)
-    value: true
-#else
-    value: false
-#endif
-    mirror: always
-    set_spidermonkey_pref: always
-
 -   name: javascript.options.wasm_js_string_builtins
     type: bool
     value: true

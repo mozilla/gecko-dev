@@ -1221,15 +1221,11 @@ RegI32 BaseCompiler::popTableAddressToClampedInt32(AddressType addressType) {
     return popI32();
   }
 
-#ifdef ENABLE_WASM_MEMORY64
   MOZ_ASSERT(addressType == AddressType::I64);
   RegI64 val = popI64();
   RegI32 clamped = narrowI64(val);
   masm.wasmClampTable64Address(val, clamped);
   return clamped;
-#else
-  MOZ_CRASH("got i64 table address without memory64 enabled");
-#endif
 }
 
 void BaseCompiler::replaceTableAddressWithClampedInt32(

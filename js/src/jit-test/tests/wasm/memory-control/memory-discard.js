@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !wasmMemoryControlEnabled(); test-also=--setpref=wasm_memory64=true; test-also=--setpref=wasm_memory64=false
+// |jit-test| skip-if: !wasmMemoryControlEnabled()
 
 // This tests memory.discard and WebAssembly.Memory.discard() by placing data
 // (the alphabet) halfway across a page boundary, then discarding the first
@@ -46,12 +46,10 @@ function testAll(func) {
     func(false, true, 'i32');
     func(true, false, 'i32');
     func(true, true, 'i32');
-    if (wasmMemory64Enabled()) {
-        func(false, false, 'i64');
-        func(false, true, 'i64');
-        func(true, false, 'i64');
-        func(true, true, 'i64');
-    }
+    func(false, false, 'i64');
+    func(false, true, 'i64');
+    func(true, false, 'i64');
+    func(true, true, 'i64');
 }
 
 testAll(function testHappyPath(discardViaJS, shared, memType) {
@@ -182,25 +180,23 @@ testAll(function testOOB3(discardViaJS, shared) {
     checkWholeAlphabet(exp, true);
 })();
 
-if (wasmMemory64Enabled()) {
-    (function testOverflow() {
-        // Discard UINT64_MAX - (2 pages), starting from page 4. This overflows but puts both start and end in bounds.
-        // This cannot be done with a JS discard because JS can't actually represent big enough integers.
+(function testOverflow() {
+    // Discard UINT64_MAX - (2 pages), starting from page 4. This overflows but puts both start and end in bounds.
+    // This cannot be done with a JS discard because JS can't actually represent big enough integers.
 
-        // The big ol' number here is 2^64 - (65536 * 2)
-        const [exp, discard] = initModule(65536 * 3, `18_446_744_073_709_420_544`, false, false, 'i64');
+    // The big ol' number here is 2^64 - (65536 * 2)
+    const [exp, discard] = initModule(65536 * 3, `18_446_744_073_709_420_544`, false, false, 'i64');
 
-        // Init the stuff
-        exp.init();
-        checkWholeAlphabet(exp, true);
+    // Init the stuff
+    exp.init();
+    checkWholeAlphabet(exp, true);
 
-        // Discarding should not be valid when it goes out of bounds
-        assertErrorMessage(() => discard(), WebAssembly.RuntimeError, /out of bounds/);
+    // Discarding should not be valid when it goes out of bounds
+    assertErrorMessage(() => discard(), WebAssembly.RuntimeError, /out of bounds/);
 
-        // Ensure nothing was discarded
-        checkWholeAlphabet(exp, true);
-    })();
-}
+    // Ensure nothing was discarded
+    checkWholeAlphabet(exp, true);
+})();
 
 testAll(function testMisalignedStart(discardViaJS, shared) {
     // Discard only the first half of the alphabet (this misaligns the start)

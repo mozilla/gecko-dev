@@ -2838,16 +2838,9 @@ static bool DecodeLimits(Decoder& d, LimitsKind kind, Limits* limits) {
     limits->shared = Shareable::False;
   }
 
-#ifdef ENABLE_WASM_MEMORY64
   limits->addressType = (flags & uint8_t(LimitsFlags::IsI64))
                             ? AddressType::I64
                             : AddressType::I32;
-#else
-  limits->addressType = AddressType::I32;
-  if (flags & uint8_t(LimitsFlags::IsI64)) {
-    return d.fail("i64 is not supported for memory or table limits");
-  }
-#endif
 
   uint64_t initial;
   if (!DecodeLimitBound(d, limits->addressType, &initial)) {
@@ -2909,10 +2902,6 @@ static bool DecodeTableType(Decoder& d, CodeMetadata* codeMeta, bool isImport) {
   Limits limits;
   if (!DecodeLimits(d, LimitsKind::Table, &limits)) {
     return false;
-  }
-
-  if (limits.addressType == AddressType::I64 && !codeMeta->memory64Enabled()) {
-    return d.fail("memory64 is disabled");
   }
 
   // If there's a maximum, check it is in range.  The check to exclude
@@ -2992,10 +2981,6 @@ static bool DecodeMemoryTypeAndLimits(Decoder& d, CodeMetadata* codeMeta,
   if (limits.shared == Shareable::True &&
       codeMeta->sharedMemoryEnabled() == Shareable::False) {
     return d.fail("shared memory is disabled");
-  }
-
-  if (limits.addressType == AddressType::I64 && !codeMeta->memory64Enabled()) {
-    return d.fail("memory64 is disabled");
   }
 
   return memories->emplaceBack(MemoryDesc(limits));

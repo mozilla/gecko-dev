@@ -228,14 +228,9 @@ enum class LimitsFlags {
 };
 
 enum class LimitsMask {
-#ifdef ENABLE_WASM_MEMORY64
   Table = uint8_t(LimitsFlags::HasMaximum) | uint8_t(LimitsFlags::IsI64),
   Memory = uint8_t(LimitsFlags::HasMaximum) | uint8_t(LimitsFlags::IsShared) |
            uint8_t(LimitsFlags::IsI64),
-#else
-  Table = uint8_t(LimitsFlags::HasMaximum),
-  Memory = uint8_t(LimitsFlags::HasMaximum) | uint8_t(LimitsFlags::IsShared),
-#endif
 };
 
 enum class DataSegmentKind {

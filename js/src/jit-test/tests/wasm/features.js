@@ -71,11 +71,6 @@ let releasedFeatures = [
     `(module (func try_table end))`
   ],
   [
-    'memory64',
-    wasmMemory64Enabled(),
-    `(module (memory i64 0))`,
-  ],
-  [
     'js-string-builtins',
     wasmJSStringBuiltinsEnabled(),
     `(module
