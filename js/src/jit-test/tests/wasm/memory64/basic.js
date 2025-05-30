@@ -1,4 +1,4 @@
-// |jit-test| heavy; allow-oom; test-also=--setpref=wasm_tail_calls=false
+// |jit-test| heavy; allow-oom
 
 // Basic tests around creating and linking memories with i64 indices
 
