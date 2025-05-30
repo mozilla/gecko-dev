@@ -7,6 +7,7 @@ edition = "2021"
 crate-type = ["lib", "staticlib"]
 
 [dependencies]
+async-trait = "0.1"
 thiserror = "1"
 uniffi = { workspace = true, features = ["ffi-trace"] }
 

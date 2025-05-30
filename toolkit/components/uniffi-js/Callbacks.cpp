@@ -19,40 +19,53 @@
 namespace mozilla::uniffi {
 extern mozilla::LazyLogModule gUniffiLogger;
 
-void UniffiCallbackMethodHandlerBase::FireAndForget(
-    UniquePtr<UniffiCallbackMethodHandlerBase> aHandler,
+void AsyncCallbackMethodHandlerBase::ScheduleAsyncCall(
+    UniquePtr<AsyncCallbackMethodHandlerBase> aHandler,
     StaticRefPtr<dom::UniFFICallbackHandler>* aJsHandler) {
   nsresult dispatchResult = NS_DispatchToMainThread(NS_NewRunnableFunction(
       "UniFFI callback", [handler = std::move(aHandler),
-                          aJsHandler]() MOZ_CAN_RUN_SCRIPT_BOUNDARY {
+                          aJsHandler]() MOZ_CAN_RUN_SCRIPT_BOUNDARY mutable {
+        auto reportError = MakeScopeExit([&handler] {
+          RootedDictionary<UniFFIScaffoldingCallResult> callResult(
+              dom::RootingCx());
+          callResult.mCode = dom::UniFFIScaffoldingCallCode::Internal_error;
+          handler->HandleReturn(callResult, IgnoreErrors());
+        });
+
         // Take our own reference to the callback handler to ensure that it
         // stays alive for the duration of this call
         RefPtr<dom::UniFFICallbackHandler> jsHandler = *aJsHandler;
         if (!jsHandler) {
           MOZ_LOG(gUniffiLogger, LogLevel::Error,
-                  ("[UniFFI] %s called, but JS handler not registered",
-                   handler->mUniffiInterfaceName));
+                  ("[%s] called, but JS handler not registered",
+                   handler->mUniffiMethodName));
           return;
         }
 
         JSObject* global = jsHandler->CallbackGlobalOrNull();
         if (!global) {
-          MOZ_LOG(gUniffiLogger, LogLevel::Error,
-                  ("[UniFFI] JS handler for %s has null global",
-                   handler->mUniffiInterfaceName));
+          MOZ_LOG(
+              gUniffiLogger, LogLevel::Error,
+              ("[%s] JS handler has null global", handler->mUniffiMethodName));
           return;
         }
 
-        dom::AutoEntryScript aes(global, handler->mUniffiInterfaceName);
+        dom::AutoEntryScript aes(global, handler->mUniffiMethodName);
 
         IgnoredErrorResult error;
-        handler->MakeCall(aes.cx(), jsHandler, error);
-
+        RefPtr<dom::Promise> promise =
+            handler->MakeCall(aes.cx(), jsHandler, error);
         if (error.Failed()) {
-          MOZ_LOG(gUniffiLogger, LogLevel::Error,
-                  ("[UniFFI] Error invoking JS handler for %s",
-                   handler->mUniffiInterfaceName));
+          MOZ_LOG(
+              gUniffiLogger, LogLevel::Error,
+              ("[%s] Error invoking JS handler", handler->mUniffiMethodName));
           return;
+        }
+
+        reportError.release();
+        if (promise) {
+          auto promiseHandler = MakeRefPtr<PromiseHandler>(std::move(handler));
+          promise->AppendNativeHandler(promiseHandler);
         }
       }));
 
@@ -62,10 +75,35 @@ void UniffiCallbackMethodHandlerBase::FireAndForget(
   }
 }
 
-void UniffiCallbackFreeHandler::MakeCall(JSContext* aCx,
-                                         dom::UniFFICallbackHandler* aJsHandler,
-                                         ErrorResult& aError) {
+MOZ_CAN_RUN_SCRIPT
+already_AddRefed<dom::Promise> CallbackFreeHandler::MakeCall(
+    JSContext* aCx, dom::UniFFICallbackHandler* aJsHandler,
+    ErrorResult& aError) {
   aJsHandler->Destroy(mUniffiHandle.IntoRust(), aError);
+  // CallbackFreeHandler works like a fire-and-forget callback and returns
+  // nullptr.  There's no Rust code that's awaiting this result.
+  return nullptr;
+}
+
+void AsyncCallbackMethodHandlerBase::PromiseHandler::ResolvedCallback(
+    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+  RootedDictionary<UniFFIScaffoldingCallResult> callResult(aCx);
+  if (!callResult.Init(aCx, aValue)) {
+    JS_ClearPendingException(aCx);
+    MOZ_LOG(
+        gUniffiLogger, LogLevel::Error,
+        ("[%s] callback method did not return a UniFFIScaffoldingCallResult",
+         mHandler->mUniffiMethodName));
+    callResult.mCode = dom::UniFFIScaffoldingCallCode::Internal_error;
+  }
+  mHandler->HandleReturn(callResult, aRv);
+}
+
+void AsyncCallbackMethodHandlerBase::PromiseHandler::RejectedCallback(
+    JSContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv) {
+  RootedDictionary<UniFFIScaffoldingCallResult> callResult(aCx);
+  callResult.mCode = dom::UniFFIScaffoldingCallCode::Internal_error;
+  mHandler->HandleReturn(callResult, aRv);
 }
 
 }  // namespace mozilla::uniffi
