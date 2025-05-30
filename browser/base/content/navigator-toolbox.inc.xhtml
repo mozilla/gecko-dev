@@ -50,13 +50,13 @@
               tooltip="tabbrowser-tab-tooltip"
               orient="horizontal"
               stopwatchid="tabClick">
-          <hbox class="tab-drop-indicator" hidden="true"/>
 # If the name (tabbrowser-arrowscrollbox) or structure of this changes
 # significantly, there is an optimization in
 # DisplayPortUtils::MaybeCreateDisplayPortInFirstScrollFrameEncountered based
 # the current structure that we may want to revisit.
           <arrowscrollbox id="pinned-tabs-container" orient="horizontal" tabindex="-1"></arrowscrollbox>
           <splitter orient="vertical" id="vertical-pinned-tabs-splitter" resizebefore="sibling" resizeafter="none" hidden="true"/>
+          <hbox class="tab-drop-indicator" hidden="true"/>
           <arrowscrollbox id="tabbrowser-arrowscrollbox" orient="horizontal" flex="1" clicktoscroll="" scrolledtostart="" scrolledtoend="">
             <tab is="tabbrowser-tab" class="tabbrowser-tab" selected="true" visuallyselected="" fadein=""/>
             <hbox id="tabbrowser-arrowscrollbox-periphery">
