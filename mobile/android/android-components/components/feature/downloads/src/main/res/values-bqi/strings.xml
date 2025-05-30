@@ -70,6 +70,8 @@
   <string name="mozac_feature_downloads_third_party_app_chooser_dialog_title">کامل کردن عملکرد وا و کار گرؽڌن</string>
   <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->
   <string name="mozac_feature_downloads_unable_to_open_third_party_app">نترست %1$s ن بوگوشه</string>
+  <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
+  <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">سی دانلود فایلا، هشتن دسرسی و فایلا وو وارسگر ن اخو. و سامووا ٱندروید ریوین، ری هشتنا بزنین وو دیندا هشتن ن بزنین.</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the title -->
   <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">دانلودا سیخومی لقو بۊن؟</string>
   <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->

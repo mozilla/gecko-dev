@@ -56,6 +56,7 @@
   <string name="home_bookmarks_menu_item_remove">پاک کردن</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s و دست مۊزیلا وورکل وابیڌه.</string>
+  <string name="private_browsing_common_myths">باورا اشتوا من زایار زبار گشتن سیخومی</string>
   <!--
     True Private Browsing Mode
 
@@ -95,6 +96,18 @@
   <string name="open_in_app_cfr_positive_button_text">راو و سامووا</string>
   <!-- Text for the negative action button -->
   <string name="open_in_app_cfr_negative_button_text">رڌ کردن</string>
+  <!--
+    Private browsing erase action "contextual feature recommendation" (CFR)
+
+    Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature.
+  -->
+  <string name="erase_action_cfr_message">سی ناهاڌن پا ی نشست سیخومی نۊ ایچونا بزنین. ویرگار، کۊکیا — پوی چیا ن پاک کۊنین.</string>
+  <!--
+    Toolbar "contextual feature recommendation" (CFR)
+
+    Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
+  -->
+  <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">وا ناوبری نۊ زیتر گشت بزنین</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">سی جا گورویی منجا بلگه یل من ویرگار ای بلگه، فلشا ن واڌارنین.</string>
   <!--
@@ -173,6 +186,8 @@
     in the Recently visited section
   -->
   <string name="recently_visited_menu_item_remove">پاک کردن</string>
+  <!-- Content description for the button which navigates the user to show all of their history. -->
+  <string name="past_explorations_show_all_content_description_2">نشووݩ داڌن پوی جوستنیا گوڌشته</string>
   <!--
     Browser Fragment
 
@@ -187,6 +202,11 @@
   <string name="browser_menu_stop">واڌاشتن</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_extensions">وردنی یل</string>
+  <!--
+    Browser menu banner header text for extensions onboarding.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="browser_menu_extensions_banner_onboarding_header">%s ن و دل خوت سامووݩ کوݩ</string>
   <!-- Browser menu banner header text for extensions onboarding when all installed extensions have been disabled. -->
   <string name="browser_menu_disabled_extensions_banner_onboarding_header">ایسا وردنی یلی پۊرنیڌن، ٱما فعال نؽڌن</string>
   <!--
@@ -212,6 +232,8 @@
   <string name="browser_menu_extension_plus_icon_content_description_2">ٱووردن %1$s</string>
   <!-- Browser menu button that opens AMO in a tab -->
   <string name="browser_menu_discover_more_extensions">جوستن وردنی یل قلوه</string>
+  <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+  <string name="browser_menu_extensions_disabled_description">مووقتن قیر فعال وابیڌه</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">هنی هیچ وردنی فعال نؽڌ</string>
   <!-- Browser menu button that opens account settings -->
@@ -322,6 +344,8 @@
   <string name="browser_tools_menu_handlebar_content_description">بستن بلگه نومگه ٱوزارا</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">بستن ورق نومگه بلگه سفارشی</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_report_site_2">نما خۊندنی، گوزارش خراوی وبگه، چاپ، یک رسۊوی، گۊشیڌن برنومه</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
   <string name="browser_menu_tools_description_without_report_site">نما خۊندنی، چاپ، یک رسۊوی، گۊشیڌن برنومه</string>
   <!--
@@ -414,6 +438,8 @@
   <string name="search_suggestions_onboarding_allow_button">هشتن</string>
   <!-- Button in the search suggestions onboarding that does not allow search suggestions in private sessions -->
   <string name="search_suggestions_onboarding_do_not_allow_button">نشتن</string>
+  <!-- Search suggestion onboarding hint title text -->
+  <string name="search_suggestions_onboarding_title">هشتن پؽشنهاڌا پیتینیڌن من نشستا سیخومی؟</string>
   <!-- Search suggestion onboarding hint description text, %s is the name of the app (for example "Firefox"). -->
   <string name="search_suggestions_onboarding_text">%s هر چ ن ک من نوار نشۊوی هؽل کردینه ن و موتور پیتینیڌن افشنه.</string>
   <!-- Search engine suggestion title text. %s is the name of the suggested engine. -->
@@ -574,10 +600,14 @@
   <string name="onboarding_term_of_service_line_three_link_text">دؽوۉداری</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">منه روشد Firefox و ایما هیاری بڌین</string>
+  <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
+  <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">بارت و کار گرؽڌن ایما ز داده یل</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">قوۊل کردن وو ناهاڌن پا گشتن</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">نوکته دیندایی</string>
+  <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
+  <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">نشووݩ داڌن مووافقت وو ناهاڌن پا گشتن</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_title" tools:ignore="UnusedResources">پسند جاگه جا گرؽڌن نوار ٱوزار</string>
   <!-- Onboarding sub header for toolbar selection card, used by Nimbus experiments. -->
@@ -590,6 +620,7 @@
   <string name="onboarding_customize_toolbar_bottom_option">بلم</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">شؽوات من نوار ٱوزار بلم</string>
+  <string name="onboarding_customize_toolbar_placement_top_content_description">شؽوات نوار ٱوزار روء</string>
   <!-- Action label for toolbar options that can be selected. Talkback will append this to say "Double tap to select". -->
   <string name="onboarding_customize_toolbar_a11y_action_label_select">پسند</string>
   <!-- Onboarding header for the theme selection card, used by Nimbus experiments. -->
@@ -604,6 +635,8 @@
   <string name="onboarding_customize_theme_light_option">رۊشن</string>
   <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_system_option">سیستوم خوتکار</string>
+  <!-- Onboarding theme selection card content description for the main image. -->
+  <string name="onboarding_customize_theme_main_image_content_description">شؽوات گپ سربلگ نما پسند زمینه ک ٱوزارا هونرمند وو وورکل کوݩ ن نشووݩ اده.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">شؽوات زمینه %1$s</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
@@ -638,6 +671,10 @@
   <string name="preferences_category_about">زبار</string>
   <!-- Preference category for settings related to changing the default search engine -->
   <string name="preferences_category_select_default_search_engine">یکی ن پسند کۊنین</string>
+  <!-- Summary for preference for settings related to managing search shortcuts for the quick search menu -->
+  <string name="preferences_manage_search_shortcuts_summary">آلشت موتورا دیاری من نومگه پیتینیڌن</string>
+  <!-- Preference category for settings related to managing search shortcuts for the quick search menu -->
+  <string name="preferences_category_engines_in_search_menu">موتورا دیاری من نومگه پیتینیڌن</string>
   <!-- Preference for settings related to changing the default search engine -->
   <string name="preferences_default_search_engine">موتور پیتینیڌن پؽش فرز</string>
   <!-- Preference for settings related to Search -->
@@ -871,6 +908,8 @@
     a section where users see a list of tabs that they have visited in the past few days
   -->
   <string name="customize_toggle_recently_visited">نیشتنا دیندایی</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">داستانا</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">وزعیتا هؽزگرووݩ</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -903,6 +942,12 @@
   <string name="wallpaper_artist_series_description_with_learn_more">کتنی ز دونگا موستقل نۊ. %s</string>
   <!-- Description text for the artist series wallpapers. "Independent voices" is the name of the wallpaper collection -->
   <string name="wallpaper_artist_series_description">کتنی ز دونگا موستقل نۊ.</string>
+  <!-- Wallpaper onboarding dialog header text. -->
+  <string name="wallpapers_onboarding_dialog_title_text">رنگا شاڌ ن امتهووݩ کۊنین</string>
+  <!-- Wallpaper onboarding dialog body text. -->
+  <string name="wallpapers_onboarding_dialog_body_text">کاقز دیواری ن پسند کۊنین ک وا ایسا گوفت ۉ لوفت اکونه.</string>
+  <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
+  <string name="wallpapers_onboarding_dialog_explore_more_button_text">جوستن کاقز دیواری یل قلوه</string>
   <!--
     Icon picker
 
@@ -937,6 +982,10 @@
   <string name="alternative_app_icon_option_gradient_midnight">نسم شاو</string>
   <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
   <string name="alternative_app_icon_option_gradient_northern_lights">لیتا شومالی</string>
+  <!-- Title for the "Retro 2004" themed alternative app icon variant in the icon picker screen. This app icon uses the classic Firefox logo from 2004. -->
+  <string name="alternative_app_icon_option_retro_2004">ریترو 2004</string>
+  <!-- Title for the "Retro 2017" themed alternative app icon variant in the icon picker screen. This app icon uses the Firefox logo from 2017, with a more modernized design. -->
+  <string name="alternative_app_icon_option_retro_2017">ریترو 2017</string>
   <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
   <string name="alternative_app_icon_option_pixelated">پیکسلی</string>
   <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
@@ -1037,6 +1086,12 @@
   <string name="fxa_tabs_closed_notification_title">%1$s بلگه بسته وابین: %2$d</string>
   <!-- The body for a "closed synced tabs" notification. -->
   <string name="fxa_tabs_closed_text">نشووݩ داڌن بلگه یلی ک سکو بسته وابین</string>
+  <!--
+    Advanced Preferences
+
+    Preference for tracking protection exceptions
+  -->
+  <string name="preferences_tracking_protection_exceptions">استسنایل</string>
   <!-- Button in Exceptions Preference to turn on tracking protection for all sites (remove all exceptions) -->
   <string name="preferences_tracking_protection_exceptions_turn_on_for_all">رۊشن کردن سی پوی وبگه یل</string>
   <!-- Text displayed when there are no exceptions -->
@@ -1068,6 +1123,12 @@
   <!-- Preference for removing FxA account -->
   <string name="preferences_sync_remove_account">پاک کردن هساو</string>
   <!--
+    Pairing Feature strings
+
+    Instructions on how to access pairing
+  -->
+  <string name="pair_instructions_2"><![CDATA[کود QR نشووݩ داڌه وابیڌه من <b>firefox.com/pair</b> ن اسکن کۊنین]]></string>
+  <!--
     Toolbar Preferences
 
     Preference for using top toolbar
@@ -1095,6 +1156,8 @@
   <string name="preference_gestures_website_pull_to_refresh">کشیڌن سی وانۊ کردن</string>
   <!-- Preference for showing the opened tabs by swiping up on the toolbar -->
   <string name="preference_gestures_swipe_toolbar_show_tabs">سی گۊشیڌن بلگه یل، نوار ٱوزار ن ب روء بکشین</string>
+  <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+  <string name="preference_gestures_swipe_toolbar_switch_tabs_2">نوار نشۊوی ن و ای ترف اۊ ترف بکشین تا بلگه یل ن آلشت کۊنین</string>
   <!--
     Library
 
@@ -1124,6 +1187,11 @@
     %d is a placeholder for the number of tabs that will be opened
   -->
   <string name="open_all_warning_title">گۊشیڌن %d بلگه؟</string>
+  <!--
+    Message to warn users that a large number of tabs will be opened
+    %s will be replaced by app name.
+  -->
+  <string name="open_all_warning_message">گۊشیڌن پوی ای بلگه یل مجال گۊشیڌن بلگه یل، %s ن کوند اکونه. الن اخۊین رین وا پؽش؟</string>
   <!-- Dialog button text for confirming open all tabs -->
   <string name="open_all_warning_confirm">گۊشیڌن بلگه یل</string>
   <!-- Dialog button text for canceling open all tabs -->
@@ -1178,10 +1246,18 @@
   <string name="close_tabs_after_one_month">بئڌ ی ما</string>
   <!-- Title of preference that allows a user to specify the auto-close settings for open tabs -->
   <string name="preference_auto_close_tabs" tools:ignore="UnusedResources">بستن خوتکار بلگه یل واز</string>
+  <!--
+    Opening screen
+
+    Title of a preference that allows a user to choose what screen to show after opening the app
+  -->
+  <string name="preferences_opening_screen">بلگه نیایی</string>
   <!-- Option for always opening the homepage when re-opening the app -->
   <string name="opening_screen_homepage">بلگه هووه ای</string>
   <!-- Option for always opening the user's last-open tab when re-opening the app -->
   <string name="opening_screen_last_tab">بلگه دیندایی</string>
+  <!-- Option for always opening the homepage when re-opening the app after four hours of inactivity -->
+  <string name="opening_screen_after_four_hours_of_inactivity">بلگه هووه ای بئڌ چار ساعت نڌاشتن فعالیت</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to manual close -->
   <string name="close_tabs_manually_summary">بستن دستی</string>
   <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day -->
@@ -1194,14 +1270,33 @@
   <string name="opening_screen_homepage_summary">گۊشیڌن من بلگه هووه ای</string>
   <!-- Summary for homepage preference indicating always opening the last-open tab when re-opening the app -->
   <string name="opening_screen_last_tab_summary">گۊشیڌن من بلگه دیندایی</string>
+  <!-- Summary for homepage preference indicating opening the homepage when re-opening the app after four hours of inactivity -->
+  <string name="opening_screen_after_four_hours_of_inactivity_summary">گۊشیڌن من بلگه هووه ای بئڌ چار ساعت</string>
+  <!--
+    Inactive tabs
+
+    Category header of a preference that allows a user to enable or disable the inactive tabs feature
+  -->
+  <string name="preferences_inactive_tabs">جا گورو بلگه یل قڌیمی و بشن قیر فعال</string>
+  <!-- Title of inactive tabs preference -->
+  <string name="preferences_inactive_tabs_title">بلگه یلی ک بیشتر ز دو هفته ننیشتینه، و بشن قیر فعال جا گورو ابۊن.</string>
   <!--
     Studies
 
     Title of the remove studies button
   -->
   <string name="studies_remove">پاک کردن</string>
+  <!-- Title of the active section on the studies list -->
+  <string name="studies_active">فعال</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">قلوه دووسته بۊین</string>
+  <!--
+    Sessions
+
+    Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs
+  -->
+  <string name="tabs_header_private_tabs_counter_title">بلگه یل سیخومی واز: %1$s. سی جا گورویی منجا بلگه یل بزنین ریس.</string>
   <!--
     Title for the list of tabs in the synced tabs used by a11y services
     The %1$s will be replaced by the number of opened synced tabs
@@ -1443,6 +1538,8 @@
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">دویمه یل، لینگا وو موئتوا دیر</string>
   <!-- Broken site reason text for site asked to turn off ad blocker -->
   <string name="webcompat_reporter_reason_turn_off_adblocker">وبگه درخاست کرد ک مسدۊد کوݩ تبلیقات ن کۊر کۊنین</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">گشت گر لادراری نؽبۊ یا مسدۊد وابیڌه</string>
   <!--
     Crashes
 
@@ -1619,6 +1716,10 @@
   <string name="phone_feature_blocked_by_android">مسدۊد وابیڌه و دست ٱندروید</string>
   <!-- Summary of tracking protection preference if tracking protection is set to off -->
   <string name="tracking_protection_off">کۊر</string>
+  <!-- Summary of tracking protection preference if tracking protection is set to standard -->
+  <string name="tracking_protection_standard">استاندارد</string>
+  <!-- Summary of tracking protection preference if tracking protection is set to strict -->
+  <string name="tracking_protection_strict">سخت گرووه</string>
   <!-- Summary of tracking protection preference if tracking protection is set to custom -->
   <string name="tracking_protection_custom">سفارشی</string>
   <!-- Label for global setting that indicates that all video and audio autoplay is allowed -->
@@ -1849,6 +1950,16 @@
     number of history items the user has
   -->
   <string name="preferences_delete_browsing_data_browsing_data_subtitle">%d نشۊوی</string>
+  <!-- Title for the cookies and site data items in Delete browsing data -->
+  <string name="preferences_delete_browsing_data_cookies_and_site_data">کۊکیا وو داده یل وبگه</string>
+  <!-- Subtitle for the cookies item in Delete browsing data -->
+  <string name="preferences_delete_browsing_data_cookies_subtitle">ز بیشتر وبگه یل و در ازنین</string>
+  <!-- Title for the cached images and files item in Delete browsing data -->
+  <string name="preferences_delete_browsing_data_cached_files">شؽواتا وو فایلا زفت وابیڌه</string>
+  <!-- Subtitle for the cached images and files item in Delete browsing data -->
+  <string name="preferences_delete_browsing_data_cached_files_subtitle">جاگه زفت کردن ن آزاد اکونه</string>
+  <!-- Title for the site permissions item in Delete browsing data -->
+  <string name="preferences_delete_browsing_data_site_permissions">هشتنا وبگه</string>
   <!-- Title for the downloads item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_downloads">دانلودا</string>
   <!-- Text for the button to delete browsing data -->
@@ -1859,6 +1970,8 @@
   <string name="preference_summary_delete_browsing_data_on_quit_2">مجال پسند \"و در زیڌن\" ز نومگه ٱسلی، داده یل گشتن ن و جۊر خوتکار پاک اکونه</string>
   <!-- Action item in menu for the Delete browsing data on quit feature -->
   <string name="delete_browsing_data_on_quit_action">و در زیڌن</string>
+  <!-- Title text of a delete browsing data dialog. -->
+  <string name="delete_history_prompt_title">بازه زمۊوی سی پاک کردن</string>
   <!-- Radio button in the delete browsing data dialog to delete history items for the last hour. -->
   <string name="delete_history_prompt_button_last_hour">ساعت گوڌشته</string>
   <!-- Radio button in the delete browsing data dialog to delete history items for today and yesterday. -->
@@ -1909,6 +2022,8 @@
   <string name="preference_enhanced_tracking_protection">زفت وابیڌن پؽش رئڌه جلاو رڌجۊری</string>
   <!-- Accessibility text for the Standard protection information icon -->
   <string name="preference_enhanced_tracking_protection_standard_info_button">اۊ چیه ک و دست زفت وابیڌن رڌجۊری استاندارد مسدۊد وابیڌه</string>
+  <!-- Preference for enhanced tracking protection for the strict protection settings -->
+  <string name="preference_enhanced_tracking_protection_strict">سخت گرووه</string>
   <!-- Accessibility text for the Strict protection information icon -->
   <string name="preference_enhanced_tracking_protection_strict_info_button">اۊ چیه ک و دست زفت وابیڌن رڌجۊری سخت گرووه مسدۊد وابیڌه</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings -->

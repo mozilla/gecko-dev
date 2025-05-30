@@ -64,8 +64,12 @@
   <string name="mozac_feature_addons_permissions_history_description">دسرسی و ویرگار گشتنا</string>
   <!-- Description for management permission. -->
   <string name="mozac_feature_addons_permissions_management_description">کیل کردن و کار گرؽڌن وردنی یل وو دؽوۉداری تما</string>
+  <!-- Description for native_messaging permission. -->
+  <string name="mozac_feature_addons_permissions_native_messaging_description">جا گورویی پیوم وا برنومه یلی غیرزا ای برنومه</string>
   <!-- Description for notifications permission. -->
   <string name="mozac_feature_addons_permissions_notifications_description">نشووݩ داڌن وارسۊویا ری بلگه سی ایسا</string>
+  <!-- Description for pkcs11 permission. -->
+  <string name="mozac_feature_addons_permissions_pkcs11_description">جۊر کردن خدمات ائراز هۊویت رزم ناهاڌه بیڌه</string>
   <!-- Description for proxy permission. -->
   <string name="mozac_feature_addons_permissions_proxy_description">کونتورول سامووا پروکسی گشت گر</string>
   <!-- Description for sessions permission. -->
@@ -218,6 +222,8 @@
   <string name="mozac_feature_addons_failed_to_install_incompatible_error">%1$s نتره بپۊره چیناکه وا %2$s %3$s ساز نیاره.</string>
   <!-- Text shown when attempting to install a (hard) blocked add-on. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_blocklisted_2">%1$s خت مشی یل Mozilla ن زؽر پا انه وو نتره و ری %2$s بپۊره.</string>
+  <!-- Text shown when attempting to install an add-on that can only be install via Enterprise Policies, which is not supported on Android.  %1$s is the add-on name. -->
+  <string name="mozac_feature_addons_admin_install_only">%1$s نتره بپۊره چیناکه تینا و دست سازمووی ک سیاستا سازمۊوی ن و کار اگره تره بپۊره، ک من ای پلتفورم لادراری نؽبۊ.</string>
   <!-- Text shown when attempting to install an add-on that is soft-blocked. %1$s is the add-on name. %2$s is the app name. -->
   <string name="mozac_feature_addons_soft_blocked_1">%1$s خت مشی یل Mozilla ن زؽر پا انه وو نتره و ری %2$s بپۊره.</string>
   <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->

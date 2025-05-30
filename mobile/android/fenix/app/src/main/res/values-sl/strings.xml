@@ -21,7 +21,7 @@
   <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
   <string name="search_hint_general_engine">Iskanje po spletu</string>
   <!-- Placeholder text shown in search bar when using history search -->
-  <string name="history_search_hint">Zgodovina iskanja</string>
+  <string name="history_search_hint">Iskanje po zgodovini</string>
   <!-- Placeholder text shown in search bar when using bookmarks search -->
   <string name="bookmark_search_hint">Iskanje po zaznamkih</string>
   <!-- Placeholder text shown in search bar when using tabs search -->
