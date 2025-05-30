@@ -195,6 +195,10 @@ impl GeonameMatchType {
         matches!(self, GeonameMatchType::Abbreviation)
     }
 
+    pub fn is_airport_code(&self) -> bool {
+        matches!(self, GeonameMatchType::AirportCode)
+    }
+
     pub fn is_name(&self) -> bool {
         matches!(self, GeonameMatchType::Name)
     }
@@ -977,6 +981,76 @@ pub(crate) mod tests {
                 "longitude": "-99.25061",
             },
 
+            // New Orleans (shares a prefix with New York)
+            {
+                "id": 4335045,
+                "name": "New Orleans",
+                "feature_class": "P",
+                "feature_code": "PPLA2",
+                "country": "US",
+                "admin1": "LA",
+                "admin2": "071",
+                "admin3": "98000",
+                "population": 389617,
+                "latitude": "29.95465",
+                "longitude": "-90.07507",
+            },
+
+            // Carlsbad, CA (in San Diego county, name starts with "CA")
+            {
+                "id": 5334223,
+                "name": "Carlsbad",
+                "country": "US",
+                "feature_class": "P",
+                "feature_code": "PPL",
+                "admin1": "CA",
+                "admin2": "073",
+                "population": 114746,
+                "latitude": "33.15809",
+                "longitude": "-117.35059",
+            },
+
+            // San Diego
+            {
+                "id": 5391811,
+                "name": "San Diego",
+                "country": "US",
+                "feature_class": "P",
+                "feature_code": "PPLA2",
+                "admin1": "CA",
+                "admin2": "073",
+                "population": 1394928,
+                "latitude": "32.71571",
+                "longitude": "-117.16472",
+            },
+
+            // San Diego County (same name as the city)
+            {
+                "id": 5391832,
+                "name": "San Diego",
+                "country": "US",
+                "feature_class": "A",
+                "feature_code": "ADM2",
+                "admin1": "CA",
+                "admin2": "073",
+                "population": 3095313,
+                "latitude": "33.0282",
+                "longitude": "-116.77021",
+            },
+
+            // CA
+            {
+                "id": 5332921,
+                "name": "California",
+                "feature_class": "A",
+                "feature_code": "ADM1",
+                "country": "US",
+                "admin1": "CA",
+                "population": 39512223,
+                "latitude": "37.25022",
+                "longitude": "-119.75126",
+            },
+
             // Made-up city with a long name (the digits in the name are to
             // prevent matches on this geoname in weather tests, etc.)
             {
@@ -1305,6 +1379,8 @@ pub(crate) mod tests {
                     "NYC",
                     "NY",
                 ]],
+                // CA
+                [5332921, ["CA"]],
                 // United States
                 [6252001, [
                     { "name": "US", "is_short": true },
@@ -1416,6 +1492,56 @@ pub(crate) mod tests {
             population: 132356,
             latitude: "31.54933".to_string(),
             longitude: "-97.14667".to_string(),
+        }
+    }
+
+    pub(crate) fn new_orleans() -> Geoname {
+        Geoname {
+            geoname_id: 4335045,
+            geoname_type: GeonameType::City,
+            name: "New Orleans".to_string(),
+            feature_class: "P".to_string(),
+            feature_code: "PPLA2".to_string(),
+            country_code: "US".to_string(),
+            admin_division_codes: [
+                (1, "LA".to_string()),
+                (2, "071".to_string()),
+                (3, "98000".to_string()),
+            ]
+            .into(),
+            population: 389617,
+            latitude: "29.95465".to_string(),
+            longitude: "-90.07507".to_string(),
+        }
+    }
+
+    pub(crate) fn carlsbad() -> Geoname {
+        Geoname {
+            geoname_id: 5334223,
+            geoname_type: GeonameType::City,
+            name: "Carlsbad".to_string(),
+            feature_class: "P".to_string(),
+            feature_code: "PPL".to_string(),
+            country_code: "US".to_string(),
+            admin_division_codes: [(1, "CA".to_string()), (2, "073".to_string())].into(),
+            population: 114746,
+            latitude: "33.15809".to_string(),
+            longitude: "-117.35059".to_string(),
+        }
+    }
+
+    pub(crate) fn san_diego() -> Geoname {
+        Geoname {
+            geoname_id: 5391811,
+            geoname_type: GeonameType::City,
+            name: "San Diego".to_string(),
+            feature_class: "P".to_string(),
+            feature_code: "PPLA2".to_string(),
+            country_code: "US".to_string(),
+            admin_division_codes: [(1, "CA".to_string()), (2, "073".to_string())].into(),
+            population: 1394928,
+            latitude: "32.71571".to_string(),
+            longitude: "-117.16472".to_string(),
         }
     }
 
@@ -2405,6 +2531,11 @@ pub(crate) mod tests {
                 expected: vec![
                     GeonameMatch {
                         geoname: nyc(),
+                        match_type: GeonameMatchType::Name,
+                        prefix: true,
+                    },
+                    GeonameMatch {
+                        geoname: new_orleans(),
                         match_type: GeonameMatchType::Name,
                         prefix: true,
                     },
