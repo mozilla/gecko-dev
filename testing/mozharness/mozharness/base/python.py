@@ -21,6 +21,8 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
+from functools import lru_cache
+
 from six import string_types
 
 import mozharness
@@ -41,6 +43,28 @@ external_tools_path = os.path.join(
 
 class MultipleWheelMatchError(Exception):
     pass
+
+
+@lru_cache(maxsize=None)
+def get_uv_executable():
+    return shutil.which("uv")
+
+
+def pip_command(*, python_executable, subcommand=None, args=None, non_uv_args=None):
+    if uv_executable := get_uv_executable():
+        command = [uv_executable, "pip"]
+        if subcommand:
+            command.append(subcommand)
+            python_root = Path(python_executable).parent.parent
+            command.append(f"--python={python_root}")
+        full_command = command + (args or [])
+    else:
+        command = [python_executable, "-m", "pip"]
+        if subcommand:
+            command.append(subcommand)
+        full_command = command + (non_uv_args or []) + (args or [])
+
+    return full_command
 
 
 def get_tlsv1_post():
@@ -206,8 +230,13 @@ class VirtualenvMixin:
             if not pip:
                 self.log("package_versions: Program pip not in path", level=error_level)
                 return {}
+            pip_list_command = pip_command(
+                python_executable=self.query_python_path(),
+                subcommand="list",
+                args=["--format", "freeze", "--no-index"],
+            )
             pip_freeze_output = self.get_output_from_command(
-                [pip, "list", "--format", "freeze", "--no-index"],
+                pip_list_command,
                 silent=True,
                 ignore_errors=True,
             )
@@ -284,25 +313,24 @@ class VirtualenvMixin:
         if install_method in (None, "pip"):
             if not module_url and not requirements:
                 self.fatal("Must specify module and/or requirements")
-            pip = self.query_python_path("pip")
+            pip_command_args = []
+            pip_command_non_uv_args = []
             if c.get("verbose_pip"):
-                command = [pip, "-v", "install"]
-            else:
-                command = [pip, "install"]
+                pip_command_args += ["-v"]
             if no_deps:
-                command += ["--no-deps"]
+                pip_command_args += ["--no-deps"]
 
-            command += ["--no-use-pep517"]
+            pip_command_non_uv_args += ["--no-use-pep517"]
 
             # To avoid timeouts with our pypi server, increase default timeout:
             # https://bugzilla.mozilla.org/show_bug.cgi?id=1007230#c802
-            command += ["--timeout", str(c.get("pip_timeout", 120))]
+            pip_command_non_uv_args += ["--timeout", str(c.get("pip_timeout", 120))]
             for requirement in requirements:
-                command += ["-r", requirement]
+                pip_command_args += ["-r", requirement]
             if c.get("find_links") and not c["pip_index"]:
-                command += ["--no-index"]
+                pip_command_args += ["--no-index"]
             for opt in global_options:
-                command += ["--global-option", opt]
+                pip_command_args += ["--global-option", opt]
         else:
             self.fatal(
                 "install_module() doesn't understand an install_method of %s!"
@@ -353,7 +381,7 @@ class VirtualenvMixin:
                         "find_links: connection checks passed for %s, adding." % link
                     )
                     find_links_added += 1
-                    command.extend(["--find-links", link])
+                    pip_command_args.extend(["--find-links", link])
                 else:
                     self.warning(
                         "find_links: connection checks failed for %s"
@@ -362,7 +390,7 @@ class VirtualenvMixin:
             elif len(parsed.path) > 0 and os.path.isdir(link):
                 self.info("find_links: dir exists %s, adding." % link)
                 find_links_added += 1
-                command.extend(["--find-links", link])
+                pip_command_args.extend(["--find-links", link])
             else:
                 self.warning("find_links: not a valid path nor URL %s" % link)
 
@@ -376,19 +404,28 @@ class VirtualenvMixin:
         if module_url:
             if editable:
                 if install_method in (None, "pip"):
-                    command += ["-e"]
+                    pip_command_args += ["-e"]
                 else:
                     self.fatal(
                         "editable installs not supported for install_method %s"
                         % install_method
                     )
-            command += [module_url]
+            pip_command_args += [module_url]
 
         # If we're only installing a single requirements file, use
         # the file's directory as cwd, so relative paths work correctly.
         cwd = dirs["abs_work_dir"]
         if not module and len(requirements) == 1:
             cwd = os.path.dirname(requirements[0])
+
+        pip_install_command = (
+            pip_command(
+                python_executable=self.query_python_path(),
+                subcommand="install",
+                args=pip_command_args,
+                non_uv_args=pip_command_non_uv_args,
+            ),
+        )
 
         # Allow for errors while building modules, but require a
         # return status of 0.
@@ -398,10 +435,8 @@ class VirtualenvMixin:
             attempts=1 if optional else None,
             good_statuses=(0,),
             error_level=WARNING if optional else FATAL,
-            error_message=("Could not install python package: failed all attempts."),
-            args=[
-                command,
-            ],
+            error_message="Could not install python package: failed all attempts.",
+            args=pip_install_command,
             kwargs={
                 "error_list": VirtualenvErrorList,
                 "cwd": cwd,
@@ -577,19 +612,24 @@ class VirtualenvMixin:
 
             self._ensure_python_exe(venv_python_bin.parent)
 
-            self.run_command(
-                [
-                    str(venv_python_bin),
-                    "-m",
-                    "pip",
-                    "install",
+            if uv_executable := get_uv_executable():
+                self.run_command([uv_executable, "--version"])
+
+            pip_install_command = pip_command(
+                python_executable=str(venv_python_bin),
+                subcommand="install",
+                args=[
                     "--only-binary",
                     ":all:",
                     "--disable-pip-version-check",
-                    wheels["pip"],
-                    wheels["setuptools"],
-                    wheels["wheel"],
+                    str(wheels["pip"]),
+                    str(wheels["setuptools"]),
+                    str(wheels["wheel"]),
                 ],
+            )
+
+            self.run_command(
+                pip_install_command,
                 cwd=dirs["abs_work_dir"],
                 error_list=VirtualenvErrorList,
                 halt_on_failure=True,
@@ -669,7 +709,6 @@ class VirtualenvMixin:
     def activate_virtualenv(self):
         """Import the virtualenv's packages into this Python interpreter."""
         venv_root_dir = Path(self.query_virtualenv_path())
-        venv_name = venv_root_dir.name
         bin_path = Path(self.query_python_path())
         bin_dir = bin_path.parent
 
@@ -686,7 +725,8 @@ class VirtualenvMixin:
         os.environ["PATH"] = os.pathsep.join(
             [str(bin_dir)] + os.environ.get("PATH", "").split(os.pathsep)
         )
-        os.environ["VIRTUAL_ENV"] = venv_name
+
+        os.environ["VIRTUAL_ENV"] = str(venv_root_dir)
 
         prev_path = set(sys.path)
 
@@ -1117,11 +1157,22 @@ class Python3Virtualenv:
             raise Exception("You need to call py3_create_venv() first.")
 
         for m in modules:
-            cmd = [self.py3_pip_path, "install"]
+            pip_install_command_args = []
+            pip_install_non_uv_args = []
             if use_mozharness_pip_config:
-                cmd += self._mozharness_pip_args()
-            cmd += [m]
-            self.run_command(cmd, env=self.query_env())
+                pip_args, pip_install_non_uv_args = self._mozharness_pip_args()
+                pip_install_command_args += pip_args
+            pip_install_command_args += [m]
+
+            pip_install_command = (
+                pip_command(
+                    python_executable=self.py3_python_path,
+                    subcommand="install",
+                    args=pip_install_command_args,
+                    non_uv_args=pip_install_non_uv_args,
+                ),
+            )
+            self.run_command(pip_install_command, env=self.query_env())
 
     def _mozharness_pip_args(self):
         """We have information in Mozharness configs that apply to pip"""
@@ -1129,12 +1180,12 @@ class Python3Virtualenv:
         pip_args = []
         # To avoid timeouts with our pypi server, increase default timeout:
         # https://bugzilla.mozilla.org/show_bug.cgi?id=1007230#c802
-        pip_args += ["--timeout", str(c.get("pip_timeout", 120))]
+        non_uv_pip_args = ["--timeout", str(c.get("pip_timeout", 120))]
 
         if c.get("find_links") and not c["pip_index"]:
             pip_args += ["--no-index"]
 
-        pip_args += ["--no-use-pep517"]
+        non_uv_pip_args += ["--no-use-pep517"]
 
         # Add --find-links pages to look at. Add --trusted-host automatically if
         # the host isn't secure. This allows modern versions of pip to connect
@@ -1156,7 +1207,7 @@ class Python3Virtualenv:
         for host in sorted(trusted_hosts):
             pip_args += ["--trusted-host", host]
 
-        return pip_args
+        return pip_args, non_uv_pip_args
 
     @py3_venv_initialized
     def py3_install_requirement_files(
@@ -1165,19 +1216,28 @@ class Python3Virtualenv:
         """
         requirements - You can specify multiple requirements paths
         """
-        cmd = [self.py3_pip_path, "install"]
-        cmd += pip_args
+        pip_install_command_args = []
+        pip_install_command_args += pip_args
+        pip_install_non_uv_args = []
 
         if use_mozharness_pip_config:
-            cmd += self._mozharness_pip_args()
+            pip_args, pip_install_non_uv_args = self._mozharness_pip_args()
+            pip_install_command_args += pip_args
 
         for requirement_path in requirements:
-            cmd += ["-r", requirement_path]
+            pip_install_command_args += ["-r", requirement_path]
 
-        self.run_command(cmd, env=self.query_env())
+        pip_install_command = (
+            pip_command(
+                python_executable=self.py3_python_path,
+                subcommand="install",
+                args=pip_install_command_args,
+                non_uv_args=pip_install_non_uv_args,
+            ),
+        )
 
+        self.run_command(pip_install_command, env=self.query_env())
 
-# __main__ {{{1
 
 if __name__ == "__main__":
     """TODO: unit tests."""
