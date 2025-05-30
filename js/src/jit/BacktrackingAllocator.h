@@ -674,7 +674,11 @@ class VirtualRegister {
 using SplitPositionVector =
     js::Vector<CodePosition, 4, BackgroundSystemAllocPolicy>;
 
-class BacktrackingAllocator : protected RegisterAllocator {
+class MOZ_STACK_CLASS BacktrackingAllocator : protected RegisterAllocator {
+ public:
+  using IsStackAllocated = std::true_type;
+
+ private:
   friend class JSONSpewer;
 
   // Computed data
@@ -684,7 +688,8 @@ class BacktrackingAllocator : protected RegisterAllocator {
 
   // ~BacktrackingAllocator will call ~VirtualRegBitSet and ~VirtualRegister for
   // everything in these collections.
-  using VirtualRegBitSet = SparseBitSet<BackgroundSystemAllocPolicy>;
+  using VirtualRegBitSet =
+      SparseBitSet<BackgroundSystemAllocPolicy, BacktrackingAllocator>;
   Vector<VirtualRegBitSet, 0, JitAllocPolicy> liveIn;
   Vector<VirtualRegister, 0, JitAllocPolicy> vregs;
 
