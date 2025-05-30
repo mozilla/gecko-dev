@@ -14,7 +14,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 #include "nsIGlobalObject.h"
-#include "onnxruntime_c_api.h"
+#include "OnxRunTimeIncludeWrapper.h"
 
 namespace mozilla::dom {
 class Promise;

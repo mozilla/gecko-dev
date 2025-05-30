@@ -21,7 +21,6 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "nsString.h"
-#include "onnxruntime_c_api.h"
 #include "mozilla/dom/Tensor.h"
 #include "mozilla/Attributes.h"
 mozilla::LazyLogModule gONNXLog("ONNXNative");
