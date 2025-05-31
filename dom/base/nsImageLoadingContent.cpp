@@ -1347,10 +1347,28 @@ CSSIntSize nsImageLoadingContent::GetWidthHeightForImage() {
 
   CSSIntSize size;
   nsCOMPtr<imgIContainer> image;
-  if (mCurrentRequest) {
+  if (StaticPrefs::image_natural_size_fallback_enabled()) {
+    // Our image is not rendered (we don't have any frame); so we should should
+    // return the natural size, per:
+    // https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-width
+    //
+    // Note that the spec says to use the "density-corrected natural width and
+    // height of the image", but we don't do that -- we specifically request
+    // the NaturalSize *without* density-correction here.  This handles a case
+    // where browsers deviate from the spec in an interoperable way, which
+    // hopefully we'll address in the spec soon. See case (2) in this comment
+    // for more:
+    // https://github.com/whatwg/html/issues/11287#issuecomment-2923467541
+    size = NaturalSize(DoDensityCorrection::No);
+  } else if (mCurrentRequest) {
     mCurrentRequest->GetImage(getter_AddRefs(image));
   }
 
+  // If we have width or height attrs, we'll let those stomp on whatever
+  // NaturalSize we may have gotten above. This handles a case where browsers
+  // deviate from the spec in an interoperable way, which hopefully we'll
+  // address in the spec soon. See case (1) in this comment for more:
+  // https://github.com/whatwg/html/issues/11287#issuecomment-2923467541
   const nsAttrValue* value;
   if ((value = element->GetParsedAttr(nsGkAtoms::width)) &&
       value->Type() == nsAttrValue::eInteger) {
