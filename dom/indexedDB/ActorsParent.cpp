@@ -1466,7 +1466,25 @@ class ConnectionPool final {
                  bool aIsWriteTransaction,
                  TransactionDatabaseOperationBase* aTransactionOp);
 
-  void Dispatch(uint64_t aTransactionId, nsIRunnable* aRunnable);
+  /**
+   * Starts a new operation associated with the given transaction.
+   *
+   * This method initiates an operation by:
+   * 1. Dispatching the provided runnable to the task queue created on top of
+   *    the I/O thread pool if the transaction is currently running.
+   * 2. Queuing the runnable for later execution if the transaction is not yet
+   *    running.
+   *
+   * It is mandatory for all operations to call StartOp to ensure proper
+   * handling and sequencing within the transaction context.
+   *
+   * Note:
+   * - For more complex operations that involve work on other threads or require
+   *   communication with content processes, StartOp should not be called again
+   *   to dispatch to the task queue, as this could disrupt proper queuing and
+   *   execution.
+   */
+  void StartOp(uint64_t aTransactionId, nsIRunnable* aRunnable);
 
   void Finish(uint64_t aTransactionId, FinishCallback* aCallback);
 
@@ -7947,11 +7965,11 @@ uint64_t ConnectionPool::Start(
   return transactionId;
 }
 
-void ConnectionPool::Dispatch(uint64_t aTransactionId, nsIRunnable* aRunnable) {
+void ConnectionPool::StartOp(uint64_t aTransactionId, nsIRunnable* aRunnable) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aRunnable);
 
-  AUTO_PROFILER_LABEL("ConnectionPool::Dispatch", DOM);
+  AUTO_PROFILER_LABEL("ConnectionPool::StartOp", DOM);
 
   auto* const transactionInfo = mTransactions.Get(aTransactionId);
   MOZ_ASSERT(transactionInfo);
@@ -7987,7 +8005,7 @@ void ConnectionPool::Finish(uint64_t aTransactionId,
   RefPtr<FinishCallbackWrapper> wrapper =
       new FinishCallbackWrapper(this, aTransactionId, aCallback);
 
-  Dispatch(aTransactionId, wrapper);
+  StartOp(aTransactionId, wrapper);
 
 #ifdef DEBUG
   transactionInfo->mFinished.Flip();
@@ -17185,7 +17203,7 @@ void TransactionDatabaseOperationBase::SendToConnectionPool() {
   // connection thread.
   mInternalState = InternalState::DatabaseWork;
 
-  gConnectionPool->Dispatch((*mTransaction)->TransactionId(), this);
+  gConnectionPool->StartOp((*mTransaction)->TransactionId(), this);
 
   (*mTransaction)->NoteActiveRequest();
 }
