@@ -41,6 +41,19 @@ interface PrivateBrowsingLockStorage {
      * @param listener A lambda that receives the new boolean value when it changes.
      */
     fun addFeatureStateListener(listener: (Boolean) -> Unit)
+
+    /**
+     * Starts observing shared preferences for changes in the feature flag.
+     *
+     * NB: some devices may garbage collect preference listeners very aggressively,
+     * so this method should be invoked each time the feature becomes active.
+     */
+    fun startObservingSharedPrefs()
+
+    /**
+     * Starts observing shared preferences.
+     */
+    fun stopObservingSharedPrefs()
 }
 
 /**
@@ -60,15 +73,19 @@ class DefaultPrivateBrowsingLockStorage(
         }
     }
 
-    init {
-        preferences.registerOnSharedPreferenceChangeListener(onFeatureStateChanged)
-    }
-
     override val isFeatureEnabled: Boolean
         get() = preferences.getBoolean(privateBrowsingLockPrefKey, false)
 
     override fun addFeatureStateListener(listener: (Boolean) -> Unit) {
         this.listener = listener
+    }
+
+    override fun startObservingSharedPrefs() {
+        preferences.registerOnSharedPreferenceChangeListener(onFeatureStateChanged)
+    }
+
+    override fun stopObservingSharedPrefs() {
+        preferences.unregisterOnSharedPreferenceChangeListener(onFeatureStateChanged)
     }
 }
 
@@ -182,6 +199,16 @@ class PrivateBrowsingLockFeature(
         if (owner is Activity && !owner.isChangingConfigurations) {
             maybeLockPrivateModeOnStop()
         }
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        super.onResume(owner)
+        storage.startObservingSharedPrefs()
+    }
+
+    override fun onPause(owner: LifecycleOwner) {
+        super.onPause(owner)
+        storage.stopObservingSharedPrefs()
     }
 
     private fun maybeLockPrivateModeOnStop() {
