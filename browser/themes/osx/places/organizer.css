@@ -122,21 +122,6 @@
   }
 }
 
-/* organize button */
-#organizeButton {
-  list-style-image: url("chrome://global/skin/icons/settings.svg");
-}
-
-/* view button */
-#viewMenu {
-  list-style-image: url("chrome://browser/skin/sort.svg");
-}
-
-/* maintenance button */
-#maintenanceButton {
-  list-style-image: url("chrome://global/skin/icons/arrows-updown.svg");
-}
-
 /* Root View */
 #placesView {
   border-top: 1px solid ThreeDDarkShadow;

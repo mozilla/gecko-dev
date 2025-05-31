@@ -64,3 +64,53 @@
   min-height: 16em;
   padding: 5px;
 }
+
+/* Toolbar */
+
+#placesToolbar {
+  @media (-moz-menubar-drag) {
+    -moz-window-dragging: drag;
+  }
+}
+
+#placesToolbar > toolbarbutton > .toolbarbutton-icon,
+#placesMenu > menu > .menu-icon {
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+#placesMenu > menu::after {
+  display: flex;
+  width: 12px;
+  height: 12px;
+  margin-inline-start: 2px;
+  content: url("chrome://global/skin/icons/arrow-down-12.svg");
+  -moz-context-properties: fill;
+  fill: currentColor;
+}
+
+/* Toolbar icons */
+#back-button {
+  list-style-image: url("chrome://browser/skin/back.svg");
+}
+
+#forward-button {
+  list-style-image: url("chrome://browser/skin/forward.svg");
+}
+
+#back-button:-moz-locale-dir(rtl) > .toolbarbutton-icon,
+#forward-button:-moz-locale-dir(rtl) > .toolbarbutton-icon {
+  transform: scaleX(-1);
+}
+
+#organizeButton {
+  list-style-image: url("chrome://global/skin/icons/settings.svg");
+}
+
+#viewMenu {
+  list-style-image: url("chrome://browser/skin/sort.svg");
+}
+
+#maintenanceButton {
+  list-style-image: url("chrome://global/skin/icons/arrows-updown.svg");
+}

@@ -199,10 +199,6 @@ menubar > menu {
     }
   }
 
-  > .menu-icon {
-    display: none;
-  }
-
   > .menu-text {
     margin: 0;
   }

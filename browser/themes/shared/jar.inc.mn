@@ -208,9 +208,7 @@
   skin/classic/browser/sidebar-expanded-right.svg     (../shared/icons/sidebar-expanded-right.svg)
   skin/classic/browser/sidebars.svg                   (../shared/icons/sidebars.svg)
   skin/classic/browser/sidebars-right.svg             (../shared/icons/sidebars-right.svg)
-#ifndef MOZ_WIDGET_GTK
   skin/classic/browser/sort.svg                       (../shared/icons/sort.svg)
-#endif
   skin/classic/browser/stop-to-reload.svg             (../shared/icons/stop-to-reload.svg)
   skin/classic/browser/subtract-circle-fill.svg       (../shared/icons/subtract-circle-fill.svg)
   skin/classic/browser/success-animation.svg          (../shared/icons/success-animation.svg)
