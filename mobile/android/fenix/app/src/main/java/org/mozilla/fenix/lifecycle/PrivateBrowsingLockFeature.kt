@@ -49,11 +49,6 @@ interface PrivateBrowsingLockStorage {
      * so this method should be invoked each time the feature becomes active.
      */
     fun startObservingSharedPrefs()
-
-    /**
-     * Starts observing shared preferences.
-     */
-    fun stopObservingSharedPrefs()
 }
 
 /**
@@ -82,10 +77,6 @@ class DefaultPrivateBrowsingLockStorage(
 
     override fun startObservingSharedPrefs() {
         preferences.registerOnSharedPreferenceChangeListener(onFeatureStateChanged)
-    }
-
-    override fun stopObservingSharedPrefs() {
-        preferences.unregisterOnSharedPreferenceChangeListener(onFeatureStateChanged)
     }
 }
 
@@ -204,11 +195,6 @@ class PrivateBrowsingLockFeature(
     override fun onResume(owner: LifecycleOwner) {
         super.onResume(owner)
         storage.startObservingSharedPrefs()
-    }
-
-    override fun onPause(owner: LifecycleOwner) {
-        super.onPause(owner)
-        storage.stopObservingSharedPrefs()
     }
 
     private fun maybeLockPrivateModeOnStop() {

@@ -721,7 +721,7 @@ class PrivateBrowsingLockFeatureTest {
     }
 
     @Test
-    fun `WHEN feature pauses or resumes THEN storage stops or continues listening to shared pref accordingly`() {
+    fun `WHEN feature resumes THEN storage is listening to shared pref`() {
         val storage = MockedPrivateBrowsingLockStorage()
         val feature = createFeature(browserStore = BrowserStore(), appStore = AppStore(), storage = storage)
         val lifecycleOwner = MockedLifecycleOwner(Lifecycle.State.CREATED)
@@ -730,11 +730,6 @@ class PrivateBrowsingLockFeatureTest {
 
         feature.onResume(lifecycleOwner)
         assertTrue(storage.startCalled)
-
-        assertFalse(storage.stopCalled)
-
-        feature.onPause(lifecycleOwner)
-        assertTrue(storage.stopCalled)
     }
 
     internal class MockedLifecycleOwner(initialState: Lifecycle.State) : LifecycleOwner {
@@ -749,7 +744,6 @@ class PrivateBrowsingLockFeatureTest {
         var listener: ((Boolean) -> Unit)? = null
 
         var startCalled = false
-        var stopCalled = false
 
         override fun addFeatureStateListener(listener: (Boolean) -> Unit) {
             this.listener = listener
@@ -757,10 +751,6 @@ class PrivateBrowsingLockFeatureTest {
 
         override fun startObservingSharedPrefs() {
             startCalled = true
-        }
-
-        override fun stopObservingSharedPrefs() {
-            stopCalled = true
         }
     }
 
