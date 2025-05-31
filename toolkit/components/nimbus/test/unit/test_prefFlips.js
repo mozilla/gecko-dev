@@ -7,8 +7,9 @@ const { PrefUtils } = ChromeUtils.importESModule(
 const { JsonSchema } = ChromeUtils.importESModule(
   "resource://gre/modules/JsonSchema.sys.mjs"
 );
-const { TelemetryTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TelemetryTestUtils.sys.mjs"
+
+const { ProfilesDatastoreService } = ChromeUtils.importESModule(
+  "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs"
 );
 
 const USER = "user";
@@ -145,6 +146,7 @@ async function setupTest({ ...args } = {}) {
     ...ctx,
     async cleanup() {
       assertNoObservers(ctx.manager);
+      await NimbusTestUtils.waitForAllUnenrollments();
       await baseCleanup();
     },
   };
@@ -1606,6 +1608,8 @@ add_task(async function test_prefFlips_unenrollment() {
       Assert.ok(enrollment.active, `It should still be active`);
     }
 
+    await NimbusTestUtils.waitForActiveEnrollments(expectedEnrollments);
+
     info("Checking expected unenrollments...");
     for (const slug of expectedUnenrollments) {
       const enrollment = manager.store.get(slug);
@@ -1614,12 +1618,26 @@ add_task(async function test_prefFlips_unenrollment() {
       Assert.ok(!enrollment.active, "It should no longer be active");
     }
 
+    let expectedCurrentEnrollments = new Set(expectedEnrollments).difference(
+      new Set(expectedUnenrollments)
+    );
+    await NimbusTestUtils.waitForActiveEnrollments(
+      Array.from(expectedCurrentEnrollments)
+    );
+
     if (unenrollmentOrder) {
       info("Unenrolling from specific experiments before checking prefs...");
       for (const slug of unenrollmentOrder ?? []) {
         await manager.unenroll(slug);
       }
     }
+
+    expectedCurrentEnrollments = expectedCurrentEnrollments.difference(
+      new Set(unenrollmentOrder)
+    );
+    await NimbusTestUtils.waitForActiveEnrollments(
+      Array.from(expectedCurrentEnrollments)
+    );
 
     if (expectedPrefs) {
       info("Checking expected prefs...");
@@ -1633,6 +1651,8 @@ add_task(async function test_prefFlips_unenrollment() {
         await manager.unenroll(slug);
       }
     }
+
+    await NimbusTestUtils.waitForActiveEnrollments([]);
 
     info("Cleaning up prefs...");
     Services.prefs.deleteBranch(PREF_FOO);
@@ -2273,6 +2293,15 @@ add_task(async function test_prefFlips_failed() {
   const { manager, cleanup } = await setupTest();
   await manager.enroll(recipe, "test");
 
+  // Unenrolling is triggered by the PrefFlipsFeature in response to the
+  // enrollment being added to the store and triggering the feature update
+  // callback.
+  //
+  // That callback triggers an async unenroll() without awaiting (because it
+  // wouldn't block the ExperimentStore anyway) so we have to wait for the
+  // unenroll to be propagated to the database first.
+  await NimbusTestUtils.waitForInactiveEnrollment(recipe.slug);
+
   const enrollment = manager.store.get(recipe.slug);
   Assert.ok(!enrollment.active, "Experiment should not be active");
 
@@ -2341,6 +2370,15 @@ add_task(async function test_prefFlips_failed_multiple_prefs() {
   const setPrefSpy = sandbox.spy(PrefUtils, "setPref");
 
   await manager.enroll(recipe, "test");
+
+  // Unenrolling is triggered by the PrefFlipsFeature in response to the
+  // enrollment being added to the store and triggering the feature update
+  // callback.
+  //
+  // That callback triggers an async unenroll() without awaiting (because it
+  // wouldn't block the ExperimentStore anyway) so we have to wait for the
+  // unenroll to be propagated to the database first.
+  await NimbusTestUtils.waitForInactiveEnrollment(recipe.slug);
 
   const enrollment = manager.store.get(recipe.slug);
   Assert.ok(!enrollment.active, "Experiment should not be active");
@@ -2470,8 +2508,11 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout_1() {
       Assert.ok(enrollment.active, `The enrollment for ${slug} is active`);
     }
 
+    await NimbusTestUtils.waitForActiveEnrollments(expectedEnrollments);
+
     info("Checking expected unenrollments...");
     for (const slug of expectedUnenrollments) {
+      await NimbusTestUtils.waitForInactiveEnrollment(slug);
       const enrollment = manager.store.get(slug);
       Assert.ok(!enrollment.active, "The enrollment is no longer active.");
     }
@@ -2577,6 +2618,8 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout_2() {
       );
     }
 
+    await NimbusTestUtils.waitForActiveEnrollments(expectedEnrollments);
+
     info("Checking expected enrollments...");
     for (const slug of expectedEnrollments) {
       const enrollment = manager.store.get(slug);
@@ -2585,6 +2628,7 @@ add_task(async function test_prefFlips_failed_experiment_and_rollout_2() {
 
     info("Checking expected unenrollments...");
     for (const slug of expectedUnenrollments) {
+      await NimbusTestUtils.waitForInactiveEnrollment(slug);
       const enrollment = manager.store.get(slug);
       Assert.ok(!enrollment.active, "The enrollment is no longer active.");
     }
@@ -2643,6 +2687,8 @@ add_task(async function test_prefFlips_update_failure() {
     { manager, slug: "experiment" }
   );
 
+  await NimbusTestUtils.waitForActiveEnrollments(["rollout"]);
+
   const rolloutEnrollment = manager.store.get("rollout");
   const experimentEnrollment = manager.store.get("experiment");
 
@@ -2653,7 +2699,7 @@ add_task(async function test_prefFlips_update_failure() {
   Assert.equal(Services.prefs.getStringPref("pref.one"), "one");
   Assert.equal(Services.prefs.getStringPref("pref.two"), "two");
 
-  cleanupExperiment();
+  await cleanupExperiment();
 
   Services.prefs.deleteBranch("pref.one");
   Services.prefs.deleteBranch("pref.two");
@@ -2893,6 +2939,9 @@ add_task(async function test_prefFlips_restore_failure_conflict() {
 
   const { manager, cleanup } = await setupTest({ storePath });
 
+  await NimbusTestUtils.waitForActiveEnrollments(["rollout-1"]);
+  await NimbusTestUtils.waitForInactiveEnrollment("rollout-2");
+
   Assert.ok(manager.store.get("rollout-1").active, "rollout-1 is active");
   Assert.ok(!manager.store.get("rollout-2").active, "rollout-2 is not active");
   Assert.equal(
@@ -2977,7 +3026,12 @@ add_task(async function test_prefFlips_restore_failure_wrong_type() {
 
   Services.prefs.setIntPref(PREF_1, 123);
 
-  const { manager, cleanup } = await setupTest({ storePath });
+  const { manager, cleanup } = await setupTest({
+    storePath,
+    secureExperiments: [recipe],
+  });
+
+  await NimbusTestUtils.waitForInactiveEnrollment(recipe.slug);
 
   const enrollment = manager.store.get(recipe.slug);
 
@@ -3026,6 +3080,7 @@ add_task(
     PrefUtils.setPref(PREF, "default-value", { branch: DEFAULT });
 
     await manager.enroll(recipe, "rs-loader");
+    await NimbusTestUtils.waitForInactiveEnrollment(recipe.slug);
 
     let enrollment = manager.store.get(recipe.slug);
 
@@ -3033,6 +3088,8 @@ add_task(
     Assert.equal(enrollment.unenrollReason, "prefFlips-failed");
 
     await manager.enroll(recipe, "rs-loader", { reenroll: true });
+    await NimbusTestUtils.waitForInactiveEnrollment(recipe.slug);
+
     enrollment = manager.store.get(recipe.slug);
 
     Assert.ok(!enrollment.active, "enrollment should not be active");
@@ -3043,3 +3100,59 @@ add_task(
     await cleanup();
   }
 );
+
+add_task(async function testDb() {
+  const { manager, cleanup } = await setupTest();
+
+  PrefUtils.setPref("foo.bar.baz", "foo");
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("slug", {
+      featureId: "prefFlips",
+      value: {
+        prefs: {
+          "foo.bar.baz": {
+            value: "bar",
+            branch: "user",
+          },
+        },
+      },
+    }),
+    "test"
+  );
+
+  const conn = await ProfilesDatastoreService.getConnection();
+  const [result] = await conn.execute(
+    `
+      SELECT
+        json(prefFlips) as prefFlips
+      FROM NimbusEnrollments
+      WHERE
+        profileId = :profileId AND
+        slug = :slug;
+    `,
+    {
+      slug: "slug",
+      profileId: ExperimentAPI.profileId,
+    }
+  );
+
+  const prefFlips = JSON.parse(result.getResultByName("prefFlips"));
+  const enrollment = manager.store.get("slug");
+
+  Assert.deepEqual(
+    prefFlips,
+    enrollment.prefFlips,
+    "prefFlips stored in the database"
+  );
+  Assert.deepEqual(prefFlips, {
+    originalValues: {
+      "foo.bar.baz": "foo",
+    },
+  });
+
+  await manager.unenroll("slug");
+  await cleanup();
+
+  Services.prefs.deleteBranch("foo.bar.baz");
+});

@@ -7,8 +7,11 @@ import { SharedDataMap } from "resource://nimbus/lib/SharedDataMap.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrefUtils: "resource://normandy/lib/PrefUtils.sys.mjs",
+  ProfilesDatastoreService:
+    "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs",
 });
 
 // This branch is used to store experiment data
@@ -469,5 +472,104 @@ export class ExperimentStore extends SharedDataMap {
     super._deleteForTests(slugOrFeatureId);
     lazy.syncDataStore.deleteDefault(slugOrFeatureId);
     lazy.syncDataStore.delete(slugOrFeatureId);
+  }
+
+  async _addEnrollmentToDatabase(enrollment, recipe) {
+    if (
+      !Services.prefs.getBoolPref(
+        "nimbus.profilesdatastoreservice.enabled",
+        false
+      )
+    ) {
+      // We are in an xpcshell test that has not initialized the
+      // ProfilesDatastoreService.
+      //
+      // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
+      // and remove this check.
+      return;
+    }
+
+    const profileId = lazy.ExperimentAPI.profileId;
+
+    const conn = await lazy.ProfilesDatastoreService.getConnection();
+    await conn.execute(
+      `
+      INSERT INTO NimbusEnrollments VALUES(
+        null,
+        :profileId,
+        :slug,
+        :branchSlug,
+        jsonb(:recipe),
+        :active,
+        :unenrollReason,
+        :lastSeen,
+        jsonb(:setPrefs),
+        jsonb(:prefFlips),
+        :source
+      )
+      ON CONFLICT(profileId, slug)
+      DO UPDATE SET
+        branchSlug = excluded.branchSlug,
+        recipe = excluded.recipe,
+        active = excluded.active,
+        unenrollReason = excluded.unenrollReason,
+        lastSeen = excluded.lastSeen,
+        setPrefs = excluded.setPrefs,
+        prefFlips = excluded.setPrefs,
+        source = excluded.source;
+      `,
+      {
+        profileId,
+        slug: enrollment.slug,
+        branchSlug: enrollment.branch.slug,
+        recipe: recipe ? JSON.stringify(recipe) : null,
+        active: enrollment.active,
+        unenrollReason: null,
+        lastSeen: enrollment.lastSeen,
+        setPrefs: enrollment.prefs ? JSON.stringify(enrollment.prefs) : null,
+        prefFlips: enrollment.prefFlips
+          ? JSON.stringify(enrollment.prefFlips)
+          : null,
+        source: enrollment.source,
+      }
+    );
+  }
+
+  async _deactivateEnrollmentInDatabase(slug, unenrollReason = "unknown") {
+    if (
+      !Services.prefs.getBoolPref(
+        "nimbus.profilesdatastoreservice.enabled",
+        false
+      )
+    ) {
+      // We are in an xpcshell test that has not initialized the
+      // ProfilesDatastoreService.
+      //
+      // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
+      // and remove this check.
+      return;
+    }
+
+    const profileId = lazy.ExperimentAPI.profileId;
+
+    const conn = await lazy.ProfilesDatastoreService.getConnection();
+    await conn.execute(
+      `
+      UPDATE NimbusEnrollments SET
+        active = false,
+        unenrollReason = :unenrollReason,
+        recipe = null,
+        prefFlips = null,
+        setPrefs = null
+      WHERE
+        profileId = :profileId AND
+        slug = :slug;
+    `,
+      {
+        slug,
+        profileId,
+        unenrollReason,
+      }
+    );
   }
 }

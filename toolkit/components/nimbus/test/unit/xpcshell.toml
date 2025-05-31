@@ -1,5 +1,5 @@
 [DEFAULT]
-head = "head.js"
+head = "../../../../../toolkit/profile/test/xpcshell/head.js ../../../../../browser/components/profiles/tests/unit/head.js head.js"
 tags = "nimbus"
 firefox-appdir = "browser"
 support-files = ["reference_aboutwelcome_experiment_content.json"]
@@ -39,7 +39,6 @@ run-sequentially = "very high failure rate in parallel"
 ["test_FirefoxLabs.js"]
 
 ["test_Migrations.js"]
-head = "../../../../../toolkit/profile/test/xpcshell/head.js ../../../../../browser/components/profiles/tests/unit/head.js head.js"
 
 ["test_NimbusTestUtils.js"]
 

@@ -61,7 +61,8 @@ add_task(async function testGetFromChildNewEnrollment() {
         enabled: true,
         testInt: 123,
       },
-    })
+    }),
+    "test"
   );
 
   // Immediately serialize sharedData and broadcast changes to the child processes.
@@ -143,7 +144,8 @@ add_task(async function testGetFromChildExistingEnrollment() {
         enabled: false,
         testInt: 456,
       },
-    })
+    }),
+    "test"
   );
 
   // We don't have to wait for this to update in the client, but we *do* have to

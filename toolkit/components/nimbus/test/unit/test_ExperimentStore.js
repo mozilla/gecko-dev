@@ -102,7 +102,7 @@ add_task(async function test_initOnUpdateEventsFire() {
     storePath = await NimbusTestUtils.saveStore(store);
   }
 
-  const { sandbox, store, initExperimentAPI, cleanup } = await setupTest({
+  const { sandbox, initExperimentAPI, cleanup } = await setupTest({
     storePath,
     init: false,
   });
@@ -136,13 +136,14 @@ add_task(async function test_initOnUpdateEventsFire() {
 
   NimbusFeatures.testFeature.offUpdate(onFeatureUpdate);
 
-  store.updateExperiment("testFeature-1", { active: false });
-  store.updateExperiment("testFeature-2", { active: false });
-  store.updateExperiment("coenroll-1", { active: false });
-  store.updateExperiment("coenroll-2", { active: false });
-  store.updateExperiment("coenroll-3", { active: false });
-  store.updateExperiment("coenroll-4", { active: false });
-
+  await NimbusTestUtils.cleanupManager([
+    "testFeature-1",
+    "testFeature-2",
+    "coenroll-1",
+    "coenroll-2",
+    "coenroll-3",
+    "coenroll-4",
+  ]);
   await cleanup();
 });
 
@@ -857,8 +858,6 @@ add_task(async function test_restore() {
   Assert.ok(store.get("experiment"));
   Assert.ok(store.get("rollout"));
 
-  store.updateExperiment("experiment", { active: false });
-  store.updateExperiment("rollout", { active: false });
-
+  await NimbusTestUtils.cleanupManager(["experiment", "rollout"]);
   await cleanup();
 });

@@ -64,7 +64,7 @@ add_task(async function test_ExperimentFeature_test_helper_ready() {
     "set by remote config"
   );
 
-  cleanupExperiment();
+  await cleanupExperiment();
   await cleanup();
 });
 
@@ -212,7 +212,7 @@ add_task(async function test_allow_multiple_exposure_events() {
   // We expect 3 events
   Assert.equal(3, exposureEvents.length);
 
-  doExperimentCleanup();
+  await doExperimentCleanup();
   await cleanup();
 });
 

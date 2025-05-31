@@ -1,9 +1,6 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
-/* import-globals-from ../../../../../toolkit/profile/test/xpcshell/head.js */
-/* import-globals-from ../../../../../browser/components/profiles/tests/unit/head.js */
-
 const {
   LABS_MIGRATION_FEATURE_MAP,
   LEGACY_NIMBUS_MIGRATION_PREF,
@@ -47,16 +44,6 @@ function getEnabledPrefForFeature(featureId) {
 
 add_setup(async function setup() {
   Services.fog.initializeFOG();
-
-  Services.prefs.setBoolPref("nimbus.profilesdatastoreservice.enabled", true);
-  registerCleanupFunction(() => {
-    Services.prefs.setBoolPref(
-      "nimbus.profilesdatastoreservice.enabled",
-      false
-    );
-  });
-
-  await initSelectableProfileService();
 });
 
 /**
@@ -97,11 +84,7 @@ async function setupTest({
     );
   }
 
-  const {
-    initExperimentAPI,
-    cleanup: baseCleanup,
-    ...ctx
-  } = await NimbusTestUtils.setupTest({
+  const { initExperimentAPI, ...ctx } = await NimbusTestUtils.setupTest({
     init: false,
     clearTelemetry: true,
     ...args,
@@ -141,13 +124,7 @@ async function setupTest({
     ctx.initExperimentAPI = initExperimentAPI;
   }
 
-  return {
-    ...ctx,
-    async cleanup() {
-      await baseCleanup();
-      Services.prefs.deleteBranch("nimbus.migrations");
-    },
-  };
+  return ctx;
 }
 
 function makeMigrations(phase, count) {
