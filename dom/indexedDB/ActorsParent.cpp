@@ -1718,6 +1718,8 @@ class ConnectionPool::TransactionInfo final {
 
   void RemoveBlockingTransactions();
 
+  void StartOp(nsCOMPtr<nsIRunnable> aRunnable);
+
  private:
   ~TransactionInfo();
 
@@ -7973,21 +7975,8 @@ void ConnectionPool::StartOp(uint64_t aTransactionId,
 
   auto* const transactionInfo = mTransactions.Get(aTransactionId);
   MOZ_ASSERT(transactionInfo);
-  MOZ_ASSERT(!transactionInfo->mFinished);
 
-  if (transactionInfo->mRunning) {
-    DatabaseInfo& dbInfo = transactionInfo->mDatabaseInfo;
-    MOZ_ASSERT(dbInfo.mEventTarget);
-    MOZ_ASSERT(!dbInfo.mClosing);
-    MOZ_ASSERT_IF(
-        transactionInfo->mIsWriteTransaction,
-        dbInfo.mRunningWriteTransaction &&
-            dbInfo.mRunningWriteTransaction.refEquals(*transactionInfo));
-
-    MOZ_ALWAYS_SUCCEEDS(dbInfo.Dispatch(aRunnable.forget()));
-  } else {
-    transactionInfo->mQueuedRunnables.AppendElement(std::move(aRunnable));
-  }
+  transactionInfo->StartOp(std::move(aRunnable));
 }
 
 void ConnectionPool::Finish(uint64_t aTransactionId,
@@ -8846,6 +8835,23 @@ void ConnectionPool::TransactionInfo::RemoveBlockingTransactions() {
 
   mBlocking.Clear();
   mBlockingOrdered.Clear();
+}
+
+void ConnectionPool::TransactionInfo::StartOp(nsCOMPtr<nsIRunnable> aRunnable) {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(!mFinished);
+
+  if (mRunning) {
+    MOZ_ASSERT(mDatabaseInfo.mEventTarget);
+    MOZ_ASSERT(!mDatabaseInfo.mClosing);
+    MOZ_ASSERT_IF(mIsWriteTransaction,
+                  mDatabaseInfo.mRunningWriteTransaction &&
+                      mDatabaseInfo.mRunningWriteTransaction.refEquals(*this));
+
+    MOZ_ALWAYS_SUCCEEDS(mDatabaseInfo.Dispatch(aRunnable.forget()));
+  } else {
+    mQueuedRunnables.AppendElement(std::move(aRunnable));
+  }
 }
 
 void ConnectionPool::TransactionInfo::MaybeUnblock(
