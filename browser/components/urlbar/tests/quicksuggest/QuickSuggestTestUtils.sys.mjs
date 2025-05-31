@@ -940,7 +940,6 @@ class _QuickSuggestTestUtils {
    */
   yelpResult({
     url,
-    //TODO: Change the test so the title is never undefined
     title = undefined,
     titleL10n = undefined,
     source = "rust",
@@ -991,10 +990,13 @@ class _QuickSuggestTestUtils {
     if (source == "rust") {
       result.payload.suggestionObject = new lazy.Suggestion.Yelp({
         url: originalUrl,
-        //TODO: Remove this quick fix. Based on the Rust component, titles can never be undefined.
-        // Since introducing named parameters for enums (https://bugzilla.mozilla.org/show_bug.cgi?id=1954360)
-        // this tests fails if its undefined.
-        title: title ?? "",
+        // `title` will be undefined if the caller passed in `titleL10n`
+        // instead, but the Rust suggestion must be created with a string title.
+        // The Rust suggestion title doesn't actually matter since no test
+        // relies on it directly or indirectly. Pick an arbitrary string, and
+        // make it distinctive so it's easier to track down bugs in case it does
+        // start to matter at some point.
+        title: title ?? "<QuickSuggestTestUtils Yelp suggestion>",
         icon: null,
         iconMimeType: null,
         score: 0.2,
