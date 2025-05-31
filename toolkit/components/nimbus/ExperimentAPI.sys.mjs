@@ -379,7 +379,7 @@ export const ExperimentAPI = {
 
   async _onStudiesEnabledChanged() {
     if (!this.studiesEnabled) {
-      this.manager._handleStudiesOptOut();
+      await this.manager._handleStudiesOptOut();
     }
 
     await this._rsLoader.onEnabledPrefChange();
