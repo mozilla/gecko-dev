@@ -7688,21 +7688,24 @@ LogicalSize nsGridContainerFrame::GridReflowInput::PercentageBasisFor(
     return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
 
+  if (StaticPrefs::layout_css_grid_multi_pass_track_sizing_enabled()) {
+    // Get row size and column size for the grid area occupied by aGridItem.
+    const nscoord colSize = mCols.mCanResolveLineRangeSize
+                                ? aGridItem.mArea.mCols.ToLength(mCols.mSizes)
+                                : NS_UNCONSTRAINEDSIZE;
+    const nscoord rowSize = mRows.mCanResolveLineRangeSize
+                                ? aGridItem.mArea.mRows.ToLength(mRows.mSizes)
+                                : NS_UNCONSTRAINEDSIZE;
+    return !wm.IsOrthogonalTo(mWM) ? LogicalSize(wm, colSize, rowSize)
+                                   : LogicalSize(wm, rowSize, colSize);
+  }
+
+  MOZ_ASSERT(!StaticPrefs::layout_css_grid_multi_pass_track_sizing_enabled(),
+             "Unexpected execution of the legacy track sizing path while "
+             "multi-pass preference is enabled");
   if (aAxis == LogicalAxis::Inline || !mCols.mCanResolveLineRangeSize) {
-    if (StaticPrefs::layout_css_grid_multi_pass_track_sizing_enabled() &&
-        aAxis == LogicalAxis::Inline && mRows.mCanResolveLineRangeSize) {
-      // When resolving the column sizes with definite row sizes, get row size
-      // for the grid area occupied by aGridItem.
-      const nscoord colSize = NS_UNCONSTRAINEDSIZE;
-      const nscoord rowSize = aGridItem.mArea.mRows.ToLength(mRows.mSizes);
-      return !wm.IsOrthogonalTo(mWM) ? LogicalSize(wm, colSize, rowSize)
-                                     : LogicalSize(wm, rowSize, colSize);
-    }
     return LogicalSize(wm, NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
-  // Note: for now, we only resolve transferred percentages to row sizing.
-  // We may need to adjust these assertions once we implement bug 1300366.
-  // Tracked in Bug 1957503.
   MOZ_ASSERT(!mRows.mCanResolveLineRangeSize);
   nscoord colSize = aGridItem.mArea.mCols.ToLength(mCols.mSizes);
   nscoord rowSize = NS_UNCONSTRAINEDSIZE;
@@ -9338,6 +9341,15 @@ void nsGridContainerFrame::Reflow(nsPresContext* aPresContext,
                                       SizingConstraint::NoConstraint);
 
     if (StaticPrefs::layout_css_grid_multi_pass_track_sizing_enabled()) {
+      // Invalidate the column sizes before re-resolving them.
+      gridRI.InvalidateTrackSizesForAxis(LogicalAxis::Inline);
+
+      // Re-resolve the column sizes.
+      // 12.1.3: https://drafts.csswg.org/css-grid-2/#algo-grid-sizing
+      gridRI.CalculateTrackSizesForAxis(LogicalAxis::Inline, grid,
+                                        computedISize,
+                                        SizingConstraint::NoConstraint);
+
       // If our bSizeForResolvingRowSizes is still indefinite, replace it with
       // the sum of the row sizes we just resolved, then re-resolve the row
       // sizes against that value. We skip this for masonry, which doesn't need
