@@ -36,6 +36,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1689492
       outerdiv.id = "outerdiv";
       outerdiv.style.width = outerwidth + "px";
       outerdiv.style.height = outerheight + "px";
+      outerdiv.style.scrollbarWidth = "none";
       outerdiv.style.overflow = "scroll";
 
       let innerdiv = document.createElement("div");
@@ -43,6 +44,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1689492
       innerdiv.style.width = "25px";
       innerdiv.style.height = "25px";
       innerdiv.style.overflow = "scroll";
+      innerdiv.style.scrollbarWidth = "none";
       outerdiv.appendChild(innerdiv);
 
       let innerspacer = document.createElement("div");
@@ -107,7 +109,6 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1689492
       await testOne(329, 1.6, "(height329)"); // good 512, bad 896
       await testOne(500, 1.3, "(height500)"); // good 640, bad 280
       await testOne(640, 1.7, "(height640)"); // good 1024, bad 1536
-
     }
 
     waitUntilApzStable()
