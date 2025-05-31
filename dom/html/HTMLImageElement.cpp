@@ -612,64 +612,6 @@ uint32_t HTMLImageElement::Height() { return GetWidthHeightForImage().height; }
 
 uint32_t HTMLImageElement::Width() { return GetWidthHeightForImage().width; }
 
-CSSIntSize HTMLImageElement::NaturalSize() {
-  if (!mCurrentRequest) {
-    return {};
-  }
-
-  nsCOMPtr<imgIContainer> image;
-  mCurrentRequest->GetImage(getter_AddRefs(image));
-  if (!image) {
-    return {};
-  }
-
-  mozilla::image::ImageIntrinsicSize intrinsicSize;
-  nsresult rv = image->GetIntrinsicSize(&intrinsicSize);
-  if (NS_FAILED(rv)) {
-    return {};
-  }
-
-  CSSIntSize size;  // defaults to 0,0
-  if (!StaticPrefs::image_natural_size_fallback_enabled()) {
-    size.width = intrinsicSize.mWidth.valueOr(0);
-    size.height = intrinsicSize.mHeight.valueOr(0);
-  } else {
-    // Fallback case, for web-compatibility!
-    // See https://github.com/whatwg/html/issues/11287 and bug 1935269.
-    // If we lack an intrinsic size in either axis, then use the fallback size,
-    // unless we can transfer the size through the aspect ratio.
-    // (And if we *only* have an intrinsic aspect ratio, use the fallback width
-    // and transfer that through the aspect ratio to produce a height.)
-    size.width = intrinsicSize.mWidth.valueOr(kFallbackIntrinsicWidthInPixels);
-    size.height =
-        intrinsicSize.mHeight.valueOr(kFallbackIntrinsicHeightInPixels);
-    AspectRatio ratio = image->GetIntrinsicRatio();
-    if (ratio) {
-      if (!intrinsicSize.mHeight) {
-        // Compute the height from the width & ratio.  (Note that the width we
-        // use here might be kFallbackIntrinsicWidthInPixels, and that's fine.)
-        size.height = ratio.Inverted().ApplyTo(size.width);
-      } else if (!intrinsicSize.mWidth) {
-        // Compute the width from the height & ratio.
-        size.width = ratio.ApplyTo(size.height);
-      }
-    }
-  }
-
-  ImageResolution resolution = image->GetResolution();
-  // NOTE(emilio): What we implement here matches the image-set() spec, but it's
-  // unclear whether this is the right thing to do, see
-  // https://github.com/whatwg/html/pull/5574#issuecomment-826335244.
-  if (mResponsiveSelector) {
-    float density = mResponsiveSelector->GetSelectedImageDensity();
-    MOZ_ASSERT(density >= 0.0);
-    resolution.ScaleBy(density);
-  }
-
-  resolution.ApplyTo(size.width, size.height);
-  return size;
-}
-
 nsresult HTMLImageElement::CopyInnerTo(HTMLImageElement* aDest) {
   MOZ_TRY(nsGenericHTMLElement::CopyInnerTo(aDest));
 

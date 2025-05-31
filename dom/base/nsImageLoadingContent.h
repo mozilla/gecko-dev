@@ -240,6 +240,12 @@ class nsImageLoadingContent : public nsIImageLoadingContent {
   virtual mozilla::dom::FetchPriority GetFetchPriorityForImage() const;
 
   /**
+   * Get the natural size of the current request, as defined here:
+   * https://html.spec.whatwg.org/multipage/images.html#preferred-density-corrected-dimensions
+   */
+  mozilla::CSSIntSize NaturalSize();
+
+  /**
    * Get width and height of the current request, using given image request if
    * attributes are unset.
    */

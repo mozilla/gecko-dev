@@ -94,7 +94,6 @@ class HTMLImageElement final : public nsGenericHTMLElement,
     SetUnsignedIntAttr(nsGkAtoms::height, aHeight, 0, aError);
   }
 
-  CSSIntSize NaturalSize();
   uint32_t NaturalHeight() { return NaturalSize().height; }
   uint32_t NaturalWidth() { return NaturalSize().width; }
 
