@@ -654,7 +654,9 @@ class MergeState {
       nsDisplayItem* aItem, const Maybe<OldListIndex>& aOldIndex,
       Span<const MergedListIndex> aDirectPredecessors,
       const Maybe<MergedListIndex>& aExtraDirectPredecessor) {
-    UpdateContainerASR(aItem);
+    if (aItem->GetType() != DisplayItemType::TYPE_VT_CAPTURE) {
+      UpdateContainerASR(aItem);
+    }
     aItem->NotifyUsed(mBuilder->Builder());
 
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED

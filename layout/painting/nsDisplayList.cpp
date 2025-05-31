@@ -441,7 +441,10 @@ void nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter::
   // finiteBoundsASR is the leafmost ASR that all items created during
   // object's lifetime have finite bounds with respect to.
   const ActiveScrolledRoot* finiteBoundsASR =
-      ActiveScrolledRoot::PickDescendant(mContentClipASR, aActiveScrolledRoot);
+      mBuilder->IsInViewTransitionCapture()
+          ? aActiveScrolledRoot
+          : ActiveScrolledRoot::PickDescendant(mContentClipASR,
+                                               aActiveScrolledRoot);
 
   // mCurrentContainerASR is adjusted so that it's still an ancestor of
   // finiteBoundsASR.

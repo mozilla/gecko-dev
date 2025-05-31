@@ -3407,15 +3407,17 @@ void nsIFrame::BuildDisplayListForStackingContext(
     ViewTransitionCapture,
   };
 
+  // NOTE(emilio): The order of these RAII objects is quite subtle.
+  nsDisplayListBuilder::AutoEnterViewTransitionCapture
+      inViewTransitionCaptureSetter(aBuilder, capturedByViewTransition);
+  nsDisplayListBuilder::AutoContainerASRTracker contASRTracker(aBuilder);
   nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter asrSetter(aBuilder);
-  if (capturedByViewTransition || aBuilder->IsInViewTransitionCapture()) {
+  if (aBuilder->IsInViewTransitionCapture()) {
     // View transition contents shouldn't scroll along our ASR. They get
     // "pulled out" of the rendering (or when they don't, you can't scroll
     // anyways).
     asrSetter.SetCurrentActiveScrolledRoot(nullptr);
   }
-
-  nsDisplayListBuilder::AutoContainerASRTracker contASRTracker(aBuilder);
 
   auto cssClip = GetClipPropClipRect(disp, effects, GetSize());
   auto ApplyClipProp = [&](DisplayListClipState::AutoSaveRestore& aClipState) {
@@ -3445,10 +3447,10 @@ void nsIFrame::BuildDisplayListForStackingContext(
   // one of those container items, the clip will be captured on the outermost
   // one and the inner container items will be unclipped.
   ContainerItemType clipCapturedBy = ContainerItemType::None;
-  if (useFixedPosition) {
-    clipCapturedBy = ContainerItemType::FixedPosition;
-  } else if (capturedByViewTransition) {
+  if (capturedByViewTransition) {
     clipCapturedBy = ContainerItemType::ViewTransitionCapture;
+  } else if (useFixedPosition) {
+    clipCapturedBy = ContainerItemType::FixedPosition;
   } else if (isTransformed) {
     const DisplayItemClipChain* currentClip =
         aBuilder->ClipState().GetCurrentCombinedClipChain(aBuilder);
@@ -3501,8 +3503,6 @@ void nsIFrame::BuildDisplayListForStackingContext(
                                                           usingFilter);
     nsDisplayListBuilder::AutoInEventsOnly inEventsSetter(
         aBuilder, opacityItemForEventsOnly);
-    nsDisplayListBuilder::AutoEnterViewTransitionCapture
-        inViewTransitionCaptureSetter(aBuilder, capturedByViewTransition);
 
     // If we have a mask, compute a clip to bound the masked content.
     // This is necessary in case the content moves with an ancestor
@@ -3811,7 +3811,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
   }
 
   // If we have sticky positioning, wrap it in a sticky position item.
-  if (useFixedPosition) {
+  if (useFixedPosition && !capturedByViewTransition) {
     if (clipCapturedBy == ContainerItemType::FixedPosition) {
       clipState.Restore();
     }
@@ -3828,7 +3828,7 @@ void nsIFrame::BuildDisplayListForStackingContext(
     resultList.AppendNewToTop<nsDisplayFixedPosition>(
         aBuilder, this, &resultList, fixedASR, containerItemASR);
     createdContainer = true;
-  } else if (useStickyPosition) {
+  } else if (useStickyPosition && !capturedByViewTransition) {
     // For position:sticky, the clip needs to be applied both to the sticky
     // container item and to the contents. The container item needs the clip
     // because a scrolled clip needs to move independently from the sticky

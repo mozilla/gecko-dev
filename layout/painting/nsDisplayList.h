@@ -1243,8 +1243,11 @@ class nsDisplayListBuilder {
     }
 
     ~AutoContainerASRTracker() {
-      mBuilder->mCurrentContainerASR = ActiveScrolledRoot::PickAncestor(
-          mBuilder->mCurrentContainerASR, mSavedContainerASR);
+      mBuilder->mCurrentContainerASR =
+          mBuilder->IsInViewTransitionCapture()
+              ? mSavedContainerASR
+              : ActiveScrolledRoot::PickAncestor(mBuilder->mCurrentContainerASR,
+                                                 mSavedContainerASR);
     }
 
    private:
