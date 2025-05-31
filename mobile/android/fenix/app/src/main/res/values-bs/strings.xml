@@ -249,6 +249,8 @@
   <string name="browser_menu_extensions_disabled_description">Privremeno onemogućeno</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Nema omogućenih ekstenzija</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Isprobajte preporučenu ekstenziju</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Podaci o računu</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -375,7 +377,9 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Dodaj oznaku, Prečica, Početna stranica, Kolekcija, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Označi ovu stranicu</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Označi ovu stranicu</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Zabilježi stranicu</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Uredi oznaku</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -776,6 +780,8 @@
   <string name="preferences_pbm_lock_screen_title">Koristite zaključavanje ekrana da sakrijete tabove u privatnom pregledavanju</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
   <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Pregledajte tabove s otiskom prsta, otključavanjem licem ili PIN-om.</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">Pregledajte tabove pomoću otiska prsta, PIN-a ili otključavanja licem.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Blokiranje pojavljivanja dijaloga kolačića</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -981,6 +987,8 @@
   <string name="customize_toggle_recently_visited">Nedavno posjećeno</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">Priče koje podstiču na razmišljanje</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">Priče</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">Članke omogućava %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
@@ -1509,13 +1517,13 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Izbrisano “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Preuzimanje u toku…</string>
+  <string name="download_in_progress_snackbar">Preuzimanje u toku…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
-  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detalji</string>
+  <string name="download_in_progress_snackbar_action_details">Detalji</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
-  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Preuzimanje završeno</string>
+  <string name="download_completed_snackbar">Preuzimanje završeno</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Otvori</string>
+  <string name="download_completed_snackbar_action_open">Otvori</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">Poništi</string>
   <!-- Text shown when no download exists -->
@@ -1596,7 +1604,9 @@
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">na čekanju</string>
   <!-- Text to indicate that a download has failed to download. -->
-  <string name="download_item_status_failed" tools:ignore="UnusedResources">Neuspjelo preuzimanje</string>
+  <string name="download_item_status_failed">Neuspjelo preuzimanje</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Detalji</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Traži preuzimanja</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1661,14 +1671,30 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Stranica je spora ili ne radi</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">Stranica se ne učitava</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">Ne mogu platiti, završiti na blagajni ili kupovati</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Slike ili video zapisi</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Dugmad, linkovi i drugi sadržaj</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Prijava ili odjava</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">Stranica je spora</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">Video se ne reproducira ili ne učitava</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">Nedostaje sadržaj</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">Ne mogu se prijaviti ili registrovati</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Blokator oglasa</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Od web stranice je zatraženo da isključi blokator oglasa</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">Preglednik nije podržan ili je blokiran</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Nešto drugo</string>
   <!--
@@ -2524,6 +2550,8 @@
   <string name="preferences_passwords_exceptions_remove_all">Obriši sve izuzetke</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">Traži lozinke</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">Nazad</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">Stranica</string>
   <!-- The header for the username for a login -->
@@ -2936,6 +2964,8 @@
     Header text for a section on the home screen.
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Priče koje podstiču na razmišljanje</string>
+  <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">Priče</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">Priče po temama</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->

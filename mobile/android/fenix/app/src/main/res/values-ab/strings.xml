@@ -345,7 +345,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Ацҵара Ҵәыӷәа, Аҿацә, Аҩны, Аизга, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Ари адаҟьа азгәаҭа</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Ари адаҟьа азгәаҭа</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Аҭыӡдырга аредакциа азутәуп</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->

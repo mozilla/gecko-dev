@@ -338,7 +338,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">نشانی، شارٹ کٹ، گھر، مجموعہ، پی ڈی ایف شامل کرو</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">ایہ ورقہ بک مارک کرو</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ایہ ورقہ بک مارک کرو</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">نشانی وچ تبدیلی کرو</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->

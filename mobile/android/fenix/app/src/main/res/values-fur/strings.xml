@@ -375,7 +375,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Zontâ segnelibri, scurte, pagjine iniziâl, racuelte, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Zonte pagjine ai segnelibris</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Zonte pagjine ai segnelibris</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Modifiche segnelibri</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1457,13 +1457,13 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Eliminât “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
-  <string name="download_in_progress_snackbar" tools:ignore="UnusedResources">Discjariament in cors…</string>
+  <string name="download_in_progress_snackbar">Discjariament in cors…</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
-  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Detais</string>
+  <string name="download_in_progress_snackbar_action_details">Detais</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
-  <string name="download_completed_snackbar" tools:ignore="UnusedResources">Discjariament completât</string>
+  <string name="download_completed_snackbar">Discjariament completât</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Vierç</string>
+  <string name="download_completed_snackbar_action_open">Vierç</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">Anule</string>
   <!-- Text shown when no download exists -->
@@ -1519,7 +1519,7 @@
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">in spiete</string>
   <!-- Text to indicate that a download has failed to download. -->
-  <string name="download_item_status_failed" tools:ignore="UnusedResources">Discjariament falît</string>
+  <string name="download_item_status_failed">Discjariament falît</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Cîr tai discjariâts</string>
   <!-- Text to indicate that no downloads match the search query. -->

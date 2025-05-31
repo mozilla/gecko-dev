@@ -323,7 +323,7 @@
   <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
   <string name="browser_menu_save_description">Tambahan tetengger, Panarabas, Imah, Koléksi, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Markahkeun ieu kaca</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Markahkeun ieu kaca</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Édit markah</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->

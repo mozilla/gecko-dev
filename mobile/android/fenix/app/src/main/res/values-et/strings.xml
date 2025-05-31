@@ -917,9 +917,9 @@
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Fail \"%1$s\" kustutati</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
-  <string name="download_in_progress_snackbar_action_details" tools:ignore="UnusedResources">Üksikasjad</string>
+  <string name="download_in_progress_snackbar_action_details">Üksikasjad</string>
   <!-- Text for the snackbar action button to open a completed download. -->
-  <string name="download_completed_snackbar_action_open" tools:ignore="UnusedResources">Ava</string>
+  <string name="download_completed_snackbar_action_open">Ava</string>
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">Võta tagasi</string>
   <!-- Text shown when no download exists -->

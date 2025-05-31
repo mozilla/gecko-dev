@@ -114,6 +114,24 @@
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
   <string name="shortcut_erase_and_open_long_label">मिटाएँ और %1$s खोलें</string>
+  <!--
+    This is the label of an action we offer when the user selects text in other third-party apps.
+    Focus is hard coded since we can't use variables in this context.
+    Do not translate or transliterate Focus.
+  -->
+  <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Focus पर खोजें</string>
+  <!--
+    This is the label of an action we offer when the user selects text in other third-party apps.
+    Klar is hard coded since we can't use variables in this context.
+    Do not translate or transliterate Klar.
+  -->
+  <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Klar पर खोजें</string>
+  <!--
+    This is the label of an action we offer when the user selects text in other third-party apps.
+    Focus Nightly is hard coded since we can't use variables in this context.
+    Do not translate or transliterate Focus Nightly.
+  -->
+  <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Focus Nightly पर खोजें</string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">गोपनीयता और सुरक्षा</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -267,8 +285,11 @@
   <string name="preference_mozilla_telemetry_summary">और अधिक जानें</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
   <string name="preference_mozilla_telemetry_summary2">Mozilla मात्र वही एकत्र करने का प्रयास करता है जिसकी हमें %1$s को बेहतर बनाने और सबको उपलब्ध कराने के लिए आवश्यकता है।</string>
+  <string name="preference_daily_usage_ping_learn_more">अधिक जानें</string>
   <!-- In-app link (in settings) to Focus privacy notice. -->
   <string name="preference_privacy_notice">गोपनीयता सूचना</string>
+  <!-- Open Source Licenses page title. %s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
+  <string name="open_source_licenses_title">%s | OSS लाइब्रेरी</string>
   <!-- Item in Preferences that shows the about page. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="preference_about">%1$s परिचय</string>
   <!-- Header for the list of installed search engines -->
@@ -382,6 +403,14 @@
   <!-- Snackbar action to immediately open the successfully downloaded file. -->
   <string name="download_snackbar_open">खोले</string>
   <string name="error_hostLookup_title">सर्वर नहीं मिला</string>
+  <!--
+    New Onboarding flow first screen title
+
+    %1$s is the app name and build variant (for example "Firefox Focus", "Firefox Klar Nightly").
+  -->
+  <string name="onboarding_first_screen_title">%1$s में आपका स्वागत हैं</string>
+  <!-- Text for the link used in onboarding_first_screen_privacy_notice_text -->
+  <string name="onboarding_first_screen_privacy_notice_link">गोपनीयता सूचना.</string>
   <!-- First run tour (Default browser): Title -->
   <string name="firstrun_defaultbrowser_title">अपनी गोपनीयता को बढ़ाएँ</string>
   <!-- First run tour (Default browser): Text. -->
@@ -484,6 +513,14 @@
   <string name="preferences_open_links_in_apps">ऐप्स में लिंक खोलें</string>
   <!-- Title of Advanced Setting category -->
   <string name="preference_category_advanced">विस्तृत</string>
+  <!-- Preference for autoplay -->
+  <string name="preference_autoplay">ऑटोप्‍ले</string>
+  <!-- Button label that take the user to the Android App setting -->
+  <string name="phone_feature_go_to_settings">सेटिंग पर जाएं</string>
+  <!-- Preference for altering the camera access for all websites -->
+  <string name="preference_phone_feature_camera">कैमरा</string>
+  <!-- Preference for altering the microphone access for all websites -->
+  <string name="preference_phone_feature_microphone">माइक्रोफ़ोन</string>
   <!-- Preference for studies -->
   <string name="preference_studies" moz:removedIn="140">अध्ययन</string>
   <!-- Preference for studies summary -->
@@ -531,7 +568,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">साइट अनपेक्षित ढंग से पेश आ रहा है?\n ट्रैकिंग सुरक्षा बंद कर के देखें</string>
+  <string name="tip_disable_tracking_protection">साइट अनपेक्षित ढंग से पेश आ रहा है?\nट्रैकिंग सुरक्षा बंद कर के देखें</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -542,17 +579,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">प्रत्येक लिंक %1$s में खोलें\n %1$s को डिफ़ॉल्ट ब्राउज़र बनायें</string>
+  <string name="tip_set_default_browser">प्रत्येक लिंक %1$s में खोलें\n%1$s को डिफ़ॉल्ट ब्राउज़र बनायें</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">स्वतः पूर्ण URLs उन साइटों के लिए जिन्हें आप अधिक इस्तेमाल करते हैं\n पता बार में किसी URL पर कुछ देर दबा कर रखें</string>
+  <string name="tip_autocomplete_url">स्वतः पूर्ण URLs उन साइटों के लिए जिन्हें आप अधिक इस्तेमाल करते हैं\nपता बार में किसी URL पर कुछ देर दबा कर रखें</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">कोई लिंक एक नये टैब में खोलें\n पृष्ठ पर किसी लिंक पर कुछ देर दबा कर रखें</string>
+  <string name="tip_open_in_new_tab">कोई लिंक एक नये टैब में खोलें\nपृष्ठ पर किसी लिंक पर कुछ देर दबा कर रखें</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">प्रारंभ स्क्रीन पर सलाह बंद करें</string>
   <!-- Label for the snackbar when a user opens a new tab -->

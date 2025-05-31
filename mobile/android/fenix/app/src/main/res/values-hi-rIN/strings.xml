@@ -14,8 +14,12 @@
   <string name="content_description_private_browsing_button">निजी ब्राउज़िंग सक्षम करें</string>
   <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
   <string name="content_description_disable_private_browsing_button">निजी ब्राउज़िंग अक्षम करें</string>
+  <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
+  <string name="content_description_private_browsing">निजी ब्राउज़िंग</string>
   <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
   <string name="search_hint">खोजें या पता दर्ज करें</string>
+  <!-- Placeholder text shown in the search bar before a user enters text for a general engine -->
+  <string name="search_hint_general_engine">वेब पर खोजें</string>
   <!-- No Open Tabs Message Description -->
   <string name="no_open_tabs_description">आपके खुले टैब यहां दिखाए जाएंगे।</string>
   <!-- No Private Tabs Message Description -->
@@ -32,6 +36,14 @@
   <string name="tab_tray_close_multiselect_content_description">मल्टीसेलेक्ट मोड से बाहर निकलें</string>
   <!-- Content description for save to collection button while in multiselect mode in tab tray -->
   <string name="tab_tray_collection_button_multiselect_content_description">चुने गए टैब को संग्रह में सहेजें</string>
+  <!--
+    Home - Bookmarks
+
+    Title for the home screen section with bookmarks.
+  -->
+  <string name="home_bookmarks_title">बुकमार्क</string>
+  <!-- Content description for the button which navigates the user to show all of their bookmarks. -->
+  <string name="home_bookmarks_show_all_content_description">सभी बुकमार्क दिखाएं</string>
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">%1$s को Mozilla द्वारा निर्मित किया गया है।</string>
   <!--
@@ -289,6 +301,12 @@
     a section where users see a list of tabs that they have visited in the past few days
   -->
   <string name="customize_toggle_recently_visited">हाल ही में देखे गए</string>
+  <!-- Title for the opening wallpaper settings screen -->
+  <string name="customize_wallpapers">वॉलपेपर</string>
+  <!-- Snackbar message for when wallpaper is selected -->
+  <string name="wallpaper_updated_snackbar_message">वॉलपेपर अपडेट किया गया!</string>
+  <!-- Snackbar label for action to view selected wallpaper -->
+  <string name="wallpaper_updated_snackbar_action">देखें</string>
   <!-- Preference for triggering sync -->
   <string name="preferences_sync_now">अब सिंक करें</string>
   <!-- Preference category for sync -->

@@ -291,7 +291,7 @@
   -->
   <string name="browser_menu_save">Chuva´a</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Tee página ya´a nuu a ta´an ini noo´o</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Tee página ya´a nuu a ta´an ini noo´o</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Tee a ta´an ini noo\'o</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->

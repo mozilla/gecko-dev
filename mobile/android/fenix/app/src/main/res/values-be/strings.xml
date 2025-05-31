@@ -327,7 +327,7 @@
   -->
   <string name="browser_menu_save">Захаваць</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
-  <string name="browser_menu_bookmark_this_page">Дадаць закладку на старонку</string>
+  <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Дадаць закладку на старонку</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Рэдагаваць закладку</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
