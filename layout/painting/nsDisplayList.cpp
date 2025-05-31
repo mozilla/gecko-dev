@@ -1364,8 +1364,8 @@ void nsDisplayListBuilder::MarkFramesForDisplayList(
     const ActiveScrolledRoot* asr = mCurrentActiveScrolledRoot;
 
     OutOfFlowDisplayData* data = new OutOfFlowDisplayData(
-        clipChain, combinedClipChain, asr, this->mCurrentScrollParentId,
-        visibleRect, dirtyRect);
+        clipChain, combinedClipChain, asr, mCurrentScrollParentId, visibleRect,
+        dirtyRect, mInViewTransitionCapture);
     aDirtyFrame->SetProperty(
         nsDisplayListBuilder::OutOfFlowDisplayDataProperty(), data);
     mFramesWithOOFData.AppendElement(aDirtyFrame);
@@ -1387,8 +1387,8 @@ void nsDisplayListBuilder::MarkFramesForDisplayList(
         mClipState.GetCurrentCombinedClipChain(this);
     const ActiveScrolledRoot* asr = mCurrentActiveScrolledRoot;
     CurrentPresShellState()->mFixedBackgroundDisplayData.emplace(
-        clipChain, combinedClipChain, asr, this->mCurrentScrollParentId,
-        GetVisibleRect(), GetDirtyRect());
+        clipChain, combinedClipChain, asr, mCurrentScrollParentId,
+        GetVisibleRect(), GetDirtyRect(), mInViewTransitionCapture);
   }
 }
 

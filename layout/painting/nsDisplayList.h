@@ -1392,14 +1392,16 @@ class nsDisplayListBuilder {
         const DisplayItemClipChain* aCombinedClipChain,
         const ActiveScrolledRoot* aContainingBlockActiveScrolledRoot,
         const ViewID& aScrollParentId, const nsRect& aVisibleRect,
-        const nsRect& aDirtyRect)
+        const nsRect& aDirtyRect, bool aContainingBlockInViewTransitionCapture)
         : mContainingBlockClipChain(aContainingBlockClipChain),
           mCombinedClipChain(aCombinedClipChain),
           mContainingBlockActiveScrolledRoot(
               aContainingBlockActiveScrolledRoot),
           mVisibleRect(aVisibleRect),
           mDirtyRect(aDirtyRect),
-          mScrollParentId(aScrollParentId) {}
+          mScrollParentId(aScrollParentId),
+          mContainingBlockInViewTransitionCapture(
+              aContainingBlockInViewTransitionCapture) {}
     const DisplayItemClipChain* mContainingBlockClipChain;
     const DisplayItemClipChain*
         mCombinedClipChain;  // only necessary for the special case of top layer
@@ -1413,6 +1415,27 @@ class nsDisplayListBuilder {
     nsRect mVisibleRect;
     nsRect mDirtyRect;
     ViewID mScrollParentId;
+
+    // mContainingBlockInViewTransitionCapture is needed to handle absolutely
+    // positioned elements that escape the view transition boundary
+    // (containing-block-wise). These should still not be clipped.
+    // Consider:
+    //
+    //   <div style="position: relative; width: 10px; height: 10px; overflow: clip">
+    //     <div id=captured>
+    //       <div style="position: absolute; width: 20px; height: 20px">
+    //
+    // The abspos is not supposed to be affected by the relpos clipping and ASR.
+    // While if it was inverted, it would need to be clipped:
+    //
+    //   <div id=captured>
+    //     <div style="position: relative; width: 10px; height: 10px; overflow: clip">
+    //       <div style="position: absolute; width: 20px; height: 20px">
+    //
+    // In order to  do this, we track whether the containing block was inside
+    // the capture.
+    // TODO(emilio, bug 1968754): Deal with nested captures properly.
+    bool mContainingBlockInViewTransitionCapture;
 
     static nsRect ComputeVisibleRectForFrame(nsDisplayListBuilder* aBuilder,
                                              nsIFrame* aFrame,

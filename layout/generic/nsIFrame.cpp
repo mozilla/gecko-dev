@@ -3366,7 +3366,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
       !style.IsRootElementStyle();
 
   const bool usingFilter = effects->HasFilters() && !style.IsRootElementStyle();
-  const SVGUtils::MaskUsage maskUsage = SVGUtils::DetermineMaskUsage(this, false);
+  const SVGUtils::MaskUsage maskUsage =
+      SVGUtils::DetermineMaskUsage(this, false);
   const bool usingMask = maskUsage.UsingMaskOrClipPath();
   const bool usingSVGEffects = usingFilter || usingMask;
 
@@ -3380,7 +3381,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
     aBuilder->EnterSVGEffectsContents(this, &hoistedScrollInfoItemsStorage);
   }
 
-  const bool useStickyPosition = disp->mPosition == StylePositionProperty::Sticky;
+  const bool useStickyPosition =
+      disp->mPosition == StylePositionProperty::Sticky;
 
   const bool useFixedPosition =
       disp->mPosition == StylePositionProperty::Fixed &&
@@ -3711,8 +3713,8 @@ void nsIFrame::BuildDisplayListForStackingContext(
         if (ItemParticipatesIn3DContext(this, item) &&
             !item->GetClip().HasClip()) {
           // The frame of this item participates the same 3D context.
-          WrapSeparatorTransform(aBuilder, this, &nonparticipants, &participants,
-                                 index++, &separator);
+          WrapSeparatorTransform(aBuilder, this, &nonparticipants,
+                                 &participants, index++, &separator);
 
           participants.AppendToTop(item);
         } else {
@@ -4323,11 +4325,21 @@ void nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder* aBuilder,
   if (savedOutOfFlowData) {
     aBuilder->SetBuildingInvisibleItems(false);
 
-    clipState.SetClipChainForContainingBlockDescendants(
-        savedOutOfFlowData->mContainingBlockClipChain);
-    asrSetter.SetCurrentActiveScrolledRoot(
-        savedOutOfFlowData->mContainingBlockActiveScrolledRoot);
-    asrSetter.SetCurrentScrollParentId(savedOutOfFlowData->mScrollParentId);
+    if (aBuilder->IsInViewTransitionCapture()) {
+      if (!savedOutOfFlowData->mContainingBlockInViewTransitionCapture) {
+        clipState.Clear();
+      } else {
+        clipState.SetClipChainForContainingBlockDescendants(
+            savedOutOfFlowData->mContainingBlockClipChain);
+      }
+      asrSetter.SetCurrentActiveScrolledRoot(nullptr);
+    } else {
+      clipState.SetClipChainForContainingBlockDescendants(
+          savedOutOfFlowData->mContainingBlockClipChain);
+      asrSetter.SetCurrentActiveScrolledRoot(
+          savedOutOfFlowData->mContainingBlockActiveScrolledRoot);
+      asrSetter.SetCurrentScrollParentId(savedOutOfFlowData->mScrollParentId);
+    }
     MOZ_ASSERT(awayFromCommonPath,
                "It is impossible when savedOutOfFlowData is true");
   } else if (HasAnyStateBits(NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO) &&
