@@ -28,8 +28,6 @@
     %1$s will be replaced with the size of the file.
   -->
   <string name="mozac_feature_downloads_dialog_title_3">Ladataanko tiedosto? (%1$s)</string>
-  <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Lataa (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Lataa</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
@@ -53,7 +51,7 @@
   <!-- Message that appears when the downloaded file could not be opened. -->
   <string name="mozac_feature_downloads_could_not_open_file">Tiedostoa ei voitu avata</string>
   <!-- Message that appears when the downloaded file is a specific type (%1$s) that Android doesn't support opening. -->
-  <string name="mozac_feature_downloads_open_not_supported1">"%1$s"-tiedostojen avaamiseen ei löytynyt sovellusta</string>
+  <string name="mozac_feature_downloads_open_not_supported1">\"%1$s\"-tiedostojen avaamiseen ei löytynyt sovellusta</string>
   <!-- Button that pauses the download when pressed. -->
   <string name="mozac_feature_downloads_button_pause">Keskeytä</string>
   <!-- Button that resumes the download when pressed. -->

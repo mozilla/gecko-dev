@@ -28,8 +28,6 @@
     %1$s will be replaced with the size of the file.
   -->
   <string name="mozac_feature_downloads_dialog_title_3">Ներբեռնե՞լ ֆայլը (%1$s)</string>
-  <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Ներբեռնել (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Ներբեռնել</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
@@ -73,7 +71,7 @@
   <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
   <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">Ֆայլեր ներբեռնելու համար անհրաժեշտ է ֆայլերի և մեդիայի թույլտվություն: Անցեք Android-ի կարգավորումներին, հպեք թույլտվություններին և հպեք թույլատրել:</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the title -->
-  <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Չեղարկե՞լ  անձնական ներբեռնումները:</string>
+  <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Չեղարկե՞լ անձնական ներբեռնումները:</string>
   <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
   <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">Եթե հիմա փակեք բոլոր գաղտնի ներդիրները, %1$s-ի ներբեռնումը կչեղարկվի։ Վստա՞հ եք, որ ցանկանում եք լքել գաղտնի դիտարկումը։</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->

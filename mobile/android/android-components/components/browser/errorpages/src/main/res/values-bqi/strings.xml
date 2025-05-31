@@ -50,8 +50,12 @@
   <string name="mozac_browser_errorpages_unknown_socket_type_message"><![CDATA[<p>ای وبگه و بارت یهوی و درخاست شبکه ولوم داڌ وو گشت گر نتره روه وا پؽش.</p>]]></string>
   <!-- The document title and heading of the error page shown when the browser gets stuck in an infinite loop when loading a website. -->
   <string name="mozac_browser_errorpages_redirect_loop_title">ای بلگه و خۊوی آلشت تور نؽڌه</string>
+  <!-- The error message shown when the browser gets stuck in an infinite loop when loading a website. -->
+  <string name="mozac_browser_errorpages_redirect_loop_message"><![CDATA[<p>گشت گر قپ ریت سی گرؽڌن موورد درخاستی ن تموم کرده. وبگه جۊری درخاست ن آلشت تور اده ک ای کار هیچ مجالی تموم نبۊ.</p> <ul> <li>اخۊین کۊکیا ائتمالی ک ای وبگه اخوسووݩ ن قیر فعال کۊنین؟</li> <li>ٱر قوۊل کردن کۊکیا وبگه موشکلن هل نکرد، و ائتمال قلوه یو موشکلی ز من سامووا سرور هڌ وو و دسگا ایسا ربتی نڌاره.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when a website cannot be loaded because the browser is in offline mode. -->
   <string name="mozac_browser_errorpages_offline_title">هالت آفلاین</string>
+  <!-- The error message shown when a website cannot be loaded because the browser is in offline mode. -->
+  <string name="mozac_browser_errorpages_offline_message"><![CDATA[<p>گشت گر من هالت لمتور هڌ وو نتره و موورد درخاستی منپیز بۊ.</p> <ul> <li> دسگا و ی شبکه فعال منپیز هڌ؟</li><li>دویمه «قپ ریت دووارته» ن بزنین تا و هالت ریتور روه وو بلگه ن دووارته بارونی کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
   <string name="mozac_browser_errorpages_port_blocked_title">درگه و دلیلا ٱمنیتی مئدۊد وابیڌه</string>
   <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->

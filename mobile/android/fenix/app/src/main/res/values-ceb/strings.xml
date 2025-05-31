@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">Pribado %s</string>
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
@@ -42,8 +42,6 @@
   -->
   <string name="private_browsing_placeholder_description_2">Ang %1$s moclear sa imong search ug browsing history sa private tabs kung i-sara o i-quit ang app. Bisan dili kini mohimo kanimo nga anonymous sa mga website ug sa imong internet service provider, gipasayon niini ang pagkapribado sa imong mga gihimo online gikan sa ubang gagamit niining device.</string>
   <string name="private_browsing_common_myths">Mga tinuohan bahin sa private browsing</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Salamat na lang</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">Adto sa settings</string>
   <!-- Text for the negative action button -->

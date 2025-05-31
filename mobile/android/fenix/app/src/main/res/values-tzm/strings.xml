@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+<resources>
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">Uslig %s</string>
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
@@ -8,8 +8,6 @@
   <string name="search_hint">Rzu neɣ ssekcem tansa</string>
   <!-- Label of editable text in create collection dialog for naming a new collection -->
   <string name="tab_tray_add_new_collection_name">Isem</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Uhu, tanemmirt</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">Ddu ɣer tisɣal</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -206,14 +204,6 @@
   <string name="history_30_days">30 n wussan imeggura</string>
   <!-- Text for the header that groups the history older than the last month -->
   <string name="history_older">Iqburen</string>
-  <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ttwakksen wagamen</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Kkes</string>
   <!-- Close tab button text on the tab crash page -->
   <string name="tab_crash_close">Mdel aseksel</string>
   <!-- Screen title for adding a bookmarks folder -->

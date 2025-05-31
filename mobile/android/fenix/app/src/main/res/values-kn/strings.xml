@@ -30,8 +30,6 @@
   -->
   <string name="private_browsing_placeholder_description_2">%1$s ನಿಮ್ಮ ಹುಡುಕಾಟ ಮತ್ತು ಬ್ರೌಸಿಂಗ್ ಇತಿಹಾಸವನ್ನು ಖಾಸಗಿ ಟ್ಯಾಬ್‌ಗಳಿಂದ ನೀವು ಮುಚ್ಚಿದಾಗ ಅಥವಾ ಅಪ್ಲಿಕೇಶನ್‌ನಿಂದ ನಿರ್ಗಮಿಸಿದಾಗ ಅವುಗಳನ್ನು ತೆರವುಗೊಳಿಸುತ್ತದೆ. ಇದು ನಿಮ್ಮನ್ನು ವೆಬ್‌ಸೈಟ್‌ಗಳಿಗೆ ಅಥವಾ ನಿಮ್ಮ ಇಂಟರ್ನೆಟ್ ಸೇವಾ ಪೂರೈಕೆದಾರರಿಗೆ ಅನಾಮಧೇಯರನ್ನಾಗಿ ಮಾಡದಿದ್ದರೂ, ಈ ಸಾಧನವನ್ನು ಬಳಸುವ ಬೇರೆಯವರಿಂದ ನೀವು ಆನ್‌ಲೈನ್‌ನಲ್ಲಿ ಏನು ಮಾಡುತ್ತೀರಿ ಎಂಬುದನ್ನು ಖಾಸಗಿಯಾಗಿ ಇಡುವುದು ಸುಲಭಗೊಳಿಸುತ್ತದೆ.</string>
   <string name="private_browsing_common_myths">ಖಾಸಗಿ ಬ್ರೌಸಿಂಗ್ ಬಗ್ಗೆ ಸಾಮಾನ್ಯ ಪುರಾಣಗಳು</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ಪರವಾಗಿಲ್ಲ</string>
   <!--
     Home screen icons - Long press shortcuts
 

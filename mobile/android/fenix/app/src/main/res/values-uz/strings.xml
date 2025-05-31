@@ -50,10 +50,6 @@
   -->
   <string name="private_browsing_placeholder_description_2">Ilovadan chiqsangiz yoki ularni yopsangiz, qidiruv va brauzer tarixini %1$s shaxsiy yorliqlardan tozalaydi. Garchi bu sizni veb-saytlar yoki Internet-provayderingiz uchun nomaʼlum qilmasa ham, Internetda qilgan ishingizni ushbu qurilmadan foydalanadigan har kimdan maxfiy saqlashni osonlashtiradi.</string>
   <string name="private_browsing_common_myths">Maxfiy koʻrish haqidagi umumiy afsonalar</string>
-  <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Bosh ekranga qoʻshish</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Kerak emas</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
@@ -739,22 +735,10 @@
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">Tarix yoʻq</string>
   <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Yuklanmalar olib tashlandi</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s olib tashlandi</string>
-  <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Yuklab olingan fayllar yoʻq</string>
-  <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">Tanlandi: %1$d</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Olib tashlash</string>
   <!--
     Crashes
 

@@ -55,16 +55,6 @@
   <string name="private_browsing_placeholder_description_2">%1$snadure\' nej sa nana\'uî\'t nga gaché nunt riña nej rakïj ñanj huì garâj sunt nan sisī naránt asi gahuīt riña aplikasiûn nan. Nan nī sê sī gāta ruhuaj sisī à\'ngō nādure\'ej sò\' riña nej sîtio asi riña duguî\' dû\'uèj internet, sanī rugûñu\'un da\' \'ngōrïnt gīni\'in sa \'iát ngà aché nunt nī sī ga\'ue gīni\'in a\'ngô guìi ngà\'.</string>
   <string name="private_browsing_common_myths">Nuguan\' nē huā rayi\'î riña aché nu huì\'</string>
   <!--
-    Private mode shortcut "contextual feature recommendation" (CFR)
-
-    Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
-  -->
-  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Màn si gūru’man ra’ât nī gā’hue gāyi’ìt ngà ‘ngō sesiûn hùii.</string>
-  <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Nāchrūn riña pantayâ Ayi\'ìi</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Guruhuât nānj ân</string>
-  <!--
     Open in App "contextual feature recommendation" (CFR)
 
     Text for the info message. %1$s is the name of the app (for example "Firefox").
@@ -833,22 +823,10 @@
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">Nitāj à\'ngō sa gini\'iājt</string>
   <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Nej sa nadunïnjt ngà nare’</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Ngà gahuin anêj %1$s</string>
-  <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Nitāj à’ngō achibô nanïnj ïn nu</string>
-  <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">Ngà naguit %1$d</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Nādure\'</string>
   <!--
     Crashes
 

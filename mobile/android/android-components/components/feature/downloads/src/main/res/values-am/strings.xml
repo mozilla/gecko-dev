@@ -28,8 +28,6 @@
     %1$s will be replaced with the size of the file.
   -->
   <string name="mozac_feature_downloads_dialog_title_3">ፋይል አውርድ? (%1$s)</string>
-  <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">(%1$s)ን አውርድ </string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">አውርድ</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
@@ -77,7 +75,7 @@
   <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
   <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">ሁሉንም የግል ትሮችን አሁን ከዘጉ፣ %1$sን ማውረድ ይሰረዛል። እርግጠኛ ነዎት ከግል አሰሳ መውጣት ይፈልጋሉ?</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
-  <string name="mozac_feature_downloads_cancel_active_downloads_accept">ማውረዶችን አቋርጥ </string>
+  <string name="mozac_feature_downloads_cancel_active_downloads_accept">ማውረዶችን አቋርጥ</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
   <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">በግል አሰሳ ውስጥ ይቆዩ</string>
 </resources>
