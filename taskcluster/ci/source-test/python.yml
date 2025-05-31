@@ -66,23 +66,6 @@ fog:
         files-changed:
             - 'toolkit/components/glean/**'
 
-mach:
-    description: python/mach unit tests
-    platform:
-        - linux1804-64/opt
-        - macosx1015-64/opt
-        - windows11-64/opt
-    python-version: [3]
-    treeherder:
-        symbol: mach
-    run:
-        using: python-test
-        subsuite: mach
-    when:
-        files-changed:
-            - 'python/mach/**'
-            - 'python/sites/**'
-
 marionette-harness:
     description: testing/marionette/harness unit tests
     platform:
@@ -168,57 +151,6 @@ mozbase:
     when:
         files-changed:
             - 'testing/mozbase/**'
-
-mozharness:
-    description: mozharness integration tests
-    python-version: [3]
-    treeherder:
-        symbol: mh
-    run:
-        using: python-test
-        subsuite: mozharness
-    when:
-        files-changed:
-            - 'testing/mozharness/**'
-
-mozlint:
-    description: python/mozlint unit tests
-    platform:
-        - linux1804-64/opt
-        - macosx1015-64/opt
-        - windows11-64/opt
-    python-version: [3]
-    treeherder:
-        symbol: mozlint
-        tier: 2
-    run:
-        using: python-test
-        subsuite: mozlint
-    dependencies:
-        clang-tidy:
-            by-platform:
-                linux1804-64/opt: toolchain-linux64-clang-tidy
-                macosx1015-64/opt: toolchain-macosx64-clang-tidy
-                windows11-64/opt: toolchain-win64-clang-tidy
-    fetches:
-        toolchain:
-            by-platform:
-                linux1804-64/opt:
-                    - linux64-node
-                    - linux64-rust
-                macosx1015-64/opt:
-                    - macosx64-node
-                    - macosx64-rust
-                windows11-64/opt:
-                    - win64-node
-                    - win64-rust
-        clang-tidy:
-            - artifact: clang-tidy.tar.zst
-              dest: clang-tools
-    when:
-        files-changed:
-            - 'python/mozlint/**'
-            - 'tools/lint/**'
 
 mozrelease:
     description: python/mozrelease unit tests
@@ -398,30 +330,6 @@ mozbuild:
             - 'python/mozversioncontrol/**'
             - 'testing/mozbase/**'
             - 'testing/xpcshell/xpcshellcommandline.py'
-
-mozperftest:
-    description: mozperftest unit tests
-    platform:
-        - linux1804-64/opt
-        - macosx1015-64/opt
-        - windows11-64/opt
-    treeherder:
-        symbol: mpu
-    run:
-        mach: perftest-test
-    fetches:
-        toolchain:
-            by-platform:
-                linux1804-64/opt:
-                    - linux64-node
-                macosx1015-64/opt:
-                    - macosx64-node
-                windows11-64/opt:
-                    - win64-node
-    when:
-        files-changed:
-            - 'testing/performance/**'
-            - 'python/mozperftest/**'
 
 fxms-schemas:
     description: >
