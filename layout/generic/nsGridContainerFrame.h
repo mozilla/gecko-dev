@@ -522,20 +522,21 @@ class nsGridContainerFrame final : public nsContainerFrame,
                          const LogicalRect& aContentArea,
                          ReflowOutput& aDesiredSize, nsReflowStatus& aStatus);
 
-  // Helper for Reflow. This is intended to be called *before* the final call to
+  // Helper for Reflow. This is intended to be called *before* the first pass of
   // CalculateTrackSizesForAxis() for the block-axis.
   //
-  // @return The block-size that can be used to (re-)resolve the final row
-  // sizes.
+  // @return The block-size that can be used to resolve row sizes in the first
+  // pass.
   nscoord ComputeBSizeForResolvingRowSizes(
-      GridReflowInput& aGridRI, const Grid& aGrid, nscoord aComputedBSize,
+      GridReflowInput& aGridRI, nscoord aComputedBSize,
       const Maybe<nscoord>& aContainIntrinsicBSize) const;
 
   // Helper for Reflow. This is intended to be called *after* the final call to
   // CalculateTrackSizesForAxis() for the block-axis.
   //
-  // @param aBSizeForResolvingRowSizes the value returned by
-  // ComputeBSizeForResolvingRowSizes().
+  // @param aBSizeForResolvingRowSizes the definite block-size determined by
+  // ComputeBSizeForResolvingRowSizes() or after resolving row sizes in the
+  // first pass.
   // @return The intrinsic content block-size that can be used with other
   // logic in Reflow() to determine the content block-size.
   nscoord ComputeIntrinsicContentBSize(
