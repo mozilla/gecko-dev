@@ -1276,7 +1276,8 @@ already_AddRefed<Promise> nsImageLoadingContent::RecognizeCurrentImageText(
   return domPromise.forget();
 }
 
-CSSIntSize nsImageLoadingContent::NaturalSize() {
+CSSIntSize nsImageLoadingContent::NaturalSize(
+    DoDensityCorrection aDensityCorrection) {
   if (!mCurrentRequest) {
     return {};
   }
@@ -1321,14 +1322,16 @@ CSSIntSize nsImageLoadingContent::NaturalSize() {
   }
 
   ImageResolution resolution = image->GetResolution();
-  // NOTE(emilio): What we implement here matches the image-set() spec, but it's
-  // unclear whether this is the right thing to do, see
-  // https://github.com/whatwg/html/pull/5574#issuecomment-826335244.
-  if (auto* image = HTMLImageElement::FromNode(AsContent())) {
-    if (auto* sel = image->GetResponsiveImageSelector()) {
-      float density = sel->GetSelectedImageDensity();
-      MOZ_ASSERT(density >= 0.0);
-      resolution.ScaleBy(density);
+  if (aDensityCorrection == DoDensityCorrection::Yes) {
+    // NOTE(emilio): What we implement here matches the image-set() spec, but
+    // it's unclear whether this is the right thing to do, see
+    // https://github.com/whatwg/html/pull/5574#issuecomment-826335244.
+    if (auto* image = HTMLImageElement::FromNode(AsContent())) {
+      if (auto* sel = image->GetResponsiveImageSelector()) {
+        float density = sel->GetSelectedImageDensity();
+        MOZ_ASSERT(density >= 0.0);
+        resolution.ScaleBy(density);
+      }
     }
   }
 
