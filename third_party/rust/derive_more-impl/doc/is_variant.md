@@ -26,18 +26,20 @@ assert!(!Maybe::<()>::Nothing.is_just());
 
 ### What is generated?
 
-The derive in the above example code generates the following code:
+The derive in the above example generates code like this:
 ```rust
 # enum Maybe<T> {
 #     Just(T),
 #     Nothing
 # }
-impl <T> Maybe<T>{
+impl<T> Maybe<T>{
+    #[must_use]
     pub const fn is_just(&self) -> bool {
-        match self {Self::Just(..) => true, _ => false}
+        matches!(self, Self::Just(..))
     }
+    #[must_use]
     pub const fn is_nothing(&self) -> bool {
-        match self {Self::Nothing => true, _ => false}
+        matches!(self, Self::Nothing)
     }
 }
 ```

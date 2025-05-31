@@ -1,4 +1,5 @@
-#![allow(dead_code)]
+#![allow(dead_code)] // some code is tested for type checking only
+
 use super::*;
 
 derive_display!(TestErr);

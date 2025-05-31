@@ -32,7 +32,7 @@ struct Numbers {
 
 assert_eq!(Some(5), MyVec(vec![5, 8]).into_iter().next());
 
-let mut nums = Numbers{numbers: vec![100, 200], useless: false};
+let mut nums = Numbers { numbers: vec![100, 200], useless: false };
 assert_eq!(Some(&100), (&nums).into_iter().next());
 assert_eq!(Some(&mut 100), (&mut nums).into_iter().next());
 assert_eq!(Some(100), nums.into_iter().next());
@@ -63,30 +63,30 @@ Code like this will be generated:
 #     numbers: Vec<i32>,
 #     useless: bool,
 # }
-impl ::core::iter::IntoIterator for Numbers {
-    type Item = <Vec<i32> as ::core::iter::IntoIterator>::Item;
-    type IntoIter = <Vec<i32> as ::core::iter::IntoIterator>::IntoIter;
+impl IntoIterator for Numbers {
+    type Item = <Vec<i32> as IntoIterator>::Item;
+    type IntoIter = <Vec<i32> as IntoIterator>::IntoIter;
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        <Vec<i32> as ::core::iter::IntoIterator>::into_iter(self.numbers)
+        <Vec<i32> as IntoIterator>::into_iter(self.numbers)
     }
 }
 
-impl<'__deriveMoreLifetime> ::core::iter::IntoIterator for &'__deriveMoreLifetime Numbers {
-    type Item = <&'__deriveMoreLifetime Vec<i32> as ::core::iter::IntoIterator>::Item;
-    type IntoIter = <&'__deriveMoreLifetime Vec<i32> as ::core::iter::IntoIterator>::IntoIter;
+impl<'__deriveMoreLifetime> IntoIterator for &'__deriveMoreLifetime Numbers {
+    type Item = <&'__deriveMoreLifetime Vec<i32> as IntoIterator>::Item;
+    type IntoIter = <&'__deriveMoreLifetime Vec<i32> as IntoIterator>::IntoIter;
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        <&'__deriveMoreLifetime Vec<i32> as ::core::iter::IntoIterator>::into_iter(&self.numbers)
+        <&'__deriveMoreLifetime Vec<i32> as IntoIterator>::into_iter(&self.numbers)
     }
 }
 
-impl<'__deriveMoreLifetime> ::core::iter::IntoIterator for &'__deriveMoreLifetime mut Numbers {
-    type Item = <&'__deriveMoreLifetime mut Vec<i32> as ::core::iter::IntoIterator>::Item;
-    type IntoIter = <&'__deriveMoreLifetime mut Vec<i32> as ::core::iter::IntoIterator>::IntoIter;
+impl<'__deriveMoreLifetime> IntoIterator for &'__deriveMoreLifetime mut Numbers {
+    type Item = <&'__deriveMoreLifetime mut Vec<i32> as IntoIterator>::Item;
+    type IntoIter = <&'__deriveMoreLifetime mut Vec<i32> as IntoIterator>::IntoIter;
     #[inline]
     fn into_iter(self) -> Self::IntoIter {
-        <&'__deriveMoreLifetime mut Vec<i32> as ::core::iter::IntoIterator>::into_iter(
+        <&'__deriveMoreLifetime mut Vec<i32> as IntoIterator>::into_iter(
             &mut self.numbers,
         )
     }

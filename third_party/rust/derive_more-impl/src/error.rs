@@ -37,17 +37,26 @@ pub fn expand(
     };
 
     let source = source.map(|source| {
+        // Not using `#[inline]` here on purpose, since this is almost never part
+        // of a hot codepath.
         quote! {
-            fn source(&self) -> Option<&(dyn ::derive_more::Error + 'static)> {
-                use ::derive_more::__private::AsDynError;
+            // TODO: Use `derive_more::core::error::Error` once `error_in_core` Rust feature is
+            //       stabilized.
+            fn source(&self) -> Option<&(dyn derive_more::with_trait::Error + 'static)> {
+                use derive_more::__private::AsDynError;
                 #source
             }
         }
     });
 
     let provide = provide.map(|provide| {
+        // Not using `#[inline]` here on purpose, since this is almost never part
+        // of a hot codepath.
         quote! {
-            fn provide<'_demand>(&'_demand self, demand: &mut ::core::any::Demand<'_demand>) {
+            fn provide<'_request>(
+                &'_request self,
+                request: &mut derive_more::core::error::Request<'_request>,
+            ) {
                 #provide
             }
         }
@@ -61,7 +70,8 @@ pub fn expand(
             &generics,
             quote! {
                 where
-                    #ident #ty_generics: ::core::fmt::Debug + ::core::fmt::Display
+                    #ident #ty_generics: derive_more::core::fmt::Debug
+                                         + derive_more::core::fmt::Display
             },
         );
     }
@@ -71,8 +81,14 @@ pub fn expand(
         generics = utils::add_extra_where_clauses(
             &generics,
             quote! {
-                where
-                    #(#bounds: ::core::fmt::Debug + ::core::fmt::Display + ::derive_more::Error + 'static),*
+                where #(
+                    #bounds: derive_more::core::fmt::Debug
+                             + derive_more::core::fmt::Display
+                             // TODO: Use `derive_more::core::error::Error` once `error_in_core`
+                             //       Rust feature is stabilized.
+                             + derive_more::with_trait::Error
+                             + 'static
+                ),*
             },
         );
     }
@@ -81,7 +97,9 @@ pub fn expand(
 
     let render = quote! {
         #[automatically_derived]
-        impl #impl_generics ::derive_more::Error for #ident #ty_generics #where_clause {
+        // TODO: Use `derive_more::core::error::Error` once `error_in_core` Rust feature is
+        //       stabilized.
+        impl #impl_generics derive_more::with_trait::Error for #ident #ty_generics #where_clause {
             #source
             #provide
         }
@@ -185,7 +203,7 @@ impl<'input, 'state> ParsedFields<'input, 'state> {
     }
 }
 
-impl<'input, 'state> ParsedFields<'input, 'state> {
+impl ParsedFields<'_, '_> {
     fn render_source_as_struct(&self) -> Option<TokenStream> {
         let source = self.source?;
         let ident = &self.data.members[source];
@@ -205,7 +223,9 @@ impl<'input, 'state> ParsedFields<'input, 'state> {
         let source_provider = self.source.map(|source| {
             let source_expr = &self.data.members[source];
             quote! {
-                ::derive_more::Error::provide(&#source_expr, demand);
+                // TODO: Use `derive_more::core::error::Error` once `error_in_core` Rust feature is
+                //       stabilized.
+                derive_more::with_trait::Error::provide(&#source_expr, request);
             }
         });
         let backtrace_provider = self
@@ -215,7 +235,7 @@ impl<'input, 'state> ParsedFields<'input, 'state> {
             .then(|| {
                 let backtrace_expr = &self.data.members[backtrace];
                 quote! {
-                    demand.provide_ref::<::std::backtrace::Backtrace>(&#backtrace_expr);
+                    request.provide_ref::<::std::backtrace::Backtrace>(&#backtrace_expr);
                 }
             });
 
@@ -235,7 +255,9 @@ impl<'input, 'state> ParsedFields<'input, 'state> {
                 let pattern = self.data.matcher(&[source], &[quote! { source }]);
                 Some(quote! {
                     #pattern => {
-                        ::derive_more::Error::provide(source, demand);
+                        // TODO: Use `derive_more::core::error::Error` once `error_in_core` Rust
+                        //       feature is stabilized.
+                        derive_more::with_trait::Error::provide(source, request);
                     }
                 })
             }
@@ -246,8 +268,10 @@ impl<'input, 'state> ParsedFields<'input, 'state> {
                 );
                 Some(quote! {
                     #pattern => {
-                        demand.provide_ref::<::std::backtrace::Backtrace>(backtrace);
-                        ::derive_more::Error::provide(source, demand);
+                        request.provide_ref::<::std::backtrace::Backtrace>(backtrace);
+                        // TODO: Use `derive_more::core::error::Error` once `error_in_core` Rust
+                        //       feature is stabilized.
+                        derive_more::with_trait::Error::provide(source, request);
                     }
                 })
             }
@@ -255,7 +279,7 @@ impl<'input, 'state> ParsedFields<'input, 'state> {
                 let pattern = self.data.matcher(&[backtrace], &[quote! { backtrace }]);
                 Some(quote! {
                     #pattern => {
-                        demand.provide_ref::<::std::backtrace::Backtrace>(backtrace);
+                        request.provide_ref::<::std::backtrace::Backtrace>(backtrace);
                     }
                 })
             }

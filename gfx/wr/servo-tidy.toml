@@ -14,6 +14,8 @@ packages = [
     "core-graphics",
     # requires a new version of font-loader, see https://github.com/matprec/rust-font-loader/pull/36
     "core-text",
+    # derive_more 0.99 is required by glsl-lang
+    "derive_more",
     # requires updating winit to v0.28 and glutin to v0.30 (to get rid of cocoa v0.24)
     # AND also requires bumping the core-graphics dependency of winit (not present in v0.28)
     "foreign-types",

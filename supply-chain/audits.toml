@@ -6634,6 +6634,20 @@ user-id = 6743 # Ed Page (epage)
 start = "2022-04-15"
 end = "2025-08-21"
 
+[[trusted.derive_more]]
+criteria = "safe-to-deploy"
+user-id = 3797 # Jelte Fennema-Nio (JelteF)
+start = "2019-05-25"
+end = "2026-04-21"
+notes = "Jelte audits each PR that was submitted for security issues. He has not contributed much to Mozilla codebases, but is the maintainer of PgBouncer and is a Postgres contributor. Unsafe code is forbidden using #[forbid(unsafe_code)]."
+
+[[trusted.derive_more-impl]]
+criteria = "safe-to-deploy"
+user-id = 3797 # Jelte Fennema-Nio (JelteF)
+start = "2023-07-23"
+end = "2026-04-21"
+notes = "Jelte audits each PR that was submitted for security issues. He has not contributed much to Mozilla codebases, but is the maintainer of PgBouncer and is a Postgres contributor. Unsafe code is forbidden using #[forbid(unsafe_code)]."
+
 [[trusted.dtoa]]
 criteria = "safe-to-deploy"
 user-id = 3618 # David Tolnay (dtolnay)

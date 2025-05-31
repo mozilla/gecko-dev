@@ -173,7 +173,7 @@ impl<'a, 'b> Padded<'a, 'b> {
     }
 }
 
-impl<'a, 'b> Write for Padded<'a, 'b> {
+impl Write for Padded<'_, '_> {
     fn write_str(&mut self, s: &str) -> Result {
         for s in s.split_inclusive('\n') {
             if self.on_newline {

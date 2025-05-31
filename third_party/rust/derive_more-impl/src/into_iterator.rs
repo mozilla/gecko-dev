@@ -1,5 +1,5 @@
 use crate::utils::{
-    add_extra_generic_param, add_extra_ty_param_bound_ref, SingleFieldData, State,
+    add_extra_generic_param, add_extra_where_clauses, SingleFieldData, State,
 };
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
@@ -26,16 +26,19 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
         let reference_with_lifetime = ref_type.reference_with_lifetime();
 
         let generics_impl;
-        let generics =
-            add_extra_ty_param_bound_ref(&input.generics, trait_path, ref_type);
-        let (_, ty_generics, where_clause) = generics.split_for_impl();
         let (impl_generics, _, _) = if ref_type.is_ref() {
-            generics_impl = add_extra_generic_param(&generics, lifetime.clone());
+            generics_impl = add_extra_generic_param(&input.generics, lifetime.clone());
             generics_impl.split_for_impl()
         } else {
-            generics.split_for_impl()
+            input.generics.split_for_impl()
         };
-        // let generics = add_extra_ty_param_bound(&input.generics, trait_path);
+
+        let generics = add_extra_where_clauses(
+            &input.generics,
+            quote! { where #reference_with_lifetime #field_type: #trait_path },
+        );
+        let (_, ty_generics, where_clause) = generics.split_for_impl();
+
         let casted_trait = &quote! {
             <#reference_with_lifetime #field_type as #trait_path>
         };

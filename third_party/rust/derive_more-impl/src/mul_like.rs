@@ -53,6 +53,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
             type Output = #input_type #ty_generics;
 
             #[inline]
+            #[track_caller]
             fn #method_ident(self, rhs: #scalar_ident) -> #input_type #ty_generics {
                 #body
             }

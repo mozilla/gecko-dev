@@ -35,6 +35,7 @@ fn tuple_struct() {
     assert_eq!(s, "Error code: 2");
 }
 
+#[allow(clippy::enum_variant_names)] // because of the original source
 #[derive(Display)]
 enum EnumError {
     #[display("Error code: {}", code)]

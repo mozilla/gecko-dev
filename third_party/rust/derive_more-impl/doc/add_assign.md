@@ -22,7 +22,7 @@ Code like this will be generated:
 
 ```rust
 # struct MyInts(i32, i32);
-impl ::core::ops::AddAssign for MyInts {
+impl derive_more::core::ops::AddAssign for MyInts {
     fn add_assign(&mut self, rhs: MyInts) {
         self.0.add_assign(rhs.0);
         self.1.add_assign(rhs.1);
@@ -56,7 +56,7 @@ Code like this will be generated:
 #     x: i32,
 #     y: i32,
 # }
-impl ::core::ops::AddAssign for Point2D {
+impl derive_more::core::ops::AddAssign for Point2D {
     fn add_assign(&mut self, rhs: Point2D) {
         self.x.add_assign(rhs.x);
         self.y.add_assign(rhs.y);

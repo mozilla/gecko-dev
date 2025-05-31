@@ -18,7 +18,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
     )?;
     assert!(
         state.derive_type == DeriveType::Enum,
-        "TryUnwrap can only be derived for enums"
+        "TryUnwrap can only be derived for enums",
     );
 
     let enum_name = &input.ident;
@@ -71,9 +71,11 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
             #[track_caller]
             #[doc = #doc_owned]
             #[doc = #doc_else]
-            pub fn #fn_name(self) -> Result<(#(#data_types),*), ::derive_more::TryUnwrapError<Self>> {
+            pub fn #fn_name(self) -> derive_more::core::result::Result<
+                (#(#data_types),*), derive_more::TryUnwrapError<Self>
+            > {
                 match self {
-                    #pattern => Ok(#ret_value),
+                    #pattern => derive_more::core::result::Result::Ok(#ret_value),
                     val @ _ => #failed_block,
                 }
             }
@@ -84,9 +86,11 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
             #[track_caller]
             #[doc = #doc_ref]
             #[doc = #doc_else]
-            pub fn #ref_fn_name(&self) -> Result<(#(&#data_types),*), ::derive_more::TryUnwrapError<&Self>> {
+            pub fn #ref_fn_name(&self) -> derive_more::core::result::Result<
+                (#(&#data_types),*), derive_more::TryUnwrapError<&Self>
+            > {
                 match self {
-                    #pattern => Ok(#ret_value),
+                    #pattern => derive_more::core::result::Result::Ok(#ret_value),
                     val @ _ => #failed_block_ref,
                 }
             }
@@ -97,9 +101,11 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
             #[track_caller]
             #[doc = #doc_mut]
             #[doc = #doc_else]
-            pub fn #mut_fn_name(&mut self) -> Result<(#(&mut #data_types),*), ::derive_more::TryUnwrapError<&mut Self>> {
+            pub fn #mut_fn_name(&mut self) -> derive_more::core::result::Result<
+                (#(&mut #data_types),*), derive_more::TryUnwrapError<&mut Self>
+            > {
                 match self {
-                    #pattern => Ok(#ret_value),
+                    #pattern => derive_more::core::result::Result::Ok(#ret_value),
                     val @ _ => #failed_block_mut,
                 }
             }
@@ -117,6 +123,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
     }
 
     let imp = quote! {
+        #[allow(unreachable_code)] // omit warnings for `!` and other unreachable types
         #[automatically_derived]
         impl #imp_generics #enum_name #type_generics #where_clause {
             #(#funcs)*
@@ -154,8 +161,18 @@ fn failed_block(state: &State, enum_name: &Ident, func_name: &Ident) -> TokenStr
                 Fields::Unit => quote! {},
             };
             let variant_ident = &variant.ident;
-        let error = quote! { ::derive_more::TryUnwrapError::<_>::new(val, stringify!(#enum_name), stringify!(#variant_ident), stringify!(#func_name)) };
-            quote! { val @ #enum_name :: #variant_ident #data_pattern => Err(#error) }
+            let error = quote! {
+                derive_more::TryUnwrapError::<_>::new(
+                    val,
+                    stringify!(#enum_name),
+                    stringify!(#variant_ident),
+                    stringify!(#func_name),
+                )
+            };
+            quote! {
+                val @ #enum_name :: #variant_ident #data_pattern
+                    => derive_more::core::result::Result::Err(#error)
+            }
         });
 
     quote! {

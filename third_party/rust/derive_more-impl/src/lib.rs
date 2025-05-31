@@ -21,10 +21,8 @@ mod add_assign_like;
 mod add_helpers;
 #[cfg(any(feature = "add", feature = "mul"))]
 mod add_like;
-#[cfg(feature = "as_mut")]
-mod as_mut;
 #[cfg(feature = "as_ref")]
-mod as_ref;
+mod r#as;
 #[cfg(feature = "constructor")]
 mod constructor;
 #[cfg(feature = "deref")]
@@ -57,15 +55,12 @@ mod mul_helpers;
 mod mul_like;
 #[cfg(feature = "not")]
 mod not_like;
-#[cfg(any(
-    feature = "debug",
-    feature = "display",
-    feature = "from",
-    feature = "into",
-))]
+#[cfg(any(feature = "debug", feature = "display"))]
 pub(crate) mod parsing;
 #[cfg(feature = "sum")]
 mod sum_like;
+#[cfg(feature = "try_from")]
+mod try_from;
 #[cfg(feature = "try_into")]
 mod try_into;
 #[cfg(feature = "try_unwrap")]
@@ -77,6 +72,10 @@ mod unwrap;
 // the derives. A derive can generally be infallible and
 // return a TokenStream, or it can be fallible and return
 // a Result<TokenStream, syn::parse::Error>.
+//
+// This trait can be unused if no feature is enabled. We already error in that case but this
+// warning distracts from the actual error.
+#[allow(dead_code)]
 trait Output {
     fn process(self) -> TokenStream;
 }
@@ -135,9 +134,8 @@ create_derive!(
     bit_xor_assign_derive,
 );
 
-create_derive!("as_mut", as_mut, AsMut, as_mut_derive, as_mut);
-
-create_derive!("as_ref", as_ref, AsRef, as_ref_derive, as_ref);
+create_derive!("as_ref", r#as::r#mut, AsMut, as_mut_derive, as_mut);
+create_derive!("as_ref", r#as::r#ref, AsRef, as_ref_derive, as_ref);
 
 create_derive!("constructor", constructor, Constructor, constructor_derive);
 
@@ -267,6 +265,8 @@ create_derive!("not", not_like, Neg, neg_derive);
 
 create_derive!("sum", sum_like, Sum, sum_derive);
 create_derive!("sum", sum_like, Product, product_derive);
+
+create_derive!("try_from", try_from, TryFrom, try_from_derive, try_from);
 
 create_derive!("try_into", try_into, TryInto, try_into_derive, try_into);
 

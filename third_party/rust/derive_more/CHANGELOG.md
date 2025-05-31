@@ -5,12 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## 2.0.1 - 2025-02-03
 
-## 1.0.0 - Unreleased
+### Added
+
+- Add crate metadata for the Rust Playground. This makes sure that the Rust
+Playground will have all `derive_more` features available once
+[`selectors`](https://docs.rs/selectors/latest/selectors) crate updates its
+`derive_more` version.
+([#445](https://github.com/JelteF/derive_more/pull/445))
+
+## 2.0.0 - 2025-02-03
 
 ### Breaking changes
 
-- The minimum supported Rust version (MSRV) is now Rust 1.65.
+- `use derive_more::SomeTrait` now imports macro only. Importing macro with
+  its trait along is possible now via `use derive_more::with_trait::SomeTrait`.
+  ([#406](https://github.com/JelteF/derive_more/pull/406))
+- Top-level `#[display("...")]` attribute on an enum now has defaulting behavior
+  instead of replacing when no wrapping is possible (no `_variant` placeholder).
+  ([#395](https://github.com/JelteF/derive_more/pull/395))
+
+### Fixed
+
+- Associated types of type parameters not being treated as generics in `Debug`
+  and `Display` expansions.
+  ([#399](https://github.com/JelteF/derive_more/pull/399))
+- `unreachable_code` warnings on generated code when `!` (never type) is used.
+  ([#404](https://github.com/JelteF/derive_more/pull/404))
+- Ambiguous associated item error when deriving `TryFrom`, `TryInto` or `FromStr`
+  with an associated item called `Error` or `Err` respectively.
+  ([#410](https://github.com/JelteF/derive_more/pull/410))
+- Top-level `#[display("...")]` attribute on an enum being incorrectly treated
+  as transparent or wrapping.
+  ([#395](https://github.com/JelteF/derive_more/pull/395))
+- Omitted raw identifiers in `Debug` and `Display` expansions.
+  ([#431](https://github.com/JelteF/derive_more/pull/431))
+- Incorrect rendering of raw identifiers as field names in `Debug` expansions.
+  ([#431](https://github.com/JelteF/derive_more/pull/431))
+- Top-level `#[display("...")]` attribute on an enum not working transparently
+  for directly specified fields.
+  ([#438](https://github.com/JelteF/derive_more/pull/438))
+- Incorrect dereferencing of unsized fields in `Debug` and `Display` expansions.
+  ([#440](https://github.com/JelteF/derive_more/pull/440))
+
+## 0.99.19 - 2025-02-03
+
+- Add crate metadata for the Rust Playground.
+
+## 1.0.0 - 2024-08-07
+
+More than 8 years after the first commit and almost 5 years after the 0.99.0
+release, `derive_more` has finally reached its 1.0.0 release. This release
+contains a lot of changes (including some breaking ones) to make it easier to
+use the derives and make it possible to extend them without having to break
+backwards compatibility again. There are five major changes that I would like
+to call out, but there are many more changes that are documented below:
+1. There is a new `Debug` derive that can be used to easily customize `Debug`
+   formatting.
+2. A greatly improved `Display` derive, which allows you to do anything that
+   [`thiserror`](https://github.com/dtolnay/thiserror) provides, but it works
+   for any type not just errors. And by combining the `Display` derive with the
+   `Error` and `From` derives, there shouldn't really be any need to use
+   `thiserror` anymore (if you are missing a feature/behaviour from `thiserror`
+   please report an issue).
+3. Traits that can return errors now return a type that implements `Error`
+   when an error occurs instead of a `&'static str`.
+4. When using `use derive_more::SomeTrait` the actual trait is also imported
+   not just the derive macro. This is especially useful for `Error` and
+   `Display`
+5. The docs are now rendered on docs.rs and are much better overall.
+
+
+### Breaking changes
+
+- The minimum supported Rust version (MSRV) is now Rust 1.75.
 - Add the `std` feature which should be disabled in `no_std` environments.
 - All Cargo features, except `std`, are now disabled by default. The `full`
   feature can be used to get the old behavior of supporting all possible
@@ -25,6 +94,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   `#[display(fmt = "...", ("<expr>"),*)]`, and `#[display(bound(<bound>))]`
   instead of `#[display(bound = "<bound>")]`. So without the double quotes
   around the expressions and bounds.
+- The `Debug` and `Display` derives (and other `fmt`-like ones) now transparently
+  delegate to the inner type when `#[display("...", (<expr>),*)]` attribute is
+  trivially substitutable with a transparent call.
+  ([#322](https://github.com/JelteF/derive_more/pull/322))
 - The `DebugCustom` derive is renamed to just `Debug` (gated now under a separate
   `debug` feature), and its semantics were changed to be a superset of `std` variant
   of `Debug`.
@@ -35,7 +108,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   and ignores field type itself.
 - The `Into` derive now uses `#[into(<types>)]` instead of `#[into(types(<types>))]`
   and ignores field type itself.
-- Importing a derive macro now also import its corresponding trait.
+- The `Into` derive now generates separate impls for each field whenever the `#[into(...)]`
+  attribute is applied to it. ([#291](https://github.com/JelteF/derive_more/pull/291))
+- Importing a derive macro now also imports its corresponding trait.
+- The `Error` derive is updated with changes to the `error_generic_member_access`
+  unstable feature for nightly users. ([#200](https://github.com/JelteF/derive_more/pull/200),
+  [#294](https://github.com/JelteF/derive_more/pull/294))
+- The `as_mut` feature is removed, and the `AsMut` derive is now gated by the
+  `as_ref` feature. ([#295](https://github.com/JelteF/derive_more/pull/295))
+- A top level `#[display("...")]` attribute on an enum now requires the usage
+  of `{_variant}` to include the variant instead of including it at `{}`. The
+  reason is that `{}` now references the first argument to the format string,
+  just like in all other format strings. ([#377](https://github.com/JelteF/derive_more/pull/377))
 
 ### Added
 
@@ -50,17 +134,31 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
   ([#206](https://github.com/JelteF/derive_more/pull/206))
 - Add `TryUnwrap` derive similar to the `Unwrap` derive. This one returns a `Result` and does not panic.
   ([#206](https://github.com/JelteF/derive_more/pull/206))
+- Add support for container format in `Debug` derive with the same syntax as `Display` derives.
+  ([#279](https://github.com/JelteF/derive_more/pull/279))
+- `derive_more::derive` module exporting only macros, without traits.
+  ([#290](https://github.com/JelteF/derive_more/pull/290))
+- Add support for specifying concrete types to `AsRef`/`AsMut` derives.
+  ([#298](https://github.com/JelteF/derive_more/pull/298))
+- Add `TryFrom` derive for enums to convert from their discriminant.
+  ([#300](https://github.com/JelteF/derive_more/pull/300))
+- `#[inline]` attributes to `IsVariant` and `Debug` implementations.
+  ([#334](https://github.com/JelteF/derive_more/pull/334)
+- Add `#[track_caller]` to `Add`, `Mul`, `AddAssign` and `MulAssign` derives
+  ([#378](https://github.com/JelteF/derive_more/pull/378)
+
 
 ### Changed
 
 - The `Constructor` and `IsVariant` derives now generate `const fn` functions.
+- Static methods derived by `IsVariant` are now marked `#[must_use]`.
+  ([#350](https://github.com/JelteF/derive_more/pull/350))
 - The `Unwrap` and `IsVariant` derives now generate doc comments.
 - `#[automatically_derived]` is now emitted from all macro expansions. This
   should prevent code style linters from attempting to modify the generated
   code.
 - Upgrade to `syn` 2.0.
-- The `Error` derive now works in nightly `no_std` environments when enabling
-  `#![feature(error_in_core)]`.
+- The `Error` derive now works in nightly `no_std` environments
 
 ### Fixed
 
@@ -70,6 +168,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Fix `Error` derive not working with `const` generics.
 - Support trait objects for source in Error, e.g.
   `Box<dyn Error + Send + 'static>`
+- Fix bounds on derived `IntoIterator` impls for generic structs.
+  ([#284](https://github.com/JelteF/derive_more/pull/284))
+- Fix documentation of generated bounds in `Display` derive.
+  ([#297](https://github.com/JelteF/derive_more/pull/297))
+- Hygiene of macro expansions in presence of custom `core` crate.
+  ([#327](https://github.com/JelteF/derive_more/pull/327))
+- Fix documentation of generated methods in `IsVariant` derive.
+- Make `{field:p}` do the expected thing in format strings for `Display` and
+  `Debug`. Also document weirdness around `Pointer` formatting when using
+  expressions, due to field variables being references.
+  ([#381](https://github.com/JelteF/derive_more/pull/381))
+
+## 0.99.18 - 2024-06-15
+
+- Upgrade to `syn` 2.0.
+- The minimum supported Rust version (MSRV) is now Rust 1.65.
 
 ## 0.99.10 - 2020-09-11
 

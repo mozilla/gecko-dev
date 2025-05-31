@@ -58,27 +58,28 @@ struct Numbers {
 Code like this will be generated to implement `IndexMut`:
 
 ```rust
+# use ::core::ops::Index;
 # struct Numbers {
 #     numbers: Vec<i32>,
 #     useless: bool,
 # }
-# impl<__IdxT> ::core::ops::Index<__IdxT> for Numbers
+# impl<__IdxT> Index<__IdxT> for Numbers
 # where
-#     Vec<i32>: ::core::ops::Index<__IdxT>,
+#     Vec<i32>: Index<__IdxT>,
 # {
-#     type Output = <Vec<i32> as ::core::ops::Index<__IdxT>>::Output;
+#     type Output = <Vec<i32> as Index<__IdxT>>::Output;
 #     #[inline]
 #     fn index(&self, idx: __IdxT) -> &Self::Output {
-#         <Vec<i32> as ::core::ops::Index<__IdxT>>::index(&self.numbers, idx)
+#         <Vec<i32> as Index<__IdxT>>::index(&self.numbers, idx)
 #     }
 # }
-impl<__IdxT> ::core::ops::IndexMut<__IdxT> for Numbers
+impl<__IdxT> derive_more::core::ops::IndexMut<__IdxT> for Numbers
 where
-    Vec<i32>: ::core::ops::IndexMut<__IdxT>,
+    Vec<i32>: derive_more::core::ops::IndexMut<__IdxT>,
 {
     #[inline]
     fn index_mut(&mut self, idx: __IdxT) -> &mut Self::Output {
-        <Vec<i32> as ::core::ops::IndexMut<__IdxT>>::index_mut(&mut self.numbers, idx)
+        <Vec<i32> as derive_more::core::ops::IndexMut<__IdxT>>::index_mut(&mut self.numbers, idx)
     }
 }
 ```

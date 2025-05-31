@@ -40,7 +40,7 @@ use super::*;
 /// ```
 macro_rules! assert_bt {
     (@impl $macro:ident, $error:expr, $backtrace:expr) => {
-        $macro!(std::any::request_ref::<Backtrace>(&$error).unwrap().to_string(), $backtrace.to_string());
+        $macro!(::core::error::request_ref::<Backtrace>(&$error).unwrap().to_string(), $backtrace.to_string());
     };
     (@expand $macro:ident, $error:expr, .$backtrace:ident) => {
         assert_bt!(@impl $macro, $error, $error.$backtrace())
@@ -85,8 +85,8 @@ impl Default for BacktraceErr {
 }
 
 impl Error for BacktraceErr {
-    fn provide<'a>(&'a self, demand: &mut std::any::Demand<'a>) {
-        demand
+    fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
+        request
             .provide_ref::<Backtrace>(&self.backtrace)
             .provide_value::<i32>(42);
     }

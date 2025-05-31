@@ -39,22 +39,21 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
             Fields::Unnamed(_) => quote! { (..) },
             Fields::Unit => quote! {},
         };
-        let variant_name = stringify!(variant_ident);
         let func = quote! {
             #[doc = "Returns `true` if this value is of type `"]
-            #[doc = #variant_name]
+            #[doc = stringify!(#variant_ident)]
             #[doc = "`. Returns `false` otherwise"]
+            #[inline]
+            #[must_use]
             pub const fn #fn_name(&self) -> bool {
-                match self {
-                    #enum_name ::#variant_ident #data_pattern => true,
-                    _ => false
-                }
+                derive_more::core::matches!(self, #enum_name ::#variant_ident #data_pattern)
             }
         };
         funcs.push(func);
     }
 
     let imp = quote! {
+        #[allow(unreachable_code)] // omit warnings for `!` and other unreachable types
         #[automatically_derived]
         impl #imp_generics #enum_name #type_generics #where_clause {
             #(#funcs)*

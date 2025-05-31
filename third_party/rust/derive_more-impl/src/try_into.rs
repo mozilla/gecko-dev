@@ -46,7 +46,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
 
     let mut tokens = TokenStream::new();
 
-    for ((ref_type, ref original_types), ref multi_field_datas) in variants_per_types {
+    for ((ref_type, ref original_types), ref multi_field_data) in variants_per_types {
         let input_type = &input.ident;
 
         let pattern_ref = ref_type.pattern_ref();
@@ -55,7 +55,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
 
         let mut matchers = vec![];
         let vars = &numbered_vars(original_types.len(), "");
-        for multi_field_data in multi_field_datas {
+        for multi_field_data in multi_field_data {
             let patterns: Vec<_> = vars
                 .iter()
                 .map(|var| quote! { #pattern_ref #var })
@@ -80,7 +80,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
                 .collect::<Vec<_>>();
             format!("({})", types.join(", "))
         };
-        let variant_names = multi_field_datas
+        let variant_names = multi_field_data
             .iter()
             .map(|d| {
                 d.variant_name
@@ -99,20 +99,26 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
             input.generics.split_for_impl()
         };
 
+        let error = quote! {
+            derive_more::TryIntoError<#reference_with_lifetime #input_type #ty_generics>
+        };
+
         let try_from = quote! {
             #[automatically_derived]
-            impl #impl_generics
-                 ::core::convert::TryFrom<#reference_with_lifetime #input_type #ty_generics> for
-                 (#(#reference_with_lifetime #original_types),*)
-                 #where_clause
-            {
-                type Error = ::derive_more::TryIntoError<#reference_with_lifetime #input_type>;
+            impl #impl_generics derive_more::core::convert::TryFrom<
+                #reference_with_lifetime #input_type #ty_generics
+            > for (#(#reference_with_lifetime #original_types),*) #where_clause {
+                type Error = #error;
 
                 #[inline]
-                fn try_from(value: #reference_with_lifetime #input_type #ty_generics) -> ::core::result::Result<Self, Self::Error> {
+                fn try_from(
+                    value: #reference_with_lifetime #input_type #ty_generics,
+                ) -> derive_more::core::result::Result<Self, #error> {
                     match value {
-                        #(#matchers)|* => ::core::result::Result::Ok(#vars),
-                        _ => ::core::result::Result::Err(::derive_more::TryIntoError::new(value, #variant_names, #output_type)),
+                        #(#matchers)|* => derive_more::core::result::Result::Ok(#vars),
+                        _ => derive_more::core::result::Result::Err(
+                            derive_more::TryIntoError::new(value, #variant_names, #output_type),
+                        ),
                     }
                 }
             }

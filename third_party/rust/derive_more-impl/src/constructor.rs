@@ -26,6 +26,7 @@ pub fn expand(input: &DeriveInput, _: &str) -> TokenStream {
     let original_types = &get_field_types(&fields);
     quote! {
         #[allow(missing_docs)]
+        #[allow(unreachable_code)] // omit warnings for `!` and other unreachable types
         #[automatically_derived]
         impl #impl_generics #input_type #ty_generics #where_clause {
             #[inline]

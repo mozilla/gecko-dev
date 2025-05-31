@@ -23,7 +23,7 @@ Code like this will be generated:
 
 ```rust
 # struct MyInts(i32, i32);
-impl ::core::ops::Not for MyInts {
+impl derive_more::core::ops::Not for MyInts {
     type Output = MyInts;
     fn not(self) -> MyInts {
         MyInts(self.0.not(), self.1.not())
@@ -57,7 +57,7 @@ Code like this will be generated:
 #     x: i32,
 #     y: i32,
 # }
-impl ::core::ops::Not for Point2D {
+impl derive_more::core::ops::Not for Point2D {
     type Output = Point2D;
     fn not(self) -> Point2D {
         Point2D {
@@ -104,7 +104,7 @@ Code like this will be generated:
 #     UnsignedOne(u32),
 #     UnsignedTwo(u32),
 # }
-impl ::core::ops::Not for MixedInts {
+impl derive_more::core::ops::Not for MixedInts {
     type Output = MixedInts;
     fn not(self) -> MixedInts {
         match self {
@@ -147,12 +147,12 @@ Code like this will be generated:
 #     SmallInt(i32),
 #     Unit,
 # }
-impl ::core::ops::Not for EnumWithUnit {
-    type Output = Result<EnumWithUnit, ::derive_more::ops::UnitError>;
-    fn not(self) -> Result<EnumWithUnit, ::derive_more::ops::UnitError> {
+impl derive_more::core::ops::Not for EnumWithUnit {
+    type Output = Result<EnumWithUnit, derive_more::UnitError>;
+    fn not(self) -> Result<EnumWithUnit, derive_more::UnitError> {
         match self {
             EnumWithUnit::SmallInt(__0) => Ok(EnumWithUnit::SmallInt(__0.not())),
-            EnumWithUnit::Unit => Err(::derive_more::ops::UnitError::new("not")),
+            EnumWithUnit::Unit => Err(derive_more::UnitError::new("not")),
         }
     }
 }

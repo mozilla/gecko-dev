@@ -105,7 +105,7 @@ assert_eq!(IntOrPoint::Point { x: 1, y: 2 }, (1, 2).into());
 ```
 
 By default, `From` is generated for every enum variant, but you can skip some
-variants via `#[from(skip)]` or only concrete fields via `#[from]`.
+variants via `#[from(skip)]` (or `#[from(ignore)]`) or only concrete fields via `#[from]`.
 
 ```rust
 # mod from {
@@ -125,7 +125,7 @@ enum Int {
 #[derive(Debug, From, PartialEq)]
 enum Int {
     Derived(i32),
-    #[from(skip)]
+    #[from(skip)] // or #[from(ignore)]
     NotDerived(i32),
 }
 # }

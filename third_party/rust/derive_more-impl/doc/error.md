@@ -44,11 +44,9 @@ ignored for one of these methods by using `#[error(not(backtrace))]` or
 
 ### What works in `no_std`?
 
-If you want to use the `Error` derive on `no_std` environments, then you need to
-compile with nightly and enable this feature:
-```ignore
-#![feature(error_in_core)]
-```
+If you want to use the `Error` derive on `no_std` environments, then
+you need to compile with nightly, or wait until Rust 1.81 when `Error`
+in `core` is expected to be stabilized.
 
 Backtraces don't work though, because the `Backtrace` type is only available in
 `std`.
@@ -59,12 +57,13 @@ Backtraces don't work though, because the `Backtrace` type is only available in
 ## Example usage
 
 ```rust
-# #![cfg_attr(nightly, feature(error_generic_member_access, provide_any))]
-// Nightly requires enabling these features:
-// #![feature(error_generic_member_access, provide_any)]
+# #![cfg_attr(nightly, feature(error_generic_member_access))]
+// Nightly requires enabling this feature:
+// #![feature(error_generic_member_access)]
 # #[cfg(not(nightly))] fn main() {}
 # #[cfg(nightly)] fn main() {
-# use std::{any, error::Error as _, backtrace::Backtrace};
+# use core::error::{request_ref, request_value, Error as __};
+# use std::backtrace::Backtrace;
 #
 # use derive_more::{Display, Error, From};
 
@@ -129,7 +128,7 @@ enum CompoundError {
 }
 
 assert!(Simple.source().is_none());
-assert!(any::request_ref::<Backtrace>(&Simple).is_none());
+assert!(request_ref::<Backtrace>(&Simple).is_none());
 assert!(WithSource::default().source().is_some());
 assert!(WithExplicitSource::default().source().is_some());
 assert!(Tuple::default().source().is_some());
@@ -139,7 +138,7 @@ let with_source_and_backtrace = WithSourceAndBacktrace {
     backtrace: Backtrace::capture(),
 };
 assert!(with_source_and_backtrace.source().is_some());
-assert!(any::request_ref::<Backtrace>(&with_source_and_backtrace).is_some());
+assert!(request_ref::<Backtrace>(&with_source_and_backtrace).is_some());
 
 assert!(CompoundError::Simple.source().is_none());
 assert!(CompoundError::from(Simple).source().is_some());

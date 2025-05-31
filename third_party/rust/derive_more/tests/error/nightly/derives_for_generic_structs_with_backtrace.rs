@@ -1,6 +1,8 @@
-#![allow(dead_code)]
+// For creating backtraces with different addresses in tests.
+#![allow(clippy::redundant_closure, clippy::redundant_closure_call)] // for testing
+#![allow(dead_code)] // some code is tested for type checking only
 
-use std::any;
+use core::error::{request_ref, request_value};
 
 use super::*;
 
@@ -12,7 +14,7 @@ fn named_implicit_no_backtrace() {
         field: T,
     }
 
-    assert!(any::request_ref::<Backtrace>(&TestErr::<i32>::default()).is_none());
+    assert!(request_ref::<Backtrace>(&TestErr::<i32>::default()).is_none());
 }
 
 #[test]
@@ -30,7 +32,7 @@ fn named_implicit_backtrace_by_field_name() {
         backtrace: Backtrace::force_capture(),
         field: 0,
     };
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err);
 }
 
@@ -47,7 +49,7 @@ fn named_implicit_backtrace_by_field_type() {
         implicit_backtrace: Backtrace::force_capture(),
         field: 0,
     };
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err, implicit_backtrace);
 }
 
@@ -63,7 +65,7 @@ fn named_explicit_no_backtrace_by_field_name() {
 
     type MyBacktrace = Backtrace;
 
-    assert!(any::request_ref::<Backtrace>(&TestErr {
+    assert!(request_ref::<Backtrace>(&TestErr {
         backtrace: Backtrace::force_capture(),
         field: 0
     })
@@ -80,7 +82,7 @@ fn named_explicit_no_backtrace_by_field_type() {
         field: T,
     }
 
-    assert!(any::request_ref::<Backtrace>(&TestErr {
+    assert!(request_ref::<Backtrace>(&TestErr {
         implicit_backtrace: Backtrace::force_capture(),
         field: 0
     })
@@ -103,7 +105,7 @@ fn named_explicit_backtrace() {
         explicit_backtrace: Backtrace::force_capture(),
         field: 0,
     };
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err, explicit_backtrace);
 }
 
@@ -120,7 +122,7 @@ fn named_explicit_no_backtrace_redundant() {
 
     type MyBacktrace = Backtrace;
 
-    assert!(any::request_ref::<Backtrace>(&TestErr {
+    assert!(request_ref::<Backtrace>(&TestErr {
         not_backtrace: Backtrace::force_capture(),
         field: 0
     })
@@ -143,7 +145,7 @@ fn named_explicit_backtrace_by_field_name_redundant() {
         backtrace: Backtrace::force_capture(),
         field: 0,
     };
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err);
 }
 
@@ -161,7 +163,7 @@ fn named_explicit_backtrace_by_field_type_redundant() {
         implicit_backtrace: Backtrace::force_capture(),
         field: 0,
     };
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err, implicit_backtrace);
 }
 
@@ -184,7 +186,7 @@ fn named_explicit_suppresses_implicit() {
         field: 0,
     };
 
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err, not_backtrace);
     assert_bt!(!=, err);
 }
@@ -205,8 +207,8 @@ fn named_implicit_no_backtrace_from_source() {
     };
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_none());
-    assert!(any::request_value::<i32>(&err).is_none());
+    assert!(request_ref::<Backtrace>(&err).is_none());
+    assert!(request_value::<i32>(&err).is_none());
 }
 
 #[test]
@@ -225,8 +227,8 @@ fn named_explicit_no_backtrace_from_source() {
     };
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_none());
-    assert!(any::request_value::<i32>(&err).is_none());
+    assert!(request_ref::<Backtrace>(&err).is_none());
+    assert!(request_value::<i32>(&err).is_none());
 }
 
 #[test]
@@ -245,9 +247,9 @@ fn named_explicit_backtrace_from_source() {
     };
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
-    assert_eq!(any::request_value::<i32>(&err), Some(42));
-    assert_bt!(==, err, any::request_ref::<Backtrace>(&err.err).unwrap());
+    assert!(request_ref::<Backtrace>(&err).is_some());
+    assert_eq!(request_value::<i32>(&err), Some(42));
+    assert_bt!(==, err, request_ref::<Backtrace>(&err.err).unwrap());
 }
 
 #[test]
@@ -268,10 +270,10 @@ fn named_implicit_different_source_and_backtrace() {
     };
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
-    assert_eq!(any::request_value::<i32>(&err), Some(42));
+    assert!(request_ref::<Backtrace>(&err).is_some());
+    assert_eq!(request_value::<i32>(&err), Some(42));
     assert_bt!(==, err, backtrace);
-    assert_bt!(!=, err, any::request_ref::<Backtrace>(&err.err).unwrap());
+    assert_bt!(!=, err, request_ref::<Backtrace>(&err.err).unwrap());
 }
 
 #[test]
@@ -293,10 +295,10 @@ fn named_explicit_different_source_and_backtrace() {
     };
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
-    assert_eq!(any::request_value::<i32>(&err), Some(42));
+    assert!(request_ref::<Backtrace>(&err).is_some());
+    assert_eq!(request_value::<i32>(&err), Some(42));
     assert_bt!(==, err, backtrace);
-    assert_bt!(!=, err, any::request_ref::<Backtrace>(&err.err).unwrap());
+    assert_bt!(!=, err, request_ref::<Backtrace>(&err.err).unwrap());
 }
 
 #[test]
@@ -305,7 +307,7 @@ fn unnamed_implicit_no_backtrace() {
     #[derive(Default, Debug, Error)]
     struct TestErr<T>(T, T);
 
-    assert!(any::request_ref::<Backtrace>(&TestErr::<i32>::default()).is_none());
+    assert!(request_ref::<Backtrace>(&TestErr::<i32>::default()).is_none());
 }
 
 #[test]
@@ -315,7 +317,7 @@ fn unnamed_implicit_backtrace() {
     struct TestErr<T>(Backtrace, T, T);
 
     let err = TestErr(Backtrace::force_capture(), 0, 0);
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err, .0);
 }
 
@@ -326,8 +328,7 @@ fn unnamed_explicit_no_backtrace() {
     struct TestErr<T>(#[error(not(backtrace))] Backtrace, T);
 
     assert!(
-        any::request_ref::<Backtrace>(&TestErr(Backtrace::force_capture(), 0))
-            .is_none()
+        request_ref::<Backtrace>(&TestErr(Backtrace::force_capture(), 0)).is_none()
     );
 }
 
@@ -340,7 +341,7 @@ fn unnamed_explicit_backtrace() {
     type MyBacktrace = Backtrace;
 
     let err = TestErr(Backtrace::force_capture(), 0, 0);
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err, .0);
 }
 
@@ -356,8 +357,7 @@ fn unnamed_explicit_no_backtrace_redundant() {
     type MyBacktrace = Backtrace;
 
     assert!(
-        any::request_ref::<Backtrace>(&TestErr(Backtrace::force_capture(), 0))
-            .is_none()
+        request_ref::<Backtrace>(&TestErr(Backtrace::force_capture(), 0)).is_none()
     );
 }
 
@@ -368,7 +368,7 @@ fn unnamed_explicit_backtrace_redundant() {
     struct TestErr<T>(#[error(backtrace)] Backtrace, T, T);
 
     let err = TestErr(Backtrace::force_capture(), 0, 0);
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err, .0);
 }
 
@@ -386,7 +386,7 @@ fn unnamed_explicit_suppresses_implicit() {
         0,
     );
 
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
+    assert!(request_ref::<Backtrace>(&err).is_some());
     assert_bt!(==, err, .0);
     assert_bt!(!=, err, .1);
 }
@@ -402,8 +402,8 @@ fn unnamed_implicit_no_backtrace_from_source() {
     });
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_none());
-    assert!(any::request_value::<i32>(&err).is_none());
+    assert!(request_ref::<Backtrace>(&err).is_none());
+    assert!(request_value::<i32>(&err).is_none());
 }
 
 #[test]
@@ -417,8 +417,8 @@ fn unnamed_explicit_no_backtrace_from_source() {
     });
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_none());
-    assert!(any::request_value::<i32>(&err).is_none());
+    assert!(request_ref::<Backtrace>(&err).is_none());
+    assert!(request_value::<i32>(&err).is_none());
 }
 
 #[test]
@@ -432,9 +432,9 @@ fn unnamed_explicit_backtrace_from_source() {
     });
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
-    assert_eq!(any::request_value::<i32>(&err), Some(42));
-    assert_bt!(==, err, any::request_ref::<Backtrace>(&err.0).unwrap());
+    assert!(request_ref::<Backtrace>(&err).is_some());
+    assert_eq!(request_value::<i32>(&err), Some(42));
+    assert_bt!(==, err, request_ref::<Backtrace>(&err.0).unwrap());
 }
 
 #[test]
@@ -451,10 +451,10 @@ fn unnamed_implicit_different_source_and_backtrace() {
     );
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
-    assert_eq!(any::request_value::<i32>(&err), Some(42));
+    assert!(request_ref::<Backtrace>(&err).is_some());
+    assert_eq!(request_value::<i32>(&err), Some(42));
     assert_bt!(==, err, .1);
-    assert_bt!(!=, err, any::request_ref::<Backtrace>(&err.0).unwrap());
+    assert_bt!(!=, err, request_ref::<Backtrace>(&err.0).unwrap());
 }
 
 #[test]
@@ -471,8 +471,8 @@ fn unnamed_explicit_different_source_and_backtrace() {
     );
 
     assert!(err.source().is_some());
-    assert!(any::request_ref::<Backtrace>(&err).is_some());
-    assert_eq!(any::request_value::<i32>(&err), Some(42));
+    assert!(request_ref::<Backtrace>(&err).is_some());
+    assert_eq!(request_value::<i32>(&err), Some(42));
     assert_bt!(==, err, .1);
-    assert_bt!(!=, err, any::request_ref::<Backtrace>(&err.0).unwrap());
+    assert_bt!(!=, err, request_ref::<Backtrace>(&err.0).unwrap());
 }

@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(dead_code)]
+#![cfg_attr(nightly, feature(never_type))]
+#![allow(dead_code)] // some code is tested for type checking only
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
@@ -25,8 +26,8 @@ enum Maybe<T> {
 
 #[derive(TryUnwrap)]
 enum Color {
-    RGB(u8, u8, u8),
-    CMYK(u8, u8, u8, u8),
+    Rgb(u8, u8, u8),
+    Cmyk(u8, u8, u8, u8),
 }
 
 /// With lifetime
@@ -79,24 +80,19 @@ enum Tuple<T> {
 #[test]
 pub fn test_try_unwrap() {
     assert_eq!(Maybe::<()>::Nothing.try_unwrap_nothing().ok(), Some(()));
-    assert_eq!((&Maybe::Just(1)).try_unwrap_just_ref().ok(), Some(&1));
-    assert_eq!(
-        (&mut Maybe::Just(42)).try_unwrap_just_mut().ok(),
-        Some(&mut 42)
-    );
+    assert_eq!(Maybe::Just(1).try_unwrap_just_ref().ok(), Some(&1));
+    assert_eq!(Maybe::Just(42).try_unwrap_just_mut().ok(), Some(&mut 42));
 
     assert_eq!(
         Maybe::<()>::Nothing.try_unwrap_just().map_err(|e| e.input),
         Err(Maybe::<()>::Nothing),
     );
     assert_eq!(
-        (&Maybe::Just(1))
-            .try_unwrap_nothing_ref()
-            .map_err(|e| e.input),
+        Maybe::Just(1).try_unwrap_nothing_ref().map_err(|e| e.input),
         Err(&Maybe::Just(1)),
     );
     assert_eq!(
-        (&mut Maybe::Just(42))
+        Maybe::Just(42)
             .try_unwrap_nothing_mut()
             .map_err(|e| e.to_string()),
         Err(
@@ -132,4 +128,15 @@ pub fn test_try_unwrap_mut_2() {
     }
 
     assert_eq!(value, Tuple::Double(255, 256));
+}
+
+#[cfg(nightly)]
+mod never {
+    use super::*;
+
+    #[derive(TryUnwrap)]
+    enum Enum {
+        Tuple(!),
+        TupleMulti(i32, !),
+    }
 }

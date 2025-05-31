@@ -1,7 +1,6 @@
 #![cfg_attr(
     not(all(feature = "add", feature = "mul")),
-    allow(dead_code),
-    allow(unused_mut)
+    allow(dead_code, unused_mut)
 )]
 
 use proc_macro2::TokenStream;
@@ -13,8 +12,28 @@ use syn::{
     TypeParamBound, Variant, WhereClause,
 };
 
+#[cfg(any(
+    feature = "as_ref",
+    feature = "debug",
+    feature = "display",
+    feature = "from",
+    feature = "into",
+    feature = "try_from",
+))]
+pub(crate) use self::either::Either;
 #[cfg(any(feature = "from", feature = "into"))]
-pub(crate) use self::{either::Either, fields_ext::FieldsExt};
+pub(crate) use self::fields_ext::FieldsExt;
+#[cfg(feature = "as_ref")]
+pub(crate) use self::generics_search::GenericsSearch;
+#[cfg(any(
+    feature = "as_ref",
+    feature = "debug",
+    feature = "display",
+    feature = "from",
+    feature = "into",
+    feature = "try_from",
+))]
+pub(crate) use self::spanning::Spanning;
 
 #[derive(Clone, Copy, Default)]
 pub struct DeterministicState;
@@ -124,7 +143,7 @@ pub fn add_extra_type_param_bound_op_output<'a>(
     for type_param in &mut generics.type_params_mut() {
         let type_ident = &type_param.ident;
         let bound: TypeParamBound = parse_quote! {
-            ::core::ops::#trait_ident<Output=#type_ident>
+            derive_more::core::ops::#trait_ident<Output = #type_ident>
         };
         type_param.bounds.push(bound)
     }
@@ -136,7 +155,7 @@ pub fn add_extra_ty_param_bound_op<'a>(
     generics: &'a Generics,
     trait_ident: &'a Ident,
 ) -> Generics {
-    add_extra_ty_param_bound(generics, &quote! { ::core::ops::#trait_ident })
+    add_extra_ty_param_bound(generics, &quote! { derive_more::core::ops::#trait_ident })
 }
 
 pub fn add_extra_ty_param_bound<'a>(
@@ -150,27 +169,6 @@ pub fn add_extra_ty_param_bound<'a>(
     }
 
     generics
-}
-
-pub fn add_extra_ty_param_bound_ref<'a>(
-    generics: &'a Generics,
-    bound: &'a TokenStream,
-    ref_type: RefType,
-) -> Generics {
-    match ref_type {
-        RefType::No => add_extra_ty_param_bound(generics, bound),
-        _ => {
-            let generics = generics.clone();
-            let idents = generics.type_params().map(|x| &x.ident);
-            let ref_with_lifetime = ref_type.reference_with_lifetime();
-            add_extra_where_clauses(
-                &generics,
-                quote! {
-                    where #(#ref_with_lifetime #idents: #bound),*
-                },
-            )
-        }
-    }
 }
 
 pub fn add_extra_generic_param(
@@ -227,11 +225,11 @@ pub fn add_where_clauses_for_new_ident<'a>(
     sized: bool,
 ) -> Generics {
     let generic_param = if fields.len() > 1 {
-        quote! { #type_ident: ::core::marker::Copy }
+        quote! { #type_ident: derive_more::core::marker::Copy }
     } else if sized {
         quote! { #type_ident }
     } else {
-        quote! { #type_ident: ?::core::marker::Sized }
+        quote! { #type_ident: ?derive_more::core::marker::Sized }
     };
 
     let generics = add_extra_where_clauses(generics, type_where_clauses);
@@ -263,7 +261,6 @@ pub enum DeriveType {
 pub struct State<'input> {
     pub input: &'input DeriveInput,
     pub trait_name: &'static str,
-    pub trait_ident: Ident,
     pub method_ident: Ident,
     pub trait_path: TokenStream,
     pub trait_path_params: Vec<TokenStream>,
@@ -302,10 +299,6 @@ impl AttrParams {
             variant: vec![],
             field: vec![],
         }
-    }
-
-    pub fn ignore_and_forward() -> AttrParams {
-        AttrParams::new(vec!["ignore", "forward"])
     }
 }
 
@@ -369,22 +362,6 @@ impl<'input> State<'input> {
         State::new_impl(input, trait_name, trait_attr, allowed_attr_params, true)
     }
 
-    pub fn with_type_bound<'arg_input>(
-        input: &'arg_input DeriveInput,
-        trait_name: &'static str,
-        trait_attr: String,
-        allowed_attr_params: AttrParams,
-        add_type_bound: bool,
-    ) -> Result<State<'arg_input>> {
-        Self::new_impl(
-            input,
-            trait_name,
-            trait_attr,
-            allowed_attr_params,
-            add_type_bound,
-        )
-    }
-
     fn new_impl<'arg_input>(
         input: &'arg_input DeriveInput,
         trait_name: &'static str,
@@ -395,7 +372,7 @@ impl<'input> State<'input> {
         let trait_name = trait_name.trim_end_matches("ToInner");
         let trait_ident = format_ident!("{trait_name}");
         let method_ident = format_ident!("{trait_attr}");
-        let trait_path = quote! { ::derive_more::#trait_ident };
+        let trait_path = quote! { derive_more::with_trait::#trait_ident };
         let (derive_type, fields, variants): (_, Vec<_>, Vec<_>) = match input.data {
             Data::Struct(ref data_struct) => match data_struct.fields {
                 Fields::Unnamed(ref fields) => {
@@ -438,8 +415,7 @@ impl<'input> State<'input> {
         let meta_infos = meta_infos?;
         let first_match = meta_infos
             .iter()
-            .filter_map(|info| info.enabled.map(|_| info))
-            .next();
+            .find_map(|info| info.enabled.map(|_| info));
 
         // Default to enabled true, except when first attribute has explicit
         // enabling.
@@ -510,7 +486,6 @@ impl<'input> State<'input> {
         Ok(State {
             input,
             trait_name,
-            trait_ident,
             method_ident,
             trait_path,
             trait_path_params: vec![],
@@ -538,7 +513,7 @@ impl<'input> State<'input> {
         let trait_name = trait_name.trim_end_matches("ToInner");
         let trait_ident = format_ident!("{trait_name}");
         let method_ident = format_ident!("{trait_attr}");
-        let trait_path = quote! { ::derive_more::#trait_ident };
+        let trait_path = quote! { derive_more::with_trait::#trait_ident };
         let (derive_type, fields): (_, Vec<_>) = match variant.fields {
             Fields::Unnamed(ref fields) => {
                 (DeriveType::Unnamed, unnamed_to_vec(fields))
@@ -567,7 +542,6 @@ impl<'input> State<'input> {
             trait_path,
             trait_path_params: vec![],
             trait_attr,
-            trait_ident,
             method_ident,
             // input,
             fields,
@@ -600,7 +574,6 @@ impl<'input> State<'input> {
             field_type: data.field_types[0],
             member: data.members[0].clone(),
             info: data.infos[0].clone(),
-            field_ident: data.field_idents[0].clone(),
             trait_path: data.trait_path,
             trait_path_with_params: data.trait_path_with_params.clone(),
             casted_trait: data.casted_traits[0].clone(),
@@ -673,17 +646,10 @@ impl<'input> State<'input> {
             panic!("can only derive({}) for enum", self.trait_name)
         }
         let variants = self.enabled_variants();
-        let trait_path = &self.trait_path;
-        let (impl_generics, ty_generics, where_clause) = self.generics.split_for_impl();
         MultiVariantData {
-            input_type: &self.input.ident,
             variants,
             variant_states: self.enabled_variant_states(),
             infos: self.enabled_infos(),
-            trait_path,
-            impl_generics,
-            ty_generics,
-            where_clause,
         }
     }
 
@@ -765,7 +731,6 @@ pub struct SingleFieldData<'input, 'state> {
     pub input_type: &'input Ident,
     pub field: &'input Field,
     pub field_type: &'input Type,
-    pub field_ident: TokenStream,
     pub member: TokenStream,
     pub info: FullMetaInfo,
     pub trait_path: &'state TokenStream,
@@ -800,17 +765,12 @@ pub struct MultiFieldData<'input, 'state> {
 }
 
 pub struct MultiVariantData<'input, 'state> {
-    pub input_type: &'input Ident,
     pub variants: Vec<&'input Variant>,
     pub variant_states: Vec<&'state State<'input>>,
     pub infos: Vec<FullMetaInfo>,
-    pub trait_path: &'state TokenStream,
-    pub impl_generics: ImplGenerics<'state>,
-    pub ty_generics: TypeGenerics<'state>,
-    pub where_clause: Option<&'state WhereClause>,
 }
 
-impl<'input, 'state> MultiFieldData<'input, 'state> {
+impl MultiFieldData<'_, '_> {
     pub fn initializer<T: ToTokens>(&self, initializers: &[T]) -> TokenStream {
         let MultiFieldData {
             variant_type,
@@ -844,7 +804,7 @@ impl<'input, 'state> MultiFieldData<'input, 'state> {
     }
 }
 
-impl<'input, 'state> SingleFieldData<'input, 'state> {
+impl SingleFieldData<'_, '_> {
     pub fn initializer<T: ToTokens>(&self, initializers: &[T]) -> TokenStream {
         self.multi_field_data.initializer(initializers)
     }
@@ -1347,21 +1307,46 @@ pub fn is_type_parameter_used_in_type(
     }
 }
 
-#[cfg(any(feature = "from", feature = "into"))]
+#[cfg(any(
+    feature = "as_ref",
+    feature = "debug",
+    feature = "display",
+    feature = "from",
+    feature = "into",
+    feature = "try_from",
+))]
 mod either {
     use proc_macro2::TokenStream;
     use quote::ToTokens;
+    use syn::parse::{discouraged::Speculative as _, Parse, ParseStream};
 
     /// Either [`Left`] or [`Right`].
     ///
     /// [`Left`]: Either::Left
     /// [`Right`]: Either::Right
+    #[derive(Clone, Copy, Debug)]
     pub(crate) enum Either<L, R> {
         /// Left variant.
         Left(L),
 
         /// Right variant.
         Right(R),
+    }
+
+    impl<L, R> Parse for Either<L, R>
+    where
+        L: Parse,
+        R: Parse,
+    {
+        fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+            let ahead = input.fork();
+            if let Ok(left) = ahead.parse::<L>() {
+                input.advance_to(&ahead);
+                Ok(Self::Left(left))
+            } else {
+                input.parse::<R>().map(Self::Right)
+            }
+        }
     }
 
     impl<L, R, T> Iterator for Either<L, R>
@@ -1373,8 +1358,8 @@ mod either {
 
         fn next(&mut self) -> Option<Self::Item> {
             match self {
-                Either::Left(left) => left.next(),
-                Either::Right(right) => right.next(),
+                Self::Left(left) => left.next(),
+                Self::Right(right) => right.next(),
             }
         }
     }
@@ -1386,8 +1371,799 @@ mod either {
     {
         fn to_tokens(&self, tokens: &mut TokenStream) {
             match self {
-                Either::Left(l) => l.to_tokens(tokens),
-                Either::Right(r) => r.to_tokens(tokens),
+                Self::Left(l) => l.to_tokens(tokens),
+                Self::Right(r) => r.to_tokens(tokens),
+            }
+        }
+    }
+}
+
+#[cfg(any(
+    feature = "as_ref",
+    feature = "debug",
+    feature = "display",
+    feature = "from",
+    feature = "into",
+    feature = "try_from",
+))]
+mod spanning {
+    use std::ops::{Deref, DerefMut};
+
+    use proc_macro2::Span;
+
+    /// Wrapper for non-[`Spanned`] types to hold their [`Span`].
+    ///
+    /// [`Spanned`]: syn::spanned::Spanned
+    #[derive(Clone, Copy, Debug)]
+    pub(crate) struct Spanning<T: ?Sized> {
+        /// [`Span`] of the `item`.
+        pub(crate) span: Span,
+
+        /// Item the [`Span`] is held for.
+        pub(crate) item: T,
+    }
+
+    impl<T: ?Sized> Spanning<T> {
+        /// Creates a new [`Spanning`] `item`, attaching the provided [`Span`] to it.
+        pub(crate) const fn new(item: T, span: Span) -> Self
+        where
+            T: Sized,
+        {
+            Self { span, item }
+        }
+
+        /// Destructures this [`Spanning`] wrapper returning the underlying `item`.
+        pub fn into_inner(self) -> T
+        where
+            T: Sized,
+        {
+            self.item
+        }
+
+        /// Returns the [`Span`] contained in this [`Spanning`] wrapper.
+        pub(crate) const fn span(&self) -> Span {
+            self.span
+        }
+
+        /// Converts this `&`[`Spanning`]`<T>` into [`Spanning`]`<&T>` (moves the reference inside).
+        pub(crate) const fn as_ref(&self) -> Spanning<&T> {
+            Spanning {
+                span: self.span,
+                item: &self.item,
+            }
+        }
+
+        /// Maps the wrapped `item` with the provided `f`unction, preserving the current [`Span`].
+        pub(crate) fn map<U>(self, f: impl FnOnce(T) -> U) -> Spanning<U>
+        where
+            T: Sized,
+        {
+            Spanning {
+                span: self.span,
+                item: f(self.item),
+            }
+        }
+    }
+
+    #[cfg(feature = "into")]
+    impl<T> Spanning<Option<T>> {
+        pub(crate) fn transpose(self) -> Option<Spanning<T>> {
+            match self.item {
+                Some(item) => Some(Spanning {
+                    item,
+                    span: self.span,
+                }),
+                None => None,
+            }
+        }
+    }
+
+    impl<T: ?Sized> Deref for Spanning<T> {
+        type Target = T;
+
+        fn deref(&self) -> &Self::Target {
+            &self.item
+        }
+    }
+
+    impl<T: ?Sized> DerefMut for Spanning<T> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.item
+        }
+    }
+}
+
+#[cfg(any(
+    feature = "as_ref",
+    feature = "debug",
+    feature = "display",
+    feature = "from",
+    feature = "into",
+    feature = "try_from",
+))]
+pub(crate) mod attr {
+    use std::any::Any;
+
+    use syn::{
+        parse::{Parse, ParseStream},
+        spanned::Spanned as _,
+    };
+
+    use super::{Either, Spanning};
+
+    #[cfg(any(
+        feature = "as_ref",
+        feature = "from",
+        feature = "into",
+        feature = "try_from"
+    ))]
+    pub(crate) use self::empty::Empty;
+    #[cfg(any(
+        feature = "as_ref",
+        feature = "debug",
+        feature = "from",
+        feature = "into",
+    ))]
+    pub(crate) use self::skip::Skip;
+    #[cfg(any(feature = "as_ref", feature = "from", feature = "try_from"))]
+    pub(crate) use self::types::Types;
+    #[cfg(any(feature = "as_ref", feature = "from"))]
+    pub(crate) use self::{
+        conversion::Conversion, field_conversion::FieldConversion, forward::Forward,
+    };
+    #[cfg(feature = "try_from")]
+    pub(crate) use self::{repr_conversion::ReprConversion, repr_int::ReprInt};
+
+    /// [`Parse`]ing with additional state or metadata.
+    pub(crate) trait Parser {
+        /// [`Parse`]s an item, using additional state or metadata.
+        ///
+        /// Default implementation just calls [`Parse::parse()`] directly.
+        fn parse<T: Parse + Any>(&self, input: ParseStream<'_>) -> syn::Result<T> {
+            T::parse(input)
+        }
+    }
+
+    impl Parser for () {}
+
+    /// Parsing of a typed attribute from multiple [`syn::Attribute`]s.
+    pub(crate) trait ParseMultiple: Parse + Sized + 'static {
+        /// Parses this attribute from the provided single [`syn::Attribute`] with the provided
+        /// [`Parser`].
+        ///
+        /// Required, because with [`Parse`] we only able to parse inner attribute tokens, which
+        /// doesn't work for attributes with empty arguments, like `#[attr]`.
+        ///
+        /// Override this method if the default [`syn::Attribute::parse_args_with()`] is not enough.
+        fn parse_attr_with<P: Parser>(
+            attr: &syn::Attribute,
+            parser: &P,
+        ) -> syn::Result<Self> {
+            attr.parse_args_with(|ps: ParseStream<'_>| parser.parse(ps))
+        }
+
+        /// Merges multiple values of this attribute into a single one.
+        ///
+        /// Default implementation only errors, disallowing multiple values of the same attribute.
+        fn merge_attrs(
+            _prev: Spanning<Self>,
+            new: Spanning<Self>,
+            name: &syn::Ident,
+        ) -> syn::Result<Spanning<Self>> {
+            Err(syn::Error::new(
+                new.span,
+                format!("only single `#[{name}(...)]` attribute is allowed here"),
+            ))
+        }
+
+        /// Merges multiple [`Option`]al values of this attribute into a single one.
+        ///
+        /// Default implementation uses [`ParseMultiple::merge_attrs()`] when both `prev` and `new`
+        /// are [`Some`].
+        fn merge_opt_attrs(
+            prev: Option<Spanning<Self>>,
+            new: Option<Spanning<Self>>,
+            name: &syn::Ident,
+        ) -> syn::Result<Option<Spanning<Self>>> {
+            Ok(match (prev, new) {
+                (Some(p), Some(n)) => Some(Self::merge_attrs(p, n, name)?),
+                (Some(p), None) => Some(p),
+                (None, Some(n)) => Some(n),
+                (None, None) => None,
+            })
+        }
+
+        /// Parses this attribute from the provided multiple [`syn::Attribute`]s with the provided
+        /// [`Parser`], merging them, and preserving their [`Span`].
+        ///
+        /// [`Span`]: proc_macro2::Span
+        fn parse_attrs_with<P: Parser>(
+            attrs: impl AsRef<[syn::Attribute]>,
+            name: &syn::Ident,
+            parser: &P,
+        ) -> syn::Result<Option<Spanning<Self>>> {
+            attrs
+                .as_ref()
+                .iter()
+                .filter(|attr| attr.path().is_ident(name))
+                .try_fold(None, |merged, attr| {
+                    let parsed = Spanning::new(
+                        Self::parse_attr_with(attr, parser)?,
+                        attr.span(),
+                    );
+                    if let Some(prev) = merged {
+                        Self::merge_attrs(prev, parsed, name).map(Some)
+                    } else {
+                        Ok(Some(parsed))
+                    }
+                })
+        }
+
+        /// Parses this attribute from the provided multiple [`syn::Attribute`]s with the default
+        /// [`Parse`], merging them, and preserving their [`Span`].
+        ///
+        /// [`Span`]: proc_macro2::Span
+        fn parse_attrs(
+            attrs: impl AsRef<[syn::Attribute]>,
+            name: &syn::Ident,
+        ) -> syn::Result<Option<Spanning<Self>>> {
+            Self::parse_attrs_with(attrs, name, &())
+        }
+    }
+
+    impl<L: ParseMultiple, R: ParseMultiple> ParseMultiple for Either<L, R> {
+        fn parse_attr_with<P: Parser>(
+            attr: &syn::Attribute,
+            parser: &P,
+        ) -> syn::Result<Self> {
+            L::parse_attr_with(attr, parser)
+                .map(Self::Left)
+                .or_else(|_| R::parse_attr_with(attr, parser).map(Self::Right))
+        }
+
+        fn merge_attrs(
+            prev: Spanning<Self>,
+            new: Spanning<Self>,
+            name: &syn::Ident,
+        ) -> syn::Result<Spanning<Self>> {
+            Ok(match (prev.item, new.item) {
+                (Self::Left(p), Self::Left(n)) => {
+                    L::merge_attrs(Spanning::new(p, prev.span), Spanning::new(n, new.span), name)?
+                        .map(Self::Left)
+                },
+                (Self::Right(p), Self::Right(n)) => {
+                    R::merge_attrs(Spanning::new(p, prev.span), Spanning::new(n, new.span), name)?
+                        .map(Self::Right)
+                },
+                _ => return Err(syn::Error::new(
+                    new.span,
+                    format!("only single kind of `#[{name}(...)]` attribute is allowed here"),
+                ))
+            })
+        }
+    }
+
+    #[cfg(any(
+        feature = "as_ref",
+        feature = "from",
+        feature = "into",
+        feature = "try_from"
+    ))]
+    mod empty {
+        use syn::{
+            parse::{Parse, ParseStream},
+            spanned::Spanned as _,
+        };
+
+        use super::{ParseMultiple, Parser, Spanning};
+
+        /// Representation of an empty attribute, containing no arguments.
+        ///
+        /// ```rust,ignore
+        /// #[<attribute>]
+        /// ```
+        #[derive(Clone, Copy, Debug)]
+        pub(crate) struct Empty;
+
+        impl Parse for Empty {
+            fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+                if input.is_empty() {
+                    Ok(Self)
+                } else {
+                    Err(syn::Error::new(
+                        input.span(),
+                        "no attribute arguments allowed here",
+                    ))
+                }
+            }
+        }
+
+        impl ParseMultiple for Empty {
+            fn parse_attr_with<P: Parser>(
+                attr: &syn::Attribute,
+                _: &P,
+            ) -> syn::Result<Self> {
+                if matches!(attr.meta, syn::Meta::Path(_)) {
+                    Ok(Self)
+                } else {
+                    Err(syn::Error::new(
+                        attr.span(),
+                        "no attribute arguments allowed here",
+                    ))
+                }
+            }
+
+            fn merge_attrs(
+                _prev: Spanning<Self>,
+                new: Spanning<Self>,
+                name: &syn::Ident,
+            ) -> syn::Result<Spanning<Self>> {
+                Err(syn::Error::new(
+                    new.span,
+                    format!("only single `#[{name}]` attribute is allowed here"),
+                ))
+            }
+        }
+    }
+
+    #[cfg(any(feature = "as_ref", feature = "from"))]
+    mod forward {
+        use syn::{
+            parse::{Parse, ParseStream},
+            spanned::Spanned as _,
+        };
+
+        use super::ParseMultiple;
+
+        /// Representation of a `forward` attribute.
+        ///
+        /// ```rust,ignore
+        /// #[<attribute>(forward)]
+        /// ```
+        #[derive(Clone, Copy, Debug)]
+        pub(crate) struct Forward;
+
+        impl Parse for Forward {
+            fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+                match input.parse::<syn::Path>()? {
+                    p if p.is_ident("forward") => Ok(Self),
+                    p => Err(syn::Error::new(p.span(), "only `forward` allowed here")),
+                }
+            }
+        }
+
+        impl ParseMultiple for Forward {}
+    }
+
+    #[cfg(feature = "try_from")]
+    mod repr_int {
+        use proc_macro2::Span;
+        use syn::parse::{Parse, ParseStream};
+
+        use super::{ParseMultiple, Parser, Spanning};
+
+        /// Representation of a [`#[repr(u/i*)]` Rust attribute][0].
+        ///
+        /// **NOTE**: Disregards any non-integer representation `#[repr]`s.
+        ///
+        /// ```rust,ignore
+        /// #[repr(<type>)]
+        /// ```
+        ///
+        /// [0]: https://doc.rust-lang.org/reference/type-layout.html#primitive-representations
+        #[derive(Default)]
+        pub(crate) struct ReprInt(Option<syn::Ident>);
+
+        impl ReprInt {
+            /// Returns [`syn::Ident`] of the primitive integer type behind this [`ReprInt`]
+            /// attribute.
+            ///
+            /// If there is no explicitly specified  primitive integer type, then returns a
+            /// [default `isize` discriminant][0].
+            ///
+            /// [`syn::Ident`]: struct@syn::Ident
+            /// [0]: https://doc.rust-lang.org/reference/items/enumerations.html#discriminants
+            pub(crate) fn ty(&self) -> syn::Ident {
+                self.0
+                    .as_ref()
+                    .cloned()
+                    .unwrap_or_else(|| syn::Ident::new("isize", Span::call_site()))
+            }
+        }
+
+        impl Parse for ReprInt {
+            fn parse(_: ParseStream<'_>) -> syn::Result<Self> {
+                unreachable!("call `attr::ParseMultiple::parse_attr_with()` instead")
+            }
+        }
+
+        impl ParseMultiple for ReprInt {
+            fn parse_attr_with<P: Parser>(
+                attr: &syn::Attribute,
+                _: &P,
+            ) -> syn::Result<Self> {
+                let mut repr = None;
+                attr.parse_nested_meta(|meta| {
+                    if let Some(ident) = meta.path.get_ident() {
+                        if matches!(
+                            ident.to_string().as_str(),
+                            "u8" | "u16"
+                                | "u32"
+                                | "u64"
+                                | "u128"
+                                | "usize"
+                                | "i8"
+                                | "i16"
+                                | "i32"
+                                | "i64"
+                                | "i128"
+                                | "isize"
+                        ) {
+                            repr = Some(ident.clone());
+                            return Ok(());
+                        }
+                    }
+                    // Ignore all other attributes that could have a body, e.g. `align`.
+                    _ = meta.input.parse::<proc_macro2::Group>();
+                    Ok(())
+                })?;
+                Ok(Self(repr))
+            }
+
+            fn merge_attrs(
+                prev: Spanning<Self>,
+                new: Spanning<Self>,
+                name: &syn::Ident,
+            ) -> syn::Result<Spanning<Self>> {
+                match (&prev.item.0, &new.item.0) {
+                    (Some(_), None) | (None, None) => Ok(prev),
+                    (None, Some(_)) => Ok(new),
+                    (Some(_), Some(_)) => Err(syn::Error::new(
+                        new.span,
+                        format!(
+                            "only single `#[{name}(u/i*)]` attribute is expected here",
+                        ),
+                    )),
+                }
+            }
+        }
+    }
+
+    #[cfg(any(
+        feature = "as_ref",
+        feature = "debug",
+        feature = "display",
+        feature = "from",
+        feature = "into",
+    ))]
+    mod skip {
+        use syn::{
+            parse::{Parse, ParseStream},
+            spanned::Spanned as _,
+        };
+
+        use super::{ParseMultiple, Spanning};
+
+        /// Representation of a `skip`/`ignore` attribute.
+        ///
+        /// ```rust,ignore
+        /// #[<attribute>(skip)]
+        /// #[<attribute>(ignore)]
+        /// ```
+        #[derive(Clone, Copy, Debug)]
+        pub(crate) struct Skip(&'static str);
+
+        impl Parse for Skip {
+            fn parse(content: ParseStream<'_>) -> syn::Result<Self> {
+                match content.parse::<syn::Path>()? {
+                    p if p.is_ident("skip") => Ok(Self("skip")),
+                    p if p.is_ident("ignore") => Ok(Self("ignore")),
+                    p => Err(syn::Error::new(
+                        p.span(),
+                        "only `skip`/`ignore` allowed here",
+                    )),
+                }
+            }
+        }
+
+        impl Skip {
+            /// Returns the concrete name of this attribute (`skip` or `ignore`).
+            pub(crate) const fn name(&self) -> &'static str {
+                self.0
+            }
+        }
+
+        impl ParseMultiple for Skip {
+            fn merge_attrs(
+                _: Spanning<Self>,
+                new: Spanning<Self>,
+                name: &syn::Ident,
+            ) -> syn::Result<Spanning<Self>> {
+                Err(syn::Error::new(
+                    new.span,
+                    format!(
+                        "only single `#[{name}(skip)]`/`#[{name}(ignore)]` attribute is allowed \
+                         here",
+                    ),
+                ))
+            }
+        }
+    }
+
+    #[cfg(any(feature = "as_ref", feature = "from", feature = "try_from"))]
+    mod types {
+        use syn::{
+            parse::{Parse, ParseStream},
+            punctuated::Punctuated,
+            Token,
+        };
+
+        use super::{ParseMultiple, Spanning};
+
+        /// Representation of an attribute, containing a comma-separated list of types.
+        ///
+        /// ```rust,ignore
+        /// #[<attribute>(<types>)]
+        /// ```
+        pub(crate) struct Types(pub(crate) Punctuated<syn::Type, Token![,]>);
+
+        impl Parse for Types {
+            fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+                input
+                    .parse_terminated(syn::Type::parse, Token![,])
+                    .map(Self)
+            }
+        }
+
+        impl ParseMultiple for Types {
+            fn merge_attrs(
+                mut prev: Spanning<Self>,
+                new: Spanning<Self>,
+                _: &syn::Ident,
+            ) -> syn::Result<Spanning<Self>> {
+                prev.item.0.extend(new.item.0);
+                Ok(Spanning::new(
+                    prev.item,
+                    prev.span.join(new.span).unwrap_or(prev.span),
+                ))
+            }
+        }
+    }
+
+    #[cfg(any(feature = "as_ref", feature = "from"))]
+    mod conversion {
+        use syn::parse::{Parse, ParseStream};
+
+        use crate::utils::attr;
+
+        use super::{Either, ParseMultiple, Spanning};
+
+        /// Untyped analogue of a [`Conversion`], recreating its type structure via [`Either`].
+        ///
+        /// Used to piggyback [`Parse`] and [`ParseMultiple`] impls to [`Either`].
+        type Untyped = Either<attr::Forward, attr::Types>;
+
+        /// Representation of an attribute, specifying which conversions should be generated:
+        /// either forwarded via a blanket impl, or direct for concrete specified types.
+        ///
+        /// ```rust,ignore
+        /// #[<attribute>(forward)]
+        /// #[<attribute>(<types>)]
+        /// ```
+        pub(crate) enum Conversion {
+            Forward(attr::Forward),
+            Types(attr::Types),
+        }
+
+        impl From<Untyped> for Conversion {
+            fn from(v: Untyped) -> Self {
+                match v {
+                    Untyped::Left(f) => Self::Forward(f),
+                    Untyped::Right(t) => Self::Types(t),
+                }
+            }
+        }
+        impl From<Conversion> for Untyped {
+            fn from(v: Conversion) -> Self {
+                match v {
+                    Conversion::Forward(f) => Self::Left(f),
+                    Conversion::Types(t) => Self::Right(t),
+                }
+            }
+        }
+
+        impl Parse for Conversion {
+            fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+                Untyped::parse(input).map(Self::from)
+            }
+        }
+
+        impl ParseMultiple for Conversion {
+            fn parse_attr_with<P: attr::Parser>(
+                attr: &syn::Attribute,
+                parser: &P,
+            ) -> syn::Result<Self> {
+                Untyped::parse_attr_with(attr, parser).map(Self::from)
+            }
+
+            fn merge_attrs(
+                prev: Spanning<Self>,
+                new: Spanning<Self>,
+                name: &syn::Ident,
+            ) -> syn::Result<Spanning<Self>> {
+                Untyped::merge_attrs(prev.map(Into::into), new.map(Into::into), name)
+                    .map(|v| v.map(Self::from))
+            }
+        }
+    }
+
+    #[cfg(any(feature = "as_ref", feature = "from"))]
+    mod field_conversion {
+        use syn::parse::{Parse, ParseStream};
+
+        use crate::utils::attr;
+
+        use super::{Either, ParseMultiple, Spanning};
+
+        /// Untyped analogue of a [`FieldConversion`], recreating its type structure via [`Either`].
+        ///
+        /// Used to piggyback [`Parse`] and [`ParseMultiple`] impls to [`Either`].
+        type Untyped =
+            Either<attr::Empty, Either<attr::Skip, Either<attr::Forward, attr::Types>>>;
+
+        /// Representation of an attribute, specifying which conversions should be generated:
+        /// either forwarded via a blanket impl, or direct for concrete specified types.
+        ///
+        /// ```rust,ignore
+        /// #[<attribute>]
+        /// #[<attribute>(skip)] #[<attribute>(ignore)]
+        /// #[<attribute>(forward)]
+        /// #[<attribute>(<types>)]
+        /// ```
+        pub(crate) enum FieldConversion {
+            Empty(attr::Empty),
+            Skip(attr::Skip),
+            Forward(attr::Forward),
+            Types(attr::Types),
+        }
+
+        impl From<Untyped> for FieldConversion {
+            fn from(v: Untyped) -> Self {
+                match v {
+                    Untyped::Left(e) => Self::Empty(e),
+                    Untyped::Right(Either::Left(s)) => Self::Skip(s),
+                    Untyped::Right(Either::Right(Either::Left(f))) => Self::Forward(f),
+                    Untyped::Right(Either::Right(Either::Right(t))) => Self::Types(t),
+                }
+            }
+        }
+
+        impl From<FieldConversion> for Untyped {
+            fn from(v: FieldConversion) -> Self {
+                match v {
+                    FieldConversion::Empty(e) => Self::Left(e),
+                    FieldConversion::Skip(s) => Self::Right(Either::Left(s)),
+                    FieldConversion::Forward(f) => {
+                        Self::Right(Either::Right(Either::Left(f)))
+                    }
+                    FieldConversion::Types(t) => {
+                        Self::Right(Either::Right(Either::Right(t)))
+                    }
+                }
+            }
+        }
+
+        impl From<attr::Conversion> for FieldConversion {
+            fn from(v: attr::Conversion) -> Self {
+                match v {
+                    attr::Conversion::Forward(f) => Self::Forward(f),
+                    attr::Conversion::Types(t) => Self::Types(t),
+                }
+            }
+        }
+
+        impl From<FieldConversion> for Option<attr::Conversion> {
+            fn from(v: FieldConversion) -> Self {
+                match v {
+                    FieldConversion::Forward(f) => Some(attr::Conversion::Forward(f)),
+                    FieldConversion::Types(t) => Some(attr::Conversion::Types(t)),
+                    FieldConversion::Empty(_) | FieldConversion::Skip(_) => None,
+                }
+            }
+        }
+
+        impl Parse for FieldConversion {
+            fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+                Untyped::parse(input).map(Self::from)
+            }
+        }
+
+        impl ParseMultiple for FieldConversion {
+            fn parse_attr_with<P: attr::Parser>(
+                attr: &syn::Attribute,
+                parser: &P,
+            ) -> syn::Result<Self> {
+                Untyped::parse_attr_with(attr, parser).map(Self::from)
+            }
+
+            fn merge_attrs(
+                prev: Spanning<Self>,
+                new: Spanning<Self>,
+                name: &syn::Ident,
+            ) -> syn::Result<Spanning<Self>> {
+                Untyped::merge_attrs(prev.map(Into::into), new.map(Into::into), name)
+                    .map(|v| v.map(Self::from))
+            }
+        }
+    }
+
+    #[cfg(feature = "try_from")]
+    mod repr_conversion {
+        use syn::parse::{Parse, ParseStream};
+
+        use crate::utils::attr;
+
+        use super::{ParseMultiple, Spanning};
+
+        /// Representation of an attribute, specifying which `repr`-conversions should be generated:
+        /// either direct into a discriminant, or for concrete specified types forwarding from a
+        /// discriminant.
+        ///
+        /// ```rust,ignore
+        /// #[<attribute>(repr)]
+        /// #[<attribute>(repr(<types>))]
+        /// ```
+        pub(crate) enum ReprConversion {
+            Discriminant(attr::Empty),
+            Types(attr::Types),
+        }
+
+        impl Parse for ReprConversion {
+            fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
+                let prefix = syn::Ident::parse(input)?;
+                if prefix != "repr" {
+                    return Err(syn::Error::new(
+                        prefix.span(),
+                        "expected `repr` argument here",
+                    ));
+                }
+                if input.is_empty() {
+                    Ok(Self::Discriminant(attr::Empty))
+                } else {
+                    let inner;
+                    syn::parenthesized!(inner in input);
+                    Ok(Self::Types(attr::Types::parse(&inner)?))
+                }
+            }
+        }
+
+        impl ParseMultiple for ReprConversion {
+            fn merge_attrs(
+                prev: Spanning<Self>,
+                new: Spanning<Self>,
+                name: &syn::Ident,
+            ) -> syn::Result<Spanning<Self>> {
+                Ok(match (prev.item, new.item) {
+                    (Self::Discriminant(_), Self::Discriminant(_)) => {
+                        return Err(syn::Error::new(
+                            new.span,
+                            format!("only single `#[{name}(repr)]` attribute is allowed here"),
+                        ))
+                    },
+                    (Self::Types(p), Self::Types(n)) => {
+                        attr::Types::merge_attrs(
+                            Spanning::new(p, prev.span),
+                            Spanning::new(n, new.span),
+                            name,
+                        )?.map(Self::Types)
+                    },
+                    _ => return Err(syn::Error::new(
+                        new.span,
+                        format!(
+                            "only single kind of `#[{name}(repr(...))]` attribute is allowed here",
+                        ),
+                    ))
+                })
             }
         }
     }
@@ -1397,10 +2173,8 @@ mod either {
 mod fields_ext {
     use std::{cmp, iter};
 
-    use proc_macro2::TokenStream;
+    use quote::ToTokens as _;
     use syn::{punctuated, spanned::Spanned as _};
-
-    use crate::parsing;
 
     use super::Either;
 
@@ -1416,7 +2190,7 @@ mod fields_ext {
         }
     }
 
-    impl<T> Len for Vec<T> {
+    impl<T> Len for [T] {
         fn len(&self) -> usize {
             self.len()
         }
@@ -1424,16 +2198,16 @@ mod fields_ext {
 
     /// [`syn::Fields`] extension.
     pub(crate) trait FieldsExt: Len {
-        /// Validates the provided [`parsing::Type`] against these [`syn::Fields`].
+        /// Validates the provided [`syn::Type`] against these [`syn::Fields`].
         fn validate_type<'t>(
             &self,
-            ty: &'t parsing::Type,
+            ty: &'t syn::Type,
         ) -> syn::Result<
-            Either<punctuated::Iter<'t, TokenStream>, iter::Once<&'t TokenStream>>,
+            Either<punctuated::Iter<'t, syn::Type>, iter::Once<&'t syn::Type>>,
         > {
             match ty {
-                parsing::Type::Tuple { items, .. } if self.len() > 1 => {
-                    match self.len().cmp(&items.len()) {
+                syn::Type::Tuple(syn::TypeTuple { elems, .. }) if self.len() > 1 => {
+                    match self.len().cmp(&elems.len()) {
                         cmp::Ordering::Greater => {
                             return Err(syn::Error::new(
                                 ty.span(),
@@ -1441,18 +2215,18 @@ mod fields_ext {
                                     "wrong tuple length: expected {}, found {}. \
                                      Consider adding {} more type{}: `({})`",
                                     self.len(),
-                                    items.len(),
-                                    self.len() - items.len(),
-                                    if self.len() - items.len() > 1 {
+                                    elems.len(),
+                                    self.len() - elems.len(),
+                                    if self.len() - elems.len() > 1 {
                                         "s"
                                     } else {
                                         ""
                                     },
-                                    items
+                                    elems
                                         .iter()
-                                        .map(|item| item.to_string())
+                                        .map(|ty| ty.into_token_stream().to_string())
                                         .chain(
-                                            (0..(self.len() - items.len()))
+                                            (0..(self.len() - elems.len()))
                                                 .map(|_| "_".to_string())
                                         )
                                         .collect::<Vec<_>>()
@@ -1467,17 +2241,17 @@ mod fields_ext {
                                     "wrong tuple length: expected {}, found {}. \
                                      Consider removing last {} type{}: `({})`",
                                     self.len(),
-                                    items.len(),
-                                    items.len() - self.len(),
-                                    if items.len() - self.len() > 1 {
+                                    elems.len(),
+                                    elems.len() - self.len(),
+                                    if elems.len() - self.len() > 1 {
                                         "s"
                                     } else {
                                         ""
                                     },
-                                    items
+                                    elems
                                         .iter()
                                         .take(self.len())
-                                        .map(ToString::to_string)
+                                        .map(|ty| ty.into_token_stream().to_string())
                                         .collect::<Vec<_>>()
                                         .join(", "),
                                 ),
@@ -1486,29 +2260,95 @@ mod fields_ext {
                         cmp::Ordering::Equal => {}
                     }
                 }
-                parsing::Type::Other(other) if self.len() > 1 => {
-                    if self.len() > 1 {
-                        return Err(syn::Error::new(
-                            other.span(),
-                            format!(
-                                "expected tuple: `({}, {})`",
-                                other,
-                                (0..(self.len() - 1))
-                                    .map(|_| "_")
-                                    .collect::<Vec<_>>()
-                                    .join(", "),
-                            ),
-                        ));
-                    }
+                other if self.len() > 1 => {
+                    return Err(syn::Error::new(
+                        other.span(),
+                        format!(
+                            "expected tuple: `({}, {})`",
+                            other.into_token_stream(),
+                            (0..(self.len() - 1))
+                                .map(|_| "_")
+                                .collect::<Vec<_>>()
+                                .join(", "),
+                        ),
+                    ));
                 }
-                parsing::Type::Tuple { .. } | parsing::Type::Other(_) => {}
+                _ => {}
             }
             Ok(match ty {
-                parsing::Type::Tuple { items, .. } => Either::Left(items.iter()),
-                parsing::Type::Other(other) => Either::Right(iter::once(other)),
+                syn::Type::Tuple(syn::TypeTuple { elems, .. }) => {
+                    Either::Left(elems.iter())
+                }
+                other => Either::Right(iter::once(other)),
             })
         }
     }
 
     impl<T: Len + ?Sized> FieldsExt for T {}
+}
+
+#[cfg(feature = "as_ref")]
+mod generics_search {
+    use syn::visit::Visit;
+
+    use super::HashSet;
+
+    /// Search of whether some generics (type parameters, lifetime parameters or const parameters)
+    /// are present in some [`syn::Type`].
+    pub(crate) struct GenericsSearch<'s> {
+        /// Type parameters to look for.
+        pub(crate) types: HashSet<&'s syn::Ident>,
+
+        /// Lifetime parameters to look for.
+        pub(crate) lifetimes: HashSet<&'s syn::Ident>,
+
+        /// Const parameters to look for.
+        pub(crate) consts: HashSet<&'s syn::Ident>,
+    }
+
+    impl GenericsSearch<'_> {
+        /// Checks the provided [`syn::Type`] to contain anything from this [`GenericsSearch`].
+        pub(crate) fn any_in(&self, ty: &syn::Type) -> bool {
+            let mut visitor = Visitor {
+                search: self,
+                found: false,
+            };
+            visitor.visit_type(ty);
+            visitor.found
+        }
+    }
+
+    /// [`Visit`]or performing a [`GenericsSearch`].
+    struct Visitor<'s> {
+        /// [`GenericsSearch`] parameters.
+        search: &'s GenericsSearch<'s>,
+
+        /// Indication whether anything was found for the [`GenericsSearch`] parameters.
+        found: bool,
+    }
+
+    impl<'ast> Visit<'ast> for Visitor<'_> {
+        fn visit_type_path(&mut self, tp: &'ast syn::TypePath) {
+            self.found |= tp.path.get_ident().is_some_and(|ident| {
+                self.search.types.contains(ident) || self.search.consts.contains(ident)
+            });
+
+            syn::visit::visit_type_path(self, tp)
+        }
+
+        fn visit_lifetime(&mut self, lf: &'ast syn::Lifetime) {
+            self.found |= self.search.lifetimes.contains(&lf.ident);
+
+            syn::visit::visit_lifetime(self, lf)
+        }
+
+        fn visit_expr_path(&mut self, ep: &'ast syn::ExprPath) {
+            self.found |= ep
+                .path
+                .get_ident()
+                .is_some_and(|ident| self.search.consts.contains(ident));
+
+            syn::visit::visit_expr_path(self, ep)
+        }
+    }
 }

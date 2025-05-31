@@ -171,9 +171,6 @@ bindgen = { path = "third_party/rust/bindgen" }
 # Patch nix 0.26 to 0.29
 nix = { path = "build/rust/nix" }
 
-# Patch derive_more 0.99 to 1.0.0-beta
-derive_more = { path = "build/rust/derive_more" }
-
 # Patch autocfg to hide rustc output. Workaround for https://github.com/cuviper/autocfg/issues/30
 autocfg = { path = "third_party/rust/autocfg" }
 

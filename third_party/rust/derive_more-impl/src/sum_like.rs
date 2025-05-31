@@ -18,7 +18,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
 
     let op_trait_name = if trait_name == "Sum" { "Add" } else { "Mul" };
     let op_trait_ident = format_ident!("{op_trait_name}");
-    let op_path = quote! { ::core::ops::#op_trait_ident };
+    let op_path = quote! { derive_more::core::ops::#op_trait_ident };
     let op_method_ident = format_ident!("{}", op_trait_name.to_lowercase());
     let has_type_params = input.generics.type_params().next().is_none();
     let generics = if has_type_params {
@@ -36,7 +36,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
     let initializers: Vec<_> = field_types
         .iter()
         .map(|field_type| {
-            quote! { #trait_path::#method_ident(::core::iter::empty::<#field_type>()) }
+            quote! { #trait_path::#method_ident(derive_more::core::iter::empty::<#field_type>()) }
         })
         .collect();
     let identity = multi_field_data.initializer(&initializers);
@@ -45,7 +45,7 @@ pub fn expand(input: &DeriveInput, trait_name: &'static str) -> Result<TokenStre
         #[automatically_derived]
         impl #impl_generics #trait_path for #input_type #ty_generics #where_clause {
             #[inline]
-            fn #method_ident<I: ::core::iter::Iterator<Item = Self>>(iter: I) -> Self {
+            fn #method_ident<I: derive_more::core::iter::Iterator<Item = Self>>(iter: I) -> Self {
                 iter.fold(#identity, #op_path::#op_method_ident)
             }
         }

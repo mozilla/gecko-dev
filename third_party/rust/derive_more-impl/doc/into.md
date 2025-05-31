@@ -77,7 +77,7 @@ assert_eq!(&mut 2, <&mut i32>::from(&mut Int(2)));
 ```
 
 In case there are fields, that shouldn't be included in the conversion, use the
-`#[into(skip)]` attribute.
+`#[into(skip)]` (or `#[into(ignore)]`) attribute.
 
 ```rust
 # use std::marker::PhantomData;
@@ -90,7 +90,7 @@ In case there are fields, that shouldn't be included in the conversion, use the
 #[into(i32, i64, i128)]
 struct Mass<Unit> {
     value: i32,
-    #[into(skip)]
+    #[into(skip)] // or #[into(ignore)]
     _unit: PhantomData<Unit>,
 }
 
@@ -107,6 +107,93 @@ assert_eq!(5_i128, Mass::<Gram>::new(5).into());
 #     }
 # }
 ```
+
+
+### Fields
+
+The `#[into]` attribute can also be applied to specific fields of a struct.
+
+```rust
+# use derive_more::Into;
+#
+#[derive(Into)]
+struct Data {
+    id: i32,
+    #[into]
+    raw: f64
+}
+
+assert_eq!(42.0, Data { id: 1, raw: 42.0 }.into());
+```
+
+In such cases, no conversion into a tuple of all fields is generated, unless
+an explicit struct attribute is present.
+
+```rust
+# use derive_more::Into;
+#
+#[derive(Into)]
+#[into]
+struct Data {
+    id: i32,
+    #[into]
+    raw: f64
+}
+
+assert_eq!(42.0, Data { id: 1, raw: 42.0 }.into());
+assert_eq!((1, 42.0), Data { id: 1, raw: 42.0 }.into());
+```
+
+The `#[into(<types>)]` syntax can be used on fields as well.
+
+```rust
+# use std::marker::PhantomData;
+# use derive_more::Into;
+# struct Whatever;
+#
+#[derive(Into, Clone)]
+#[into(owned, ref((u8, str)), ref_mut)]
+struct Foo {
+   #[into(owned(u64), ref)]
+   a: u8,
+   b: String,
+   #[into(skip)]
+   _c: PhantomData<Whatever>,
+}
+
+let mut foo = Foo { a: 1, b: "string".to_owned(), _c: PhantomData };
+
+assert_eq!((1_u8, "string".to_owned()), foo.clone().into());
+assert_eq!((&1_u8, "string"), <(&u8, &str)>::from(&foo));
+assert_eq!((&mut 1_u8, &mut "string".to_owned()), <(&mut u8, &mut String)>::from(&mut foo));
+assert_eq!(1_u64, foo.clone().into());
+assert_eq!(&1_u8, <&u8>::from(&foo));
+```
+
+Fields, having specific conversions into them, can also be skipped for top-level
+tuple conversions.
+
+```rust
+# use derive_more::Into;
+
+#[derive(Into)]
+#[into(ref((str, f64)))]
+struct Foo {
+    #[into(ref)]
+    #[into(skip)]
+    a: u8,
+    b: String,
+    c: f64,
+}
+
+let foo = Foo { a: 1, b: "string".to_owned(), c: 3.0 };
+
+assert_eq!(("string", &3.0), (&foo).into());
+assert_eq!(&1_u8, <&u8>::from(&foo));
+```
+
+
+
 
 ## Enums
 

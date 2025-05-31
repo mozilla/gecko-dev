@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-#![allow(dead_code)]
+#![cfg_attr(nightly, feature(never_type))]
+#![allow(dead_code)] // some code is tested for type checking only
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
@@ -453,6 +454,20 @@ mod structs {
                         (1, 2_i8).into(),
                     );
                 }
+            }
+        }
+
+        #[cfg(nightly)]
+        mod never {
+            use super::*;
+
+            #[derive(From)]
+            struct Tuple(i32, !);
+
+            #[derive(From)]
+            struct Struct {
+                field1: !,
+                field2: i16,
             }
         }
     }
@@ -1785,6 +1800,17 @@ mod enums {
                     },
                     (0_i16, 1_i16).into(),
                 );
+            }
+        }
+
+        #[cfg(nightly)]
+        mod never {
+            use super::*;
+
+            #[derive(From)]
+            enum Enum {
+                Tuple(i8, !),
+                Struct { field1: !, field2: i16 },
             }
         }
     }

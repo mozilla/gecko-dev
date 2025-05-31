@@ -1588,25 +1588,18 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "0.99.999"
-dependencies = [
- "derive_more 1.0.0-beta.2",
-]
-
-[[package]]
-name = "derive_more"
-version = "1.0.0-beta.2"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d79dfbcc1f34f3b3a0ce7574276f6f198acb811d70dd19d9dcbfe6263a83d983"
+checksum = "093242cf7570c207c83073cf82f79706fe7b8317e98620a47d5be7c3d8497678"
 dependencies = [
  "derive_more-impl",
 ]
 
 [[package]]
 name = "derive_more-impl"
-version = "1.0.0-beta.2"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "395aee42a456ecfd4c7034be5011e1a98edcbab2611867c8988a0f40d0bb242a"
+checksum = "bda628edc44c4bb645fbe0f758797143e4e07926f7ebf4e9bdfbd3d2ce621df3"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5947,7 +5940,7 @@ version = "0.26.0"
 dependencies = [
  "bitflags 2.9.0",
  "cssparser",
- "derive_more 0.99.999",
+ "derive_more",
  "fxhash",
  "log",
  "new_debug_unreachable",
@@ -6328,7 +6321,7 @@ dependencies = [
  "bitflags 2.9.0",
  "byteorder",
  "cssparser",
- "derive_more 0.99.999",
+ "derive_more",
  "dom",
  "euclid",
  "fxhash",
@@ -7428,7 +7421,7 @@ dependencies = [
  "bitflags 2.9.0",
  "build-parallel",
  "byteorder",
- "derive_more 0.99.999",
+ "derive_more",
  "etagere",
  "euclid",
  "firefox-on-glean",

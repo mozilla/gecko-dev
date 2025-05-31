@@ -1,29 +1,39 @@
 //! Implementation of a [`From`] derive macro.
 
-use std::iter;
+use std::{
+    any::{Any, TypeId},
+    iter,
+};
 
 use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote, ToTokens as _, TokenStreamExt as _};
 use syn::{
-    parse::{discouraged::Speculative as _, Parse, ParseStream},
+    parse::{Parse, ParseStream},
     parse_quote,
-    punctuated::Punctuated,
     spanned::Spanned as _,
-    token, Ident,
+    token,
 };
 
-use crate::{
-    parsing::Type,
-    utils::{polyfill, Either},
+use crate::utils::{
+    attr::{self, ParseMultiple as _},
+    polyfill, Either, Spanning,
 };
 
 /// Expands a [`From`] derive macro.
 pub fn expand(input: &syn::DeriveInput, _: &'static str) -> syn::Result<TokenStream> {
+    let attr_name = format_ident!("from");
+
     match &input.data {
         syn::Data::Struct(data) => Expansion {
-            attrs: StructAttribute::parse_attrs(&input.attrs, &data.fields)?
-                .map(Into::into)
-                .as_ref(),
+            attrs: StructAttribute::parse_attrs_with(
+                &input.attrs,
+                &attr_name,
+                &ConsiderLegacySyntax {
+                    fields: &data.fields,
+                },
+            )?
+            .map(|attr| attr.into_inner().into())
+            .as_ref(),
             ident: &input.ident,
             variant: None,
             fields: &data.fields,
@@ -37,19 +47,25 @@ pub fn expand(input: &syn::DeriveInput, _: &'static str) -> syn::Result<TokenStr
                 .variants
                 .iter()
                 .map(|variant| {
-                    let attrs =
-                        VariantAttribute::parse_attrs(&variant.attrs, &variant.fields)?;
+                    let attr = VariantAttribute::parse_attrs_with(
+                        &variant.attrs,
+                        &attr_name,
+                        &ConsiderLegacySyntax {
+                            fields: &variant.fields,
+                        },
+                    )?
+                    .map(Spanning::into_inner);
                     if matches!(
-                        attrs,
+                        attr,
                         Some(
-                            VariantAttribute::From
+                            VariantAttribute::Empty(_)
                                 | VariantAttribute::Types(_)
-                                | VariantAttribute::Forward
+                                | VariantAttribute::Forward(_)
                         ),
                     ) {
                         has_explicit_from = true;
                     }
-                    Ok(attrs)
+                    Ok(attr)
                 })
                 .collect::<syn::Result<Vec<_>>>()?;
 
@@ -79,147 +95,20 @@ pub fn expand(input: &syn::DeriveInput, _: &'static str) -> syn::Result<TokenStr
 /// Representation of a [`From`] derive macro struct container attribute.
 ///
 /// ```rust,ignore
-/// #[from(<types>)]
 /// #[from(forward)]
+/// #[from(<types>)]
 /// ```
-enum StructAttribute {
-    /// [`Type`]s to derive [`From`].
-    Types(Punctuated<Type, token::Comma>),
-
-    /// Forward [`From`] implementation.
-    Forward,
-}
-
-impl StructAttribute {
-    /// Parses a [`StructAttribute`] from the provided [`syn::Attribute`]s.
-    fn parse_attrs(
-        attrs: impl AsRef<[syn::Attribute]>,
-        fields: &syn::Fields,
-    ) -> syn::Result<Option<Self>> {
-        Ok(attrs
-            .as_ref()
-            .iter()
-            .filter(|attr| attr.path().is_ident("from"))
-            .try_fold(None, |attrs, attr| {
-                let field_attr = attr.parse_args_with(|stream: ParseStream<'_>| {
-                    Self::parse(stream, fields)
-                })?;
-                match (attrs, field_attr) {
-                    (
-                        Some((path, StructAttribute::Types(mut tys))),
-                        StructAttribute::Types(more),
-                    ) => {
-                        tys.extend(more);
-                        Ok(Some((path, StructAttribute::Types(tys))))
-                    }
-                    (None, field_attr) => Ok(Some((attr.path(), field_attr))),
-                    _ => Err(syn::Error::new(
-                        attr.path().span(),
-                        "only single `#[from(...)]` attribute is allowed here",
-                    )),
-                }
-            })?
-            .map(|(_, attr)| attr))
-    }
-
-    /// Parses single [`StructAttribute`].
-    fn parse(input: ParseStream<'_>, fields: &syn::Fields) -> syn::Result<Self> {
-        let ahead = input.fork();
-        match ahead.parse::<syn::Path>() {
-            Ok(p) if p.is_ident("forward") => {
-                input.advance_to(&ahead);
-                Ok(Self::Forward)
-            }
-            Ok(p) if p.is_ident("types") => legacy_error(&ahead, input.span(), fields),
-            _ => input
-                .parse_terminated(Type::parse, token::Comma)
-                .map(Self::Types),
-        }
-    }
-}
+type StructAttribute = attr::Conversion;
 
 /// Representation of a [`From`] derive macro enum variant attribute.
 ///
 /// ```rust,ignore
 /// #[from]
-/// #[from(<types>)]
+/// #[from(skip)] #[from(ignore)]
 /// #[from(forward)]
-/// #[from(skip)]
+/// #[from(<types>)]
 /// ```
-enum VariantAttribute {
-    /// Explicitly derive [`From`].
-    From,
-
-    /// [`Type`]s to derive [`From`].
-    Types(Punctuated<Type, token::Comma>),
-
-    /// Forward [`From`] implementation.
-    Forward,
-
-    /// Skip variant.
-    Skip,
-}
-
-impl VariantAttribute {
-    /// Parses a [`VariantAttribute`] from the provided [`syn::Attribute`]s.
-    fn parse_attrs(
-        attrs: impl AsRef<[syn::Attribute]>,
-        fields: &syn::Fields,
-    ) -> syn::Result<Option<Self>> {
-        Ok(attrs
-            .as_ref()
-            .iter()
-            .filter(|attr| attr.path().is_ident("from"))
-            .try_fold(None, |mut attrs, attr| {
-                let field_attr = Self::parse_attr(attr, fields)?;
-                if let Some((path, _)) = attrs.replace((attr.path(), field_attr)) {
-                    Err(syn::Error::new(
-                        path.span(),
-                        "only single `#[from(...)]` attribute is allowed here",
-                    ))
-                } else {
-                    Ok(attrs)
-                }
-            })?
-            .map(|(_, attr)| attr))
-    }
-
-    /// Parses a [`VariantAttribute`] from the single provided [`syn::Attribute`].
-    fn parse_attr(attr: &syn::Attribute, fields: &syn::Fields) -> syn::Result<Self> {
-        if matches!(attr.meta, syn::Meta::Path(_)) {
-            return Ok(Self::From);
-        }
-
-        attr.parse_args_with(|input: ParseStream<'_>| {
-            let ahead = input.fork();
-            match ahead.parse::<syn::Path>() {
-                Ok(p) if p.is_ident("forward") => {
-                    input.advance_to(&ahead);
-                    Ok(Self::Forward)
-                }
-                Ok(p) if p.is_ident("skip") || p.is_ident("ignore") => {
-                    input.advance_to(&ahead);
-                    Ok(Self::Skip)
-                }
-                Ok(p) if p.is_ident("types") => {
-                    legacy_error(&ahead, input.span(), fields)
-                }
-                _ => input
-                    .parse_terminated(Type::parse, token::Comma)
-                    .map(Self::Types),
-            }
-        })
-    }
-}
-
-impl From<StructAttribute> for VariantAttribute {
-    fn from(value: StructAttribute) -> Self {
-        match value {
-            StructAttribute::Types(tys) => Self::Types(tys),
-            StructAttribute::Forward => Self::Forward,
-        }
-    }
-}
+type VariantAttribute = attr::FieldConversion;
 
 /// Expansion of a macro for generating [`From`] implementation of a struct or
 /// enum.
@@ -230,11 +119,15 @@ struct Expansion<'a> {
     /// it for both derives.
     attrs: Option<&'a VariantAttribute>,
 
-    /// Struct or enum [`Ident`].
-    ident: &'a Ident,
+    /// Struct or enum [`syn::Ident`].
+    ///
+    /// [`syn::Ident`]: struct@syn::Ident
+    ident: &'a syn::Ident,
 
-    /// Variant [`Ident`] in case of enum expansion.
-    variant: Option<&'a Ident>,
+    /// Variant [`syn::Ident`] in case of enum expansion.
+    ///
+    /// [`syn::Ident`]: struct@syn::Ident
+    variant: Option<&'a syn::Ident>,
 
     /// Struct or variant [`syn::Fields`].
     fields: &'a syn::Fields,
@@ -243,14 +136,14 @@ struct Expansion<'a> {
     generics: &'a syn::Generics,
 
     /// Indicator whether one of the enum variants has
-    /// [`VariantAttribute::From`], [`VariantAttribute::Types`] or
+    /// [`VariantAttribute::Empty`], [`VariantAttribute::Types`] or
     /// [`VariantAttribute::Forward`].
     ///
     /// Always [`false`] for structs.
     has_explicit_from: bool,
 }
 
-impl<'a> Expansion<'a> {
+impl Expansion<'_> {
     /// Expands [`From`] implementations for a struct or an enum variant.
     fn expand(&self) -> syn::Result<TokenStream> {
         use crate::utils::FieldsExt as _;
@@ -263,7 +156,7 @@ impl<'a> Expansion<'a> {
             || (self.variant.is_some() && self.fields.is_empty());
         match (self.attrs, skip_variant) {
             (Some(VariantAttribute::Types(tys)), _) => {
-                tys.iter().map(|ty| {
+                tys.0.iter().map(|ty| {
                     let variant = self.variant.iter();
 
                     let mut from_tys = self.fields.validate_type(ty)?;
@@ -272,17 +165,17 @@ impl<'a> Expansion<'a> {
                         let index = index.into_iter();
                         let from_ty = from_tys.next().unwrap_or_else(|| unreachable!());
                         quote! {
-                            #( #ident: )* <#ty as ::core::convert::From<#from_ty>>::from(
+                            #( #ident: )* <#ty as derive_more::core::convert::From<#from_ty>>::from(
                                 value #( .#index )*
                             ),
                         }
                     });
 
                     Ok(quote! {
+                        #[allow(unreachable_code)] // omit warnings for `!` and unreachable types
                         #[automatically_derived]
-                        impl #impl_gens ::core::convert::From<#ty>
-                         for #ident #ty_gens #where_clause
-                        {
+                        impl #impl_gens derive_more::core::convert::From<#ty>
+                         for #ident #ty_gens #where_clause {
                             #[inline]
                             fn from(value: #ty) -> Self {
                                 #ident #( :: #variant )* #init
@@ -292,7 +185,7 @@ impl<'a> Expansion<'a> {
                 })
                 .collect()
             }
-            (Some(VariantAttribute::From), _) | (None, false) => {
+            (Some(VariantAttribute::Empty(_)), _) | (None, false) => {
                 let variant = self.variant.iter();
                 let init = self.expand_fields(|ident, _, index| {
                     let ident = ident.into_iter();
@@ -301,10 +194,10 @@ impl<'a> Expansion<'a> {
                 });
 
                 Ok(quote! {
+                    #[allow(unreachable_code)] // omit warnings for `!` and other unreachable types
                     #[automatically_derived]
-                    impl #impl_gens ::core::convert::From<(#( #field_tys ),*)>
-                     for #ident #ty_gens #where_clause
-                    {
+                    impl #impl_gens derive_more::core::convert::From<(#( #field_tys ),*)>
+                     for #ident #ty_gens #where_clause {
                         #[inline]
                         fn from(value: (#( #field_tys ),*)) -> Self {
                             #ident #( :: #variant )* #init
@@ -312,7 +205,7 @@ impl<'a> Expansion<'a> {
                     }
                 })
             }
-            (Some(VariantAttribute::Forward), _) => {
+            (Some(VariantAttribute::Forward(_)), _) => {
                 let mut i = 0;
                 let mut gen_idents = Vec::with_capacity(self.fields.len());
                 let init = self.expand_fields(|ident, ty, index| {
@@ -320,7 +213,7 @@ impl<'a> Expansion<'a> {
                     let index = index.into_iter();
                     let gen_ident = format_ident!("__FromT{i}");
                     let out = quote! {
-                        #( #ident: )* <#ty as ::core::convert::From<#gen_ident>>::from(
+                        #( #ident: )* <#ty as derive_more::core::convert::From<#gen_ident>>::from(
                             value #( .#index )*
                         ),
                     };
@@ -333,9 +226,10 @@ impl<'a> Expansion<'a> {
                 let generics = {
                     let mut generics = self.generics.clone();
                     for (ty, ident) in field_tys.iter().zip(&gen_idents) {
-                        generics.make_where_clause().predicates.push(
-                            parse_quote! { #ty: ::core::convert::From<#ident> },
-                        );
+                        generics
+                            .make_where_clause()
+                            .predicates
+                            .push(parse_quote! { #ty: derive_more::core::convert::From<#ident> });
                         generics
                             .params
                             .push(syn::TypeParam::from(ident.clone()).into());
@@ -345,10 +239,10 @@ impl<'a> Expansion<'a> {
                 let (impl_gens, _, where_clause) = generics.split_for_impl();
 
                 Ok(quote! {
+                    #[allow(unreachable_code)] // omit warnings for `!` and other unreachable types
                     #[automatically_derived]
-                    impl #impl_gens ::core::convert::From<(#( #gen_idents ),*)>
-                     for #ident #ty_gens #where_clause
-                    {
+                    impl #impl_gens derive_more::core::convert::From<(#( #gen_idents ),*)>
+                     for #ident #ty_gens #where_clause {
                         #[inline]
                         fn from(value: (#( #gen_idents ),*)) -> Self {
                             #ident #(:: #variant)* #init
@@ -356,7 +250,7 @@ impl<'a> Expansion<'a> {
                     }
                 })
             }
-            (Some(VariantAttribute::Skip), _) | (None, true) => {
+            (Some(VariantAttribute::Skip(_)), _) | (None, true) => {
                 Ok(TokenStream::new())
             }
         }
@@ -365,9 +259,16 @@ impl<'a> Expansion<'a> {
     /// Expands fields initialization wrapped into [`token::Brace`]s in case of
     /// [`syn::FieldsNamed`], or [`token::Paren`] in case of
     /// [`syn::FieldsUnnamed`].
+    ///
+    /// [`token::Brace`]: struct@token::Brace
+    /// [`token::Paren`]: struct@token::Paren
     fn expand_fields(
         &self,
-        mut wrap: impl FnMut(Option<&Ident>, &syn::Type, Option<syn::Index>) -> TokenStream,
+        mut wrap: impl FnMut(
+            Option<&syn::Ident>,
+            &syn::Type,
+            Option<syn::Index>,
+        ) -> TokenStream,
     ) -> TokenStream {
         let surround = match self.fields {
             syn::Fields::Named(_) | syn::Fields::Unnamed(_) => {
@@ -412,6 +313,27 @@ impl<'a> Expansion<'a> {
                 })
             })
             .unwrap_or_default()
+    }
+}
+
+/// [`attr::Parser`] considering legacy syntax for [`attr::Types`] and emitting [`legacy_error`], if
+/// any occurs.
+struct ConsiderLegacySyntax<'a> {
+    /// [`syn::Fields`] of a struct or enum variant, the attribute is parsed for.
+    fields: &'a syn::Fields,
+}
+
+impl attr::Parser for ConsiderLegacySyntax<'_> {
+    fn parse<T: Parse + Any>(&self, input: ParseStream<'_>) -> syn::Result<T> {
+        if TypeId::of::<T>() == TypeId::of::<attr::Types>() {
+            let ahead = input.fork();
+            if let Ok(p) = ahead.parse::<syn::Path>() {
+                if p.is_ident("types") {
+                    return legacy_error(&ahead, input.span(), self.fields);
+                }
+            }
+        }
+        T::parse(input)
     }
 }
 

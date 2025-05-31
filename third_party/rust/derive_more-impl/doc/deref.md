@@ -67,7 +67,7 @@ Code like this will be generated:
 #     cool: bool,
 #     vec: Vec<i32>,
 # }
-impl ::core::ops::Deref for CoolVec {
+impl derive_more::core::ops::Deref for CoolVec {
     type Target = Vec<i32>;
     #[inline]
     fn deref(&self) -> &Self::Target {
@@ -90,11 +90,11 @@ Code like this will be generated:
 
 ```rust
 # struct MyBoxedInt(Box<i32>);
-impl ::core::ops::Deref for MyBoxedInt {
-    type Target = <Box<i32> as ::core::ops::Deref>::Target;
+impl derive_more::core::ops::Deref for MyBoxedInt {
+    type Target = <Box<i32> as derive_more::core::ops::Deref>::Target;
     #[inline]
     fn deref(&self) -> &Self::Target {
-        <Box<i32> as ::core::ops::Deref>::deref(&self.0)
+        <Box<i32> as derive_more::core::ops::Deref>::deref(&self.0)
     }
 }
 ```

@@ -20,14 +20,30 @@ inner variable. If there is no such variable, or there is more than 1, an error 
 ## The format of the format
 
 You supply a format by attaching an attribute of the syntax: `#[display("...", args...)]`.
-The format supplied is passed verbatim to `write!`. The arguments supplied handled specially,
-due to constraints in the syntax of attributes. In the case of an argument being a simple
-identifier, it is passed verbatim. If an argument is a string, it is **parsed as an expression**,
-and then passed to `write!`.
+The format supplied is passed verbatim to `write!`.
 
-The variables available in the arguments is `self` and each member of the variant,
-with members of tuple structs being named with a leading underscore and their index,
-i.e. `_0`, `_1`, `_2`, etc.
+The variables available in the arguments is `self` and each member of the
+struct or enum variant, with members of tuple structs being named with a
+leading underscore and their index, i.e. `_0`, `_1`, `_2`, etc. Due to
+ownership/lifetime limitations the member variables are all references to the
+fields, except when used directly in the format string. For most purposes this
+detail doesn't matter, but it is quite important when using `Pointer`
+formatting. If you don't use the `{field:p}` syntax, you have to dereference
+once to get the address of the field itself, instead of the address of the
+reference to the field:
+
+```rust
+# use derive_more::with_trait::Display;
+#
+#[derive(Display)]
+#[display("{field:p} {:p}", *field)]
+struct RefInt<'a> {
+    field: &'a i32,
+}
+
+let a = &123;
+assert_eq!(format!("{}", RefInt{field: &a}), format!("{a:p} {:p}", a));
+```
 
 
 ### Other formatting traits
@@ -43,6 +59,7 @@ requires a separate `debug` feature.
 
 When deriving `Display` (or other formatting trait) for a generic struct/enum, all generic type
 arguments used during formatting are bound by respective formatting trait.
+Bounds can only be inferred this way if a field is used directly in the interpolation.
 
 E.g., for a structure `Foo` defined like this:
 ```rust
@@ -51,7 +68,7 @@ E.g., for a structure `Foo` defined like this:
 # trait Trait { type Type; }
 #
 #[derive(Display)]
-#[display("{} {} {:?} {:p}", a, b, c, d)]
+#[display("{a} {b} {c:?} {d:p}")]
 struct Foo<'a, T1, T2: Trait, T3> {
     a: T1,
     b: <T2 as Trait>::Type,
@@ -61,9 +78,10 @@ struct Foo<'a, T1, T2: Trait, T3> {
 ```
 
 The following where clauses would be generated:
-* `T1: Display + Pointer`
-* `<T2 as Trait>::Type: Debug`
-* `Bar<T3>: Display`
+* `T1: Display`
+* `<T2 as Trait>::Type: Display`
+* `Vec<T3>: Debug`
+* `&'a T1: Pointer`
 
 
 ### Custom trait bounds
@@ -74,19 +92,16 @@ could be used during formatting. This can be done with a `#[display(bound(...))]
 `#[display(bound(...))]` accepts code tokens in a format similar to the format
 used in angle bracket list (or `where` clause predicates): `T: MyTrait, U: Trait1 + Trait2`.
 
-Only type parameters defined on a struct allowed to appear in bound-string and they can only be bound
-by traits, i.e. no lifetime parameters or lifetime bounds allowed in bound-string.
-
 `#[display("fmt", ...)]` arguments are parsed as an arbitrary Rust expression and passed to generated
 `write!` as-is, it's impossible to meaningfully infer any kind of trait bounds for generic type parameters
-used this way. That means that you'll **have to** explicitly specify all trait bound used. Either in the
-struct/enum definition, or via `#[display(bound(...))]` attribute.
+used this way. That means that you'll **have to** explicitly specify all the required trait bounds of the
+expression. Either in the struct/enum definition, or via `#[display(bound(...))]` attribute.
 
-Note how we have to bound `U` and `V` by `Display` in the following example, as no bound is inferred.
-Not even `Display`.
+Explicitly specified bounds are added to the inferred ones. Note how no `V: Display` bound is necessary,
+because it's inferred already.
 
 ```rust
-# use derive_more::Display;
+# use derive_more::with_trait::Display;
 #
 # trait MyTrait { fn my_function(&self) -> i32; }
 #
@@ -98,6 +113,115 @@ struct MyStruct<T, U, V> {
     b: U,
     c: V,
 }
+```
+
+
+### Transparency
+
+If the `#[display("...", args...)]` attribute is omitted, the implementation transparently delegates to the format
+of the inner type, so all the additional [formatting parameters][1] do work as expected:
+```rust
+# use derive_more::Display;
+#
+#[derive(Display)]
+struct MyInt(i32);
+
+assert_eq!(format!("{:03}", MyInt(7)), "007");
+```
+
+If the `#[display("...", args...)]` attribute is specified and can be trivially substituted with a transparent
+delegation call to the inner type, then additional [formatting parameters][1] will work too:
+```rust
+# use derive_more::Display;
+#
+#[derive(Display)]
+#[display("{_0:o}")] // the same as calling `Octal::fmt()`
+struct MyOctalInt(i32);
+
+// so, additional formatting parameters do work transparently
+assert_eq!(format!("{:03}", MyOctalInt(9)), "011");
+
+#[derive(Display)]
+#[display("{_0:02b}")]   // cannot be trivially substituted with `Binary::fmt()`,
+struct MyBinaryInt(i32); // because of specified formatting parameters
+
+// so, additional formatting parameters have no effect
+assert_eq!(format!("{:07}", MyBinaryInt(2)), "10");
+```
+
+If, for some reason, transparency in trivial cases is not desired, it may be suppressed explicitly
+either with the [`format_args!()`] macro usage:
+```rust
+# use derive_more::Display;
+#
+#[derive(Display)]
+#[display("{}", format_args!("{_0:o}"))] // `format_args!()` obscures the inner type
+struct MyOctalInt(i32);
+
+// so, additional formatting parameters have no effect
+assert_eq!(format!("{:07}", MyOctalInt(9)), "11");
+```
+Or by adding [formatting parameters][1] which cause no visual effects:
+```rust
+# use derive_more::Display;
+#
+#[derive(Display)]
+#[display("{_0:^o}")] // `^` is centering, but in absence of additional width has no effect
+struct MyOctalInt(i32);
+
+// and so, additional formatting parameters have no effect
+assert_eq!(format!("{:07}", MyOctalInt(9)), "11");
+```
+
+
+### Shared enum format
+
+Enums can have shared top-level `#[display("...", args...)]` attribute. Depending on its contents,
+it can act either as a default format or a wrapping one.
+
+#### Wrapping enum format
+
+To act as a wrapping format, the shared top-level `#[display("...", args...)]` attribute should
+contain at least one special `{_variant}` placeholder, which is then replaced by the format string
+that's provided (or inferred) on the variant.
+```rust
+# use derive_more::Display;
+#
+#[derive(Display)]
+#[display("Variant: {_variant} & {}", _variant)]
+enum Enum {
+    #[display("A {_0}")]
+    A(i32),
+    B { field: i32 },
+    #[display("c")]
+    C,
+}
+
+assert_eq!(Enum::A(1).to_string(), "Variant: A 1 & A 1");
+assert_eq!(Enum::B { field: 2 }.to_string(), "Variant: 2 & 2");
+assert_eq!(Enum::C.to_string(), "Variant: c & c");
+```
+
+#### Default enum format
+
+If the shared top-level `#[display("...", args...)]` attribute contains no `{_variant}` placeholders,
+then it acts as the default one for the variants without its own format.
+```rust
+# use derive_more::Display;
+#
+#[derive(Display)]
+#[display("Variant: {_0} & {}", _0)] // fields can be used too!
+enum Enum {
+    #[display("A {_0}")]
+    A(i32),
+    B(u32),
+    #[display("c")]
+    C,
+}
+
+assert_eq!(Enum::A(1).to_string(), "A 1");
+assert_eq!(Enum::B(2).to_string(), "Variant: 2 & 2");
+assert_eq!(Enum::C.to_string(), "c");
 ```
 
 
@@ -121,6 +245,7 @@ struct Point2D {
 }
 
 #[derive(Display)]
+#[display("Enum E: {_variant}")]
 enum E {
     Uint(u32),
     #[display("I am B {:b}", i)]
@@ -129,6 +254,13 @@ enum E {
     },
     #[display("I am C {}", _0.display())]
     Path(PathBuf),
+}
+
+#[derive(Display)]
+#[display("Enum E2: {_0:?}")]
+enum E2 {
+    Uint(u32),
+    String(&'static str, &'static str),
 }
 
 #[derive(Display)]
@@ -169,9 +301,11 @@ impl PositiveOrNegative {
 
 assert_eq!(MyInt(-2).to_string(), "-2");
 assert_eq!(Point2D { x: 3, y: 4 }.to_string(), "(3, 4)");
-assert_eq!(E::Uint(2).to_string(), "2");
-assert_eq!(E::Binary { i: -2 }.to_string(), "I am B 11111110");
-assert_eq!(E::Path("abc".into()).to_string(), "I am C abc");
+assert_eq!(E::Uint(2).to_string(), "Enum E: 2");
+assert_eq!(E::Binary { i: -2 }.to_string(), "Enum E: I am B 11111110");
+assert_eq!(E::Path("abc".into()).to_string(), "Enum E: I am C abc");
+assert_eq!(E2::Uint(2).to_string(), "Enum E2: 2");
+assert_eq!(E2::String("shown", "ignored").to_string(), "Enum E2: \"shown\"");
 assert_eq!(U { i: 2 }.to_string(), "Hello there!");
 assert_eq!(format!("{:o}", S), "7");
 assert_eq!(format!("{:X}", UH), "UpperHex");
@@ -180,3 +314,10 @@ assert_eq!(UnitStruct {}.to_string(), "UnitStruct");
 assert_eq!(PositiveOrNegative { x: 1 }.to_string(), "Positive");
 assert_eq!(PositiveOrNegative { x: -1 }.to_string(), "Negative");
 ```
+
+
+
+
+[`format_args!()`]: https://doc.rust-lang.org/stable/std/macro.format_args.html
+
+[1]: https://doc.rust-lang.org/stable/std/fmt/index.html#formatting-parameters

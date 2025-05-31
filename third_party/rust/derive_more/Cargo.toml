@@ -11,10 +11,11 @@
 
 [package]
 edition = "2021"
-rust-version = "1.65.0"
+rust-version = "1.75.0"
 name = "derive_more"
-version = "1.0.0-beta.2"
+version = "2.0.1"
 authors = ["Jelte Fennema <github-tech@jeltef.nl>"]
+build = false
 include = [
     "src/**/*.rs",
     "Cargo.toml",
@@ -22,7 +23,13 @@ include = [
     "README.md",
     "CHANGELOG.md",
     "tests/**/*.rs",
+    "examples/**/*.rs",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Adds #[derive(x)] macros for more traits"
 documentation = "https://docs.rs/derive_more"
 readme = "README.md"
@@ -37,6 +44,7 @@ categories = [
     "development-tools",
     "development-tools::procedural-macro-helpers",
     "no-std",
+    "rust-patterns",
 ]
 license = "MIT"
 repository = "https://github.com/JelteF/derive_more"
@@ -48,15 +56,20 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[package.metadata.playground]
+features = [
+    "full",
+    "std",
+]
+
+[lib]
+name = "derive_more"
+path = "src/lib.rs"
+
 [[example]]
 name = "deny_missing_docs"
 path = "examples/deny_missing_docs.rs"
 required-features = ["full"]
-
-[[test]]
-name = "add_assign"
-path = "tests/add_assign.rs"
-required-features = ["add_assign"]
 
 [[test]]
 name = "add"
@@ -64,9 +77,14 @@ path = "tests/add.rs"
 required-features = ["add"]
 
 [[test]]
+name = "add_assign"
+path = "tests/add_assign.rs"
+required-features = ["add_assign"]
+
+[[test]]
 name = "as_mut"
 path = "tests/as_mut.rs"
-required-features = ["as_mut"]
+required-features = ["as_ref"]
 
 [[test]]
 name = "as_ref"
@@ -77,6 +95,19 @@ required-features = ["as_ref"]
 name = "boats_display_derive"
 path = "tests/boats_display_derive.rs"
 required-features = ["display"]
+
+[[test]]
+name = "compile_fail"
+path = "tests/compile_fail/mod.rs"
+required-features = [
+    "as_ref",
+    "debug",
+    "display",
+    "from",
+    "into",
+    "is_variant",
+    "try_from",
+]
 
 [[test]]
 name = "constructor"
@@ -119,14 +150,19 @@ path = "tests/from_str.rs"
 required-features = ["from_str"]
 
 [[test]]
-name = "index_mut"
-path = "tests/index_mut.rs"
-required-features = ["index_mut"]
+name = "generics"
+path = "tests/generics.rs"
+required-features = ["full"]
 
 [[test]]
 name = "index"
 path = "tests/index.rs"
 required-features = ["index"]
+
+[[test]]
+name = "index_mut"
+path = "tests/index_mut.rs"
+required-features = ["index_mut"]
 
 [[test]]
 name = "into"
@@ -139,14 +175,29 @@ path = "tests/into_iterator.rs"
 required-features = ["into_iterator"]
 
 [[test]]
-name = "mul_assign"
-path = "tests/mul_assign.rs"
-required-features = ["mul_assign"]
+name = "is_variant"
+path = "tests/is_variant.rs"
+required-features = ["is_variant"]
+
+[[test]]
+name = "lib"
+path = "tests/lib.rs"
+required-features = ["full"]
 
 [[test]]
 name = "mul"
 path = "tests/mul.rs"
 required-features = ["mul"]
+
+[[test]]
+name = "mul_assign"
+path = "tests/mul_assign.rs"
+required-features = ["mul_assign"]
+
+[[test]]
+name = "no_std"
+path = "tests/no_std.rs"
+required-features = ["full"]
 
 [[test]]
 name = "not"
@@ -159,19 +210,14 @@ path = "tests/sum.rs"
 required-features = ["sum"]
 
 [[test]]
+name = "try_from"
+path = "tests/try_from.rs"
+required-features = ["try_from"]
+
+[[test]]
 name = "try_into"
 path = "tests/try_into.rs"
 required-features = ["try_into"]
-
-[[test]]
-name = "is_variant"
-path = "tests/is_variant.rs"
-required-features = ["is_variant"]
-
-[[test]]
-name = "unwrap"
-path = "tests/unwrap.rs"
-required-features = ["unwrap"]
 
 [[test]]
 name = "try_unwrap"
@@ -179,32 +225,12 @@ path = "tests/try_unwrap.rs"
 required-features = ["try_unwrap"]
 
 [[test]]
-name = "compile_fail"
-path = "tests/compile_fail/mod.rs"
-required-features = [
-    "debug",
-    "display",
-    "from",
-    "into",
-]
-
-[[test]]
-name = "no_std"
-path = "tests/no_std.rs"
-required-features = ["full"]
-
-[[test]]
-name = "generics"
-path = "tests/generics.rs"
-required-features = ["full"]
-
-[[test]]
-name = "lib"
-path = "tests/lib.rs"
-required-features = ["full"]
+name = "unwrap"
+path = "tests/unwrap.rs"
+required-features = ["unwrap"]
 
 [dependencies.derive_more-impl]
-version = "=1.0.0-beta.2"
+version = "=2.0.1"
 
 [dev-dependencies.rustversion]
 version = "1.0"
@@ -222,7 +248,6 @@ optional = true
 [features]
 add = ["derive_more-impl/add"]
 add_assign = ["derive_more-impl/add_assign"]
-as_mut = ["derive_more-impl/as_mut"]
 as_ref = ["derive_more-impl/as_ref"]
 constructor = ["derive_more-impl/constructor"]
 debug = ["derive_more-impl/debug"]
@@ -236,7 +261,6 @@ from_str = ["derive_more-impl/from_str"]
 full = [
     "add",
     "add_assign",
-    "as_mut",
     "as_ref",
     "constructor",
     "debug",
@@ -255,6 +279,7 @@ full = [
     "mul_assign",
     "not",
     "sum",
+    "try_from",
     "try_into",
     "try_unwrap",
     "unwrap",
@@ -273,6 +298,7 @@ testing-helpers = [
     "derive_more-impl/testing-helpers",
     "dep:rustc_version",
 ]
+try_from = ["derive_more-impl/try_from"]
 try_into = ["derive_more-impl/try_into"]
 try_unwrap = ["derive_more-impl/try_unwrap"]
 unwrap = ["derive_more-impl/unwrap"]
@@ -280,3 +306,11 @@ unwrap = ["derive_more-impl/unwrap"]
 [badges.github]
 repository = "JelteF/derive_more"
 workflow = "CI"
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = [
+    "cfg(ci)",
+    "cfg(nightly)",
+]

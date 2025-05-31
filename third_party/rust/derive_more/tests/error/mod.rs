@@ -1,4 +1,4 @@
-use derive_more::Error;
+use derive_more::with_trait::Error;
 
 /// Derives `std::fmt::Display` for structs/enums.
 /// Derived implementation outputs empty string.

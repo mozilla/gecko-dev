@@ -1,10 +1,10 @@
-#![allow(dead_code, unused_imports)]
+#![allow(dead_code)] // some code is tested for type checking only
 
 use derive_more::IndexMut;
 
 #[derive(IndexMut)]
 struct MyVec(Vec<i32>);
-//Index implementation is required for IndexMut
+// `Index` implementation is required for `IndexMut`.
 impl<__IdxT> ::core::ops::Index<__IdxT> for MyVec
 where
     Vec<i32>: ::core::ops::Index<__IdxT>,
@@ -23,7 +23,7 @@ struct Numbers {
     useless: bool,
 }
 
-//Index implementation is required for IndexMut
+// `Index` implementation is required for `IndexMut`.
 impl<__IdxT> ::core::ops::Index<__IdxT> for Numbers
 where
     Vec<i32>: ::core::ops::Index<__IdxT>,

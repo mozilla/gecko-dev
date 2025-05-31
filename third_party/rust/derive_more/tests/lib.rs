@@ -1,5 +1,12 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(not(feature = "std"))]
+#[macro_use]
+extern crate alloc;
+
+#[cfg(not(feature = "std"))]
+use alloc::{boxed::Box, string::ToString as _, vec::Vec};
+
 use derive_more::{
     Add, AddAssign, Binary, BitAnd, BitOr, BitXor, Constructor, Deref, DerefMut,
     Display, Div, From, FromStr, Index, IndexMut, Into, IntoIterator, Mul, MulAssign,
@@ -188,7 +195,7 @@ fn main() {
 
     let mut myint: MyInt = 5.into();
     let _: Unit = ().into();
-    assert_eq!((), Unit.into());
+    assert!(matches!(Unit.into(), ()));
     assert_eq!(Unit, Unit::new());
     assert_eq!(MyInt(5), 5.into());
     assert_eq!(Ok(MyInt(5)), "5".parse());
@@ -248,7 +255,10 @@ fn main() {
 
     assert_eq!(MyInt(50), MyInt(5) * 10);
     assert_eq!(DoubleUInt(5, 6) * 10, DoubleUInt(50, 60));
-    // assert_eq!(DoubleUIntStruct{x:5, y:6} * 10, DoubleUIntStruct{x:50, y:60});
+    assert_eq!(
+        DoubleUIntStruct { x: 5, y: 6 } * 10,
+        DoubleUIntStruct { x: 50, y: 60 }
+    );
 
     let mut myint = MyInt(5);
     assert_eq!(5, *myint);
