@@ -1421,7 +1421,8 @@ class nsDisplayListBuilder {
     // (containing-block-wise). These should still not be clipped.
     // Consider:
     //
-    //   <div style="position: relative; width: 10px; height: 10px; overflow: clip">
+    //   <div style="position: relative; width: 10px; height: 10px; overflow:
+    //   clip">
     //     <div id=captured>
     //       <div style="position: absolute; width: 20px; height: 20px">
     //
@@ -1429,7 +1430,8 @@ class nsDisplayListBuilder {
     // While if it was inverted, it would need to be clipped:
     //
     //   <div id=captured>
-    //     <div style="position: relative; width: 10px; height: 10px; overflow: clip">
+    //     <div style="position: relative; width: 10px; height: 10px; overflow:
+    //     clip">
     //       <div style="position: absolute; width: 20px; height: 20px">
     //
     // In order to  do this, we track whether the containing block was inside
