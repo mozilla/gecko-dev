@@ -73,8 +73,6 @@ class SVGImageElement final : public SVGImageElementBase,
 
   void NodeInfoChanged(Document* aOldDoc) override;
 
-  void MaybeLoadSVGImage();
-
   // WebIDL
   already_AddRefed<DOMSVGAnimatedLength> X();
   already_AddRefed<DOMSVGAnimatedLength> Y();
@@ -112,8 +110,8 @@ class SVGImageElement final : public SVGImageElementBase,
   void DidAnimateAttribute(int32_t aNameSpaceID, nsAtom* aAttribute) override;
 
   void UpdateSrcURI();
-  nsresult LoadSVGImage(bool aForce, bool aNotify);
-  bool ShouldLoadImage() const;
+
+  void LoadSelectedImage(bool aAlwaysLoad, bool aStopLazyLoading) override;
 
   LengthAttributesInfo GetLengthInfo() override;
   SVGAnimatedPreserveAspectRatio* GetAnimatedPreserveAspectRatio() override;

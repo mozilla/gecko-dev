@@ -94,6 +94,8 @@ void SVGImageElement::NodeInfoChanged(Document* aOldDoc) {
   // a parsed URI, because it might be null even if we have a valid href
   // attribute, if we tried to parse with a different base.
   UpdateSrcURI();
+
+  QueueImageTask(mSrcURI, /* aAlwaysLoad = */ true, /* aNotify = */ false);
 }
 
 //----------------------------------------------------------------------
@@ -142,7 +144,6 @@ void SVGImageElement::UpdateSrcURI() {
   } else {
     mStringAttributes[XLINK_HREF].GetAnimValue(href, this);
   }
-  href.Trim(" \t\n\r");
 
   mSrcURI = nullptr;
   if (!href.IsEmpty()) {
@@ -150,17 +151,20 @@ void SVGImageElement::UpdateSrcURI() {
   }
 }
 
-nsresult SVGImageElement::LoadSVGImage(bool aForce, bool aNotify) {
-  // Mark channel as urgent-start before load image if the image load is
-  // initiated by a user interaction.
-  mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
+void SVGImageElement::LoadSelectedImage(bool aAlwaysLoad,
+                                        bool aStopLazyLoading) {
+  nsresult rv = NS_ERROR_FAILURE;
 
-  return LoadImage(mSrcURI, aForce, aNotify, eImageLoadType_Normal, LoadFlags(),
-                   OwnerDoc());
-}
+  const bool kNotify = true;
+  if (mSrcURI || (mStringAttributes[HREF].IsExplicitlySet() ||
+                  mStringAttributes[XLINK_HREF].IsExplicitlySet())) {
+    rv = LoadImage(mSrcURI, /* aForce = */ true, kNotify, eImageLoadType_Normal,
+                   LoadFlags(), OwnerDoc());
+  }
 
-bool SVGImageElement::ShouldLoadImage() const {
-  return LoadingEnabled() && OwnerDoc()->ShouldLoadImages();
+  if (NS_FAILED(rv)) {
+    CancelImageRequests(kNotify);
+  }
 }
 
 Rect SVGImageElement::GeometryBounds(const Matrix& aToBoundsSpace) {
@@ -230,6 +234,7 @@ void SVGImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                                    const nsAttrValue* aOldValue,
                                    nsIPrincipal* aSubjectPrincipal,
                                    bool aNotify) {
+  bool forceReload = false;
   if (aName == nsGkAtoms::href && (aNamespaceID == kNameSpaceID_None ||
                                    aNamespaceID == kNameSpaceID_XLink)) {
     if (aNamespaceID == kNameSpaceID_XLink &&
@@ -238,14 +243,7 @@ void SVGImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
       return;
     }
     UpdateSrcURI();
-    if (aValue || (aNamespaceID == kNameSpaceID_None &&
-                   mStringAttributes[XLINK_HREF].IsExplicitlySet())) {
-      if (ShouldLoadImage()) {
-        LoadSVGImage(true, aNotify);
-      }
-    } else {
-      CancelImageRequests(aNotify);
-    }
+    forceReload = true;
   } else if (aNamespaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::decoding) {
       // Request sync or async image decoding.
@@ -253,23 +251,17 @@ void SVGImageElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
           aValue && static_cast<ImageDecodingType>(aValue->GetEnumValue()) ==
                         ImageDecodingType::Sync);
     } else if (aName == nsGkAtoms::crossorigin) {
-      if (aNotify && GetCORSMode() != AttrValueToCORSMode(aOldValue) &&
-          ShouldLoadImage()) {
-        ForceReload(aNotify, IgnoreErrors());
-      }
+      forceReload = GetCORSMode() != AttrValueToCORSMode(aOldValue);
     }
+  }
+
+  if (forceReload) {
+    mUseUrgentStartForChannel = UserActivation::IsHandlingUserInput();
+    QueueImageTask(mSrcURI, /* aAlwaysLoad = */ true, aNotify);
   }
 
   return SVGImageElementBase::AfterSetAttr(
       aNamespaceID, aName, aValue, aOldValue, aSubjectPrincipal, aNotify);
-}
-
-void SVGImageElement::MaybeLoadSVGImage() {
-  if ((mStringAttributes[HREF].IsExplicitlySet() ||
-       mStringAttributes[XLINK_HREF].IsExplicitlySet()) &&
-      (NS_FAILED(LoadSVGImage(false, true)) || !LoadingEnabled())) {
-    CancelImageRequests(true);
-  }
 }
 
 nsresult SVGImageElement::BindToTree(BindContext& aContext, nsINode& aParent) {
@@ -277,14 +269,6 @@ nsresult SVGImageElement::BindToTree(BindContext& aContext, nsINode& aParent) {
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsImageLoadingContent::BindToTree(aContext, aParent);
-
-  if ((mStringAttributes[HREF].IsExplicitlySet() ||
-       mStringAttributes[XLINK_HREF].IsExplicitlySet()) &&
-      ShouldLoadImage()) {
-    nsContentUtils::AddScriptRunner(
-        NewRunnableMethod("dom::SVGImageElement::MaybeLoadSVGImage", this,
-                          &SVGImageElement::MaybeLoadSVGImage));
-  }
 
   return rv;
 }
@@ -295,6 +279,8 @@ void SVGImageElement::UnbindFromTree(UnbindContext& aContext) {
 }
 
 void SVGImageElement::DestroyContent() {
+  ClearImageLoadTask();
+
   nsImageLoadingContent::Destroy();
   SVGImageElementBase::DestroyContent();
 }
@@ -345,13 +331,8 @@ void SVGImageElement::DidAnimateAttribute(int32_t aNameSpaceID,
        aNameSpaceID == kNameSpaceID_XLink) &&
       aAttribute == nsGkAtoms::href) {
     UpdateSrcURI();
-    bool hrefIsSet = mStringAttributes[HREF].IsExplicitlySet() ||
-                     mStringAttributes[XLINK_HREF].IsExplicitlySet();
-    if (hrefIsSet) {
-      LoadSVGImage(true, true);
-    } else {
-      CancelImageRequests(true);
-    }
+    mUseUrgentStartForChannel = false;
+    QueueImageTask(mSrcURI, /* aAlwaysLoad = */ true, /* aNotify = */ true);
   }
   SVGImageElementBase::DidAnimateAttribute(aNameSpaceID, aAttribute);
 }
