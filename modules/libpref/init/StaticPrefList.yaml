@@ -8162,7 +8162,7 @@
 # a natural width and/or height.
 - name: image.natural-size-fallback.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # Whether we record SVG images as blobs or not.
