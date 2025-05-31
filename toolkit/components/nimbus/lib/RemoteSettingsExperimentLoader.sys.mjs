@@ -924,7 +924,10 @@ export class EnrollmentsContext {
     const invalidFeatureIds = new Set();
     const missingL10nIds = new Set();
 
-    if (validateSchema || typeof localizations !== "undefined") {
+    if (
+      validateSchema ||
+      (typeof localizations === "object" && localizations !== null)
+    ) {
       for (const [branchIdx, branch] of branches.entries()) {
         const features = branch.features ?? [branch.feature];
         for (const feature of features) {

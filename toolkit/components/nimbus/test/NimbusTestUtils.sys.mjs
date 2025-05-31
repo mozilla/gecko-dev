@@ -16,6 +16,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
   NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
+  ProfilesDatastoreService:
+    "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs",
   RemoteSettingsExperimentLoader:
     "resource://nimbus/lib/RemoteSettingsExperimentLoader.sys.mjs",
   sinon: "resource://testing-common/Sinon.sys.mjs",
@@ -156,6 +158,12 @@ export const NimbusTestUtils = {
       );
 
       NimbusTestUtils.cleanupStorePrefCache();
+
+      // TODO(bug 1956082): This is an async method that we are not awaiting.
+      //
+      // Only browser tests and tests that otherwise have manually enabled the
+      // ProfilesDatastoreService need to await the result.
+      return NimbusTestUtils.cleanupEnrollmentDatabase();
     },
   },
 
@@ -188,6 +196,7 @@ export const NimbusTestUtils = {
               value: { testInt: 123, enabled: true },
             },
           ],
+          firefoxLabsTitle: null,
         },
         source: "NimbusTestUtils",
         isEnrollmentPaused: true,
@@ -198,6 +207,14 @@ export const NimbusTestUtils = {
         featureIds: props?.branch?.features?.map(f => f.featureId) ?? [
           "testFeature",
         ],
+        isRollout: false,
+        isFirefoxLabsOptIn: false,
+        firefoxLabsTitle: null,
+        firefoxLabsDescription: null,
+        firefoxLabsDescriptionLinks: null,
+        firefoxLabsGroup: null,
+        requiresRestart: false,
+        localizations: null,
         ...props,
       };
     },
@@ -253,6 +270,13 @@ export const NimbusTestUtils = {
         ],
         targeting: "true",
         isRollout: false,
+        isFirefoxLabsOptIn: false,
+        firefoxLabsTitle: null,
+        firefoxLabsDescription: null,
+        firefoxLabsDescriptionLinks: null,
+        firefoxLabsGroup: null,
+        requiresRestart: false,
+        localizations: null,
         ...props,
       };
     },
@@ -382,7 +406,38 @@ export const NimbusTestUtils = {
       await experimentManager.unenroll(slug);
     }
 
-    NimbusTestUtils.assert.storeIsEmpty(experimentManager.store);
+    await NimbusTestUtils.assert.storeIsEmpty(experimentManager.store);
+  },
+
+  async cleanupEnrollmentDatabase() {
+    if (
+      !Services.prefs.getBoolPref(
+        "nimbus.profilesdatastoreservice.enabled",
+        false
+      )
+    ) {
+      // We are in an xpcshell test that has not initialized the
+      // ProfilesDatastoreService.
+      //
+      // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
+      // and remove this check.
+      return;
+    }
+
+    const profileId = ExperimentAPI.profileId;
+
+    const conn = await lazy.ProfilesDatastoreService.getConnection();
+
+    // TODO(bug 1956080): This should only delete inactive enrollments, but
+    // unenrolling does not yet trigger database writes.
+    await conn.execute(
+      `
+        DELETE FROM NimbusEnrollments
+        WHERE
+          profileId = :profileId;
+      `,
+      { profileId }
+    );
   },
 
   /**
@@ -823,6 +878,7 @@ Object.defineProperties(NimbusTestUtils.factories.recipe, {
               value: { testInt: 123, enabled: true },
             },
           ],
+          firefoxLabsTitle: null,
         },
         {
           slug: "treatment",
@@ -833,6 +889,7 @@ Object.defineProperties(NimbusTestUtils.factories.recipe, {
               value: { testInt: 123, enabled: true },
             },
           ],
+          firefoxLabsTitle: null,
         },
       ];
     },
@@ -859,6 +916,7 @@ Object.defineProperties(NimbusTestUtils.factories.recipe, {
                 value,
               },
             ],
+            firefoxLabsTitle: null,
           },
         ],
         ...props,
