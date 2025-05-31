@@ -168,7 +168,7 @@
 #endif
 
 ; JavaScript components
-@RESPATH@/browser/components/BrowserComponents.manifest
+@RESPATH@/browser/components/*.manifest
 @RESPATH@/components/extensions.manifest
 #ifdef MOZ_UPDATER
 @RESPATH@/components/nsUpdateService.manifest
@@ -185,7 +185,6 @@
 @RESPATH@/components/antitracking.manifest
 
 @RESPATH@/components/l10n-registry.manifest
-@RESPATH@/browser/components/l10n-registry.manifest
 
 ; WebDriver (Marionette, Remote Agent) remote protocols
 #ifdef ENABLE_WEBDRIVER
@@ -195,7 +194,6 @@
 
 ; [Extensions]
 @RESPATH@/components/extensions-toolkit.manifest
-@RESPATH@/browser/components/extensions-browser.manifest
 
 ; Modules
 @RESPATH@/browser/modules/*
