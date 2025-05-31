@@ -188,10 +188,12 @@ nsDisplayWrapList* ViewportFrame::BuildDisplayListForTopLayer(
     // the normal path.
     if (frame->StyleDisplay()->mTopLayer == StyleTopLayer::None) {
       MOZ_ASSERT(!aBuilder->IsForPainting() ||
+                 !elem->State().HasState(dom::ElementState::FULLSCREEN) ||
                  !ShouldInTopLayerForFullscreen(elem));
       continue;
     }
-    MOZ_ASSERT(ShouldInTopLayerForFullscreen(elem));
+    MOZ_ASSERT_IF(elem->State().HasState(dom::ElementState::FULLSCREEN),
+                  ShouldInTopLayerForFullscreen(elem));
     // Inner SVG, MathML elements, as well as children of some XUL
     // elements are not allowed to be out-of-flow. They should not
     // be handled as top layer element here.
