@@ -325,7 +325,7 @@ class DecoratorVisitor(ast.NodeVisitor):
 
 
 def command_virtualenv_info_for_module(module_path):
-    with module_path.open("r") as file:
+    with module_path.open("r", encoding="utf-8") as file:
         content = file.read()
 
     tree = ast.parse(content)

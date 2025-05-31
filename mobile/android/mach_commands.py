@@ -774,7 +774,7 @@ def emulator_reset(command_context):
             logging.ERROR,
             "emulator",
             {},
-            f"Unable to proceed – 'sdkmanager' not found at {sdk_manager_tool_path}. "
+            f"Unable to proceed - 'sdkmanager' not found at {sdk_manager_tool_path}. "
             f"Please run './mach bootstrap' to reinstall your Android SDK.",
         )
         return 1
