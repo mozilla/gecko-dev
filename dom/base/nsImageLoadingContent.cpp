@@ -1344,13 +1344,14 @@ CSSIntSize nsImageLoadingContent::GetWidthHeightForImage() {
   if (nsIFrame* frame = element->GetPrimaryFrame(FlushType::Layout)) {
     return CSSIntSize::FromAppUnitsRounded(frame->GetContentRect().Size());
   }
-  const nsAttrValue* value;
+
+  CSSIntSize size;
   nsCOMPtr<imgIContainer> image;
   if (mCurrentRequest) {
     mCurrentRequest->GetImage(getter_AddRefs(image));
   }
 
-  CSSIntSize size;
+  const nsAttrValue* value;
   if ((value = element->GetParsedAttr(nsGkAtoms::width)) &&
       value->Type() == nsAttrValue::eInteger) {
     size.width = value->GetIntegerValue();
