@@ -90,7 +90,6 @@ class PrivateBrowsingLockFeature(
     private val storage: PrivateBrowsingLockStorage,
 ) : DefaultLifecycleObserver {
     private var browserStoreScope: CoroutineScope? = null
-    private var appStoreScope: CoroutineScope? = null
     private var isFeatureEnabled = false
 
     init {
@@ -152,10 +151,7 @@ class PrivateBrowsingLockFeature(
 
     private fun stop() {
         browserStoreScope?.cancel()
-        appStoreScope?.cancel()
-
         browserStoreScope = null
-        appStoreScope = null
 
         appStore.dispatch(
             PrivateBrowsingLockAction.UpdatePrivateBrowsingLock(
