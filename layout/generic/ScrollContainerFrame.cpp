@@ -3683,8 +3683,7 @@ void ScrollContainerFrame::MaybeCreateTopLayerAndWrapRootItems(
       rootStyleFrame->HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION)) {
     SerializeList();
     rootResultList.AppendNewToTop<nsDisplayViewTransitionCapture>(
-        aBuilder, this, &rootResultList, aBuilder->CurrentActiveScrolledRoot(),
-        /* aIsRoot = */ true);
+        aBuilder, this, &rootResultList, nullptr, /* aIsRoot = */ true);
   }
 
   // Create any required items for the 'top layer' and check if they'll be
@@ -4056,23 +4055,26 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     nsDisplayListBuilder::AutoCurrentActiveScrolledRootSetter asrSetter(
         aBuilder);
 
-    if (mWillBuildScrollableLayer && aBuilder->IsPaintingToWindow()) {
-      // If this scroll frame has a first scrollable frame sequence number,
-      // ensure that it matches the current paint sequence number. If it does
-      // not, reset it so that we can expire the displayport. The stored
-      // sequence number will not match that of the current paint if the dom
-      // was mutated in some way that alters the order of scroll frames.
-      if (IsFirstScrollableFrameSequenceNumber().isSome() &&
-          *IsFirstScrollableFrameSequenceNumber() !=
-              nsDisplayListBuilder::GetPaintSequenceNumber()) {
-        SetIsFirstScrollableFrameSequenceNumber(Nothing());
+    if (aBuilder->IsInViewTransitionCapture() || capturedByViewTransition) {
+      asrSetter.SetCurrentActiveScrolledRoot(nullptr);
+    } else {
+      if (mWillBuildScrollableLayer && aBuilder->IsPaintingToWindow()) {
+        // If this scroll frame has a first scrollable frame sequence number,
+        // ensure that it matches the current paint sequence number. If it does
+        // not, reset it so that we can expire the displayport. The stored
+        // sequence number will not match that of the current paint if the dom
+        // was mutated in some way that alters the order of scroll frames.
+        if (IsFirstScrollableFrameSequenceNumber().isSome() &&
+            *IsFirstScrollableFrameSequenceNumber() !=
+                nsDisplayListBuilder::GetPaintSequenceNumber()) {
+          SetIsFirstScrollableFrameSequenceNumber(Nothing());
+        }
+        asrSetter.EnterScrollFrame(this);
       }
-      asrSetter.EnterScrollFrame(this);
-    }
-
-    if (couldBuildLayer && mScrolledFrame->GetContent()) {
-      asrSetter.SetCurrentScrollParentId(
-          nsLayoutUtils::FindOrCreateIDFor(mScrolledFrame->GetContent()));
+      if (couldBuildLayer && mScrolledFrame->GetContent()) {
+        asrSetter.SetCurrentScrollParentId(
+            nsLayoutUtils::FindOrCreateIDFor(mScrolledFrame->GetContent()));
+      }
     }
 
     if (mWillBuildScrollableLayer && aBuilder->BuildCompositorHitTestInfo()) {
@@ -4151,6 +4153,9 @@ void ScrollContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
           aBuilder, this, visibleRectForChildren, dirtyRectForChildren);
       nsDisplayListBuilder::AutoEnterViewTransitionCapture
           inViewTransitionCaptureSetter(aBuilder, capturedByViewTransition);
+      if (capturedByViewTransition) {
+        scrolledRectClipState.Clear();
+      }
 
       BuildDisplayListForChild(aBuilder, mScrolledFrame, set);
 
