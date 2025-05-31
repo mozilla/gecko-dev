@@ -1484,7 +1484,7 @@ class ConnectionPool final {
    *   to dispatch to the task queue, as this could disrupt proper queuing and
    *   execution.
    */
-  void StartOp(uint64_t aTransactionId, nsIRunnable* aRunnable);
+  void StartOp(uint64_t aTransactionId, nsCOMPtr<nsIRunnable> aRunnable);
 
   void Finish(uint64_t aTransactionId, FinishCallback* aCallback);
 
@@ -7965,9 +7965,9 @@ uint64_t ConnectionPool::Start(
   return transactionId;
 }
 
-void ConnectionPool::StartOp(uint64_t aTransactionId, nsIRunnable* aRunnable) {
+void ConnectionPool::StartOp(uint64_t aTransactionId,
+                             nsCOMPtr<nsIRunnable> aRunnable) {
   AssertIsOnOwningThread();
-  MOZ_ASSERT(aRunnable);
 
   AUTO_PROFILER_LABEL("ConnectionPool::StartOp", DOM);
 
@@ -7984,9 +7984,9 @@ void ConnectionPool::StartOp(uint64_t aTransactionId, nsIRunnable* aRunnable) {
         dbInfo.mRunningWriteTransaction &&
             dbInfo.mRunningWriteTransaction.refEquals(*transactionInfo));
 
-    MOZ_ALWAYS_SUCCEEDS(dbInfo.Dispatch(do_AddRef(aRunnable)));
+    MOZ_ALWAYS_SUCCEEDS(dbInfo.Dispatch(aRunnable.forget()));
   } else {
-    transactionInfo->mQueuedRunnables.AppendElement(aRunnable);
+    transactionInfo->mQueuedRunnables.AppendElement(std::move(aRunnable));
   }
 }
 
@@ -8002,10 +8002,10 @@ void ConnectionPool::Finish(uint64_t aTransactionId,
 
   AUTO_PROFILER_LABEL("ConnectionPool::Finish", DOM);
 
-  RefPtr<FinishCallbackWrapper> wrapper =
+  nsCOMPtr<nsIRunnable> wrapper =
       new FinishCallbackWrapper(this, aTransactionId, aCallback);
 
-  StartOp(aTransactionId, wrapper);
+  StartOp(aTransactionId, std::move(wrapper));
 
 #ifdef DEBUG
   transactionInfo->mFinished.Flip();
