@@ -2397,6 +2397,7 @@ class SVGTextDrawPathCallbacks final : public nsTextFrame::DrawPathCallbacks {
    * Constructs an SVGTextDrawPathCallbacks.
    *
    * @param aSVGTextFrame The ancestor text frame.
+   * @param aContextPaint Used by context-fill and context-stroke.
    * @param aContext The context to use for painting.
    * @param aFrame The nsTextFrame to paint.
    * @param aCanvasTM The transformation matrix to set when painting; this
@@ -2405,12 +2406,14 @@ class SVGTextDrawPathCallbacks final : public nsTextFrame::DrawPathCallbacks {
    * @param aImgParams Whether we need to synchronously decode images.
    * @param aShouldPaintSVGGlyphs Whether SVG glyphs should be painted.
    */
-  SVGTextDrawPathCallbacks(SVGTextFrame* aSVGTextFrame, gfxContext& aContext,
+  SVGTextDrawPathCallbacks(SVGTextFrame* aSVGTextFrame,
+                           SVGContextPaint* aContextPaint, gfxContext& aContext,
                            nsTextFrame* aFrame, const gfxMatrix& aCanvasTM,
                            imgDrawingParams& aImgParams,
                            bool aShouldPaintSVGGlyphs)
       : DrawPathCallbacks(aShouldPaintSVGGlyphs),
         mSVGTextFrame(aSVGTextFrame),
+        mContextPaint(aContextPaint),
         mContext(aContext),
         mFrame(aFrame),
         mCanvasTM(aCanvasTM),
@@ -2469,6 +2472,7 @@ class SVGTextDrawPathCallbacks final : public nsTextFrame::DrawPathCallbacks {
                     const StyleSVGOpacity& aOpacity) const;
 
   SVGTextFrame* const mSVGTextFrame;
+  SVGContextPaint* const mContextPaint;
   gfxContext& mContext;
   nsTextFrame* const mFrame;
   const gfxMatrix& mCanvasTM;
@@ -2589,13 +2593,14 @@ void SVGTextDrawPathCallbacks::ApplyOpacity(
         sRGBColor::FromABGR(aPaint.kind.AsColor().CalcColor(*mFrame->Style()))
             .a;
   }
-  aColor.a *= SVGUtils::GetOpacity(aOpacity, /*aContextPaint*/ nullptr);
+  aColor.a *= SVGUtils::GetOpacity(aOpacity, mContextPaint);
 }
 
 void SVGTextDrawPathCallbacks::MakeFillPattern(GeneralPattern* aOutPattern) {
   if (mColor == NS_SAME_AS_FOREGROUND_COLOR ||
       mColor == NS_40PERCENT_FOREGROUND_COLOR) {
-    SVGUtils::MakeFillPatternFor(mFrame, &mContext, aOutPattern, mImgParams);
+    SVGUtils::MakeFillPatternFor(mFrame, &mContext, aOutPattern, mImgParams,
+                                 mContextPaint);
     return;
   }
 
@@ -2665,7 +2670,7 @@ void SVGTextDrawPathCallbacks::StrokeGeometry() {
     return;
   }
 
-  if (!SVGUtils::HasStroke(mFrame, /*aContextPaint*/ nullptr)) {
+  if (!SVGUtils::HasStroke(mFrame, mContextPaint)) {
     return;
   }
 
@@ -2677,7 +2682,7 @@ void SVGTextDrawPathCallbacks::StrokeGeometry() {
     strokePattern.InitColorPattern(ToDeviceColor(color));
   } else {
     SVGUtils::MakeStrokePatternFor(mFrame, &mContext, &strokePattern,
-                                   mImgParams, /*aContextPaint*/ nullptr);
+                                   mImgParams, mContextPaint);
   }
   if (strokePattern.GetPattern()) {
     SVGElement* svgOwner =
@@ -2693,7 +2698,7 @@ void SVGTextDrawPathCallbacks::StrokeGeometry() {
     RefPtr<Path> path = mContext.GetPath();
     SVGContentUtils::AutoStrokeOptions strokeOptions;
     SVGContentUtils::GetStrokeOptions(&strokeOptions, svgOwner, mFrame->Style(),
-                                      /*aContextPaint*/ nullptr);
+                                      mContextPaint);
     DrawOptions drawOptions;
     drawOptions.mAntialiasMode =
         SVGUtils::ToAntialiasMode(mFrame->StyleText()->mTextRendering);
@@ -3198,8 +3203,8 @@ void SVGTextFrame::PaintSVG(gfxContext& aContext, const gfxMatrix& aTransform,
                                                 opacity);
       }
 
-      if (ShouldRenderAsPath(frame, paintSVGGlyphs)) {
-        SVGTextDrawPathCallbacks callbacks(this, aContext, frame,
+      if (ShouldRenderAsPath(frame, contextPaint, paintSVGGlyphs)) {
+        SVGTextDrawPathCallbacks callbacks(this, contextPaint, aContext, frame,
                                            matrixForPaintServers, aImgParams,
                                            paintSVGGlyphs);
         params.callbacks = &callbacks;
@@ -4955,6 +4960,7 @@ void SVGTextFrame::DoGlyphPositioning() {
 }
 
 bool SVGTextFrame::ShouldRenderAsPath(nsTextFrame* aFrame,
+                                      SVGContextPaint* aContextPaint,
                                       bool& aShouldPaintSVGGlyphs) {
   // Rendering to a clip path.
   if (HasAnyStateBits(NS_STATE_SVG_CLIPPATH_CHILD)) {
@@ -4969,8 +4975,7 @@ bool SVGTextFrame::ShouldRenderAsPath(nsTextFrame* aFrame,
   // Fill is a non-solid paint or is not opaque.
   if (!(style->mFill.kind.IsNone() ||
         (style->mFill.kind.IsColor() &&
-         SVGUtils::GetOpacity(style->mFillOpacity, /*aContextPaint*/ nullptr) ==
-             1.0f))) {
+         SVGUtils::GetOpacity(style->mFillOpacity, aContextPaint) == 1.0f))) {
     return true;
   }
 
