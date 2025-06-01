@@ -7,6 +7,11 @@
     %1$s will be replaced with the percentage of download completed so far.
   -->
   <string name="mozac_feature_downloads_percentage_notification_text" moz:removedIn="139" tools:ignore="UnusedResources">%1$s qediya</string>
+  <!--
+    Summary text shown on an in progress download notification.
+    %1$s will be replaced with the estimated time remaining to complete the download.
+  -->
+  <string name="mozac_feature_downloads_time_remaining">di %1$s`ê de</string>
   <!-- Text shown on the second row of a paused download notification. -->
   <string name="mozac_feature_downloads_paused_notification_text">Daxistin hate sekinandin</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
@@ -23,8 +28,6 @@
     %1$s will be replaced with the size of the file.
   -->
   <string name="mozac_feature_downloads_dialog_title_3">Dosyeyê jêbar bikî? (%1$s)</string>
-  <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Daxîne (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Daxîne</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->

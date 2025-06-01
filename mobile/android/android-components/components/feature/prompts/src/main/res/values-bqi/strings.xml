@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- Text for confirmation for a positive action in dialog -->
   <string name="mozac_feature_prompts_ok">خا</string>
   <!-- Text for confirmation for a negative action in dialog. -->
@@ -164,6 +164,8 @@
   <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">وا هساو منتوری %1$s و من بیاین</string>
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">و کار گرؽڌن %1$s و عونوان ی جۊر کوݩ</string>
+  <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[و من ٱووڌن و %1$s وا ی هساو %2$s تئت <a href=\"%3$s\">سیاست زفت مهرموویی</a> وو <a href=\"%4$s\">شرتا داڌن خدمات</a> هونووݩ هڌ]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">رئڌن وا پؽش</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

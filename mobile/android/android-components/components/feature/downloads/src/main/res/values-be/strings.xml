@@ -23,8 +23,6 @@
     %1$s will be replaced with the size of the file.
   -->
   <string name="mozac_feature_downloads_dialog_title_3">Сцягнуць файл? (%1$s)</string>
-  <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Сцягванне (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Сцягнуць</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
@@ -42,7 +40,7 @@
   -->
   <string name="mozac_feature_downloads_file_failure_no_connection" tools:ignore="UnusedResources">%1$s не быў сцягнуты.</string>
   <!-- Alert dialog confirmation before downloading a file without network connection, this is the description. -->
-  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Праверце злучэнне і паўтарыце спробу.</string>
+  <string name="mozac_feature_downloads_file_check_connection" tools:ignore="UnusedResources">Праверце злучэнне і паўтарыце спробу.</string>
   <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
   <string name="mozac_feature_downloads_file_not_supported2">%1$s не можа сцягнуць гэты тып файла</string>
   <!-- Message that appears when the downloaded file could not be opened. -->

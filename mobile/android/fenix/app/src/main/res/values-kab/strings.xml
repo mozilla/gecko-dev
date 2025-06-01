@@ -84,16 +84,6 @@
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">Anwa i izemren ad iwali armud-iw?</string>
   <!--
-    Private mode shortcut "contextual feature recommendation" (CFR)
-
-    Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
-  -->
-  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Senker iccer uslig uḍfir s yiwen usiti kan.</string>
-  <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Rnu ɣer ugdil agejdan</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Ala, tanemmirt</string>
-  <!--
     Open in App "contextual feature recommendation" (CFR)
 
     Text for the info message. %1$s is the name of the app (for example "Firefox").
@@ -249,6 +239,8 @@
   <string name="browser_menu_extensions_disabled_description">Yensa i kra n wakud</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Ulac isiɣzaf i yettwaremden</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Ɛreḍ isiɣzaf yettuwellhen</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Talut n umiḍan</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -376,6 +368,8 @@
   <string name="browser_menu_save_description">Rnu ticraḍ n yisebtar, inegzumen, asebtar agejdan, tafrant, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Creḍ asebter-a</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Asebter n tecraḍ</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Ẓreg tacreḍt n usebter</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1178,8 +1172,6 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Issin ugar</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Isefka n tetiknikt d umyigew</string>
-  <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Azen isefka itiknikanen akked wid n umyigew</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">Issin ugar</string>
@@ -1491,16 +1483,10 @@
   <!--
     Downloads
 
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Isadaren ttwakksen</string>
-  <!--
     Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">Iferdisen i yettwakksen: %1$d</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Yettwakkes %1$s</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">Yettwakkes “%1$s”</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1514,8 +1500,6 @@
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">Sefsex</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Ulac ifuyla i d-yettusadren</string>
-  <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">Ulac isadaren akka tura</string>
   <!-- Text description shown when no download exists -->
   <string name="download_empty_description">Ifuyla i d-tsadreḍ ad d-banen dagi.</string>
@@ -1524,8 +1508,6 @@
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d yettwafren</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Kkes</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">Ulac ddeqs n tallunt</string>
   <!--
@@ -1592,6 +1574,8 @@
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">ittraju</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Ifuyla ittwazedmen</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Talqayt</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Nadi isadaren</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1611,15 +1595,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Isemliyen</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Wiyaḍ</string>
-  <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">Wiyaḍ</string>
-  <!--
-    Description of a downloaded item, displayed in the downloads list.
-    %1$s: The size of the downloaded file.
-    %2$s: The URL of the downloaded file.
-  -->
-  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 

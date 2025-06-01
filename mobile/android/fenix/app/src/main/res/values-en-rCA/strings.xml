@@ -84,16 +84,6 @@
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">Who might be able to see my activity?</string>
   <!--
-    Private mode shortcut "contextual feature recommendation" (CFR)
-
-    Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
-  -->
-  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Launch your next private tab in one tap.</string>
-  <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Add to Home screen</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">No thanks</string>
-  <!--
     Open in App "contextual feature recommendation" (CFR)
 
     Text for the info message. %1$s is the name of the app (for example "Firefox").
@@ -1116,8 +1106,6 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Learn more</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Technical and interaction data</string>
-  <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Send technical and interaction data</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">Learn more</string>
@@ -1430,22 +1418,10 @@
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">No history here</string>
   <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Downloads Removed</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Removed %1$s</string>
-  <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">No downloaded files</string>
-  <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d selected</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Remove</string>
   <!--
     Time period headers for downloads
 
@@ -1479,15 +1455,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Documents</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Others</string>
-  <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">Other</string>
-  <!--
-    Description of a downloaded item, displayed in the downloads list.
-    %1$s: The size of the downloaded file.
-    %2$s: The URL of the downloaded file.
-  -->
-  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 

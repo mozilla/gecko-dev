@@ -77,16 +77,6 @@
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">کؽ گاشڌ ترسته بۊ فعالیت مونه بنیره؟</string>
   <!--
-    Private mode shortcut "contextual feature recommendation" (CFR)
-
-    Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
-  -->
-  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">بلگه سیخومی بئڌی خوتووݩ ن وا ی کرت ریس زیڌن بۊگۊشین.</string>
-  <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ٱووردن و بلگه هووه ای</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ن ممنووݩ</string>
-  <!--
     Open in App "contextual feature recommendation" (CFR)
 
     Text for the info message. %1$s is the name of the app (for example "Firefox").
@@ -344,6 +334,8 @@
   <string name="browser_tools_menu_handlebar_content_description">بستن بلگه نومگه ٱوزارا</string>
   <!-- Content description (not visible, for screen readers etc.) for bottom sheet handlebar custom tab menu. -->
   <string name="browser_custom_tab_menu_handlebar_content_description">بستن ورق نومگه بلگه سفارشی</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_with_translate_without_report_site">نما خۊندنی، ولرنیڌن، چاپ، یک رسۊوی، گۊشیڌن برنومه</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
   <string name="browser_menu_tools_description_with_report_site_2">نما خۊندنی، گوزارش خراوی وبگه، چاپ، یک رسۊوی، گۊشیڌن برنومه</string>
   <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -357,6 +349,8 @@
   <string name="browser_menu_save_description">ٱووردن نشووک، ر نهنگ، بلگه ٱسلی، کتن، PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ای بلگه ن نشووک کوݩ</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">نشووه ناهاڌن بلگه</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">آلشت نشووک</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -853,6 +847,8 @@
   <string name="preferences_open_links_in_apps_never">هرگشت</string>
   <!-- Preference for open download with an external download manager app -->
   <string name="preferences_external_download_manager">دؽوۉداری دانلود دری</string>
+  <!-- Preference for enabling gecko engine logs -->
+  <string name="preferences_enable_gecko_logs">و کار وندن گوزارشا گکو</string>
   <!-- Message to indicate users that we are quitting the application to apply the changes -->
   <string name="quit_application">و در زیڌن ز برنومه سی ائمال آلشت کاریا…</string>
   <!-- Preference for extensions -->
@@ -909,7 +905,11 @@
   -->
   <string name="customize_toggle_recently_visited">نیشتنا دیندایی</string>
   <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">داستانا فرگ کردنی</string>
+  <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_3">داستانا</string>
+  <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
+  <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">متالو جووݩ گرؽڌه ز %s</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
   <string name="customize_toggle_pocket_sponsored">وزعیتا هؽزگرووݩ</string>
   <!-- Title for the opening wallpaper settings screen -->
@@ -1014,6 +1014,12 @@
     Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled
   -->
   <string name="extension_process_crash_dialog_title">وردنی یل مووقتن قیر فعال وابین</string>
+  <!--
+    This is a message shown to the user when too many errors have occurred with the extensions process and they have been disabled.
+    The user can decide if they would like to continue trying to start extensions or if they'd rather continue without them.
+    %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="extension_process_crash_dialog_message">یک یا چن وردنی ز کار وستنه وو سیستوم ایسا ن نا پایدار کردنه. %1$s قپ ریت نا مووفقی سی ر وندن دووارته وردنی (یل) داشت.\n\nوردنی یل من نشست سکویی ایسا دووارته ر ونی نؽبۊن.\n\nپاک کردن یا قیر فعال کردن وردنی یل گاشڌ ای موشکل ن هل کونه.</string>
   <!-- Button text on the extension crash dialog to prompt the user to try restarting the extensions but the dialog will reappear if it is unsuccessful again -->
   <string name="extension_process_crash_dialog_retry_button_text" tools:ignore="UnusedResources">قپ ریت سی ر وندن دووارته وردنی یل</string>
   <!-- Button text on the extension crash dialog to prompt the user to continue with all extensions disabled. -->
@@ -1112,6 +1118,10 @@
   <string name="preferences_automatically_send_crashes_title">و هالت خوتکار گوزارشا خراوی ن بفشنین</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">زبار گوزارشا خراوی قلوه دووسته بۊین</string>
+  <!-- Title for studies preferences -->
+  <string name="preference_experiments_2">خۊندنیا</string>
+  <!-- Summary for studies preferences -->
+  <string name="preference_experiments_summary_2">مۊزیلا ن بهلین تا وردنی یل خۊندنی ن بپرنه وو ر ونه</string>
   <!--
     Turn On Sync Preferences
 
@@ -1288,6 +1298,10 @@
   <string name="studies_remove">پاک کردن</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">فعال</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">ویژیی یل وو ایده یل ن ز تیجنیڌن سی پوی امتهووݩ کۊنین.</string>
+  <!-- Title of the Studies data preference -->
+  <string name="studies_title">پۊرنیڌن وو ر وندن خۊندنیا</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">قلوه دووسته بۊین</string>
   <!--
@@ -1389,14 +1403,6 @@
   <string name="history_older">قڌیمی تر</string>
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">ویرگاری من ایچو نؽ</string>
-  <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">دانلودا پاک وابین</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s پاک وابی</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">«%1$s» پاک وابی</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
@@ -1408,16 +1414,12 @@
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">وورگندن</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">تا سکو فایلی دانلود نوابیڌه</string>
-  <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">هنی هیچ دانلودی نڌاشتینه</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d پسند وابی</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">پاک کردن</string>
   <!--
     Message for the dialog that is shown when there is not enough storage space to download a file.
     %s is the name of the file to download.
@@ -1493,15 +1495,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">سندا</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">دیر</string>
-  <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">دیر</string>
-  <!--
-    Description of a downloaded item, displayed in the downloads list.
-    %1$s: The size of the downloaded file.
-    %2$s: The URL of the downloaded file.
-  -->
-  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 

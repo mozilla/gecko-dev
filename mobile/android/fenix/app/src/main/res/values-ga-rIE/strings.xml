@@ -15,8 +15,6 @@
   <!-- No Open Tabs Message Description -->
   <string name="no_open_tabs_description">Taispeánfar do chluaisíní oscailte anseo.</string>
   <string name="private_browsing_common_myths">Gnáthmhiotais maidir le brabhsáil phríobháideach</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Ná cuir</string>
   <!--
     Home screen icons - Long press shortcuts
 

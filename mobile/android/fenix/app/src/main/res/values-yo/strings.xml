@@ -44,8 +44,6 @@
   -->
   <string name="private_browsing_placeholder_description_2">%1$s pa ìwádìí àti ìtàn ìlọkiri rẹ̀ lórí àwọn táàbù ìkọ̀kọ̀ nígbà tí o bá tì wọ́n tàbí nígbà tí o kò lo áàpù náà mọ́. Ní àkó́kò tí èyí kò sọ ẹ́ di aláìnídáánimọ̀ sí àwọn wẹ́íbusaìtì yí tàbí olùpèsè ìlò íntánẹ́ẹ̀tì rẹ, ó jẹ́ kó rọrùn láti tọ́jú gbogbo ohun tí ò ń ṣe lórí ayélujára sí ìkọ̀kọ̀ fún ẹnikẹ́ni tó bá lo èrọ yìí.</string>
   <string name="private_browsing_common_myths">Àwọn àròsọ tó wọ́pọ̀ nípa ìlọkiri-oníwẹ́ẹ̀bù ìkọ̀kọ̀</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Rárá o ṣeun</string>
   <!--
     Open in App "contextual feature recommendation" (CFR)
 
@@ -681,22 +679,10 @@
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">Kò sí ìtàn níbí</string>
   <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Yọ àwọn ìgbàsílẹ̀ kúrò</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">Ti yọ́ kúrò %1$s</string>
-  <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Kò sí àwọn fáìlì tí a gbàsílẹ̀</string>
-  <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d ti yàn</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Yọ kúrò</string>
   <!--
     Crashes
 

@@ -84,16 +84,6 @@
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">ᱚᱠᱚᱭ ᱫᱚ ᱤᱧᱟᱜ ᱠᱟᱹᱢᱤ ᱦᱚᱨᱟ ᱠᱚ ᱧᱮᱞ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ?</string>
   <!--
-    Private mode shortcut "contextual feature recommendation" (CFR)
-
-    Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
-  -->
-  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">ᱢᱤᱫᱴᱟᱝ ᱴᱤᱯᱟᱹᱣ ᱛᱮ ᱟᱢᱟᱜ ᱤᱱᱟᱹ ᱛᱟᱭᱚᱢᱟᱜ ᱯᱨᱟᱭᱵᱷᱮᱴ ᱴᱟᱵᱽ ᱡᱷᱤᱡᱽ ᱢᱮ ᱾</string>
-  <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ᱚᱲᱟᱜ ᱥᱠᱨᱤᱱ ᱨᱮ ᱥᱮᱞᱮᱫᱽ ᱢᱮ</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">ᱵᱟᱝᱟ ᱥᱟᱨᱦᱟᱣ</string>
-  <!--
     Open in App "contextual feature recommendation" (CFR)
 
     Text for the info message. %1$s is the name of the app (for example "Firefox").
@@ -1109,8 +1099,6 @@
   <string name="exceptions_empty_message_description">ᱵᱟᱪᱷᱟᱣᱟᱠᱟᱱ ᱫᱟᱭᱤᱴ ᱠᱚᱨᱮ ᱟᱢ ᱤᱪᱷᱟᱹ ᱚᱱᱩᱥᱟᱨ ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱵᱚᱸᱫᱚ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
-  <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">ᱴᱮᱠᱱᱤᱠᱟᱞ ᱟᱨ ᱤᱱᱴᱟᱨᱮᱠᱥᱚᱱ ᱰᱟᱴᱟ</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
   <!-- Learn more link for crash reporting preference -->
@@ -1386,14 +1374,6 @@
   <string name="history_older">ᱢᱟᱨᱮᱭᱟᱜ</string>
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">ᱱᱚᱰᱮ ᱱᱟᱜᱟᱢ ᱵᱚᱱᱩᱜ-ᱟ</string>
-  <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ᱰᱟᱣᱱᱞᱚᱰᱠᱚ ᱚᱪᱚᱜᱮᱱᱟ</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s ᱚᱪᱚᱜᱮᱱᱟ</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details">ᱵᱤᱵᱨᱚᱬ ᱠᱚ</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1403,8 +1383,6 @@
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">ᱨᱩᱣᱟᱹᱲ</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ᱱᱚᱰᱮ ᱰᱟᱣᱱᱞᱚᱰ ᱟᱠᱟᱱ ᱨᱮᱫ ᱠᱚ ᱵᱚᱱᱩᱜ-ᱟ</string>
-  <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">ᱱᱚᱰᱮ ᱰᱟᱩᱱᱞᱳᱰᱠᱚ ᱵᱚᱱᱩᱜ-ᱟ</string>
   <!-- Text description shown when no download exists -->
   <string name="download_empty_description">ᱟᱢ ᱰᱟᱩᱱᱞᱳᱰ ᱟᱠᱟᱫ ᱨᱮᱫᱽᱠᱚ ᱱᱚᱸᱰᱮ ᱧᱮᱞᱚᱜᱼᱟ ᱾</string>
@@ -1413,8 +1391,6 @@
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d ᱵᱟᱪᱷᱟᱣᱮᱱᱟ</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">ᱚᱪᱚᱜᱽ</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">ᱢᱮᱴᱟᱣ ᱢᱮ</string>
   <!-- Text for the button to share the download URL -->
@@ -1467,15 +1443,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">ᱫᱚᱞᱤᱞᱠᱚ</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">ᱮᱴᱟᱜᱟᱜᱠᱚ</string>
-  <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">ᱮᱴᱟᱜᱟᱜ</string>
-  <!--
-    Description of a downloaded item, displayed in the downloads list.
-    %1$s: The size of the downloaded file.
-    %2$s: The URL of the downloaded file.
-  -->
-  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 

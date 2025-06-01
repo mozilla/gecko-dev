@@ -22,14 +22,12 @@
     Alert dialog confirmation before downloading a previously downloaded file, this is the title.
     %1$s will be replaced with the size of the file.
   -->
-  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">ھۆججەتنى قايتا چۈشۈرەمدۇ؟  (%1$s)</string>
+  <string name="mozac_feature_downloads_again_dialog_title" tools:ignore="UnusedResources">ھۆججەتنى قايتا چۈشۈرەمدۇ؟ (%1$s)</string>
   <!--
     Alert dialog confirmation before downloading a file, this is the title.
     %1$s will be replaced with the size of the file.
   -->
-  <string name="mozac_feature_downloads_dialog_title_3">ھۆججەتنى چۈشۈرەمدۇ؟  (%1$s)</string>
-  <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">چۈشۈرۈش(%1$s)</string>
+  <string name="mozac_feature_downloads_dialog_title_3">ھۆججەتنى چۈشۈرەمدۇ؟ (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">چۈشۈرۈش</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
@@ -69,7 +67,7 @@
   <!-- Title for the third party download app chooser dialog -->
   <string name="mozac_feature_downloads_third_party_app_chooser_dialog_title">تۆۋەندىكى ئەپتە مەشغۇلاتنى تاماملايدۇ</string>
   <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->
-  <string name="mozac_feature_downloads_unable_to_open_third_party_app"> %1$sنى ئاچالمىدى</string>
+  <string name="mozac_feature_downloads_unable_to_open_third_party_app">%1$sنى ئاچالمىدى</string>
   <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
   <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">ھۆججەت چۈشۈرۈشتە ھۆججەت ۋە ۋاسىتە زىيارەت قىلىش ئىجازىتىگە ئېھتىياجلىق. ئاندىرويىد تەڭشەككە يۆتكىلىپ، ھوقۇقنى چېكىپ، يول قوينى چېكىڭ.</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the title -->

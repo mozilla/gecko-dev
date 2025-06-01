@@ -13,8 +13,6 @@
   <string name="mozac_feature_downloads_completed_notification_text2">Йөкләп алу тәмамланды</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_failed_notification_text2">Йөкләп алу уңышсыз тәмамланды</string>
-  <!-- Alert dialog confirmation before download a file, this is the title. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_dialog_title2" moz:removedIn="138" tools:ignore="UnusedResources">Йөкләп алу (%1$s)</string>
   <!-- Alert dialog confirmation before download a file, this is the positive action. -->
   <string name="mozac_feature_downloads_dialog_download">Йөкләп алу</string>
   <!-- Alert dialog confirmation before downloading a file again, this is the positive action. -->
@@ -49,7 +47,7 @@
   <!-- Message that appears when trying to download with an external app fails. %1$s will be replaced with the name the external app. -->
   <string name="mozac_feature_downloads_unable_to_open_third_party_app">%1$s кушымтасын ачу мөмкин түгел</string>
   <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
-  <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">Файлларны йөкләп алу өчен файллардан һәм медиадан файдалану рөхсәте кирәк. Android көйләүләренә кереп, "рөхсәтләр" дигән битне ачып, "рөхсәт итү" дигәнгә басыгыз.</string>
+  <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">Файлларны йөкләп алу өчен файллардан һәм медиадан файдалану рөхсәте кирәк. Android көйләүләренә кереп, \"рөхсәтләр\" дигән битне ачып, \"рөхсәт итү\" дигәнгә басыгыз.</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the title -->
   <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Шәхси иңдерүләрдән баш тартырга телисезме?</string>
   <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
+<resources xmlns:tools="http://schemas.android.com/tools">
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">Cuuriɗum %s</string>
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
@@ -37,8 +37,6 @@
   <!-- About content. %1$s is the name of the app (for example "Firefox"). -->
   <string name="about_content">Ko Mozilla jibini %1$s</string>
   <string name="private_browsing_common_myths">Tinndi goowaaɗi baɗte banngogol suturo</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Alaa, mi yaafiima</string>
   <!-- Text for the positive action button to go to Settings for auto close tabs. -->
   <string name="tab_tray_close_tabs_banner_positive_button_text">Juɓtorɗe jiytol</string>
   <!-- Text for the banner message to tell users about our inactive tabs feature. -->
@@ -561,14 +559,6 @@
   <string name="history_older">Ɓooyɗo</string>
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">Ɗoo alaa aslol</string>
-  <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Gaawte Momtaama</string>
-  <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Alaa piille gaawtaaɗe</string>
   <!--
     History multi select title in app bar
     %1$d is the number of downloads selected

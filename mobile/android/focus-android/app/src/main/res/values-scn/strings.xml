@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ti duna u cuntrollu.&lt;/p&gt;
-&lt;p&gt;Ùsalu comu navicaturi privatu:
-  &lt;ul&gt;
-    &lt;li&gt;Riscedi e nàvica direttu di l\'applicazzioni&lt;/li&gt;
-    &lt;li&gt;Ferma i trazzatura (o cancia i mpustazzioni pi pirmittìrili)&lt;/li&gt;
-    &lt;li&gt;Scancella i viscotta e macari a crunuluggìa di risciduta e di navicazzioni&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s fu criatu di Mozilla. A nostra missioni è chiḍḍa d\'ammuttari pi na riti graputa e \'n saluti.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Cchiù nfurmazzioni&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ti duna u cuntrollu.</p> <p>Ùsalu comu navicaturi privatu: <ul> <li>Riscedi e nàvica direttu di l\'applicazzioni</li> <li>Ferma i trazzatura (o cancia i mpustazzioni pi pirmittìrili)</li> <li>Scancella i viscotta e macari a crunuluggìa di risciduta e di navicazzioni</li> </ul> </p> <p>%1$s fu criatu di Mozilla. A nostra missioni è chiḍḍa d\'ammuttari pi na riti graputa e \'n saluti.<br/> <a href=\"%2$s\">Cchiù nfurmazzioni</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Privatizza e sicurizza</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -187,7 +178,7 @@
   <!-- Preference summary for General Settings category; the two things users can find in this category -->
   <string name="preference_general_summary2">Navicaturi pridifinutu, lingua</string>
   <!-- Preference category for settings about sending usage data -->
-  <string name="preference_category_data_collection_use">Ricugghiuta e usu dî dati</string>
+  <string name="preference_category_data_collection_use">Ricota e usu dî dati</string>
   <string name="preference_category_search">Riscedi</string>
   <!-- Title of "switch" preference that enables/disables search suggestions -->
   <string name="preference_show_search_suggestions">Pigghia suggirimenti di risciduta</string>
@@ -678,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Vai nnê mpustazzioni di Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Ammacca &lt;b&gt;Pirmissi&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Ammacca <b>Pirmissi</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Vai nnê mpustazzioni</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Abbìlita &lt;b&gt;%1$s&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Abbìlita <b>%1$s</b>]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Fotucàmmira</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -752,7 +743,7 @@
     Description for the prompt to enable search suggestions
     %1$s will be replaced by the app name (e.g. Firefox Focus)
   -->
-  <string name="enable_search_suggestion_description"> P\'aviri suggirimenti, %1$s manna chiḍḍu chi scrivi nnâ barra dû nnirizzu ô muturi di risciduta.</string>
+  <string name="enable_search_suggestion_description">P\'aviri suggirimenti, %1$s manna chiḍḍu chi scrivi nnâ barra dû nnirizzu ô muturi di risciduta.</string>
   <!-- Label used for the "NO button" for the prompt to enable search suggestions -->
   <string name="enable_search_suggestions_no">No</string>
   <!-- Label used for the "YES button" for the prompt to enable search suggestions -->
@@ -767,8 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">U situ sfarsija?\n
-    Prova a sdisabbilitari a prutizzioni contra ô trazzamentu</string>
+  <string name="tip_disable_tracking_protection">U situ sfarsija?\nProva a sdisabbilitari a prutizzioni contra ô trazzamentu</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -779,23 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Grapi tutti i lijami nne %1$s\n
-        Cunfijura %1$s comu navicaturi pridifinutu
-    </string>
+  <string name="tip_set_default_browser">Grapi tutti i lijami nne %1$s\nCunfijura %1$s comu navicaturi pridifinutu</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Jinchi \'n autumàticu i nnirizzi pî siti chi vìsiti cchiù assai\n
-        Teni ammaccatu u nnirizzu nnâ barra dî nnirizzi
-    </string>
+  <string name="tip_autocomplete_url">Jinchi \'n autumàticu i nnirizzi pî siti chi vìsiti cchiù assai\nTeni ammaccatu u nnirizzu nnâ barra dî nnirizzi</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Grapi na lijami nta na scheda nova\n
-        Teni ammaccatu ncapu â lijami nta na pàggina
-    </string>
+  <string name="tip_open_in_new_tab">Grapi na lijami nta na scheda nova\nTeni ammaccatu ncapu â lijami nta na pàggina</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Sdisattiva i cunzigghi nnâ schirmata mastra</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -876,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">I mmàggini sarbati e spartuti &lt;b&gt;nun vennu scancillati&lt;/b&gt; quannu scancelli a crunuluggìa di %1$s</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[I mmàggini sarbati e spartuti <b>nun vennu scancillati</b> quannu scancelli a crunuluggìa di %1$s]]></string>
   <!--
     Theme Preferences
 
@@ -897,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">%1$s prova a usari na cunnissioni cu HTTPS quann\'è pussìbbili p\'aviri cchiù assai sicurizza.
-     &lt;a href="%2$s"&gt;Cchiù nfurmazzioni&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Cancia sta mpustazzioni nnê Mpustazzioni &gt; Privatizza e sicurizza &gt; Sicurizza.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s prova a usari na cunnissioni cu HTTPS quann\'è pussìbbili p\'aviri cchiù assai sicurizza. <a href=\"%2$s\">Cchiù nfurmazzioni</a> <br/><br/> Cancia sta mpustazzioni nnê Mpustazzioni > Privatizza e sicurizza > Sicurizza.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">A cunnissioni nun è sicura</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Chistu putissi èssiru un prubblema di cunfijurazzioni dû sirburi, o putissi èssiri quarchidunu chi sta mpirsunannu u sirburi. &lt;br/&gt;&lt;br/&gt;
-    Si già ti cullijasti cu stu sirburi \'n passatu, l\'erruri putissi èssiri timpuraniu.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Chistu putissi èssiru un prubblema di cunfijurazzioni dû sirburi, o putissi èssiri quarchidunu chi sta mpirsunannu u sirburi. <br/><br/> Si già ti cullijasti cu stu sirburi \'n passatu, l\'erruri putissi èssiri timpuraniu.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;È pussìbbili chi quarchidunu sta pruvannu a farsificari stu situ e cuntinuari po èssiri piriculusu.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s nun àvi fiducia nni &lt;b&gt;%2$s&lt;/b&gt; picchì cu\' ci detti u cirtificatu è scanusciutu, u cirtificatu sû firmau sulu o u sirburi nun sta mannannu a catina di cirtificati giusta.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>È pussìbbili chi quarchidunu sta pruvannu a farsificari stu situ e cuntinuari po èssiri piriculusu.</label> <br><br> <label>%1$s nun àvi fiducia nni <b>%2$s</b> picchì cu\' ci detti u cirtificatu è scanusciutu, u cirtificatu sû firmau sulu o u sirburi nun sta mannannu a catina di cirtificati giusta.</label>]]></string>
   <!--
     Sessions List
 

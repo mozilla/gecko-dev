@@ -50,8 +50,6 @@
   -->
   <string name="private_browsing_placeholder_description_2">%1$s သည် သင် ပိတ်လိုက်သောအခါ (သို့မဟုတ်) အက်ပ်မှ ထွက်သောအခါ သင်၏ သီးသန့် တပ်ဗ်များမှ ရှာဖွေမှု မှတ်တမ်းများအား ရှင်းပစ်သည်။ ၎င်းသည် ၀က်ဘ်ဆိုက်များ (သို့မဟုတ်) သင်၏ အင်တာနက် ၀န်ဆောင်မှုပေးသူ ထံတွင် သင့်အား အမည်မဖော်လိုသူ အဖြစ် မထားပေးနိုင်သော်လည်း ဤစက်ကိရိယာကို သုံးသော အခြားသူများထံမှ သင် အွန်လိုင်း ပေါ်တွင် လုပ်ဆောင်လိုက်သည်များကို သီးသန့်ထားရန် ပိုမို လွယ်ကူစေသည်။</string>
   <string name="private_browsing_common_myths">ပုဂ္ဂလိက browsing ဆိုင်ရာ အမြင်မှားများ</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">နေပါစေ</string>
   <!-- Text for the positive action button -->
   <string name="open_in_app_cfr_positive_button_text">ဆက်တင် များသို့ သွားပါ။</string>
   <!-- Text for the negative action button -->
@@ -567,22 +565,10 @@
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">မှတ်တမ်းများ ဒီမှာ မရှိပါ</string>
   <!--
-    Downloads
-
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">ဒေါင်းလုတ်များအား ဖယ်ရှားလိုက်သည်</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s ကို ဖယ်ရှားလိုက်သည်</string>
-  <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">ဒေါင်းလုတ် လုပ်ထားသော ဖိုင်များ မရှိပါ</string>
-  <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d ရွေးထားပြီး</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">ဖယ်ရှားပါ</string>
   <!--
     Crashes
 

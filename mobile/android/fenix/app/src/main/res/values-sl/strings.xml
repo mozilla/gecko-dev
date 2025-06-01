@@ -84,16 +84,6 @@
   -->
   <string name="felt_privacy_info_card_subtitle_link_text">Kdo bi lahko videl mojo dejavnost?</string>
   <!--
-    Private mode shortcut "contextual feature recommendation" (CFR)
-
-    Text for the Private mode shortcut CFR message for adding a private mode shortcut to open private tabs from the Home screen
-  -->
-  <string name="private_mode_cfr_message_2" moz:removedIn="138" tools:ignore="UnusedResources">Odprite svoj naslednji zaseben zavihek z enim dotikom.</string>
-  <!-- Text for the positive button to accept adding a Private Browsing shortcut to the Home screen -->
-  <string name="private_mode_cfr_pos_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Dodaj na domači zaslon</string>
-  <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
-  <string name="cfr_neg_button_text" moz:removedIn="138" tools:ignore="UnusedResources">Ne, hvala</string>
-  <!--
     Open in App "contextual feature recommendation" (CFR)
 
     Text for the info message. %1$s is the name of the app (for example "Firefox").
@@ -249,6 +239,8 @@
   <string name="browser_menu_extensions_disabled_description">Začasno onemogočeno</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Ni omogočenih razširitev</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Preizkusite priporočeno razširitev</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Podatki o računu</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -376,6 +368,8 @@
   <string name="browser_menu_save_description">Dodaj zaznamek, Bližnjica, Domača stran, Zbirka, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Dodaj stran med zaznamke</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Dodaj stran med zaznamke</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Uredi zaznamek</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -1182,8 +1176,6 @@
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">Več o tem</string>
   <!-- Preference switch for usage and technical data collection -->
-  <string name="preference_usage_data_1" tools:ignore="UnusedResources" moz:removedIn="138">Tehnični podatki in podatki o interakcijah</string>
-  <!-- Preference switch for usage and technical data collection -->
   <string name="preference_usage_data_2">Pošiljaj tehnične podatke in podatke o interakcijah</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">Več o tem</string>
@@ -1500,16 +1492,10 @@
   <!--
     Downloads
 
-    Text for the snackbar to confirm that multiple downloads items have been removed
-  -->
-  <string name="download_delete_multiple_items_snackbar_1" moz:removedIn="138" tools:ignore="UnusedResources">Prenosi odstranjeni</string>
-  <!--
     Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
     %1$d is the number of items deleted.
   -->
   <string name="download_delete_multiple_items_snackbar_2">Izbrisani predmeti: %1$d</string>
-  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
-  <string name="download_delete_single_item_snackbar" moz:removedIn="138" tools:ignore="UnusedResources">%1$s odstranjen</string>
   <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
   <string name="download_delete_single_item_snackbar_2">\"%1$s\" izbrisana</string>
   <!-- Text for the snackbar to confirm that downloads are in progress. -->
@@ -1523,8 +1509,6 @@
   <!-- Text for the snackbar action button to undo deleting a download. -->
   <string name="download_undo_delete_snackbar_action">Razveljavi</string>
   <!-- Text shown when no download exists -->
-  <string name="download_empty_message_1" moz:removedIn="138" tools:ignore="UnusedResources">Ni prenesenih datotek</string>
-  <!-- Text shown when no download exists -->
   <string name="download_empty_message_2">Ni še prenosov</string>
   <!-- Text description shown when no download exists -->
   <string name="download_empty_description">Tukaj bodo prikazane datoteke, ki jih boste prenesli.</string>
@@ -1533,8 +1517,6 @@
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d izbranih</string>
-  <!-- Text for the button to remove a single download item -->
-  <string name="download_delete_item_1" moz:removedIn="138" tools:ignore="UnusedResources">Odstrani</string>
   <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
   <string name="download_file_has_not_enough_storage_dialog_title">Ni dovolj prostora</string>
   <!--
@@ -1601,6 +1583,8 @@
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">čakajoče</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Prenos ni uspel</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Podrobnosti</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Iskanje po prenosih</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1620,15 +1604,7 @@
   <!-- Text for the filter button to show only documents in the downloads list -->
   <string name="download_content_type_filter_document">Dokumenti</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
-  <string name="download_content_type_filter_other" moz:removedIn="138" tools:ignore="UnusedResources">Drugo</string>
-  <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">Drugo</string>
-  <!--
-    Description of a downloaded item, displayed in the downloads list.
-    %1$s: The size of the downloaded file.
-    %2$s: The URL of the downloaded file.
-  -->
-  <string name="download_item_description" moz:removedIn="138" tools:ignore="UnusedResources">%1$s • %2$s</string>
   <!--
     WebCompat Reporter
 
