@@ -8263,6 +8263,8 @@ void PresShell::EventHandler::MaybeSynthesizeCompatMouseEventsForTouchEnd(
       break;
     }
     WidgetMouseEvent event(true, message, widget, WidgetMouseEvent::eReal);
+    event.mFlags.mIsSynthesizedForTests =
+        aTouchEndEvent->mFlags.mIsSynthesizedForTests;
     event.mRefPoint = aTouchEndEvent->mTouches[0]->mRefPoint;
     event.mButton = MouseButton::ePrimary;
     event.mButtons = message == eMouseDown ? MouseButtonsFlag::ePrimaryFlag
@@ -8270,6 +8272,7 @@ void PresShell::EventHandler::MaybeSynthesizeCompatMouseEventsForTouchEnd(
     event.mInputSource = MouseEvent_Binding::MOZ_SOURCE_TOUCH;
     event.mClickCount = message == eMouseMove ? 0 : 1;
     event.mModifiers = aTouchEndEvent->mModifiers;
+    event.pointerId = aTouchEndEvent->mTouches[0]->mIdentifier;
     event.convertToPointer = false;
     if (TouchManager::IsPrecedingTouchPointerDownConsumedByContent()) {
       event.PreventDefault(false);

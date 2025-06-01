@@ -62,6 +62,8 @@ support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js
 
 ["test_click_pointerId_of_single_tap.html"]
 
+["test_click_pointerId_of_single_tap_in_process.html"]
+
 ["test_contextmenu_pointerId_of_long_tap.html"]
 skip-if = [ # Bug 1969768
   "os == 'linux' && display != 'wayland' && opt && !xorigin && !verify", # Linux-opt passes only in the xorigin and verify mode
