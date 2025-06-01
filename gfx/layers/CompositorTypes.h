@@ -280,12 +280,12 @@ enum class OpenMode : uint8_t {
 };
 MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(OpenMode)
 
-// The kinds of mask texture a shader can support
+// The kinds of complex clip a shader can support
 // We rely on the items in this enum being sequential
-enum class MaskType : uint8_t {
-  MaskNone = 0,  // no mask layer
-  Mask,          // mask layer
-  NumMaskTypes
+enum class ClipType : uint8_t {
+  ClipNone = 0,  // no complex clip
+  RoundedRect,
+  NumClipTypes
 };
 
 }  // namespace layers

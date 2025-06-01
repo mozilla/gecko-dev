@@ -142,7 +142,9 @@ void RenderCompositorLayersSWGL::CompositorEndFrame() {
       RefPtr<TexturedEffect> texturedEffect =
           new EffectRGB(it->second->GetTextureSource(),
                         /* aPremultiplied */ true, frameSurface.mFilter);
-      if (surface->mIsOpaque) {
+      // TODO(gw): Enable premul copy on tiles that aren't affected
+      //           by the rounded clip.
+      if (surface->mIsOpaque && !clipEffect) {
         texturedEffect->mPremultipliedCopy = true;
       }
 

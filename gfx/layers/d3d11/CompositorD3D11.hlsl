@@ -12,6 +12,7 @@ float4x4 mProjection : register(vs, c4);
 float4 vRenderTargetOffset : register(vs, c8);
 rect vTextureCoords : register(vs, c9);
 rect vLayerQuad : register(vs, c10);
+float4 vRoundedClipRect : register(vs, c11);
 
 float4 fLayerColor : register(ps, c0);
 float fLayerOpacity : register(ps, c1);
@@ -23,7 +24,9 @@ float fLayerOpacity : register(ps, c1);
 
 float fCoefficient : register(ps, c3);
 
-row_major float3x3 mYuvColorMatrix : register(ps, c4);
+float4 vRoundedClipRadii : register(ps, c4);
+
+row_major float3x3 mYuvColorMatrix : register(ps, c5);
 
 sampler sSampler : register(ps, s0);
 
@@ -46,6 +49,13 @@ struct VS_TEX_INPUT {
 struct VS_OUTPUT {
   float4 vPosition : SV_Position;
   float2 vTexCoords : TEXCOORD0;
+};
+
+struct VS_CLIP_OUTPUT {
+  float4 vPosition : SV_Position;
+  float2 vTexCoords : TEXCOORD0;
+  float2 vRoundedClipSize : TEXCOORD1;
+  float2 vRoundedClipPos : TEXCOORD2;
 };
 
 struct PS_OUTPUT {
@@ -115,6 +125,21 @@ VS_OUTPUT LayerQuadVS(const VS_INPUT aVertex)
   return outp;
 }
 
+VS_CLIP_OUTPUT LayerQuadClipVS(const VS_INPUT aVertex)
+{
+  VS_CLIP_OUTPUT outp;
+  float4 position = TransformedPosition(aVertex.vPosition);
+
+  outp.vPosition = VertexPosition(position);
+  outp.vTexCoords = TexCoords(aVertex.vPosition.xy);
+
+  float2 halfSize = 0.5 * vRoundedClipRect.zw;
+  outp.vRoundedClipPos = vRoundedClipRect.xy + halfSize - position.xy;
+  outp.vRoundedClipSize = halfSize;
+
+  return outp;
+}
+
 /* From Rec601:
 [R]   [1.1643835616438356,  0.0,                 1.5960267857142858]      [ Y -  16]
 [G] = [1.1643835616438358, -0.3917622900949137, -0.8129676472377708]    x [Cb - 128]
@@ -157,6 +182,20 @@ float4 CalculateNV12Color(const float2 aTexCoords)
   return float4(mul(mYuvColorMatrix, yuv), 1.0);
 }
 
+float SignedDistRoundBox(float2 pos, float2 half_box_size, float4 radii) {
+  radii.xy = (pos.x > 0.0) ? radii.xy : radii.zw;
+  radii.x  = (pos.y > 0.0) ? radii.x  : radii.y;
+  float2 q = abs(pos) - half_box_size + radii.x;
+  return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radii.x;
+}
+
+float CalculateClip(const float2 aPosition, const float2 aHalfBoxSize)
+{
+  float d = SignedDistRoundBox(aPosition, aHalfBoxSize, vRoundedClipRadii);
+  // TODO(gw): Probably want some proper AA step here
+  return 1.0 - clamp(d, 0.0, 1.0);
+}
+
 float4 SolidColorShader(const VS_OUTPUT aVertex) : SV_Target
 {
   return fLayerColor;
@@ -167,6 +206,11 @@ float4 RGBAShader(const VS_OUTPUT aVertex) : SV_Target
   return tRGB.Sample(sSampler, aVertex.vTexCoords) * fLayerOpacity;
 }
 
+float4 RGBAClipShader(const VS_CLIP_OUTPUT aVertex) : SV_Target
+{
+  return tRGB.Sample(sSampler, aVertex.vTexCoords) * fLayerOpacity * CalculateClip(aVertex.vRoundedClipPos, aVertex.vRoundedClipSize);
+}
+
 float4 RGBShader(const VS_OUTPUT aVertex) : SV_Target
 {
   float4 result;
@@ -175,12 +219,31 @@ float4 RGBShader(const VS_OUTPUT aVertex) : SV_Target
   return result;
 }
 
+float4 RGBClipShader(const VS_CLIP_OUTPUT aVertex) : SV_Target
+{
+  float4 result;
+  float a = fLayerOpacity * CalculateClip(aVertex.vRoundedClipPos, aVertex.vRoundedClipSize);
+  result = tRGB.Sample(sSampler, aVertex.vTexCoords) * a;
+  result.a = a;
+  return result;
+}
+
 float4 YCbCrShader(const VS_OUTPUT aVertex) : SV_Target
 {
   return CalculateYCbCrColor(aVertex.vTexCoords) * fLayerOpacity;
 }
 
+float4 YCbCrClipShader(const VS_CLIP_OUTPUT aVertex) : SV_Target
+{
+  return CalculateYCbCrColor(aVertex.vTexCoords) * fLayerOpacity * CalculateClip(aVertex.vRoundedClipPos, aVertex.vRoundedClipSize);
+}
+
 float4 NV12Shader(const VS_OUTPUT aVertex) : SV_Target
 {
   return CalculateNV12Color(aVertex.vTexCoords) * fLayerOpacity;
+}
+
+float4 NV12ClipShader(const VS_CLIP_OUTPUT aVertex) : SV_Target
+{
+  return CalculateNV12Color(aVertex.vTexCoords) * fLayerOpacity * CalculateClip(aVertex.vRoundedClipPos, aVertex.vRoundedClipSize);
 }

@@ -135,7 +135,7 @@ class CompositorD3D11 : public Compositor {
   bool UpdateConstantBuffers();
   void SetSamplerForSamplingFilter(gfx::SamplingFilter aSamplingFilter);
 
-  ID3D11PixelShader* GetPSForEffect(Effect* aEffect);
+  ID3D11PixelShader* GetPSForEffect(Effect* aEffect, const ClipType aClipType);
   Maybe<gfx::IntRect> BeginFrame(const nsIntRegion& aInvalidRegion,
                                  const Maybe<gfx::IntRect>& aClipRect,
                                  const gfx::IntRect& aRenderBounds,

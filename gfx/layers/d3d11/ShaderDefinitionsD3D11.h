@@ -18,8 +18,7 @@ struct VertexShaderConstants {
   float renderTargetOffset[4];
   gfx::Rect textureCoords;
   gfx::Rect layerQuad;
-  float maskTransform[4][4];
-  float backdropTransform[4][4];
+  float roundedClipRect[4];
 };
 
 struct PixelShaderConstants {
@@ -27,6 +26,7 @@ struct PixelShaderConstants {
   float layerOpacity[4];
   int blendConfig[4];
   float vCoefficient[4];
+  float roundedClipRadii[4];
   float yuvColorMatrix[3][4];
 };
 

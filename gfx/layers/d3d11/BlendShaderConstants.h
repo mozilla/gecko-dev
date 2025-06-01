@@ -7,6 +7,10 @@
 #ifndef MOZILLA_GFX_LAYERS_D3D11_BLENDSHADERCONSTANTS_H_
 #define MOZILLA_GFX_LAYERS_D3D11_BLENDSHADERCONSTANTS_H_
 
+// These must be in the same order as the ClipType enum
+#define PS_CLIP_NONE 0
+#define PS_CLIP_ROUNDED_RECT 1
+
 // These constants are shared between CompositorD3D11 and the blend pixel
 // shader.
 #define PS_LAYER_RGB 0

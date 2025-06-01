@@ -2,12 +2,17 @@
   file: CompositorD3D11.hlsl
   shaders:
    - LayerQuadVS
+   - LayerQuadClipVS
 
 - type: ps_4_0_level_9_3
   file: CompositorD3D11.hlsl
   shaders:
    - SolidColorShader
    - RGBShader
+   - RGBClipShader
    - RGBAShader
+   - RGBAClipShader
    - YCbCrShader
+   - YCbCrClipShader
    - NV12Shader
+   - NV12ClipShader
