@@ -149,16 +149,7 @@
     Content of about focus. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     %2$s is the url for the learn-more link.
   -->
-  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote">&lt;p&gt;%1$s ti met al comant.&lt;/p&gt;
-&lt;p&gt;Doprilu come navigadôr privât:
-  &lt;ul&gt;
-    &lt;li&gt;Cîr e navighe dret de app&lt;/li&gt;
-    &lt;li&gt;Bloche lis spiis (o inzorne lis impostazions par permetilis)&lt;/li&gt;
-    &lt;li&gt;Scancele par eliminâ i cookies e la cronologjie des ricercjis e di navigazion&lt;/li&gt;
-  &lt;/ul&gt;
-&lt;/p&gt;
-&lt;p&gt;%1$s al è realizât di Mozilla. La nestre mission e je chê di promovi un internet plui san e viert.&lt;br/&gt;
-&lt;a href="%2$s"&gt;Plui informazions&lt;/a&gt;&lt;/p&gt;</string>
+  <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ti met al comant.</p> <p>Doprilu come navigadôr privât: <ul> <li>Cîr e navighe dret de app</li> <li>Bloche lis spiis (o inzorne lis impostazions par permetilis)</li> <li>Scancele par eliminâ i cookies e la cronologjie des ricercjis e di navigazion</li> </ul> </p> <p>%1$s al è realizât di Mozilla. La nestre mission e je chê di promovi un internet plui san e viert.<br/> <a href=\"%2$s\">Plui informazions</a></p>]]></string>
   <!-- Header for the Privacy and Security settings menu -->
   <string name="preference_privacy_and_security_header">Riservatece e sigurece</string>
   <!-- Preference summary for settings related to privacy and security -->
@@ -488,6 +479,8 @@
   <string name="onboarding_first_screen_privacy_notice_link">Informative su la riservatece.</string>
   <!-- New Onboarding flow first screen button label -->
   <string name="onboarding_first_screen_button_agree_and_continue" moz:removedIn="140" tools:ignore="UnusedResources">Acete e continue</string>
+  <!-- New Onboarding flow first screen button label -->
+  <string name="onboarding_first_screen_button_agree_and_continue_2">Continue</string>
   <!-- In the first screen of new onboarding flow, additional accessibility description for content that contain urls. -->
   <string name="a11y_link_available">Colegament disponibil</string>
   <!--
@@ -582,7 +575,7 @@
   <string name="security_popup_security_verified">Verificât di: %1$s</string>
   <!-- Content Description of Security Icon in toolbar -->
   <string name="site_security_icon_content_description">Sigurece dal sît</string>
-  <string name="preference_autocomplete_duplicate_url_error"> L’URL al esist za</string>
+  <string name="preference_autocomplete_duplicate_url_error">L’URL al esist za</string>
   <!-- Label for the Find in page button -->
   <string name="find_in_page">Cjate te pagjine</string>
   <!-- Watermark/Hint for the find in page input field -->
@@ -650,7 +643,7 @@
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
   <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s al netarà vie i cookies di chest sît e al inzornarà la pagjine. Al è pussibil che, netant vie ducj i cookies, tu vegnis disconetût dal sît opûr che i carei des spesis a sedin disvuedâts.</string>
   <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"). -->
-  <string name="cookie_banner_exception_panel_description_state_off_for_site2"> %1$s al pues provâ a refudâ in automatic lis richiestis dai cookies.</string>
+  <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s al pues provâ a refudâ in automatic lis richiestis dai cookies.</string>
   <!-- Long text for a detail explanation indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
   <string name="cookie_banner_exception_panel_description_site_is_not_supported">Pal moment chest sît nol è supuartât de Riduzion strissons pai cookies. Desideristu che il nestri grup al revisioni chest sît web e che un doman lu supuarti?</string>
   <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
@@ -676,11 +669,11 @@
   <!-- First step for the allowing a permission -->
   <string name="phone_feature_blocked_step_settings">1. Va tes impostazions di Android</string>
   <!-- Second step for the allowing a permission -->
-  <string name="phone_feature_blocked_step_permissions">2. Tocje &lt;b&gt;Permès&lt;/b&gt;</string>
+  <string name="phone_feature_blocked_step_permissions"><![CDATA[2. Tocje <b>Permès</b>]]></string>
   <!-- Button label that take the user to the Android App setting -->
   <string name="phone_feature_go_to_settings">Va aes impostazions</string>
   <!-- Third step for allowing a permission. %1$s is the permission name, for example, "Camera" -->
-  <string name="phone_feature_blocked_step_feature">3. Met &lt;b&gt;%1$s&lt;/b&gt; su Permet</string>
+  <string name="phone_feature_blocked_step_feature"><![CDATA[3. Met <b>%1$s</b> su Permet]]></string>
   <!-- Preference for altering the camera access for all websites -->
   <string name="preference_phone_feature_camera">Fotocjamare</string>
   <!-- Preference for altering the microphone access for all websites -->
@@ -765,8 +758,7 @@
     Tip displayed on home view explaining how to disable tracking protection
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_disable_tracking_protection">Un sît mostrial un compuartament anomal?\n
-    Prove a disativâ la Protezion da lis spiis</string>
+  <string name="tip_disable_tracking_protection">Un sît mostrial un compuartament anomal?\nProve a disativâ la Protezion da lis spiis</string>
   <!--
     Tip displayed on home view explaining how to add sites to homescreen
     %1$s is replaced with a line break in the application.
@@ -777,23 +769,17 @@
     %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar").
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_set_default_browser">Vierç ducj i colegaments in %1$s\n
-        Met %1$s come navigadôr predefinît
-    </string>
+  <string name="tip_set_default_browser">Vierç ducj i colegaments in %1$s\nMet %1$s come navigadôr predefinît</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_autocomplete_url">Auto-complete i URLs pai sîts che tu dopris di plui\n
-        Ten fracât plui a dilunc un URL te sbare de direzion
-    </string>
+  <string name="tip_autocomplete_url">Auto-complete i URLs pai sîts che tu dopris di plui\nTen fracât plui a dilunc un URL te sbare de direzion</string>
   <!--
     Tip displayed on home view explaining how to add a custom autocomplete URL
     The new line here must be kept as the second half of the string is clickable for the user.
   -->
-  <string name="tip_open_in_new_tab">Vierç un colegament intune gnove schede\n
-        Ten fracât plui a dilunc un colegament intune pagjine
-    </string>
+  <string name="tip_open_in_new_tab">Vierç un colegament intune gnove schede\nTen fracât plui a dilunc un colegament intune pagjine</string>
   <!-- Tip displayed on home view explaining how to add a custom autocomplete URL -->
   <string name="tip_disable_tips2">Disative i sugjeriments te schermade iniziâl</string>
   <!-- Label for the snackbar when a user opens a new tab -->
@@ -874,7 +860,7 @@
     Text for context menu additional note.
     %1$s is a placeholder for the app name.
   -->
-  <string name="contextmenu_erased_images_note2">Lis imagjins salvadis e condividudis &lt;b&gt;no vignaran&lt;/b&gt; eliminadis cuant che la cronologjie di %1$s e ven scancelade</string>
+  <string name="contextmenu_erased_images_note2"><![CDATA[Lis imagjins salvadis e condividudis <b>no vignaran</b> eliminadis cuant che la cronologjie di %1$s e ven scancelade]]></string>
   <!--
     Theme Preferences
 
@@ -895,22 +881,13 @@
     The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s is the name of the app (for example "Firefox Focus" or "Firefox Klar"),
     %2$s is a URL to a support article. Contains a button that will redirect the user to Privacy & Security Screen.
   -->
-  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote">Cuant che al è pussibil %1$s al cîr di doprâ une conession HTTPS par vê plui sigurece.
-     &lt;a href="%2$s"&gt;Plui informazions&lt;/a&gt; &lt;br/&gt;&lt;br/&gt;
-     Modifiche cheste impostazion in Impostazions &gt; Riservatece e sigurece &gt; Sigurece.</string>
+  <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Cuant che al è pussibil %1$s al cîr di doprâ une conession HTTPS par vê plui sigurece. <a href=\"%2$s\">Plui informazions</a> <br/><br/> Modifiche cheste impostazion in Impostazions > Riservatece e sigurece > Sigurece.]]></string>
   <!-- The document title and heading of the error page shown when a website has an invalid or expired SSL certificate. -->
   <string name="mozac_browser_errorpages_security_bad_cert_title">Conession no sigure</string>
   <!-- The error message shown when a website has an invalid or expired SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_message">
-    Al podarès jessi un probleme cu la configurazion dal servidôr o cualchidun che al cîr di sostituîsi al servidôr stes. &lt;br/&gt;&lt;br/&gt;
-    Se in passât al è stât pussibil conetisi a chest servidôr cun sucès, l’erôr al podarès sei temporani.
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_message"><![CDATA[Al podarès jessi un probleme cu la configurazion dal servidôr o cualchidun che al cîr di sostituîsi al servidôr stes. <br/><br/> Se in passât al è stât pussibil conetisi a chest servidôr cun sucès, l’erôr al podarès sei temporani.]]></string>
   <!-- The advanced certificate information shown when a website has an invalid SSL certificate. The %1$s will be replaced by the app name and %2$s will be replaced by website URL. It's only shown when a website has an invalid SSL certificate. -->
-  <string name="mozac_browser_errorpages_security_bad_cert_techInfo">
-        &lt;label&gt;Al podarès jessi che cualchidun al sta cirint di sostituîsi al sît e continuâ al podarès jessi un risi.&lt;/label&gt;
-        &lt;br&gt;&lt;br&gt;
-        &lt;label&gt;%1$s nol considere atendibil &lt;b&gt;%2$s&lt;/b&gt; parcè che l’emitent dal so certificât nol è cognossût, il certificât al è auto-firmât opûr il servidôr nol sta mandant i certificâts intermedis juscj.&lt;/label&gt;
-    </string>
+  <string name="mozac_browser_errorpages_security_bad_cert_techInfo"><![CDATA[<label>Al podarès jessi che cualchidun al sta cirint di sostituîsi al sît e continuâ al podarès jessi un risi.</label> <br><br> <label>%1$s nol considere atendibil <b>%2$s</b> parcè che l’emitent dal so certificât nol è cognossût, il certificât al è auto-firmât opûr il servidôr nol sta mandant i certificâts intermedis juscj.</label>]]></string>
   <!--
     Sessions List
 
@@ -922,7 +899,7 @@
 
     CFR for Toolbar Shield Icon (Banner Info Message)
   -->
-  <string name="cfr_for_toolbar_shield_icon2">Cjapât!! O vin impedît a chest sît di spiâti. Tocje il scût cuant che tu vûs par viodi ce che o stin blocant. </string>
+  <string name="cfr_for_toolbar_shield_icon2">Cjapât!! O vin impedît a chest sît di spiâti. Tocje il scût cuant che tu vûs par viodi ce che o stin blocant.</string>
   <!-- Content description (not visible, for screen readers etc.): Button that closes the CFR popup -->
   <string name="cfr_close_button_description">Siere barcon a comparse</string>
   <!--

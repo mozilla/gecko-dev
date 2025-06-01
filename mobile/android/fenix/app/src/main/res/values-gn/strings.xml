@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Eikuaave</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Eñangareko jepysokuére</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Hetave</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Sa’ive</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Jepysokue je’eporãpyre</string>
   <!--
@@ -239,6 +243,8 @@
   <string name="browser_menu_extensions_disabled_description">Ndoikomo’ãi sapy’ami</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Ndaipóri jepysokue jurujapyre</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Eiporu jepysokue je’epyre</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Mba’ete marandu</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -366,6 +372,8 @@
   <string name="browser_menu_save_description">Embojuaju techaukaha, jeike pya’eha, moñepyrũ, ñembyatykue, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Emongurusu ko kuatiarogue</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Kuatiarogue rechaukaha</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Embosako’i techaukaha</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -385,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">%1$s-pe oñemoñe’ẽasapyre</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Moñe’ẽasapyre</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Mbokuatia…</string>
   <!--
@@ -1571,6 +1581,8 @@
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">aporãva</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Ñemboguejy ojavy</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Mba’emimi</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Ñemboguejy jeheka</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1647,6 +1659,10 @@
   <string name="webcompat_reporter_reason_account2">Ndaikekuaái ha ñañemboheraguapýi</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Ñemurã jokoha</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Tenda ojerure emboguévo pe ñemurã jokoha</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">Kundahára nodjokupytýi térã ojejokóma</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Ambue mba’e</string>
   <!--
@@ -1877,6 +1893,10 @@
   <string name="studies_on">Hendypyre</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Mboguepyre</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">Hendypyre</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">Mboguepyre</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Ñemoneĩ</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->

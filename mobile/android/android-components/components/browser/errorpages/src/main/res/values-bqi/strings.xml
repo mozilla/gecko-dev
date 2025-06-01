@@ -58,8 +58,12 @@
   <string name="mozac_browser_errorpages_offline_message"><![CDATA[<p>گشت گر من هالت لمتور هڌ وو نتره و موورد درخاستی منپیز بۊ.</p> <ul> <li> دسگا و ی شبکه فعال منپیز هڌ؟</li><li>دویمه «قپ ریت دووارته» ن بزنین تا و هالت ریتور روه وو بلگه ن دووارته بارونی کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when the browser prevents loading a website on a restricted port. -->
   <string name="mozac_browser_errorpages_port_blocked_title">درگه و دلیلا ٱمنیتی مئدۊد وابیڌه</string>
+  <!-- The error message shown when the browser prevents loading a website on a restricted port. -->
+  <string name="mozac_browser_errorpages_port_blocked_message"><![CDATA[<p>نشۊوی درخاست دیاریه (سی مسال<q>mozilla.org:80</q>سی درگه ۸۰ و ری mozilla.org) درگهی ن و کار اگره ک من هالت عادی و عونوان کاربوردی <em>و غیر</em> ز وبگشتن و کار اروه. گشت گر سی زفت کردن وو ٱمنیت ایسا ای درخاست ن لقو کرد.</p>]]></string>
   <!-- The document title and heading of the error page shown when the Internet connection is disrupted while loading a website. -->
   <string name="mozac_browser_errorpages_net_reset_title">منپیز ز نۊ ر اۊفتا</string>
+  <!-- The error message shown when the Internet connection is disrupted while loading a website. -->
+  <string name="mozac_browser_errorpages_net_reset_message"><![CDATA[<p>گشت گر وا مووفقیت منپیز وابی، ٱما مجال جا گورویی دووسمندیا، منپیز قت وابی. ز نۊ قپ ریت کۊنین.</p> <ul> <li>وبگه گاشڌ مووقتن من دسرس نبۊ یا قلوه شۊلۊغ بۊ. ی دمووݩ دی ز نۊ قپ ریت کۊنین.</li> <li>ٱر نترین هیچ بلگه ای ن بار ونی کۊنین، منپیز داده دسگا یا وای فای خوتووݩ ن واجۊری کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of the error page shown when the browser refuses to load a type of file that is considered unsafe. -->
   <string name="mozac_browser_errorpages_unsafe_content_type_title">نوء فایل ٱمن نؽ</string>
   <!-- The error message shown when the browser refuses to load a type of file that is considered unsafe. -->
@@ -76,6 +80,8 @@
   <string name="mozac_browser_errorpages_invalid_content_encoding_message"><![CDATA[<p>بلگه ای ک قپ ریت اکۊنین تا نیرینس نتره نشووݩ داڌه بۊ، چیناکه ی نوع نشناخته یا لادراری نوابیڌه ز تپنیڌن ن و کار اگره.</p> <ul> <li>و ساهاوا ای وبگه زنگ بزنین وو هونووݩ ن من جریان ای موشکل بنین.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_unknown_host_title">نشۊوی ن نجوست</string>
+  <!-- In the example, the two URLs in markup do not need to be translated. -->
+  <string name="mozac_browser_errorpages_unknown_host_message"><![CDATA[<p>گشت گر نترست سرور میزبووݩ ن سی نشۊوی داڌه بیڌه بجۊره.</p> <ul> <li>نشۊوی ن سی غلتا املایی واجۊری کۊنین، جۊر: <strong>ww</strong>.example.com و جا <strong>www</strong>.example.com.</li> <li>ٱر نترستین هیچ بلگه ای ن بار ونی کۊنین، داده گۊشی یا منپیز وای فای خوتووݩ ن واجۊری کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_no_internet_title_2">منی موشکلی وا منپیز و اینترنت ایسا هڌ</string>
   <!-- The main body text of this error page. It will be shown beneath the title -->
