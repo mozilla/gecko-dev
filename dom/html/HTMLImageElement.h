@@ -17,14 +17,11 @@ namespace mozilla {
 class EventChainPreVisitor;
 namespace dom {
 
-class ImageLoadTask;
-
 class ResponsiveImageSelector;
 class HTMLImageElement final : public nsGenericHTMLElement,
                                public nsImageLoadingContent {
   friend class HTMLSourceElement;
   friend class HTMLPictureElement;
-  friend class ImageLoadTask;
 
  public:
   explicit HTMLImageElement(
@@ -269,9 +266,6 @@ class HTMLImageElement final : public nsGenericHTMLElement,
       bool aAlwaysLoad, bool aNotify,
       const HTMLSourceElement* aSkippedSource = nullptr);
 
-  // Clears the current image load task.
-  void ClearImageLoadTask();
-
   // True if we have a srcset attribute or a <picture> parent, regardless of if
   // any valid responsive sources were parsed from either.
   bool HaveSrcsetOrInPicture() const;
@@ -281,7 +275,7 @@ class HTMLImageElement final : public nsGenericHTMLElement,
 
   // Load the current mResponsiveSelector (responsive mode) or src attr image.
   // Note: This doesn't run the full selection for the responsive selector.
-  void LoadSelectedImage(bool aAlwaysLoad);
+  void LoadSelectedImage(bool aAlwaysLoad, bool aStopLazyLoading) override;
 
   // True if this string represents a type we would support on <source type>
   static bool SupportedPictureSourceType(const nsAString& aType);
@@ -384,8 +378,6 @@ class HTMLImageElement final : public nsGenericHTMLElement,
                             nsIPrincipal* aMaybeScriptedPrincipal,
                             bool aNotify);
 
-  bool ShouldLoadImage() const;
-
   // Set this image as a lazy load image due to loading="lazy".
   void SetLazyLoading();
 
@@ -399,7 +391,6 @@ class HTMLImageElement final : public nsGenericHTMLElement,
   void SetResponsiveSelector(RefPtr<ResponsiveImageSelector>&& aSource);
   void SetDensity(double aDensity);
 
-  RefPtr<ImageLoadTask> mPendingImageLoadTask;
   nsCOMPtr<nsIURI> mSrcURI;
   nsCOMPtr<nsIPrincipal> mSrcTriggeringPrincipal;
   nsCOMPtr<nsIPrincipal> mSrcsetTriggeringPrincipal;

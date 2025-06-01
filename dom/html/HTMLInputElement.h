@@ -1418,6 +1418,10 @@ class HTMLInputElement final : public TextControlElement,
    */
   nsIContent* AsContent() override { return this; }
 
+  void LoadSelectedImage(bool aAlwaysLoad, bool aStopLazyLoading) override {
+    MOZ_ASSERT_UNREACHABLE("LoadSelectedImage not implemented");
+  }
+
   nsCOMPtr<nsIControllers> mControllers;
 
   /*

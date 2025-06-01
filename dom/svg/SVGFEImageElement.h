@@ -80,8 +80,6 @@ class SVGFEImageElement final : public SVGFEImageElementBase,
 
   void NodeInfoChanged(Document* aOldDoc) override;
 
-  void MaybeLoadSVGImage();
-
   // WebIDL
   already_AddRefed<DOMSVGAnimatedString> Href();
   already_AddRefed<DOMSVGAnimatedPreserveAspectRatio> PreserveAspectRatio();
@@ -104,8 +102,8 @@ class SVGFEImageElement final : public SVGFEImageElementBase,
   void DidAnimateAttribute(int32_t aNameSpaceID, nsAtom* aAttribute) override;
 
   void UpdateSrcURI();
-  nsresult LoadSVGImage(bool aForce, bool aNotify);
-  bool ShouldLoadImage() const;
+
+  void LoadSelectedImage(bool aAlwaysLoad, bool aStopLazyLoading) override;
 
  protected:
   bool ProducesSRGB() override { return true; }

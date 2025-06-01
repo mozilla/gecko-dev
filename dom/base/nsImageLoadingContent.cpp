@@ -92,6 +92,45 @@ static void PrintReqURL(imgIRequest* req) {
 }
 #endif /* DEBUG_chb */
 
+class ImageLoadTask : public MicroTaskRunnable {
+ public:
+  ImageLoadTask(nsImageLoadingContent* aElement, bool aAlwaysLoad,
+                bool aUseUrgentStartForChannel)
+      : mElement(aElement),
+        mDocument(aElement->AsContent()->OwnerDoc()),
+        mAlwaysLoad(aAlwaysLoad),
+        mUseUrgentStartForChannel(aUseUrgentStartForChannel) {
+    mDocument->BlockOnload();
+  }
+
+  void Run(AutoSlowOperation& aAso) override {
+    if (mElement->mPendingImageLoadTask == this) {
+      JSCallingLocation::AutoFallback fallback(&mCallingLocation);
+      mElement->mUseUrgentStartForChannel = mUseUrgentStartForChannel;
+      mElement->ClearImageLoadTask();
+      mElement->LoadSelectedImage(mAlwaysLoad, /* aStopLazyLoading = */ false);
+    }
+    mDocument->UnblockOnload(false);
+  }
+
+  bool Suppressed() override {
+    nsIGlobalObject* global = mElement->AsContent()->GetOwnerGlobal();
+    return global && global->IsInSyncOperation();
+  }
+
+  bool AlwaysLoad() const { return mAlwaysLoad; }
+
+ private:
+  ~ImageLoadTask() = default;
+  const RefPtr<nsImageLoadingContent> mElement;
+  const RefPtr<dom::Document> mDocument;
+  const JSCallingLocation mCallingLocation{JSCallingLocation::Get()};
+  const bool mAlwaysLoad;
+  // True if we want to set nsIClassOfService::UrgentStart to the channel to get
+  // the response ASAP for better user responsiveness.
+  const bool mUseUrgentStartForChannel;
+};
+
 nsImageLoadingContent::nsImageLoadingContent()
     : mObserverList(nullptr),
       mOutstandingDecodePromises(0),
@@ -99,7 +138,6 @@ nsImageLoadingContent::nsImageLoadingContent()
       mLoadingEnabled(true),
       mUseUrgentStartForChannel(false),
       mLazyLoading(false),
-      mHasPendingLoadTask(false),
       mSyncDecodingHint(false),
       mInDocResponsiveContent(false),
       mCurrentRequestRegistered(false),
@@ -128,6 +166,80 @@ nsImageLoadingContent::~nsImageLoadingContent() {
   MOZ_ASSERT(mOutstandingDecodePromises == 0,
              "Decode promises still unfulfilled?");
   MOZ_ASSERT(mDecodePromises.IsEmpty(), "Decode promises still unfulfilled?");
+}
+
+void nsImageLoadingContent::QueueImageTask(
+    nsIURI* aSrcURI, nsIPrincipal* aSrcTriggeringPrincipal, bool aForceAsync,
+    bool aAlwaysLoad, bool aNotify) {
+  // If loading is temporarily disabled, we don't want to queue tasks that may
+  // then run when loading is re-enabled.
+  // Roughly step 1 and 2.
+  // FIXME(emilio): Would be great to do this more per-spec. We don't cancel
+  // existing loads etc.
+  if (!LoadingEnabled() || !GetOurOwnerDoc()->ShouldLoadImages()) {
+    return;
+  }
+
+  // Ensure that we don't overwrite a previous load request that requires
+  // a complete load to occur.
+  const bool alwaysLoad = aAlwaysLoad || (mPendingImageLoadTask &&
+                                          mPendingImageLoadTask->AlwaysLoad());
+
+  // Steps 5 and 7 (sync cache check for src).
+  const bool shouldLoadSync = [&] {
+    if (aForceAsync) {
+      return false;
+    }
+    if (!aSrcURI) {
+      // NOTE(emilio): we need to also do a sync check for empty / invalid src,
+      // see https://github.com/whatwg/html/issues/2429
+      // But do it sync only when there's a current request.
+      return !!mCurrentRequest;
+    }
+    return nsContentUtils::IsImageAvailable(
+        AsContent(), aSrcURI, aSrcTriggeringPrincipal, GetCORSMode());
+  }();
+
+  if (shouldLoadSync) {
+    if (!nsContentUtils::IsSafeToRunScript()) {
+      // If not safe to run script, we should do the sync load task as soon as
+      // possible instead. This prevents unsound state changes from frame
+      // construction and such.
+      void (nsImageLoadingContent::*fp)(nsIURI*, nsIPrincipal*, bool, bool,
+                                        bool) =
+          &nsImageLoadingContent::QueueImageTask;
+      nsContentUtils::AddScriptRunner(
+          NewRunnableMethod<nsIURI*, nsIPrincipal*, bool, bool, bool>(
+              "nsImageLoadingContent::QueueImageTask", this, fp, aSrcURI,
+              aSrcTriggeringPrincipal, aForceAsync, aAlwaysLoad,
+              /* aNotify = */ true));
+      return;
+    }
+
+    ClearImageLoadTask();
+    LoadSelectedImage(alwaysLoad, mLazyLoading && aSrcURI);
+    return;
+  }
+
+  if (mLazyLoading) {
+    // This check is not in the spec, but it is just a performance optimization.
+    // The reasoning for why it is sound is that we early-return from the image
+    // task when lazy loading, and that StopLazyLoading makes us queue a new
+    // task (which will implicitly cancel all the pre-existing tasks).
+    return;
+  }
+
+  RefPtr task = new ImageLoadTask(this, alwaysLoad, mUseUrgentStartForChannel);
+  mPendingImageLoadTask = task;
+  // We might have just become non-broken.
+  UpdateImageState(aNotify);
+  // The task checks this to determine if it was the last queued event, and so
+  // earlier tasks are implicitly canceled.
+  CycleCollectedJSContext::Get()->DispatchToMicroTask(task.forget());
+}
+
+void nsImageLoadingContent::ClearImageLoadTask() {
+  mPendingImageLoadTask = nullptr;
 }
 
 /*
@@ -1392,7 +1504,7 @@ CSSIntSize nsImageLoadingContent::GetWidthHeightForImage() {
 void nsImageLoadingContent::UpdateImageState(bool aNotify) {
   Element* thisElement = AsContent()->AsElement();
   const bool isBroken = [&] {
-    if (mLazyLoading || mHasPendingLoadTask) {
+    if (mLazyLoading || mPendingImageLoadTask) {
       return false;
     }
     if (!mCurrentRequest) {
