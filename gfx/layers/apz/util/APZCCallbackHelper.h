@@ -39,6 +39,8 @@ namespace apz {
 enum class PrecedingPointerDown : bool;
 }
 
+enum class SynthesizeForTests : bool { No, Yes };
+
 /* Refer to documentation on SendSetTargetAPZCNotification for this class */
 class DisplayportSetListener : public ManagedPostRefreshObserver {
  public:
@@ -116,28 +118,29 @@ class APZCCallbackHelper {
 
   /* Synthesize a mouse event with the given parameters, and dispatch it
    * via the given widget. */
-  MOZ_CAN_RUN_SCRIPT
-  static nsEventStatus DispatchSynthesizedMouseEvent(
+  MOZ_CAN_RUN_SCRIPT static nsEventStatus DispatchSynthesizedMouseEvent(
       EventMessage aMsg, const LayoutDevicePoint& aRefPoint,
-      Modifiers aModifiers, int32_t aClickCount,
-      PrecedingPointerDown aPrecedingPointerDownState, nsIWidget* aWidget);
+      uint32_t aPointerId, Modifiers aModifiers, int32_t aClickCount,
+      PrecedingPointerDown aPrecedingPointerDownState, nsIWidget* aWidget,
+      SynthesizeForTests aSynthesizeForTests);
 
   /*
    * Synthesize a contextmenu event with the given parameters, and dispatch it
    * via the given widget.
    */
-  MOZ_CAN_RUN_SCRIPT
-  static PreventDefaultResult DispatchSynthesizedContextmenuEvent(
-      const LayoutDevicePoint& aRefPoint, Modifiers aModifiers,
-      nsIWidget* aWidget);
+  MOZ_CAN_RUN_SCRIPT static PreventDefaultResult
+  DispatchSynthesizedContextmenuEvent(const LayoutDevicePoint& aRefPoint,
+                                      uint32_t aPointerId, Modifiers aModifiers,
+                                      nsIWidget* aWidget,
+                                      SynthesizeForTests aSynthesizeForTests);
 
   /* Fire a single-tap event at the given point. The event is dispatched
    * via the given widget. */
-  MOZ_CAN_RUN_SCRIPT
-  static void FireSingleTapEvent(
-      const LayoutDevicePoint& aPoint, Modifiers aModifiers,
-      int32_t aClickCount, PrecedingPointerDown aPrecedingPointerDownState,
-      nsIWidget* aWidget);
+  MOZ_CAN_RUN_SCRIPT static void FireSingleTapEvent(
+      const LayoutDevicePoint& aPoint, uint32_t aPointerId,
+      Modifiers aModifiers, int32_t aClickCount,
+      PrecedingPointerDown aPrecedingPointerDownState, nsIWidget* aWidget,
+      SynthesizeForTests aSynthesizeForTests);
 
   /* Perform hit-testing on the touch points of |aEvent| to determine
    * which scrollable frames they target. If any of these frames don't have

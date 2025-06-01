@@ -60,6 +60,20 @@ support-files = ["bug_1420589_iframe1.html"]
 skip-if = ["os == 'android'"] # Bug 1312791
 support-files = ["!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js"]
 
+["test_click_pointerId_of_single_tap.html"]
+
+["test_contextmenu_pointerId_of_long_tap.html"]
+skip-if = [ # Bug 1969768
+  "os == 'linux' && display != 'wayland' && opt && !xorigin && !verify", # Linux-opt passes only in the xorigin and verify mode
+  "os == 'linux' && display != 'wayland' && debug && headless", # Linux-debug may not pass in the headless mode
+  "os == 'linux' && asan", # Linux-asan may not pass in the any modes except the verify mode
+  "os == 'linux' && ccov && !xorigin", # Linux-ccov passes only in the xorigin mode
+  "display == 'wayland' && opt && !xorigin", # Linux-Wayland-opt passes only in the xorigin mode
+  "display == 'wayland' && debug && !fission", # Linux-Wayland-debug may not pass in the non-fission mode
+  "os == 'win' && opt && fission && !xorigin && !verify", # Windows-opt may not pass in the normal mode
+  "os == 'win' && ccov && fission && !xorigin", # Windows-CCov may not pass in the normal mode
+]
+
 ["test_getCoalescedEvents.html"]
 skip-if = [
   "xorigin", # Bug 1953695, Bug 1958029

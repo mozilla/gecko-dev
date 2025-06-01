@@ -1,0 +1,44 @@
+<!doctype html>
+<head>
+<meta charset="utf-8">
+<title>`contextmenu` event for a long tap should have proper `pointerId`</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<script src="apz_test_utils.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+waitUntilApzStable().then(async () => {
+  await SpecialPowers.pushPrefEnv({set: [
+    ["test.events.async.enabled", true],
+    ["ui.click_hold_context_menus.delay", 0],
+  ]});
+  const target = document.getElementById("target");
+  const waitForContextMen = new Promise(resolve => {
+    addEventListener("contextmenu", event => {
+      is(
+        event.pointerId,
+        5,
+        "pointerId of `contextmenu` should be the specified ID of the touch"
+      );
+      event.preventDefault();
+      resolve();
+    }, {once: true});
+  });
+  const waitForTouchEnd = new Promise(resolve => {
+    addEventListener("touchend", resolve, {once: true});
+  });
+  synthesizeTouchAtCenter(target, {type: "touchstart", id: 5});
+  synthesizeTouchAtCenter(target, {type: "touchend", id: 5});
+  await Promise.all([waitForContextMen, waitForTouchEnd]);
+  SimpleTest.finish();
+});
+</script>
+</head>
+<body>
+  <a href="#" id="target">link to nowhere</a>
+</body>
+</html>

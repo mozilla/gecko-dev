@@ -541,13 +541,15 @@ nsEventStatus APZCCallbackHelper::DispatchWidgetEvent(WidgetGUIEvent& aEvent) {
 }
 
 nsEventStatus APZCCallbackHelper::DispatchSynthesizedMouseEvent(
-    EventMessage aMsg, const LayoutDevicePoint& aRefPoint, Modifiers aModifiers,
-    int32_t aClickCount, PrecedingPointerDown aPrecedingPointerDownState,
-    nsIWidget* aWidget) {
+    EventMessage aMsg, const LayoutDevicePoint& aRefPoint, uint32_t aPointerId,
+    Modifiers aModifiers, int32_t aClickCount,
+    PrecedingPointerDown aPrecedingPointerDownState, nsIWidget* aWidget,
+    SynthesizeForTests aSynthesizeForTests) {
   MOZ_ASSERT(aMsg == eMouseMove || aMsg == eMouseDown || aMsg == eMouseUp ||
              aMsg == eMouseLongTap);
 
   WidgetMouseEvent event(true, aMsg, aWidget, WidgetMouseEvent::eReal);
+  event.mFlags.mIsSynthesizedForTests = static_cast<bool>(aSynthesizeForTests);
   event.mRefPoint = LayoutDeviceIntPoint::Truncate(aRefPoint.x, aRefPoint.y);
   event.mButton = MouseButton::ePrimary;
   event.mButtons = aMsg == eMouseDown ? MouseButtonsFlag::ePrimaryFlag
@@ -569,6 +571,7 @@ nsEventStatus APZCCallbackHelper::DispatchSynthesizedMouseEvent(
     event.mClickCount = aClickCount;
   }
   event.mModifiers = aModifiers;
+  event.pointerId = aPointerId;
   // Real touch events will generate corresponding pointer events. We set
   // convertToPointer to false to prevent the synthesized mouse events generate
   // pointer events again.
@@ -577,14 +580,17 @@ nsEventStatus APZCCallbackHelper::DispatchSynthesizedMouseEvent(
 }
 
 PreventDefaultResult APZCCallbackHelper::DispatchSynthesizedContextmenuEvent(
-    const LayoutDevicePoint& aRefPoint, Modifiers aModifiers,
-    nsIWidget* aWidget) {
+    const LayoutDevicePoint& aRefPoint, uint32_t aPointerId,
+    Modifiers aModifiers, nsIWidget* aWidget,
+    SynthesizeForTests aSynthesizeForTests) {
   WidgetPointerEvent event(true, eContextMenu, aWidget);
+  event.mFlags.mIsSynthesizedForTests = static_cast<bool>(aSynthesizeForTests);
   event.mRefPoint = LayoutDeviceIntPoint::Truncate(aRefPoint.x, aRefPoint.y);
   event.mButton = MouseButton::ePrimary;
   event.mButtons = MouseButtonsFlag::ePrimaryFlag;
   event.mInputSource = dom::MouseEvent_Binding::MOZ_SOURCE_TOUCH;
   event.mModifiers = aModifiers;
+  event.pointerId = aPointerId;
   // contextmenu events will never generate pointer events.
   event.convertToPointer = false;
   nsEventStatus result = DispatchWidgetEvent(event);
@@ -598,19 +604,23 @@ PreventDefaultResult APZCCallbackHelper::DispatchSynthesizedContextmenuEvent(
 }
 
 void APZCCallbackHelper::FireSingleTapEvent(
-    const LayoutDevicePoint& aPoint, Modifiers aModifiers, int32_t aClickCount,
-    PrecedingPointerDown aPrecedingPointerDownState, nsIWidget* aWidget) {
+    const LayoutDevicePoint& aPoint, uint32_t aPointerId, Modifiers aModifiers,
+    int32_t aClickCount, PrecedingPointerDown aPrecedingPointerDownState,
+    nsIWidget* aWidget, SynthesizeForTests aSynthesizeForTests) {
   if (aWidget->Destroyed()) {
     return;
   }
   APZCCH_LOG("Dispatching single-tap component events to %s\n",
              ToString(aPoint).c_str());
-  DispatchSynthesizedMouseEvent(eMouseMove, aPoint, aModifiers, aClickCount,
-                                aPrecedingPointerDownState, aWidget);
-  DispatchSynthesizedMouseEvent(eMouseDown, aPoint, aModifiers, aClickCount,
-                                aPrecedingPointerDownState, aWidget);
-  DispatchSynthesizedMouseEvent(eMouseUp, aPoint, aModifiers, aClickCount,
-                                aPrecedingPointerDownState, aWidget);
+  DispatchSynthesizedMouseEvent(eMouseMove, aPoint, aPointerId, aModifiers,
+                                aClickCount, aPrecedingPointerDownState,
+                                aWidget, aSynthesizeForTests);
+  DispatchSynthesizedMouseEvent(eMouseDown, aPoint, aPointerId, aModifiers,
+                                aClickCount, aPrecedingPointerDownState,
+                                aWidget, aSynthesizeForTests);
+  DispatchSynthesizedMouseEvent(eMouseUp, aPoint, aPointerId, aModifiers,
+                                aClickCount, aPrecedingPointerDownState,
+                                aWidget, aSynthesizeForTests);
 }
 
 static dom::Element* GetDisplayportElementFor(

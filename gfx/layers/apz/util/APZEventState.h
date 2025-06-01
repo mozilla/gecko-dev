@@ -39,6 +39,8 @@ namespace layers {
 
 class ActiveElementManager;
 
+enum class SynthesizeForTests : bool;  // Defined in APZCCallbackHelper.cpp
+
 namespace apz {
 enum class PrecedingPointerDown : bool { NotConsumed, ConsumedByContent };
 enum class SingleTapState : uint8_t;
@@ -96,11 +98,11 @@ class APZEventState final {
  private:
   ~APZEventState();
   void SendPendingTouchPreventedResponse(bool aPreventDefault);
-  MOZ_CAN_RUN_SCRIPT
-  PreventDefaultResult FireContextmenuEvents(
+  MOZ_CAN_RUN_SCRIPT PreventDefaultResult FireContextmenuEvents(
       PresShell* aPresShell, const CSSPoint& aPoint,
-      const CSSToLayoutDeviceScale& aScale, Modifiers aModifiers,
-      const nsCOMPtr<nsIWidget>& aWidget);
+      const CSSToLayoutDeviceScale& aScale, uint32_t aPointerId,
+      Modifiers aModifiers, const nsCOMPtr<nsIWidget>& aWidget,
+      SynthesizeForTests aSynthesizeForTests);
   already_AddRefed<nsIWidget> GetWidget() const;
   already_AddRefed<nsIContent> GetTouchRollup() const;
   bool MainThreadAgreesEventsAreConsumableByAPZ() const;
@@ -115,6 +117,7 @@ class APZEventState final {
   apz::SingleTapState mEndTouchState;
   PrecedingPointerDown mPrecedingPointerDownState =
       PrecedingPointerDown::NotConsumed;
+  SynthesizeForTests mLastTouchSynthesizedForTests{false};
   bool mPendingTouchPreventedResponse = false;
   bool mFirstTouchCancelled = false;
   bool mTouchEndCancelled = false;
@@ -124,7 +127,7 @@ class APZEventState final {
   bool mReceivedNonTouchStart = false;
   bool mTouchStartPrevented = false;
 
-  int32_t mLastTouchIdentifier;
+  int32_t mLastTouchIdentifier = 0;
   nsTArray<TouchBehaviorFlags> mTouchBlockAllowedBehaviors;
 
   // Because touch-triggered mouse events (e.g. mouse events from a tap
