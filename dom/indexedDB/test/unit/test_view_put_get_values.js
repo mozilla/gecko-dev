@@ -12,7 +12,7 @@ async function testSteps() {
   // dom.indexedDB.preprocessing is true. The second random view (size 10000)
   // is always stored directly in the database. This setup creates a scenario
   // where requests in a transaction are processed in the wrong order if they
-  // are not properly queued internally, which is still the case.
+  // are not properly queued internally.
   const dataThreshold = 99999;
 
   const name = this.window
@@ -166,11 +166,7 @@ async function testSteps() {
       is(keys.length, viewDataArray.length, "Correct number of keys");
 
       for (let i = 0; i < keys.length; i++) {
-        if (test.preprocessing) {
-          todo(keys[i] === viewDataArray[i].key, "Correct key");
-        } else {
-          is(keys[i], viewDataArray[i].key, "Correct key");
-        }
+        is(keys[i], viewDataArray[i].key, "Correct key");
       }
     }
 
