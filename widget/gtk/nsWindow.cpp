@@ -3243,7 +3243,7 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
     gdk_window_get_frame_extents(aWin, &b);
 #ifdef MOZ_X11
     const bool isX11 = GdkIsX11Display();
-    if (isX11 && !gtk_check_version(3, 24, 35) &&
+    if (isX11 && gtk_check_version(3, 24, 35) &&
         gdk_window_get_window_type(aWin) == GDK_WINDOW_TEMP) {
       // Workaround for https://gitlab.gnome.org/GNOME/gtk/-/merge_requests/4820
       // Bug 1775017 Gtk < 3.24.35 returns scaled values for
