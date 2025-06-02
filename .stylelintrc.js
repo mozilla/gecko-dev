@@ -363,6 +363,8 @@ module.exports = {
               "/^[0-9.]+(px|em|rem|%)$/",
               "/^(small|medium|large|x-large|xx-large)$/",
             ],
+            [/^(margin|padding|inset|gap|row-gap|column-gap|grid-row-gap|grid-column-gap|top|right|bottom|left)($|-)/]:
+              ["/[0-9.]+(px|em|rem)|\\$/"],
           },
           {
             message:
