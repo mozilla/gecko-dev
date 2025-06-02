@@ -91,7 +91,7 @@
 
     &::after {
       border-bottom: 1px solid var(--newtab-card-hairline-color);
-      bottom: 0;
+      inset-block-end: 0;
       content: '';
       position: absolute;
       width: 100%;
@@ -164,7 +164,7 @@
   }
 
   .card-context {
-    bottom: 0;
+    inset-block-end: 0;
     color: var(--newtab-text-secondary-color);
     display: flex;
     font-size: var(--font-size-small);
@@ -231,7 +231,7 @@
       }
 
       .card-context {
-        bottom: 4px;
+        inset-block-end: var(--space-xsmall);
         font-size: inherit;
         line-height: $line-height;
       }
@@ -286,8 +286,9 @@
       width: $container-size;
       padding: var(--space-small);
       // The -1 at the end is so both opacity borders don't overlap, which causes bug 1629483
-      top: $card-preview-image-height-compact - math.div($container-size, 2) - 1;
-      inset-inline-end: 12px;
+      // Bug 1967304 - Large number // 91px
+      inset-block-start: $card-preview-image-height-compact - math.div($container-size, 2) - 1; // stylelint-disable-line declaration-property-value-disallowed-list
+      inset-inline-end: var(--space-medium);
       inset-inline-start: auto;
 
       &::after {
@@ -298,8 +299,8 @@
         position: absolute;
         height: math.div($container-size + 2, 2);
         width: $container-size + 2;
-        top: -1px;
-        left: -1px;
+        inset-block-start: calc(var(--space-xxsmall) * -1);
+        inset-inline-start: calc(var(--space-xxsmall) * -1);
       }
 
       .card-context-icon {

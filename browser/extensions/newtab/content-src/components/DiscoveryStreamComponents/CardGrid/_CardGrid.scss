@@ -43,8 +43,8 @@
     display: flex;
 
     .ds-dismiss-button {
-      inset-inline-end: 8px;
-      top: 8px;
+      inset-inline-end: var(--space-small);
+      inset-block-start: var(--space-small);
     }
   }
 

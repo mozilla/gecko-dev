@@ -54,10 +54,10 @@ h2 {
   border: $border-secondary;
   border-radius: var(--border-radius-small);
   height: 100%;
-  left: 0;
+  inset-inline-start: 0;
   pointer-events: none;
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 100%;
   z-index: 100;
 }

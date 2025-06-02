@@ -11,8 +11,8 @@ $modal-scrollbar-z-index: 1100;
   background: var(--newtab-overlay-color);
   height: 100%;
   position: fixed;
-  top: 0;
-  left: 0;
+  inset-block-start: 0;
+  inset-inline-start: 0;
   width: 100%;
   display: none;
   z-index: $modal-scrollbar-z-index;
@@ -38,8 +38,8 @@ $modal-scrollbar-z-index: 1100;
   // modal takes over entire screen
   @media(width <= 960px) {
     height: 100%;
-    top: 0;
-    left: 0;
+    inset-block-start: 0;
+    inset-inline-start: 0;
     box-shadow: none;
     border-radius: 0;
   }
@@ -70,7 +70,7 @@ $modal-scrollbar-z-index: 1100;
     height: 70px;
     width: 100%;
     position: absolute;
-    bottom: 0;
+    inset-block-end: 0;
     text-align: center;
     background-color: $white;
 

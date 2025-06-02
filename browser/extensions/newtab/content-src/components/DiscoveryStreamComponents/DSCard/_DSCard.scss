@@ -73,7 +73,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       content: '';
       display: block;
       position: absolute;
-      top: 0;
+      inset-block-start: 0;
       inset-inline-start: -100%;
       height: 100%;
       width: 100%;
@@ -112,7 +112,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     opacity: 0;
     width: 100%;
     position: absolute;
-    top: 0;
+    inset-block-start: 0;
     transition: opacity;
     transition-duration: 0s;
     padding-block-start: 50%;
@@ -122,8 +122,8 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
     .card-stp-button-position-wrapper {
       position: absolute;
-      inset-inline-end: 10px;
-      inset-block-start: 10px;
+      inset-inline-end: var(--space-small);
+      inset-block-start: var(--space-small);
       display: flex;
       justify-content: end;
       align-items: center;
@@ -137,7 +137,8 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       margin-inline-start: var(--space-large);
       inset-inline-start: auto;
       position: absolute;
-      top: 20.25px;
+      // Bug 1967304 - Custom number (20px)
+      inset-block-start: calc(var(--space-xsmall) + var(--space-large));
     }
 
     button,

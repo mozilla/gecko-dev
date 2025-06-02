@@ -54,7 +54,7 @@
       margin-block-end: var(--space-xlarge);
 
       &::after {
-        inset-block-end: -12px;
+        inset-block-end: calc(var(--space-medium) * -1);
         transform: rotate(45deg);
       }
     }
@@ -64,7 +64,7 @@
       margin-block-start: var(--space-xlarge);
 
       &::after {
-        inset-block-start: -12px;
+        inset-block-start: calc(var(--space-medium) * -1);
         transform: rotate(225deg);
       }
     }
@@ -73,7 +73,7 @@
       inset-inline-end: calc(var(--space-xxlarge) * -1);
 
       &::after {
-        inset-inline-end: calc(var(--space-xxlarge) - 12px);
+        inset-inline-end: calc(var(--space-xxlarge) - var(--space-medium));
       }
     }
 
@@ -81,7 +81,7 @@
       inset-inline-start: calc(var(--space-xxlarge) * -1);
 
       &::after {
-        inset-inline-start: calc(var(--space-xxlarge) - 12px);
+        inset-inline-start: calc(var(--space-xxlarge) - var(--space-medium));
       }
     }
 

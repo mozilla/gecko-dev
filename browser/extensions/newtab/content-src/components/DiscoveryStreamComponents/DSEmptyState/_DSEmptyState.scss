@@ -49,8 +49,8 @@
       animation: spinner 1s linear infinite;
       opacity: 0;
       position: absolute;
-      top: 50%;
-      left: 50%;
+      inset-block-start: 50%;
+      inset-inline-start: 50%;
       margin: calc(var(--space-small) * -1) 0 0 calc(var(--space-small) * -1);
       mask-image: url('chrome://newtab/content/data/content/assets/spinner.svg');
       mask-size: 20px;

@@ -23,18 +23,18 @@
   }
 
 
-  // Variant B uses 40px spacing
+  // Variant B uses 32px spacing
   .layout-variant-b & {
     @media (min-width: $break-point-medium) {
-      inset-block-start: 40px;
+      inset-block-start: var(--space-xxlarge);
       inset-inline-start: auto;
       // On smallest break point visible, make additional room for weather widget
       inset-inline-end: var(--space-medium);
     }
 
     @media (min-width: $break-point-layout-variant) {
-      // Reset horizontal spacing back to 40px
-      inset-inline-end: 40px;
+      // Reset horizontal spacing back to 32px
+      inset-inline-end: var(--space-xxlarge);
     }
   }
 
@@ -44,17 +44,17 @@
 
     @media (min-width: $break-point-large) {
       display: flex;
-      inset-block-start: 40px;
+      inset-block-start: var(--space-xxlarge);
       inset-inline-start: auto;
-      inset-inline-end: 40px;
+      inset-inline-end: var(--space-xxlarge);
     }
   }
 
   // Variant A uses 24px spacing
   .layout-variant-a & {
     @media (min-width: $break-point-medium) {
-      inset-inline-start: 24px;
-      inset-block-start: 24px;
+      inset-inline-start: var(--space-xlarge);
+      inset-block-start: var(--space-xlarge);
     }
   }
 }

@@ -25,9 +25,10 @@
   }
 }
 
+// Adjust spacing for DevTools wrench icon in variant B to avoid overlapping the customize button
 .layout-variant-b + .discoverystream-admin-toggle {
   inset-block-start: auto;
-  inset-block-end: 50px;
+  inset-block-end: calc(var(--button-size-icon) + var(--space-xxlarge));
 }
 
 .personalize-button {
@@ -111,7 +112,7 @@
 
   .close-button-wrapper {
     position: sticky;
-    top: 0;
+    inset-block-start: 0;
     padding-block-start: var(--space-large);
     background-color: var(--newtab-background-color-secondary);
     z-index: 1;
@@ -382,7 +383,7 @@
   // Width of panel minus the margins
   inset-inline-start: var(--space-xlarge);
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 380px;
   z-index: 2;
   transform: translateX(100%);

@@ -21,8 +21,8 @@
     // Bug 1914055 - Layout experiment: logo/search spacing
     .layout-variant-a &,
     .layout-variant-b & {
-      inset-inline-start: 24px;
-      inset-block-start: 24px;
+      inset-inline-start: var(--space-xlarge);
+      inset-block-start: var(--space-xlarge);
     }
   }
 
@@ -104,7 +104,7 @@
       content: '';
       display: block;
       position: absolute;
-      top: 0;
+      inset-block-start: 0;
       inset-inline-start: -100%;
       height: 100%;
       width: 100%;
@@ -153,16 +153,16 @@
   .weather {
     position: absolute;
     inset-inline-start: auto;
-    inset-inline-end: 40px;
-    inset-block-start: 40px;
+    inset-inline-end: var(--space-xxlarge);
+    inset-block-start: var(--space-xxlarge);
     margin-block-start: 0;
 
     @media (min-width: $break-point-layout-variant) {
-      inset-inline-end: 20px;
+      inset-inline-end: var(--space-large);
     }
 
     @media (min-width: $break-point-large) {
-      inset-inline-end: 40px;
+      inset-inline-end: var(--space-xxlarge);
     }
 
     .weatherSponsorText {
@@ -183,12 +183,12 @@
 
 // Bug 1959189 - Show mobile QR code modal toggle next to weather widget
 .has-mobile-download-promo {
-  $mobile-download-promo-width: 32px;
+  --mobile-download-promo-width: var(--space-xxlarge);
   // No Variant Layout, Var A Layout
   .weather, &.layout-variant-a .weather {
     // Default spacing (--space-xlarge) + width of .mobile-download-promo (32px) + gap
     @media (min-width: $break-point-medium) {
-      inset-inline-start: calc($mobile-download-promo-width + var(--space-xxlarge));
+      inset-inline-start: calc(var(--mobile-download-promo-width) + var(--space-xxlarge));
     }
   }
 
@@ -196,38 +196,38 @@
     // Var B: width of .mobile-download-promo (32px) + gap
     @media (min-width: $break-point-medium) {
       inset-inline-start: auto;
-      inset-inline-end: calc($mobile-download-promo-width + var(--space-medium));
+      inset-inline-end: calc(var(--mobile-download-promo-width) + var(--space-medium));
     }
 
-    // Var B offset (40px) + width of .mobile-download-promo (32px) + gap
+    // Var B offset (32px) + width of .mobile-download-promo (32px) + gap
     @media (min-width: $break-point-layout-variant) {
-      inset-inline-end: calc(40px + $mobile-download-promo-width + var(--space-medium));
+      inset-inline-end: calc(var(--space-xxlarge) + var(--mobile-download-promo-width) + var(--space-medium));
     }
   }
 
   // Layout when search has been turned off. It will show one breakpoint later than `has-search`
   &.layout-variant-b.no-search .weather {
-    // Var B offset (40px) + width of .mobile-download-promo (32px) + gap
+    // Var B offset (32px) + width of .mobile-download-promo (32px) + gap
     @media (min-width: $break-point-large) {
-      inset-inline-end: calc(40px + $mobile-download-promo-width + var(--space-medium));
+      inset-inline-end: calc(var(--space-xxlarge) + var(--mobile-download-promo-width) + var(--space-medium));
     }
   }
 }
 
 .no-search.layout-variant-b {
   .weather {
-    inset-inline-end: 20px;
+    inset-inline-end: var(--space-large);
 
     @media (min-width: $break-point-small) {
-      inset-inline-end: 40px;
+      inset-inline-end: var(--space-xxlarge);
     }
 
     @media (min-width: $break-point-layout-variant) {
-      inset-inline-end: 20px;
+      inset-inline-end: var(--space-large);
     }
 
     @media (min-width: $break-point-large) {
-      inset-inline-end: 40px;
+      inset-inline-end: var(--space-xxlarge);
     }
   }
 }
@@ -471,7 +471,7 @@
   &::after {
     content: '';
     inset-inline-start: 0;
-    top: 10px;
+    inset-block-start: var(--space-small);
     height: calc(100% - 20px);
     width: 1px;
     background-color: var(--newtab-button-static-background);
@@ -724,14 +724,14 @@
     -moz-context-properties: fill;
     fill: var(--icon-color);
     position: absolute;
-    top: 50%;
+    inset-block-start: 50%;
     transform: translateY(-50%);
-    inset-inline-start: 18px;
+    inset-inline-start: var(--space-large);
   }
 
   .close-icon {
     position: absolute;
-    top: 50%;
+    inset-block-start: 50%;
     transform: translateY(-50%);
     inset-inline-end: var(--space-medium);
 

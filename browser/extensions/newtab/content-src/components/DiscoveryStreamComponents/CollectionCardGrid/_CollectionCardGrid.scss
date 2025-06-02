@@ -1,7 +1,7 @@
 .ds-dismiss.ds-dismiss-ds-collection {
   .ds-dismiss-button {
     margin: var(--space-xlarge) 0 0;
-    inset-inline-end: 25px;
+    inset-inline-end: var(--space-xlarge);
   }
 
   &.hovering {

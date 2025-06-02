@@ -2,7 +2,8 @@
 
 .discoverystream-admin-toggle {
   position: fixed;
-  top: 50px;
+  // Adjust spacing for DevTools wrench icon to avoid overlapping the customize button
+  inset-block-start: calc(var(--button-size-icon) + var(--space-xxlarge));
   inset-inline-end: var(--space-xlarge);
   border: 0;
   background: none;
@@ -34,7 +35,7 @@
   $sidebar-width: 240px;
 
   position: fixed;
-  top: 0;
+  inset-block-start: 0;
   inset-inline-start: 0;
   width: 100%;
   background: var(--newtab-background-color);

@@ -207,10 +207,10 @@ main {
     border: 0;
     border-radius: var(--button-border-radius);
     cursor: pointer;
-    inset-inline-end: 15px;
     padding: var(--space-large);
     position: fixed;
-    top: 15px;
+    inset-inline-end: var(--space-large);
+    inset-block-start: var(--space-large);
     z-index: 1000;
 
     &:hover,

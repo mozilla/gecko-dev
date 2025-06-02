@@ -2,7 +2,7 @@ $search-height: 48px;
 $search-height-new: 52px;
 $search-icon-size: 24px;
 $search-icon-padding: 16px;
-$search-icon-width: 2 * $search-icon-padding + $search-icon-size - 4px;
+$search-icon-width: 2 * $search-icon-padding + $search-icon-size - 4px; // 52px
 $search-button-width: 48px;
 $glyph-forward: url('chrome://browser/skin/forward.svg');
 
@@ -155,8 +155,9 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     -moz-context-properties: fill;
 
     .fake-caret {
-      top: 18px;
-      inset-inline-start: $search-icon-width;
+      inset-block-start: var(--space-large);
+      // Bug 1967304 - $variable
+      inset-inline-start: $search-icon-width; // stylelint-disable-line declaration-property-value-disallowed-list
 
       &:dir(rtl) {
         background-position-x: right $search-icon-padding;
@@ -187,15 +188,15 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
 
   .logo-and-wordmark {
     position: absolute;
-    inset-inline-start: 40px;
-    inset-block-start: 40px;
+    inset-inline-start: var(--space-xxlarge);
+    inset-block-start: var(--space-xxlarge);
 
     @media (min-width: $break-point-layout-variant) {
-      inset-inline-start: 20px;
+      inset-inline-start: var(--space-large);
     }
 
     @media (min-width: $break-point-large) {
-      inset-inline-start: 40px;
+      inset-inline-start: var(--space-xxlarge);
     }
   }
 
@@ -224,18 +225,18 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     }
 
     .logo-and-wordmark {
-      inset-inline-start: 20px;
+      inset-inline-start: var(--space-large);
 
       @media (min-width: $break-point-small) {
-        inset-inline-start: 40px;
+        inset-inline-start: var(--space-xxlarge);
       }
 
       @media (min-width: $break-point-layout-variant) {
-        inset-inline-start: 20px;
+        inset-inline-start: var(--space-large);
       }
 
       @media (min-width: $break-point-large) {
-        inset-inline-start: 40px;
+        inset-inline-start: var(--space-xxlarge);
       }
     }
 
@@ -370,10 +371,11 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     animation: caret-animation var(--caret-blink-time, 1134ms) steps(2, start) var(--caret-blink-count, infinite);
     background: var(--newtab-text-primary-color);
     display: none;
-    inset-inline-start: 47px;
+    // Bug 1967304 - Large number (48px)
+    inset-inline-start:calc(var(--space-xlarge) * 2);
     height: 17px;
     position: absolute;
-    top: 16px;
+    inset-block-start: var(--space-large);
     width: 1px;
 
     @keyframes caret-animation {
@@ -396,9 +398,9 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
       padding: var(--space-xlarge) 0;
       background-color: var(--newtab-overlay-color);
       min-height: $search-header-bar-height;
-      left: 0;
+      inset-inline-start: 0;
       position: fixed;
-      top: 0;
+      inset-block-start: 0;
       width: 100%;
       z-index: 3;
 
@@ -416,7 +418,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
       }
 
       .search-handoff-button .fake-caret {
-        top: 14px;
+        inset-block-start: var(--space-large);
       }
 
       .logo-and-wordmark {
@@ -433,7 +435,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
       }
 
       .fake-caret {
-        top: 10px;
+        inset-block-start: var(--space-small);
       }
     }
   }

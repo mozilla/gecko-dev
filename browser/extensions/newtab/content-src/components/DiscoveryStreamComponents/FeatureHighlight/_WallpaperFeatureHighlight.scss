@@ -8,8 +8,8 @@
     width: var(--size-item-small);
     position: absolute;
     margin: 0;
-    inset-block-start: calc(var(--space-large) + 2px);
-    inset-inline-end: calc(var(--space-large) + 2px);
+    inset-block-start: calc(var(--space-large) + var(--space-xxsmall));
+    inset-inline-end: calc(var(--space-large) + var(--space-xxsmall));
 
     @media (prefers-color-scheme: dark) {
       // override color so that it is visible on white image background
@@ -48,7 +48,8 @@
     }
 
     &.inset-inline-start {
-      inset-inline-end: 50px;
+      // Bug 1967304 - Large number (48px)
+      inset-inline-end: calc(var(--space-xlarge) * 2);
 
       &::after {
         inset-inline-end: calc(calc(var(--arrow-size) / 2) * -1);

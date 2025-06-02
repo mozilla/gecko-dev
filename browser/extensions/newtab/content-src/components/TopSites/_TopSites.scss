@@ -214,10 +214,10 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     -moz-context-properties: fill;
     height: 20px;
     width: 20px;
-    inset-inline-end: 3px;
+    inset-inline-end: var(--space-xsmall);
     opacity: 0;
     position: absolute;
-    top: -20px;
+    inset-block-start: calc(var(--space-large) * -1);
 
     // Contrast fix for users who have wallpapers set
     @include wallpaper-contrast-fix;
@@ -274,7 +274,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         font-size: 64px; // stylelint-disable-line declaration-property-value-disallowed-list
         font-weight: var(--font-weight-bold);
         transform: rotate(-10deg);
-        top: 6px;
+        inset-block-start: var(--space-xsmall);
         position: relative;
         color: $letter-fallback-color;
       }
@@ -294,7 +294,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     background-size: cover;
     height: 100%;
     inset-inline-start: 0;
-    top: 0;
+    inset-block-start: 0;
     width: 100%;
   }
 
@@ -327,8 +327,9 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     transition-property: background-size, bottom, inset-inline-end, height, width;
     height: 32px;
     width: 32px;
-    bottom: -$default-icon-offset;
-    inset-inline-end: -$default-icon-offset;
+    // Bug 1967304 - $variable
+    inset-block-end: -$default-icon-offset; // stylelint-disable-line declaration-property-value-disallowed-list
+    inset-inline-end: -$default-icon-offset; // stylelint-disable-line declaration-property-value-disallowed-list
   }
 
   &.placeholder {
@@ -469,7 +470,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
     .context-menu-button {
       inset-inline-end: 0;
-      inset-block-start: 12px;
+      inset-block-start: var(--space-medium);
       height: 24px;
       width: 24px;
       background-color: unset;
@@ -480,7 +481,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     }
 
     .context-menu {
-      inset-block-start: 40px;
+      // Bug 1967304 - Custom number (40px)
+      inset-block-start: calc(var(--space-large) + var(--space-xlarge));
     }
 
     .icon-pin-small {
@@ -495,8 +497,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       }
 
       position: absolute;
-      inset-block-start: 0.188rem;
-      inset-inline-start: 0.188rem;
+      inset-block-start: var(--space-xsmall);
+      inset-inline-start: var(--space-xsmall);
     }
   }
 }
@@ -546,12 +548,12 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
   .modal {
     box-shadow: $shadow-secondary;
-    left: 0;
+    inset-inline-start: 0;
     margin: 0 auto;
     max-height: calc(100% - 40px);
     position: fixed;
-    right: 0;
-    top: 40px;
+    inset-inline-end: 0;
+    inset-block-start: var(--space-xxlarge);
     width: $wrapper-default-width;
 
     @media (min-width: $break-point-medium) {
@@ -621,8 +623,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       .icon-clear-input {
         position: absolute;
         transform: translateY(-50%);
-        top: 50%;
-        inset-inline-end: 8px;
+        inset-block-start: 50%;
+        inset-inline-end: var(--space-small);
       }
     }
 
@@ -657,8 +659,8 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         overflow: hidden;
         position: absolute;
         transform: translateY(-50%);
-        top: 50%;
-        inset-inline-end: 8px;
+        inset-block-start: 50%;
+        inset-inline-end: var(--space-small);
       }
 
       // This animation is derived from Firefox's tab loading animation
@@ -717,22 +719,22 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       background: var(--newtab-status-error);
       border-radius: var(--border-radius-small);
       color: $white;
-      inset-inline-start: 3px;
+      inset-inline-start: var(--space-xxsmall);
       padding: var(--space-xsmall) var(--space-medium);
       position: absolute;
-      top: 44px;
+      inset-block-start: var(--space-xxlarge);
       z-index: 1;
 
       // tooltip caret
       &::before {
         background: var(--newtab-status-error);
-        bottom: -8px;
+        inset-block-end: calc(var(--space-small) * -1);
         content: '.';
         height: 16px;
-        inset-inline-start: 12px;
+        inset-inline-start: var(--space-medium);
         position: absolute;
         text-indent: -999px;
-        top: -7px;
+        inset-block-start: calc(var(--space-small) * -1);
         transform: rotate(45deg);
         white-space: nowrap;
         width: 16px;
@@ -768,7 +770,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   // CSS styled checkbox
   [type='checkbox']:not(:checked),
   [type='checkbox']:checked {
-    inset-inline-start: -9999px;
+    inset-inline-start: -9999px; // stylelint-disable-line declaration-property-value-disallowed-list
     position: absolute;
   }
 
@@ -779,7 +781,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     position: relative;
   }
 
-  $checkbox-offset: -8px;
+  $checkbox-offset: calc(var(--space-small) * -1);
 
   [type='checkbox']:not(:checked) + label::before,
   [type='checkbox']:checked + label::before {
@@ -788,15 +790,15 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     border-radius: var(--border-radius-small);
     content: '';
     height: 21px;
-    left: $checkbox-offset;
+    inset-inline-start: calc(var(--space-small) * -1);
     position: absolute;
-    top: $checkbox-offset;
+    inset-block-start: calc(var(--space-small) * -1);
     width: 21px;
     z-index: 1;
 
     [dir='rtl'] & {
-      left: auto;
-      right: $checkbox-offset;
+      inset-inline-start: auto;
+      inset-inline-end: calc(var(--space-small) * -1);
     }
   }
 
@@ -806,17 +808,17 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     background: url('chrome://global/skin/icons/check.svg') no-repeat center center;
     content: '';
     height: 21px;
-    left: $checkbox-offset;
+    inset-inline-start: calc(var(--space-small) * -1);
     position: absolute;
-    top: $checkbox-offset;
+    inset-block-start: calc(var(--space-small) * -1);
     width: 21px;
     -moz-context-properties: fill;
     fill: var(--newtab-primary-action-background);
     z-index: 2;
 
     [dir='rtl'] & {
-      left: auto;
-      right: $checkbox-offset;
+      inset-inline-start: auto;
+      inset-inline-end: calc(var(--space-small) * -1);
     }
   }
 
@@ -890,7 +892,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 // used for TopSites impression wrapper
 .topsite-impression-observer {
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;

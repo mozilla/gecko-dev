@@ -201,10 +201,10 @@ $customize-menu-border-tint: 1px solid rgba(0, 0, 0, 15%);
     color: var(--button-text-color);
     fill: var(--newtab-button-text);
     height: $context-menu-button-size;
-    inset-inline-end: math.div(-$context-menu-button-size, 2);
+    inset-inline-end: calc(var(--space-medium) * -1);
     opacity: 0;
     position: absolute;
-    top: math.div(-$context-menu-button-size, 2);
+    inset-block-start: calc(var(--space-medium) * -1);
     transform: scale(0.25);
     transition-duration: 150ms;
     transition-property: transform, opacity;
@@ -246,7 +246,7 @@ $customize-menu-border-tint: 1px solid rgba(0, 0, 0, 15%);
     margin-inline-end: auto;
     margin-inline-start: auto;
     inset-inline-end: auto;
-    inset-inline-start: -$base-gutter;
+    inset-inline-start: calc(var(--space-xxlarge) * -1);
   }
 }
 

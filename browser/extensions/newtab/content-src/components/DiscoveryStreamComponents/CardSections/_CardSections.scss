@@ -151,7 +151,7 @@
   }
 
   .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
 
 }
@@ -243,7 +243,7 @@
   }
 
   .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
 
   .card-stp-thumbs-buttons-wrapper {

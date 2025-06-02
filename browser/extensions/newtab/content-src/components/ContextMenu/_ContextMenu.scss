@@ -11,7 +11,7 @@
   margin-inline-start: var(--space-xsmall);
   inset-inline-start: 100%;
   position: absolute;
-  top: math.div($context-menu-button-size, 4);
+  inset-block-start: var(--space-small);
   z-index: 2;
 
   > ul {

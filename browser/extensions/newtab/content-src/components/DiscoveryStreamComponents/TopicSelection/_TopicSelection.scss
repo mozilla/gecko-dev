@@ -19,7 +19,7 @@
     appearance: none;
     border: none;
     z-index: 2;
-    top: 0;
+    inset-block-start: 0;
     inset-inline: auto 0;
     border-radius: var(--border-radius-small);
     padding: 0;

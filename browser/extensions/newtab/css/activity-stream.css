@@ -357,10 +357,10 @@ h2 {
   border: 1px solid var(--newtab-border-color);
   border-radius: var(--border-radius-small);
   height: 100%;
-  left: 0;
+  inset-inline-start: 0;
   pointer-events: none;
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 100%;
   z-index: 100;
 }
@@ -639,10 +639,10 @@ main section {
   border: 0;
   border-radius: var(--button-border-radius);
   cursor: pointer;
-  inset-inline-end: 15px;
   padding: var(--space-large);
   position: fixed;
-  top: 15px;
+  inset-inline-end: var(--space-large);
+  inset-block-start: var(--space-large);
   z-index: 1000;
 }
 .prefs-button button:hover, .prefs-button button:focus {
@@ -806,7 +806,7 @@ main section {
     margin-inline-end: auto;
     margin-inline-start: auto;
     inset-inline-end: auto;
-    inset-inline-start: -32px;
+    inset-inline-start: calc(var(--space-xxlarge) * -1);
   }
   .top-sites-list > :nth-child(2n) .context-menu {
     margin-inline-end: var(--space-xsmall);
@@ -938,10 +938,10 @@ main section {
   -moz-context-properties: fill;
   height: 20px;
   width: 20px;
-  inset-inline-end: 3px;
+  inset-inline-end: var(--space-xsmall);
   opacity: 0;
   position: absolute;
-  top: -20px;
+  inset-block-start: calc(var(--space-large) * -1);
 }
 .lightWallpaper .top-site-outer .context-menu-button {
   color-scheme: light;
@@ -995,7 +995,7 @@ main section {
   font-size: 64px;
   font-weight: var(--font-weight-bold);
   transform: rotate(-10deg);
-  top: 6px;
+  inset-block-start: var(--space-xsmall);
   position: relative;
   color: #FFF;
 }
@@ -1010,7 +1010,7 @@ main section {
   background-size: cover;
   height: 100%;
   inset-inline-start: 0;
-  top: 0;
+  inset-block-start: 0;
   width: 100%;
 }
 .top-site-outer .default-icon,
@@ -1039,7 +1039,7 @@ main section {
   transition-property: background-size, bottom, inset-inline-end, height, width;
   height: 32px;
   width: 32px;
-  bottom: -6px;
+  inset-block-end: -6px;
   inset-inline-end: -6px;
 }
 .top-site-outer.placeholder .tile {
@@ -1144,7 +1144,7 @@ main section {
 }
 .shortcuts-refresh .top-site-outer .context-menu-button {
   inset-inline-end: 0;
-  inset-block-start: 12px;
+  inset-block-start: var(--space-medium);
   height: 24px;
   width: 24px;
   background-color: unset;
@@ -1153,13 +1153,13 @@ main section {
   background-color: var(--newtab-button-hover-background);
 }
 .shortcuts-refresh .top-site-outer .context-menu {
-  inset-block-start: 40px;
+  inset-block-start: calc(var(--space-large) + var(--space-xlarge));
 }
 .shortcuts-refresh .top-site-outer .icon-pin-small {
   color-scheme: light;
   position: absolute;
-  inset-block-start: 0.188rem;
-  inset-inline-start: 0.188rem;
+  inset-block-start: var(--space-xsmall);
+  inset-inline-start: var(--space-xsmall);
 }
 [lwt-newtab-brighttext] .shortcuts-refresh .top-site-outer .icon-pin-small {
   color-scheme: dark;
@@ -1198,12 +1198,12 @@ main section {
 }
 .edit-topsites-wrapper .modal {
   box-shadow: 0 1px 4px 0 rgba(12, 12, 13, 0.2);
-  left: 0;
+  inset-inline-start: 0;
   margin: 0 auto;
   max-height: calc(100% - 40px);
   position: fixed;
-  right: 0;
-  top: 40px;
+  inset-inline-end: 0;
+  inset-block-start: var(--space-xxlarge);
   width: 274px;
 }
 @media (min-width: 610px) {
@@ -1261,8 +1261,8 @@ main section {
 .topsite-form .form-wrapper .field .icon-clear-input {
   position: absolute;
   transform: translateY(-50%);
-  top: 50%;
-  inset-inline-end: 8px;
+  inset-block-start: 50%;
+  inset-inline-end: var(--space-small);
 }
 .topsite-form .form-wrapper .url input:dir(ltr) {
   padding-inline-end: var(--space-xxlarge);
@@ -1289,8 +1289,8 @@ main section {
   overflow: hidden;
   position: absolute;
   transform: translateY(-50%);
-  top: 50%;
-  inset-inline-end: 8px;
+  inset-block-start: 50%;
+  inset-inline-end: var(--space-small);
 }
 .topsite-form .form-wrapper .custom-image-input-container .loading-animation {
   width: 960px;
@@ -1336,21 +1336,21 @@ main section {
   background: var(--newtab-status-error);
   border-radius: var(--border-radius-small);
   color: #FFF;
-  inset-inline-start: 3px;
+  inset-inline-start: var(--space-xxsmall);
   padding: var(--space-xsmall) var(--space-medium);
   position: absolute;
-  top: 44px;
+  inset-block-start: var(--space-xxlarge);
   z-index: 1;
 }
 .topsite-form .form-wrapper .error-tooltip::before {
   background: var(--newtab-status-error);
-  bottom: -8px;
+  inset-block-end: calc(var(--space-small) * -1);
   content: ".";
   height: 16px;
-  inset-inline-start: 12px;
+  inset-inline-start: var(--space-medium);
   position: absolute;
   text-indent: -999px;
-  top: -7px;
+  inset-block-start: calc(var(--space-small) * -1);
   transform: rotate(45deg);
   white-space: nowrap;
   width: 16px;
@@ -1392,25 +1392,25 @@ main section {
   border-radius: var(--border-radius-small);
   content: "";
   height: 21px;
-  left: -8px;
+  inset-inline-start: calc(var(--space-small) * -1);
   position: absolute;
-  top: -8px;
+  inset-block-start: calc(var(--space-small) * -1);
   width: 21px;
   z-index: 1;
 }
 [dir=rtl] .topsite-form [type=checkbox]:not(:checked) + label::before,
 [dir=rtl] .topsite-form [type=checkbox]:checked + label::before {
-  left: auto;
-  right: -8px;
+  inset-inline-start: auto;
+  inset-inline-end: calc(var(--space-small) * -1);
 }
 .topsite-form [type=checkbox]:not(:checked) + label::after,
 .topsite-form [type=checkbox]:checked + label::after {
   background: url("chrome://global/skin/icons/check.svg") no-repeat center center;
   content: "";
   height: 21px;
-  left: -8px;
+  inset-inline-start: calc(var(--space-small) * -1);
   position: absolute;
-  top: -8px;
+  inset-block-start: calc(var(--space-small) * -1);
   width: 21px;
   -moz-context-properties: fill;
   fill: var(--newtab-primary-action-background);
@@ -1418,8 +1418,8 @@ main section {
 }
 [dir=rtl] .topsite-form [type=checkbox]:not(:checked) + label::after,
 [dir=rtl] .topsite-form [type=checkbox]:checked + label::after {
-  left: auto;
-  right: -8px;
+  inset-inline-start: auto;
+  inset-inline-end: calc(var(--space-small) * -1);
 }
 .topsite-form [type=checkbox]:checked + label .tile {
   box-shadow: 0 0 0 2px var(--newtab-primary-action-background-dimmed);
@@ -1472,7 +1472,7 @@ main section {
 }
 .topsite-impression-observer {
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
@@ -1710,7 +1710,7 @@ main section {
   -moz-context-properties: fill;
 }
 .search-wrapper .search-handoff-button .fake-caret {
-  top: 18px;
+  inset-block-start: var(--space-large);
   inset-inline-start: 52px;
 }
 .search-wrapper .search-handoff-button .fake-caret:dir(rtl) {
@@ -1730,17 +1730,17 @@ main section {
 }
 .layout-variant-b.has-recommended-stories .logo-and-wordmark {
   position: absolute;
-  inset-inline-start: 40px;
-  inset-block-start: 40px;
+  inset-inline-start: var(--space-xxlarge);
+  inset-block-start: var(--space-xxlarge);
 }
 @media (min-width: 724px) {
   .layout-variant-b.has-recommended-stories .logo-and-wordmark {
-    inset-inline-start: 20px;
+    inset-inline-start: var(--space-large);
   }
 }
 @media (min-width: 866px) {
   .layout-variant-b.has-recommended-stories .logo-and-wordmark {
-    inset-inline-start: 40px;
+    inset-inline-start: var(--space-xxlarge);
   }
 }
 .layout-variant-b.has-recommended-stories.no-search .body-wrapper {
@@ -1760,21 +1760,21 @@ main section {
   margin-block-start: calc(var(--space-xlarge) * 4);
 }
 .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
-  inset-inline-start: 20px;
+  inset-inline-start: var(--space-large);
 }
 @media (min-width: 510px) {
   .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
-    inset-inline-start: 40px;
+    inset-inline-start: var(--space-xxlarge);
   }
 }
 @media (min-width: 724px) {
   .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
-    inset-inline-start: 20px;
+    inset-inline-start: var(--space-large);
   }
 }
 @media (min-width: 866px) {
   .layout-variant-b.has-recommended-stories.no-search.has-sections-grid .logo-and-wordmark {
-    inset-inline-start: 40px;
+    inset-inline-start: var(--space-xxlarge);
   }
 }
 .layout-variant-b.has-recommended-stories .search-inner-wrapper {
@@ -1891,10 +1891,10 @@ main section {
   animation: caret-animation var(--caret-blink-time, 1134ms) steps(2, start) var(--caret-blink-count, infinite);
   background: var(--newtab-text-primary-color);
   display: none;
-  inset-inline-start: 47px;
+  inset-inline-start: calc(var(--space-xlarge) * 2);
   height: 17px;
   position: absolute;
-  top: 16px;
+  inset-block-start: var(--space-large);
   width: 1px;
 }
 @keyframes caret-animation {
@@ -1909,9 +1909,9 @@ main section {
     padding: var(--space-xlarge) 0;
     background-color: var(--newtab-overlay-color);
     min-height: 95px;
-    left: 0;
+    inset-inline-start: 0;
     position: fixed;
-    top: 0;
+    inset-block-start: 0;
     width: 100%;
     z-index: 3;
   }
@@ -1926,7 +1926,7 @@ main section {
     background-position-x: right 16px;
   }
   body:not(.inline-onboarding) .fixed-search .search-wrapper .search-handoff-button .fake-caret {
-    top: 14px;
+    inset-block-start: var(--space-large);
   }
   body:not(.inline-onboarding) .fixed-search .search-wrapper .logo-and-wordmark {
     display: none;
@@ -1939,7 +1939,7 @@ main section {
     background-position-x: right var(--space-large);
   }
   body:not(.inline-onboarding) .fixed-search .search-handoff-button .fake-caret {
-    top: 10px;
+    inset-block-start: var(--space-small);
   }
 }
 .contentSearchSuggestionTable {
@@ -2010,7 +2010,7 @@ main section {
   margin-inline-start: var(--space-xsmall);
   inset-inline-start: 100%;
   position: absolute;
-  top: 6.75px;
+  inset-block-start: var(--space-small);
   z-index: 2;
 }
 .context-menu > ul {
@@ -2054,11 +2054,11 @@ main section {
 
 .confirmation-dialog .modal {
   box-shadow: 0 1px 4px 0 rgba(12, 12, 13, 0.2);
-  left: 0;
+  inset-inline-start: 0;
   margin: auto;
   position: fixed;
-  right: 0;
-  top: 20%;
+  inset-inline-end: 0;
+  inset-block-start: 20%;
   width: 400px;
 }
 .confirmation-dialog section {
@@ -2096,9 +2096,9 @@ main section {
 .modal-overlay {
   background: var(--newtab-overlay-color);
   height: 100%;
-  left: 0;
+  inset-inline-start: 0;
   position: fixed;
-  top: 0;
+  inset-block-start: 0;
   width: 100%;
   z-index: 11001;
 }
@@ -2138,7 +2138,7 @@ main section {
 
 .layout-variant-b + .discoverystream-admin-toggle {
   inset-block-start: auto;
-  inset-block-end: 50px;
+  inset-block-end: calc(var(--button-size-icon) + var(--space-xxlarge));
 }
 
 .personalize-button {
@@ -2209,7 +2209,7 @@ main section {
 }
 .customize-menu .close-button-wrapper {
   position: sticky;
-  top: 0;
+  inset-block-start: 0;
   padding-block-start: var(--space-large);
   background-color: var(--newtab-background-color-secondary);
   z-index: 1;
@@ -2428,7 +2428,7 @@ main section {
   height: calc(100% - var(--space-xxlarge));
   inset-inline-start: var(--space-xlarge);
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 380px;
   z-index: 2;
   transform: translateX(100%);
@@ -2605,8 +2605,8 @@ main section {
   height: calc(var(--icon-size-default) * 1.25);
   display: block;
   position: absolute;
-  top: 50%;
-  left: 50%;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
   transform: translate(-50%, -50%);
 }
 .wallpaper-input.theme-custom-wallpaper::after {
@@ -2706,8 +2706,8 @@ main section {
   height: calc(var(--icon-size-default) * 1.25);
   display: block;
   position: absolute;
-  top: 50%;
-  left: 50%;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
   cursor: pointer;
@@ -2742,10 +2742,10 @@ main section {
   /* XXXdholbert The 32px subtraction here is to account for our 16px of
    * margin on top and bottom. Ideally this should change to use
    * 'height: stretch' when bug 1789477 lands. */
-  height: calc(100% - 32px);
-  inset-inline-start: 25px;
+  height: calc(100% - var(--space-xlarge));
+  inset-inline-start: var(--space-xlarge);
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 380px;
   z-index: 2;
   transform: translateX(100%);
@@ -2835,8 +2835,8 @@ main section {
     z-index: 1;
   }
   .layout-variant-a .weather, .layout-variant-b .weather {
-    inset-inline-start: 24px;
-    inset-block-start: 24px;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
   }
 }
 .no-search.layout-variant-a .weather, .no-search.layout-variant-b .weather, .layout-variant-a .weather, .layout-variant-b .weather {
@@ -2905,7 +2905,7 @@ main section {
   content: "";
   display: block;
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   inset-inline-start: -100%;
   height: 100%;
   width: 100%;
@@ -2944,20 +2944,20 @@ main section {
 .layout-variant-b .weather {
   position: absolute;
   inset-inline-start: auto;
-  inset-inline-end: 40px;
-  inset-block-start: 40px;
+  inset-inline-end: var(--space-xxlarge);
+  inset-block-start: var(--space-xxlarge);
   margin-block-start: 0;
 }
 @media (min-width: 724px) {
   .no-search.layout-variant-b .weather,
 .layout-variant-b .weather {
-    inset-inline-end: 20px;
+    inset-inline-end: var(--space-large);
   }
 }
 @media (min-width: 866px) {
   .no-search.layout-variant-b .weather,
 .layout-variant-b .weather {
-    inset-inline-end: 40px;
+    inset-inline-end: var(--space-xxlarge);
   }
 }
 .no-search.layout-variant-b .weather .weatherSponsorText,
@@ -2975,44 +2975,47 @@ main section {
   margin-inline-end: var(--space-xsmall);
 }
 
+.has-mobile-download-promo {
+  --mobile-download-promo-width: var(--space-xxlarge);
+}
 @media (min-width: 610px) {
   .has-mobile-download-promo .weather, .has-mobile-download-promo.layout-variant-a .weather {
-    inset-inline-start: calc(32px + var(--space-xxlarge));
+    inset-inline-start: calc(var(--mobile-download-promo-width) + var(--space-xxlarge));
   }
 }
 @media (min-width: 610px) {
   .has-mobile-download-promo.layout-variant-b .weather {
     inset-inline-start: auto;
-    inset-inline-end: calc(32px + var(--space-medium));
+    inset-inline-end: calc(var(--mobile-download-promo-width) + var(--space-medium));
   }
 }
 @media (min-width: 724px) {
   .has-mobile-download-promo.layout-variant-b .weather {
-    inset-inline-end: calc(72px + var(--space-medium));
+    inset-inline-end: calc(var(--space-xxlarge) + var(--mobile-download-promo-width) + var(--space-medium));
   }
 }
 @media (min-width: 866px) {
   .has-mobile-download-promo.layout-variant-b.no-search .weather {
-    inset-inline-end: calc(72px + var(--space-medium));
+    inset-inline-end: calc(var(--space-xxlarge) + var(--mobile-download-promo-width) + var(--space-medium));
   }
 }
 
 .no-search.layout-variant-b .weather {
-  inset-inline-end: 20px;
+  inset-inline-end: var(--space-large);
 }
 @media (min-width: 510px) {
   .no-search.layout-variant-b .weather {
-    inset-inline-end: 40px;
+    inset-inline-end: var(--space-xxlarge);
   }
 }
 @media (min-width: 724px) {
   .no-search.layout-variant-b .weather {
-    inset-inline-end: 20px;
+    inset-inline-end: var(--space-large);
   }
 }
 @media (min-width: 866px) {
   .no-search.layout-variant-b .weather {
-    inset-inline-end: 40px;
+    inset-inline-end: var(--space-xxlarge);
   }
 }
 
@@ -3220,7 +3223,7 @@ main section {
 .weatherButtonContextMenuWrapper::after {
   content: "";
   inset-inline-start: 0;
-  top: 10px;
+  inset-block-start: var(--space-small);
   height: calc(100% - 20px);
   width: 1px;
   background-color: var(--newtab-button-static-background);
@@ -3431,13 +3434,13 @@ main section {
   -moz-context-properties: fill;
   fill: var(--icon-color);
   position: absolute;
-  top: 50%;
+  inset-block-start: 50%;
   transform: translateY(-50%);
-  inset-inline-start: 18px;
+  inset-inline-start: var(--space-large);
 }
 .location-input-wrapper .close-icon {
   position: absolute;
-  top: 50%;
+  inset-block-start: 50%;
   transform: translateY(-50%);
   inset-inline-end: var(--space-medium);
 }
@@ -3588,14 +3591,14 @@ main section {
 }
 @media (min-width: 610px) {
   .layout-variant-b .mobileDownloadPromoWrapper {
-    inset-block-start: 40px;
+    inset-block-start: var(--space-xxlarge);
     inset-inline-start: auto;
     inset-inline-end: var(--space-medium);
   }
 }
 @media (min-width: 724px) {
   .layout-variant-b .mobileDownloadPromoWrapper {
-    inset-inline-end: 40px;
+    inset-inline-end: var(--space-xxlarge);
   }
 }
 .layout-variant-b.no-search .mobileDownloadPromoWrapper {
@@ -3604,15 +3607,15 @@ main section {
 @media (min-width: 866px) {
   .layout-variant-b.no-search .mobileDownloadPromoWrapper {
     display: flex;
-    inset-block-start: 40px;
+    inset-block-start: var(--space-xxlarge);
     inset-inline-start: auto;
-    inset-inline-end: 40px;
+    inset-inline-end: var(--space-xxlarge);
   }
 }
 @media (min-width: 610px) {
   .layout-variant-a .mobileDownloadPromoWrapper {
-    inset-inline-start: 24px;
-    inset-block-start: 24px;
+    inset-inline-start: var(--space-xlarge);
+    inset-block-start: var(--space-xlarge);
   }
 }
 
@@ -3666,10 +3669,10 @@ main section {
   color: var(--button-text-color);
   fill: var(--newtab-button-text);
   height: 27px;
-  inset-inline-end: -13.5px;
+  inset-inline-end: calc(var(--space-medium) * -1);
   opacity: 0;
   position: absolute;
-  top: -13.5px;
+  inset-block-start: calc(var(--space-medium) * -1);
   transform: scale(0.25);
   transition-duration: 150ms;
   transition-property: transform, opacity;
@@ -3756,7 +3759,7 @@ main section {
 }
 .card-outer .card-preview-image-outer::after {
   border-bottom: 1px solid var(--newtab-card-hairline-color);
-  bottom: 0;
+  inset-block-end: 0;
   content: "";
   position: absolute;
   width: 100%;
@@ -3817,7 +3820,7 @@ main section {
   word-wrap: break-word;
 }
 .card-outer .card-context {
-  bottom: 0;
+  inset-block-end: 0;
   color: var(--newtab-text-secondary-color);
   display: flex;
   font-size: var(--font-size-small);
@@ -3868,7 +3871,7 @@ main section {
     line-height: 23px;
   }
   .normal-cards .card-outer .card-context {
-    bottom: 4px;
+    inset-block-end: var(--space-xsmall);
     font-size: inherit;
     line-height: 23px;
   }
@@ -3905,8 +3908,8 @@ main section {
   height: 32px;
   width: 32px;
   padding: var(--space-small);
-  top: 91px;
-  inset-inline-end: 12px;
+  inset-block-start: 91px;
+  inset-inline-end: var(--space-medium);
   inset-inline-start: auto;
 }
 .compact-cards .card-outer .card-context::after {
@@ -3917,8 +3920,8 @@ main section {
   position: absolute;
   height: 17px;
   width: 34px;
-  top: -1px;
-  left: -1px;
+  inset-block-start: calc(var(--space-xxsmall) * -1);
+  inset-inline-start: calc(var(--space-xxsmall) * -1);
 }
 .compact-cards .card-outer .card-context .card-context-icon {
   margin-inline-end: 0;
@@ -4063,7 +4066,7 @@ main section {
 /* stylelint-disable max-nesting-depth */
 .discoverystream-admin-toggle {
   position: fixed;
-  top: 50px;
+  inset-block-start: calc(var(--button-size-icon) + var(--space-xxlarge));
   inset-inline-end: var(--space-xlarge);
   border: 0;
   background: none;
@@ -4086,7 +4089,7 @@ main section {
 
 .discoverystream-admin {
   position: fixed;
-  top: 0;
+  inset-block-start: 0;
   inset-inline-start: 0;
   width: 100%;
   background: var(--newtab-background-color);
@@ -4512,8 +4515,8 @@ main section {
   background: var(--newtab-overlay-color);
   height: 100%;
   position: fixed;
-  top: 0;
-  left: 0;
+  inset-block-start: 0;
+  inset-inline-start: 0;
   width: 100%;
   display: none;
   z-index: 1100;
@@ -4538,8 +4541,8 @@ main section {
 @media (width <= 960px) {
   .modalOverlayInner {
     height: 100%;
-    top: 0;
-    left: 0;
+    inset-block-start: 0;
+    inset-inline-start: 0;
     box-shadow: none;
     border-radius: 0;
   }
@@ -4569,7 +4572,7 @@ main section {
   height: 70px;
   width: 100%;
   position: absolute;
-  bottom: 0;
+  inset-block-end: 0;
   text-align: center;
   background-color: #FFF;
 }
@@ -4610,11 +4613,11 @@ main section {
 @keyframes toastSlideInSlideOut {
   0%, 100% {
     opacity: 0;
-    top: 50%;
+    inset-block-start: 50%;
   }
   15%, 85% {
     opacity: 1;
-    top: 0;
+    inset-block-start: 0;
   }
 }
 .ds-onboarding-container,
@@ -4659,8 +4662,8 @@ main section {
   display: flex;
 }
 .ds-onboarding-container .ds-onboarding .ds-dismiss-button {
-  inset-inline-end: 8px;
-  top: 8px;
+  inset-inline-end: var(--space-small);
+  inset-block-start: var(--space-small);
 }
 .ds-onboarding-container header {
   display: flex;
@@ -5301,7 +5304,7 @@ main section {
     padding-block-start: unset;
   }
   .ds-section-grid.ds-card-grid .col-1-small .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-1-medium {
     grid-row: span 2;
@@ -5363,7 +5366,7 @@ main section {
     display: block;
   }
   .ds-section-grid.ds-card-grid .col-1-medium .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-1-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -5629,7 +5632,7 @@ main section {
     padding-block-start: unset;
   }
   .ds-section-grid.ds-card-grid .col-2-small .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-2-medium {
     grid-row: span 2;
@@ -5691,7 +5694,7 @@ main section {
     display: block;
   }
   .ds-section-grid.ds-card-grid .col-2-medium .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-2-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -5958,7 +5961,7 @@ main section {
     padding-block-start: unset;
   }
   .ds-section-grid.ds-card-grid .col-3-small .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-3-medium {
     grid-row: span 2;
@@ -6020,7 +6023,7 @@ main section {
     display: block;
   }
   .ds-section-grid.ds-card-grid .col-3-medium .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-3-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -6286,7 +6289,7 @@ main section {
     padding-block-start: unset;
   }
   .ds-section-grid.ds-card-grid .col-4-small .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-4-medium {
     grid-row: span 2;
@@ -6348,7 +6351,7 @@ main section {
     display: block;
   }
   .ds-section-grid.ds-card-grid .col-4-medium .card-stp-button-position-wrapper {
-    inset-inline-end: 10px;
+    inset-inline-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-4-medium .card-stp-thumbs-buttons-wrapper {
     display: block;
@@ -6482,7 +6485,7 @@ main section {
 
 .ds-dismiss.ds-dismiss-ds-collection .ds-dismiss-button {
   margin: var(--space-xlarge) 0 0;
-  inset-inline-end: 25px;
+  inset-inline-end: var(--space-xlarge);
 }
 .ds-dismiss.ds-dismiss-ds-collection.hovering {
   background: var(--newtab-element-hover-color);
@@ -6834,10 +6837,10 @@ main section {
   color: var(--button-text-color);
   fill: var(--newtab-button-text);
   height: 27px;
-  inset-inline-end: -13.5px;
+  inset-inline-end: calc(var(--space-medium) * -1);
   opacity: 0;
   position: absolute;
-  top: -13.5px;
+  inset-block-start: calc(var(--space-medium) * -1);
   transform: scale(0.25);
   transition-duration: 150ms;
   transition-property: transform, opacity;
@@ -6946,7 +6949,7 @@ main section {
   content: "";
   display: block;
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   inset-inline-start: -100%;
   height: 100%;
   width: 100%;
@@ -6974,7 +6977,7 @@ main section {
   opacity: 0;
   width: 100%;
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   transition: opacity;
   transition-duration: 0s;
   padding-block-start: 50%;
@@ -6984,8 +6987,8 @@ main section {
 }
 .ds-card .card-stp-button-hover-background .card-stp-button-position-wrapper {
   position: absolute;
-  inset-inline-end: 10px;
-  inset-block-start: 10px;
+  inset-inline-end: var(--space-small);
+  inset-block-start: var(--space-small);
   display: flex;
   justify-content: end;
   align-items: center;
@@ -6997,7 +7000,7 @@ main section {
   margin-inline-start: var(--space-large);
   inset-inline-start: auto;
   position: absolute;
-  top: 20.25px;
+  inset-block-start: calc(var(--space-xsmall) + var(--space-large));
 }
 .ds-card .card-stp-button-hover-background button,
 .ds-card .card-stp-button-hover-background .context-menu {
@@ -7457,7 +7460,7 @@ main section {
 
 .story-animate-exit {
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   opacity: 1;
 }
 
@@ -7482,7 +7485,7 @@ main section {
 .ds-image .broken-image {
   background-color: var(--newtab-element-secondary-color);
   position: absolute;
-  top: 0;
+  inset-block-start: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -7499,8 +7502,8 @@ main section {
   background-position: center;
   transform: rotate(var(--placeholderBackgroundRotation));
   position: absolute;
-  top: -50%;
-  left: -50%;
+  inset-block-start: -50%;
+  inset-inline-start: -50%;
   width: 200%;
   height: 200%;
   margin-inline-start: var(--placeholderBackgroundOffsetx);
@@ -7527,7 +7530,7 @@ main section {
   justify-content: center;
   position: absolute;
   inset-inline-end: 0;
-  top: 0;
+  inset-block-start: 0;
   border-radius: var(--border-radius-circle);
   background-color: transparent;
 }
@@ -7581,8 +7584,8 @@ main section {
 
 .impression-observer {
   position: absolute;
-  top: 0;
-  right: 0;
+  inset-block-start: 0;
+  inset-inline-end: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
@@ -7643,8 +7646,8 @@ main section {
   animation: spinner 1s linear infinite;
   opacity: 0;
   position: absolute;
-  top: 50%;
-  left: 50%;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
   margin: calc(var(--space-small) * -1) 0 0 calc(var(--space-small) * -1);
   mask-image: url("chrome://newtab/content/data/content/assets/spinner.svg");
   mask-size: 20px;
@@ -8091,7 +8094,7 @@ main section {
   margin-block-end: var(--space-xlarge);
 }
 .feature-highlight .feature-highlight-modal.inset-block-start::after {
-  inset-block-end: -12px;
+  inset-block-end: calc(var(--space-medium) * -1);
   transform: rotate(45deg);
 }
 .feature-highlight .feature-highlight-modal.inset-block-end {
@@ -8099,20 +8102,20 @@ main section {
   margin-block-start: var(--space-xlarge);
 }
 .feature-highlight .feature-highlight-modal.inset-block-end::after {
-  inset-block-start: -12px;
+  inset-block-start: calc(var(--space-medium) * -1);
   transform: rotate(225deg);
 }
 .feature-highlight .feature-highlight-modal.inset-inline-start {
   inset-inline-end: calc(var(--space-xxlarge) * -1);
 }
 .feature-highlight .feature-highlight-modal.inset-inline-start::after {
-  inset-inline-end: calc(var(--space-xxlarge) - 12px);
+  inset-inline-end: calc(var(--space-xxlarge) - var(--space-medium));
 }
 .feature-highlight .feature-highlight-modal.inset-inline-end {
   inset-inline-start: calc(var(--space-xxlarge) * -1);
 }
 .feature-highlight .feature-highlight-modal.inset-inline-end::after {
-  inset-inline-start: calc(var(--space-xxlarge) - 12px);
+  inset-inline-start: calc(var(--space-xxlarge) - var(--space-medium));
 }
 .feature-highlight .feature-highlight-modal p {
   font-size: var(--font-size-small);
@@ -8234,8 +8237,8 @@ main section {
   width: var(--size-item-small);
   position: absolute;
   margin: 0;
-  inset-block-start: calc(var(--space-large) + 2px);
-  inset-inline-end: calc(var(--space-large) + 2px);
+  inset-block-start: calc(var(--space-large) + var(--space-xxsmall));
+  inset-inline-end: calc(var(--space-large) + var(--space-xxsmall));
 }
 @media (prefers-color-scheme: dark) {
   .wallpaper-feature-highlight .icon.icon-dismiss {
@@ -8265,7 +8268,7 @@ main section {
   inset-inline-start: 0;
 }
 .wallpaper-feature-highlight .feature-highlight .feature-highlight-modal.inset-inline-start {
-  inset-inline-end: 50px;
+  inset-inline-end: calc(var(--space-xlarge) * 2);
 }
 .wallpaper-feature-highlight .feature-highlight .feature-highlight-modal.inset-inline-start::after {
   inset-inline-end: calc(var(--arrow-size) / 2 * -1);
@@ -8320,7 +8323,7 @@ main section {
   appearance: none;
   border: none;
   z-index: 2;
-  top: 0;
+  inset-block-start: 0;
   inset-inline: auto 0;
   border-radius: var(--border-radius-small);
   padding: 0;
@@ -8584,10 +8587,10 @@ main section {
   color: var(--button-text-color);
   fill: var(--newtab-button-text);
   height: 27px;
-  inset-inline-end: -13.5px;
+  inset-inline-end: calc(var(--space-medium) * -1);
   opacity: 0;
   position: absolute;
-  top: -13.5px;
+  inset-block-start: calc(var(--space-medium) * -1);
   transform: scale(0.25);
   transition-duration: 150ms;
   transition-property: transform, opacity;
@@ -8917,7 +8920,7 @@ main section {
   inset-inline-end: 100%;
   inset-inline-start: auto;
   margin-inline-end: calc(-0.98 * var(--size-item-large));
-  top: calc(2.25 * var(--size-item-small));
+  inset-block-start: calc(2.25 * var(--size-item-small));
 }
 .ads-context-menu > moz-button {
   padding-block-end: var(--space-small);
@@ -8949,7 +8952,7 @@ main section {
   /* Fix the context menu width */
   width: calc(4 * var(--size-item-large));
   /* Position the context menu on top of the card grid, below the menu button. */
-  top: calc(2.5 * var(--size-item-small));
+  inset-block-start: calc(2.5 * var(--size-item-small));
   inset-inline-start: calc(-6.25 * var(--size-item-small));
 }
 

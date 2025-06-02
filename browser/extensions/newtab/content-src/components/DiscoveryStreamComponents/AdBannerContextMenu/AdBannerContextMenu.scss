@@ -12,7 +12,7 @@
     inset-inline-end: 100%;
     inset-inline-start: auto;
     margin-inline-end: calc(-0.98 * var(--size-item-large));
-    top: calc(2.25 * var(--size-item-small));
+    inset-block-start: calc(2.25 * var(--size-item-small));
   }
 
   > moz-button {
