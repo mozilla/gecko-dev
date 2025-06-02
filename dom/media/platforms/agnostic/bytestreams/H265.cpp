@@ -364,10 +364,12 @@ Result<H265SPS, nsresult> H265::DecodeSPSFromSPSNALU(const H265NALU& aSPSNALU) {
   sps.max_transform_hierarchy_depth_intra = reader.ReadUE();
   const auto scaling_list_enabled_flag = reader.ReadBit();
   if (scaling_list_enabled_flag) {
-    Unused << reader.ReadBit();  // sps_scaling_list_data_present_flag
-    if (auto rv = ParseAndIgnoreScalingListData(reader); rv.isErr()) {
-      LOG("Failed to parse scaling list data.");
-      return Err(NS_ERROR_FAILURE);
+    const auto sps_scaling_list_data_present_flag = reader.ReadBit();
+    if (sps_scaling_list_data_present_flag) {
+      if (auto rv = ParseAndIgnoreScalingListData(reader); rv.isErr()) {
+        LOG("Failed to parse scaling list data.");
+        return Err(NS_ERROR_FAILURE);
+      }
     }
   }
 
