@@ -42,7 +42,7 @@ class WaylandSurface final {
   void SetLoggingWidget(void* aWidget) { mLoggingWidget = aWidget; }
 #endif
 
-  void InitialFrameCallbackHandler(struct wl_callback* aCallback);
+  void ReadyToDrawFrameCallbackHandler(struct wl_callback* aCallback);
   void AddOrFireReadyToDrawCallback(const std::function<void(void)>& aDrawCB);
   void ClearReadyToDrawCallbacks();
 

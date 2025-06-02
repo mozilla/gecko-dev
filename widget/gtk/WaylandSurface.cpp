@@ -106,9 +106,10 @@ WaylandSurface::~WaylandSurface() {
                      "We can't release WaylandSurface with numap callback!");
 }
 
-void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
+void WaylandSurface::ReadyToDrawFrameCallbackHandler(
+    struct wl_callback* callback) {
   LOGWAYLAND(
-      "WaylandSurface::InitialFrameCallbackHandler() "
+      "WaylandSurface::ReadyToDrawFrameCallbackHandler() "
       "mReadyToDrawFrameCallback %p mIsReadyToDraw %d initial_draw callback "
       "%zd\n",
       (void*)mReadyToDrawFrameCallback, (bool)mIsReadyToDraw,
@@ -118,7 +119,7 @@ void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
   AssertIsOnMainThread();
 
   // mReadyToDrawFrameCallback/callback can be nullptr when redering directly
-  // to GtkWidget and InitialFrameCallbackHandler is called by us from main
+  // to GtkWidget and ReadyToDrawFrameCallbackHandler is called by us from main
   // thread by WaylandSurface::Map().
   MOZ_RELEASE_ASSERT(mReadyToDrawFrameCallback == callback);
 
@@ -154,15 +155,16 @@ void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
   }
 }
 
-static void InitialFrameCallbackHandler(void* aWaylandSurface,
-                                        struct wl_callback* callback,
-                                        uint32_t time) {
+static void ReadyToDrawFrameCallbackHandler(void* aWaylandSurface,
+                                            struct wl_callback* callback,
+                                            uint32_t time) {
   auto* waylandSurface = static_cast<WaylandSurface*>(aWaylandSurface);
-  waylandSurface->InitialFrameCallbackHandler(callback);
+  waylandSurface->ReadyToDrawFrameCallbackHandler(callback);
 }
 
-static const struct wl_callback_listener sWaylandSurfaceInitialFrameListener = {
-    ::InitialFrameCallbackHandler};
+static const struct wl_callback_listener
+    sWaylandSurfaceReadyToDrawFrameListener = {
+        ::ReadyToDrawFrameCallbackHandler};
 
 void WaylandSurface::AddReadyToDrawCallbackLocked(
     const WaylandSurfaceLock& aProofOfLock,
@@ -526,7 +528,7 @@ bool WaylandSurface::MapLocked(const WaylandSurfaceLock& aProofOfLock,
   if (aUseReadyToDrawCallback) {
     mReadyToDrawFrameCallback = wl_surface_frame(mParentSurface);
     wl_callback_add_listener(mReadyToDrawFrameCallback,
-                             &sWaylandSurfaceInitialFrameListener, this);
+                             &sWaylandSurfaceReadyToDrawFrameListener, this);
     LOGWAYLAND("    created ready to draw frame callback ID %d\n",
                wl_proxy_get_id((struct wl_proxy*)mReadyToDrawFrameCallback));
   }
