@@ -18,6 +18,8 @@ line <span>by</span> line</pre>
 
 <p id="d">Some <code>code</code> with <span>text</span> with <code>code</code> in <span>it</span></p>
 
+<p id="e">Some <span style="display: table-caption">text in a caption</span> with more text</p>
+
 <script>
   SimpleTest.waitForExplicitFinish();
 
@@ -60,6 +62,9 @@ line <span>by</span> line</pre>
       for (let i = 0; i < expectations.length; ++i)
         testTripleClick(spans[i], expectations[i]);
     }
+
+    testTripleClick(document.getElementById("e"), "Some "); // TODO: Maybe should get the whole paragraph.
+    testTripleClick(document.querySelector("#e span"), "text in a caption");
 
     SimpleTest.finish();
   });
