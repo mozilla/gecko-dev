@@ -3366,4 +3366,4 @@ pref("toolkit.contentRelevancy.log", false);
 // The number of days after which to rotate the context ID. 0 means to disable
 // rotation altogether.
 pref("browser.contextual-services.contextId.rotation-in-days", 0);
-pref("browser.contextual-services.contextId.rust-component.enabled", false);
+pref("browser.contextual-services.contextId.rust-component.enabled", true);
