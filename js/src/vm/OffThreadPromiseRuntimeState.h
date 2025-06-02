@@ -121,6 +121,11 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   JSRuntime* runtime_;
   JS::PersistentRooted<PromiseObject*> promise_;
 
+  // The registered_ flag indicates that this task is counted as part of
+  // numRegistered_ of OffThreadPromiseRuntimeState, which will wait untill
+  // all registered tasks have been run or destroyed.
+  bool registered_;
+
   // Indicates that this is an undispatched cancellable task, which is a member
   // of the Cancellable list.  If cancellable is set to false, we can no longer
   // terminate the task early, this means it is no longer tracked by the
@@ -131,9 +136,6 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   OffThreadPromiseTask(const OffThreadPromiseTask&) = delete;
 
   void unregister(OffThreadPromiseRuntimeState& state);
-  // Used when we want to reuse a lock for unregistration and deletion.
-  void unregister(OffThreadPromiseRuntimeState& state,
-                  const AutoLockHelperThreadState& lock);
 
  protected:
   OffThreadPromiseTask(JSContext* cx, JS::Handle<PromiseObject*> promise);
@@ -160,9 +162,7 @@ class OffThreadPromiseTask : public JS::Dispatchable {
 
  public:
   ~OffThreadPromiseTask() override;
-  static void DestroyUndispatchedTask(OffThreadPromiseTask* task,
-                                      OffThreadPromiseRuntimeState& state,
-                                      const AutoLockHelperThreadState& lock);
+  static void DestroyUndispatchedTask(OffThreadPromiseTask* task);
 
   JSRuntime* runtime() { return runtime_; }
 
@@ -260,22 +260,9 @@ class OffThreadPromiseRuntimeState {
   void* dispatchToEventLoopClosure_;
 
   // A set of all OffThreadPromiseTasks that have successfully called 'init'.
-  // This set doesn't own tasks. OffThreadPromiseTask's destructor decrements
-  // this counter.
+  // This set doesn't own tasks. OffThreadPromiseTask's destructor removes them
+  // from the set.
   HelperThreadLockData<size_t> numRegistered_;
-
-  // Currently, we have a subset of tasks which are not registered with
-  // OffThreadPromiseRuntimeState (as they do not contain a promise), but
-  // still depend on the internalDispatchQueue. These are JS::Dispatchables
-  // that do not inherit from OffThreadPromiseTask, namely
-  // WaitAsyncTimeoutTask. As a result, our assertions are broken. In order
-  // to handle these non-registered tasks, we keep a separate counter for
-  // dispatchables that are passed from the delayed dispatch queue to the
-  // internal dispatch queue.
-  //
-  // This is a temporary fix that allows us to track these tasks.
-  // TODO: remove this once we clean up this behavior.
-  HelperThreadLockData<size_t> numDelayed_;
 
   // The cancellable hashmap tracks the registered, but thusfar
   // undispatched tasks. Not all undispatched tasks are cancellable, namely

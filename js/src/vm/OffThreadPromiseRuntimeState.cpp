@@ -33,7 +33,10 @@ using js::OffThreadPromiseTask;
 
 OffThreadPromiseTask::OffThreadPromiseTask(JSContext* cx,
                                            JS::Handle<PromiseObject*> promise)
-    : runtime_(cx->runtime()), promise_(cx, promise), cancellable_(false) {
+    : runtime_(cx->runtime()),
+      promise_(cx, promise),
+      registered_(false),
+      cancellable_(false) {
   MOZ_ASSERT(runtime_ == promise_->zone()->runtimeFromMainThread());
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime_));
   MOZ_ASSERT(cx->runtime()->offThreadPromiseState.ref().initialized());
@@ -100,12 +103,8 @@ bool OffThreadPromiseTask::InitCancellable(
 }
 
 void OffThreadPromiseTask::unregister(OffThreadPromiseRuntimeState& state) {
-  AutoLockHelperThreadState lock;
-  unregister(state, lock);
-}
-void OffThreadPromiseTask::unregister(OffThreadPromiseRuntimeState& state,
-                                      const AutoLockHelperThreadState& lock) {
   MOZ_ASSERT(registered_);
+  AutoLockHelperThreadState lock;
   if (cancellable_) {
     cancellable_ = false;
     state.cancellable().remove(this);
@@ -156,17 +155,12 @@ void OffThreadPromiseTask::transferToRuntime() {
 }
 
 /* static */
-void OffThreadPromiseTask::DestroyUndispatchedTask(
-    OffThreadPromiseTask* task, OffThreadPromiseRuntimeState& state,
-    const AutoLockHelperThreadState& lock) {
+void OffThreadPromiseTask::DestroyUndispatchedTask(OffThreadPromiseTask* task) {
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(task->runtime_));
   MOZ_ASSERT(task->registered_);
   MOZ_ASSERT(task->cancellable_);
   // Cleanup Steps from 4. in SMDOC for Atomics.waitAsync
   task->prepareForCancel();
-  // unregister with the passed lock. Necessary so that
-  // there is no conflict in js_delete with shutdown code.
-  task->unregister(state, lock);
   js_delete(task);
 }
 
@@ -254,7 +248,6 @@ OffThreadPromiseRuntimeState::OffThreadPromiseRuntimeState()
 
 OffThreadPromiseRuntimeState::~OffThreadPromiseRuntimeState() {
   MOZ_ASSERT(numRegistered_ == 0);
-  MOZ_ASSERT(numDelayed_ == 0);
   MOZ_ASSERT(internalDispatchQueue_.refNoCheck().empty());
   MOZ_ASSERT(!initialized());
 }
@@ -356,7 +349,6 @@ void OffThreadPromiseRuntimeState::dispatchDelayedTasks() {
     queue.popHighest();
 
     AutoEnterOOMUnsafeRegion noOOM;
-    numDelayed_++;
     if (!internalDispatchQueue().pushBack(d.dispatchable())) {
       noOOM.crash("dispatchDelayedTasks");
     }
@@ -387,8 +379,7 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
       dispatchDelayedTasks();
 
       MOZ_ASSERT(!internalDispatchQueueClosed_);
-      MOZ_ASSERT_IF(!internalDispatchQueue().empty(),
-                    numRegistered_ + numDelayed_ > 0);
+      MOZ_ASSERT_IF(!internalDispatchQueue().empty(), numRegistered_ > 0);
       if (internalDispatchQueue().empty() && !internalHasPending(lock)) {
         return;
       }
@@ -402,9 +393,6 @@ void OffThreadPromiseRuntimeState::internalDrain(JSContext* cx) {
 
       d = std::move(internalDispatchQueue().front());
       internalDispatchQueue().popFront();
-      if (!d->registered()) {
-        numDelayed_--;
-      }
     }
 
     // Don't call Run() with lock held to avoid deadlock.
@@ -423,9 +411,8 @@ bool OffThreadPromiseRuntimeState::internalHasPending(
   MOZ_ASSERT(usingInternalDispatchQueue());
 
   MOZ_ASSERT(!internalDispatchQueueClosed_);
-  MOZ_ASSERT_IF(!internalDispatchQueue().empty(),
-                numRegistered_ + numDelayed_ > 0);
-  return numDelayed_ > 0 || numRegistered_ > cancellable().count();
+  MOZ_ASSERT_IF(!internalDispatchQueue().empty(), numRegistered_ > 0);
+  return numRegistered_ > cancellable().count();
 }
 
 void OffThreadPromiseRuntimeState::stealFailedTask(JS::Dispatchable* task) {
@@ -448,7 +435,11 @@ void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
     MOZ_ASSERT(task->cancellable_);
     iter.remove();
 
-    OffThreadPromiseTask::DestroyUndispatchedTask(task, *this, lock);
+    // Don't call DestroyUndispatchedTask() with lock held to avoid deadlock.
+    {
+      AutoUnlockHelperThreadState unlock(lock);
+      OffThreadPromiseTask::DestroyUndispatchedTask(task);
+    }
   }
   MOZ_ASSERT(cancellable().empty());
 
