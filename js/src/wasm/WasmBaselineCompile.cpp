@@ -1189,6 +1189,7 @@ void BaseCompiler::patchHotnessCheck(CodeOffset offset, uint32_t step) {
   // Zero makes the hotness check pointless.  Above 127 is not representable in
   // the short-form Intel encoding.
   MOZ_RELEASE_ASSERT(step > 0 && step <= 127);
+  MOZ_ASSERT(!masm.oom());
   masm.patchSub32FromMemAndBranchIfNegative(offset, Imm32(step));
 }
 
@@ -4309,6 +4310,11 @@ bool BaseCompiler::emitEnd() {
           size_t loopBytecodeSize =
               iter_.lastOpcodeOffset() - controlItem().loopBytecodeStart;
           uint32_t step = BlockSizeToDownwardsStep(loopBytecodeSize);
+          // Don't try to patch the check if we've OOM'd, since the check might
+          // not actually exist.
+          if (masm.oom()) {
+            return false;
+          }
           patchHotnessCheck(controlItem().offsetOfCtrDec, step);
         }
       }
