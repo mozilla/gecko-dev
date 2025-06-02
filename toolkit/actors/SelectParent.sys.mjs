@@ -616,12 +616,12 @@ export var SelectParentHelper = {
       element.childElementCount > SEARCH_MINIMUM_ELEMENTS
     ) {
       // Add a search text field as the first element of the dropdown
-      let searchbox = element.ownerDocument.createXULElement("search-textbox");
+      let searchbox = element.ownerDocument.createElement("moz-input-search");
       searchbox.className = "contentSelectDropdown-searchbox";
       searchbox.addEventListener("input", this.onSearchInput);
       searchbox.addEventListener("focus", this.onSearchFocus.bind(this));
       searchbox.addEventListener("blur", this.onSearchBlur);
-      searchbox.addEventListener("command", this.onSearchInput);
+      searchbox.addEventListener("MozInputSearch:search", this.onSearchInput);
 
       // Handle special keys for exiting search
       searchbox.addEventListener(
