@@ -269,13 +269,11 @@ add_task(async function test_history_search() {
   }, "There are no matching search results.");
 
   info("Clear the search query.");
-  let inputChildren = SpecialPowers.InspectorUtils.getChildrenForNode(
-    searchTextbox.input,
-    true,
-    false
+  EventUtils.synthesizeMouseAtCenter(
+    searchTextbox.clearButton,
+    {},
+    contentWindow
   );
-  let clearButton = inputChildren.find(e => e.localName == "button");
-  EventUtils.synthesizeMouseAtCenter(clearButton, {}, contentWindow);
   await TestUtils.waitForCondition(
     () => !component.lists[0].emptyState,
     "The original cards are restored."
