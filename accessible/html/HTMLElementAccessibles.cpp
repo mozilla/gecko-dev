@@ -157,10 +157,10 @@ uint64_t HTMLSummaryAccessible::NativeState() const {
     return state;
   }
 
+  state |= states::EXPANDABLE;
+
   if (details->Open()) {
     state |= states::EXPANDED;
-  } else {
-    state |= states::COLLAPSED;
   }
 
   return state;

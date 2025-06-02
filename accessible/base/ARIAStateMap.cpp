@@ -148,8 +148,8 @@ bool aria::MapToState(EStateRule aRule, dom::Element* aElement,
     }
 
     case eARIAExpanded: {
-      static const TokenTypeData data(nsGkAtoms::aria_expanded, eBoolType, 0,
-                                      states::EXPANDED, states::COLLAPSED);
+      static const TokenTypeData data(nsGkAtoms::aria_expanded, eBoolType,
+                                      states::EXPANDABLE, states::EXPANDED);
 
       MapTokenType(aElement, aState, data);
       return true;

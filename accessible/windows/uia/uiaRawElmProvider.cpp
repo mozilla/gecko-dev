@@ -255,8 +255,7 @@ void uiaRawElmProvider::RaiseUiaEventForStateChange(Accessible* aAcc,
       newVal.vt = VT_I4;
       newVal.lVal = ToToggleState(aEnabled ? aState : 0);
       break;
-    case states::COLLAPSED:
-    case states::EXPANDED:
+    case states::EXPANDABLE:
     case states::HASPOPUP:
       property = UIA_ExpandCollapseExpandCollapseStatePropertyId;
       newVal.vt = VT_I4;

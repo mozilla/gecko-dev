@@ -179,7 +179,7 @@ static const nsRoleMapEntry sWAIRoleMaps[] = {
     eOpenCloseAction,
     eNoLiveAttr,
     eCombobox,
-    states::COLLAPSED | states::HASPOPUP,
+    states::EXPANDABLE | states::HASPOPUP,
     eARIAAutoComplete,
     eARIAReadonly,
     eARIAOrientation

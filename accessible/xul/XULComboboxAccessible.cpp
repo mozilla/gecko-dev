@@ -49,12 +49,10 @@ uint64_t XULComboboxAccessible::NativeState() const {
     menuList->GetOpen(&isOpen);
     if (isOpen) {
       state |= states::EXPANDED;
-    } else {
-      state |= states::COLLAPSED;
     }
   }
 
-  return state | states::HASPOPUP;
+  return state | states::HASPOPUP | states::EXPANDABLE;
 }
 
 bool XULComboboxAccessible::IsAcceptableChild(nsIContent* aContent) const {
