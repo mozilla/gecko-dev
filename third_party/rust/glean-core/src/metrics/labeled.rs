@@ -408,10 +408,6 @@ pub fn validate_dynamic_label(
         );
         record_error(glean, meta, ErrorType::InvalidLabel, msg, None);
         true
-    } else if label.chars().any(|c| !c.is_ascii() || c.is_ascii_control()) {
-        let msg = format!("label must be printable ascii, got '{}'", label);
-        record_error(glean, meta, ErrorType::InvalidLabel, msg, None);
-        true
     } else {
         false
     };

@@ -408,47 +408,6 @@ fn dynamic_labels_too_long() {
 }
 
 #[test]
-fn dynamic_labels_regex_mismatch() {
-    let (glean, _t) = new_glean(None);
-    let labeled = LabeledCounter::new(
-        LabeledMetricData::Common {
-            cmd: CommonMetricData {
-                name: "labeled_metric".into(),
-                category: "telemetry".into(),
-                send_in_pings: vec!["store1".into()],
-                disabled: false,
-                lifetime: Lifetime::Ping,
-                ..Default::default()
-            },
-        },
-        None,
-    );
-
-    let labels_not_validating = vec!["non-ASCII�"];
-    let num_non_validating = labels_not_validating.len();
-
-    for label in &labels_not_validating {
-        labeled.get(label).add_sync(&glean, 1);
-    }
-
-    let snapshot = StorageManager
-        .snapshot_as_json(glean.storage(), "store1", true)
-        .unwrap();
-
-    assert_eq!(
-        json!({
-            "labeled_counter": {
-                "glean.error.invalid_label": { "telemetry.labeled_metric": num_non_validating },
-                "telemetry.labeled_metric": {
-                    "__other__": num_non_validating,
-                }
-            }
-        }),
-        snapshot
-    );
-}
-
-#[test]
 fn dynamic_labels_regex_allowed() {
     let (glean, _t) = new_glean(None);
     let labeled = LabeledCounter::new(
@@ -473,6 +432,7 @@ fn dynamic_labels_regex_allowed() {
         "_.is_fine",
         "this.is-fine",
         "this-is-fine",
+        "non-ASCII�",
     ];
 
     for label in &labels_validating {
@@ -493,7 +453,8 @@ fn dynamic_labels_regex_allowed() {
                     "thisisfine": 1,
                     "_.is_fine": 1,
                     "this.is-fine": 1,
-                    "this-is-fine": 1
+                    "this-is-fine": 1,
+                    "non-ASCII�": 1,
                 }
             }
         }),

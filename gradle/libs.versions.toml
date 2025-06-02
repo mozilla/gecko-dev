@@ -83,7 +83,7 @@ spotless = "7.0.2"
 
 # Mozilla versions
 apilint = "0.5.4"
-mozilla-glean = "64.3.1"
+mozilla-glean = "64.4.0"
 
 # Testing versions
 androidx-test = "1.6.1"

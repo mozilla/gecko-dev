@@ -70,7 +70,7 @@ uniffi_pipeline = "0.29.2"
 # Shared across multiple application-services consumers.
 rusqlite = "0.33.0"
 # Shared across multiple glean consumers.
-glean = "=64.3.1"
+glean = "=64.4.0"
 
 # Explicitly specify what our profiles use.  The opt-level setting here is
 # a total fiction; see the setup of MOZ_RUST_DEFAULT_FLAGS for what the
