@@ -3253,7 +3253,7 @@ void nsWindow::RecomputeBounds(MayChangeCsdMargin aMayChangeCsdMargin) {
 #endif
     auto result = GdkRectToDevicePixels(b);
 #ifdef MOZ_X11
-    if (isX11 && !gtk_check_version(3, 24, 50)) {
+    if (isX11 && gtk_check_version(3, 24, 50)) {
       if (auto border = GetXWindowBorder(aWin)) {
         // Workaround for
         // https://gitlab.gnome.org/GNOME/gtk/-/merge_requests/8423
