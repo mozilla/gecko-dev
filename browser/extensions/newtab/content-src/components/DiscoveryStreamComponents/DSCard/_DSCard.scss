@@ -247,7 +247,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
   .meta {
     display: flex;
     flex-direction: column;
-    padding: 12px 16px;
+    padding: var(--space-medium) var(--space-large);;
     flex-grow: 1;
 
     .info-wrap {
@@ -315,7 +315,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
   }
 
   &.ds-card-compact-image .img {
-    padding-top: 47%;
+    padding-block-start: 47%;
   }
 
   &.ds-card-image-gradient {
@@ -328,14 +328,14 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
 
     .meta {
-      padding: 3px 15px 11px;
+      padding: var(--space-xxsmall) var(--space-large) var(--space-medium);
     }
   }
 
   &.ds-card-cta-button.variant-a,
   &.ds-card-cta-button.variant-b {
     .img {
-      padding-top: 52.4%;
+      padding-block-start: 52.4%;
     }
 
     .story-sponsored-label {
@@ -360,7 +360,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       background: var(--button-background-color);
       border-radius: var(--border-radius-small);
       border: none;
-      padding: var(--space-xsmall) 16px;
+      padding: var(--space-xsmall) var(--space-large);
       font-size: var(--font-size-small);
       font-weight: var(--font-weight-bold);
       min-height: var(--size-item-large);
@@ -378,7 +378,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       font-size: var(--font-size-root);
       font-weight: var(--font-weight-bold);
       text-align: end;
-      padding: var(--space-xsmall) 16px;
+      padding: var(--space-xsmall) var(--space-large);
       color: var(--newtab-text-primary-color);
       min-height: var(--size-item-large);
     }

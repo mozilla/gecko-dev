@@ -34,7 +34,7 @@
   border: 0;
   border-radius: var(--border-radius-small);
   background-color: transparent;
-  padding: 15px;
+  padding: var(--space-large);
   position: relative;
   background-size: var(--icon-size-default);
   background-position: center;
@@ -123,7 +123,7 @@
     white-space: nowrap;
     display: block;
     background-color: var(--newtab-element-secondary-color);
-    padding: 8px 10px;
+    padding: var(--space-small) var(--space-medium);
     border: $customize-menu-border-tint;
     border-radius: var(--border-radius-small);
     color: var(--newtab-text-primary-color);
@@ -223,8 +223,8 @@
       border: 1px solid var(--newtab-border-color);
       border-radius: var(--border-radius-small);
       appearance: none;
-      padding-block: 7px;
-      padding-inline: 10px 13px;
+      padding-block: var(--space-small);
+      padding-inline: var(--space-small) var(--space-medium);
       margin-inline-start: 2px;
       margin-bottom: 2px;
       -moz-context-properties: fill;
@@ -308,7 +308,7 @@
     fill: var(--newtab-text-primary-color);
     font-size: var(--font-size-small);
     margin-bottom: 20px;
-    padding-inline-start: 21px;
+    padding-inline-start: var(--space-xlarge);
     text-decoration: underline;
 
     &:hover {
@@ -321,8 +321,8 @@
     }
 
     @media (forced-colors: active) {
-      padding: 8px 10px;
-      padding-inline-start: 21px;
+      padding: var(--space-small) var(--space-medium);
+      padding-inline-start: var(--space-xlarge);
     }
 
     &:dir(rtl) {

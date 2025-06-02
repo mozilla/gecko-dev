@@ -1,7 +1,7 @@
 /* stylelint-disable max-nesting-depth */
 
 .collapsible-section {
-  padding: $section-vertical-padding $section-horizontal-padding;
+  padding: var(--space-small) var(--space-xlarge);
 
   .section-title-container {
     margin: 0;
@@ -93,7 +93,7 @@
     $horizontal-padding: 7px;
 
     margin: 0 (-$horizontal-padding);
-    padding: 0 $horizontal-padding;
+    padding: 0 var(--space-small);
 
     &.animating {
       overflow: hidden;

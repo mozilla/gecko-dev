@@ -19,7 +19,7 @@
 
   .try-again-button {
     margin-top: 12px;
-    padding: 6px 32px;
+    padding: var(--space-small) var(--space-xxlarge);
     border-radius: var(--border-radius-small);
     border: 0;
     background: var(--newtab-button-secondary-color);

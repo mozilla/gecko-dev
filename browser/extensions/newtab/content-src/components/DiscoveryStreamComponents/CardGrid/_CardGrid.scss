@@ -22,15 +22,16 @@
 }
 
 .ds-onboarding-container {
-  padding-inline-start: 16px;
-  padding-inline-end: 16px;
+  padding-inline: var(--space-large);
 
   @media (min-width: $break-point-medium) {
-    padding-inline-end: 48px;
+    // Bug 1967304 - Large number (48px)
+    padding-inline-end: calc(var(--space-xlarge) * 2);
   }
 
   @media (min-width: $break-point-large) {
-    padding-inline-end: 56px;
+    // Bug 1967304 - Large number (56px)
+    padding-inline-end: calc(var(--space-xlarge) + var(--space-xxlarge));
   }
 
   margin-bottom: 24px;
@@ -315,7 +316,7 @@
     }
 
     .meta {
-      padding: 12px 0 0;
+      padding: var(--space-medium) 0 0;
     }
   }
 }

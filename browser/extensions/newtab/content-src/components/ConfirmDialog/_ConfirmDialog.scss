@@ -15,8 +15,8 @@
 
   .modal-message {
     display: flex;
-    padding: 16px;
-    padding-bottom: 0;
+    padding: var(--space-large);
+    padding-block-end: 0;
 
     p {
       margin: 0;
@@ -28,12 +28,11 @@
     border: 0;
     display: flex;
     flex-wrap: nowrap;
-    padding: 0 16px;
+    padding: 0 var(--space-large);
 
     button {
       margin-inline-end: 16px;
-      padding-inline-end: 18px;
-      padding-inline-start: 18px;
+      padding-inline: var(--space-large);
       white-space: normal;
       width: 50%;
 

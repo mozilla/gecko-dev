@@ -34,7 +34,7 @@
   border: none;
   cursor: pointer;
   margin-bottom: 25px;
-  padding-inline-start: 24px;
+  padding-inline-start: var(--space-xlarge);
   -moz-context-properties: fill;
   fill: currentColor;
   min-height: 1rem;
@@ -100,7 +100,7 @@
   &:focus {
     border-color: transparent;
     outline-color: var(--color-accent-primary-active);
-    padding: 2px;
+    padding: var(--space-xxsmall);
   }
 }
 
@@ -120,7 +120,7 @@
   &:focus-visible {
     border-color: transparent;
     outline-color: var(--color-accent-primary-active);
-    padding: 2px;
+    padding: var(--space-xxsmall);
   }
 
   // The color picker has a default state where the user has not picked a custom color

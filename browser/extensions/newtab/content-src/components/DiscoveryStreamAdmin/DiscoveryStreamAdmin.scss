@@ -11,7 +11,7 @@
 
   .icon-devtools {
     background-image: url('chrome://global/skin/icons/developer.svg');
-    padding: 15px;
+    padding: var(--space-large);
   }
 
   &:dir(rtl) {
@@ -41,7 +41,6 @@
   height: 100%;
   overflow-y: scroll;
   margin: 0 auto;
-  padding-inline-start: $sidebar-width;
   color: var(--newtab-text-primary-color);
   z-index: 3;
 
@@ -53,7 +52,7 @@
     inset-inline-start: 0;
     position: fixed;
     width: $sidebar-width;
-    padding: 30px 20px;
+    padding: var(--space-xxlarge) var(--space-xlarge);
 
     ul {
       margin: 0;
@@ -62,7 +61,7 @@
     }
 
     li a {
-      padding: 10px 34px;
+      padding: var(--space-medium) var(--space-xxlarge);
       display: block;
       color: var(--lwt-sidebar-text-color);
 
@@ -79,7 +78,7 @@
   h2 .button,
   p .button {
     font-size: inherit;
-    padding: 6px 12px;
+    padding: var(--space-xsmall) var(--space-medium);
     margin-inline-start: 5px;
     margin-bottom: 0;
   }
@@ -107,7 +106,7 @@
   .json-button {
     display: inline-flex;
     font-size: var(--font-size-small);
-    padding: 4px 10px;
+    padding: var(--space-xsmall) var(--space-medium);
     margin-bottom: 6px;
     margin-inline-end: 4px;
 
@@ -139,7 +138,7 @@
       border: 1px solid $border-color;
 
       td {
-        padding: 8px;
+        padding: var(--space-small);
       }
 
       td:first-child {
@@ -158,7 +157,7 @@
       }
 
       td {
-        padding: 4px;
+        padding: var(--space-xsmall);
 
         &[rowspan] {
           border: 1px solid var(--newtab-background-color-secondary);
@@ -174,7 +173,7 @@
 
   .sourceLabel {
     background: var(--newtab-background-color-secondary);
-    padding: 2px 5px;
+    padding: var(--space-xxsmall) var(--space-xsmall);
     border-radius: var(--border-radius-small);
 
     &.isDisabled {
@@ -190,7 +189,7 @@
 
     td {
       vertical-align: top;
-      padding: 8px;
+      padding: var(--space-small);
       border-bottom: 1px solid $border-color;
 
       &.min {
@@ -239,7 +238,7 @@
   pre {
     background: var(--newtab-background-color-secondary);
     margin: 0;
-    padding: 8px;
+    padding: var(--space-small);
     font-size: var(--font-size-small);
     max-width: 750px;
     overflow: auto;
@@ -251,7 +250,7 @@
   }
 
   .helpLink {
-    padding: 10px;
+    padding: var(--space-medium);
     display: flex;
     background: $black-10;
     border-radius: var(--border-radius-small);
@@ -277,7 +276,7 @@
 
   .clearButton {
     border: 0;
-    padding: 4px;
+    padding: var(--space-xsmall);
     border-radius: var(--border-radius-small);
     display: flex;
 
@@ -314,7 +313,7 @@
     .impressions-item {
       display: flex;
       flex-flow: column nowrap;
-      padding: 8px;
+      padding: var(--space-small);
       border: 1px solid $border-color;
       border-radius: var(--border-radius-small);
 

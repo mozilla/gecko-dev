@@ -17,7 +17,7 @@
   > ul {
     list-style: none;
     margin: 0;
-    padding: $context-menu-outer-padding 0;
+    padding: var(--space-xsmall) 0;
 
     > li {
       margin: 0;
@@ -37,7 +37,7 @@
         width: 100%;
         outline: none;
         border: 0;
-        padding: $context-menu-item-padding;
+        padding: var(--space-xsmall) var(--space-medium);
         white-space: nowrap;
 
         &:is(:focus, :hover) {

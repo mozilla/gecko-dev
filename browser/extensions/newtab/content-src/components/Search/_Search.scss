@@ -7,29 +7,32 @@ $search-button-width: 48px;
 $glyph-forward: url('chrome://browser/skin/forward.svg');
 
 .search-wrapper {
-  padding: 34px 0 38px;
+  padding: var(--space-xxlarge) 0;
 
   // Bug 1914055 - Layout experiment: search spacing
   .layout-variant-a &,
   .layout-variant-b & {
-    padding-top: 0;
-    padding-bottom: 32px;
+    padding-block-start: 0;
+    padding-block-end: var(--space-xxlarge);
   }
 
   // Edge case for users who have pocket stories turned off
   .layout-variant-a.no-recommended-stories &,
   .layout-variant-b.no-recommended-stories & {
-    padding-bottom: 40px;
+    // Bug 1967304 - Large number (40px)
+    padding-block-end: calc(var(--space-large) + var(--space-xlarge));
   }
 
   // Edge case for users who have only search enabled
   .layout-variant-a .only-search &,
   .layout-variant-b .only-search & {
-    padding-bottom: 40px;
+    // Bug 1967304 - Large number (40px)
+    padding-block-end: calc(var(--space-large) + var(--space-xlarge));
   }
 
   .only-search & {
-    padding: 0 0 38px;
+    // Bug 1967304 - Large number (40px)
+    padding: 0 0 calc(var(--space-large) + var(--space-xlarge));
   }
 
   .search-inner-wrapper {
@@ -69,7 +72,8 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     // Bug 1966715: Offset padding of the submit button so the reset button is visible
     &.no-handoff {
       input {
-        padding-inline-end: calc($search-button-width + var(--space-medium));
+        // Bug 1967304 - calc ($var)
+        padding-inline-end: calc($search-button-width + var(--space-medium)); // stylelint-disable-line declaration-property-value-disallowed-list
       }
     }
 
@@ -79,8 +83,9 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   input {
     background: var(--newtab-background-color-secondary) var(--newtab-search-icon) $search-icon-padding center no-repeat;
     background-size: $search-icon-size;
-    padding-inline-start: $search-icon-width;
-    padding-inline-end: 10px;
+    // Bug 1967304 - $variable
+    padding-inline-start: $search-icon-width; // stylelint-disable-line declaration-property-value-disallowed-list
+    padding-inline-end: var(--space-small);
     padding-block: 0;
     width: 100%;
     box-shadow: $shadow-card;
@@ -144,7 +149,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   }
 
   .search-handoff-button {
-    padding-inline-end: 15px;
+    padding-inline-end: var(--space-large);
     color: var(--newtab-text-primary-color);
     fill: var(--newtab-text-secondary-color);
     -moz-context-properties: fill;
@@ -291,7 +296,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
 
 @media (height <= 700px) {
   .search-wrapper {
-    padding: 0 0 30px;
+    padding: 0 0 var(--space-xxlarge);
   }
 }
 
@@ -304,8 +309,8 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
   cursor: text;
   font-size: inherit;
   padding: 0;
-  padding-inline-end: 48px;
-  padding-inline-start: 46px;
+  // Bug 1967304 - Large number (48px)
+  padding-inline: calc(var(--space-xlarge) * 2);
   opacity: 1;
   width: 100%;
 
@@ -386,7 +391,7 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
       $search-header-bar-height: 95px;
 
       border-bottom: solid 1px var(--newtab-border-color);
-      padding: 27px 0;
+      padding: var(--space-xlarge) 0;
       background-color: var(--newtab-overlay-color);
       min-height: $search-header-bar-height;
       left: 0;
@@ -418,11 +423,11 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
     }
 
     .search-handoff-button {
-      background-position-x: $search-icon-padding;
+      background-position-x: var(--space-large);
       background-size: $search-icon-size;
 
       &:dir(rtl) {
-        background-position-x: right $search-icon-padding;
+        background-position-x: right var(--space-large);
       }
 
       .fake-caret {

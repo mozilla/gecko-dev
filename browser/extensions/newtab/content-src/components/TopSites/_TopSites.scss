@@ -175,7 +175,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     position: relative;
 
     > a {
-      padding: 20px $half-base-gutter 4px;
+      padding: var(--space-large) var(--space-large) var(--space-xsmall);
       color: inherit;
       display: block;
       outline: none;
@@ -356,7 +356,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
   .title {
     color: var(--newtab-contextual-text-primary-color);
-    padding-top: 8px;
+    padding-block-start: var(--space-small);
     font: caption;
     text-align: center;
     position: relative;
@@ -416,7 +416,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     }
 
     .top-site-button {
-      padding: 20px 16px 6px;
+      padding: var(--space-large) var(--space-large) var(--space-small);
 
       &:focus + div .context-menu-button {
         opacity: 1;
@@ -576,7 +576,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   .form-input-container {
     max-width: $form-width + 3 * $form-spacing + $rich-icon-size;
     margin: 0 auto;
-    padding: $form-spacing;
+    padding: var(--space-xxlarge);
 
     .top-site-outer {
       pointer-events: none;
@@ -586,7 +586,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   .search-shortcuts-container {
     max-width: 700px;
     margin: 0 auto;
-    padding: $form-spacing;
+    padding: var(--space-xxlarge);
 
     > div {
       margin-inline-end: -39px;
@@ -628,11 +628,11 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
     .url {
       input:dir(ltr) {
-        padding-right: 32px;
+        padding-inline-end: var(--space-xxlarge);
       }
 
       input:dir(rtl) {
-        padding-left: 32px;
+        padding-inline-start: var(--space-xxlarge);
 
         &:not(:placeholder-shown) {
           direction: ltr;
@@ -690,7 +690,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
         background-color: var(--newtab-background-color-secondary);
         border: $input-border;
         margin: 8px 0;
-        padding: 0 8px;
+        padding: 0 var(--space-small);
         height: 32px;
         width: 100%;
         font-size: inherit;
@@ -718,7 +718,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       border-radius: var(--border-radius-small);
       color: $white;
       inset-inline-start: 3px;
-      padding: 5px 12px;
+      padding: var(--space-xsmall) var(--space-medium);
       position: absolute;
       top: 44px;
       z-index: 1;

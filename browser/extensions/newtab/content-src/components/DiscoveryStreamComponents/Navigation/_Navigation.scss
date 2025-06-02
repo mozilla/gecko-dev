@@ -4,7 +4,7 @@
   color: var(--newtab-contextual-text-primary-color);
   font-size: var(--font-size-small);
   font-weight: var(--font-weight-bold);
-  padding: 4px 0;
+  padding: var(--space-xsmall) 0;
 
   @media (min-width: $break-point-widest) {
     line-height: 32px;
@@ -32,7 +32,7 @@
 
     &::after {
       content: '·';
-      padding: 6px;
+      padding: var(--space-xsmall);
     }
 
     &:last-child::after {
@@ -52,11 +52,11 @@
   }
 
   .ds-navigation-header {
-    padding-inline-end: 6px;
+    padding-inline-end: var(--space-xsmall);
   }
 
   .ds-navigation-privacy {
-    padding-inline-start: 6px;
+    padding-inline-start: var(--space-xsmall);
     float: inline-end;
 
     &:hover {
@@ -66,7 +66,7 @@
 
   &.ds-navigation-new-topics {
     display: block;
-    padding-top: 32px;
+    padding-block-start: var(--space-xxlarge);
 
     .ds-navigation-header {
       font-size: var(--font-size-small);

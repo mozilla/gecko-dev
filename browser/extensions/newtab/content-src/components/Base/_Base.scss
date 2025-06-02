@@ -3,19 +3,20 @@
   display: flex;
   flex-grow: 1;
   min-height: 100vh;
-  padding: ($section-spacing + $section-vertical-padding) $base-gutter $base-gutter;
+  padding: var(--space-xxlarge);
 
   &.ds-outer-wrapper-breakpoint-override {
-    padding: 30px 0 32px;
+    padding: var(--space-xxlarge) 0;
 
     @media(min-width: $break-point-medium) {
-      padding: 30px 32px 32px;
+      padding: var(--space-xxlarge);
     }
   }
 
   &.only-search {
     display: block;
-    padding-top: 134px;
+    // Bug 1967304 - Large number (128px)
+    padding-block-start: calc(var(--space-xxlarge) * 4);
   }
 
   a {
@@ -40,7 +41,7 @@ main {
   }
 
   section {
-    margin-bottom: $section-spacing;
+    margin-block-end: $section-spacing;
     position: relative;
   }
 
@@ -72,7 +73,7 @@ main {
 .ds-outer-wrapper-breakpoint-override {
   main {
     width: 266px;
-    padding-bottom: 0;
+    padding-block-end: 0;
 
     @media (min-width: $break-point-medium) {
       width: 510px;
@@ -191,7 +192,7 @@ main {
 }
 
 .non-collapsible-section {
-  padding: 0 $section-horizontal-padding;
+  padding: 0 var(--space-xlarge);
 
   // Bug 1914053 - Layout experiment: search bar width
   .layout-variant-a &,
@@ -207,7 +208,7 @@ main {
     border-radius: var(--button-border-radius);
     cursor: pointer;
     inset-inline-end: 15px;
-    padding: 15px;
+    padding: var(--space-large);
     position: fixed;
     top: 15px;
     z-index: 1000;
@@ -224,7 +225,7 @@ main {
 }
 
 .wallpaper-attribution {
-  padding: 0 $section-horizontal-padding;
+  padding: 0 var(--space-xlarge);
   font-size: var(--font-size-small);
   color: var(--newtab-contextual-text-primary-color);
 

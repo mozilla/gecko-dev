@@ -10,7 +10,7 @@
 }
 
 .ds-collection-card-grid {
-  padding: 10px 25px 25px;
+  padding: var(--space-small) var(--space-xlarge) var(--space-xlarge);
   margin: 0 0 20px;
 
   .story-footer {
@@ -18,7 +18,8 @@
   }
 
   .ds-header {
-    padding: 0 40px 0 0;
+    padding: 0;
+    padding-inline-end: var(--space-xxlarge);
     margin-bottom: 12px;
 
     .title {

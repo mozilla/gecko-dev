@@ -96,7 +96,7 @@
 
   // CollapsibleSection.scss
   .collapsible-section {
-    padding: 0 $section-horizontal-padding;
+    padding: 0 var(--space-xlarge);
     margin-bottom: var(--space-xxlarge);
   }
 

@@ -1,7 +1,7 @@
 .ds-signup {
   max-width: 300px;
   margin: 0 auto;
-  padding: 8px;
+  padding: var(--space-small);
   position: relative;
   text-align: center;
   font-size: var(--font-size-large);

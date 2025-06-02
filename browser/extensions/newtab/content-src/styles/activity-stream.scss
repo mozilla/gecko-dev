@@ -89,7 +89,7 @@ h2 {
   flex-wrap: wrap;
   justify-content: flex-start;
   margin: 0;
-  padding: 15px 25px 0;
+  padding: var(--space-large) var(--space-xlarge) 0;
 }
 
 // Default button (grey)
@@ -101,7 +101,7 @@ h2 {
   color: inherit;
   cursor: pointer;
   margin-bottom: 15px;
-  padding: 10px 30px;
+  padding: var(--space-small) var(--space-xxlarge);
   white-space: nowrap;
 
   &:hover:not(.dismiss),

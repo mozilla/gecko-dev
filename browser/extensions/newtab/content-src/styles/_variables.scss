@@ -69,8 +69,9 @@ $photon-easing: cubic-bezier(0.07, 0.95, 0, 1);
 // Grid related styles
 $base-gutter: 32px;
 $section-horizontal-padding: 25px;
+$vars-section-horizontal-padding: 25px;
 $section-vertical-padding: 10px;
-$section-spacing: 40px - $section-vertical-padding * 2;
+$section-spacing: 40px - $section-vertical-padding * 2; // 20px
 $grid-unit: 96px; // 1 top site
 // New Tab Experience grid unit needs to be smaller, but for now we are changing
 // this UI with a pref, so requires duplication.
@@ -85,12 +86,12 @@ $searchbar-width-medium: ($grid-unit * 4 + $base-gutter * 3) - 120px; // 360px
 $searchbar-width-large: ($grid-unit * 6 + $base-gutter * 5) - 136px; // 600px
 $searchbar-width-largest: ($grid-unit * 6 + $base-gutter * 5) - 16px; // 720px
 
-$wrapper-default-width: $grid-unit * 2 + $base-gutter * 1 + $section-horizontal-padding * 2; // 2 top sites
-$wrapper-max-width-medium: $grid-unit * 4 + $base-gutter * 3 + $section-horizontal-padding * 2; // 4 top sites
-$wrapper-max-width-large: $grid-unit * 6 + $base-gutter * 5 + $section-horizontal-padding * 2; // 6 top sites
-$wrapper-max-width-widest: $grid-unit * 8 + $base-gutter * 7 + $section-horizontal-padding * 2; // 8 top sites
-$wrapper-max-width-weather: $grid-unit * 12 + $base-gutter * 7 + $section-horizontal-padding * 2; // Weather visible
-$wrapper-max-width-ultra-wide: $grid-unit * 14 + $base-gutter * 7 + $section-horizontal-padding * 2; // 8 top sites 4 stories
+$wrapper-default-width: $grid-unit * 2 + $base-gutter * 1 + $vars-section-horizontal-padding * 2; // 2 top sites
+$wrapper-max-width-medium: $grid-unit * 4 + $base-gutter * 3 + $vars-section-horizontal-padding * 2; // 4 top sites
+$wrapper-max-width-large: $grid-unit * 6 + $base-gutter * 5 + $vars-section-horizontal-padding * 2; // 6 top sites
+$wrapper-max-width-widest: $grid-unit * 8 + $base-gutter * 7 + $vars-section-horizontal-padding * 2; // 8 top sites
+$wrapper-max-width-weather: $grid-unit * 12 + $base-gutter * 7 + $vars-section-horizontal-padding * 2; // Weather visible
+$wrapper-max-width-ultra-wide: $grid-unit * 14 + $base-gutter * 7 + $vars-section-horizontal-padding * 2; // 8 top sites 4 stories
 // For the breakpoints, we need to add space for the scrollbar to avoid weird
 // layout issues when the scrollbar is visible. 16px is wide enough to cover all
 // OSes and keeps it simpler than a per-OS value.

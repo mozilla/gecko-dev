@@ -16,12 +16,13 @@
 .ds-text-promo {
   max-width: 640px;
   margin: 0;
-  padding: 18px;
+  padding: var(--space-large);
 
   @media(min-width: $break-point-medium) {
     display: flex;
     margin: 18px 24px;
-    padding: 0 32px 0 0;
+    padding: 0;
+    padding-inline-end: var(--space-xxlarge);
   }
 
   .ds-image {

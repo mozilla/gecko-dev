@@ -10,7 +10,7 @@
   position: relative;
   border-radius: var(--space-small);
   box-shadow: $shadow-large;
-  padding: var(--size-item-large);
+  padding: var(--space-xxlarge);
   max-width: 745px;
   height: auto;
 
@@ -103,8 +103,8 @@
     display: flex;
     justify-self: center;
     max-width: fit-content;
-    padding-block: 6px;
-    padding-inline: 6px var(--size-item-small);
+    padding-block: var(--space-xsmall);
+    padding-inline: var(--space-xsmall) var(--space-large);
     position: relative;
 
     &:hover {

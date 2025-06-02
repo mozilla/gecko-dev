@@ -132,10 +132,10 @@
 // Edge case: users with weather enabled/search disabled
 .has-weather.no-search {
   .outer-wrapper {
-    padding-top: 0;
+    padding-block-start: 0;
 
     @media (min-width: $break-point-medium) {
-      padding-top: 30px;
+      padding-block-start: var(--space-xxlarge);
     }
   }
 }
@@ -144,7 +144,7 @@
 .layout-variant-a.has-weather.no-search,
 .layout-variant-b.has-weather.no-search {
   .outer-wrapper {
-    padding-top: 24px;
+    padding-block-start: var(--space-xlarge);
   }
 }
 
@@ -235,10 +235,10 @@
 // Edge case: users with weather enabled/search enabled
 .has-weather.has-search {
   .outer-wrapper:not(.only-search) {
-    padding-top: 0;
+    padding-block-start: 0;
 
     @media (min-width: $break-point-medium) {
-      padding-top: 30px;
+      padding-block-start: var(--space-xxlarge);
     }
   }
 
@@ -273,7 +273,7 @@
 .layout-variant-a.has-weather.has-search,
 .layout-variant-b.has-weather.has-search {
   .outer-wrapper:not(.only-search) {
-    padding-top: 24px;
+    padding-block-start: var(--space-xlarge);
   }
 }
 
@@ -743,8 +743,7 @@
   input {
     border-radius: var(--border-radius-medium);
     background-color: light-dark(var(--color-white), var(--newtab-background-color-secondary));
-    padding-block: 8px;
-    padding-inline: 30px;
+    padding: var(--space-small) var(--space-xxlarge);
     border: $border-primary;
 
     &:focus-visible {

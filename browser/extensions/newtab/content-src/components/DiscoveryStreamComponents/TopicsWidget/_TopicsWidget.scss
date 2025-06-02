@@ -33,7 +33,7 @@
         a {
           font-size: var(--font-size-small);
           text-decoration: none;
-          padding: 8px 15px;
+          padding: var(--space-small) var(--space-medium);
           background: var(--newtab-background-color-secondary);
           border: 1px solid color-mix(in srgb, var(--newtab-border-color) 52%, transparent);
           color: var(--newtab-text-primary-color);
@@ -69,7 +69,7 @@
     margin: 14px 0 0;
     font-size: inherit;
     text-align: center;
-    padding: 8px;
+    padding: var(--space-small);
     border-radius: var(--border-radius-small);
     background-color: var(--newtab-primary-action-background-pocket);
     border: 0;

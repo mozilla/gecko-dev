@@ -113,7 +113,7 @@
   }
 
   .card-details {
-    padding: 15px 16px 12px;
+    padding: var(--space-large) var(--space-large) var(--space-medium);
   }
 
   .card-text {
@@ -139,7 +139,7 @@
     color: var(--newtab-text-secondary-color);
     font-size: var(--font-size-small);
     overflow: hidden;
-    padding-bottom: 4px;
+    padding-block-end: var(--space-xsmall);
     text-overflow: ellipsis;
     text-transform: uppercase;
     white-space: nowrap;
@@ -169,7 +169,7 @@
     display: flex;
     font-size: var(--font-size-small);
     inset-inline-start: 0;
-    padding: 9px 16px 9px 14px;
+    padding: var(--space-small) var(--space-large);
     position: absolute;
   }
 
@@ -201,7 +201,7 @@
       }
 
       .card-details {
-        padding: 13px 16px 12px;
+        padding: var(--space-medium) var(--space-large);
       }
 
       .card-text {
@@ -210,7 +210,7 @@
 
       .card-host-name {
         font-size: var(--font-size-small);
-        padding-bottom: 5px;
+        padding-block-end: var(--space-xsmall);
       }
 
       .card-title {
@@ -251,7 +251,7 @@
     }
 
     .card-details {
-      padding: $card-detail-vertical-spacing 16px;
+      padding: var(--space-medium) var(--space-large);
     }
 
     .card-host-name {
@@ -265,7 +265,7 @@
         line-height: $card-title-font-size + 1;
         max-height: $card-title-font-size + 5;
         overflow: hidden;
-        padding: 0 0 4px;
+        padding: 0 0 var(--space-xsmall);
         text-overflow: ellipsis;
         white-space: nowrap;
       }
@@ -284,7 +284,7 @@
       clip-path: inset(-1px -1px $container-size - ($card-height-compact - $card-preview-image-height-compact - 2 * $card-detail-vertical-spacing));
       height: $container-size;
       width: $container-size;
-      padding: math.div($container-size - $icon-size, 2);
+      padding: var(--space-small);
       // The -1 at the end is so both opacity borders don't overlap, which causes bug 1629483
       top: $card-preview-image-height-compact - math.div($container-size, 2) - 1;
       inset-inline-end: 12px;
