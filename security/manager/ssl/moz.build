@@ -214,6 +214,7 @@ LOCAL_INCLUDES += [
     "/netwerk/base",
     "/security/certverifier",
     "/third_party/rust/cose-c/include",
+    "/xpcom/base",
     "/xpcom/build",
 ]
 

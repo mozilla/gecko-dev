@@ -9,6 +9,7 @@
 #include "base/command_line.h"
 #include "base/process_util.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Logging.h"
 #include "mozilla/Omnijar.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
@@ -34,6 +35,10 @@
 
 using mozilla::StaticMutexAutoLock;
 using mozilla::Unused;
+using namespace nsMacUtilsImpl;
+
+static mozilla::LazyLogModule sMacUtilsLog("macutils");
+#define LOG(args...) MOZ_LOG(sMacUtilsLog, mozilla::LogLevel::Debug, (args))
 
 #if defined(MOZ_SANDBOX) || defined(__aarch64__)
 // For thread safe setting/checking of sCachedAppPath
@@ -540,5 +545,194 @@ int nsMacUtilsImpl::PreTranslateBinary(nsCString aBinaryPath) {
   const char* pathPtr = aBinaryPath.get();
   return rosetta_translate_binaries(&pathPtr, 1);
 }
-
 #endif
+
+std::string CFStringToStdString(CFStringRef aString) {
+  if (!aString) {
+    return std::string();
+  }
+
+  CFIndex length = CFStringGetLength(aString);
+  CFIndex maxSize =
+      CFStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8) + 1;
+  mozilla::UniquePtr<char[]> buffer = mozilla::MakeUnique<char[]>(maxSize);
+  if (!buffer) {
+    return std::string();
+  }
+
+  if (CFStringGetCString(aString, buffer.get(), maxSize,
+                         kCFStringEncodingUTF8)) {
+    std::string result(buffer.get());
+    return result;
+  }
+
+  return std::string();
+}
+
+//
+// Read the code signature information of the binary at `aPath` and return
+// A string description of the signature type in `aSignatureType`. Returns
+// CodeSignatureType::UnexpectedError if a failure occurs while reading the
+// signature information.
+//
+CodeSignatureType GetSignatureTypeImpl(const nsCString& aPath) {
+  LOG("Reading code signature: %s", aPath.get());
+  CFStringRef pathRef = CFStringCreateWithCString(
+      kCFAllocatorDefault, aPath.get(), kCFStringEncodingUTF8);
+  if (!pathRef) {
+    return CodeSignatureType::UnexpectedError;
+  }
+
+  CFURLRef fileURLRef = CFURLCreateWithFileSystemPath(
+      kCFAllocatorDefault, pathRef, kCFURLPOSIXPathStyle, false);
+  CFRelease(pathRef);
+  if (!fileURLRef) {
+    return CodeSignatureType::UnexpectedError;
+  }
+
+  // Create a static code object. Due to return value semantics being
+  // underspecified in the API documentation, we have some duplicate checks
+  // for unsigned code. We expect SecStaticCodeCheckValidity to return
+  // errSecCSUnsigned. In testing, SecStaticCodeCreateWithPath succeeds for
+  // unsigned code. SecStaticCodeCheckValidity fails for unsigned code.
+  // Having no kSecCodeInfoFlags is documented as an indicator of unsigned
+  // code.
+  SecStaticCodeRef staticCode = nullptr;
+  OSStatus status =
+      SecStaticCodeCreateWithPath(fileURLRef, kSecCSDefaultFlags, &staticCode);
+  CFRelease(fileURLRef);
+  if (status != errSecSuccess) {
+    if (staticCode) {
+      CFRelease(staticCode);
+    }
+    if (status == errSecCSUnsigned) {
+      return CodeSignatureType::Unsigned;
+    }
+    LOG("SecStaticCodeCreateWithPath failure: %d", (int)status);
+    return CodeSignatureType::UnexpectedError;
+  }
+
+  // Check validity and determine if unsigned
+  status = SecStaticCodeCheckValidity(staticCode, kSecCSDefaultFlags, nullptr);
+  if (status != errSecSuccess) {
+    CFRelease(staticCode);
+    if (status == errSecCSUnsigned) {
+      return CodeSignatureType::Unsigned;
+    }
+    LOG("SecStaticCodeCheckValidity failure: %d", (int)status);
+    return CodeSignatureType::UnexpectedError;
+  }
+
+  // Retrieve more detailed signing information dictionary
+  CFDictionaryRef signingInfo = nullptr;
+  status = SecCodeCopySigningInformation(staticCode, kSecCSSigningInformation,
+                                         &signingInfo);
+  CFRelease(staticCode);
+  if (status != errSecSuccess || !signingInfo) {
+    if (signingInfo) {
+      CFRelease(signingInfo);
+    }
+    LOG("SecCodeCopySigningInformation failure: %d", (int)status);
+    return CodeSignatureType::UnexpectedError;
+  }
+
+  CFNumberRef flagsRef =
+      (CFNumberRef)CFDictionaryGetValue(signingInfo, kSecCodeInfoFlags);
+  if (!flagsRef) {
+    // Is it signed? No kSecCodeInfoFlags key indicates unsigned
+    // code per SecCodeCopySigningInformation documentation.
+    CFRelease(signingInfo);
+    return CodeSignatureType::Unsigned;
+  }
+
+  // Check Code Directory flags for ad-hoc signing
+  uint32_t codeDirectoryFlags = 0;
+  CFNumberGetValue(flagsRef, kCFNumberSInt32Type, &codeDirectoryFlags);
+
+  CFArrayRef certificates =
+      (CFArrayRef)CFDictionaryGetValue(signingInfo, kSecCodeInfoCertificates);
+  if (!certificates) {
+    CodeSignatureType rv;
+    if (codeDirectoryFlags & kSecCodeSignatureAdhoc) {
+      // Ad-hoc signature with no certificates
+      rv = CodeSignatureType::AdHoc;
+    } else {
+      // No certificates found and not ad-hoc
+      LOG("NULL certificates array");
+      rv = CodeSignatureType::Other;
+    }
+    CFRelease(signingInfo);
+    return rv;
+  }
+
+  if (CFArrayGetCount(certificates) == 0) {
+    LOG("Zero length certificates array");
+    CFRelease(signingInfo);
+    return CodeSignatureType::Other;
+  }
+
+  // Extract the leaf certificate common name.
+  // The leaf certificate is the first one in the array.
+  SecCertificateRef leafCert =
+      (SecCertificateRef)CFArrayGetValueAtIndex(certificates, 0);
+  CFStringRef commonNameRef = nullptr;
+  std::string commonName;
+  if (SecCertificateCopyCommonName(leafCert, &commonNameRef) != errSecSuccess ||
+      !commonNameRef) {
+    if (commonNameRef) {
+      CFRelease(commonNameRef);
+    }
+    CFRelease(signingInfo);
+    // No leaf common name
+    LOG("No leaf common name");
+    return CodeSignatureType::Other;
+  }
+
+  commonName = CFStringToStdString(commonNameRef);
+  LOG("Leaf common name: %s", commonName.c_str());
+  CFRelease(commonNameRef);
+  CFRelease(signingInfo);
+
+  // Classify signature based on leaf certificate common name
+  if (commonName == "Apple Mac OS Application Signing") {
+    return CodeSignatureType::AppStore;
+  } else if (commonName == "Software Signing") {
+    return CodeSignatureType::AppleSystem;
+  } else if (commonName.find("Developer ID Application:") !=
+             std::string::npos) {
+    return CodeSignatureType::DeveloperID;
+  } else if (commonName.find("Apple Development:") != std::string::npos) {
+    return CodeSignatureType::Development;
+  } else {
+    return CodeSignatureType::Other;
+  }
+}
+
+CodeSignatureType nsMacUtilsImpl::GetSignatureType(const nsCString& aPath) {
+  CodeSignatureType signatureType = GetSignatureTypeImpl(aPath);
+  LOG("Code signature type for module %s: %s", aPath.get(),
+      CodeSignatureTypeToString(signatureType).get());
+  return signatureType;
+}
+
+nsCString nsMacUtilsImpl::CodeSignatureTypeToString(CodeSignatureType aType) {
+  switch (aType) {
+    case CodeSignatureType::UnexpectedError:
+      return "Unexpected Error"_ns;
+    case CodeSignatureType::Unsigned:
+      return "Unsigned"_ns;
+    case CodeSignatureType::AdHoc:
+      return "Ad-Hoc"_ns;
+    case CodeSignatureType::DeveloperID:
+      return "Developer ID"_ns;
+    case CodeSignatureType::AppStore:
+      return "App Store"_ns;
+    case CodeSignatureType::AppleSystem:
+      return "Apple System"_ns;
+    case CodeSignatureType::Development:
+      return "Development"_ns;
+    case CodeSignatureType::Other:
+      return "Other"_ns;
+  }
+  return "Unknown"_ns;
+}

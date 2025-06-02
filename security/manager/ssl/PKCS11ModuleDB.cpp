@@ -17,6 +17,11 @@
 #include "nsPKCS11Slot.h"
 #include "nsServiceManagerUtils.h"
 
+#if defined(XP_MACOSX)
+#  include "nsMacUtilsImpl.h"
+#  include "nsIFile.h"
+#endif  // defined(XP_MACOSX)
+
 namespace mozilla {
 namespace psm {
 
@@ -72,6 +77,56 @@ PKCS11ModuleDB::DeleteModule(const nsAString& aModuleName) {
   return NS_OK;
 }
 
+#if defined(XP_MACOSX)
+// Given a path to a module, return the filename in `aFilename`.
+nsresult ModulePathToFilename(const nsCString& aModulePath,
+                              nsCString& aFilename) {
+  nsCOMPtr<nsIFile> file;
+  nsresult rv =
+      NS_NewLocalFile(NS_ConvertUTF8toUTF16(aModulePath), getter_AddRefs(file));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoString filename;
+  rv = file->GetLeafName(filename);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  aFilename = NS_ConvertUTF16toUTF8(filename);
+  return NS_OK;
+}
+
+// Collect the signature type and filename of a third-party PKCS11 module to
+// inform future decisions about module loading restrictions on macOS.
+void CollectThirdPartyModuleSignatureType(const nsCString& aModulePath) {
+  using mozilla::glean::pkcs11::third_party_module_signature_type;
+  using mozilla::glean::pkcs11::ThirdPartyModuleSignatureTypeExtra;
+  using nsMacUtilsImpl::CodeSignatureTypeToString;
+
+  nsMacUtilsImpl::CodeSignatureType signatureType =
+      nsMacUtilsImpl::GetSignatureType(aModulePath);
+
+  nsCString filename;
+  nsresult rv = ModulePathToFilename(aModulePath, filename);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  nsCString signatureTypeStr(CodeSignatureTypeToString(signatureType));
+  third_party_module_signature_type.Record(
+      Some(ThirdPartyModuleSignatureTypeExtra{
+          Some(filename),
+          Some(signatureTypeStr),
+      }));
+}
+
+// Collect the filename of a third-party PKCS11 module to inform future
+// decisions about module loading restrictions on macOS.
+void CollectThirdPartyModuleFilename(const nsCString& aModulePath) {
+  using mozilla::glean::pkcs11::third_party_module_profile_entries;
+  nsCString filename;
+  nsresult rv = ModulePathToFilename(aModulePath, filename);
+  NS_ENSURE_SUCCESS_VOID(rv);
+  third_party_module_profile_entries.Add(filename);
+}
+#endif  // defined(XP_MACOSX)
+
 // Add a new PKCS11 module to the user's profile.
 NS_IMETHODIMP
 PKCS11ModuleDB::AddModule(const nsAString& aModuleName,
@@ -119,6 +174,10 @@ PKCS11ModuleDB::AddModule(const nsAString& aModuleName,
     return NS_ERROR_FAILURE;
   }
   certVerifier->ClearTrustCache();
+
+#if defined(XP_MACOSX)
+  CollectThirdPartyModuleSignatureType(fullPath);
+#endif  // defined(XP_MACOSX)
 
   CollectThirdPartyPKCS11ModuleTelemetry();
 
@@ -206,7 +265,7 @@ const nsLiteralCString kBuiltInModuleNames[] = {
     kIPCClientCertsModuleName,
 };
 
-void CollectThirdPartyPKCS11ModuleTelemetry() {
+void CollectThirdPartyPKCS11ModuleTelemetry(bool aIsInitialization) {
   size_t thirdPartyModulesLoaded = 0;
   AutoSECMODListReadLock lock;
   for (SECMODModuleList* list = SECMOD_GetDefaultModuleList(); list;
@@ -220,6 +279,26 @@ void CollectThirdPartyPKCS11ModuleTelemetry() {
     }
     if (isThirdParty) {
       thirdPartyModulesLoaded++;
+#if defined(XP_MACOSX)
+      // Collect third party module filenames once per launch.
+      // We collect signature type when adding a module. It would be wasteful
+      // and duplicative to collect signature information on each launch given
+      // that it requires file I/O. Combining the filename of modules collected
+      // here with signature type and filename collected when adding a module
+      // provides information about existing modules already in use and new
+      // modules. No I/O is required to obtain the filename given the path on
+      // macOS, but defer it to idle-time to avoid adding more work at startup.
+      if (aIsInitialization) {
+        nsCString modulePath(list->module->dllName);
+        NS_DispatchToMainThreadQueue(
+            NS_NewRunnableFunction("CollectThirdPartyModuleFilenameIdle",
+                                   [modulePath]() {
+                                     CollectThirdPartyModuleFilename(
+                                         modulePath);
+                                   }),
+            EventQueuePriority::Idle);
+      }
+#endif  // defined(XP_MACOSX)
     }
   }
   mozilla::glean::pkcs11::third_party_modules_loaded.Set(

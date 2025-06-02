@@ -30,6 +30,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
     EXPORTS.mozilla += [
         "MacHelpers.h",
         "nsMacPreferencesReader.h",
+        "nsMacUtilsImpl.h",
     ]
     UNIFIED_SOURCES += [
         "MacHelpers.mm",

@@ -232,6 +232,51 @@ pkcs11:
       - dkeeler@mozilla.com
     expires: never
     unit: modules
+
+  third_party_module_signature_type:
+    type: event
+    description: >
+      The filename (leaf name only) and macOS code signature type of a
+      third-party PKCS#11 module collected when the module is first loaded and
+      added to the profile. Only collected on macOS.
+    data_sensitivity:
+      - interaction
+    lifetime: ping
+    send_in_pings:
+      - default
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905453
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905453
+    notification_emails:
+      - haftandilian@mozilla.com
+    expires: 147
+    extra_keys:
+      filename:
+        type: string
+        description: Filename
+      signature:
+        type: string
+        description: Code signature type (Ad-hoc, App Store, Developer ID, etc.)
+
+  third_party_module_profile_entries:
+    type: string_list
+    description: >
+      A list of PKCS#11 module filenames (leaf names only) that are in the
+      profile at launch time.
+    data_sensitivity:
+      - interaction
+    lifetime: ping
+    send_in_pings:
+      - default
+    notification_emails:
+      - haftandilian@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905453
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905453
+    expires: 147
+
   external_trust_anchor_module_loaded:
     type: boolean
     description:

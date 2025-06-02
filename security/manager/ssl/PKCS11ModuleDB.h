@@ -31,7 +31,7 @@ const nsLiteralCString kNSSInternalModuleName("NSS Internal PKCS #11 Module");
 const nsLiteralCString kOSClientCertsModuleName("OS Client Cert Module");
 const nsLiteralCString kRootModuleName("Builtin Roots Module");
 
-void CollectThirdPartyPKCS11ModuleTelemetry();
+void CollectThirdPartyPKCS11ModuleTelemetry(bool aIsInitialization = false);
 
 }  // namespace psm
 }  // namespace mozilla
