@@ -2227,7 +2227,7 @@ fxms-message-11:
   variables: {}
 
 fxms-message-12:
-  description: "Firefox Messaging System message 12"
+  description: "Firefox Messaging System message 12 - ONLY for Fx140+ targeting"
   owner: omc@mozilla.com
   hasExposure: true
   exposureDescription: >-
@@ -2238,7 +2238,7 @@ fxms-message-12:
   variables: {}
 
 fxms-message-13:
-  description: "Firefox Messaging System message 13"
+  description: "Firefox Messaging System message 13 - ONLY for Fx140+ targeting"
   owner: omc@mozilla.com
   hasExposure: true
   exposureDescription: >-
@@ -2249,7 +2249,7 @@ fxms-message-13:
   variables: {}
 
 fxms-message-14:
-  description: "Firefox Messaging System message 14"
+  description: "Firefox Messaging System message 14 - ONLY for Fx140+ targeting"
   owner: omc@mozilla.com
   hasExposure: true
   exposureDescription: >-
@@ -2260,7 +2260,7 @@ fxms-message-14:
   variables: {}
 
 fxms-message-15:
-  description: "Firefox Messaging System message 15"
+  description: "Firefox Messaging System message 15 - ONLY for Fx140+ targeting"
   owner: omc@mozilla.com
   hasExposure: true
   exposureDescription: >-
