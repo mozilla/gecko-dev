@@ -9,16 +9,12 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.hasAnyChild
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.test.swipeUp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.MenuDialogTestTag.EXTENSIONS
 import org.mozilla.fenix.helpers.Constants.TAG
@@ -42,56 +38,43 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         Log.i(TAG, "verifyMainMenuCFR: Verified the main menu CFR dismiss button is displayed.")
     }
 
-    fun expandMainMenu() {
-        Log.i(TAG, "expandMainMenu: Trying to perform swipe up action on the main menu.")
-        composeTestRule
-            .onNode(hasAnyChild(hasContentDescription("New private tab")))
-            .performTouchInput { swipeUp() }
-        composeTestRule.waitForIdle()
-        Log.i(TAG, "expandMainMenu: Performed swipe up action on the main menu.")
-    }
-
     fun verifyHomeMainMenuItems() {
-        Log.i(
-            TAG,
-            "verifyHomeMainMenuItems: Trying to verify the main menu items on the home page.",
-        )
-        composeTestRule.signInButton().assertIsDisplayed()
-        composeTestRule.signInButtonDescription().assertIsDisplayed()
-        composeTestRule.helpButton().assertIsDisplayed()
-        composeTestRule.settingsButton().assertIsDisplayed()
-        composeTestRule.newTabButton().assertIsNotEnabled()
-        composeTestRule.newPrivateTabButton().assertIsDisplayed()
+        Log.i(TAG, "verifyHomeMainMenuItems: Trying to verify the main menu items on the home page.")
+        composeTestRule.whatsNewButton().assertIsDisplayed()
+        composeTestRule.customizeHomeButton().assertIsDisplayed()
         composeTestRule.extensionsButton().assertIsDisplayed()
+
         composeTestRule.bookmarksButton().assertIsDisplayed()
         composeTestRule.historyButton().assertIsDisplayed()
         composeTestRule.downloadsButton().assertIsDisplayed()
         composeTestRule.passwordsButton().assertIsDisplayed()
-        composeTestRule.whatsNewButton().assertIsDisplayed()
-        composeTestRule.customizeHomeButton().assertIsDisplayed()
-        Log.i(
-            TAG,
-            "verifyHomeMainMenuItems: Verified the main menu items on the home page.",
-        )
+
+        composeTestRule.signInButton().assertIsDisplayed()
+        composeTestRule.settingsButton().assertIsDisplayed()
+        Log.i(TAG, "verifyHomeMainMenuItems: Verified the main menu items on the home page.")
     }
 
     fun verifyPageMainMenuItems() {
         Log.i(TAG, "verifyPageMainMenuItems: Trying to verify the main menu items on the web page.")
-        composeTestRule.signInButton().assertIsDisplayed()
-        composeTestRule.signInButtonDescription().assertIsDisplayed()
-        composeTestRule.helpButton().assertIsDisplayed()
-        composeTestRule.settingsButton().assertIsDisplayed()
-        composeTestRule.newTabButton().assertIsEnabled()
-        composeTestRule.newPrivateTabButton().assertIsDisplayed()
+
+        composeTestRule.backButton().assertIsDisplayed()
+        composeTestRule.forwardButton().assertIsDisplayed()
+        composeTestRule.refreshButton().assertIsDisplayed()
+        composeTestRule.shareButton().assertIsDisplayed()
+
+        composeTestRule.desktopSiteButton().assertIsDisplayed()
+        composeTestRule.findInPageButton().assertIsDisplayed()
+        composeTestRule.toolsMenuButton().assertIsDisplayed()
+        composeTestRule.saveMenuButton().assertIsDisplayed()
         composeTestRule.extensionsButton().assertIsDisplayed()
+
         composeTestRule.bookmarksButton().assertIsDisplayed()
         composeTestRule.historyButton().assertIsDisplayed()
         composeTestRule.downloadsButton().assertIsDisplayed()
         composeTestRule.passwordsButton().assertIsDisplayed()
-        composeTestRule.findInPageButton().assertIsDisplayed()
-        composeTestRule.desktopSiteButton().assertIsDisplayed()
-        composeTestRule.toolsMenuButton().assertIsDisplayed()
-        composeTestRule.saveMenuButton().assertIsDisplayed()
+
+        composeTestRule.signInButton().assertIsDisplayed()
+        composeTestRule.settingsButton().assertIsDisplayed()
         Log.i(TAG, "verifyPageMainMenuItems: Verified the main menu items on the web page.")
     }
 
@@ -149,7 +132,7 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
             TAG,
             "verifyTheDefaultToolsMenuItems: Verified the Print Content button is displayed.",
         )
-        composeTestRule.shareButton().assertIsDisplayed()
+        composeTestRule.toolsShareButton().assertIsDisplayed()
         Log.i(TAG, "verifyTheDefaultToolsMenuItems: Verified the Share button is displayed.")
         composeTestRule.defaultOpenInAppButton().assertIsDisplayed()
         Log.i(TAG, "verifyTheDefaultToolsMenuItems: Verified the Open in App button is displayed.")
@@ -159,18 +142,6 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         Log.i(TAG, "clickPrintContentButton: Trying to click the \"Print…\" button.")
         composeTestRule.printContentButton().performClick()
         Log.i(TAG, "clickPrintContentButton: Clicked the \"Print…\" button.")
-    }
-
-    fun verifySettingsButton() {
-        Log.i(
-            TAG,
-            "verifySettingsButton: Trying to verify the Settings button from the new main menu design is displayed.",
-        )
-        composeTestRule.settingsButton().assertIsDisplayed()
-        Log.i(
-            TAG,
-            "verifySettingsButton: Verified the Settings button from the new main menu design is displayed.",
-        )
     }
 
     fun verifySwitchToDesktopSiteButtonIsEnabled(
@@ -321,51 +292,6 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
 
             SettingsRobot().interact()
             return SettingsRobot.Transition()
-        }
-
-        fun openHelp(
-            interact: BrowserRobot.() -> Unit,
-        ): BrowserRobot.Transition {
-            Log.i(
-                TAG,
-                "openSettings: Trying to click the Help button from the new main menu design.",
-            )
-            composeTestRule.helpButton().performClick()
-            Log.i(TAG, "openSettings: Clicked the Help button from the new main menu design.")
-
-            BrowserRobot().interact()
-            return BrowserRobot.Transition()
-        }
-
-        fun clickNewTabButton(
-            interact: SearchRobot.() -> Unit,
-        ): SearchRobot.Transition {
-            Log.i(
-                TAG,
-                "openSettings: Trying to click the New  tab button from the new main menu design.",
-            )
-            composeTestRule.newTabButton().performClick()
-            Log.i(TAG, "openSettings: Clicked the New tab button from the new main menu design.")
-
-            SearchRobot().interact()
-            return SearchRobot.Transition()
-        }
-
-        fun clickNewPrivateTabButton(
-            interact: SearchRobot.() -> Unit,
-        ): SearchRobot.Transition {
-            Log.i(
-                TAG,
-                "openSettings: Trying to click the New private tab button from the new main menu design.",
-            )
-            composeTestRule.newPrivateTabButton().performClick()
-            Log.i(
-                TAG,
-                "openSettings: Clicked the New private tab button from the new main menu design.",
-            )
-
-            SearchRobot().interact()
-            return SearchRobot.Transition()
         }
 
         fun clickFindInPageButton(
@@ -594,7 +520,7 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
                 TAG,
                 "clickShareButton: Trying to click the Share button from the new main menu design.",
             )
-            composeTestRule.shareButton().performClick()
+            composeTestRule.toolsShareButton().performClick()
             Log.i(
                 TAG,
                 "clickShareButton: Clicked the Share button from the new main menu design.",
@@ -661,17 +587,17 @@ private fun ComposeTestRule.mainMenuCFRMessage() = onNodeWithText(getStringResou
 
 private fun ComposeTestRule.closeMainMenuCFRButton() = onNodeWithTag("cfr.dismiss")
 
-private fun ComposeTestRule.signInButton() = onNodeWithText(getStringResource(R.string.browser_menu_sign_in))
+private fun ComposeTestRule.backButton() = onNodeWithText("Back")
 
-private fun ComposeTestRule.signInButtonDescription() = onNodeWithText(getStringResource(R.string.browser_menu_sign_in_caption))
+private fun ComposeTestRule.forwardButton() = onNodeWithText("Forward")
+
+private fun ComposeTestRule.refreshButton() = onNodeWithText("Refresh")
+
+private fun ComposeTestRule.shareButton() = onNodeWithText("Share")
+
+private fun ComposeTestRule.signInButton() = onNodeWithContentDescription("Sign inSync passwords, tabs, and more")
 
 private fun ComposeTestRule.customizeHomeButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_customize_home_1))
-
-private fun ComposeTestRule.newPrivateTabButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_new_private_tab))
-
-private fun ComposeTestRule.newTabButton() = onNodeWithContentDescription(getStringResource(R.string.library_new_tab))
-
-private fun ComposeTestRule.helpButton() = onNodeWithContentDescription("Help")
 
 private fun ComposeTestRule.settingsButton() = onNodeWithContentDescription("Settings")
 
@@ -741,7 +667,7 @@ private fun ComposeTestRule.turnOffReaderViewButton() = onNodeWithContentDescrip
 
 private fun ComposeTestRule.customizeReaderViewButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_customize_reader_view_2))
 
-private fun ComposeTestRule.shareButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_share_2))
+private fun ComposeTestRule.toolsShareButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_share_2))
 
 private fun ComposeTestRule.defaultOpenInAppButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_open_app_link))
 

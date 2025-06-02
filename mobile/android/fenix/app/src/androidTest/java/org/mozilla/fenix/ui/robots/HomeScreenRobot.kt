@@ -62,7 +62,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.assertItemIsChecked
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithClassNameAndIndex
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndIndex
@@ -712,9 +711,9 @@ class HomeScreenRobot {
             return ThreeDotMenuMainRobot.Transition()
         }
 
-        fun openThreeDotMenuFromRedesignedToolbar(composeTestRule: ComposeTestRule, interact: ThreeDotMenuMainRobotCompose.() -> Unit): ThreeDotMenuMainRobotCompose.Transition {
+        fun openThreeDotMenu(composeTestRule: ComposeTestRule, interact: ThreeDotMenuMainRobotCompose.() -> Unit): ThreeDotMenuMainRobotCompose.Transition {
             Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Trying to click main menu button")
-            itemWithDescription(getStringResource(R.string.content_description_menu)).click()
+            itemWithResId("$packageName:id/menuButton").click()
             Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Clicked main menu button")
 
             ThreeDotMenuMainRobotCompose(composeTestRule).interact()

@@ -31,7 +31,6 @@ import androidx.test.espresso.contrib.PickerActions
 import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom
-import androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.withEffectiveVisibility
@@ -1293,10 +1292,10 @@ class BrowserRobot {
             return ThreeDotMenuMainRobot.Transition()
         }
 
-        fun openThreeDotMenuFromRedesignedToolbar(composeTestRule: ComposeTestRule, interact: ThreeDotMenuMainRobotCompose.() -> Unit): ThreeDotMenuMainRobotCompose.Transition {
-            Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Trying to click main menu button")
+        fun openThreeDotMenu(composeTestRule: ComposeTestRule, interact: ThreeDotMenuMainRobotCompose.() -> Unit): ThreeDotMenuMainRobotCompose.Transition {
+            Log.i(TAG, "openThreeDotMenu: Trying to click main menu button")
             itemWithDescription(getStringResource(R.string.content_description_menu)).click()
-            Log.i(TAG, "openThreeDotMenuFromRedesignedToolbar: Clicked main menu button")
+            Log.i(TAG, "openThreeDotMenu: Clicked main menu button")
 
             ThreeDotMenuMainRobotCompose(composeTestRule).interact()
             return ThreeDotMenuMainRobotCompose.Transition(composeTestRule)
@@ -1397,29 +1396,11 @@ class BrowserRobot {
         @OptIn(ExperimentalTestApi::class)
         fun goToHomescreen(composeTestRule: ComposeTestRule, interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
             Log.i(TAG, "goToHomescreen: Trying to click the go to home screen button.")
-            onView(
-                allOf(
-                    withContentDescription("Home screen"),
-                    isDescendantOfA(withId(R.id.toolbar)),
-                ),
-            ).click()
+            itemWithResId("$packageName:id/mozac_browser_toolbar_navigation_actions").click()
             Log.i(TAG, "goToHomescreen: Clicked the go to home screen button.")
             Log.i(TAG, "goToHomescreen: Waiting for home screen to exist")
             composeTestRule.waitUntilAtLeastOneExists(hasTestTag(HOMEPAGE))
             Log.i(TAG, "goToHomescreen: Waited for home screen to exist")
-
-            HomeScreenRobot().interact()
-            return HomeScreenRobot.Transition()
-        }
-
-        fun goToHomescreenWithRedesignedToolbar(interact: HomeScreenRobot.() -> Unit): HomeScreenRobot.Transition {
-            itemWithResId("$packageName:id/new_tab_button").click()
-            searchScreen {
-            }.dismissSearchBar {}
-            Log.i(TAG, "goToHomescreenWithRedesignedToolbar: Waiting for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
-            mDevice.findObject(UiSelector().resourceId("$packageName:id/homeLayout"))
-                .waitForExists(waitingTime)
-            Log.i(TAG, "goToHomescreenWithRedesignedToolbar: Waited for $waitingTime ms for for home screen layout or jump back in contextual hint to exist")
 
             HomeScreenRobot().interact()
             return HomeScreenRobot.Transition()
