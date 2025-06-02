@@ -1791,6 +1791,10 @@ pref("extensions.install_origins.enabled", false);
 pref("extensions.browser_style_mv3.supported", false);
 pref("extensions.browser_style_mv3.same_as_mv2", false);
 
+// If set to true, browser.cookies.set() will throw exceptions if the cookie is
+// invalid. Otherwise, a warning message will be shown in the console.
+pref("extensions.cookie.rejectWhenInvalid", false);
+
 // Experimental Inference API
 pref("extensions.ml.enabled", true);
 

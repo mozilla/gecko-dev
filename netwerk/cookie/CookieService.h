@@ -140,6 +140,17 @@ class CookieService final : public nsICookieService,
   // private browsing.
   RefPtr<CookieStorage> mPersistentStorage;
   RefPtr<CookieStorage> mPrivateStorage;
+
+ private:
+  nsresult AddInternal(nsIURI* aCookieURI, const nsACString& aHost,
+                       const nsACString& aPath, const nsACString& aName,
+                       const nsACString& aValue, bool aIsSecure,
+                       bool aIsHttpOnly, bool aIsSession, int64_t aExpiry,
+                       OriginAttributes* aOriginAttributes, int32_t aSameSite,
+                       nsICookie::schemeType aSchemeMap, bool aIsPartitioned,
+                       bool aFromHttp, const nsID* aOperationID,
+                       bool aRejectWhenInvalid,
+                       nsICookieValidation** aValidation);
 };
 
 }  // namespace net
