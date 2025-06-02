@@ -678,15 +678,7 @@ class WindowGlobalTargetActor extends BaseTargetActor {
     // as that's the one top document this target actor really represent.
     // The iframe dropdown is just a hack that temporarily focus the scope
     // of the target actor to a children iframe document.
-    //
-    // Also, for WebExtension, we want the target to represent the <browser> element
-    // created by DevTools, which always exists and help better connect resources to the target
-    // in the frontend. Otherwise all other <browser> element of webext may be reloaded or go away
-    // and then we would have troubles matching targets for resources.
-    const originalBrowsingContext = this
-      .devtoolsSpawnedBrowsingContextForWebExtension
-      ? this.devtoolsSpawnedBrowsingContextForWebExtension
-      : this.originalDocShell.browsingContext;
+    const originalBrowsingContext = this.originalDocShell.browsingContext;
 
     // When toggling the toolbox on/off many times in a row,
     // we may try to destroy the actor while the related document is already destroyed.

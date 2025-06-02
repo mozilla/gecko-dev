@@ -127,10 +127,6 @@ class BaseTargetActor extends Actor {
       return;
     }
 
-    if (this.devtoolsSpawnedBrowsingContextForWebExtension) {
-      this.overrideResourceBrowsingContextForWebExtension(resources);
-    }
-
     const shouldEmitSynchronously =
       resourceType == NETWORK_EVENT_STACKTRACE ||
       (resourceType == DOCUMENT_EVENT &&
@@ -184,23 +180,6 @@ class BaseTargetActor extends Actor {
       this.#throttledResources[updateType] = [];
       this.emit(`resources-${updateType}-array`, resources);
     }
-  }
-
-  /**
-   * For WebExtension, we have to hack all resource's browsingContextID
-   * in order to ensure emitting them with the fixed, original browsingContextID
-   * related to the fallback document created by devtools which always exists.
-   * The target's form will always be relating to that BrowsingContext IDs (browsing context ID and inner window id).
-   * Even if the target switches internally to another document via WindowGlobalTargetActor._setWindow.
-   *
-   * @param {Array<Objects>} List of resources
-   */
-  overrideResourceBrowsingContextForWebExtension(resources) {
-    const browsingContextID =
-      this.devtoolsSpawnedBrowsingContextForWebExtension.id;
-    resources.forEach(
-      resource => (resource.browsingContextID = browsingContextID)
-    );
   }
 
   // List of actor prefixes (string) which have already been instantiated via getTargetScopedActor method.
