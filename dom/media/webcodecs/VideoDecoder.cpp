@@ -5,9 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/VideoDecoder.h"
-#include "DecoderTypes.h"
-#include "WebCodecsUtils.h"
-#include "mozilla/RefPtr.h"
 #include "mozilla/dom/VideoDecoderBinding.h"
 
 #include "DecoderTraits.h"
@@ -21,6 +18,7 @@
 #include "mozilla/Logging.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Try.h"
+#include "mozilla/Unused.h"
 #include "mozilla/dom/EncodedVideoChunk.h"
 #include "mozilla/dom/EncodedVideoChunkBinding.h"
 #include "mozilla/dom/ImageUtils.h"
@@ -29,6 +27,7 @@
 #include "mozilla/dom/VideoFrameBinding.h"
 #include "mozilla/dom/WebCodecsUtils.h"
 #include "nsPrintfCString.h"
+#include "nsReadableUtils.h"
 
 #ifdef XP_MACOSX
 #  include "MacIOSurfaceImage.h"
@@ -862,11 +861,7 @@ already_AddRefed<Promise> VideoDecoder::IsConfigSupported(
     return p.forget();
   }
 
-  // This is incomplete and will be implemented fully in bug 1967793
-  auto configInternal = VideoDecoderConfigInternal::Create(aConfig);
-  ApplyResistFingerprintingIfNeeded(configInternal, global);
-
-  bool canDecode = CanDecode(*configInternal);
+  bool canDecode = CanDecode(config);
   RootedDictionary<VideoDecoderSupport> s(aGlobal.Context());
   s.mConfig.Construct(std::move(config));
   s.mSupported.Construct(canDecode);
