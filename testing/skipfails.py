@@ -15,7 +15,7 @@ import urllib.parse
 from copy import deepcopy
 from pathlib import Path
 from statistics import median
-from typing import Any, Dict, List, Literal, Tuple
+from typing import Any, Dict, List, Literal, Tuple, Union
 from xmlrpc.client import Fault
 
 from failedplatform import FailedPlatform
@@ -364,6 +364,10 @@ class Skipfails:
                             manifest,
                             kind,
                             path,
+                            first_task_id,
+                            None,
+                            None,
+                            False,
                             anyjs,
                             differences,
                             pixels,
@@ -371,7 +375,6 @@ class Skipfails:
                             status,
                             label,
                             classification,
-                            first_task_id,
                             try_url,
                             revision,
                             repo,
@@ -850,16 +853,16 @@ class Skipfails:
         manifest: str,
         kind: str,
         path: str,
-        anyjs: Optional[Dict[str, bool]],
-        lineno: int,
-        label: str,
-        classification: str,
-        task_id: Optional[str],
-        try_url: str,
-        revision: str,
-        repo: str,
         skip_if: str,
         filename: str,
+        anyjs: Optional[Dict[str, bool]],
+        lineno: Optional[int],
+        label: Optional[str],
+        classification: Optional[str],
+        task_id: Optional[str],
+        try_url: Optional[str],
+        revision: Optional[str],
+        repo: Optional[str],
         meta_bug_id: Optional[str] = None,
     ):
         bug_reference = ""
@@ -880,33 +883,39 @@ class Skipfails:
             for p in sorted(anyjs.keys()):
                 if p != filename:
                     comment += f'\n  "{p}"'
-        platform, testname = self.label_to_platform_testname(label)
-        if platform is not None:
-            comment += "\nCommand line to reproduce (experimental):\n"
-            comment += f"  \"mach try fuzzy -q '{platform}' {testname}\""
-        comment += f"\nTry URL = {try_url}"
-        comment += f"\nrevision = {revision}"
-        comment += f"\nrepo = {repo}"
-        comment += f"\nlabel = {label}"
+        if label is not None:
+            platform, testname = self.label_to_platform_testname(label)
+            if platform is not None:
+                comment += "\nCommand line to reproduce (experimental):\n"
+                comment += f"  \"mach try fuzzy -q '{platform}' {testname}\""
+        if try_url is not None:
+            comment += f"\nTry URL = {try_url}"
+        if revision is not None:
+            comment += f"\nrevision = {revision}"
+        if repo is not None:
+            comment += f"\nrepo = {repo}"
+        if label is not None:
+            comment += f"\nlabel = {label}"
         if task_id is not None:
             comment += f"\ntask_id = {task_id}"
             if kind != Kind.LIST:
-                push_id = self.get_push_id(revision, repo)
-                if push_id is not None:
-                    comment += f"\npush_id = {push_id}"
-                    job_id = self.get_job_id(push_id, task_id)
-                    if job_id is not None:
-                        comment += f"\njob_id = {job_id}"
-                        (
-                            suggestions_url,
-                            line_number,
-                            line,
-                            log_url,
-                        ) = self.get_bug_suggestions(repo, job_id, path, anyjs)
-                        if log_url is not None:
-                            comment += f"\nBug suggestions: {suggestions_url}"
-                            comment += f"\nSpecifically see at line {line_number} in the attached log: {log_url}"
-                            comment += f'\n\n  "{line}"\n'
+                if revision is not None and repo is not None:
+                    push_id = self.get_push_id(revision, repo)
+                    if push_id is not None:
+                        comment += f"\npush_id = {push_id}"
+                        job_id = self.get_job_id(push_id, task_id)
+                        if job_id is not None:
+                            comment += f"\njob_id = {job_id}"
+                            (
+                                suggestions_url,
+                                line_number,
+                                line,
+                                log_url,
+                            ) = self.get_bug_suggestions(repo, job_id, path, anyjs)
+                            if log_url is not None:
+                                comment += f"\nBug suggestions: {suggestions_url}"
+                                comment += f"\nSpecifically see at line {line_number} in the attached log: {log_url}"
+                                comment += f'\n\n  "{line}"\n'
         bug_summary = f"MANIFEST {manifest}"
         attachments = {}
         bugid = "TBD"
@@ -997,17 +1006,20 @@ class Skipfails:
         manifest: str,
         kind: str,
         path: str,
-        anyjs: Optional[Dict[str, bool]],
-        differences: List[int],
-        pixels: List[int],
-        lineno: int,
-        status: str,
-        label: str,
-        classification: str,
         task_id: Optional[str],
-        try_url: str,
-        revision: str,
-        repo: str,
+        platform_info: Optional[PlatformInfo] = None,
+        bug_id: Optional[str] = None,
+        high_freq: bool = False,
+        anyjs: Optional[Dict[str, bool]] = None,
+        differences: Optional[List[int]] = None,
+        pixels: Optional[List[int]] = None,
+        lineno: Optional[int] = None,
+        status: Optional[str] = None,
+        label: Optional[str] = None,
+        classification: Optional[str] = None,
+        try_url: Optional[str] = None,
+        revision: Optional[str] = None,
+        repo: Optional[str] = None,
         meta_bug_id: Optional[str] = None,
     ):
         """
@@ -1023,33 +1035,44 @@ class Skipfails:
         if task_id is None:
             skip_if = "true"
         else:
-            skip_if = self.task_to_skip_if(manifest, task_id, kind, path)
-        if skip_if is None:
-            raise Exception(
-                f"Unable to calculate skip-if condition from manifest={manifest} from failure label={label}"
+            skip_if = self.task_to_skip_if(
+                manifest,
+                platform_info if platform_info is not None else task_id,
+                kind,
+                path,
+                high_freq,
             )
+        if skip_if is None:
+            self.info("Not adding skip-if condition")
+            return
 
         filename = self.resolve_failure_filename(path, kind, manifest)
         manifest = self.resolve_failure_manifest(path, kind, manifest)
         manifest_path = self.full_path(manifest)
         manifest_str = ""
         additional_comment = ""
-        comment, bug_reference, bugid, attachments = self.generate_bugzilla_comment(
-            manifest,
-            kind,
-            path,
-            anyjs,
-            lineno,
-            label,
-            classification,
-            task_id,
-            try_url,
-            revision,
-            repo,
-            skip_if,
-            filename,
-            meta_bug_id,
-        )
+        if bug_id is None:
+            comment, generated_bug_reference, bugid, attachments = (
+                self.generate_bugzilla_comment(
+                    manifest,
+                    kind,
+                    path,
+                    skip_if,
+                    filename,
+                    anyjs,
+                    lineno,
+                    label,
+                    classification,
+                    task_id,
+                    try_url,
+                    revision,
+                    repo,
+                    meta_bug_id,
+                )
+            )
+            bug_reference = generated_bug_reference
+        else:
+            bug_reference = f"Bug {bug_id}"
         if kind == Kind.WPT:
             if os.path.exists(manifest_path):
                 manifest_str = open(manifest_path, encoding="utf-8").read()
@@ -1119,25 +1142,29 @@ class Skipfails:
             self.info(f'Edited ["{filename}"] in manifest: "{manifest}"')
             if kind != Kind.LIST:
                 self.info(f'added skip-if condition: "{skip_if}" # {bug_reference}')
-            if self.dry_run:
-                self.info(f"Dry-run NOT adding comment to Bug {bugid}:\n{comment}")
-                self.info(
-                    f'Dry-run NOT editing ["{filename}"] in manifest: "{manifest}"'
-                )
-                self.info(f'would add skip-if condition: "{skip_if}" # {bug_reference}')
-                if task_id is not None and task_id not in attachments:
-                    self.info("would add compressed log for this task")
-                return
-            elif self.bugzilla is None:
-                self.warning(f"NOT adding comment to Bug {bugid}:\n{comment}")
-            else:
-                self.add_bug_comment(bugid, comment, meta_bug_id)
-                self.info(f"Added comment to Bug {bugid}:\n{comment}")
-                if meta_bug_id is not None:
-                    self.info(f"  Bug {bugid} blocks meta Bug: {meta_bug_id}")
-                if task_id is not None and task_id not in attachments:
-                    self.add_attachment_log_for_task(bugid, task_id)
-                    self.info("Added compressed log for this task")
+
+            if bug_id is None:
+                if self.dry_run:
+                    self.info(f"Dry-run NOT adding comment to Bug {bugid}:\n{comment}")
+                    self.info(
+                        f'Dry-run NOT editing ["{filename}"] in manifest: "{manifest}"'
+                    )
+                    self.info(
+                        f'would add skip-if condition: "{skip_if}" # {bug_reference}'
+                    )
+                    if task_id is not None and task_id not in attachments:
+                        self.info("would add compressed log for this task")
+                    return
+                elif self.bugzilla is None:
+                    self.warning(f"NOT adding comment to Bug {bugid}:\n{comment}")
+                else:
+                    self.add_bug_comment(bugid, comment, meta_bug_id)
+                    self.info(f"Added comment to Bug {bugid}:\n{comment}")
+                    if meta_bug_id is not None:
+                        self.info(f"  Bug {bugid} blocks meta Bug: {meta_bug_id}")
+                    if task_id is not None and task_id not in attachments:
+                        self.add_attachment_log_for_task(bugid, task_id)
+                        self.info("Added compressed log for this task")
         else:
             self.error(f'Error editing ["{filename}"] in manifest: "{manifest}"')
 
@@ -1301,9 +1328,19 @@ class Skipfails:
         return skip_if
 
     def task_to_skip_if(
-        self, manifest: str, task_id: str, kind: str, file_path: str
-    ) -> str:
+        self,
+        manifest: str,
+        task: Union[str, PlatformInfo],
+        kind: str,
+        file_path: str,
+        high_freq: bool,
+    ) -> Optional[str]:
         """Calculate the skip-if condition for failing task task_id"""
+        if isinstance(task, str):
+            self.info(f"Fetching task data for {task}")
+            extra = self.get_extra(task)
+        else:
+            extra = task
 
         if kind == Kind.WPT:
             qq = '"'
@@ -1312,7 +1349,6 @@ class Skipfails:
             qq = "'"
             aa = " && "
         eq = " == "
-        extra = self.get_extra(task_id)
         skip_if = None
         os = extra.os
         os_version = extra.os_version
@@ -1349,16 +1385,25 @@ class Skipfails:
                     .get(processor, None)
                 )
 
-                self.failed_platforms[failure_key] = FailedPlatform(permutations)
+                self.failed_platforms[failure_key] = FailedPlatform(
+                    permutations, high_freq
+                )
 
             build_types = extra.build_type
             skip_cond = self.failed_platforms[failure_key].get_skip_string(
                 aa, build_types, extra.test_variant
             )
-            if kind == Kind.WPT:
-                # ensure ! -> 'not', primarily fission and e10s
-                skip_cond = skip_cond.replace("!", "not ")
-            skip_if += skip_cond
+            if skip_cond is not None:
+                if kind == Kind.WPT:
+                    # ensure ! -> 'not', primarily fission and e10s
+                    skip_cond = skip_cond.replace("!", "not ")
+                skip_if += skip_cond
+            else:
+                skip_if = None
+        elif skip_if is None:
+            raise Exception(
+                f"Unable to calculate skip-if condition from manifest={manifest} and file={file_path}"
+            )
         return skip_if
 
     def get_file_info(self, path, product="Testing", component="General"):
@@ -1393,7 +1438,7 @@ class Skipfails:
             filename = path[i + 1 :]
         return filename
 
-    def get_push_id(self, revision, repo):
+    def get_push_id(self, revision: str, repo: str):
         """Return the push_id for revision and repo (or None)"""
 
         self.vinfo(f"Retrieving push_id for {repo} revision: {revision} ...")
@@ -1573,7 +1618,7 @@ class Skipfails:
             jtasks.append(jtask)
         self.write_json(save_tasks, jtasks)
 
-    def label_to_platform_testname(self, label):
+    def label_to_platform_testname(self, label: str):
         """convert from label to platform, testname for mach command line"""
         platform = None
         testname = None

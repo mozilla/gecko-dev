@@ -3,7 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from functools import reduce
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Tuple
 
 
 class FailedPlatform:
@@ -28,10 +28,12 @@ class FailedPlatform:
                 Dict[str, Dict[str, int]],  # Test Variant  # {'pass': x, 'fail': y}
             ]
         ],
+        high_freq: bool = False,
     ) -> None:
         # Contains all test variants for each build type the task failed on
-        self.failures: Dict[str, Set[str]] = {}
+        self.failures: Dict[str, Dict[str, int]] = {}
         self.oop_permutations = oop_permutations
+        self.high_freq = high_freq
 
     def get_possible_build_types(self) -> List[str]:
         return (
@@ -65,11 +67,28 @@ class FailedPlatform:
             ]
         )
 
+    def is_full_high_freq_fail(self) -> bool:
+        """
+        Test if there are at least 7 failures on each build type
+        """
+        build_types = set(self.failures.keys())
+        possible_build_types = self.get_possible_build_types()
+        # If we do not have information on possible build types, do not consider it a full fail
+        # This avoids creating a too broad skip-if condition
+        if len(possible_build_types) == 0:
+            return False
+        return all(
+            [
+                bt in build_types and sum(list(self.failures[bt].values())) >= 7
+                for bt in possible_build_types
+            ]
+        )
+
     def is_full_test_variants_fail(self, build_type: str) -> bool:
         """
         Test if failed on every test variant of given build type
         """
-        failed_variants = self.failures.get(build_type, [])
+        failed_variants = self.failures.get(build_type, {}).keys()
         possible_test_variants = self.get_possible_test_variants(build_type)
         # If we do not have information on possible test variants, do not consider it a full fail
         # This avoids creating a too broad skip-if condition
@@ -134,6 +153,14 @@ class FailedPlatform:
         )
         return return_str
 
+    def get_full_test_variant_condition(
+        self, and_str: str, build_type: str, test_variant: str
+    ) -> str:
+        if test_variant == "no_variant":
+            return self.get_no_variant_conditions(and_str, build_type)
+        else:
+            return self.get_test_variant_condition(and_str, build_type, test_variant)
+
     def get_test_variant_string(self, test_variant: str):
         """
         Some test variants strings need to be updated to match what is given in oop_permutations
@@ -144,22 +171,63 @@ class FailedPlatform:
             return "!e10s"
         return test_variant
 
-    def get_skip_string(self, and_str: str, build_type: str, test_variant: str) -> str:
+    def get_skip_string(
+        self, and_str: str, build_type: str, test_variant: str
+    ) -> Optional[str]:
         if self.failures.get(build_type) is None:
-            self.failures[build_type] = {test_variant}
+            self.failures[build_type] = {test_variant: 1}
+        elif self.failures[build_type].get(test_variant) is None:
+            self.failures[build_type][test_variant] = 1
         else:
-            self.failures[build_type].add(test_variant)
+            self.failures[build_type][test_variant] += 1
 
+        if not self.high_freq:
+            return self._get_skip_string(and_str, build_type, test_variant)
+        return self._get_high_freq_skip_string(and_str, build_type)
+
+    def _get_high_freq_skip_string(
+        self, and_str: str, build_type: str
+    ) -> Optional[str]:
+        return_str: Optional[str] = None
+
+        if self.is_full_high_freq_fail():
+            return_str = ""
+        else:
+            total_failures = sum(list(self.failures[build_type].values()))
+            most_variant, most_failures = self.get_test_variant_with_most_failures(
+                build_type
+            )
+
+            if total_failures >= 7:
+                return_str = and_str + build_type
+                if most_failures / total_failures >= 3 / 4:
+                    return_str += self.get_full_test_variant_condition(
+                        and_str, build_type, most_variant
+                    )
+                elif self.is_full_fail():
+                    return_str = ""
+
+        return return_str
+
+    def get_test_variant_with_most_failures(self, build_type: str) -> Tuple[str, int]:
+        most_failures = 0
+        most_variant = ""
+        for variant, failures in self.failures[build_type].items():
+            if failures > most_failures:
+                most_failures = failures
+                most_variant = variant
+        return most_variant, most_failures
+
+    def _get_skip_string(
+        self, and_str: str, build_type: str, test_variant: str
+    ) -> Optional[str]:
         return_str = ""
         # If every test variant of every build type failed, do not add anything
         if not self.is_full_fail():
             return_str += and_str + build_type
             if not self.is_full_test_variants_fail(build_type):
-                if test_variant == "no_variant":
-                    return_str += self.get_no_variant_conditions(and_str, build_type)
-                else:
-                    return_str += self.get_test_variant_condition(
-                        and_str, build_type, test_variant
-                    )
+                return_str += self.get_full_test_variant_condition(
+                    and_str, build_type, test_variant
+                )
 
         return return_str
