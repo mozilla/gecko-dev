@@ -291,10 +291,11 @@ class GlobalObject : public NativeObject {
 
   void initBuiltinProto(ProtoKind kind, JSObject* proto) {
     MOZ_ASSERT(proto);
-    // Catch double-initialization; however if this is too much of a burden due
-    // to OOM handling it could be removed.
-    MOZ_ASSERT(!hasBuiltinProto(kind));
-    data().builtinProtos[kind].init(proto);
+    // Use set, as it's possible to construct oomTest test
+    // cases where the proto is already initialized.
+    //
+    // See Bugs 1969353 and 1928852.
+    data().builtinProtos[kind].set(proto);
   }
 
   void setBuiltinProto(ProtoKind kind, JSObject* proto) {
