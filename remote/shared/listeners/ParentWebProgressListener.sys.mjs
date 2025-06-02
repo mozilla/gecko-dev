@@ -90,7 +90,17 @@ export class ParentWebProgressListener {
         url: location.spec,
       };
 
-      if (progress.loadType & Ci.nsIDocShell.LOAD_CMD_PUSHSTATE) {
+      if (
+        // history.pushState / replaceState / document.open
+        progress.loadType & Ci.nsIDocShell.LOAD_CMD_PUSHSTATE ||
+        // history.go / back / forward to an entry created by pushState / replaceState
+        (progress.loadType & Ci.nsIDocShell.LOAD_CMD_HISTORY &&
+          // Bug 1969943: We need to only select history traversals which are not
+          // fragment navigations. However we don't have a flag dedicated to
+          // such traversals, they are identical to same document + same hash
+          // navigations.
+          flags === Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)
+      ) {
         this.#trace(
           lazy.truncate`Location=historyUpdated: ${location.spec}`,
           context.id

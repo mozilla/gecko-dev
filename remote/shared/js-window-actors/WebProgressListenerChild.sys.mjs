@@ -88,7 +88,18 @@ export class WebProgressListenerChild extends JSWindowActorChild {
         url: location.spec,
       };
 
-      if (progress.loadType & Ci.nsIDocShell.LOAD_CMD_PUSHSTATE) {
+      if (
+        // history.pushState / replaceState
+        progress.loadType & Ci.nsIDocShell.LOAD_CMD_PUSHSTATE ||
+        // moving to a history entry created by pushState / replaceState
+        (progress.loadType & Ci.nsIDocShell.LOAD_CMD_HISTORY &&
+          // TODO: We need to only select history traversals which are not
+          // fragment navigations. However we don't have a flag dedicated to
+          // such traversals, they are identical to same document + same hash
+          // navigations.
+          stateFlags ===
+            Ci.nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)
+      ) {
         this.#trace(
           lazy.truncate`Location=historyUpdated: ${location.spec}`,
           context.id
