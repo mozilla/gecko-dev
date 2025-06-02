@@ -58,10 +58,12 @@ class CookieValidation final : public nsICookieValidation {
   void ValidateForHostInternal(nsIURI* aHostURI, const nsACString& aBaseDomain,
                                bool aRequireHostMatch, bool aFromHttp);
 
-  void ValidateInContextInternal(
-      nsIURI* aHostURI, const nsACString& aBaseDomain, bool aRequireHostMatch,
-      bool aFromHttp, bool aIsForeignAndNotAddon, bool aPartitionedOnly,
-      bool aIsInPrivateBrowsing);
+  void ValidateInContextInternal(nsIURI* aHostURI,
+                                 const nsACString& aBaseDomain,
+                                 bool aRequireHostMatch, bool aFromHttp,
+                                 bool aIsForeignAndNotAddon,
+                                 bool aPartitionedOnly,
+                                 bool aIsInPrivateBrowsing);
 
   static bool CheckNameAndValueSize(const CookieStruct& aCookieData);
 
