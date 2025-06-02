@@ -36,7 +36,7 @@ addRDMTask(TEST_URL, async function ({ ui }) {
   await testUserAgent(ui, NEW_USER_AGENT);
 
   info("Reset the user agent input back to the default UA");
-  await changeUserAgentInput(ui, "");
+  await changeUserAgentInput(ui, "", "VK_TAB");
   await testUserAgent(ui, DEFAULT_UA);
 
   info("Test selecting Fenix user agent");
