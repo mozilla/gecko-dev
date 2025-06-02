@@ -4,6 +4,7 @@
 
 package mozilla.components.feature.search.storage
 
+import android.graphics.Bitmap
 import mozilla.appservices.remotesettings.RemoteSettingsClient
 import mozilla.appservices.remotesettings.RemoteSettingsRecord
 import mozilla.appservices.search.RefinedSearchConfig
@@ -33,6 +34,7 @@ import kotlin.coroutines.CoroutineContext
  */
 class SearchEngineSelectorRepository(
     private val searchEngineSelectorConfig: SearchEngineSelectorConfig,
+    private val defaultSearchEngineIcon: Bitmap,
     client: RemoteSettingsClient?,
 ) : SearchMiddleware.SearchEngineRepository {
 
@@ -109,10 +111,9 @@ class SearchEngineSelectorRepository(
                         engineDefinition = engine,
                         attachmentModel = searchConfigIconsUpdateService.fetchIconAttachment(it),
                         mimetype = it.attachment?.mimetype ?: "",
+                        defaultIcon = defaultSearchEngineIcon,
                     )
                 } catch (exception: IllegalArgumentException) {
-                    return@forEach
-                } catch (exception: IllegalStateException) {
                     return@forEach
                 }
                 searchEngineList.add(searchEngine)
