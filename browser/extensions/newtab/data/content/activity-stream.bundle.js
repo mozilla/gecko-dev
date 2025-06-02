@@ -14123,7 +14123,7 @@ function MessageWrapper({
     } else {
       dispatch(actionCreators.AlsoToMain(action));
     }
-    onDismiss();
+    onDismiss?.();
   }, [dispatch, message, onDismiss]);
   function handleDismiss() {
     const {
@@ -14164,9 +14164,12 @@ function MessageWrapper({
       }));
     }
   }
+  if (!message || !hiddenOverride && message.isHidden) {
+    return null;
+  }
 
   // only display the message if `isHidden` is false
-  return (!message.isHidden || hiddenOverride) && /*#__PURE__*/external_React_default().createElement("div", {
+  return /*#__PURE__*/external_React_default().createElement("div", {
     ref: el => {
       ref.current = [el];
     },
