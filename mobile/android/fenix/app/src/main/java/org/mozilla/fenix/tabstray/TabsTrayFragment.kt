@@ -95,7 +95,8 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     private lateinit var tabsTrayInteractor: TabsTrayInteractor
     private lateinit var tabsTrayController: DefaultTabsTrayController
     private lateinit var navigationInteractor: DefaultNavigationInteractor
-    private lateinit var startForResult: ActivityResultLauncher<Intent>
+    private lateinit var enablePbmPinLauncher: ActivityResultLauncher<Intent>
+    private lateinit var unlockPrivateTabsPinLauncher: ActivityResultLauncher<Intent>
 
     @VisibleForTesting internal lateinit var tabsTrayStore: TabsTrayStore
 
@@ -142,7 +143,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         val inactiveTabs = requireComponents.core.store.state.actualInactiveTabs(requireContext().settings())
         val normalTabs = requireComponents.core.store.state.normalTabs - inactiveTabs.toSet()
 
-        startForResult = registerForActivityResult(
+        enablePbmPinLauncher = registerForActivityResult(
             onSuccess = {
                 PrivateBrowsingLocked.authSuccess.record()
                 PrivateBrowsingLocked.featureEnabled.record()
@@ -151,6 +152,11 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             onFailure = {
                 PrivateBrowsingLocked.authFailure.record()
             },
+        )
+
+        unlockPrivateTabsPinLauncher = registerForActivityResult(
+            onSuccess = { onUnlockPrivateTabsSuccess() },
+            onFailure = { onUnlockPrivateTabsFailure() },
         )
 
         tabsTrayStore = StoreProvider.get(this) {
@@ -782,7 +788,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             DefaultBiometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
                 titleRes = R.string.pbm_authentication_enable_lock,
                 view = requireView(),
-                onShowPinVerification = { intent -> startForResult.launch(intent) },
+                onShowPinVerification = { intent -> enablePbmPinLauncher.launch(intent) },
                 onAuthSuccess = {
                     PrivateBrowsingLocked.bannerPositiveClicked.record()
                     PrivateBrowsingLocked.authSuccess.record()
@@ -803,6 +809,18 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         dismissAllowingStateLoss()
     }
 
+    private fun onUnlockPrivateTabsSuccess() {
+        PrivateBrowsingLocked.authSuccess.record()
+
+        tabsTrayInteractor.onTrayPositionSelected(Page.PrivateTabs.ordinal, false)
+
+        requireComponents.privateBrowsingLockFeature.onSuccessfulAuthentication()
+    }
+
+    private fun onUnlockPrivateTabsFailure() {
+        PrivateBrowsingLocked.authFailure.record()
+    }
+
     @VisibleForTesting
     internal fun onTabPageClick(
         biometricAuthenticationNeededInfo: BiometricAuthenticationNeededInfo =
@@ -820,17 +838,9 @@ class TabsTrayFragment : AppCompatDialogFragment() {
 
             biometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
                 view = requireView(),
-                onShowPinVerification = { intent -> startForResult.launch(intent) },
-                onAuthSuccess = {
-                    PrivateBrowsingLocked.authSuccess.record()
-
-                    tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
-
-                    requireComponents.privateBrowsingLockFeature.onSuccessfulAuthentication()
-                },
-                onAuthFailure = {
-                    PrivateBrowsingLocked.authFailure.record()
-                },
+                onShowPinVerification = { intent -> unlockPrivateTabsPinLauncher.launch(intent) },
+                onAuthSuccess = ::onUnlockPrivateTabsSuccess,
+                onAuthFailure = ::onUnlockPrivateTabsFailure,
                 titleRes = R.string.pbm_authentication_unlock_private_tabs,
             )
         } else {
