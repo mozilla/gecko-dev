@@ -1040,6 +1040,30 @@ bool TexUnpackSurface::TexOrSubImage(bool isSubImage, bool needsRespec,
         gfxCriticalNote << "TexUnpackSurface failed to get CanvasSurface";
         return false;
       }
+      if (NS_WARN_IF(surf->GetSize().width < GLint(size.x)) ||
+          NS_WARN_IF(surf->GetSize().height < GLint(size.y))) {
+        RefPtr<gfx::DrawTarget> adjusted = gfx::Factory::CreateDrawTarget(
+            gfx::BackendType::SKIA, gfx::IntSize(size.x, size.y),
+            surf->GetFormat());
+        if (!adjusted) {
+          gfxCriticalNote
+              << "Failed to created adjusted target for CanvasSurface";
+          return false;
+        }
+        adjusted->CopySurface(surf, surf->GetRect(), gfx::IntPoint(0, 0));
+        if (RefPtr<gfx::SourceSurface> snapshot = adjusted->Snapshot()) {
+          surf = snapshot->GetDataSurface();
+          if (!surf) {
+            gfxCriticalNote
+                << "Failed to get adjusted snapshot data for CanvasSurface";
+            return false;
+          }
+        } else {
+          gfxCriticalNote
+              << "Failed to create adjusted snapshot for CanvasSurface";
+          return false;
+        }
+      }
     } else {
       MOZ_ASSERT_UNREACHABLE("Unexpected surface descriptor!");
     }

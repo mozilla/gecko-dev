@@ -326,6 +326,19 @@ class CanvasTranslator final : public gfx::InlineTranslator,
 
   static void Shutdown();
 
+  void AddExportSurface(gfx::ReferencePtr aRefPtr,
+                        gfx::SourceSurface* aSurface) {
+    mExportSurfaces.InsertOrUpdate(aRefPtr, RefPtr{aSurface});
+  }
+
+  void RemoveExportSurface(gfx::ReferencePtr aRefPtr) {
+    mExportSurfaces.Remove(aRefPtr);
+  }
+
+  gfx::SourceSurface* LookupExportSurface(gfx::ReferencePtr aRefPtr) {
+    return mExportSurfaces.GetWeak(aRefPtr);
+  }
+
  private:
   ~CanvasTranslator();
 
@@ -575,6 +588,8 @@ class CanvasTranslator final : public gfx::InlineTranslator,
   Mutex mCanvasTranslatorEventsLock;
   RefPtr<nsIRunnable> mCanvasTranslatorEventsRunnable;
   std::deque<UniquePtr<CanvasTranslatorEvent>> mPendingCanvasTranslatorEvents;
+
+  nsRefPtrHashtable<nsPtrHashKey<void>, gfx::SourceSurface> mExportSurfaces;
 };
 
 }  // namespace layers

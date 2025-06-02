@@ -54,10 +54,6 @@ class InlineTranslator : public Translator {
     return result;
   }
 
-  bool HasSourceSurface(ReferencePtr aRefPtr) const {
-    return mSourceSurfaces.GetWeak(aRefPtr) != nullptr;
-  }
-
   SourceSurface* LookupSourceSurface(ReferencePtr aRefPtr) final {
     SourceSurface* result = mSourceSurfaces.GetWeak(aRefPtr);
     MOZ_ASSERT(result);
