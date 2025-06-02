@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Ulteriori informazioni</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Gestisci estensioni</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Altro</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Meno</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Estensioni consigliate</string>
   <!--
@@ -389,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Tradotta in %1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Tradotto</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Stampa…</string>
   <!--
@@ -1895,6 +1901,10 @@
   <string name="studies_on">Attivo</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Disattivato</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">Attiva</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">Disattivata</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Permessi</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->

@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Læs mere</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Håndter udvidelser</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Mere</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Mindre</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Anbefalede udvidelser</string>
   <!--
@@ -239,6 +243,8 @@
   <string name="browser_menu_extensions_disabled_description">Midlertidigt deaktiveret</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Ingen udvidelser aktiveret</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Prøv en anbefalet udvidelse</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Kontooplysninger</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -366,6 +372,8 @@
   <string name="browser_menu_save_description">Tilføj bogmærke, Genvej, Startskærm, Samling, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Bogmærk denne side</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Bogmærk side</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Rediger bogmærke</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -385,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Oversat til %1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Oversat</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Udskriv…</string>
   <!--
@@ -1579,6 +1589,8 @@
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">afventer</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Hentning mislykkedes</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Detaljer</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Søg i hentede filer</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1889,6 +1901,10 @@
   <string name="studies_on">Til</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Fra</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">Til</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">Fra</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Tilladelser</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->

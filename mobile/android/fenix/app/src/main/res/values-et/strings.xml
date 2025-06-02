@@ -1083,6 +1083,10 @@
   <string name="bookmark_delete_single_item">%s kustutati</string>
   <!-- Text for the button to search all bookmarks -->
   <string name="bookmark_search">Sisesta otsitav fraas</string>
+  <!-- Content description for the bookmark screen delete bookmark navigation bar button -->
+  <string name="bookmark_delete_bookmark_content_description">Kustuta järjehoidja</string>
+  <!-- Content description for the bookmark screen delete bookmark folder navigation bar button -->
+  <string name="bookmark_delete_folder_content_description">Kustuta kaust</string>
   <!--
     Site Permissions
 
@@ -2084,6 +2088,8 @@
   <string name="never_translate_site_toolbar_title_preference">Saidid, mida kunagi ei tõlgita</string>
   <!-- Screen header presenting the never translate site preference feature. It will appear under the toolbar. -->
   <string name="never_translate_site_header_preference">Uue saidi lisamiseks külasta seda ja vali tõlkemenüüst „Ära kunagi seda saiti tõlgi”.</string>
+  <!-- The Delete site dialogue positive button will appear when the user clicks on a list item. The site will be deleted. -->
+  <string name="never_translate_site_dialog_confirm_delete_preference">Kustuta</string>
   <!-- The Delete site dialogue negative button will appear when the user clicks on a list item. The dialog will be dismissed. -->
   <string name="never_translate_site_dialog_cancel_preference">Loobu</string>
   <!--
@@ -2100,8 +2106,14 @@
   <string name="download_languages_default_system_language_require_preference">nõutud</string>
   <!-- The subhead of the download language preference screen will appear above the items that were not downloaded. -->
   <string name="download_language_header_preference">Keelte allalaadimine</string>
+  <!-- All languages list item. When the user presses this item, they can delete all languages that were downloaded. -->
+  <string name="download_language_all_languages_item_preference_to_delete">Kustuta kõik keeled</string>
+  <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
+  <string name="download_languages_item_content_description_downloaded_state">Kustuta</string>
   <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
   <string name="download_languages_item_content_description_not_downloaded_state">Laadi alla</string>
+  <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
+  <string name="delete_language_file_dialog_positive_button_text">Kustuta</string>
   <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
   <string name="delete_language_file_dialog_negative_button_text">Loobu</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->

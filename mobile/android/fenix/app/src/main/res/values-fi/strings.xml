@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Lue lisää</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Hallitse laajennuksia</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Lisää</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Vähemmän</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Suositellut laajennukset</string>
   <!--
@@ -389,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Käännetty kielelle %1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Käännetty</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Tulosta…</string>
   <!--
@@ -1881,6 +1887,10 @@
   <string name="studies_on">Päällä</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Pois päältä</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">Päällä</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">Pois päältä</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Oikeudet</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
