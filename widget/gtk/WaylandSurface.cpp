@@ -112,7 +112,7 @@ void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
       "mReadyToDrawFrameCallback %p mIsReadyToDraw %d initial_draw callback "
       "%zd\n",
       (void*)mReadyToDrawFrameCallback, (bool)mIsReadyToDraw,
-      mReadToDrawCallbacks.size());
+      mReadyToDrawCallbacks.size());
 
   // We're supposed to run on main thread only.
   AssertIsOnMainThread();
@@ -129,9 +129,9 @@ void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
     // It's possible that we're already unmapped so quit in such case.
     if (!mSurface) {
       LOGWAYLAND("  WaylandSurface is unmapped, quit.");
-      if (!mReadToDrawCallbacks.empty()) {
+      if (!mReadyToDrawCallbacks.empty()) {
         NS_WARNING("Unmapping WaylandSurface with active draw callback!");
-        mReadToDrawCallbacks.clear();
+        mReadyToDrawCallbacks.clear();
       }
       return;
     }
@@ -139,7 +139,7 @@ void WaylandSurface::InitialFrameCallbackHandler(struct wl_callback* callback) {
       return;
     }
     mIsReadyToDraw = true;
-    cbs = std::move(mReadToDrawCallbacks);
+    cbs = std::move(mReadyToDrawCallbacks);
 
     RequestFrameCallbackLocked(lock);
   }
@@ -176,7 +176,7 @@ void WaylandSurface::AddReadyToDrawCallbackLocked(
         " ready to draw without wayland surface!");
   }
   MOZ_DIAGNOSTIC_ASSERT(!mIsReadyToDraw || !mSurface);
-  mReadToDrawCallbacks.push_back(aDrawCB);
+  mReadyToDrawCallbacks.push_back(aDrawCB);
 }
 
 void WaylandSurface::AddOrFireReadyToDrawCallback(
@@ -191,7 +191,7 @@ void WaylandSurface::AddOrFireReadyToDrawCallback(
     if (!mIsReadyToDraw || !mSurface) {
       LOGVERBOSE(
           "WaylandSurface::AddOrFireReadyToDrawCallback() callback stored");
-      mReadToDrawCallbacks.push_back(aDrawCB);
+      mReadyToDrawCallbacks.push_back(aDrawCB);
       return;
     }
   }
@@ -206,7 +206,7 @@ void WaylandSurface::ClearReadyToDrawCallbacksLocked(
     const WaylandSurfaceLock& aProofOfLock) {
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
   MozClearPointer(mReadyToDrawFrameCallback, wl_callback_destroy);
-  mReadToDrawCallbacks.clear();
+  mReadyToDrawCallbacks.clear();
 }
 
 void WaylandSurface::ClearReadyToDrawCallbacks() {

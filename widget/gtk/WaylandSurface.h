@@ -366,7 +366,7 @@ class WaylandSurface final {
   // Frame callback registered to parent surface. When we get it we know
   // parent surface is ready and we can paint.
   wl_callback* mReadyToDrawFrameCallback = nullptr;
-  std::vector<std::function<void(void)>> mReadToDrawCallbacks;
+  std::vector<std::function<void(void)>> mReadyToDrawCallbacks;
 
   // Frame callbacks of this surface
   wl_callback* mFrameCallback = nullptr;
