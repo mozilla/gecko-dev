@@ -279,7 +279,8 @@ body {
 }
 
 .tabsFilter {
-  flex-grow: 1;
+  flex: 1;
+  margin: var(--space-xsmall);
 }
 
 /* Themed sidebars */

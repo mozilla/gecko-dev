@@ -194,7 +194,7 @@ TabListView.prototype = {
 
   // These listeners are attached only once, when we initialize the view
   _attachFixedListeners() {
-    this.tabsFilter.addEventListener("command", this.onFilter.bind(this));
+    this.tabsFilter.addEventListener("input", this.onFilter.bind(this));
     this.tabsFilter.addEventListener("focus", this.onFilterFocus.bind(this));
     this.tabsFilter.addEventListener("blur", this.onFilterBlur.bind(this));
   },
