@@ -497,10 +497,11 @@
 <groupbox id="applicationsGroup" data-category="paneGeneral" hidden="true">
   <label><html:h2 data-l10n-id="applications-header"/></label>
   <description class="description-deemphasized" data-l10n-id="applications-description"/>
-  <search-textbox id="filter" flex="1"
-                  data-l10n-id="applications-filter"
-                  data-l10n-attrs="placeholder"
-                  aria-controls="handlersView"/>
+  <html:moz-input-search
+      id="filter"
+      data-l10n-id="applications-filter"
+      data-l10n-attrs="placeholder"
+      aria-controls="handlersView"/>
 
   <listheader id="handlersViewHeader">
     <treecol id="typeColumn" data-l10n-id="applications-type-column" value="type"

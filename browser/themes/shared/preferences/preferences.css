@@ -378,6 +378,7 @@ radio {
 }
 
 #filter {
+  flex: 1;
   margin: 4px 0 8px;
 }
 
