@@ -541,19 +541,14 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
     }
     aCodec->mConstraints.maxBr = aPrefs.H264MaxBr();
     aCodec->mConstraints.maxMbps = aPrefs.H264MaxMbps();
-    aCodec->mEnabled = aPrefs.H264Enabled();
-    if (aCodec->mPacketizationMode == 0) {
-      // See the implementation of H264PacketizationModeZeroSupported() for
-      // details.
-      aCodec->mEnabled = aPrefs.H264PacketizationModeZeroSupported();
-    }
     return ConfigureCommonVideoCodec(std::move(aCodec), aPrefs);
   }
 
   static UniquePtr<JsepVideoCodecDescription> CreateDefaultH264_0(
       const JsepCodecPreferences& aPrefs) {
     auto codec = MakeUnique<JsepVideoCodecDescription>("97", "H264", 90000);
-    codec->mEnabled = aPrefs.H264Enabled();
+    codec->mEnabled =
+        aPrefs.H264Enabled() && aPrefs.H264PacketizationModeZeroSupported();
     codec->mPacketizationMode = 0;
     // Defaults for mandatory params
     codec->mProfileLevelId = 0x42E01F;
@@ -579,7 +574,8 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
   static UniquePtr<JsepVideoCodecDescription> CreateDefaultH264Baseline_0(
       const JsepCodecPreferences& aPrefs) {
     auto codec = MakeUnique<JsepVideoCodecDescription>("103", "H264", 90000);
-    codec->mEnabled = aPrefs.H264Enabled();
+    codec->mEnabled =
+        aPrefs.H264Enabled() && aPrefs.H264PacketizationModeZeroSupported();
     codec->mPacketizationMode = 0;
     // Defaults for mandatory params
     codec->mProfileLevelId = 0x42001F;
