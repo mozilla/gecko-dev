@@ -18,6 +18,18 @@ ChromeUtils.defineESModuleGetters(this, {
 
 const { WEATHER_SUGGESTION } = MerinoTestUtils;
 
+const EXPECTED_MERINO_PARAMS_WATERLOO_IA = {
+  city: "Waterloo",
+  region: "IA,013,94597",
+  country: "US",
+};
+
+const EXPECTED_MERINO_PARAMS_WATERLOO_AL = {
+  city: "Waterloo",
+  region: "AL,077",
+  country: "US",
+};
+
 let gWeather;
 
 add_setup(async () => {
@@ -348,11 +360,7 @@ add_task(async function cityQueries_noGeo() {
     geolocation: null,
     expected: {
       geolocationCalled: true,
-      weatherParams: {
-        city: "Waterloo",
-        region: "IA",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_IA,
       suggestionCity: "Waterloo",
     },
   });
@@ -372,11 +380,7 @@ add_task(async function cityQueries_geoCoords() {
     },
     expected: {
       geolocationCalled: true,
-      weatherParams: {
-        city: "Waterloo",
-        region: "IA",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_IA,
       suggestionCity: "Waterloo",
     },
   });
@@ -392,11 +396,7 @@ add_task(async function cityQueries_geoCoords() {
     },
     expected: {
       geolocationCalled: true,
-      weatherParams: {
-        city: "Waterloo",
-        region: "AL",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_AL,
       suggestionCity: "Waterloo",
     },
   });
@@ -438,11 +438,7 @@ add_task(async function cityQueries_geoRegion() {
     },
     expected: {
       geolocationCalled: true,
-      weatherParams: {
-        city: "Waterloo",
-        region: "IA",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_IA,
       suggestionCity: "Waterloo",
     },
   });
@@ -456,11 +452,7 @@ add_task(async function cityQueries_geoRegion() {
     },
     expected: {
       geolocationCalled: true,
-      weatherParams: {
-        city: "Waterloo",
-        region: "AL",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_AL,
       suggestionCity: "Waterloo",
     },
   });
@@ -474,11 +466,7 @@ add_task(async function cityQueries_geoRegion() {
     },
     expected: {
       geolocationCalled: true,
-      weatherParams: {
-        city: "Waterloo",
-        region: "IA",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_IA,
       suggestionCity: "Waterloo",
     },
   });
@@ -492,11 +480,7 @@ add_task(async function cityQueries_geoRegion() {
     },
     expected: {
       geolocationCalled: true,
-      weatherParams: {
-        city: "Waterloo",
-        region: "IA",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_IA,
       suggestionCity: "Waterloo",
     },
   });
@@ -546,11 +530,7 @@ add_task(async function cityRegionQueries() {
     geolocation: null,
     expected: {
       geolocationCalled: false,
-      weatherParams: {
-        city: "Waterloo",
-        region: "IA",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_IA,
       suggestionCity: "Waterloo",
     },
   });
@@ -561,11 +541,7 @@ add_task(async function cityRegionQueries() {
     geolocation: null,
     expected: {
       geolocationCalled: false,
-      weatherParams: {
-        city: "Waterloo",
-        region: "AL",
-        country: "US",
-      },
+      weatherParams: EXPECTED_MERINO_PARAMS_WATERLOO_AL,
       suggestionCity: "Waterloo",
     },
   });
