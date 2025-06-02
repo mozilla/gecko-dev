@@ -1,3 +1,5 @@
+requestLongerTimeout(2);
+
 const TEST_SCRIPT_URL_0 =
   "https://example.com/browser/dom/tests/browser/page_scriptCache_partition.html";
 
