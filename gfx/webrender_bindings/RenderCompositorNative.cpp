@@ -436,6 +436,14 @@ void RenderCompositorNative::AddSurface(
     gfx::IntRect clipRect(aClipRect.min.x, aClipRect.min.y, aClipRect.width(),
                           aClipRect.height());
     layer->SetClipRect(Some(clipRect));
+    gfx::Rect roundedClipRect(aRoundedClipRect.min.x, aRoundedClipRect.min.y,
+                              aRoundedClipRect.width(),
+                              aRoundedClipRect.height());
+    gfx::RectCornerRadii clipRadius(aClipRadius.top_left, aClipRadius.top_right,
+                                    aClipRadius.bottom_right,
+                                    aClipRadius.bottom_left);
+    gfx::RoundedRect roundedClip(roundedClipRect, clipRadius);
+    layer->SetRoundedClipRect(Some(roundedClip));
     layer->SetTransform(transform);
     layer->SetSamplingFilter(ToSamplingFilter(aImageRendering));
     mAddedLayers.AppendElement(layer);
