@@ -714,15 +714,11 @@ bool Navigation::InnerFireNavigateEvent(
                        (aDestination->SameDocument() ||
                         aNavigationType != NavigationType::Traverse);
 
-  // Step 10
-  bool traverseCanBeCanceled =
+  // Step 10 and step 11
+  init.mCancelable =
       navigable->IsTop() && aDestination->SameDocument() &&
       (aUserInvolvement != UserNavigationInvolvement::BrowserUI ||
        HasHistoryActionActivation(ToMaybeRef(GetOwnerWindow())));
-
-  // Step 11
-  init.mCancelable =
-      aNavigationType != NavigationType::Traverse || traverseCanBeCanceled;
 
   // Step 13
   init.mNavigationType = aNavigationType;
@@ -772,7 +768,7 @@ bool Navigation::InnerFireNavigateEvent(
   // step 2 of #fire-a-traverse-navigate-event,
   // #fire-a-push/replace/reload-navigate-event, or
   // #fire-a-download-request-navigate-event, but there's no reason to not
-  // delay it until here. This also performs step 12.
+  // delay it until here.
   RefPtr<NavigateEvent> event = NavigateEvent::Constructor(
       this, u"navigate"_ns, init, aClassicHistoryAPIState, abortController);
   // Here we're running #concept-event-create from https://dom.spec.whatwg.org/

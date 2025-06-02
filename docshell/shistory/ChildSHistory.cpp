@@ -182,11 +182,18 @@ void ChildSHistory::Go(int32_t aOffset, bool aRequireUserInteraction,
 }
 
 void ChildSHistory::AsyncGo(int32_t aOffset, bool aRequireUserInteraction,
-                            bool aUserActivation) {
+                            bool aUserActivation, CallerType aCallerType,
+                            ErrorResult& aRv) {
   CheckedInt<int32_t> index = Index();
   MOZ_LOG(gSHLog, LogLevel::Debug,
           ("ChildSHistory::AsyncGo(%d), current index = %d", aOffset,
            index.value()));
+  nsresult rv = mBrowsingContext->CheckNavigationRateLimit(aCallerType);
+  if (NS_FAILED(rv)) {
+    MOZ_LOG(gSHLog, LogLevel::Debug, ("Rejected"));
+    aRv.Throw(rv);
+    return;
+  }
 
   RefPtr<PendingAsyncHistoryNavigation> asyncNav =
       new PendingAsyncHistoryNavigation(this, aOffset, aRequireUserInteraction,

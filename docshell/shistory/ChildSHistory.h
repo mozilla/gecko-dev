@@ -75,7 +75,7 @@ class ChildSHistory : public nsISupports, public nsWrapperCache {
   void Go(int32_t aOffset, bool aRequireUserInteraction, bool aUserActivation,
           ErrorResult& aRv);
   void AsyncGo(int32_t aOffset, bool aRequireUserInteraction,
-               bool aUserActivation);
+               bool aUserActivation, CallerType aCallerType, ErrorResult& aRv);
 
   // aIndex is the new index, and aOffset is the offset between new and current.
   MOZ_CAN_RUN_SCRIPT
