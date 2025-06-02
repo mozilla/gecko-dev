@@ -27,16 +27,11 @@
     }
   }
 
-  // Does not support disregarding unsupported codecs in the SDP, so is not
-  // suitable for all test-cases.
-  function checkCodecsAgainstSDP(codecs, msection) {
+  function buildExpectedCodecs(msection) {
     const rtpParameters = SDPUtils.parseRtpParameters(msection);
     const {kind} = SDPUtils.parseMLine(msection);
-    is(codecs.length, rtpParameters.codecs.length);
-    isnot(codecs.length, 0);
-    for (let i = 0; i < codecs.length; ++i) {
-      const observed = codecs[i];
-      const fromSdp = rtpParameters.codecs[i];
+    const sdpCodecs = new Map;
+    for (const fromSdp of rtpParameters.codecs) {
       const expected = {
         payloadType: fromSdp.payloadType,
         clockRate: fromSdp.clockRate,
@@ -53,7 +48,29 @@
         // set this, but will not perform any checks if we do not.
         expected.sdpFmtpLine = undefined;
       }
-      compareCodecParam(observed, expected);
+      ok(!sdpCodecs.has(expected.payloadType), "payload types must be unique");
+      sdpCodecs.set(expected.payloadType, expected);
+    }
+    return sdpCodecs;
+  }
+
+  // Does not support disregarding unsupported codecs in the SDP, so is not
+  // suitable for all test-cases.
+  function checkCodecsAgainstSDP(codecs, msection) {
+    const expectedCodecs = Array.from(buildExpectedCodecs(msection).values());
+    is(codecs.length, expectedCodecs.length);
+    isnot(codecs.length, 0);
+    for (let i = 0; i < codecs.length; ++i) {
+      compareCodecParam(codecs[i], expectedCodecs[i]);
+    }
+  }
+
+  function checkCodecsAgainstSDPUnordered(codecs, msection) {
+    const expectedCodecsMap = buildExpectedCodecs(msection);
+    is(codecs.length, expectedCodecsMap.size);
+    isnot(codecs.length, 0);
+    for (const observed of codecs) {
+      compareCodecParam(observed, expectedCodecsMap.get(observed.payloadType));
     }
   }
 
@@ -315,6 +332,37 @@ a=setup:passive
 
       {
         const {codecs} = pc2.getReceivers()[0].getParameters();
+        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
+        const sections = SDPUtils.splitSections(pc2.localDescription.sdp);
+        checkCodecsAgainstSDP(codecs, sections[1]);
+      }
+    },
+
+    async function checkH264Unidirectional() {
+      const numExpectedH264Codecs = await getNumExpectedH264SendCodecs();
+      const pc1 = new RTCPeerConnection();
+      const pc2 = new RTCPeerConnection();
+      pc1.addTransceiver('video', {direction: 'recvonly'});
+      await pc1.setLocalDescription();
+      {
+        const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
+        const {codecs} = SDPUtils.parseRtpParameters(sections[1]);
+        is(codecs.filter(c => c.name.toLowerCase() == 'h264').length, 4);
+      }
+
+      await pc2.setRemoteDescription(pc1.localDescription);
+      pc2.getTransceivers()[0].direction = 'sendonly';
+      await pc2.setLocalDescription();
+      await pc1.setRemoteDescription(pc2.localDescription);
+      {
+        const {codecs} = pc1.getReceivers()[0].getParameters();
+        is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, 4);
+        const sections = SDPUtils.splitSections(pc1.localDescription.sdp);
+        checkCodecsAgainstSDPUnordered(codecs, sections[1]);
+      }
+
+      {
+        const {codecs} = pc2.getSenders()[0].getParameters();
         is(codecs.filter(c => c.mimeType.toLowerCase() == 'video/h264').length, numExpectedH264Codecs);
         const sections = SDPUtils.splitSections(pc2.localDescription.sdp);
         checkCodecsAgainstSDP(codecs, sections[1]);
