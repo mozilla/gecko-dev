@@ -25,6 +25,8 @@
 #include "jsep/JsepSession.h"
 #include "jsep/JsepSessionImpl.h"
 
+using testing::ElementsAre;
+using testing::Pair;
 using testing::UnorderedElementsAre;
 
 namespace mozilla {
@@ -83,6 +85,17 @@ class JsepSessionTest : public JsepSessionTestBase,
 
     std::vector<UniquePtr<JsepCodecDescription>> preferredCodecs;
     PeerConnectionImpl::SetupPreferredCodecs(preferredCodecs);
+    for (auto& codec : preferredCodecs) {
+      // Make H264 P0 recvonly everywhere for better test coverage.
+      // TODO: For unit testing JSEP, the preferred codecs list should be
+      //       defined by the tests, not rely on Gecko runtime behavior.
+      if (codec->mName == "H264") {
+        auto* video = static_cast<JsepVideoCodecDescription*>(codec.get());
+        if (video->mPacketizationMode == 0) {
+          video->mSupportedDirection = sdp::kRecv;
+        }
+      }
+    }
     mSessionOff->SetDefaultCodecs(preferredCodecs);
     mSessionAns->SetDefaultCodecs(preferredCodecs);
 
@@ -3310,81 +3323,222 @@ TEST_F(JsepSessionTest, ValidateOfferedVideoCodecParams) {
   const auto& video_attrs = video_section.GetAttributeList();
   ASSERT_EQ(SdpDirectionAttribute::kSendrecv, video_attrs.GetDirection());
 
-  ASSERT_EQ(17U, video_section.GetFormats().size());
-  ASSERT_EQ("120", video_section.GetFormats()[0]);
-  ASSERT_EQ("124", video_section.GetFormats()[1]);
-  ASSERT_EQ("121", video_section.GetFormats()[2]);
-  ASSERT_EQ("125", video_section.GetFormats()[3]);
-  ASSERT_EQ("126", video_section.GetFormats()[4]);
-  ASSERT_EQ("127", video_section.GetFormats()[5]);
-  ASSERT_EQ("97", video_section.GetFormats()[6]);
-  ASSERT_EQ("98", video_section.GetFormats()[7]);
-  ASSERT_EQ("105", video_section.GetFormats()[8]);
-  ASSERT_EQ("106", video_section.GetFormats()[9]);
-  ASSERT_EQ("103", video_section.GetFormats()[10]);
-  ASSERT_EQ("104", video_section.GetFormats()[11]);
-  ASSERT_EQ("99", video_section.GetFormats()[12]);
-  ASSERT_EQ("100", video_section.GetFormats()[13]);
-  ASSERT_EQ("123", video_section.GetFormats()[14]);
-  ASSERT_EQ("122", video_section.GetFormats()[15]);
-  ASSERT_EQ("119", video_section.GetFormats()[16]);
+  ASSERT_THAT(video_section.GetFormats(),
+              ElementsAre("120", "124", "121", "125", "126", "127", "105",
+                          "106", "99", "100", "123", "122", "119"));
 
   // Validate rtpmap
   ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kRtpmapAttribute));
-  auto& rtpmaps = video_attrs.GetRtpmap();
-  ASSERT_TRUE(rtpmaps.HasEntry("120"));
-  ASSERT_TRUE(rtpmaps.HasEntry("124"));
-  ASSERT_TRUE(rtpmaps.HasEntry("121"));
-  ASSERT_TRUE(rtpmaps.HasEntry("125"));
-  ASSERT_TRUE(rtpmaps.HasEntry("126"));
-  ASSERT_TRUE(rtpmaps.HasEntry("127"));
-  ASSERT_TRUE(rtpmaps.HasEntry("105"));
-  ASSERT_TRUE(rtpmaps.HasEntry("106"));
-  ASSERT_TRUE(rtpmaps.HasEntry("103"));
-  ASSERT_TRUE(rtpmaps.HasEntry("104"));
-  ASSERT_TRUE(rtpmaps.HasEntry("97"));
-  ASSERT_TRUE(rtpmaps.HasEntry("98"));
-  ASSERT_TRUE(rtpmaps.HasEntry("99"));
-  ASSERT_TRUE(rtpmaps.HasEntry("100"));
-  ASSERT_TRUE(rtpmaps.HasEntry("123"));
-  ASSERT_TRUE(rtpmaps.HasEntry("122"));
-  ASSERT_TRUE(rtpmaps.HasEntry("119"));
-
-  const auto& vp8_entry = rtpmaps.GetEntry("120");
-  const auto& vp8_rtx_entry = rtpmaps.GetEntry("124");
-  const auto& vp9_entry = rtpmaps.GetEntry("121");
-  const auto& vp9_rtx_entry = rtpmaps.GetEntry("125");
-  const auto& h264_1_entry = rtpmaps.GetEntry("126");
-  const auto& h264_1_rtx_entry = rtpmaps.GetEntry("127");
-  const auto& h264_0_entry = rtpmaps.GetEntry("97");
-  const auto& h264_0_rtx_entry = rtpmaps.GetEntry("98");
-  const auto& h264_baseline_1_entry = rtpmaps.GetEntry("105");
-  const auto& h264_baseline_1_rtx_entry = rtpmaps.GetEntry("106");
-  const auto& h264_baseline_0_entry = rtpmaps.GetEntry("103");
-  const auto& h264_baseline_0_rtx_entry = rtpmaps.GetEntry("104");
-  const auto& ulpfec_0_entry = rtpmaps.GetEntry("123");
-  const auto& red_0_entry = rtpmaps.GetEntry("122");
-  const auto& red_0_rtx_entry = rtpmaps.GetEntry("119");
-
-  ASSERT_EQ("VP8", vp8_entry.name);
-  ASSERT_EQ("rtx", vp8_rtx_entry.name);
-  ASSERT_EQ("VP9", vp9_entry.name);
-  ASSERT_EQ("rtx", vp9_rtx_entry.name);
-  ASSERT_EQ("H264", h264_1_entry.name);
-  ASSERT_EQ("rtx", h264_1_rtx_entry.name);
-  ASSERT_EQ("H264", h264_0_entry.name);
-  ASSERT_EQ("rtx", h264_0_rtx_entry.name);
-  ASSERT_EQ("H264", h264_baseline_1_entry.name);
-  ASSERT_EQ("rtx", h264_baseline_1_rtx_entry.name);
-  ASSERT_EQ("H264", h264_baseline_0_entry.name);
-  ASSERT_EQ("rtx", h264_baseline_0_rtx_entry.name);
-  ASSERT_EQ("red", red_0_entry.name);
-  ASSERT_EQ("ulpfec", ulpfec_0_entry.name);
-  ASSERT_EQ("rtx", red_0_rtx_entry.name);
+  const auto& rtpmaps = video_attrs.GetRtpmap().mRtpmaps;
+  std::multimap<std::string, std::string> rtpmapPtNames;
+  for (const auto& rtpmap : rtpmaps) {
+    rtpmapPtNames.insert({rtpmap.pt, rtpmap.name});
+  }
+  ASSERT_THAT(rtpmapPtNames,
+              UnorderedElementsAre(
+                  Pair("120", "VP8"), Pair("124", "rtx"), Pair("121", "VP9"),
+                  Pair("125", "rtx"), Pair("126", "H264"), Pair("127", "rtx"),
+                  Pair("105", "H264"), Pair("106", "rtx"), Pair("99", "AV1"),
+                  Pair("100", "rtx"), Pair("123", "ulpfec"), Pair("122", "red"),
+                  Pair("119", "rtx")));
 
   // Validate fmtps
   ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kFmtpAttribute));
-  auto& fmtps = video_attrs.GetFmtp().mFmtps;
+  const auto& fmtps = video_attrs.GetFmtp().mFmtps;
+
+  ASSERT_EQ(10U, fmtps.size());
+
+  // VP8
+  const SdpFmtpAttributeList::Parameters* vp8_params =
+      video_section.FindFmtp("120");
+  ASSERT_TRUE(vp8_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kVP8, vp8_params->codec_type);
+
+  const auto& parsed_vp8_params =
+      *static_cast<const SdpFmtpAttributeList::VP8Parameters*>(vp8_params);
+
+  ASSERT_EQ((uint32_t)12288, parsed_vp8_params.max_fs);
+  ASSERT_EQ((uint32_t)60, parsed_vp8_params.max_fr);
+
+  // VP8 RTX
+  const SdpFmtpAttributeList::Parameters* vp8_rtx_params =
+      video_section.FindFmtp("124");
+  ASSERT_TRUE(vp8_rtx_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kRtx, vp8_rtx_params->codec_type);
+
+  const auto& parsed_vp8_rtx_params =
+      *static_cast<const SdpFmtpAttributeList::RtxParameters*>(vp8_rtx_params);
+
+  ASSERT_EQ((uint32_t)120, parsed_vp8_rtx_params.apt);
+
+  // VP9
+  const SdpFmtpAttributeList::Parameters* vp9_params =
+      video_section.FindFmtp("121");
+  ASSERT_TRUE(vp9_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kVP9, vp9_params->codec_type);
+
+  const auto& parsed_vp9_params =
+      *static_cast<const SdpFmtpAttributeList::VP8Parameters*>(vp9_params);
+
+  ASSERT_EQ((uint32_t)12288, parsed_vp9_params.max_fs);
+  ASSERT_EQ((uint32_t)60, parsed_vp9_params.max_fr);
+
+  // VP9 RTX
+  const SdpFmtpAttributeList::Parameters* vp9_rtx_params =
+      video_section.FindFmtp("125");
+  ASSERT_TRUE(vp9_rtx_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kRtx, vp9_rtx_params->codec_type);
+
+  const auto& parsed_vp9_rtx_params =
+      *static_cast<const SdpFmtpAttributeList::RtxParameters*>(vp9_rtx_params);
+  ASSERT_EQ((uint32_t)121, parsed_vp9_rtx_params.apt);
+
+  // H264 packetization mode 1
+  const SdpFmtpAttributeList::Parameters* h264_1_params =
+      video_section.FindFmtp("126");
+  ASSERT_TRUE(h264_1_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kH264, h264_1_params->codec_type);
+
+  const auto& parsed_h264_1_params =
+      *static_cast<const SdpFmtpAttributeList::H264Parameters*>(h264_1_params);
+
+  ASSERT_EQ((uint32_t)0x42e01f, parsed_h264_1_params.profile_level_id);
+  ASSERT_TRUE(parsed_h264_1_params.level_asymmetry_allowed);
+  ASSERT_EQ(1U, parsed_h264_1_params.packetization_mode);
+
+  // H264 packetization mode 1 RTX
+  const SdpFmtpAttributeList::Parameters* h264_1_rtx_params =
+      video_section.FindFmtp("127");
+  ASSERT_TRUE(h264_1_rtx_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kRtx, h264_1_rtx_params->codec_type);
+
+  const auto& parsed_h264_1_rtx_params =
+      *static_cast<const SdpFmtpAttributeList::RtxParameters*>(
+          h264_1_rtx_params);
+
+  ASSERT_EQ((uint32_t)126, parsed_h264_1_rtx_params.apt);
+
+  // H264 packetization mode 0
+  const SdpFmtpAttributeList::Parameters* h264_0_params =
+      video_section.FindFmtp("97");
+  ASSERT_FALSE(h264_0_params);
+
+  // H264 packetization mode 0 RTX
+  const SdpFmtpAttributeList::Parameters* h264_0_rtx_params =
+      video_section.FindFmtp("98");
+  ASSERT_FALSE(h264_0_rtx_params);
+
+  // H264 Baseline packetization mode 1
+  const SdpFmtpAttributeList::Parameters* h264_baseline_1_params =
+      video_section.FindFmtp("105");
+  ASSERT_TRUE(h264_baseline_1_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kH264, h264_baseline_1_params->codec_type);
+
+  const auto& parsed_h264_baseline_1_params =
+      *static_cast<const SdpFmtpAttributeList::H264Parameters*>(
+          h264_baseline_1_params);
+
+  ASSERT_EQ((uint32_t)0x42001f, parsed_h264_baseline_1_params.profile_level_id);
+  ASSERT_TRUE(parsed_h264_baseline_1_params.level_asymmetry_allowed);
+  ASSERT_EQ(1U, parsed_h264_baseline_1_params.packetization_mode);
+
+  // H264 Baseline packetization mode 1 RTX
+  const SdpFmtpAttributeList::Parameters* h264_baseline_1_rtx_params =
+      video_section.FindFmtp("106");
+  ASSERT_TRUE(h264_baseline_1_rtx_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kRtx,
+            h264_baseline_1_rtx_params->codec_type);
+
+  const auto& parsed_h264__baseline_1_rtx_params =
+      *static_cast<const SdpFmtpAttributeList::RtxParameters*>(
+          h264_baseline_1_rtx_params);
+
+  ASSERT_EQ((uint32_t)105, parsed_h264__baseline_1_rtx_params.apt);
+
+  // H264 Baseline packetization mode 0
+  const SdpFmtpAttributeList::Parameters* h264_baseline_0_params =
+      video_section.FindFmtp("103");
+  ASSERT_FALSE(h264_baseline_0_params);
+
+  // H264 Baseline packetization mode 0 RTX
+  const SdpFmtpAttributeList::Parameters* h264__baseline_0_rtx_params =
+      video_section.FindFmtp("104");
+  ASSERT_FALSE(h264__baseline_0_rtx_params);
+
+  // AV1 has no default FMTP parameters so there is no FMTP entry for AV1 in the
+  // test.
+  // AV1 RTX
+  const SdpFmtpAttributeList::Parameters* av1_rtx_params =
+      video_section.FindFmtp("100");
+  ASSERT_TRUE(av1_rtx_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kRtx, av1_rtx_params->codec_type);
+  const auto& parsed_av1_rtx_params =
+      *static_cast<const SdpFmtpAttributeList::RtxParameters*>(av1_rtx_params);
+  ASSERT_EQ((uint32_t)99, parsed_av1_rtx_params.apt);
+
+  // red RTX
+  const SdpFmtpAttributeList::Parameters* red_rtx_params =
+      video_section.FindFmtp("119");
+  ASSERT_TRUE(red_rtx_params);
+  ASSERT_EQ(SdpRtpmapAttributeList::kRtx, red_rtx_params->codec_type);
+
+  const auto& parsed_red_rtx_params =
+      *static_cast<const SdpFmtpAttributeList::RtxParameters*>(red_rtx_params);
+
+  ASSERT_EQ((uint32_t)122, parsed_red_rtx_params.apt);
+}
+
+TEST_F(JsepSessionTest, ValidateOfferedRecvonlyVideoCodecParams) {
+  types.push_back(SdpMediaSection::kAudio);
+  types.push_back(SdpMediaSection::kVideo);
+
+  JsepTransceiver audio(SdpMediaSection::kAudio, mUuidGen,
+                        SdpDirectionAttribute::kRecvonly);
+  audio.mSendTrack.UpdateStreamIds(
+      std::vector<std::string>(1, "offerer_stream"));
+  mSessionOff->AddTransceiver(audio);
+
+  JsepTransceiver video(SdpMediaSection::kVideo, mUuidGen,
+                        SdpDirectionAttribute::kRecvonly);
+  video.mSendTrack.UpdateStreamIds(
+      std::vector<std::string>(1, "offerer_stream"));
+  mSessionOff->AddTransceiver(video);
+
+  std::string offer = CreateOffer();
+
+  UniquePtr<Sdp> outputSdp(Parse(offer));
+  ASSERT_TRUE(!!outputSdp);
+
+  ASSERT_EQ(2U, outputSdp->GetMediaSectionCount());
+  const auto& video_section = outputSdp->GetMediaSection(1);
+  ASSERT_EQ(SdpMediaSection::kVideo, video_section.GetMediaType());
+  const auto& video_attrs = video_section.GetAttributeList();
+  ASSERT_EQ(SdpDirectionAttribute::kRecvonly, video_attrs.GetDirection());
+
+  ASSERT_THAT(
+      video_section.GetFormats(),
+      ElementsAre("120", "124", "121", "125", "126", "127", "97", "98", "105",
+                  "106", "103", "104", "99", "100", "123", "122", "119"));
+
+  // Validate rtpmap
+  ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kRtpmapAttribute));
+  const auto& rtpmaps = video_attrs.GetRtpmap().mRtpmaps;
+  std::multimap<std::string, std::string> rtpmapPtNames;
+  for (const auto& rtpmap : rtpmaps) {
+    rtpmapPtNames.insert({rtpmap.pt, rtpmap.name});
+  }
+  ASSERT_THAT(rtpmapPtNames,
+              UnorderedElementsAre(
+                  Pair("97", "H264"), Pair("98", "rtx"), Pair("103", "H264"),
+                  Pair("104", "rtx"), Pair("120", "VP8"), Pair("124", "rtx"),
+                  Pair("121", "VP9"), Pair("125", "rtx"), Pair("126", "H264"),
+                  Pair("127", "rtx"), Pair("105", "H264"), Pair("106", "rtx"),
+                  Pair("99", "AV1"), Pair("100", "rtx"), Pair("123", "ulpfec"),
+                  Pair("122", "red"), Pair("119", "rtx")));
+
+  // Validate fmtps
+  ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kFmtpAttribute));
+  const auto& fmtps = video_attrs.GetFmtp().mFmtps;
 
   ASSERT_EQ(14U, fmtps.size());
 
@@ -3394,7 +3548,7 @@ TEST_F(JsepSessionTest, ValidateOfferedVideoCodecParams) {
   ASSERT_TRUE(vp8_params);
   ASSERT_EQ(SdpRtpmapAttributeList::kVP8, vp8_params->codec_type);
 
-  auto& parsed_vp8_params =
+  const auto& parsed_vp8_params =
       *static_cast<const SdpFmtpAttributeList::VP8Parameters*>(vp8_params);
 
   ASSERT_EQ((uint32_t)12288, parsed_vp8_params.max_fs);
@@ -3677,66 +3831,33 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   auto& video_attrs = video_section.GetAttributeList();
   ASSERT_EQ(SdpDirectionAttribute::kSendrecv, video_attrs.GetDirection());
 
-  ASSERT_EQ(17U, video_section.GetFormats().size());
-  ASSERT_EQ("120", video_section.GetFormats()[0]);
-  ASSERT_EQ("124", video_section.GetFormats()[1]);
-  ASSERT_EQ("121", video_section.GetFormats()[2]);
-  ASSERT_EQ("125", video_section.GetFormats()[3]);
-  ASSERT_EQ("126", video_section.GetFormats()[4]);
-  ASSERT_EQ("127", video_section.GetFormats()[5]);
-  ASSERT_EQ("97", video_section.GetFormats()[6]);
-  ASSERT_EQ("98", video_section.GetFormats()[7]);
-  ASSERT_EQ("105", video_section.GetFormats()[8]);
-  ASSERT_EQ("106", video_section.GetFormats()[9]);
-  ASSERT_EQ("103", video_section.GetFormats()[10]);
-  ASSERT_EQ("104", video_section.GetFormats()[11]);
-  ASSERT_EQ("99", video_section.GetFormats()[12]);
-  ASSERT_EQ("100", video_section.GetFormats()[13]);
-  ASSERT_EQ("123", video_section.GetFormats()[14]);
-  ASSERT_EQ("122", video_section.GetFormats()[15]);
-  ASSERT_EQ("119", video_section.GetFormats()[16]);
+  ASSERT_THAT(video_section.GetFormats(),
+              ElementsAre("120", "124", "121", "125", "126", "127", "105",
+                          "106", "99", "100", "123", "122", "119"));
 
   // Validate rtpmap
   ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kRtpmapAttribute));
-  auto& rtpmaps = video_attrs.GetRtpmap();
-  ASSERT_TRUE(rtpmaps.HasEntry("120"));
-  ASSERT_TRUE(rtpmaps.HasEntry("124"));
-  ASSERT_TRUE(rtpmaps.HasEntry("121"));
-  ASSERT_TRUE(rtpmaps.HasEntry("125"));
-  ASSERT_TRUE(rtpmaps.HasEntry("126"));
-  ASSERT_TRUE(rtpmaps.HasEntry("127"));
-  ASSERT_TRUE(rtpmaps.HasEntry("97"));
-  ASSERT_TRUE(rtpmaps.HasEntry("98"));
-  ASSERT_TRUE(rtpmaps.HasEntry("105"));
-  ASSERT_TRUE(rtpmaps.HasEntry("106"));
-  ASSERT_TRUE(rtpmaps.HasEntry("103"));
-  ASSERT_TRUE(rtpmaps.HasEntry("104"));
-  ASSERT_TRUE(rtpmaps.HasEntry("99"));
-  ASSERT_TRUE(rtpmaps.HasEntry("100"));
-  ASSERT_TRUE(rtpmaps.HasEntry("123"));
-  ASSERT_TRUE(rtpmaps.HasEntry("122"));
-  ASSERT_TRUE(rtpmaps.HasEntry("119"));
+  const auto& rtpmaps = video_attrs.GetRtpmap().mRtpmaps;
+  std::vector<std::string> rtpmapPts;
+  rtpmapPts.reserve(rtpmaps.size());
+  for (const auto& rtpmap : rtpmaps) {
+    rtpmapPts.push_back(rtpmap.pt);
+  }
+  ASSERT_THAT(rtpmapPts, UnorderedElementsAre("120", "124", "121", "125", "126",
+                                              "127", "105", "106", "99", "100",
+                                              "123", "122", "119"));
 
   // Validate fmtps
   ASSERT_TRUE(video_attrs.HasAttribute(SdpAttribute::kFmtpAttribute));
-  auto& fmtps = video_attrs.GetFmtp().mFmtps;
+  const auto& fmtps = video_attrs.GetFmtp().mFmtps;
+  std::vector<std::string> fmtpFormats;
+  fmtpFormats.reserve(fmtps.size());
+  for (const auto& fmtp : fmtps) {
+    fmtpFormats.push_back(fmtp.format);
+  }
 
-  ASSERT_EQ(14U, fmtps.size());
-  ASSERT_EQ("126", fmtps[0].format);
-  ASSERT_EQ("97", fmtps[1].format);
-  ASSERT_EQ("105", fmtps[2].format);
-  ASSERT_EQ("103", fmtps[3].format);
-  ASSERT_EQ("120", fmtps[4].format);
-  ASSERT_EQ("124", fmtps[5].format);
-  ASSERT_EQ("121", fmtps[6].format);
-  ASSERT_EQ("125", fmtps[7].format);
-  ASSERT_EQ("127", fmtps[8].format);
-  ASSERT_EQ("98", fmtps[9].format);
-  ASSERT_EQ("106", fmtps[10].format);
-  ASSERT_EQ("104", fmtps[11].format);
-  ASSERT_EQ("100", fmtps[12].format);
-  ASSERT_EQ("119", fmtps[13].format);
-
+  ASSERT_THAT(fmtpFormats, ElementsAre("126", "105", "120", "124", "121", "125",
+                                       "127", "106", "100", "119"));
   SetLocalAnswer(answer);
   SetRemoteAnswer(answer);
 
@@ -3746,7 +3867,9 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   ASSERT_FALSE(IsNull(offerTransceivers[1].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[1].mSendTrack.GetNegotiatedDetails());
   ASSERT_TRUE(offerTransceivers[1].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(9U, offerTransceivers[1]
+  // Note that the number of recv/send codecs here differ because some codecs
+  // are recvonly. See SetupPreferredCodecs above.
+  ASSERT_EQ(7U, offerTransceivers[1]
                     .mSendTrack.GetNegotiatedDetails()
                     ->GetEncoding(0)
                     .GetCodecs()
@@ -3763,12 +3886,12 @@ TEST_F(JsepSessionTest, ValidateNoFmtpLineForRedInOfferAndAnswer) {
   ASSERT_FALSE(IsNull(answerTransceivers[1].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[1].mSendTrack.GetNegotiatedDetails());
   ASSERT_TRUE(answerTransceivers[1].mRecvTrack.GetNegotiatedDetails());
-  ASSERT_EQ(9U, answerTransceivers[1]
+  ASSERT_EQ(7U, answerTransceivers[1]
                     .mSendTrack.GetNegotiatedDetails()
                     ->GetEncoding(0)
                     .GetCodecs()
                     .size());
-  ASSERT_EQ(9U, answerTransceivers[1]
+  ASSERT_EQ(7U, answerTransceivers[1]
                     .mRecvTrack.GetNegotiatedDetails()
                     ->GetEncoding(0)
                     .GetCodecs()
@@ -4990,16 +5113,16 @@ TEST_F(JsepSessionTest, TestUniqueReceivePayloadTypes) {
   ASSERT_FALSE(IsNull(offerTransceivers[2].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[2].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(offerTransceivers[2].mRecvTrack.GetUniqueReceivePayloadTypes(),
-              UnorderedElementsAre());
+              UnorderedElementsAre(97, 103));
   ASSERT_THAT(offerTransceivers[2].mRecvTrack.GetDuplicateReceivePayloadTypes(),
-              UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
+              UnorderedElementsAre(99, 105, 120, 121, 122, 123, 126));
 
   ASSERT_TRUE(IsNull(offerTransceivers[3].mRecvTrack));
   ASSERT_TRUE(offerTransceivers[3].mRecvTrack.GetNegotiatedDetails());
   ASSERT_THAT(offerTransceivers[3].mRecvTrack.GetUniqueReceivePayloadTypes(),
               UnorderedElementsAre());
   ASSERT_THAT(offerTransceivers[3].mRecvTrack.GetDuplicateReceivePayloadTypes(),
-              UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
+              UnorderedElementsAre(99, 105, 120, 121, 122, 123, 126));
 
   ASSERT_FALSE(IsNull(answerTransceivers[0].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[0].mRecvTrack.GetNegotiatedDetails());
@@ -5025,7 +5148,7 @@ TEST_F(JsepSessionTest, TestUniqueReceivePayloadTypes) {
               UnorderedElementsAre());
   ASSERT_THAT(
       answerTransceivers[2].mRecvTrack.GetDuplicateReceivePayloadTypes(),
-      UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
+      UnorderedElementsAre(99, 105, 120, 121, 122, 123, 126));
 
   ASSERT_FALSE(IsNull(answerTransceivers[3].mRecvTrack));
   ASSERT_TRUE(answerTransceivers[3].mRecvTrack.GetNegotiatedDetails());
@@ -5033,7 +5156,7 @@ TEST_F(JsepSessionTest, TestUniqueReceivePayloadTypes) {
               UnorderedElementsAre());
   ASSERT_THAT(
       answerTransceivers[3].mRecvTrack.GetDuplicateReceivePayloadTypes(),
-      UnorderedElementsAre(97, 99, 103, 105, 120, 121, 122, 123, 126));
+      UnorderedElementsAre(99, 105, 120, 121, 122, 123, 126));
 }
 
 TEST_F(JsepSessionTest, UnknownFingerprintAlgorithm) {
@@ -6386,10 +6509,11 @@ TEST_F(JsepSessionTest, DISABLED_AudioCallAnswererAttemptsSetupRoleSwitch) {
   ASSERT_EQ(kJsepStateStable, mSessionAns->GetState());
 }
 
-// Remove H.264 P1 and VP8 from offer, check answer negotiates H.264 P0
-TEST_F(JsepSessionTest, OfferWithOnlyH264P0) {
+// Remove H.264 CB and VP8 from offer, check answer negotiates H.264 B
+TEST_F(JsepSessionTest, OfferWithOnlyH264Baseline) {
   for (auto& codec : mSessionOff->Codecs()) {
-    if (codec->mName != "H264" || codec->mDefaultPt == "126") {
+    if (codec->mName != "H264" || codec->mDefaultPt == "126" ||
+        codec->mDefaultPt == "97") {
       codec->mEnabled = false;
     }
   }
@@ -6401,6 +6525,7 @@ TEST_F(JsepSessionTest, OfferWithOnlyH264P0) {
   std::string offer = CreateOffer();
 
   ASSERT_EQ(offer.find("a=rtpmap:126 H264/90000"), std::string::npos);
+  ASSERT_EQ(offer.find("a=rtpmap:97 H264/90000"), std::string::npos);
   ASSERT_EQ(offer.find("a=rtpmap:120 VP8/90000"), std::string::npos);
 
   SetLocalOffer(offer);
@@ -6410,15 +6535,17 @@ TEST_F(JsepSessionTest, OfferWithOnlyH264P0) {
   ASSERT_NE(match, std::string::npos);
 
   // validate answer SDP
-  ASSERT_NE(answer.find("a=rtpmap:97 H264/90000"), std::string::npos);
-  ASSERT_NE(answer.find("a=rtcp-fb:97 nack"), std::string::npos);
-  ASSERT_NE(answer.find("a=rtcp-fb:97 nack pli"), std::string::npos);
-  ASSERT_NE(answer.find("a=rtcp-fb:97 ccm fir"), std::string::npos);
-  // Ensure VP8 and P1 removed
+  ASSERT_NE(answer.find("a=rtpmap:105 H264/90000"), std::string::npos);
+  ASSERT_NE(answer.find("a=rtcp-fb:105 nack"), std::string::npos);
+  ASSERT_NE(answer.find("a=rtcp-fb:105 nack pli"), std::string::npos);
+  ASSERT_NE(answer.find("a=rtcp-fb:105 ccm fir"), std::string::npos);
+  // Ensure VP8 and H264 CB removed
   ASSERT_EQ(answer.find("a=rtpmap:126 H264/90000"), std::string::npos);
+  ASSERT_EQ(answer.find("a=rtpmap:97 H264/90000"), std::string::npos);
   ASSERT_EQ(answer.find("a=rtpmap:120 VP8/90000"), std::string::npos);
   ASSERT_EQ(answer.find("a=rtcp-fb:120"), std::string::npos);
   ASSERT_EQ(answer.find("a=rtcp-fb:126"), std::string::npos);
+  ASSERT_EQ(answer.find("a=rtcp-fb:97"), std::string::npos);
 }
 
 // Test negotiating an answer which has only H.264 P1
