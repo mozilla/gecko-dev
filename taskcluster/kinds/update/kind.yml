@@ -34,7 +34,8 @@ tasks:
             using: run-task
             cwd: "{checkout}"
             command: >-
-                ./mach update-test
+                ./mach update-test --test_type Base;
+                ./mach update-test --test_type Background;
 
     macosx64-firefox:
         worker-type: t-osx-1500-m4
@@ -50,7 +51,8 @@ tasks:
             using: run-task
             cwd: "{checkout}"
             command: >-
-                ./mach update-test
+                ./mach update-test --test_type Base;
+                ./mach update-test --test_type Background;
 
     linux64-firefox:
         worker-type: t-linux-xlarge-source
@@ -65,4 +67,5 @@ tasks:
             using: run-task
             cwd: "{checkout}"
             command: >-
-                . $HOME/scripts/xvfb.sh && start_xvfb '1600x1200x24' 0 && ./mach update-test
+                . $HOME/scripts/xvfb.sh && start_xvfb '1600x1200x24' 0 && ./mach update-test --test_type Base;
+                ./mach update-test --test_type Background;

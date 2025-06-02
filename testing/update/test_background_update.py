@@ -7,16 +7,17 @@ from marionette_driver.wait import Wait
 from marionette_harness import MarionetteTestCase
 
 
-class TestApplyUpdate(MarionetteTestCase):
+class TestBackgroundUpdate(MarionetteTestCase):
     def setUp(self):
         MarionetteTestCase.setUp(self)
         self.about_fx_url = "chrome://browser/content/aboutDialog.xhtml"
 
-    def test_update_is_applied(self):
+    def test_background_update_is_applied(self):
         self.marionette.set_pref("app.update.disabledForTesting", False)
         self.marionette.set_pref("remote.system-access-check.enabled", False)
         self.marionette.set_pref("app.update.log", True)
         self.marionette.set_pref("remote.log.level", "Trace")
+        self.marionette.set_pref("app.update.interval", 5)
         self.marionette.navigate(self.about_fx_url)
 
         self.marionette.set_context(self.marionette.CONTEXT_CHROME)
@@ -41,28 +42,44 @@ class TestApplyUpdate(MarionetteTestCase):
         # Get the target version
         root = ET.fromstring(response.text)
         target_ver = root[0].get("appVersion")
-        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
-        initial_ver = self.marionette.find_element(By.ID, "version").text
 
-        Wait(self.marionette, timeout=10).until(
-            expected.element_displayed(By.ID, "downloadAndInstallButton")
+        # Wait for the background update to be ready by checking for popup
+        Wait(self.marionette, timeout=100).until(
+            lambda _: self.marionette.find_elements(By.ID, "appMenu-notification-popup")
         )
-        self.marionette.find_element(By.ID, "downloadAndInstallButton").click()
 
+        # Dismiss the popup
+        self.marionette.find_element(By.ID, "PanelUI-menu-button").click()
+        self.marionette.find_element(By.ID, "PanelUI-menu-button").click()
+
+        # Check that there is a green badge on hamburger menu
+        Wait(self.marionette, timeout=100).until(
+            lambda _: self.marionette.find_element(
+                By.ID, "PanelUI-menu-button"
+            ).get_attribute("badge-status")
+            == "update-available"
+        )
+
+        # Click the update button in hamburger menu to download the update
+        self.marionette.find_element(By.ID, "PanelUI-menu-button").click()
+        self.marionette.find_element(By.ID, "appMenu-update-banner").click()
+
+        # Make sure that the download is finished
+        self.marionette.set_context(self.marionette.CONTEXT_CONTENT)
         Wait(self.marionette, timeout=200).until(
             expected.element_displayed(By.ID, "updateButton")
         )
+        initial_ver = self.marionette.find_element(By.ID, "version").text
 
-        self.marionette.restart(
-            callback=lambda: self.marionette.find_element(By.ID, "updateButton").click()
-        )
+        # Restart normally
+        self.marionette.restart()
 
         self.marionette.set_pref("app.update.disabledForTesting", False)
         self.marionette.set_pref("remote.system-access-check.enabled", False)
         self.marionette.set_pref("app.update.log", True)
         self.marionette.set_pref("remote.log.level", "Trace")
         self.marionette.navigate(self.about_fx_url)
-        Wait(self.marionette, timeout=200).until(
+        Wait(self.marionette, timeout=100).until(
             expected.element_displayed(By.ID, "noUpdatesFound")
         )
 

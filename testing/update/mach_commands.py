@@ -26,6 +26,7 @@ TEST_REGION = "en-US"
 TEST_SOURCE_VERSION = "135.0.1"
 FX_DOWNLOAD_DIR_URL = "https://archive.mozilla.org/pub/firefox/releases/"
 APP_DIR_NAME = "fx_test"
+MANIFEST_LOC = "testing/update/manifest.toml"
 
 
 def setup_update_argument_parser():
@@ -94,10 +95,26 @@ def get_binary_path(tempdir, **kwargs) -> str:
     parser=setup_update_argument_parser,
 )
 @CommandArgument("--binary_path", help="Firefox executable path is needed")
-def build(command_context, binary_path, **kwargs):
+@CommandArgument("--test_type", help="Base/Background")
+def build(command_context, binary_path, test_type, **kwargs):
     tempdir = tempfile.TemporaryDirectory()
     # If we have a symlink to the tmp directory, resolve it
     tempdir_name = str(Path(tempdir.name).resolve())
+
+    # Run the specified test in the suite
+    with open(MANIFEST_LOC) as f:
+        old_content = f.read()
+
+    with open(MANIFEST_LOC, "w") as f:
+        f.write("[DEFAULT]\n")
+        if test_type.lower() == "base":
+            f.write('["test_apply_update.py"]')
+        elif test_type.lower() == "background":
+            f.write('["test_background_update.py"]')
+        else:
+            logging.ERROR("Invalid test type")
+            sys.exit(1)
+
     try:
         kwargs["binary"] = set_up(
             binary_path or get_binary_path(tempdir_name, **kwargs), tempdir=tempdir_name
@@ -115,6 +132,8 @@ def build(command_context, binary_path, **kwargs):
         command_context.log(logging.INFO, "update-test", {"help": e.help()}, "{help}")
         return 1
     finally:
+        with open(MANIFEST_LOC, "w") as f:
+            f.write(old_content)
         tempdir.cleanup()
 
 
@@ -137,7 +156,7 @@ def run_tests(binary=None, topsrcdir=None, tempdir=None, **kwargs):
     args.tests = [
         Path(
             topsrcdir,
-            "testing/update/manifest.toml",
+            MANIFEST_LOC,
         )
     ]
     args.gecko_log = "-"
