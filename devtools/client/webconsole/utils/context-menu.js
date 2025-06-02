@@ -246,7 +246,7 @@ function createContextMenu(event, message, webConsoleWrapper) {
         const suggestedName =
           `console-export-${date.getFullYear()}-` +
           `${date.getMonth() + 1}-${date.getDate()}_${date.getHours()}-` +
-          `${date.getMinutes()}-${date.getSeconds()}.txt`;
+          `${date.getMinutes()}-${date.getSeconds()}.log`;
         const outputText =
           await getUnvirtualizedConsoleOutputText(webConsoleWrapper);
         const data = new TextEncoder().encode(outputText);
