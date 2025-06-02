@@ -24,7 +24,7 @@ static const int div_mult[32] = { 0,    16384, 8192, 5461, 4096, 3276, 2730,
 
 // TODO(jingning): Consider the use of lookup table for (num / den)
 // altogether.
-static inline void get_mv_projection(MV *output, MV ref, int num, int den) {
+void av1_get_mv_projection(MV *output, MV ref, int num, int den) {
   den = AOMMIN(den, MAX_FRAME_DISTANCE);
   num = num > 0 ? AOMMIN(num, MAX_FRAME_DISTANCE)
                 : AOMMAX(num, -MAX_FRAME_DISTANCE);
@@ -359,8 +359,8 @@ static int add_tpl_ref_mv(const AV1_COMMON *cm, const MACROBLOCKD *xd,
   const int force_integer_mv = cm->features.cur_frame_force_integer_mv;
 
   int_mv this_refmv;
-  get_mv_projection(&this_refmv.as_mv, prev_frame_mvs->mfmv0.as_mv,
-                    cur_offset_0, prev_frame_mvs->ref_frame_offset);
+  av1_get_mv_projection(&this_refmv.as_mv, prev_frame_mvs->mfmv0.as_mv,
+                        cur_offset_0, prev_frame_mvs->ref_frame_offset);
   lower_mv_precision(&this_refmv.as_mv, allow_high_precision_mv,
                      force_integer_mv);
 
@@ -388,8 +388,8 @@ static int add_tpl_ref_mv(const AV1_COMMON *cm, const MACROBLOCKD *xd,
     const int cur_offset_1 = get_relative_dist(&cm->seq_params->order_hint_info,
                                                cur_frame_index, frame1_index);
     int_mv comp_refmv;
-    get_mv_projection(&comp_refmv.as_mv, prev_frame_mvs->mfmv0.as_mv,
-                      cur_offset_1, prev_frame_mvs->ref_frame_offset);
+    av1_get_mv_projection(&comp_refmv.as_mv, prev_frame_mvs->mfmv0.as_mv,
+                          cur_offset_1, prev_frame_mvs->ref_frame_offset);
     lower_mv_precision(&comp_refmv.as_mv, allow_high_precision_mv,
                        force_integer_mv);
 
@@ -967,8 +967,9 @@ static int motion_field_projection(AV1_COMMON *cm,
             abs(start_to_current_frame_offset) <= MAX_FRAME_DISTANCE;
 
         if (pos_valid) {
-          get_mv_projection(&this_mv.as_mv, fwd_mv,
-                            start_to_current_frame_offset, ref_frame_offset);
+          av1_get_mv_projection(&this_mv.as_mv, fwd_mv,
+                                start_to_current_frame_offset,
+                                ref_frame_offset);
           pos_valid = get_block_position(cm, &mi_r, &mi_c, blk_row, blk_col,
                                          this_mv.as_mv, dir >> 1);
         }

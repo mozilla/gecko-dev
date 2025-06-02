@@ -602,6 +602,14 @@ static inline void set_early_term_based_on_uv_plane(
     ac_thr = ac_thr << 2;
   }
 
+  if (cpi->common.width * cpi->common.height >= 1280 * 720 &&
+      cpi->oxcf.tune_cfg.content != AOM_CONTENT_SCREEN &&
+      x->content_state_sb.source_sad_nonrd > kLowSad &&
+      (sse >> (bw + bh)) > 1000) {
+    dc_thr = dc_thr >> 4;
+    ac_thr = ac_thr >> 4;
+  }
+
   for (int k = 0; k < num_blk; k++) {
     // Check if all ac coefficients can be quantized to zero.
     if (!(var_tx[k] < ac_thr || var == 0)) {

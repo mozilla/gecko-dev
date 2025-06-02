@@ -477,9 +477,13 @@ void av1_set_svc_fixed_mode(AV1_COMP *const cpi) {
   RTC_REF *const rtc_ref = &cpi->ppi->rtc_ref;
   int i;
   assert(svc->use_flexible_mode == 0);
+  assert(svc->number_spatial_layers >= 1 && svc->number_temporal_layers >= 1);
   // Fixed SVC mode only supports at most 3 spatial or temporal layers.
-  assert(svc->number_spatial_layers >= 1 && svc->number_spatial_layers <= 3 &&
-         svc->number_temporal_layers >= 1 && svc->number_temporal_layers <= 3);
+  if (svc->number_spatial_layers > 3 || svc->number_temporal_layers > 3) {
+    aom_internal_error(&cpi->ppi->error, AOM_CODEC_INVALID_PARAM,
+                       "Invalid number of spatial/temporal layers for fixed "
+                       "SVC mode (max: 3)");
+  }
   rtc_ref->set_ref_frame_config = 1;
   int superframe_cnt = svc->current_superframe;
   // Set the reference map buffer idx for the 7 references:

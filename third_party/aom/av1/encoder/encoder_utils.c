@@ -20,8 +20,11 @@
 #include "av1/encoder/encoder_alloc.h"
 #include "av1/encoder/encodetxb.h"
 #include "av1/encoder/encoder_utils.h"
+#include "av1/encoder/firstpass.h"
 #include "av1/encoder/grain_test_vectors.h"
 #include "av1/encoder/mv_prec.h"
+#include "av1/encoder/pass2_strategy.h"
+#include "av1/encoder/ratectrl.h"
 #include "av1/encoder/rc_utils.h"
 #include "av1/encoder/rdopt.h"
 #include "av1/encoder/segmentation.h"
@@ -420,6 +423,80 @@ static void configure_static_seg_features(AV1_COMP *cpi) {
   }
 }
 
+void av1_apply_roi_map(AV1_COMP *cpi) {
+  AV1_COMMON *cm = &cpi->common;
+  struct segmentation *const seg = &cm->seg;
+  unsigned char *const seg_map = cpi->enc_seg.map;
+  aom_roi_map_t *roi = &cpi->roi;
+  const int *delta_q = roi->delta_q;
+  const int *delta_lf = roi->delta_lf;
+  const int *skip = roi->skip;
+  int ref_frame[8];
+  int internal_delta_q[MAX_SEGMENTS];
+
+  // Force disable of ROI if active_map is enabled.
+  if (!roi->enabled || cpi->active_map.enabled) return;
+
+  memcpy(&ref_frame, roi->ref_frame, sizeof(ref_frame));
+
+  av1_enable_segmentation(seg);
+  av1_clearall_segfeatures(seg);
+
+  memcpy(seg_map, roi->roi_map,
+         (cm->mi_params.mi_rows * cm->mi_params.mi_cols));
+
+  for (int i = 0; i < MAX_SEGMENTS; ++i) {
+    // Default: disable all feautures.
+    av1_disable_segfeature(seg, i, SEG_LVL_ALT_Q);
+    av1_disable_segfeature(seg, i, SEG_LVL_SKIP);
+    av1_disable_segfeature(seg, i, SEG_LVL_REF_FRAME);
+    av1_disable_segfeature(seg, i, SEG_LVL_ALT_LF_Y_H);
+    av1_disable_segfeature(seg, i, SEG_LVL_ALT_LF_Y_V);
+    av1_disable_segfeature(seg, i, SEG_LVL_ALT_LF_U);
+    av1_disable_segfeature(seg, i, SEG_LVL_ALT_LF_V);
+    // Translate the external delta q values to internal values.
+    internal_delta_q[i] = av1_quantizer_to_qindex(abs(delta_q[i]));
+    if (delta_q[i] < 0) internal_delta_q[i] = -internal_delta_q[i];
+    if (internal_delta_q[i] != 0) {
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_Q);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_Q, internal_delta_q[i]);
+    }
+    if (delta_lf[i] != 0) {
+      // Force the same delta on YUV.
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_LF_Y_H);
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_LF_Y_V);
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_LF_U);
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_LF_V);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_LF_Y_H, delta_lf[i]);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_LF_Y_V, delta_lf[i]);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_LF_U, delta_lf[i]);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_LF_V, delta_lf[i]);
+    }
+    if (skip[i] != 0) {
+      av1_enable_segfeature(seg, i, SEG_LVL_SKIP);
+      // Also force skip on loopfilter.
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_LF_Y_H);
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_LF_Y_V);
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_LF_U);
+      av1_enable_segfeature(seg, i, SEG_LVL_ALT_LF_V);
+      av1_set_segdata(seg, i, SEG_LVL_SKIP, 0);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_LF_Y_H, -MAX_LOOP_FILTER);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_LF_Y_V, -MAX_LOOP_FILTER);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_LF_U, -MAX_LOOP_FILTER);
+      av1_set_segdata(seg, i, SEG_LVL_ALT_LF_V, -MAX_LOOP_FILTER);
+    }
+    if (ref_frame[i] >= 0) {
+      // GOLDEN was updated in previous encoded frame, so GOLDEN and LAST are
+      // same reference.
+      if (ref_frame[i] == GOLDEN_FRAME && cpi->rc.frames_since_golden == 0)
+        ref_frame[i] = LAST_FRAME;
+      av1_enable_segfeature(seg, i, SEG_LVL_REF_FRAME);
+      av1_set_segdata(seg, i, SEG_LVL_REF_FRAME, ref_frame[i]);
+    }
+  }
+  roi->enabled = 1;
+}
+
 void av1_apply_active_map(AV1_COMP *cpi) {
   struct segmentation *const seg = &cpi->common.seg;
   unsigned char *const seg_map = cpi->enc_seg.map;
@@ -472,7 +549,7 @@ void av1_apply_active_map(AV1_COMP *cpi) {
 
 #if !CONFIG_REALTIME_ONLY
 static void process_tpl_stats_frame(AV1_COMP *cpi) {
-  const GF_GROUP *const gf_group = &cpi->ppi->gf_group;
+  GF_GROUP *const gf_group = &cpi->ppi->gf_group;
   AV1_COMMON *const cm = &cpi->common;
 
   assert(IMPLIES(gf_group->size > 0, cpi->gf_frame_index < gf_group->size));
@@ -529,9 +606,22 @@ static void process_tpl_stats_frame(AV1_COMP *cpi) {
           // factor to adjust r0 is used.
           const int gfu_boost =
               (int)(200.0 * cpi->ppi->tpl_data.r0_adjust_factor / cpi->rd.r0);
-          cpi->ppi->p_rc.gfu_boost = combine_prior_with_tpl_boost(
-              MIN_BOOST_COMBINE_FACTOR, MAX_BOOST_COMBINE_FACTOR,
-              cpi->ppi->p_rc.gfu_boost, gfu_boost, cpi->rc.frames_to_key);
+
+          if (cpi->oxcf.algo_cfg.sharpness == 3 &&
+              gf_group->update_type[cpi->gf_frame_index] != KF_UPDATE) {
+            cpi->ppi->p_rc.gfu_boost = gfu_boost;
+
+            RATE_CONTROL *const rc = &cpi->rc;
+            PRIMARY_RATE_CONTROL *const p_rc = &cpi->ppi->p_rc;
+            av1_gop_bit_allocation(cpi, rc, gf_group, rc->frames_since_key == 0,
+                                   gf_group->arf_index != -1,
+                                   p_rc->gf_group_bits);
+            av1_setup_target_rate(cpi);
+          } else {
+            cpi->ppi->p_rc.gfu_boost = combine_prior_with_tpl_boost(
+                MIN_BOOST_COMBINE_FACTOR, MAX_BOOST_COMBINE_FACTOR,
+                cpi->ppi->p_rc.gfu_boost, gfu_boost, cpi->rc.frames_to_key);
+          }
         }
       }
     }
@@ -659,9 +749,8 @@ void av1_update_film_grain_parameters(struct AV1_COMP *cpi,
 
   if (tune_cfg->film_grain_test_vector) {
     if (cm->current_frame.frame_type == KEY_FRAME) {
-      memcpy(&cm->film_grain_params,
-             film_grain_test_vectors + tune_cfg->film_grain_test_vector - 1,
-             sizeof(cm->film_grain_params));
+      cm->film_grain_params =
+          film_grain_test_vectors[tune_cfg->film_grain_test_vector - 1];
       if (oxcf->tool_cfg.enable_monochrome)
         reset_film_grain_chroma_params(&cm->film_grain_params);
       cm->film_grain_params.bit_depth = cm->seq_params->bit_depth;
@@ -706,8 +795,8 @@ void av1_scale_references(AV1_COMP *cpi, const InterpFilter filter,
       }
 
       // For RTC-SVC: if force_zero_mode_spatial_ref is enabled, check if the
-      // motion search can be skipped for the references: last, golden, altref.
-      // If so, we can skip scaling that reference.
+      // motion search can be skipped for the references: last, golden,
+      // altref. If so, we can skip scaling that reference.
       if (cpi->ppi->use_svc && cpi->svc.force_zero_mode_spatial_ref &&
           cpi->ppi->rtc_ref.set_ref_frame_config) {
         if (ref_frame == LAST_FRAME && cpi->svc.skip_mvsearch_last) continue;
@@ -760,7 +849,8 @@ void av1_scale_references(AV1_COMP *cpi, const InterpFilter filter,
                   cm->seq_params->use_highbitdepth, AOM_BORDER_IN_PIXELS,
                   cm->features.byte_alignment, NULL, NULL, NULL, false, 0)) {
             if (force_scaling) {
-              // Release the reference acquired in the get_free_fb() call above.
+              // Release the reference acquired in the get_free_fb() call
+              // above.
               --new_fb->ref_count;
             }
             aom_internal_error(cm->error, AOM_CODEC_MEM_ERROR,
@@ -883,12 +973,12 @@ BLOCK_SIZE av1_select_sb_size(const AV1EncoderConfig *const oxcf, int width,
         oxcf->row_mt == 1 && oxcf->max_threads > 1 && oxcf->speed >= 5)
       return BLOCK_64X64;
 
-    // For allintra encode, since the maximum partition size is set to 32X32 for
-    // speed>=6, superblock size is set to 64X64 instead of 128X128. This
-    // improves the multithread performance due to reduction in top right delay
-    // and thread sync wastage. Currently, this setting is selectively enabled
-    // only for speed>=9 and resolutions less than 4k since cost update
-    // frequency is set to INTERNAL_COST_UPD_OFF in these cases.
+    // For allintra encode, since the maximum partition size is set to 32X32
+    // for speed>=6, superblock size is set to 64X64 instead of 128X128. This
+    // improves the multithread performance due to reduction in top right
+    // delay and thread sync wastage. Currently, this setting is selectively
+    // enabled only for speed>=9 and resolutions less than 4k since cost
+    // update frequency is set to INTERNAL_COST_UPD_OFF in these cases.
     const int is_4k_or_larger = AOMMIN(width, height) >= 2160;
     if (oxcf->mode == ALLINTRA && oxcf->speed >= 9 && !is_4k_or_larger)
       return BLOCK_64X64;
@@ -1088,10 +1178,10 @@ void av1_determine_sc_tools_with_encoding(AV1_COMP *cpi, const int q_orig) {
     return;
   }
 
-  // TODO(chengchen): multiple encoding for the lossless mode is time consuming.
-  // Find a better way to determine whether screen content tools should be used
-  // for lossless coding.
-  // Use a high q and a fixed partition to do quick encoding.
+  // Multiple encoding for the lossless mode is time
+  // consuming. Find a better way to determine whether screen content tools
+  // should be used for lossless coding. Use a high q and a fixed partition to
+  // do quick encoding.
   const int q_for_screen_content_quick_run =
       is_lossless_requested(&oxcf->rc_cfg) ? q_orig : AOMMAX(q_orig, 244);
   const int partition_search_type_orig = cpi->sf.part_sf.partition_search_type;
@@ -1384,9 +1474,9 @@ void av1_set_mb_ssim_rdmult_scaling(AV1_COMP *cpi) {
 
       // As per the above computation, var will be in the range of
       // [17.492222, 84.527656], assuming the data type is of infinite
-      // precision. The following assert conservatively checks if var is in the
-      // range of [17.0, 85.0] to avoid any issues due to the precision of the
-      // relevant data type.
+      // precision. The following assert conservatively checks if var is in
+      // the range of [17.0, 85.0] to avoid any issues due to the precision of
+      // the relevant data type.
       assert(var > 17.0 && var < 85.0);
       cpi->ssim_rdmult_scaling_factors[index] = var;
       log_sum += log(var);

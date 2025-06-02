@@ -430,13 +430,56 @@ bool parse_multilayer_layer_depth(std::ifstream &file, int min_indent,
   return true;
 }
 
+bool parse_multilayer_layer_local_metadata(
+    std::ifstream &file, int min_indent, int *line_idx,
+    std::vector<FrameLocalMetadata> &frames) {
+  bool has_list_prefix;
+  int indent = -1;
+  std::string field_name;
+  ParsedValue value;
+  bool syntax_error;
+  while (parse_line(file, min_indent, /*is_list=*/true, &indent,
+                    &has_list_prefix, line_idx, &field_name, &value,
+                    &syntax_error)) {
+    if (has_list_prefix) {
+      frames.push_back({});
+    }
+    if (frames.empty()) {
+      fprintf(stderr, "Error: Missing list prefix '-' at line %d\n", *line_idx);
+      return false;
+    }
+
+    if (field_name == "frame_idx") {
+      RETURN_IF_FALSE(
+          value.IntegerValueInRange(0, std::numeric_limits<long>::max(),
+                                    *line_idx, &frames.back().frame_idx));
+    } else if (field_name == "alpha") {
+      RETURN_IF_FALSE(parse_multilayer_layer_alpha(
+          file,
+          /*min_indent=*/indent + 1, line_idx, &frames.back().alpha));
+
+    } else if (field_name == "depth") {
+      RETURN_IF_FALSE(parse_multilayer_layer_depth(
+          file,
+          /*min_indent=*/indent + 1, line_idx, &frames.back().depth));
+
+    } else {
+      fprintf(stderr, "Error: Unknown field %s at line %d\n",
+              field_name.c_str(), *line_idx);
+      return false;
+    }
+  }
+  if (syntax_error) return false;
+  return true;
+}
+
 bool validate_layer(const LayerMetadata &layer, bool layer_has_alpha,
                     bool layer_has_depth) {
   if (layer_has_alpha != (layer.layer_type == MULTILAYER_LAYER_TYPE_ALPHA &&
                           layer.layer_metadata_scope >= SCOPE_GLOBAL)) {
     fprintf(stderr,
             "Error: alpha info must be set if and only if layer_type is "
-            "%d and layer_metadata_scpoe is >= %d\n",
+            "%d and layer_metadata_scope is >= %d\n",
             MULTILAYER_LAYER_TYPE_ALPHA, SCOPE_GLOBAL);
     return false;
   }
@@ -444,7 +487,7 @@ bool validate_layer(const LayerMetadata &layer, bool layer_has_alpha,
                           layer.layer_metadata_scope >= SCOPE_GLOBAL)) {
     fprintf(stderr,
             "Error: depth info must be set if and only if layer_type is "
-            "%d and layer_metadata_scpoe is >= %d\n",
+            "%d and layer_metadata_scope is >= %d\n",
             MULTILAYER_LAYER_TYPE_DEPTH, SCOPE_GLOBAL);
     return false;
   }
@@ -475,7 +518,8 @@ bool parse_multilayer_layer_metadata(std::ifstream &file, int min_indent,
 
       // Validate the previous layer.
       if (!layers.empty()) {
-        validate_layer(layers.back(), layer_has_alpha, layer_has_depth);
+        RETURN_IF_FALSE(
+            validate_layer(layers.back(), layer_has_alpha, layer_has_depth));
       }
       if (layers.size() == 1 && layers.back().layer_color_description.second) {
         fprintf(stderr,
@@ -520,24 +564,25 @@ bool parse_multilayer_layer_metadata(std::ifstream &file, int min_indent,
       layer->layer_color_description = value_present(color_properties);
     } else if ((field_name == "alpha")) {
       layer_has_alpha = true;
-      RETURN_IF_FALSE(parse_multilayer_layer_alpha(
-          file,
-          /*min_indent=*/indent + 1, line_idx, &layer->global_alpha_info));
+      RETURN_IF_FALSE(parse_multilayer_layer_alpha(file,
+                                                   /*min_indent=*/indent + 1,
+                                                   line_idx, &layer->alpha));
     } else if (field_name == "depth") {
       layer_has_depth = true;
-      RETURN_IF_FALSE(parse_multilayer_layer_depth(
-          file,
-          /*min_indent=*/indent + 1, line_idx, &layer->global_depth_info));
-      if ((layer->global_depth_info.d_min.second ||
-           layer->global_depth_info.d_max.second) &&
-          layer->global_depth_info.disparity_ref_view_id ==
-              (layers.size() - 1)) {
+      RETURN_IF_FALSE(parse_multilayer_layer_depth(file,
+                                                   /*min_indent=*/indent + 1,
+                                                   line_idx, &layer->depth));
+      if ((layer->depth.d_min.second || layer->depth.d_max.second) &&
+          layer->depth.disparity_ref_view_id == (layers.size() - 1)) {
         fprintf(stderr,
                 "disparity_ref_view_id must be different from the layer's id "
                 "for layer %d (zero-based index)\n",
                 static_cast<int>(layers.size()) - 1);
         return false;
       }
+    } else if (field_name == "local_metadata") {
+      RETURN_IF_FALSE(parse_multilayer_layer_local_metadata(
+          file, /*min_indent=*/indent + 1, line_idx, layer->local_metadata));
     } else {
       fprintf(stderr, "Error: Unknown field %s at line %d\n",
               field_name.c_str(), *line_idx);
@@ -545,7 +590,8 @@ bool parse_multilayer_layer_metadata(std::ifstream &file, int min_indent,
     }
   }
   if (syntax_error) return false;
-  validate_layer(layers.back(), layer_has_alpha, layer_has_depth);
+  RETURN_IF_FALSE(
+      validate_layer(layers.back(), layer_has_alpha, layer_has_depth));
   return true;
 }
 
@@ -786,6 +832,33 @@ bool validate_multilayer_metadata(const MultilayerMetadata &multilayer) {
   return true;
 }
 
+void print_alpha_information(const AlphaInformation &alpha) {
+  printf("    alpha_simple_flag: %d\n", alpha.alpha_simple_flag);
+  if (!alpha.alpha_simple_flag) {
+    printf("    alpha_bit_depth: %d\n", alpha.alpha_bit_depth);
+    printf("    alpha_clip_idc: %d\n", alpha.alpha_clip_idc);
+    printf("    alpha_incr_flag: %d\n", alpha.alpha_incr_flag);
+    printf("    alpha_transparent_value: %hu\n", alpha.alpha_transparent_value);
+    printf("    alpha_opaque_value: %hu\n", alpha.alpha_opaque_value);
+    printf("    alpha_color_description: %s\n",
+           format_color_properties(alpha.alpha_color_description).c_str());
+  }
+}
+
+void print_depth_information(const DepthInformation &depth) {
+  printf("    z_near: %s\n",
+         format_depth_representation_element(depth.z_near).c_str());
+  printf("    z_far: %s\n",
+         format_depth_representation_element(depth.z_far).c_str());
+  printf("    d_min: %s\n",
+         format_depth_representation_element(depth.d_min).c_str());
+  printf("    d_max: %s\n",
+         format_depth_representation_element(depth.d_max).c_str());
+  printf("    depth_representation_type: %d\n",
+         depth.depth_representation_type);
+  printf("    disparity_ref_view_id: %d\n", depth.disparity_ref_view_id);
+}
+
 }  // namespace
 
 double depth_representation_element_to_double(
@@ -881,45 +954,21 @@ void print_multilayer_metadata(const MultilayerMetadata &multilayer) {
     printf("  layer_color_description: %s\n",
            format_color_properties(layer.layer_color_description).c_str());
     if (layer.layer_type == MULTILAYER_LAYER_TYPE_ALPHA) {
-      printf("  alpha:\n");
-      printf("    alpha_use_idc: %d\n", layer.global_alpha_info.alpha_use_idc);
-      printf("    alpha_simple_flag: %d\n",
-             layer.global_alpha_info.alpha_simple_flag);
-      if (!layer.global_alpha_info.alpha_simple_flag) {
-        printf("    alpha_bit_depth: %d\n",
-               layer.global_alpha_info.alpha_bit_depth);
-        printf("    alpha_clip_idc: %d\n",
-               layer.global_alpha_info.alpha_clip_idc);
-        printf("    alpha_incr_flag: %d\n",
-               layer.global_alpha_info.alpha_incr_flag);
-        printf("    alpha_transparent_value: %hu\n",
-               layer.global_alpha_info.alpha_transparent_value);
-        printf("    alpha_opaque_value: %hu\n",
-               layer.global_alpha_info.alpha_opaque_value);
-        printf("    alpha_color_description: %s\n",
-               format_color_properties(
-                   layer.global_alpha_info.alpha_color_description)
-                   .c_str());
+      if (layer.layer_metadata_scope >= SCOPE_GLOBAL) {
+        printf("  global alpha:\n");
+        print_alpha_information(layer.alpha);
+      }
+      for (const FrameLocalMetadata &local_metadata : layer.local_metadata) {
+        printf("  local alpha for frame %ld:\n", local_metadata.frame_idx);
+        print_alpha_information(local_metadata.alpha);
       }
     } else if (layer.layer_type == MULTILAYER_LAYER_TYPE_DEPTH) {
-      printf("  depth:\n");
-      printf("    z_near: %s\n",
-             format_depth_representation_element(layer.global_depth_info.z_near)
-                 .c_str());
-      printf("    z_far: %s\n",
-             format_depth_representation_element(layer.global_depth_info.z_far)
-                 .c_str());
-      printf("    d_min: %s\n",
-             format_depth_representation_element(layer.global_depth_info.d_min)
-                 .c_str());
-      printf("    d_max: %s\n",
-             format_depth_representation_element(layer.global_depth_info.d_max)
-                 .c_str());
-      printf("    depth_representation_type: %d\n",
-             layer.global_depth_info.depth_representation_type);
-      printf("    disparity_ref_view_id: %d\n",
-             layer.global_depth_info.disparity_ref_view_id);
-      printf("\n");
+      printf("  global depth:\n");
+      print_depth_information(layer.depth);
+      for (const FrameLocalMetadata &local_metadata : layer.local_metadata) {
+        printf("  local depth for frame %ld:\n", local_metadata.frame_idx);
+        print_depth_information(local_metadata.depth);
+      }
     }
   }
   printf("\n");

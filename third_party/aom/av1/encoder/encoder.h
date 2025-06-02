@@ -885,6 +885,11 @@ typedef struct {
    * on reconstructed frame.
    */
   bool skip_postproc_filtering;
+
+  /*!
+   * Controls screen content detection mode
+   */
+  aom_screen_detection_mode screen_detection_mode;
 } AlgoCfg;
 /*!\cond */
 
@@ -3681,6 +3686,11 @@ typedef struct AV1_COMP {
    * so scaling is not needed for last_source.
    */
   int scaled_last_source_available;
+
+  /*!
+   * ROI map.
+   */
+  aom_roi_map_t roi;
 } AV1_COMP;
 
 /*!
@@ -3873,6 +3883,10 @@ void av1_set_frame_size(AV1_COMP *cpi, int width, int height);
 
 void av1_set_mv_search_params(AV1_COMP *cpi);
 
+int av1_set_roi_map(AV1_COMP *cpi, unsigned char *map, unsigned int rows,
+                    unsigned int cols, int delta_q[8], int delta_lf[8],
+                    int skip[8], int ref_frame[8]);
+
 int av1_set_active_map(AV1_COMP *cpi, unsigned char *map, int rows, int cols);
 
 int av1_get_active_map(AV1_COMP *cpi, unsigned char *map, int rows, int cols);
@@ -3892,6 +3906,12 @@ int av1_convert_sect5obus_to_annexb(uint8_t *buffer, size_t buffer_size,
 void av1_alloc_mb_wiener_var_pred_buf(AV1_COMMON *cm, ThreadData *td);
 
 void av1_dealloc_mb_wiener_var_pred_buf(ThreadData *td);
+
+uint8_t av1_find_dominant_value(const uint8_t *src, int stride, int rows,
+                                int cols);
+
+void av1_dilate_block(const uint8_t *src, int src_stride, uint8_t *dilated,
+                      int dilated_stride, int rows, int cols);
 
 // Set screen content options.
 // This function estimates whether to use screen content tools, by counting

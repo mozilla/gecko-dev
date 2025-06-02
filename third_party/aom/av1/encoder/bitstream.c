@@ -1886,7 +1886,7 @@ static inline void write_wiener_filter(int wiener_win,
       WIENER_FILT_TAP2_SUBEXP_K,
       ref_wiener_info->hfilter[2] - WIENER_FILT_TAP2_MINV,
       wiener_info->hfilter[2] - WIENER_FILT_TAP2_MINV);
-  memcpy(ref_wiener_info, wiener_info, sizeof(*wiener_info));
+  *ref_wiener_info = *wiener_info;
 }
 
 static inline void write_sgrproj_filter(const SgrprojInfo *sgrproj_info,
@@ -1917,7 +1917,7 @@ static inline void write_sgrproj_filter(const SgrprojInfo *sgrproj_info,
         sgrproj_info->xqd[1] - SGRPROJ_PRJ_MIN1);
   }
 
-  memcpy(ref_sgrproj_info, sgrproj_info, sizeof(*sgrproj_info));
+  *ref_sgrproj_info = *sgrproj_info;
 }
 
 static inline void loop_restoration_write_sb_coeffs(

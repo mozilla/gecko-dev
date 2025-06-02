@@ -853,6 +853,15 @@ if (aom_config("CONFIG_AV1_ENCODER") eq "yes") {
   specialize qw/aom_sad64x128     avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad64x64      avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad64x32      avx2 sse2 neon neon_dotprod/;
+
+  if(aom_config("CONFIG_HIGHWAY") eq "yes") {
+    specialize qw/aom_sad128x128    avx512/;
+    specialize qw/aom_sad128x64     avx512/;
+    specialize qw/aom_sad64x128     avx512/;
+    specialize qw/aom_sad64x64      avx512/;
+    specialize qw/aom_sad64x32      avx512/;
+  }
+
   specialize qw/aom_sad32x64      avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad32x32      avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad32x16      avx2 sse2 neon neon_dotprod/;
@@ -877,6 +886,15 @@ if (aom_config("CONFIG_AV1_ENCODER") eq "yes") {
   specialize qw/aom_sad_skip_64x128     avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad_skip_64x64      avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad_skip_64x32      avx2 sse2 neon neon_dotprod/;
+
+  if(aom_config("CONFIG_HIGHWAY") eq "yes") {
+    specialize qw/aom_sad_skip_128x128    avx512/;
+    specialize qw/aom_sad_skip_128x64     avx512/;
+    specialize qw/aom_sad_skip_64x128     avx512/;
+    specialize qw/aom_sad_skip_64x64      avx512/;
+    specialize qw/aom_sad_skip_64x32      avx512/;
+  }
+
   specialize qw/aom_sad_skip_32x64      avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad_skip_32x32      avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad_skip_32x16      avx2 sse2 neon neon_dotprod/;
@@ -896,6 +914,15 @@ if (aom_config("CONFIG_AV1_ENCODER") eq "yes") {
   specialize qw/aom_sad64x64_avg   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad64x32_avg   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad32x64_avg   avx2 sse2 neon neon_dotprod/;
+
+  if(aom_config("CONFIG_HIGHWAY") eq "yes") {
+    specialize qw/aom_sad128x128_avg    avx512/;
+    specialize qw/aom_sad128x64_avg     avx512/;
+    specialize qw/aom_sad64x128_avg     avx512/;
+    specialize qw/aom_sad64x64_avg      avx512/;
+    specialize qw/aom_sad64x32_avg      avx512/;
+  }
+
   specialize qw/aom_sad32x32_avg   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad32x16_avg   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad16x32_avg        sse2 neon neon_dotprod/;
@@ -1042,6 +1069,15 @@ if (aom_config("CONFIG_AV1_ENCODER") eq "yes") {
   specialize qw/aom_sad64x64x4d   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad64x32x4d   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad32x64x4d   avx2 sse2 neon neon_dotprod/;
+
+  if(aom_config("CONFIG_HIGHWAY") eq "yes") {
+    specialize qw/aom_sad128x128x4d avx512/;
+    specialize qw/aom_sad128x64x4d  avx512/;
+    specialize qw/aom_sad64x128x4d  avx512/;
+    specialize qw/aom_sad64x64x4d   avx512/;
+    specialize qw/aom_sad64x32x4d   avx512/;
+  }
+
   specialize qw/aom_sad32x32x4d   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad32x16x4d   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad16x32x4d   avx2 sse2 neon neon_dotprod/;
@@ -1071,6 +1107,14 @@ if (aom_config("CONFIG_AV1_ENCODER") eq "yes") {
   specialize qw/aom_sad_skip_32x32x4d   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad_skip_32x16x4d   avx2 sse2 neon neon_dotprod/;
 
+  if(aom_config("CONFIG_HIGHWAY") eq "yes") {
+    specialize qw/aom_sad_skip_128x128x4d avx512/;
+    specialize qw/aom_sad_skip_128x64x4d  avx512/;
+    specialize qw/aom_sad_skip_64x128x4d  avx512/;
+    specialize qw/aom_sad_skip_64x64x4d   avx512/;
+    specialize qw/aom_sad_skip_64x32x4d   avx512/;
+  }
+
   specialize qw/aom_sad_skip_16x64x4d   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad_skip_16x32x4d   avx2 sse2 neon neon_dotprod/;
   specialize qw/aom_sad_skip_16x16x4d   avx2 sse2 neon neon_dotprod/;
@@ -1084,6 +1128,15 @@ if (aom_config("CONFIG_AV1_ENCODER") eq "yes") {
   specialize qw/aom_sad64x128x3d  avx2 neon neon_dotprod/;
   specialize qw/aom_sad64x64x3d   avx2 neon neon_dotprod/;
   specialize qw/aom_sad64x32x3d   avx2 neon neon_dotprod/;
+
+  if(aom_config("CONFIG_HIGHWAY") eq "yes") {
+    specialize qw/aom_sad128x128x3d avx512/;
+    specialize qw/aom_sad128x64x3d  avx512/;
+    specialize qw/aom_sad64x128x3d  avx512/;
+    specialize qw/aom_sad64x64x3d   avx512/;
+    specialize qw/aom_sad64x32x3d   avx512/;
+  }
+
   specialize qw/aom_sad32x64x3d   avx2 neon neon_dotprod/;
   specialize qw/aom_sad32x32x3d   avx2 neon neon_dotprod/;
   specialize qw/aom_sad32x16x3d   avx2 neon neon_dotprod/;

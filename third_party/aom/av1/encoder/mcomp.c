@@ -109,6 +109,10 @@ void av1_make_default_fullpel_ms_params(
         cpi->common.height - mi_size_high[bsize] * MI_SIZE - top_margin + 16;
     int right_margin =
         cpi->common.width - mi_size_wide[bsize] * MI_SIZE - left_margin + 16;
+
+    bottom_margin = AOMMAX(bottom_margin, -top_margin);
+    right_margin = AOMMAX(right_margin, -left_margin);
+
     FullMvLimits *mv_limits = &ms_params->mv_limits;
     mv_limits->row_min = AOMMAX(mv_limits->row_min, -top_margin);
     mv_limits->row_max = AOMMIN(mv_limits->row_max, bottom_margin);
@@ -199,6 +203,10 @@ void av1_make_default_subpel_ms_params(SUBPEL_MOTION_SEARCH_PARAMS *ms_params,
     int right_margin =
         GET_MV_SUBPEL(cpi->common.width - mi_size_wide[bsize] * MI_SIZE -
                       x->e_mbd.mi_col * MI_SIZE + 8);
+
+    bottom_margin = AOMMAX(bottom_margin, -top_margin);
+    right_margin = AOMMAX(right_margin, -left_margin);
+
     SubpelMvLimits *mv_limits = &ms_params->mv_limits;
     mv_limits->row_min = AOMMAX(mv_limits->row_min, -top_margin);
     mv_limits->row_max = AOMMIN(mv_limits->row_max, bottom_margin);
@@ -3372,7 +3380,6 @@ int av1_return_max_sub_pixel_mv(MACROBLOCKD *xd, const AV1_COMMON *const cm,
   (void)cm;
   (void)start_mv;
   (void)start_mv_stats;
-  (void)distortion;
   (void)last_mv_search_list;
 
   const int allow_hp = ms_params->allow_hp;
@@ -3386,6 +3393,7 @@ int av1_return_max_sub_pixel_mv(MACROBLOCKD *xd, const AV1_COMMON *const cm,
   // In the sub-pel motion search, if hp is not used, then the last bit of mv
   // has to be 0.
   lower_mv_precision(bestmv, allow_hp, 0);
+  *distortion = besterr;
   *sse1 = besterr;
   return besterr;
 }
@@ -3401,7 +3409,6 @@ int av1_return_min_sub_pixel_mv(MACROBLOCKD *xd, const AV1_COMMON *const cm,
   (void)cm;
   (void)start_mv;
   (void)start_mv_stats;
-  (void)distortion;
   (void)last_mv_search_list;
 
   const int allow_hp = ms_params->allow_hp;
@@ -3414,6 +3421,7 @@ int av1_return_min_sub_pixel_mv(MACROBLOCKD *xd, const AV1_COMMON *const cm,
   // In the sub-pel motion search, if hp is not used, then the last bit of mv
   // has to be 0.
   lower_mv_precision(bestmv, allow_hp, 0);
+  *distortion = besterr;
   *sse1 = besterr;
   return besterr;
 }

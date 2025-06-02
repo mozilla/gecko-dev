@@ -12,6 +12,8 @@
 #include <assert.h>
 #include <math.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
 
 #include "config/aom_config.h"
 #include "config/aom_dsp_rtcd.h"
@@ -30,6 +32,7 @@
 #include "av1/common/common_data.h"
 #include "av1/common/entropy.h"
 #include "av1/common/entropymode.h"
+#include "av1/common/enums.h"
 #include "av1/common/idct.h"
 #include "av1/common/mvref_common.h"
 #include "av1/common/obmc.h"
@@ -44,6 +47,7 @@
 
 #include "av1/encoder/aq_variance.h"
 #include "av1/encoder/av1_quantize.h"
+#include "av1/encoder/block.h"
 #include "av1/encoder/cost.h"
 #include "av1/encoder/compound_type.h"
 #include "av1/encoder/encodemb.h"
@@ -607,41 +611,176 @@ void av1_get_horver_correlation_full_c(const int16_t *diff, int stride,
   }
 }
 
-static void get_variance_stats(const AV1_COMP *cpi, const MACROBLOCK *x,
-                               int num_planes, int64_t *src_var,
+static void get_variance_stats_hbd(const MACROBLOCK *x, int64_t *src_var,
+                                   int64_t *rec_var) {
+  const MACROBLOCKD *xd = &x->e_mbd;
+  const MB_MODE_INFO *mbmi = xd->mi[0];
+  const struct macroblockd_plane *const pd = &xd->plane[AOM_PLANE_Y];
+  const struct macroblock_plane *const p = &x->plane[AOM_PLANE_Y];
+
+  BLOCK_SIZE bsize = mbmi->bsize;
+  int bw = block_size_wide[bsize];
+  int bh = block_size_high[bsize];
+
+  static const int gau_filter[3][3] = {
+    { 1, 2, 1 },
+    { 2, 4, 2 },
+    { 1, 2, 1 },
+  };
+
+  DECLARE_ALIGNED(16, uint16_t, dclevel[(MAX_SB_SIZE + 2) * (MAX_SB_SIZE + 2)]);
+
+  uint16_t *pred_ptr = &dclevel[bw + 1];
+  int pred_stride = xd->plane[0].dst.stride;
+
+  for (int idy = -1; idy < bh + 1; ++idy) {
+    for (int idx = -1; idx < bw + 1; ++idx) {
+      int offset_idy = idy;
+      int offset_idx = idx;
+      if (idy == -1) offset_idy = 0;
+      if (idy == bh) offset_idy = bh - 1;
+      if (idx == -1) offset_idx = 0;
+      if (idx == bw) offset_idx = bw - 1;
+
+      int offset = offset_idy * pred_stride + offset_idx;
+      pred_ptr[idy * bw + idx] = CONVERT_TO_SHORTPTR(pd->dst.buf)[offset];
+    }
+  }
+
+  *rec_var = 0;
+  for (int idy = 0; idy < bh; ++idy) {
+    for (int idx = 0; idx < bw; ++idx) {
+      int sum = 0;
+      for (int iy = 0; iy < 3; ++iy)
+        for (int ix = 0; ix < 3; ++ix)
+          sum += pred_ptr[(idy + iy - 1) * bw + (idx + ix - 1)] *
+                 gau_filter[iy][ix];
+
+      sum = sum >> 4;
+
+      int64_t diff = pred_ptr[idy * bw + idx] - sum;
+      *rec_var += diff * diff;
+    }
+  }
+  *rec_var <<= 4;
+
+  int src_stride = p->src.stride;
+  for (int idy = -1; idy < bh + 1; ++idy) {
+    for (int idx = -1; idx < bw + 1; ++idx) {
+      int offset_idy = idy;
+      int offset_idx = idx;
+      if (idy == -1) offset_idy = 0;
+      if (idy == bh) offset_idy = bh - 1;
+      if (idx == -1) offset_idx = 0;
+      if (idx == bw) offset_idx = bw - 1;
+
+      int offset = offset_idy * src_stride + offset_idx;
+      pred_ptr[idy * bw + idx] = CONVERT_TO_SHORTPTR(p->src.buf)[offset];
+    }
+  }
+
+  *src_var = 0;
+  for (int idy = 0; idy < bh; ++idy) {
+    for (int idx = 0; idx < bw; ++idx) {
+      int sum = 0;
+      for (int iy = 0; iy < 3; ++iy)
+        for (int ix = 0; ix < 3; ++ix)
+          sum += pred_ptr[(idy + iy - 1) * bw + (idx + ix - 1)] *
+                 gau_filter[iy][ix];
+
+      sum = sum >> 4;
+
+      int64_t diff = pred_ptr[idy * bw + idx] - sum;
+      *src_var += diff * diff;
+    }
+  }
+  *src_var <<= 4;
+}
+
+static void get_variance_stats(const MACROBLOCK *x, int64_t *src_var,
                                int64_t *rec_var) {
   const MACROBLOCKD *xd = &x->e_mbd;
   const MB_MODE_INFO *mbmi = xd->mi[0];
+  const struct macroblockd_plane *const pd = &xd->plane[AOM_PLANE_Y];
+  const struct macroblock_plane *const p = &x->plane[AOM_PLANE_Y];
 
-  DECLARE_ALIGNED(16, uint8_t, dclevel[MAX_SB_SQUARE]);
-  memset(dclevel, 128, sizeof(dclevel));
-  int dclevel_stride = block_size_wide[mbmi->bsize];
+  BLOCK_SIZE bsize = mbmi->bsize;
+  int bw = block_size_wide[bsize];
+  int bh = block_size_high[bsize];
 
-  *src_var = 0;
-  *rec_var = 0;
+  static const int gau_filter[3][3] = {
+    { 1, 2, 1 },
+    { 2, 4, 2 },
+    { 1, 2, 1 },
+  };
 
-  for (int plane = 0; plane < num_planes; ++plane) {
-    if (plane && !xd->is_chroma_ref) break;
+  DECLARE_ALIGNED(16, uint8_t, dclevel[(MAX_SB_SIZE + 2) * (MAX_SB_SIZE + 2)]);
 
-    const struct macroblock_plane *const p = &x->plane[plane];
-    const struct macroblockd_plane *const pd = &xd->plane[plane];
-    const BLOCK_SIZE bs =
-        get_plane_block_size(mbmi->bsize, pd->subsampling_x, pd->subsampling_y);
-    unsigned int sse;
+  uint8_t *pred_ptr = &dclevel[bw + 1];
+  int pred_stride = xd->plane[0].dst.stride;
 
-    int64_t var = cpi->ppi->fn_ptr[bs].vf(p->src.buf, p->src.stride, dclevel,
-                                          dclevel_stride, &sse);
+  for (int idy = -1; idy < bh + 1; ++idy) {
+    for (int idx = -1; idx < bw + 1; ++idx) {
+      int offset_idy = idy;
+      int offset_idx = idx;
+      if (idy == -1) offset_idy = 0;
+      if (idy == bh) offset_idy = bh - 1;
+      if (idx == -1) offset_idx = 0;
+      if (idx == bw) offset_idx = bw - 1;
 
-    *src_var += var;
-
-    var = cpi->ppi->fn_ptr[bs].vf(pd->dst.buf, pd->dst.stride, dclevel,
-                                  dclevel_stride, &sse);
-
-    *rec_var += var;
+      int offset = offset_idy * pred_stride + offset_idx;
+      pred_ptr[idy * bw + idx] = pd->dst.buf[offset];
+    }
   }
 
-  *src_var <<= 4;
+  *rec_var = 0;
+  for (int idy = 0; idy < bh; ++idy) {
+    for (int idx = 0; idx < bw; ++idx) {
+      int sum = 0;
+      for (int iy = 0; iy < 3; ++iy)
+        for (int ix = 0; ix < 3; ++ix)
+          sum += pred_ptr[(idy + iy - 1) * bw + (idx + ix - 1)] *
+                 gau_filter[iy][ix];
+
+      sum = sum >> 4;
+
+      int64_t diff = pred_ptr[idy * bw + idx] - sum;
+      *rec_var += diff * diff;
+    }
+  }
   *rec_var <<= 4;
+
+  int src_stride = p->src.stride;
+  for (int idy = -1; idy < bh + 1; ++idy) {
+    for (int idx = -1; idx < bw + 1; ++idx) {
+      int offset_idy = idy;
+      int offset_idx = idx;
+      if (idy == -1) offset_idy = 0;
+      if (idy == bh) offset_idy = bh - 1;
+      if (idx == -1) offset_idx = 0;
+      if (idx == bw) offset_idx = bw - 1;
+
+      int offset = offset_idy * src_stride + offset_idx;
+      pred_ptr[idy * bw + idx] = p->src.buf[offset];
+    }
+  }
+
+  *src_var = 0;
+  for (int idy = 0; idy < bh; ++idy) {
+    for (int idx = 0; idx < bw; ++idx) {
+      int sum = 0;
+      for (int iy = 0; iy < 3; ++iy)
+        for (int ix = 0; ix < 3; ++ix)
+          sum += pred_ptr[(idy + iy - 1) * bw + (idx + ix - 1)] *
+                 gau_filter[iy][ix];
+
+      sum = sum >> 4;
+
+      int64_t diff = pred_ptr[idy * bw + idx] - sum;
+      *src_var += diff * diff;
+    }
+  }
+  *src_var <<= 4;
 }
 
 static void adjust_rdcost(const AV1_COMP *cpi, const MACROBLOCK *x,
@@ -651,7 +790,12 @@ static void adjust_rdcost(const AV1_COMP *cpi, const MACROBLOCK *x,
   if (frame_is_kf_gf_arf(cpi)) return;
 
   int64_t src_var, rec_var;
-  get_variance_stats(cpi, x, 1, &src_var, &rec_var);
+
+  const bool is_hbd = is_cur_buf_hbd(&x->e_mbd);
+  if (is_hbd)
+    get_variance_stats_hbd(x, &src_var, &rec_var);
+  else
+    get_variance_stats(x, &src_var, &rec_var);
 
   if (src_var <= rec_var) return;
 
@@ -669,7 +813,12 @@ static void adjust_cost(const AV1_COMP *cpi, const MACROBLOCK *x,
   if (frame_is_kf_gf_arf(cpi)) return;
 
   int64_t src_var, rec_var;
-  get_variance_stats(cpi, x, 1, &src_var, &rec_var);
+  const bool is_hbd = is_cur_buf_hbd(&x->e_mbd);
+
+  if (is_hbd)
+    get_variance_stats_hbd(x, &src_var, &rec_var);
+  else
+    get_variance_stats(x, &src_var, &rec_var);
 
   if (src_var <= rec_var) return;
 
@@ -1252,6 +1401,31 @@ static inline void update_mode_start_end_index(
     *mode_index_end = SIMPLE_TRANSLATION;
 }
 
+// Increase rd cost of warp mode for low complexity decoding.
+static inline void increase_warp_mode_rd(const MB_MODE_INFO *const best_mbmi,
+                                         const MB_MODE_INFO *const this_mbmi,
+                                         int64_t *const best_scaled_rd,
+                                         int64_t *const this_scaled_rd,
+                                         int rd_bias_scale_pct) {
+  // Check rd bias percentage is non-zero.
+  if (!rd_bias_scale_pct) return;
+  if (*best_scaled_rd == INT64_MAX || *this_scaled_rd == INT64_MAX) return;
+
+  // Experiments have been performed with increasing the RD cost of warp mode at
+  // the below locations of inter mode evaluation.
+  // (1). Inter mode evaluation loop in av1_rd_pick_inter_mode().
+  // (2). Motion mode evaluation during handle_inter_mode() call.
+  // (3). Motion mode evaluation for winner motion modes.
+  // (4). Tx search for best inter candidates.
+  // Based on the speed quality trade-off results of this speed feature, the rd
+  // bias logic is enabled only at (2), (3) and (4).
+  const double rd_bias_scale = rd_bias_scale_pct / 100.0;
+  if (best_mbmi->motion_mode == WARPED_CAUSAL)
+    *best_scaled_rd += (int64_t)(rd_bias_scale * *best_scaled_rd);
+  if (this_mbmi->motion_mode == WARPED_CAUSAL)
+    *this_scaled_rd += (int64_t)(rd_bias_scale * *this_scaled_rd);
+}
+
 /*!\brief AV1 motion mode search
  *
  * \ingroup inter_mode_search
@@ -1421,6 +1595,11 @@ static int64_t motion_mode_rd(
       mbmi->motion_mode = (MOTION_MODE)mode_index;
       assert(mbmi->ref_frame[1] != INTRA_FRAME);
     }
+
+    if (cpi->oxcf.algo_cfg.sharpness == 3 &&
+        (mbmi->motion_mode == OBMC_CAUSAL ||
+         mbmi->motion_mode == WARPED_CAUSAL))
+      continue;
 
     // Do not search OBMC if the probability of selecting it is below a
     // predetermined threshold for this update_type and block size.
@@ -1668,11 +1847,21 @@ static int64_t motion_mode_rd(
       }
     }
 
+    adjust_cost(cpi, x, &this_yrd);
+    adjust_rdcost(cpi, x, rd_stats);
+    adjust_rdcost(cpi, x, rd_stats_y);
+
     const int64_t tmp_rd = RDCOST(x->rdmult, rd_stats->rate, rd_stats->dist);
     if (mode_index == 0) {
       args->simple_rd[this_mode][mbmi->ref_mv_idx][mbmi->ref_frame[0]] = tmp_rd;
     }
-    if (mode_index == 0 || tmp_rd < best_rd) {
+    int64_t best_scaled_rd = best_rd;
+    int64_t this_scaled_rd = tmp_rd;
+    if (mode_index != 0)
+      increase_warp_mode_rd(&best_mbmi, mbmi, &best_scaled_rd, &this_scaled_rd,
+                            cpi->sf.inter_sf.bias_warp_mode_rd_scale_pct);
+
+    if (mode_index == 0 || this_scaled_rd < best_scaled_rd) {
       // Update best_rd data if this is the best motion mode so far
       best_mbmi = *mbmi;
       best_rd = tmp_rd;
@@ -3717,8 +3906,11 @@ static inline void refine_winner_mode_tx(
         av1_init_rd_stats(&rd_stats_uv);
       }
 
+      const int comp_pred = mbmi->ref_frame[1] > INTRA_FRAME;
+
       const ModeCosts *mode_costs = &x->mode_costs;
       if (is_inter_mode(mbmi->mode) &&
+          (!cpi->oxcf.algo_cfg.sharpness || !comp_pred) &&
           RDCOST(x->rdmult,
                  mode_costs->skip_txfm_cost[skip_ctx][0] + rd_stats_y.rate +
                      rd_stats_uv.rate,
@@ -5027,7 +5219,15 @@ static inline void evaluate_motion_mode_for_winner_candidates(
           &cpi->common, x, mbmi, &rd_stats, &rd_stats_y, &rd_stats_uv,
           mode_enum, NULL, bsize, rd_stats.rdcost,
           cpi->sf.winner_mode_sf.multi_winner_mode_type, do_tx_search);
-      if (rd_stats.rdcost < search_state->best_rd) {
+
+      int64_t best_scaled_rd = search_state->best_rd;
+      int64_t this_scaled_rd = rd_stats.rdcost;
+      if (search_state->best_mode_index != THR_INVALID)
+        increase_warp_mode_rd(&search_state->best_mbmode, mbmi, &best_scaled_rd,
+                              &this_scaled_rd,
+                              cpi->sf.inter_sf.bias_warp_mode_rd_scale_pct);
+
+      if (this_scaled_rd < best_scaled_rd) {
         *yrd = this_yrd;
         update_search_state(search_state, rd_cost, ctx, &rd_stats, &rd_stats_y,
                             &rd_stats_uv, mode_enum, x, do_tx_search);
@@ -5350,11 +5550,11 @@ static void tx_search_best_inter_candidates(
                 mode_costs->skip_txfm_cost[skip_ctx][mbmi->skip_txfm]);
       }
     }
+
+    if (cpi->oxcf.algo_cfg.sharpness == 3 && is_comp_pred && rd_stats.skip_txfm)
+      continue;
+
     rd_stats.rdcost = RDCOST(x->rdmult, rd_stats.rate, rd_stats.dist);
-    if (rd_stats.rdcost < best_rd_in_this_partition) {
-      best_rd_in_this_partition = rd_stats.rdcost;
-      *yrd = this_yrd;
-    }
 
     const THR_MODES mode_enum = get_prediction_mode_idx(
         prediction_mode, mbmi->ref_frame[0], mbmi->ref_frame[1]);
@@ -5366,7 +5566,17 @@ static void tx_search_best_inter_candidates(
         NULL, bsize, rd_stats.rdcost,
         cpi->sf.winner_mode_sf.multi_winner_mode_type, txfm_search_done);
 
-    if (rd_stats.rdcost < search_state->best_rd) {
+    int64_t best_scaled_rd = search_state->best_rd;
+    int64_t this_scaled_rd = rd_stats.rdcost;
+    increase_warp_mode_rd(&search_state->best_mbmode, mbmi, &best_scaled_rd,
+                          &this_scaled_rd,
+                          cpi->sf.inter_sf.bias_warp_mode_rd_scale_pct);
+    if (this_scaled_rd < best_rd_in_this_partition) {
+      best_rd_in_this_partition = rd_stats.rdcost;
+      *yrd = this_yrd;
+    }
+
+    if (this_scaled_rd < best_scaled_rd) {
       update_search_state(search_state, rd_cost, ctx, &rd_stats, &rd_stats_y,
                           &rd_stats_uv, mode_enum, x, txfm_search_done);
       search_state->best_skip_rd[0] = skip_rd;
@@ -6096,13 +6306,6 @@ void av1_rd_pick_inter_mode(struct AV1_COMP *cpi, struct TileDataEnc *tile_data,
     args.ref_frame_cost = ref_frame_cost;
     args.best_pred_sse = search_state.best_pred_sse;
     args.skip_ifs = skip_interp_filter_search(cpi, is_single_pred);
-
-    if (!frame_is_kf_gf_arf(cpi) && cpi->oxcf.algo_cfg.sharpness == 3) {
-      if (ref_frame != ALTREF_FRAME && ref_frame != GOLDEN_FRAME &&
-          ref_frame != INTRA_FRAME)
-        continue;
-    }
-
     int64_t skip_rd[2] = { search_state.best_skip_rd[0],
                            search_state.best_skip_rd[1] };
     int64_t this_yrd = INT64_MAX;
@@ -6135,6 +6338,9 @@ void av1_rd_pick_inter_mode(struct AV1_COMP *cpi, struct TileDataEnc *tile_data,
       rd_stats_y.rate = 0;
       rd_stats_uv.rate = 0;
     }
+
+    if (comp_pred && mbmi->skip_txfm && cpi->oxcf.algo_cfg.sharpness == 3)
+      continue;
 
     if (sf->inter_sf.prune_compound_using_single_ref && is_single_pred &&
         this_rd < ref_frame_rd[ref_frame]) {
@@ -6269,7 +6475,7 @@ void av1_rd_pick_inter_mode(struct AV1_COMP *cpi, struct TileDataEnc *tile_data,
 
   search_state.best_mbmode.skip_mode = 0;
   if (cm->current_frame.skip_mode_info.skip_mode_flag &&
-      is_comp_ref_allowed(bsize)) {
+      cpi->oxcf.algo_cfg.sharpness != 3 && is_comp_ref_allowed(bsize)) {
     const struct segmentation *const seg = &cm->seg;
     unsigned char segment_id = mbmi->segment_id;
     if (!segfeature_active(seg, segment_id, SEG_LVL_REF_FRAME)) {

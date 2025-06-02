@@ -858,6 +858,10 @@ void av1_gop_setup_structure(AV1_COMP *cpi) {
     first_frame_update_type = GF_UPDATE;
   }
 
+  if (cpi->oxcf.algo_cfg.sharpness == 3)
+    gf_group->max_layer_depth_allowed =
+        AOMMIN(gf_group->max_layer_depth_allowed, 2);
+
   gf_group->size = construct_multi_layer_gf_structure(
       cpi, twopass, gf_group, rc, frame_info, p_rc->baseline_gf_interval,
       first_frame_update_type);

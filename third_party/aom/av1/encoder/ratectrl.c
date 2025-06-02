@@ -246,7 +246,7 @@ int av1_rc_bits_per_mb(const AV1_COMP *cpi, FRAME_TYPE frame_type, int qindex,
     const int ratio = (cpi->rc.bit_est_ratio == 0) ? get_init_ratio(sse_sqrt)
                                                    : cpi->rc.bit_est_ratio;
     // Clamp the enumerator to lower the q fluctuations.
-    enumerator = AOMMIN(AOMMAX((int)(ratio * sse_sqrt), 20000), 170000);
+    enumerator = clamp((int)(ratio * sse_sqrt), 20000, 170000);
   } else if (cpi->oxcf.rc_cfg.mode == AOM_CBR && frame_type == KEY_FRAME &&
              cpi->sf.rt_sf.rc_adjust_keyframe && bit_depth == 8 &&
              cpi->oxcf.rc_cfg.max_intra_bitrate_pct > 0 &&
@@ -620,9 +620,9 @@ static int adjust_q_cbr(const AV1_COMP *cpi, int q, int active_worst_quality,
     // next refresh cycle.
     if (cpi->is_screen_content_type &&
         (cpi->cyclic_refresh->sb_index > cpi->cyclic_refresh->last_sb_index)) {
-      max_delta_down = AOMMIN(8, AOMMAX(1, rc->q_1_frame / 32));
+      max_delta_down = clamp(rc->q_1_frame / 32, 1, 8);
     } else {
-      max_delta_down = AOMMIN(16, AOMMAX(1, rc->q_1_frame / 8));
+      max_delta_down = clamp(rc->q_1_frame / 8, 1, 16);
     }
     if (!cpi->ppi->use_svc && cpi->is_screen_content_type) {
       // Link max_delta_up to max_delta_down and buffer status.
@@ -633,9 +633,9 @@ static int adjust_q_cbr(const AV1_COMP *cpi, int q, int active_worst_quality,
       }
     }
   } else {
-    max_delta_down = (cpi->is_screen_content_type)
-                         ? AOMMIN(8, AOMMAX(1, rc->q_1_frame / 16))
-                         : AOMMIN(16, AOMMAX(1, rc->q_1_frame / 8));
+    max_delta_down = cpi->is_screen_content_type
+                         ? clamp(rc->q_1_frame / 16, 1, 8)
+                         : clamp(rc->q_1_frame / 8, 1, 16);
   }
   // For screen static content with stable buffer level: relax the
   // limit on max_delta_down and apply bias qp, based on buffer fullness.
@@ -756,7 +756,7 @@ static int adjust_q_cbr(const AV1_COMP *cpi, int q, int active_worst_quality,
     const int min_dist = av1_svc_get_min_ref_dist(cpi);
     q = q - AOMMIN(min_dist, 20);
   }
-  return AOMMAX(AOMMIN(q, cpi->rc.worst_quality), cpi->rc.best_quality);
+  return clamp(q, cpi->rc.best_quality, cpi->rc.worst_quality);
 }
 
 static const RATE_FACTOR_LEVEL rate_factor_levels[FRAME_UPDATE_TYPES] = {
@@ -2034,19 +2034,12 @@ static int rc_pick_q_and_bounds_q_mode(const AV1_COMP *cpi, int width,
 
   if (cq_level > 0) active_best_quality = AOMMAX(1, active_best_quality);
 
-  *top_index = active_worst_quality;
-  *bottom_index = active_best_quality;
+  *top_index = clamp(active_worst_quality, rc->best_quality, rc->worst_quality);
 
-  *top_index = AOMMAX(*top_index, rc->best_quality);
-  *top_index = AOMMIN(*top_index, rc->worst_quality);
+  *bottom_index =
+      clamp(active_best_quality, rc->best_quality, rc->worst_quality);
 
-  *bottom_index = AOMMAX(*bottom_index, rc->best_quality);
-  *bottom_index = AOMMIN(*bottom_index, rc->worst_quality);
-
-  q = active_best_quality;
-
-  q = AOMMAX(q, rc->best_quality);
-  q = AOMMIN(q, rc->worst_quality);
+  q = *bottom_index;
 
   assert(*top_index <= rc->worst_quality && *top_index >= rc->best_quality);
   assert(*bottom_index <= rc->worst_quality &&
@@ -3265,6 +3258,7 @@ static void rc_scene_detection_onepass_rt(AV1_COMP *cpi,
     for (int sbi_col = 0; sbi_col < sb_cols; ++sbi_col) {
       int block_is_active = 1;
       if (cpi->active_map.enabled && rc->percent_blocks_inactive > 0) {
+        // Fix this to include skip feature via ROI.
         block_is_active = set_block_is_active(active_map_4x4, mi_cols, mi_rows,
                                               sbi_col, sbi_row);
       }

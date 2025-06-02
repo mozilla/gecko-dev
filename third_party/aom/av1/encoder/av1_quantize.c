@@ -803,19 +803,19 @@ void av1_init_plane_quantizers(const AV1_COMP *cpi, MACROBLOCK *x,
   const FRAME_TYPE frame_type = cm->current_frame.frame_type;
   int qindex_rd;
 
-  const int current_qindex = AOMMAX(
-      0,
-      AOMMIN(QINDEX_RANGE - 1, cm->delta_q_info.delta_q_present_flag
-                                   ? quant_params->base_qindex + x->delta_qindex
-                                   : quant_params->base_qindex));
+  const int current_qindex =
+      clamp(cm->delta_q_info.delta_q_present_flag
+                ? quant_params->base_qindex + x->delta_qindex
+                : quant_params->base_qindex,
+            0, QINDEX_RANGE - 1);
   const int qindex = av1_get_qindex(&cm->seg, segment_id, current_qindex);
 
   if (cpi->oxcf.sb_qp_sweep) {
     const int current_rd_qindex =
-        AOMMAX(0, AOMMIN(QINDEX_RANGE - 1, cm->delta_q_info.delta_q_present_flag
-                                               ? quant_params->base_qindex +
-                                                     x->rdmult_delta_qindex
-                                               : quant_params->base_qindex));
+        clamp(cm->delta_q_info.delta_q_present_flag
+                  ? quant_params->base_qindex + x->rdmult_delta_qindex
+                  : quant_params->base_qindex,
+              0, QINDEX_RANGE - 1);
     qindex_rd = av1_get_qindex(&cm->seg, segment_id, current_rd_qindex);
   } else {
     qindex_rd = qindex;

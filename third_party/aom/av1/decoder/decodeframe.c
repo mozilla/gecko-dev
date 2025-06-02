@@ -1617,7 +1617,7 @@ static inline void read_wiener_filter(int wiener_win, WienerInfo *wiener_info,
   wiener_info->hfilter[WIENER_HALFWIN] =
       -2 * (wiener_info->hfilter[0] + wiener_info->hfilter[1] +
             wiener_info->hfilter[2]);
-  memcpy(ref_wiener_info, wiener_info, sizeof(*wiener_info));
+  *ref_wiener_info = *wiener_info;
 }
 
 static inline void read_sgrproj_filter(SgrprojInfo *sgrproj_info,
@@ -1654,7 +1654,7 @@ static inline void read_sgrproj_filter(SgrprojInfo *sgrproj_info,
         SGRPROJ_PRJ_MIN1;
   }
 
-  memcpy(ref_sgrproj_info, sgrproj_info, sizeof(*sgrproj_info));
+  *ref_sgrproj_info = *sgrproj_info;
 }
 
 static inline void loop_restoration_read_sb_coeffs(const AV1_COMMON *const cm,
@@ -4078,8 +4078,7 @@ static inline void read_film_grain(AV1_COMMON *cm,
     memset(&cm->film_grain_params, 0, sizeof(cm->film_grain_params));
   }
   cm->film_grain_params.bit_depth = cm->seq_params->bit_depth;
-  memcpy(&cm->cur_frame->film_grain_params, &cm->film_grain_params,
-         sizeof(aom_film_grain_t));
+  cm->cur_frame->film_grain_params = cm->film_grain_params;
 }
 
 void av1_read_color_config(struct aom_read_bit_buffer *rb,

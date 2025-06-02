@@ -549,7 +549,7 @@ static void set_vbp_thresholds_key_frame(AV1_COMP *cpi, int64_t thresholds[],
   } else {
     int shift_val = 2;
     if (cpi->sf.rt_sf.force_large_partition_blocks_intra) {
-      shift_val = 0;
+      shift_val = (cpi->oxcf.mode == ALLINTRA ? 1 : 0);
     }
 
     thresholds[2] = threshold_base >> shift_val;
@@ -1218,10 +1218,13 @@ static inline void set_ref_frame_for_partition(
     const YV12_BUFFER_CONFIG *yv12_g, const YV12_BUFFER_CONFIG *yv12_alt,
     int mi_row, int mi_col, int num_planes) {
   AV1_COMMON *const cm = &cpi->common;
+  const double fac =
+      (cpi->svc.spatial_layer_id > 0 && cpi->svc.has_lower_quality_layer) ? 1.0
+                                                                          : 0.9;
   const bool is_set_golden_ref_frame =
-      *y_sad_g < 0.9 * *y_sad && *y_sad_g < *y_sad_alt;
+      *y_sad_g < fac * *y_sad && *y_sad_g < *y_sad_alt;
   const bool is_set_altref_ref_frame =
-      *y_sad_alt < 0.9 * *y_sad && *y_sad_alt < *y_sad_g;
+      *y_sad_alt < fac * *y_sad && *y_sad_alt < *y_sad_g;
 
   if (is_set_golden_ref_frame) {
     av1_setup_pre_planes(xd, 0, yv12_g, mi_row, mi_col,
@@ -1401,9 +1404,11 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
                     (cpi->sf.rt_sf.use_comp_ref_nonrd &&
                      cpi->sf.rt_sf.ref_frame_comp_nonrd[2] == 1);
 
-  // For 1 spatial layer: GOLDEN is another temporal reference.
-  // Check if it should be used as reference for partitioning.
-  if (cpi->svc.number_spatial_layers == 1 && use_golden_ref &&
+  // Check if GOLDEN should be used as reference for partitioning.
+  // Allow for spatial layers if lower layer has same resolution.
+  if ((cpi->svc.number_spatial_layers == 1 ||
+       cpi->svc.has_lower_quality_layer) &&
+      use_golden_ref &&
       (x->content_state_sb.source_sad_nonrd != kZeroSad || !use_last_ref)) {
     yv12_g = get_ref_frame_yv12_buf(cm, GOLDEN_FRAME);
     if (yv12_g && (yv12_g->y_crop_height != cm->height ||
@@ -1423,10 +1428,11 @@ static void setup_planes(AV1_COMP *cpi, MACROBLOCK *x, unsigned int *y_sad,
     }
   }
 
-  // For 1 spatial layer: ALTREF is another temporal reference.
-  // Check if it should be used as reference for partitioning.
-  if (cpi->svc.number_spatial_layers == 1 && use_alt_ref &&
-      (cpi->ref_frame_flags & AOM_ALT_FLAG) &&
+  // Check if ALTREF should be used as reference for partitioning.
+  // Allow for spatial layers if lower layer has same resolution.
+  if ((cpi->svc.number_spatial_layers == 1 ||
+       cpi->svc.has_lower_quality_layer) &&
+      use_alt_ref && (cpi->ref_frame_flags & AOM_ALT_FLAG) &&
       (x->content_state_sb.source_sad_nonrd != kZeroSad || !use_last_ref)) {
     yv12_alt = get_ref_frame_yv12_buf(cm, ALTREF_FRAME);
     if (yv12_alt && (yv12_alt->y_crop_height != cm->height ||
@@ -1663,10 +1669,14 @@ int av1_choose_var_based_partitioning(AV1_COMP *cpi, const TileInfo *const tile,
   const bool is_segment_id_boosted =
       cpi->oxcf.q_cfg.aq_mode == CYCLIC_REFRESH_AQ && cm->seg.enabled &&
       cyclic_refresh_segment_id_boosted(segment_id);
-  const int qindex =
-      is_segment_id_boosted
-          ? av1_get_qindex(&cm->seg, segment_id, cm->quant_params.base_qindex)
-          : cm->quant_params.base_qindex;
+  const int sb_qindex =
+      clamp(cm->delta_q_info.delta_q_present_flag
+                ? cm->quant_params.base_qindex + x->delta_qindex
+                : cm->quant_params.base_qindex,
+            0, QINDEX_RANGE - 1);
+  const int qindex = is_segment_id_boosted
+                         ? av1_get_qindex(&cm->seg, segment_id, sb_qindex)
+                         : sb_qindex;
   set_vbp_thresholds(
       cpi, thresholds, blk_sad, qindex, x->content_state_sb.low_sumdiff,
       x->content_state_sb.source_sad_nonrd, x->content_state_sb.source_sad_rd,

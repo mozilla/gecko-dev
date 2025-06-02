@@ -313,6 +313,10 @@ enum aome_enc_control_id {
 
   /*!\brief Codec control function to set number of spatial layers, int
    * parameter
+   *
+   * Valid range:
+   *   \li When using #AV1E_SET_SVC_REF_FRAME_CONFIG: [1, #AOM_MAX_SS_LAYERS]
+   *   \li When \em not using #AV1E_SET_SVC_REF_FRAME_CONFIG: [1, 3]
    */
   AOME_SET_NUMBER_SPATIAL_LAYERS = 27,
 
@@ -1136,6 +1140,10 @@ enum aome_enc_control_id {
    * - 4 = use modulation for user rating based perceptual quality optimization
    * - 5 = use modulation for HDR video
    * - 6 = use modulation for all intra using Variance Boost
+   *
+   * \attention Delta q modes 1-5 are unsupported and are silently ignored in
+   * non-RD mode. Non-RD mode is enabled by setting cpu-used >= 8 (all intra
+   * usage) and cpu-used >= 7 (realtime usage).
    */
   AV1E_SET_DELTAQ_MODE = 107,
 
@@ -1583,6 +1591,15 @@ enum aome_enc_control_id {
    */
   AV1E_SET_ENABLE_LOW_COMPLEXITY_DECODE = 170,
 
+  /*!\brief Codec control to set the screen content detection mode,
+   * aom_screen_detection_mode parameter.
+   *
+   * - 1: AOM_SCREEN_DETECTION_STANDARD = standard (default)
+   * - 2: AOM_SCREEN_DETECTION_ANTIALIASING_AWARE = anti-aliased text and
+   *   graphics aware
+   */
+  AV1E_SET_SCREEN_CONTENT_DETECTION_MODE = 171,
+
   // Any new encoder control IDs should be added above.
   // Maximum allowed encoder control ID is 229.
   // No encoder control ID should be added below.
@@ -1621,14 +1638,16 @@ typedef enum aom_scaling_mode_1d {
  *
  */
 typedef struct aom_roi_map {
+  /*! If ROI is enabled. */
+  uint8_t enabled;
   /*! An id between 0 and 7 for each 8x8 region within a frame. */
   unsigned char *roi_map;
-  unsigned int rows;              /**< Number of rows. */
-  unsigned int cols;              /**< Number of columns. */
-  int delta_q[AOM_MAX_SEGMENTS];  /**< Quantizer deltas. */
-  int delta_lf[AOM_MAX_SEGMENTS]; /**< Loop filter deltas. */
-  /*! Static breakout threshold for each segment. */
-  unsigned int static_threshold[AOM_MAX_SEGMENTS];
+  unsigned int rows;               /**< Number of rows. */
+  unsigned int cols;               /**< Number of columns. */
+  int delta_q[AOM_MAX_SEGMENTS];   /**< Quantizer deltas. */
+  int delta_lf[AOM_MAX_SEGMENTS];  /**< Loop filter deltas. */
+  int skip[AOM_MAX_SEGMENTS];      /**< Skip this block. */
+  int ref_frame[AOM_MAX_SEGMENTS]; /**< Reference frame for this block. */
 } aom_roi_map_t;
 
 /*!\brief  aom active region map
@@ -1654,7 +1673,7 @@ typedef struct aom_scaling_mode {
   AOM_SCALING_MODE v_scaling_mode; /**< vertical scaling mode   */
 } aom_scaling_mode_t;
 
-/*!brief AV1 encoder content type */
+/*!\brief AV1 encoder content type */
 typedef enum {
   AOM_CONTENT_DEFAULT,
   AOM_CONTENT_SCREEN,
@@ -1662,7 +1681,15 @@ typedef enum {
   AOM_CONTENT_INVALID
 } aom_tune_content;
 
-/*!brief AV1 encoder timing info type signaling */
+/*!\brief Screen content detection mode */
+typedef enum {
+  /** Standard */
+  AOM_SCREEN_DETECTION_STANDARD = 1,
+  /** Anti-aliased text and graphics aware */
+  AOM_SCREEN_DETECTION_ANTIALIASING_AWARE = 2
+} aom_screen_detection_mode;
+
+/*!\brief AV1 encoder timing info type signaling */
 typedef enum {
   AOM_TIMING_UNSPECIFIED,
   AOM_TIMING_EQUAL,
@@ -1733,21 +1760,33 @@ typedef enum {
 #define AOM_MAX_SS_LAYERS 4 /**< Max number of spatial layers */
 #define AOM_MAX_TS_LAYERS 8 /**< Max number of temporal layers */
 
-/*!brief Struct for spatial and temporal layer ID */
+/*!\brief Struct for spatial and temporal layer ID */
 typedef struct aom_svc_layer_id {
   int spatial_layer_id;  /**< Spatial layer ID */
   int temporal_layer_id; /**< Temporal layer ID */
 } aom_svc_layer_id_t;
 
-/*!brief Parameter type for SVC
+/*!\brief Parameter type for SVC
  *
  * In the arrays of size AOM_MAX_LAYERS, the index for spatial layer `sl` and
  * temporal layer `tl` is sl * number_temporal_layers + tl.
  *
  */
 typedef struct aom_svc_params {
-  int number_spatial_layers;                 /**< Number of spatial layers */
-  int number_temporal_layers;                /**< Number of temporal layers */
+  /*!Number of spatial layers
+   *
+   * Valid range:
+   *   \li When using #AV1E_SET_SVC_REF_FRAME_CONFIG: [1, #AOM_MAX_SS_LAYERS]
+   *   \li When \em not using #AV1E_SET_SVC_REF_FRAME_CONFIG: [1, 3]
+   */
+  int number_spatial_layers;
+  /*!Number of temporal layers
+   *
+   * Valid range:
+   *   \li When using #AV1E_SET_SVC_REF_FRAME_CONFIG: [1, #AOM_MAX_TS_LAYERS]
+   *   \li When \em not using #AV1E_SET_SVC_REF_FRAME_CONFIG: [1, 3]
+   */
+  int number_temporal_layers;
   int max_quantizers[AOM_MAX_LAYERS];        /**< Max Q for each layer */
   int min_quantizers[AOM_MAX_LAYERS];        /**< Min Q for each layer */
   int scaling_factor_num[AOM_MAX_SS_LAYERS]; /**< Scaling factor-numerator */
@@ -1758,7 +1797,7 @@ typedef struct aom_svc_params {
   int framerate_factor[AOM_MAX_TS_LAYERS];
 } aom_svc_params_t;
 
-/*!brief Parameters for setting ref frame config */
+/*!\brief Parameters for setting ref frame config */
 typedef struct aom_svc_ref_frame_config {
   // Three arrays need to be set: reference[], ref_id[], refresh[].
   // reference[i]: is a boolean flag to indicate which of the 7 possible
@@ -1781,14 +1820,14 @@ typedef struct aom_svc_ref_frame_config {
   int refresh[8]; /**< Refresh flag for each of the 8 buffer slots. */
 } aom_svc_ref_frame_config_t;
 
-/*!brief Parameters for setting ref frame compound prediction */
+/*!\brief Parameters for setting ref frame compound prediction */
 typedef struct aom_svc_ref_frame_comp_pred {
   // Use compound prediction for the ref_frame pairs GOLDEN_LAST (0),
   // LAST2_LAST (1), and ALTREF_LAST (2).
   int use_comp_pred[3]; /**<Compound reference flag. */
 } aom_svc_ref_frame_comp_pred_t;
 
-/*!brief Frame drop modes for spatial/quality layer SVC */
+/*!\brief Frame drop modes for spatial/quality layer SVC */
 typedef enum {
   AOM_LAYER_DROP,           /**< Any spatial layer can drop. */
   AOM_FULL_SUPERFRAME_DROP, /**< Only full superframe can drop. */
@@ -2293,6 +2332,10 @@ AOM_CTRL_USE_TYPE(AV1E_SET_MAX_CONSEC_FRAME_DROP_MS_CBR, int)
 
 AOM_CTRL_USE_TYPE(AV1E_SET_ENABLE_LOW_COMPLEXITY_DECODE, unsigned int)
 #define AOM_CTRL_AV1E_SET_ENABLE_LOW_COMPLEXITY_DECODE
+
+AOM_CTRL_USE_TYPE(AV1E_SET_SCREEN_CONTENT_DETECTION_MODE,
+                  int) /* aom_screen_detection_mode */
+#define AOM_CTRL_SET_SCREEN_CONTENT_DETECTION_MODE
 
 /*!\endcond */
 /*! @} - end defgroup aom_encoder */

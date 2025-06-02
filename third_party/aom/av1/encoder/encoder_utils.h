@@ -1019,6 +1019,8 @@ void av1_setup_frame(AV1_COMP *cpi);
 BLOCK_SIZE av1_select_sb_size(const AV1EncoderConfig *const oxcf, int width,
                               int height, int number_spatial_layers);
 
+void av1_apply_roi_map(AV1_COMP *cpi);
+
 void av1_apply_active_map(AV1_COMP *cpi);
 
 #if !CONFIG_REALTIME_ONLY
