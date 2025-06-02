@@ -2521,7 +2521,7 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         key = appContext.getPreferenceKey(R.string.pref_key_setup_checklist_complete),
         default = {
             FxNimbus.features.setupChecklist.value().enabled &&
-                    canShowAddSearchWidgetPrompt(AppWidgetManager.getInstance(appContext))
+                canShowAddSearchWidgetPrompt(AppWidgetManager.getInstance(appContext))
         },
         featureFlag = true,
     )
