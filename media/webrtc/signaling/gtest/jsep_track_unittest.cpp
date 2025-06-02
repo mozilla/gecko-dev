@@ -1799,7 +1799,7 @@ TEST(JsepTrackRecvPayloadTypesTest, SingleTrackPTsAreUnique)
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs;
   codecs.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1));
 
   SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
   SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
@@ -1839,11 +1839,11 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsAreUnique)
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs1;
   codecs1.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1));
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs2;
   codecs2.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("2", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("2", "codec1", 48000, 1));
 
   SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
   SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
@@ -1907,11 +1907,11 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsAreDuplicates)
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs1;
   codecs1.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1));
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs2;
   codecs2.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1));
 
   SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
   SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
@@ -1974,15 +1974,15 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsOverlap)
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs1;
   codecs1.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1));
   codecs1.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("2", "codec2", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("2", "codec2", 48000, 1));
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs2;
   codecs2.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1));
   codecs2.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("3", "codec2", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("3", "codec2", 48000, 1));
 
   SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
   SdpMediaSection& offer1Msection1 = offer1.AddMediaSection(
@@ -2046,15 +2046,15 @@ TEST(JsepTrackRecvPayloadTypesTest, DoubleTrackPTsDuplicateAfterRenegotiation)
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs1;
   codecs1.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("1", "codec1", 48000, 1));
   codecs1.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("2", "codec2", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("2", "codec2", 48000, 1));
 
   std::vector<UniquePtr<JsepCodecDescription>> codecs2;
   codecs2.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("3", "codec1", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("3", "codec1", 48000, 1));
   codecs2.emplace_back(
-      MakeUnique<JsepAudioCodecDescription>("4", "codec2", 48000, 1, true));
+      MakeUnique<JsepAudioCodecDescription>("4", "codec2", 48000, 1));
 
   // First negotiation.
   SipccSdp offer1(SdpOrigin("", 0, 0, sdp::kIPv4, ""));
