@@ -77,14 +77,6 @@ Maybe<uint64_t> PerformanceInteractionMetrics::ComputeInteractionId(
   if (eventType == ePointerDown) {
     uint32_t pointerId = aEvent->AsPointerEvent()->pointerId;
 
-    // If after the previously buffered pointerdown we haven't encountered any
-    // matching pointerup, we need to set it as zero so it properly flushes the
-    // events.
-    auto bufferedPointerdown = mPendingPointerDowns.MaybeGet(pointerId);
-    if (NS_WARN_IF(bufferedPointerdown &&
-                   !(*bufferedPointerdown)->HasKnownInteractionId())) {
-      (*bufferedPointerdown)->SetInteractionId(0);
-    }
     mPendingPointerDowns.InsertOrUpdate(pointerId, aEventTiming);
     mContextMenuTriggered = false;
     // InteractionId for this will be assigned by pointerup or pointercancel
