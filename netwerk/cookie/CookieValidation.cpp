@@ -119,6 +119,17 @@ void CookieValidation::ValidateInternal() {
     mResult = eRejectedPartitionedRequiresSecure;
     return;
   }
+
+  // This part checks if the caleers have set the expiry value to max 400 days.
+  if (!mCookieData.isSession()) {
+    int64_t maxageCap = StaticPrefs::network_cookie_maxageCap();
+    int64_t currentTimeInSec = PR_Now() / PR_USEC_PER_SEC;
+    int64_t expiry = mCookieData.expiry() / PR_USEC_PER_SEC;
+    if (maxageCap && expiry > currentTimeInSec + maxageCap) {
+      mResult = eRejectedAttributeExpiryOversize;
+      return;
+    }
+  }
 }
 
 void CookieValidation::ValidateForHostInternal(nsIURI* aHostURI,
@@ -380,6 +391,12 @@ void CookieValidation::RetrieveErrorLogData(uint32_t* aFlags,
     case eRejectedAttributeDomainOversize: {
       SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
                    "CookieRejectedAttributeDomainOversize"_ns);
+      return;
+    }
+
+    case eRejectedAttributeExpiryOversize: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedAttributeExpiryOversize"_ns);
       return;
     }
 
