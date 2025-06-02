@@ -12,7 +12,7 @@ class RecentBrowsingInView extends ViewPage {
   }
 
   static queries = {
-    searchTextbox: "fxview-search-textbox",
+    searchTextbox: "moz-input-search",
   };
 
   static properties = {
@@ -35,6 +35,14 @@ class RecentBrowsingInView extends ViewPage {
     }
   }
 
+  onSearchQuery() {
+    // Individual components also listen to this event, so no need to do
+    // anything else.
+    Glean.firefoxviewNext.searchInitiatedSearch.record({
+      page: "recentbrowsing",
+    });
+  }
+
   render() {
     return html`
       <link
@@ -44,12 +52,11 @@ class RecentBrowsingInView extends ViewPage {
       <div class="sticky-container bottom-fade">
         <h2 class="page-header" data-l10n-id="firefoxview-overview-header"></h2>
         <div class="search-container">
-          <fxview-search-textbox
+          <moz-input-search
             data-l10n-id="firefoxview-search-text-box-recentbrowsing"
             data-l10n-attrs="placeholder"
-            .size=${this.searchTextboxSize}
-            pageName="recentbrowsing"
-          ></fxview-search-textbox>
+            @MozInputSearch:search=${this.onSearchQuery}
+          ></moz-input-search>
         </div>
       </div>
       <div class="cards-container">

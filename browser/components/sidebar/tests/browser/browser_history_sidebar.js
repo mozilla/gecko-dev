@@ -269,11 +269,7 @@ add_task(async function test_history_search() {
   }, "There are no matching search results.");
 
   info("Clear the search query.");
-  EventUtils.synthesizeMouseAtCenter(
-    searchTextbox.clearButton,
-    {},
-    contentWindow
-  );
+  searchTextbox.clear();
   await TestUtils.waitForCondition(
     () => !component.lists[0].emptyState,
     "The original cards are restored."

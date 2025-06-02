@@ -58,7 +58,7 @@ class RecentlyClosedTabsInView extends ViewPage {
   static queries = {
     cardEl: "card-container",
     emptyState: "fxview-empty-state",
-    searchTextbox: "fxview-search-textbox",
+    searchTextbox: "moz-input-search",
     tabList: "fxview-tab-list",
   };
 
@@ -91,7 +91,7 @@ class RecentlyClosedTabsInView extends ViewPage {
 
     if (this.recentBrowsing) {
       this.recentBrowsingElement.addEventListener(
-        "fxview-search-textbox-query",
+        "MozInputSearch:search",
         this
       );
     }
@@ -116,7 +116,7 @@ class RecentlyClosedTabsInView extends ViewPage {
 
     if (this.recentBrowsing) {
       this.recentBrowsingElement.removeEventListener(
-        "fxview-search-textbox-query",
+        "MozInputSearch:search",
         this
       );
     }
@@ -130,7 +130,7 @@ class RecentlyClosedTabsInView extends ViewPage {
   }
 
   handleEvent(event) {
-    if (this.recentBrowsing && event.type === "fxview-search-textbox-query") {
+    if (this.recentBrowsing && event.type === "MozInputSearch:search") {
       this.onSearchQuery(event);
     }
   }
@@ -343,15 +343,11 @@ class RecentlyClosedTabsInView extends ViewPage {
               data-l10n-id="firefoxview-recently-closed-header"
             ></h2>
             <div>
-              <fxview-search-textbox
+              <moz-input-search
                 data-l10n-id="firefoxview-search-text-box-recentlyclosed"
                 data-l10n-attrs="placeholder"
-                @fxview-search-textbox-query=${this.onSearchQuery}
-                .size=${this.searchTextboxSize}
-                pageName=${this.recentBrowsing
-                  ? "recentbrowsing"
-                  : "recentlyclosed"}
-              ></fxview-search-textbox>
+                @MozInputSearch:search=${this.onSearchQuery}
+              ></moz-input-search>
             </div>
           </div>`
       )}
@@ -413,6 +409,11 @@ class RecentlyClosedTabsInView extends ViewPage {
   }
 
   onSearchQuery(e) {
+    if (!this.recentBrowsing) {
+      Glean.firefoxviewNext.searchInitiatedSearch.record({
+        page: "recentlyclosed",
+      });
+    }
     this.searchQuery = e.detail.query;
     this.showAll = false;
     this.cumulativeSearches = this.searchQuery

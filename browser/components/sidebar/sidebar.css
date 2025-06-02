@@ -65,20 +65,6 @@ moz-card {
   width: 100%;
 }
 
-fxview-search-textbox {
-  &::part(input) {
-    background-color: var(--sidebar-box-background);
-    color: var(--sidebar-box-color);
-    border: var(--sidebar-box-border);
-    border-radius: var(--border-radius-medium);
-  }
-
-  &::part(container) {
-    width: 100%;
-    height: var(--size-item-large);
-  }
-}
-
 fxview-empty-state {
   &::part(container) {
     margin-block-start: var(--space-medium);

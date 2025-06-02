@@ -471,7 +471,8 @@ add_task(async function test_search_history() {
     }, "There are no matching search results.");
 
     info("Clear the search query.");
-    EventUtils.synthesizeMouseAtCenter(searchTextbox.clearButton, {}, content);
+    searchTextbox.select();
+    EventUtils.synthesizeKey("VK_BACK_SPACE");
     await BrowserTestUtils.waitForMutationCondition(
       historyComponent.shadowRoot,
       { childList: true, subtree: true },
@@ -488,26 +489,6 @@ add_task(async function test_search_history() {
       const tabList = historyComponent.lists[0];
       return tabList?.emptyState;
     }, "There are no matching search results.");
-
-    info("Clear the search query with keyboard.");
-    is(
-      historyComponent.shadowRoot.activeElement,
-      searchTextbox,
-      "Search input is focused"
-    );
-    EventUtils.synthesizeKey("KEY_Tab", {}, content);
-    ok(
-      searchTextbox.clearButton.matches(":focus-visible"),
-      "Clear Search button is focused"
-    );
-    EventUtils.synthesizeKey("KEY_Enter", {}, content);
-    await BrowserTestUtils.waitForMutationCondition(
-      historyComponent.shadowRoot,
-      { childList: true, subtree: true },
-      () =>
-        historyComponent.cards.length ===
-        historyComponent.controller.historyVisits.length
-    );
   });
 });
 
@@ -550,7 +531,8 @@ add_task(async function test_search_ignores_stale_queries() {
     await TestUtils.waitForCondition(() => bogusQueryInProgress);
 
     info("Clear the bogus query.");
-    EventUtils.synthesizeMouseAtCenter(searchTextbox.clearButton, {}, content);
+    searchTextbox.select();
+    EventUtils.synthesizeKey("VK_BACK_SPACE");
     await searchTextbox.updateComplete;
 
     info("Input a real search query.");

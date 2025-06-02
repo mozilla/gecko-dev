@@ -561,11 +561,8 @@ add_task(async function search_synced_tabs() {
     );
 
     info("Clear the search query.");
-    EventUtils.synthesizeMouseAtCenter(
-      syncedTabsComponent.searchTextbox.clearButton,
-      {},
-      content
-    );
+    syncedTabsComponent.searchTextbox.select();
+    EventUtils.synthesizeKey("VK_BACK_SPACE");
     await TestUtils.waitForCondition(
       () => syncedTabsComponent.fullyUpdated,
       "Synced Tabs component is done updating."
@@ -624,51 +621,6 @@ add_task(async function search_synced_tabs() {
       () =>
         !syncedTabsComponent.cardEls[1].querySelector("syncedtabs-tab-list"),
       "There are no matching search results for the second device."
-    );
-
-    info("Clear the search query with keyboard.");
-    is(
-      syncedTabsComponent.shadowRoot.activeElement,
-      syncedTabsComponent.searchTextbox,
-      "Search input is focused"
-    );
-    EventUtils.synthesizeKey("KEY_Tab", {}, content);
-    ok(
-      syncedTabsComponent.searchTextbox.clearButton.matches(":focus-visible"),
-      "Clear Search button is focused"
-    );
-    EventUtils.synthesizeKey("KEY_Enter", {}, content);
-    await TestUtils.waitForCondition(
-      () => syncedTabsComponent.fullyUpdated,
-      "Synced Tabs component is done updating."
-    );
-    await TestUtils.waitForCondition(
-      () =>
-        syncedTabsComponent.cardEls[0].querySelector("syncedtabs-tab-list") &&
-        syncedTabsComponent.cardEls[0].querySelector("syncedtabs-tab-list")
-          .rowEls.length &&
-        syncedTabsComponent.cardEls[1].querySelector("syncedtabs-tab-list") &&
-        syncedTabsComponent.cardEls[1].querySelector("syncedtabs-tab-list")
-          .rowEls.length,
-      "The tab list has loaded for the first two cards."
-    );
-    deviceOneTabs = syncedTabsComponent.cardEls[0].querySelector(
-      "syncedtabs-tab-list"
-    ).rowEls;
-    deviceTwoTabs = syncedTabsComponent.cardEls[1].querySelector(
-      "syncedtabs-tab-list"
-    ).rowEls;
-    await TestUtils.waitForCondition(
-      () =>
-        syncedTabsComponent.cardEls[0].querySelector("syncedtabs-tab-list")
-          .rowEls.length === deviceOneTabs.length,
-      "The original device's list is restored."
-    );
-    await TestUtils.waitForCondition(
-      () =>
-        syncedTabsComponent.cardEls[1].querySelector("syncedtabs-tab-list")
-          .rowEls.length === deviceTwoTabs.length,
-      "The new devices's list is restored."
     );
   });
   await SpecialPowers.popPrefEnv();

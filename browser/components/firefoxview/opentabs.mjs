@@ -58,7 +58,7 @@ class OpenTabsInView extends ViewPage {
   static queries = {
     viewCards: { all: "view-opentabs-card" },
     optionsContainer: ".open-tabs-options",
-    searchTextbox: "fxview-search-textbox",
+    searchTextbox: "moz-input-search",
   };
 
   initialWindowsReady = false;
@@ -106,7 +106,7 @@ class OpenTabsInView extends ViewPage {
 
     if (this.recentBrowsing) {
       this.recentBrowsingElement.addEventListener(
-        "fxview-search-textbox-query",
+        "MozInputSearch:search",
         this
       );
     }
@@ -145,7 +145,7 @@ class OpenTabsInView extends ViewPage {
 
     if (this.recentBrowsing) {
       this.recentBrowsingElement.removeEventListener(
-        "fxview-search-textbox-query",
+        "MozInputSearch:search",
         this
       );
     }
@@ -222,15 +222,11 @@ class OpenTabsInView extends ViewPage {
       <div class="sticky-container bottom-fade">
         <h2 class="page-header" data-l10n-id="firefoxview-opentabs-header"></h2>
         <div class="open-tabs-options">
-          <div>
-            <fxview-search-textbox
-              data-l10n-id="firefoxview-search-text-box-opentabs"
-              data-l10n-attrs="placeholder"
-              @fxview-search-textbox-query=${this.onSearchQuery}
-              .size=${this.searchTextboxSize}
-              pageName=${this.recentBrowsing ? "recentbrowsing" : "opentabs"}
-            ></fxview-search-textbox>
-          </div>
+          <moz-input-search
+            data-l10n-id="firefoxview-search-text-box-opentabs"
+            data-l10n-attrs="placeholder"
+            @MozInputSearch:search=${this.onSearchQuery}
+          ></moz-input-search>
           <div class="open-tabs-sort-wrapper">
             <div class="open-tabs-sort-option">
               <input
@@ -305,6 +301,11 @@ class OpenTabsInView extends ViewPage {
   }
 
   onSearchQuery(e) {
+    if (!this.recentBrowsing) {
+      Glean.firefoxviewNext.searchInitiatedSearch.record({
+        page: "opentabs",
+      });
+    }
     this.searchQuery = e.detail.query;
   }
 
@@ -338,7 +339,7 @@ class OpenTabsInView extends ViewPage {
   }
 
   handleEvent({ detail, type }) {
-    if (this.recentBrowsing && type === "fxview-search-textbox-query") {
+    if (this.recentBrowsing && type === "MozInputSearch:search") {
       this.onSearchQuery({ detail });
       return;
     }
