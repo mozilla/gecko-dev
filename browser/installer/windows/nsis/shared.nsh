@@ -833,7 +833,7 @@ ${RemoveDefaultBrowserAgentShortcut}
 
 ; Add uninstall registry entries. This macro tests for write access to determine
 ; if the uninstall keys should be added to HKLM or HKCU.
-; This expects $RegHive to already have been set correctly.
+; This expects $RegHive and $AppUserModelID to already have been set correctly.
 !macro SetUninstallKeys
   ; Check if this is an ESR release and if so add registry values so it is
   ; possible to determine that this is an ESR install (bug 726781).
@@ -845,7 +845,9 @@ ${RemoveDefaultBrowserAgentShortcut}
     StrCpy $3 " ESR"
   ${EndIf}
 
-  StrCpy $0 "Software\Microsoft\Windows\CurrentVersion\Uninstall\${BrandFullNameInternal} ${AppVersion}$3 (${ARCH} ${AB_CD})"
+  ; Use the value of $AppUserModelID to provide a unique key name, even if there are multiple installs
+  ; of a single version
+  StrCpy $0 "Software\Microsoft\Windows\CurrentVersion\Uninstall\${BrandFullNameInternal}-$AppUserModelID"
 
   StrCpy $2 ""
   ClearErrors
