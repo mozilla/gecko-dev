@@ -218,7 +218,7 @@ void WaylandSurface::ClearReadyToDrawCallbacks() {
 
 bool WaylandSurface::HasEmulatedFrameCallbackLocked(
     const WaylandSurfaceLock& aProofOfLock) const {
-  for (auto const& cb : mPersistentFrameCallbackHandlers) {
+  for (auto const& cb : mFrameCallbackHandlers) {
     if (cb.mEmulated) {
       return true;
     }
@@ -244,10 +244,9 @@ void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
     }
 
     LOGVERBOSE(
-        "WaylandSurface::FrameCallbackHandler() one-time %zd "
+        "WaylandSurface::FrameCallbackHandler() "
         "persistent %zd emulated %d routed %d",
-        mOneTimeFrameCallbackHandlers.size(),
-        mPersistentFrameCallbackHandlers.size(), emulatedCallback,
+        mFrameCallbackHandlers.size(), emulatedCallback,
         aRoutedFromChildSurface);
 
     // It's possible to get regular frame callback right after unmap
@@ -269,12 +268,8 @@ void WaylandSurface::FrameCallbackHandler(struct wl_callback* aCallback,
       mBufferAttached = true;
     }
 
-    // We don't support emulated one-time callbacks
-    if (!emulatedCallback) {
-      cbs = std::move(mOneTimeFrameCallbackHandlers);
-    }
-    std::copy(mPersistentFrameCallbackHandlers.begin(),
-              mPersistentFrameCallbackHandlers.end(), back_inserter(cbs));
+    std::copy(mFrameCallbackHandlers.begin(), mFrameCallbackHandlers.end(),
+              back_inserter(cbs));
 
     // Fire frame callback again if there's any pending frame callback
     RequestFrameCallbackLocked(lock);
@@ -323,8 +318,7 @@ void WaylandSurface::RequestFrameCallbackLocked(
     return;
   }
 
-  if (mPersistentFrameCallbackHandlers.empty() &&
-      mOneTimeFrameCallbackHandlers.empty()) {
+  if (mFrameCallbackHandlers.empty()) {
     return;
   }
 
@@ -384,25 +378,14 @@ void WaylandSurface::ClearFrameCallbackLocked(
   MozClearPointer(mFrameCallback, wl_callback_destroy);
 }
 
-void WaylandSurface::AddOneTimeFrameCallbackLocked(
-    const WaylandSurfaceLock& aProofOfLock,
-    const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler) {
-  MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
-  LOGWAYLAND("WaylandSurface::AddOneTimeFrameCallbackLocked()");
-
-  mOneTimeFrameCallbackHandlers.push_back(
-      FrameCallback{aFrameCallbackHandler, false});
-  RequestFrameCallbackLocked(aProofOfLock);
-}
-
-void WaylandSurface::AddPersistentFrameCallbackLocked(
+void WaylandSurface::AddFrameCallbackLocked(
     const WaylandSurfaceLock& aProofOfLock,
     const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler,
     bool aEmulateFrameCallback) {
   MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
-  LOGWAYLAND("WaylandSurface::AddPersistentFrameCallbackLocked()");
+  LOGWAYLAND("WaylandSurface::AddFrameCallbackLocked()");
 
-  mPersistentFrameCallbackHandlers.push_back(
+  mFrameCallbackHandlers.push_back(
       FrameCallback{aFrameCallbackHandler, aEmulateFrameCallback});
   RequestFrameCallbackLocked(aProofOfLock);
 }
