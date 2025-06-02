@@ -115,19 +115,21 @@ class SourceSurfaceCanvasRecording final : public gfx::SourceSurface {
 
   ~SourceSurfaceCanvasRecording() {
     ReferencePtr surfaceAlias = this;
+    ReferencePtr exportID = mExportID;
     if (NS_IsMainThread()) {
       ReleaseOnMainThread(std::move(mRecorder), surfaceAlias,
-                          std::move(mRecordedSurface), std::move(mCanvasChild));
+                          std::move(mRecordedSurface), std::move(mCanvasChild),
+                          exportID);
       return;
     }
 
     mRecorder->AddPendingDeletion(
         [recorder = std::move(mRecorder), surfaceAlias,
          aliasedSurface = std::move(mRecordedSurface),
-         canvasChild = std::move(mCanvasChild)]() mutable -> void {
+         canvasChild = std::move(mCanvasChild), exportID]() mutable -> void {
           ReleaseOnMainThread(std::move(recorder), surfaceAlias,
-                              std::move(aliasedSurface),
-                              std::move(canvasChild));
+                              std::move(aliasedSurface), std::move(canvasChild),
+                              exportID);
         });
   }
 
@@ -162,10 +164,15 @@ class SourceSurfaceCanvasRecording final : public gfx::SourceSurface {
     return mRecordedSurface->ExtractSubrect(aRect);
   }
 
-  bool GetSurfaceDescriptor(SurfaceDescriptor& aDesc) const final {
+  bool GetSurfaceDescriptor(SurfaceDescriptor& aDesc) final {
+    static Atomic<uintptr_t> sNextExportID(0);
+    if (!mExportID) {
+      mExportID = gfx::ReferencePtr(++sNextExportID);
+      mRecorder->RecordEvent(RecordedAddExportSurface(mExportID, this));
+    }
     aDesc = SurfaceDescriptorCanvasSurface(
         static_cast<gfx::CanvasManagerChild*>(mCanvasChild->Manager())->Id(),
-        mCanvasChild->Id(), uintptr_t(gfx::ReferencePtr(this)));
+        mCanvasChild->Id(), uintptr_t(mExportID));
     return true;
   }
 
@@ -182,11 +189,15 @@ class SourceSurfaceCanvasRecording final : public gfx::SourceSurface {
   static void ReleaseOnMainThread(RefPtr<CanvasDrawEventRecorder> aRecorder,
                                   ReferencePtr aSurfaceAlias,
                                   RefPtr<gfx::SourceSurface> aAliasedSurface,
-                                  RefPtr<CanvasChild> aCanvasChild) {
+                                  RefPtr<CanvasChild> aCanvasChild,
+                                  ReferencePtr aExportID) {
     MOZ_ASSERT(NS_IsMainThread());
 
     aRecorder->RemoveStoredObject(aSurfaceAlias);
     aRecorder->RecordEvent(RecordedRemoveSurfaceAlias(aSurfaceAlias));
+    if (aExportID) {
+      aRecorder->RecordEvent(RecordedRemoveExportSurface(aExportID));
+    }
     aAliasedSurface = nullptr;
     aCanvasChild = nullptr;
     aRecorder = nullptr;
@@ -199,6 +210,7 @@ class SourceSurfaceCanvasRecording final : public gfx::SourceSurface {
   RefPtr<gfx::DataSourceSurface> mDataSourceSurface;
   bool mDetached = false;
   bool mMayInvalidate = false;
+  ReferencePtr mExportID;
 };
 
 class CanvasDataShmemHolder {
