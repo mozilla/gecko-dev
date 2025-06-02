@@ -99,8 +99,7 @@ body {
   fill-opacity: 0.8;
 }
 
-#filter-search-button,
-#filter-input-clear-button {
+#filter-search-button {
   background-size: 1em;
   background-position: center;
   background-repeat: no-repeat;
@@ -119,14 +118,6 @@ body {
 
 #filter-search-button:dir(rtl) {
   scale: -1 1;
-}
-
-#filter-input-clear-button {
-  background-image: url("chrome://geckoview/skin/images/search-clear.svg");
-}
-
-#filter-input:placeholder-shown + #filter-input-clear-button {
-  visibility: hidden; /* display: none; causes the input size to change */
 }
 
 .toolbar-item {
