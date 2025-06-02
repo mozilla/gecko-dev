@@ -9,6 +9,7 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.DownloadsUseCases
+import mozilla.components.feature.downloads.fake.FakeFileSizeFormatter
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
@@ -18,7 +19,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.downloads.fake.FakeDateTimeProvider
-import org.mozilla.fenix.downloads.fake.FakeFileSizeFormatter
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadDeleteMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.FakeDelayProvider

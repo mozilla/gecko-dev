@@ -11,6 +11,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import io.mockk.every
 import io.mockk.mockk
 import mozilla.components.browser.state.state.content.DownloadState
+import mozilla.components.feature.downloads.fake.FakeFileSizeFormatter
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -22,7 +23,6 @@ import org.junit.runner.RunWith
 import org.mozilla.fenix.R
 import org.mozilla.fenix.databinding.DownloadDialogLayoutBinding
 import org.mozilla.fenix.downloads.dialog.DynamicDownloadDialog.Companion.getCannotOpenFileErrorMessage
-import org.mozilla.fenix.downloads.fake.FakeFileSizeFormatter
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import org.robolectric.RobolectricTestRunner
