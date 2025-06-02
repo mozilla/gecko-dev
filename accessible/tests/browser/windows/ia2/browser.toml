@@ -33,5 +33,6 @@ skip-if = [
   "bits == 32",
   # The IA2 proxy dll fails when built with ASan.
   "asan",
+  "ccov", # Bug 1968932
 ]
 tags = "os_integration"
