@@ -41,7 +41,7 @@ main {
   }
 
   section {
-    margin-block-end: $section-spacing;
+    margin-block-end: var(--space-medium);
     position: relative;
   }
 

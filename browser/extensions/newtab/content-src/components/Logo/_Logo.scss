@@ -10,12 +10,13 @@
   align-items: center;
   display: flex;
   justify-content: center;
-  margin-block-end: 48px;
+  // Bug 1967304 - Large number (48px)
+  margin-block-end: calc(var(--space-xlarge) * 2);
 
   // Bug 1914055 - Layout experiment: logo/search spacing
   .layout-variant-a &,
   .layout-variant-b & {
-    margin-block-end: 32px;
+    margin-block-end: var(--space-xxlarge);
     $logo-size: 64px;
     $wordmark-size: 105px;
   }
@@ -23,7 +24,8 @@
   // Edge case for users who have pocket stories turned off
   .layout-variant-a.no-recommended-stories &,
   .layout-variant-b.no-recommended-stories & {
-    margin-block-end: 40px;
+    // Bug 1967304 - Large number (40px)
+    margin-block-end: calc(var(--space-large) + var(--space-xlarge));
   }
 
   .logo {
@@ -41,7 +43,7 @@
     display: inline-block;
     fill: var(--newtab-wordmark-color);
     height: $logo-size;
-    margin-inline-start: 16px;
+    margin-inline-start: var(--space-large);
     width: $wordmark-size;
 
     // Contrast fix for users who have wallpapers set
@@ -62,7 +64,7 @@
       background-size: $wordmark-small-size;
       height: $logo-size-small;
       width: $wordmark-small-size;
-      margin-inline-start: 12px;
+      margin-inline-start: var(--space-medium);
     }
   }
 }

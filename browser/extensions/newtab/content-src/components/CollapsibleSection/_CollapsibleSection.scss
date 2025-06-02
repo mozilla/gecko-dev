@@ -57,7 +57,7 @@
 
   .section-top-bar {
     min-height: 19px;
-    margin-bottom: 13px;
+    margin-block-end: var(--space-medium);
     position: relative;
     display: flex;
     justify-content: space-between;
@@ -77,7 +77,7 @@
 
   .learn-more-link {
     font-size: var(--font-size-small);
-    margin-inline-start: 12px;
+    margin-inline-start: var(--space-medium);
 
     a {
       color: var(--newtab-primary-action-background);
@@ -90,9 +90,7 @@
 
   .section-body {
     // This is so the top sites favicon and card dropshadows don't get clipped during animation:
-    $horizontal-padding: 7px;
-
-    margin: 0 (-$horizontal-padding);
+    margin: 0 calc(var(--space-xsmall) * -1);
     padding: 0 var(--space-small);
 
     &.animating {

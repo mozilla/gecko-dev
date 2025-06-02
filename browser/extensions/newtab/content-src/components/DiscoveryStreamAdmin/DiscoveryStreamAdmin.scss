@@ -79,8 +79,8 @@
   p .button {
     font-size: inherit;
     padding: var(--space-xsmall) var(--space-medium);
-    margin-inline-start: 5px;
-    margin-bottom: 0;
+    margin-inline-start: var(--space-xsmall);
+    margin-block-end: 0;
   }
 
   .general-textarea {
@@ -107,8 +107,8 @@
     display: inline-flex;
     font-size: var(--font-size-small);
     padding: var(--space-xsmall) var(--space-medium);
-    margin-bottom: 6px;
-    margin-inline-end: 4px;
+    margin-block-end: var(--space-xsmall);
+    margin-inline-end: var(--space-xsmall);
 
     &:hover {
       background-color: var(--newtab-element-hover-color);
@@ -267,7 +267,7 @@
   }
 
   .ds-component {
-    margin-bottom: 20px;
+    margin-block-end: var(--space-large);
   }
 
   .modalOverlayInner {
@@ -352,13 +352,13 @@
   }
 
   .weather-section {
-    margin-block-end: 24px;
+    margin-block-end: var(--space-xlarge);
 
     form {
       display: flex;
 
       label {
-        margin-inline-end: 12px;
+        margin-inline-end: var(--space-medium);
       }
     }
   }

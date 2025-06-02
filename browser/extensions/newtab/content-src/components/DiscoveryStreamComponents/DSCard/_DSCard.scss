@@ -36,7 +36,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     .placeholder-label {
       width: 40%;
       height: var(--size-item-small);
-      margin-bottom: var(--space-small);
+      margin-block-end: var(--space-small);
       margin-inline: var(--space-large);
     }
 
@@ -134,7 +134,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     }
 
     .context-menu {
-      margin-inline-start: 18.5px;
+      margin-inline-start: var(--space-large);
       inset-inline-start: auto;
       position: absolute;
       top: 20.25px;
@@ -176,7 +176,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     .card-stp-button-hover-background {
       .context-menu {
         margin-inline-start: auto;
-        margin-inline-end: 18.5px;
+        margin-inline-end: var(--space-large);
       }
     }
   }
@@ -290,7 +290,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
     .new-sponsored-label {
       font-size: var(--font-size-small);
-      margin-bottom: 2px;
+      margin-block-end: var(--space-xxsmall);
     }
   }
 
@@ -352,7 +352,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       justify-content: space-between;
       align-items: center;
       gap: 0 var(--space-small);
-      margin-top: 0;
+      margin-block-start: 0;
     }
 
     .story-cta-button {
@@ -366,7 +366,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
       min-height: var(--size-item-large);
       min-width: 97px;
       color: var(--newtab-text-primary-color);
-      margin-top: var(--space-small);
+      margin-block-start: var(--space-small);
 
       &:hover {
         background: var(--button-background-color-hover);
@@ -430,7 +430,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
         // show only 3 lines of copy
         -webkit-line-clamp: 3;
         font-size: var(--font-size-root);
-        margin-bottom: var(--space-small);
+        margin-block-end: var(--space-small);
         font-weight: var(--font-weight-bold);
       }
 
@@ -452,7 +452,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
         display: grid;
         height: 28px;
         align-content: center;
-        margin-top: var(--space-small);
+        margin-block-start: var(--space-small);
       }
 
       .story-footer .story-sponsored-label {

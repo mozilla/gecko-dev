@@ -13,7 +13,7 @@
     display: inline-block;
     fill: var(--newtab-primary-action-background);
     height: 16px;
-    margin-inline-start: 5px;
+    margin-inline-start: var(--space-xsmall);
     vertical-align: top;
     width: 12px;
   }

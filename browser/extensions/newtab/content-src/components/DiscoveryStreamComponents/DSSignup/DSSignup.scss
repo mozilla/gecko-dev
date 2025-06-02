@@ -15,7 +15,7 @@
   .icon-mail {
     height: 40px;
     width: 40px;
-    margin-inline-end: 8px;
+    margin-inline-end: var(--space-small);
     fill: var(--newtab-text-secondary-color);
     background-size: 30px;
     flex-shrink: 0;
@@ -28,7 +28,7 @@
     flex-direction: column;
 
     .ds-chevron-link {
-      margin-top: 4px;
+      margin-block-start: var(--space-xsmall);
       box-shadow: none;
       display: block;
       white-space: nowrap;
@@ -44,7 +44,7 @@
       flex-direction: row;
 
       .ds-chevron-link {
-        margin-top: 0;
+        margin-block-start: 0;
         display: inline;
       }
     }

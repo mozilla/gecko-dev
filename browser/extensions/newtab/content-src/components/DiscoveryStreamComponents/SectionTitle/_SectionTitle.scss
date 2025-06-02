@@ -1,6 +1,6 @@
 .ds-section-title {
   text-align: center;
-  margin-top: 24px;
+  margin-block-start: var(--space-xlarge);
 
   .title {
     color: var(--newtab-text-primary-color);
@@ -11,6 +11,6 @@
   .subtitle {
     font-size: inherit;
     color: var(--newtab-text-secondary-color);
-    margin-top: 4px;
+    margin-block-start: var(--space-xsmall);
   }
 }

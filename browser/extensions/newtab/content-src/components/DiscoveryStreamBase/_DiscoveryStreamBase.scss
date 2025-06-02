@@ -33,7 +33,7 @@ $ds-width: 936px;
 }
 
 .ds-header {
-  margin: 8px 0;
+  margin: var(--space-small) 0;
 
   .ds-context {
     font-weight: normal;

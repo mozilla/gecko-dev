@@ -34,7 +34,7 @@
     padding-inline-end: calc(var(--space-xlarge) + var(--space-xxlarge));
   }
 
-  margin-bottom: 24px;
+  margin-block-end: var(--space-xlarge);
   // This is to position the dismiss button to the right most of this element.
   position: relative;
 
@@ -54,10 +54,10 @@
     }
 
     display: flex;
-    margin: 32px 0 8px;
+    margin: var(--space-xxlarge) 0 var(--space-small);
 
     @media (min-width: $break-point-medium) {
-      margin: 16px 0 8px;
+      margin: var(--space-large) 0 var(--space-small);
       display: block;
       height: 24px;
     }
@@ -68,7 +68,7 @@
   }
 
   p {
-    margin: 8px 0 16px;
+    margin: var(--space-small) 0 var(--space-large);
     font-size: var(--font-size-small);
   }
 
@@ -86,16 +86,16 @@
     }
 
     fill: $pocket-icon-fill;
-    margin-top: 3px;
-    margin-inline-end: 8px;
+    margin-block-start: var(--space-xxsmall);;
+    margin-inline-end: var(--space-small);
     height: 22px;
     width: 22px;
     background-image: url('chrome://global/skin/icons/pocket.svg');
 
     @media (min-width: $break-point-medium) {
-      margin-top: -5px;
-      margin-inline-start: -2px;
-      margin-inline-end: 15px;
+      margin-block-start: calc(var(--space-small) * -1);
+      margin-inline-start: calc(var(--space-xxsmall) * -1);
+      margin-inline-end: var(--space-large);
       height: 30px;
       width: 30px;
     }
@@ -111,9 +111,10 @@
     background-position: center;
     height: 120px;
     width: 200px;
-    margin-top: 16px;
-    margin-bottom: 16px;
-    margin-inline-start: 54px;
+    margin-block-start: var(--space-large);
+    margin-block-end: var(--space-large);
+    // Bug 1967304 - Large Token (56px)
+    margin-inline-start: calc(var(--space-xlarge) + var(--space-xxlarge));
     flex-shrink: 0;
     display: none;
 
@@ -200,7 +201,7 @@
 
       .meta {
         .story-footer {
-          margin-top: 8px;
+          margin-block-start: var(--space-small);
         }
 
         .source,
@@ -220,8 +221,8 @@
         }
 
         .story-badge-icon {
-          margin-inline-end: 2px;
-          margin-bottom: 2px;
+          margin-inline-end: var(--space-xxsmall);
+          margin-block-end: var(--space-xxsmall);
           height: 14px;
           width: 14px;
           background-size: 14px;
@@ -323,7 +324,7 @@
 
 .ds-layout {
   .ds-sub-header {
-    margin-top: 24px;
+    margin-block-start: var(--space-xlarge);
 
     .section-title-container {
       flex-direction: row;

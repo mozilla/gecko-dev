@@ -259,7 +259,7 @@
   }
 
   .placeholder-label {
-    margin-bottom: unset;
+    margin-block-end: unset;
   }
 
   .placeholder-header, .placeholder-description {
@@ -314,7 +314,7 @@
     }
 
     .source {
-      margin-bottom: 1px;
+      margin-block-end: var(--space-xxsmall);
     }
 
     .title {

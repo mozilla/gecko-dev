@@ -151,7 +151,7 @@ $card-preview-image-height-large: 155px;
 $card-height-compact: 160px;
 $card-preview-image-height-compact: 108px;
 
-$topic-margin-top: 12px;
+$topic-margin-block-start: 12px;
 
 $context-menu-button-size: 27px;
 $context-menu-button-boxshadow: 0 2px $grey-90-10;
@@ -252,7 +252,7 @@ $customize-menu-border-tint: 1px solid rgba(0, 0, 0, 15%);
 
 @mixin context-menu-open-left {
   .context-menu {
-    margin-inline-end: 5px;
+    margin-inline-end: var(--space-xsmall);
     margin-inline-start: auto;
     inset-inline-end: 0;
     inset-inline-start: auto;

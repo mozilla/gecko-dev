@@ -91,13 +91,13 @@
   }
 
   section {
-    margin-bottom: 0;
+    margin-block-end: 0;
   }
 
   // CollapsibleSection.scss
   .collapsible-section {
     padding: 0 var(--space-xlarge);
-    margin-bottom: var(--space-xxlarge);
+    margin-block-end: var(--space-xxlarge);
   }
 
   // _Search.scss

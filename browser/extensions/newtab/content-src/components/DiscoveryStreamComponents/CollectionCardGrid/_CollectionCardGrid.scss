@@ -1,6 +1,6 @@
 .ds-dismiss.ds-dismiss-ds-collection {
   .ds-dismiss-button {
-    margin: 15px 0 0;
+    margin: var(--space-xlarge) 0 0;
     inset-inline-end: 25px;
   }
 
@@ -11,7 +11,7 @@
 
 .ds-collection-card-grid {
   padding: var(--space-small) var(--space-xlarge) var(--space-xlarge);
-  margin: 0 0 20px;
+  margin: 0 0 var(--space-large);
 
   .story-footer {
     display: none;
@@ -20,7 +20,7 @@
   .ds-header {
     padding: 0;
     padding-inline-end: var(--space-xxlarge);
-    margin-bottom: 12px;
+    margin-block-end: var(--space-medium);
 
     .title {
       color: var(--newtab-text-primary-color);

@@ -51,15 +51,16 @@ $modal-scrollbar-z-index: 1100;
   h2 {
     color: var(--newtab-text-primary-color);
     text-align: center;
-    margin-top: 30px;
+    margin-block-start: var(--space-xxlarge);;
     font-size: var(--font-size-xxlarge);
 
     @media(width <= 960px) {
-      margin-top: 100px;
+      // Bug 1967304 - Large number (96px)
+      margin-block-start: calc(var(--space-xlarge) * 4);
     }
 
     @media(width <= 850px) {
-      margin-top: 30px;
+      margin-block-start: var(--space-xxlarge);
     }
   }
 
@@ -84,7 +85,7 @@ $modal-scrollbar-z-index: 1100;
     }
 
     .modalButton {
-      margin-top: 20px;
+      margin-block-start: var(--space-large);
       min-width: 150px;
       height: 30px;
       padding: var(--space-xsmall) var(--space-xxlarge);

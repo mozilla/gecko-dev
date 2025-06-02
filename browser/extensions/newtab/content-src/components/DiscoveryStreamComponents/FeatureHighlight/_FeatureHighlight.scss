@@ -51,7 +51,7 @@
 
     &.inset-block-start {
       inset-block-end: 100%;
-      margin-bottom: var(--space-xlarge);
+      margin-block-end: var(--space-xlarge);
 
       &::after {
         inset-block-end: -12px;
@@ -61,7 +61,7 @@
 
     &.inset-block-end {
       inset-block-start: 100%;
-      margin-top: var(--space-xlarge);
+      margin-block-start: var(--space-xlarge);
 
       &::after {
         inset-block-start: -12px;

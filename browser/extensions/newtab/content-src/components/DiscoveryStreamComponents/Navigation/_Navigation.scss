@@ -72,16 +72,16 @@
       font-size: var(--font-size-small);
       font-weight: var(--font-weight-bold);
       display: inline-block;
-      margin-bottom: 8px;
+      margin-block-end: var(--space-small);
     }
 
     .ds-navigation-family {
       text-align: center;
       font-size: var(--font-size-small);
-      margin: 16px auto 28px;
+      margin: var(--space-large) auto var(--space-xlarge);
 
       span {
-        margin: 0 6px;
+        margin: 0 var(--space-small);
       }
 
       .firefox-logo,
@@ -109,7 +109,8 @@
       }
 
       @media (min-width: $break-point-medium) {
-        margin-top: 43px;
+        // Bug 1967304 - Large number (40px)
+        margin-block-start: calc(var(--space-large) + var(--space-xlarge));
       }
     }
 

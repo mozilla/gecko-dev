@@ -8,7 +8,7 @@
   box-shadow: $context-menu-shadow;
   display: block;
   font-size: $context-menu-font-size;
-  margin-inline-start: 5px;
+  margin-inline-start: var(--space-xsmall);
   inset-inline-start: 100%;
   position: absolute;
   top: math.div($context-menu-button-size, 4);
@@ -25,7 +25,7 @@
 
       &.separator {
         border-bottom: $border-secondary;
-        margin: $context-menu-outer-padding 0;
+        margin: var(--space-xsmall) 0;
       }
 
       > a,

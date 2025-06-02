@@ -20,7 +20,7 @@
 
     p {
       margin: 0;
-      margin-bottom: 16px;
+      margin-block-end: var(--space-large);
     }
   }
 
@@ -31,7 +31,7 @@
     padding: 0 var(--space-large);
 
     button {
-      margin-inline-end: 16px;
+      margin-inline-end: var(--space-large);
       padding-inline: var(--space-large);
       white-space: normal;
       width: 50%;
@@ -44,7 +44,7 @@
   }
 
   .icon {
-    margin-inline-end: 16px;
+    margin-inline-end: var(--space-large);
   }
 }
 

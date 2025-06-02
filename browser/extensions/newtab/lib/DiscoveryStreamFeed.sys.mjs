@@ -3157,7 +3157,7 @@ getHardcodedLayout = ({
             spocMessageVariant,
           },
           styles: {
-            ".ds-message": "margin-bottom: -20px",
+            ".ds-message": "margin-block-end: -20px",
           },
         },
         {
@@ -3224,7 +3224,7 @@ getHardcodedLayout = ({
             },
           },
           styles: {
-            ".ds-navigation": "margin-top: -10px;",
+            ".ds-navigation": "margin-block-start: -10px;",
           },
         },
         ...(newFooterSection

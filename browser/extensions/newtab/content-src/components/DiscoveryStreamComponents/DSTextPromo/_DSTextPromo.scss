@@ -8,8 +8,8 @@
   }
 
   .ds-dismiss-button {
-    margin-inline: 0 18px;
-    margin-block: 18px 0;
+    margin-inline: 0 var(--space-large);
+    margin-block: var(--space-large) 0;
   }
 }
 
@@ -20,7 +20,7 @@
 
   @media(min-width: $break-point-medium) {
     display: flex;
-    margin: 18px 24px;
+    margin: var(--space-large) var(--space-xlarge);
     padding: 0;
     padding-inline-end: var(--space-xxlarge);
   }
@@ -29,10 +29,10 @@
     width: 40px;
     height: 40px;
     flex-shrink: 0;
-    margin: 0 0 18px;
+    margin: 0 0 var(--space-large);
 
     @media(min-width: $break-point-medium) {
-      margin: 4px 12px 0 0;
+      margin: var(--space-xsmall) var(--space-medium) 0 0;
     }
 
     img {
@@ -80,7 +80,7 @@
     background-color: var(--newtab-primary-action-background);
     content: ' ';
     mask: url('chrome://global/skin/icons/arrow-right-12.svg') 0 -8px no-repeat;
-    margin: 0 0 0 4px;
+    margin: 0 0 0 var(--space-xsmall);
     width: 5px;
     height: 8px;
     text-decoration: none;

@@ -44,7 +44,7 @@
       .empty-state-message {
         color: var(--newtab-text-primary-color);
         font-size: var(--font-size-small);
-        margin-bottom: 0;
+        margin-block-end: 0;
         text-align: center;
       }
     }
@@ -58,7 +58,7 @@
 .top-stories-bottom-container {
   color: var(--newtab-text-primary-color);
   font-size: var(--font-size-small);
-  margin-top: $topic-margin-top;
+  margin-block-start: var(--space-medium);
   display: flex;
   justify-content: space-between;
 
@@ -91,7 +91,7 @@
           max-width: none;
           display: block;
           margin-inline-end: 0;
-          margin: 5px 0 10px;
+          margin: var(--space-xsmall) 0 var(--space-small);
         }
       }
     }

@@ -22,8 +22,8 @@
         .card-host-name {
           font-size: var(--font-size-small);
           line-height: $line-height;
-          margin-bottom: 2px;
           padding-block-end: 0;
+          margin-block-end: var(--space-xxsmall);
           text-transform: unset;
         }
 

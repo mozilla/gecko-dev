@@ -18,7 +18,7 @@
   }
 
   .try-again-button {
-    margin-top: 12px;
+    margin-block-start: var(--space-medium);
     padding: var(--space-small) var(--space-xxlarge);
     border-radius: var(--border-radius-small);
     border: 0;
@@ -51,7 +51,7 @@
       position: absolute;
       top: 50%;
       left: 50%;
-      margin: -10px 0 0 -10px;
+      margin: calc(var(--space-small) * -1) 0 0 calc(var(--space-small) * -1);
       mask-image: url('chrome://newtab/content/data/content/assets/spinner.svg');
       mask-size: 20px;
       background: var(--newtab-text-secondary-color);

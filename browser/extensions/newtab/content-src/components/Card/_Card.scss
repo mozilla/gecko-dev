@@ -9,7 +9,7 @@
   border-radius: var(--border-radius-medium);
   display: inline-block;
   height: $card-height;
-  margin-inline-end: $base-gutter;
+  margin-inline-end: var(--space-xxlarge);
   position: relative;
   width: 100%;
 
@@ -151,7 +151,7 @@
     font-size: inherit;
     font-weight: var(--font-weight-bold);
     line-height: $card-text-line-height;
-    margin: 0 0 $card-title-margin;
+    margin: 0 0 var(--space-xxsmall);
     word-wrap: break-word;
   }
 
@@ -176,7 +176,7 @@
   .card-context-icon {
     fill: var(--newtab-text-secondary-color);
     height: 22px;
-    margin-inline-end: 6px;
+    margin-inline-end: var(--space-xsmall);
   }
 
   .card-context-label {
@@ -216,7 +216,7 @@
       .card-title {
         font-size: var(--font-size-large);
         line-height: $line-height;
-        margin-bottom: 0;
+        margin-block-end: 0;
       }
 
       .card-text:not(.no-description) {

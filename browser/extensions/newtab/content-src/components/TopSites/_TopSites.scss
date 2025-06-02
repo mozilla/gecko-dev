@@ -20,7 +20,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
 .top-sites-list {
   list-style: none;
-  margin: 0 (-$half-base-gutter);
+  margin: 0 calc(var(--space-large) * -1);
   padding: 0;
   display: flex;
   flex-wrap: wrap;
@@ -153,7 +153,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
   width: 120px;
   border-radius: var(--border-radius-medium);
   display: inline-block;
-  margin-block-end: 16px;
+  margin-block-end: var(--space-large);
 
   .layout-variant-a &,
   .layout-variant-b & {
@@ -362,7 +362,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     position: relative;
 
     .icon {
-      margin-inline-end: 2px;
+      margin-inline-end: var(--space-xxsmall);
       fill: currentColor;
     }
 
@@ -452,7 +452,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
     .title {
       .search-topsite {
-        margin-inline-end: 2px;
+        margin-inline-end: var(--space-xxsmall);
         fill: currentColor;
         background-size: 12px;
         height: 12px;
@@ -570,7 +570,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
 
   .section-title {
     font-size: inherit;
-    margin: 0 0 16px;
+    margin: 0 0 var(--space-large);
   }
 
   .form-input-container {
@@ -589,19 +589,19 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     padding: var(--space-xxlarge);
 
     > div {
-      margin-inline-end: -39px;
+      margin-inline-end: calc(var(--space-xxlarge) * -1);
     }
 
     .top-site-outer {
       margin-inline-start: 0;
-      margin-inline-end: 39px;
+      margin-inline-end: var(--space-xxlarge);
     }
   }
 
   .top-site-outer {
     padding: 0;
-    margin: 24px 0 0;
-    margin-inline-start: $form-spacing;
+    margin: var(--space-xlarge) 0 0;
+    margin-inline-start: var(--space-xxlarge);
   }
 
   .fields-and-preview {
@@ -644,12 +644,12 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     .enable-custom-image-input {
       display: inline-block;
       font-size: var(--font-size-small);
-      margin-top: 4px;
+      margin-block-start: var(--space-xsmall);
       cursor: pointer;
     }
 
     .custom-image-input-container {
-      margin-top: 4px;
+      margin-block-start: var(--space-xsmall);
 
       .loading-container {
         width: 16px;
@@ -689,7 +689,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
       &[type='text'] {
         background-color: var(--newtab-background-color-secondary);
         border: $input-border;
-        margin: 8px 0;
+        margin: var(--space-small) 0;
         padding: 0 var(--space-small);
         height: 32px;
         width: 100%;
@@ -745,7 +745,7 @@ $calculated-max-width-twice-widest: $break-point-widest + 2 * $card-width;
     justify-content: flex-end;
 
     button {
-      margin-inline-start: 10px;
+      margin-inline-start: var(--space-small);
       margin-inline-end: 0;
     }
   }
