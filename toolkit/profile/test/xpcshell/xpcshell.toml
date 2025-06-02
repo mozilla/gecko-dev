@@ -4,7 +4,7 @@ skip-if = ["os == 'android'"]
 
 ["test_async_flush.js"]
 
-["test_async_flush_group_profile.js"]
+["test_async_flush_current_profile.js"]
 
 ["test_check_backup.js"]
 
@@ -20,7 +20,7 @@ skip-if = ["os == 'android'"]
 
 ["test_delete_dirs.js"]
 
-["test_find_groupProfile.js"]
+["test_find_currentProfile.js"]
 
 ["test_fix_directory_case.js"]
 

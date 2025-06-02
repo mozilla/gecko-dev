@@ -106,7 +106,7 @@ add_task(async () => {
     // Set a store ID on the profile. Flushing will succeed because the profile path hasn't changed.
     service.currentProfile.storeID = "7126354jdf";
 
-    await service.asyncFlushGroupProfile();
+    await service.asyncFlushCurrentProfile();
 
     profileData = readProfilesIni();
     Assert.equal(profileData.profiles.length, 3, "Should have three profiles.");
@@ -133,7 +133,7 @@ add_task(async () => {
     // Change the profile path. Flushing will succeed because the store ID now matches.
     service.currentProfile.rootDir = newProfileDir;
 
-    await service.asyncFlushGroupProfile();
+    await service.asyncFlushCurrentProfile();
 
     profileData = readProfilesIni();
     Assert.equal(profileData.profiles.length, 3, "Should have three profiles.");
@@ -171,7 +171,7 @@ add_task(async () => {
       },
     });
 
-    await service.asyncFlushGroupProfile();
+    await service.asyncFlushCurrentProfile();
 
     profileData = readProfilesIni();
     Assert.equal(profileData.profiles.length, 1, "Should have one profile.");

@@ -171,8 +171,6 @@ function selectStartupProfile(args = [], isResetting = false, legacyHash = "") {
       service.currentProfile === profile.value,
       "Should have marked the profile as the current profile."
     );
-  } else {
-    Assert.ok(!service.currentProfile, "Should be no current profile.");
   }
 
   return {

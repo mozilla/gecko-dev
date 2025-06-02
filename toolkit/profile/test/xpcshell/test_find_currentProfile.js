@@ -2,7 +2,7 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /*
- * Tests that the group profile is correctly found from the store ID.
+ * Tests that the current profile is correctly found from the store ID.
  */
 add_task(
   {
@@ -35,10 +35,9 @@ add_task(
     let { profile } = selectStartupProfile(["-profile", otherProfile.path]);
 
     Assert.ok(!profile);
-    Assert.ok(!service.currentProfile);
-    Assert.ok(service.groupProfile);
-    Assert.equal(service.groupProfile.storeID, "bishbashbosh");
-    Assert.equal(service.groupProfile.rootDir.path, defaultProfile.path);
+    Assert.ok(service.currentProfile);
+    Assert.equal(service.currentProfile.storeID, "bishbashbosh");
+    Assert.equal(service.currentProfile.rootDir.path, defaultProfile.path);
 
     checkProfileService();
   }

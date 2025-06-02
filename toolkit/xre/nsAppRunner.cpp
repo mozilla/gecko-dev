@@ -5606,6 +5606,10 @@ nsresult XREMain::XRE_mainRun() {
     // ready in time for early consumers, such as the component loader.
     mDirProvider.InitializeUserPrefs();
 
+    // Now that preferences are loaded the profile service may be able to
+    // determine the correct startup profile.
+    mProfileSvc->UpdateCurrentProfile();
+
     // Now that all (user) prefs have been loaded we can initialize the main
     // thread's JSContext.
     if (!initializedJSContext) {

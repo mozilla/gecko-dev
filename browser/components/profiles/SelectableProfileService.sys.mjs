@@ -94,7 +94,6 @@ class SelectableProfileServiceClass extends EventEmitter {
   #profileService = null;
   #connection = null;
   #initialized = false;
-  #groupToolkitProfile = null;
   #storeID = null;
   #currentProfile = null;
   #everyWindowCallbackId = "SelectableProfileService";
@@ -148,6 +147,7 @@ class SelectableProfileServiceClass extends EventEmitter {
 
     this.#observedPrefs = new Set();
 
+    this.#profileService = ProfilesDatastoreService.toolkitProfileService;
     this.#isEnabled = this.#getEnabledState();
 
     // We have to check the state again after the policy service may have disabled us.
@@ -180,7 +180,7 @@ class SelectableProfileServiceClass extends EventEmitter {
       return true;
     }
 
-    return lazy.PROFILES_ENABLED && !!this.#groupToolkitProfile;
+    return lazy.PROFILES_ENABLED && !!this.groupToolkitProfile;
   }
 
   updateEnabledState() {
@@ -200,7 +200,7 @@ class SelectableProfileServiceClass extends EventEmitter {
       await this.#profileService.asyncFlush();
     } catch (e) {
       try {
-        await this.#profileService.asyncFlushGroupProfile();
+        await this.#profileService.asyncFlushCurrentProfile();
       } catch (ex) {
         console.error(
           `Failed to flush changes to the profiles database: ${ex}`
@@ -214,7 +214,7 @@ class SelectableProfileServiceClass extends EventEmitter {
   }
 
   get groupToolkitProfile() {
-    return this.#groupToolkitProfile;
+    return this.#profileService.currentProfile;
   }
 
   get currentProfile() {
@@ -230,15 +230,15 @@ class SelectableProfileServiceClass extends EventEmitter {
       return;
     }
 
-    if (!this.#groupToolkitProfile) {
-      throw new Error("Cannot create a store without a group profile.");
+    if (!this.groupToolkitProfile) {
+      throw new Error("Cannot create a store without a toolkit profile.");
     }
 
     Services.prefs.setBoolPref(PROFILES_CREATED_PREF_NAME, true);
 
     let storeID = await ProfilesDatastoreService.storeID;
 
-    this.#groupToolkitProfile.storeID = storeID;
+    this.groupToolkitProfile.storeID = storeID;
     this.#storeID = storeID;
     await this.#attemptFlushProfileService();
   }
@@ -276,8 +276,6 @@ class SelectableProfileServiceClass extends EventEmitter {
 
     this.#profileService = ProfilesDatastoreService.toolkitProfileService;
 
-    this.#groupToolkitProfile =
-      this.#profileService.currentProfile ?? this.#profileService.groupProfile;
     this.#storeID = await ProfilesDatastoreService.storeID;
 
     this.updateEnabledState();
@@ -317,7 +315,7 @@ class SelectableProfileServiceClass extends EventEmitter {
         );
       } else {
         // No other profiles. Reset our state.
-        this.#groupToolkitProfile.storeID = null;
+        this.groupToolkitProfile.storeID = null;
         await this.#attemptFlushProfileService();
         Services.prefs.setBoolPref(PROFILES_CREATED_PREF_NAME, false);
 
@@ -330,10 +328,10 @@ class SelectableProfileServiceClass extends EventEmitter {
 
     // This can happen if profiles.ini has been reset by a version of Firefox
     // prior to 67 and the current profile is not the current default for the
-    // group. We can recover by overwriting this.#groupToolkitProfile.storeID
+    // group. We can recover by overwriting this.groupToolkitProfile.storeID
     // with the current storeID.
-    if (this.#groupToolkitProfile.storeID != this.storeID) {
-      this.#groupToolkitProfile.storeID = this.storeID;
+    if (this.groupToolkitProfile.storeID != this.storeID) {
+      this.groupToolkitProfile.storeID = this.storeID;
       await this.#attemptFlushProfileService();
     }
 
@@ -387,7 +385,6 @@ class SelectableProfileServiceClass extends EventEmitter {
     lazy.NimbusFeatures.selectableProfiles.offUpdate(this.onNimbusUpdate);
 
     this.#currentProfile = null;
-    this.#groupToolkitProfile = null;
     this.#badge = null;
     this.#connection = null;
 
@@ -481,7 +478,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     }
 
     Services.prefs.setBoolPref(PROFILES_CREATED_PREF_NAME, false);
-    this.#groupToolkitProfile.storeID = null;
+    this.groupToolkitProfile.storeID = null;
     await this.#attemptFlushProfileService();
   }
 
@@ -882,7 +879,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     if (!aProfile) {
       return;
     }
-    this.#groupToolkitProfile.rootDir = await aProfile.rootDir;
+    this.groupToolkitProfile.rootDir = await aProfile.rootDir;
     Glean.profilesDefault.updated.record();
     await this.#attemptFlushProfileService();
   }
@@ -1093,7 +1090,7 @@ class SelectableProfileServiceClass extends EventEmitter {
     // If this is the first time the user has created a selectable profile,
     // add the current toolkit profile to the datastore.
     if (!this.#currentProfile) {
-      let path = this.#profileService.currentProfile.rootDir;
+      let path = this.groupToolkitProfile.rootDir;
       this.#currentProfile = await this.#createProfile(path);
 
       // And also set the profile selector window to show at startup (bug 1933911).

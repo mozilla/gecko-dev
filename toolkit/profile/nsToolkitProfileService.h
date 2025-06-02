@@ -21,7 +21,7 @@
 
 class nsStartupLock;
 
-struct GroupProfileData {
+struct CurrentProfileData {
   nsCString mPath;
   nsCString mStoreID;
   bool mShowSelector;
@@ -94,6 +94,7 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
                                 bool* aWasDefaultSelection);
   nsresult CreateResetProfile(nsIToolkitProfile** aNewProfile);
   nsresult ApplyResetProfile(nsIToolkitProfile* aOldProfile);
+  void UpdateCurrentProfile();
   void CompleteStartup();
 
   using AsyncFlushPromise =
@@ -136,7 +137,7 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   nsresult GetLocalDirFromRootDir(nsIFile* aRootDir, nsIFile** aResult);
   void FlushProfileData(
       const nsMainThreadPtrHandle<nsStartupLock>& aStartupLock,
-      const GroupProfileData* aProfileInfo);
+      const CurrentProfileData* aProfileInfo);
   void BuildIniData(nsCString& aProfilesIniData, nsCString& aInstallsIniData);
   nsresult FlushData(const nsCString& aProfilesIniData,
                      const nsCString& aInstallsIniData);
@@ -151,8 +152,6 @@ class nsToolkitProfileService final : public nsIToolkitProfileService {
   mozilla::LinkedList<RefPtr<nsToolkitProfile>> mProfiles;
   // The profile selected for use at startup, if it exists in profiles.ini.
   RefPtr<nsToolkitProfile> mCurrent;
-  // The managed profile that acts as a pointer to a profile group.
-  RefPtr<nsToolkitProfile> mGroupProfile;
   // The profile selected for this install in installs.ini.
   RefPtr<nsToolkitProfile> mDedicatedProfile;
   // The default profile used by non-dev-edition builds.

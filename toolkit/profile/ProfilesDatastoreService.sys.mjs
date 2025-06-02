@@ -362,10 +362,7 @@ class ProfilesDatastoreServiceClass {
     // If we are not running in a named nsIToolkitProfile, the datastore path
     // should be in the profile directory. This is true in a local build or a
     // CI test build, for example.
-    if (
-      !this.#profileService.currentProfile &&
-      !this.#profileService.groupProfile
-    ) {
+    if (!this.#profileService.currentProfile) {
       return PathUtils.join(
         ProfilesDatastoreServiceClass.getDirectory("ProfD").path,
         `${this.#storeID}.sqlite`

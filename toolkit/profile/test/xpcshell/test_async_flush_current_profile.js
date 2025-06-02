@@ -2,7 +2,7 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 /*
- * Tests that asyncFlushGroupProfile succeeds if we startup into
+ * Tests that asyncFlushCurrentProfile succeeds if we startup into
  * the default managed profile for a profile group (see bug 1963173).
  */
 add_task(
@@ -66,19 +66,15 @@ add_task(
 
     // Now, simulate the default profile receiving app focus: asyncFlush would
     // fail, since profiles.ini has been updated since startup, but we should
-    // then fall back to asyncFlushGroupProfile, which should succeed.
+    // then fall back to asyncFlushCurrentProfile, which should succeed.
     let asyncRewriteDefault = async () => {
-      await service.asyncFlushGroupProfile();
-      Assert.ok(
-        !service.groupProfile,
-        "Async flush succeeds if group profile is null"
-      );
+      await service.asyncFlushCurrentProfile();
       let profileData = readProfilesIni();
 
       Assert.equal(
         profileData.profiles[0].path,
         defaultProfile.leafName,
-        "AsyncFlushGroupProfile should have updated the path to the path of the current managed profile"
+        "AsyncFlushCurrentProfile should have updated the path to the path of the current managed profile"
       );
     };
     await asyncRewriteDefault();

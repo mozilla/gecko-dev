@@ -47,21 +47,15 @@ interface nsIToolkitProfileService : nsISupports
     [infallible] readonly attribute nsISimpleEnumerator /*nsIToolkitProfile*/ profiles;
 
     /**
-     * The profile currently in use if it is a named profile. This will return
-     * null if the current profile path doesn't match a profile in the database.
+     * The current named nsIToolkitProfile selected at startup. This may be null
+     * if an unnamed profile was selected.
+     *
+     * The current root directory of this profile may not match the actual
+     * profile directory being used by this application and should not be used
+     * for determining where to store data. Use the `ProfD` directory service
+     * key instead.
      */
     [infallible] readonly attribute nsIToolkitProfile currentProfile;
-
-    /**
-     * The single named profile in a profile group. This is only usable after
-     * startup has complete.
-     *
-     * If the current named profile has a StoreID, this is the current profile.
-     * If the current profile is unnamed and has a StoreID, this will be the
-     * named profile with the same StoreID.
-     * If the current profile has no StoreID, this will be null.
-     */
-    [infallible] readonly attribute nsIToolkitProfile groupProfile;
 
     /**
      * The default profile for this build.
@@ -171,7 +165,7 @@ interface nsIToolkitProfileService : nsISupports
     Promise asyncFlush();
 
     /**
-     * Flushes the mutable data about the current group profile to disk on a
+     * Flushes the mutable data about the current profile to disk on a
      * background thread after acquiring the startup lock. Unlike other flushing
      * methods this can usually succeed even if the files on disk have changed
      * since the profiles were loaded.
@@ -179,7 +173,7 @@ interface nsIToolkitProfileService : nsISupports
      * promise returned will resolve when the last call to flush completes.
      */
     [implicit_jscontext]
-    Promise asyncFlushGroupProfile();
+    Promise asyncFlushCurrentProfile();
 
     /**
      * Removes profile directories from disk. Will wait for up to aTimeout

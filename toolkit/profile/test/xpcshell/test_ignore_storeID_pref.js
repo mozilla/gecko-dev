@@ -34,7 +34,6 @@ add_task(
 
     Assert.equal(profile.rootDir.path, defaultProfile.path);
     Assert.equal(service.currentProfile, profile);
-    Assert.ok(!service.groupProfile);
     Assert.ok(!profile.storeID);
 
     checkProfileService();

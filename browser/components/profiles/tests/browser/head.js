@@ -15,6 +15,7 @@ const { TelemetryTestUtils } = ChromeUtils.importESModule(
  * A mock toolkit profile.
  */
 class MockProfile {
+  // eslint-disable-next-line no-unused-private-class-members
   #service = null;
   #storeID = null;
 
@@ -33,12 +34,6 @@ class MockProfile {
 
   set storeID(val) {
     this.#storeID = val;
-
-    if (val) {
-      this.#service.groupProfile = this;
-    } else {
-      this.#service.groupProfile = null;
-    }
   }
 }
 
@@ -48,12 +43,11 @@ class MockProfile {
 class MockProfileService {
   constructor() {
     this.currentProfile = new MockProfile(this);
-    this.groupProfile = null;
   }
 
   async asyncFlush() {}
 
-  async asyncFlushGroupProfile() {}
+  async asyncFlushCurrentProfile() {}
 }
 
 const gProfileService = new MockProfileService();
