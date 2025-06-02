@@ -36,13 +36,11 @@ class BrowserMenuController(
     private val openInCallback: () -> Unit,
     private val openInBrowser: () -> Unit,
     private val showShortcutAddedSnackBar: () -> Unit,
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) {
     @VisibleForTesting
     private val currentTab: SessionState?
         get() = store.state.findTabOrCustomTabOrSelectedTab(currentTabId)
-
-    @VisibleForTesting
-    internal var ioScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
 
     @Suppress("ComplexMethod")
     fun handleMenuInteraction(item: ToolbarMenu.Item) {
@@ -64,32 +62,52 @@ class BrowserMenuController(
             is ToolbarMenu.Item.Share -> shareCallback()
             is ToolbarMenu.Item.FindInPage, ToolbarMenu.CustomTabItem.FindInPage -> showFindInPageCallback()
             is ToolbarMenu.Item.AddToShortcuts -> {
-                ioScope.launch {
-                    currentTab?.let { state ->
-                        topSitesUseCases.addPinnedSites(
-                            title = state.content.titleOrDomain,
-                            url = state.content.url,
-                        )
-                    }
-                }
+                addToShortcuts()
                 showShortcutAddedSnackBar()
             }
-            is ToolbarMenu.Item.RemoveFromShortcuts -> {
-                ioScope.launch {
-                    currentTab?.let { state ->
-                        appStore.state.topSites.find { it.url == state.content.url }
-                            ?.let { topSite ->
-                                topSitesUseCases.removeTopSites(topSite)
-                            }
-                    }
-                }
-            }
+            is ToolbarMenu.Item.RemoveFromShortcuts -> removeFromShortcuts()
             is ToolbarMenu.Item.RequestDesktop -> requestDesktopCallback(item.isChecked)
             is ToolbarMenu.CustomTabItem.RequestDesktop -> requestDesktopCallback(item.isChecked)
             is ToolbarMenu.Item.AddToHomeScreen, ToolbarMenu.CustomTabItem.AddToHomeScreen -> addToHomeScreenCallback()
             is ToolbarMenu.CustomTabItem.OpenInBrowser -> openInBrowser()
             is ToolbarMenu.Item.OpenInApp, ToolbarMenu.CustomTabItem.OpenInApp -> openInCallback()
             is ToolbarMenu.Item.Settings -> appStore.dispatch(AppAction.OpenSettings(page = Screen.Settings.Page.Start))
+        }
+    }
+
+    /**
+     * Removes the current tab from the list of top sites (shortcuts).
+     * This function is launched in a coroutine to perform the operation asynchronously.
+     * It retrieves the current tab's URL and attempts to find a matching top site.
+     * If a match is found, the top site is removed using [TopSitesUseCases.removeTopSites].
+     */
+    private fun removeFromShortcuts() {
+        coroutineScope.launch {
+            currentTab?.let { state ->
+                appStore.state.topSites.find { it.url == state.content.url }
+                    ?.let { topSite ->
+                        topSitesUseCases.removeTopSites(topSite)
+                    }
+            }
+        }
+    }
+
+    /**
+     * Adds the current tab to the list of top sites (shortcuts).
+     *
+     * This function retrieves the current tab's state and uses its title (or domain if title is unavailable)
+     * and URL to add it as a pinned site using the `topSitesUseCases`.
+     * This operation is performed asynchronously within a coroutine.
+     */
+    @VisibleForTesting
+    internal fun addToShortcuts() {
+        coroutineScope.launch {
+            currentTab?.let { state ->
+                topSitesUseCases.addPinnedSites(
+                    title = state.content.titleOrDomain,
+                    url = state.content.url,
+                )
+            }
         }
     }
 

@@ -4,12 +4,16 @@
 
 package org.mozilla.focus.menu
 
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.support.test.any
+import mozilla.components.support.test.mock
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mock
@@ -18,14 +22,13 @@ import org.mockito.Mockito.doNothing
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.MockitoAnnotations
-import org.mockito.Spy
 import org.mozilla.focus.browser.integration.BrowserMenuController
 import org.mozilla.focus.state.AppStore
 
 class BrowserMenuControllerTest {
     private lateinit var browserMenuController: BrowserMenuController
 
-    @Spy
+    @Mock
     private lateinit var sessionUseCases: SessionUseCases
 
     @Mock
@@ -65,27 +68,41 @@ class BrowserMenuControllerTest {
                 selectedTabId = selectedTab.id,
             ),
         )
-        sessionUseCases = SessionUseCases(store)
+
         MockitoAnnotations.openMocks(this)
 
         browserMenuController = spy(
             BrowserMenuController(
-                sessionUseCases,
-                appStore,
-                store,
-                topSitesUseCases,
-                currentTabId,
-                shareCallback,
-                requestDesktopCallback,
-                addToHomeScreenCallback,
-                showFindInPageCallback,
-                openInCallback,
-                openInBrowser,
-                showShortcutAddedSnackBar,
+                sessionUseCases = sessionUseCases,
+                appStore = appStore,
+                store = store,
+                topSitesUseCases = topSitesUseCases,
+                currentTabId = currentTabId,
+                shareCallback = shareCallback,
+                requestDesktopCallback = requestDesktopCallback,
+                addToHomeScreenCallback = addToHomeScreenCallback,
+                showFindInPageCallback = showFindInPageCallback,
+                openInCallback = openInCallback,
+                openInBrowser = openInBrowser,
+                showShortcutAddedSnackBar = showShortcutAddedSnackBar,
+                coroutineScope = TestScope(StandardTestDispatcher()),
             ),
         )
 
         doNothing().`when`(browserMenuController).recordBrowserMenuTelemetry(any())
+        doNothing().`when`(browserMenuController).addToShortcuts()
+
+        val stopLoadingUseCase: SessionUseCases.StopLoadingUseCase = mock()
+        Mockito.`when`(sessionUseCases.stopLoading).thenReturn(stopLoadingUseCase)
+
+        val goBackUseCase: SessionUseCases.GoBackUseCase = mock()
+        Mockito.`when`(sessionUseCases.goBack).thenReturn(goBackUseCase)
+
+        val goForwardUseCase: SessionUseCases.GoForwardUseCase = mock()
+        Mockito.`when`(sessionUseCases.goForward).thenReturn(goForwardUseCase)
+
+        val reloadUseCase: SessionUseCases.ReloadUrlUseCase = mock()
+        Mockito.`when`(sessionUseCases.reload).thenReturn(reloadUseCase)
     }
 
     @Test
@@ -154,9 +171,12 @@ class BrowserMenuControllerTest {
     }
 
     @Test
-    fun `Given AddToShortCut menu item WHEN  the item is pressed THEN showShortcutAddedSnackBar is called`() {
-        val menuItem = ToolbarMenu.Item.AddToShortcuts
-        browserMenuController.handleMenuInteraction(menuItem)
-        Mockito.verify(showShortcutAddedSnackBar, times(1)).invoke()
-    }
+    fun `Given AddToShortCut menu item WHEN  the item is pressed THEN addToShortcuts and showShortcutAddedSnackBar are called`() =
+        runTest {
+            val menuItem = ToolbarMenu.Item.AddToShortcuts
+            browserMenuController.handleMenuInteraction(menuItem)
+
+            Mockito.verify(browserMenuController, times(1)).addToShortcuts()
+            Mockito.verify(showShortcutAddedSnackBar, times(1)).invoke()
+        }
 }
