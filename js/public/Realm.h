@@ -53,6 +53,8 @@ inline JS::Compartment* GetCompartmentForRealm(Realm* realm) {
 // a cross-compartment wrapper.
 extern JS_PUBLIC_API Realm* GetObjectRealmOrNull(JSObject* obj);
 
+extern JS_PUBLIC_API bool HasRealmInitializedGlobal(Realm* realm);
+
 // Get the value of the "private data" internal field of the given Realm.
 // This field is initially null and is set using SetRealmPrivate.
 // It's a pointer to embeddding-specific data that SpiderMonkey never uses.

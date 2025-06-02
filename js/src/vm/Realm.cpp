@@ -653,6 +653,10 @@ JS_PUBLIC_API void* JS::GetRealmPrivate(JS::Realm* realm) {
   return realm->realmPrivate();
 }
 
+JS_PUBLIC_API bool JS::HasRealmInitializedGlobal(JS::Realm* realm) {
+  return realm->hasInitializedGlobal();
+}
+
 JS_PUBLIC_API void JS::SetRealmPrivate(JS::Realm* realm, void* data) {
   realm->setRealmPrivate(data);
 }

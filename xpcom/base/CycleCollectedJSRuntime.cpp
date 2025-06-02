@@ -2013,27 +2013,41 @@ void CycleCollectedJSRuntime::AnnotateAndSetOutOfMemory(OOMState* aStatePtr,
   //
   // We may not always collect telemetry, and that's got to be OK :)
   CycleCollectedJSContext* ccjsContext = GetContext();
-  JSContext* jsContext = ccjsContext ? ccjsContext->Context() : nullptr;
-  JSObject* global = jsContext ? JS::CurrentGlobalOrNull(jsContext) : nullptr;
-  if (global) {
-    if (aNewState == OOMState::Recovered) {
-      switch (size) {
-        case Size::Large:
-          SetUseCounter(global, eUseCounter_custom_JS_large_oom_recovered);
-          break;
-        case Size::Small:
-          SetUseCounter(global, eUseCounter_custom_JS_small_oom_recovered);
-          break;
-      }
-    } else {
-      switch (size) {
-        case Size::Large:
-          SetUseCounter(global, eUseCounter_custom_JS_large_oom_reported);
-          break;
-        case Size::Small:
-          SetUseCounter(global, eUseCounter_custom_JS_small_oom_reported);
-          break;
-      }
+  if (!ccjsContext) {
+    return;
+  }
+  JSContext* jsContext = ccjsContext->Context();
+  if (!jsContext) {
+    return;
+  }
+  JS::Realm* realm = JS::GetCurrentRealmOrNull(jsContext);
+
+  // Don't try to report telemetry if the realm is not initialized.
+  if (!realm || !JS::HasRealmInitializedGlobal(realm)) {
+    return;
+  }
+  JSObject* global = JS::GetRealmGlobalOrNull(realm);
+  if (!global) {
+    return;
+  }
+
+  if (aNewState == OOMState::Recovered) {
+    switch (size) {
+      case Size::Large:
+        SetUseCounter(global, eUseCounter_custom_JS_large_oom_recovered);
+        break;
+      case Size::Small:
+        SetUseCounter(global, eUseCounter_custom_JS_small_oom_recovered);
+        break;
+    }
+  } else {
+    switch (size) {
+      case Size::Large:
+        SetUseCounter(global, eUseCounter_custom_JS_large_oom_reported);
+        break;
+      case Size::Small:
+        SetUseCounter(global, eUseCounter_custom_JS_small_oom_reported);
+        break;
     }
   }
 }
