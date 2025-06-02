@@ -38,7 +38,8 @@ bool DefaultCodecPreferences::HardwareH264EnabledStatic() {
          Preferences::GetBool("media.webrtc.hw.h264.enabled", false);
 }
 
-bool DefaultCodecPreferences::H264PacketizationModeZeroSupportedStatic() {
+bool DefaultCodecPreferences::
+    SendingH264PacketizationModeZeroSupportedStatic() {
   // Packetization mode 0 is unsupported by MediaDataEncoder.
   return HaveGMPFor("encode-video"_ns, {"h264"_ns});
 }

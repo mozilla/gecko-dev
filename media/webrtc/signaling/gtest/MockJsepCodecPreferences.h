@@ -30,7 +30,7 @@ class MockJsepCodecPreferences : public JsepCodecPreferences {
   bool AV1Enabled() const override { return mAv1Enabled; }
   bool H264Enabled() const override { return mH264Enabled; }
   bool SoftwareH264Enabled() const override { return mSoftwareH264Enabled; }
-  bool H264PacketizationModeZeroSupported() const override {
+  bool SendingH264PacketizationModeZeroSupported() const override {
     return mH264PacketizationModeZeroSupported;
   }
   int32_t H264Level() const override { return mH264Level; }

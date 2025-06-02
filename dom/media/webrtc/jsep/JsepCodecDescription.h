@@ -28,7 +28,7 @@ class JsepCodecPreferences {
   virtual bool AV1Enabled() const = 0;
   virtual bool H264Enabled() const = 0;
   virtual bool SoftwareH264Enabled() const = 0;
-  virtual bool H264PacketizationModeZeroSupported() const = 0;
+  virtual bool SendingH264PacketizationModeZeroSupported() const = 0;
   virtual int32_t H264Level() const = 0;
   virtual int32_t H264MaxBr() const = 0;
   virtual int32_t H264MaxMbps() const = 0;
@@ -53,8 +53,9 @@ class JsepCodecPreferences {
        << "\n";
     os << "  SoftwareH264Enabled: "
        << (aPrefs.SoftwareH264Enabled() ? "true" : "false") << "\n";
-    os << "  H264PacketizationModeZeroSupported: "
-       << (aPrefs.H264PacketizationModeZeroSupported() ? "true" : "false")
+    os << "  SendingH264PacketizationModeZeroSupported: "
+       << (aPrefs.SendingH264PacketizationModeZeroSupported() ? "true"
+                                                              : "false")
        << "\n";
     os << "  H264Level: " << aPrefs.H264Level() << "\n";
     os << "  H264MaxBr: " << aPrefs.H264MaxBr() << "\n";
@@ -93,7 +94,8 @@ class JsepCodecDescription {
  public:
   JsepCodecDescription(const std::string& defaultPt, const std::string& name,
                        uint32_t clock, uint32_t channels)
-      : mDefaultPt(defaultPt),
+      : mSupportedDirection(sdp::kSend | sdp::kRecv),
+        mDefaultPt(defaultPt),
         mName(name),
         mClock(clock),
         mChannels(channels),
@@ -162,6 +164,16 @@ class JsepCodecDescription {
     return Nothing();
   }
 
+  bool DirectionSupported(sdp::Direction aDirection) const {
+    return mSupportedDirection & aDirection;
+  }
+
+  bool MsectionDirectionSupported(
+      SdpDirectionAttribute::Direction aDirection) const {
+    auto dir = static_cast<sdp::Direction>(aDirection);
+    return (mSupportedDirection & dir) == dir;
+  }
+
   virtual bool Negotiate(const std::string& pt,
                          const SdpMediaSection& remoteMsection,
                          bool remoteIsOffer,
@@ -185,13 +197,20 @@ class JsepCodecDescription {
       UniquePtr<SdpFmtpAttributeList::Parameters>& aFmtp) const = 0;
 
   virtual void AddToMediaSection(SdpMediaSection& msection) const {
-    if (mEnabled && msection.GetMediaType() == Type()) {
-      if (mDirection == sdp::kRecv) {
-        msection.AddCodec(mDefaultPt, mName, mClock, mChannels);
-      }
-
-      AddParametersToMSection(msection);
+    if (!mEnabled || msection.GetMediaType() != Type()) {
+      return;
     }
+    if (!MsectionDirectionSupported(msection.GetDirection())) {
+      // Don't add this codec if there's no codec impl fully supporting the
+      // msection direction.
+      return;
+    }
+
+    if (mDirection == sdp::kRecv) {
+      msection.AddCodec(mDefaultPt, mName, mClock, mChannels);
+    }
+
+    AddParametersToMSection(msection);
   }
 
   virtual void AddParametersToMSection(SdpMediaSection& msection) const {}
@@ -239,6 +258,9 @@ class JsepCodecDescription {
     });
   }
 
+  // The direction supported by encoders and decoders, to distinguish recvonly
+  // codecs from sendrecv.
+  sdp::Direction mSupportedDirection;
   std::string mDefaultPt;
   std::string mName;
   Maybe<std::string> mSdpFmtpLine;
@@ -547,11 +569,13 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
   static UniquePtr<JsepVideoCodecDescription> CreateDefaultH264_0(
       const JsepCodecPreferences& aPrefs) {
     auto codec = MakeUnique<JsepVideoCodecDescription>("97", "H264", 90000);
-    codec->mEnabled =
-        aPrefs.H264Enabled() && aPrefs.H264PacketizationModeZeroSupported();
+    codec->mEnabled = aPrefs.H264Enabled();
     codec->mPacketizationMode = 0;
     // Defaults for mandatory params
     codec->mProfileLevelId = 0x42E01F;
+    if (!aPrefs.SendingH264PacketizationModeZeroSupported()) {
+      codec->mSupportedDirection &= sdp::kRecv;
+    }
     if (aPrefs.UseRtx()) {
       codec->EnableRtx("98");
     }
@@ -574,11 +598,13 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
   static UniquePtr<JsepVideoCodecDescription> CreateDefaultH264Baseline_0(
       const JsepCodecPreferences& aPrefs) {
     auto codec = MakeUnique<JsepVideoCodecDescription>("103", "H264", 90000);
-    codec->mEnabled =
-        aPrefs.H264Enabled() && aPrefs.H264PacketizationModeZeroSupported();
+    codec->mEnabled = aPrefs.H264Enabled();
     codec->mPacketizationMode = 0;
     // Defaults for mandatory params
     codec->mProfileLevelId = 0x42001F;
+    if (!aPrefs.SendingH264PacketizationModeZeroSupported()) {
+      codec->mSupportedDirection &= sdp::kRecv;
+    }
     if (aPrefs.UseRtx()) {
       codec->EnableRtx("104");
     }
@@ -754,6 +780,9 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
   }
 
   void AddFmtpsToMSection(SdpMediaSection& msection) const {
+    MOZ_ASSERT(mEnabled);
+    MOZ_ASSERT(MsectionDirectionSupported(msection.GetDirection()));
+
     if (mName == "H264") {
       UniquePtr<SdpFmtpAttributeList::Parameters> h264Params =
           MakeUnique<SdpFmtpAttributeList::H264Parameters>(
@@ -795,6 +824,9 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
   }
 
   void AddRtcpFbsToMSection(SdpMediaSection& msection) const {
+    MOZ_ASSERT(mEnabled);
+    MOZ_ASSERT(MsectionDirectionSupported(msection.GetDirection()));
+
     SdpRtcpFbAttributeList rtcpfbs(msection.GetRtcpFbs());
     for (const auto& rtcpfb : rtcpfbs.mFeedbacks) {
       if (rtcpfb.pt == mDefaultPt) {

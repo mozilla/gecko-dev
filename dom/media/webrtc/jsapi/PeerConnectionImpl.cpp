@@ -2179,6 +2179,11 @@ void PeerConnectionImpl::GetCapabilities(
       continue;
     }
 
+    if (!codec->DirectionSupported(aDirection)) {
+      // Skip recvonly codecs for send capabilities.
+      continue;
+    }
+
     dom::RTCRtpCodec capability;
     RTCRtpTransceiver::ToDomRtpCodec(*codec, &capability);
 
