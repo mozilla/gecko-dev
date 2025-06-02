@@ -62,7 +62,25 @@ class UniFFICallbackHandler {
      * @returns {obj} - Callback object
      */
     getCallbackObj(handle) {
-        return this.#handleMap.get(handle).callbackObj;
+        const callbackObj = this.#handleMap.get(handle).callbackObj;
+        if (callbackObj === undefined) {
+            throw new UniFFIError(`${this.#name}: invalid callback handle id: ${handle}`);
+        }
+        return callbackObj;
+    }
+
+    /**
+     * Get a UniFFICallbackMethodHandler
+     *
+     * @param {int} methodId - index of the method
+     * @returns {UniFFICallbackMethodHandler}
+     */
+    getMethodHandler(methodId) {
+        const methodHandler = this.#methodHandlers[methodId];
+        if (methodHandler === undefined) {
+            throw new UniFFIError(`${this.#name}: invalid method id: ${methodId}`)
+        }
+        return methodHandler;
     }
 
     /**
@@ -97,9 +115,28 @@ class UniFFICallbackHandler {
      */
     call(handle, methodId, ...args) {
         try {
-            this.#invokeCallbackInner(handle, methodId, args);
+            const callbackObj = this.getCallbackObj(handle);
+            const methodHandler = this.getMethodHandler(methodId);
+            methodHandler.call(callbackObj, args);
         } catch (e) {
             console.error(`internal error invoking callback: ${e}`)
+        }
+    }
+
+    /**
+     * Invoke a method on a stored callback object
+     * @param {int} handle - Object handle
+     * @param {int} methodId - Method index (0-based)
+     * @param {UniFFIScaffoldingValue[]} args - Arguments to pass to the method
+     */
+    async callAsync(handle, methodId, ...args) {
+        const callbackObj = this.getCallbackObj(handle);
+        const methodHandler = this.getMethodHandler(methodId);
+        try {
+            const returnValue = await methodHandler.call(callbackObj, args);
+            return methodHandler.lowerReturn(returnValue);
+        } catch(e) {
+            return methodHandler.lowerError(e)
         }
     }
 
@@ -109,21 +146,6 @@ class UniFFICallbackHandler {
      */
     destroy(handle) {
         this.#handleMap.delete(handle);
-    }
-
-    #invokeCallbackInner(handle, methodId, args) {
-        const callbackObj = this.getCallbackObj(handle);
-        if (callbackObj === undefined) {
-            throw new UniFFIError(`${this.#name}: invalid callback handle id: ${handle}`);
-        }
-
-        // Get the method data, converting from 1-based indexing
-        const methodHandler = this.#methodHandlers[methodId];
-        if (methodHandler === undefined) {
-            throw new UniFFIError(`${this.#name}: invalid method id: ${methodId}`)
-        }
-
-        methodHandler.call(callbackObj, args);
     }
 
     /**
@@ -155,6 +177,8 @@ class UniFFICallbackHandler {
 class UniFFICallbackMethodHandler {
     #name;
     #argsConverters;
+    #returnConverter;
+    #errorConverter;
 
     /**
      * Create a UniFFICallbackMethodHandler
@@ -162,20 +186,30 @@ class UniFFICallbackMethodHandler {
      * @param {string} name -- Name of the method to call on the callback object
      * @param {FfiConverter[]} argsConverters - FfiConverter for each argument type
      */
-    constructor(name, argsConverters) {
+    constructor(name, argsConverters, returnConverter, errorConverter) {
         this.#name = name;
         this.#argsConverters = argsConverters;
+        this.#returnConverter = returnConverter;
+        this.#errorConverter = errorConverter;
     }
 
-    /**
-     * Invoke the method
-     *
-     * @param {obj} callbackObj -- Object implementing the callback interface for this method
-     * @param {ArrayBuffer} argsArrayBuffer -- Arguments for the method, packed in an ArrayBuffer
-     */
      call(callbackObj, args) {
         const convertedArgs = this.#argsConverters.map((converter, i) => converter.lift(args[i]));
         return callbackObj[this.#name](...convertedArgs);
+    }
+
+    lowerReturn(returnValue) {
+        return {
+            code: "success",
+            data: this.#returnConverter(returnValue),
+        };
+    }
+
+    lowerError(error) {
+        return {
+            code: "error",
+            data: this.#errorConverter(error),
+        };
     }
 }
 

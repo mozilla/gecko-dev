@@ -8,6 +8,7 @@
 //! The purpose of these is to test the lift/lower implementations in the async code.
 
 use std::{collections::HashMap, sync::Arc};
+use crate::errors::TestError;
 
 #[uniffi::export]
 async fn async_roundtrip_u8(v: u8) -> u8 {
@@ -74,6 +75,11 @@ async fn async_roundtrip_map(v: HashMap<String, String>) -> HashMap<String, Stri
     v
 }
 
+#[uniffi::export]
+async fn async_throw_error() -> Result<(), TestError> {
+    Err(TestError::Failure1)
+}
+
 #[derive(uniffi::Object)]
 struct AsyncInterface {
     name: String,
@@ -94,4 +100,21 @@ impl AsyncInterface {
 #[uniffi::export]
 async fn async_roundtrip_obj(v: Arc<AsyncInterface>) -> Arc<AsyncInterface> {
     v
+}
+
+#[uniffi::export(callback_interface)]
+#[async_trait::async_trait]
+pub trait TestAsyncCallbackInterface: Send + Sync {
+    async fn get_value(&self) -> u32;
+    async fn throw_error(&self) -> Result<(), TestError>;
+}
+
+#[uniffi::export]
+async fn async_callback_interface_call_get_value(v: Box<dyn TestAsyncCallbackInterface>) -> u32 {
+    v.get_value().await
+
+}
+#[uniffi::export]
+async fn async_callback_interface_call_throw_error(v: Box<dyn TestAsyncCallbackInterface>) -> Result<(), TestError> {
+    v.throw_error().await
 }
