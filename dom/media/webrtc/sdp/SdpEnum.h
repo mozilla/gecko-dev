@@ -10,6 +10,7 @@
 #include <ostream>
 
 #include "mozilla/Assertions.h"
+#include "mozilla/TypedEnumBits.h"
 
 namespace mozilla::sdp {
 
@@ -46,6 +47,8 @@ enum Direction {
   kSend = 1,
   kRecv = 2
 };
+
+MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(Direction);
 
 inline std::ostream& operator<<(std::ostream& os, sdp::Direction d) {
   switch (d) {
