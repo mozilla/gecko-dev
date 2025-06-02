@@ -648,9 +648,12 @@
   <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">Andmed sinu seadme, riistvara konfiguratsiooni ja kasutuse kohta aitavad meil Firefoxi funktsioone, jõudlust ja stabiilsust täiustada.</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preferences_daily_usage_ping_title">Igapäevane kasutusping</string>
+  <string name="preferences_daily_usage_ping_description">See aitab Mozillal aktiivsete kasutajate arvu \u0020hinnata.</string>
   <string name="preferences_daily_usage_ping_learn_more">Rohkem teavet igapäevasest kasutuspingust</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">Vearaporteid saadetakse automaatselt</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">Need võimaldavad meil diagnoosida ja lahendada veebilehitseja probleeme. Aruanded võivad sisaldada isikuandmeid või tundlikke andmeid.</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">Rohkem teavet vearaportitest</string>
   <!-- Title for studies preferences -->
@@ -1551,14 +1554,54 @@
   <string name="preference_etp_smartblock_description">Mõned allpool märgitud jälitajad on sellel lehel osaliselt lubatud, sest suhtlesid nendega *.</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">Rohkem teavet</string>
+  <!--
+    DNS over HTTPS (DoH)
+
+    Preference title for DNS over HTTPS settings
+  -->
+  <string name="preference_doh_title">DNS üle HTTPS-i</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">Domeeninimesüsteem (DNS) üle HTTPS-i saadab domeeninime päringu krüpteeritud ühenduse kaudu, pakkudes turvalist DNS-i ja raskendades teistel nägemast, millisele veebisaidile minna proovid. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">Rohkem teavet</string>
+  <!-- Content description for the "Exceptions" button -->
+  <string name="preference_doh_exceptions_description">Erandid</string>
+  <!-- Content description for the "Add Site" button -->
+  <string name="preference_doh_add_site_description">Lisa sait</string>
+  <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection">Vaikimisi kaitse</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s otsustab, millal sinu privaatsuse kaitsmiseks turvalist DNS-i kasutada.</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">Suurem kaitse</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">Sina juhid, millal turvalist DNS-i kasutada, ja valid selleks teenusepakkuja.</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Maksimaalne kaitse</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s kasutab alati turvalist DNS-i. Enne süsteemi DNS-i kasutamist näed turvariski hoiatust.</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">Väljas</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">Kasutatakse vaikimisi DNS-i lahendajat</string>
   <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_cancel">Loobu</string>
   <!-- Add button text for provider textfield under "DNS over HTTPS" -->
   <string name="preference_doh_provider_custom_dialog_add">Lisa</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">Erandid</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary">%1$s ei kasuta nendel saitidel ja nende alamdomeenidel turvalist DNS-i.</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">Lisa sait</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">Sait</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">Salvesta</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">Eemalda kõik erandid</string>
   <!-- About page link text to open support link -->
   <string name="about_support">Kasutajatugi</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -1936,6 +1979,8 @@
   <string name="top_sites_menu_sponsor_privacy">Meie sponsijatest ja sinu privaatsusest</string>
   <!-- Label text displayed for a sponsored top site. -->
   <string name="top_sites_sponsored_label">Sponsitud</string>
+  <!-- Button caption to confirm the edit of the top site. -->
+  <string name="top_sites_edit_dialog_save">Salvesta</string>
   <!--
     Inactive tabs in the tabs tray
 

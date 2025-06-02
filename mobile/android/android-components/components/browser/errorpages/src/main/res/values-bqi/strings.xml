@@ -99,6 +99,7 @@
   <string name="mozac_browser_errorpages_malformed_uri_message_alternative"><![CDATA[<ul> <li>نشۊویا وبگه مئمۊلن چینووݩ هؽل ابۊن <strong>http://www.example.com/</strong></li> <li>ویرتووݩ بۊ مومیزی ک زبال هڌ ن و کار بگیرین (ینی <strong>/</strong>).</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_unknown_protocol_title">نشۊوی نشناخته</string>
+  <string name="mozac_browser_errorpages_unknown_protocol_message"><![CDATA[<p>نشۊوی قراردادی جۊر (e.g. <q>wxyz://</q>)‏ ن دیاری کرده ک گشت گر نتره یشنس، سی دل هیمو نتره و ی بارت خۊو و وبگه منپیز بۊ.</p><ul><li>هونی قپ ریت اکۊنین سی دسرسی و خدمات چند وارسگری یا قیر هؽل هڌین؟ ای وبگه ن سی جوستن یو ک چ چیا ازافی اخو بپیتینین.</li><li>ی قرد قراردادا گاشڌ سی اشناخته وابیڌن، ی برنومه یا وردنی یل دیری ن سی اشناختن بوخون.</li></ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_file_not_found_title">فایل ن نجوست</string>
   <string name="mozac_browser_errorpages_file_not_found_message"><![CDATA[<ul> <li>گاشڌ فایلی ک ز دینس هڌین، آلشت نوم یا جاگه داڌه بۊ یا پاک وابیڌه؟</li> <li>موشکل املایی، گپی یا کوچیری هۊرۊف یا موشکلا دیر هؽل کردنی من نشۊوی هڌ؟</li> <li>موجوزا دسرسی ک بس بۊن سی و دست ٱووردن ای نشۊوی ن دارین؟</li> </ul>]]></string>
@@ -107,10 +108,10 @@
   <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[<ul> <li>گاشڌ پاک،‌ جا گورو وابیڌه یا موجوزاس ز دسرسی جلاوگری اکونه.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_proxy_connection_refused_title">پروکسی سرور ز منپیز خوتکار جلاو گری اکونه</string>
-  <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[<p>گشت گر سی و کار گرؽڌن ز ی سرور پروکسی کانفیگ وابیڌه، ولی پروکسی نؽله منپیز بۊ.</p> <ul> <li>سامووا سرور پروکسی زبال هڌن؟ سامووا ن کونتورول کۊنین وو دووارته قپ ریت کۊنین.</li> <li>پروکسی هؽله ای شبکه ن و کار گیرین؟</li> <li>هنی هم موشکل دارین؟ سی گرؽڌن هیاری ز دؽوۉدار شبکه یا وا هو ک زس اینترنتن گرؽڌین گوفت ۉ لوفت کۊنین.</li> </ul>]]></string>
+  <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[<p>گشت گر سی و کار گرؽڌن ز ی سرور پروکسی کانفیگ وابیڌه، ولی پروکسی نؽله منپیز بۊ.</p> <ul> <li>سامووا سرور پروکسی زبال هڌن؟ سامووا ن کونتورول کۊنین وو دووارته قپ ریت کۊنین.</li> <li>پروکسی هؽله ای شبکه ن و کار گیرین؟</li> <li>هنی هم موشکل دارین؟ سی گرؽڌن هیاری ز دؽوۉدار شبکه یا وا جۊر کوݩ اینترنت تووݩ گوفت ۉ لوفت کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_unknown_proxy_host_title">سرور پروکسی ن نجوست</string>
-  <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[<p>گشت گر سی و کار گرؽڌن ز ی سرور پروکسی کانفیگ وابیڌه، ولی پروکسی ن نجوست.</p> <ul> <li>سامووا سرور پروکسی گشت گر زبال هڌن؟ سامووا ن کونتورول کۊنین وو دووارته قپ ریت کۊنین.</li> <li>دسگا و شبکه ای ک فعاله منپیز هڌ؟</li> <li>هنی هم موشکل دارین؟ سی گرؽڌن هیاری ز دؽوۉدار شبکه یا وا هو ک زس اینترنتن گرؽڌین گوفت ۉ لوفت کۊنین.</li> </ul>]]></string>
+  <string name="mozac_browser_errorpages_unknown_proxy_host_message"><![CDATA[<p>گشت گر سی و کار گرؽڌن ز ی سرور پروکسی کانفیگ وابیڌه، ولی پروکسی ن نجوست.</p> <ul> <li>سامووا سرور پروکسی گشت گر زبال هڌن؟ سامووا ن کونتورول کۊنین وو دووارته قپ ریت کۊنین.</li> <li>دسگا و شبکه ای ک فعاله منپیز هڌ؟</li> <li>هنی هم موشکل دارین؟ سی گرؽڌن هیاری ز دؽوۉدار شبکه یا وا جۊر کوݩ اینترنت تووݩ گوفت ۉ لوفت کۊنین.</li> </ul>]]></string>
   <!-- The document title and heading of an error page. -->
   <string name="mozac_browser_errorpages_safe_browsing_malware_uri_title">موشکل وبگه لیش ٱفزار</string>
   <!-- The %1$s will be replaced by the malicious website URL -->
