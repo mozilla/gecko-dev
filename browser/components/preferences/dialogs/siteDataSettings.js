@@ -133,7 +133,7 @@ let gSiteDataSettings = {
     setEventListener("usageCol", "click", this.onClickTreeCol);
     setEventListener("lastAccessedCol", "click", this.onClickTreeCol);
     setEventListener("cookiesCol", "click", this.onClickTreeCol);
-    setEventListener("searchBox", "command", this.onCommandSearch);
+    setEventListener("searchBox", "MozInputSearch:search", this.onInputSearch);
     setEventListener("removeAll", "command", this.onClickRemoveAll);
     setEventListener("removeSelected", "command", this.removeSelected);
 
@@ -299,7 +299,7 @@ let gSiteDataSettings = {
     this._list.clearSelection();
   },
 
-  onCommandSearch() {
+  onInputSearch() {
     this._buildSitesList(this._sites);
     this._list.clearSelection();
   },

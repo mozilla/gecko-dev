@@ -175,6 +175,9 @@ var gSitePermissionsManager = {
     this._removeButton = document.getElementById("removePermission");
     this._removeAllButton = document.getElementById("removeAllPermissions");
     this._searchBox = document.getElementById("searchBox");
+    this._searchBox.addEventListener("MozInputSearch:search", () =>
+      this.buildPermissionsList()
+    );
     this._checkbox = document.getElementById("permissionsDisableCheckbox");
     this._disableExtensionButton = document.getElementById(
       "disableNotificationsPermissionExtension"
@@ -284,9 +287,6 @@ var gSitePermissionsManager = {
         switch (event.target.id) {
           case "key_close":
             window.close();
-            break;
-          case "searchBox":
-            this.buildPermissionsList();
             break;
           case "removePermission":
             this.onPermissionDelete();
