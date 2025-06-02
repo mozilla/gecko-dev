@@ -47,12 +47,10 @@ export class HighlightsFeed {
   }
 
   _dedupeKey(site) {
-    // Treat bookmarks, pocket, and downloaded items as un-dedupable, otherwise show one of a url
+    // Treat bookmarks and downloaded items as un-dedupable, otherwise show one of a url
     return (
       site &&
-      (site.pocket_id || site.type === "bookmark" || site.type === "download"
-        ? {}
-        : site.url)
+      (site.type === "bookmark" || site.type === "download" ? {} : site.url)
     );
   }
 
@@ -164,8 +162,6 @@ export class HighlightsFeed {
         !this.store.getState().Prefs.values[
           "section.highlights.includeVisited"
         ],
-      excludePocket:
-        !this.store.getState().Prefs.values["section.highlights.includePocket"],
     });
 
     if (
@@ -229,10 +225,9 @@ export class HighlightsFeed {
         hasImage: page.type !== "download", // Downloads do not have an image - all else types fall back to a screenshot
         hostname,
         type: page.type,
-        pocket_id: page.pocket_id,
       });
 
-      // Add the "bookmark", "pocket", or not-skipped "history"
+      // Add the "bookmark", or not-skipped "history"
       highlights.push(page);
       hosts.add(hostname);
 
@@ -305,11 +300,9 @@ export class HighlightsFeed {
       case at.PLACES_HISTORY_CLEARED:
       case at.PLACES_LINK_BLOCKED:
       case at.DOWNLOAD_CHANGED:
-      case at.POCKET_LINK_DELETED_OR_ARCHIVED:
         this.fetchHighlights({ broadcast: true });
         break;
       case at.PLACES_LINKS_CHANGED:
-      case at.PLACES_SAVED_TO_POCKET:
         this.linksCache.expire();
         this.fetchHighlights({ broadcast: false });
         break;

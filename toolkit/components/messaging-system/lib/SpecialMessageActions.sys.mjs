@@ -164,7 +164,6 @@ export const SpecialMessageActions = {
           [
             "browser.newtabpage.activity-stream.section.highlights.rows",
             "browser.newtabpage.activity-stream.section.highlights.includeVisited",
-            "browser.newtabpage.activity-stream.section.highlights.includePocket",
             "browser.newtabpage.activity-stream.section.highlights.includeDownloads",
             "browser.newtabpage.activity-stream.section.highlights.includeBookmarks",
           ],

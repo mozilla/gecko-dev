@@ -486,14 +486,6 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "section.highlights.includePocket",
-    {
-      title:
-        "Boolean flag that decides whether or not to show saved Pocket stories in highlights.",
-      value: true,
-    },
-  ],
-  [
     "section.highlights.includeDownloads",
     {
       title:

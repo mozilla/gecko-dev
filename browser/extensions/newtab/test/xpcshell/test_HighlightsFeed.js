@@ -37,7 +37,6 @@ function getHighlightsFeedForTest(sandbox) {
     state: {
       Prefs: {
         values: {
-          "section.highlights.includePocket": false,
           "section.highlights.includeDownloads": false,
         },
       },
@@ -58,12 +57,6 @@ function getHighlightsFeedForTest(sandbox) {
   sandbox
     .stub(NewTabUtils.activityStreamLinks, "getHighlights")
     .resolves(FAKE_LINKS);
-  sandbox
-    .stub(NewTabUtils.activityStreamLinks, "deletePocketEntry")
-    .resolves({});
-  sandbox
-    .stub(NewTabUtils.activityStreamLinks, "archivePocketEntry")
-    .resolves({});
   sandbox
     .stub(NewTabUtils.activityStreamProvider, "_processHighlights")
     .callsFake(l => l.slice(0, 1));
@@ -432,10 +425,16 @@ add_task(async function test_fetchHighlights_chronological_order() {
       type: "history",
       date_added: Date.now() - 60,
     }, // append at the end
-    { url: "https://site4.com", type: "pocket", date_added: Date.now() }, // newest highlight
+    {
+      url: "https://site4.com",
+      type: "bookmark",
+      bookmarkGuid: "1234",
+      date_added: Date.now(),
+    }, // newest highlight
     {
       url: "https://site5.com",
-      type: "pocket",
+      type: "bookmark",
+      bookmarkGuid: "12345",
       date_added: Date.now() - 100,
     }, // 4th newest
     {
@@ -704,54 +703,6 @@ add_task(
   }
 );
 
-add_task(async function test_fetchHighlights_include_pocket_items() {
-  info(
-    "HighlightsFeed.fetchHighlights should includePocket pocket items when " +
-      "pref is true"
-  );
-  let sandbox = sinon.createSandbox();
-  let feed = getHighlightsFeedForTest(sandbox);
-  feed.store.state.Prefs.values["section.highlights.includePocket"] = true;
-  sandbox.spy(feed.linksCache, "request");
-
-  await fetchHighlightsRows(feed);
-
-  Assert.ok(
-    feed.linksCache.request.calledOnce,
-    "HighlightsFeed.linksCache.request called"
-  );
-  Assert.ok(
-    !feed.linksCache.request.firstCall.args[0].excludePocket,
-    "Should not be excluding Pocket items"
-  );
-
-  sandbox.restore();
-});
-
-add_task(async function test_fetchHighlights_do_not_include_pocket_items() {
-  info(
-    "HighlightsFeed.fetchHighlights should not includePocket pocket items " +
-      "when pref is false"
-  );
-  let sandbox = sinon.createSandbox();
-  let feed = getHighlightsFeedForTest(sandbox);
-  feed.store.state.Prefs.values["section.highlights.includePocket"] = false;
-  sandbox.spy(feed.linksCache, "request");
-
-  await fetchHighlightsRows(feed);
-
-  Assert.ok(
-    feed.linksCache.request.calledOnce,
-    "HighlightsFeed.linksCache.request called"
-  );
-  Assert.ok(
-    feed.linksCache.request.firstCall.args[0].excludePocket,
-    "Should be excluding Pocket items"
-  );
-
-  sandbox.restore();
-});
-
 add_task(async function test_fetchHighlights_do_not_include_downloads() {
   info(
     "HighlightsFeed.fetchHighlights should not include downloads when " +
@@ -836,8 +787,7 @@ add_task(async function test_fetchHighlights_take_one_download() {
 
 add_task(async function test_fetchHighlights_chronological_sort() {
   info(
-    "HighlightsFeed.fetchHighlights should sort bookmarks, pocket, " +
-      "and downloads chronologically"
+    "HighlightsFeed.fetchHighlights should sort bookmarks and downloads chronologically"
   );
   let sandbox = sinon.createSandbox();
   let feed = getHighlightsFeedForTest(sandbox);
@@ -857,8 +807,8 @@ add_task(async function test_fetchHighlights_chronological_sort() {
       date_added: Date.now() - 10000,
     },
     {
-      url: "https://site2.com/pocket",
-      type: "pocket",
+      url: "https://site2.com/another-bookmark",
+      type: "bookmark",
       date_added: Date.now() - 5000,
     },
     {
@@ -1302,11 +1252,6 @@ add_task(async function test_onAction_fetch_highlights_on_actions() {
       expectsExpire: false,
       expectsBroadcast: true,
     },
-    {
-      actionType: "PLACES_SAVED_TO_POCKET",
-      expectsExpire: true,
-      expectsBroadcast: false,
-    },
   ];
   for (let action of actions) {
     info(
@@ -1363,33 +1308,6 @@ add_task(
         isStartup: false,
       })
     );
-
-    sandbox.restore();
-  }
-);
-
-add_task(
-  async function test_onAction_fetch_highlights_on_deleting_archiving_pocket() {
-    info(
-      "HighlightsFeed.onAction should call fetchHighlights when deleting " +
-        "or archiving from Pocket"
-    );
-
-    let sandbox = sinon.createSandbox();
-    let feed = getHighlightsFeedForTest(sandbox);
-
-    await feed.fetchHighlights();
-    sandbox.spy(feed, "fetchHighlights");
-
-    feed.onAction({
-      type: actionTypes.POCKET_LINK_DELETED_OR_ARCHIVED,
-      data: { pocket_id: 12345 },
-    });
-    Assert.ok(
-      feed.fetchHighlights.calledOnce,
-      "HighlightsFeed.fetchHighlights called"
-    );
-    Assert.ok(feed.fetchHighlights.calledWithExactly({ broadcast: true }));
 
     sandbox.restore();
   }
