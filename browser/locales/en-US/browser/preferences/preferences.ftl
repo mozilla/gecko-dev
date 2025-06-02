@@ -1369,7 +1369,6 @@ content-blocking-tracking-protection-option-all-windows =
 content-blocking-option-private =
   .label = Only in private windows
   .accesskey = p
-content-blocking-tracking-protection-change-block-list = Change block list
 
 content-blocking-cookies-label =
   .label = Cookies
