@@ -684,9 +684,6 @@ normandy:
             specific locale;
           - "l10n-missing-entry": the recipe is missing specific localization
             entries for a specific locale;
-          - "unsupported-feature": the recipe uses a feature that exists but is
-            not supported by this specific application (e.g., a feature that is
-            only for the background task runner);
         type: string
       branch:
         description: >
@@ -702,11 +699,6 @@ normandy:
       l10n_ids:
         description: >
           If reason == missing-l10n-entry, a comma-separated list of missing localization entries.
-        type: string
-      feature_ids:
-        description: >
-          If reason == unsupported-feature, a comma-separated list of the
-          unsupported feature IDs.
         type: string
     telemetry_mirror: Normandy_Validationfailed_NimbusExperiment
 
