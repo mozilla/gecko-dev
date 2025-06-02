@@ -1706,8 +1706,6 @@ class ConnectionPool::TransactionInfo final {
   const int64_t mLoggingSerialNumber;
   const nsTArray<nsString> mObjectStoreNames;
   nsTHashSet<TransactionInfo*> mBlockedOn;
-  // XXX Try to unify these two queues!
-  nsTArray<nsCOMPtr<nsIRunnable>> mQueuedRunnables;
   mozilla::Queue<nsCOMPtr<nsIRunnable>, 16> mQueuedOps;
   const bool mIsWriteTransaction;
   bool mRunning;
@@ -1728,6 +1726,8 @@ class ConnectionPool::TransactionInfo final {
   void AddBlockingTransaction(TransactionInfo& aTransactionInfo);
 
   void RemoveBlockingTransactions();
+
+  void SetRunning();
 
   void StartOp(nsCOMPtr<nsIRunnable> aRunnable);
 
@@ -8252,19 +8252,7 @@ bool ConnectionPool::ScheduleTransaction(TransactionInfo& aTransactionInfo,
     dbInfo.mNeedsCheckpoint = true;
   }
 
-  MOZ_ASSERT(!aTransactionInfo.mRunning);
-  aTransactionInfo.mRunning = true;
-
-  nsTArray<nsCOMPtr<nsIRunnable>>& queuedRunnables =
-      aTransactionInfo.mQueuedRunnables;
-
-  if (!queuedRunnables.IsEmpty()) {
-    for (auto& queuedRunnable : queuedRunnables) {
-      aTransactionInfo.StartOp(std::move(queuedRunnable));
-    }
-
-    queuedRunnables.Clear();
-  }
+  aTransactionInfo.SetRunning();
 
   return true;
 }
@@ -8825,14 +8813,13 @@ ConnectionPool::TransactionInfo::TransactionInfo(
   MOZ_COUNT_CTOR(ConnectionPool::TransactionInfo);
 
   if (aTransactionOp) {
-    mQueuedRunnables.AppendElement(aTransactionOp);
+    mQueuedOps.Push(aTransactionOp);
   }
 }
 
 ConnectionPool::TransactionInfo::~TransactionInfo() {
   AssertIsOnBackgroundThread();
   MOZ_ASSERT(!mBlockedOn.Count());
-  MOZ_ASSERT(mQueuedRunnables.IsEmpty());
   MOZ_ASSERT(mQueuedOps.IsEmpty());
   MOZ_ASSERT(!mRunning);
   MOZ_ASSERT(!mRunningOp);
@@ -8867,6 +8854,23 @@ void ConnectionPool::TransactionInfo::RemoveBlockingTransactions() {
   mBlockingOrdered.Clear();
 }
 
+void ConnectionPool::TransactionInfo::SetRunning() {
+  AssertIsOnBackgroundThread();
+  MOZ_ASSERT(!mRunning);
+
+  AUTO_PROFILER_LABEL("ConnectionPool::FinishOp", DOM);
+
+  mRunning = true;
+
+  if (!mQueuedOps.IsEmpty()) {
+    mRunningOp = true;
+
+    nsCOMPtr<nsIRunnable> runnable = mQueuedOps.Pop();
+
+    MOZ_ALWAYS_SUCCEEDS(mDatabaseInfo.Dispatch(runnable.forget()));
+  }
+}
+
 void ConnectionPool::TransactionInfo::StartOp(nsCOMPtr<nsIRunnable> aRunnable) {
   AssertIsOnBackgroundThread();
 
@@ -8885,7 +8889,7 @@ void ConnectionPool::TransactionInfo::StartOp(nsCOMPtr<nsIRunnable> aRunnable) {
       mQueuedOps.Push(std::move(aRunnable));
     }
   } else {
-    mQueuedRunnables.AppendElement(std::move(aRunnable));
+    mQueuedOps.Push(std::move(aRunnable));
   }
 }
 
