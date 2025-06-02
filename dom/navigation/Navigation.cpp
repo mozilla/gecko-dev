@@ -62,44 +62,6 @@ struct NavigationAPIMethodTracker final : public nsISupports {
     mozilla::HoldJSObjects(this);
   }
 
-  // https://html.spec.whatwg.org/#navigation-api-method-tracker-clean-up
-  void CleanUp() { Navigation::CleanUp(this); }
-
-  // https://html.spec.whatwg.org/#notify-about-the-committed-to-entry
-  void NotifyAboutCommittedToEntry(NavigationHistoryEntry* aNHE) {
-    // Step 1
-    mCommittedToEntry = aNHE;
-    if (mSerializedState) {
-      // Step 2
-      aNHE->SetState(
-          static_cast<nsStructuredCloneContainer*>(mSerializedState.get()));
-      // At this point, apiMethodTracker's serialized state is no longer needed.
-      // We drop it do now for efficiency.
-      mSerializedState = nullptr;
-    }
-    mCommittedPromise->MaybeResolve(aNHE);
-  }
-
-  // https://html.spec.whatwg.org/#resolve-the-finished-promise
-  void ResolveFinishedPromise() {
-    // Step 1
-    MOZ_DIAGNOSTIC_ASSERT(mCommittedToEntry);
-    // Step 2
-    mFinishedPromise->MaybeResolve(mCommittedToEntry);
-    // Step 3
-    CleanUp();
-  }
-
-  // https://html.spec.whatwg.org/#reject-the-finished-promise
-  void RejectFinishedPromise(JS::Handle<JS::Value> aException) {
-    // Step 1
-    mCommittedPromise->MaybeReject(aException);
-    // Step 2
-    mFinishedPromise->MaybeReject(aException);
-    // Step 3
-    CleanUp();
-  }
-
   RefPtr<Navigation> mNavigationObject;
   Maybe<nsID> mKey;
   JS::Heap<JS::Value> mInfo;
@@ -296,11 +258,7 @@ void Navigation::UpdateEntriesForSameDocumentNavigation(
       break;
   }
 
-  // Step 8.
-  if (mOngoingAPIMethodTracker) {
-    RefPtr<NavigationHistoryEntry> currentEntry = GetCurrentEntry();
-    mOngoingAPIMethodTracker->NotifyAboutCommittedToEntry(currentEntry);
-  }
+  // TODO: Step 8.
 
   // Steps 9-12.
   {
@@ -776,9 +734,7 @@ bool Navigation::InnerFireNavigateEvent(
   init.mDownloadRequest = aDownloadRequestFilename;
 
   // Step 16
-  if (apiMethodTracker) {
-    init.mInfo = apiMethodTracker->mInfo;
-  }
+  // init.mInfo = std::move(apiMethodTracker->mInfo);
 
   // Step 17
   init.mHasUAVisualTransition =
@@ -952,7 +908,7 @@ bool Navigation::InnerFireNavigateEvent(
 
               // Step 7
               if (apiMethodTracker) {
-                apiMethodTracker->ResolveFinishedPromise();
+                apiMethodTracker->mFinishedPromise->MaybeResolveWithUndefined();
               }
 
               // Step 8
@@ -1015,7 +971,7 @@ bool Navigation::InnerFireNavigateEvent(
 
   // Step 35
   if (apiMethodTracker) {
-    apiMethodTracker->CleanUp();
+    CleanUp(apiMethodTracker);
   }
 
   // Step 37 and step 38
@@ -1123,7 +1079,7 @@ void Navigation::AbortOngoingNavigation(JSContext* aCx,
 
   // Step 11
   if (mOngoingAPIMethodTracker) {
-    mOngoingAPIMethodTracker->RejectFinishedPromise(error);
+    mOngoingAPIMethodTracker->mFinishedPromise->MaybeReject(error);
   }
 
   // Step 12
