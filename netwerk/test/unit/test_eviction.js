@@ -191,7 +191,7 @@ function set_cookies(begin, end, expiry) {
   let beginTime;
   for (let i = begin; i < end; ++i) {
     let host = "eviction." + i + ".tests";
-    Services.cookies.add(
+    const cv = Services.cookies.add(
       host,
       "",
       "test",
@@ -204,6 +204,7 @@ function set_cookies(begin, end, expiry) {
       Ci.nsICookie.SAMESITE_NONE,
       Ci.nsICookie.SCHEME_HTTPS
     );
+    Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 
     if (i == begin) {
       beginTime = get_creationTime(i);

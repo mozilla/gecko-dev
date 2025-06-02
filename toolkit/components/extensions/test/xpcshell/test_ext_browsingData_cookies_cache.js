@@ -25,7 +25,7 @@ const COOKIE_ORG = {
 let since, oldCookie;
 
 function addCookie(cookie) {
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     cookie.host,
     cookie.path,
     cookie.name,
@@ -38,6 +38,7 @@ function addCookie(cookie) {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.strictEqual(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
   ok(
     Services.cookies.cookieExists(cookie.host, cookie.path, cookie.name, {}),
     `Cookie ${cookie.name} was created.`

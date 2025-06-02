@@ -712,19 +712,31 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
                    bool aIsSecure, bool aIsHttpOnly, bool aIsSession,
                    int64_t aExpiry, JS::Handle<JS::Value> aOriginAttributes,
                    int32_t aSameSite, nsICookie::schemeType aSchemeMap,
-                   bool aIsPartitioned, JSContext* aCx) {
+                   bool aIsPartitioned, JSContext* aCx,
+                   nsICookieValidation** aValidation) {
+  NS_ENSURE_ARG_POINTER(aCx);
+  NS_ENSURE_ARG_POINTER(aValidation);
+
   OriginAttributes attrs;
 
   if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  // TODO: expose this!
   nsCOMPtr<nsICookieValidation> validation;
-  return AddNative(nullptr, aHost, aPath, aName, aValue, aIsSecure, aIsHttpOnly,
-                   aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap,
-                   aIsPartitioned, /* from-http: */ true, nullptr,
-                   getter_AddRefs(validation));
+  nsresult rv = AddNative(nullptr, aHost, aPath, aName, aValue, aIsSecure,
+                          aIsHttpOnly, aIsSession, aExpiry, &attrs, aSameSite,
+                          aSchemeMap, aIsPartitioned, /* from-http: */ true,
+                          nullptr, getter_AddRefs(validation));
+  if (rv != NS_ERROR_ILLEGAL_VALUE || !validation ||
+      CookieValidation::Cast(validation)->Result() ==
+          nsICookieValidation::eOK) {
+    validation.forget(aValidation);
+    return rv;
+  }
+
+  validation.forget(aValidation);
+  return NS_OK;
 }
 
 NS_IMETHODIMP_(nsresult)
@@ -736,6 +748,8 @@ CookieService::AddNative(nsIURI* aCookieURI, const nsACString& aHost,
                          nsICookie::schemeType aSchemeMap, bool aIsPartitioned,
                          bool aFromHttp, const nsID* aOperationID,
                          nsICookieValidation** aValidation) {
+  NS_ENSURE_ARG_POINTER(aValidation);
+
   if (NS_WARN_IF(!aOriginAttributes)) {
     return NS_ERROR_FAILURE;
   }

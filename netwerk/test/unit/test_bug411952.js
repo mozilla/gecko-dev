@@ -6,7 +6,7 @@ function run_test() {
     Assert.notEqual(cm, null, "Retrieving the cookie manager failed");
 
     const time = new Date("Jan 1, 2030").getTime() / 1000;
-    cm.add(
+    const cv = cm.add(
       "example.com",
       "/",
       "C",
@@ -19,6 +19,7 @@ function run_test() {
       Ci.nsICookie.SAMESITE_NONE,
       Ci.nsICookie.SCHEME_HTTPS
     );
+    Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
     const now = Math.floor(new Date().getTime() / 1000);
 
     var found = false;

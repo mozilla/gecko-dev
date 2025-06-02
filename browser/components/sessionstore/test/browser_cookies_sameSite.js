@@ -24,7 +24,7 @@ async function verifyRestore(url, sameSiteSetting) {
 
   // Add a cookie with specific same-site setting.
   let r = Math.floor(Math.random() * MAX_EXPIRY);
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     url,
     "/",
     "name" + r,
@@ -39,6 +39,8 @@ async function verifyRestore(url, sameSiteSetting) {
       ? Ci.nsICookie.SCHEME_HTTPS
       : Ci.nsICookie.SCHEME_HTTP
   );
+  is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
+
   await TabStateFlusher.flush(tab.linkedBrowser);
 
   // Get the sessionstore state for the window.

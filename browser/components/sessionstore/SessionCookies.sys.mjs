@@ -71,7 +71,7 @@ var SessionCookiesInternal = {
           cookie.originAttributes?.partitionKey?.length > 0;
 
         try {
-          Services.cookies.add(
+          const cv = Services.cookies.add(
             cookie.host,
             cookie.path || "",
             cookie.name || "",
@@ -85,6 +85,13 @@ var SessionCookiesInternal = {
             cookie.schemeMap || Ci.nsICookie.SCHEME_HTTPS,
             isPartitioned
           );
+          if (cv.result !== Ci.nsICookieValidation.eOK) {
+            console.error(
+              `CookieService::Add failed with error '${cv.result}' for cookie ${JSON.stringify(
+                cookie
+              )}.`
+            );
+          }
         } catch (ex) {
           console.error(
             `CookieService::Add failed with error '${ex}' for cookie ${JSON.stringify(

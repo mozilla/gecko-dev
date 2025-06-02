@@ -733,6 +733,8 @@ this.cookies = class extends ExtensionAPIPersistent {
             isPartitioned
           );
 
+          // TODO: This requires a separate patch
+
           return self.cookies.get(details);
         },
 

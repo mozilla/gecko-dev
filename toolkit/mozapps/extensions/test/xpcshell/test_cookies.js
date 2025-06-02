@@ -52,7 +52,7 @@ add_task(async function test_cookies() {
   const COOKIE = "test";
   // cookies.add() takes a time in seconds
   let expiration = Date.now() / 1000 + 60 * 60;
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     "example.com",
     "/",
     COOKIE,
@@ -65,6 +65,7 @@ add_task(async function test_cookies() {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTP
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 
   await promiseStartupManager();
 

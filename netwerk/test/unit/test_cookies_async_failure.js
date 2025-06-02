@@ -140,7 +140,7 @@ async function run_test_1() {
   db.close();
 
   // Attempt to insert a cookie with the same (name, host, path) triplet.
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     cookie.host,
     cookie.path,
     cookie.name,
@@ -153,6 +153,7 @@ async function run_test_1() {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 
   // Check that the cookie service accepted the new cookie.
   Assert.equal(Services.cookies.countCookiesFromHost(cookie.host), 1);

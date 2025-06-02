@@ -67,7 +67,7 @@ function* do_run_test() {
   // Test that expired cookies for a domain are evicted before live ones.
   let shortExpiry = Math.floor(Date.now() / 1000 + 2);
   setCookies("captchart.com", 49, futureExpiry);
-  Services.cookies.add(
+  let cv = Services.cookies.add(
     "captchart.com",
     "",
     "test100",
@@ -80,11 +80,13 @@ function* do_run_test() {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
+
   do_timeout(2100, continue_test);
   yield;
 
   Assert.equal(countCookies("captchart.com", "captchart.com"), 50);
-  Services.cookies.add(
+  cv = Services.cookies.add(
     "captchart.com",
     "",
     "test200",
@@ -97,6 +99,8 @@ function* do_run_test() {
     Ci.nsICookie.SAMESITE_NONE,
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
+
   Assert.equal(countCookies("captchart.com", "captchart.com"), 50);
 
   for (let cookie of Services.cookies.getCookiesFromHost("captchart.com", {})) {
@@ -109,7 +113,7 @@ function* do_run_test() {
 // set 'aNumber' cookies with host 'aHost', with distinct names.
 function setCookies(aHost, aNumber, aExpiry) {
   for (let i = 0; i < aNumber; ++i) {
-    Services.cookies.add(
+    const cv = Services.cookies.add(
       aHost,
       "",
       "test" + i,
@@ -122,6 +126,7 @@ function setCookies(aHost, aNumber, aExpiry) {
       Ci.nsICookie.SAMESITE_NONE,
       Ci.nsICookie.SCHEME_HTTPS
     );
+    Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
   }
 }
 

@@ -133,18 +133,18 @@ interface nsICookieManager : nsISupports
    *        true if the cookie should be stored with the Partitioned attribute.
    */
   [implicit_jscontext]
-  void add(in AUTF8String aHost,
-           in AUTF8String aPath,
-           in ACString    aName,
-           in AUTF8String aValue,
-           in boolean     aIsSecure,
-           in boolean     aIsHttpOnly,
-           in boolean     aIsSession,
-           in int64_t     aExpiry,
-           in jsval aOriginAttributes,
-           in int32_t aSameSite,
-           in nsICookie_schemeType aSchemeMap,
-           [optional] in boolean aIsPartitioned);
+  nsICookieValidation add(in AUTF8String aHost,
+                          in AUTF8String aPath,
+                          in ACString    aName,
+                          in AUTF8String aValue,
+                          in boolean     aIsSecure,
+                          in boolean     aIsHttpOnly,
+                          in boolean     aIsSession,
+                          in int64_t     aExpiry,
+                          in jsval aOriginAttributes,
+                          in int32_t aSameSite,
+                          in nsICookie_schemeType aSchemeMap,
+                          [optional] in boolean aIsPartitioned);
 
   /**
    * This method is the non-xpcom version of add(). In case of an invalid

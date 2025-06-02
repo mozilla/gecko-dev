@@ -55,7 +55,7 @@ add_task(async function test_purge_counting_per_host() {
   Assert.equal(validCookies, cookieCountMax);
 
   // add a cookie - this will trigger the purge
-  Services.cookies.add(
+  const cv = Services.cookies.add(
     host,
     "/", // path
     "cookie-name-x",
@@ -68,6 +68,7 @@ add_task(async function test_purge_counting_per_host() {
     Ci.nsICookie.SAMESITE_NONE, // SameSite
     Ci.nsICookie.SCHEME_HTTPS
   );
+  Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
 
   // check that we purge down to the cookieMax (plus the cookie added)
   validCookies = Services.cookies.countCookiesFromHost(host);
