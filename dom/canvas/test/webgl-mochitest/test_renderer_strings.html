@@ -55,6 +55,7 @@ async function testKnownCiStrings() {
     renderer: [
       'Adreno (TM) 540', // Android
       'Adreno (TM) 650', // Android pixel5
+      'ANGLE (Samsung Xclipse 920) on Vulkan', // Android a55
       'llvmpipe', // Linux
       'Intel(R) HD Graphics 400', // Mac
       'Apple M1', // Mac
@@ -68,6 +69,7 @@ async function testKnownCiStrings() {
     unmasked_renderer: [
       'Adreno (TM) 540', // Android
       'Adreno (TM) 620', // Android pixel5
+      'ANGLE (Samsung Xclipse 530) on Vulkan 1.3.231', // Android a55
       'llvmpipe (LLVM 10.0.0, 256 bits)', // Linux (Ubuntu 18.04)
       'llvmpipe (LLVM 17.0.6, 256 bits)', // Linux (Ubuntu 24.04)
       'llvmpipe (LLVM 19.1.1, 256 bits)', // Linux (Ubuntu 24.04.2)
@@ -81,6 +83,7 @@ async function testKnownCiStrings() {
     ],
     unmasked_vendor: [
       'Qualcomm', // Android
+      'Samsung Electronics Co., Ltd.', // Android
       'VMware, Inc.', // Linux
       'Mesa', // Linux
       'Intel Inc.', // Mac

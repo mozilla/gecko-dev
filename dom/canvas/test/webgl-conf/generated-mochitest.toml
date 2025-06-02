@@ -5224,7 +5224,11 @@ fail-if = ["true"]
 
 ["generated/test_2_conformance2__attribs__gl-bindAttribLocation-aliasing-inactive.html"]
 subsuite = "webgl2-core"
-fail-if = ["os != 'win'"]
+fail-if = [
+  "os == 'linux'",
+  "os == 'mac'",
+  "os == 'android' && android_version == '33'",
+]
 
 ["generated/test_2_conformance2__attribs__gl-vertex-attrib-i-render.html"]
 subsuite = "webgl2-core"
@@ -5670,6 +5674,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'win'",
+  "os == 'android' && android_version == '34'",
 ]
 
 ["generated/test_2_conformance2__misc__views-with-offsets.html"]
@@ -5713,7 +5718,7 @@ subsuite = "webgl2-core"
 
 ["generated/test_2_conformance2__programs__gl-get-frag-data-location.html"]
 subsuite = "webgl2-core"
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["generated/test_2_conformance2__programs__sampler-uniforms.html"]
 subsuite = "webgl2-core"
@@ -5863,7 +5868,10 @@ subsuite = "webgl2-core"
 
 ["generated/test_2_conformance2__rendering__draw-buffers-sparse-output-locations.html"]
 subsuite = "webgl2-core"
-skip-if = ["os == 'win'"]
+skip-if = [
+  "os == 'win'",
+  "os == 'android' && android_version == '34'",
+]
 
 ["generated/test_2_conformance2__rendering__draw-buffers.html"]
 subsuite = "webgl2-core"
@@ -8358,6 +8366,7 @@ subsuite = "webgl2-core"
 skip-if = [
   "os == 'linux'",
   "os == 'win'",
+  "os == 'android' && android_version == '34'",
 ]
 
 ["generated/test_2_conformance2__textures__misc__copy-texture-image-webgl-specific.html"]
@@ -8375,14 +8384,17 @@ subsuite = "webgl2-core"
 ["generated/test_2_conformance2__textures__misc__immutable-tex-render-feedback.html"]
 subsuite = "webgl2-core"
 fail-if = [
-  "os == 'android'",
+  "os == 'android' && android_version == '33'",
   "os == 'linux'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
-skip-if = ["os == 'linux' && debug"]
+skip-if = [
+  "os == 'linux' && debug",
+  "os == 'android' && android_version == '34' && debug",
+]
 
 ["generated/test_2_conformance2__textures__misc__integer-cubemap-specification-order-bug.html"]
 subsuite = "webgl2-core"
@@ -11360,7 +11372,7 @@ subsuite = "webgl2-core"
 
 ["generated/test_2_conformance__rendering__blending.html"]
 subsuite = "webgl2-core"
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["generated/test_2_conformance__rendering__canvas-alpha-bug.html"]
 subsuite = "webgl2-core"
@@ -14758,7 +14770,7 @@ subsuite = "webgl1-core"
 
 ["generated/test_conformance__extensions__ext-sRGB.html"]
 subsuite = "webgl1-core"
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["generated/test_conformance__extensions__ext-shader-texture-lod.html"]
 subsuite = "webgl1-core"
@@ -14866,6 +14878,7 @@ subsuite = "webgl1-core"
 
 ["generated/test_conformance__extensions__webgl-depth-texture.html"]
 subsuite = "webgl1-core"
+skip-if = ["os == 'android' && android_version == '34'"]
 
 ["generated/test_conformance__extensions__webgl-draw-buffers-broadcast-return.html"]
 subsuite = "webgl1-core"
@@ -16700,7 +16713,7 @@ subsuite = "webgl1-core"
 
 ["generated/test_conformance__rendering__blending.html"]
 subsuite = "webgl1-core"
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["generated/test_conformance__rendering__canvas-alpha-bug.html"]
 subsuite = "webgl1-core"
@@ -17289,8 +17302,9 @@ subsuite = "webgl1-core"
 skip-if = [
   "win11_2009", # win11 - 50/50 intermittent
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # win11 - 50/50 intermittent
-  "os == 'android' && android_version == '33'", #Bug 1873144
-  ]
+  "os == 'android' && android_version == '33'", # Bug 1873144
+  "os == 'android' && android_version == '34'", # Bug 1873144
+]
 
 ["generated/test_conformance__textures__misc__texture-npot.html"]
 subsuite = "webgl1-core"

@@ -34,7 +34,7 @@ fail-if = ["true"]
 ["ensure-exts/test_EXT_sRGB.html"]
 
 ["ensure-exts/test_EXT_shader_texture_lod.html"]
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["ensure-exts/test_EXT_texture_compression_bptc.html"]
 fail-if = [
@@ -126,12 +126,12 @@ fail-if = [
 ]
 
 ["ensure-exts/test_WEBGL_compressed_texture_s3tc.html"]
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["ensure-exts/test_WEBGL_depth_texture.html"]
 
 ["ensure-exts/test_WEBGL_draw_buffers.html"]
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["ensure-exts/test_WEBGL_provoking_vertex.html"]
 fail-if = [
@@ -153,6 +153,7 @@ fail-if = [
 
 ["test_backends.html"]
 tags = "os_integration"
+skip-if = ["os == 'android' && android_version == '34'"]
 
 ["test_canvas_size.html"]
 
@@ -209,6 +210,7 @@ skip-if = [
   "win11_2009", # Unofficial DXGL support regressed by bug 1632249
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
+  "os == 'android' && android_version == '34'",
 ]
 
 ["test_privileged_exts.html"]

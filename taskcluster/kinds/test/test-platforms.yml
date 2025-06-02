@@ -442,21 +442,6 @@ android-hw-p5-13-0-arm7-qr/debug:
     test-sets:
         - android-hw-arm7-debug-unittests
 
-android-hw-p5-13-0-android-aarch64-qr/debug:
-    build-platform: android-aarch64/debug
-    test-sets:
-        - android-hw-p5-aarch64
-
-android-hw-p5-13-0-android-aarch64-qr/opt:
-    build-platform: android-aarch64/opt
-    test-sets:
-        - android-hw-p5-aarch64
-
-android-hw-p5-13-0-android-aarch64-shippable-qr/opt:
-    build-platform: android-aarch64-shippable/opt
-    test-sets:
-        - android-hw-p5-aarch64
-
 android-hw-p6-13-0-aarch64-shippable/opt:
     build-platform: android-aarch64-shippable/opt
     test-sets:

@@ -527,8 +527,6 @@ android-hw-aarch64:
     - crashtest-qr
     - reftest-qr
     - mochitest-media
-
-android-hw-p5-aarch64:
     - mochitest-webgl1-core
     - mochitest-webgl1-ext
     - mochitest-webgl2-core

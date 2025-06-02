@@ -8,6 +8,7 @@
 # android_version strings
 #   https://en.wikipedia.org/wiki/Android_version_history
 #   * Android           13.0: 33 (pixel 5 phones)
+#   * Android           14.0: 34 (samsung a55 phones)
 
 ##########
 # os_version strings
@@ -139,14 +140,15 @@ fail-if = [
 
 ["generated/test_2_conformance2__programs__gl-get-frag-data-location.html"]
 # gl.getFragDataLocation(programEs2, 'gl_FragColor') should be -1. Was 0.
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["generated/test_conformance__textures__misc__texture-npot-video.html"]
 skip-if = [
   "win11_2009", # win11 - 50/50 intermittent
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # win11 - 50/50 intermittent
-  "os == 'android' && android_version == '33'", #Bug 1873144
-  ]
+  "os == 'android' && android_version == '33'", # Bug 1873144
+  "os == 'android' && android_version == '34'", # Bug 1873144
+]
 ####################
 # Bugs surfaced during fx93 CTS update
 
@@ -168,7 +170,10 @@ fail-if = ["true"]
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1726624
 # Flakey?
 # check COLOR_ATTACHMENT0
-skip-if = ["os == 'win'"]
+skip-if = [
+  "os == 'win'",
+  "os == 'android' && android_version == '34'",
+]
 
 # -
 # Platform-specific
@@ -190,7 +195,7 @@ fail-if = ["os == 'win'"]
 ["generated/test_2_conformance2__textures__misc__immutable-tex-render-feedback.html"]
 # E.g. getError expected: NO_ERROR. Was INVALID_VALUE : after draw with texture
 fail-if = [
-  "os == 'android'",
+  "os == 'android' && android_version == '33'",
   "os == 'linux'",
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
@@ -198,7 +203,10 @@ fail-if = [
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'",
 ]
 # Assertion failure: [GFX1]: void mozilla::gl::GLContext::fFramebufferTexture2D(GLenum, GLenum, GLenum, GLuint, GLint): Generated unexpected GL_INVALID_VALUE error
-skip-if = ["os == 'linux' && debug"]
+skip-if = [
+  "os == 'linux' && debug",
+  "os == 'android' && android_version == '34' && debug",
+]
 
 ["generated/test_conformance__glsl__bugs__vector-matrix-constructor-scalarization.html"]
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1725075
@@ -397,7 +405,11 @@ skip-if = ["true"]
 skip-if = ["true"]
 
 ["generated/test_2_conformance2__attribs__gl-bindAttribLocation-aliasing-inactive.html"]
-fail-if = ["os != 'win'"]
+fail-if = [
+  "os == 'linux'",
+  "os == 'mac'",
+  "os == 'android' && android_version == '33'",
+]
 
 ["generated/test_conformance__textures__misc__texture-corner-case-videos.html"]
 # Timeout. Bug 1599937 - test fails consistently on ubuntu1804.
@@ -541,6 +553,9 @@ fail-if = [
 ########################################################################
 # Complicated
 
+["generated/test_conformance__extensions__webgl-depth-texture.html"]
+skip-if = ["os == 'android' && android_version == '34'"]
+
 ["generated/test_conformance__ogles__GL__abs__abs_001_to_006.html"]
 # Test suite terminates, e.g. at pixel @ (412, 253 was [191,0,0,255] expected [98,0,0,255]. Bug 1897792
 skip-if = ["os == 'android' && debug"]
@@ -654,6 +669,7 @@ skip-if = [
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'win'",
+  "os == 'android' && android_version == '34'",
 ]
 
 ["generated/test_2_conformance__misc__bad-arguments-test.html"]
@@ -900,6 +916,7 @@ fail-if = [
 skip-if = [
   "os == 'linux'",
   "os == 'win'",
+  "os == 'android' && android_version == '34'",
 ]
 
 ["generated/test_conformance__rendering__rendering-stencil-large-viewport.html"]
@@ -1291,7 +1308,7 @@ skip-if = ["os == 'android'"]
 ["generated/test_2_conformance2__renderbuffers__multisampled-renderbuffer-initialization.html"]
 
 ["generated/test_conformance__extensions__ext-sRGB.html"]
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["generated/test_2_conformance__extensions__webgl-compressed-texture-astc.html"]
 skip-if = ["os == 'android' && debug"]
@@ -1446,10 +1463,10 @@ fail-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && d
 ["generated/test_conformance__rendering__blending.html"]
 # Android 13.0 Pixel5 AArch64
 # dom/canvas/test/webgl-conf/generated/test_conformance__rendering__blending.html | Expected [100,2,3,4], was [1,2,3,4]
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["generated/test_2_conformance__rendering__blending.html"]
-fail-if = ["os == 'android'"]
+fail-if = ["os == 'android' && android_version == '33'"]
 
 ["generated/test_2_conformance2__glsl3__valid-invariant.html"]
 fail-if = ["os == 'linux' && os_version == '18.04' && display != 'wayland'"]
