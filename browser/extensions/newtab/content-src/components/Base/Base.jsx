@@ -521,9 +521,23 @@ export class BaseContent extends React.PureComponent {
   }
 
   toggleDownloadHighlight() {
-    this.setState(prevState => ({
-      showDownloadHighlight: !prevState.showDownloadHighlight,
-    }));
+    this.setState(
+      prevState => ({
+        showDownloadHighlight: !prevState.showDownloadHighlight,
+      }),
+      () => {
+        if (this.state.showDownloadHighlight) {
+          // Emit an open event manually, as the QR modal is toggled outside the OMC-managed flow.
+          this.props.dispatch(
+            ac.DiscoveryStreamUserEvent({
+              event: "FEATURE_HIGHLIGHT_OPEN",
+              source: "FEATURE_HIGHLIGHT",
+              value: "FEATURE_DOWNLOAD_MOBILE_PROMO",
+            })
+          );
+        }
+      }
+    );
   }
 
   handleDismissDownloadHighlight() {

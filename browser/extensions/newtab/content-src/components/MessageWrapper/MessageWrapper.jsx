@@ -7,6 +7,10 @@ import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
 import { useSelector } from "react-redux";
 import { useIntersectionObserver } from "../../lib/utils";
 
+// Note: MessageWrapper emits events via submitGleanPingForPing() in the OMC messaging-system.
+// If a feature is triggered outside of this flow (e.g., the Mobile Download QR Promo),
+// it should emit New Tab-specific Glean events independently.
+
 function MessageWrapper({ children, dispatch, hiddenOverride, onDismiss }) {
   const message = useSelector(state => state.Messages);
   const [isIntersecting, setIsIntersecting] = useState(false);

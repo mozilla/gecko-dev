@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+import { actionCreators as ac } from "common/Actions.mjs";
 import { FeatureHighlight } from "./FeatureHighlight";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { useSelector } from "react-redux";
 
 const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_A =
@@ -13,16 +14,43 @@ const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_B =
 const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_C =
   "mobileDownloadModal.variant-c";
 
+const FEATURE_ID = "FEATURE_DOWNLOAD_MOBILE_PROMO";
+
 export function DownloadMobilePromoHighlight({
   position,
   dispatch,
   handleDismiss,
   handleBlock,
+  isIntersecting,
 }) {
   const onDismiss = useCallback(() => {
+    // This event is emitted manually because the feature may be triggered outside the OMC flow,
+    // and may not be captured by the messaging-system’s automatic reporting.
+    dispatch(
+      ac.DiscoveryStreamUserEvent({
+        event: "FEATURE_HIGHLIGHT_DISMISS",
+        source: "FEATURE_HIGHLIGHT",
+        value: FEATURE_ID,
+      })
+    );
+
     handleDismiss();
     handleBlock();
-  }, [handleDismiss, handleBlock]);
+  }, [dispatch, handleDismiss, handleBlock]);
+
+  useEffect(() => {
+    if (isIntersecting) {
+      // This event is emitted manually because the feature may be triggered outside the OMC flow,
+      // and may not be captured by the messaging-system’s automatic reporting.
+      dispatch(
+        ac.DiscoveryStreamUserEvent({
+          event: "FEATURE_HIGHLIGHT_IMPRESSION",
+          source: "FEATURE_HIGHLIGHT",
+          value: FEATURE_ID,
+        })
+      );
+    }
+  }, [dispatch, isIntersecting]);
 
   const prefs = useSelector(state => state.Prefs.values);
   const mobileDownloadPromoVarA =
@@ -77,7 +105,7 @@ export function DownloadMobilePromoHighlight({
     <div className="download-firefox-feature-highlight">
       <FeatureHighlight
         position={position}
-        feature="FEATURE_DOWNLOAD_MOBILE_PROMO"
+        feature={FEATURE_ID}
         dispatch={dispatch}
         message={
           <div className="download-firefox-feature-highlight-content">

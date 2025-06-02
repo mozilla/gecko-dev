@@ -11170,6 +11170,11 @@ const PersonalizedCard = ({
 
 
 
+
+// Note: MessageWrapper emits events via submitGleanPingForPing() in the OMC messaging-system.
+// If a feature is triggered outside of this flow (e.g., the Mobile Download QR Promo),
+// it should emit New Tab-specific Glean events independently.
+
 function MessageWrapper({
   children,
   dispatch,
@@ -14160,19 +14165,40 @@ function TopicSelection({
 
 
 
+
 const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_A = "mobileDownloadModal.variant-a";
 const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_B = "mobileDownloadModal.variant-b";
 const PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_C = "mobileDownloadModal.variant-c";
+const FEATURE_ID = "FEATURE_DOWNLOAD_MOBILE_PROMO";
 function DownloadMobilePromoHighlight({
   position,
   dispatch,
   handleDismiss,
-  handleBlock
+  handleBlock,
+  isIntersecting
 }) {
   const onDismiss = (0,external_React_namespaceObject.useCallback)(() => {
+    // This event is emitted manually because the feature may be triggered outside the OMC flow,
+    // and may not be captured by the messaging-system’s automatic reporting.
+    dispatch(actionCreators.DiscoveryStreamUserEvent({
+      event: "FEATURE_HIGHLIGHT_DISMISS",
+      source: "FEATURE_HIGHLIGHT",
+      value: FEATURE_ID
+    }));
     handleDismiss();
     handleBlock();
-  }, [handleDismiss, handleBlock]);
+  }, [dispatch, handleDismiss, handleBlock]);
+  (0,external_React_namespaceObject.useEffect)(() => {
+    if (isIntersecting) {
+      // This event is emitted manually because the feature may be triggered outside the OMC flow,
+      // and may not be captured by the messaging-system’s automatic reporting.
+      dispatch(actionCreators.DiscoveryStreamUserEvent({
+        event: "FEATURE_HIGHLIGHT_IMPRESSION",
+        source: "FEATURE_HIGHLIGHT",
+        value: FEATURE_ID
+      }));
+    }
+  }, [dispatch, isIntersecting]);
   const prefs = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.Prefs.values);
   const mobileDownloadPromoVarA = prefs[PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_A];
   const mobileDownloadPromoVarB = prefs[PREF_MOBILE_DOWNLOAD_HIGHLIGHT_VARIANT_B];
@@ -14219,7 +14245,7 @@ function DownloadMobilePromoHighlight({
     className: "download-firefox-feature-highlight"
   }, /*#__PURE__*/external_React_default().createElement(FeatureHighlight, {
     position: position,
-    feature: "FEATURE_DOWNLOAD_MOBILE_PROMO",
+    feature: FEATURE_ID,
     dispatch: dispatch,
     message: /*#__PURE__*/external_React_default().createElement("div", {
       className: "download-firefox-feature-highlight-content"
@@ -14764,7 +14790,16 @@ class BaseContent extends (external_React_default()).PureComponent {
   toggleDownloadHighlight() {
     this.setState(prevState => ({
       showDownloadHighlight: !prevState.showDownloadHighlight
-    }));
+    }), () => {
+      if (this.state.showDownloadHighlight) {
+        // Emit an open event manually, as the QR modal is toggled outside the OMC-managed flow.
+        this.props.dispatch(actionCreators.DiscoveryStreamUserEvent({
+          event: "FEATURE_HIGHLIGHT_OPEN",
+          source: "FEATURE_HIGHLIGHT",
+          value: "FEATURE_DOWNLOAD_MOBILE_PROMO"
+        }));
+      }
+    });
   }
   handleDismissDownloadHighlight() {
     this.setState({
