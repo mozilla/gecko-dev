@@ -272,7 +272,7 @@ export class WeatherSuggestions extends SuggestProvider {
         {
           url: merinoSuggestion.url,
           titleL10n: {
-            id: "firefox-suggest-weather-title-simplest",
+            id: "urlbar-result-weather-title",
             args: {
               temperature:
                 merinoSuggestion.current_conditions.temperature[unit],
@@ -285,7 +285,7 @@ export class WeatherSuggestions extends SuggestProvider {
             excludeArgsFromCacheKey: true,
           },
           bottomTextL10n: {
-            id: "firefox-suggest-weather-sponsored",
+            id: "urlbar-result-weather-provider-sponsored",
             args: { provider: WEATHER_PROVIDER_DISPLAY_NAME },
             cacheable: true,
           },
@@ -403,7 +403,7 @@ export class WeatherSuggestions extends SuggestProvider {
       },
       bottom: {
         l10n: {
-          id: "firefox-suggest-weather-sponsored",
+          id: "urlbar-result-weather-provider-sponsored",
           args: { provider: WEATHER_PROVIDER_DISPLAY_NAME },
           cacheable: true,
         },

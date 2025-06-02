@@ -1041,7 +1041,7 @@ class _QuickSuggestTestUtils {
       payload: {
         url: lazy.MerinoTestUtils.WEATHER_SUGGESTION.url,
         titleL10n: {
-          id: "firefox-suggest-weather-title-simplest",
+          id: "urlbar-result-weather-title",
           args: {
             temperature:
               lazy.MerinoTestUtils.WEATHER_SUGGESTION.current_conditions
@@ -1056,7 +1056,7 @@ class _QuickSuggestTestUtils {
           excludeArgsFromCacheKey: true,
         },
         bottomTextL10n: {
-          id: "firefox-suggest-weather-sponsored",
+          id: "urlbar-result-weather-provider-sponsored",
           args: { provider: "AccuWeather®" },
           cacheable: true,
         },
