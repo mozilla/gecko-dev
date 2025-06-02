@@ -40,6 +40,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
+import org.mozilla.fenix.components.toolbar.BrowserToolbarComposable
 import org.mozilla.fenix.components.toolbar.BrowserToolbarView
 import org.mozilla.fenix.components.toolbar.FenixBrowserToolbarView
 import org.mozilla.fenix.components.toolbar.ToolbarMenu
@@ -111,6 +112,10 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 feltPrivateBrowsingEnabled = context.settings().feltPrivateBrowsingEnabled,
             )
             initBrowserToolbarViewActions(view)
+        } else {
+            (browserToolbarView as? BrowserToolbarComposable)?.let {
+                initBrowserToolbarComposableUpdates(view)
+            }
         }
 
         thumbnailsFeature.set(
@@ -150,6 +155,10 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
         initReaderMode(rootView.context, rootView)
         initTranslationsAction(rootView.context, rootView)
         initSharePageAction(rootView.context)
+    }
+
+    private fun initBrowserToolbarComposableUpdates(rootView: View) {
+        initTranslationsUpdates(rootView.context, rootView)
     }
 
     private fun initSharePageAction(context: Context) {
@@ -218,6 +227,21 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                     }
                 },
                 onShowTranslationsDialog = browserToolbarInteractor::onTranslationsButtonClicked,
+            ),
+            owner = this,
+            view = view,
+        )
+    }
+
+    private fun initTranslationsUpdates(context: Context, view: View) {
+        if (!FxNimbus.features.translations.value().mainFlowToolbarEnabled) return
+
+        translationsBinding.set(
+            feature = TranslationsBinding(
+                browserStore = context.components.core.store,
+                browserScreenStore = browserScreenStore,
+                appStore = context.components.appStore,
+                navController = findNavController(),
             ),
             owner = this,
             view = view,

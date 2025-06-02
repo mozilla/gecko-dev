@@ -14,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavController
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
@@ -33,6 +34,7 @@ import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.P
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.BrowserActionsStartUpdated
+import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.PageActionsEndUpdated
 import mozilla.components.compose.browser.toolbar.store.BrowserDisplayToolbarAction.UpdateProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarAction.ToggleEditMode
@@ -46,10 +48,13 @@ import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.components.lib.state.State
+import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.components.support.utils.ClipboardHandler
+import org.mozilla.fenix.GleanMetrics.Translations
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.BrowserAnimator.Companion.getToolbarNavOptions
@@ -63,19 +68,23 @@ import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
+import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction.SnackbarDismissed
 import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
 import org.mozilla.fenix.ext.nav
+import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.tabstray.ext.isActiveDownload
 import org.mozilla.fenix.utils.Settings
+import mozilla.components.lib.state.Action as MVIAction
 import mozilla.components.ui.icons.R as iconsR
 
 @VisibleForTesting
@@ -92,8 +101,14 @@ internal sealed class TabCounterInteractions : BrowserToolbarEvent {
     data object CloseCurrentTab : TabCounterInteractions()
 }
 
+@VisibleForTesting
 internal sealed class PageOriginInteractions : BrowserToolbarEvent {
     data object OriginClicked : PageOriginInteractions()
+}
+
+@VisibleForTesting
+internal sealed class PageEndActionsInteractions : BrowserToolbarEvent {
+    data object TranslateClicked : PageEndActionsInteractions()
 }
 
 /**
@@ -127,11 +142,12 @@ class BrowserToolbarMiddleware(
     fun updateLifecycleDependencies(dependencies: LifecycleDependencies) {
         this.dependencies = dependencies
 
-        updateProgressBar()
+        observeProgressBarUpdates()
         updateToolbarActionsBasedOnOrientation()
-        updateTabsCount()
+        observeTabsCountUpdates()
         observeAcceptingCancellingPrivateDownloads()
-        updatePageOrigin()
+        observePageOriginUpdates()
+        observePageTranslationsUpdates()
     }
 
     @Suppress("LongMethod")
@@ -262,6 +278,15 @@ class BrowserToolbarMiddleware(
                 }
             }
 
+            is TranslateClicked -> {
+                Translations.action.record(Translations.ActionExtra("main_flow_toolbar"))
+                appStore.dispatch(SnackbarDismissed)
+                dependencies.navController.navigateSafe(
+                    resId = R.id.browserFragment,
+                    directions = BrowserFragmentDirections.actionBrowserFragmentToTranslationsDialogFragment(),
+                )
+            }
+
             else -> next(action)
         }
     }
@@ -290,6 +315,28 @@ class BrowserToolbarMiddleware(
             onClick = HomeClicked,
         ),
     )
+
+    private fun updateEndPageActions() = store?.dispatch(
+        PageActionsEndUpdated(
+            buildEndPageActions(),
+        ),
+    )
+
+    private fun buildEndPageActions(): List<Action> {
+        val translationStatus = browserScreenStore.state.pageTranslationStatus
+        return when (translationStatus.isTranslationPossible) {
+            true -> listOf(
+                ActionButton(
+                    icon = R.drawable.mozac_ic_translate_24,
+                    contentDescription = R.string.browser_toolbar_translate,
+                    isActive = translationStatus.isTranslated,
+                    onClick = TranslateClicked,
+                ),
+            )
+
+            false -> emptyList()
+        }
+    }
 
     private fun buildEndBrowserActions(tabsCount: Int): List<Action> =
         listOf(
@@ -352,62 +399,42 @@ class BrowserToolbarMiddleware(
         )
     }
 
-    private fun updateProgressBar() {
-        with(dependencies.lifecycleOwner) {
-            lifecycleScope.launch {
-                repeatOnLifecycle(RESUMED) {
-                    browserStore.flow()
-                        .distinctUntilChangedBy { it.selectedTab?.content?.progress }
-                        .collect {
-                            store?.dispatch(
-                                UpdateProgressBarConfig(
-                                    buildProgressBar(it.selectedTab?.content?.progress ?: 0),
-                                ),
-                            )
-                        }
-                }
+    private fun observeProgressBarUpdates() {
+        observeWhileActive(browserStore) {
+            distinctUntilChangedBy { it.selectedTab?.content?.progress }
+            .collect {
+                store?.dispatch(
+                    UpdateProgressBarConfig(
+                        buildProgressBar(it.selectedTab?.content?.progress ?: 0),
+                    ),
+                )
             }
         }
     }
 
     private fun updateToolbarActionsBasedOnOrientation() {
-        with(dependencies.lifecycleOwner) {
-            lifecycleScope.launch {
-                repeatOnLifecycle(RESUMED) {
-                    appStore.flow()
-                        .distinctUntilChangedBy { it.orientation }
-                        .collect {
-                            updateEndBrowserActions()
-                        }
-                }
+        observeWhileActive(appStore) {
+            distinctUntilChangedBy { it.orientation }
+            .collect {
+                updateEndBrowserActions()
             }
         }
     }
 
-    private fun updateTabsCount() {
-        with(dependencies.lifecycleOwner) {
-            this.lifecycleScope.launch {
-                repeatOnLifecycle(RESUMED) {
-                    browserStore.flow()
-                        .distinctUntilChangedBy { it.tabs }
-                        .collect {
-                            updateEndBrowserActions()
-                        }
-                }
+    private fun observeTabsCountUpdates() {
+        observeWhileActive(browserStore) {
+            distinctUntilChangedBy { it.tabs }
+            .collect {
+                updateEndBrowserActions()
             }
         }
     }
 
-    private fun updatePageOrigin() {
-        with(dependencies.lifecycleOwner) {
-            this.lifecycleScope.launch {
-                repeatOnLifecycle(RESUMED) {
-                    browserStore.flow()
-                        .distinctUntilChangedBy { it.selectedTab?.content?.url }
-                        .collect {
-                            updateCurrentPageOrigin()
-                        }
-                }
+    private fun observePageOriginUpdates() {
+        observeWhileActive(browserStore) {
+            distinctUntilChangedBy { it.selectedTab?.content?.url }
+            .collect {
+                updateCurrentPageOrigin()
             }
         }
     }
@@ -430,16 +457,33 @@ class BrowserToolbarMiddleware(
     }
 
     private fun observeAcceptingCancellingPrivateDownloads() {
+        observeWhileActive(browserScreenStore) {
+            distinctUntilChangedBy { it.cancelPrivateDownloadsAccepted }
+            .collect {
+                if (it.cancelPrivateDownloadsAccepted) {
+                    store?.dispatch(CloseCurrentTab)
+                }
+            }
+        }
+    }
+
+    private fun observePageTranslationsUpdates() {
+        observeWhileActive(browserScreenStore) {
+            distinctUntilChangedBy { it.pageTranslationStatus }
+            .collect {
+                updateEndPageActions()
+            }
+        }
+    }
+
+    private inline fun <S : State, A : MVIAction> observeWhileActive(
+        store: Store<S, A>,
+        crossinline observe: suspend (Flow<S>.() -> Unit),
+    ) {
         with(dependencies.lifecycleOwner) {
             lifecycleScope.launch {
                 repeatOnLifecycle(RESUMED) {
-                    browserScreenStore.flow()
-                        .distinctUntilChangedBy { it.cancelPrivateDownloadsAccepted }
-                        .collect {
-                            if (it.cancelPrivateDownloadsAccepted) {
-                                store?.dispatch(CloseCurrentTab)
-                            }
-                        }
+                    store.flow().observe()
                 }
             }
         }

@@ -338,7 +338,7 @@ abstract class BaseBrowserFragment :
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     internal var webAppToolbarShouldBeVisible = true
 
-    private lateinit var browserScreenStore: BrowserScreenStore
+    protected lateinit var browserScreenStore: BrowserScreenStore
     private val homeViewModel: HomeScreenViewModel by activityViewModels()
 
     private var currentStartDownloadDialog: StartDownloadDialog? = null
@@ -1284,7 +1284,7 @@ abstract class BaseBrowserFragment :
         store: BrowserStore,
     ): BrowserToolbarComposable {
         val middleware = getOrCreate<BrowserScreenMiddleware>()
-        val browserScreenStore = StoreProvider.get(this) {
+        browserScreenStore = StoreProvider.get(this) {
             BrowserScreenStore(
                 middleware = listOf(middleware),
             )

@@ -9,6 +9,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.navigation.NavController
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDirections
 import androidx.navigation.NavOptions
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -63,17 +64,20 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.BrowserFragmentDirections
+import org.mozilla.fenix.browser.PageTranslationStatus
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.browsingmode.SimpleBrowsingModeManager
 import org.mozilla.fenix.browser.store.BrowserScreenAction.ClosingLastPrivateTab
+import org.mozilla.fenix.browser.store.BrowserScreenAction.PageTranslationStatusUpdated
 import org.mozilla.fenix.browser.store.BrowserScreenState
 import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.UseCases
 import org.mozilla.fenix.components.appstate.AppAction
 import org.mozilla.fenix.components.appstate.AppAction.CurrentTabClosed
+import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction.SnackbarDismissed
 import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.components.appstate.OrientationMode.Landscape
@@ -82,6 +86,7 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
@@ -137,7 +142,7 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
         val menuButton = toolbarBrowserActions[1] as ActionButton
-        assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
     }
 
@@ -159,7 +164,7 @@ class BrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(1), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(1), tabCounterButton)
     }
 
     @Test
@@ -183,7 +188,7 @@ class BrowserToolbarMiddlewareTest {
 
         val toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(2, true), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(2, true), tabCounterButton)
     }
 
     @Test
@@ -236,7 +241,7 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
         val menuButton = toolbarBrowserActions[1] as ActionButton
-        assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
     }
 
@@ -259,7 +264,7 @@ class BrowserToolbarMiddlewareTest {
         assertEquals(2, toolbarBrowserActions.size)
         val tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
         val menuButton = toolbarBrowserActions[1] as ActionButton
-        assertEqualsToolbarButton(expectedToolbarButton(), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(), tabCounterButton)
         assertEquals(expectedMenuButton, menuButton)
 
         // In portrait the navigation bar is displayed
@@ -285,7 +290,7 @@ class BrowserToolbarMiddlewareTest {
         var toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(2, toolbarBrowserActions.size)
         var tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(0), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(0), tabCounterButton)
 
         val newNormalTab = createTab("test.com", private = false)
         val newPrivateTab = createTab("test.com", private = true)
@@ -296,7 +301,7 @@ class BrowserToolbarMiddlewareTest {
         toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(2, toolbarBrowserActions.size)
         tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(1), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(1), tabCounterButton)
     }
 
     @Test
@@ -320,7 +325,7 @@ class BrowserToolbarMiddlewareTest {
         var toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(2, toolbarBrowserActions.size)
         var tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(1, true), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(1, true), tabCounterButton)
 
         browserStore.dispatch(RemoveTabAction(initialPrivateTab.id)).joinBlocking()
         testScheduler.advanceUntilIdle()
@@ -328,7 +333,7 @@ class BrowserToolbarMiddlewareTest {
         toolbarBrowserActions = toolbarStore.state.displayState.browserActionsEnd
         assertEquals(2, toolbarBrowserActions.size)
         tabCounterButton = toolbarBrowserActions[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(0, true), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(0, true), tabCounterButton)
     }
 
     @Test
@@ -454,7 +459,7 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(0, false), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(0, false), tabCounterButton)
         val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
 
         toolbarStore.dispatch((tabCounterMenuItems[0] as BrowserToolbarMenuButton).onClick!!)
@@ -682,7 +687,7 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(0, false), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(0, false), tabCounterButton)
         val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
 
         toolbarStore.dispatch((tabCounterMenuItems[1] as BrowserToolbarMenuButton).onClick!!)
@@ -721,7 +726,7 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(2, true), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(2, true), tabCounterButton)
         val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
 
         toolbarStore.dispatch((tabCounterMenuItems[3] as BrowserToolbarMenuButton).onClick!!)
@@ -761,7 +766,7 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(1, false), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(1, false), tabCounterButton)
         val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
 
         toolbarStore.dispatch((tabCounterMenuItems[3] as BrowserToolbarMenuButton).onClick!!)
@@ -805,7 +810,7 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(1, true), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(1, true), tabCounterButton)
         val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
 
         toolbarStore.dispatch((tabCounterMenuItems[3] as BrowserToolbarMenuButton).onClick!!)
@@ -853,7 +858,7 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(1, true), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(1, true), tabCounterButton)
         val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
 
         toolbarStore.dispatch((tabCounterMenuItems[3] as BrowserToolbarMenuButton).onClick!!)
@@ -907,7 +912,7 @@ class BrowserToolbarMiddlewareTest {
             middleware = listOf(middleware),
         )
         val tabCounterButton = toolbarStore.state.displayState.browserActionsEnd[0] as TabCounterAction
-        assertEqualsToolbarButton(expectedToolbarButton(1, true), tabCounterButton)
+        assertEqualsTabCounterButton(expectedTabCounterButton(1, true), tabCounterButton)
         val tabCounterMenuItems = (tabCounterButton.onLongClick as BrowserToolbarMenu).items()
 
         toolbarStore.dispatch((tabCounterMenuItems[3] as BrowserToolbarMenuButton).onClick!!)
@@ -938,7 +943,6 @@ class BrowserToolbarMiddlewareTest {
                 selectedTabId = currentTab.id,
             ),
         )
-        val tabsUseCases: TabsUseCases = mockk(relaxed = true)
         val middleware = buildMiddleware(
             browserStore = browserStore,
             useCases = useCases,
@@ -973,7 +977,6 @@ class BrowserToolbarMiddlewareTest {
                 selectedTabId = currentTab.id,
             ),
         )
-        val tabsUseCases: TabsUseCases = mockk(relaxed = true)
         val middleware = buildMiddleware(
             browserStore = browserStore,
             useCases = useCases,
@@ -997,7 +1000,157 @@ class BrowserToolbarMiddlewareTest {
         )
     }
 
-    private fun assertEqualsToolbarButton(expected: TabCounterAction, actual: TabCounterAction) {
+    @Test
+    fun `WHEN translation is possible THEN show a translate button`() {
+        val browsingModeManager = SimpleBrowsingModeManager(Private)
+        val navController: NavController = mockk(relaxed = true)
+        val appStore: AppStore = mockk(relaxed = true)
+        val currentTab = createTab("test.com", private = true)
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab, createTab("firefox.com")),
+                selectedTabId = currentTab.id,
+            ),
+        )
+        val browserScreenStore = BrowserScreenStore()
+        val middleware = BrowserToolbarMiddleware(
+            appStore = appStore,
+            browserScreenStore = browserScreenStore,
+            browserStore = browserStore,
+            useCases = useCases,
+            clipboard = mockk(),
+            settings = settings,
+        ).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk(), mockk()),
+            )
+        }
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        browserScreenStore.dispatch(
+            PageTranslationStatusUpdated(
+                PageTranslationStatus(
+                    isTranslationPossible = true,
+                    isTranslated = false,
+                    isTranslateProcessing = false,
+                ),
+            ),
+        )
+
+        val translateButton = toolbarStore.state.displayState.pageActionsEnd[0]
+        assertEquals(expectedTranslateButton, translateButton)
+    }
+
+    @Test
+    fun `GIVEN the current page is translated WHEN knowing of this state THEN update the translate button to show this`() {
+        val browsingModeManager = SimpleBrowsingModeManager(Private)
+        val navController: NavController = mockk(relaxed = true)
+        val appStore: AppStore = mockk(relaxed = true)
+        val currentTab = createTab("test.com", private = true)
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab, createTab("firefox.com")),
+                selectedTabId = currentTab.id,
+            ),
+        )
+        val browserScreenStore = BrowserScreenStore()
+        val middleware = BrowserToolbarMiddleware(
+            appStore = appStore,
+            browserScreenStore = browserScreenStore,
+            browserStore = browserStore,
+            useCases = useCases,
+            clipboard = mockk(),
+            settings = settings,
+        ).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk(), mockk()),
+            )
+        }
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        browserScreenStore.dispatch(
+            PageTranslationStatusUpdated(
+                PageTranslationStatus(
+                    isTranslationPossible = true,
+                    isTranslated = false,
+                    isTranslateProcessing = false,
+                ),
+            ),
+        )
+        var translateButton = toolbarStore.state.displayState.pageActionsEnd[0]
+        assertEquals(expectedTranslateButton, translateButton)
+
+        browserScreenStore.dispatch(
+            PageTranslationStatusUpdated(
+                PageTranslationStatus(
+                    isTranslationPossible = true,
+                    isTranslated = true,
+                    isTranslateProcessing = false,
+                ),
+            ),
+        )
+        translateButton = toolbarStore.state.displayState.pageActionsEnd[0]
+        assertEquals(
+            expectedTranslateButton.copy(isActive = true),
+            translateButton,
+        )
+    }
+
+    @Test
+    fun `GIVEN translation is possible WHEN tapping on the translate button THEN allow user to choose how to translate`() {
+        val browsingModeManager = SimpleBrowsingModeManager(Private)
+        val currentNavDestination: NavDestination = mockk {
+            every { id } returns R.id.browserFragment
+        }
+        val navController: NavController = mockk {
+            every { currentDestination } returns currentNavDestination
+        }
+        val appStore: AppStore = mockk(relaxed = true)
+        val currentTab = createTab("test.com", private = true)
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab, createTab("firefox.com")),
+                selectedTabId = currentTab.id,
+            ),
+        )
+        val browserScreenStore = BrowserScreenStore()
+        val middleware = BrowserToolbarMiddleware(
+            appStore = appStore,
+            browserScreenStore = browserScreenStore,
+            browserStore = browserStore,
+            useCases = useCases,
+            clipboard = mockk(),
+            settings = settings,
+        ).apply {
+            updateLifecycleDependencies(
+                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk(), mockk()),
+            )
+        }
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+        browserScreenStore.dispatch(
+            PageTranslationStatusUpdated(
+                PageTranslationStatus(
+                    isTranslationPossible = true,
+                    isTranslated = false,
+                    isTranslateProcessing = false,
+                ),
+            ),
+        )
+
+        val translateButton = toolbarStore.state.displayState.pageActionsEnd[0] as ActionButton
+        toolbarStore.dispatch(translateButton.onClick as BrowserToolbarEvent)
+
+        verify { appStore.dispatch(SnackbarDismissed) }
+        verify { navController.navigate(BrowserFragmentDirections.actionBrowserFragmentToTranslationsDialogFragment()) }
+    }
+
+    private fun assertEqualsTabCounterButton(expected: TabCounterAction, actual: TabCounterAction) {
         assertEquals(expected.count, actual.count)
         assertEquals(expected.contentDescription, actual.contentDescription)
         assertEquals(expected.showPrivacyMask, actual.showPrivacyMask)
@@ -1022,7 +1175,13 @@ class BrowserToolbarMiddlewareTest {
         }
     }
 
-    private fun expectedToolbarButton(
+    private val expectedTranslateButton = ActionButton(
+        icon = R.drawable.mozac_ic_translate_24,
+        contentDescription = R.string.browser_toolbar_translate,
+        onClick = TranslateClicked,
+    )
+
+    private fun expectedTabCounterButton(
         tabCount: Int = 0,
         isPrivate: Boolean = false,
         shouldUseBottomToolbar: Boolean = false,
