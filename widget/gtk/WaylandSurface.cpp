@@ -389,6 +389,16 @@ void WaylandSurface::SetFrameCallbackState(bool aEnabled) {
   } else {
     ClearFrameCallbackLocked(lock);
   }
+  if (mFrameCallbackStateHandler) {
+    mFrameCallbackStateHandler(aEnabled);
+  }
+}
+
+void WaylandSurface::SetFrameCallbackStateHandlerLocked(
+    const WaylandSurfaceLock& aProofOfLock,
+    const std::function<void(bool)>& aFrameCallbackStateHandler) {
+  MOZ_DIAGNOSTIC_ASSERT(&aProofOfLock == mSurfaceLock);
+  mFrameCallbackStateHandler = aFrameCallbackStateHandler;
 }
 
 bool WaylandSurface::CreateViewportLocked(

@@ -197,6 +197,8 @@ class NativeLayerWayland : public NativeLayer {
   nsAutoCString GetDebugTag() const;
 #endif
 
+  void SetFrameCallbackState(bool aState);
+
   virtual void DiscardBackbuffersLocked(const MutexAutoLock& aProofOfLock,
                                         bool aForce = false) = 0;
   void DiscardBackbuffers() override;
