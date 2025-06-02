@@ -1426,7 +1426,10 @@ DownloadsIndicatorDataCtor.prototype = {
       ? lazy.PrivateDownloadsData._downloads
       : lazy.DownloadsData._downloads;
     for (let download of downloads) {
-      if (!download.stopped || (download.canceled && download.hasPartialData)) {
+      if (
+        download.isInCurrentBatch ||
+        (download.canceled && download.hasPartialData)
+      ) {
         yield download;
       }
     }

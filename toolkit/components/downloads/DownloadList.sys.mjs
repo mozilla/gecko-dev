@@ -590,7 +590,9 @@ export class DownloadSummary {
     // Recalculate the aggregated state.  See the description of the individual
     // properties for an explanation of the summarization logic.
     for (let download of this._downloads) {
-      if (!download.stopped) {
+      if (download.isInCurrentBatch) {
+        // A batch ends when all downloads are stopped, so since there is a
+        // running batch, not all have stopped.
         allHaveStopped = false;
         if (download.hasProgress) {
           allUnknownSize = false;
