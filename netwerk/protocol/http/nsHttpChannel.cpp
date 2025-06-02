@@ -10454,13 +10454,9 @@ void nsHttpChannel::SetOriginHeader() {
 void nsHttpChannel::SetDoNotTrack() {
   /**
    * 'DoNotTrack' header should be added if 'privacy.donottrackheader.enabled'
-   * is true or tracking protection is enabled. See bug 1258033.
+   * is true.
    */
-  nsCOMPtr<nsILoadContext> loadContext;
-  NS_QueryNotificationCallbacks(this, loadContext);
-
-  if ((loadContext && loadContext->UseTrackingProtection()) ||
-      StaticPrefs::privacy_donottrackheader_enabled()) {
+  if (StaticPrefs::privacy_donottrackheader_enabled()) {
     DebugOnly<nsresult> rv =
         mRequestHead.SetHeader(nsHttp::DoNotTrack, "1"_ns, false);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
