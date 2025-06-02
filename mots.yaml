@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2025-05-26T07:52:27.322222+00:00'
+updated_at: '2025-05-27T15:28:04.577633+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -1448,7 +1448,6 @@ modules:
     meta:
       owners_emeritus:
         - Monica Chew
-        - Andrea Marchesini
       peers_emeritus:
         - Josh Matthews
         - Mike Connor
@@ -1457,6 +1456,8 @@ modules:
         - Shawn Wilsher
         - Ehsan Akhgari
         - Honza Bambas
+        - Emma Zühlcke
+        - Tom Schuster
       group: dev-platform
       components:
         - 'Core::Networking: Cookies'
@@ -1465,10 +1466,10 @@ modules:
       - *dveditz
       - *timhuang
       - *valentin
+      - *baku
     peers:
       - *edgul
-      - *emz
-      - *tschuster
+      - *bvandersloot
     machine_name: core_cookies
 
   - name: 'Core: Crash reporting'
@@ -4594,5 +4595,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 7aabd4a3e690526fdd495a95f4aafd8b0f165ed3
-  export: 1052d26b4e5f5af83c211e81d4b5fe5d843ffefd
+  config: 782e88f73a6c1b92ab8d68e42deea4288aa26596
+  export: bbf56d7966e4750f44667061ae33ed974b53efad
