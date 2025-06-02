@@ -599,14 +599,8 @@ export class FormAutofillHandler {
       return;
     }
 
-    const filledElementValues = this.fieldDetails
-      .filter(fd => fd.element.autofillState == FIELD_STATES.AUTO_FILLED)
-      // Using the cached filled value here instead of fd.element.value, because
-      // fd.element.value is not always the property that the site stores the value at.
-      .map(fd => [fd.element, filledValuesByElement.get(fd.element) ?? ""]);
-
     this.#refillTimeoutId = lazy.setTimeout(() => {
-      for (let [e, v] of filledElementValues) {
+      for (let [e, v] of filledValuesByElement) {
         if (e.autofillState == FIELD_STATES.AUTO_FILLED && e.value === v) {
           // Nothing to do if the autofilled value wasn't cleared or the
           // element's autofill state has changed to NORMAL in the meantime
@@ -614,7 +608,9 @@ export class FormAutofillHandler {
         }
 
         this.#isAutofillInProgress = true;
-        FormAutofillHandler.fillFieldValue(e, v, { ignoreFocus: true });
+        FormAutofillHandler.fillFieldValue(e, v, {
+          ignoreFocus: true,
+        });
         // Although the field should already be in the autofilled state at this point,
         // still setting autofilled state to re-highlight the element.
         e.autofillState = FIELD_STATES.AUTO_FILLED;

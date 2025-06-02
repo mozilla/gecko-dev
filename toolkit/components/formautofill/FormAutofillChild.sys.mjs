@@ -621,7 +621,7 @@ export class FormAutofillChild extends JSWindowActorChild {
       lazy.FormAutofillHandler.collectFormFieldDetails(currentForm);
 
     const changedSelectElements =
-      changes[lazy.FORM_CHANGE_REASON.SELECT_OPTIONS_CHANGED];
+      changes[lazy.FORM_CHANGE_REASON.SELECT_OPTIONS_CHANGED] ?? [];
     if (
       currentFields.length == handler.fieldDetails.length &&
       currentFields.every(
