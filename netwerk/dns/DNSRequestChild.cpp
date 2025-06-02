@@ -58,6 +58,7 @@ class ChildDNSRecord : public nsIDNSAddrRecord {
   nsIRequest::TRRMode mEffectiveTRRMode = nsIRequest::TRR_DEFAULT_MODE;
   nsITRRSkipReason::value mTRRSkipReason = nsITRRSkipReason::TRR_UNSET;
   uint32_t mTTL = 0;
+  TimeStamp mLastUpdate = mozilla::TimeStamp::NowLoRes();
 };
 
 NS_IMPL_ISUPPORTS(ChildDNSRecord, nsIDNSRecord, nsIDNSAddrRecord)
@@ -78,6 +79,7 @@ ChildDNSRecord::ChildDNSRecord(const DNSRecord& reply,
   const nsTArray<NetAddr>& addrs = reply.addrs();
   mAddresses = addrs.Clone();
   mTTL = reply.ttl();
+  mLastUpdate = reply.lastUpdate();
 }
 
 //-----------------------------------------------------------------------------
@@ -205,6 +207,12 @@ NS_IMETHODIMP ChildDNSRecord::GetTrrSkipReason(
 NS_IMETHODIMP
 ChildDNSRecord::GetTtl(uint32_t* aTtl) {
   *aTtl = mTTL;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+ChildDNSRecord::GetLastUpdate(TimeStamp* aLastUpdate) {
+  *aLastUpdate = mLastUpdate;
   return NS_OK;
 }
 

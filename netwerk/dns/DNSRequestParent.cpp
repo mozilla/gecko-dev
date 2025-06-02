@@ -141,10 +141,14 @@ DNSRequestHandler::OnLookupComplete(nsICancelable* request,
     uint32_t ttl = 0;
     rec->GetTtl(&ttl);
 
+    TimeStamp lastUpdate;
+    rec->GetLastUpdate(&lastUpdate);
+
     SendLookupCompletedHelper(
-        mIPCActor, DNSRequestResponse(DNSRecord(cname, array, trrFetchDuration,
-                                                trrFetchDurationNetworkOnly,
-                                                isTRR, effectiveTRRMode, ttl)));
+        mIPCActor,
+        DNSRequestResponse(DNSRecord(cname, array, trrFetchDuration,
+                                     trrFetchDurationNetworkOnly, isTRR,
+                                     effectiveTRRMode, ttl, lastUpdate)));
   } else {
     SendLookupCompletedHelper(mIPCActor, DNSRequestResponse(status));
   }
