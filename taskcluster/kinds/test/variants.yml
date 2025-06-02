@@ -344,7 +344,7 @@ wmf-media-engine:
 eme-wmf:
     description: "{description} with Windows Media Foundation based CDM enabled for EME wpt"
     component: "Core::Audio/Video: Playback"
-    expiration: "2025-06-30"
+    expiration: "never"
     when:
         $eval: '"windows1" in task["test-platform"]'
     suffix: "emewmf"
