@@ -503,6 +503,11 @@ bool CookieValidation::CheckNameAndValueSize(const CookieStruct& aCookieData) {
 }
 
 bool CookieValidation::CheckName(const CookieStruct& aCookieData) {
+  if (!aCookieData.name().IsEmpty() && (aCookieData.name().First() == 0x20 ||
+                                        aCookieData.name().Last() == 0x20)) {
+    return false;
+  }
+
   const char illegalNameCharacters[] = {
       0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0A, 0x0B, 0x0C, 0x0D,
       0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19,
@@ -524,6 +529,11 @@ bool CookieValidation::CheckName(const CookieStruct& aCookieData) {
 }
 
 bool CookieValidation::CheckValue(const CookieStruct& aCookieData) {
+  if (!aCookieData.value().IsEmpty() && (aCookieData.value().First() == 0x20 ||
+                                         aCookieData.value().Last() == 0x20)) {
+    return false;
+  }
+
   // reject cookie if value contains an RFC 6265 disallowed character - see
   // https://bugzilla.mozilla.org/show_bug.cgi?id=1191423
   // NOTE: this is not the full set of characters disallowed by 6265 - notably
