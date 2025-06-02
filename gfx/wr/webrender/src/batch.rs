@@ -1818,6 +1818,19 @@ impl BatchBuilder {
             return;
         }
 
+        let common_data = ctx.data_stores.as_common_data(prim_instance);
+
+        let needs_blending = !common_data.opacity.is_opaque ||
+            prim_info.clip_task_index != ClipTaskIndex::INVALID ||
+            transform_kind == TransformedRectKind::Complex ||
+            is_anti_aliased;
+
+        let blend_mode = if needs_blending {
+            BlendMode::PremultipliedAlpha
+        } else {
+            BlendMode::None
+        };
+
         match prim_instance.kind {
             PrimitiveInstanceKind::Picture { .. } => {} // Handled above.
             PrimitiveInstanceKind::BoxShadow { .. } => {
@@ -1871,7 +1884,6 @@ impl BatchBuilder {
             }
             PrimitiveInstanceKind::NormalBorder { data_handle, ref render_task_ids, .. } => {
                 let prim_data = &ctx.data_stores.normal_border[data_handle];
-                let common_data = &prim_data.common;
                 let prim_cache_address = gpu_cache.get_address(&common_data.gpu_cache_handle);
                 let task_ids = &ctx.scratch.border_cache_handles[*render_task_ids];
                 let mut segment_data: SmallVec<[SegmentInstanceData; 8]> = SmallVec::new();
@@ -1892,16 +1904,6 @@ impl BatchBuilder {
 
                 // TODO: it would be less error-prone to get this info from the texture cache.
                 let image_buffer_kind = ImageBufferKind::Texture2D;
-
-                let blend_mode = if !common_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
-                };
 
                 let prim_header = PrimitiveHeader {
                     local_rect: prim_rect,
@@ -2175,10 +2177,9 @@ impl BatchBuilder {
                     },
                 );
             }
-            PrimitiveInstanceKind::LineDecoration { data_handle, ref render_task, .. } => {
+            PrimitiveInstanceKind::LineDecoration { ref render_task, .. } => {
                 // The GPU cache data is stored in the template and reused across
                 // frames and display lists.
-                let common_data = &ctx.data_stores.line_decoration[data_handle].common;
                 let prim_cache_address = gpu_cache.get_address(&common_data.gpu_cache_handle);
 
                 let (clip_task_address, clip_mask_texture_id) = ctx.get_prim_clip_task_and_texture(
@@ -2213,19 +2214,6 @@ impl BatchBuilder {
                             0,
                         )
                     }
-                };
-
-                // TODO(gw): We can abstract some of the common code below into
-                //           helper methods, as we port more primitives to make
-                //           use of interning.
-                let blend_mode = if !common_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
                 };
 
                 let prim_header = PrimitiveHeader {
@@ -2263,7 +2251,6 @@ impl BatchBuilder {
             }
             PrimitiveInstanceKind::ImageBorder { data_handle, .. } => {
                 let prim_data = &ctx.data_stores.image_border[data_handle];
-                let common_data = &prim_data.common;
                 let border_data = &prim_data.kind;
 
                 let (uv_rect_address, texture) = match render_tasks.resolve_location(border_data.src_color, gpu_cache) {
@@ -2275,15 +2262,6 @@ impl BatchBuilder {
 
                 let textures = TextureSet::prim_textured(texture);
                 let prim_cache_address = gpu_cache.get_address(&common_data.gpu_cache_handle);
-                let blend_mode = if !common_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
-                };
 
                 let prim_header = PrimitiveHeader {
                     local_rect: prim_rect,
@@ -2328,20 +2306,8 @@ impl BatchBuilder {
                     render_tasks,
                 );
             }
-            PrimitiveInstanceKind::Rectangle { data_handle, segment_instance_index, use_legacy_path, .. } => {
+            PrimitiveInstanceKind::Rectangle { segment_instance_index, use_legacy_path, .. } => {
                 debug_assert!(use_legacy_path);
-                let prim_data = &ctx.data_stores.prim[data_handle];
-
-                let blend_mode = if !prim_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
-                };
-
                 let batch_params = BrushBatchParameters::shared(
                     BrushBatchKind::Solid,
                     TextureSet::UNTEXTURED,
@@ -2350,7 +2316,7 @@ impl BatchBuilder {
                 );
 
                 let (prim_cache_address, segments) = if segment_instance_index == SegmentInstanceIndex::UNUSED {
-                    (gpu_cache.get_address(&prim_data.gpu_cache_handle), None)
+                    (gpu_cache.get_address(&common_data.gpu_cache_handle), None)
                 } else {
                     let segment_instance = &ctx.scratch.segment_instances[segment_instance_index];
                     let segments = Some(&ctx.scratch.segments[segment_instance.segments_range]);
@@ -2373,12 +2339,12 @@ impl BatchBuilder {
 
                 self.add_segmented_prim_to_batch(
                     segments,
-                    prim_data.opacity,
+                    common_data.opacity,
                     &batch_params,
                     blend_mode,
                     batch_features,
                     brush_flags,
-                    prim_data.edge_aa_mask,
+                    common_data.edge_aa_mask,
                     prim_header_index,
                     bounding_rect,
                     transform_kind,
@@ -2457,21 +2423,9 @@ impl BatchBuilder {
                     0,
                 );
 
-                let prim_common_data = ctx.data_stores.as_common_data(&prim_instance);
-
-                let blend_mode = if !prim_common_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
-                };
-
                 debug_assert_ne!(segment_instance_index, SegmentInstanceIndex::INVALID);
                 let (prim_cache_address, segments) = if segment_instance_index == SegmentInstanceIndex::UNUSED {
-                    (gpu_cache.get_address(&prim_common_data.gpu_cache_handle), None)
+                    (gpu_cache.get_address(&common_data.gpu_cache_handle), None)
                 } else {
                     let segment_instance = &ctx.scratch.segment_instances[segment_instance_index];
                     let segments = Some(&ctx.scratch.segments[segment_instance.segments_range]);
@@ -2494,12 +2448,12 @@ impl BatchBuilder {
 
                 self.add_segmented_prim_to_batch(
                     segments,
-                    prim_common_data.opacity,
+                    common_data.opacity,
                     &batch_params,
                     blend_mode,
                     batch_features,
                     brush_flags,
-                    prim_common_data.edge_aa_mask,
+                    common_data.edge_aa_mask,
                     prim_header_index,
                     bounding_rect,
                     transform_kind,
@@ -2528,7 +2482,6 @@ impl BatchBuilder {
                 }
 
                 let image_data = &ctx.data_stores.image[data_handle].kind;
-                let common_data = &ctx.data_stores.image[data_handle].common;
                 let image_instance = &ctx.prim_store.images[image_instance_index];
                 let prim_user_data = ImageBrushData {
                     color_mode: ShaderColorMode::Image,
@@ -2537,11 +2490,7 @@ impl BatchBuilder {
                     opacity: 1.0,
                 }.encode();
 
-                let blend_mode = if !common_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
+                let blend_mode = if needs_blending {
                     match image_data.alpha_type {
                         AlphaType::PremultipliedAlpha => BlendMode::PremultipliedAlpha,
                         AlphaType::Alpha => BlendMode::Alpha,
@@ -2704,16 +2653,6 @@ impl BatchBuilder {
                     transform_id,
                 };
 
-                let blend_mode = if !prim_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
-                };
-
                 let user_data = [extra_prim_gpu_address.unwrap(), 0, 0, 0];
 
                 if visible_tiles_range.is_empty() {
@@ -2799,7 +2738,6 @@ impl BatchBuilder {
             }
             PrimitiveInstanceKind::CachedLinearGradient { data_handle, ref visible_tiles_range, .. } => {
                 let prim_data = &ctx.data_stores.linear_grad[data_handle];
-                let common_data = &prim_data.common;
 
                 let src_color = render_tasks.resolve_location(prim_data.src_color, gpu_cache);
 
@@ -2825,16 +2763,6 @@ impl BatchBuilder {
                     raster_space: RasterizationSpace::Local,
                     opacity: 1.0,
                 }.encode();
-
-                let blend_mode = if !common_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
-                };
 
                 let batch_kind = BrushBatchKind::Image(texture_source.image_buffer_kind());
 
@@ -2922,7 +2850,6 @@ impl BatchBuilder {
             }
             PrimitiveInstanceKind::RadialGradient { data_handle, ref visible_tiles_range, .. } => {
                 let prim_data = &ctx.data_stores.radial_grad[data_handle];
-                let common_data = &prim_data.common;
 
                 let src_color = render_tasks.resolve_location(prim_data.src_color, gpu_cache);
 
@@ -2948,17 +2875,6 @@ impl BatchBuilder {
                     raster_space: RasterizationSpace::Local,
                     opacity: 1.0,
                 }.encode();
-
-
-                let blend_mode = if !common_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
-                };
 
                 let batch_kind = BrushBatchKind::Image(texture_source.image_buffer_kind());
 
@@ -3047,7 +2963,6 @@ impl BatchBuilder {
             }
             PrimitiveInstanceKind::ConicGradient { data_handle, ref visible_tiles_range, .. } => {
                 let prim_data = &ctx.data_stores.conic_grad[data_handle];
-                let common_data = &prim_data.common;
 
                 let src_color = render_tasks.resolve_location(prim_data.src_color, gpu_cache);
 
@@ -3073,17 +2988,6 @@ impl BatchBuilder {
                     raster_space: RasterizationSpace::Local,
                     opacity: 1.0,
                 }.encode();
-
-
-                let blend_mode = if !common_data.opacity.is_opaque ||
-                    prim_info.clip_task_index != ClipTaskIndex::INVALID ||
-                    transform_kind == TransformedRectKind::Complex ||
-                    is_anti_aliased
-                {
-                    BlendMode::PremultipliedAlpha
-                } else {
-                    BlendMode::None
-                };
 
                 let batch_kind = BrushBatchKind::Image(texture_source.image_buffer_kind());
 
