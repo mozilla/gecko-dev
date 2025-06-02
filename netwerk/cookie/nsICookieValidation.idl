@@ -27,4 +27,7 @@ interface nsICookieValidation : nsISupports
   };
 
   readonly attribute nsICookieValidation_ValidationError result;
+
+  // This returns an empty string if the result is `eOK`.
+  readonly attribute AString errorString;
 };

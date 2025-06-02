@@ -311,6 +311,7 @@
 @RESPATH@/res/locale/layout/MediaDocument.properties
 @RESPATH@/res/locale/layout/xmlparser.properties
 @RESPATH@/res/locale/dom/dom.properties
+@RESPATH@/res/locale/necko/necko.properties
 #ifdef XP_MACOSX
 @RESPATH@/res/MainMenu.nib/
 #endif

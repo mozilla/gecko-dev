@@ -309,103 +309,131 @@ bool CookieValidation::CheckPrefixes(const CookieStruct& aCookieData,
   return true;
 }
 
-void CookieValidation::ReportErrorsAndWarnings(nsIConsoleReportCollector* aCRC,
-                                               nsIURI* aHostURI) const {
-#define COOKIE_LOGGING_WITH_NAME(category, x)                 \
-  CookieLogging::LogMessageToConsole(                         \
-      aCRC, aHostURI, nsIScriptError::errorFlag, category, x, \
-      AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(mCookieData.name())});
+void CookieValidation::RetrieveErrorLogData(uint32_t* aFlags,
+                                            nsACString& aCategory,
+                                            nsACString& aKey,
+                                            nsTArray<nsString>& aParams) const {
+  MOZ_ASSERT(aFlags);
+  MOZ_ASSERT(aParams.IsEmpty());
+
+  *aFlags = nsIScriptError::errorFlag;
+
+#define SET_LOG_DATA(category, x) \
+  aCategory = category;           \
+  aKey = x;                       \
+  aParams.AppendElement(NS_ConvertUTF8toUTF16(mCookieData.name()));
 
   switch (mResult) {
     case eOK:
-      break;
+      return;
 
-    case eRejectedEmptyNameAndValue:
-      CookieLogging::LogMessageToConsole(
-          aCRC, aHostURI, nsIScriptError::warningFlag,
-          CONSOLE_REJECTION_CATEGORY, "CookieRejectedEmptyNameAndValue"_ns,
-          nsTArray<nsString>());
+    case eRejectedEmptyNameAndValue: {
+      *aFlags = nsIScriptError::warningFlag;
+      aCategory.Assign(CONSOLE_REJECTION_CATEGORY);
+      aKey.Assign("CookieRejectedEmptyNameAndValue"_ns);
+      return;
+    }
 
-      break;
+    case eRejectedNoneRequiresSecure: {
+      SET_LOG_DATA(CONSOLE_SAMESITE_CATEGORY,
+                   "CookieRejectedNonRequiresSecure2"_ns);
+      return;
+    }
 
-    case eRejectedNoneRequiresSecure:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_SAMESITE_CATEGORY,
-                               "CookieRejectedNonRequiresSecure2"_ns);
-      break;
-
-    case eRejectedPartitionedRequiresSecure:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedPartitionedRequiresSecure"_ns);
-      break;
+    case eRejectedPartitionedRequiresSecure: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedPartitionedRequiresSecure"_ns);
+      return;
+    }
 
     case eRejectedNameValueOversize: {
-      AutoTArray<nsString, 2> params = {
-          NS_ConvertUTF8toUTF16(mCookieData.name())};
+      *aFlags = nsIScriptError::warningFlag;
+      aCategory.Assign(CONSOLE_OVERSIZE_CATEGORY);
+      aKey.Assign("CookieOversize"_ns);
+
+      aParams.AppendElement(NS_ConvertUTF8toUTF16(mCookieData.name()));
 
       nsString size;
       size.AppendInt(kMaxBytesPerCookie);
-      params.AppendElement(size);
-
-      CookieLogging::LogMessageToConsole(
-          aCRC, aHostURI, nsIScriptError::warningFlag,
-          CONSOLE_OVERSIZE_CATEGORY, "CookieOversize"_ns, params);
-      break;
+      aParams.AppendElement(size);
+      return;
     }
 
-    case eRejectedInvalidCharName:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidCharName"_ns);
-      break;
+    case eRejectedInvalidCharName: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedInvalidCharName"_ns);
+      return;
+    }
 
-    case eRejectedInvalidCharValue:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidCharValue"_ns);
-      break;
+    case eRejectedInvalidCharValue: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedInvalidCharValue"_ns);
+      return;
+    }
 
-    case eRejectedAttributePathOversize:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedAttributePathOversize"_ns);
-      break;
+    case eRejectedAttributePathOversize: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedAttributePathOversize"_ns);
+      return;
+    }
 
-    case eRejectedAttributeDomainOversize:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedAttributeDomainOversize"_ns);
-      break;
+    case eRejectedAttributeDomainOversize: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedAttributeDomainOversize"_ns);
+      return;
+    }
 
-    case eRejectedInvalidPath:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidPath"_ns);
-      break;
+    case eRejectedInvalidPath: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY, "CookieRejectedInvalidPath"_ns);
+      return;
+    }
 
-    case eRejectedInvalidDomain:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidDomain"_ns);
-      break;
+    case eRejectedInvalidDomain: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedInvalidDomain"_ns);
+      return;
+    }
 
-    case eRejectedInvalidPrefix:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidPrefix"_ns);
-      break;
+    case eRejectedInvalidPrefix: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedInvalidPrefix"_ns);
+      return;
+    }
 
-    case eRejectedHttpOnlyButFromScript:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedHttpOnlyButFromScript"_ns);
-      break;
+    case eRejectedHttpOnlyButFromScript: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedHttpOnlyButFromScript"_ns);
+      return;
+    }
 
-    case eRejectedSecureButNonHttps:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedSecureButNonHttps"_ns);
-      break;
+    case eRejectedSecureButNonHttps: {
+      SET_LOG_DATA(CONSOLE_REJECTION_CATEGORY,
+                   "CookieRejectedSecureButNonHttps"_ns);
+      return;
+    }
 
-    case eRejectedForNonSameSiteness:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_SAMESITE_CATEGORY,
-                               "CookieRejectedForNonSameSiteness"_ns);
-      break;
+    case eRejectedForNonSameSiteness: {
+      SET_LOG_DATA(CONSOLE_SAMESITE_CATEGORY,
+                   "CookieRejectedForNonSameSiteness"_ns);
+      return;
+    }
   }
 
-#undef COOKIE_LOGGING_WITH_NAME
+#undef SET_LOG_DATA
+}
 
+void CookieValidation::ReportErrorsAndWarnings(nsIConsoleReportCollector* aCRC,
+                                               nsIURI* aHostURI) const {
   if (mResult != eOK) {
+    uint32_t flags;
+    nsAutoCString category;
+    nsAutoCString key;
+    nsTArray<nsString> params;
+
+    RetrieveErrorLogData(&flags, category, key, params);
+
+    CookieLogging::LogMessageToConsole(aCRC, aHostURI, flags, category, key,
+                                       params);
     return;
   }
 
@@ -431,6 +459,23 @@ void CookieValidation::ReportErrorsAndWarnings(nsIConsoleReportCollector* aCRC,
         AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(mCookieData.name()),
                                 SAMESITE_MDN_URL});
   }
+}
+
+NS_IMETHODIMP
+CookieValidation::GetErrorString(nsAString& aResult) {
+  if (mResult == eOK) {
+    return NS_OK;
+  }
+
+  uint32_t flags;
+  nsAutoCString category;
+  nsAutoCString key;
+  nsTArray<nsString> params;
+
+  RetrieveErrorLogData(&flags, category, key, params);
+
+  return nsContentUtils::FormatLocalizedString(
+      nsContentUtils::eNECKO_PROPERTIES_en_US, key.get(), params, aResult);
 }
 
 // static

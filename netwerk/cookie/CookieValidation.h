@@ -40,6 +40,10 @@ class CookieValidation final : public nsICookieValidation {
       bool aIsForeignAndNotAddon, bool aPartitionedOnly,
       bool aIsInPrivateBrowsing);
 
+  static CookieValidation* Cast(nsICookieValidation* aValidation) {
+    return static_cast<CookieValidation*>(aValidation);
+  }
+
   nsICookieValidation::ValidationError Result() const { return mResult; }
 
   void ReportErrorsAndWarnings(nsIConsoleReportCollector* aCRC,
@@ -78,6 +82,10 @@ class CookieValidation final : public nsICookieValidation {
   CookieStruct mCookieData;
 
   nsICookieValidation::ValidationError mResult = eOK;
+
+  void RetrieveErrorLogData(uint32_t* aFlags, nsACString& aCategory,
+                            nsACString& aKey,
+                            nsTArray<nsString>& aParams) const;
 
   struct Warnings {
     bool mSameSiteLaxForced = false;

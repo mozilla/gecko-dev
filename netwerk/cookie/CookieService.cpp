@@ -719,10 +719,12 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
     return NS_ERROR_INVALID_ARG;
   }
 
+  // TODO: expose this!
+  nsCOMPtr<nsICookieValidation> validation;
   return AddNative(nullptr, aHost, aPath, aName, aValue, aIsSecure, aIsHttpOnly,
                    aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap,
                    aIsPartitioned, /* from-http: */ true, nullptr,
-                   [](CookieStruct&) -> bool { return true; });
+                   getter_AddRefs(validation));
 }
 
 NS_IMETHODIMP_(nsresult)
@@ -733,7 +735,7 @@ CookieService::AddNative(nsIURI* aCookieURI, const nsACString& aHost,
                          OriginAttributes* aOriginAttributes, int32_t aSameSite,
                          nsICookie::schemeType aSchemeMap, bool aIsPartitioned,
                          bool aFromHttp, const nsID* aOperationID,
-                         const std::function<bool(CookieStruct&)>& aCheck) {
+                         nsICookieValidation** aValidation) {
   if (NS_WARN_IF(!aOriginAttributes)) {
     return NS_ERROR_FAILURE;
   }
@@ -760,8 +762,11 @@ CookieService::AddNative(nsIURI* aCookieURI, const nsACString& aHost,
                           aIsHttpOnly, aIsSession, aIsSecure, aIsPartitioned,
                           aSameSite, aSchemeMap);
 
-  if (!aCheck(cookieData)) {
-    return NS_ERROR_FAILURE;
+  RefPtr<CookieValidation> cv = CookieValidation::Validate(cookieData);
+
+  if (cv->Result() != nsICookieValidation::eOK) {
+    cv.forget(aValidation);
+    return NS_ERROR_ILLEGAL_VALUE;
   }
 
   RefPtr<Cookie> cookie = Cookie::Create(cookieData, *aOriginAttributes);
@@ -772,6 +777,8 @@ CookieService::AddNative(nsIURI* aCookieURI, const nsACString& aHost,
                      currentTimeInUsec, aCookieURI, VoidCString(), aFromHttp,
                      !aOriginAttributes->mPartitionKey.IsEmpty(), nullptr,
                      aOperationID);
+
+  cv.forget(aValidation);
   return NS_OK;
 }
 

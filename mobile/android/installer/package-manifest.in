@@ -156,6 +156,7 @@
 @BINPATH@/res/locale/layout/MediaDocument.properties
 @BINPATH@/res/locale/layout/xmlparser.properties
 @BINPATH@/res/locale/dom/dom.properties
+@BINPATH@/res/locale/necko/necko.properties
 
 #ifndef MOZ_ANDROID_EXCLUDE_FONTS
 @BINPATH@/res/fonts/*
