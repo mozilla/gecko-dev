@@ -265,6 +265,7 @@ internal class SearchEngineReader(
         engineDefinition: SearchEngineDefinition,
         attachmentModel: ByteArray?,
         mimetype: String,
+        defaultIcon: Bitmap,
     ): SearchEngine {
         require(engineDefinition.name.isNotBlank()) { "Search engine name cannot be empty" }
         require(engineDefinition.charset.isNotBlank()) { "Search engine charset cannot be empty" }
@@ -274,7 +275,7 @@ internal class SearchEngineReader(
         builder.inputEncoding = engineDefinition.charset
         builder.isGeneral = engineDefinition.classification == SearchEngineClassification.GENERAL
         readUrlAPI(engineDefinition, builder)
-        readImageAPI(attachmentModel, mimetype, builder)
+        readImageAPI(attachmentModel, mimetype, builder, defaultIcon)
 
         return builder.toSearchEngine()
     }
@@ -356,36 +357,33 @@ internal class SearchEngineReader(
         return uriBuilder.build()
     }
 
-    @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    private fun readImageAPI(attachmentModel: ByteArray?, mimetype: String, builder: SearchEngineBuilder) {
+    @SuppressWarnings("TooGenericExceptionCaught")
+    private fun readImageAPI(
+        attachmentModel: ByteArray?,
+        mimetype: String,
+        builder: SearchEngineBuilder,
+        defaultIcon: Bitmap,
+    ) {
         if (attachmentModel == null) {
-            throw IllegalStateException("Failed to decode image for mimetype: $mimetype")
-        }
-        val allowedTypes = setOf("image/jpeg", "image/png", "image/x-icon", "image/svg+xml")
-        require(mimetype in allowedTypes) { "Unsupported image type: $mimetype" }
-        val bitmap = when (mimetype) {
-            "image/svg+xml" -> {
-                val decoder = SvgIconDecoder()
-                decoder.decode(
-                    attachmentModel,
-                    DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f),
-                )
-            }
-            "image/x-icon" -> {
-                val decoder = ICOIconDecoder()
-                decoder.decode(
-                    attachmentModel,
-                    DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f),
-                )
-            }
-            else -> {
-                BitmapFactory.decodeByteArray(attachmentModel, 0, attachmentModel.size) ?: null
-            }
-        }
-        if (bitmap == null) {
-            throw IllegalStateException("Failed to decode image for mimetype: $mimetype")
+            builder.icon = defaultIcon
+            return
         }
 
-        builder.icon = bitmap
+        builder.icon = when (mimetype) {
+            "image/svg+xml" -> SvgIconDecoder().decode(
+                attachmentModel,
+                DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f),
+            ) ?: defaultIcon
+            "image/x-icon" -> ICOIconDecoder().decode(
+                attachmentModel,
+                DesiredSize(TARGET_SIZE, TARGET_SIZE, MAX_SIZE, 2.0f),
+            ) ?: defaultIcon
+            "image/jpeg", "image/png" -> BitmapFactory.decodeByteArray(
+                attachmentModel,
+                0,
+                attachmentModel.size,
+            ) ?: defaultIcon
+            else -> defaultIcon
+        }
     }
 }

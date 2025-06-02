@@ -61,7 +61,7 @@ class SearchEngineSelectorRepositoryTest {
         doNothing().`when`(mockConfig.selector).useRemoteSettingsServer(service = any(), applyEngineOverrides = eq(false))
 
         // Instantiate the repository with the mocked config
-        repository = SearchEngineSelectorRepository(mockConfig, mockClient)
+        repository = SearchEngineSelectorRepository(mockConfig, mock(), mockClient)
     }
 
     @Test
