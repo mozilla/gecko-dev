@@ -1673,18 +1673,7 @@ void LocalAccessible::ApplyARIAState(uint64_t* aState) const {
     }
   }
 
-  if (*aState & states::FOCUSABLE) {
-    // Propogate aria-disabled from ancestors down to any focusable descendant.
-    const LocalAccessible* ancestor = this;
-    while ((ancestor = ancestor->LocalParent()) && !ancestor->IsDoc()) {
-      dom::Element* el = ancestor->Elm();
-      if (el && nsAccUtils::ARIAAttrValueIs(el, nsGkAtoms::aria_disabled,
-                                            nsGkAtoms::_true, eCaseMatters)) {
-        *aState |= states::UNAVAILABLE;
-        break;
-      }
-    }
-  } else {
+  if (!(*aState & states::FOCUSABLE)) {
     // Sometimes, we use aria-activedescendant targeting something which isn't
     // actually a descendant. This is technically a spec violation, but it's a
     // useful hack which makes certain things much easier. For example, we use
