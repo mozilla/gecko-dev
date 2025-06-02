@@ -27,6 +27,10 @@ addRDMTask(TEST_URL, async function ({ ui }) {
   info("Check the default state of the user agent input");
   await testUserAgent(ui, DEFAULT_UA);
 
+  info(`Change the user agent input to ${NEW_USER_AGENT} and press Escape`);
+  await changeUserAgentInput(ui, NEW_USER_AGENT, "VK_ESCAPE");
+  await testUserAgent(ui, DEFAULT_UA);
+
   info(`Change the user agent input to ${NEW_USER_AGENT}`);
   await changeUserAgentInput(ui, NEW_USER_AGENT);
   await testUserAgent(ui, NEW_USER_AGENT);

@@ -106,6 +106,7 @@ class UserAgentInput extends PureComponent {
     }
 
     if (keyCode == KeyCodes.DOM_VK_ESCAPE) {
+      this.setState({ value: this.props.userAgent });
       target.blur();
     }
   }
