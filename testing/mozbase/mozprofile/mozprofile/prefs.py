@@ -8,10 +8,9 @@ user preferences
 import json
 import os
 import tokenize
+from io import StringIO
 
 import mozfile
-import six
-from six import StringIO, string_types
 
 try:
     from configparser import SafeConfigParser as ConfigParser
@@ -22,12 +21,6 @@ try:
     ConfigParser.read_file
 except AttributeError:  # read_file was added in 3.2, readfp removed in 3.12
     ConfigParser.read_file = ConfigParser.readfp
-
-if six.PY3:
-
-    def unicode(input):
-        return input
-
 
 __all__ = ("PreferencesReadError", "Preferences")
 
@@ -79,7 +72,7 @@ class Preferences:
           with the ''s removed from both sides
         """
 
-        if not isinstance(value, string_types):
+        if not isinstance(value, str):
             return value  # no op
         quote = "'"
         if value == "true":
@@ -161,7 +154,7 @@ class Preferences:
             values = prefs.values()
         else:
             raise PreferencesReadError("Malformed preferences: %s" % path)
-        types = (bool, string_types, int)
+        types = (bool, str, int)
         if [i for i in values if not any([isinstance(i, j) for j in types])]:
             raise PreferencesReadError("Only bool, string, and int values allowed")
         return prefs
@@ -225,7 +218,7 @@ class Preferences:
         retval = []
 
         def pref(a, b):
-            if interpolation and isinstance(b, string_types):
+            if interpolation and isinstance(b, str):
                 b = b.format(**interpolation)
             retval.append((a, b))
 
@@ -242,7 +235,7 @@ class Preferences:
 
         # de-magic the marker
         for index, (key, value) in enumerate(retval):
-            if isinstance(value, string_types) and marker in value:
+            if isinstance(value, str) and marker in value:
                 retval[index] = (key, value.replace(marker, "//"))
 
         return retval
@@ -251,7 +244,7 @@ class Preferences:
     def write(cls, _file, prefs, pref_string="user_pref(%s, %s);"):
         """write preferences to a file"""
 
-        if isinstance(_file, string_types):
+        if isinstance(_file, str):
             f = open(_file, "a")
         else:
             f = _file
@@ -265,8 +258,8 @@ class Preferences:
 
         # write the preferences
         for _pref in _prefs:
-            print(unicode(pref_string % _pref), file=f)
+            print(pref_string % _pref, file=f)
 
         # close the file if opened internally
-        if isinstance(_file, string_types):
+        if isinstance(_file, str):
             f.close()

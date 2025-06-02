@@ -16,7 +16,6 @@ from collections import namedtuple
 from enum import Enum
 from urllib.request import urlopen
 
-import six
 from mozdevice import ADBDeviceFactory, ADBHost
 
 try:
@@ -910,12 +909,12 @@ class AndroidEmulator:
                     f.write(line)
 
     def _telnet_read_until(self, telnet, expected, timeout):
-        if six.PY3 and isinstance(expected, str):
+        if isinstance(expected, str):
             expected = expected.encode("ascii")
         return telnet.read_until(expected, timeout)
 
     def _telnet_write(self, telnet, command):
-        if six.PY3 and isinstance(command, str):
+        if isinstance(command, str):
             command = command.encode("ascii")
         telnet.write(command)
 
@@ -1144,8 +1143,7 @@ def _verify_kvm(substs):
     command = [emulator_path, "-accel-check"]
     try:
         out = subprocess.check_output(command)
-        if six.PY3 and not isinstance(out, str):
-            out = out.decode("utf-8")
+        out = out.decode()
         if "is installed and usable" in "".join(out):
             return
     except Exception as e:

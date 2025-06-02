@@ -10,24 +10,15 @@ import socket
 import sys
 import webbrowser
 
-import six
 from mozlog import commandline, get_proxy_logger
 from mozlog.commandline import add_logging_group
 
 here = os.path.abspath(os.path.dirname(__file__))
 LOG = get_proxy_logger("profiler")
 
-if six.PY2:
-    # Import for Python 2
-    from urllib import quote
-
-    from SimpleHTTPServer import SimpleHTTPRequestHandler
-    from SocketServer import TCPServer
-else:
-    # Import for Python 3
-    from http.server import SimpleHTTPRequestHandler
-    from socketserver import TCPServer
-    from urllib.parse import quote
+from http.server import SimpleHTTPRequestHandler
+from socketserver import TCPServer
+from urllib.parse import quote
 
 
 class ProfileServingHTTPRequestHandler(SimpleHTTPRequestHandler):

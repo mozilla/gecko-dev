@@ -5,7 +5,7 @@
 from setuptools import setup
 
 PACKAGE_VERSION = "0.7.1"
-deps = ["moznetwork >= 0.24", "mozinfo >= 1.0.0", "six >= 1.13.0"]
+deps = ["moznetwork >= 0.24", "mozinfo >= 1.0.0"]
 
 setup(
     name="mozhttpd",
@@ -13,8 +13,14 @@ setup(
     description="Python webserver intended for use with Mozilla testing",
     long_description="see https://firefox-source-docs.mozilla.org/mozbase/index.html",
     classifiers=[
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 2 :: Only",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
     keywords="mozilla",
@@ -31,4 +37,5 @@ setup(
       [console_scripts]
       mozhttpd = mozhttpd:main
       """,
+    python_requires=">=3.8",
 )

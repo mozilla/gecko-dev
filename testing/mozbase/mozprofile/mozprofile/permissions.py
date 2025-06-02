@@ -11,8 +11,6 @@ import codecs
 import os
 from urllib import parse
 
-from six import string_types
-
 __all__ = [
     "MissingPrimaryLocationError",
     "MultiplePrimaryLocationsError",
@@ -145,7 +143,7 @@ class ServerLocations:
         self._locations.append(location)
 
     def add_host(self, host, port="80", scheme="http", options="privileged"):
-        if isinstance(options, string_types):
+        if isinstance(options, str):
             options = options.split(",")
         self.add(Location(scheme, host, port, options))
 

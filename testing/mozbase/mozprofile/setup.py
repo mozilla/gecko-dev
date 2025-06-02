@@ -10,7 +10,6 @@ PACKAGE_VERSION = "3.0.0"
 deps = [
     "mozfile>=1.2",
     "mozlog>=6.0",
-    "six>=1.13.0,<2",
 ]
 
 setup(
@@ -24,8 +23,14 @@ setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Natural Language :: English",
         "Operating System :: OS Independent",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     keywords="mozilla",
@@ -46,4 +51,5 @@ setup(
       view-profile = mozprofile:view_profile
       diff-profiles = mozprofile:diff_profiles
       """,
+    python_requires=">=3.8",
 )

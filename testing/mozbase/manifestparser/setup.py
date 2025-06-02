@@ -18,9 +18,13 @@ setup(
     description="Library to create and manage test manifests",
     long_description="see https://firefox-source-docs.mozilla.org/mozbase/index.html",
     classifiers=[
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
     # Get strings from http://pypi.python.org/pypi?%3Aaction=list_classifiers
     keywords="mozilla manifests",
@@ -35,4 +39,5 @@ setup(
       [console_scripts]
       manifestparser = manifestparser.cli:main
       """,
+    python_requires=">=3.8, <3.13",
 )

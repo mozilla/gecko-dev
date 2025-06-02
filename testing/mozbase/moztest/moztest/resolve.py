@@ -11,7 +11,6 @@ from collections import defaultdict
 from urllib.parse import urlsplit
 
 import mozpack.path as mozpath
-import six
 from manifestparser import TestManifest, combine_fields
 from mozbuild.base import MozbuildObject
 from mozbuild.testing import REFTEST_FLAVORS, TEST_MANIFESTS
@@ -525,8 +524,7 @@ def rewrite_test_base(test, new_base):
     return test
 
 
-@six.add_metaclass(ABCMeta)
-class TestLoader(MozbuildObject):
+class TestLoader(MozbuildObject, metaclass=ABCMeta):
     @abstractmethod
     def __call__(self):
         """Generate test metadata."""

@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import zipfile
 
-import six
 from mozlog import get_proxy_logger
 
 from .symbolicationRequest import SymbolicationRequest
@@ -17,19 +16,8 @@ from .symFileManager import SymFileManager
 
 LOG = get_proxy_logger("profiler")
 
-if six.PY2:
-    # Import for Python 2
-    from cStringIO import StringIO as sio
-    from urllib2 import urlopen
-else:
-    # Import for Python 3
-    from io import BytesIO as sio
-    from urllib.request import urlopen
-
-    # Symbolication is broken when using type 'str' in python 2.7, so we use 'basestring'.
-    # But for python 3.0 compatibility, 'basestring' isn't defined, but the 'str' type works.
-    # So we force 'basestring' to 'str'.
-    basestring = str
+from io import BytesIO as sio
+from urllib.request import urlopen
 
 
 class SymbolError(Exception):
@@ -292,7 +280,7 @@ class ProfileSymbolicator:
     def _find_addresses(self, profile_json):
         addresses = set()
         for thread in profile_json["threads"]:
-            if isinstance(thread, basestring):
+            if isinstance(thread, str):
                 continue
             for s in thread["stringTable"]:
                 if s[0:2] == "0x":
@@ -301,7 +289,7 @@ class ProfileSymbolicator:
 
     def _substitute_symbols(self, profile_json, symbolication_table):
         for thread in profile_json["threads"]:
-            if isinstance(thread, basestring):
+            if isinstance(thread, str):
                 continue
             for i, s in enumerate(thread["stringTable"]):
                 thread["stringTable"][i] = symbolication_table.get(s, s)

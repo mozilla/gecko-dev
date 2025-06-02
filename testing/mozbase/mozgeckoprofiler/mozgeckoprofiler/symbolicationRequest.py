@@ -4,7 +4,6 @@
 import json
 import re
 
-import six
 from mozlog import get_proxy_logger
 
 LOG = get_proxy_logger("profiler")
@@ -17,17 +16,7 @@ gLibNameRE = re.compile(r"[0-9a-zA-Z_+\-\.]*$")
 # for symbolication. Also prevents loops.
 MAX_FORWARDED_REQUESTS = 3
 
-if six.PY2:
-    # Import for Python 2
-    from urllib2 import Request, urlopen
-else:
-    # Import for Python 3
-    from urllib.request import Request, urlopen
-
-    # Symbolication is broken when using type 'str' in python 2.7, so we use 'basestring'.
-    # But for python 3.0 compatibility, 'basestring' isn't defined, but the 'str' type works.
-    # So we force 'basestring' to 'str'.
-    basestring = str
+from urllib.request import Request, urlopen
 
 
 class ModuleV3:
@@ -37,11 +26,11 @@ class ModuleV3:
 
 
 def getModuleV3(libName, breakpadId):
-    if not isinstance(libName, basestring) or not gLibNameRE.match(libName):
+    if not isinstance(libName, str) or not gLibNameRE.match(libName):
         LOG.debug("Bad library name: " + str(libName))
         return None
 
-    if not isinstance(breakpadId, basestring):
+    if not isinstance(breakpadId, str):
         LOG.debug("Bad breakpad id: " + str(breakpadId))
         return None
 

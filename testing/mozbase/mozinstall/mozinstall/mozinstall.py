@@ -16,7 +16,6 @@ from optparse import OptionParser
 import mozfile
 import mozinfo
 import requests
-from six import PY3
 
 try:
     import pefile
@@ -46,10 +45,8 @@ class UninstallError(Exception):
 
 
 def _readPlist(path):
-    if PY3:
-        with open(path, "rb") as fp:
-            return plistlib.load(fp)
-    return plistlib.readPlist(path)
+    with open(path, "rb") as fp:
+        return plistlib.load(fp)
 
 
 def get_binary(path, app_name):

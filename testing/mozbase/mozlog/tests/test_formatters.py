@@ -6,6 +6,7 @@ import os
 import signal
 import unittest
 import xml.etree.ElementTree as ET
+from io import StringIO
 from textwrap import dedent
 
 import mozunit
@@ -19,7 +20,6 @@ from mozlog.formatters import (
 )
 from mozlog.handlers import StreamHandler
 from mozlog.structuredlog import StructuredLogger
-from six import StringIO, ensure_text, unichr
 
 FORMATS = {
     # A list of tuples consisting of (name, options, expected string).
@@ -427,7 +427,7 @@ class FormatterTest(unittest.TestCase):
     @property
     def loglines(self):
         self.output_file.seek(self.position)
-        return [ensure_text(line.rstrip()) for line in self.output_file.readlines()]
+        return [line.rstrip() for line in self.output_file.readlines()]
 
 
 class TestHTMLFormatter(FormatterTest):
@@ -444,7 +444,7 @@ class TestHTMLFormatter(FormatterTest):
     def test_base64_unicode(self):
         self.logger.suite_start([])
         self.logger.test_start("unicode_test")
-        self.logger.test_end("unicode_test", "FAIL", extra={"data": unichr(0x02A9)})
+        self.logger.test_end("unicode_test", "FAIL", extra={"data": chr(0x02A9)})
         self.logger.suite_end()
         self.assertIn("data:text/html;charset=utf-8;base64,yqk=", self.loglines[-3])
 
@@ -698,9 +698,9 @@ class TestGroupingFormatter(FormatterTest):
         self.assertIn("  \u2022 1 ran as expected. 0 tests skipped.", self.loglines)
         self.assertIn("  \u2022 1 known intermittent results.", self.loglines)
         self.assertIn("  \u2022 1 tests failed unexpectedly", self.loglines)
-        self.assertIn("  \u25B6 FAIL [expected OK] test2", self.loglines)
+        self.assertIn("  \u25b6 FAIL [expected OK] test2", self.loglines)
         self.assertIn(
-            "  \u25B6 FAIL [expected PASS, known intermittent [FAIL] test2, subtest2",
+            "  \u25b6 FAIL [expected PASS, known intermittent [FAIL] test2, subtest2",
             self.loglines,
         )
 

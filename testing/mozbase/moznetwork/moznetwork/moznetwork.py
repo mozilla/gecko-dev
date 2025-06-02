@@ -12,7 +12,6 @@ import sys
 
 import mozinfo
 import mozlog
-import six
 
 if mozinfo.isLinux:
     import fcntl
@@ -52,13 +51,10 @@ def _get_interface_list():
                 struct.pack("iL", bytes, names.buffer_info()[0]),
             ),
         )[0]
-        if six.PY3:
-            namestr = names.tobytes()
-        else:
-            namestr = names.tostring()
+        namestr = names.tobytes()
         return [
             (
-                six.ensure_str(namestr[i : i + 32].split(b"\0", 1)[0]),
+                namestr[i : i + 32].split(b"\0", 1)[0].decode(),
                 socket.inet_ntoa(namestr[i + 20 : i + 24]),
             )
             for i in range(0, outbytes, struct_size)

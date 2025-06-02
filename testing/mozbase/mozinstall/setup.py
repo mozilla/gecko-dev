@@ -18,7 +18,6 @@ deps = [
     "mozinfo >= 0.7",
     "mozfile >= 1.0",
     "requests",
-    "six >= 1.13.0",
 ]
 
 setup(
@@ -34,8 +33,14 @@ setup(
         "Natural Language :: English",
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries :: Python Modules",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     keywords="mozilla",
     author="Mozilla Automation and Tools team",
@@ -56,4 +61,5 @@ setup(
       moz_add_to_system = mozinstall:install_cli
       moz_remove_from_system = mozinstall:uninstall_cli
       """,
+    python_requires=">=3.8",
 )

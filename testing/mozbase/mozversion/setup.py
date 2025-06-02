@@ -13,8 +13,14 @@ setup(
     description="Library to get version information for applications",
     long_description="see https://firefox-source-docs.mozilla.org/mozbase/index.html",
     classifiers=[
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
     keywords="mozilla",
     author="Mozilla Automation and Testing Team",
@@ -24,10 +30,11 @@ setup(
     packages=["mozversion"],
     include_package_data=True,
     zip_safe=False,
-    install_requires=["mozlog >= 6.0", "six >= 1.13.0"],
+    install_requires=["mozlog >= 6.0"],
     entry_points="""
       # -*- Entry points: -*-
       [console_scripts]
       mozversion = mozversion:cli
       """,
+    python_requires=">=3.8",
 )

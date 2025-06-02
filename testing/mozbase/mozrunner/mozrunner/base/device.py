@@ -11,7 +11,6 @@ import tempfile
 import time
 
 import mozfile
-import six
 
 from ..devices import BaseEmulator
 from .runner import BaseRunner
@@ -45,10 +44,7 @@ class DeviceRunner(BaseRunner):
         if env:
             self._device_env.update(env)
 
-        if six.PY2:
-            stdout = codecs.getwriter("utf-8")(sys.stdout)
-        else:
-            stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
+        stdout = codecs.getwriter("utf-8")(sys.stdout.buffer)
         process_args = {
             "stream": stdout,
             "processOutputLine": self.on_output,

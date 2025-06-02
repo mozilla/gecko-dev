@@ -9,17 +9,12 @@ import os
 from collections import defaultdict
 from datetime import datetime
 
-import six
-
 from .. import base
 
 html = None
 raw = None
 
-if six.PY2:
-    from cgi import escape
-else:
-    from html import escape
+from html import escape
 
 base_path = os.path.split(__file__)[0]
 

@@ -2,12 +2,12 @@
 # coding=UTF-8
 
 import zipfile
+from io import BytesIO
 from urllib.parse import urlunsplit
 
 import mozhttpd
 import mozunit
 from conftest import fspath
-from six import BytesIO
 
 
 def test_symbols_path_not_present(check_for_crashes, minidump_files):

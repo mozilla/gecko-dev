@@ -19,7 +19,6 @@ from urllib.request import urlopen
 import mozfile
 import mozinfo
 import mozlog
-import six
 from redo import retriable
 
 __all__ = [
@@ -145,8 +144,6 @@ def check_for_crashes(
                 err="\n".join(info.stackwalk_errors),
             )
         if output is not None:
-            if six.PY2 and sys.stdout.encoding != "UTF-8":
-                output = output.encode("utf-8")
             print(output)
 
     return crash_count
@@ -414,9 +411,10 @@ class CrashInfo:
                 )
                 (out, err) = p.communicate()
                 retcode = p.returncode
-                if six.PY3:
-                    out = six.ensure_str(out)
-                    err = six.ensure_str(err)
+                if isinstance(out, bytes):
+                    out = out.decode()
+                if isinstance(err, bytes):
+                    err = err.decode()
 
                 if retcode == 0:
                     processed_crash = self._process_json_output(json_output)
