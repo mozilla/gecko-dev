@@ -229,6 +229,34 @@ class NavigationRegistry extends EventEmitter {
 
     return navigation;
   }
+
+  /**
+   * Called when a history updated event is recorded from the
+   * WebProgressListener actors.
+   *
+   * This entry point is only intended to be called from
+   * WebProgressListenerParent, to avoid setting up observers or listeners,
+   * which are unnecessary since NavigationManager has to be a singleton.
+   *
+   * Note that a history-updated event should not create a new navigation, or
+   * generate a new navigation id.
+   *
+   * @param {object} data
+   * @param {BrowsingContext} data.context
+   *     The browsing context for which the navigation event was recorded.
+   * @param {string} data.url
+   *     The URL as string for the navigation.
+   */
+  notifyHistoryUpdated(data) {
+    const { contextDetails, url } = data;
+
+    const context = this.#getContextFromContextDetails(contextDetails);
+    const navigableId = lazy.TabManager.getIdForBrowsingContext(context);
+
+    // History updates are immediately done, fire a single event.
+    this.emit("history-updated", { navigableId, url });
+  }
+
   /**
    * Called when a same-document navigation is recorded from the
    * WebProgressListener actors.
@@ -718,7 +746,7 @@ class NavigationRegistry extends EventEmitter {
 const navigationRegistry = new NavigationRegistry();
 
 /**
- * See NavigationRegistry.notifyHashChanged.
+ * See NavigationRegistry.notifyFragmentNavigated.
  *
  * This entry point is only intended to be called from WebProgressListenerParent,
  * to avoid setting up observers or listeners, which are unnecessary since
@@ -726,6 +754,17 @@ const navigationRegistry = new NavigationRegistry();
  */
 export function notifyFragmentNavigated(data) {
   return navigationRegistry.notifyFragmentNavigated(data);
+}
+
+/**
+ * See NavigationRegistry.notifyHistoryUpdated.
+ *
+ * This entry point is only intended to be called from WebProgressListenerParent,
+ * to avoid setting up observers or listeners, which are unnecessary since
+ * NavigationRegistry has to be a singleton.
+ */
+export function notifyHistoryUpdated(data) {
+  return navigationRegistry.notifyHistoryUpdated(data);
 }
 
 /**
@@ -832,6 +871,7 @@ export class NavigationManager extends EventEmitter {
     this.#monitoring = true;
     navigationRegistry.startMonitoring(this);
     navigationRegistry.on("fragment-navigated", this.#onNavigationEvent);
+    navigationRegistry.on("history-updated", this.#onNavigationEvent);
     navigationRegistry.on("navigation-committed", this.#onNavigationEvent);
     navigationRegistry.on("navigation-failed", this.#onNavigationEvent);
     navigationRegistry.on("navigation-started", this.#onNavigationEvent);
@@ -847,6 +887,7 @@ export class NavigationManager extends EventEmitter {
     this.#monitoring = false;
     navigationRegistry.stopMonitoring(this);
     navigationRegistry.off("fragment-navigated", this.#onNavigationEvent);
+    navigationRegistry.off("history-updated", this.#onNavigationEvent);
     navigationRegistry.off("navigation-committed", this.#onNavigationEvent);
     navigationRegistry.off("navigation-failed", this.#onNavigationEvent);
     navigationRegistry.off("navigation-started", this.#onNavigationEvent);

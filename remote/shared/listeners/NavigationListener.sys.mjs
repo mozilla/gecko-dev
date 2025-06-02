@@ -67,6 +67,7 @@ export class NavigationListener {
     }
 
     this.#navigationManager.on("fragment-navigated", this.#forwardEvent);
+    this.#navigationManager.on("history-updated", this.#forwardEvent);
     this.#navigationManager.on("navigation-committed", this.#forwardEvent);
     this.#navigationManager.on("navigation-failed", this.#forwardEvent);
     this.#navigationManager.on("navigation-started", this.#forwardEvent);
@@ -82,6 +83,7 @@ export class NavigationListener {
     }
 
     this.#navigationManager.off("fragment-navigated", this.#forwardEvent);
+    this.#navigationManager.off("history-updated", this.#forwardEvent);
     this.#navigationManager.off("navigation-committed", this.#forwardEvent);
     this.#navigationManager.off("navigation-failed", this.#forwardEvent);
     this.#navigationManager.off("navigation-started", this.#forwardEvent);
