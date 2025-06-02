@@ -681,7 +681,8 @@ void ApplyResistFingerprintingImpl(const RefPtr<T>& aConfig,
                                    nsIGlobalObject* aGlobal) {
   // When resisting fingerprinting, don't reveal information about the host
   // hardware.
-  if (nsContentUtils::ShouldResistFingerprinting(aGlobal, RFPTarget::MediaCapabilities)) {
+  if (nsContentUtils::ShouldResistFingerprinting(
+          aGlobal, RFPTarget::MediaCapabilities)) {
     if (aConfig->mHardwareAcceleration != HardwareAcceleration::No_preference) {
       LOGW(
           "Resist fingerprinting (MediaCapabilities) enabled, overriding "
@@ -693,6 +694,12 @@ void ApplyResistFingerprintingImpl(const RefPtr<T>& aConfig,
 
 void ApplyResistFingerprintingIfNeeded(
     const RefPtr<VideoEncoderConfigInternal>& aConfig,
+    nsIGlobalObject* aGlobal) {
+  ApplyResistFingerprintingImpl(aConfig, aGlobal);
+}
+
+void ApplyResistFingerprintingIfNeeded(
+    const RefPtr<VideoDecoderConfigInternal>& aConfig,
     nsIGlobalObject* aGlobal) {
   ApplyResistFingerprintingImpl(aConfig, aGlobal);
 }
