@@ -912,10 +912,10 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_ioservice.js"]
 
+["test_ip_address_space_lna_glean.js"]
+
 ["test_ip_space_glean.js"]
 skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
-
-["test_ip_address_space_lna_glean.js"]
 
 ["test_large_port.js"]
 
@@ -974,6 +974,7 @@ skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"
 usesNPM = true
 skip-if = [
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968696
+  "os == 'android'", # Bug 1968696
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
@@ -1299,6 +1300,8 @@ skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"
 ["test_trr_extended_error.js"]
 run-sequentially = "node server exceptions dont replay well"
 
+["test_trr_flags.js"]
+
 ["test_trr_https_fallback.js"]
 run-sequentially = "node server exceptions dont replay well"
 skip-if = [
@@ -1400,5 +1403,3 @@ skip-if = [
 
 ["test_xmlhttprequest.js"]
 prefs = ["network.xhr.block_sync_system_requests=false"] # Bug 721336
-
-["test_trr_flags.js"]

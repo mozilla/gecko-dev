@@ -64,6 +64,12 @@ task-defaults:
                         msix: true
                         default: false
                 default: false
+    docker-image:
+        by-test-platform:
+            linux1804.*:
+                in-tree: ubuntu1804-test
+            default:
+                in-tree: ubuntu2404-test
     fetches:
         toolchain:
             by-test-platform:
