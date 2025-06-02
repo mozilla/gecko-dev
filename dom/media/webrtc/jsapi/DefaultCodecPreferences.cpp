@@ -4,9 +4,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#include "jsapi/DefaultCodecPreferences.h"
-#include "jsapi/PeerConnectionCtx.h"
+#include "DefaultCodecPreferences.h"
+#include "gmp/GMPUtils.h"
 #include "libwebrtcglue/VideoConduit.h"
+#include "mozilla/StaticPrefs_media.h"
 
 namespace mozilla {
 
@@ -20,26 +21,26 @@ bool DefaultCodecPreferences::H264EnabledStatic() {
 }
 
 bool DefaultCodecPreferences::SoftwareH264EnabledStatic() {
-  // If PeerConnectionCtx is not initialized, we can't check if H264 is
-  // enabled. In that case, we assume sw H264 is enabled.
-  // This only happens in gtest tests.
 #ifdef MOZ_WIDGET_ANDROID
   // Although Play Store policy doesn't allow GMP plugin, Android has H.264 SW
   // codec.
-  MOZ_ASSERT(!PeerConnectionCtx::isActive() ||
-                 !PeerConnectionCtx::GetInstance()->gmpHasH264(),
+  MOZ_ASSERT(!HaveGMPFor("encode-video"_ns, {"h264"_ns}),
              "GMP plugin not allowed on Android");
   return true;
 #else
-  return PeerConnectionCtx::isActive()
-             ? PeerConnectionCtx::GetInstance()->gmpHasH264()
-             : true;
+  return HaveGMPFor("encode-video"_ns, {"h264"_ns}) &&
+         HaveGMPFor("decode-video"_ns, {"h264"_ns});
 #endif
 }
 
 bool DefaultCodecPreferences::HardwareH264EnabledStatic() {
   return WebrtcVideoConduit::HasH264Hardware() &&
          Preferences::GetBool("media.webrtc.hw.h264.enabled", false);
+}
+
+bool DefaultCodecPreferences::H264PacketizationModeZeroSupportedStatic() {
+  // Packetization mode 0 is unsupported by MediaDataEncoder.
+  return HaveGMPFor("encode-video"_ns, {"h264"_ns});
 }
 
 }  // namespace mozilla

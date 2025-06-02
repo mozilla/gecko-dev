@@ -31,13 +31,7 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
   bool HardwareH264Enabled() const { return mHardwareH264Enabled; }
 
   bool H264PacketizationModeZeroSupported() const override {
-#ifdef MOZ_WIDGET_ANDROID
-    return false;
-#else
-    // We're assuming packetization mode 0 is unsupported by
-    // hardware.
-    return SoftwareH264Enabled();
-#endif
+    return mH264PacketizationModeZeroSupported;
   }
 
   int32_t H264Level() const override { return mH264Level; }
@@ -78,6 +72,8 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
   static bool SoftwareH264EnabledStatic();
 
   static bool HardwareH264EnabledStatic();
+
+  static bool H264PacketizationModeZeroSupportedStatic();
 
   // minimum suggested for WebRTC spec
   static constexpr int32_t kDefaultH264Level = 31;
@@ -187,6 +183,8 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
   const bool mH264Enabled = H264EnabledStatic();
   const bool mSoftwareH264Enabled = SoftwareH264EnabledStatic();
   const bool mHardwareH264Enabled = HardwareH264EnabledStatic();
+  const bool mH264PacketizationModeZeroSupported =
+      H264PacketizationModeZeroSupportedStatic();
   const int32_t mH264Level = H264LevelStatic();
   const int32_t mH264MaxBr = H264MaxBrStatic();
   const int32_t mH264MaxMbps = H264MaxMbpsStatic();

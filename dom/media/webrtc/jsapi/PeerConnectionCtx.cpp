@@ -649,31 +649,4 @@ void PeerConnectionCtx::onGMPReady() {
   mQueuedJSEPOperations.Clear();
 }
 
-bool PeerConnectionCtx::gmpHasH264() {
-  if (!mGMPService) {
-    return false;
-  }
-
-  // XXX I'd prefer if this was all known ahead of time...
-
-  AutoTArray<nsCString, 1> tags;
-  tags.AppendElement("h264"_ns);
-
-  bool has_gmp;
-  nsresult rv;
-  rv = mGMPService->HasPluginForAPI(nsLiteralCString(GMP_API_VIDEO_ENCODER),
-                                    tags, &has_gmp);
-  if (NS_FAILED(rv) || !has_gmp) {
-    return false;
-  }
-
-  rv = mGMPService->HasPluginForAPI(nsLiteralCString(GMP_API_VIDEO_DECODER),
-                                    tags, &has_gmp);
-  if (NS_FAILED(rv) || !has_gmp) {
-    return false;
-  }
-
-  return true;
-}
-
 }  // namespace mozilla
