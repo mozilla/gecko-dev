@@ -15,6 +15,9 @@ support-files = [
 
 ["test_performance_aborted_status.html"]
 
+["test_performance_interactionid_pointerdown.html"]
+prefs = ["dom.performance.event_timing.enable_interactionid=true"]
+
 ["test_performance_navigation_timing.html"]
 
 ["test_performance_observer.html"]
