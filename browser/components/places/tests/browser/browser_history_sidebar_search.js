@@ -26,7 +26,7 @@ add_task(async function test() {
   }
   await PlacesTestUtils.addVisits(places);
 
-  await withSidebarTree("history", function () {
+  await withSidebarTree("history", async function () {
     info("Set 'by last visited' view");
     sidebar.contentDocument.getElementById("bylastvisited").doCommand();
     let tree = sidebar.contentDocument.getElementById("historyTree");
@@ -35,13 +35,11 @@ add_task(async function test() {
     // Set a search value.
     let searchBox = sidebar.contentDocument.getElementById("search-box");
     ok(searchBox, "search box is in context");
-    searchBox.value = "sidebar.mozilla";
-    searchBox.doCommand();
+    await setSearch(searchBox, "sidebar.mozilla");
     check_tree_order(tree, pages, -FILTERED_COUNT);
 
     info("Reset the search");
-    searchBox.value = "";
-    searchBox.doCommand();
+    searchBox.clear();
     check_tree_order(tree, pages);
   });
 

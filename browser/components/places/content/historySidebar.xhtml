@@ -57,10 +57,10 @@
 #include bookmarksHistoryTooltip.inc.xhtml
 
   <hbox id="sidebar-search-container">
-    <search-textbox id="search-box" flex="1"
-                    data-l10n-id="places-history-search"
-                    data-l10n-attrs="placeholder"
-                    aria-controls="historyTree"/>
+    <html:moz-input-search id="search-box"
+        data-l10n-id="places-history-search"
+        data-l10n-attrs="placeholder"
+        aria-controls="historyTree"/>
     <button id="viewButton" style="min-width:0px !important;" type="menu"
             data-l10n-id="places-view" selectedsort="day"
             persist="selectedsort">

@@ -37,6 +37,16 @@ export default class MozInputSearch extends MozInputText {
     this.#searchTimer = null;
   }
 
+  #dispatchSearch() {
+    this.dispatchEvent(
+      new CustomEvent("MozInputSearch:search", {
+        bubbles: true,
+        composed: true,
+        detail: { query: this.value },
+      })
+    );
+  }
+
   disconnectedCallback() {
     super.disconnectedCallback();
     this.#clearSearchTimer();
@@ -50,8 +60,17 @@ export default class MozInputSearch extends MozInputText {
     super.handleInput(e);
     this.#clearSearchTimer();
     this.#searchTimer = setTimeout(() => {
-      this.dispatchEvent(new CustomEvent("MozInputSearch:search"));
+      this.#dispatchSearch();
     }, MozInputSearch.#searchDebounceDelayMs);
+  }
+
+  // Clears the value and synchronously dispatches a search event if needed.
+  clear() {
+    this.#clearSearchTimer();
+    if (this.value) {
+      this.value = "";
+      this.#dispatchSearch();
+    }
   }
 
   inputTemplate() {

@@ -236,7 +236,9 @@ add_task(async function () {
   await expectFocusOnF6(
     false,
     "bookmarksPanel",
-    sidebar.contentDocument.getElementById("search-box").inputField,
+    sidebar.contentDocument
+      .getElementById("search-box")
+      .shadowRoot.querySelector("input"),
     false,
     "focus with sidebar open sidebar"
   );
@@ -266,7 +268,9 @@ add_task(async function () {
   await expectFocusOnF6(
     true,
     "bookmarksPanel",
-    sidebar.contentDocument.getElementById("search-box").inputField,
+    sidebar.contentDocument
+      .getElementById("search-box")
+      .shadowRoot.querySelector("input"),
     false,
     "back focus with sidebar open sidebar"
   );

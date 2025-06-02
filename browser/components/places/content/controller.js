@@ -1438,8 +1438,7 @@ PlacesController.prototype = {
     } else if (documentUrl.includes("sidebar")) {
       // We're in the sidebar - clear the search box first
       let searchBox = document.getElementById("search-box");
-      searchBox.value = "";
-      searchBox.doCommand();
+      searchBox.clear();
 
       // And go to the node
       this._view.selectItems([aBookmarkGuid], true);

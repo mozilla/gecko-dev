@@ -12,15 +12,14 @@ const TEST_SIF_URL = "https://testsif.example.com/";
 const TEST_SIF_TITLE = "TestSIF";
 const TEST_NEW_TITLE = "NewTestSIF";
 
-function assertBookmarks(searchValue) {
+async function assertBookmarks(searchValue) {
   let found = 0;
 
   let searchBox = sidebar.contentDocument.getElementById("search-box");
 
   ok(searchBox, "search box is in context");
 
-  searchBox.value = searchValue;
-  searchBox.doCommand();
+  await setSearch(searchBox, searchValue);
 
   let tree = sidebar.contentDocument.getElementById("bookmarks-view");
 
@@ -33,17 +32,14 @@ function assertBookmarks(searchValue) {
   }
 
   info("Reset the search");
-  searchBox.value = "";
-  searchBox.doCommand();
+  await setSearch(searchBox, "");
 
   is(found, BOOKMARKS_COUNT, "found expected site");
 }
 
 async function showInFolder(aSearchStr, aParentFolderGuid) {
   let searchBox = sidebar.contentDocument.getElementById("search-box");
-
-  searchBox.value = aSearchStr;
-  searchBox.doCommand();
+  await setSearch(searchBox, aSearchStr);
 
   let tree = sidebar.contentDocument.getElementById("bookmarks-view");
   let theNode = tree.view._getNodeForRow(0);
@@ -140,8 +136,7 @@ add_task(async function testRenameOnQueryResult() {
   await withSidebarTree("bookmarks", async function () {
     const searchBox = sidebar.contentDocument.getElementById("search-box");
 
-    searchBox.value = TEST_SIF_TITLE;
-    searchBox.doCommand();
+    await setSearch(searchBox, TEST_SIF_TITLE);
 
     const tree = sidebar.contentDocument.getElementById("bookmarks-view");
     const theNode = tree.view._getNodeForRow(0);

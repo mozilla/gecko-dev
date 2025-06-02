@@ -573,6 +573,21 @@ async function showLibraryColumn(library, columnName) {
   library.document.getElementById(`menucol_${columnName}`).click();
 }
 
+// Given a moz-input-search element, fill it with the query `query`.
+function setSearch(searchBox, query) {
+  return new Promise(resolve => {
+    searchBox.addEventListener("MozInputSearch:search", resolve, {
+      once: true,
+    });
+    searchBox.select();
+    if (query) {
+      EventUtils.sendString(query, searchBox.ownerGlobal);
+    } else {
+      searchBox.clear();
+    }
+  });
+}
+
 registerCleanupFunction(async () => {
   Services.prefs.clearUserPref("browser.bookmarks.defaultLocation");
   await PlacesTransactions.clearTransactionsHistory(true, true);

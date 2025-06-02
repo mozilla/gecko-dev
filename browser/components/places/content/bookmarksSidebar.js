@@ -52,7 +52,7 @@ window.addEventListener("load", () => {
 
   document
     .getElementById("search-box")
-    .addEventListener("command", searchBookmarks);
+    .addEventListener("MozInputSearch:search", searchBookmarks);
 
   let bhTooltip = document.getElementById("bhTooltip");
   bhTooltip.addEventListener("popupshowing", event => {

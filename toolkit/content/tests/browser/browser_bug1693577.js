@@ -15,8 +15,7 @@ add_task(async function test_search_input_popupshowing() {
   SidebarController.toggle("viewBookmarksSidebar");
   await loadPromise;
 
-  let inputField =
-    sidebar.contentDocument.getElementById("search-box").inputField;
+  let inputField = sidebar.contentDocument.getElementById("search-box");
   const popupshowing = BrowserTestUtils.waitForEvent(
     sidebar.contentWindow,
     "popupshowing"

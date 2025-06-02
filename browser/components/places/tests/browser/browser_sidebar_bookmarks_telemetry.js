@@ -103,16 +103,12 @@ add_task(async function test_bookmarks_search() {
   await withSidebarTree("bookmarks", async tree => {
     // Search the tree.
     let searchBox = tree.ownerDocument.getElementById("search-box");
-    searchBox.value = "example";
-    searchBox.doCommand();
+    await setSearch(searchBox, "example");
 
-    searchBox.value = "";
-    searchBox.doCommand();
+    searchBox.clear();
     info("Search was reset");
 
-    // Perform a second search.
-    searchBox.value = "mozilla";
-    searchBox.doCommand();
+    await setSearch(searchBox, "mozilla");
     info("Second search was performed");
 
     // Select the first link and click on it.

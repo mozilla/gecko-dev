@@ -54,7 +54,9 @@ window.addEventListener("load", () => {
   );
 
   gSearchBox = document.getElementById("search-box");
-  gSearchBox.addEventListener("command", () => searchHistory(gSearchBox.value));
+  gSearchBox.addEventListener("MozInputSearch:search", () =>
+    searchHistory(gSearchBox.value)
+  );
 
   let viewButton = document.getElementById("viewButton");
   gHistoryGrouping = viewButton.getAttribute("selectedsort");
