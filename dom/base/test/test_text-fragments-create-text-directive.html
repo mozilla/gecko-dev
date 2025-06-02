@@ -37,6 +37,8 @@
       <td id="firstRow">first row</td></tr> <tr><td id="secondRow">second row</td>
     </tr>
   </table>
+  <span id="longWord">1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111</span>
+
   <script>
     SimpleTest.waitForExplicitFinish();
     function rAF() {
@@ -487,6 +489,14 @@
       is(ranges.length, 1, `${testCase}: There is one text fragment range on the document`);
       is(ranges[0].toString(), range.toString(), `${testCase}: Ranges have the same content`);
     }
+    async function testRangeBasedWithNonBreakableWord() {
+      const testCase = "Range-based text directive with non-breakable word";
+      const range = document.createRange();
+      range.setStart(longWord.firstChild, 0);
+      range.setEnd(longWord.firstChild, longWord.firstChild.length);
+      const textDirective = await SpecialPowers.wrap(document).fragmentDirective.createTextDirective(range);
+      is(textDirective, null, `${testCase}: This test case should not produce a text directive`);
+    }
 
     async function runTests() {
       try {
@@ -500,6 +510,7 @@
         await testExpandRangeToWordBoundaries();
         await testNonUniqueTestSurroundedByBlockBoundaries();
         await testRangeBasedWithEmptySurroundingBlocks();
+        await testRangeBasedWithNonBreakableWord();
 
     }
     finally {

@@ -109,8 +109,14 @@ class TextDirectiveCreator {
    *
    * The distances are always sorted, so that the first entry points to the
    * nearest word boundary in search direction.
+   *
+   * This method returns false if collecting context term word boundary
+   * distances failed in a way that it's not considered a failure, but rather
+   * it's not possible to create a text directive for the target range.
+   * This can happen if the target range is too long for exact matching, but
+   * does not contain a word boundary.
    */
-  virtual void CollectContextTermWordBoundaryDistances() = 0;
+  virtual bool CollectContextTermWordBoundaryDistances() = 0;
 
   /**
    * @brief Searches the document for other occurrences of the target range and
@@ -229,7 +235,7 @@ class RangeBasedTextDirectiveCreator : public TextDirectiveCreator {
 
   Result<Ok, ErrorResult> CollectContextTerms() override;
 
-  void CollectContextTermWordBoundaryDistances() override;
+  bool CollectContextTermWordBoundaryDistances() override;
 
   Result<Ok, ErrorResult> FindAllMatchingCandidates() override;
 
@@ -261,7 +267,7 @@ class ExactMatchTextDirectiveCreator : public TextDirectiveCreator {
 
   Result<Ok, ErrorResult> CollectContextTerms() override;
 
-  void CollectContextTermWordBoundaryDistances() override;
+  bool CollectContextTermWordBoundaryDistances() override;
 
   Result<Ok, ErrorResult> FindAllMatchingCandidates() override;
 
