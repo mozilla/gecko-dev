@@ -15,6 +15,7 @@ XPIDL_SOURCES += [
     "nsICookieNotification.idl",
     "nsICookiePermission.idl",
     "nsICookieService.idl",
+    "nsICookieValidation.idl",
     "nsIThirdPartyCookieBlockingExceptionListService.idl",
 ]
 
@@ -34,6 +35,7 @@ EXPORTS.mozilla.net = [
     "CookieServiceChild.h",
     "CookieServiceParent.h",
     "CookieStorage.h",
+    "CookieValidation.h",
     "ThirdPartyCookieBlockingExceptions.h",
 ]
 UNIFIED_SOURCES += [
@@ -49,6 +51,7 @@ UNIFIED_SOURCES += [
     "CookieServiceChild.cpp",
     "CookieServiceParent.cpp",
     "CookieStorage.cpp",
+    "CookieValidation.cpp",
     "ThirdPartyCookieBlockingExceptions.cpp",
 ]
 XPCSHELL_TESTS_MANIFESTS += [

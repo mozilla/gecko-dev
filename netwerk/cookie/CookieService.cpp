@@ -8,6 +8,7 @@
 #include "CookieLogging.h"
 #include "CookieParser.h"
 #include "CookieService.h"
+#include "CookieValidation.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Components.h"
@@ -134,8 +135,6 @@ namespace net {
  ******************************************************************************/
 
 static StaticRefPtr<CookieService> gCookieService;
-
-constexpr auto CONSOLE_REJECTION_CATEGORY = "cookiesRejection"_ns;
 
 namespace {
 
@@ -1649,20 +1648,11 @@ bool CookieService::SetCookiesFromIPC(const nsACString& aBaseDomain,
   int64_t currentTimeInUsec = PR_Now();
 
   for (const CookieStruct& cookieData : aCookies) {
-    if (!CookieCommons::CheckPathSize(cookieData)) {
-      return false;
-    }
+    RefPtr<CookieValidation> validation = CookieValidation::ValidateForHost(
+        cookieData, aHostURI, aBaseDomain, false, aFromHttp);
+    MOZ_ASSERT(validation);
 
-    // reject cookie if it's over the size limit, per RFC2109
-    if (!CookieCommons::CheckNameAndValueSize(cookieData)) {
-      return false;
-    }
-
-    if (!CookieCommons::CheckName(cookieData)) {
-      return false;
-    }
-
-    if (!CookieCommons::CheckValue(cookieData)) {
+    if (validation->Result() != nsICookieValidation::eOK) {
       return false;
     }
 

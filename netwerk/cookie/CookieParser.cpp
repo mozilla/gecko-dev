@@ -5,9 +5,9 @@
 
 #include "CookieParser.h"
 #include "CookieLogging.h"
+#include "CookieValidation.h"
 
 #include "mozilla/CheckedInt.h"
-#include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/glean/NetwerkMetrics.h"
 #include "mozilla/net/Cookie.h"
 #include "mozilla/StaticPrefs_network.h"
@@ -21,14 +21,7 @@
 constexpr char ATTRIBUTE_PATH[] = "path";
 constexpr uint64_t ATTRIBUTE_MAX_LENGTH = 1024;
 
-constexpr auto CONSOLE_CHIPS_CATEGORY = "cookiesCHIPS"_ns;
-constexpr auto CONSOLE_OVERSIZE_CATEGORY = "cookiesOversize"_ns;
-constexpr auto CONSOLE_REJECTION_CATEGORY = "cookiesRejection"_ns;
-constexpr auto CONSOLE_SAMESITE_CATEGORY = "cookieSameSite"_ns;
 constexpr auto CONSOLE_INVALID_ATTRIBUTE_CATEGORY = "cookieInvalidAttribute"_ns;
-constexpr auto SAMESITE_MDN_URL =
-    "https://developer.mozilla.org/docs/Web/HTTP/Reference/Headers/Set-Cookie#"
-    u"samesitesamesite-value"_ns;
 
 namespace mozilla {
 namespace net {
@@ -42,6 +35,10 @@ CookieParser::CookieParser(nsIConsoleReportCollector* aCRC, nsIURI* aHostURI)
 
 CookieParser::~CookieParser() {
   MOZ_COUNT_DTOR(CookieParser);
+
+  if (mValidation) {
+    mValidation->ReportErrorsAndWarnings(mCRC, mHostURI);
+  }
 
 #define COOKIE_LOGGING_WITH_NAME(category, x)                 \
   CookieLogging::LogMessageToConsole(                         \
@@ -57,75 +54,9 @@ CookieParser::~CookieParser() {
                                "CookieRejectedInvalidCharAttributes"_ns);
       break;
 
-    case RejectedNoneRequiresSecure:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_SAMESITE_CATEGORY,
-                               "CookieRejectedNonRequiresSecure2"_ns);
-      break;
-
-    case RejectedPartitionedRequiresSecure:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedPartitionedRequiresSecure"_ns);
-      break;
-
-    case RejectedEmptyNameAndValue:
-      CookieLogging::LogMessageToConsole(
-          mCRC, mHostURI, nsIScriptError::warningFlag,
-          CONSOLE_REJECTION_CATEGORY, "CookieRejectedEmptyNameAndValue"_ns,
-          nsTArray<nsString>());
-
-      break;
-
-    case RejectedNameValueOversize: {
-      AutoTArray<nsString, 2> params = {
-          NS_ConvertUTF8toUTF16(mCookieData.name())};
-
-      nsString size;
-      size.AppendInt(kMaxBytesPerCookie);
-      params.AppendElement(size);
-
-      CookieLogging::LogMessageToConsole(
-          mCRC, mHostURI, nsIScriptError::warningFlag,
-          CONSOLE_OVERSIZE_CATEGORY, "CookieOversize"_ns, params);
-      break;
-    }
-
-    case RejectedInvalidCharName:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidCharName"_ns);
-      break;
-
-    case RejectedInvalidDomain:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidDomain"_ns);
-      break;
-
-    case RejectedInvalidPrefix:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidPrefix"_ns);
-      break;
-    case RejectedInvalidPath:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidPath"_ns);
-      break;
-
-    case RejectedInvalidCharValue:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedInvalidCharValue"_ns);
-      break;
-
     case RejectedHttpOnlyButFromScript:
       COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
                                "CookieRejectedHttpOnlyButFromScript"_ns);
-      break;
-
-    case RejectedSecureButNonHttps:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_REJECTION_CATEGORY,
-                               "CookieRejectedSecureButNonHttps"_ns);
-      break;
-
-    case RejectedForNonSameSiteness:
-      COOKIE_LOGGING_WITH_NAME(CONSOLE_SAMESITE_CATEGORY,
-                               "CookieRejectedForNonSameSiteness"_ns);
       break;
 
     case RejectedForeignNoPartitionedError:
@@ -146,7 +77,8 @@ CookieParser::~CookieParser() {
 
 #undef COOKIE_LOGGING_WITH_NAME
 
-  if (mRejection != NoRejection || !mContainsCookie) {
+  if (mRejection != NoRejection || !mValidation ||
+      mValidation->Result() != nsICookieValidation::eOK) {
     return;
   }
 
@@ -183,29 +115,6 @@ CookieParser::~CookieParser() {
         mCRC, mHostURI, nsIScriptError::infoFlag,
         CONSOLE_INVALID_ATTRIBUTE_CATEGORY, "CookieInvalidMaxAgeAttribute"_ns,
         AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(mCookieData.name())});
-  }
-
-  if (mWarnings.mSameSiteNoneRequiresSecureForBeta) {
-    CookieLogging::LogMessageToConsole(
-        mCRC, mHostURI, nsIScriptError::warningFlag, CONSOLE_SAMESITE_CATEGORY,
-        "CookieRejectedNonRequiresSecureForBeta3"_ns,
-        AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(mCookieData.name()),
-                                SAMESITE_MDN_URL});
-  }
-
-  if (mWarnings.mSameSiteLaxForced) {
-    CookieLogging::LogMessageToConsole(
-        mCRC, mHostURI, nsIScriptError::infoFlag, CONSOLE_SAMESITE_CATEGORY,
-        "CookieLaxForced2"_ns,
-        AutoTArray<nsString, 1>{NS_ConvertUTF8toUTF16(mCookieData.name())});
-  }
-
-  if (mWarnings.mSameSiteLaxForcedForBeta) {
-    CookieLogging::LogMessageToConsole(
-        mCRC, mHostURI, nsIScriptError::warningFlag, CONSOLE_SAMESITE_CATEGORY,
-        "CookieLaxForcedForBeta2"_ns,
-        AutoTArray<nsString, 2>{NS_ConvertUTF8toUTF16(mCookieData.name()),
-                                SAMESITE_MDN_URL});
   }
 
   if (mWarnings.mForeignNoPartitionedWarning) {
@@ -492,43 +401,6 @@ void CookieParser::ParseAttributes(nsCString& aCookieHeader,
     }
   }
 
-  // re-assign aCookieHeader, in case we need to process another cookie
-  aCookieHeader.Assign(Substring(cookieStart, cookieEnd));
-
-  // If same-site is explicitly set to 'none' but this is not a secure context,
-  // let's abort the parsing.
-  if (!mCookieData.isSecure() &&
-      mCookieData.sameSite() == nsICookie::SAMESITE_NONE) {
-    if (StaticPrefs::network_cookie_sameSite_noneRequiresSecure()) {
-      RejectCookie(RejectedNoneRequiresSecure);
-      return;
-    }
-
-    // Still warn about the missing Secure attribute when not enforcing.
-    mWarnings.mSameSiteNoneRequiresSecureForBeta = true;
-  }
-
-  // Ensure the partitioned cookie is set with the secure attribute if CHIPS
-  // is enabled.
-  if (StaticPrefs::network_cookie_CHIPS_enabled() &&
-      mCookieData.isPartitioned() && !mCookieData.isSecure()) {
-    RejectCookie(RejectedPartitionedRequiresSecure);
-    return;
-  }
-
-  if (mCookieData.sameSite() == nsICookie::SAMESITE_UNSET) {
-    bool laxByDefault =
-        StaticPrefs::network_cookie_sameSite_laxByDefault() &&
-        !nsContentUtils::IsURIInPrefList(
-            mHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
-    if (laxByDefault) {
-      mWarnings.mSameSiteLaxForced = true;
-    } else if (StaticPrefs::
-                   network_cookie_sameSite_laxByDefaultWarningsForBeta()) {
-      mWarnings.mSameSiteLaxForcedForBeta = true;
-    }
-  }
-
   // Cookie accepted.
   aAcceptedByParser = true;
 }
@@ -567,73 +439,14 @@ nsAutoCString GetPathFromURI(nsIURI* aHostURI) {
 }  // namespace
 
 // static
-bool CookieParser::CheckPath(CookieStruct& aCookieData, nsIURI* aHostURI,
-                             CookieParser* aParser) {
+void CookieParser::FixPath(CookieStruct& aCookieData, nsIURI* aHostURI) {
   // if a path is given, check the host has permission
   if (aCookieData.path().IsEmpty() || aCookieData.path().First() != '/') {
     nsAutoCString path = GetPathFromURI(aHostURI);
-    if (CheckAttributeSize(aCookieData.path(), ATTRIBUTE_PATH, path, aParser)) {
+    if (CheckAttributeSize(aCookieData.path(), ATTRIBUTE_PATH, path)) {
       aCookieData.path() = path;
     }
   }
-
-  MOZ_ASSERT(CookieCommons::CheckPathSize(aCookieData));
-
-  return !aCookieData.path().Contains('\t');
-}
-
-// static
-bool CookieParser::HasSecurePrefix(const nsACString& aString) {
-  return StringBeginsWith(aString, "__Secure-"_ns,
-                          nsCaseInsensitiveCStringComparator);
-}
-
-// static
-bool CookieParser::HasHostPrefix(const nsACString& aString) {
-  return StringBeginsWith(aString, "__Host-"_ns,
-                          nsCaseInsensitiveCStringComparator);
-}
-
-// CheckPrefixes
-//
-// Reject cookies whose name starts with the magic prefixes from
-// https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis
-// if they do not meet the criteria required by the prefix.
-//
-// Must not be called until after CheckDomain() and CheckPath() have
-// regularized and validated the CookieStruct values!
-
-// static
-bool CookieParser::CheckPrefixes(CookieStruct& aCookieData,
-                                 bool aSecureRequest) {
-  bool hasSecurePrefix = HasSecurePrefix(aCookieData.name());
-  bool hasHostPrefix = HasHostPrefix(aCookieData.name());
-
-  if (!hasSecurePrefix && !hasHostPrefix) {
-    // not one of the magic prefixes: carry on
-    return true;
-  }
-
-  if (!aSecureRequest || !aCookieData.isSecure()) {
-    // the magic prefixes may only be used from a secure request and
-    // the secure attribute must be set on the cookie
-    return false;
-  }
-
-  if (hasHostPrefix) {
-    // The host prefix requires that the path is "/" and that the cookie
-    // had no domain attribute. CheckDomain() and CheckPath() MUST be run
-    // first to make sure invalid attributes are rejected and to regularlize
-    // them. In particular all explicit domain attributes result in a host
-    // that starts with a dot, and if the host doesn't start with a dot it
-    // correctly matches the true host.
-    if (aCookieData.host()[0] == '.' ||
-        !aCookieData.path().EqualsLiteral("/")) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 bool CookieParser::ParseMaxAgeAttribute(const nsACString& aMaxage,
@@ -756,24 +569,10 @@ bool CookieParser::GetExpiry(CookieStruct& aCookieData,
   return true;
 }
 
-// returns true if 'a' is equal to or a subdomain of 'b',
-// assuming no leading dots are present.
-static inline bool IsSubdomainOf(const nsACString& a, const nsACString& b) {
-  if (a == b) {
-    return true;
-  }
-  if (a.Length() > b.Length()) {
-    return a[a.Length() - b.Length() - 1] == '.' && StringEndsWith(a, b);
-  }
-  return false;
-}
-
-// processes domain attribute, and returns true if host has permission to set
-// for this domain.
 // static
-bool CookieParser::CheckDomain(CookieStruct& aCookieData, nsIURI* aHostURI,
-                               const nsACString& aBaseDomain,
-                               bool aRequireHostMatch) {
+void CookieParser::FixDomain(CookieStruct& aCookieData, nsIURI* aHostURI,
+                             const nsACString& aBaseDomain,
+                             bool aRequireHostMatch) {
   // Note: The logic in this function is mirrored in
   // toolkit/components/extensions/ext-cookies.js:checkSetCookiePermissions().
   // If it changes, please update that function, or file a bug for someone
@@ -783,47 +582,53 @@ bool CookieParser::CheckDomain(CookieStruct& aCookieData, nsIURI* aHostURI,
   nsAutoCString hostFromURI;
   nsContentUtils::GetHostOrIPv6WithBrackets(aHostURI, hostFromURI);
 
-  // if a domain is given, check the host has permission
-  if (!aCookieData.host().IsEmpty()) {
-    // Tolerate leading '.' characters, but not if it's otherwise an empty host.
-    if (aCookieData.host().Length() > 1 && aCookieData.host().First() == '.') {
-      aCookieData.host().Cut(0, 1);
-    }
+  // no domain specified, use hostFromURI
+  if (aCookieData.host().IsEmpty()) {
+    aCookieData.host() = hostFromURI;
+    return;
+  }
 
-    // switch to lowercase now, to avoid case-insensitive compares everywhere
-    ToLowerCase(aCookieData.host());
+  nsCString cookieHost = aCookieData.host();
 
+  // Tolerate leading '.' characters, but not if it's otherwise an empty host.
+  if (cookieHost.Length() > 1 && cookieHost.First() == '.') {
+    cookieHost.Cut(0, 1);
+  }
+
+  // switch to lowercase now, to avoid case-insensitive compares everywhere
+  ToLowerCase(cookieHost);
+
+  if (aRequireHostMatch) {
     // check whether the host is either an IP address, an alias such as
     // 'localhost', an eTLD such as 'co.uk', or the empty string. in these
     // cases, require an exact string match for the domain, and leave the cookie
     // as a non-domain one. bug 105917 originally noted the requirement to deal
     // with IP addresses.
-    if (aRequireHostMatch) {
-      return hostFromURI.Equals(aCookieData.host());
+    if (hostFromURI.Equals(cookieHost)) {
+      aCookieData.host() = cookieHost;
     }
 
-    // ensure the proposed domain is derived from the base domain; and also
-    // that the host domain is derived from the proposed domain (per RFC2109).
-    if (IsSubdomainOf(aCookieData.host(), aBaseDomain) &&
-        IsSubdomainOf(hostFromURI, aCookieData.host())) {
-      // prepend a dot to indicate a domain cookie
-      aCookieData.host().InsertLiteral(".", 0);
-      return true;
-    }
-
-    /*
-     * note: RFC2109 section 4.3.2 requires that we check the following:
-     * that the portion of host not in domain does not contain a dot.
-     * this prevents hosts of the form x.y.co.nz from setting cookies in the
-     * entire .co.nz domain. however, it's only a only a partial solution and
-     * it breaks sites (IE doesn't enforce it), so we don't perform this check.
-     */
-    return false;
+    // If the match fails, we keep the aCookieData.Host() as it was. The
+    // Validator will reject the cookie with the correct reason.
+    return;
   }
 
-  // no domain specified, use hostFromURI
-  aCookieData.host() = hostFromURI;
-  return true;
+  // ensure the proposed domain is derived from the base domain; and also
+  // that the host domain is derived from the proposed domain (per RFC2109).
+  if (CookieCommons::IsSubdomainOf(cookieHost, aBaseDomain) &&
+      CookieCommons::IsSubdomainOf(hostFromURI, cookieHost)) {
+    // prepend a dot to indicate a domain cookie
+    cookieHost.InsertLiteral(".", 0);
+    aCookieData.host() = cookieHost;
+  }
+
+  /*
+   * note: RFC2109 section 4.3.2 requires that we check the following:
+   * that the portion of host not in domain does not contain a dot.
+   * this prevents hosts of the form x.y.co.nz from setting cookies in the
+   * entire .co.nz domain. however, it's only a only a partial solution and
+   * it breaks sites (IE doesn't enforce it), so we don't perform this check.
+   */
 }
 
 static void RecordPartitionedTelemetry(const CookieStruct& aCookieData,
@@ -841,90 +646,6 @@ static void RecordPartitionedTelemetry(const CookieStruct& aCookieData,
   }
 }
 
-// static
-CookieParser::Rejection CookieParser::CheckCookieStruct(
-    CookieStruct& aCookieStruct, nsIURI* aHostURI,
-    const nsCString& aCookieString, const nsACString& aBaseDomain,
-    bool aRequireHostMatch, bool aFromHttp, CookieParser* aParser) {
-  // reject cookie if name and value are empty, per RFC6265bis
-  if (aCookieStruct.name().IsEmpty() && aCookieStruct.value().IsEmpty()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "cookie name and value are empty");
-
-    return RejectedEmptyNameAndValue;
-  }
-
-  // reject cookie if it's over the size limit, per RFC2109
-  if (!CookieCommons::CheckNameAndValueSize(aCookieStruct)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "cookie too big (> 4kb)");
-    return RejectedNameValueOversize;
-  }
-
-  if (!CookieCommons::CheckName(aCookieStruct)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "invalid name character");
-    return RejectedInvalidCharName;
-  }
-
-  // domain & path checks
-  if (!CheckDomain(aCookieStruct, aHostURI, aBaseDomain, aRequireHostMatch)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "failed the domain tests");
-    return RejectedInvalidDomain;
-  }
-
-  if (!CheckPath(aCookieStruct, aHostURI, aParser)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "failed the path tests");
-    return RejectedInvalidPath;
-  }
-
-  // If a cookie is nameless, then its value must not start with
-  // `__Host-` or `__Secure-`
-  if (aCookieStruct.name().IsEmpty() &&
-      (HasSecurePrefix(aCookieStruct.value()) ||
-       HasHostPrefix(aCookieStruct.value()))) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "failed hidden prefix tests");
-    return RejectedInvalidPrefix;
-  }
-
-  bool potentiallyTrustworthy =
-      nsMixedContentBlocker::IsPotentiallyTrustworthyOrigin(aHostURI);
-
-  // magic prefix checks. MUST be run after CheckDomain() and CheckPath()
-  if (!CheckPrefixes(aCookieStruct, potentiallyTrustworthy)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "failed the prefix tests");
-    return RejectedInvalidPrefix;
-  }
-
-  if (!CookieCommons::CheckValue(aCookieStruct)) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "invalid value character");
-    return RejectedInvalidCharValue;
-  }
-
-  // if the new cookie is httponly, make sure we're not coming from script
-  if (!aFromHttp && aCookieStruct.isHttpOnly()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "cookie is httponly; coming from script");
-    return RejectedHttpOnlyButFromScript;
-  }
-
-  // If the new cookie is non-https and wants to set secure flag,
-  // browser have to ignore this new cookie.
-  // (draft-ietf-httpbis-cookie-alone section 3.1)
-  if (aCookieStruct.isSecure() && !potentiallyTrustworthy) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieString,
-                      "non-https cookie can't set secure flag");
-    return RejectedSecureButNonHttps;
-  }
-
-  return NoRejection;
-}
-
 // processes a single cookie, and returns true if there are more cookies
 // to be processed
 void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
@@ -932,7 +653,7 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
                          const nsACString& aDateHeader, bool aFromHttp,
                          bool aIsForeignAndNotAddon, bool aPartitionedOnly,
                          bool aIsInPrivateBrowsing, bool aOn3pcbException) {
-  MOZ_ASSERT(!mContainsCookie);
+  MOZ_ASSERT(!mValidation);
 
   // init expiryTime such that session cookies won't prematurely expire
   mCookieData.expiry() = INT64_MAX;
@@ -965,38 +686,8 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
     mCookieData.isSession() = true;
   }
 
-  // We count SetCookie operations in the parent process only for HTTP set
-  // cookies to prevent double counting.
-  if (XRE_IsParentProcess() || !aFromHttp) {
-    RecordPartitionedTelemetry(mCookieData, aIsForeignAndNotAddon);
-  }
-
-  auto result =
-      CheckCookieStruct(mCookieData, mHostURI, mCookieString, aBaseDomain,
-                        aRequireHostMatch, aFromHttp, this);
-  if (result != NoRejection) {
-    RejectCookie(result);
-    return;
-  }
-
-  // If the new cookie is same-site but in a cross site context,
-  // browser must ignore the cookie.
-  bool laxByDefault =
-      StaticPrefs::network_cookie_sameSite_laxByDefault() &&
-      !nsContentUtils::IsURIInPrefList(
-          mHostURI, "network.cookie.sameSite.laxByDefault.disabledHosts");
-  uint32_t sameSite = mCookieData.sameSite();
-  if (sameSite == nsICookie::SAMESITE_UNSET) {
-    sameSite =
-        laxByDefault ? nsICookie::SAMESITE_LAX : nsICookie::SAMESITE_NONE;
-  }
-
-  if (sameSite != nsICookie::SAMESITE_NONE && aIsForeignAndNotAddon) {
-    COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
-                      "failed the samesite tests");
-    RejectCookie(RejectedForNonSameSiteness);
-    return;
-  }
+  FixDomain(mCookieData, mHostURI, aBaseDomain, aRequireHostMatch);
+  FixPath(mCookieData, mHostURI);
 
   // If the cookie is on the 3pcd exception list, we apply partitioned
   // attribute to the cookie.
@@ -1021,8 +712,6 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
         (aIsInPrivateBrowsing &&
          StaticPrefs::
              network_cookie_cookieBehavior_optInPartitioning_pbmode())) {
-      COOKIE_LOGFAILURE(SET_COOKIE, mHostURI, mCookieString,
-                        "foreign cookies must be partitioned");
       RejectCookie(RejectedForeignNoPartitionedError);
       return;
     }
@@ -1030,7 +719,20 @@ void CookieParser::Parse(const nsACString& aBaseDomain, bool aRequireHostMatch,
     mWarnings.mForeignNoPartitionedWarning = true;
   }
 
-  mContainsCookie = true;
+  mValidation = CookieValidation::ValidateInContext(
+      mCookieData, mHostURI, aBaseDomain, aRequireHostMatch, aFromHttp,
+      aIsForeignAndNotAddon, aPartitionedOnly, aIsInPrivateBrowsing);
+  MOZ_ASSERT(mValidation);
+
+  if (mValidation->Result() != nsICookieValidation::eOK) {
+    return;
+  }
+
+  // We count SetCookie operations in the parent process only for HTTP set
+  // cookies to prevent double counting.
+  if (XRE_IsParentProcess() || !aFromHttp) {
+    RecordPartitionedTelemetry(mCookieData, aIsForeignAndNotAddon);
+  }
 }
 
 void CookieParser::RejectCookie(Rejection aRejection) {
