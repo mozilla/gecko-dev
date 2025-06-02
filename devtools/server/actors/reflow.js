@@ -483,6 +483,9 @@ class WindowResizeObserver extends Observable {
   }
 
   _stopListeners() {
+    if (!this.listenerTarget) {
+      return;
+    }
     this.listenerTarget.removeEventListener("resize", this.onResize);
   }
 

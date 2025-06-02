@@ -85,3 +85,37 @@ add_task(async function exceptionsOnUnload() {
   await resume(dbg);
   await onReload;
 });
+
+add_task(async function debuggerStatementOnIframeUnload() {
+  const url = `data:text/html,<iframe src="${encodeURI(TEST_URL_1)}"></iframe>`;
+  const dbg = await initDebuggerWithAbsoluteURL(url);
+
+  await addExpression(dbg, "event.type");
+  is(getWatchExpressionLabel(dbg, 1), "event.type");
+  is(getWatchExpressionValue(dbg, 1), "(unavailable)");
+
+  info("Removing the iframe should trigger the debugger statement on unload");
+  const evaluated = waitForDispatch(dbg.store, "EVALUATE_EXPRESSIONS");
+  const onResumed = SpecialPowers.spawn(gBrowser.selectedBrowser, [], () => {
+    content.document.querySelector("iframe").remove();
+  });
+
+  await waitForPaused(dbg);
+  await waitForInlinePreviews(dbg);
+  await assertPausedAtSourceAndLine(dbg, findSource(dbg, TEST_URL_1).id, 1, 56);
+
+  await evaluated;
+  is(
+    getWatchExpressionValue(dbg, 1),
+    `"unload"`,
+    "event.type evaluation does return the expected result"
+  );
+
+  // Verify that project search works while being paused on unload
+  await openProjectSearch(dbg);
+  await doProjectSearch(dbg, "unload", 1);
+
+  info("Resume execution and wait for the page to complete its reload");
+  await resume(dbg);
+  await onResumed;
+});

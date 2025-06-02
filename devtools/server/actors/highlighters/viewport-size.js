@@ -145,6 +145,11 @@ class ViewportSizeHighlighter {
   }
 
   show() {
+    // pagehide may destroy this custom highlighter before its parent Highlighters class
+    if (this._destroyed) {
+      return false;
+    }
+
     const { pageListenerTarget } = this.env;
     pageListenerTarget.addEventListener("resize", this._onPageResize);
     if (this.isFadingViewportHighlighter) {
