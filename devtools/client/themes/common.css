@@ -543,6 +543,13 @@ iframe {
   font-style: normal;
 }
 
+/* Don't show the "native" search input clear button. Wrap in :where so it's easier to
+   override for specific elements.
+   This should be removed when all dependencies of Bug 1956650 are fixed. */
+:where(input[type="search"])::-moz-search-clear-button {
+  display: none;
+}
+
 /* Searchbox with extra button(s) (MDN help or clear button) */
 .devtools-searchbox {
   display: inline-flex;
