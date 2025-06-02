@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: taskcluster-taskgraph
-Version: 14.1.1
+Version: 14.4.0
 Summary: Build taskcluster taskgraphs
 Project-URL: Repository, https://github.com/taskcluster/taskgraph
 Project-URL: Issues, https://github.com/taskcluster/taskgraph/issues
@@ -29,6 +29,8 @@ Requires-Dist: taskcluster-urls>=11.0
 Requires-Dist: voluptuous>=0.12.1
 Provides-Extra: load-image
 Requires-Dist: zstandard; extra == 'load-image'
+Provides-Extra: orjson
+Requires-Dist: orjson; extra == 'orjson'
 Description-Content-Type: text/x-rst
 
 
@@ -114,7 +116,7 @@ Alternatively, the repo can be cloned and installed directly:
 
   git clone https://github.com/taskcluster/taskgraph
   cd taskgraph
-  python setup.py install
+  pip install .
 
 In both cases, it's recommended to use a Python `virtual environment`_.
 

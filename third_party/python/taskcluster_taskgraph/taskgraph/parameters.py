@@ -4,7 +4,6 @@
 
 import gzip
 import hashlib
-import json
 import os
 import time
 from datetime import datetime
@@ -18,7 +17,7 @@ from urllib.request import urlopen
 import mozilla_repo_urls
 from voluptuous import ALLOW_EXTRA, Any, Optional, Required, Schema
 
-from taskgraph.util import yaml
+from taskgraph.util import json, yaml
 from taskgraph.util.readonlydict import ReadOnlyDict
 from taskgraph.util.schema import validate_schema
 from taskgraph.util.taskcluster import find_task_id, get_artifact_url

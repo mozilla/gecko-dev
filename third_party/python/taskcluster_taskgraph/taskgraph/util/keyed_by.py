@@ -2,8 +2,44 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+from typing import Any, Dict, Generator, Tuple
 
-from .attributes import keymatch
+from taskgraph.util.attributes import keymatch
+
+
+def iter_dot_path(
+    container: Dict[str, Any], subfield: str
+) -> Generator[Tuple[Dict[str, Any], str], None, None]:
+    """Given a container and a subfield in dot path notation, yield the parent
+    container of the dotpath's leaf node, along with the leaf node name that it
+    contains.
+
+    If the dot path contains a list object, each item in the list will be
+    yielded.
+
+    Args:
+        container (dict): The container to search for the dot path.
+        subfield (str): The dot path to search for.
+    """
+    while "." in subfield:
+        f, subfield = subfield.split(".", 1)
+
+        if f.endswith("[]"):
+            f = f[0:-2]
+            if not isinstance(container.get(f), list):
+                return
+
+            for item in container[f]:
+                yield from iter_dot_path(item, subfield)
+            return
+
+        if f not in container:
+            return
+
+        container = container[f]
+
+    if isinstance(container, dict) and subfield in container:
+        yield container, subfield
 
 
 def evaluate_keyed_by(

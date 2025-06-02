@@ -10,7 +10,6 @@ run-using handlers in `taskcluster/taskgraph/transforms/run`.
 """
 
 import copy
-import json
 import logging
 
 from voluptuous import Exclusive, Extra, Optional, Required
@@ -18,6 +17,7 @@ from voluptuous import Exclusive, Extra, Optional, Required
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.transforms.cached_tasks import order_tasks
 from taskgraph.transforms.task import task_description_schema
+from taskgraph.util import json
 from taskgraph.util import path as mozpath
 from taskgraph.util.python_path import import_sibling_modules
 from taskgraph.util.schema import Schema, validate_schema
@@ -269,7 +269,9 @@ def use_fetches(config, tasks):
                     if len(dep_tasks) != 1:
                         raise Exception(
                             "{name} can't fetch {kind} artifacts because "
-                            "there are {tasks} with label {label} in kind dependencies!".format(
+                            "there are {tasks} with label {label} in kind dependencies!\n"
+                            "Available tasks:"
+                            "\n - {labels}".format(
                                 name=name,
                                 kind=kind,
                                 label=dependencies[kind],
@@ -277,6 +279,9 @@ def use_fetches(config, tasks):
                                     "no tasks"
                                     if len(dep_tasks) == 0
                                     else "multiple tasks"
+                                ),
+                                labels="\n - ".join(
+                                    config.kind_dependencies_tasks.keys()
                                 ),
                             )
                         )

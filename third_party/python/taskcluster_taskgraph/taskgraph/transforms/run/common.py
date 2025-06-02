@@ -7,11 +7,10 @@ worker implementation they operate on, and take the same three parameters, for
 consistency.
 """
 
-import json
 from typing import Any, Dict, List, Union
 
 from taskgraph.transforms.base import TransformConfig
-from taskgraph.util import path
+from taskgraph.util import json, path
 from taskgraph.util.caches import CACHES, get_checkout_dir
 from taskgraph.util.taskcluster import get_artifact_prefix
 

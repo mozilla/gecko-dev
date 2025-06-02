@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import json
 import logging
 import os
 import pathlib
@@ -19,6 +18,7 @@ from taskgraph.create import create_tasks
 from taskgraph.generator import TaskGraphGenerator
 from taskgraph.parameters import Parameters, get_version
 from taskgraph.taskgraph import TaskGraph
+from taskgraph.util import json
 from taskgraph.util.python_path import find_object
 from taskgraph.util.schema import Schema, validate_schema
 from taskgraph.util.vcs import Repository, get_repository
@@ -374,7 +374,7 @@ def write_artifact(filename, data):
             yaml.safe_dump(data, f, allow_unicode=True, default_flow_style=False)
     elif filename.endswith(".json"):
         with open(path, "w") as f:
-            json.dump(data, f, sort_keys=True, indent=2, separators=(",", ": "))
+            json.dump(data, f, sort_keys=True, indent=2)
     elif filename.endswith(".gz"):
         import gzip
 

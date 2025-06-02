@@ -967,9 +967,9 @@ taskcluster==75.0.1 \
     --hash=sha256:3100ce68e7a655701cd78290067f0df1b05e0a85c69df29f60ceaad6baf0fc53 \
     --hash=sha256:6b16a0d8ffa3431a66a2ffe428f8e5c7874b9cbeddba7d5ce0e8d8783d4c95a3
     # via mozilla-third-party-python-vendor-dir
-taskcluster-taskgraph==14.1.1 \
-    --hash=sha256:7b763a7dd307629c088acee19fc6a8a8af830772dcb128544b5a1233fee21ca8 \
-    --hash=sha256:ad4bf63b440b213286797c5613698840412fd7c1efd98524697262573526e5d7
+taskcluster-taskgraph==14.4.0 \
+    --hash=sha256:3a9540f74e5659ad0958656e36478e39a0dfcc9e840d9e3ba066ce50a3dde1bf \
+    --hash=sha256:c7f630d72a75c24cebb5bfdf813530032ff0ef279a6ced6a131323a9e16159aa
     # via
     #   mozilla-taskgraph
     #   mozilla-third-party-python-vendor-dir
