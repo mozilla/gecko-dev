@@ -10,22 +10,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/mscom/Utils.h"
 
-#if defined(__MINGW32__)
-
-// Unfortunately, at time of writing, MinGW doesn't know how to statically link
-// to RoGetAgileReference. On these builds only, we substitute a runtime-linked
-// function pointer.
-
-#  include "mozilla/DynamicallyLinkedFunctionPtr.h"
-
-static const mozilla::StaticDynamicallyLinkedFunctionPtr<
-    decltype(&::RoGetAgileReference)>
-    pRoGetAgileReference(L"ole32.dll", "RoGetAgileReference");
-
-#  define RoGetAgileReference pRoGetAgileReference
-
-#endif  // defined(__MINGW32__)
-
 namespace mozilla::mscom::detail {
 
 HRESULT AgileReference_CreateImpl(RefPtr<IAgileReference>& aRefPtr, REFIID riid,
