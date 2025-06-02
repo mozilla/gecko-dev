@@ -365,7 +365,7 @@ bool NativeLayerRootCA::CommitToScreen() {
         NSString* filename =
             [NSString stringWithFormat:@"frame-%d.html", frameID];
         NSString* filePath = [dirPath stringByAppendingPathComponent:filename];
-        DumpLayerTreeToFile([filePath UTF8String]);
+        DumpLayerTreeToFile([filePath UTF8String], lock);
       } else {
         NSLog(@"Failed to create directory %@", dirPath);
       }
@@ -550,8 +550,8 @@ NativeLayerRootSnapshotterCA::Create(NativeLayerRootCA* aLayerRoot,
 }
 #endif
 
-void NativeLayerRootCA::DumpLayerTreeToFile(const char* aPath) {
-  MutexAutoLock lock(mMutex);
+void NativeLayerRootCA::DumpLayerTreeToFile(const char* aPath,
+                                            const MutexAutoLock& aProofOfLock) {
   NSLog(@"Dumping NativeLayer contents to %s", aPath);
   std::ofstream fileOutput(aPath);
   if (fileOutput.fail()) {

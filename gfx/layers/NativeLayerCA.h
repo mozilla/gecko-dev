@@ -121,7 +121,8 @@ class NativeLayerRootCA : public NativeLayerRoot {
 
   bool AreOffMainThreadCommitsSuspended();
 
-  void DumpLayerTreeToFile(const char* aPath);
+  void DumpLayerTreeToFile(const char* aPath,
+                           const MutexAutoLock& aProofOfLock);
 
   enum class WhichRepresentation : uint8_t { ONSCREEN, OFFSCREEN };
 
