@@ -14,7 +14,6 @@ ChromeUtils.defineESModuleGetters(
     OPFS: "chrome://global/content/ml/OPFS.sys.mjs",
     FEATURES: "chrome://global/content/ml/EngineProcess.sys.mjs",
     PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
-    DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
   },
   ES_MODULES_OPTIONS
 );
@@ -1135,14 +1134,14 @@ export function recordRemoveInitiatedTelemetry(modelAddonWrapper, source) {
   Glean.modelManagement.removeInitiated.record({
     ...baseRecordData(modelAddonWrapper),
     source,
-    size: lazy.DownloadUtils.getTransferTotal(totalSize),
+    size: totalSize,
     last_used: convertDateToHours(lastUsed),
     last_install: convertDateToHours(updateDate),
   });
 }
 
-export function recordExtensionModelLinkTelemetry(modelAddonWrapper) {
-  Glean.modelManagement.extensionModelLink.record({
+export function recordModelCardLinkTelemetry(modelAddonWrapper) {
+  Glean.modelManagement.modelCardLink.record({
     ...baseRecordData(modelAddonWrapper),
   });
 }
