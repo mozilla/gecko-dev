@@ -230,15 +230,20 @@ export class WeatherSuggestions extends SuggestProvider {
       if (suggestion.city.countryCode) {
         otherParams.country = suggestion.city.countryCode;
       }
-      let admin1Code = suggestion.city.adminDivisionCodes.get(1);
-      if (admin1Code) {
-        otherParams.region = admin1Code;
+      // The admin codes are a `Map` from integer levels to codes. Convert it to
+      // a comma-separated string of codes sorted by level ascending.
+      let adminCodes = [...suggestion.city.adminDivisionCodes.entries()]
+        .sort(([level1, _admin1], [level2, _admin2]) => level1 - level2)
+        .map(([_, admin]) => admin)
+        .join(",");
+      if (adminCodes) {
+        otherParams.region = adminCodes;
       }
     }
 
     let merino = this.#merino;
     let fetchInstance = (this.#fetchInstance = {});
-    let suggestions = await merino.fetch({
+    let merinoSuggestions = await merino.fetch({
       query: "",
       otherParams,
       providers: [MERINO_PROVIDER],
@@ -248,16 +253,16 @@ export class WeatherSuggestions extends SuggestProvider {
       return null;
     }
 
-    if (!suggestions.length) {
+    if (!merinoSuggestions.length) {
       return null;
     }
-    suggestion = suggestions[0];
+    let merinoSuggestion = merinoSuggestions[0];
 
     let unit = Services.locale.regionalPrefsLocales[0] == "en-US" ? "f" : "c";
 
     let treatment = lazy.UrlbarPrefs.get("weatherUiTreatment");
     if (treatment == 1 || treatment == 2) {
-      return this.#makeDynamicResult(suggestion, unit);
+      return this.#makeDynamicResult(merinoSuggestion, unit);
     }
 
     return Object.assign(
@@ -265,14 +270,15 @@ export class WeatherSuggestions extends SuggestProvider {
         lazy.UrlbarUtils.RESULT_TYPE.URL,
         lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
         {
-          url: suggestion.url,
+          url: merinoSuggestion.url,
           titleL10n: {
             id: "firefox-suggest-weather-title-simplest",
             args: {
-              temperature: suggestion.current_conditions.temperature[unit],
+              temperature:
+                merinoSuggestion.current_conditions.temperature[unit],
               unit: unit.toUpperCase(),
-              city: suggestion.city_name,
-              region: suggestion.region_code,
+              city: merinoSuggestion.city_name,
+              region: merinoSuggestion.region_code,
             },
             parseMarkup: true,
             cacheable: true,
@@ -290,7 +296,7 @@ export class WeatherSuggestions extends SuggestProvider {
         suggestedIndex: 1,
         isRichSuggestion: true,
         richSuggestionIconVariation: String(
-          suggestion.current_conditions.icon_id
+          merinoSuggestion.current_conditions.icon_id
         ),
       }
     );
