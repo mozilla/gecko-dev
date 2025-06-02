@@ -1831,15 +1831,26 @@ impl BatchBuilder {
             BlendMode::None
         };
 
+        let segment_instance_index = match prim_instance.kind {
+            PrimitiveInstanceKind::Rectangle { segment_instance_index, .. }
+            | PrimitiveInstanceKind::YuvImage { segment_instance_index, .. } => segment_instance_index,
+            _ => SegmentInstanceIndex::UNUSED,
+        };
+
+        let (prim_cache_address, segments) = if segment_instance_index == SegmentInstanceIndex::UNUSED {
+            (gpu_cache.try_get_address(&common_data.gpu_cache_handle), None)
+        } else {
+            let segment_instance = &ctx.scratch.segment_instances[segment_instance_index];
+            let segments = Some(&ctx.scratch.segments[segment_instance.segments_range]);
+            (Some(gpu_cache.get_address(&segment_instance.gpu_cache_handle)), segments)
+        };
+
         match prim_instance.kind {
             PrimitiveInstanceKind::Picture { .. } => {} // Handled above.
             PrimitiveInstanceKind::BoxShadow { .. } => {
                 unreachable!("BUG: Should not hit box-shadow here as they are handled by quad infra");
             }
-            PrimitiveInstanceKind::Clear { data_handle } => {
-                let prim_data = &ctx.data_stores.prim[data_handle];
-                let prim_cache_address = gpu_cache.get_address(&prim_data.gpu_cache_handle);
-
+            PrimitiveInstanceKind::Clear { .. } => {
                 let (clip_task_address, clip_mask_texture_id) = ctx.get_prim_clip_task_and_texture(
                     prim_info.clip_task_index,
                     render_tasks,
@@ -1852,7 +1863,7 @@ impl BatchBuilder {
                 let prim_header = PrimitiveHeader {
                     local_rect: prim_rect,
                     local_clip_rect: prim_info.clip_chain.local_clip_rect,
-                    specific_prim_address: prim_cache_address,
+                    specific_prim_address: prim_cache_address.unwrap(),
                     transform_id,
                 };
 
@@ -1875,7 +1886,7 @@ impl BatchBuilder {
                     bounding_rect,
                     z_id,
                     INVALID_SEGMENT_INDEX,
-                    prim_data.edge_aa_mask,
+                    common_data.edge_aa_mask,
                     clip_task_address,
                     brush_flags | BrushFlags::PERSPECTIVE_INTERPOLATION,
                     prim_header_index,
@@ -1884,7 +1895,6 @@ impl BatchBuilder {
             }
             PrimitiveInstanceKind::NormalBorder { data_handle, ref render_task_ids, .. } => {
                 let prim_data = &ctx.data_stores.normal_border[data_handle];
-                let prim_cache_address = gpu_cache.get_address(&common_data.gpu_cache_handle);
                 let task_ids = &ctx.scratch.border_cache_handles[*render_task_ids];
                 let mut segment_data: SmallVec<[SegmentInstanceData; 8]> = SmallVec::new();
 
@@ -1908,7 +1918,7 @@ impl BatchBuilder {
                 let prim_header = PrimitiveHeader {
                     local_rect: prim_rect,
                     local_clip_rect: prim_info.clip_chain.local_clip_rect,
-                    specific_prim_address: prim_cache_address,
+                    specific_prim_address: prim_cache_address.unwrap(),
                     transform_id,
                 };
 
@@ -1955,7 +1965,6 @@ impl BatchBuilder {
                 // The GPU cache data is stored in the template and reused across
                 // frames and display lists.
                 let prim_data = &ctx.data_stores.text_run[data_handle];
-                let prim_cache_address = gpu_cache.get_address(&prim_data.gpu_cache_handle);
 
                 // The local prim rect is only informative for text primitives, as
                 // thus is not directly necessary for any drawing of the text run.
@@ -1973,7 +1982,7 @@ impl BatchBuilder {
                         max: run.snapped_reference_frame_relative_offset.to_point(),
                     },
                     local_clip_rect: prim_info.clip_chain.local_clip_rect,
-                    specific_prim_address: prim_cache_address,
+                    specific_prim_address: prim_cache_address.unwrap(),
                     transform_id,
                 };
 
@@ -2178,10 +2187,6 @@ impl BatchBuilder {
                 );
             }
             PrimitiveInstanceKind::LineDecoration { ref render_task, .. } => {
-                // The GPU cache data is stored in the template and reused across
-                // frames and display lists.
-                let prim_cache_address = gpu_cache.get_address(&common_data.gpu_cache_handle);
-
                 let (clip_task_address, clip_mask_texture_id) = ctx.get_prim_clip_task_and_texture(
                     prim_info.clip_task_index,
                     render_tasks,
@@ -2219,7 +2224,7 @@ impl BatchBuilder {
                 let prim_header = PrimitiveHeader {
                     local_rect: prim_rect,
                     local_clip_rect: prim_info.clip_chain.local_clip_rect,
-                    specific_prim_address: prim_cache_address,
+                    specific_prim_address: prim_cache_address.unwrap(),
                     transform_id,
                 };
 
@@ -2261,12 +2266,11 @@ impl BatchBuilder {
                 };
 
                 let textures = TextureSet::prim_textured(texture);
-                let prim_cache_address = gpu_cache.get_address(&common_data.gpu_cache_handle);
 
                 let prim_header = PrimitiveHeader {
                     local_rect: prim_rect,
                     local_clip_rect: prim_info.clip_chain.local_clip_rect,
-                    specific_prim_address: prim_cache_address,
+                    specific_prim_address: prim_cache_address.unwrap(),
                     transform_id,
                 };
 
@@ -2306,7 +2310,7 @@ impl BatchBuilder {
                     render_tasks,
                 );
             }
-            PrimitiveInstanceKind::Rectangle { segment_instance_index, use_legacy_path, .. } => {
+            PrimitiveInstanceKind::Rectangle { use_legacy_path, .. } => {
                 debug_assert!(use_legacy_path);
                 let batch_params = BrushBatchParameters::shared(
                     BrushBatchKind::Solid,
@@ -2315,18 +2319,10 @@ impl BatchBuilder {
                     0,
                 );
 
-                let (prim_cache_address, segments) = if segment_instance_index == SegmentInstanceIndex::UNUSED {
-                    (gpu_cache.get_address(&common_data.gpu_cache_handle), None)
-                } else {
-                    let segment_instance = &ctx.scratch.segment_instances[segment_instance_index];
-                    let segments = Some(&ctx.scratch.segments[segment_instance.segments_range]);
-                    (gpu_cache.get_address(&segment_instance.gpu_cache_handle), segments)
-                };
-
                 let prim_header = PrimitiveHeader {
                     local_rect: prim_rect,
                     local_clip_rect: prim_info.clip_chain.local_clip_rect,
-                    specific_prim_address: prim_cache_address,
+                    specific_prim_address: prim_cache_address.unwrap(),
                     transform_id,
                 };
 
@@ -2424,18 +2420,11 @@ impl BatchBuilder {
                 );
 
                 debug_assert_ne!(segment_instance_index, SegmentInstanceIndex::INVALID);
-                let (prim_cache_address, segments) = if segment_instance_index == SegmentInstanceIndex::UNUSED {
-                    (gpu_cache.get_address(&common_data.gpu_cache_handle), None)
-                } else {
-                    let segment_instance = &ctx.scratch.segment_instances[segment_instance_index];
-                    let segments = Some(&ctx.scratch.segments[segment_instance.segments_range]);
-                    (gpu_cache.get_address(&segment_instance.gpu_cache_handle), segments)
-                };
 
                 let prim_header = PrimitiveHeader {
                     local_rect: prim_rect,
                     local_clip_rect: prim_info.clip_chain.local_clip_rect,
-                    specific_prim_address: prim_cache_address,
+                    specific_prim_address: prim_cache_address.unwrap(),
                     transform_id,
                 };
 
@@ -2525,7 +2514,7 @@ impl BatchBuilder {
 
                     debug_assert_ne!(image_instance.segment_instance_index, SegmentInstanceIndex::INVALID);
                     let (prim_cache_address, segments) = if image_instance.segment_instance_index == SegmentInstanceIndex::UNUSED {
-                        (gpu_cache.get_address(&common_data.gpu_cache_handle), None)
+                        (prim_cache_address.unwrap(), None)
                     } else {
                         let segment_instance = &ctx.scratch.segment_instances[image_instance.segment_instance_index];
                         let segments = Some(&ctx.scratch.segments[segment_instance.segments_range]);
