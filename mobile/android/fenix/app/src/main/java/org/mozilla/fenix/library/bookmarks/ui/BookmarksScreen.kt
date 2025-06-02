@@ -1472,9 +1472,8 @@ private fun EditFolderScreenPreview() {
 
 @Composable
 @FlexibleWindowLightDarkPreview
-@Suppress("MagicNumber")
 private fun BookmarksScreenPreview() {
-    val bookmarkItems = List(20) {
+    val bookmarkItems = List(PREVIEW_BOOKMARKS_SIZE) {
         if (it % 2 == 0) {
             BookmarkItem.Bookmark(
                 url = "https://www.whoevenmakeswebaddressesthislonglikeseriously$it.com",
@@ -1559,6 +1558,8 @@ private fun EmptyBookmarksScreenPreview() {
     }
 }
 
+private const val PREVIEW_BOOKMARKS_SIZE = 20
+
 @FlexibleWindowLightDarkPreview
 @Composable
 private fun AddFolderPreview() {
@@ -1600,9 +1601,14 @@ private fun AddFolderPreview() {
     }
 }
 
+private const val PREVIEW_INDENTATION_0 = 0
+private const val PREVIEW_INDENTATION_1 = 1
+private const val PREVIEW_INDENTATION_2 = 2
+private const val PREVIEW_INDENTATION_3 = 3
+
 @FlexibleWindowLightDarkPreview
+@Suppress("detekt.LongMethod")
 @Composable
-@Suppress("MagicNumber")
 private fun SelectFolderPreview() {
     val store = BookmarksStore(
         initialState = BookmarksState(
@@ -1634,18 +1640,54 @@ private fun SelectFolderPreview() {
                 outerSelectionGuid = "",
                 innerSelectionGuid = "guid1",
                 folders = listOf(
-                    SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0", null)),
-                    SelectFolderItem(1, BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id, null)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Menu", BookmarkRoot.Menu.id, null)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Toolbar", BookmarkRoot.Toolbar.id, null)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Unfiled", BookmarkRoot.Unfiled.id, null)),
-                    SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0", null)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0", null)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0", null)),
-                    SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0", null)),
-                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid1", null)),
-                    SelectFolderItem(3, BookmarkItem.Folder("Nested Three", "guid0", null)),
-                    SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid0", null)),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_0,
+                        folder = BookmarkItem.Folder("Bookmarks", "guid0", null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_2,
+                        folder = BookmarkItem.Folder("Bookmarks Menu", BookmarkRoot.Menu.id, null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_2,
+                        folder = BookmarkItem.Folder("Bookmarks Toolbar", BookmarkRoot.Toolbar.id, position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_1,
+                        folder = BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id, position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_2,
+                        folder = BookmarkItem.Folder("Bookmarks Unfiled", BookmarkRoot.Unfiled.id, position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_1,
+                        folder = BookmarkItem.Folder("Nested One", "guid0", position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_2,
+                        folder = BookmarkItem.Folder("Nested Two", "guid0", position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_2,
+                        folder = BookmarkItem.Folder("Nested Two", "guid0", position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_1,
+                        folder = BookmarkItem.Folder("Nested One", "guid0", position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_2,
+                        folder = BookmarkItem.Folder("Nested Two", "guid1", position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_3,
+                        folder = BookmarkItem.Folder("Nested Three", "guid0", position = null),
+                    ),
+                    SelectFolderItem(
+                        indentation = PREVIEW_INDENTATION_0,
+                        folder = BookmarkItem.Folder("Nested 0", "guid0", position = null),
+                    ),
                 ),
             ),
             bookmarksMultiselectMoveState = null,
