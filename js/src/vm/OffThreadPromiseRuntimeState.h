@@ -131,6 +131,9 @@ class OffThreadPromiseTask : public JS::Dispatchable {
   OffThreadPromiseTask(const OffThreadPromiseTask&) = delete;
 
   void unregister(OffThreadPromiseRuntimeState& state);
+  // Used when we want to reuse a lock for unregistration and deletion.
+  void unregister(OffThreadPromiseRuntimeState& state,
+                  const AutoLockHelperThreadState& lock);
 
  protected:
   OffThreadPromiseTask(JSContext* cx, JS::Handle<PromiseObject*> promise);
@@ -157,7 +160,9 @@ class OffThreadPromiseTask : public JS::Dispatchable {
 
  public:
   ~OffThreadPromiseTask() override;
-  static void DestroyUndispatchedTask(OffThreadPromiseTask* task);
+  static void DestroyUndispatchedTask(OffThreadPromiseTask* task,
+                                      OffThreadPromiseRuntimeState& state,
+                                      const AutoLockHelperThreadState& lock);
 
   JSRuntime* runtime() { return runtime_; }
 
