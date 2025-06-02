@@ -316,7 +316,7 @@ class BackupTest(MarionetteTestCase):
               false,
               Date.now() / 1000 + 1,
               {},
-              Ci.nsICookie.SAMESITE_NONE,
+              Ci.nsICookie.SAMESITE_UNSET,
               Ci.nsICookie.SCHEME_HTTP
             );
           })().then(outerResolve);

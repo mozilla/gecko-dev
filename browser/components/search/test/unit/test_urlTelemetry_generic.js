@@ -198,9 +198,9 @@ const TESTS = [
         false,
         false,
         false,
-        Date.now() + 1000 * 60 * 60,
+        Math.round(Date.now() / 1000) + 10 * 60 * 60,
         {},
-        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SAMESITE_UNSET,
         Ci.nsICookie.SCHEME_HTTPS
       );
       Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
@@ -237,9 +237,9 @@ const TESTS = [
         false,
         false,
         false,
-        Date.now() + 1000 * 60 * 60,
+        Math.round(Date.now() / 1000) + 10 * 60 * 60,
         {},
-        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SAMESITE_UNSET,
         Ci.nsICookie.SCHEME_HTTPS
       );
       Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
@@ -277,9 +277,9 @@ const TESTS = [
         false,
         false,
         false,
-        Date.now() + 1000 * 60 * 60,
+        Math.round(Date.now() / 1000) + 10 * 60 * 60,
         {},
-        Ci.nsICookie.SAMESITE_NONE,
+        Ci.nsICookie.SAMESITE_UNSET,
         Ci.nsICookie.SCHEME_HTTPS
       );
     },

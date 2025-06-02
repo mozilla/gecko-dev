@@ -81,11 +81,11 @@ async function verifyRestore(url, sameSiteSetting) {
  */
 add_task(async function () {
   // Test for various possible values of cookie.sameSite and schemeMap.
-  await verifyRestore(TEST_HTTP_URL, Ci.nsICookie.SAMESITE_NONE);
+  await verifyRestore(TEST_HTTP_URL, Ci.nsICookie.SAMESITE_UNSET);
   await verifyRestore(TEST_HTTP_URL, Ci.nsICookie.SAMESITE_LAX);
   await verifyRestore(TEST_HTTP_URL, Ci.nsICookie.SAMESITE_STRICT);
 
-  await verifyRestore(TEST_HTTPS_URL, Ci.nsICookie.SAMESITE_NONE);
+  await verifyRestore(TEST_HTTPS_URL, Ci.nsICookie.SAMESITE_UNSET);
   await verifyRestore(TEST_HTTPS_URL, Ci.nsICookie.SAMESITE_LAX);
   await verifyRestore(TEST_HTTPS_URL, Ci.nsICookie.SAMESITE_STRICT);
 });

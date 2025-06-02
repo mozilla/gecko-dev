@@ -51,7 +51,7 @@ function addCookie(cookie) {
     false,
     THE_FUTURE,
     cookie.originAttributes,
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS
   );
 

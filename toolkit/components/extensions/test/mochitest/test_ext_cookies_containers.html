@@ -34,7 +34,7 @@ add_task(async function test_cookie_containers() {
     }
 
     const TEST_URL = "http://example.org/";
-    const THE_FUTURE = Date.now() + 5 * 60;
+    const THE_FUTURE = Math.round(Date.now()/1000) + 5 * 60;
 
     let expected = {
       name: "name1",

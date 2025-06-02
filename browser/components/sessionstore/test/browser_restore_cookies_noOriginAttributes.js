@@ -9,6 +9,7 @@ const COOKIE = {
   name: "test1",
   value: "yes1",
   path: "/browser/browser/components/sessionstore/test/",
+  sameSite: Ci.nsICookie.SAMESITE_UNSET,
 };
 const SESSION_DATA = JSON.stringify({
   version: ["sessionrestore", 1],
@@ -58,6 +59,7 @@ const SESSION_DATA = JSON.stringify({
           value: "yes1",
           path: "/browser/browser/components/sessionstore/test/",
           name: "test1",
+          sameSite: Ci.nsICookie.SAMESITE_UNSET,
         },
       ],
     },
@@ -120,6 +122,7 @@ const SESSION_DATA_OA = JSON.stringify({
           value: "yes1",
           path: "/browser/browser/components/sessionstore/test/",
           name: "test1",
+          sameSite: Ci.nsICookie.SAMESITE_UNSET,
           originAttributes: {
             addonId: "",
             inIsolatedMozBrowser: false,

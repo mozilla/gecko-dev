@@ -35,7 +35,7 @@ function addCookie(cookie) {
     false,
     Date.now() / 1000 + 10000,
     {},
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS
   );
   Assert.strictEqual(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");

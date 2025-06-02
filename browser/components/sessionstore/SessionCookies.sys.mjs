@@ -81,7 +81,10 @@ var SessionCookiesInternal = {
             /* isSession = */ true,
             expiry,
             cookie.originAttributes || {},
-            cookie.sameSite || Ci.nsICookie.SAMESITE_NONE,
+            // If sameSite is undefined, we are migrating from a pre bug 1955685 session).
+            cookie.sameSite === undefined
+              ? Ci.nsICookie.SAMESITE_NONE
+              : cookie.sameSite,
             cookie.schemeMap || Ci.nsICookie.SCHEME_HTTPS,
             isPartitioned
           );
@@ -264,9 +267,7 @@ var CookieStore = {
       jscookie.originAttributes = cookie.originAttributes;
     }
 
-    if (cookie.sameSite) {
-      jscookie.sameSite = cookie.sameSite;
-    }
+    jscookie.sameSite = cookie.sameSite;
 
     if (cookie.schemeMap) {
       jscookie.schemeMap = cookie.schemeMap;

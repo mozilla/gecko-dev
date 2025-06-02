@@ -57,7 +57,7 @@ function simulateGoogleAccountSignIn(originAttributes = {}) {
     false,
     Date.now() + 1000 * 60 * 60,
     originAttributes,
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS
   );
   is(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");

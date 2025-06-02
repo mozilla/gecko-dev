@@ -77,7 +77,7 @@ function* do_run_test() {
     false,
     shortExpiry,
     {},
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS
   );
   Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
@@ -96,7 +96,7 @@ function* do_run_test() {
     false,
     futureExpiry,
     {},
-    Ci.nsICookie.SAMESITE_NONE,
+    Ci.nsICookie.SAMESITE_UNSET,
     Ci.nsICookie.SCHEME_HTTPS
   );
   Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");
@@ -123,7 +123,7 @@ function setCookies(aHost, aNumber, aExpiry) {
       false,
       aExpiry,
       {},
-      Ci.nsICookie.SAMESITE_NONE,
+      Ci.nsICookie.SAMESITE_UNSET,
       Ci.nsICookie.SCHEME_HTTPS
     );
     Assert.equal(cv.result, Ci.nsICookieValidation.eOK, "Valid cookie");

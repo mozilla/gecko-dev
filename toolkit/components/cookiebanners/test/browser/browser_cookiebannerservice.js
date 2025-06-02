@@ -81,7 +81,7 @@ add_task(async function test_insertAndGetRule() {
     false,
     false,
     false,
-    0,
+    Ci.nsICookie.SAMESITE_UNSET,
     0
   );
   rule.addCookie(
@@ -95,7 +95,7 @@ add_task(async function test_insertAndGetRule() {
     false,
     false,
     false,
-    0,
+    Ci.nsICookie.SAMESITE_UNSET,
     0
   );
   rule.addCookie(
@@ -109,7 +109,7 @@ add_task(async function test_insertAndGetRule() {
     false,
     false,
     true,
-    0,
+    Ci.nsICookie.SAMESITE_UNSET,
     0
   );
 
@@ -153,7 +153,7 @@ add_task(async function test_insertAndGetRule() {
     false,
     false,
     false,
-    0,
+    Ci.nsICookie.SAMESITE_UNSET,
     0
   );
 
@@ -412,7 +412,7 @@ add_task(async function test_overwriteRule() {
     false,
     false,
     false,
-    0,
+    Ci.nsICookie.SAMESITE_UNSET,
     0
   );
 
@@ -444,7 +444,7 @@ add_task(async function test_overwriteRule() {
     false,
     false,
     false,
-    0,
+    Ci.nsICookie.SAMESITE_UNSET,
     0
   );
 
@@ -498,7 +498,7 @@ add_task(async function test_globalRules() {
     false,
     false,
     false,
-    0,
+    Ci.nsICookie.SAMESITE_UNSET,
     0
   );
   rule.addClickRule(
@@ -529,7 +529,7 @@ add_task(async function test_globalRules() {
     false,
     false,
     false,
-    0,
+    Ci.nsICookie.SAMESITE_UNSET,
     0
   );
   ruleGlobalA.addClickRule(
