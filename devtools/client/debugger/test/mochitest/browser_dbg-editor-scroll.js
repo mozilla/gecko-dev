@@ -193,8 +193,8 @@ add_task(async function testIsPositionVisible() {
   const firstLine = getFirstVisibleLine();
   is(firstLine, 6);
   ok(
-    isScrolledPositionVisible(dbg, firstLine),
-    "The new first line is visible"
+    isScrolledPositionVisible(dbg, firstLine + 1),
+    "The next line of the new first line is visible"
   );
   ok(
     !isScrolledPositionVisible(dbg, firstLine - 1),
@@ -223,8 +223,8 @@ add_task(async function testIsPositionVisible() {
   const firstLine2 = getFirstVisibleLine();
   is(firstLine2, 45);
   ok(
-    isScrolledPositionVisible(dbg, firstLine2),
-    "The new first line is visible"
+    isScrolledPositionVisible(dbg, firstLine2 + 1),
+    "The next line of the new first line is visible"
   );
   ok(
     !isScrolledPositionVisible(dbg, firstLine2 - 1),
