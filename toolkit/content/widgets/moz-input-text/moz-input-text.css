@@ -8,6 +8,8 @@
   --input-text-border-color-disabled: var(--border-color-interactive-disabled);
   --input-text-border: var(--border-width) solid var(--input-text-border-color);
   --input-text-border-radius: var(--border-radius-small);
+  --input-text-background-color: Field;
+  --input-text-color: FieldText;
   --input-text-background-color-disabled: var(--button-background-color-disabled);
   --input-text-opacity-disabled: var(--button-opacity-disabled);
 }
@@ -20,6 +22,8 @@
   border: var(--input-text-border);
   border-radius: var(--input-text-border-radius);
   box-sizing: border-box;
+  background-color: var(--input-text-background-color);
+  color: var(--input-text-color);
 
   @media (-moz-platform: macos) {
     /* TODO(emilio, bug 1815264): The default macOS system font size is too

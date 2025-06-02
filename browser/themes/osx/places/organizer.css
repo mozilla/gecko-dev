@@ -3,9 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #placesToolbar {
+  /* TODO(emilio): would be nice for the native cocoa theme to honor our sizes
+   * more precisely, it seems it could be taught to at least render
+   * NSControlSizeLarge controls or so */
+  --toolbar-item-height: 26px;
+  --toolbar-item-margin: 0px 4px;
+
   position: relative;
   -moz-window-dragging: drag;
-  padding: env(-moz-mac-titlebar-height) 4px 3px;
+  padding: calc(env(-moz-mac-titlebar-height) + 4px) 4px 3px;
   border-bottom: 1px solid ThreeDShadow;
 
   &::after {
@@ -18,9 +24,9 @@
   }
 
   > toolbarbutton {
-    margin: 4px 4px 5px;
+    height: var(--toolbar-item-height);
+    margin: var(--toolbar-item-margin);
     padding: 0;
-    height: 22px;
     appearance: auto;
     -moz-default-appearance: toolbarbutton;
 
@@ -57,6 +63,14 @@
       margin-top: 1px;
     }
   }
+}
+
+#searchFilter {
+  margin: var(--toolbar-item-margin);
+  --input-text-min-height: var(--toolbar-item-height);
+  --input-text-background-color: transparent;
+  --input-text-color: currentColor;
+  --input-text-border-color: ButtonBorder;
 }
 
 /* Places Organizer Sidebars */
