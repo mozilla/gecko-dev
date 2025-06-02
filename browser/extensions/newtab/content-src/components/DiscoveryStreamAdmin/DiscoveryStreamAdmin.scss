@@ -309,7 +309,7 @@
   .impressions-section {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--space-large);
 
     .impressions-item {
       display: flex;
@@ -321,7 +321,7 @@
       .impressions-inner-box {
         display: flex;
         flex-flow: row nowrap;
-        gap: 8px;
+        gap: var(--space-small);
       }
 
       .impressions-category {
@@ -333,7 +333,7 @@
       .impressions-buttons {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: var(--space-small);
 
         button {
           margin: 0;

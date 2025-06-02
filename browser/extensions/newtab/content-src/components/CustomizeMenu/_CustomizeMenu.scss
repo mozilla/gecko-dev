@@ -149,7 +149,7 @@
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: repeat(4, auto);
-  grid-row-gap: 32px;
+  grid-row-gap: var(--space-xxlarge);
   padding: var(--space-large);
 
   .wallpapers-section h2 {

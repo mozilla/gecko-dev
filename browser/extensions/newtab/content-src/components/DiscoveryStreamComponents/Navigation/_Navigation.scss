@@ -116,7 +116,7 @@
 
     ul {
       display: grid;
-      grid-gap: 0 24px;
+      grid-gap: 0 var(--space-xlarge);
       grid-auto-flow: column;
       grid-template: repeat(8, 1fr) / repeat(1, 1fr);
 

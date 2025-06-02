@@ -24,7 +24,7 @@
       padding: 0;
       display: flex;
       align-items: center;
-      grid-gap: 10px;
+      grid-gap: var(--space-small);
       flex-wrap: wrap;
 
       li {

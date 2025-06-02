@@ -1,7 +1,8 @@
 .category-list {
   border: none;
   display: grid;
-  gap: 48px 16px;
+  // Bug 1967304 - Large number (48px)
+  gap: calc(var(--space-xlarge) * 2) var(--space-large);
   grid-auto-rows: 86px;
   grid-template-columns: 1fr 1fr 1fr;
   margin-block-end: var(--space-large);
@@ -190,7 +191,7 @@
 
 .wallpaper-list {
   display: grid;
-  gap: 16px;
+  gap: var(--space-large);
   grid-template-columns: 1fr 1fr 1fr;
   grid-auto-rows: 86px;
   margin: var(--space-large) 0;
@@ -223,7 +224,7 @@
     fieldset {
       border: none;
       display: grid;
-      gap: 16px;
+      gap: var(--space-large);
       grid-auto-rows: 86px;
       grid-template-columns: 1fr 1fr 1fr;
     }

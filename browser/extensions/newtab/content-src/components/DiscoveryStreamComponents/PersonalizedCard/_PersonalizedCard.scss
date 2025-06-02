@@ -44,7 +44,7 @@
     // 1-column layout
     @media (max-width: $break-point-layout-variant) {
       grid-template-columns: 1fr;
-      gap: 10px;
+      gap: var(--space-small);
 
       img {
         justify-self: initial;
@@ -59,7 +59,7 @@
     // 2-column layout
     @media (min-width: $break-point-layout-variant){
       grid-template-columns: 0.2fr 1fr 1fr;
-      gap: 20px;
+      gap: var(--space-large);
 
       h2 {
         width: 200px;
@@ -86,7 +86,7 @@
     // 3 and 4-column layout
     @media (min-width: $break-point-widest) {
       grid-template-columns: 0.2fr 1fr 1fr 1fr;
-      gap: 10px;
+      gap: var(--space-small);
 
       img {
         width: 100px;

@@ -1,7 +1,7 @@
 .sections-list {
   .section-list {
     display: grid;
-    grid-gap: $base-gutter;
+    grid-gap: var(--space-xxlarge);
     grid-template-columns: repeat(auto-fit, $card-width);
     margin: 0;
 

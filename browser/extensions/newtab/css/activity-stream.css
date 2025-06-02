@@ -1480,7 +1480,7 @@ main section {
 
 .sections-list .section-list {
   display: grid;
-  grid-gap: 32px;
+  grid-gap: var(--space-xxlarge);
   grid-template-columns: repeat(auto-fit, 192px);
   margin: 0;
 }
@@ -2242,7 +2242,7 @@ main section {
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: repeat(4, auto);
-  grid-row-gap: 32px;
+  grid-row-gap: var(--space-xxlarge);
   padding: var(--space-large);
 }
 .home-section .wallpapers-section h2 {
@@ -2542,7 +2542,7 @@ main section {
 .category-list {
   border: none;
   display: grid;
-  gap: 48px 16px;
+  gap: calc(var(--space-xlarge) * 2) var(--space-large);
   grid-auto-rows: 86px;
   grid-template-columns: 1fr 1fr 1fr;
   margin-block-end: var(--space-large);
@@ -2725,7 +2725,7 @@ main section {
 
 .wallpaper-list {
   display: grid;
-  gap: 16px;
+  gap: var(--space-large);
   grid-template-columns: 1fr 1fr 1fr;
   grid-auto-rows: 86px;
   margin: var(--space-large) 0;
@@ -2756,7 +2756,7 @@ main section {
 .wallpaper-list.category fieldset {
   border: none;
   display: grid;
-  gap: 16px;
+  gap: var(--space-large);
   grid-auto-rows: 86px;
   grid-template-columns: 1fr 1fr 1fr;
 }
@@ -4306,7 +4306,7 @@ main section {
 .discoverystream-admin .impressions-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-large);
 }
 .discoverystream-admin .impressions-section .impressions-item {
   display: flex;
@@ -4318,7 +4318,7 @@ main section {
 .discoverystream-admin .impressions-section .impressions-item .impressions-inner-box {
   display: flex;
   flex-flow: row nowrap;
-  gap: 8px;
+  gap: var(--space-small);
 }
 .discoverystream-admin .impressions-section .impressions-item .impressions-category {
   font-size: var(--font-size-large);
@@ -4328,7 +4328,7 @@ main section {
 .discoverystream-admin .impressions-section .impressions-item .impressions-buttons {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-small);
 }
 .discoverystream-admin .impressions-section .impressions-item .impressions-buttons button {
   margin: 0;
@@ -4739,15 +4739,15 @@ main section {
 
 .ds-card-grid {
   display: grid;
-  grid-gap: 24px;
+  grid-gap: var(--space-xlarge);
   position: relative;
 }
 .ds-card-grid.ds-card-grid-compact {
-  grid-gap: 20px;
+  grid-gap: var(--space-large);
 }
 .ds-card-grid.ad-sizing-variant-a, .ds-card-grid.ad-sizing-variant-b {
-  row-gap: 24px;
-  column-gap: 18px;
+  row-gap: var(--space-xlarge);
+  column-gap: var(--space-large);
 }
 @media (min-width: 610px) and (max-width: 866px) {
   .ds-card-grid.ds-card-grid-recent-saves .ds-card:last-child:nth-child(2n-1) {
@@ -6674,7 +6674,7 @@ main section {
 }
 .ds-navigation.ds-navigation-new-topics ul {
   display: grid;
-  grid-gap: 0 24px;
+  grid-gap: 0 var(--space-xlarge);
   grid-auto-flow: column;
   grid-template: repeat(8, 1fr)/repeat(1, 1fr);
 }
@@ -7992,7 +7992,7 @@ main section {
   padding: 0;
   display: flex;
   align-items: center;
-  grid-gap: 10px;
+  grid-gap: var(--space-small);
   flex-wrap: wrap;
 }
 .ds-topics-widget .ds-topics-widget-list-container ul li {
@@ -9085,7 +9085,7 @@ main section {
 @media (max-width: 724px) {
   .personalized-card-wrapper .personalized-card-inner {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: var(--space-small);
   }
   .personalized-card-wrapper .personalized-card-inner img {
     justify-self: initial;
@@ -9098,7 +9098,7 @@ main section {
 @media (min-width: 724px) {
   .personalized-card-wrapper .personalized-card-inner {
     grid-template-columns: 0.2fr 1fr 1fr;
-    gap: 20px;
+    gap: var(--space-large);
   }
   .personalized-card-wrapper .personalized-card-inner h2 {
     width: 200px;
@@ -9120,7 +9120,7 @@ main section {
 @media (min-width: 1122px) {
   .personalized-card-wrapper .personalized-card-inner {
     grid-template-columns: 0.2fr 1fr 1fr 1fr;
-    gap: 10px;
+    gap: var(--space-small);
   }
   .personalized-card-wrapper .personalized-card-inner img {
     width: 100px;

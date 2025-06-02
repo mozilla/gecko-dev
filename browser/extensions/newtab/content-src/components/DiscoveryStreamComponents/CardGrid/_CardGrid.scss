@@ -126,17 +126,17 @@
 
 .ds-card-grid {
   display: grid;
-  grid-gap: 24px;
+  grid-gap: var(--space-xlarge);
   position: relative;
 
   &.ds-card-grid-compact {
-    grid-gap: 20px;
+    grid-gap: var(--space-large);
   }
 
   &.ad-sizing-variant-a,
   &.ad-sizing-variant-b {
-    row-gap: 24px;
-    column-gap: 18px;
+    row-gap: var(--space-xlarge);
+    column-gap: var(--space-large);
   }
 
   &.ds-card-grid-recent-saves {
