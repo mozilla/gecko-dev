@@ -13,6 +13,9 @@ ID01:
         - trademarkInfo
         # browser/aboutTabCrashed.ftl
         - crashed-include-URL-2
+        # browser/preferences/blocklists.ftl
+        - blocklist-item-moz-full-listName
+        - blocklist-item-moz-std-listName
         # toolkit/about/aboutAddons.ftl
         - shortcuts-browserAction2
         - shortcuts-pageAction

@@ -15,6 +15,7 @@ var isDevtools = SimpleTest.harnessParameters.subsuite == "devtools";
 // find any reference because the URIs are constructed programatically.
 // If you need to allowlist specific files, please use the 'allowlist' object.
 var gExceptionPaths = [
+  "resource://app/defaults/settings/blocklists/",
   "resource://app/defaults/settings/security-state/",
   "resource://app/defaults/settings/main/",
   "resource://app/defaults/preferences/",
