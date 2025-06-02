@@ -80,7 +80,7 @@ XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "onboardingHoverLinkMs",
   "browser.ml.linkPreview.onboardingHoverLinkMs",
-  500
+  1000
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
@@ -507,26 +507,39 @@ export const LinkPreview = {
    * @param {string} url - The URL of the link to be previewed.
    */
   async renderOnboardingPanel(win, url) {
+    // Short-circuit if onboarding is no longer eligible - prevents race condition
+    // where onboarding might start rendering after showOnboarding status has changed
+    if (!this.showOnboarding) {
+      return;
+    }
+
     // Append the current time to onboarding times.
     Services.prefs.setStringPref("browser.ml.linkPreview.onboardingTimes", [
       ...lazy.onboardingTimes,
       Date.now(),
     ]);
 
-    // Telemetry for onboarding card view
-    Glean.genaiLinkpreview.onboardingCard.record({ action: "view" });
-
-    // Now show the preview as an "onboarding" source
-    const panel = this.initOrResetPreviewPanel(win, "onboarding");
-
     const doc = win.document;
     const onboardingCard = doc.createElement("link-preview-card-onboarding");
     onboardingCard.style.width = "100%";
+    onboardingCard.onboardingType = lazy.longPress ? "longPress" : "shiftKey";
+
+    // Telemetry for onboarding card view
+    Glean.genaiLinkpreview.onboardingCard.record({
+      action: "view",
+      type: onboardingCard.onboardingType,
+    });
+
+    // Now show the preview as an "onboarding" source
+    const panel = this.initOrResetPreviewPanel(win, "onboarding");
+    panel.onboardingType = onboardingCard.onboardingType;
+
     onboardingCard.addEventListener(
       "LinkPreviewCard:onboardingComplete",
       () => {
         Glean.genaiLinkpreview.onboardingCard.record({
           action: "try_it_now",
+          type: onboardingCard.onboardingType,
         });
         this.renderLinkPreviewPanel(win, url, "onboarding");
       }
@@ -588,6 +601,7 @@ export const LinkPreview = {
         if (panel.cardType === "onboarding") {
           Glean.genaiLinkpreview.onboardingCard.record({
             action: "close",
+            type: panel.onboardingType,
           });
         } else if (panel.cardType === "linkpreview") {
           Glean.genaiLinkpreview.cardClose.record({

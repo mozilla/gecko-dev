@@ -49,13 +49,19 @@ link-preview-optin-title-download = Setting up link previews…
 link-preview-optin-message-download = This may take a moment.
 
 # Onboarding card title
-link-preview-onboarding-title = New: Press shift (⇧) as you hover to preview links
+link-preview-onboarding-title-shift = New: Press shift and hover to preview links
+
+# Onboarding card title for long press
+link-preview-onboarding-title-long-press = New: Click and hold any link for a preview
 
 # Onboarding card description
-link-preview-onboarding-description = See a short description, reading time, and more to decide if the link is worth the click. Also available on right-click.
+link-preview-onboarding-description-shift = See a short description, reading time, and more to decide if the link is worth the click. Also available on right-click.
 
-# Onboarding card Try button
-link-preview-onboarding-button = Try it now
+# Onboarding card description for long press
+link-preview-onboarding-description-long-press = See a short description, reading time, and more to decide if the link is worth opening. Also available on right-click.
+
+# Onboarding card See a preview button
+link-preview-onboarding-button = See a preview
 
 # Onboarding card Close button
 link-preview-onboarding-close = Close

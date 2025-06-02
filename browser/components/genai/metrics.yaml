@@ -877,6 +877,9 @@ genai.linkpreview:
       action:
         type: string
         description: User's action on the dialogue - "view" (impression), "try_it_now", "close"
+      type:
+        type: string
+        description: The type of onboarding trigger, e.g. "longPress" or "shiftKey".
 
   start:
     type: event
