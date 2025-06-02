@@ -31,6 +31,7 @@ bool AndroidEncoderModule::Supports(const EncoderConfig& aConfig) const {
   if (aConfig.mScalabilityMode != ScalabilityMode::None) {
     return false;
   }
+  // Only hardware encoder are supported for now.
   return SupportsCodec(aConfig.mCodec);
 }
 
