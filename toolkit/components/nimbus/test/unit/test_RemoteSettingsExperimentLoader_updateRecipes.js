@@ -12,6 +12,9 @@ const { PanelTestProvider } = ChromeUtils.importESModule(
 const { TelemetryEnvironment } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryEnvironment.sys.mjs"
 );
+const { TestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
 const { UnenrollmentCause } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentManager.sys.mjs"
 );
@@ -2222,4 +2225,63 @@ add_task(async function testUnenrollsFirst() {
   await manager.unenroll("r3");
 
   await cleanup();
+});
+
+async function testRsClientGetThrows(collectionName) {
+  info(`Testing with collectionName = ${collectionName}\n`);
+
+  const { sandbox, loader, manager, cleanup } = await setupTest();
+
+  sandbox.spy(loader, "getRecipesFromAllCollections");
+  sandbox.spy(manager, "updateEnrollment");
+  sandbox.spy(manager, "_unenroll");
+
+  loader.remoteSettingsClients[collectionName].get.throws();
+
+  // This topic is only notified if we reach the end of updateRecipes().
+  const updatePromise = TestUtils.topicObserved("nimbus:enrollments-updated");
+
+  await manager.enroll(
+    NimbusTestUtils.factories.recipe.withFeatureConfig("recipe", {
+      featureId: "no-feature-firefox-desktop",
+    }),
+    "rs-loader"
+  );
+
+  await loader.updateRecipes();
+  await updatePromise;
+
+  Assert.ok(
+    loader.getRecipesFromAllCollections.calledOnce,
+    "getRecipesFromAllCollections called once"
+  );
+
+  Assert.deepEqual(
+    // We can't use .returned() because it is an async function and therefore
+    // returns a promise. Instead, we just call the function again.
+    await loader.getRecipesFromAllCollections(),
+    {
+      loadingError: true,
+      recipes: [],
+    }
+  );
+
+  Assert.ok(
+    manager.updateEnrollment.notCalled,
+    "updateEnrollment never called"
+  );
+  Assert.ok(manager._unenroll.notCalled, "unenroll not called");
+
+  Assert.ok(manager.store.get("recipe").active, "experiment is still active");
+
+  await manager.unenroll("recipe");
+  await cleanup();
+}
+
+add_task(async function testExperimentsRsClientGetThrows() {
+  await testRsClientGetThrows("experiments");
+});
+
+add_task(async function testSecureExperimentsRsClientGetThrows() {
+  await testRsClientGetThrows("secureExperiments");
 });
