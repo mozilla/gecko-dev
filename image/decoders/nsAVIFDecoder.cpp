@@ -1893,7 +1893,7 @@ nsAVIFDecoder::DecodeResult nsAVIFDecoder::DoDecodeInternal(
         transform, pipeFlags);
   } else {
     pipe = SurfacePipeFactory::CreateReorientSurfacePipe(
-        this, Size(), OutputSize(), format, transform, GetOrientation(),
+        this, Size(), OutputSize(), format, format, transform, GetOrientation(),
         pipeFlags);
   }
 
