@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test PerformanceEventTiming interactionId for pointerdown without a pointerup</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+
+<div id="target">Click me</div>
+
+<script>
+  SimpleTest.waitForExplicitFinish();
+
+  SimpleTest.waitForFocus(async function() {
+    const target = document.getElementById("target");
+    let observedEntries = [];
+    const events = ['pointerdown'];
+
+    const observerPromise = new Promise(resolve => {
+      new PerformanceObserver((entryList) => {
+        observedEntries = observedEntries.concat(
+          entryList.getEntries().filter(entry => events.includes(entry.name))
+        );
+
+        if (observedEntries.length >= 2) {
+          resolve();
+        }
+      }).observe({ type: "event", buffered: true });
+    });
+
+    // Block for ~110ms during pointerdown, the threshold is 104ms for event timing entries.
+    document.getElementById("target").addEventListener("pointerdown", () => {
+      const start = performance.now();
+      while (performance.now() - start < 110) {
+        // Busy loop to block rendering
+      }
+    });
+
+    // First: pointerdown with no pointerup.
+    await synthesizeMouseAtCenter(target, { type: "mousedown", button: 0 });
+
+    // Second: pointerdown with pointerup.
+    await synthesizeMouseAtCenter(target, { type: "mousedown", button: 0 });
+    await synthesizeMouseAtCenter(target, { type: "mouseup", button: 0 });
+
+    // Wait for entries to flush.
+    await observerPromise;
+    ok(observedEntries.length >= 2, `Expected at least 2 entries, got ${observedEntries.length}`);
+
+    const first = observedEntries[0];
+    const second = observedEntries[1];
+
+    ok(first.name === "pointerdown", "First should be pointerdown");
+    ok(second.name === "pointerdown", "Second should be pointerdown");
+
+    is(first.interactionId, 0, "First pointerdown should have interactionId 0");
+    ok(second.interactionId > 0, "Second pointerdown should have non-zero interactionId");
+
+    SimpleTest.finish();
+  });
+</script>
