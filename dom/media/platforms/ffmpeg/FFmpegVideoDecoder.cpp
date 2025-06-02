@@ -404,6 +404,15 @@ MediaResult FFmpegVideoDecoder<LIBAV_VER>::InitV4L2Decoder() {
   if (mCodecID == AV_CODEC_ID_H264) {
     codec = mLib->avcodec_find_decoder_by_name("h264_v4l2m2m");
   }
+  if (mCodecID == AV_CODEC_ID_VP8) {
+    codec = mLib->avcodec_find_decoder_by_name("vp8_v4l2m2m");
+  }
+  if (mCodecID == AV_CODEC_ID_VP9) {
+    codec = mLib->avcodec_find_decoder_by_name("vp9_v4l2m2m");
+  }
+  if (mCodecID == AV_CODEC_ID_HEVC) {
+    codec = mLib->avcodec_find_decoder_by_name("hevc_v4l2m2m");
+  }
   if (!codec) {
     FFMPEG_LOG("No appropriate v4l2 codec found");
     return NS_ERROR_DOM_MEDIA_FATAL_ERR;

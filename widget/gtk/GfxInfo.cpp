@@ -834,6 +834,21 @@ void GfxInfo::V4L2ProbeDevice(nsCString& dev) {
     media::MCSInfo::AddSupport(media::MediaCodecsSupport::H264HardwareDecode);
     mV4L2SupportedCodecs |= CODEC_HW_H264;
   }
+  if (outFormats.Contains("VP80")) {
+    mIsV4L2Supported = Some(true);
+    media::MCSInfo::AddSupport(media::MediaCodecsSupport::VP8HardwareDecode);
+    mV4L2SupportedCodecs |= CODEC_HW_VP8;
+  }
+  if (outFormats.Contains("VP90")) {
+    mIsV4L2Supported = Some(true);
+    media::MCSInfo::AddSupport(media::MediaCodecsSupport::VP9HardwareDecode);
+    mV4L2SupportedCodecs |= CODEC_HW_VP9;
+  }
+  if (outFormats.Contains("HEVC")) {
+    mIsV4L2Supported = Some(true);
+    media::MCSInfo::AddSupport(media::MediaCodecsSupport::HEVCHardwareDecode);
+    mV4L2SupportedCodecs |= CODEC_HW_HEVC;
+  }
 }
 
 const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
