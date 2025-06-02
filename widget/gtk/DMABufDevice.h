@@ -63,48 +63,58 @@ class GbmLib {
   static bool IsAvailable() { return sLoaded || Load(); }
   static bool IsModifierAvailable();
 
-  static struct gbm_device* CreateDevice(int fd) {
-    StaticMutexAutoLock lockDRI(sDRILock);
-    return sCreateDevice(fd);
-  };
+  static struct gbm_device* CreateDevice(int fd) { return sCreateDevice(fd); };
   static void DestroyDevice(struct gbm_device* gdm) {
-    StaticMutexAutoLock lockDRI(sDRILock);
-    return sDestroyDevice(gdm);
+    if (gdm) {
+      sDestroyDevice(gdm);
+    }
   };
   static struct gbm_bo* Create(struct gbm_device* gbm, uint32_t width,
                                uint32_t height, uint32_t format,
                                uint32_t flags) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!gbm) {
+      return nullptr;
+    }
     return sCreate(gbm, width, height, format, flags);
   }
   static void Destroy(struct gbm_bo* bo) {
-    StaticMutexAutoLock lockDRI(sDRILock);
-    sDestroy(bo);
+    if (bo) {
+      sDestroy(bo);
+    }
   }
   static uint32_t GetStride(struct gbm_bo* bo) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!bo) {
+      return 0;
+    }
     return sGetStride(bo);
   }
   static int GetFd(struct gbm_bo* bo) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!bo) {
+      return -1;
+    }
     return sGetFd(bo);
   }
   static void* Map(struct gbm_bo* bo, uint32_t x, uint32_t y, uint32_t width,
                    uint32_t height, uint32_t flags, uint32_t* stride,
                    void** map_data) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!bo) {
+      return nullptr;
+    }
     return sMap(bo, x, y, width, height, flags, stride, map_data);
   }
   static void Unmap(struct gbm_bo* bo, void* map_data) {
-    StaticMutexAutoLock lockDRI(sDRILock);
-    sUnmap(bo, map_data);
+    if (bo) {
+      sUnmap(bo, map_data);
+    }
   }
   static struct gbm_bo* CreateWithModifiers(struct gbm_device* gbm,
                                             uint32_t width, uint32_t height,
                                             uint32_t format,
                                             const uint64_t* modifiers,
                                             const unsigned int count) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!gbm) {
+      return nullptr;
+    }
     return sCreateWithModifiers(gbm, width, height, format, modifiers, count);
   }
   static struct gbm_bo* CreateWithModifiers2(struct gbm_device* gbm,
@@ -113,7 +123,9 @@ class GbmLib {
                                              const uint64_t* modifiers,
                                              const unsigned int count,
                                              const uint32_t flags) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!gbm) {
+      return nullptr;
+    }
     if (!sCreateWithModifiers2) {
       // CreateWithModifiers2 is optional and present in new GBM lib,
       // if missing just fallback to old CreateWithModifiers as
@@ -124,43 +136,57 @@ class GbmLib {
                                  flags);
   }
   static uint64_t GetModifier(struct gbm_bo* bo) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!bo) {
+      return 0;
+    }
     return sGetModifier(bo);
   }
   static int GetPlaneCount(struct gbm_bo* bo) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!bo) {
+      return 0;
+    }
     return sGetPlaneCount(bo);
   }
   static union gbm_bo_handle GetHandleForPlane(struct gbm_bo* bo, int plane) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!bo) {
+      union gbm_bo_handle ret;
+      ret.ptr = nullptr;
+      return ret;
+    }
     return sGetHandleForPlane(bo, plane);
   }
   static uint32_t GetStrideForPlane(struct gbm_bo* bo, int plane) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!bo) {
+      return 0;
+    }
     return sGetStrideForPlane(bo, plane);
   }
   static uint32_t GetOffset(struct gbm_bo* bo, int plane) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!bo) {
+      return 0;
+    }
     return sGetOffset(bo, plane);
   }
   static int DeviceIsFormatSupported(struct gbm_device* gbm, uint32_t format,
                                      uint32_t usage) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!gbm) {
+      return 0;
+    }
     return sDeviceIsFormatSupported(gbm, format, usage);
   }
   static int DrmPrimeHandleToFD(int fd, uint32_t handle, uint32_t flags,
                                 int* prime_fd) {
-    StaticMutexAutoLock lockDRI(sDRILock);
     return sDrmPrimeHandleToFD(fd, handle, flags, prime_fd);
   }
   static struct gbm_surface* CreateSurface(struct gbm_device* gbm,
                                            uint32_t width, uint32_t height,
                                            uint32_t format, uint32_t flags) {
-    StaticMutexAutoLock lockDRI(sDRILock);
+    if (!gbm) {
+      return 0;
+    }
     return sCreateSurface(gbm, width, height, format, flags);
   }
   static void DestroySurface(struct gbm_surface* surface) {
-    StaticMutexAutoLock lockDRI(sDRILock);
     return sDestroySurface(surface);
   }
 
@@ -191,30 +217,27 @@ class GbmLib {
 
   static void* sGbmLibHandle;
   static void* sXf86DrmLibHandle;
-  static mozilla::StaticMutex sDRILock MOZ_UNANNOTATED;
 };
 
 class DRMFormat;
+class DMABufDeviceLock;
 
-class DMABufDevice {
+class DMABufDevice final {
  public:
-  DMABufDevice();
-  ~DMABufDevice();
+  bool Init();
+
+  gbm_device* GetDevice(DMABufDeviceLock* aDMABufDeviceLock);
 
   int OpenDRMFd();
-  gbm_device* GetGbmDevice();
   int GetDmabufFD(uint32_t aGEMHandle);
-
   bool IsEnabled(nsACString& aFailureId);
 
   // Use dmabuf for WebGL content
   static bool IsDMABufWebGLEnabled();
   static void DisableDMABufWebGL();
 
-  RefPtr<DRMFormat> GetDRMFormat(int32_t aFOURCCFormat);
-
  private:
-  void Configure();
+  ~DMABufDevice();
 
   void LoadFormatModifiers();
   void SetModifiersToGfxVars();
@@ -229,13 +252,33 @@ class DMABufDevice {
   RefPtr<DRMFormat> mFormatNV12;
 
   int mDRMFd = -1;
-  std::once_flag mFlagGbmDevice;
   gbm_device* mGbmDevice = nullptr;
   const char* mFailureId = nullptr;
   nsAutoCString mDrmRenderNode;
 };
 
-DMABufDevice* GetDMABufDevice();
+class MOZ_RAII DMABufDeviceLock final {
+ public:
+  DMABufDeviceLock();
+  ~DMABufDeviceLock();
+
+  gbm_device* GetGBMDevice() {
+    sMutex.AssertCurrentThreadOwns();
+    return mGBMDevice;
+  }
+
+  DMABufDevice* GetDMABufDevice() { return mDMABufDevice; }
+  operator gbm_device*() { return GetGBMDevice(); }
+
+ private:
+  static DMABufDevice* EnsureDMABufDevice();
+
+  DMABufDevice* mDMABufDevice = nullptr;
+  gbm_device* mGBMDevice = nullptr;
+
+  static StaticMutex sMutex;
+  static DMABufDevice* sDMABufDevice;
+};
 
 }  // namespace widget
 }  // namespace mozilla

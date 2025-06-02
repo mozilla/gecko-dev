@@ -62,6 +62,9 @@ namespace ffi {
 struct WGPUDMABufInfo;
 }
 }  // namespace webgpu
+namespace widget {
+class DMABufDeviceLock;
+}  // namespace widget
 }  // namespace mozilla
 
 typedef enum {
@@ -243,9 +246,10 @@ class DMABufSurface {
                     uint32_t* aStride, int aGbmFlags, int aPlane = 0);
 #endif
 
-  virtual bool OpenFileDescriptorForPlane(int aPlane) = 0;
+  virtual bool OpenFileDescriptorForPlane(
+      mozilla::widget::DMABufDeviceLock* aDeviceLock, int aPlane) = 0;
 
-  bool OpenFileDescriptors();
+  bool OpenFileDescriptors(mozilla::widget::DMABufDeviceLock* aDeviceLock);
   void CloseFileDescriptors();
 
   nsresult ReadIntoBuffer(mozilla::gl::GLContext* aGLContext, uint8_t* aData,
@@ -380,7 +384,8 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
               int aWidth, int aHeight);
 
   bool ImportSurfaceDescriptor(const mozilla::layers::SurfaceDescriptor& aDesc);
-  bool OpenFileDescriptorForPlane(int aPlane) override;
+  bool OpenFileDescriptorForPlane(
+      mozilla::widget::DMABufDeviceLock* aDeviceLock, int aPlane) override;
 
  private:
   int mWidth;
@@ -483,7 +488,8 @@ class DMABufSurfaceYUV final : public DMABufSurface {
   bool ImportSurfaceDescriptor(
       const mozilla::layers::SurfaceDescriptorDMABuf& aDesc);
 
-  bool OpenFileDescriptorForPlane(int aPlane) override;
+  bool OpenFileDescriptorForPlane(
+      mozilla::widget::DMABufDeviceLock* aDeviceLock, int aPlane) override;
 
   int mWidth[DMABUF_BUFFER_PLANES];
   int mHeight[DMABUF_BUFFER_PLANES];

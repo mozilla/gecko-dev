@@ -108,7 +108,8 @@ RefPtr<VADisplayHolder> VADisplayHolder::GetSingleton() {
     return RefPtr{sDisplayHolder};
   }
 
-  UniqueFileHandle drmFd{widget::GetDMABufDevice()->OpenDRMFd()};
+  widget::DMABufDeviceLock device;
+  UniqueFileHandle drmFd{device.GetDMABufDevice()->OpenDRMFd()};
   UniqueVADisplay display{vaGetDisplayDRM(drmFd.get())};
   if (!display) {
     FFMPEGP_LOG("  Can't get DRM VA-API display.");

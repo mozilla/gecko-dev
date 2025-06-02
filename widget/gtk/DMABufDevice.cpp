@@ -34,15 +34,13 @@ using namespace mozilla::gfx;
 namespace mozilla {
 namespace widget {
 
+StaticMutex DMABufDeviceLock::sMutex;
+DMABufDevice* DMABufDeviceLock::sDMABufDevice = nullptr;
+
 bool sUseWebGLDmabufBackend = true;
 
 #define GBMLIB_NAME "libgbm.so.1"
 #define DRMLIB_NAME "libdrm.so.2"
-
-// Use static lock to protect dri operation as
-// gbm_dri.c is not thread safe.
-// https://gitlab.freedesktop.org/mesa/mesa/-/issues/4422
-mozilla::StaticMutex GbmLib::sDRILock MOZ_UNANNOTATED;
 
 bool GbmLib::sLoaded = false;
 void* GbmLib::sGbmLibHandle = nullptr;
@@ -140,16 +138,62 @@ bool GbmLib::Load() {
   return sLoaded;
 }
 
+DMABufDevice* DMABufDeviceLock::EnsureDMABufDevice() {
+  sMutex.AssertCurrentThreadOwns();
+  static std::once_flag onceFlag;
+  std::call_once(onceFlag, [&] {
+    sDMABufDevice = new DMABufDevice();
+    if (sDMABufDevice->Init()) {
+      LOGDMABUF(("EnsureDMABufDevice(): created DMABufDevice"));
+    } else {
+      nsCString failureId;
+      Unused << sDMABufDevice->IsEnabled(failureId);
+      LOGDMABUF(("EnsureDMABufDevice(): failed to init DMABufDevice: %s",
+                 failureId.get()));
+    }
+  });
+
+  MOZ_DIAGNOSTIC_ASSERT(sDMABufDevice, "Missing DMABufDevice!");
+  return sDMABufDevice;
+}
+
+DMABufDeviceLock::DMABufDeviceLock() {
+  LOGDMABUF(("DMABufDeviceLock::DMABufDeviceLock() [%p]", this));
+  sMutex.Lock();
+
+  mDMABufDevice = EnsureDMABufDevice();
+  mGBMDevice = mDMABufDevice->GetDevice(this);
+}
+
+DMABufDeviceLock::~DMABufDeviceLock() {
+  LOGDMABUF(("DMABufDeviceLock::~DMABufDeviceLock() [%p]", this));
+  sMutex.AssertCurrentThreadOwns();
+  MOZ_DIAGNOSTIC_ASSERT(mDMABufDevice);
+
+  mGBMDevice = nullptr;
+  mDMABufDevice = nullptr;
+
+  sMutex.Unlock();
+}
+
+gbm_device* DMABufDevice::GetDevice(DMABufDeviceLock* aDMABufDeviceLock) {
+  LOGDMABUF(("DMABufDevice::GetDevice() [%p]", this));
+  if (mDRMFd == -1) {
+    LOGDMABUF(("  mDRMFd is missing!"));
+    return nullptr;
+  }
+  if (!mGbmDevice) {
+    mGbmDevice = GbmLib::CreateDevice(mDRMFd);
+    if (!mGbmDevice) {
+      LOGDMABUF(("  GbmLib::CreateDevice() failed for fd %d", mDRMFd));
+    }
+  }
+  return mGbmDevice;
+}
+
 int DMABufDevice::GetDmabufFD(uint32_t aGEMHandle) {
   int fd;
   return GbmLib::DrmPrimeHandleToFD(mDRMFd, aGEMHandle, 0, &fd) < 0 ? -1 : fd;
-}
-
-gbm_device* DMABufDevice::GetGbmDevice() {
-  std::call_once(mFlagGbmDevice, [&] {
-    mGbmDevice = (mDRMFd != -1) ? GbmLib::CreateDevice(mDRMFd) : nullptr;
-  });
-  return mGbmDevice;
 }
 
 int DMABufDevice::OpenDRMFd() { return open(mDrmRenderNode.get(), O_RDWR); }
@@ -161,9 +205,9 @@ bool DMABufDevice::IsEnabled(nsACString& aFailureId) {
   return mDRMFd != -1;
 }
 
-DMABufDevice::DMABufDevice() { Configure(); }
-
 DMABufDevice::~DMABufDevice() {
+  LOGDMABUF(("DMABufDevice::~DMABufDevice() [%p] mGbmDevice [%p] mDRMFd [%d]",
+             this, mGbmDevice, mDRMFd));
   if (mGbmDevice) {
     GbmLib::DestroyDevice(mGbmDevice);
     mGbmDevice = nullptr;
@@ -174,13 +218,13 @@ DMABufDevice::~DMABufDevice() {
   }
 }
 
-void DMABufDevice::Configure() {
-  LOGDMABUF(("DMABufDevice::Configure()"));
+bool DMABufDevice::Init() {
+  LOGDMABUF(("DMABufDevice::Init()"));
 
   if (!GbmLib::IsAvailable()) {
     LOGDMABUF(("GbmLib is not available!"));
     mFailureId = "FEATURE_FAILURE_NO_LIBGBM";
-    return;
+    return false;
   }
 
   // See Bug 1865747 for details.
@@ -204,7 +248,7 @@ void DMABufDevice::Configure() {
   if (mDrmRenderNode.IsEmpty()) {
     LOGDMABUF(("We're missing DRM render device!\n"));
     mFailureId = "FEATURE_FAILURE_NO_DRM_DEVICE";
-    return;
+    return false;
   }
 
   LOGDMABUF(("Using DRM device %s", mDrmRenderNode.get()));
@@ -213,10 +257,11 @@ void DMABufDevice::Configure() {
     LOGDMABUF(("Failed to open drm render node %s error %s\n",
                mDrmRenderNode.get(), strerror(errno)));
     mFailureId = "FEATURE_FAILURE_NO_DRM_DEVICE";
-    return;
+    return false;
   }
 
   LOGDMABUF(("DMABuf is enabled"));
+  return true;
 }
 
 bool DMABufDevice::IsDMABufWebGLEnabled() {
@@ -231,21 +276,6 @@ bool DMABufDevice::IsDMABufWebGLEnabled() {
 }
 
 void DMABufDevice::DisableDMABufWebGL() { sUseWebGLDmabufBackend = false; }
-
-DMABufDevice* GetDMABufDevice() {
-  static StaticAutoPtr<DMABufDevice> sDmaBufDevice;
-  static std::once_flag onceFlag;
-  std::call_once(onceFlag, [] {
-    sDmaBufDevice = new DMABufDevice();
-    if (NS_IsMainThread()) {
-      ClearOnShutdown(&sDmaBufDevice);
-    } else {
-      NS_DispatchToMainThread(NS_NewRunnableFunction(
-          "ClearDmaBufDevice", [] { ClearOnShutdown(&sDmaBufDevice); }));
-    }
-  });
-  return sDmaBufDevice.get();
-}
 
 }  // namespace widget
 }  // namespace mozilla
