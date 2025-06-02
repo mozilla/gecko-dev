@@ -26,8 +26,7 @@ internal object TranslationsStateReducer {
     @Suppress("LongMethod")
     fun reduce(state: BrowserState, action: TranslationsAction): BrowserState = when (action) {
         TranslationsAction.InitTranslationsBrowserState -> {
-            // No state change on this operation
-            state
+            state.copy(translationsInitialized = true)
         }
 
         is TranslationsAction.TranslateExpectedAction -> {

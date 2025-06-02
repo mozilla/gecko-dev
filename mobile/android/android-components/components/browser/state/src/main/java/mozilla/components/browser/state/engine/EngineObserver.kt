@@ -40,6 +40,8 @@ import mozilla.components.concept.engine.window.WindowRequest
 import mozilla.components.concept.fetch.Response
 import mozilla.components.lib.state.Store
 
+private const val PAGE_LOAD_COMPLETION_PROGRESS = 100
+
 /**
  * [EngineSession.Observer] implementation responsible to update the state of a [Session] from the events coming out of
  * an [EngineSession].
@@ -117,6 +119,12 @@ internal class EngineObserver(
     }
 
     override fun onProgress(progress: Int) {
+        // page load is completed, start the translation initialization if not initialized yet
+        // referencing to a field in the state is not recommended, this flow should be reconsidered
+        // while the visual completeness logic is revisited in Bug 1966977.
+        if (progress == PAGE_LOAD_COMPLETION_PROGRESS && !store.state.translationsInitialized) {
+            store.dispatch(TranslationsAction.InitTranslationsBrowserState)
+        }
         store.dispatch(ContentAction.UpdateProgressAction(tabId, progress))
     }
 
