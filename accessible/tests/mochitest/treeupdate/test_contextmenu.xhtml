@@ -15,6 +15,8 @@
           src="../events.js" />
   <script type="application/javascript"
           src="../role.js" />
+  <script type="application/javascript"
+          src="../states.js" />
 
   <script type="application/javascript">
   <![CDATA[
@@ -33,6 +35,7 @@
 
       this.finalCheck = function openMenu_finalCheck()
       {
+        testStates(aID, STATE_FLOATING, 0, STATE_INVISIBLE | STATE_OFFSCREEN | STATE_COLLAPSED);
         testAccessibleTree(aID, aTree);
       }
 
@@ -112,6 +115,11 @@
       this.getID = function closeMenu_getID()
       {
         return "close menu " + prettyName(aID);
+      }
+
+      this.finalCheck = function closeMenu_finalCheck()
+      {
+        testStates(aID, STATE_FLOATING | STATE_INVISIBLE | STATE_OFFSCREEN | STATE_COLLAPSED, 0);
       }
     }
 
