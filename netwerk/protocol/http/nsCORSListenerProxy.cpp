@@ -28,7 +28,6 @@
 #include "nsGkAtoms.h"
 #include "nsWhitespaceTokenizer.h"
 #include "nsIChannelEventSink.h"
-#include "nsIDNSService.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "nsAsyncRedirectVerifyHelper.h"
@@ -210,16 +209,12 @@ struct CORSCacheEntry : public LinkedListElement<CORSCacheEntry>,
   nsCOMPtr<nsIPrincipal> mPrincipal;
   bool mWithCredentials;
   nsCString mKey;  // serialized key
-  const TimeStamp mCreationTime{TimeStamp::NowLoRes()};
-  bool mDoomed{false};
 
   nsTArray<nsPreflightCache::TokenTime> mMethods;
   nsTArray<nsPreflightCache::TokenTime> mHeaders;
 
  private:
   virtual ~CORSCacheEntry() = default;
-
-  bool CheckDNSCache();
 };
 
 NS_IMPL_ISUPPORTS(nsPreflightCache, nsICORSPreflightCache)
@@ -337,50 +332,9 @@ void CORSCacheEntry::PurgeExpired(TimeStamp now) {
   }
 }
 
-bool CORSCacheEntry::CheckDNSCache() {
-  nsCOMPtr<nsIDNSService> dns;
-  dns = mozilla::components::DNS::Service();
-  if (!dns) {
-    return false;
-  }
-
-  nsAutoCString host;
-  if (NS_FAILED(mURI->GetAsciiHost(host))) {
-    return false;
-  }
-
-  nsCOMPtr<nsIDNSRecord> record;
-  nsresult rv = dns->ResolveNative(host, nsIDNSService::RESOLVE_OFFLINE, mOA,
-                                   getter_AddRefs(record));
-  if (NS_FAILED(rv) || !record) {
-    return false;
-  }
-
-  nsCOMPtr<nsIDNSAddrRecord> addrRec = do_QueryInterface(record);
-  if (!addrRec) {
-    return false;
-  }
-
-  TimeStamp lastUpdate;
-  Unused << addrRec->GetLastUpdate(&lastUpdate);
-
-  if (lastUpdate > mCreationTime) {
-    return false;
-  }
-
-  return true;
-}
-
 bool CORSCacheEntry::CheckRequest(const nsCString& aMethod,
                                   const nsTArray<nsCString>& aHeaders) {
   PurgeExpired(TimeStamp::NowLoRes());
-
-  if (!CheckDNSCache()) {
-    mMethods.Clear();
-    mHeaders.Clear();
-    mDoomed = true;
-    return false;
-  }
 
   if (!aMethod.EqualsLiteral("GET") && !aMethod.EqualsLiteral("POST")) {
     struct CheckToken {
@@ -422,16 +376,11 @@ already_AddRefed<CORSCacheEntry> nsPreflightCache::GetEntry(
 
   RefPtr<CORSCacheEntry> existingEntry = nullptr;
   if ((existingEntry = mTable.Get(key))) {
-    if (existingEntry->mDoomed) {
-      existingEntry->removeFrom(mList);
-      mTable.Remove(key);
-    } else {
-      // Entry already existed so just return it. Also update the LRU list.
-      // Move to the head of the list.
-      existingEntry->removeFrom(mList);
-      mList.insertFront(existingEntry);
-      return existingEntry.forget();
-    }
+    // Entry already existed so just return it. Also update the LRU list.
+    // Move to the head of the list.
+    existingEntry->removeFrom(mList);
+    mList.insertFront(existingEntry);
+    return existingEntry.forget();
   }
 
   if (!aCreate) {
