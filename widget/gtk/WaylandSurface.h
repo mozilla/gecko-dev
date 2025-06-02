@@ -54,7 +54,7 @@ class WaylandSurface final {
   // ready to draw and we don't have buffer attached yet,
   // fire aFrameCallbackHandler without frame callback from
   // compositor in sFrameCheckTimeoutMs.
-  void AddFrameCallbackLocked(
+  void SetFrameCallbackLocked(
       const WaylandSurfaceLock& aProofOfLock,
       const std::function<void(wl_callback*, uint32_t)>& aFrameCallbackHandler,
       bool aEmulateFrameCallback = false);
@@ -368,13 +368,14 @@ class WaylandSurface final {
   wl_callback* mFrameCallback = nullptr;
 
   struct FrameCallback {
-    std::function<void(wl_callback*, uint32_t)> mCb;
+    std::function<void(wl_callback*, uint32_t)> mCb = nullptr;
     bool mEmulated = false;
+    bool IsSet() const { return !!mCb; }
   };
 
   bool mFrameCallbackEnabled = true;
-  // Frame callback handlers called every frame
-  std::vector<FrameCallback> mFrameCallbackHandlers;
+  // Frame callback handler called every frame
+  FrameCallback mFrameCallbackHandler;
 
   // WaylandSurface is used from Compositor/Rendering/Main threads.
   mozilla::Mutex mMutex{"WaylandSurface"};
