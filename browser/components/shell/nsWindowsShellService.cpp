@@ -696,7 +696,7 @@ nsWindowsShellService::SetDesktopBackground(dom::Element* aElement,
   // get the file name from localized strings, e.g. "Desktop Background", then
   // append the extension (".bmp").
   nsTArray<nsCString> resIds = {
-      "browser/browser/setDesktopBackground.ftl"_ns,
+      "browser/setDesktopBackground.ftl"_ns,
   };
   RefPtr<Localization> l10n = Localization::Create(resIds, true);
   nsAutoCString fileLeafNameUtf8;
