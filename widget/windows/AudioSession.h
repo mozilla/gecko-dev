@@ -9,11 +9,12 @@
 namespace mozilla {
 namespace widget {
 
-// Start the audio session in the current process
-void StartAudioSession();
+// Create the audio session.  Must only be called in the main (parent) process.
+void CreateAudioSession();
 
-// Stop the audio session in the current process
-void StopAudioSession();
+// Destroy the audio session.  Must only be called in the main (parent)
+// process and during app shutdown.
+void DestroyAudioSession();
 
 }  // namespace widget
 }  // namespace mozilla
