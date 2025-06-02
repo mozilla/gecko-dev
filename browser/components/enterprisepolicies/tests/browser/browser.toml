@@ -55,8 +55,6 @@ skip-if = ["verify && debug && os == 'mac'"]
 
 ["browser_policy_disable_password_reveal.js"]
 
-["browser_policy_disable_pocket.js"]
-
 ["browser_policy_disable_popup_blocker.js"]
 
 ["browser_policy_disable_privatebrowsing.js"]
