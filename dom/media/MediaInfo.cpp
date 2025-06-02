@@ -93,15 +93,16 @@ nsCString VideoInfo::ToString() const {
       "FULL",
   };
 
-  std::array ColorPrimariesStrings = {"Display",
-                                      "UNKNOWN"
-                                      "SRGB",
-                                      "DISPLAY_P3",
-                                      "BT601_525",
-                                      "BT709",
-                                      "BT601_625"
-                                      "BT709",
-                                      "BT2020"};
+  // From gfx::ColorSpace2
+  std::array ColorPrimariesStrings = {
+      "Display",     // 0 (Display / UNKNOWN)
+      "SRGB",        // 1
+      "DISPLAY_P3",  // 2
+      "BT601_525",   // 3
+      "BT709",       // 4 (also BT601_625)
+      "BT2020",      // 5
+  };
+
   nsAutoCString rv;
   rv.Append(TrackInfo::ToString());
   rv.AppendLiteral(" VideoInfo: ");
