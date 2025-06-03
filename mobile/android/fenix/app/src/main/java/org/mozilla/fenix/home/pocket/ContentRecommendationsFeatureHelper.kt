@@ -14,11 +14,6 @@ import mozilla.components.support.locale.LocaleManager.getSystemDefault
  */
 object ContentRecommendationsFeatureHelper {
     /**
-     * List of supported Pocket locales.
-     */
-    val POCKET_SUPPORTED_LOCALES = listOf("en-US", "en-CA")
-
-    /**
      * List of supported content recommendations locales.
      */
     val CONTENT_RECOMMENDATIONS_SUPPORTED_LOCALE = listOf(
@@ -39,19 +34,10 @@ object ContentRecommendationsFeatureHelper {
     )
 
     /**
-     * Show Pocket recommended stories on home.
-     */
-    fun isPocketRecommendationsFeatureEnabled(context: Context): Boolean {
-        val langTag = LocaleManager.getCurrentLocale(context)
-            ?.toLanguageTag() ?: getSystemDefault().toLanguageTag()
-        return POCKET_SUPPORTED_LOCALES.contains(langTag)
-    }
-
-    /**
      * Show Pocket sponsored stories in between Pocket recommended stories on home.
      */
     fun isPocketSponsoredStoriesFeatureEnabled(context: Context): Boolean {
-        return isPocketRecommendationsFeatureEnabled(context)
+        return isContentRecommendationsFeatureEnabled(context)
     }
 
     /**

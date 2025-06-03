@@ -25,30 +25,6 @@ class ContentRecommendationsFeatureHelperTest {
     }
 
     @Test
-    fun `GIVEN unsupported locale WHEN pocket recommendations feature enabled check is invoked THEN return false`() {
-        val locale = Locale.Builder().setLanguage("ro").setRegion("RO").build()
-        LocaleManager.setNewLocale(testContext, localeUseCase = null, locale = locale)
-
-        assertFalse(ContentRecommendationsFeatureHelper.isPocketRecommendationsFeatureEnabled(testContext))
-    }
-
-    @Test
-    fun `GIVEN supported en-US locale WHEN pocket recommendations feature enabled check is invoked THEN return true`() {
-        val locale = Locale.Builder().setLanguage("en").setRegion("US").build()
-        LocaleManager.setNewLocale(testContext, localeUseCase = null, locale = locale)
-
-        assertTrue(ContentRecommendationsFeatureHelper.isPocketRecommendationsFeatureEnabled(testContext))
-    }
-
-    @Test
-    fun `GIVEN supported en-CA locale WHEN pocket recommendations feature enabled check is invoked THEN return true`() {
-        val locale = Locale.Builder().setLanguage("en").setRegion("CA").build()
-        LocaleManager.setNewLocale(testContext, localeUseCase = null, locale = locale)
-
-        assertTrue(ContentRecommendationsFeatureHelper.isPocketRecommendationsFeatureEnabled(testContext))
-    }
-
-    @Test
     fun `GIVEN unsupported locale WHEN pocket sponsored stories feature enabled check is invoked THEN return false`() {
         val locale = Locale.Builder().setLanguage("ro").setRegion("RO").build()
         LocaleManager.setNewLocale(testContext, localeUseCase = null, locale = locale)
