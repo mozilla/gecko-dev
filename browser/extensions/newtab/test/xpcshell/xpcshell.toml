@@ -17,17 +17,15 @@ support-files = ["topstories.json"]
 
 ["test_InferredFeatureModel.js"]
 
-["test_NewTabContentPing.js"]
-
 ["test_NewTabGleanUtils.js"]
 
 ["test_NewTabMessaging.js"]
 
 ["test_PlacesFeed.js"]
 
-["test_StartupCacheInit.js"]
-
 ["test_Store.js"]
+
+["test_StartupCacheInit.js"]
 
 ["test_TelemetryFeed.js"]
 support-files = ["../schemas/*.schema.json"]
