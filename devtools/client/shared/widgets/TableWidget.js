@@ -276,6 +276,43 @@ TableWidget.prototype = {
   },
 
   /**
+   * Ensures all cells in a specific row have consistent heights by synchronizing their styles.
+   * This method calculates the maximum height of the visible cells in the specified row,
+   * but only applies changes if there's a mismatch.
+   *
+   * @param {string} uniqueRowIndex - The unique identifier for the row to synchronize.
+   */
+  syncRowHeight(uniqueRowIndex) {
+    const cellsInRow = [
+      ...this.tbody.querySelectorAll(
+        `div:not([hidden=""]) label.table-widget-cell[data-id="${uniqueRowIndex}"]`
+      ),
+    ];
+
+    if (cellsInRow.length === 0) {
+      return;
+    }
+
+    // Collect the heights of all visible cells
+    const cellHeights = cellsInRow.map(cell => cell.clientHeight);
+
+    // Find the max height
+    const maxHeight = Math.max(...cellHeights);
+
+    // Only apply new height if there’s a mismatch
+    const hasMismatch = cellHeights.some(height => height !== maxHeight);
+    if (!hasMismatch) {
+      return;
+    }
+
+    for (const cell of cellsInRow) {
+      if (cell.style.height !== `${maxHeight}px`) {
+        cell.style.height = `${maxHeight}px`;
+      }
+    }
+  },
+
+  /**
    * Emit all cell edit events.
    */
   onChange(data) {
@@ -305,6 +342,7 @@ TableWidget.prototype = {
     this.editBookmark =
       colName === uniqueId ? change.newValue : items[uniqueId];
     this.emit(EVENTS.CELL_EDIT, change);
+    this.syncRowHeight(change.items.uniqueKey);
   },
 
   onEditorDestroyed() {
@@ -920,6 +958,7 @@ TableWidget.prototype = {
     }
 
     this.emit(EVENTS.ROW_EDIT, item[this.uniqueId]);
+    this.syncRowHeight(item[this.uniqueId]);
   },
 
   /**
@@ -1599,7 +1638,7 @@ Column.prototype = {
 
   /**
    * Click event handler for the column. Used to detect click on header for
-   * for sorting.
+   * sorting.
    */
   onClick(event) {
     const target = event.originalTarget;
@@ -1610,6 +1649,27 @@ Column.prototype = {
 
     if (event.button == 0 && target == this.header) {
       this.table.sortBy(this.id);
+
+      // Get all cell heights in the clicked column
+      const cellHeights = [
+        ...this.table.tbody.querySelectorAll(
+          `.table-widget-column#${this.id} .table-widget-cell`
+        ),
+      ].map(cell => cell.clientHeight);
+
+      // Sort heights from smallest to largest
+      cellHeights.sort((a, b) => a - b);
+
+      // Check for height mismatches
+      for (let i = 1; i < cellHeights.length; i++) {
+        if (cellHeights[i] !== cellHeights[i - 1]) {
+          // Sync row heights only if necessary
+          for (const rowId in this.items) {
+            this.table.syncRowHeight(rowId);
+          }
+          return; // Exit early once we know we need to sync
+        }
+      }
     }
   },
 

@@ -28,6 +28,7 @@ support-files = [
   "storage-listings-usercontextid.html",
   "storage-listings-with-fragment.html",
   "storage-localstorage.html",
+  "storage-localstorage-tall-content.html",
   "storage-overflow-indexeddb.html",
   "storage-overflow.html",
   "storage-search.html",
@@ -165,6 +166,8 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_storage_localstorage_navigation.js"]
 
 ["browser_storage_localstorage_rapid_add_remove.js"]
+
+["browser_storage_localstorage_tall_content.js"]
 
 ["browser_storage_overflow.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled

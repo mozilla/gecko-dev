@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+  <!--
+Bug 1888847 - Storage inspector front end - tests layout for tall content
+-->
+  <head>
+    <meta charset="utf-8" />
+    <title>Storage inspector for tall unicode layout</title>
+  </head>
+  <body>
+    <script type="application/javascript">
+      "use strict";
+      localStorage.setItem("emoji", "🎉🚀🌈🌟");
+      localStorage.setItem("tall", "हिंदीالعَرَبِيَّة漢字");
+      localStorage.setItem(
+        "long",
+        "This is a very long string that should wrap or overflow or at least test the layout well."
+      );
+    </script>
+  </body>
+</html>
