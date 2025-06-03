@@ -112,8 +112,15 @@ class DownloadUIStoreTest {
 
     @Test
     fun `WHEN all items are visible and all items selected for removal THEN all items are selected`() {
+        val inProgressFileItem = fileItem(status = DownloadState.Status.DOWNLOADING)
+        val pausedFileItem = fileItem(status = DownloadState.Status.PAUSED)
+        val failedFileItem = fileItem(status = DownloadState.Status.FAILED)
+        val initiatedFileItem = fileItem(status = DownloadState.Status.INITIATED)
+
         val initialState = DownloadUIState(
-            items = listOf(fileItem1, fileItem2),
+            items = listOf(
+                fileItem1, fileItem2, inProgressFileItem, pausedFileItem, failedFileItem, initiatedFileItem,
+            ),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
@@ -124,8 +131,15 @@ class DownloadUIStoreTest {
         store.dispatch(DownloadUIAction.AddAllItemsForRemoval)
 
         val expected = DownloadUIState(
-            items = listOf(fileItem1, fileItem2),
-            mode = DownloadUIState.Mode.Editing(setOf(fileItem1, fileItem2)),
+            items = listOf(
+                fileItem1, fileItem2, inProgressFileItem, pausedFileItem, failedFileItem, initiatedFileItem,
+            ),
+            mode = DownloadUIState.Mode.Editing(
+                setOf(
+                    fileItem1, fileItem2, inProgressFileItem, pausedFileItem, failedFileItem,
+                    initiatedFileItem,
+                ),
+            ),
             pendingDeletionIds = emptySet(),
         )
 
@@ -158,8 +172,13 @@ class DownloadUIStoreTest {
             timeCategory = TimeCategory.TODAY,
         )
 
+        val inProgressImage = fileItem(status = DownloadState.Status.DOWNLOADING)
+        val pausedImage = fileItem(status = DownloadState.Status.PAUSED)
+        val failedImage = fileItem(status = DownloadState.Status.FAILED)
+        val initiatedImage = fileItem(status = DownloadState.Status.INITIATED)
+
         val initialState = DownloadUIState(
-            items = listOf(image, document),
+            items = listOf(image, document, inProgressImage, pausedImage, failedImage, initiatedImage),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
@@ -171,7 +190,7 @@ class DownloadUIStoreTest {
         store.dispatch(DownloadUIAction.AddAllItemsForRemoval)
 
         val expected = DownloadUIState(
-            items = listOf(image, document),
+            items = listOf(image, document, inProgressImage, pausedImage, failedImage, initiatedImage),
             mode = DownloadUIState.Mode.Editing(setOf(image)),
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
@@ -219,8 +238,13 @@ class DownloadUIStoreTest {
             timeCategory = TimeCategory.TODAY,
         )
 
+        val inProgressImage = fileItem(status = DownloadState.Status.DOWNLOADING)
+        val pausedImage = fileItem(status = DownloadState.Status.PAUSED)
+        val failedImage = fileItem(status = DownloadState.Status.FAILED)
+        val initiatedImage = fileItem(status = DownloadState.Status.INITIATED)
+
         val initialState = DownloadUIState(
-            items = listOf(image1, image2, document),
+            items = listOf(image1, image2, document, inProgressImage, pausedImage, failedImage, initiatedImage),
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
@@ -233,7 +257,7 @@ class DownloadUIStoreTest {
         store.dispatch(DownloadUIAction.AddAllItemsForRemoval)
 
         val expected = DownloadUIState(
-            items = listOf(image1, image2, document),
+            items = listOf(image1, image2, document, inProgressImage, pausedImage, failedImage, initiatedImage),
             mode = DownloadUIState.Mode.Editing(setOf(image1)),
             pendingDeletionIds = emptySet(),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
@@ -599,7 +623,6 @@ class DownloadUIStoreTest {
         )
         val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadUIAction.PauseDownload("1"))
         val expectedState = DownloadUIState(
             items = listOf(fileItem1.copy(status = DownloadState.Status.PAUSED)),
             mode = DownloadUIState.Mode.Normal,
@@ -608,6 +631,7 @@ class DownloadUIStoreTest {
             searchQuery = "",
         )
 
+        store.dispatch(DownloadUIAction.PauseDownload("1"))
         assertEquals(expectedState, store.state)
     }
 
@@ -622,7 +646,6 @@ class DownloadUIStoreTest {
         )
         val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadUIAction.ResumeDownload("1"))
         val expectedState = DownloadUIState(
             items = listOf(fileItem1.copy(status = DownloadState.Status.DOWNLOADING)),
             mode = DownloadUIState.Mode.Normal,
@@ -631,6 +654,7 @@ class DownloadUIStoreTest {
             searchQuery = "",
         )
 
+        store.dispatch(DownloadUIAction.ResumeDownload("1"))
         assertEquals(expectedState, store.state)
     }
 
@@ -645,7 +669,6 @@ class DownloadUIStoreTest {
         )
         val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadUIAction.CancelDownload("1"))
         val expectedState = DownloadUIState(
             items = listOf(fileItem1.copy(status = DownloadState.Status.CANCELLED)),
             mode = DownloadUIState.Mode.Normal,
@@ -654,11 +677,12 @@ class DownloadUIStoreTest {
             searchQuery = "",
         )
 
+        store.dispatch(DownloadUIAction.CancelDownload("1"))
         assertEquals(expectedState, store.state)
     }
 
     @Test
-    fun `WHEN TryAgainDownload action is dispatched on a download THEN only its item status is DOWNLOADING`() {
+    fun `WHEN RetryDownload action is dispatched on a download THEN only its item status is DOWNLOADING`() {
         val initialState = DownloadUIState(
             items = listOf(fileItem1),
             mode = DownloadUIState.Mode.Normal,
@@ -668,7 +692,6 @@ class DownloadUIStoreTest {
         )
         val store = DownloadUIStore(initialState)
 
-        store.dispatch(DownloadUIAction.RetryDownload("1"))
         val expectedState = DownloadUIState(
             items = listOf(fileItem1.copy(status = DownloadState.Status.DOWNLOADING)),
             mode = DownloadUIState.Mode.Normal,
@@ -677,6 +700,7 @@ class DownloadUIStoreTest {
             searchQuery = "",
         )
 
+        store.dispatch(DownloadUIAction.RetryDownload("1"))
         assertEquals(expectedState, store.state)
     }
 

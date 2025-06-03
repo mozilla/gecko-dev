@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.downloads.listscreen.store
 
+import mozilla.components.browser.state.state.content.DownloadState
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -28,17 +29,78 @@ class DownloadUIStateTest {
                 id = "4",
                 timeCategory = TimeCategory.LAST_30_DAYS,
             ),
+            fileItem(
+                id = "5",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "6",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "7",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "8",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "9",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "10",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "11",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "12",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
         )
 
         val downloadUIState = DownloadUIState(
             items = fileItems,
             mode = DownloadUIState.Mode.Normal,
-            pendingDeletionIds = setOf("2", "4"),
+            pendingDeletionIds = setOf("2", "4", "6", "8", "10", "12"),
             userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
         )
 
         val expected = DownloadUIState.ItemsState.Items(
             listOf(
+                HeaderItem(timeCategory = TimeCategory.IN_PROGRESS),
+                fileItem(
+                    id = "5",
+                    status = DownloadState.Status.DOWNLOADING,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "7",
+                    status = DownloadState.Status.PAUSED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "9",
+                    status = DownloadState.Status.FAILED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "11",
+                    status = DownloadState.Status.INITIATED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
                 HeaderItem(timeCategory = TimeCategory.LAST_30_DAYS),
                 fileItem(id = "1"),
                 fileItem(id = "3"),
@@ -83,6 +145,26 @@ class DownloadUIStateTest {
                 id = "8",
                 timeCategory = TimeCategory.LAST_7_DAYS,
             ),
+            fileItem(
+                id = "9",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "10",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "11",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "12",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
         )
 
         val downloadUIState = DownloadUIState(
@@ -94,6 +176,27 @@ class DownloadUIStateTest {
 
         val expected = DownloadUIState.ItemsState.Items(
             listOf(
+                HeaderItem(timeCategory = TimeCategory.IN_PROGRESS),
+                fileItem(
+                    id = "9",
+                    status = DownloadState.Status.DOWNLOADING,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "10",
+                    status = DownloadState.Status.PAUSED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "11",
+                    status = DownloadState.Status.FAILED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "12",
+                    status = DownloadState.Status.INITIATED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
                 HeaderItem(timeCategory = TimeCategory.TODAY),
                 fileItem(
                     id = "6",
@@ -134,7 +237,7 @@ class DownloadUIStateTest {
     }
 
     @Test
-    fun `WHEN content type filter is selected THEN only those items are displayed`() {
+    fun `WHEN content type filter is selected THEN only those completed items are displayed`() {
         val fileItems = listOf(
             fileItem(
                 id = "1",
@@ -170,6 +273,30 @@ class DownloadUIStateTest {
                 id = "7",
                 timeCategory = TimeCategory.TODAY,
                 contentType = "image/png",
+            ),
+            fileItem(
+                id = "8",
+                contentType = "image/png",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "9",
+                contentType = "image/png",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "10",
+                contentType = "image/png",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "11",
+                contentType = "image/png",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
             ),
         )
 
@@ -213,7 +340,7 @@ class DownloadUIStateTest {
     }
 
     @Test
-    fun `WHEN file items of at least 2 types are present THEN only those filters for available file types`() {
+    fun `WHEN completed file items of at least 2 types are present THEN only those filters are available`() {
         val fileItems = listOf(
             fileItem(
                 id = "2",
@@ -229,6 +356,30 @@ class DownloadUIStateTest {
                 id = "4",
                 timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "text/plain",
+            ),
+            fileItem(
+                id = "5",
+                contentType = "image/png",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "6",
+                contentType = "image/png",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "7",
+                contentType = "image/png",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "8",
+                contentType = "image/png",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
             ),
         )
 
@@ -276,7 +427,48 @@ class DownloadUIStateTest {
     }
 
     @Test
-    fun `WHEN user selected filter does not contain any items THEN override filter is set to All`() {
+    fun `WHEN in progress file items of at least 2 types are present THEN filters are not displayed`() {
+        val fileItems = listOf(
+            fileItem(
+                id = "1",
+                contentType = "image/png",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "2",
+                contentType = "application/pdf",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "3",
+                contentType = "video/mp4",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "4",
+                contentType = "video/mp4",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
+        )
+
+        val expected = emptyList<FileItem.ContentTypeFilter>()
+
+        assertEquals(expected, downloadUIState.filtersToDisplay)
+    }
+
+    @Test
+    fun `GIVEN filter is not set to All WHEN user selected filter does not contain any completed items THEN override filter is set to All`() {
         val fileItems = listOf(
             fileItem(
                 id = "2",
@@ -293,6 +485,30 @@ class DownloadUIStateTest {
                 timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "text/plain",
             ),
+            fileItem(
+                id = "5",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+                contentType = "image/png",
+            ),
+            fileItem(
+                id = "6",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+                contentType = "image/png",
+            ),
+            fileItem(
+                id = "7",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+                contentType = "image/png",
+            ),
+            fileItem(
+                id = "8",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+                contentType = "image/png",
+            ),
         )
 
         val downloadUIState = DownloadUIState(
@@ -308,7 +524,7 @@ class DownloadUIStateTest {
     }
 
     @Test
-    fun `WHEN search query is used THEN only the items matching query for url are displayed`() {
+    fun `GIVEN content type is All WHEN search query is used THEN only the items matching query for url are displayed`() {
         val fileItems = listOf(
             fileItem(
                 id = "1",
@@ -334,6 +550,54 @@ class DownloadUIStateTest {
                 displayedShortUrl = "firefox.com",
                 timeCategory = TimeCategory.LAST_30_DAYS,
             ),
+            fileItem(
+                id = "5",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "6",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "7",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "8",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "9",
+                displayedShortUrl = "mozilla.com",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "10",
+                displayedShortUrl = "mozilla.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "11",
+                displayedShortUrl = "mozilla.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "12",
+                displayedShortUrl = "mozilla.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
         )
 
         val downloadUIState = DownloadUIState(
@@ -341,6 +605,138 @@ class DownloadUIStateTest {
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
             searchQuery = "firefox",
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
+        )
+
+        val expected = DownloadUIState.ItemsState.Items(
+            listOf(
+                HeaderItem(timeCategory = TimeCategory.IN_PROGRESS),
+                fileItem(
+                    id = "5",
+                    displayedShortUrl = "firefox.com",
+                    status = DownloadState.Status.DOWNLOADING,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "6",
+                    displayedShortUrl = "firefox.com",
+                    status = DownloadState.Status.PAUSED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "7",
+                    displayedShortUrl = "firefox.com",
+                    status = DownloadState.Status.FAILED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "8",
+                    displayedShortUrl = "firefox.com",
+                    status = DownloadState.Status.INITIATED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                HeaderItem(timeCategory = TimeCategory.LAST_30_DAYS),
+                fileItem(
+                    id = "1",
+                    fileName = "somefile",
+                    displayedShortUrl = "firefox.com",
+                    timeCategory = TimeCategory.LAST_30_DAYS,
+                ),
+                fileItem(
+                    id = "4",
+                    fileName = "name",
+                    displayedShortUrl = "firefox.com",
+                    timeCategory = TimeCategory.LAST_30_DAYS,
+                ),
+            ),
+        )
+
+        assertEquals(expected, downloadUIState.itemsState)
+    }
+
+    @Test
+    fun `GIVEN content type is not All WHEN search query is used THEN only the completed items matching query for url are displayed`() {
+        val fileItems = listOf(
+            fileItem(
+                id = "1",
+                fileName = "somefile",
+                displayedShortUrl = "firefox.com",
+                timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "2",
+                fileName = "anotherfile",
+                displayedShortUrl = "mozilla.org",
+                timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "3",
+                fileName = "yetanotherfile",
+                displayedShortUrl = "mozilla.com",
+                timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "4",
+                fileName = "name",
+                displayedShortUrl = "firefox.com",
+                timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "5",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "6",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "7",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "8",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "9",
+                displayedShortUrl = "mozilla.com",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "10",
+                displayedShortUrl = "mozilla.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "11",
+                displayedShortUrl = "mozilla.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "12",
+                displayedShortUrl = "mozilla.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            searchQuery = "firefox",
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
         )
 
         val expected = DownloadUIState.ItemsState.Items(
@@ -365,7 +761,7 @@ class DownloadUIStateTest {
     }
 
     @Test
-    fun `WHEN search query is used THEN only the items matching query for name are displayed`() {
+    fun `GIVEN content type filter is All WHEN search query is used THEN only the items matching query for name are displayed`() {
         val fileItems = listOf(
             fileItem(
                 id = "1",
@@ -391,6 +787,62 @@ class DownloadUIStateTest {
                 displayedShortUrl = "firefox.com",
                 timeCategory = TimeCategory.LAST_30_DAYS,
             ),
+            fileItem(
+                id = "5",
+                fileName = "inprogressfile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "6",
+                fileName = "pausedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "7",
+                fileName = "failedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "8",
+                fileName = "initiatedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "9",
+                displayedShortUrl = "firefox.com",
+                fileName = "nonameinprogress",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "10",
+                fileName = "nonamepaused",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "11",
+                fileName = "nonamefailed",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "12",
+                fileName = "nonameinitiated",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
         )
 
         val downloadUIState = DownloadUIState(
@@ -398,6 +850,156 @@ class DownloadUIStateTest {
             mode = DownloadUIState.Mode.Normal,
             pendingDeletionIds = emptySet(),
             searchQuery = "file",
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.All,
+        )
+
+        val expected = DownloadUIState.ItemsState.Items(
+            listOf(
+                HeaderItem(timeCategory = TimeCategory.IN_PROGRESS),
+                fileItem(
+                    id = "5",
+                    fileName = "inprogressfile",
+                    displayedShortUrl = "firefox.com",
+                    status = DownloadState.Status.DOWNLOADING,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "6",
+                    fileName = "pausedFile",
+                    displayedShortUrl = "firefox.com",
+                    status = DownloadState.Status.PAUSED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "7",
+                    fileName = "failedFile",
+                    displayedShortUrl = "firefox.com",
+                    status = DownloadState.Status.FAILED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                fileItem(
+                    id = "8",
+                    fileName = "initiatedFile",
+                    displayedShortUrl = "firefox.com",
+                    status = DownloadState.Status.INITIATED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                ),
+                HeaderItem(timeCategory = TimeCategory.LAST_30_DAYS),
+                fileItem(
+                    id = "1",
+                    fileName = "somefile",
+                    displayedShortUrl = "firefox.com",
+                    timeCategory = TimeCategory.LAST_30_DAYS,
+                ),
+                fileItem(
+                    id = "2",
+                    fileName = "anotherfile",
+                    displayedShortUrl = "mozilla.org",
+                    timeCategory = TimeCategory.LAST_30_DAYS,
+                ),
+                fileItem(
+                    id = "3",
+                    fileName = "yetanotherfile",
+                    displayedShortUrl = "mozilla.com",
+                    timeCategory = TimeCategory.LAST_30_DAYS,
+                ),
+            ),
+        )
+
+        assertEquals(expected, downloadUIState.itemsState)
+    }
+
+    @Test
+    fun `GIVEN content type filter is not All WHEN search query is used THEN only the completed items matching query for name are displayed`() {
+        val fileItems = listOf(
+            fileItem(
+                id = "1",
+                fileName = "somefile",
+                displayedShortUrl = "firefox.com",
+                timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "2",
+                fileName = "anotherfile",
+                displayedShortUrl = "mozilla.org",
+                timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "3",
+                fileName = "yetanotherfile",
+                displayedShortUrl = "mozilla.com",
+                timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "4",
+                fileName = "name",
+                displayedShortUrl = "firefox.com",
+                timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "5",
+                fileName = "inprogressfile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "6",
+                fileName = "pausedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "7",
+                fileName = "failedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "8",
+                fileName = "initiatedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "9",
+                displayedShortUrl = "firefox.com",
+                fileName = "nonameinprogress",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "10",
+                fileName = "nonamepaused",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "11",
+                fileName = "nonamefailed",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "12",
+                fileName = "nonameinitiated",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            searchQuery = "file",
+            userSelectedContentTypeFilter = FileItem.ContentTypeFilter.Image,
         )
 
         val expected = DownloadUIState.ItemsState.Items(
@@ -453,6 +1055,34 @@ class DownloadUIStateTest {
                 fileName = "name",
                 displayedShortUrl = "firefox.com",
                 timeCategory = TimeCategory.LAST_30_DAYS,
+            ),
+            fileItem(
+                id = "5",
+                fileName = "inprogressfile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "6",
+                fileName = "pausedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "7",
+                fileName = "failedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "8",
+                fileName = "initiatedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
             ),
         )
 
@@ -557,7 +1187,7 @@ class DownloadUIStateTest {
     }
 
     @Test
-    fun `WHEN search field is not requested and state is in normal mode with items THEN search icon is visible`() {
+    fun `WHEN search field is not requested and state is in normal mode with completed file items THEN search icon is visible`() {
         val fileItem1 = fileItem(
             id = "1",
             fileName = "somefile",
@@ -573,6 +1203,50 @@ class DownloadUIStateTest {
         val fileItems = listOf(
             fileItem1,
             fileItem2,
+        )
+
+        val downloadUIState = DownloadUIState(
+            items = fileItems,
+            mode = DownloadUIState.Mode.Normal,
+            pendingDeletionIds = emptySet(),
+            isSearchFieldRequested = false,
+            searchQuery = "",
+        )
+
+        assertEquals(true, downloadUIState.isSearchIconVisible)
+    }
+
+    @Test
+    fun `WHEN search field is not requested and state is in normal mode with in progress file items THEN search icon is visible`() {
+        val fileItems = listOf(
+            fileItem(
+                id = "5",
+                fileName = "inprogressfile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.DOWNLOADING,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "6",
+                fileName = "pausedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.PAUSED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "7",
+                fileName = "failedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.FAILED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
+            fileItem(
+                id = "8",
+                fileName = "initiatedFile",
+                displayedShortUrl = "firefox.com",
+                status = DownloadState.Status.INITIATED,
+                timeCategory = TimeCategory.IN_PROGRESS,
+            ),
         )
 
         val downloadUIState = DownloadUIState(
