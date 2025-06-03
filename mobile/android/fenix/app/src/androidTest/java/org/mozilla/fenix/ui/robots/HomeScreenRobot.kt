@@ -76,6 +76,7 @@ import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.home.topsites.TopSitesTestTag
 import org.mozilla.fenix.home.topsites.TopSitesTestTag.TOP_SITE_CARD_FAVICON
 import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_STORY
 import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_WORDMARK_LOGO
 import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_WORDMARK_TEXT
 import org.mozilla.fenix.home.ui.HomepageTestTag.PRIVATE_BROWSING_HOMEPAGE_BUTTON
@@ -463,7 +464,7 @@ class HomeScreenRobot {
     fun scrollToPocketProvokingStories() {
         Log.i(TAG, "scrollToPocketProvokingStories: Trying to scroll into view the featured pocket stories")
         homeScreenList().scrollIntoView(
-            mDevice.findObject(UiSelector().resourceId("pocket.recommended.story").index(2)),
+            mDevice.findObject(UiSelector().resourceId(HOMEPAGE_STORY).index(2)),
         )
         Log.i(TAG, "scrollToPocketProvokingStories: Scrolled into view the featured pocket stories")
     }
@@ -485,11 +486,11 @@ class HomeScreenRobot {
 //    fun verifyPocketSponsoredStoriesItems(vararg positions: Int) {
 //        positions.forEach {
 //            pocketStoriesList
-//                .scrollIntoView(UiSelector().resourceId("pocket.sponsored.story").index(it - 1))
+//                .scrollIntoView(UiSelector().resourceId(HOMEPAGE_SPONSORED_STORY).index(it - 1))
 //
 //            assertTrue(
 //                "Pocket story item at position $it not found.",
-//                mDevice.findObject(UiSelector().index(it - 1).resourceId("pocket.sponsored.story"))
+//                mDevice.findObject(UiSelector().index(it - 1).resourceId(HOMEPAGE_SPONSORED_STORY))
 //                    .waitForExists(waitingTimeShort),
 //            )
 //        }
@@ -513,7 +514,7 @@ class HomeScreenRobot {
     fun getProvokingStoryPublisher(position: Int): String {
         val publisher = mDevice.findObject(
             UiSelector()
-                .resourceId("pocket.recommended.story")
+                .resourceId(HOMEPAGE_STORY)
                 .index(position - 1),
         ).getChild(
             UiSelector()

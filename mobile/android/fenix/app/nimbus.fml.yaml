@@ -621,15 +621,6 @@ features:
         type: Boolean
         default: false
 
-  merino-recommendations:
-    description: Sets the recommendations provider service to Merino.
-    variables:
-      enabled:
-        description: >
-          Whether or not to enable Merino endpoint to serve recommendations.
-        type: Boolean
-        default: false
-
   compose-homepage:
     description: Turns on compose homepage.
     variables:

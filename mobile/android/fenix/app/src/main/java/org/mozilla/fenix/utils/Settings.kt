@@ -1764,11 +1764,8 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates if Merino content recommendations should be shown.
      */
-    var showContentRecommendations by lazyFeatureFlagPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_pocket_content_recommendations),
-        default = { FxNimbus.features.merinoRecommendations.value().enabled },
-        featureFlag = ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext),
-    )
+    val showContentRecommendations =
+        ContentRecommendationsFeatureHelper.isContentRecommendationsFeatureEnabled(appContext)
 
     /**
      *  Whether or not to display the Pocket sponsored stories parameter secret settings.

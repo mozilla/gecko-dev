@@ -89,7 +89,7 @@ class PocketTest : TestSetup() {
                 verifyThoughtProvokingStories(true)
                 firstPocketStoryPublisher = getProvokingStoryPublisher(1)
             }.clickPocketStoryItem(firstPocketStoryPublisher, 1) {
-                verifyUrl(Constants.POCKET_RECOMMENDED_STORIES_UTM_PARAM)
+                verifyUrl(Constants.STORIES_UTM_PARAM)
             }
         }
     }

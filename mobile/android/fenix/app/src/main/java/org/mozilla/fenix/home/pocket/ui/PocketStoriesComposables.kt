@@ -65,6 +65,8 @@ import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.pocket.POCKET_STORIES_DEFAULT_CATEGORY_NAME
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesSelectedCategory
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_SPONSORED_STORY
+import org.mozilla.fenix.home.ui.HomepageTestTag.HOMEPAGE_STORY
 import org.mozilla.fenix.theme.FirefoxTheme
 import kotlin.math.roundToInt
 
@@ -381,8 +383,10 @@ fun PocketStories(
                         modifier = Modifier.semantics {
                             testTagsAsResourceId = true
                             testTag = when (story) {
-                                is PocketRecommendedStory -> "pocket.recommended.story"
-                                else -> "pocket.sponsored.story"
+                                is PocketRecommendedStory,
+                                is ContentRecommendation,
+                                    -> HOMEPAGE_STORY
+                                else -> HOMEPAGE_SPONSORED_STORY
                             }
                         },
                     ) {
