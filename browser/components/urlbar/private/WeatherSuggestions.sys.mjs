@@ -265,30 +265,57 @@ export class WeatherSuggestions extends SuggestProvider {
       return this.#makeDynamicResult(merinoSuggestion, unit);
     }
 
+    // Firefox 140 temporary fix for localized weather suggestions in the
+    // following locales. See `urlbar-result-action-sponsored` in:
+    // https://github.com/mozilla-l10n/firefox-l10n/blob/main/LANGUAGE/browser/browser/browser.ftl
+    let sponsoredByLocale = {
+      de: "Gesponsert",
+      fr: "Sponsorisé",
+      it: "Sponsorizzato",
+      pl: "sponsorowane",
+    };
+    let titleHtml;
+    let bottomText;
+    let locale = Services.locale.appLocaleAsBCP47;
+    if (sponsoredByLocale.hasOwnProperty(locale)) {
+      let sponsored = sponsoredByLocale[locale];
+      let { city_name: city, region_code: region } = merinoSuggestion;
+      let temperature = merinoSuggestion.current_conditions.temperature[unit];
+      let unitDisplay = unit.toUpperCase();
+      titleHtml = `<strong>${temperature}°${unitDisplay}</strong> · ${city}, ${region}`;
+      bottomText = `${WEATHER_PROVIDER_DISPLAY_NAME} · ${sponsored}`;
+    }
+
     return Object.assign(
       new lazy.UrlbarResult(
         lazy.UrlbarUtils.RESULT_TYPE.URL,
         lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
         {
           url: merinoSuggestion.url,
-          titleL10n: {
-            id: "firefox-suggest-weather-title-simplest",
-            args: {
-              temperature:
-                merinoSuggestion.current_conditions.temperature[unit],
-              unit: unit.toUpperCase(),
-              city: merinoSuggestion.city_name,
-              region: merinoSuggestion.region_code,
-            },
-            parseMarkup: true,
-            cacheable: true,
-            excludeArgsFromCacheKey: true,
-          },
-          bottomTextL10n: {
-            id: "firefox-suggest-weather-sponsored",
-            args: { provider: WEATHER_PROVIDER_DISPLAY_NAME },
-            cacheable: true,
-          },
+          titleHtml,
+          titleL10n: titleHtml
+            ? undefined
+            : {
+                id: "firefox-suggest-weather-title-simplest",
+                args: {
+                  temperature:
+                    merinoSuggestion.current_conditions.temperature[unit],
+                  unit: unit.toUpperCase(),
+                  city: merinoSuggestion.city_name,
+                  region: merinoSuggestion.region_code,
+                },
+                parseMarkup: true,
+                cacheable: true,
+                excludeArgsFromCacheKey: true,
+              },
+          bottomText,
+          bottomTextL10n: bottomText
+            ? undefined
+            : {
+                id: "firefox-suggest-weather-sponsored",
+                args: { provider: WEATHER_PROVIDER_DISPLAY_NAME },
+                cacheable: true,
+              },
           helpUrl: lazy.QuickSuggest.HELP_URL,
         }
       ),

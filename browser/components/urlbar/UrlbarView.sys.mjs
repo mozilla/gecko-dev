@@ -2221,6 +2221,9 @@ export class UrlbarView {
       this.#l10nCache.setElementL10n(bottom, result.payload.bottomTextL10n);
     } else {
       this.#l10nCache.removeElementL10n(bottom);
+      if (result.payload.bottomText) {
+        bottom.textContent = result.payload.bottomText;
+      }
     }
   }
 
@@ -2758,6 +2761,13 @@ export class UrlbarView {
   #setResultTitle(result, titleNode) {
     if (result.payload.titleL10n) {
       this.#l10nCache.setElementL10n(titleNode, result.payload.titleL10n);
+      return;
+    }
+
+    // Firefox 140 temporary fix for localized weather suggestions
+    if (result.payload.titleHtml) {
+      // eslint-disable-next-line no-unsanitized/property
+      titleNode.innerHTML = result.payload.titleHtml;
       return;
     }
 

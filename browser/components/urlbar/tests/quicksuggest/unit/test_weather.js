@@ -266,14 +266,36 @@ async function doLocaleTest({ shouldRunTask, osUnit, unitsByLocale }) {
     await QuickSuggestTestUtils.withLocales({
       locales: [locale],
       callback: async () => {
+        let expectedResult = QuickSuggestTestUtils.weatherResult({
+          temperatureUnit,
+        });
+        if (locale == "de") {
+          delete expectedResult.payload.titleL10n;
+          delete expectedResult.payload.bottomTextL10n;
+          expectedResult.payload.titleHtml =
+            "<strong>15.5°C</strong> · San Francisco, CA";
+          expectedResult.payload.bottomText = "AccuWeather® · Gesponsert";
+        }
+
         info("Checking locale: " + locale);
         await check_results({
           context: createContext("weather", {
             providers: [UrlbarProviderQuickSuggest.name],
             isPrivate: false,
           }),
-          matches: [QuickSuggestTestUtils.weatherResult({ temperatureUnit })],
+          matches: [expectedResult],
         });
+
+        expectedResult = QuickSuggestTestUtils.weatherResult({
+          temperatureUnit: osUnit,
+        });
+        if (locale == "de") {
+          delete expectedResult.payload.titleL10n;
+          delete expectedResult.payload.bottomTextL10n;
+          expectedResult.payload.titleHtml =
+            "<strong>60°F</strong> · San Francisco, CA";
+          expectedResult.payload.bottomText = "AccuWeather® · Gesponsert";
+        }
 
         info(
           "Checking locale with intl.regional_prefs.use_os_locales: " + locale
@@ -284,14 +306,70 @@ async function doLocaleTest({ shouldRunTask, osUnit, unitsByLocale }) {
             providers: [UrlbarProviderQuickSuggest.name],
             isPrivate: false,
           }),
-          matches: [
-            QuickSuggestTestUtils.weatherResult({ temperatureUnit: osUnit }),
-          ],
+          matches: [expectedResult],
         });
         Services.prefs.clearUserPref("intl.regional_prefs.use_os_locales");
       },
     });
   }
+}
+
+add_task(async function locale140_de() {
+  await do140LocaleTest({
+    locale: "de",
+    expectedBottomText: "AccuWeather® · Gesponsert",
+  });
+});
+
+add_task(async function locale140_fr() {
+  await do140LocaleTest({
+    locale: "fr",
+    expectedBottomText: "AccuWeather® · Sponsorisé",
+  });
+});
+
+add_task(async function locale140_it() {
+  await do140LocaleTest({
+    locale: "it",
+    expectedBottomText: "AccuWeather® · Sponsorizzato",
+  });
+});
+
+add_task(async function locale140_pl() {
+  await do140LocaleTest({
+    locale: "pl",
+    expectedBottomText: "AccuWeather® · sponsorowane",
+  });
+});
+
+async function do140LocaleTest({ locale, expectedBottomText }) {
+  await QuickSuggestTestUtils.withLocales({
+    locales: [locale],
+    callback: async () => {
+      Assert.equal(
+        Services.locale.appLocaleAsBCP47,
+        locale,
+        "Sanity check: App locale should be as expected"
+      );
+
+      let expectedResult = QuickSuggestTestUtils.weatherResult({
+        temperatureUnit: "C",
+      });
+      delete expectedResult.payload.titleL10n;
+      delete expectedResult.payload.bottomTextL10n;
+      expectedResult.payload.titleHtml =
+        "<strong>15.5°C</strong> · San Francisco, CA";
+      expectedResult.payload.bottomText = expectedBottomText;
+
+      await check_results({
+        context: createContext("weather", {
+          providers: [UrlbarProviderQuickSuggest.name],
+          isPrivate: false,
+        }),
+        matches: [expectedResult],
+      });
+    },
+  });
 }
 
 // Tests dismissal.

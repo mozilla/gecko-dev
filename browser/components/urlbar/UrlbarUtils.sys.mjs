@@ -1927,6 +1927,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
     required: ["url"],
     properties: {
       blockL10n: L10N_SCHEMA,
+      bottomText: {
+        type: "string",
+      },
       bottomTextL10n: L10N_SCHEMA,
       description: {
         type: "string",
@@ -2024,6 +2027,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
         type: "string",
       },
       title: {
+        type: "string",
+      },
+      titleHtml: {
         type: "string",
       },
       titleL10n: L10N_SCHEMA,
