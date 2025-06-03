@@ -4,6 +4,7 @@ prefs = [
   "privacy.bounceTrackingProtection.enableTestMode=true",
   "privacy.bounceTrackingProtection.bounceTrackingPurgeTimerPeriodSec=0",
 ]
+firefox-appdir = "browser"
 
 ["test_bouncetracking_clearExpiredUserActivation.js"]
 
@@ -12,5 +13,7 @@ prefs = [
 ["test_bouncetracking_purge.js"]
 
 ["test_bouncetracking_purge_telemetry.js"]
+
+["test_bouncetracking_storage_batch_write.js"]
 
 ["test_bouncetracking_telemetry_purge_num_hosts.js"]
