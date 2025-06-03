@@ -11,6 +11,7 @@ import cpp
 import jinja2
 import jog
 import rust
+import typescript
 from buildconfig import topsrcdir
 from glean_parser import lint, metrics, parser, translate, util
 from metrics_header_names import convert_yaml_path_to_header_name
@@ -196,6 +197,12 @@ def rust_metrics(rust_fd, *args):
     ping_names_by_app_id = {}
     rust.output_rust(all_objs, rust_fd, ping_names_by_app_id, options)
 
+    return get_deps()
+
+
+def ts_metrics_pings(typescript_fd, *args):
+    all_objs, options = parse(args)
+    typescript.output_dts(all_objs, typescript_fd)
     return get_deps()
 
 
