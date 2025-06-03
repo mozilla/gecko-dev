@@ -9,12 +9,6 @@ import sys
 import time
 from collections import defaultdict
 
-try:
-    import orjson
-except ImportError:
-    orjson = None
-    import json
-
 import yaml
 from redo import retry
 from taskgraph import create
@@ -29,6 +23,7 @@ from taskgraph.decision import (
 from taskgraph.generator import TaskGraphGenerator
 from taskgraph.parameters import Parameters
 from taskgraph.taskgraph import TaskGraph
+from taskgraph.util import json
 from taskgraph.util.python_path import find_object
 from taskgraph.util.taskcluster import get_artifact
 from taskgraph.util.vcs import get_repository
@@ -121,20 +116,6 @@ PER_PROJECT_PARAMETERS = {
         "target_tasks_method": "default",
     },
 }
-
-
-def load_json(fh):
-    if orjson is not None:
-        return orjson.loads(fh.read())
-    else:
-        return json.load(fh)
-
-
-def dump_json(fh, data):
-    if orjson is not None:
-        fh.write(orjson.dumps(data))
-    else:
-        fh.write(json.dumps(data, separators=(",", ": ")).encode("utf-8"))
 
 
 def full_task_graph_to_runnable_jobs(full_task_json):
@@ -475,8 +456,8 @@ def get_existing_tasks(rebuild_kinds, parameters, graph_config):
 def set_try_config(parameters, task_config_file):
     if os.path.isfile(task_config_file):
         logger.info(f"using try tasks from {task_config_file}")
-        with open(task_config_file, "rb") as fh:
-            task_config = load_json(fh)
+        with open(task_config_file) as fh:
+            task_config = json.load(fh)
         task_config_version = task_config.pop("version", 1)
         if task_config_version == 1:
             parameters["try_mode"] = "try_task_config"
@@ -517,13 +498,13 @@ def write_artifact(filename, data):
         with open(path, "w") as f:
             yaml.safe_dump(data, f, allow_unicode=True, default_flow_style=False)
     elif filename.endswith(".json"):
-        with open(path, "wb") as f:
-            dump_json(f, data)
+        with open(path, "w") as f:
+            json.dump(data, f)
     elif filename.endswith(".json.gz"):
         import gzip
 
         with gzip.open(path, "wb") as f:
-            dump_json(f, data)
+            f.write(json.dumps(data).encode("utf-8"))
     else:
         raise TypeError(f"Don't know how to write to {filename}")
 
@@ -533,13 +514,13 @@ def read_artifact(filename):
     if filename.endswith(".yml"):
         return load_yaml(path, filename)
     if filename.endswith(".json"):
-        with open(path, "rb") as f:
-            return load_json(f)
+        with open(path) as f:
+            return json.load(f)
     if filename.endswith(".json.gz"):
         import gzip
 
         with gzip.open(path, "rb") as f:
-            return load_json(f)
+            return json.load(f)
     else:
         raise TypeError(f"Don't know how to read {filename}")
 
