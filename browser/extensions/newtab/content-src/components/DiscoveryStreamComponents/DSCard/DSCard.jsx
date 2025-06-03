@@ -40,7 +40,11 @@ export const DSSource = ({
   sponsor,
   sponsored_by_override,
   icon_src,
+  refinedCardsLayout,
 }) => {
+  // refinedCard styles will have a larger favicon size
+  const faviconSize = refinedCardsLayout ? 24 : 16;
+
   // First try to display sponsored label or time to read here.
   if (newSponsoredLabel) {
     // If we can display something for spocs, do so.
@@ -73,7 +77,9 @@ export const DSSource = ({
   // Otherwise display a default source.
   return (
     <div className="source-wrapper">
-      {icon_src && <img src={icon_src} height="16" width="16" alt="" />}
+      {icon_src && (
+        <img src={icon_src} height={faviconSize} width={faviconSize} alt="" />
+      )}
       <p className="source clamp">{source}</p>
     </div>
   );
@@ -167,6 +173,7 @@ export const DefaultMeta = ({
                 sponsor={sponsor}
                 sponsored_by_override={sponsored_by_override}
                 icon_src={icon_src}
+                refinedCardsLayout={refinedCardsLayout}
               />
             )}
           {(shouldHaveThumbs || refinedCardsLayout) && (
@@ -176,6 +183,7 @@ export const DefaultMeta = ({
               sponsor={sponsor}
               isThumbsDownActive={state.isThumbsDownActive}
               isThumbsUpActive={state.isThumbsUpActive}
+              refinedCardsLayout={refinedCardsLayout}
             />
           )}
           {showTopics && (
