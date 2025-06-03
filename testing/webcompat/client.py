@@ -539,6 +539,8 @@ class Client:
                     f"{self.request.fspath.basename}: Site is stuck in a redirect loop. Please try again later."
                 )
                 return
+            elif "NS_ERROR_CONNECTION_REFUSED" in s:
+                raise ConnectionRefusedError("Connection refused")
             raise e
 
     async def _navigate(self, url, wait="complete", await_console_message=None):
@@ -1424,10 +1426,14 @@ class Client:
         )
         self.scroll_into_view(element)
         self.clear_covering_elements(element)
-        # tap a few times in case the site's other code interferes
-        self.touch.click(element=element).perform()
-        self.touch.click(element=element).perform()
-        self.touch.click(element=element).perform()
+        # tap a few times in case the site's other code interferes, but
+        # FastClick can move the element out of bounds, so take care.
+        try:
+            self.touch.click(element=element).perform()
+            self.touch.click(element=element).perform()
+            self.touch.click(element=element).perform()
+        except webdriver.error.MoveTargetOutOfBoundsException:
+            pass
         return self.execute_script("return window.fastclicked")
 
     def is_displayed(self, element):

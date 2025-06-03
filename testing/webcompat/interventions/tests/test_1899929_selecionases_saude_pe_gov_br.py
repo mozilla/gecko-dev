@@ -12,23 +12,22 @@ UNSUPPORTED_CSS = "img[alt='Google Chrome']"
 VPN_MESSAGE = "Please try again using a VPN set to Brazil, or test this site manually on this platform."
 
 
+async def do_check(client, whichCSS, whichNotCSS):
+    try:
+        await client.navigate(URL, wait="none")
+        client.await_css(whichCSS, timeout=10, is_displayed=True)
+        assert not client.find_css(whichNotCSS, is_displayed=True)
+    except (ConnectionRefusedError, NoSuchElementException):
+        pytest.skip(VPN_MESSAGE)
+
+
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
-    await client.navigate(URL, wait="none")
-    try:
-        client.await_css(SUPPORTED_CSS, timeout=10, is_displayed=True)
-        assert not client.find_css(UNSUPPORTED_CSS, is_displayed=True)
-    except NoSuchElementException:
-        pytest.skip(VPN_MESSAGE)
+    await do_check(client, SUPPORTED_CSS, UNSUPPORTED_CSS)
 
 
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
-    await client.navigate(URL, wait="none")
-    try:
-        client.await_css(UNSUPPORTED_CSS, timeout=10, is_displayed=True)
-        assert not client.find_css(SUPPORTED_CSS, is_displayed=True)
-    except NoSuchElementException:
-        pytest.skip(VPN_MESSAGE)
+    await do_check(client, UNSUPPORTED_CSS, SUPPORTED_CSS)
