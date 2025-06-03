@@ -993,8 +993,15 @@ html {
   min-height: 610px;
   min-width: fit-content;
 }
-.welcome-container .onboardingContainer:has(.addons-picker-container) {
-  min-height: 1080px;
+
+.onboardingContainer:has(.addons-picker-container) .screen[pos=split][fullscreen] {
+  height: auto;
+}
+.onboardingContainer:has(.addons-picker-container) .screen[pos=split][fullscreen] .section-secondary {
+  height: auto;
+}
+.onboardingContainer:has(.addons-picker-container) .screen[pos=split][fullscreen] .main-content {
+  min-height: 100vh;
 }
 
 .onboardingContainer {

@@ -77,12 +77,22 @@ html {
   .onboardingContainer {
     min-height: $break-point-medium;
     min-width: fit-content;
+  }
+}
 
-    // Change the height at which the scrollbar appears
-    // for the addons picker since its content is
-    // much taller than other onboarding content
-    &:has(.addons-picker-container) {
-      min-height: 1080px;
+// Allows fullscreen scrolling, for addons picker which
+// may have taller content than other onboarding screens.
+// Overrides fixed height styles to avoid clipping.
+.onboardingContainer:has(.addons-picker-container) {
+  .screen[pos='split'][fullscreen] {
+    height: auto;
+
+    .section-secondary {
+      height: auto;
+    }
+
+    .main-content {
+      min-height: 100vh;
     }
   }
 }
