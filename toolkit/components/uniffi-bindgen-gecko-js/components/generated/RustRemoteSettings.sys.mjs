@@ -1899,7 +1899,11 @@ export class RemoteSettings {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * Construct a new Remote Settings client with the given configuration.
+     * @param {RemoteSettingsConfig} remoteSettingsConfig
+     * @returns {RemoteSettings}
+     */
     static init(
         remoteSettingsConfig) {
        
@@ -1917,6 +1921,8 @@ export class RemoteSettings {
 
     /**
      * Download an attachment with the provided id to the provided path.
+     * @param {string} attachmentId
+     * @param {string} path
      */
     async downloadAttachmentToPath(
         attachmentId, 
@@ -1939,6 +1945,7 @@ export class RemoteSettings {
 
     /**
      * Fetch all records for the configuration this client was initialized with.
+     * @returns {Promise<RemoteSettingsResponse>}}
      */
     async getRecords() {
        
@@ -1956,6 +1963,8 @@ export class RemoteSettings {
     /**
      * Fetch all records added to the server since the provided timestamp,
      * using the configuration this client was initialized with.
+     * @param {number} timestamp
+     * @returns {Promise<RemoteSettingsResponse>}}
      */
     async getRecordsSince(
         timestamp) {
@@ -2171,6 +2180,7 @@ export class RemoteSettingsClient {
 
     /**
      * Collection this client is for
+     * @returns {Promise<string>}}
      */
     async collectionName() {
        
@@ -2195,6 +2205,8 @@ export class RemoteSettingsClient {
      * - This method will make network requests if the attachment is not cached
      * - This method will throw if there is a network or other error when fetching the
      * attachment data.
+     * @param {RemoteSettingsRecord} record
+     * @returns {Promise<string>}}
      */
     async getAttachment(
         record) {
@@ -2229,6 +2241,8 @@ export class RemoteSettingsClient {
      * Application-services schedules regular dumps of the server data for specific collections.
      * For these collections, `get_records` will never return None.  If you would like to add your
      * collection to this list, please reach out to the DISCO team.
+     * @param {boolean} syncIfEmpty
+     * @returns {Promise<?Array.<RemoteSettingsRecord>>}}
      */
     async getRecords(
         syncIfEmpty = false) {
@@ -2251,6 +2265,8 @@ export class RemoteSettingsClient {
      * 
      * See [Self::get_records] for an explanation of when this makes network requests, error
      * handling, and how the `sync_if_empty` param works.
+     * @param {boolean} syncIfEmpty
+     * @returns {Promise<?object>}}
      */
     async getRecordsMap(
         syncIfEmpty = false) {
@@ -2392,7 +2408,21 @@ export class RemoteSettingsService {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * Construct a [RemoteSettingsService]
+     * 
+     * This is typically done early in the application-startup process.
+     * 
+     * This method performs no IO or network requests and is safe to run in a main thread that
+     * can't be blocked.
+     * 
+     * `storage_dir` is a directory to store SQLite files in -- one per collection. If the
+     * directory does not exist, it will be created when the storage is first used. Only the
+     * directory and the SQLite files will be created, any parent directories must already exist.
+     * @param {string} storageDir
+     * @param {RemoteSettingsConfig2} config
+     * @returns {RemoteSettingsService}
+     */
     static init(
         storageDir, 
         config) {
@@ -2415,6 +2445,8 @@ export class RemoteSettingsService {
      * Create a new Remote Settings client
      * 
      * This method performs no IO or network requests and is safe to run in a main thread that can't be blocked.
+     * @param {string} collectionName
+     * @returns {Promise<RemoteSettingsClient>}}
      */
     async makeClient(
         collectionName) {
@@ -2434,6 +2466,7 @@ export class RemoteSettingsService {
 
     /**
      * Sync collections for all active clients
+     * @returns {Promise<Array.<string>>}}
      */
     async sync() {
        
@@ -2456,6 +2489,7 @@ export class RemoteSettingsService {
      * 
      * Only intended for QA/debugging.  Swapping the remote settings server in the middle of
      * execution can cause weird effects.
+     * @param {RemoteSettingsConfig2} config
      */
     updateConfig(
         config) {

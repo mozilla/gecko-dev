@@ -286,6 +286,9 @@ UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
  * Determines whether a "raw" sponsored suggestion URL is equivalent to a
  * "cooked" URL. The two URLs are equivalent if they are identical except for
  * their replaced template parameters, which can be different.
+ * @param {string} rawUrl
+ * @param {string} cookedUrl
+ * @returns {boolean}
  */
 export function rawSuggestionUrlMatches(
     rawUrl, 
@@ -4484,7 +4487,12 @@ export class SuggestStore {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * Creates a Suggest store.
+     * @param {string} path
+     * @param {RemoteSettingsService} remoteSettingsService
+     * @returns {SuggestStore}
+     */
     static init(
         path, 
         remoteSettingsService) {
@@ -4505,6 +4513,7 @@ export class SuggestStore {
 
     /**
      * Return whether any suggestions have been dismissed.
+     * @returns {Promise<boolean>}}
      */
     async anyDismissedSuggestions() {
        
@@ -4559,6 +4568,7 @@ export class SuggestStore {
      * Prefer [SuggestStore::dismiss_by_suggestion] if you have a
      * `crate::Suggestion`. This method is intended for cases where a
      * suggestion originates outside this component.
+     * @param {string} key
      */
     async dismissByKey(
         key) {
@@ -4580,6 +4590,7 @@ export class SuggestStore {
      * Dismiss a suggestion.
      * 
      * Dismissed suggestions cannot be fetched again.
+     * @param {Suggestion} suggestion
      */
     async dismissBySuggestion(
         suggestion) {
@@ -4604,6 +4615,7 @@ export class SuggestStore {
      * Dismiss a suggestion
      * 
      * Dismissed suggestions will not be returned again
+     * @param {string} suggestionUrl
      */
     async dismissSuggestion(
         suggestionUrl) {
@@ -4625,6 +4637,8 @@ export class SuggestStore {
      * Fetches a geoname's names stored in the database.
      * 
      * See `fetch_geoname_alternates` in `geoname.rs` for documentation.
+     * @param {Geoname} geoname
+     * @returns {Promise<GeonameAlternates>}}
      */
     async fetchGeonameAlternates(
         geoname) {
@@ -4647,6 +4661,10 @@ export class SuggestStore {
      * geographic place.
      * 
      * See `fetch_geonames` in `geoname.rs` for documentation.
+     * @param {string} query
+     * @param {boolean} matchNamePrefix
+     * @param {?Array.<Geoname>} filter
+     * @returns {Promise<Array.<GeonameMatch>>}}
      */
     async fetchGeonames(
         query, 
@@ -4672,6 +4690,7 @@ export class SuggestStore {
 
     /**
      * Returns global Suggest configuration data.
+     * @returns {Promise<SuggestGlobalConfig>}}
      */
     async fetchGlobalConfig() {
        
@@ -4688,6 +4707,8 @@ export class SuggestStore {
 
     /**
      * Returns per-provider Suggest configuration data.
+     * @param {SuggestionProvider} provider
+     * @returns {Promise<?SuggestProviderConfig>}}
      */
     async fetchProviderConfig(
         provider) {
@@ -4707,6 +4728,8 @@ export class SuggestStore {
 
     /**
      * Ingests new suggestions from Remote Settings.
+     * @param {SuggestIngestionConstraints} constraints
+     * @returns {Promise<SuggestIngestionMetrics>}}
      */
     async ingest(
         constraints) {
@@ -4730,6 +4753,7 @@ export class SuggestStore {
      * This should be called when the user types new input into the address
      * bar, to ensure that they see fresh suggestions as they type. This
      * method does not interrupt any ongoing ingests.
+     * @param {?InterruptKind} kind
      */
     interrupt(
         kind = null) {
@@ -4754,6 +4778,8 @@ export class SuggestStore {
      * normally you never need to know whether a suggestion has been dismissed.
      * This method is intended for cases where a dismissal key originates
      * outside this component.
+     * @param {string} key
+     * @returns {Promise<boolean>}}
      */
     async isDismissedByKey(
         key) {
@@ -4777,6 +4803,8 @@ export class SuggestStore {
      * [SuggestStore::query] will never return dismissed suggestions, so
      * normally you never need to know whether a `Suggestion` has been
      * dismissed, but this method can be used to do so.
+     * @param {Suggestion} suggestion
+     * @returns {Promise<boolean>}}
      */
     async isDismissedBySuggestion(
         suggestion) {
@@ -4796,6 +4824,8 @@ export class SuggestStore {
 
     /**
      * Queries the database for suggestions.
+     * @param {SuggestionQuery} query
+     * @returns {Promise<Array.<Suggestion>>}}
      */
     async query(
         query) {
@@ -4815,6 +4845,8 @@ export class SuggestStore {
 
     /**
      * Queries the database for suggestions.
+     * @param {SuggestionQuery} query
+     * @returns {Promise<QueryWithMetricsResult>}}
      */
     async queryWithMetrics(
         query) {
@@ -4893,7 +4925,10 @@ export class SuggestStoreBuilder {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * init
+     * @returns {SuggestStoreBuilder}
+     */
     static init() {
        
         const result = UniFFIScaffolding.callSync(
@@ -4908,6 +4943,7 @@ export class SuggestStoreBuilder {
 
     /**
      * build
+     * @returns {SuggestStore}
      */
     build() {
        
@@ -4924,6 +4960,8 @@ export class SuggestStoreBuilder {
 
     /**
      * Deprecated: this is no longer used by the suggest component.
+     * @param {string} path
+     * @returns {Promise<SuggestStoreBuilder>}}
      */
     async cachePath(
         path) {
@@ -4943,6 +4981,8 @@ export class SuggestStoreBuilder {
 
     /**
      * dataPath
+     * @param {string} path
+     * @returns {SuggestStoreBuilder}
      */
     dataPath(
         path) {
@@ -4966,6 +5006,9 @@ export class SuggestStoreBuilder {
      * library_name should be the name of the library without any extension, for example `libmozsqlite3`.
      * entrypoint should be the entry point, for example `sqlite3_fts5_init`.  If `null` (the default)
      * entry point will be used (see https://sqlite.org/loadext.html for details).
+     * @param {string} library
+     * @param {?string} entryPoint
+     * @returns {SuggestStoreBuilder}
      */
     loadExtension(
         library, 
@@ -4988,6 +5031,8 @@ export class SuggestStoreBuilder {
 
     /**
      * remoteSettingsBucketName
+     * @param {string} bucketName
+     * @returns {SuggestStoreBuilder}
      */
     remoteSettingsBucketName(
         bucketName) {
@@ -5007,6 +5052,8 @@ export class SuggestStoreBuilder {
 
     /**
      * remoteSettingsServer
+     * @param {RemoteSettingsServer} server
+     * @returns {SuggestStoreBuilder}
      */
     remoteSettingsServer(
         server) {
@@ -5026,6 +5073,8 @@ export class SuggestStoreBuilder {
 
     /**
      * remoteSettingsService
+     * @param {RemoteSettingsService} rsService
+     * @returns {SuggestStoreBuilder}
      */
     remoteSettingsService(
         rsService) {

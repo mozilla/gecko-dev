@@ -284,6 +284,8 @@ const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
 /**
  * roundtripExtCustomType
+ * @param {Handle} custom
+ * @returns {Handle}
  */
 export function roundtripExtCustomType(
     custom) {
@@ -302,6 +304,8 @@ return handleRustResult(
 
 /**
  * roundtripExtEnum
+ * @param {EnumWithData} en
+ * @returns {EnumWithData}
  */
 export function roundtripExtEnum(
     en) {
@@ -320,6 +324,8 @@ return handleRustResult(
 
 /**
  * roundtripExtInterface
+ * @param {TestInterface} int
+ * @returns {TestInterface}
  */
 export function roundtripExtInterface(
     int) {
@@ -338,6 +344,8 @@ return handleRustResult(
 
 /**
  * roundtripExtRecord
+ * @param {SimpleRec} rec
+ * @returns {SimpleRec}
  */
 export function roundtripExtRecord(
     rec) {

@@ -511,6 +511,8 @@ const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
 /**
  * asyncCallbackInterfaceCallGetValue
+ * @param {TestAsyncCallbackInterface} v
+ * @returns {Promise<number>}}
  */
 export async function asyncCallbackInterfaceCallGetValue(
     v) {
@@ -529,6 +531,7 @@ return handleRustResult(
 
 /**
  * asyncCallbackInterfaceCallThrowError
+ * @param {TestAsyncCallbackInterface} v
  */
 export async function asyncCallbackInterfaceCallThrowError(
     v) {
@@ -547,6 +550,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripF32
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripF32(
     v) {
@@ -565,6 +570,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripF64
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripF64(
     v) {
@@ -583,6 +590,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripI16
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripI16(
     v) {
@@ -601,6 +610,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripI32
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripI32(
     v) {
@@ -619,6 +630,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripI64
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripI64(
     v) {
@@ -637,6 +650,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripI8
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripI8(
     v) {
@@ -655,6 +670,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripMap
+ * @param {object} v
+ * @returns {Promise<object>}}
  */
 export async function asyncRoundtripMap(
     v) {
@@ -673,6 +690,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripObj
+ * @param {AsyncInterface} v
+ * @returns {Promise<AsyncInterface>}}
  */
 export async function asyncRoundtripObj(
     v) {
@@ -691,6 +710,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripString
+ * @param {string} v
+ * @returns {Promise<string>}}
  */
 export async function asyncRoundtripString(
     v) {
@@ -709,6 +730,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripU16
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripU16(
     v) {
@@ -727,6 +750,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripU32
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripU32(
     v) {
@@ -745,6 +770,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripU64
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripU64(
     v) {
@@ -763,6 +790,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripU8
+ * @param {number} v
+ * @returns {Promise<number>}}
  */
 export async function asyncRoundtripU8(
     v) {
@@ -781,6 +810,8 @@ return handleRustResult(
 
 /**
  * asyncRoundtripVec
+ * @param {Array.<number>} v
+ * @returns {Promise<Array.<number>>}}
  */
 export async function asyncRoundtripVec(
     v) {
@@ -814,6 +845,8 @@ return handleRustResult(
 
 /**
  * cloneInterface
+ * @param {TestInterface} int
+ * @returns {TestInterface}
  */
 export function cloneInterface(
     int) {
@@ -832,6 +865,8 @@ return handleRustResult(
 
 /**
  * funcWithDefault
+ * @param {string} arg
+ * @returns {string}
  */
 export function funcWithDefault(
     arg = "DEFAULT") {
@@ -850,6 +885,7 @@ return handleRustResult(
 
 /**
  * funcWithError
+ * @param {number} input
  */
 export function funcWithError(
     input) {
@@ -868,6 +904,7 @@ return handleRustResult(
 
 /**
  * funcWithFlatError
+ * @param {number} input
  */
 export function funcWithFlatError(
     input) {
@@ -887,6 +924,8 @@ return handleRustResult(
 /**
  * Test a multi-word argument.  `the_argument` should be normalized to the naming style of the
  * foreign language.
+ * @param {string} theArgument
+ * @returns {string}
  */
 export function funcWithMultiWordArg(
     theArgument) {
@@ -905,6 +944,7 @@ return handleRustResult(
 
 /**
  * getCustomTypesDemo
+ * @returns {Promise<CustomTypesDemo>}}
  */
 export async function getCustomTypesDemo() {
    
@@ -920,6 +960,8 @@ return handleRustResult(
 
 /**
  * invokeTestCallbackInterfaceMethod
+ * @param {TestCallbackInterface} cbi
+ * @returns {number}
  */
 export function invokeTestCallbackInterfaceMethod(
     cbi) {
@@ -938,6 +980,8 @@ return handleRustResult(
 
 /**
  * roundtripBool
+ * @param {boolean} a
+ * @returns {boolean}
  */
 export function roundtripBool(
     a) {
@@ -956,6 +1000,8 @@ return handleRustResult(
 
 /**
  * roundtripComplexCompound
+ * @param {?Array.<object>} a
+ * @returns {?Array.<object>}
  */
 export function roundtripComplexCompound(
     a) {
@@ -974,6 +1020,8 @@ return handleRustResult(
 
 /**
  * roundtripComplexEnum
+ * @param {ComplexEnum} en
+ * @returns {ComplexEnum}
  */
 export function roundtripComplexEnum(
     en) {
@@ -992,6 +1040,8 @@ return handleRustResult(
 
 /**
  * roundtripComplexRec
+ * @param {ComplexRec} rec
+ * @returns {ComplexRec}
  */
 export function roundtripComplexRec(
     rec) {
@@ -1010,6 +1060,8 @@ return handleRustResult(
 
 /**
  * roundtripCustomType
+ * @param {Handle} handle
+ * @returns {Handle}
  */
 export function roundtripCustomType(
     handle) {
@@ -1028,6 +1080,8 @@ return handleRustResult(
 
 /**
  * roundtripEnumNoData
+ * @param {EnumNoData} en
+ * @returns {EnumNoData}
  */
 export function roundtripEnumNoData(
     en) {
@@ -1046,6 +1100,8 @@ return handleRustResult(
 
 /**
  * roundtripEnumWithData
+ * @param {EnumWithData} en
+ * @returns {EnumWithData}
  */
 export function roundtripEnumWithData(
     en) {
@@ -1064,6 +1120,8 @@ return handleRustResult(
 
 /**
  * roundtripF32
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripF32(
     a) {
@@ -1082,6 +1140,8 @@ return handleRustResult(
 
 /**
  * roundtripF64
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripF64(
     a) {
@@ -1100,6 +1160,8 @@ return handleRustResult(
 
 /**
  * roundtripHashMap
+ * @param {object} a
+ * @returns {object}
  */
 export function roundtripHashMap(
     a) {
@@ -1118,6 +1180,8 @@ return handleRustResult(
 
 /**
  * roundtripI16
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripI16(
     a) {
@@ -1136,6 +1200,8 @@ return handleRustResult(
 
 /**
  * roundtripI32
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripI32(
     a) {
@@ -1154,6 +1220,8 @@ return handleRustResult(
 
 /**
  * roundtripI64
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripI64(
     a) {
@@ -1172,6 +1240,8 @@ return handleRustResult(
 
 /**
  * roundtripI8
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripI8(
     a) {
@@ -1190,6 +1260,8 @@ return handleRustResult(
 
 /**
  * roundtripOption
+ * @param {?number} a
+ * @returns {?number}
  */
 export function roundtripOption(
     a) {
@@ -1208,6 +1280,8 @@ return handleRustResult(
 
 /**
  * roundtripSimpleRec
+ * @param {SimpleRec} rec
+ * @returns {Promise<SimpleRec>}}
  */
 export async function roundtripSimpleRec(
     rec) {
@@ -1226,6 +1300,8 @@ return handleRustResult(
 
 /**
  * roundtripString
+ * @param {string} a
+ * @returns {string}
  */
 export function roundtripString(
     a) {
@@ -1244,6 +1320,8 @@ return handleRustResult(
 
 /**
  * roundtripTimeIntervalMs
+ * @param {TimeIntervalMs} time
+ * @returns {Promise<TimeIntervalMs>}}
  */
 export async function roundtripTimeIntervalMs(
     time) {
@@ -1262,6 +1340,8 @@ return handleRustResult(
 
 /**
  * roundtripTimeIntervalSecDbl
+ * @param {TimeIntervalSecDbl} time
+ * @returns {Promise<TimeIntervalSecDbl>}}
  */
 export async function roundtripTimeIntervalSecDbl(
     time) {
@@ -1280,6 +1360,8 @@ return handleRustResult(
 
 /**
  * roundtripTimeIntervalSecFlt
+ * @param {TimeIntervalSecFlt} time
+ * @returns {Promise<TimeIntervalSecFlt>}}
  */
 export async function roundtripTimeIntervalSecFlt(
     time) {
@@ -1298,6 +1380,8 @@ return handleRustResult(
 
 /**
  * roundtripU16
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripU16(
     a) {
@@ -1316,6 +1400,8 @@ return handleRustResult(
 
 /**
  * roundtripU32
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripU32(
     a) {
@@ -1334,6 +1420,8 @@ return handleRustResult(
 
 /**
  * roundtripU64
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripU64(
     a) {
@@ -1352,6 +1440,8 @@ return handleRustResult(
 
 /**
  * roundtripU8
+ * @param {number} a
+ * @returns {number}
  */
 export function roundtripU8(
     a) {
@@ -1370,6 +1460,8 @@ return handleRustResult(
 
 /**
  * roundtripUrl
+ * @param {Url} url
+ * @returns {Promise<Url>}}
  */
 export async function roundtripUrl(
     url) {
@@ -1388,6 +1480,8 @@ return handleRustResult(
 
 /**
  * roundtripVec
+ * @param {Array.<number>} a
+ * @returns {Array.<number>}
  */
 export function roundtripVec(
     a) {
@@ -1406,6 +1500,18 @@ return handleRustResult(
 
 /**
  * Complex test: input a bunch of different values and add them together
+ * @param {number} a
+ * @param {number} b
+ * @param {number} c
+ * @param {number} d
+ * @param {number} e
+ * @param {number} f
+ * @param {number} g
+ * @param {number} h
+ * @param {number} i
+ * @param {number} j
+ * @param {boolean} negate
+ * @returns {number}
  */
 export function sumWithManyTypes(
     a, 
@@ -1454,6 +1560,8 @@ return handleRustResult(
 
 /**
  * swapTestInterfaces
+ * @param {TwoTestInterfaces} interfaces
+ * @returns {TwoTestInterfaces}
  */
 export function swapTestInterfaces(
     interfaces) {
@@ -2587,7 +2695,11 @@ export class TestInterface {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * init
+     * @param {number} value
+     * @returns {TestInterface}
+     */
     static init(
         value) {
        
@@ -2605,6 +2717,7 @@ export class TestInterface {
 
     /**
      * getValue
+     * @returns {number}
      */
     getValue() {
        
@@ -2623,6 +2736,7 @@ export class TestInterface {
      * Get the current reference count for this object
      * 
      * The count does not include the extra reference needed to call this method.
+     * @returns {number}
      */
     refCount() {
        
@@ -3370,7 +3484,11 @@ export class AsyncInterface {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * init
+     * @param {string} name
+     * @returns {AsyncInterface}
+     */
     static init(
         name) {
        
@@ -3388,6 +3506,7 @@ export class AsyncInterface {
 
     /**
      * name
+     * @returns {Promise<string>}}
      */
     async name() {
        
@@ -3448,7 +3567,10 @@ export class ComplexMethods {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * init
+     * @returns {ComplexMethods}
+     */
     static init() {
        
         const result = UniFFIScaffolding.callSync(
@@ -3463,6 +3585,8 @@ export class ComplexMethods {
 
     /**
      * methodWithDefault
+     * @param {string} arg
+     * @returns {string}
      */
     methodWithDefault(
         arg = "DEFAULT") {
@@ -3482,6 +3606,8 @@ export class ComplexMethods {
 
     /**
      * methodWithMultiWordArg
+     * @param {string} theArgument
+     * @returns {string}
      */
     methodWithMultiWordArg(
         theArgument) {

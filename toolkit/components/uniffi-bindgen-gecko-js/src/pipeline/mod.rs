@@ -40,7 +40,6 @@ pub fn gecko_js_pipeline(pipeline_map: HashMap<String, Config>) -> GeckoPipeline
         .pass(callback_interfaces::pass)
         .pass(js_filename::pass)
         .pass(js_names::pass)
-        .pass(js_docstrings::pass)
         .pass(cpp_ffi_definitions::pass)
         .pass(cpp_scaffolding_calls::pass)
         .pass(cpp_callback_interfaces::pass)
@@ -48,5 +47,6 @@ pub fn gecko_js_pipeline(pipeline_map: HashMap<String, Config>) -> GeckoPipeline
         .pass(cpp_ffi_types::pass)
         .pass(cpp_names::pass)
         .pass(literals::pass)
+        .pass(js_docstrings::pass)
         .pass(docs::pass)
 }

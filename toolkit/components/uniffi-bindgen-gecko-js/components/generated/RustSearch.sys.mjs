@@ -2597,7 +2597,10 @@ export class SearchEngineSelector {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * init
+     * @returns {SearchEngineSelector}
+     */
     static init() {
        
         const result = UniFFIScaffolding.callSync(
@@ -2632,6 +2635,8 @@ export class SearchEngineSelector {
      * Filters the search configuration with the user's given environment,
      * and returns the set of engines and parameters that should be presented
      * to the user.
+     * @param {SearchUserEnvironment} userEnvironment
+     * @returns {RefinedSearchConfig}
      */
     filterEngineConfiguration(
         userEnvironment) {
@@ -2651,6 +2656,7 @@ export class SearchEngineSelector {
 
     /**
      * setConfigOverrides
+     * @param {string} overrides
      */
     setConfigOverrides(
         overrides) {
@@ -2674,6 +2680,7 @@ export class SearchEngineSelector {
      * reused to avoid unnecessary reprocessing. This helps optimize performance,
      * particularly during test runs where the same configuration may be used
      * repeatedly.
+     * @param {string} configuration
      */
     setSearchConfig(
         configuration) {
@@ -2702,6 +2709,8 @@ export class SearchEngineSelector {
      * `search-config-v2-overrides` to the selected
      * engines. Should be false unless the application
      * supports the click URL feature.
+     * @param {RemoteSettingsService} service
+     * @param {boolean} applyEngineOverrides
      */
     async useRemoteSettingsServer(
         service, 

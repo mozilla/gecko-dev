@@ -295,6 +295,9 @@ UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
  * - `content_categories`: a list of categories (interests) of the give content.
  * # Return:
  * - A score ranges in [0, 1].
+ * @param {InterestVector} interestVector
+ * @param {Array.<Interest>} contentCategories
+ * @returns {number}
  */
 export function score(
     interestVector, 
@@ -1624,7 +1627,14 @@ export class RelevancyStore {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * Construct a new RelevancyStore
+     * 
+     * This is non-blocking since databases and other resources are lazily opened.
+     * @param {string} dbPath
+     * @param {RemoteSettingsService} remoteSettings
+     * @returns {RelevancyStore}
+     */
     static init(
         dbPath, 
         remoteSettings) {
@@ -1650,6 +1660,8 @@ export class RelevancyStore {
      * in the list has an initialized probability distribution in the database. For each arm, if the
      * probability distribution does not already exist, it will be created, using Beta(1,1) as default,
      * which represents uniform distribution.
+     * @param {string} bandit
+     * @param {Array.<string>} arms
      */
     async banditInit(
         bandit, 
@@ -1678,6 +1690,9 @@ export class RelevancyStore {
      * For each arm, it retrieves the Beta distribution parameters (alpha and beta) from the
      * database, creates a Beta distribution, and samples from it to estimate the arm's probability
      * of success. The arm with the highest sampled probability is selected and returned.
+     * @param {string} bandit
+     * @param {Array.<string>} arms
+     * @returns {Promise<string>}}
      */
     async banditSelect(
         bandit, 
@@ -1706,6 +1721,9 @@ export class RelevancyStore {
      * reinforcing its positive reward probability. If `selected` is false, it updates the
      * beta (failure) distribution of the arm, reflecting a lack of selection and reinforcing
      * its likelihood of a negative outcome.
+     * @param {string} bandit
+     * @param {string} arm
+     * @param {boolean} selected
      */
     async banditUpdate(
         bandit, 
@@ -1765,6 +1783,9 @@ export class RelevancyStore {
 
     /**
      * Retrieves the data for a specific bandit and arm.
+     * @param {string} bandit
+     * @param {string} arm
+     * @returns {Promise<BanditData>}}
      */
     async getBanditData(
         bandit, 
@@ -1797,6 +1818,8 @@ export class RelevancyStore {
      * - Store the user's interest vector in the database.
      * 
      * This method may execute for a long time and should only be called from a worker thread.
+     * @param {Array.<string>} topUrlsByFrecency
+     * @returns {Promise<InterestVector>}}
      */
     async ingest(
         topUrlsByFrecency) {
@@ -1835,6 +1858,7 @@ export class RelevancyStore {
      * 
      * This runs after [Self::ingest].  It returns the interest vector directly so that the
      * consumer can show it in an `about:` page.
+     * @returns {Promise<InterestVector>}}
      */
     async userInterestVector() {
        

@@ -463,6 +463,7 @@ pub struct TypeNode {
     /// Name of the JS class for this type (only set for user-defined types like
     /// enums/records/interfaces).
     pub class_name: Option<String>,
+    pub jsdoc_name: String,
     pub canonical_name: String,
     pub ffi_converter: String,
     pub is_used_as_error: bool,

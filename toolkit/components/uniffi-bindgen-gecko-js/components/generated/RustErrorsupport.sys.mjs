@@ -511,6 +511,7 @@ const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
 /**
  * Set the global error reporter.  This is typically done early in startup.
+ * @param {ApplicationErrorReporter} errorReporter
  */
 export async function setApplicationErrorReporter(
     errorReporter) {

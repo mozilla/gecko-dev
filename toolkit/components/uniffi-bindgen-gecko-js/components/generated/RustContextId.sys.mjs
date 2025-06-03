@@ -639,7 +639,16 @@ export class ContextIdComponent {
         }
         this[uniffiObjectPtr] = opts[constructUniffiObject];
     }
-    
+    /**
+     * Construct a new [ContextIDComponent].
+     * 
+     * If no creation timestamp is provided, the current time will be used.
+     * @param {string} initContextId
+     * @param {number} creationTimestampS
+     * @param {boolean} runningInTestAutomation
+     * @param {ContextIdCallback} callback
+     * @returns {ContextIdComponent}
+     */
     static init(
         initContextId, 
         creationTimestampS, 
@@ -682,6 +691,8 @@ export class ContextIdComponent {
 
     /**
      * Return the current context ID string.
+     * @param {number} rotationDaysInS
+     * @returns {Promise<string>}}
      */
     async request(
         rotationDaysInS) {
