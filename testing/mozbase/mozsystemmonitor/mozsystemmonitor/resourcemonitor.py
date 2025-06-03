@@ -838,6 +838,23 @@ class SystemResourceMonitor:
                 "logicalCPUs": psutil.cpu_count(logical=True),
                 "physicalCPUs": psutil.cpu_count(logical=False),
                 "mainMemory": psutil.virtual_memory()[0],
+                "categories": [
+                    {
+                        "name": "Other",
+                        "color": "grey",
+                        "subcategories": ["Other"],
+                    },
+                    {
+                        "name": "Phases",
+                        "color": "grey",
+                        "subcategories": ["Other"],
+                    },
+                    {
+                        "name": "Tasks",
+                        "color": "grey",
+                        "subcategories": ["Other"],
+                    },
+                ],
                 "markerSchema": [
                     {
                         "name": "Phase",
@@ -1008,6 +1025,9 @@ class SystemResourceMonitor:
             ],
             "counters": [],
         }
+        OTHER_CATEGORY = 0
+        PHASE_CATEGORY = 1
+        TASK_CATEGORY = 2
 
         firstThread = profile["threads"][0]
         markers = firstThread["markers"]
@@ -1022,7 +1042,9 @@ class SystemResourceMonitor:
                 stringArray.append(string)
                 return len(stringArray) - 1
 
-        def add_marker(name_index, start, end, data, precision=None):
+        def add_marker(
+            name_index, start, end, data, category_index=OTHER_CATEGORY, precision=None
+        ):
             # The precision argument allows setting how many digits after the
             # decimal point are desired.
             # For resource use samples where we sample with a timer, an integer
@@ -1038,7 +1060,7 @@ class SystemResourceMonitor:
                 markers["endTime"].append(round((end - start_time) * 1000, precision))
                 # 1 = marker with start and end times, 2 = start but no end.
                 markers["phase"].append(1)
-            markers["category"].append(0)
+            markers["category"].append(category_index)
             markers["name"].append(name_index)
             markers["data"].append(data)
             markers["length"] = markers["length"] + 1
@@ -1167,14 +1189,14 @@ class SystemResourceMonitor:
             if total_cpu_time_ms > 0:
                 markerData["cpuTime"] = total_cpu_time_ms
 
-            add_marker(phase_string_index, v[0], v[1], markerData, 3)
+            add_marker(phase_string_index, v[0], v[1], markerData, PHASE_CATEGORY, 3)
 
         # Add generic markers
         for name, start, end, text in self.markers:
             markerData = {"type": "Text"}
             if text:
                 markerData["text"] = text
-            add_marker(get_string_index(name), start, end, markerData, 3)
+            add_marker(get_string_index(name), start, end, markerData, TASK_CATEGORY, 3)
         if self.events:
             event_string_index = get_string_index("Event")
             for event_time, text in self.events:
@@ -1184,6 +1206,7 @@ class SystemResourceMonitor:
                         event_time,
                         None,
                         {"type": "Text", "text": text},
+                        TASK_CATEGORY,
                         3,
                     )
 
@@ -1202,18 +1225,29 @@ class SystemResourceMonitor:
             "type": "Phase",
             "phase": "teardown",
         }
-        add_marker(phase_string_index, self.stop_time, now, markerData, 3)
+        add_marker(
+            phase_string_index, self.stop_time, now, markerData, PHASE_CATEGORY, 3
+        )
         teardown_string_index = get_string_index("resourcemonitor")
         markerData = {
             "type": "Text",
             "text": "stop",
         }
-        add_marker(teardown_string_index, self.stop_time, self.end_time, markerData, 3)
+        add_marker(
+            teardown_string_index,
+            self.stop_time,
+            self.end_time,
+            markerData,
+            TASK_CATEGORY,
+            3,
+        )
         markerData = {
             "type": "Text",
             "text": "as_profile",
         }
-        add_marker(teardown_string_index, profile_time, now, markerData, 3)
+        add_marker(
+            teardown_string_index, profile_time, now, markerData, TASK_CATEGORY, 3
+        )
 
         # Unfortunately, whatever the caller does with the profile (e.g. json)
         # or after that (hopefully, exit) is not going to be counted, but we
