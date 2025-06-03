@@ -1578,7 +1578,9 @@ class RecursiveMakeBackend(MakeBackend):
                         else:
                             install_manifest.add_pattern_link(f.srcdir, f, dest_dir)
                     elif isinstance(f, AbsolutePath):
-                        if not f.full_path.lower().endswith((".dll", ".pdb", ".so")):
+                        if not f.full_path.lower().endswith(
+                            (".dll", ".pdb", ".so", ".dylib")
+                        ):
                             raise Exception(
                                 "Absolute paths installed to FINAL_TARGET_FILES must"
                                 " only be shared libraries or associated debug"
