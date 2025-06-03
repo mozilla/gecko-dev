@@ -3,10 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import json
 import logging
 from functools import partial
 
+from taskgraph.util import json
 from taskgraph.util.taskcluster import get_artifact, get_task_definition, list_artifacts
 
 from .registry import register_callback_action

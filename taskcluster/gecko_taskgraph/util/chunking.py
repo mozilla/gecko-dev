@@ -5,7 +5,6 @@
 
 """Utility functions to handle test chunking."""
 
-import json
 import logging
 import os
 from abc import ABCMeta, abstractmethod
@@ -15,6 +14,7 @@ from manifestparser.filters import chunk_by_runtime, tags
 from mozbuild.util import memoize
 from mozinfo.platforminfo import PlatformInfo
 from moztest.resolve import TEST_SUITES, TestManifestLoader, TestResolver
+from taskgraph.util import json
 from taskgraph.util.yaml import load_yaml
 
 from gecko_taskgraph import GECKO

@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import json
 import unittest
 from pprint import pprint
 from unittest.mock import patch
@@ -11,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from mozunit import MockedOpen, main
 from taskgraph import create
-from taskgraph.util import taskcluster
+from taskgraph.util import json, taskcluster
 
 from gecko_taskgraph import actions
 from gecko_taskgraph.actions.util import combine_task_graph_files, relativize_datestamps

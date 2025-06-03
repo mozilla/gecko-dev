@@ -5,12 +5,11 @@
 Transform the partner attribution task into an actual task description.
 """
 
-
-import json
 import logging
 from collections import defaultdict
 
 from taskgraph.transforms.base import TransformSequence
+from taskgraph.util import json
 from taskgraph.util.taskcluster import get_artifact_prefix
 
 from gecko_taskgraph.util.partners import (

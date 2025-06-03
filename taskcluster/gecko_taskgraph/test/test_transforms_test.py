@@ -5,12 +5,12 @@ Tests for the 'tests.py' transforms
 """
 
 import hashlib
-import json
 from functools import partial
 from pprint import pprint
 
 import mozunit
 import pytest
+from taskgraph.util import json
 
 from gecko_taskgraph.transforms import test as test_transforms
 

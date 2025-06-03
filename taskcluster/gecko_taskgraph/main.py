@@ -4,7 +4,6 @@
 
 import argparse
 import atexit
-import json
 import logging
 import os
 import shutil
@@ -528,6 +527,8 @@ def decision(options):
     help="root of the taskgraph definition relative to topsrcdir",
 )
 def action_callback(options):
+    from taskgraph.util import json
+
     from gecko_taskgraph.actions import trigger_action_callback
     from gecko_taskgraph.actions.util import get_parameters
 
@@ -578,7 +579,7 @@ def action_callback(options):
 def test_action_callback(options):
     import taskgraph.parameters
     from taskgraph.config import load_graph_config
-    from taskgraph.util import yaml
+    from taskgraph.util import json, yaml
 
     import gecko_taskgraph.actions
 

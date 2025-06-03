@@ -1,4 +1,3 @@
-import json
 import os
 import subprocess
 
@@ -6,6 +5,7 @@ import pytest
 from gecko_taskgraph import GECKO
 from mozunit import main
 from taskgraph.taskgraph import TaskGraph
+from taskgraph.util import json
 
 pytestmark = pytest.mark.slow
 PARAMS_DIR = os.path.join(GECKO, "taskcluster", "test", "params")

@@ -9,14 +9,13 @@ the job at a higher level, using a "run" field that can be interpreted by
 run-using handlers in `taskcluster/gecko_taskgraph/transforms/job`.
 """
 
-
-import json
 import logging
 
 import mozpack.path as mozpath
 from packaging.version import Version
 from taskgraph.transforms.base import TransformSequence
 from taskgraph.transforms.run import rewrite_when_to_optimization
+from taskgraph.util import json
 from taskgraph.util.copy import deepcopy
 from taskgraph.util.python_path import import_sibling_modules
 from taskgraph.util.schema import Schema, validate_schema

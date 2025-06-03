@@ -4,13 +4,13 @@
 
 
 import itertools
-import json
 import logging
 import math
 
 import taskgraph
 from mozbuild.util import memoize
 from mozpack.path import match as mozpackmatch
+from taskgraph.util import json
 
 logger = logging.getLogger(__name__)
 

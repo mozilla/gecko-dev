@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import json
 import logging
 import os
 import re
@@ -11,6 +10,7 @@ import re
 import mozpack.path as mozpath
 import taskgraph
 from taskgraph.transforms.base import TransformSequence
+from taskgraph.util import json
 from taskgraph.util.docker import create_context_tar, generate_context_hash
 from taskgraph.util.schema import Schema
 from voluptuous import Optional, Required

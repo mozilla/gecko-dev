@@ -8,10 +8,10 @@ way, and certainly anything using mozharness should use this approach.
 
 """
 
-import json
 from textwrap import dedent
 
 from mozpack import path as mozpath
+from taskgraph.util import json
 from taskgraph.util.schema import Schema
 from voluptuous import Any, Optional, Required
 from voluptuous.validators import Match
