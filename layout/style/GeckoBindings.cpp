@@ -1884,7 +1884,7 @@ static Maybe<AnchorPosInfo> GetAnchorPosRect(const nsIFrame* aPositioned,
     }
     anchorName = stylePos->mPositionAnchor.AsIdent().AsAtom();
   }
-  const auto* anchor = presShell->GetAnchorPosAnchor(anchorName);
+  const auto* anchor = presShell->GetAnchorPosAnchor(anchorName, aPositioned);
   if (!anchor) {
     return Nothing{};
   }

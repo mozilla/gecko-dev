@@ -10,6 +10,7 @@
 
 #include <algorithm>
 
+#include "AnchorPositioningUtils.h"
 #include "AutoProfilerStyleMarker.h"
 #include "ChildIterator.h"
 #include "gfxContext.h"
@@ -11754,10 +11755,12 @@ nsIFrame* PresShell::GetAbsoluteContainingBlock(nsIFrame* aFrame) {
       aFrame, nsCSSFrameConstructor::ABS_POS);
 }
 
-nsIFrame* PresShell::GetAnchorPosAnchor(const nsAtom* aName) const {
+nsIFrame* PresShell::GetAnchorPosAnchor(
+    const nsAtom* aName, const nsIFrame* aPositionedFrame) const {
   MOZ_ASSERT(aName);
   if (const auto& entry = mAnchorPosAnchors.Lookup(aName)) {
-    return entry->SafeLastElement(nullptr);
+    return AnchorPositioningUtils::FindFirstAcceptableAnchor(aPositionedFrame,
+                                                             entry.Data());
   }
 
   return nullptr;

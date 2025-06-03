@@ -8718,7 +8718,8 @@ nsIFrame* nsIFrame::FindAnchorPosAnchor(const nsAtom* aAnchorSpec) const {
   if (!StyleDisplay()->IsAbsolutelyPositionedStyle()) {
     return nullptr;
   }
-  return PresShell()->GetAnchorPosAnchor(aAnchorSpec);
+
+  return PresShell()->GetAnchorPosAnchor(aAnchorSpec, this);
 }
 
 #ifdef DEBUG_FRAME_DUMP
