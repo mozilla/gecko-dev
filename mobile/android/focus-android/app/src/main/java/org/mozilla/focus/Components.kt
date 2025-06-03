@@ -33,10 +33,15 @@ import mozilla.components.feature.media.middleware.RecordingDevicesMiddleware
 import mozilla.components.feature.prompts.PromptMiddleware
 import mozilla.components.feature.prompts.file.FileUploadsDirCleaner
 import mozilla.components.feature.prompts.file.FileUploadsDirCleanerMiddleware
+import mozilla.components.feature.search.SearchApplicationName
+import mozilla.components.feature.search.SearchDeviceType
+import mozilla.components.feature.search.SearchEngineSelector
+import mozilla.components.feature.search.SearchUpdateChannel
 import mozilla.components.feature.search.SearchUseCases
 import mozilla.components.feature.search.middleware.AdsTelemetryMiddleware
 import mozilla.components.feature.search.middleware.SearchMiddleware
 import mozilla.components.feature.search.region.RegionMiddleware
+import mozilla.components.feature.search.storage.SearchEngineSelectorConfig
 import mozilla.components.feature.search.telemetry.ads.AdsTelemetry
 import mozilla.components.feature.search.telemetry.incontent.InContentTelemetry
 import mozilla.components.feature.session.SessionUseCases
@@ -59,6 +64,7 @@ import mozilla.components.service.location.MozillaLocationService
 import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.support.base.android.NotificationsDelegate
 import mozilla.components.support.base.worker.Frequency
+import mozilla.components.support.ktx.android.content.appVersionName
 import mozilla.components.support.locale.LocaleManager
 import mozilla.components.support.remotesettings.DefaultRemoteSettingsSyncScheduler
 import mozilla.components.support.remotesettings.RemoteSettingsServer
@@ -74,6 +80,7 @@ import org.mozilla.focus.engine.ClientWrapper
 import org.mozilla.focus.engine.SanityCheckMiddleware
 import org.mozilla.focus.experiments.createNimbus
 import org.mozilla.focus.ext.components
+import org.mozilla.focus.ext.isTablet
 import org.mozilla.focus.ext.settings
 import org.mozilla.focus.media.MediaSessionService
 import org.mozilla.focus.search.SearchFilterMiddleware
@@ -184,7 +191,11 @@ class Components(
                 // an actual implementation:
                 // https://github.com/mozilla-mobile/focus-android/issues/4781
                 RegionMiddleware(context, locationService),
-                SearchMiddleware(context, migration = SearchMigration(context)),
+                SearchMiddleware(
+                    context,
+                    migration = SearchMigration(context),
+                    searchEngineSelectorConfig = getSearchEngineSelectorConfig(context),
+                ),
                 SearchFilterMiddleware(),
                 PromptMiddleware(),
                 AdsTelemetryMiddleware(adsTelemetry),
@@ -351,6 +362,41 @@ private fun getLocaleTag(context: Context): String {
     } else {
         Locale.getDefault().toLanguageTag()
     }
+}
+
+/**
+ * Gets a [SearchEngineSelectorConfig] for the app and device.
+ */
+private fun getSearchEngineSelectorConfig(context: Context): SearchEngineSelectorConfig? {
+    if (!context.settings.useRemoteSearchConfiguration) {
+        return null
+    }
+
+    val updateChannel = when (BuildConfig.BUILD_TYPE) {
+        "debug" -> SearchUpdateChannel.DEFAULT
+        "nightly", "benchmark" -> SearchUpdateChannel.NIGHTLY
+        "beta" -> SearchUpdateChannel.BETA
+        "release" -> SearchUpdateChannel.RELEASE
+        else -> {
+            throw IllegalStateException("Unknown build type: ${BuildConfig.BUILD_TYPE}")
+        }
+    }
+
+    val deviceType = if (context.isTablet()) {
+        SearchDeviceType.TABLET
+    } else {
+        SearchDeviceType.SMARTPHONE
+    }
+
+    return SearchEngineSelectorConfig(
+        appName = SearchApplicationName.FOCUS_ANDROID,
+        appVersion = context.appVersionName,
+        deviceType = deviceType,
+        experiment = "",
+        updateChannel = updateChannel,
+        selector = SearchEngineSelector(),
+        service = context.components.remoteSettingsService,
+    )
 }
 
 /**
