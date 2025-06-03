@@ -70,6 +70,7 @@ function assertSearchModeScalars(entry, engineOrSource) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       // Disable tab-to-search onboarding results for general tests. They are
       // enabled in tests that specifically address onboarding.
       ["browser.urlbar.tabToSearch.onboard.interactionsLeft", 0],

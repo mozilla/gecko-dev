@@ -40,7 +40,10 @@ add_setup(async function () {
   // Set a longer security delay for PopupNotification actions so we can test
   // the delay even if the test runs slowly.
   await SpecialPowers.pushPrefEnv({
-    set: [["security.notification_enable_delay", TEST_SECURITY_DELAY]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["security.notification_enable_delay", TEST_SECURITY_DELAY],
+    ],
   });
 });
 

@@ -22,6 +22,12 @@ async function testNewTabPosition(expectedPosition, modifiers = {}) {
   return newtab;
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // Test that a tab opened from a pinned tab is not in the pinned region.
 add_task(async function test_pinned_content_click() {
   let testUri =

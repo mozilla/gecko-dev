@@ -10,7 +10,10 @@ let gMaxAvailHeight;
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.resistFingerprinting", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["privacy.resistFingerprinting", true],
+    ],
   });
 
   // Calculate the maximum available size.

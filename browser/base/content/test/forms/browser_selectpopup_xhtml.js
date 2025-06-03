@@ -14,6 +14,12 @@ const PAGE = `<?xml version="1.0"?>
 </html>
 `;
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function () {
   const url = "data:application/xhtml+xml," + encodeURI(PAGE);
   await BrowserTestUtils.withNewTab(

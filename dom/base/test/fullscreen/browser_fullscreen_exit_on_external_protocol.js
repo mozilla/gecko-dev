@@ -14,6 +14,7 @@ Services.scriptloader.loadSubScript(
 
 add_setup(async function () {
   await pushPrefs(
+    ["test.wait300msAfterTabSwitch", true],
     ["full-screen-api.transition-duration.enter", "0 0"],
     ["full-screen-api.transition-duration.leave", "0 0"],
     ["full-screen-api.allow-trusted-requests-only", false]

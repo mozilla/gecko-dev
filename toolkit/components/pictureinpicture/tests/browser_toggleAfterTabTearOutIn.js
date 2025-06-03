@@ -21,6 +21,12 @@ async function testToggleForTab(tab) {
   }
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Tests that the Picture-in-Picture toggle still works after tearing out the
  * tab into a new window, or tearing in a tab from one window to another.

@@ -140,6 +140,12 @@ const PREF_FAKE_STREAMS = "media.navigator.streams.fake";
 const PREF_ENABLE_UNLOADER = "browser.tabs.unloadOnLowMemory";
 const PREF_MAC_LOW_MEM_RESPONSE = "browser.lowMemoryResponseMask";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test() {
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref(PREF_ENABLE_UNLOADER);

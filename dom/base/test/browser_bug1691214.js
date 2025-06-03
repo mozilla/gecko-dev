@@ -6,6 +6,12 @@
 
 const BASE_URL = "http://mochi.test:8888/browser/dom/base/test/";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function bug1691214() {
   await BrowserTestUtils.withNewTab(
     BASE_URL + "file_bug1691214.html",

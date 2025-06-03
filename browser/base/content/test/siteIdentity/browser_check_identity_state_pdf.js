@@ -13,6 +13,12 @@ function testIdentityMode(uri, expectedState, message) {
   });
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Test site identity state for PDFs served via file URI.
  */

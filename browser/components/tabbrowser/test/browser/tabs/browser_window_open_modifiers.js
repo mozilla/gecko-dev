@@ -27,6 +27,12 @@ const middleShiftEvent = { button: 1, shiftKey: true };
 const middleMetaEvent = { button: 1, [metaKey]: true };
 const middleMetaShiftEvent = { button: 1, [metaKey]: true, shiftKey: true };
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function testMouse() {
   await BrowserTestUtils.withNewTab(TEST_URL, async function (browser) {
     const tests = [

@@ -64,6 +64,7 @@ add_setup(async function () {
 
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["captivedetect.canonicalURL", gServerURL],
       ["captivedetect.canonicalContent", "stuff"],
       ["network.trr.mode", Ci.nsIDNSService.MODE_TRRONLY],

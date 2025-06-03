@@ -24,7 +24,10 @@ function waitForLocationChange() {
 
 add_task(async function setPref() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.toolbars.keyboard_navigation", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["browser.toolbars.keyboard_navigation", true],
+    ],
   });
 });
 

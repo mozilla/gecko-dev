@@ -5,6 +5,12 @@ const uuidGenerator = Services.uuid;
 
 const DUMMY_FILE = "dummy_page.html";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // Test for bug 1327942.
 add_task(async function () {
   // Copy dummy page to unique file in TmpD, so that we can safely delete it.

@@ -13,6 +13,7 @@ Services.scriptloader.loadSubScript(
 add_task(async function setup_pref() {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       // Dropping the touch slop to 0 makes the tests easier to write because
       // we can just do a one-pixel drag to get over the pan threshold rather
       // than having to hard-code some larger value.

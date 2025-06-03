@@ -20,7 +20,10 @@ async function playMedia(tab, { expectBlocked }) {
 
 add_task(async function setPref() {
   await SpecialPowers.pushPrefEnv({
-    set: [[PREF_DELAY_AUTOPLAY, true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      [PREF_DELAY_AUTOPLAY, true],
+    ],
   });
 });
 

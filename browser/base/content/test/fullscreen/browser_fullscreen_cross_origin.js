@@ -7,6 +7,10 @@ const ORIGIN =
   "https://example.com/browser/browser/base/content/test/fullscreen/fullscreen_frame.html";
 
 add_task(async function test_fullscreen_cross_origin() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   async function requestFullscreen(aAllow, aExpect) {
     await BrowserTestUtils.withNewTab(ORIGIN, async function (browser) {
       const iframeId = aExpect == "allowed" ? "frameAllowed" : "frameDenied";

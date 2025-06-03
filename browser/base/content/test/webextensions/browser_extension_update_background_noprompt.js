@@ -21,6 +21,7 @@ function getBadgeStatus() {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       // We don't have pre-pinned certificates for the local mochitest server
       ["extensions.install.requireBuiltInCerts", false],
       ["extensions.update.requireBuiltInCerts", false],

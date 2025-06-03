@@ -7,6 +7,12 @@ let getActor = browser => {
   return browser.browsingContext.currentWindowGlobal.getActor(ACTOR);
 };
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function runTests() {
   if (!SpecialPowers.Services.appinfo.sessionHistoryInParent) {
     await setupAsync();

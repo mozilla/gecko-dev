@@ -5,6 +5,12 @@
 
 requestLongerTimeout(2);
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 const EVENTUTILS_URL =
   "chrome://mochikit/content/tests/SimpleTest/EventUtils.js";
 var EventUtils = {};

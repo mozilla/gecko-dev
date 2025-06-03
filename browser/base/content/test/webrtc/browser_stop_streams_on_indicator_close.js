@@ -11,6 +11,7 @@ const TEST_PAGE = TEST_ROOT + "get_user_media.html";
 
 add_setup(async function () {
   let prefs = [
+    ["test.wait300msAfterTabSwitch", true],
     [PREF_PERMISSION_FAKE, true],
     [PREF_AUDIO_LOOPBACK, ""],
     [PREF_VIDEO_LOOPBACK, ""],

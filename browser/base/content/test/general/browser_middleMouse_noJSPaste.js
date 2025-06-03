@@ -5,7 +5,11 @@ const middleMousePastePref = "middlemouse.contentLoadURL";
 const autoScrollPref = "general.autoScroll";
 
 add_task(async function () {
-  await pushPrefs([middleMousePastePref, true], [autoScrollPref, false]);
+  await pushPrefs(
+    ["test.wait300msAfterTabSwitch", true],
+    [middleMousePastePref, true],
+    [autoScrollPref, false]
+  );
 
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 

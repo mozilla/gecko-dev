@@ -17,7 +17,11 @@ const tabURL2 = "data:,Tab2";
 const tabURL3 = "data:,Tab3";
 const tabURL4 = "data:,Tab4";
 
-add_setup(function () {
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   origBrowserState = SessionStore.getBrowserState();
 });
 

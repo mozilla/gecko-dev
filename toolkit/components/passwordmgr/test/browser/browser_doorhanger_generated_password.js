@@ -283,6 +283,7 @@ async function submitForm(browser) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["signon.generation.available", true],
       ["signon.generation.enabled", true],
     ],

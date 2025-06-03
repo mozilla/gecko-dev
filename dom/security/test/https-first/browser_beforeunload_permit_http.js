@@ -36,6 +36,7 @@ const TEST_PATH_HTTP = getRootDirectory(gTestPath).replace(
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["dom.security.https_first", true],
       ["dom.require_user_interaction_for_beforeunload", true],
     ],

@@ -85,6 +85,7 @@ async function testProbe(aProbe) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["dom.ipc.processCount", 1],
       // We can interrupt JS to paint now, which is great for
       // users, but bad for testing spinners. We temporarily

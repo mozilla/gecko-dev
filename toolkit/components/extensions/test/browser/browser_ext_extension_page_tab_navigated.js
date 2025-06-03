@@ -69,6 +69,12 @@ async function triggerWebRequestListener(webPageURL) {
 // xpcshell counterpart this tests are only testing that after navigating back to an extension page
 // previously stored in the BFCache the WebExtensions events subscribed are being received as expected.
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_extension_page_sameprocess_navigation() {
   const extension = ExtensionTestUtils.loadExtension({
     manifest: {

@@ -4,6 +4,10 @@
 "use strict";
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   await UrlClassifierTestUtils.addTestTrackers();
   // Extend clickjacking delay for test because timer expiry can happen before we
   // check the toggle is disabled (especially in chaos mode).

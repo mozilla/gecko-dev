@@ -13,6 +13,12 @@ const TEST_PATH = getRootDirectory(gTestPath).replace(
 const CONTENT_HANDLING_URL =
   "chrome://mozapps/content/handling/appChooser.xhtml";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(setupMailHandler);
 
 /**

@@ -68,6 +68,7 @@ add_setup(async function () {
   // service getters.
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       [
         "cookiebanners.service.mode",
         Ci.nsICookieBannerService.MODE_REJECT_OR_ACCEPT,

@@ -8,6 +8,13 @@ const DATA_IMAGE_GIF_URL =
 registerCleanupFunction(function () {
   MockFilePicker.cleanup();
 });
+
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * TestCase for bug 564387
  * <https://bugzilla.mozilla.org/show_bug.cgi?id=564387>

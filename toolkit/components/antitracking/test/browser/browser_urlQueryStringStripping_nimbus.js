@@ -73,7 +73,10 @@ add_setup(async function () {
   ]);
 
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.query_stripping.listService.logLevel", "Debug"]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["privacy.query_stripping.listService.logLevel", "Debug"],
+    ],
   });
 
   // Get the list service so we can wait for it to be fully initialized before running tests.

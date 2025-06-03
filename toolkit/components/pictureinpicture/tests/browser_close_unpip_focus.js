@@ -3,6 +3,12 @@ http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // Tests that closing a pip window will not focus on the originating video's window.
 add_task(async function test_close_button_focus() {
   // initialize

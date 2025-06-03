@@ -22,7 +22,10 @@ const l10n = new Localization(
 
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
-    set: [["extensions.originControls.grantByDefault", false]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["extensions.originControls.grantByDefault", false],
+    ],
   });
 });
 

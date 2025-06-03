@@ -14,6 +14,12 @@ const TEST_SELECTORS = {
 
 const DIALOG_SIZE = "width=600,height=400";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_removingCreditCardsViaKeyboardDelete() {
   const cleanupFunc = await setupTask(
     {

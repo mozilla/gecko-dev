@@ -4,6 +4,12 @@ const kBlue = "rgb(0, 0, 255)";
 const prefix =
   "https://example.com/tests/toolkit/components/places/tests/browser/461710_";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function () {
   registerCleanupFunction(PlacesUtils.history.clear);
   let normalWindow = await BrowserTestUtils.openNewBrowserWindow();

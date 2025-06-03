@@ -327,6 +327,12 @@ async function doTest(
   await promiseBrowserStateRestored(oldState);
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_settings_insertRelatedAfter() {
   // Firefox default settings.
   await doTest(true, false, false);

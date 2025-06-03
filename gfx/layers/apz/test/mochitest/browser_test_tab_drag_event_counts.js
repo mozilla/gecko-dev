@@ -16,6 +16,12 @@ Services.scriptloader.loadSubScript(EVENTUTILS_URL, EventUtils);
 Services.scriptloader.loadSubScript(NATIVEKEYCODES_URL, this);
 Services.scriptloader.loadSubScript(APZNATIVEEVENTUTILS_URL, this);
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_dragging_tabs_event_counts() {
   function httpURL(filename) {
     let chromeURL = getRootDirectory(gTestPath) + filename;

@@ -4,6 +4,12 @@
 const PAGE =
   "data:text/html;charset=utf-8,<a href='%23xxx'><span>word1 <span> word2 </span></span><span> word3</span></a>";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Tests that we correctly compute the text for context menu
  * selection of some content.

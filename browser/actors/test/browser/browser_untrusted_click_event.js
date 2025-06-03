@@ -8,6 +8,12 @@ const TEST_PATH = getRootDirectory(gTestPath).replace(
   "https://example.com"
 );
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Ensure that click handlers that prevent the default action but fire
  * a different click event that does open a tab are allowed to work.

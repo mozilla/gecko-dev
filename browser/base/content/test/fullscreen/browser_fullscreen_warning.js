@@ -25,6 +25,7 @@ async function waitForWarningState(aWarningElement, aExpectedState) {
 add_setup(async function init() {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["full-screen-api.enabled", true],
       ["full-screen-api.allow-trusted-requests-only", false],
     ],

@@ -11,6 +11,12 @@ const TEST_URL2 = "https://example.com/browser";
 const TEST_URL3 = "https://example.com/browser/browser";
 const TEST_URL4 = "https://example.com/browser/browser/components";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_interactions_simple_load_and_navigate_away() {
   await BrowserTestUtils.withNewTab(TEST_URL, async browser => {
     Interactions._pageViewStartTime = Cu.now() - 10000;

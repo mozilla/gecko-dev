@@ -105,6 +105,12 @@ const assertGetContextsResult = (
   );
 };
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_runtime_getContexts() {
   const EXT_ID = "runtime-getContexts@mochitest";
   let extension = ExtensionTestUtils.loadExtension({

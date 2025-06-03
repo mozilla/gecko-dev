@@ -6,6 +6,7 @@ const kInterval = 3000;
 
 add_task(async function () {
   await pushPrefs(
+    ["test.wait300msAfterTabSwitch", true],
     ["full-screen-api.transition-duration.enter", "0 0"],
     ["full-screen-api.transition-duration.leave", "0 0"],
     ["dom.fullscreen.force_exit_on_multiple_escape_interval", kInterval]

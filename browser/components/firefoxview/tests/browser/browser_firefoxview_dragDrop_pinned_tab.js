@@ -37,6 +37,12 @@ function dragAndDrop(
   EventUtils.synthesizeMouseAtCenter(tab2, { type: "mouseup" }, context);
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function () {
   await BrowserTestUtils.openNewForegroundTab(gBrowser, URLs[0]);
   await BrowserTestUtils.openNewForegroundTab(gBrowser, URLs[1]);

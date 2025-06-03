@@ -23,7 +23,10 @@ const kAboutPagesRegistered = Promise.all([
 add_task(async function test_principal_click() {
   await kAboutPagesRegistered;
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.security.skip_about_page_has_csp_assert", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["dom.security.skip_about_page_has_csp_assert", true],
+    ],
   });
   await BrowserTestUtils.withNewTab(
     "about:test-about-principal-parent",

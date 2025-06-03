@@ -37,7 +37,10 @@ function closeTooltip() {
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.tabs.hoverPreview.enabled", false]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["browser.tabs.hoverPreview.enabled", false],
+    ],
   });
 });
 

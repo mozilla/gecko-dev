@@ -8,6 +8,7 @@
 add_task(async function test_keydown_event_reservation_toggling_fullscreen() {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["full-screen-api.transition-duration.enter", "0 0"],
       ["full-screen-api.transition-duration.leave", "0 0"],
     ],

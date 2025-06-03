@@ -55,6 +55,7 @@ add_task(async function () {
   info("Disable predictor and accept all");
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["network.predictor.enabled", false],
       ["network.predictor.enable-prefetch", false],
       ["network.cookie.cookieBehavior", 0],

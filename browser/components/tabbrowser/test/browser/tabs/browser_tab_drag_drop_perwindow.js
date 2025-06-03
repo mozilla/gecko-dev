@@ -4,6 +4,12 @@
 
 requestLongerTimeout(2);
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Tests that tabs from Private Browsing windows cannot be dragged
  * into non-private windows, and vice-versa.

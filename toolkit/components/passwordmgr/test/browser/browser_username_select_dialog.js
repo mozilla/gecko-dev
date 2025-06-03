@@ -55,6 +55,12 @@ let login1B = new nsLoginInfo(
   "pass"
 );
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_changeUPLoginOnPUpdateForm_accept() {
   info(
     "Select an u+p login from multiple logins, on password update form, and accept."

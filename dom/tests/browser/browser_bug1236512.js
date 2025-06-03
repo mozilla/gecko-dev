@@ -5,6 +5,12 @@
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 const testPageURL =
   "http://mochi.test:8888/browser/dom/tests/browser/dummy.html";
 

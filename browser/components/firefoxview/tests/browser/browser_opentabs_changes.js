@@ -102,6 +102,12 @@ async function setup(tabChangeEventName) {
   return { windows: [win0, win1, privateWin], cleanup };
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_TabChanges() {
   const { windows, cleanup } = await setup("TabChange");
   const [win0, win1, privateWin] = windows;

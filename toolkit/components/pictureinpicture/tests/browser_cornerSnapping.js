@@ -2,6 +2,13 @@
    http://creativecommons.org/publicdomain/zero/1.0/ */
 
 "use strict";
+
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 const FLOAT_OFFSET = 50;
 const CHANGE_OFFSET = 30;
 const DECREASE_OFFSET = FLOAT_OFFSET - CHANGE_OFFSET;

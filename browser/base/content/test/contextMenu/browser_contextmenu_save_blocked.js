@@ -19,6 +19,12 @@ function mockPromptService() {
   return promptService;
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_save_link_blocked_by_extension() {
   let ext = ExtensionTestUtils.loadExtension({
     manifest: {

@@ -26,6 +26,10 @@ var test_normalTab;
 async function test() {
   waitForExplicitFinish();
 
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   // Disable the default gestures support during this part of the test
   gGestureSupport.init(false);
 

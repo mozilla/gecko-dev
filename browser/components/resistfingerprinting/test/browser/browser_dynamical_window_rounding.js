@@ -385,6 +385,7 @@ async function test_findbar(aWindow) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
+      ["test.wait300msAfterTabSwitch", true],
       ["privacy.resistFingerprinting.letterboxing", true],
       ["privacy.resistFingerprinting.letterboxing.testing", true],
     ],

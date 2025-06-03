@@ -59,6 +59,10 @@ function waitForSnapshotCount(histogram, expectedCount) {
 }
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   // Force-enable tab animations
   gReduceMotionOverride = false;
 

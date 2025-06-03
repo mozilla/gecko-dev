@@ -86,6 +86,12 @@ async function navigateTo(browser, urls, expectedPersist) {
   }
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function testAboutPagesExemptFromBfcache() {
   // If Fission is disabled, the pref is no-op.
   await SpecialPowers.pushPrefEnv({ set: [["fission.bfcacheInParent", true]] });

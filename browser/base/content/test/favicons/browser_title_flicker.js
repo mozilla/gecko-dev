@@ -27,6 +27,12 @@ function waitForPendingIcon() {
   });
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // Verify that the title doesn't flicker if the icon takes too long to load.
 // We expect to see events in the following order:
 // "label" added to tab

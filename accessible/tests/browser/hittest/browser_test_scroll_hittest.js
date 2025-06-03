@@ -4,6 +4,12 @@
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Verify that hit testing returns the proper accessible when one accessible
  * covers another accessible due to scroll clipping. See Bug 1819741.

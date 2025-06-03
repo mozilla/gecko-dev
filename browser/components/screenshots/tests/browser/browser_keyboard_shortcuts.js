@@ -5,7 +5,10 @@
 
 add_task(async function test_download_shortcut() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.download.useDownloadDir", true]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["browser.download.useDownloadDir", true],
+    ],
   });
 
   let publicDownloads = await Downloads.getList(Downloads.PUBLIC);

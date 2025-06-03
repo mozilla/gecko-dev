@@ -29,6 +29,12 @@ async function withDomFsTab(beforeEnter, afterEnter) {
   await BrowserTestUtils.removeTab(tab);
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_overlink() {
   const overlink = "https://example.com";
   let setAndCheckOverLink = async info => {

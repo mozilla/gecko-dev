@@ -47,6 +47,10 @@ async function getElementFromDocumentByText(document, text) {
 // Before running, save any MOZ_LOG environment variable that might be preset,
 // and restore them at the end of this test.
 add_setup(async function saveRestoreLogModules() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   let savedLogModules = Services.env.get("MOZ_LOG");
   Services.env.set("MOZ_LOG", "");
   registerCleanupFunction(() => {

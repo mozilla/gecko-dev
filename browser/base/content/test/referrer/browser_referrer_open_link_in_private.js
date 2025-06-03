@@ -28,6 +28,13 @@ function startNewPrivateWindowTestCase(aTestNumber) {
 }
 
 function test() {
-  requestLongerTimeout(10); // slowwww shutdown on e10s
-  startReferrerTest(startNewPrivateWindowTestCase);
+  waitForExplicitFinish();
+
+  SpecialPowers.pushPrefEnv(
+    { set: [["test.wait300msAfterTabSwitch", true]] },
+    function () {
+      requestLongerTimeout(10); // slowwww shutdown on e10s
+      startReferrerTest(startNewPrivateWindowTestCase);
+    }
+  );
 }

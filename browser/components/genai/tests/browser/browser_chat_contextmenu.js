@@ -22,6 +22,12 @@ async function hideContextMenu() {
   await promise;
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Check that the chat context menu is hidden by default
  */

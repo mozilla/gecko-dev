@@ -11,6 +11,10 @@
 const TEST_URLS = ["https://example.com/", "https://example.org/"];
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   await PlacesUtils.bookmarks.eraseEverything();
   await PlacesUtils.bookmarks.insert({
     parentGuid: PlacesUtils.bookmarks.toolbarGuid,

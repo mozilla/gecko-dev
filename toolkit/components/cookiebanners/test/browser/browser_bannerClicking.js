@@ -5,6 +5,12 @@
 
 add_setup(clickTestSetup);
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Test that the banner clicking won't click banner if the service is disabled or in detect-only mode.
  */

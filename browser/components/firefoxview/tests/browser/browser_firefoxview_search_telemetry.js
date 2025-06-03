@@ -33,6 +33,10 @@ const cleanUp = () => {
 };
 
 add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   gInitialTab = gBrowser.selectedTab;
   gInitialTabURL = gBrowser.selectedBrowser.currentURI.spec;
   registerCleanupFunction(async () => {
