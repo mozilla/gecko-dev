@@ -2293,7 +2293,7 @@ static MOZ_ALWAYS_INLINE bool NativeGetPropertyInline(
     // the top of the loop is where we're going to end up anyway. But if |proto|
     // is non-native, that optimization would be incorrect.
     if (proto->getOpsGetProperty()) {
-      RootedObject protoRoot(cx, proto);
+      typename MaybeRooted<JSObject*, allowGC>::RootType protoRoot(cx, proto);
       return GeneralizedGetProperty<allowGC>(cx, protoRoot, id, receiver,
                                              nameLookup, vp);
     }
