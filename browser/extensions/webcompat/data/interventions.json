@@ -2394,6 +2394,26 @@
       }
     ]
   },
+  "1902379": {
+    "label": "adl.edu.tw",
+    "bugs": {
+      "1902379": {
+        "issue": "unsupported-warning",
+        "matches": ["*://adl.edu.tw/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": [
+            "lib/ua_helpers.js",
+            "bug1902379-adl.edu.tw-hide-unsupported-popup.js"
+          ]
+        }
+      }
+    ]
+  },
   "1902382": {
     "label": "flash.puffin.com",
     "bugs": {
