@@ -9,7 +9,6 @@ import androidx.annotation.VisibleForTesting
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.support.locale.LocaleManager
-import mozilla.components.support.locale.LocaleManager.getSystemDefault
 import mozilla.components.support.locale.LocaleUseCases
 import org.mozilla.focus.locale.Locales
 import org.mozilla.focus.settings.InstalledSearchEnginesSettingsFragment
@@ -28,11 +27,13 @@ import java.util.Locale
  * @param activity The current activity. Used for accessing resources and triggering activity recreation.
  * @param localeUseCase Use cases for interacting with locales, provided by [LocaleUseCases].
  * @param storage The storage for managing language preferences, provided by [LanguageStorage].
+ * @param getSystemDefault A lambda that returns the system's default locale.
  */
 class LanguageMiddleware(
     private val activity: Activity,
     private val localeUseCase: LocaleUseCases,
     private val storage: LanguageStorage,
+    private val getSystemDefault: () -> Locale,
 ) : Middleware<LanguageScreenState, LanguageScreenAction> {
 
     override fun invoke(
@@ -88,6 +89,16 @@ class LanguageMiddleware(
             updateConfiguration(configuration, displayMetrics)
         }
 
+        recreateActivity()
+    }
+
+    /**
+     * Recreates the current activity to apply language changes.
+     * This is necessary for the new locale to take effect throughout the application.
+     * The recreation is performed on the UI thread.
+     */
+    @VisibleForTesting
+    internal fun recreateActivity() {
         runOnUiThread { activity.recreate() }
     }
 

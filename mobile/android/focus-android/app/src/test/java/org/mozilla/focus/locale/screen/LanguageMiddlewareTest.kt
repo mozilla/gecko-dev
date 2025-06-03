@@ -17,19 +17,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
 import org.mockito.Mock
 import org.mockito.Mockito.doNothing
+import org.mockito.Mockito.mock
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mockito.MockitoAnnotations.openMocks
 import org.mozilla.focus.settings.InstalledSearchEnginesSettingsFragment
-import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import java.util.Locale
 
-@RunWith(RobolectricTestRunner::class)
 class LanguageMiddlewareTest {
 
     @Mock
@@ -55,26 +52,30 @@ class LanguageMiddlewareTest {
 
     private lateinit var middleware: LanguageMiddleware
 
-    private val context: Context = spy(RuntimeEnvironment.getApplication().applicationContext)
+    private val context: Context = mock()
+    private val mockLocale = Locale.forLanguageTag("en-US")
 
     @Before
     fun setup() {
         openMocks(this)
         middleware = spy(
-            LanguageMiddleware(mockActivity, mockLocaleUseCases, mockStorage),
+            LanguageMiddleware(mockActivity, mockLocaleUseCases, mockStorage) { mockLocale },
         )
 
         `when`(mockActivity.applicationContext).thenReturn(context)
         `when`(context.resources).thenReturn(resources)
         `when`(resources.configuration).thenReturn(configuration)
+        @Suppress("DEPRECATION")
+        doNothing().`when`(resources).updateConfiguration(any(), any())
 
         InstalledSearchEnginesSettingsFragment.languageChanged = false
         doNothing().`when`(middleware).setNewLocale(any())
         doNothing().`when`(middleware).resetToSystemDefault()
+        doNothing().`when`(middleware).recreateActivity()
     }
 
     @Test
-    fun `GIVEN Select action WHEN invoke THEN saves language, sets current language and calls next`() = runTest {
+    fun `GIVEN Select action WHEN invoke THEN saves language, sets current language and calls next`() {
         val selectedLanguage = Language("es-ES", "Español (España)", 0)
         val action = LanguageScreenAction.Select(selectedLanguage)
 
@@ -88,7 +89,7 @@ class LanguageMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN Select action with system default WHEN invoke THEN resets to system default`() = runTest {
+    fun `GIVEN Select action with system default WHEN invoke THEN resets to system default`() {
         val selectedLanguage = Language("System Default", LanguageStorage.LOCALE_SYSTEM_DEFAULT, 0)
         val action = LanguageScreenAction.Select(selectedLanguage)
 
@@ -102,7 +103,7 @@ class LanguageMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN InitLanguages action WHEN invoke THEN dispatches UpdateLanguages`() = runTest {
+    fun `GIVEN InitLanguages action WHEN invoke THEN dispatches UpdateLanguages`() {
         val languages =
             listOf(Language("en-US", "English (US)", 1), Language("es-ES", "Español (España)", 0))
         val selectedLanguage = Language("en-US", "English (US)", 1)
@@ -122,7 +123,7 @@ class LanguageMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN other action WHEN invoke THEN calls next`() = runTest {
+    fun `GIVEN other action WHEN invoke THEN calls next`() {
         val action =
             LanguageScreenAction.UpdateLanguages(emptyList(), Language("en-US", "English (US)", 0))
 
@@ -142,7 +143,7 @@ class LanguageMiddlewareTest {
             verify(middleware).setNewLocale(locale)
             @Suppress("DEPRECATION")
             verify(resources).updateConfiguration(any(), any())
-            verify(mockActivity).recreate()
+            verify(middleware).recreateActivity()
         }
 
     @Test
@@ -155,6 +156,6 @@ class LanguageMiddlewareTest {
             verify(middleware).resetToSystemDefault()
             @Suppress("DEPRECATION")
             verify(resources).updateConfiguration(any(), any())
-            verify(mockActivity).recreate()
+            verify(middleware).recreateActivity()
         }
 }
