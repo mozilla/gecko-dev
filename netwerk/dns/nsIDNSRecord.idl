@@ -8,6 +8,7 @@
 
 %{ C++
 namespace mozilla {
+class TimeStamp;
 namespace net {
 union NetAddr;
 }
@@ -16,6 +17,7 @@ union NetAddr;
 %}
 native NetAddr(mozilla::net::NetAddr);
 [ref] native nsNetAddrTArrayRef(nsTArray<mozilla::net::NetAddr>);
+native TimeStamp(mozilla::TimeStamp);
 interface nsINetAddr;
 
 /**
@@ -151,4 +153,9 @@ interface nsIDNSAddrRecord : nsIDNSRecord
      * Returns the ttl of this record.
      */
     readonly attribute uint32_t ttl;
+
+     /**
+     * Returns the timestamp when this record is updated.
+     */
+    [noscript] readonly attribute TimeStamp lastUpdate;
 };
