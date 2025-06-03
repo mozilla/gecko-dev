@@ -15,9 +15,8 @@ current time to improve log usefulness.
 
 import sys
 
-
 if sys.version_info[0:2] < (3, 5):
-    print('run-task requires Python 3.5+')
+    print("run-task requires Python 3.5+")
     sys.exit(1)
 
 
@@ -30,26 +29,25 @@ import os
 import random
 import re
 import shutil
-import signal
 import socket
 import stat
 import subprocess
-
 import urllib.error
 import urllib.request
 
-from threading import Thread
-
-FINGERPRINT_URL = 'http://taskcluster/secrets/v1/secret/project/taskcluster/gecko/hgfingerprint'
+FINGERPRINT_URL = (
+    "http://taskcluster/secrets/v1/secret/project/taskcluster/gecko/hgfingerprint"
+)
 FALLBACK_FINGERPRINT = {
-    'fingerprints':
-        "sha256:4D:EB:21:6E:35:2F:99:C6:8F:C3:47:9B:57:B8:6C:17:15:8F:86:09:D4:6C:17:1D:87:B0:DE:F9:0E:51:70:FC,"
-        "sha256:90:85:39:A8:4F:47:20:58:98:0D:48:4D:8A:AC:71:DB:5C:AF:76:44:F1:B1:3E:56:92:FF:21:8C:C9:A9:F7:11"
+    "fingerprints": "sha256:4D:EB:21:6E:35:2F:99:C6:8F:C3:47:9B:57:B8:6C:17:15:8F:86:09:D4:6C:17:1D:87:B0:DE:F9:0E:51:70:FC,"
+    "sha256:90:85:39:A8:4F:47:20:58:98:0D:48:4D:8A:AC:71:DB:5C:AF:76:44:F1:B1:3E:56:92:FF:21:8C:C9:A9:F7:11"
 }
 
-HGMOINTERNAL_CONFIG_URL = 'http://taskcluster/secrets/v1/secret/project/taskcluster/gecko/hgmointernal'
+HGMOINTERNAL_CONFIG_URL = (
+    "http://taskcluster/secrets/v1/secret/project/taskcluster/gecko/hgmointernal"
+)
 
-CACHE_UID_GID_MISMATCH = '''
+CACHE_UID_GID_MISMATCH = """
 There is a UID/GID mismatch on the cache. This likely means:
 
 a) different tasks are running as a different user/group
@@ -62,10 +60,10 @@ to file/directory user/group ownership.
 To make this error go away, ensure that all Docker images are use
 a consistent UID/GID and that all tasks using this cache are running as
 the same user/group.
-'''
+"""
 
 
-NON_EMPTY_VOLUME = '''
+NON_EMPTY_VOLUME = """
 error: volume %s is not empty
 
 Our Docker image policy requires volumes to be empty.
@@ -76,10 +74,10 @@ any VOLUME.
 
 A lesser possibility is that you stumbled upon a TaskCluster platform bug
 where it fails to use new volumes for tasks.
-'''
+"""
 
 
-FETCH_CONTENT_NOT_FOUND = '''
+FETCH_CONTENT_NOT_FOUND = """
 error: fetch-content script not found
 
 The `fetch-content` script could not be detected in the current environment.
@@ -87,7 +85,7 @@ The `fetch-content` script could not be detected in the current environment.
 If this task clones gecko, make sure the GECKO_PATH environment variable
 is set to proper location. Otherwise, the script may need to be mounted
 or added to the task's docker image then added to the PATH.
-'''
+"""
 
 # The exit code to use when caches should be purged and the task retried.
 # This is EX_OSFILE (from sysexits.h):
@@ -96,9 +94,9 @@ or added to the task's docker image then added to the PATH.
 EXIT_PURGE_CACHE = 72
 
 
-IS_MACOSX = sys.platform == 'darwin'
-IS_POSIX = os.name == 'posix'
-IS_WINDOWS = os.name == 'nt'
+IS_MACOSX = sys.platform == "darwin"
+IS_POSIX = os.name == "posix"
+IS_WINDOWS = os.name == "nt"
 
 
 def print_line(prefix, m):
@@ -110,7 +108,7 @@ def print_line(prefix, m):
     bytes = b"[%s %s] %s" % (prefix, now, m)
     written = 0
     while written < len(bytes):
-        written += (sys.stdout.buffer.write(bytes[written:]) or 0)
+        written += sys.stdout.buffer.write(bytes[written:]) or 0
     sys.stdout.buffer.flush()
 
 
@@ -138,23 +136,25 @@ def run_and_prefix_output(prefix, args, *, extra_env=None, cwd=None):
     # we manually install a latin1 stream wrapper. This allows us to readline()
     # and preserves bytes, without losing any data.
 
-    p = subprocess.Popen(args,
-                         # Disable buffering because we want to receive output
-                         # as it is generated so timestamps in logs are
-                         # accurate.
-                         bufsize=0,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.STDOUT,
-                         stdin=sys.stdin.fileno(),
-                         env=env,
-                         cwd=cwd)
+    p = subprocess.Popen(
+        args,
+        # Disable buffering because we want to receive output
+        # as it is generated so timestamps in logs are
+        # accurate.
+        bufsize=0,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        stdin=sys.stdin.fileno(),
+        env=env,
+        cwd=cwd,
+    )
 
-    stdout = io.TextIOWrapper(p.stdout, encoding='latin1')
+    stdout = io.TextIOWrapper(p.stdout, encoding="latin1")
 
     while True:
-        data = stdout.readline().encode('latin1')
+        data = stdout.readline().encode("latin1")
 
-        if data == b'':
+        if data == b"":
             break
 
         print_line(prefix, data)
@@ -169,25 +169,24 @@ def get_posix_user_group(user, group):
     try:
         user_record = pwd.getpwnam(user)
     except KeyError:
-        print('could not find user %s; specify a valid user with --user' % user)
+        print("could not find user %s; specify a valid user with --user" % user)
         sys.exit(1)
 
     try:
         group_record = grp.getgrnam(group)
     except KeyError:
-        print('could not find group %s; specify a valid group with --group' %
-              group)
+        print("could not find group %s; specify a valid group with --group" % group)
         sys.exit(1)
 
     # Most tasks use worker:worker. We require they have a specific numeric ID
     # because otherwise it is too easy for files written to caches to have
     # mismatched numeric IDs, which results in permissions errors.
-    if user_record.pw_name == 'worker' and user_record.pw_uid != 1000:
-        print('user `worker` must have uid=1000; got %d' % user_record.pw_uid)
+    if user_record.pw_name == "worker" and user_record.pw_uid != 1000:
+        print("user `worker` must have uid=1000; got %d" % user_record.pw_uid)
         sys.exit(1)
 
-    if group_record.gr_name == 'worker' and group_record.gr_gid != 1000:
-        print('group `worker` must have gid=1000; got %d' % group_record.gr_gid)
+    if group_record.gr_name == "worker" and group_record.gr_gid != 1000:
+        print("group `worker` must have gid=1000; got %d" % group_record.gr_gid)
         sys.exit(1)
 
     # Find all groups to which this user is a member.
@@ -197,10 +196,9 @@ def get_posix_user_group(user, group):
 
 
 def write_audit_entry(path, msg):
-    now = datetime.datetime.utcnow().isoformat().encode('utf-8')
-    with open(path, 'ab') as fh:
-        fh.write(b'[%sZ %s] %s\n' % (
-                 now, os.environb.get(b'TASK_ID', b'UNKNOWN'), msg))
+    now = datetime.datetime.utcnow().isoformat().encode("utf-8")
+    with open(path, "ab") as fh:
+        fh.write(b"[%sZ %s] %s\n" % (now, os.environb.get(b"TASK_ID", b"UNKNOWN"), msg))
 
 
 WANTED_DIR_MODE = stat.S_IXUSR | stat.S_IRUSR | stat.S_IWUSR
@@ -219,10 +217,11 @@ def set_dir_permissions(path, uid, gid):
 
 
 def chown_recursive(path, user, group, uid, gid):
-    print_line(b'chown',
-               b'recursively changing ownership of %s to %s:%s\n' %
-               (path.encode('utf-8'), user.encode('utf-8'), group.encode(
-                   'utf-8')))
+    print_line(
+        b"chown",
+        b"recursively changing ownership of %s to %s:%s\n"
+        % (path.encode("utf-8"), user.encode("utf-8"), group.encode("utf-8")),
+    )
 
     set_dir_permissions(path, uid, gid)
 
@@ -239,8 +238,7 @@ def chown_recursive(path, user, group, uid, gid):
             os.lchown(os.path.join(root, f), uid, gid)
 
 
-def configure_cache_posix(cache, user, group,
-                          untrusted_caches, running_as_root):
+def configure_cache_posix(cache, user, group, untrusted_caches, running_as_root):
     """Configure a cache path on POSIX platforms.
 
     For each cache, we write out a special file denoting attributes and
@@ -265,33 +263,36 @@ def configure_cache_posix(cache, user, group,
         # to follow any explicit order. Since taskgraph bakes this file's
         # hash into cache names, any change to this file/version is sufficient
         # to force the use of a new cache.
-        b'version=1',
+        b"version=1",
         # Include the UID and GID the task will run as to ensure that tasks
         # with different UID and GID don't share the same cache.
-        b'uid=%d' % user.pw_uid,
-        b'gid=%d' % group.gr_gid,
+        b"uid=%d" % user.pw_uid,
+        b"gid=%d" % group.gr_gid,
     }
 
-    requires_path = os.path.join(cache, '.cacherequires')
-    audit_path = os.path.join(cache, '.cachelog')
+    requires_path = os.path.join(cache, ".cacherequires")
+    audit_path = os.path.join(cache, ".cachelog")
 
     # The cache is empty. Configure it.
     if not os.listdir(cache):
-        print_line(b'cache', b'cache %s is empty; writing requirements: '
-                             b'%s\n' % (
-                                 cache.encode('utf-8'), b' '.join(sorted(our_requirements))))
+        print_line(
+            b"cache",
+            b"cache %s is empty; writing requirements: "
+            b"%s\n" % (cache.encode("utf-8"), b" ".join(sorted(our_requirements))),
+        )
 
         # We write a requirements file so future invocations know what the
         # requirements are.
-        with open(requires_path, 'wb') as fh:
-            fh.write(b'\n'.join(sorted(our_requirements)))
+        with open(requires_path, "wb") as fh:
+            fh.write(b"\n".join(sorted(our_requirements)))
 
         # And make it read-only as a precaution against deletion.
         os.chmod(requires_path, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
-        write_audit_entry(audit_path,
-                          b'created; requirements: %s' %
-                          b', '.join(sorted(our_requirements)))
+        write_audit_entry(
+            audit_path,
+            b"created; requirements: %s" % b", ".join(sorted(our_requirements)),
+        )
 
         set_dir_permissions(cache, user.pw_uid, group.gr_gid)
         return
@@ -299,11 +300,14 @@ def configure_cache_posix(cache, user, group,
     # The cache has content and we have a requirements file. Validate
     # requirements alignment.
     if os.path.exists(requires_path):
-        with open(requires_path, 'rb') as fh:
+        with open(requires_path, "rb") as fh:
             wanted_requirements = set(fh.read().splitlines())
 
-        print_line(b'cache', b'cache %s exists; requirements: %s\n' % (
-            cache.encode('utf-8'), b' '.join(sorted(wanted_requirements))))
+        print_line(
+            b"cache",
+            b"cache %s exists; requirements: %s\n"
+            % (cache.encode("utf-8"), b" ".join(sorted(wanted_requirements))),
+        )
 
         missing = wanted_requirements - our_requirements
 
@@ -313,46 +317,61 @@ def configure_cache_posix(cache, user, group,
         # usability by introducing uid/gid mismatches. For untrusted
         # environments like Try, this is a perfectly reasonable thing to
         # allow.
-        if missing and untrusted_caches and running_as_root and \
-                all(s.startswith((b'uid=', b'gid=')) for s in missing):
-            print_line(b'cache',
-                       b'cache %s uid/gid mismatch; this is acceptable '
-                       b'because caches for this task are untrusted; '
-                       b'changing ownership to facilitate cache use\n' %
-                       cache.encode('utf-8'))
-            chown_recursive(cache, user.pw_name, group.gr_name, user.pw_uid,
-                            group.gr_gid)
+        if (
+            missing
+            and untrusted_caches
+            and running_as_root
+            and all(s.startswith((b"uid=", b"gid=")) for s in missing)
+        ):
+            print_line(
+                b"cache",
+                b"cache %s uid/gid mismatch; this is acceptable "
+                b"because caches for this task are untrusted; "
+                b"changing ownership to facilitate cache use\n" % cache.encode("utf-8"),
+            )
+            chown_recursive(
+                cache, user.pw_name, group.gr_name, user.pw_uid, group.gr_gid
+            )
 
             # And write out the updated reality.
-            with open(requires_path, 'wb') as fh:
-                fh.write(b'\n'.join(sorted(our_requirements)))
+            with open(requires_path, "wb") as fh:
+                fh.write(b"\n".join(sorted(our_requirements)))
 
-            write_audit_entry(audit_path,
-                              b'chown; requirements: %s' %
-                              b', '.join(sorted(our_requirements)))
+            write_audit_entry(
+                audit_path,
+                b"chown; requirements: %s" % b", ".join(sorted(our_requirements)),
+            )
 
         elif missing:
-            print('error: requirements for populated cache %s differ from '
-                  'this task' % cache)
-            print('cache requirements: %s' % ' '.join(sorted(
-                s.decode('utf-8') for s in wanted_requirements)))
-            print('our requirements:   %s' % ' '.join(sorted(
-                s.decode('utf-8') for s in our_requirements)))
-            if any(s.startswith((b'uid=', b'gid=')) for s in missing):
+            print(
+                "error: requirements for populated cache %s differ from "
+                "this task" % cache
+            )
+            print(
+                "cache requirements: %s"
+                % " ".join(sorted(s.decode("utf-8") for s in wanted_requirements))
+            )
+            print(
+                "our requirements:   %s"
+                % " ".join(sorted(s.decode("utf-8") for s in our_requirements))
+            )
+            if any(s.startswith((b"uid=", b"gid=")) for s in missing):
                 print(CACHE_UID_GID_MISMATCH)
 
-            write_audit_entry(audit_path,
-                              b'requirements mismatch; wanted: %s' %
-                              b', '.join(sorted(our_requirements)))
+            write_audit_entry(
+                audit_path,
+                b"requirements mismatch; wanted: %s"
+                % b", ".join(sorted(our_requirements)),
+            )
 
-            print('')
-            print('audit log:')
-            with open(audit_path, 'r') as fh:
+            print("")
+            print("audit log:")
+            with open(audit_path) as fh:
                 print(fh.read())
 
             return True
         else:
-            write_audit_entry(audit_path, b'used')
+            write_audit_entry(audit_path, b"used")
 
         # We don't need to adjust permissions here because the cache is
         # associated with a uid/gid and the first task should have set
@@ -363,12 +382,14 @@ def configure_cache_posix(cache, user, group,
     # The cache has content and no requirements file. This shouldn't
     # happen because run-task should be the first thing that touches a
     # cache.
-    print('error: cache %s is not empty and is missing a '
-          '.cacherequires file; the cache names for this task are '
-          'likely mis-configured or TASKCLUSTER_CACHES is not set '
-          'properly' % cache)
+    print(
+        "error: cache %s is not empty and is missing a "
+        ".cacherequires file; the cache names for this task are "
+        "likely mis-configured or TASKCLUSTER_CACHES is not set "
+        "properly" % cache
+    )
 
-    write_audit_entry(audit_path, b'missing .cacherequires')
+    write_audit_entry(audit_path, b"missing .cacherequires")
     return True
 
 
@@ -384,99 +405,121 @@ def configure_volume_posix(volume, user, group, running_as_root):
     volume_files = os.listdir(volume)
     if volume_files:
         print(NON_EMPTY_VOLUME % volume)
-        print('entries in root directory: %s' %
-              ' '.join(sorted(volume_files)))
+        print("entries in root directory: %s" % " ".join(sorted(volume_files)))
         sys.exit(1)
 
     # The volume is almost certainly owned by root:root. Chown it so it
     # is writable.
 
     if running_as_root:
-        print_line(b'volume', b'changing ownership of volume %s '
-                              b'to %d:%d\n' % (volume.encode('utf-8'),
-                                               user.pw_uid,
-                                               group.gr_gid))
+        print_line(
+            b"volume",
+            b"changing ownership of volume %s "
+            b"to %d:%d\n" % (volume.encode("utf-8"), user.pw_uid, group.gr_gid),
+        )
         set_dir_permissions(volume, user.pw_uid, group.gr_gid)
 
 
-def vcs_checkout(source_repo, dest, store_path,
-                 base_repo=None, revision=None, branch=None,
-                 fetch_hgfingerprint=False, sparse_profile=None):
+def vcs_checkout(
+    source_repo,
+    dest,
+    store_path,
+    base_repo=None,
+    revision=None,
+    branch=None,
+    fetch_hgfingerprint=False,
+    sparse_profile=None,
+):
     # Specify method to checkout a revision. This defaults to revisions as
     # SHA-1 strings, but also supports symbolic revisions like `tip` via the
     # branch flag.
     if revision:
-        revision_flag = '--revision'
+        revision_flag = "--revision"
         revision_value = revision
     elif branch:
-        revision_flag = '--branch'
+        revision_flag = "--branch"
         revision_value = branch
     else:
-        print('revision is not specified for checkout')
+        print("revision is not specified for checkout")
         sys.exit(1)
 
     if IS_MACOSX or IS_POSIX:
-        hg_bin = 'hg'
+        hg_bin = "hg"
     elif IS_WINDOWS:
         # This is where OCC installs it in the AMIs.
-        hg_bin = r'C:\Program Files\Mercurial\hg.exe'
+        hg_bin = r"C:\Program Files\Mercurial\hg.exe"
         if not os.path.exists(hg_bin):
-            print('could not find Mercurial executable: %s' % hg_bin)
+            print("could not find Mercurial executable: %s" % hg_bin)
             sys.exit(1)
 
     store_path = os.path.abspath(store_path)
     args = [
         hg_bin,
-        'robustcheckout',
-        '--sharebase', store_path,
-        '--purge',
+        "robustcheckout",
+        "--sharebase",
+        store_path,
+        "--purge",
     ]
 
-    robustcheckout = os.path.join(os.path.dirname(__file__), 'robustcheckout.py')
+    robustcheckout = os.path.join(os.path.dirname(__file__), "robustcheckout.py")
     if os.path.isfile(robustcheckout):
-        args.extend([
-            '--config',
-            f'extensions.robustcheckout={robustcheckout}',
-        ])
+        args.extend(
+            [
+                "--config",
+                f"extensions.robustcheckout={robustcheckout}",
+            ]
+        )
 
     # Obtain certificate fingerprints.  Without this, the checkout will use the fingerprint
     # on the system, which is managed some other way (such as puppet)
     if fetch_hgfingerprint:
         try:
-            print_line(b'vcs', b'fetching hg.mozilla.org fingerprint from %s\n' %
-                       FINGERPRINT_URL.encode('utf-8'))
+            print_line(
+                b"vcs",
+                b"fetching hg.mozilla.org fingerprint from %s\n"
+                % FINGERPRINT_URL.encode("utf-8"),
+            )
             res = urllib.request.urlopen(FINGERPRINT_URL, timeout=10)
             secret = res.read()
             try:
-                secret = json.loads(secret.decode('utf-8'))
+                secret = json.loads(secret.decode("utf-8"))
             except ValueError:
-                print_line(b'vcs', b'invalid JSON in hg fingerprint secret')
+                print_line(b"vcs", b"invalid JSON in hg fingerprint secret")
                 sys.exit(1)
         except (urllib.error.URLError, socket.timeout):
-            print_line(b'vcs', b'Unable to retrieve current hg.mozilla.org fingerprint'
-                               b'using the secret service, using fallback instead.')
+            print_line(
+                b"vcs",
+                b"Unable to retrieve current hg.mozilla.org fingerprint"
+                b"using the secret service, using fallback instead.",
+            )
             # XXX This fingerprint will not be accurate if running on an old
             #     revision after the server fingerprint has changed.
-            secret = {'secret': FALLBACK_FINGERPRINT}
+            secret = {"secret": FALLBACK_FINGERPRINT}
 
-        hgmo_fingerprint = secret['secret']['fingerprints']
-        args.extend([
-            '--config', 'hostsecurity.hg.mozilla.org:fingerprints=%s' % hgmo_fingerprint,
-        ])
+        hgmo_fingerprint = secret["secret"]["fingerprints"]
+        args.extend(
+            [
+                "--config",
+                "hostsecurity.hg.mozilla.org:fingerprints=%s" % hgmo_fingerprint,
+            ]
+        )
 
     if base_repo:
-        args.extend(['--upstream', base_repo])
+        args.extend(["--upstream", base_repo])
     if sparse_profile:
-        args.extend(['--sparseprofile', sparse_profile])
+        args.extend(["--sparseprofile", sparse_profile])
 
     dest = os.path.abspath(dest)
-    args.extend([
-        revision_flag, revision_value,
-        source_repo, dest,
-    ])
+    args.extend(
+        [
+            revision_flag,
+            revision_value,
+            source_repo,
+            dest,
+        ]
+    )
 
-    res = run_and_prefix_output(b'vcs', args,
-                                extra_env={'PYTHONUNBUFFERED': '1'})
+    res = run_and_prefix_output(b"vcs", args, extra_env={"PYTHONUNBUFFERED": "1"})
     if res:
         # Mitigation for bug 1539681: if for some reason the clone failed,
         # we just remove it, so that its possible incomplete state doesn't
@@ -486,58 +529,70 @@ def vcs_checkout(source_repo, dest, store_path,
 
     # Update the current revision hash and ensure that it is well formed.
     revision = subprocess.check_output(
-        [hg_bin, 'log',
-         '--rev', '.',
-         '--template', '{node}'],
+        [hg_bin, "log", "--rev", ".", "--template", "{node}"],
         cwd=dest,
         # Triggers text mode on Python 3.
-        universal_newlines=True)
+        universal_newlines=True,
+    )
 
-    assert re.match('^[a-f0-9]{40}$', revision)
+    assert re.match("^[a-f0-9]{40}$", revision)
 
-    msg = ("TinderboxPrint:<a href={source_repo}/rev/{revision} "
-           "title='Built from {repo_name} revision {revision}'>"
-           "{revision}</a>\n".format(revision=revision,
-                                     source_repo=source_repo,
-                                     repo_name=source_repo.split('/')[-1]))
+    msg = (
+        "TinderboxPrint:<a href={source_repo}/rev/{revision} "
+        "title='Built from {repo_name} revision {revision}'>"
+        "{revision}</a>\n".format(
+            revision=revision,
+            source_repo=source_repo,
+            repo_name=source_repo.split("/")[-1],
+        )
+    )
 
-    print_line(b'vcs', msg.encode('utf-8'))
+    print_line(b"vcs", msg.encode("utf-8"))
 
     return revision
 
 
 def fetch_artifacts():
-    print_line(b'fetches', b'fetching artifacts\n')
+    print_line(b"fetches", b"fetching artifacts\n")
 
-    fetch_content = shutil.which('fetch-content')
-    if not fetch_content and os.environ.get('GECKO_PATH'):
-        fetch_content = os.path.join(os.environ['GECKO_PATH'], 'third_party', 'python', 'taskcluster_taskgraph',
-                                     'taskgraph', 'run-task', 'fetch-content')
+    fetch_content = shutil.which("fetch-content")
+    if not fetch_content and os.environ.get("GECKO_PATH"):
+        fetch_content = os.path.join(
+            os.environ["GECKO_PATH"],
+            "third_party",
+            "python",
+            "taskcluster_taskgraph",
+            "taskgraph",
+            "run-task",
+            "fetch-content",
+        )
 
     if not fetch_content or not os.path.isfile(fetch_content):
-        fetch_content = os.path.join(os.path.dirname(__file__),
-                                     'fetch-content')
+        fetch_content = os.path.join(os.path.dirname(__file__), "fetch-content")
 
     if not os.path.isfile(fetch_content):
         print(FETCH_CONTENT_NOT_FOUND)
         sys.exit(1)
 
-    cmd = [sys.executable, '-u', fetch_content, 'task-artifacts']
-    res = run_and_prefix_output(b'fetches', cmd)
+    cmd = [sys.executable, "-u", fetch_content, "task-artifacts"]
+    res = run_and_prefix_output(b"fetches", cmd)
     if res:
         sys.exit(res)
 
-    print_line(b'fetches', b'finished fetching artifacts\n')
+    print_line(b"fetches", b"finished fetching artifacts\n")
 
 
 def add_vcs_arguments(parser, project, name):
     """Adds arguments to ArgumentParser to control VCS options for a project."""
 
-    parser.add_argument('--%s-checkout' % project,
-                        help='Directory where %s checkout should be created' %
-                             name)
-    parser.add_argument('--%s-sparse-profile' % project,
-                        help='Path to sparse profile for %s checkout' % name)
+    parser.add_argument(
+        "--%s-checkout" % project,
+        help="Directory where %s checkout should be created" % name,
+    )
+    parser.add_argument(
+        "--%s-sparse-profile" % project,
+        help="Path to sparse profile for %s checkout" % name,
+    )
 
 
 def resolve_checkout_url(base_repo, head_repo):
@@ -553,87 +608,111 @@ def resolve_checkout_url(base_repo, head_repo):
             "google/us-central1": {...}
         }
     """
-    worker_location = os.getenv('TASKCLUSTER_WORKER_LOCATION')
+    worker_location = os.getenv("TASKCLUSTER_WORKER_LOCATION")
     if not worker_location:
-        print_line(b'vcs', b'TASKCLUSTER_WORKER_LOCATION environment variable not set; '
-                           b'using public hg.mozilla.org service\n')
+        print_line(
+            b"vcs",
+            b"TASKCLUSTER_WORKER_LOCATION environment variable not set; "
+            b"using public hg.mozilla.org service\n",
+        )
         return base_repo, head_repo
 
     try:
         worker_location = json.loads(worker_location)
     except json.JSONDecodeError:
-        print_line(b'vcs', b'Could not decode TASKCLUSTER_WORKER_LOCATION environment variable '
-                           b'as JSON. Content: %s\n' % worker_location.encode('utf-8'))
-        print_line(b'vcs', b'using public hg.mozilla.org service\n')
+        print_line(
+            b"vcs",
+            b"Could not decode TASKCLUSTER_WORKER_LOCATION environment variable "
+            b"as JSON. Content: %s\n" % worker_location.encode("utf-8"),
+        )
+        print_line(b"vcs", b"using public hg.mozilla.org service\n")
         return base_repo, head_repo
 
-    if 'cloud' not in worker_location or 'region' not in worker_location:
-        print_line(b'vcs', b'TASKCLUSTER_WORKER_LOCATION missing required keys; '
-                           b'using public hg.mozilla.org service\n')
+    if "cloud" not in worker_location or "region" not in worker_location:
+        print_line(
+            b"vcs",
+            b"TASKCLUSTER_WORKER_LOCATION missing required keys; "
+            b"using public hg.mozilla.org service\n",
+        )
         return base_repo, head_repo
 
-    config_key = '%(cloud)s/%(region)s' % worker_location
+    config_key = "%(cloud)s/%(region)s" % worker_location
 
     try:
-        print_line(b'vcs', b'fetching hgmointernal config from %s\n' %
-                   HGMOINTERNAL_CONFIG_URL.encode('utf-8'))
+        print_line(
+            b"vcs",
+            b"fetching hgmointernal config from %s\n"
+            % HGMOINTERNAL_CONFIG_URL.encode("utf-8"),
+        )
 
         # Get the hgmointernal config Taskcluster secret
         res = urllib.request.urlopen(HGMOINTERNAL_CONFIG_URL, timeout=10)
-        hgmointernal_config = json.loads(res.read().decode('utf-8'))['secret']
+        hgmointernal_config = json.loads(res.read().decode("utf-8"))["secret"]
 
         # Use public hg service if region not yet supported
         if config_key not in hgmointernal_config:
-            print_line(b'vcs', b'region %s not yet supported; using public '
-                               b'hg.mozilla.org service\n' % config_key.encode('utf-8'))
+            print_line(
+                b"vcs",
+                b"region %s not yet supported; using public "
+                b"hg.mozilla.org service\n" % config_key.encode("utf-8"),
+            )
 
             return base_repo, head_repo
 
         # Only send a percentage of traffic to the internal mirror
-        rate = float(hgmointernal_config[config_key]['rate'])
+        rate = float(hgmointernal_config[config_key]["rate"])
 
         if random.random() > rate:
-            print_line(b'vcs', b'hgmointernal rate miss; using '
-                               b'public hg.mozilla.org service\n')
+            print_line(
+                b"vcs",
+                b"hgmointernal rate miss; using " b"public hg.mozilla.org service\n",
+            )
             return base_repo, head_repo
 
-        print_line(b'vcs', b'hgmointernal rate hit; cloning from '
-                           b'private hgweb mirror\n')
+        print_line(
+            b"vcs", b"hgmointernal rate hit; cloning from " b"private hgweb mirror\n"
+        )
 
-        mirror_domain = hgmointernal_config[config_key]['domain']
+        mirror_domain = hgmointernal_config[config_key]["domain"]
 
-        if base_repo and base_repo.startswith('https://hg.mozilla.org'):
-            base_repo = base_repo.replace('hg.mozilla.org', mirror_domain, 1)
+        if base_repo and base_repo.startswith("https://hg.mozilla.org"):
+            base_repo = base_repo.replace("hg.mozilla.org", mirror_domain, 1)
 
-        if head_repo and head_repo.startswith('https://hg.mozilla.org'):
-            head_repo = head_repo.replace('hg.mozilla.org', mirror_domain, 1)
+        if head_repo and head_repo.startswith("https://hg.mozilla.org"):
+            head_repo = head_repo.replace("hg.mozilla.org", mirror_domain, 1)
 
         return base_repo, head_repo
 
     except (KeyError, ValueError):
-        print_line(b'vcs', b'invalid JSON in hgmointernal config; '
-                           b'falling back to public hg.mozilla.org service\n')
+        print_line(
+            b"vcs",
+            b"invalid JSON in hgmointernal config; "
+            b"falling back to public hg.mozilla.org service\n",
+        )
 
     except (urllib.error.URLError, socket.timeout):
-        print_line(b'vcs', b'Unable to retrieve hgmointernal config using '
-                           b'the secret service; falling back to public hg.mozilla.org '
-                           b'service\n')
+        print_line(
+            b"vcs",
+            b"Unable to retrieve hgmointernal config using "
+            b"the secret service; falling back to public hg.mozilla.org "
+            b"service\n",
+        )
 
     return base_repo, head_repo
 
 
 def collect_vcs_options(args, project):
-    checkout = getattr(args, '%s_checkout' % project)
-    sparse_profile = getattr(args, '%s_sparse_profile' % project)
+    checkout = getattr(args, "%s_checkout" % project)
+    sparse_profile = getattr(args, "%s_sparse_profile" % project)
 
     env_prefix = project.upper()
 
-    base_repo = os.environ.get('%s_BASE_REPOSITORY' % env_prefix)
-    head_repo = os.environ.get('%s_HEAD_REPOSITORY' % env_prefix)
-    revision = os.environ.get('%s_HEAD_REV' % env_prefix)
-    branch = os.environ.get('%s_HEAD_REF' % env_prefix)
+    base_repo = os.environ.get("%s_BASE_REPOSITORY" % env_prefix)
+    head_repo = os.environ.get("%s_HEAD_REPOSITORY" % env_prefix)
+    revision = os.environ.get("%s_HEAD_REV" % env_prefix)
+    branch = os.environ.get("%s_HEAD_REF" % env_prefix)
 
-    store_path = os.environ.get('HG_STORE_PATH')
+    store_path = os.environ.get("HG_STORE_PATH")
 
     # Expand ~ in some paths.
     if checkout:
@@ -644,8 +723,8 @@ def collect_vcs_options(args, project):
     # Some callers set the base repository to mozilla-central for historical
     # reasons. Switch to mozilla-unified because robustcheckout works best
     # with it.
-    if base_repo == 'https://hg.mozilla.org/mozilla-central':
-        base_repo = 'https://hg.mozilla.org/mozilla-unified'
+    if base_repo == "https://hg.mozilla.org/mozilla-central":
+        base_repo = "https://hg.mozilla.org/mozilla-unified"
 
     # No need to check the hgmointernal config if we aren't performing
     # a checkout.
@@ -653,36 +732,37 @@ def collect_vcs_options(args, project):
         base_repo, head_repo = resolve_checkout_url(base_repo, head_repo)
 
     return {
-        'store-path': store_path,
-        'project': project,
-        'env-prefix': env_prefix,
-        'checkout': checkout,
-        'sparse-profile': sparse_profile,
-        'base-repo': base_repo,
-        'head-repo': head_repo,
-        'revision': revision,
-        'branch': branch,
+        "store-path": store_path,
+        "project": project,
+        "env-prefix": env_prefix,
+        "checkout": checkout,
+        "sparse-profile": sparse_profile,
+        "base-repo": base_repo,
+        "head-repo": head_repo,
+        "revision": revision,
+        "branch": branch,
     }
 
 
 def vcs_checkout_from_args(args, project):
     options = collect_vcs_options(args, project)
 
-    if not options['checkout']:
-        if options['branch'] and not options['revision']:
-            print('task should be defined in terms of non-symbolic revision')
+    if not options["checkout"]:
+        if options["branch"] and not options["revision"]:
+            print("task should be defined in terms of non-symbolic revision")
             sys.exit(1)
         return
 
-    os.environ['%s_HEAD_REV' % options['env-prefix']] = vcs_checkout(
-        options['head-repo'],
-        options['checkout'],
-        options['store-path'],
-        base_repo=options['base-repo'],
-        revision=options['revision'],
+    os.environ["%s_HEAD_REV" % options["env-prefix"]] = vcs_checkout(
+        options["head-repo"],
+        options["checkout"],
+        options["store-path"],
+        base_repo=options["base-repo"],
+        revision=options["revision"],
         fetch_hgfingerprint=args.fetch_hgfingerprint,
-        branch=options['branch'],
-        sparse_profile=options['sparse-profile'])
+        branch=options["branch"],
+        sparse_profile=options["sparse-profile"],
+    )
 
 
 def main(args):
@@ -694,7 +774,7 @@ def main(args):
         task_workdir = task_workdir.replace(os.sep, "/")
 
     os.environ["TASK_WORKDIR"] = task_workdir
-    print_line(b'setup', b'run-task started in %s\n' % task_workdir.encode('utf-8'))
+    print_line(b"setup", b"run-task started in %s\n" % task_workdir.encode("utf-8"))
     running_as_root = IS_POSIX and os.getuid() == 0
 
     # Set a reasonable limit to the number of open files.
@@ -708,10 +788,11 @@ def main(args):
     # Processes spawned by this one will inherit the limit set here.
     try:
         import resource
+
         # Keep the hard limit the same, though, allowing processes to change their
         # soft limit if they need to (Firefox does, for instance).
         (soft, hard) = resource.getrlimit(resource.RLIMIT_NOFILE)
-        limit = os.environ.get('MOZ_LIMIT_NOFILE')
+        limit = os.environ.get("MOZ_LIMIT_NOFILE")
         if limit:
             limit = int(limit)
         else:
@@ -729,24 +810,27 @@ def main(args):
     # Arguments up to '--' are ours. After are for the main task
     # to be executed.
     try:
-        i = args.index('--')
+        i = args.index("--")
         our_args = args[0:i]
-        task_args = args[i + 1:]
+        task_args = args[i + 1 :]
     except ValueError:
         our_args = args
         task_args = []
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--user', default='worker', help='user to run as')
-    parser.add_argument('--group', default='worker', help='group to run as')
-    parser.add_argument('--task-cwd', help='directory to run the provided command in')
+    parser.add_argument("--user", default="worker", help="user to run as")
+    parser.add_argument("--group", default="worker", help="group to run as")
+    parser.add_argument("--task-cwd", help="directory to run the provided command in")
 
-    add_vcs_arguments(parser, 'gecko', 'Firefox')
-    add_vcs_arguments(parser, 'comm', 'Comm')
+    add_vcs_arguments(parser, "gecko", "Firefox")
+    add_vcs_arguments(parser, "comm", "Comm")
 
-    parser.add_argument('--fetch-hgfingerprint', action='store_true',
-                        help='Fetch the latest hgfingerprint from the secrets store, '
-                        'using the taskclsuerProxy')
+    parser.add_argument(
+        "--fetch-hgfingerprint",
+        action="store_true",
+        help="Fetch the latest hgfingerprint from the secrets store, "
+        "using the taskclsuerProxy",
+    )
 
     args = parser.parse_args(our_args)
 
@@ -767,47 +851,49 @@ def main(args):
     # environment variable (which we don't want to pass down to child
     # processes).
 
-    if 'TASKCLUSTER_CACHES' in os.environ:
-        caches = os.environ['TASKCLUSTER_CACHES'].split(';')
-        del os.environ['TASKCLUSTER_CACHES']
+    if "TASKCLUSTER_CACHES" in os.environ:
+        caches = os.environ["TASKCLUSTER_CACHES"].split(";")
+        del os.environ["TASKCLUSTER_CACHES"]
     else:
         caches = []
 
-    if 'TASKCLUSTER_UNTRUSTED_CACHES' in os.environ:
+    if "TASKCLUSTER_UNTRUSTED_CACHES" in os.environ:
         untrusted_caches = True
-        del os.environ['TASKCLUSTER_UNTRUSTED_CACHES']
+        del os.environ["TASKCLUSTER_UNTRUSTED_CACHES"]
     else:
         untrusted_caches = False
 
     for cache in caches:
         if not os.path.isdir(cache):
-            print('error: cache %s is not a directory; this should never '
-                  'happen' % cache)
+            print(
+                "error: cache %s is not a directory; this should never "
+                "happen" % cache
+            )
             return 1
 
         if running_as_root:
-        	purge = configure_cache_posix(cache, user, group, untrusted_caches,
-                                          running_as_root)
+            purge = configure_cache_posix(
+                cache, user, group, untrusted_caches, running_as_root
+            )
 
-	        if purge:
-                    return EXIT_PURGE_CACHE
+            if purge:
+                return EXIT_PURGE_CACHE
 
-    if 'TASKCLUSTER_VOLUMES' in os.environ:
-        volumes = os.environ['TASKCLUSTER_VOLUMES'].split(';')
-        del os.environ['TASKCLUSTER_VOLUMES']
+    if "TASKCLUSTER_VOLUMES" in os.environ:
+        volumes = os.environ["TASKCLUSTER_VOLUMES"].split(";")
+        del os.environ["TASKCLUSTER_VOLUMES"]
     else:
         volumes = []
 
     if volumes and not IS_POSIX:
-        print('assertion failed: volumes not expected on Windows')
+        print("assertion failed: volumes not expected on Windows")
         return 1
 
     # Sanitize volumes.
     for volume in volumes:
         # If a volume is a cache, it was dealt with above.
         if volume in caches:
-            print_line(b'volume', b'volume %s is a cache\n' %
-                       volume.encode('utf-8'))
+            print_line(b"volume", b"volume %s is a cache\n" % volume.encode("utf-8"))
             continue
 
         if running_as_root:
@@ -836,17 +922,19 @@ def main(args):
         # The checkout path becomes the working directory. Since there are
         # special cache files in the cache's root directory and working
         # directory purging could blow them away, disallow this scenario.
-        if os.path.exists(os.path.join(checkout, '.cacherequires')):
-            print('error: cannot perform vcs checkout into cache root: %s' %
-                  checkout)
+        if os.path.exists(os.path.join(checkout, ".cacherequires")):
+            print("error: cannot perform vcs checkout into cache root: %s" % checkout)
             sys.exit(1)
 
         # TODO given the performance implications, consider making this a fatal
         # error.
         if not path_in_cache_or_volume(checkout):
-            print_line(b'vcs', b'WARNING: vcs checkout path (%s) not in cache '
-                               b'or volume; performance will likely suffer\n' %
-                               checkout.encode('utf-8'))
+            print_line(
+                b"vcs",
+                b"WARNING: vcs checkout path (%s) not in cache "
+                b"or volume; performance will likely suffer\n"
+                % checkout.encode("utf-8"),
+            )
 
         # Ensure the directory for the source checkout exists.
         try:
@@ -861,16 +949,19 @@ def main(args):
 
     def prepare_hg_store_path():
         # And ensure the shared store path exists and has proper permissions.
-        if 'HG_STORE_PATH' not in os.environ:
-            print('error: HG_STORE_PATH environment variable not set')
+        if "HG_STORE_PATH" not in os.environ:
+            print("error: HG_STORE_PATH environment variable not set")
             sys.exit(1)
 
-        store_path = os.environ['HG_STORE_PATH']
+        store_path = os.environ["HG_STORE_PATH"]
 
         if not path_in_cache_or_volume(store_path):
-            print_line(b'vcs', b'WARNING: HG_STORE_PATH (%s) not in cache or '
-                               b'volume; performance will likely suffer\n' %
-                               store_path.encode('utf-8'))
+            print_line(
+                b"vcs",
+                b"WARNING: HG_STORE_PATH (%s) not in cache or "
+                b"volume; performance will likely suffer\n"
+                % store_path.encode("utf-8"),
+            )
 
         try:
             os.makedirs(store_path)
@@ -901,16 +992,19 @@ def main(args):
         # This code is modeled after what `sudo` was observed to do in a Docker
         # container. We do not bother calling setrlimit() because containers have
         # their own limits.
-        print_line(b'setup', b'running as %s:%s\n' % (
-            args.user.encode('utf-8'), args.group.encode('utf-8')))
+        print_line(
+            b"setup",
+            b"running as %s:%s\n"
+            % (args.user.encode("utf-8"), args.group.encode("utf-8")),
+        )
 
         os.setgroups(gids)
         os.umask(0o22)
         os.setresgid(gid, gid, gid)
         os.setresuid(uid, uid, uid)
 
-    vcs_checkout_from_args(args, 'gecko')
-    vcs_checkout_from_args(args, 'comm')
+    vcs_checkout_from_args(args, "gecko")
+    vcs_checkout_from_args(args, "comm")
 
     for k in (
         "CARGO_HOME",
@@ -925,64 +1019,62 @@ def main(args):
         if k in os.environ:
             # Normalize paths to use forward slashes. Some shell scripts
             # tolerate that better on Windows.
-            os.environ[k] = os.path.abspath(os.environ[k]).replace(os.sep, '/')
-            print_line(b'setup', b'%s is %s\n' % (
-                k.encode('utf-8'),
-                os.environ[k].encode('utf-8')))
+            os.environ[k] = os.path.abspath(os.environ[k]).replace(os.sep, "/")
+            print_line(
+                b"setup",
+                b"%s is %s\n" % (k.encode("utf-8"), os.environ[k].encode("utf-8")),
+            )
 
-    if 'MOZ_FETCHES' in os.environ:
+    if "MOZ_FETCHES" in os.environ:
         fetch_artifacts()
 
         # If Python is a fetch dependency, add it to the PATH and setting
         # the mozilla-specific MOZ_PYTHON_HOME to relocate binaries.
-        if 'MOZ_PYTHON_HOME' in os.environ:
+        if "MOZ_PYTHON_HOME" in os.environ:
 
-            print_line(b'setup',
-                       b'Setting up local python environment\n')
-            prev = [os.environ['PATH']] if 'PATH' in os.environ else []
+            print_line(b"setup", b"Setting up local python environment\n")
+            prev = [os.environ["PATH"]] if "PATH" in os.environ else []
 
-            moz_python_home = os.environ['MOZ_PYTHON_HOME']
+            moz_python_home = os.environ["MOZ_PYTHON_HOME"]
             if IS_WINDOWS:
-                ext = '.exe'
+                ext = ".exe"
                 moz_python_bindir = moz_python_home
             else:
-                ext = ''
-                moz_python_bindir = moz_python_home + '/bin'
+                ext = ""
+                moz_python_bindir = moz_python_home + "/bin"
 
-
-            new = os.environ['PATH'] = os.pathsep.join([moz_python_bindir]
-                                                       + prev)
+            new = os.environ["PATH"] = os.pathsep.join([moz_python_bindir] + prev)
 
             # Relocate the python binary. Standard way uses PYTHONHOME, but
             # this conflicts with system python (e.g. used by hg) so we
             # maintain a small patch to use MOZPYTHONHOME instead.
-            os.environ['MOZPYTHONHOME'] = moz_python_home
+            os.environ["MOZPYTHONHOME"] = moz_python_home
 
-            pyinterp = os.path.join(moz_python_bindir, f'python3{ext}')
+            pyinterp = os.path.join(moz_python_bindir, f"python3{ext}")
             # just a sanity check
             if not os.path.exists(pyinterp):
-                raise RuntimeError("Inconsistent Python installation: "
-                                   "archive found, but no python3 binary "
-                                   "detected")
+                raise RuntimeError(
+                    "Inconsistent Python installation: "
+                    "archive found, but no python3 binary "
+                    "detected"
+                )
 
             if IS_MACOSX:
                 # On OSX, we may not have access to the system certificate,
                 # so use the certifi ones.
                 certifi_cert_file = subprocess.check_output(
-                [pyinterp, '-c',
-                 'import certifi; print(certifi.where())'],
-                text=True
+                    [pyinterp, "-c", "import certifi; print(certifi.where())"],
+                    text=True,
                 )
-                os.environ['SSL_CERT_FILE'] = certifi_cert_file.strip()
-                print_line(b'setup',
-                           b'patching ssl certificate\n')
+                os.environ["SSL_CERT_FILE"] = certifi_cert_file.strip()
+                print_line(b"setup", b"patching ssl certificate\n")
 
-            print_line(b'setup',
-                       b'updated PATH with python artifact: '
-                       + new.encode() + b'\n')
+            print_line(
+                b"setup", b"updated PATH with python artifact: " + new.encode() + b"\n"
+            )
 
-    return run_and_prefix_output(b'task', task_args, cwd=args.task_cwd)
+    return run_and_prefix_output(b"task", task_args, cwd=args.task_cwd)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
