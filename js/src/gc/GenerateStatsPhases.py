@@ -59,11 +59,10 @@ import re
 
 
 class PhaseKind:
-    def __init__(self, name, descr, bucket, children=[]):
+    def __init__(self, name, descr, children=[]):
         self.name = name
         self.descr = descr
         # For telemetry
-        self.bucket = bucket
         self.children = children
 
 
@@ -71,9 +70,9 @@ AllPhaseKinds = []
 PhaseKindsByName = dict()
 
 
-def addPhaseKind(name, descr, bucket, children=[]):
+def addPhaseKind(name, descr, children=[]):
     assert name not in PhaseKindsByName
-    phaseKind = PhaseKind(name, descr, bucket, children)
+    phaseKind = PhaseKind(name, descr, children)
     AllPhaseKinds.append(phaseKind)
     PhaseKindsByName[name] = phaseKind
     return phaseKind
@@ -84,72 +83,64 @@ def getPhaseKind(name):
 
 
 PhaseKindGraphRoots = [
-    addPhaseKind("MUTATOR", "Mutator Running", 0),
-    addPhaseKind("GC_BEGIN", "Begin Callback", 1),
+    addPhaseKind("MUTATOR", "Mutator Running"),
+    addPhaseKind("GC_BEGIN", "Begin Callback"),
     addPhaseKind(
         "EVICT_NURSERY_FOR_MAJOR_GC",
         "Evict Nursery For Major GC",
-        70,
         [
             addPhaseKind(
                 "MARK_ROOTS",
                 "Mark Roots",
-                48,
                 [
-                    addPhaseKind("MARK_CCWS", "Mark Cross Compartment Wrappers", 50),
-                    addPhaseKind("MARK_STACK", "Mark C and JS stacks", 51),
-                    addPhaseKind("MARK_RUNTIME_DATA", "Mark Runtime-wide Data", 52),
-                    addPhaseKind("MARK_EMBEDDING", "Mark Embedding", 53),
+                    addPhaseKind("MARK_CCWS", "Mark Cross Compartment Wrappers"),
+                    addPhaseKind("MARK_STACK", "Mark C and JS stacks"),
+                    addPhaseKind("MARK_RUNTIME_DATA", "Mark Runtime-wide Data"),
+                    addPhaseKind("MARK_EMBEDDING", "Mark Embedding"),
                 ],
             )
         ],
     ),
-    addPhaseKind("WAIT_BACKGROUND_THREAD", "Wait Background Thread", 2),
+    addPhaseKind("WAIT_BACKGROUND_THREAD", "Wait Background Thread"),
     addPhaseKind(
         "PREPARE",
         "Prepare For Collection",
-        69,
         [
-            addPhaseKind("UNMARK", "Unmark", 7),
-            addPhaseKind("UNMARK_WEAKMAPS", "Unmark WeakMaps", 76),
-            addPhaseKind("MARK_DISCARD_CODE", "Mark Discard Code", 3),
-            addPhaseKind("RELAZIFY_FUNCTIONS", "Relazify Functions", 4),
-            addPhaseKind("PURGE", "Purge", 5),
-            addPhaseKind("PURGE_PROP_MAP_TABLES", "Purge PropMapTables", 60),
-            addPhaseKind("PURGE_SOURCE_URLS", "Purge Source URLs", 73),
-            addPhaseKind("JOIN_PARALLEL_TASKS", "Join Parallel Tasks", 67),
+            addPhaseKind("UNMARK", "Unmark"),
+            addPhaseKind("UNMARK_WEAKMAPS", "Unmark WeakMaps"),
+            addPhaseKind("MARK_DISCARD_CODE", "Mark Discard Code"),
+            addPhaseKind("RELAZIFY_FUNCTIONS", "Relazify Functions"),
+            addPhaseKind("PURGE", "Purge"),
+            addPhaseKind("PURGE_PROP_MAP_TABLES", "Purge PropMapTables"),
+            addPhaseKind("PURGE_SOURCE_URLS", "Purge Source URLs"),
+            addPhaseKind("JOIN_PARALLEL_TASKS", "Join Parallel Tasks"),
         ],
     ),
     addPhaseKind(
         "MARK",
         "Mark",
-        6,
         [
             getPhaseKind("MARK_ROOTS"),
-            addPhaseKind("MARK_DELAYED", "Mark Delayed", 8),
+            addPhaseKind("MARK_DELAYED", "Mark Delayed"),
             addPhaseKind(
                 "MARK_WEAK",
                 "Mark Weak",
-                13,
                 [
                     getPhaseKind("MARK_DELAYED"),
-                    addPhaseKind("MARK_GRAY_WEAK", "Mark Gray and Weak", 16),
+                    addPhaseKind("MARK_GRAY_WEAK", "Mark Gray and Weak"),
                 ],
             ),
-            addPhaseKind("MARK_INCOMING_GRAY", "Mark Incoming Gray Pointers", 14),
-            addPhaseKind("MARK_GRAY", "Mark Gray", 15),
+            addPhaseKind("MARK_INCOMING_GRAY", "Mark Incoming Gray Pointers"),
+            addPhaseKind("MARK_GRAY", "Mark Gray"),
             addPhaseKind(
                 "PARALLEL_MARK",
                 "Parallel marking",
-                78,
                 [
                     getPhaseKind("JOIN_PARALLEL_TASKS"),
                     # The following are only used for parallel phase times:
-                    addPhaseKind("PARALLEL_MARK_MARK", "Parallel marking work", 79),
-                    addPhaseKind("PARALLEL_MARK_WAIT", "Waiting for work", 80),
-                    addPhaseKind(
-                        "PARALLEL_MARK_OTHER", "Parallel marking overhead", 82
-                    ),
+                    addPhaseKind("PARALLEL_MARK_MARK", "Parallel marking work"),
+                    addPhaseKind("PARALLEL_MARK_WAIT", "Waiting for work"),
+                    addPhaseKind("PARALLEL_MARK_OTHER", "Parallel marking overhead"),
                 ],
             ),
         ],
@@ -157,81 +148,74 @@ PhaseKindGraphRoots = [
     addPhaseKind(
         "SWEEP",
         "Sweep",
-        9,
         [
             getPhaseKind("MARK"),
             addPhaseKind(
                 "FINALIZE_START",
                 "Finalize Start Callbacks",
-                17,
                 [
-                    addPhaseKind("WEAK_ZONES_CALLBACK", "Per-Slice Weak Callback", 57),
+                    addPhaseKind("WEAK_ZONES_CALLBACK", "Per-Slice Weak Callback"),
                     addPhaseKind(
-                        "WEAK_COMPARTMENT_CALLBACK", "Per-Compartment Weak Callback", 58
+                        "WEAK_COMPARTMENT_CALLBACK", "Per-Compartment Weak Callback"
                     ),
                 ],
             ),
-            addPhaseKind("UPDATE_ATOMS_BITMAP", "Sweep Atoms Bitmap", 68),
-            addPhaseKind("SWEEP_ATOMS_TABLE", "Sweep Atoms Table", 18),
+            addPhaseKind("UPDATE_ATOMS_BITMAP", "Sweep Atoms Bitmap"),
+            addPhaseKind("SWEEP_ATOMS_TABLE", "Sweep Atoms Table"),
             addPhaseKind(
                 "SWEEP_COMPARTMENTS",
                 "Sweep Compartments",
-                20,
                 [
-                    addPhaseKind("SWEEP_JIT_SCRIPTS", "Sweep JitScripts", 21),
-                    addPhaseKind("SWEEP_INNER_VIEWS", "Sweep Inner Views", 22),
+                    addPhaseKind("SWEEP_JIT_SCRIPTS", "Sweep JitScripts"),
+                    addPhaseKind("SWEEP_INNER_VIEWS", "Sweep Inner Views"),
                     addPhaseKind(
-                        "SWEEP_CC_WRAPPER", "Sweep Cross Compartment Wrappers", 23
+                        "SWEEP_CC_WRAPPER", "Sweep Cross Compartment Wrappers"
                     ),
-                    addPhaseKind("SWEEP_BASE_SHAPE", "Sweep Base Shapes", 24),
-                    addPhaseKind("SWEEP_INITIAL_SHAPE", "Sweep Initial Shapes", 25),
-                    addPhaseKind("SWEEP_REGEXP", "Sweep Regexps", 28),
-                    addPhaseKind("SWEEP_COMPRESSION", "Sweep Compression Tasks", 62),
-                    addPhaseKind("SWEEP_WEAKMAPS", "Sweep WeakMaps", 63),
-                    addPhaseKind("SWEEP_UNIQUEIDS", "Sweep Unique IDs", 64),
-                    addPhaseKind("SWEEP_WEAK_POINTERS", "Sweep Weak Pointers", 81),
+                    addPhaseKind("SWEEP_BASE_SHAPE", "Sweep Base Shapes"),
+                    addPhaseKind("SWEEP_INITIAL_SHAPE", "Sweep Initial Shapes"),
+                    addPhaseKind("SWEEP_REGEXP", "Sweep Regexps"),
+                    addPhaseKind("SWEEP_COMPRESSION", "Sweep Compression Tasks"),
+                    addPhaseKind("SWEEP_WEAKMAPS", "Sweep WeakMaps"),
+                    addPhaseKind("SWEEP_UNIQUEIDS", "Sweep Unique IDs"),
+                    addPhaseKind("SWEEP_WEAK_POINTERS", "Sweep Weak Pointers"),
                     addPhaseKind(
                         "SWEEP_FINALIZATION_OBSERVERS",
                         "Sweep FinalizationRegistries and WeakRefs",
-                        74,
                     ),
-                    addPhaseKind("SWEEP_JIT_DATA", "Sweep JIT Data", 65),
-                    addPhaseKind("SWEEP_WEAK_CACHES", "Sweep Weak Caches", 66),
-                    addPhaseKind("SWEEP_MISC", "Sweep Miscellaneous", 29),
+                    addPhaseKind("SWEEP_JIT_DATA", "Sweep JIT Data"),
+                    addPhaseKind("SWEEP_WEAK_CACHES", "Sweep Weak Caches"),
+                    addPhaseKind("SWEEP_MISC", "Sweep Miscellaneous"),
                     getPhaseKind("JOIN_PARALLEL_TASKS"),
                 ],
             ),
-            addPhaseKind("SWEEP_PROP_MAP", "Sweep PropMap Tree", 77),
-            addPhaseKind("FINALIZE_END", "Finalize End Callback", 38),
-            addPhaseKind("DESTROY", "Deallocate", 39),
+            addPhaseKind("SWEEP_PROP_MAP", "Sweep PropMap Tree"),
+            addPhaseKind("FINALIZE_END", "Finalize End Callback"),
+            addPhaseKind("DESTROY", "Deallocate"),
             getPhaseKind("JOIN_PARALLEL_TASKS"),
-            addPhaseKind("FIND_DEAD_COMPARTMENTS", "Find Dead Compartments", 54),
+            addPhaseKind("FIND_DEAD_COMPARTMENTS", "Find Dead Compartments"),
         ],
     ),
     addPhaseKind(
         "COMPACT",
         "Compact",
-        40,
         [
-            addPhaseKind("COMPACT_MOVE", "Compact Move", 41),
+            addPhaseKind("COMPACT_MOVE", "Compact Move"),
             addPhaseKind(
                 "COMPACT_UPDATE",
                 "Compact Update",
-                42,
                 [
                     getPhaseKind("MARK_ROOTS"),
-                    addPhaseKind("COMPACT_UPDATE_CELLS", "Compact Update Cells", 43),
+                    addPhaseKind("COMPACT_UPDATE_CELLS", "Compact Update Cells"),
                     getPhaseKind("JOIN_PARALLEL_TASKS"),
                 ],
             ),
         ],
     ),
-    addPhaseKind("DECOMMIT", "Decommit", 72),
-    addPhaseKind("GC_END", "End Callback", 44),
+    addPhaseKind("DECOMMIT", "Decommit"),
+    addPhaseKind("GC_END", "End Callback"),
     addPhaseKind(
         "MINOR_GC",
         "All Minor GCs",
-        45,
         [
             getPhaseKind("MARK_ROOTS"),
         ],
@@ -239,7 +223,6 @@ PhaseKindGraphRoots = [
     addPhaseKind(
         "EVICT_NURSERY",
         "Minor GCs to Evict Nursery",
-        46,
         [
             getPhaseKind("MARK_ROOTS"),
         ],
@@ -247,7 +230,6 @@ PhaseKindGraphRoots = [
     addPhaseKind(
         "TRACE_HEAP",
         "Trace Heap",
-        47,
         [
             getPhaseKind("MARK_ROOTS"),
         ],
@@ -314,9 +296,6 @@ for phaseKind in AllPhaseKinds:
 # Find the maximum phase nesting.
 MaxPhaseNesting = max(phase.depth for phase in AllPhases) + 1
 
-# And the maximum bucket number.
-MaxBucket = max(kind.bucket for kind in AllPhaseKinds)
-
 # Generate code.
 
 
@@ -368,8 +347,8 @@ def generateCpp(out):
     for phaseKind in AllPhaseKinds:
         phase = PhasesForPhaseKind[phaseKind][0]
         out.write(
-            '    /* PhaseKind::%s */ PhaseKindInfo { Phase::%s, %d, "%s" },\n'
-            % (phaseKind.name, phase.name, phaseKind.bucket, phaseKind.name)
+            '    /* PhaseKind::%s */ PhaseKindInfo { Phase::%s, "%s" },\n'
+            % (phaseKind.name, phase.name, phaseKind.name)
         )
     out.write("};\n")
     out.write("\n")
@@ -399,8 +378,3 @@ def generateCpp(out):
             )
         )
     out.write("};\n")
-
-    #
-    # Print in a comment the next available phase kind number.
-    #
-    out.write("// The next available phase kind number is: %d\n" % (MaxBucket + 1))

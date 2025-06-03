@@ -34,7 +34,6 @@
 #include "nsWindowSizes.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Preferences.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Services.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -2583,27 +2582,7 @@ static nsresult JSSizeOfTab(JSObject* objArg, size_t* jsObjectsSize,
 
 }  // namespace xpc
 
-// Temporary workaround until bug 1949494 can land.
-namespace TelemetryHistogram {
-void Accumulate(mozilla::Telemetry::HistogramID aHistogram, uint32_t aSample);
-}
-
 static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
-  // clang-format off
-  switch (id) {
-#define CASE_ACCUMULATE(NAME, _)                                \
-    case JSMetric::NAME:                                        \
-      TelemetryHistogram::Accumulate(Telemetry::NAME, sample);  \
-      break;
-
-    FOR_EACH_JS_LEGACY_METRIC(CASE_ACCUMULATE)
-#undef CASE_ACCUMULATE
-
-    default:
-      break;
-  }
-  // clang-format on
-
   switch (id) {
     case JSMetric::GC_MS:
       glean::javascript_gc::total_time.AccumulateRawDuration(
@@ -2855,14 +2834,14 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
           JS::ExplainGCReason(static_cast<JS::GCReason>(sample)));
       glean::javascript_gc::minor_reason_long.Get(reason).Add(1);
     } break;
-    case JSMetric::GC_GLEAN_SLOW_PHASE: {
+    case JSMetric::GC_SLOW_PHASE: {
       MOZ_ASSERT(sample < static_cast<uint32_t>(
                               glean::javascript_gc::SlowPhaseLabel::e__Other__),
                  "Phase does not exist in the slow_phase labels list.");
       nsAutoCString phase(JS::GetGCPhaseName(sample));
       glean::javascript_gc::slow_phase.Get(phase).Add(1);
     } break;
-    case JSMetric::GC_GLEAN_SLOW_TASK: {
+    case JSMetric::GC_SLOW_TASK: {
       MOZ_ASSERT(sample < static_cast<uint32_t>(
                               glean::javascript_gc::SlowTaskLabel::e__Other__),
                  "Phase does not exist in the slow_task labels list.");

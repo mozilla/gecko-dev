@@ -2444,24 +2444,6 @@ void TelemetryHistogram::InitializeGlobalState(bool canRecordBase,
         new KeyedHistogram* [HistogramCount * size_t(ProcessID::Count)] {};
   }
 
-  // Some Telemetry histograms depend on the value of C++ constants and hardcode
-  // their values in Histograms.json.
-  // We add static asserts here for those values to match so that future changes
-  // don't go unnoticed.
-  // clang-format off
-  static_assert((uint32_t(JS::GCReason::NUM_TELEMETRY_REASONS) + 1) ==
-      gHistogramInfos[mozilla::Telemetry::GC_MINOR_REASON].bucketCount &&
-      (uint32_t(JS::GCReason::NUM_TELEMETRY_REASONS) + 1) ==
-      gHistogramInfos[mozilla::Telemetry::GC_MINOR_REASON_LONG].bucketCount &&
-      (uint32_t(JS::GCReason::NUM_TELEMETRY_REASONS) + 1) ==
-      gHistogramInfos[mozilla::Telemetry::GC_REASON_2].bucketCount,
-      "NUM_TELEMETRY_REASONS is assumed to be a fixed value in Histograms.json."
-      " If this was an intentional change, update the n_values for the "
-      "following in Histograms.json: GC_MINOR_REASON, GC_MINOR_REASON_LONG, "
-      "GC_REASON_2");
-
-  // clang-format on
-
   gTelemetryHistogramInitDone = true;
 }
 
