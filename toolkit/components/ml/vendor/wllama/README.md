@@ -2,7 +2,7 @@
 
 This repository includes the following vendored dependency:
 
-- wllama `2.2.1`
+- wllama `2.3.1`
 
 To build the vendored dependencies, run:
 ```bash

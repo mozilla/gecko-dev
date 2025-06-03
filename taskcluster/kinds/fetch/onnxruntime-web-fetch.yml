@@ -14,9 +14,9 @@ wllama.wasm:
     description: Llama.cpp WASM files
     fetch:
         type: static-url
-        url: https://storage.googleapis.com/moz-model-hub/wasm/3.0.4/wllama.wasm
-        sha256: a46b325da7a75012b268fdec4a078c6b32a7dd29834af39f7dabe47906f941b1
-        size: 1555738
+        url: https://storage.googleapis.com/moz-model-hub/wasm/2.3.1/wllama.wasm
+        sha256: d7e1cd83a4ee7a3cb460be6c8b7762dfa2a992269786101dc4c5e4517c9177a3
+        size: 1762319
 
 xenova-all-minilm-l6-v2:
     description: feature extraction model

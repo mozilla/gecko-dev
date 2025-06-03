@@ -12,6 +12,7 @@
 # - Generates `wllama.wasm`, `wllama-module.mjs` and `wllama-module-dev.mjs` in the script's directory.
 # - Copy `wllama-module.mjs` and `wllama-module-dev.mjs` to `toolkit/components/ml/vendor`
 # - Upload `wllama.wasm` to Remote Settings to complete the vendoring update.
+# - Update `wllama.wasm` task in taskcluster/kinds/fetch/onnxruntime-web-fetch.yml with updated wasm location
 
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
 . ~/.nvm/nvm.sh
@@ -32,8 +33,8 @@ trap cleanup EXIT  # Ensure cleanup runs on script exit
 
 pushd "${TMP_DIR}"  # Switch to temp dir, saving previous location
 
-# Clone Wllama repository (v2.2.1) with submodules
-git clone --branch 2.2.1 --single-branch --recurse-submodules https://github.com/ngxson/wllama
+# Clone Wllama repository (v2.3.1) with submodules
+git clone --branch 2.3.1 --single-branch --recurse-submodules https://github.com/ngxson/wllama
 cd wllama
 
 # Apply local patch
