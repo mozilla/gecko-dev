@@ -156,6 +156,11 @@ class NativeLayer {
   virtual void SetClipRect(const Maybe<gfx::IntRect>& aClipRect) = 0;
   virtual Maybe<gfx::IntRect> ClipRect() = 0;
 
+  // Set an optional rounded clip rect on the layer. The clip rect is in
+  // post-transform coordinate space
+  virtual void SetRoundedClipRect(const Maybe<gfx::RoundedRect>& aClip) = 0;
+  virtual Maybe<gfx::RoundedRect> RoundedClipRect() = 0;
+
   // Returns the "display rect", in content coordinates, of the current front
   // surface. This rect acts as an extra clip and prevents invalid content from
   // getting to the screen. The display rect starts out empty before the first
