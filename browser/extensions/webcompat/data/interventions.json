@@ -21,6 +21,10 @@
         "issue": "broken-interactive-elements",
         "matches": ["*://*.arcsivr.com/*"]
       },
+      "1901449": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://teikiyoyaku.tokyu.co.jp/*"]
+      },
       "1906654": {
         "issue": "broken-interactive-elements",
         "matches": ["*://*.dublinexpress.ie/*"]
