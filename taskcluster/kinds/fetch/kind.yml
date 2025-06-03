@@ -20,5 +20,4 @@ tasks-from:
     - toolchains.yml
     - translations-fetch.yml
     - updatebot.yml
-    - onnxruntime.yml
     - onnxruntime-web-fetch.yml
