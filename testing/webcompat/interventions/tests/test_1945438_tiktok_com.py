@@ -2,7 +2,7 @@ import pytest
 
 URL = "https://www.tiktok.com/explore"
 
-CONTAINER_CSS = ".css-t1qd2d-DivCategoryList"
+CONTAINER_CSS = "#category-list-container [class*='DivCategoryList']"
 
 
 async def is_scrollbar_visible(client):

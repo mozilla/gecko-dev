@@ -10,6 +10,6 @@
  * They are using non-standard webkit-scrollbar CSS to hide the scrollbar. We can use
  * scrollbar-width instead to hide it.
  */
-.css-t1qd2d-DivCategoryList {
+#category-list-container [class*="DivCategoryList"] {
   scrollbar-width: none;
 }
