@@ -16,8 +16,8 @@ runNetworkTest(async (options = {}) => {
   options.bundle = false;
   const test = new PeerConnectionTest(options);
   test.setMediaConstraints(
-    [{audio: true, video: true}, {audio: true, video: true}],
-    [{audio: true, video: true}, {audio: true, video: true}]
+    [{audio: true, video: {width: 50}}, {audio: true, video: {width: 50}}],
+    [{audio: true, video: {width: 50}}, {audio: true, video: {width: 50}}]
   );
 
   // Test stats, including that codec stats do not coalesce without BUNDLE.

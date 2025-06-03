@@ -192,7 +192,7 @@ scheme = "http"
 
 ["test_peerConnection_capturedVideo.html"]
 tags = "capturestream"
-skip-if = ["os == 'android'"] # android(Bug 1189784, timeouts on 4.3 emulator), Bug 1264340
+skip-if = ["os == 'android'"] # Cannot capture a video element on android (bug 1526207)
 
 ["test_peerConnection_certificates.html"]
 
@@ -217,7 +217,6 @@ scheme = "http"
 ["test_peerConnection_extmapRenegotiation.html"]
 
 ["test_peerConnection_forwarding_basicAudioVideoCombined.html"]
-skip-if = ["os == 'android'"]  # Bug 1189784
 
 ["test_peerConnection_gatherWithSetConfiguration.html"]
 skip-if = ["os == 'android'"] # websockets don't work on android (bug 1266217)
@@ -244,7 +243,7 @@ skip-if = ["os == 'android'"] # websockets don't work on android (bug 1266217)
 scheme = "http"
 
 ["test_peerConnection_iceFailure.html"]
-skip-if = ["true"] # (Bug 1180388 for win, mac and linux), android(Bug 1189784), Bug 1180388
+skip-if = ["true"] # Bug 1180388
 scheme = "http"
 
 ["test_peerConnection_insertDTMF.html"]
@@ -438,19 +437,10 @@ skip-if = ["os == 'android'"] # Bug 1614460
 ["test_peerConnection_twoAudioTracksInOneStream.html"]
 
 ["test_peerConnection_twoAudioVideoStreams.html"]
-skip-if = [
-  "os == 'android'", # android(Bug 1189784)
-]
 
 ["test_peerConnection_twoAudioVideoStreamsCombined.html"]
-skip-if = [
-  "os == 'android'", # android(Bug 1189784)
-]
 
 ["test_peerConnection_twoAudioVideoStreamsCombinedNoBundle.html"]
-skip-if = [
-  "os == 'android'", # Bug 1189784
-]
 
 ["test_peerConnection_twoVideoStreams.html"]
 

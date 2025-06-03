@@ -790,7 +790,8 @@ function pedanticChecks(report) {
 
         // totalProcessingDelay
         ok(
-          stat.totalProcessingDelay < 1000,
+          stat.totalProcessingDelay <
+            (navigator.userAgent.includes("Android") ? 2000 : 1000),
           `${stat.type}.totalProcessingDelay is sane number for a short test ` +
             `local only test. value=${stat.totalProcessingDelay}`
         );

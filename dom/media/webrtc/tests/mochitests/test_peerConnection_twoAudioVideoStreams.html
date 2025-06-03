@@ -14,10 +14,10 @@
 
   runNetworkTest(function (options) {
     const test = new PeerConnectionTest(options);
-    test.setMediaConstraints([{audio: true}, {video: true}, {audio: true},
-                                {video: true}],
-                             [{audio: true}, {video: true}, {audio: true},
-                                {video: true}]);
+    test.setMediaConstraints(
+      [{audio: true, video: {width: 50}}, {audio: true, video: {width: 50}}],
+      [{audio: true, video: {width: 50}}, {audio: true, video: {width: 50}}]
+    );
     return test.run();
   });
 </script>

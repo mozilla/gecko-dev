@@ -15,10 +15,10 @@
 
   runNetworkTest(async (options) => {
     const test = new PeerConnectionTest(options);
-    test.setMediaConstraints([{audio: true, video: true},
-                                {audio: true, video: true}],
-                             [{audio: true, video: true},
-                                {audio: true, video: true}]);
+    test.setMediaConstraints(
+      [{audio: true, video: {width: 50}}, {audio: true, video: {width: 50}}],
+      [{audio: true, video: {width: 50}}, {audio: true, video: {width: 50}}]
+    );
 
     // Test stats, including coalescing of codec stats.
     test.chain.insertAfter("PC_LOCAL_WAIT_FOR_MEDIA_FLOW",

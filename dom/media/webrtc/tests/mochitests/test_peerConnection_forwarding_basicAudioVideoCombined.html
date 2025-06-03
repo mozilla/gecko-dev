@@ -12,6 +12,12 @@
   });
 
 runNetworkTest(async function() {
+  // [TODO] re-enable HW decoder after bug 1526207 is fixed.
+  if (navigator.userAgent.includes("Android")) {
+    await pushPrefs(["media.navigator.mediadatadecoder_vpx_enabled", false],
+                    ["media.webrtc.hw.h264.enabled", false]);
+  }
+
   var gumTest = new PeerConnectionTest();
 
   var forwardingOptions = { config_local: { label_suffix: "forwarded" },
