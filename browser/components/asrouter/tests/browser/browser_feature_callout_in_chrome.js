@@ -1233,3 +1233,176 @@ add_task(async function test_triggerTab_selector() {
   await BrowserTestUtils.closeWindow(win);
   sandbox.restore();
 });
+
+add_task(async function test_triggeredTabBookmark_selector() {
+  // Currently not supported on Linux, see Bug 1927472
+  if (AppConstants.platform === "linux") {
+    return;
+  }
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.toolbars.bookmarks.visibility", "always"]],
+  });
+  registerCleanupFunction(async () => {
+    await PlacesUtils.bookmarks.eraseEverything();
+    await SpecialPowers.popPrefEnv();
+  });
+
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const browser = win.gBrowser.selectedBrowser;
+  const testURL = "https://example.com/";
+  BrowserTestUtils.startLoadingURIString(browser, testURL);
+  await BrowserTestUtils.browserLoaded(browser);
+
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+    title: "Test",
+    url: testURL,
+  });
+
+  const config = {
+    win,
+    location: "chrome",
+    context: "chrome",
+    browser,
+    theme: { preset: "chrome" },
+  };
+
+  const message = JSON.parse(JSON.stringify(testMessage.message));
+  message.content.screens[0].anchors[0].selector = "%triggeredTabBookmark%";
+
+  const sandbox = sinon.createSandbox();
+  const doc = win.document;
+  const featureCallout = new FeatureCallout(config);
+  const getAnchorSpy = sandbox.spy(featureCallout, "_getAnchor");
+
+  await featureCallout.showFeatureCallout(message);
+  await waitForCalloutScreen(doc, message.content.screens[0].id);
+
+  const [anchor] = getAnchorSpy.returnValues;
+
+  Assert.strictEqual(
+    anchor?.element?.classList.contains("bookmark-item"),
+    true,
+    "Resolved anchor element is a bookmark item"
+  );
+
+  Assert.strictEqual(
+    anchor.element?._placesNode?.uri,
+    testURL,
+    "Resolved bookmark matches triggered tab URI"
+  );
+
+  doc.querySelector(calloutCTASelector).click();
+  await waitForCalloutRemoved(doc);
+
+  sandbox.restore();
+  await BrowserTestUtils.closeWindow(win);
+});
+
+add_task(async function test_triggeredTabBookmark_selector_fallback_overflow() {
+  // Currently not supported on Linux, see Bug 1927472
+  if (AppConstants.platform === "linux") {
+    return;
+  }
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.toolbars.bookmarks.visibility", "always"]],
+  });
+  registerCleanupFunction(async () => {
+    await PlacesUtils.bookmarks.eraseEverything();
+    await SpecialPowers.popPrefEnv();
+  });
+
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const browser = win.gBrowser.selectedBrowser;
+  const testURL = "https://example.com/";
+  BrowserTestUtils.startLoadingURIString(browser, testURL);
+  await BrowserTestUtils.browserLoaded(browser);
+
+  // Add filler bookmark first
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+    title: "Filler Bookmark",
+    url: testURL,
+  });
+
+  const placesToolbarItems = win.document.getElementById("PlacesToolbarItems");
+  const placesChevron = win.document.getElementById("PlacesChevron");
+
+  // Resize the toolbar to force overflow
+  placesToolbarItems.style.maxWidth = "10px";
+  await TestUtils.waitForCondition(
+    () => !placesChevron.collapsed,
+    "Waiting for bookmarks toolbar to overflow"
+  );
+
+  await TestUtils.waitForCondition(
+    async () => (await win.PlacesToolbarHelper.getIsEmpty()) === false,
+    "Waiting for the Bookmarks toolbar to have been rebuilt and not be empty"
+  );
+  if (
+    win.PlacesToolbarHelper._viewElt._placesView._updateNodesVisibilityTimer
+  ) {
+    await BrowserTestUtils.waitForEvent(
+      win,
+      "BookmarksToolbarVisibilityUpdated"
+    );
+  }
+
+  // Add the target bookmark so it overflows
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.toolbarGuid,
+    title: "Overflow Bookmark",
+    url: testURL,
+  });
+
+  await new Promise(resolve => win.requestAnimationFrame(resolve));
+
+  await TestUtils.waitForCondition(() => {
+    const match = [
+      ...placesToolbarItems.querySelectorAll(".bookmark-item"),
+    ].find(el => el._placesNode?.uri === testURL);
+    if (!match) {
+      return false;
+    }
+    const style = win.getComputedStyle(match);
+    return style.visibility === "hidden" || style.display === "none";
+  }, "Waiting for test bookmark to be hidden due to overflow");
+
+  const config = {
+    win,
+    location: "chrome",
+    context: "chrome",
+    browser,
+    theme: { preset: "chrome" },
+  };
+
+  const message = JSON.parse(JSON.stringify(testMessage.message));
+  message.content.screens[0].anchors = [
+    { selector: "%triggeredTabBookmark%", arrow_position: "top" },
+    { selector: "#PlacesToolbarItems", arrow_position: "top" },
+  ];
+
+  const sandbox = sinon.createSandbox();
+  const doc = win.document;
+  const featureCallout = new FeatureCallout(config);
+  const getAnchorSpy = sandbox.spy(featureCallout, "_getAnchor");
+
+  await featureCallout.showFeatureCallout(message);
+  await waitForCalloutScreen(doc, message.content.screens[0].id);
+
+  const [anchor] = getAnchorSpy.returnValues;
+
+  Assert.strictEqual(
+    anchor?.element?.id,
+    "PlacesToolbarItems",
+    "Anchor resolved to fallback when triggeredTabBookmark was overflowed"
+  );
+
+  doc.querySelector(calloutCTASelector).click();
+  await waitForCalloutRemoved(doc);
+  placesToolbarItems.style.removeProperty("max-width");
+  sandbox.restore();
+  await BrowserTestUtils.closeWindow(win);
+});

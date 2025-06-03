@@ -1461,6 +1461,432 @@ const MESSAGES = () => {
         id: "nthTabClosed",
       },
     },
+    {
+      id: "RECOMMEND_BOOKMARKS_TOOLBAR",
+      groups: ["cfr"],
+      template: "feature_callout",
+      content: {
+        id: "RECOMMEND_BOOKMARKS_TOOLBAR",
+        template: "multistage",
+        backdrop: "transparent",
+        transitions: false,
+        disableHistoryUpdates: true,
+        screens: [
+          {
+            id: "RECOMMEND_BOOKMARKS_TOOLBAR_1",
+            force_hide_steps_indicator: true,
+            anchors: [
+              {
+                selector:
+                  "#tabbrowser-tabs:not([overflow]) %triggerTab%[visuallyselected] .tab-content .tab-icon-stack",
+                panel_position: {
+                  anchor_attachment: "bottomcenter",
+                  callout_attachment: "topleft",
+                  offset_x: -3,
+                  offset_y: 4,
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "370px",
+              padding: 16,
+              logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/recommend-bookmarks-toolbar/bookmarks-toolbar-light.svg",
+                darkModeImageURL:
+                  "chrome://browser/content/asrouter/assets/recommend-bookmarks-toolbar/bookmarks-toolbar-dark.svg",
+                height: "170px",
+                width: "338px",
+              },
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/smiling-fox-icon.svg",
+                alignment: "top",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 12px",
+              },
+              title: {
+                string_id: "bookmarks-toolbar-callout-1-title",
+              },
+              subtitle: {
+                string_id: "bookmarks-toolbar-callout-1-subtitle",
+                marginInline: "28px 0",
+                marginBlock: "-8px 0",
+              },
+              additional_button: {
+                label: {
+                  string_id:
+                    "bookmarks-toolbar-callout-1-secondary-button-label",
+                },
+                style: "secondary",
+                action: {
+                  type: "SET_BOOKMARKS_TOOLBAR_VISIBILITY",
+                  data: {
+                    visibility: "always",
+                  },
+                  advance_screens: {
+                    id: "RECOMMEND_BOOKMARKS_TOOLBAR_2B_DECLINE",
+                  },
+                  navigate: true,
+                },
+              },
+              submenu_button: {
+                submenu: [
+                  {
+                    type: "action",
+                    label: {
+                      string_id: "split-dismiss-button-dont-show-option",
+                    },
+                    action: {
+                      type: "BLOCK_MESSAGE",
+                      data: {
+                        id: "RECOMMEND_BOOKMARKS_TOOLBAR",
+                      },
+                      dismiss: true,
+                    },
+                    id: "block_recommendation",
+                  },
+                  {
+                    type: "action",
+                    label: {
+                      string_id: "split-dismiss-button-show-fewer-option",
+                    },
+                    action: {
+                      type: "MULTI_ACTION",
+                      dismiss: true,
+                      data: {
+                        actions: [
+                          {
+                            type: "SET_PREF",
+                            data: {
+                              pref: {
+                                name: "messaging-system-action.show-fewer-bookmarks-recommendations",
+                                value: true,
+                              },
+                            },
+                          },
+                          {
+                            type: "BLOCK_MESSAGE",
+                            data: {
+                              id: "RECOMMEND_BOOKMARKS_TOOLBAR",
+                            },
+                          },
+                        ],
+                      },
+                    },
+                    id: "show_fewer_recommendations",
+                  },
+                  {
+                    type: "separator",
+                  },
+                  {
+                    type: "action",
+                    label: {
+                      string_id: "split-dismiss-button-manage-settings-option",
+                    },
+                    action: {
+                      type: "OPEN_ABOUT_PAGE",
+                      data: {
+                        args: "preferences#general-cfrfeatures",
+                        where: "tab",
+                      },
+                      dismiss: true,
+                    },
+                    id: "manage_settings",
+                  },
+                ],
+                attached_to: "additional_button",
+              },
+              secondary_button: {
+                label: {
+                  string_id: "bookmarks-toolbar-callout-1-primary-button-label",
+                },
+                style: "primary",
+                action: {
+                  type: "MULTI_ACTION",
+                  advance_screens: {
+                    id: "RECOMMEND_BOOKMARKS_TOOLBAR_2A_ACCEPT",
+                  },
+                  navigate: true,
+                  data: {
+                    actions: [
+                      {
+                        type: "BOOKMARK_CURRENT_TAB",
+                        data: {
+                          shouldHideDialog: true,
+                          shouldHideConfirmationHint: true,
+                        },
+                      },
+                      {
+                        type: "SET_BOOKMARKS_TOOLBAR_VISIBILITY",
+                        data: {
+                          visibility: "always",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          {
+            id: "RECOMMEND_BOOKMARKS_TOOLBAR_2A_ACCEPT",
+            force_hide_steps_indicator: true,
+            anchors: [
+              {
+                selector: "%triggeredTabBookmark%",
+                panel_position: {
+                  offset_x: 12,
+                  anchor_attachment: "bottomleft",
+                  callout_attachment: "topleft",
+                },
+              },
+              {
+                selector: "#PlacesToolbarItems",
+                panel_position: {
+                  anchor_attachment: "bottomleft",
+                  callout_attachment: "topleft",
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "370px",
+              padding: 16,
+              logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/recommend-bookmarks-toolbar/drag-drop-bookmark-light.svg",
+                darkModeImageURL:
+                  "chrome://browser/content/asrouter/assets/recommend-bookmarks-toolbar/drag-drop-bookmark-dark.svg",
+                height: "170px",
+                width: "338px",
+              },
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/double-star-icon.svg",
+                alignment: "top",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 12px",
+              },
+              title: {
+                string_id: "bookmarks-toolbar-callout-2a-title",
+              },
+              subtitle: {
+                string_id: "bookmarks-toolbar-callout-2a-subtitle",
+                marginInline: "28px 0",
+                marginBlock: "-8px 0",
+              },
+              secondary_button: {
+                label: {
+                  string_id:
+                    "bookmarks-toolbar-callout-2a-primary-button-label",
+                },
+                style: "primary",
+                action: {
+                  type: "BLOCK_MESSAGE",
+                  data: {
+                    id: "RECOMMEND_BOOKMARKS_TOOLBAR",
+                  },
+                  dismiss: true,
+                },
+              },
+              primary_button: {
+                label: {
+                  string_id:
+                    "bookmarks-toolbar-callout-2a-secondary-button-label",
+                },
+                style: "secondary",
+                action: {
+                  type: "MULTI_ACTION",
+                  dismiss: true,
+                  data: {
+                    actions: [
+                      {
+                        type: "SET_BOOKMARKS_TOOLBAR_VISIBILITY",
+                        data: {
+                          visibility: "newtab",
+                        },
+                      },
+                      {
+                        type: "BLOCK_MESSAGE",
+                        data: {
+                          id: "RECOMMEND_BOOKMARKS_TOOLBAR",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          {
+            id: "RECOMMEND_BOOKMARKS_TOOLBAR_2B_DECLINE",
+            force_hide_steps_indicator: true,
+            anchors: [
+              {
+                selector:
+                  "#PersonalToolbar:has(#import-button) #PlacesToolbarItems",
+                panel_position: {
+                  anchor_attachment: "bottomleft",
+                  callout_attachment: "topleft",
+                },
+              },
+              {
+                selector: "#PlacesToolbarItems",
+                panel_position: {
+                  anchor_attachment: "bottomleft",
+                  callout_attachment: "topleft",
+                  offset_x: 24,
+                },
+              },
+            ],
+            content: {
+              position: "callout",
+              width: "370px",
+              padding: 16,
+              logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/recommend-bookmarks-toolbar/drag-drop-bookmark-light.svg",
+                darkModeImageURL:
+                  "chrome://browser/content/asrouter/assets/recommend-bookmarks-toolbar/drag-drop-bookmark-dark.svg",
+                height: "170px",
+                width: "338px",
+              },
+              title_logo: {
+                imageURL:
+                  "chrome://browser/content/asrouter/assets/double-star-icon.svg",
+                alignment: "top",
+                width: "24px",
+                height: "24px",
+                marginInline: "0 12px",
+              },
+              title: {
+                string_id: "bookmarks-toolbar-callout-2b-title",
+              },
+              subtitle: {
+                string_id: "bookmarks-toolbar-callout-2b-subtitle",
+                marginInline: "28px 0",
+                marginBlock: "-8px 0",
+              },
+              secondary_button: {
+                label: {
+                  string_id:
+                    "bookmarks-toolbar-callout-2b-primary-button-label",
+                },
+                style: "primary",
+                action: {
+                  type: "BLOCK_MESSAGE",
+                  data: {
+                    id: "RECOMMEND_BOOKMARKS_TOOLBAR",
+                  },
+                  dismiss: true,
+                },
+              },
+              primary_button: {
+                label: {
+                  string_id:
+                    "bookmarks-toolbar-callout-2b-secondary-button-label",
+                },
+                style: "secondary",
+                action: {
+                  type: "MULTI_ACTION",
+                  dismiss: true,
+                  data: {
+                    actions: [
+                      {
+                        type: "SET_BOOKMARKS_TOOLBAR_VISIBILITY",
+                        data: {
+                          visibility: "newtab",
+                        },
+                      },
+                      {
+                        type: "BLOCK_MESSAGE",
+                        data: {
+                          id: "RECOMMEND_BOOKMARKS_TOOLBAR",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+      frequency: {
+        lifetime: 1,
+      },
+      priority: 1,
+      targeting:
+        "'browser.toolbars.bookmarks.visibility'|preferenceIsUserSet == false && visitsCount >= 3 && (currentDate|date - profileAgeCreated|date) / 86400000 >= 7 && !os.isLinux && !willShowDefaultPrompt && !activeNotifications && previousSessionEnd && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false",
+      trigger: {
+        id: "openURL",
+        patterns: [
+          "https://mail.google.com/*",
+          "https://mail.aol.com/*",
+          "https://outlook.live.com/*",
+          "https://app.neo.space/mail/*",
+          "https://mail.yahoo.com/*",
+          "https://www.icloud.com/mail/*",
+          "https://www.zoho.com/mail/*",
+          "https://account.proton.me/mail/*",
+          "https://navigator-bs.gmx.com/mail/*",
+          "https://tuta.com/*",
+          "https://mailfence.com/*",
+          "https://360.yandex.com/mail/*",
+          "https://titan.email/*",
+          "https://posteo.de/en/*",
+          "https://runbox.com/*",
+          "https://webmail.countermail.com/*",
+          "https://kolabnow.com/*",
+          "https://soverin.net/mail/*",
+          "https://calendar.google.com/*",
+          "https://www.calendar.com/*",
+          "https://www.icloud.com/calendar/*",
+          "https://www.zoho.com/calendar/*",
+          "https://www.cozi.com/*",
+          "https://kalender.digital/*",
+          "https://www.kalender.com/*",
+          "https://proton.me/de/calendar/*",
+          "https://www.stackfield.com/de/*",
+          "https://www.any.do/*",
+          "https://zeeg.me/en/*",
+          "https://www.pandora.com/*",
+          "https://open.spotify.com/*",
+          "https://tunein.com/radio/home/*",
+          "https://www.iheart.com/*",
+          "https://www.accuradio.com/*",
+          "https://www.siriusxm.com/*",
+          "https://www.jango.com/*",
+          "https://live365.com/*",
+          "https://www.radioguide.fm/*",
+          "https://worldwidefm.net/*",
+          "https://www.radio.net/s/fip/*",
+          "https://www.nts.live/*",
+          "https://vintagefm.com.au/*",
+          "https://www.kcrw.com/music/shows/eclectic24/*",
+          "https://sohoradiolondon.com/*",
+          "https://power1051.iheart.com/*",
+          "https://www.balamii.com/*",
+          "https://www.cinemix.us/*",
+          "https://www.kexp.org/*",
+          "https://www.dublab.com/*",
+          "https://www.facebook.com/*",
+          "https://www.reddit.com/*",
+          "https://www.instagram.com/*",
+          "https://www.TikTok.com/*",
+          "https://www.Pinterest.com/*",
+          "https://twitter.com/*",
+          "https://www.linkedin.com/*",
+          "https://www.quora.com/*",
+          "https://www.tumblr.com/*",
+        ],
+      },
+      skip_in_tests: "it's not tested in automation",
+    },
   ];
   messages = add24HourImpressionJEXLTargeting(
     ["FIREFOX_VIEW_TAB_PICKUP_REMINDER"],

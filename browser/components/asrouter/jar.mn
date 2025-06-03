@@ -34,3 +34,8 @@ browser.jar:
   content/browser/asrouter/assets/desktop-to-mobile-eu-QR.svg            (content/assets/desktop-to-mobile-eu-QR.svg)
   content/browser/asrouter/assets/desktop-to-mobile-banner.svg           (content/assets/desktop-to-mobile-banner.svg)
   content/browser/asrouter/assets/fox-question-mark-icon.svg             (content/assets/fox-question-mark-icon.svg)
+  content/browser/asrouter/assets/double-star-icon.svg                   (content/assets/double-star-icon.svg)
+  content/browser/asrouter/assets/recommend-bookmarks-toolbar/bookmarks-toolbar-light.svg       (content/assets/recommend-bookmarks-toolbar/bookmarks-toolbar-light.svg)
+  content/browser/asrouter/assets/recommend-bookmarks-toolbar/bookmarks-toolbar-dark.svg        (content/assets/recommend-bookmarks-toolbar/bookmarks-toolbar-dark.svg)
+  content/browser/asrouter/assets/recommend-bookmarks-toolbar/drag-drop-bookmark-light.svg       (content/assets/recommend-bookmarks-toolbar/drag-drop-bookmark-light.svg)
+  content/browser/asrouter/assets/recommend-bookmarks-toolbar/drag-drop-bookmark-dark.svg        (content/assets/recommend-bookmarks-toolbar/drag-drop-bookmark-dark.svg)

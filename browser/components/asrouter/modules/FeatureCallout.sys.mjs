@@ -718,65 +718,29 @@ export class FeatureCallout {
         );
         continue;
       }
-      let scope = this.doc.documentElement;
-      // %triggerTab% is a special token that gets replaced with :scope, and
-      // instructs us to look for the anchor element within the trigger tab.
-      if (this.browser && selector.includes("%triggerTab%")) {
-        let triggerTab = this.browser.ownerGlobal.gBrowser?.getTabForBrowser(
-          this.browser
-        );
-        if (triggerTab) {
-          selector = selector.replace("%triggerTab%", ":scope");
-          scope = triggerTab;
-        } else {
-          continue;
-        }
+
+      const resolvedSelectorAndScope = this._resolveSelectorAndScope(selector);
+      // Attempt to resolve the selector into a usable DOM context.
+      // Handles special tokens like %triggerTab%, shadow DOM traversal (::%shadow%), etc.
+      // If resolution fails (e.g., element is not visible or overflows), returns null.
+      // Applies to both plain selectors and tokenized ones.
+      if (!resolvedSelectorAndScope) {
+        continue;
       }
-      if (selector.includes("::%shadow%")) {
-        let parts = selector.split("::%shadow%");
-        for (let i = 0; i < parts.length; i++) {
-          selector = parts[i].trim();
-          if (i === parts.length - 1) {
-            break;
-          }
-          let el = scope.querySelector(selector);
-          if (!el) {
-            break;
-          }
-          if (el.shadowRoot) {
-            scope = el.shadowRoot;
-          }
-        }
-      }
-      let element = scope.querySelector(selector);
+      const { scope, selector: resolvedSelector } = resolvedSelectorAndScope;
+      let element = scope.querySelector(resolvedSelector);
+
       // The element may not be a child of the scope, but the scope itself. For
       // example, if we're anchoring directly to the trigger tab, our selector
       // might look like `%triggerTab%[visuallyselected]`. In this case,
       // querySelector() will return nothing, but matches() will return true.
-      if (!element && scope.matches?.(selector)) {
+      if (!element && scope.matches?.(resolvedSelector)) {
         element = scope;
       }
       if (!element) {
         continue; // Element doesn't exist at all.
       }
-      const isVisible = () => {
-        if (
-          this.context === "chrome" &&
-          typeof this.win.isElementVisible === "function"
-        ) {
-          // In chrome windows, we can use the isElementVisible function to
-          // check that the element has non-zero width and height. If it was
-          // hidden, it would most likely have zero width and/or height.
-          if (!this.win.isElementVisible(element)) {
-            return false;
-          }
-        }
-        // CSS rules like visibility: hidden or display: none. These result in
-        // element being invisible and unclickable.
-        const style = this.win.getComputedStyle(element);
-        return style?.visibility === "visible" && style?.display !== "none";
-      };
-      if (!isVisible()) {
+      if (!this._isElementVisible(element)) {
         continue;
       }
       if (
@@ -801,6 +765,148 @@ export class FeatureCallout {
       return { ...anchor, element };
     }
     return null;
+  }
+
+  _isElementVisible(el) {
+    if (
+      this.context === "chrome" &&
+      typeof this.win.isElementVisible === "function" &&
+      !this.win.isElementVisible(el)
+    ) {
+      return false;
+    }
+
+    const style = this.win.getComputedStyle(el);
+    return style?.visibility === "visible" && style?.display !== "none";
+  }
+
+  /**
+   * Resolves selector tokens into a usable scope and selector.
+   *
+   * The selector string may contain custom tokens that are substituted and resolved
+   * against the appropriate DOM context.
+   *
+   * Supported custom tokens:
+   * - %triggerTab%: The <tab> element associated with the current browser.
+   * - %triggeredTabBookmark%: Bookmark item in the toolbar matching the current tab's URL or label.
+   * - ::%shadow%: Traverses nested shadow DOM boundaries.
+   *
+   * @param {string} selector
+   * @returns {{scope: Element, selector: string} | null}
+   */
+  _resolveSelectorAndScope(selector) {
+    let scope = this.doc.documentElement;
+    let normalizedSelector = selector;
+
+    // %triggerTab%
+    if (this.browser && normalizedSelector.includes("%triggerTab%")) {
+      const triggerTab = this.browser.ownerGlobal.gBrowser?.getTabForBrowser(
+        this.browser
+      );
+      if (!triggerTab) {
+        lazy.log.debug(
+          `In ${this.location}: Failed to resolve %triggerTab% in selector: ${selector}`
+        );
+        return null;
+      }
+      scope = triggerTab;
+      normalizedSelector = normalizedSelector.replace("%triggerTab%", ":scope");
+    }
+
+    // %triggeredTabBookmark%
+    if (normalizedSelector.includes("%triggeredTabBookmark%")) {
+      const gBrowser = this.browser?.ownerGlobal?.gBrowser;
+      const tab = gBrowser?.getTabForBrowser(this.browser);
+      const url = this.browser?.currentURI?.spec;
+      const label = tab?.label;
+      const toolbar = this.doc.getElementById("PersonalToolbar");
+      const scrollbox = this.doc.getElementById("PlacesToolbarItems");
+
+      // Early return if the toolbar is collapsed or missing context
+      if (!toolbar || toolbar.collapsed || !scrollbox || (!url && !label)) {
+        lazy.log.debug(
+          `In ${this.location}: Bookmarks toolbar is collapsed: ${selector}`
+        );
+        return null;
+      }
+
+      // If a selector prefix is provided before the %triggeredTabBookmark% token,
+      // resolve it as the root scope. If there's a selector suffix after the token,
+      // it is appended to the resolved element using :scope as the base,
+      // e.g. `:root %triggeredTabBookmark% > image` becomes `:scope > image`.
+      const [preTokenSelector, postTokenSelector = ""] =
+        normalizedSelector.split("%triggeredTabBookmark%");
+      const rootScope = preTokenSelector.trim()
+        ? this.doc.querySelector(preTokenSelector.trim())
+        : this.doc;
+
+      const match = [
+        ...rootScope.querySelectorAll("#PlacesToolbarItems .bookmark-item"),
+      ].find(el => {
+        const node = el._placesNode;
+        return (
+          node &&
+          (node.uri === url ||
+            [this.browser.contentTitle, url].includes(node.title) ||
+            el.getAttribute("label") === label)
+        );
+      });
+
+      if (!match) {
+        lazy.log.debug(
+          `In ${this.location}: No bookmark matched. Tab URL: ${url}, Tab Title: ${this.browser.contentTitle}, History Title: ${this._cachedHistoryTitle?.title}`
+        );
+        return null;
+      }
+
+      if (!this._isElementVisible(match)) {
+        lazy.log.debug(
+          `In ${this.location}: Bookmark item is not visible or overflowed: ${selector}`
+        );
+        return null;
+      }
+
+      scope = match;
+      normalizedSelector = `:scope${postTokenSelector}`;
+    }
+
+    // ::%shadow%
+    if (normalizedSelector.includes("::%shadow%")) {
+      let parts = normalizedSelector.split("::%shadow%");
+      for (let i = 0; i < parts.length; i++) {
+        normalizedSelector = parts[i].trim();
+        if (i === parts.length - 1) {
+          break;
+        }
+        let el = scope.querySelector(normalizedSelector);
+        if (!el) {
+          break;
+        }
+        if (el.shadowRoot) {
+          scope = el.shadowRoot;
+        }
+      }
+    }
+
+    // Attempts to resolve the final element using the normalized selector and
+    // scope. If querySelector fails (e.g. when the selector is ":scope"), fall
+    // back to checking whether the scope itself matches the selector. This is
+    // necessary for cases like "%triggeredTabBookmark%" or "%triggerTab%",
+    // where the target element is the scope.
+    let element = scope.querySelector(normalizedSelector);
+    if (!element && scope.matches?.(normalizedSelector)) {
+      element = scope;
+    }
+    if (!element || !this._isElementVisible(element)) {
+      lazy.log.debug(
+        `In ${this.location}: Selector failed to resolve or is not visible: ${normalizedSelector}`
+      );
+      return null;
+    }
+
+    // Use the matched element as the anchor by returning it as scope,
+    // and ":scope" as the selector so it matches itself in _getAnchor().
+    return { scope: element, selector: ":scope" };
   }
 
   /** @see PopupAttachmentPoint */
