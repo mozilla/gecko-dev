@@ -6561,12 +6561,16 @@ MDefinition* MIsObject::foldsTo(TempAllocator& alloc) {
 }
 
 MDefinition* MIsNullOrUndefined::foldsTo(TempAllocator& alloc) {
-  MDefinition* input = value();
-  if (!input->isBox()) {
-    return this;
+  // MIsNullOrUndefined doesn't have a type-policy, so the value can already be
+  // unboxed.
+  MDefinition* unboxed = value();
+  if (unboxed->type() == MIRType::Value) {
+    if (!unboxed->isBox()) {
+      return this;
+    }
+    unboxed = unboxed->toBox()->input();
   }
 
-  MDefinition* unboxed = input->toBox()->input();
   return MConstant::New(alloc,
                         BooleanValue(IsNullOrUndefined(unboxed->type())));
 }
