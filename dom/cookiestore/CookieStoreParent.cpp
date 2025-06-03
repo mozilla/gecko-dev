@@ -74,7 +74,8 @@ CookieStoreParent::~CookieStoreParent() {
 }
 
 mozilla::ipc::IPCResult CookieStoreParent::RecvGetRequest(
-    nsIURI* aCookieURI, const OriginAttributes& aOriginAttributes,
+    NotNull<RefPtr<nsIURI>> aCookieURI,
+    const OriginAttributes& aOriginAttributes,
     const Maybe<OriginAttributes>& aPartitionedOriginAttributes,
     const bool& aThirdPartyContext, const bool& aPartitionForeign,
     const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
@@ -83,7 +84,7 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvGetRequest(
   AssertIsOnBackgroundThread();
 
   InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
-              [self = RefPtr(this), uri = RefPtr{aCookieURI}, aOriginAttributes,
+              [self = RefPtr(this), uri = aCookieURI.get(), aOriginAttributes,
                aPartitionedOriginAttributes, aThirdPartyContext,
                aPartitionForeign, aUsingStorageAccess, aIsOn3PCBExceptionList,
                aMatchName, aName, aPath, aOnlyFirstMatch]() {
@@ -107,13 +108,14 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvGetRequest(
 }
 
 mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
-    nsIURI* aCookieURI, const OriginAttributes& aOriginAttributes,
-    const bool& aThirdPartyContext, const bool& aPartitionForeign,
-    const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
-    const nsString& aName, const nsString& aValue, const bool& aSession,
-    const int64_t& aExpires, const nsString& aDomain, const nsString& aPath,
-    const int32_t& aSameSite, const bool& aPartitioned,
-    const nsID& aOperationID, SetRequestResolver&& aResolver) {
+    NotNull<RefPtr<nsIURI>> aCookieURI,
+    const OriginAttributes& aOriginAttributes, const bool& aThirdPartyContext,
+    const bool& aPartitionForeign, const bool& aUsingStorageAccess,
+    const bool& aIsOn3PCBExceptionList, const nsString& aName,
+    const nsString& aValue, const bool& aSession, const int64_t& aExpires,
+    const nsString& aDomain, const nsString& aPath, const int32_t& aSameSite,
+    const bool& aPartitioned, const nsID& aOperationID,
+    SetRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
   RefPtr<ThreadsafeContentParentHandle> parent =
@@ -121,7 +123,7 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
 
   InvokeAsync(
       GetMainThreadSerialEventTarget(), __func__,
-      [self = RefPtr(this), parent = RefPtr(parent), uri = RefPtr{aCookieURI},
+      [self = RefPtr(this), parent = RefPtr(parent), uri = aCookieURI.get(),
        aDomain, aOriginAttributes, aThirdPartyContext, aPartitionForeign,
        aUsingStorageAccess, aIsOn3PCBExceptionList, aName, aValue, aSession,
        aExpires, aPath, aSameSite, aPartitioned, aOperationID]() {
@@ -144,12 +146,12 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
 }
 
 mozilla::ipc::IPCResult CookieStoreParent::RecvDeleteRequest(
-    nsIURI* aCookieURI, const OriginAttributes& aOriginAttributes,
-    const bool& aThirdPartyContext, const bool& aPartitionForeign,
-    const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
-    const nsString& aName, const nsString& aDomain, const nsString& aPath,
-    const bool& aPartitioned, const nsID& aOperationID,
-    DeleteRequestResolver&& aResolver) {
+    NotNull<RefPtr<nsIURI>> aCookieURI,
+    const OriginAttributes& aOriginAttributes, const bool& aThirdPartyContext,
+    const bool& aPartitionForeign, const bool& aUsingStorageAccess,
+    const bool& aIsOn3PCBExceptionList, const nsString& aName,
+    const nsString& aDomain, const nsString& aPath, const bool& aPartitioned,
+    const nsID& aOperationID, DeleteRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
   RefPtr<ThreadsafeContentParentHandle> parent =
@@ -157,7 +159,7 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvDeleteRequest(
 
   InvokeAsync(
       GetMainThreadSerialEventTarget(), __func__,
-      [self = RefPtr(this), parent = RefPtr(parent), uri = RefPtr{aCookieURI},
+      [self = RefPtr(this), parent = RefPtr(parent), uri = aCookieURI.get(),
        aDomain, aOriginAttributes, aThirdPartyContext, aPartitionForeign,
        aUsingStorageAccess, aIsOn3PCBExceptionList, aName, aPath, aPartitioned,
        aOperationID]() {
@@ -265,7 +267,7 @@ bool HasHostPrefix(const nsAString& aCookieName) {
 }  // namespace util
 
 void CookieStoreParent::GetRequestOnMainThread(
-    nsIURI* aCookieURI, const OriginAttributes& aOriginAttributes,
+    const RefPtr<nsIURI> aCookieURI, const OriginAttributes& aOriginAttributes,
     const Maybe<OriginAttributes>& aPartitionedOriginAttributes,
     bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
     bool aIsOn3PCBExceptionList, bool aMatchName, const nsAString& aName,
@@ -349,7 +351,7 @@ void CookieStoreParent::GetRequestOnMainThread(
 }
 
 bool CookieStoreParent::SetRequestOnMainThread(
-    ThreadsafeContentParentHandle* aParent, nsIURI* aCookieURI,
+    ThreadsafeContentParentHandle* aParent, const RefPtr<nsIURI> aCookieURI,
     const nsAString& aDomain, const OriginAttributes& aOriginAttributes,
     bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
     bool aIsOn3PCBExceptionList, const nsAString& aName,
@@ -444,7 +446,7 @@ bool CookieStoreParent::SetRequestOnMainThread(
 }
 
 bool CookieStoreParent::DeleteRequestOnMainThread(
-    ThreadsafeContentParentHandle* aParent, nsIURI* aCookieURI,
+    ThreadsafeContentParentHandle* aParent, const RefPtr<nsIURI> aCookieURI,
     const nsAString& aDomain, const OriginAttributes& aOriginAttributes,
     bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
     bool aIsOn3PCBExceptionList, const nsAString& aName, const nsAString& aPath,

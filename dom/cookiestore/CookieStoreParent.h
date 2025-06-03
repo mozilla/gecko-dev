@@ -34,7 +34,8 @@ class CookieStoreParent final : public PCookieStoreParent {
   ~CookieStoreParent();
 
   mozilla::ipc::IPCResult RecvGetRequest(
-      nsIURI* aCookieURI, const OriginAttributes& aOriginAttributes,
+      NotNull<RefPtr<nsIURI>> aCookieURI,
+      const OriginAttributes& aOriginAttributes,
       const Maybe<OriginAttributes>& aPartitionedOriginAttributes,
       const bool& aThirdPartyContext, const bool& aPartitionForeign,
       const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
@@ -42,21 +43,22 @@ class CookieStoreParent final : public PCookieStoreParent {
       const bool& aOnlyFirstMatch, GetRequestResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvSetRequest(
-      nsIURI* aCookieURI, const OriginAttributes& aOriginAttributes,
-      const bool& aThirdPartyContext, const bool& aPartitionForeign,
-      const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
-      const nsString& aName, const nsString& aValue, const bool& aSession,
-      const int64_t& aExpires, const nsString& aDomain, const nsString& aPath,
-      const int32_t& aSameSite, const bool& aPartitioned,
-      const nsID& aOperationID, SetRequestResolver&& aResolver);
+      NotNull<RefPtr<nsIURI>> aCookieURI,
+      const OriginAttributes& aOriginAttributes, const bool& aThirdPartyContext,
+      const bool& aPartitionForeign, const bool& aUsingStorageAccess,
+      const bool& aIsOn3PCBExceptionList, const nsString& aName,
+      const nsString& aValue, const bool& aSession, const int64_t& aExpires,
+      const nsString& aDomain, const nsString& aPath, const int32_t& aSameSite,
+      const bool& aPartitioned, const nsID& aOperationID,
+      SetRequestResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvDeleteRequest(
-      nsIURI* aCookieURI, const OriginAttributes& aOriginAttributes,
-      const bool& aThirdPartyContext, const bool& aPartitionForeign,
-      const bool& aUsingStorageAccess, const bool& aIsOn3PCBExceptionList,
-      const nsString& aName, const nsString& aDomain, const nsString& aPath,
-      const bool& aPartitioned, const nsID& aOperationID,
-      DeleteRequestResolver&& aResolver);
+      NotNull<RefPtr<nsIURI>> aCookieURI,
+      const OriginAttributes& aOriginAttributes, const bool& aThirdPartyContext,
+      const bool& aPartitionForeign, const bool& aUsingStorageAccess,
+      const bool& aIsOn3PCBExceptionList, const nsString& aName,
+      const nsString& aDomain, const nsString& aPath, const bool& aPartitioned,
+      const nsID& aOperationID, DeleteRequestResolver&& aResolver);
 
   mozilla::ipc::IPCResult RecvGetSubscriptionsRequest(
       const PrincipalInfo& aPrincipalInfo, const nsCString& aScopeURL,
@@ -70,7 +72,8 @@ class CookieStoreParent final : public PCookieStoreParent {
   mozilla::ipc::IPCResult RecvClose();
 
   void GetRequestOnMainThread(
-      nsIURI* aCookieURI, const OriginAttributes& aOriginAttributes,
+      const RefPtr<nsIURI> aCookieURI,
+      const OriginAttributes& aOriginAttributes,
       const Maybe<OriginAttributes>& aPartitionedOriginAttributes,
       bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
       bool aIsOn3PCBExceptionList, bool aMatchName, const nsAString& aName,
@@ -79,21 +82,19 @@ class CookieStoreParent final : public PCookieStoreParent {
 
   // Returns true if a cookie notification has been generated while completing
   // the operation.
-  bool SetRequestOnMainThread(ThreadsafeContentParentHandle* aParent,
-                              nsIURI* aCookieURI, const nsAString& aDomain,
-                              const OriginAttributes& aOriginAttributes,
-                              bool aThirdPartyContext, bool aPartitionForeign,
-                              bool aUsingStorageAccess,
-                              bool aIsOn3PCBExceptionList,
-                              const nsAString& aName, const nsAString& aValue,
-                              bool aSession, int64_t aExpires,
-                              const nsAString& aPath, int32_t aSameSite,
-                              bool aPartitioned, const nsID& aOperationID);
+  bool SetRequestOnMainThread(
+      ThreadsafeContentParentHandle* aParent, const RefPtr<nsIURI> aCookieURI,
+      const nsAString& aDomain, const OriginAttributes& aOriginAttributes,
+      bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
+      bool aIsOn3PCBExceptionList, const nsAString& aName,
+      const nsAString& aValue, bool aSession, int64_t aExpires,
+      const nsAString& aPath, int32_t aSameSite, bool aPartitioned,
+      const nsID& aOperationID);
 
   // Returns true if a cookie notification has been generated while completing
   // the operation.
   bool DeleteRequestOnMainThread(
-      ThreadsafeContentParentHandle* aParent, nsIURI* aCookieURI,
+      ThreadsafeContentParentHandle* aParent, const RefPtr<nsIURI> aCookieURI,
       const nsAString& aDomain, const OriginAttributes& aOriginAttributes,
       bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
       bool aIsOn3PCBExceptionList, const nsAString& aName,

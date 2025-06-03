@@ -442,10 +442,10 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
         nsCOMPtr<nsIURI> cookieURI = cookiePrincipal->GetURI();
         RefPtr<CookieStoreChild::SetRequestPromise> ipcPromise =
             self->mActor->SendSetRequest(
-                cookieURI, cookiePrincipal->OriginAttributesRef(),
-                thirdPartyContext, partitionForeign, usingStorageAccess,
-                isOn3PCBExceptionList, nsString(aOptions.mName),
-                nsString(aOptions.mValue),
+                mozilla::WrapNotNull(cookieURI.get()),
+                cookiePrincipal->OriginAttributesRef(), thirdPartyContext,
+                partitionForeign, usingStorageAccess, isOn3PCBExceptionList,
+                nsString(aOptions.mName), nsString(aOptions.mValue),
                 // If expires is not set, it's a session cookie.
                 aOptions.mExpires.IsNull(), ComputeExpiry(aOptions),
                 aOptions.mDomain, path, SameSiteToConst(aOptions.mSameSite),
@@ -555,11 +555,11 @@ already_AddRefed<Promise> CookieStore::Delete(
         nsCOMPtr<nsIURI> cookieURI = cookiePrincipal->GetURI();
         RefPtr<CookieStoreChild::DeleteRequestPromise> ipcPromise =
             self->mActor->SendDeleteRequest(
-                cookieURI, cookiePrincipal->OriginAttributesRef(),
-                thirdPartyContext, partitionForeign, usingStorageAccess,
-                isOn3PCBExceptionList, nsString(aOptions.mName),
-                nsString(aOptions.mDomain), path, aOptions.mPartitioned,
-                operationID);
+                mozilla::WrapNotNull(cookieURI.get()),
+                cookiePrincipal->OriginAttributesRef(), thirdPartyContext,
+                partitionForeign, usingStorageAccess, isOn3PCBExceptionList,
+                nsString(aOptions.mName), nsString(aOptions.mDomain), path,
+                aOptions.mPartitioned, operationID);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
           return;
@@ -756,7 +756,8 @@ already_AddRefed<Promise> CookieStore::GetInternal(
         nsCOMPtr<nsIURI> cookieURI = cookiePrincipal->GetURI();
         RefPtr<CookieStoreChild::GetRequestPromise> ipcPromise =
             self->mActor->SendGetRequest(
-                cookieURI, cookiePrincipal->OriginAttributesRef(),
+                mozilla::WrapNotNull(cookieURI.get()),
+                cookiePrincipal->OriginAttributesRef(),
                 partitionedCookiePrincipal
                     ? Some(partitionedCookiePrincipal->OriginAttributesRef())
                     : Nothing(),
