@@ -557,7 +557,7 @@ privatebrowsing:
 privatebrowsing-inc-origin-init:
     description: "{description} limited to tests identified as being applicable to also run in private browsing mode and with incremental origin initialization enabled"
     component: "Core::Storage: Quota Manager"
-    expiration: "2025-07-01"
+    expiration: "2025-12-01"
     suffix: "pb-ioi"
     replace:
         tier: 3
