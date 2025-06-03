@@ -71,6 +71,12 @@ class JSWindowActorChild {
   }
 }
 
+class NewTabContentPing {
+  recordEvent() {}
+  scheduleSubmission() {}
+  uninit() {}
+}
+
 // Detect plain object passed to lazy getter APIs, and set its prototype to
 // global object, and return the global object for further modification.
 // Returns the object if it's not plain object.
@@ -671,6 +677,7 @@ const TEST_GLOBAL = {
   Utils: {
     SERVER_URL: "bogus://foo",
   },
+  NewTabContentPing,
 };
 overrider.set(TEST_GLOBAL);
 
