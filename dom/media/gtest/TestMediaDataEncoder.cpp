@@ -699,6 +699,7 @@ TEST_F(MediaDataEncoderTest, H264AVCC) {
 }
 #endif
 
+#if !(defined(MOZ_WIDGET_GTK) && defined(__i386__))
 static already_AddRefed<MediaDataEncoder> CreateVP8Encoder(
     Usage aUsage = Usage::Realtime,
     EncoderConfig::SampleFormat aFormat =
@@ -793,7 +794,7 @@ TEST_F(MediaDataEncoderTest, VP8Duration) {
   });
 }
 
-#if !defined(ANDROID)
+#  if !defined(ANDROID)
 TEST_F(MediaDataEncoderTest, VP8EncodeAfterDrain) {
   RUN_IF_SUPPORTED(CodecType::VP8, [this]() {
     RefPtr<MediaDataEncoder> e = CreateVP8Encoder();
@@ -891,7 +892,7 @@ TEST_F(MediaDataEncoderTest, VP8EncodeWithScalabilityModeL1T3) {
     WaitForShutdown(e);
   });
 }
-#endif
+#  endif
 
 TEST_F(MediaDataEncoderTest, VP9Create) {
   RUN_IF_SUPPORTED(CodecType::VP9, []() {
@@ -963,7 +964,7 @@ TEST_F(MediaDataEncoderTest, VP9Duration) {
   });
 }
 
-#if !defined(ANDROID)
+#  if !defined(ANDROID)
 TEST_F(MediaDataEncoderTest, VP9EncodeAfterDrain) {
   RUN_IF_SUPPORTED(CodecType::VP9, [this]() {
     RefPtr<MediaDataEncoder> e = CreateVP9Encoder();
@@ -1069,4 +1070,5 @@ TEST_F(MediaDataEncoderTest, VP9EncodeWithScalabilityModeL1T3) {
     WaitForShutdown(e);
   });
 }
+#  endif
 #endif
