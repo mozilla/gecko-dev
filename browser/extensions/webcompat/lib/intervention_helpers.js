@@ -338,10 +338,13 @@ var InterventionHelpers = {
   },
 
   async getOS() {
-    return (
+    const os =
       (await browser.aboutConfigPrefs.getPref("platform_override")) ??
-      (await browser.runtime.getPlatformInfo()).os
-    );
+      (await browser.runtime.getPlatformInfo()).os;
+    if (os === "win") {
+      return "windows";
+    }
+    return os;
   },
 
   async getPlatformMatches() {

@@ -1432,6 +1432,7 @@
     "interventions": [
       {
         "platforms": ["windows"],
+        "pref_check": { "timer.auto_increase_timer_resolution": false },
         "content_scripts": {
           "js": ["bug1841730-www.korg.com-fix-broken-page-loads.js"]
         }
@@ -2290,7 +2291,7 @@
         "ua_string": ["Chrome_with_FxQuantum", "mimic_Android_Hotspot2_device"]
       },
       {
-        "platforms": ["desktop"],
+        "platforms": ["linux", "mac"],
         "ua_string": ["Safari"]
       }
     ]

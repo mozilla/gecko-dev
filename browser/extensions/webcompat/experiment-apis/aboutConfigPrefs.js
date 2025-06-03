@@ -8,7 +8,10 @@
 
 this.aboutConfigPrefs = class AboutConfigPrefsAPI extends ExtensionAPI {
   static ALLOWED_GLOBAL_PREFS = Object.freeze(
-    ["layout.css.prefixes.transforms"].concat(
+    [
+      "layout.css.prefixes.transforms",
+      "timer.auto_increase_timer_resolution",
+    ].concat(
       Cu.isInAutomation ? ["webcompat.test.pref1", "webcompat.test.pref2"] : []
     )
   );

@@ -292,15 +292,18 @@ add_task(async function test_json_data() {
           );
           const type = typeof value;
           const expectedType = Services.prefs.getPrefType(pref);
-          ok(
-            (type === "boolean" &&
-              expectedType === Ci.nsIPrefBranch.PREF_BOOL) ||
-              (type === "number" &&
-                expectedType === Ci.nsIPrefBranch.PREF_INT) ||
-              (type === "string" &&
-                expectedType === Ci.nsIPrefBranch.PREF_STRING),
-            `Given value (${JSON.stringify(value)}) for '${pref}' matches the pref's type`
-          );
+          if (expectedType !== 0) {
+            // will be 0 if not defined/available on the given platform
+            ok(
+              (type === "boolean" &&
+                expectedType === Ci.nsIPrefBranch.PREF_BOOL) ||
+                (type === "number" &&
+                  expectedType === Ci.nsIPrefBranch.PREF_INT) ||
+                (type === "string" &&
+                  expectedType === Ci.nsIPrefBranch.PREF_STRING),
+              `Given value (${JSON.stringify(value)}) for '${pref}' matches the pref's type`
+            );
+          }
         }
       }
       if (check_valid_array(skip_if, "skip_if", id)) {
