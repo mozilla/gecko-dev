@@ -442,6 +442,14 @@ PeerConnectionImpl::~PeerConnectionImpl() {
              __FUNCTION__, mHandle.c_str());
 }
 
+struct CompareCodecPriority {
+  bool operator()(const UniquePtr<JsepCodecDescription>& lhs,
+                  const UniquePtr<JsepCodecDescription>& rhs) const {
+    // If only the left side is strongly preferred, prefer it
+    return lhs->mStronglyPreferred && !rhs->mStronglyPreferred;
+  }
+};
+
 nsresult PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
                                         nsGlobalWindowInner* aWindow) {
   nsresult res;
@@ -520,6 +528,11 @@ nsresult PeerConnectionImpl::Initialize(PeerConnectionObserver& aObserver,
   std::vector<UniquePtr<JsepCodecDescription>> preferredCodecs;
   SetupPreferredCodecs(preferredCodecs);
   mJsepSession->SetDefaultCodecs(preferredCodecs);
+
+  // We use this to sort the list of codecs once everything is configured
+  CompareCodecPriority comparator;
+  // Sort by priority
+  mJsepSession->SortCodecs(comparator);
 
   std::vector<RtpExtensionHeader> preferredHeaders;
   SetupPreferredRtpExtensions(preferredHeaders);
@@ -605,14 +618,6 @@ RefPtr<DtlsIdentity> PeerConnectionImpl::Identity() const {
   return mCertificate->CreateDtlsIdentity();
 }
 
-struct CompareCodecPriority {
-  bool operator()(const UniquePtr<JsepCodecDescription>& lhs,
-                  const UniquePtr<JsepCodecDescription>& rhs) const {
-    // If only the left side is strongly preferred, prefer it
-    return lhs->mStronglyPreferred && !rhs->mStronglyPreferred;
-  }
-};
-
 void RecordCodecTelemetry() {
   const auto prefs = PeerConnectionImpl::GetDefaultCodecPreferences();
   if (WebrtcVideoConduit::HasH264Hardware()) {
@@ -633,16 +638,6 @@ void RecordCodecTelemetry() {
       .EnumGet(
           static_cast<glean::webrtc::H264EnabledLabel>(prefs.H264Enabled()))
       .Add();
-}
-
-nsresult PeerConnectionImpl::SortJsepSessionCodecs() {
-  RecordCodecTelemetry();
-
-  // We use this to sort the list of codecs once everything is configured
-  CompareCodecPriority comparator;
-  // Sort by priority
-  mJsepSession->SortCodecs(comparator);
-  return NS_OK;
 }
 
 // Data channels won't work without a window, so in order for the C++ unit
@@ -753,12 +748,6 @@ nsresult PeerConnectionImpl::GetDatachannelParameters(
 
 nsresult PeerConnectionImpl::AddRtpTransceiverToJsepSession(
     JsepTransceiver& transceiver) {
-  nsresult res = SortJsepSessionCodecs();
-  if (NS_FAILED(res)) {
-    CSFLogError(LOGTAG, "Failed to sort codecs");
-    return res;
-  }
-
   mJsepSession->AddTransceiver(transceiver);
   return NS_OK;
 }
@@ -1399,13 +1388,6 @@ PeerConnectionImpl::CreateOffer(const JsepOfferOptions& aOptions) {
   }
 
   CSFLogDebug(LOGTAG, "CreateOffer()");
-
-  nsresult nrv = SortJsepSessionCodecs();
-  if (NS_FAILED(nrv)) {
-    CSFLogError(LOGTAG, "Failed to sort codecs");
-    return nrv;
-  }
-
   STAMP_TIMECARD(mTimeCard, "Create Offer");
 
   GetMainThreadSerialEventTarget()->Dispatch(NS_NewRunnableFunction(
@@ -1610,12 +1592,6 @@ PeerConnectionImpl::SetRemoteDescription(int32_t action, const char* aSDP) {
           DeferredSetRemote, mHandle, action, std::string(aSDP)));
       STAMP_TIMECARD(mTimeCard, "Deferring SetRemote (not ready)");
       return NS_OK;
-    }
-
-    nsresult nrv = SortJsepSessionCodecs();
-    if (NS_FAILED(nrv)) {
-      CSFLogError(LOGTAG, "Failed to sort codecs");
-      return nrv;
     }
   }
 

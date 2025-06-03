@@ -615,7 +615,6 @@ class PeerConnectionImpl final
       const DOMHighResTimeStamp aTimestamp);
   nsresult CalculateFingerprint(const nsACString& algorithm,
                                 std::vector<uint8_t>* fingerprint) const;
-  nsresult SortJsepSessionCodecs();
 
   NS_IMETHODIMP EnsureDataConnection(uint16_t aLocalPort, uint16_t aNumstreams,
                                      uint32_t aMaxMessageSize, bool aMMSSet);
