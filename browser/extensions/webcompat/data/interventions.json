@@ -3647,6 +3647,23 @@
       }
     ]
   },
+  "1966330": {
+    "label": "salling.dk",
+    "bugs": {
+      "1966330": {
+        "issue": "broken-scrolling",
+        "matches": ["*://salling.dk/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1966330-salling.dk-fix-mobile-filter-scrolling.css"]
+        }
+      }
+    ]
+  },
   "1966585": {
     "label": "hiskin.care",
     "bugs": {

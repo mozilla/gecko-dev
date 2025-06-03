@@ -1,0 +1,18 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * salling.dk - filters cannot be scrolled on the mobile layout
+ * Bug #1966330 - https://bugzilla.mozilla.org/show_bug.cgi?id=1966330
+ * WebCompat issue #154134 - https://github.com/webcompat/web-bugs/issues/154134
+ *
+ * They are using non-standard fill-available CSS in a way which causes Firefox
+ * to emulate webkit's behavior incorrectly. This CSS works around the problem.
+ */
+@media (max-width: 767px) {
+  .overlay-mobile--bottom[class],
+  .overlay-mobile--top[class] {
+    max-height: 100%;
+  }
+}
