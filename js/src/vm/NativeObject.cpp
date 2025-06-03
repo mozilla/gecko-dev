@@ -2182,6 +2182,8 @@ static inline bool GeneralizedGetProperty(JSContext* cx, HandleObject obj,
                                           HandleId id, HandleValue receiver,
                                           IsNameLookup nameLookup,
                                           MutableHandleValue vp) {
+  MOZ_ASSERT(obj->getOpsGetProperty());
+
   AutoCheckRecursionLimit recursion(cx);
   if (!recursion.check(cx)) {
     return false;
@@ -2213,14 +2215,8 @@ static inline bool GeneralizedGetProperty(JSContext* cx, JSObject* obj, jsid id,
                                           const Value& receiver,
                                           IsNameLookup nameLookup,
                                           FakeMutableHandle<Value> vp) {
-  AutoCheckRecursionLimit recursion(cx);
-  if (!recursion.checkDontReport(cx)) {
-    return false;
-  }
-  if (nameLookup) {
-    return false;
-  }
-  return GetPropertyNoGC(cx, obj, receiver, id, vp.address());
+  MOZ_ASSERT(obj->getOpsGetProperty());
+  return false;
 }
 
 bool js::GetSparseElementHelper(JSContext* cx, Handle<NativeObject*> obj,
