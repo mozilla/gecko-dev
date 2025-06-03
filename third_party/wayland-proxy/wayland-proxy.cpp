@@ -163,10 +163,10 @@ class ProxiedConnection {
   int mStatSentToClientLater = 0;
 
 
-  // Wait 0.5 sec before we disconnect client
+  // Wait one sec before we disconnect client
   // from compositor. It gives client time to
   // process potential error messages from compositor.
-  constexpr static const double sFailureTimeout = CLOCKS_PER_SEC / 2;
+  constexpr static const double sFailureTimeout = CLOCKS_PER_SEC;
   clock_t mFailureTime = 0;
 };
 
