@@ -16280,7 +16280,7 @@
 
 # To be used in automated test environments to enable observer messages.
 - name: privacy.bounceTrackingProtection.enableTestMode
-  type: bool
+  type: RelaxedAtomicBool
   value: false
   mirror: always
 
@@ -16289,6 +16289,12 @@
 - name: privacy.bounceTrackingProtection.hasMigratedUserActivationData
   type: bool
   value: false
+  mirror: always
+
+# Maximum number of pending storage updates before flushing to disk.
+- name: privacy.bounceTrackingProtection.storage.maxPendingUpdates
+  type: uint32_t
+  value: 25
   mirror: always
 
 #---------------------------------------------------------------------------

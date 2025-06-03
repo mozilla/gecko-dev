@@ -20,7 +20,6 @@
 
 class nsIPrincipal;
 class mozIStorageConnection;
-
 namespace mozilla {
 
 class BounceTrackingStateGlobal;
@@ -142,12 +141,6 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
   void IncrementPendingWrites();
   void DecrementPendingWrites();
 
-  // Update or create database entry. Worker thread only.
-  [[nodiscard]] static nsresult UpsertData(
-      mozIStorageConnection* aDatabaseConnection,
-      const OriginAttributes& aOriginAttributes, const nsACString& aSiteHost,
-      EntryType aEntryType, PRTime aTimeStamp);
-
   // Delete database entries. Worker thread only.
   [[nodiscard]] static nsresult DeleteData(
       mozIStorageConnection* aDatabaseConnection,
@@ -179,6 +172,15 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
   [[nodiscard]] static nsresult ClearData(
       mozIStorageConnection* aDatabaseConnection);
 
+  // Structure to hold pending database updates.
+  // We batch writes to disk to avoid excessive disk IO.
+  using PendingUpdate = ImportEntry;
+
+  // Bulk update database entries. Worker thread only.
+  [[nodiscard]] static nsresult UpsertDataBulk(
+      mozIStorageConnection* aDatabaseConnection,
+      const nsTArray<PendingUpdate>& aUpdates);
+
   // Service state management. We protect these variables with a monitor. This
   // monitor is also used to signal the completion of initialization and
   // finalization performed in the worker thread.
@@ -188,6 +190,11 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
   FlippedOnce<false> mErrored MOZ_GUARDED_BY(mMonitor);
   FlippedOnce<false> mShuttingDown MOZ_GUARDED_BY(mMonitor);
   uint32_t mPendingWrites MOZ_GUARDED_BY(mMonitor);
+
+  // The pending updates to be flushed to the database in bulk.
+  // Only holds changes that go through UpdateDBEntry.
+  // Main thread access only.
+  nsTArray<PendingUpdate> mPendingUpdates;
 
   // The database file handle. We can only create this in the main thread and
   // need it in the worker to perform blocking disk IO. So we put it on this,
@@ -206,6 +213,12 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
   [[nodiscard]] nsresult UpdateDBEntry(
       const OriginAttributes& aOriginAttributes, const nsACString& aSiteHost,
       EntryType aEntryType, PRTime aTimeStamp);
+
+  // Flushes pending updates to the database if the buffer is full
+  [[nodiscard]] nsresult MaybeFlushPendingUpdates();
+
+  // Flushes all pending updates to the database
+  [[nodiscard]] nsresult FlushPendingUpdates();
 
   // Deletes a DB entry keyed by OA + site host. If only aSiteHost is passed,
   // all entries for that host will be deleted across OriginAttributes.
