@@ -23,6 +23,12 @@ function assertHistogramSamplesCount(histogram, expectedSamplesCount, msg) {
   );
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function test_contentscript_telemetry() {
   // Turn on telemetry and reset it to the previous state once the test is completed.
   const telemetryCanRecordBase = SpecialPowers.Services.telemetry.canRecordBase;
