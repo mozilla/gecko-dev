@@ -527,7 +527,7 @@ vertical-tabs:
 inc-origin-init:
     description: "{description} limited to tests identified as being applicable to also run with incremental origin initialization enabled"
     component: "Core::Storage: Quota Manager"
-    expiration: "2025-07-01"
+    expiration: "2025-12-01"
     suffix: "ioi"
     mozinfo: "inc_origin_init"
     replace:
