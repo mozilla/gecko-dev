@@ -87,7 +87,7 @@ const embedHelperLib = (() => {
         <style>
           #smartblock-placeholder-wrapper {
             min-height: 137px;
-            min-width: 216px;
+            min-width: 150px;
             max-height: 225px;
             max-width: 400px;
             padding: 32px 24px;
@@ -128,7 +128,7 @@ const embedHelperLib = (() => {
               https://searchfox.org/mozilla-central/source/browser/themes/addons/dark/manifest.json */
             background-color: light-dark(rgb(2, 80, 187), rgb(128, 235, 255));
           }
-  
+
           #smartblock-placeholder-button:hover:active {
             /* Colours match light/dark theme from
               https://searchfox.org/mozilla-central/source/browser/themes/addons/light/manifest.json
