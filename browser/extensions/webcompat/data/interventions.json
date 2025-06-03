@@ -2491,6 +2491,21 @@
       }
     ]
   },
+  "1902413": {
+    "label": "ibanka.seb.lv",
+    "bugs": {
+      "1902413": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://ibanka.seb.lv/*login*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
   "1902414": {
     "label": "e.seb.ee",
     "bugs": {
