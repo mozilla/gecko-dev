@@ -1100,7 +1100,9 @@ export var PanelMultiView = class extends AssociatedToNode {
 
     // Avoid transforming element if the user has prefers-reduced-motion set
     if (
-      this.window.matchMedia("(prefers-reduced-motion: no-preference)").matches
+      this.window.matchMedia("(prefers-reduced-motion: no-preference)")
+        .matches &&
+      !viewNode.getAttribute("no-panelview-transition")
     ) {
       this._viewStack.style.transform =
         "translateX(" + (moveToLeft ? "" : "-") + deltaX + "px)";

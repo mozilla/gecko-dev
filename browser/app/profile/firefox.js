@@ -749,6 +749,10 @@ pref("browser.download.folderList", 1);
 pref("browser.download.manager.addToRecentDocs", true);
 pref("browser.download.manager.resumeOnWakeDelay", 10000);
 
+pref("browser.download.enableDeletePrivate", false);
+pref("browser.download.deletePrivate", false);
+pref("browser.download.deletePrivate.chosen", false);
+
 // This records whether or not the panel has been shown at least once.
 pref("browser.download.panel.shown", false);
 

@@ -57,6 +57,7 @@ Preferences.addAll([
 
   // Downloads
   { id: "browser.download.useDownloadDir", type: "bool", inverted: true },
+  { id: "browser.download.deletePrivate", type: "bool" },
   { id: "browser.download.always_ask_before_handling_new_types", type: "bool" },
   { id: "browser.download.folderList", type: "int" },
   { id: "browser.download.dir", type: "file" },
@@ -739,6 +740,11 @@ var gMainPane = {
       "command",
       gMainPane.onMigrationButtonCommand
     );
+    setEventListener(
+      "deletePrivate",
+      "command",
+      gMainPane.onDeletePrivateChanged
+    );
 
     document
       .getElementById("migrationWizardDialog")
@@ -1031,6 +1037,11 @@ var gMainPane = {
       document.getElementById("browserContainersCheckbox"),
       () => this.readBrowserContainersCheckbox()
     );
+
+    if (!Services.prefs.getBoolPref("browser.download.enableDeletePrivate")) {
+      let deletePrivateCheckbox = document.getElementById("deletePrivate");
+      deletePrivateCheckbox.hidden = true;
+    }
 
     this.setInitialized();
   },
@@ -2453,6 +2464,10 @@ var gMainPane = {
     });
   },
 
+  onDeletePrivateChanged() {
+    Services.prefs.setBoolPref("browser.download.deletePrivate.chosen", true);
+  },
+
   /**
    * Displays the migration wizard dialog in an HTML dialog.
    */
@@ -3667,7 +3682,12 @@ var gMainPane = {
    *   True - Save files directly to the folder configured via the
    *   browser.download.folderList preference.
    *   False - Always ask the user where to save a file and default to
-   *   browser.download.lastDir when displaying a folder picker dialog.
+   *  browser.download.lastDir when displaying a folder picker dialog.
+   *  browser.download.deletePrivate - bool
+   *   True - Delete files that were downloaded in a private browsing session
+   *   on close of the session
+   *   False - Keep files that were downloaded in a private browsing
+   *   session
    * browser.download.always_ask_before_handling_new_types - bool
    *   Defines the default behavior for new file handlers.
    *   True - When downloading a file that doesn't match any existing

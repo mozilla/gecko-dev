@@ -41,7 +41,6 @@ class MaybeCloseWindowHelper;
 
 #define EXTERNAL_APP_HANDLER_IID \
   {0x50eb7479, 0x71ff, 0x4ef8, {0xb3, 0x1e, 0x3b, 0x59, 0xc8, 0xab, 0xb9, 0x24}}
-
 /**
  * The helper app service. Responsible for handling content that Mozilla
  * itself can not handle
@@ -204,6 +203,12 @@ class nsExternalHelperAppService : public nsIExternalHelperAppService,
    */
   void ExpungeTemporaryPrivateFiles();
 
+  /*
+   * Deletes files downloaded in a private browsing session
+   * if deletePrivate pref is set to true
+   */
+  void ExpungePrivateFiles();
+
   bool GetFileNameFromChannel(nsIChannel* aChannel, nsAString& aFileName,
                               nsIURI** aURI);
 
@@ -247,6 +252,10 @@ class nsExternalHelperAppService : public nsIExternalHelperAppService,
    * added during the private browsing mode)
    */
   nsCOMArray<nsIFile> mTemporaryPrivateFilesList;
+  /*
+   * Array for files downloaded in private browsing that should be deleted
+   */
+  nsCOMArray<nsIFile> mPrivateFilesList;
 
  private:
   nsresult DoContentContentProcessHelper(
