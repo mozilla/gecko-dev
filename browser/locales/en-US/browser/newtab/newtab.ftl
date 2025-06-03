@@ -269,6 +269,9 @@ newtab-custom-pocket-show-recent-saves = Show recent saves
 newtab-custom-weather-toggle =
   .label = Weather
   .description = Today’s forecast at a glance
+newtab-custom-trending-search-toggle =
+  .label = Trending searches
+  .description = Popular and frequently searched topics
 newtab-custom-close-button = Close
 newtab-custom-settings = Manage more settings
 
@@ -521,3 +524,12 @@ newtab-report-cancel = Cancel
 newtab-report-submit = Submit
 newtab-toast-thanks-for-reporting =
     .message = Thank you for reporting this.
+
+## Strings for trending searches
+
+# "Trending on Google" refers to the trending topics coming from Google Search, usually seen when a user is focused on the search bar
+newtab-trending-searches-trending-on-google = Trending on Google
+newtab-trending-searches-show-trending =
+    .title = Show trending searches
+newtab-trending-searches-hide-trending =
+    .title = Hide trending searches
