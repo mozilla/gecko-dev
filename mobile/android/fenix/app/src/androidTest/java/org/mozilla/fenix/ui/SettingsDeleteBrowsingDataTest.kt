@@ -237,12 +237,12 @@ class SettingsDeleteBrowsingDataTest : TestSetup() {
     @SmokeTest
     @Test
     fun deleteCachedFilesTest() {
-        val pocketTopArticles = getStringResource(R.string.pocket_pinned_top_articles)
+        val wikipedia = getStringResource(R.string.default_top_site_wikipedia)
 
         homeScreen {
-            verifyExistingTopSitesTabs(composeTestRule, pocketTopArticles)
-        }.openTopSiteTabWithTitle(composeTestRule, pocketTopArticles) {
-            verifyPocketPageContent()
+            verifyExistingTopSitesTabs(composeTestRule, wikipedia)
+        }.openTopSiteTabWithTitle(composeTestRule, wikipedia) {
+            verifyUrl("wikipedia.org")
         }.openTabDrawer(composeTestRule) {
         }.openNewTab {
         }.submitQuery("about:cache") {

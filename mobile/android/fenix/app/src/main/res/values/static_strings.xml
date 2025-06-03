@@ -16,16 +16,12 @@
     <!-- GeckoView abbreviation used in AboutFragment -->
     <string name="gecko_view_abbreviation" translatable="false">GV</string>
 
-    <!-- Default title for pinned Pocket top site that links to trending Pocket site -->
-    <string name="pocket_pinned_top_articles" translatable="false">Top Articles</string>
     <!-- Default title for pinned Wikipedia top site that links to Wikipedia home page -->
     <string name="default_top_site_wikipedia" translatable="false">Wikipedia</string>
     <!-- Default title for pinned Google top site that links to Google home page  -->
     <string name="default_top_site_google" translatable="false">Google</string>
     <!-- Application Services abbreviation used in AboutFragment -->
     <string name="app_services_abbreviation" translatable="false">AS</string>
-    <!-- Name for the Pocket product -->
-    <string name="pocket_product_name" translatable="false" tools:ignore="UnusedResources" moz:removedIn="140">Pocket</string>
 
     <!-- App preference label for keeping the debug menu (secret settings, secret debug info, nimbus experiments, etc.) permanently revealed -->
     <string name="preferences_persistent_debug_menu" translatable="false">Keep Debug Menu revealed</string>

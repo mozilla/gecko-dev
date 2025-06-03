@@ -11,6 +11,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.helpers.AppAndSystemHelper.registerAndCleanupIdlingResources
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.RecyclerViewIdlingResource
 import org.mozilla.fenix.helpers.TestAssetHelper.getEnhancedTrackingProtectionAsset
@@ -128,7 +129,10 @@ class SettingsAddonsTest : TestSetup() {
         }.enterURLAndEnterToBrowser(trackingProtectionPage.url) {
             verifyUrl(trackingProtectionPage.url.toString())
         }.goToHomescreen(activityTestRule) {
-        }.openTopSiteTabWithTitle(activityTestRule, "Top Articles") {
+        }.openTopSiteTabWithTitle(
+            activityTestRule,
+            getStringResource(R.string.default_top_site_wikipedia),
+        ) {
         }.openThreeDotMenu {
         }.openSettings {
             verifySettingsView()
@@ -146,9 +150,12 @@ class SettingsAddonsTest : TestSetup() {
             installAddonInPrivateMode(addonName, activityTestRule.activityRule)
             closeAddonInstallCompletePrompt()
         }.goBack {
-        }.openContextMenuOnTopSitesWithTitle(activityTestRule, "Top Articles") {
+        }.openContextMenuOnTopSitesWithTitle(
+            activityTestRule,
+            getStringResource(R.string.default_top_site_google),
+        ) {
         }.openTopSiteInPrivateTab(activityTestRule) {
-            verifyPocketPageContent()
+            verifyUrl("google.com")
         }.openThreeDotMenu {
             openAddonsSubList()
             verifyAddonAvailableInMainMenu(addonName)
@@ -165,8 +172,11 @@ class SettingsAddonsTest : TestSetup() {
             installAddon(addonName, activityTestRule.activityRule)
             closeAddonInstallCompletePrompt()
         }.goBack {
-        }.openTopSiteTabWithTitle(activityTestRule, "Top Articles") {
-            verifyUrl("getpocket.com/explore")
+        }.openTopSiteTabWithTitle(
+            activityTestRule,
+            getStringResource(R.string.default_top_site_google),
+        ) {
+            verifyUrl("google.com")
         }.openThreeDotMenu {
             openAddonsSubList()
             verifyTrackersBlockedByUblock()

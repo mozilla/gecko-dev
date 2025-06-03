@@ -46,7 +46,7 @@
             android:importantForAccessibility="no"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/dialog_title"
-            tools:src="@drawable/ic_pocket" />
+            tools:src="@drawable/mozac_ic_logo_firefox_24" />
 
         <EditText
             android:id="@+id/shortcut_text"

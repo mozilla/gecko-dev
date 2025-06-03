@@ -242,7 +242,7 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
     @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1964989")
     @Test
     fun deleteCachedFilesOnQuitTest() {
-        val pocketTopArticles = getStringResource(R.string.pocket_pinned_top_articles)
+        val wikipedia = getStringResource(R.string.default_top_site_wikipedia)
 
         homeScreen {
         }.openThreeDotMenu {
@@ -252,9 +252,9 @@ class SettingsDeleteBrowsingDataOnQuitTest : TestSetup() {
             exitMenu()
         }
         homeScreen {
-            verifyExistingTopSitesTabs(composeTestRule, pocketTopArticles)
-        }.openTopSiteTabWithTitle(composeTestRule, pocketTopArticles) {
-            verifyPocketPageContent()
+            verifyExistingTopSitesTabs(composeTestRule, wikipedia)
+        }.openTopSiteTabWithTitle(composeTestRule, wikipedia) {
+            verifyUrl("wikipedia.org")
         }.goToHomescreen(composeTestRule) {
         }.openThreeDotMenu {
             clickQuit()

@@ -46,7 +46,6 @@ object Constants {
             "Google" to "Google",
             "First sponsored shortcut" to firstSponsoredShortcutTitle,
             "Second sponsored shortcut" to secondSponsoredShortcutTitle,
-            "Top Articles" to "Top Articles",
             "Wikipedia" to "Wikipedia",
         )
     }
