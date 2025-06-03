@@ -14046,7 +14046,7 @@
 
 # When resolving a native HTTPS query with native APIs
 # the MacOS implementation has a max timeout
-- name: network.dns.native_https_timeout_mac
+- name: network.dns.native_https_timeout_mac_msec
   type: RelaxedAtomicInt32
   value: 5000
   mirror: always

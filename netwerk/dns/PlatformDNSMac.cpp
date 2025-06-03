@@ -140,8 +140,10 @@ nsresult ResolveHTTPSRecordImpl(const nsACString& aHost,
   // never get called, and select will hang forever. We need to use a
   // timeout so that select() eventually returns.
   struct timeval timeout;
-  timeout.tv_sec = StaticPrefs::network_dns_native_https_timeout_mac();
-  timeout.tv_usec = 0;
+  timeout.tv_sec =
+      StaticPrefs::network_dns_native_https_timeout_mac_msec() / 1000;
+  timeout.tv_usec =
+      (StaticPrefs::network_dns_native_https_timeout_mac_msec() % 1000) * 1000;
 
   int result = select(fd + 1, &readfds, NULL, NULL, &timeout);
   if (result > 0 && FD_ISSET(fd, &readfds)) {
