@@ -49,6 +49,7 @@ tasks-from:
     - misc.yml
     - nasm.yml
     - node.yml
+    - onnx.yml
     - pkgconf.yml
     - python.yml
     - python-wheels.yml
