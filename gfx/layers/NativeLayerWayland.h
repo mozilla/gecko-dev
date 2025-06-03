@@ -159,8 +159,6 @@ class NativeLayerWayland : public NativeLayer {
   bool IsOpaque() override;
   void SetClipRect(const Maybe<gfx::IntRect>& aClipRect) override;
   Maybe<gfx::IntRect> ClipRect() override;
-  void SetRoundedClipRect(const Maybe<gfx::RoundedRect>& aClip) override;
-  Maybe<gfx::RoundedRect> RoundedClipRect() override;
   gfx::IntRect CurrentSurfaceDisplayRect() override;
   void SetSurfaceIsFlipped(bool aIsFlipped) override;
   bool SurfaceIsFlipped() override;
@@ -258,7 +256,6 @@ class NativeLayerWayland : public NativeLayer {
   gfx::Matrix4x4 mTransform;
   gfx::IntRect mDisplayRect;
   Maybe<gfx::IntRect> mClipRect;
-  Maybe<gfx::RoundedRect> mRoundedClipRect;
   gfx::SamplingFilter mSamplingFilter = gfx::SamplingFilter::POINT;
   LayerState mState{};
   bool mSurfaceIsFlipped = false;

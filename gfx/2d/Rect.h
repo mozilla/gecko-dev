@@ -500,11 +500,6 @@ struct RoundedRect {
     corners.radii[mozilla::eCornerBottomRight].height = std::max(
         0.f, corners.radii[mozilla::eCornerBottomRight].height - aBottomWidth);
   }
-
-  bool operator==(const RoundedRect& aOther) const {
-    return rect == aOther.rect && corners == aOther.corners;
-  }
-
   Rect rect;
   RectCornerRadii corners;
 };

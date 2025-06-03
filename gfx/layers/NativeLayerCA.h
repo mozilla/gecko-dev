@@ -263,8 +263,6 @@ class NativeLayerCA : public NativeLayer {
   bool IsOpaque() override;
   void SetClipRect(const Maybe<gfx::IntRect>& aClipRect) override;
   Maybe<gfx::IntRect> ClipRect() override;
-  void SetRoundedClipRect(const Maybe<gfx::RoundedRect>& aClip) override;
-  Maybe<gfx::RoundedRect> RoundedClipRect() override;
   gfx::IntRect CurrentSurfaceDisplayRect() override;
   void SetSurfaceIsFlipped(bool aIsFlipped) override;
   bool SurfaceIsFlipped() override;
@@ -362,9 +360,9 @@ class NativeLayerCA : public NativeLayer {
         UpdateType aUpdate, const gfx::IntSize& aSize, bool aIsOpaque,
         const gfx::IntPoint& aPosition, const gfx::Matrix4x4& aTransform,
         const gfx::IntRect& aDisplayRect, const Maybe<gfx::IntRect>& aClipRect,
-        const Maybe<gfx::RoundedRect>& aRoundedClip, float aBackingScale,
-        bool aSurfaceIsFlipped, gfx::SamplingFilter aSamplingFilter,
-        bool aSpecializeVideo, CFTypeRefPtr<IOSurfaceRef> aFrontSurface,
+        float aBackingScale, bool aSurfaceIsFlipped,
+        gfx::SamplingFilter aSamplingFilter, bool aSpecializeVideo,
+        CFTypeRefPtr<IOSurfaceRef> aFrontSurface,
         CFTypeRefPtr<CGColorRef> aColor, bool aIsDRM, bool aIsVideo);
 
     // Return whether any aspects of this layer representation have been mutated
@@ -380,7 +378,6 @@ class NativeLayerCA : public NativeLayer {
     // not share clip layers between consecutive NativeLayerCA objects with the
     // same clip rect.
     CALayer* mWrappingCALayer = nullptr;      // strong
-    CALayer* mRoundedClipCALayer = nullptr;   // strong
     CALayer* mContentCALayer = nullptr;       // strong
     CALayer* mOpaquenessTintLayer = nullptr;  // strong
 
@@ -392,7 +389,6 @@ class NativeLayerCA : public NativeLayer {
     bool mMutatedTransform : 1;
     bool mMutatedDisplayRect : 1;
     bool mMutatedClipRect : 1;
-    bool mMutatedRoundedClipRect : 1;
     bool mMutatedBackingScale : 1;
     bool mMutatedSize : 1;
     bool mMutatedSurfaceIsFlipped : 1;
@@ -422,7 +418,6 @@ class NativeLayerCA : public NativeLayer {
   gfx::IntRect mDisplayRect;
   gfx::IntSize mSize;
   Maybe<gfx::IntRect> mClipRect;
-  Maybe<gfx::RoundedRect> mRoundedClipRect;
   gfx::SamplingFilter mSamplingFilter = gfx::SamplingFilter::POINT;
   float mBackingScale = 1.0f;
   bool mSurfaceIsFlipped = false;

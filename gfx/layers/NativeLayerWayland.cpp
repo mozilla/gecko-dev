@@ -661,20 +661,6 @@ Maybe<IntRect> NativeLayerWayland::ClipRect() {
   return mClipRect;
 }
 
-void NativeLayerWayland::SetRoundedClipRect(
-    const Maybe<gfx::RoundedRect>& aClip) {
-  MutexAutoLock lock(mMutex);
-  if (aClip != mRoundedClipRect) {
-    // TODO(gw): Support rounded clips on wayland
-    mRoundedClipRect = aClip;
-  }
-}
-
-Maybe<gfx::RoundedRect> NativeLayerWayland::RoundedClipRect() {
-  MutexAutoLock lock(mMutex);
-  return mRoundedClipRect;
-}
-
 IntRect NativeLayerWayland::CurrentSurfaceDisplayRect() {
   MutexAutoLock lock(mMutex);
   return mDisplayRect;
