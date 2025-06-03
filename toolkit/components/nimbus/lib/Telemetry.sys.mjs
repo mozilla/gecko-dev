@@ -294,10 +294,15 @@ export const NimbusTelemetry = {
   recordValidationFailure(
     slug,
     reason,
-    { branch, locale, l10nIds: l10n_ids, featureIds: feature_ids } = {}
+    { branch, locale, l10nIds: l10n_ids } = {}
   ) {
     // Do not record invalid feature telemetry.
     if (reason === ValidationFailureReason.INVALID_FEATURE) {
+      return;
+    }
+
+    // Do not record unsupported feature telemetry.
+    if (reason === ValidationFailureReason.UNSUPPORTED_FEATURES) {
       return;
     }
 
@@ -307,10 +312,7 @@ export const NimbusTelemetry = {
       reason === ValidationFailureReason.L10N_MISSING_ENTRY
         ? { l10n_ids, locale }
         : {},
-      reason === ValidationFailureReason.L10N_MISSING_LOCALE ? { locale } : {},
-      reason === ValidationFailureReason.UNSUPPORTED_FEATURES
-        ? { feature_ids }
-        : {}
+      reason === ValidationFailureReason.L10N_MISSING_LOCALE ? { locale } : {}
     );
 
     Glean.normandy.validationFailedNimbusExperiment.record({

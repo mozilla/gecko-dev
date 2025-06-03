@@ -686,11 +686,16 @@ add_task(async function test_updateRecipes_appId() {
     manager.onRecipe.calledOnceWith(recipe, "rs-loader", {
       ok: false,
       reason: "unsupported-feature",
-      featureIds: ["backgroundTaskMessage"],
     }),
     "Should call onRecipe with unsupported-feature"
   );
   Assert.ok(manager.enroll.notCalled, "Would not enroll");
+
+  Assert.deepEqual(
+    Glean.nimbusEvents.validationFailed.testGetValue("events") ?? [],
+    [],
+    "There should be no validation failed event"
+  );
 
   info("Testing updateRecipes() with a custom application ID");
   manager.onRecipe.resetHistory();
