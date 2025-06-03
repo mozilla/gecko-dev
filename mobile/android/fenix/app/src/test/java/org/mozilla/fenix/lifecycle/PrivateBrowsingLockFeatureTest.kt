@@ -379,7 +379,7 @@ class PrivateBrowsingLockFeatureTest {
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
 
-        feature.onStop(activity)
+        feature.onPause(activity)
         appStore.waitUntilIdle()
 
         assertTrue(appStore.state.isPrivateScreenLocked)
@@ -413,7 +413,7 @@ class PrivateBrowsingLockFeatureTest {
         val activity = mockk<AppCompatActivity>(relaxed = true)
         every { activity.isChangingConfigurations } returns false
 
-        feature.onStop(activity)
+        feature.onPause(activity)
         appStore.waitUntilIdle()
 
         assertTrue(appStore.state.mode == mode)
