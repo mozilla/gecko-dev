@@ -44,8 +44,6 @@ internal object DownloadNotification {
     private const val LEGACY_NOTIFICATION_CHANNEL_ID = "Downloads"
     internal const val PERCENTAGE_MULTIPLIER = 100
 
-    internal const val EXTRA_DOWNLOAD_ID = "downloadId"
-
     @VisibleForTesting
     internal fun createDownloadGroupNotification(
         context: Context,
@@ -327,7 +325,7 @@ internal object DownloadNotification {
     private fun createPendingIntent(context: Context, action: String, downloadStateId: String): PendingIntent {
         val intent = Intent(action)
         intent.setPackage(context.applicationContext.packageName)
-        intent.putExtra(EXTRA_DOWNLOAD_ID, downloadStateId)
+        intent.putExtra(INTENT_EXTRA_DOWNLOAD_ID, downloadStateId)
 
         // We generate a random requestCode in order to generate a distinct PendingIntent:
         // https://developer.android.com/reference/android/app/PendingIntent.html

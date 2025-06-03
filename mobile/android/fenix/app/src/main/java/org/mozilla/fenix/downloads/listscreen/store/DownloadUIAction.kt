@@ -95,4 +95,24 @@ sealed interface DownloadUIAction : Action {
      * [DownloadUIAction] to hide the search bar.
      */
     data object SearchBarDismissRequest : DownloadUIAction
+
+    /**
+     * [DownloadUIAction] to pause a downloading file.
+     */
+    data class PauseDownload(val downloadId: String) : DownloadUIAction
+
+    /**
+     * [DownloadUIAction] to resume a paused download file.
+     */
+    data class ResumeDownload(val downloadId: String) : DownloadUIAction
+
+    /**
+     * [DownloadUIAction] to cancel a downloading file.
+     */
+    data class CancelDownload(val downloadId: String) : DownloadUIAction
+
+    /**
+     * [DownloadUIAction] to retry a failed download file.
+     */
+    data class RetryDownload(val downloadId: String) : DownloadUIAction
 }

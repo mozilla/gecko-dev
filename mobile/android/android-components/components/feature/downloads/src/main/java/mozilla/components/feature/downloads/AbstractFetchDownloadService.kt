@@ -168,7 +168,7 @@ abstract class AbstractFetchDownloadService : Service() {
             @Suppress("LongMethod")
             override fun onReceive(context: Context, intent: Intent?) {
                 val downloadId =
-                    intent?.extras?.getString(DownloadNotification.EXTRA_DOWNLOAD_ID) ?: return
+                    intent?.extras?.getString(INTENT_EXTRA_DOWNLOAD_ID) ?: return
                 val currentDownloadJobState = downloadJobs[downloadId] ?: return
 
                 when (intent.action) {

@@ -8,11 +8,14 @@ import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import mozilla.components.lib.state.Middleware
 import org.mozilla.fenix.components.Components
+import org.mozilla.fenix.downloads.listscreen.middleware.BroadcastSender
+import org.mozilla.fenix.downloads.listscreen.middleware.DefaultBroadcastSender
 import org.mozilla.fenix.downloads.listscreen.middleware.DefaultUndoDelayProvider
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadDeleteMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadTelemetryMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIShareMiddleware
+import org.mozilla.fenix.downloads.listscreen.middleware.DownloadsServiceCommunicationMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.UndoDelayProvider
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIAction
 import org.mozilla.fenix.downloads.listscreen.store.DownloadUIState
@@ -24,6 +27,9 @@ internal object DownloadUIMiddlewareProvider {
     @Volatile
     private var undoDelayProvider: UndoDelayProvider? = null
 
+    @Volatile
+    private var broadcastSender: BroadcastSender? = null
+
     internal fun provideMiddleware(
         coroutineScope: CoroutineScope,
         applicationContext: Context,
@@ -32,6 +38,7 @@ internal object DownloadUIMiddlewareProvider {
         provideShareMiddleware(applicationContext),
         provideTelemetryMiddleware(),
         provideDeleteMiddleware(applicationContext.components),
+        provideDownloadsServiceCommunicationMiddleware(applicationContext),
     )
 
     private fun provideDeleteMiddleware(components: Components) =
@@ -58,6 +65,28 @@ internal object DownloadUIMiddlewareProvider {
         initializeUndoDelayProvider(settings)
         return requireNotNull(undoDelayProvider) {
             "UndoDelayProvider not initialized. Call initialize(settings) first."
+        }
+    }
+
+    private fun provideDownloadsServiceCommunicationMiddleware(applicationContext: Context) =
+        DownloadsServiceCommunicationMiddleware(
+           provideBroadcastSender(applicationContext),
+        )
+
+    private fun provideBroadcastSender(applicationContext: Context): BroadcastSender {
+        initializeBroadcastSender(applicationContext)
+        return requireNotNull(broadcastSender) {
+            "BroadcastSender not initialized. Call initialize(applicationContext) first."
+        }
+    }
+
+    private fun initializeBroadcastSender(applicationContext: Context) {
+        if (broadcastSender == null) {
+            synchronized(this) {
+                if (broadcastSender == null) {
+                    broadcastSender = DefaultBroadcastSender(applicationContext)
+                }
+            }
         }
     }
 

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.downloads.listscreen.store
 
+import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.Store
 import mozilla.components.lib.state.UiStore
@@ -29,6 +30,7 @@ class DownloadUIStore(
 /**
  * The DownloadState Reducer.
  */
+@Suppress("LongMethod")
 private fun downloadStateReducer(
     state: DownloadUIState,
     action: DownloadUIAction,
@@ -76,6 +78,33 @@ private fun downloadStateReducer(
         is DownloadUIAction.ShareUrlClicked -> state
         is DownloadUIAction.ShareFileClicked -> state
         is DownloadUIAction.UndoPendingDeletion -> state
+        is DownloadUIAction.PauseDownload -> {
+            state.copyWithFileItemStatus(
+                downloadId = action.downloadId,
+                status = DownloadState.Status.PAUSED,
+            )
+        }
+
+        is DownloadUIAction.ResumeDownload -> {
+            state.copyWithFileItemStatus(
+                downloadId = action.downloadId,
+                status = DownloadState.Status.DOWNLOADING,
+            )
+        }
+
+        is DownloadUIAction.RetryDownload -> {
+            state.copyWithFileItemStatus(
+                downloadId = action.downloadId,
+                status = DownloadState.Status.DOWNLOADING,
+            )
+        }
+
+        is DownloadUIAction.CancelDownload -> {
+            state.copyWithFileItemStatus(
+                downloadId = action.downloadId,
+                status = DownloadState.Status.CANCELLED,
+            )
+        }
 
         is DownloadUIAction.SearchBarDismissRequest -> state.copy(
             isSearchFieldRequested = false,
@@ -84,4 +113,23 @@ private fun downloadStateReducer(
 
         is DownloadUIAction.SearchBarVisibilityRequest -> state.copy(isSearchFieldRequested = true)
     }
+}
+
+private fun DownloadUIState.copyWithFileItemStatus(
+    downloadId: String,
+    status: DownloadState.Status,
+): DownloadUIState {
+    val itemIndex = items.indexOfFirst { it.id == downloadId }
+    if (itemIndex == -1) {
+        return this
+    }
+
+    val updatedItems = items.map {
+        if (it.id == downloadId) {
+            it.copy(status = status)
+        } else {
+            it
+        }
+    }
+    return copy(items = updatedItems)
 }

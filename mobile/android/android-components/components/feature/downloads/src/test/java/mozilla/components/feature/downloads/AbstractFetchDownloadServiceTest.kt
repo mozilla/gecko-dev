@@ -523,7 +523,7 @@ class AbstractFetchDownloadServiceTest {
 
         val pauseIntent = Intent(ACTION_PAUSE).apply {
             setPackage(testContext.applicationContext.packageName)
-            putExtra(DownloadNotification.EXTRA_DOWNLOAD_ID, providedDownload.value.state.id)
+            putExtra(INTENT_EXTRA_DOWNLOAD_ID, providedDownload.value.state.id)
         }
 
         CollectionProcessor.withFactCollection { facts ->
@@ -562,7 +562,7 @@ class AbstractFetchDownloadServiceTest {
 
         val cancelIntent = Intent(ACTION_CANCEL).apply {
             setPackage(testContext.applicationContext.packageName)
-            putExtra(DownloadNotification.EXTRA_DOWNLOAD_ID, providedDownload.value.state.id)
+            putExtra(INTENT_EXTRA_DOWNLOAD_ID, providedDownload.value.state.id)
         }
 
         assertFalse(service.downloadJobs[providedDownload.value.state.id]!!.downloadDeleted)
@@ -617,7 +617,7 @@ class AbstractFetchDownloadServiceTest {
 
         val resumeIntent = Intent(ACTION_RESUME).apply {
             setPackage(testContext.applicationContext.packageName)
-            putExtra(DownloadNotification.EXTRA_DOWNLOAD_ID, providedDownload.value.state.id)
+            putExtra(INTENT_EXTRA_DOWNLOAD_ID, providedDownload.value.state.id)
         }
 
         CollectionProcessor.withFactCollection { facts ->
@@ -669,7 +669,7 @@ class AbstractFetchDownloadServiceTest {
 
         val tryAgainIntent = Intent(ACTION_TRY_AGAIN).apply {
             setPackage(testContext.applicationContext.packageName)
-            putExtra(DownloadNotification.EXTRA_DOWNLOAD_ID, providedDownload.value.state.id)
+            putExtra(INTENT_EXTRA_DOWNLOAD_ID, providedDownload.value.state.id)
         }
 
         CollectionProcessor.withFactCollection { facts ->
@@ -790,7 +790,7 @@ class AbstractFetchDownloadServiceTest {
             )
             service.downloadJobs[downloadId] = downloadJobState
             val tryAgainIntent = Intent(ACTION_TRY_AGAIN).apply {
-                putExtra(DownloadNotification.EXTRA_DOWNLOAD_ID, downloadId)
+                putExtra(INTENT_EXTRA_DOWNLOAD_ID, downloadId)
             }
             service.broadcastReceiver.onReceive(testContext, tryAgainIntent)
             assertTrue(downloadJobState.createdTime > 0)
