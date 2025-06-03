@@ -220,52 +220,49 @@ class PuppetWidget final : public nsBaseWidget,
 
   LayoutDeviceIntRect GetScreenBounds() override;
 
-  nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
-                                    int32_t aNativeKeyCode,
-                                    uint32_t aModifierFlags,
-                                    const nsAString& aCharacters,
-                                    const nsAString& aUnmodifiedCharacters,
-                                    nsIObserver* aObserver) override;
-  nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
-                                      NativeMouseMessage aNativeMessage,
-                                      MouseButton aButton,
-                                      nsIWidget::Modifiers aModifierFlags,
-                                      nsIObserver* aObserver) override;
-  nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                     nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeKeyEvent(
+      int32_t aNativeKeyboardLayout, int32_t aNativeKeyCode,
+      uint32_t aModifierFlags, const nsAString& aCharacters,
+      const nsAString& aUnmodifiedCharacters,
+      nsISynthesizedEventCallback* aCallback) override;
+  nsresult SynthesizeNativeMouseEvent(
+      LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
+      MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
+      nsISynthesizedEventCallback* aCallback) override;
+  nsresult SynthesizeNativeMouseMove(
+      LayoutDeviceIntPoint aPoint,
+      nsISynthesizedEventCallback* aCallback) override;
   nsresult SynthesizeNativeMouseScrollEvent(
       LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage, double aDeltaX,
       double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
-      uint32_t aAdditionalFlags, nsIObserver* aObserver) override;
-  nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                      TouchPointerState aPointerState,
-                                      LayoutDeviceIntPoint aPoint,
-                                      double aPointerPressure,
-                                      uint32_t aPointerOrientation,
-                                      nsIObserver* aObserver) override;
+      uint32_t aAdditionalFlags,
+      nsISynthesizedEventCallback* aCallback) override;
+  nsresult SynthesizeNativeTouchPoint(
+      uint32_t aPointerId, TouchPointerState aPointerState,
+      LayoutDeviceIntPoint aPoint, double aPointerPressure,
+      uint32_t aPointerOrientation,
+      nsISynthesizedEventCallback* aCallback) override;
   nsresult SynthesizeNativeTouchPadPinch(TouchpadGesturePhase aEventPhase,
                                          float aScale,
                                          LayoutDeviceIntPoint aPoint,
                                          int32_t aModifierFlags) override;
-  nsresult SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint, bool aLongTap,
-                                    nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchTap(
+      LayoutDeviceIntPoint aPoint, bool aLongTap,
+      nsISynthesizedEventCallback* aCallback) override;
   uint32_t GetMaxTouchPoints() const override;
-  nsresult SynthesizeNativePenInput(uint32_t aPointerId,
-                                    TouchPointerState aPointerState,
-                                    LayoutDeviceIntPoint aPoint,
-                                    double aPressure, uint32_t aRotation,
-                                    int32_t aTiltX, int32_t aTiltY,
-                                    int32_t aButton,
-                                    nsIObserver* aObserver) override;
+  nsresult SynthesizeNativePenInput(
+      uint32_t aPointerId, TouchPointerState aPointerState,
+      LayoutDeviceIntPoint aPoint, double aPressure, uint32_t aRotation,
+      int32_t aTiltX, int32_t aTiltY, int32_t aButton,
+      nsISynthesizedEventCallback* aCallback) override;
 
   nsresult SynthesizeNativeTouchpadDoubleTap(LayoutDeviceIntPoint aPoint,
                                              uint32_t aModifierFlags) override;
 
-  nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
-                                       LayoutDeviceIntPoint aPoint,
-                                       double aDeltaX, double aDeltaY,
-                                       int32_t aModifierFlags,
-                                       nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchpadPan(
+      TouchpadGesturePhase aEventPhase, LayoutDeviceIntPoint aPoint,
+      double aDeltaX, double aDeltaY, int32_t aModifierFlags,
+      nsISynthesizedEventCallback* aCallback) override;
 
   void LockNativePointer() override;
   void UnlockNativePointer() override;

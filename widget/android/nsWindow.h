@@ -208,19 +208,18 @@ class nsWindow final : public nsBaseWidget {
       const uint32_t& aPresShellId, const ScrollableLayerGuid::ViewID& aViewId,
       const mozilla::Maybe<ZoomConstraints>& aConstraints) override;
 
-  nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                      TouchPointerState aPointerState,
-                                      LayoutDeviceIntPoint aPoint,
-                                      double aPointerPressure,
-                                      uint32_t aPointerOrientation,
-                                      nsIObserver* aObserver) override;
-  nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
-                                      NativeMouseMessage aNativeMessage,
-                                      mozilla::MouseButton aButton,
-                                      nsIWidget::Modifiers aModifierFlags,
-                                      nsIObserver* aObserver) override;
-  nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                     nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchPoint(
+      uint32_t aPointerId, TouchPointerState aPointerState,
+      LayoutDeviceIntPoint aPoint, double aPointerPressure,
+      uint32_t aPointerOrientation,
+      nsISynthesizedEventCallback* aCallback) override;
+  nsresult SynthesizeNativeMouseEvent(
+      LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
+      mozilla::MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
+      nsISynthesizedEventCallback* aCallback) override;
+  nsresult SynthesizeNativeMouseMove(
+      LayoutDeviceIntPoint aPoint,
+      nsISynthesizedEventCallback* aCallback) override;
 
   void SetCompositorWidgetDelegate(CompositorWidgetDelegate* delegate) override;
 

@@ -259,35 +259,34 @@ class nsWindow final : public nsBaseWidget,
   void SetCompositorWidgetDelegate(CompositorWidgetDelegate* delegate) override;
   [[nodiscard]] nsresult OnDefaultButtonLoaded(
       const LayoutDeviceIntRect& aButtonRect) override;
-  nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
-                                    int32_t aNativeKeyCode,
-                                    uint32_t aModifierFlags,
-                                    const nsAString& aCharacters,
-                                    const nsAString& aUnmodifiedCharacters,
-                                    nsIObserver* aObserver) override;
-  nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
-                                      NativeMouseMessage aNativeMessage,
-                                      mozilla::MouseButton aButton,
-                                      nsIWidget::Modifiers aModifierFlags,
-                                      nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeKeyEvent(
+      int32_t aNativeKeyboardLayout, int32_t aNativeKeyCode,
+      uint32_t aModifierFlags, const nsAString& aCharacters,
+      const nsAString& aUnmodifiedCharacters,
+      nsISynthesizedEventCallback* aCallback) override;
+  nsresult SynthesizeNativeMouseEvent(
+      LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
+      mozilla::MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
+      nsISynthesizedEventCallback* aCallback) override;
 
-  nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                     nsIObserver* aObserver) override {
+  nsresult SynthesizeNativeMouseMove(
+      LayoutDeviceIntPoint aPoint,
+      nsISynthesizedEventCallback* aCallback) override {
     return SynthesizeNativeMouseEvent(
         aPoint, NativeMouseMessage::Move, mozilla::MouseButton::eNotPressed,
-        nsIWidget::Modifiers::NO_MODIFIERS, aObserver);
+        nsIWidget::Modifiers::NO_MODIFIERS, aCallback);
   }
 
   nsresult SynthesizeNativeMouseScrollEvent(
       LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage, double aDeltaX,
       double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
-      uint32_t aAdditionalFlags, nsIObserver* aObserver) override;
+      uint32_t aAdditionalFlags,
+      nsISynthesizedEventCallback* aCallback) override;
 
-  nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
-                                       LayoutDeviceIntPoint aPoint,
-                                       double aDeltaX, double aDeltaY,
-                                       int32_t aModifierFlagsn,
-                                       nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchpadPan(
+      TouchpadGesturePhase aEventPhase, LayoutDeviceIntPoint aPoint,
+      double aDeltaX, double aDeltaY, int32_t aModifierFlagsn,
+      nsISynthesizedEventCallback* aCallback) override;
 
   void SetInputContext(const InputContext& aContext,
                        const InputContextAction& aAction) override;
@@ -413,20 +412,17 @@ class nsWindow final : public nsBaseWidget,
   /*
    * Touch input injection apis
    */
-  nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                      TouchPointerState aPointerState,
-                                      LayoutDeviceIntPoint aPoint,
-                                      double aPointerPressure,
-                                      uint32_t aPointerOrientation,
-                                      nsIObserver* aObserver) override;
+  nsresult SynthesizeNativeTouchPoint(
+      uint32_t aPointerId, TouchPointerState aPointerState,
+      LayoutDeviceIntPoint aPoint, double aPointerPressure,
+      uint32_t aPointerOrientation,
+      nsISynthesizedEventCallback* aCallback) override;
 
-  nsresult SynthesizeNativePenInput(uint32_t aPointerId,
-                                    TouchPointerState aPointerState,
-                                    LayoutDeviceIntPoint aPoint,
-                                    double aPressure, uint32_t aRotation,
-                                    int32_t aTiltX, int32_t aTiltY,
-                                    int32_t aButton,
-                                    nsIObserver* aObserver) override;
+  nsresult SynthesizeNativePenInput(
+      uint32_t aPointerId, TouchPointerState aPointerState,
+      LayoutDeviceIntPoint aPoint, double aPressure, uint32_t aRotation,
+      int32_t aTiltX, int32_t aTiltY, int32_t aButton,
+      nsISynthesizedEventCallback* aCallback) override;
 
   /*
    * WM_APPCOMMAND common handler.

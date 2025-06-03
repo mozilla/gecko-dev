@@ -466,47 +466,45 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
       mozilla::WidgetInputEvent* aEvent,
       const mozilla::layers::APZEventResult& aApzResult);
 
-  nsresult SynthesizeNativeKeyEvent(int32_t aNativeKeyboardLayout,
-                                    int32_t aNativeKeyCode,
-                                    uint32_t aModifierFlags,
-                                    const nsAString& aCharacters,
-                                    const nsAString& aUnmodifiedCharacters,
-                                    nsIObserver* aObserver) override {
-    mozilla::widget::AutoObserverNotifier notifier(aObserver, "keyevent");
+  nsresult SynthesizeNativeKeyEvent(
+      int32_t aNativeKeyboardLayout, int32_t aNativeKeyCode,
+      uint32_t aModifierFlags, const nsAString& aCharacters,
+      const nsAString& aUnmodifiedCharacters,
+      nsISynthesizedEventCallback* aCallback) override {
+    mozilla::widget::AutoSynthesizedEventCallbackNotifier notifier(aCallback);
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsresult SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
-                                      NativeMouseMessage aNativeMessage,
-                                      mozilla::MouseButton aButton,
-                                      nsIWidget::Modifiers aModifierFlags,
-                                      nsIObserver* aObserver) override {
-    mozilla::widget::AutoObserverNotifier notifier(aObserver, "mouseevent");
+  nsresult SynthesizeNativeMouseEvent(
+      LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
+      mozilla::MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
+      nsISynthesizedEventCallback* aCallback) override {
+    mozilla::widget::AutoSynthesizedEventCallbackNotifier notifier(aCallback);
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsresult SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                     nsIObserver* aObserver) override {
-    mozilla::widget::AutoObserverNotifier notifier(aObserver, "mouseevent");
+  nsresult SynthesizeNativeMouseMove(
+      LayoutDeviceIntPoint aPoint,
+      nsISynthesizedEventCallback* aCallback) override {
+    mozilla::widget::AutoSynthesizedEventCallbackNotifier notifier(aCallback);
     return NS_ERROR_UNEXPECTED;
   }
 
   nsresult SynthesizeNativeMouseScrollEvent(
       LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage, double aDeltaX,
       double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
-      uint32_t aAdditionalFlags, nsIObserver* aObserver) override {
-    mozilla::widget::AutoObserverNotifier notifier(aObserver,
-                                                   "mousescrollevent");
+      uint32_t aAdditionalFlags,
+      nsISynthesizedEventCallback* aCallback) override {
+    mozilla::widget::AutoSynthesizedEventCallbackNotifier notifier(aCallback);
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsresult SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                      TouchPointerState aPointerState,
-                                      LayoutDeviceIntPoint aPoint,
-                                      double aPointerPressure,
-                                      uint32_t aPointerOrientation,
-                                      nsIObserver* aObserver) override {
-    mozilla::widget::AutoObserverNotifier notifier(aObserver, "touchpoint");
+  nsresult SynthesizeNativeTouchPoint(
+      uint32_t aPointerId, TouchPointerState aPointerState,
+      LayoutDeviceIntPoint aPoint, double aPointerPressure,
+      uint32_t aPointerOrientation,
+      nsISynthesizedEventCallback* aCallback) override {
+    mozilla::widget::AutoSynthesizedEventCallbackNotifier notifier(aCallback);
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -519,13 +517,11 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsresult SynthesizeNativePenInput(uint32_t aPointerId,
-                                    TouchPointerState aPointerState,
-                                    LayoutDeviceIntPoint aPoint,
-                                    double aPressure, uint32_t aRotation,
-                                    int32_t aTiltX, int32_t aTiltY,
-                                    int32_t aButton,
-                                    nsIObserver* aObserver) override {
+  nsresult SynthesizeNativePenInput(
+      uint32_t aPointerId, TouchPointerState aPointerState,
+      LayoutDeviceIntPoint aPoint, double aPressure, uint32_t aRotation,
+      int32_t aTiltX, int32_t aTiltY, int32_t aButton,
+      nsISynthesizedEventCallback* aCallback) override {
     MOZ_RELEASE_ASSERT(
         false, "This method is not implemented on the current platform");
     return NS_ERROR_UNEXPECTED;
@@ -538,11 +534,10 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
     return NS_ERROR_UNEXPECTED;
   }
 
-  nsresult SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
-                                       LayoutDeviceIntPoint aPoint,
-                                       double aDeltaX, double aDeltaY,
-                                       int32_t aModifierFlags,
-                                       nsIObserver* aObserver) override {
+  nsresult SynthesizeNativeTouchpadPan(
+      TouchpadGesturePhase aEventPhase, LayoutDeviceIntPoint aPoint,
+      double aDeltaX, double aDeltaY, int32_t aModifierFlags,
+      nsISynthesizedEventCallback* aCallback) override {
     MOZ_RELEASE_ASSERT(
         false, "This method is not implemented on the current platform");
     return NS_ERROR_UNEXPECTED;

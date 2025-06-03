@@ -424,8 +424,8 @@ nsresult HeadlessWidget::DispatchEvent(WidgetGUIEvent* aEvent,
 nsresult HeadlessWidget::SynthesizeNativeMouseEvent(
     LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
     MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
-    nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "mouseevent");
+    nsISynthesizedEventCallback* aCallback) {
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
   EventMessage msg;
   switch (aNativeMessage) {
     case NativeMouseMessage::Move:
@@ -458,8 +458,8 @@ nsresult HeadlessWidget::SynthesizeNativeMouseEvent(
 nsresult HeadlessWidget::SynthesizeNativeMouseScrollEvent(
     mozilla::LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage,
     double aDeltaX, double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
-    uint32_t aAdditionalFlags, nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "mousescrollevent");
+    uint32_t aAdditionalFlags, nsISynthesizedEventCallback* aCallback) {
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
   // The various platforms seem to handle scrolling deltas differently,
   // but the following seems to emulate it well enough.
   WidgetWheelEvent event(true, eWheel, this);
@@ -477,8 +477,8 @@ nsresult HeadlessWidget::SynthesizeNativeMouseScrollEvent(
 nsresult HeadlessWidget::SynthesizeNativeTouchPoint(
     uint32_t aPointerId, TouchPointerState aPointerState,
     LayoutDeviceIntPoint aPoint, double aPointerPressure,
-    uint32_t aPointerOrientation, nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "touchpoint");
+    uint32_t aPointerOrientation, nsISynthesizedEventCallback* aCallback) {
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
 
   MOZ_ASSERT(NS_IsMainThread());
   if (aPointerState == TOUCH_HOVER) {
@@ -556,8 +556,8 @@ nsresult HeadlessWidget::SynthesizeNativeTouchPadPinch(
 nsresult HeadlessWidget::SynthesizeNativeTouchpadPan(
     TouchpadGesturePhase aEventPhase, LayoutDeviceIntPoint aPoint,
     double aDeltaX, double aDeltaY, int32_t aModifierFlags,
-    nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "touchpadpanevent");
+    nsISynthesizedEventCallback* aCallback) {
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
 
   MOZ_ASSERT(NS_IsMainThread());
 

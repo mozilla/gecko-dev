@@ -1090,18 +1090,20 @@ nsDOMWindowUtils::SendNativeKeyEvent(int32_t aNativeKeyboardLayout,
                                      uint32_t aModifiers,
                                      const nsAString& aCharacters,
                                      const nsAString& aUnmodifiedCharacters,
-                                     nsIObserver* aObserver) {
+                                     nsISynthesizedEventCallback* aCallback) {
   // get the widget to send the event to
   nsCOMPtr<nsIWidget> widget = GetWidget();
-  if (!widget) return NS_ERROR_FAILURE;
+  if (!widget) {
+    return NS_ERROR_FAILURE;
+  }
 
   NS_DispatchToMainThread(NativeInputRunnable::Create(
       NewRunnableMethod<int32_t, int32_t, uint32_t, nsString, nsString,
-                        nsIObserver*>(
+                        nsISynthesizedEventCallback*>(
           "nsIWidget::SynthesizeNativeKeyEvent", widget,
           &nsIWidget::SynthesizeNativeKeyEvent, aNativeKeyboardLayout,
           aNativeKeyCode, static_cast<uint32_t>(GetWidgetModifiers(aModifiers)),
-          aCharacters, aUnmodifiedCharacters, aObserver)));
+          aCharacters, aUnmodifiedCharacters, aCallback)));
   return NS_OK;
 }
 
@@ -1110,7 +1112,7 @@ nsDOMWindowUtils::SendNativeMouseEvent(int32_t aScreenX, int32_t aScreenY,
                                        uint32_t aNativeMessage, int16_t aButton,
                                        uint32_t aModifierFlags,
                                        Element* aElementOnWidget,
-                                       nsIObserver* aObserver) {
+                                       nsISynthesizedEventCallback* aCallback) {
   // get the widget to send the event to
   nsCOMPtr<nsIWidget> widget = GetWidgetForElement(aElementOnWidget);
   if (!widget) {
@@ -1140,12 +1142,13 @@ nsDOMWindowUtils::SendNativeMouseEvent(int32_t aScreenX, int32_t aScreenY,
 
   NS_DispatchToMainThread(NativeInputRunnable::Create(
       NewRunnableMethod<LayoutDeviceIntPoint, nsIWidget::NativeMouseMessage,
-                        MouseButton, nsIWidget::Modifiers, nsIObserver*>(
+                        MouseButton, nsIWidget::Modifiers,
+                        nsISynthesizedEventCallback*>(
           "nsIWidget::SynthesizeNativeMouseEvent", widget,
           &nsIWidget::SynthesizeNativeMouseEvent,
           LayoutDeviceIntPoint(aScreenX, aScreenY), message,
           static_cast<MouseButton>(aButton), GetWidgetModifiers(aModifierFlags),
-          aObserver)));
+          aCallback)));
   return NS_OK;
 }
 
@@ -1153,7 +1156,8 @@ NS_IMETHODIMP
 nsDOMWindowUtils::SendNativeMouseScrollEvent(
     int32_t aScreenX, int32_t aScreenY, uint32_t aNativeMessage, double aDeltaX,
     double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
-    uint32_t aAdditionalFlags, Element* aElement, nsIObserver* aObserver) {
+    uint32_t aAdditionalFlags, Element* aElement,
+    nsISynthesizedEventCallback* aCallback) {
   // get the widget to send the event to
   nsCOMPtr<nsIWidget> widget = GetWidgetForElement(aElement);
   if (!widget) {
@@ -1162,11 +1166,12 @@ nsDOMWindowUtils::SendNativeMouseScrollEvent(
 
   NS_DispatchToMainThread(NativeInputRunnable::Create(
       NewRunnableMethod<mozilla::LayoutDeviceIntPoint, uint32_t, double, double,
-                        double, uint32_t, uint32_t, nsIObserver*>(
+                        double, uint32_t, uint32_t,
+                        nsISynthesizedEventCallback*>(
           "nsIWidget::SynthesizeNativeMouseScrollEvent", widget,
           &nsIWidget::SynthesizeNativeMouseScrollEvent,
           LayoutDeviceIntPoint(aScreenX, aScreenY), aNativeMessage, aDeltaX,
-          aDeltaY, aDeltaZ, aModifierFlags, aAdditionalFlags, aObserver)));
+          aDeltaY, aDeltaZ, aModifierFlags, aAdditionalFlags, aCallback)));
   return NS_OK;
 }
 
@@ -1175,7 +1180,7 @@ nsDOMWindowUtils::SendNativeTouchPoint(uint32_t aPointerId,
                                        uint32_t aTouchState, int32_t aScreenX,
                                        int32_t aScreenY, double aPressure,
                                        uint32_t aOrientation,
-                                       nsIObserver* aObserver,
+                                       nsISynthesizedEventCallback* aCallback,
                                        Element* aElement) {
   // FYI: This was designed for automated tests, but currently, this is used by
   //      DevTools to emulate touch events from mouse events in the responsive
@@ -1192,12 +1197,13 @@ nsDOMWindowUtils::SendNativeTouchPoint(uint32_t aPointerId,
 
   NS_DispatchToMainThread(NativeInputRunnable::Create(
       NewRunnableMethod<uint32_t, nsIWidget::TouchPointerState,
-                        LayoutDeviceIntPoint, double, uint32_t, nsIObserver*>(
+                        LayoutDeviceIntPoint, double, uint32_t,
+                        nsISynthesizedEventCallback*>(
           "nsIWidget::SynthesizeNativeTouchPoint", widget,
           &nsIWidget::SynthesizeNativeTouchPoint, aPointerId,
           (nsIWidget::TouchPointerState)aTouchState,
           LayoutDeviceIntPoint(aScreenX, aScreenY), aPressure, aOrientation,
-          aObserver)));
+          aCallback)));
   return NS_OK;
 }
 
@@ -1221,17 +1227,19 @@ nsDOMWindowUtils::SendNativeTouchpadPinch(uint32_t aEventPhase, float aScale,
 
 NS_IMETHODIMP
 nsDOMWindowUtils::SendNativeTouchTap(int32_t aScreenX, int32_t aScreenY,
-                                     bool aLongTap, nsIObserver* aObserver) {
+                                     bool aLongTap,
+                                     nsISynthesizedEventCallback* aCallback) {
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
     return NS_ERROR_FAILURE;
   }
 
   NS_DispatchToMainThread(NativeInputRunnable::Create(
-      NewRunnableMethod<LayoutDeviceIntPoint, bool, nsIObserver*>(
+      NewRunnableMethod<LayoutDeviceIntPoint, bool,
+                        nsISynthesizedEventCallback*>(
           "nsIWidget::SynthesizeNativeTouchTap", widget,
           &nsIWidget::SynthesizeNativeTouchTap,
-          LayoutDeviceIntPoint(aScreenX, aScreenY), aLongTap, aObserver)));
+          LayoutDeviceIntPoint(aScreenX, aScreenY), aLongTap, aCallback)));
   return NS_OK;
 }
 
@@ -1241,7 +1249,7 @@ nsDOMWindowUtils::SendNativePenInput(uint32_t aPointerId,
                                      int32_t aScreenY, double aPressure,
                                      uint32_t aRotation, int32_t aTiltX,
                                      int32_t aTiltY, int32_t aButton,
-                                     nsIObserver* aObserver,
+                                     nsISynthesizedEventCallback* aCallback,
                                      Element* aElement) {
   nsCOMPtr<nsIWidget> widget = GetWidgetForElement(aElement);
   if (!widget) {
@@ -1256,12 +1264,12 @@ nsDOMWindowUtils::SendNativePenInput(uint32_t aPointerId,
   NS_DispatchToMainThread(NativeInputRunnable::Create(
       NewRunnableMethod<uint32_t, nsIWidget::TouchPointerState,
                         LayoutDeviceIntPoint, double, uint32_t, int32_t,
-                        int32_t, int32_t, nsIObserver*>(
+                        int32_t, int32_t, nsISynthesizedEventCallback*>(
           "nsIWidget::SynthesizeNativePenInput", widget,
           &nsIWidget::SynthesizeNativePenInput, aPointerId,
           (nsIWidget::TouchPointerState)aPointerState,
           LayoutDeviceIntPoint(aScreenX, aScreenY), aPressure, aRotation,
-          aTiltX, aTiltY, aButton, aObserver)));
+          aTiltX, aTiltY, aButton, aCallback)));
   return NS_OK;
 }
 
@@ -1284,10 +1292,10 @@ nsDOMWindowUtils::SendNativeTouchpadDoubleTap(int32_t aScreenX,
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::SendNativeTouchpadPan(uint32_t aEventPhase, int32_t aScreenX,
-                                        int32_t aScreenY, double aDeltaX,
-                                        double aDeltaY, int32_t aModifierFlags,
-                                        nsIObserver* aObserver) {
+nsDOMWindowUtils::SendNativeTouchpadPan(
+    uint32_t aEventPhase, int32_t aScreenX, int32_t aScreenY, double aDeltaX,
+    double aDeltaY, int32_t aModifierFlags,
+    nsISynthesizedEventCallback* aCallback) {
   nsCOMPtr<nsIWidget> widget = GetWidget();
   if (!widget) {
     return NS_ERROR_FAILURE;
@@ -1296,12 +1304,12 @@ nsDOMWindowUtils::SendNativeTouchpadPan(uint32_t aEventPhase, int32_t aScreenX,
   MOZ_ASSERT(aModifierFlags >= 0);
   NS_DispatchToMainThread(NativeInputRunnable::Create(
       NewRunnableMethod<nsIWidget::TouchpadGesturePhase, LayoutDeviceIntPoint,
-                        double, double, uint32_t, nsIObserver*>(
+                        double, double, uint32_t, nsISynthesizedEventCallback*>(
           "nsIWidget::SynthesizeNativeTouchpadPan", widget,
           &nsIWidget::SynthesizeNativeTouchpadPan,
           (nsIWidget::TouchpadGesturePhase)aEventPhase,
           LayoutDeviceIntPoint(aScreenX, aScreenY), aDeltaX, aDeltaY,
-          aModifierFlags, aObserver)));
+          aModifierFlags, aCallback)));
   return NS_OK;
 }
 

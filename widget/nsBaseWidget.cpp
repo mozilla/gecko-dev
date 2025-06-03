@@ -69,6 +69,7 @@
 #include "nsIAppWindow.h"
 #include "nsIBaseWindow.h"
 #include "nsIContent.h"
+#include "nsIDOMWindowUtils.h"
 #include "nsIScreenManager.h"
 #include "nsISimpleEnumerator.h"
 #include "nsIWidgetListener.h"
@@ -115,9 +116,9 @@ int32_t nsIWidget::sPointerIdCounter = 0;
 
 // Some statics from nsIWidget.h
 /*static*/
-uint64_t AutoObserverNotifier::sObserverId = 0;
-MOZ_RUNINIT /*static*/ nsTHashMap<uint64_t, nsCOMPtr<nsIObserver>>
-    AutoObserverNotifier::sSavedObservers;
+uint64_t AutoSynthesizedEventCallbackNotifier::sCallbackId = 0;
+MOZ_RUNINIT nsTHashMap<uint64_t, nsCOMPtr<nsISynthesizedEventCallback>>
+    AutoSynthesizedEventCallbackNotifier::sSavedCallbacks;
 
 // The maximum amount of time to let the EnableDragDrop runnable wait in the
 // idle queue before timing out and moving it to the regular queue. Value is in
@@ -2126,10 +2127,10 @@ nsBaseWidget::GetDesktopToDeviceScaleByScreen() {
       ->GetDesktopToDeviceScale();
 }
 
-nsresult nsIWidget::SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint,
-                                             bool aLongTap,
-                                             nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "touchtap");
+nsresult nsIWidget::SynthesizeNativeTouchTap(
+    LayoutDeviceIntPoint aPoint, bool aLongTap,
+    nsISynthesizedEventCallback* aCallback) {
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
 
   if (sPointerIdCounter > TOUCH_INJECT_MAX_POINTS) {
     sPointerIdCounter = 0;
@@ -2176,7 +2177,7 @@ nsresult nsIWidget::SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint,
   }
 
   mLongTapTouchPoint = MakeUnique<LongTapInfo>(
-      pointerId, aPoint, TimeDuration::FromMilliseconds(elapse), aObserver);
+      pointerId, aPoint, TimeDuration::FromMilliseconds(elapse), aCallback);
   notifier.SkipNotification();  // we'll do it in the long-tap callback
   return NS_OK;
 }
@@ -2197,8 +2198,8 @@ void nsIWidget::OnLongTapTimerCallback(nsITimer* aTimer, void* aClosure) {
     return;
   }
 
-  AutoObserverNotifier notifier(self->mLongTapTouchPoint->mObserver,
-                                "touchtap");
+  AutoSynthesizedEventCallbackNotifier notifier(
+      self->mLongTapTouchPoint->mCallback);
 
   // finished, remove the touch point
   self->mLongTapTimer->Cancel();

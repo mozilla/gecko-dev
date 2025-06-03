@@ -511,26 +511,27 @@ class BrowserParent final : public PBrowserParent,
   mozilla::ipc::IPCResult RecvSynthesizeNativeKeyEvent(
       const int32_t& aNativeKeyboardLayout, const int32_t& aNativeKeyCode,
       const uint32_t& aModifierFlags, const nsString& aCharacters,
-      const nsString& aUnmodifiedCharacters, const uint64_t& aObserverId);
+      const nsString& aUnmodifiedCharacters,
+      const Maybe<uint64_t>& aCallbackId);
 
   mozilla::ipc::IPCResult RecvSynthesizeNativeMouseEvent(
       const LayoutDeviceIntPoint& aPoint, const uint32_t& aNativeMessage,
       const int16_t& aButton, const uint32_t& aModifierFlags,
-      const uint64_t& aObserverId);
+      const Maybe<uint64_t>& aCallbackId);
 
   mozilla::ipc::IPCResult RecvSynthesizeNativeMouseMove(
-      const LayoutDeviceIntPoint& aPoint, const uint64_t& aObserverId);
+      const LayoutDeviceIntPoint& aPoint, const Maybe<uint64_t>& aCallbackId);
 
   mozilla::ipc::IPCResult RecvSynthesizeNativeMouseScrollEvent(
       const LayoutDeviceIntPoint& aPoint, const uint32_t& aNativeMessage,
       const double& aDeltaX, const double& aDeltaY, const double& aDeltaZ,
       const uint32_t& aModifierFlags, const uint32_t& aAdditionalFlags,
-      const uint64_t& aObserverId);
+      const Maybe<uint64_t>& aCallbackId);
 
   mozilla::ipc::IPCResult RecvSynthesizeNativeTouchPoint(
       const uint32_t& aPointerId, const TouchPointerState& aPointerState,
       const LayoutDeviceIntPoint& aPoint, const double& aPointerPressure,
-      const uint32_t& aPointerOrientation, const uint64_t& aObserverId);
+      const uint32_t& aPointerOrientation, const Maybe<uint64_t>& aCallbackId);
 
   mozilla::ipc::IPCResult RecvSynthesizeNativeTouchPadPinch(
       const TouchpadGesturePhase& aEventPhase, const float& aScale,
@@ -538,13 +539,13 @@ class BrowserParent final : public PBrowserParent,
 
   mozilla::ipc::IPCResult RecvSynthesizeNativeTouchTap(
       const LayoutDeviceIntPoint& aPoint, const bool& aLongTap,
-      const uint64_t& aObserverId);
+      const Maybe<uint64_t>& aCallbackId);
 
   mozilla::ipc::IPCResult RecvSynthesizeNativePenInput(
       const uint32_t& aPointerId, const TouchPointerState& aPointerState,
       const LayoutDeviceIntPoint& aPoint, const double& aPressure,
       const uint32_t& aRotation, const int32_t& aTiltX, const int32_t& aTiltY,
-      const int32_t& aButton, const uint64_t& aObserverId);
+      const int32_t& aButton, const Maybe<uint64_t>& aCallbackId);
 
   mozilla::ipc::IPCResult RecvSynthesizeNativeTouchpadDoubleTap(
       const LayoutDeviceIntPoint& aPoint, const uint32_t& aModifierFlags);
@@ -553,7 +554,7 @@ class BrowserParent final : public PBrowserParent,
       const TouchpadGesturePhase& aEventPhase,
       const LayoutDeviceIntPoint& aPoint, const double& aDeltaX,
       const double& aDeltaY, const int32_t& aModifierFlags,
-      const uint64_t& aObserverId);
+      const Maybe<uint64_t>& aCallbackId);
 
   mozilla::ipc::IPCResult RecvLockNativePointer();
 

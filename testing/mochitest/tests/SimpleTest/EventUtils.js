@@ -1365,14 +1365,7 @@ function synthesizeNativeTap(
     (aWindow.mozInnerScreenY + rect.top + aOffsetY) * scale
   );
 
-  let observer = {
-    observe: (subject, topic, data) => {
-      if (aCallback && topic == "mouseevent") {
-        aCallback(data);
-      }
-    },
-  };
-  utils.sendNativeTouchTap(x, y, aLongTap, observer);
+  utils.sendNativeTouchTap(x, y, aLongTap, aCallback);
 }
 
 /**
@@ -1507,13 +1500,6 @@ function synthesizeNativeMouseEvent(aParams, aCallback = null) {
   );
   const modifierFlags = _parseNativeModifiers(modifiers);
 
-  const observer = {
-    observe: (subject, topic, data) => {
-      if (aCallback && topic == "mouseevent") {
-        aCallback(data);
-      }
-    },
-  };
   if (type === "click") {
     utils.sendNativeMouseEvent(
       x,
@@ -1530,7 +1516,7 @@ function synthesizeNativeMouseEvent(aParams, aCallback = null) {
           button,
           modifierFlags,
           elementOnWidget,
-          observer
+          aCallback
         );
       }
     );
@@ -1554,7 +1540,7 @@ function synthesizeNativeMouseEvent(aParams, aCallback = null) {
     button,
     modifierFlags,
     elementOnWidget,
-    observer
+    aCallback
   );
 }
 
@@ -2059,20 +2045,13 @@ function synthesizeNativeKey(
     return false;
   }
 
-  var observer = {
-    observe(aSubject, aTopic, aData) {
-      if (aCallback && aTopic == "keyevent") {
-        aCallback(aData);
-      }
-    },
-  };
   utils.sendNativeKeyEvent(
     nativeKeyboardLayout,
     aNativeKeyCode,
     _parseNativeModifiers(aModifiers, aWindow),
     aChars,
     aUnmodifiedChars,
-    observer
+    aCallback
   );
   return true;
 }

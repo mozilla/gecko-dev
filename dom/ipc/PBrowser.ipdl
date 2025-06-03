@@ -466,14 +466,14 @@ parent:
                                    uint32_t aModifierFlags,
                                    nsString aCharacters,
                                    nsString aUnmodifiedCharacters,
-                                   uint64_t aObserverId);
+                                   uint64_t? aCallbackId);
     async SynthesizeNativeMouseEvent(LayoutDeviceIntPoint aPoint,
                                      uint32_t aNativeMessage,
                                      int16_t aButton,
                                      uint32_t aModifierFlags,
-                                     uint64_t aObserverId);
+                                     uint64_t? aCallbackId);
     async SynthesizeNativeMouseMove(LayoutDeviceIntPoint aPoint,
-                                    uint64_t aObserverId);
+                                    uint64_t? aCallbackId);
     async SynthesizeNativeMouseScrollEvent(LayoutDeviceIntPoint aPoint,
                                            uint32_t aNativeMessage,
                                            double aDeltaX,
@@ -481,20 +481,20 @@ parent:
                                            double aDeltaZ,
                                            uint32_t aModifierFlags,
                                            uint32_t aAdditionalFlags,
-                                           uint64_t aObserverId);
+                                           uint64_t? aCallbackId);
     async SynthesizeNativeTouchPoint(uint32_t aPointerId,
                                      TouchPointerState aPointerState,
                                      LayoutDeviceIntPoint aPoint,
                                      double aPointerPressure,
                                      uint32_t aPointerOrientation,
-                                     uint64_t aObserverId);
+                                     uint64_t? aCallbackId);
     async SynthesizeNativeTouchPadPinch(TouchpadGesturePhase aEventPhase,
                                         float aScale,
                                         LayoutDeviceIntPoint aPoint,
                                         int32_t aModifierFlags);
     async SynthesizeNativeTouchTap(LayoutDeviceIntPoint aPoint,
                                    bool aLongTap,
-                                   uint64_t aObserverId);
+                                   uint64_t? aCallbackId);
     async SynthesizeNativePenInput(uint32_t aPointerId,
                                    TouchPointerState aPointerState,
                                    LayoutDeviceIntPoint aPoint,
@@ -503,14 +503,14 @@ parent:
                                    int32_t aTiltX,
                                    int32_t aTiltY,
                                    int32_t aButton,
-                                   uint64_t aObserverId);
+                                   uint64_t? aCallbackId);
     async SynthesizeNativeTouchpadDoubleTap(LayoutDeviceIntPoint aPoint,
                                             uint32_t aModifierFlags);
     async SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
                                       LayoutDeviceIntPoint aPoint,
                                       double aDeltaX, double aDeltaY,
                                       int32_t aModifierFlags,
-                                      uint64_t aObserverId);
+                                      uint64_t? aCallbackId);
 
     async LockNativePointer();
     async UnlockNativePointer();
@@ -571,7 +571,7 @@ both:
     async ReleasePointerLock();
 
 child:
-    async NativeSynthesisResponse(uint64_t aObserverId, nsCString aResponse);
+    async SynthesizedEventResponse(uint64_t aCallbackId);
     async UpdateSHistory();
     async CloneDocumentTreeIntoSelf(MaybeDiscardedBrowsingContext aBc, PrintData aPrintData) returns(bool aSuccess);
     async UpdateRemotePrintSettings(PrintData aPrintData);

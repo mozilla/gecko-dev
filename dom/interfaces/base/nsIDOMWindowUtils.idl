@@ -42,7 +42,6 @@ interface nsIRunnable;
 interface nsITranslationNodeList;
 interface nsIJSRAIIHelper;
 interface nsIContentPermissionRequest;
-interface nsIObserver;
 
 webidl Animation;
 webidl DOMRect;
@@ -52,6 +51,14 @@ webidl Event;
 webidl Node;
 webidl NodeList;
 webidl Storage;
+
+[scriptable, function, uuid(56609ca4-8e06-4c4c-9918-2d95f8fa58d3)]
+interface nsISynthesizedEventCallback : nsISupports {
+  /**
+   * Called when a synthesized event has been dispatched.
+   */
+  void onCompleteDispatch();
+};
 
 [builtinclass, scriptable, uuid(4d6732ca-9da7-4176-b8a1-8dde15cd0bf9)]
 interface nsIDOMWindowUtils : nsISupports {
@@ -560,15 +567,14 @@ interface nsIDOMWindowUtils : nsISupports {
    * When you use this for tests, use the constants defined in NativeKeyCodes.js
    *
    * NOTE: The synthesized native event will be fired asynchronously, and upon
-   * completion the observer, if provided, will be notified with a "keyevent"
-   * topic.
+   * completion the callback, if provided, will be notified.
    */
   void sendNativeKeyEvent(in long aNativeKeyboardLayout,
                           in long aNativeKeyCode,
                           in unsigned long aModifierFlags,
                           in AString aCharacters,
                           in AString aUnmodifiedCharacters,
-                          [optional] in nsIObserver aObserver);
+                          [optional] in nsISynthesizedEventCallback aCallback);
 
   /**
    * See nsIWidget::SynthesizeNativeMouseEvent
@@ -583,9 +589,9 @@ interface nsIDOMWindowUtils : nsISupports {
    * @param aButton     Same as `MouseEvent.button` value.
    * @param aModifierFlags      See nsIWidget's native modifier flags.
    * @param aElementOnWidget    An element which is on a widget.
-   * @param aObserver   The synthesized native event will be fired
-   *                    asynchronously, and upon completion the observer, if
-   *                    provided, will be notified with a "mouseevent" topic.
+   * @param aCallback   The synthesized native event will be fired
+   *                    asynchronously, and upon completion the callback, if
+   *                    provided, will be notified.
    */
   const unsigned long NATIVE_MOUSE_MESSAGE_BUTTON_DOWN  = 0x00000001;
   const unsigned long NATIVE_MOUSE_MESSAGE_BUTTON_UP    = 0x00000002;
@@ -598,7 +604,7 @@ interface nsIDOMWindowUtils : nsISupports {
                             in short aButton,
                             in unsigned long aModifierFlags,
                             in Element aElementOnWidget,
-                            [optional] in nsIObserver aObserver);
+                            [optional] in nsISynthesizedEventCallback aCallback);
 
   /**
    * Suppress animations that are applied to a window by OS when
@@ -641,8 +647,7 @@ interface nsIDOMWindowUtils : nsISupports {
    * Will throw a DOM security error if called without chrome privileges.
    *
    * NOTE: The synthesized native event will be fired asynchronously, and upon
-   * completion the observer, if provided, will be notified with a
-   * "mousescrollevent" topic.
+   * completion the callback, if provided, will be notified.
    *
    * @param aNativeMessage
    *   On Windows:  WM_MOUSEWHEEL (0x020A), WM_MOUSEHWHEEL(0x020E),
@@ -657,7 +662,7 @@ interface nsIDOMWindowUtils : nsISupports {
                                   in unsigned long aModifierFlags,
                                   in unsigned long aAdditionalFlags,
                                   in Element aElement,
-                                  [optional] in nsIObserver aObserver);
+                                  [optional] in nsISynthesizedEventCallback aCallback);
 
   /**
    * Touch states for sendNativeTouchPoint. These values match
@@ -700,9 +705,8 @@ interface nsIDOMWindowUtils : nsISupports {
    * @param aPressure 0.0 -> 1.0 float val indicating pressure
    * @param aOrientation 0 -> 359 degree value indicating the
    * orientation of the pointer. Use 90 for normal taps.
-   * @param aObserver The synthesized native event will be fired asynchronously,
-   * and upon completion the observer, if provided, will be notified with a
-   * "touchpoint" topic.
+   * @param aCallback The synthesized native event will be fired asynchronously,
+   * and upon completion the callback, if provided, will be notified.
    * @param aElement If the touch point needs to happen on a popup window,
    * aElement inside the popup window needs to be specified.
    */
@@ -712,7 +716,7 @@ interface nsIDOMWindowUtils : nsISupports {
                             in long aScreenY,
                             in double aPressure,
                             in unsigned long aOrientation,
-                            [optional] in nsIObserver aObserver,
+                            [optional] in nsISynthesizedEventCallback aCallback,
                             [optional] in Element aElement);
   /**
    * These values indicate touchpad pinch phase states :
@@ -748,8 +752,7 @@ interface nsIDOMWindowUtils : nsISupports {
    * throw.
    *
    * NOTE: The synthesized native event will be fired asynchronously, and upon
-   * completion the observer, if provided, will be notified, with a "touchtap"
-   * topic.
+   * completion the callback, if provided, will be notified.
    *
    * @param aScreenX, aScreenY screen coords of this event
    * @param aLongTap true if the tap should be long, false for a short
@@ -758,7 +761,7 @@ interface nsIDOMWindowUtils : nsISupports {
   void sendNativeTouchTap(in long aScreenX,
                           in long aScreenY,
                           in boolean aLongTap,
-                          [optional] in nsIObserver aObserver);
+                          [optional] in nsISynthesizedEventCallback aCallback);
 
   /**
    * Create a new or update an existing pen input on the digitizer.
@@ -766,8 +769,7 @@ interface nsIDOMWindowUtils : nsISupports {
    * Widget support: Windows 10 1809+. Other widgets will throw.
    *
    * NOTE: The synthesized native event will be fired asynchronously, and upon
-   * completion the observer, if provided, will be notified with a "peninput"
-   * topic.
+   * completion the callback, if provided, will be notified.
    *
    * @param aPointerId The touch point id to create or update.
    * @param aPointerState one or more of the TOUCH_* listed above
@@ -791,7 +793,7 @@ interface nsIDOMWindowUtils : nsISupports {
                           in long aTiltX,
                           in long aTiltY,
                           in long aButton,
-                          [optional] in nsIObserver aObserver,
+                          [optional] in nsISynthesizedEventCallback aCallback,
                           [optional] in Element aElement);
 
   /**
@@ -811,8 +813,7 @@ interface nsIDOMWindowUtils : nsISupports {
    * fingers.
    *
    * NOTE: The synthesized native event will be fired asynchronously, and upon
-   * completion the observer, if provided, will be notified with a
-   * "touchpadpanevent" topic.
+   * completion the callback, if provided, will be notified.
    *
    * Widget support: Windows.
    * @param aScreenX, aScreenY screen coords of the focus point of this event.
@@ -825,7 +826,7 @@ interface nsIDOMWindowUtils : nsISupports {
                              in double aDeltaX,
                              in double aDeltaY,
                              in long aModifierFlags,
-                             [optional] in nsIObserver aObserver);
+                             [optional] in nsISynthesizedEventCallback aCallback);
 
   /**
    * Returns the number of stylesheets that have been parsed on this document.

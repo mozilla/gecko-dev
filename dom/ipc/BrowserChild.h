@@ -382,8 +382,8 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   mozilla::ipc::IPCResult RecvUpdateSHistory();
 
-  mozilla::ipc::IPCResult RecvNativeSynthesisResponse(
-      const uint64_t& aObserverId, const nsCString& aResponse);
+  mozilla::ipc::IPCResult RecvSynthesizedEventResponse(
+      const uint64_t& aCallbackId);
 
   mozilla::ipc::IPCResult RecvCompositionEvent(
       const mozilla::WidgetCompositionEvent& aEvent);

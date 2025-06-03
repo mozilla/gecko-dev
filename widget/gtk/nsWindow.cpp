@@ -5146,11 +5146,11 @@ void nsWindow::OnScrollEvent(GdkEventScroll* aEvent) {
 
           DispatchPanGesture(panEvent);
 
-          if (mCurrentSynthesizedTouchpadPan.mSavedObserver != 0) {
-            mozilla::widget::AutoObserverNotifier::NotifySavedObserver(
-                mCurrentSynthesizedTouchpadPan.mSavedObserver,
-                "touchpadpanevent");
-            mCurrentSynthesizedTouchpadPan.mSavedObserver = 0;
+          if (mCurrentSynthesizedTouchpadPan.mSavedCallbackId.isSome()) {
+            mozilla::widget::AutoSynthesizedEventCallbackNotifier::
+                NotifySavedCallback(
+                    mCurrentSynthesizedTouchpadPan.mSavedCallbackId.ref());
+            mCurrentSynthesizedTouchpadPan.mSavedCallbackId.reset();
           }
 
           return;
@@ -8993,11 +8993,11 @@ LayoutDeviceIntRect nsWindow::GdkRectToDevicePixels(const GdkRectangle& aRect) {
 nsresult nsWindow::SynthesizeNativeMouseEvent(
     LayoutDeviceIntPoint aPoint, NativeMouseMessage aNativeMessage,
     MouseButton aButton, nsIWidget::Modifiers aModifierFlags,
-    nsIObserver* aObserver) {
+    nsISynthesizedEventCallback* aCallback) {
   LOG("SynthesizeNativeMouseEvent(%d, %d, %d, %d, %d)", aPoint.x.value,
       aPoint.y.value, int(aNativeMessage), int(aButton), int(aModifierFlags));
 
-  AutoObserverNotifier notifier(aObserver, "mouseevent");
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
 
   if (!mGdkWindow) {
     return NS_OK;
@@ -9102,8 +9102,8 @@ void nsWindow::CreateAndPutGdkScrollEvent(mozilla::LayoutDeviceIntPoint aPoint,
 nsresult nsWindow::SynthesizeNativeMouseScrollEvent(
     mozilla::LayoutDeviceIntPoint aPoint, uint32_t aNativeMessage,
     double aDeltaX, double aDeltaY, double aDeltaZ, uint32_t aModifierFlags,
-    uint32_t aAdditionalFlags, nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "mousescrollevent");
+    uint32_t aAdditionalFlags, nsISynthesizedEventCallback* aCallback) {
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
 
   if (!mGdkWindow) {
     return NS_OK;
@@ -9114,13 +9114,11 @@ nsresult nsWindow::SynthesizeNativeMouseScrollEvent(
   return NS_OK;
 }
 
-nsresult nsWindow::SynthesizeNativeTouchPoint(uint32_t aPointerId,
-                                              TouchPointerState aPointerState,
-                                              LayoutDeviceIntPoint aPoint,
-                                              double aPointerPressure,
-                                              uint32_t aPointerOrientation,
-                                              nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "touchpoint");
+nsresult nsWindow::SynthesizeNativeTouchPoint(
+    uint32_t aPointerId, TouchPointerState aPointerState,
+    LayoutDeviceIntPoint aPoint, double aPointerPressure,
+    uint32_t aPointerOrientation, nsISynthesizedEventCallback* aCallback) {
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
 
   if (!mGdkWindow) {
     return NS_OK;
@@ -9263,12 +9261,11 @@ nsresult nsWindow::SynthesizeNativeTouchPadPinch(
   return NS_OK;
 }
 
-nsresult nsWindow::SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
-                                               LayoutDeviceIntPoint aPoint,
-                                               double aDeltaX, double aDeltaY,
-                                               int32_t aModifierFlags,
-                                               nsIObserver* aObserver) {
-  AutoObserverNotifier notifier(aObserver, "touchpadpanevent");
+nsresult nsWindow::SynthesizeNativeTouchpadPan(
+    TouchpadGesturePhase aEventPhase, LayoutDeviceIntPoint aPoint,
+    double aDeltaX, double aDeltaY, int32_t aModifierFlags,
+    nsISynthesizedEventCallback* aCallback) {
+  AutoSynthesizedEventCallbackNotifier notifier(aCallback);
 
   if (!mGdkWindow) {
     return NS_OK;
@@ -9281,9 +9278,8 @@ nsresult nsWindow::SynthesizeNativeTouchpadPan(TouchpadGesturePhase aEventPhase,
   // to nav, then maybe we should test those too.
 
   mCurrentSynthesizedTouchpadPan.mTouchpadGesturePhase = Some(aEventPhase);
-  MOZ_ASSERT(mCurrentSynthesizedTouchpadPan.mSavedObserver == 0);
-  mCurrentSynthesizedTouchpadPan.mSavedObserver = notifier.SaveObserver();
-
+  MOZ_ASSERT(mCurrentSynthesizedTouchpadPan.mSavedCallbackId.isNothing());
+  mCurrentSynthesizedTouchpadPan.mSavedCallbackId = notifier.SaveCallback();
   // Note that CreateAndPutGdkScrollEvent sets the device source for the created
   // event as the "client pointer" (a kind of default device) which will
   // probably be of type mouse. We would ideally want to set the device of the

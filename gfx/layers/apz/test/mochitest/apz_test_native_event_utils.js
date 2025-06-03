@@ -497,14 +497,6 @@ async function promiseNativeTouchpadPanEventAndWaitForObserver(
   const utils = utilsForTarget(aTarget);
 
   return new Promise(resolve => {
-    var observer = {
-      observe(aSubject, aTopic) {
-        if (aTopic == "touchpadpanevent") {
-          resolve();
-        }
-      },
-    };
-
     utils.sendNativeTouchpadPan(
       aPhase,
       pt.x,
@@ -512,7 +504,7 @@ async function promiseNativeTouchpadPanEventAndWaitForObserver(
       aDeltaX,
       aDeltaY,
       0,
-      observer
+      resolve
     );
   });
 }
@@ -556,13 +548,6 @@ function promiseNativePanGestureEventAndWaitForObserver(
   aPhase
 ) {
   return new Promise(resolve => {
-    var observer = {
-      observe(aSubject, aTopic) {
-        if (aTopic == "mousescrollevent") {
-          resolve();
-        }
-      },
-    };
     synthesizeNativePanGestureEvent(
       aElement,
       aX,
@@ -570,7 +555,7 @@ function promiseNativePanGestureEventAndWaitForObserver(
       aDeltaX,
       aDeltaY,
       aPhase,
-      observer
+      resolve
     );
   });
 }
@@ -587,14 +572,7 @@ function promiseNativeWheelAndWaitForObserver(
   aDeltaY
 ) {
   return new Promise(resolve => {
-    var observer = {
-      observe(aSubject, aTopic) {
-        if (aTopic == "mousescrollevent") {
-          resolve();
-        }
-      },
-    };
-    synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY, observer);
+    synthesizeNativeWheel(aElement, aX, aY, aDeltaX, aDeltaY, resolve);
   });
 }
 

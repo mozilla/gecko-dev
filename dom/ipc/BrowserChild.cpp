@@ -2261,10 +2261,11 @@ void BrowserChild::RequestEditCommands(NativeKeyBindingsType aType,
                                &aCommands);
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvNativeSynthesisResponse(
-    const uint64_t& aObserverId, const nsCString& aResponse) {
-  mozilla::widget::AutoObserverNotifier::NotifySavedObserver(aObserverId,
-                                                             aResponse.get());
+mozilla::ipc::IPCResult BrowserChild::RecvSynthesizedEventResponse(
+    const uint64_t& aCallbackId) {
+  NS_ENSURE_TRUE(xpc::IsInAutomation(), IPC_FAIL(this, "Unexpected event"));
+  mozilla::widget::AutoSynthesizedEventCallbackNotifier::NotifySavedCallback(
+      aCallbackId);
   return IPC_OK();
 }
 
