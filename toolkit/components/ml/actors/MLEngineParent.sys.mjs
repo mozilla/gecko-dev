@@ -346,31 +346,18 @@ export class MLEngineParent extends JSProcessActorParent {
       lazy.console.debug(
         "Ignored attempt to delete previous models when the engine is not fully initialized."
       );
+      return;
     }
-
-    const deletePromises = [];
-
-    for (const [
-      key,
-      { taskName, model, revision },
-    ] of this.#modelFilesInUse.entries()) {
-      lazy.console.debug("Deleting previous version for ", {
-        taskName,
-        model,
-        revision,
-      });
-      deletePromises.push(
-        this.modelHub
-          .deleteNonMatchingModelRevisions({
-            taskName,
-            model,
-            targetRevision: revision,
-          })
-          .then(() => this.#modelFilesInUse.delete(key))
-      );
-    }
-
-    await Promise.all(deletePromises);
+    await Promise.all(
+      [...this.#modelFilesInUse].map(async ([key, entry]) => {
+        await this.modelHub.deleteNonMatchingModelRevisions({
+          modelWithHostname: entry.modelWithHostname,
+          taskName: entry.taskName,
+          targetRevision: entry.revision,
+        });
+        this.#modelFilesInUse.delete(key);
+      })
+    );
   }
 
   /**
@@ -430,7 +417,9 @@ export class MLEngineParent extends JSProcessActorParent {
     const [data, headers] = await this.modelHub.getModelDataAsFile({
       engineId,
       taskName,
-      ...parsedUrl,
+      model: parsedUrl.model,
+      revision: parsedUrl.revision,
+      file: parsedUrl.file,
       modelHubRootUrl: rootUrl,
       modelHubUrlTemplate: urlTemplate,
       progressCallback: this.notificationsCallback?.bind(this),
