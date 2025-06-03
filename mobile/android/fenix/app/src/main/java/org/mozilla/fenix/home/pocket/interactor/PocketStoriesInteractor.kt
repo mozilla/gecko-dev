@@ -43,18 +43,4 @@ interface PocketStoriesInteractor {
      * of the clicked story.
      */
     fun onStoryClicked(storyClicked: PocketStory, storyPosition: Triple<Int, Int, Int>)
-
-    /**
-     * Callback for when the user clicks the "Learn more" link.
-     *
-     * @param link URL clicked.
-     */
-    fun onLearnMoreClicked(link: String)
-
-    /**
-     * Callback for when the user clicks the "Discover more" link.
-     *
-     * @param link URL clicked.
-     */
-    fun onDiscoverMoreClicked(link: String)
 }

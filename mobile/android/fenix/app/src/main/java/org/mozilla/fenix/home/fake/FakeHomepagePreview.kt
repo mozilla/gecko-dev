@@ -101,10 +101,6 @@ internal object FakeHomepagePreview {
                 storyPosition: Triple<Int, Int, Int>,
             ) { /* no op */ }
 
-            override fun onLearnMoreClicked(link: String) { /* no op */ }
-
-            override fun onDiscoverMoreClicked(link: String) { /* no op */ }
-
             override fun onMenuItemTapped(item: SearchSelectorMenu.Item) { /* no op */ }
 
             override fun showWallpapersOnboardingDialog(state: WallpaperState): Boolean {

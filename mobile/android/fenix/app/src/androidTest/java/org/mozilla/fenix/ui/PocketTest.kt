@@ -72,7 +72,6 @@ class PocketTest : TestSetup() {
                 // Sponsored Pocket stories are only advertised for a limited time.
                 // See also known issue https://bugzilla.mozilla.org/show_bug.cgi?id=1828629
                 // verifyPocketSponsoredStoriesItems(2, 8)
-                verifyDiscoverMoreStoriesButton(activityTestRule)
                 verifyStoriesByTopic(true)
             }.openThreeDotMenu {
             }.openCustomizeHome {
@@ -93,18 +92,6 @@ class PocketTest : TestSetup() {
                 firstPocketStoryPublisher = getProvokingStoryPublisher(1)
             }.clickPocketStoryItem(firstPocketStoryPublisher, 1) {
                 verifyUrl(Constants.POCKET_RECOMMENDED_STORIES_UTM_PARAM)
-            }
-        }
-    }
-
-    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252514
-    @Test
-    fun pocketDiscoverMoreButtonTest() {
-        runWithCondition(isNetworkConnected()) {
-            homeScreen {
-                verifyDiscoverMoreStoriesButton(activityTestRule)
-            }.clickPocketDiscoverMoreButton(activityTestRule) {
-                verifyUrl("getpocket.com/explore")
             }
         }
     }

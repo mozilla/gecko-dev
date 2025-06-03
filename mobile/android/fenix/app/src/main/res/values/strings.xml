@@ -2734,7 +2734,7 @@
     <!-- Header text for a section on the home screen. -->
     <string name="pocket_stories_categories_header">Stories by topic</string>
     <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-    <string name="pocket_stories_placeholder_text">Discover more</string>
+    <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Discover more</string>
     <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
     <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Powered by %s.</string>
     <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked.  -->

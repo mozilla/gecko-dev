@@ -508,33 +508,6 @@ class DefaultPocketStoriesControllerTest {
     }
 
     @Test
-    fun `WHEN discover more is clicked then open that using HomeActivity and record telemetry`() {
-        val link = "http://getpocket.com/explore"
-        val controller = createController()
-        assertNull(Pocket.homeRecsDiscoverClicked.testGetValue())
-
-        controller.handleDiscoverMoreClicked(link)
-
-        verify { homeActivity.openToBrowserAndLoad(link, true, BrowserDirection.FromHome) }
-        assertNotNull(Pocket.homeRecsDiscoverClicked.testGetValue())
-        assertEquals(1, Pocket.homeRecsDiscoverClicked.testGetValue()!!.size)
-        assertNull(Pocket.homeRecsDiscoverClicked.testGetValue()!!.single().extra)
-    }
-
-    @Test
-    fun `WHEN learn more is clicked then open that using HomeActivity and record telemetry`() {
-        val link = "https://www.mozilla.org/en-US/firefox/pocket/"
-        val controller = createController()
-        assertNull(Pocket.homeRecsLearnMoreClicked.testGetValue())
-
-        controller.handleLearnMoreClicked(link)
-
-        verify { homeActivity.openToBrowserAndLoad(link, true, BrowserDirection.FromHome) }
-        assertNotNull(Pocket.homeRecsLearnMoreClicked.testGetValue())
-        assertNull(Pocket.homeRecsLearnMoreClicked.testGetValue()!!.single().extra)
-    }
-
-    @Test
     fun `WHEN a story is clicked THEN its link is opened`() {
         val story = PocketRecommendedStory("", "url", "", "", "", 0, 0)
         val controller = createController()
@@ -557,30 +530,6 @@ class DefaultPocketStoriesControllerTest {
 
         verifyOrder {
             homeActivity.openToBrowserAndLoad(story.url, false, BrowserDirection.FromHome)
-        }
-    }
-
-    @Test
-    fun `WHEN discover more is clicked THEN its link is opened`() {
-        val link = "https://discoverMore.link"
-        val controller = createController()
-
-        controller.handleDiscoverMoreClicked(link)
-
-        verifyOrder {
-            homeActivity.openToBrowserAndLoad(link, true, BrowserDirection.FromHome)
-        }
-    }
-
-    @Test
-    fun `WHEN learn more link is clicked THEN that link is opened`() {
-        val link = "https://learnMore.link"
-        val controller = createController()
-
-        controller.handleLearnMoreClicked(link)
-
-        verifyOrder {
-            homeActivity.openToBrowserAndLoad(link, true, BrowserDirection.FromHome)
         }
     }
 

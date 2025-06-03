@@ -62,20 +62,6 @@ interface PocketStoriesController {
      * of the clicked story.
      */
     fun handleStoryClicked(storyClicked: PocketStory, storyPosition: Triple<Int, Int, Int>)
-
-    /**
-     * Callback for when the "Learn more" link is clicked.
-     *
-     * @param link URL clicked.
-     */
-    fun handleLearnMoreClicked(link: String)
-
-    /**
-     * Callback for when the "Discover more" link is clicked.
-     *
-     * @param link URL clicked.
-     */
-    fun handleDiscoverMoreClicked(link: String)
 }
 
 /**
@@ -253,15 +239,5 @@ internal class DefaultPocketStoriesController(
                 }
             }
         }
-    }
-
-    override fun handleLearnMoreClicked(link: String) {
-        homeActivity.openToBrowserAndLoad(link, true, BrowserDirection.FromHome)
-        Pocket.homeRecsLearnMoreClicked.record(NoExtras())
-    }
-
-    override fun handleDiscoverMoreClicked(link: String) {
-        homeActivity.openToBrowserAndLoad(link, true, BrowserDirection.FromHome)
-        Pocket.homeRecsDiscoverClicked.record(NoExtras())
     }
 }

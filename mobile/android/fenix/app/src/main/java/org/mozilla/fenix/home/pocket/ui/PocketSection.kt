@@ -70,10 +70,8 @@ fun PocketSection(
             stories = state.stories,
             contentPadding = horizontalPadding,
             backgroundColor = cardBackgroundColor,
-            showPlaceholderStory = !state.showContentRecommendations,
             onStoryShown = interactor::onStoryShown,
             onStoryClicked = interactor::onStoryClicked,
-            onDiscoverMoreClicked = interactor::onDiscoverMoreClicked,
         )
 
         if (!state.showContentRecommendations) {

@@ -94,10 +94,8 @@ class PocketStoriesViewHolder(
                 stories = stories ?: emptyList(),
                 contentPadding = horizontalPadding,
                 backgroundColor = wallpaperState.cardBackgroundColor,
-                showPlaceholderStory = !components.settings.showContentRecommendations,
                 onStoryShown = interactor::onStoryShown,
                 onStoryClicked = interactor::onStoryClicked,
-                onDiscoverMoreClicked = interactor::onDiscoverMoreClicked,
             )
         }
     }
@@ -121,7 +119,6 @@ fun PocketStoriesViewHolderPreview() {
                 backgroundColor = FirefoxTheme.colors.layer2,
                 onStoryShown = { _, _ -> },
                 onStoryClicked = { _, _ -> },
-                onDiscoverMoreClicked = {},
             )
         }
     }

@@ -67,7 +67,6 @@ import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndIndex
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdAndText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
-import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
@@ -498,16 +497,6 @@ class HomeScreenRobot {
 //            )
 //        }
 //    }
-
-    fun verifyDiscoverMoreStoriesButton(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the \"Stories\" pocket section")
-        composeTestRule.onNodeWithTag("homepage.view").performScrollToNode(hasTestTag("pocket.stories"))
-        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the \"Stories\" pocket section")
-        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the Pocket \"Discover more\" button")
-        composeTestRule.onNodeWithTag("pocket.stories").performScrollToNode(hasText("Discover more"))
-        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the Pocket \"Discover more\" button")
-        assertUIObjectExists(itemWithText("Discover more"))
-    }
 
     fun verifyStoriesByTopic(enabled: Boolean) {
         if (enabled) {
@@ -996,19 +985,6 @@ class HomeScreenRobot {
                     .textContains(publisher),
             ).clickAndWaitForNewWindow(waitingTime)
             Log.i(TAG, "clickPocketStoryItem: Clicked pocket story item published by: $publisher at position: $position and wait for $waitingTime ms for a new window")
-
-            BrowserRobot().interact()
-            return BrowserRobot.Transition()
-        }
-
-        fun clickPocketDiscoverMoreButton(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
-            Log.i(TAG, "clickPocketDiscoverMoreButton: Trying to scroll into view the \"Discover more\" button")
-            pocketStoriesList().scrollToEnd(3)
-            Log.i(TAG, "clickPocketDiscoverMoreButton: Scrolled into view the \"Discover more\" button")
-
-            Log.i(TAG, "clickPocketDiscoverMoreButton: Trying to click the \"Discover more\" button")
-            composeTestRule.onNodeWithTag("pocket.discover.more.story").performClick()
-            Log.i(TAG, "clickPocketDiscoverMoreButton: Clicked the \"Discover more\" button")
 
             BrowserRobot().interact()
             return BrowserRobot.Transition()
