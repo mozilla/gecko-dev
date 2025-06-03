@@ -12,7 +12,6 @@ These are the currently implemented try selectors:
 * :doc:`empty <empty>`: Don't select any tasks. Taskcluster will still run
   some tasks automatically (like lint and python unittest tasks). Further tasks
   can be chosen with treeherder's ``Add New Jobs`` feature.
-* :doc:`syntax <syntax>`: Select tasks using classic try syntax.
 * :doc:`release <release>`: Prepare a tree for doing a staging release.
 * :doc:`scriptworker <scriptworker>`: Run scriptworker tasks against a recent release.
 * :doc:`compare <compare>`: Push two identical try jobs, one on your current commit and another of your choice
@@ -40,7 +39,6 @@ See selector specific options by running:
   Chooser <chooser>
   Again <again>
   Empty <empty>
-  Syntax <syntax>
   Release <release>
   Scriptworker <scriptworker>
   Perf </testing/perfdocs/mach-try-perf>

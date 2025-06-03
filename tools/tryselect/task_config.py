@@ -482,7 +482,7 @@ class GeckoProfile(TryConfig):
                 "help": SUPPRESS,
             },
         ],
-        # This is added for consistency with the 'syntax' selector
+        # This is added for consistency with the old 'syntax' selector
         [
             ["--geckoProfile"],
             {

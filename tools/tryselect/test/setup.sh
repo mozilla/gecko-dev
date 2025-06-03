@@ -8,8 +8,6 @@ export PATH="$PATH:$HOME/.mozbuild/fzf/bin"
 
 export MACHRC=$TMP/machrc
 cat > $MACHRC << EOF
-[try]
-default=syntax
 EOF
 
 cmd="$topsrcdir/mach python -c 'from mach.util import get_state_dir; print(get_state_dir(specific_to_topsrcdir=True))'"

@@ -10,7 +10,6 @@ import sys
 
 from mach.decorators import Command, SubCommand
 from mach.util import get_state_dir
-from mozbuild.base import BuildEnvironmentNotFoundException
 from mozbuild.util import memoize
 
 CONFIG_ENVIRONMENT_NOT_FOUND = """
@@ -368,7 +367,7 @@ def try_auto(command_context, **kwargs):
 @SubCommand(
     "try",
     "again",
-    description="Schedule a previously generated (non try syntax) push again.",
+    description="Schedule a previously generated push again.",
     parser=get_parser("again"),
     virtualenv_name="try",
 )
@@ -394,71 +393,6 @@ def try_empty(command_context, **kwargs):
     menu.
     """
     init(command_context)
-    return run(command_context, **kwargs)
-
-
-@SubCommand(
-    "try",
-    "syntax",
-    description="Select tasks on try using try syntax",
-    parser=get_parser("syntax"),
-    virtualenv_name="try",
-)
-def try_syntax(command_context, **kwargs):
-    """Push the current tree to try, with the specified syntax.
-
-    Build options, platforms and regression tests may be selected
-    using the usual try options (-b, -p and -u respectively). In
-    addition, tests in a given directory may be automatically
-    selected by passing that directory as a positional argument to the
-    command. For example:
-
-    mach try -b d -p linux64 dom testing/web-platform/tests/dom
-
-    would schedule a try run for linux64 debug consisting of all
-    tests under dom/ and testing/web-platform/tests/dom.
-
-    Test selection using positional arguments is available for
-    mochitests, reftests, xpcshell tests and web-platform-tests.
-
-    Tests may be also filtered by passing --tag to the command,
-    which will run only tests marked as having the specified
-    tags e.g.
-
-    mach try -b d -p win64 --tag media
-
-    would run all tests tagged 'media' on Windows 64.
-
-    If both positional arguments or tags and -u are supplied, the
-    suites in -u will be run in full. Where tests are selected by
-    positional argument they will be run in a single chunk.
-
-    If no build option is selected, both debug and opt will be
-    scheduled. If no platform is selected a default is taken from
-    the AUTOTRY_PLATFORM_HINT environment variable, if set.
-
-    The command requires either its own mercurial extension ("push-to-try",
-    installable from mach vcs-setup) or a git repo using git-cinnabar
-    (installable from mach vcs-setup).
-
-    """
-    init(command_context)
-    try:
-        if "PYTEST_CURRENT_TEST" not in os.environ and command_context.substs.get(
-            "MOZ_ARTIFACT_BUILDS"
-        ):
-            kwargs["local_artifact_build"] = True
-    except BuildEnvironmentNotFoundException:
-        # If we don't have a build locally, we can't tell whether
-        # an artifact build is desired, but we still want the
-        # command to succeed, if possible.
-        pass
-
-    config_status = os.path.join(command_context.topobjdir, "config.status")
-    if (kwargs["paths"] or kwargs["tags"]) and not config_status:
-        print(CONFIG_ENVIRONMENT_NOT_FOUND)
-        sys.exit(1)
-
     return run(command_context, **kwargs)
 
 

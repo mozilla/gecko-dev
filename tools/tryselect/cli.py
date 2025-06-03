@@ -123,8 +123,8 @@ NO_PUSH_ARGUMENT_GROUP = [
             "dest": "dry_run",
             "action": "store_true",
             "help": "Do not push to try as a result of running this command (if "
-            "specified this command will only print calculated try "
-            "syntax and selection info and not change files).",
+            "specified this command will only print calculated task "
+            "selection info and not change files).",
         },
     ],
 ]
