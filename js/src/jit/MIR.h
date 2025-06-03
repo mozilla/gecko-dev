@@ -4574,6 +4574,7 @@ class MMinMax : public MBinaryInstruction, public ArithPolicy::Data {
     MOZ_ASSERT(IsNumberType(type));
     setResultType(type);
     setMovable();
+    setCommutative();
   }
 
  public:

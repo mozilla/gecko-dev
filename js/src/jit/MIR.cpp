@@ -1841,6 +1841,42 @@ MDefinition* MStringConvertCase::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
+// Return true if |def| is `MConstant(Int32(0))`.
+static bool IsConstantZeroInt32(MDefinition* def) {
+  return def->isConstant() && def->toConstant()->isInt32(0);
+}
+
+// If |def| is `MBitOr` and one operand is `MConstant(Int32(0))`, then return
+// the other operand. Otherwise return |def|.
+static MDefinition* RemoveUnnecessaryBitOps(MDefinition* def) {
+  if (def->isBitOr()) {
+    auto* bitOr = def->toBitOr();
+    if (IsConstantZeroInt32(bitOr->lhs())) {
+      return bitOr->rhs();
+    }
+    if (IsConstantZeroInt32(bitOr->rhs())) {
+      return bitOr->lhs();
+    }
+  }
+  return def;
+}
+
+// Return a match if both operands of |binary| have the requested types. If
+// |binary| is commutative, the operands may appear in any order.
+template <typename Lhs, typename Rhs>
+static mozilla::Maybe<std::pair<Lhs*, Rhs*>> MatchOperands(
+    MBinaryInstruction* binary) {
+  auto* lhs = binary->lhs();
+  auto* rhs = binary->rhs();
+  if (lhs->is<Lhs>() && rhs->is<Rhs>()) {
+    return mozilla::Some(std::pair{lhs->to<Lhs>(), rhs->to<Rhs>()});
+  }
+  if (binary->isCommutative() && rhs->is<Lhs>() && lhs->is<Rhs>()) {
+    return mozilla::Some(std::pair{rhs->to<Lhs>(), lhs->to<Rhs>()});
+  }
+  return mozilla::Nothing();
+}
+
 static bool IsSubstrTo(MSubstr* substr, int32_t len) {
   // We want to match this pattern:
   //
@@ -1849,56 +1885,38 @@ static bool IsSubstrTo(MSubstr* substr, int32_t len) {
   // which is generated for the self-hosted `String.p.{substring,slice,substr}`
   // functions when called with constants `start` and `end` parameters.
 
-  auto isConstantZero = [](auto* def) {
-    return def->isConstant() && def->toConstant()->isInt32(0);
-  };
-
-  if (!isConstantZero(substr->begin())) {
+  if (!IsConstantZeroInt32(substr->begin())) {
     return false;
   }
 
-  auto* length = substr->length();
-  if (length->isBitOr()) {
-    // Unnecessary bit-ops haven't yet been removed.
-    auto* bitOr = length->toBitOr();
-    if (isConstantZero(bitOr->lhs())) {
-      length = bitOr->rhs();
-    } else if (isConstantZero(bitOr->rhs())) {
-      length = bitOr->lhs();
-    }
-  }
+  // Unnecessary bit-ops haven't yet been removed.
+  auto* length = RemoveUnnecessaryBitOps(substr->length());
   if (!length->isMinMax() || length->toMinMax()->isMax()) {
     return false;
   }
 
-  auto* min = length->toMinMax();
-  if (!min->lhs()->isConstant() && !min->rhs()->isConstant()) {
-    return false;
-  }
-
-  auto* minConstant = min->lhs()->isConstant() ? min->lhs()->toConstant()
-                                               : min->rhs()->toConstant();
-
-  auto* minOperand = min->lhs()->isConstant() ? min->rhs() : min->lhs();
-  if (!minOperand->isStringLength() ||
-      minOperand->toStringLength()->string() != substr->string()) {
+  auto match = MatchOperands<MConstant, MStringLength>(length->toMinMax());
+  if (!match) {
     return false;
   }
 
   // Ensure |len| matches the substring's length.
-  return minConstant->isInt32(len);
+  auto [cst, strLength] = *match;
+  return cst->isInt32(len) && strLength->string() == substr->string();
 }
 
 MDefinition* MSubstr::foldsTo(TempAllocator& alloc) {
   // Fold |str.substring(0, 1)| to |str.charAt(0)|.
-  if (!IsSubstrTo(this, 1)) {
-    return this;
+  if (IsSubstrTo(this, 1)) {
+    MOZ_ASSERT(IsConstantZeroInt32(begin()));
+
+    auto* charCode = MCharCodeAtOrNegative::New(alloc, string(), begin());
+    block()->insertBefore(this, charCode);
+
+    return MFromCharCodeEmptyIfNegative::New(alloc, charCode);
   }
 
-  auto* charCode = MCharCodeAtOrNegative::New(alloc, string(), begin());
-  block()->insertBefore(this, charCode);
-
-  return MFromCharCodeEmptyIfNegative::New(alloc, charCode);
+  return this;
 }
 
 MDefinition* MCharCodeAt::foldsTo(TempAllocator& alloc) {
@@ -5239,22 +5257,25 @@ MDefinition* MCompare::tryFoldStringSubstring(TempAllocator& alloc) {
   static_assert(JSString::MAX_LENGTH < INT32_MAX,
                 "string length can be casted to int32_t");
 
-  if (!IsSubstrTo(substr, int32_t(constant->toString()->length()))) {
+  int32_t stringLength = int32_t(constant->toString()->length());
+
+  MInstruction* replacement;
+  if (IsSubstrTo(substr, stringLength)) {
+    // Fold |str.substring(0, 2) == "aa"| to |str.startsWith("aa")|.
+    replacement = MStringStartsWith::New(alloc, substr->string(), constant);
+  } else {
     return this;
   }
 
-  // Now fold code like |str.substring(0, 2) == "aa"| to |str.startsWith("aa")|.
-
-  auto* startsWith = MStringStartsWith::New(alloc, substr->string(), constant);
   if (jsop() == JSOp::Eq || jsop() == JSOp::StrictEq) {
-    return startsWith;
+    return replacement;
   }
 
   // Invert for inequality.
   MOZ_ASSERT(jsop() == JSOp::Ne || jsop() == JSOp::StrictNe);
 
-  block()->insertBefore(this, startsWith);
-  return MNot::New(alloc, startsWith);
+  block()->insertBefore(this, replacement);
+  return MNot::New(alloc, replacement);
 }
 
 MDefinition* MCompare::tryFoldStringIndexOf(TempAllocator& alloc) {
