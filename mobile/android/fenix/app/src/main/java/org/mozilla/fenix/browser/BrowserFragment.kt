@@ -37,6 +37,7 @@ import org.mozilla.fenix.GleanMetrics.AddressToolbar
 import org.mozilla.fenix.GleanMetrics.ReaderMode
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.store.BrowserScreenAction.ReaderModeStatusUpdated
 import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction.SnackbarAction
@@ -158,6 +159,7 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     private fun initBrowserToolbarComposableUpdates(rootView: View) {
+        initReaderModeUpdates(rootView.context, rootView)
         initTranslationsUpdates(rootView.context, rootView)
     }
 
@@ -228,6 +230,25 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
                 },
                 onShowTranslationsDialog = browserToolbarInteractor::onTranslationsButtonClicked,
             ),
+            owner = this,
+            view = view,
+        )
+    }
+
+    private fun initReaderModeUpdates(context: Context, view: View) {
+        readerViewFeature.set(
+            feature = context.components.strictMode.resetAfter(StrictMode.allowThreadDiskReads()) {
+                ReaderViewFeature(
+                    context = context,
+                    engine = context.components.core.engine,
+                    store = context.components.core.store,
+                    controlsView = binding.readerViewControlsBar,
+                ) { available, active ->
+                    browserScreenStore.dispatch(
+                        ReaderModeStatusUpdated(ReaderModeStatus(available, active)),
+                    )
+                }
+            },
             owner = this,
             view = view,
         )

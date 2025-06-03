@@ -6,14 +6,17 @@ package org.mozilla.fenix.browser.store
 
 import mozilla.components.lib.state.State
 import org.mozilla.fenix.browser.PageTranslationStatus
+import org.mozilla.fenix.browser.ReaderModeStatus
 
 /**
  * State of the browser screen.
  *
  * @property cancelPrivateDownloadsAccepted Whether the user has accepted to cancel private downloads.
+ * @property readerModeStatus Reader mode status of the current page.
  * @property pageTranslationStatus Translation status of the current page.
  */
 data class BrowserScreenState(
     val cancelPrivateDownloadsAccepted: Boolean = false,
+    val readerModeStatus: ReaderModeStatus = ReaderModeStatus.UNKNOWN,
     val pageTranslationStatus: PageTranslationStatus = PageTranslationStatus.NOT_POSSIBLE,
 ) : State

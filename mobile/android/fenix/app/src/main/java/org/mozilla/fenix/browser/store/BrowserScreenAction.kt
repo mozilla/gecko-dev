@@ -6,6 +6,7 @@ package org.mozilla.fenix.browser.store
 
 import mozilla.components.lib.state.Action
 import org.mozilla.fenix.browser.PageTranslationStatus
+import org.mozilla.fenix.browser.ReaderModeStatus
 
 /**
  * Actions related to the browser screen.
@@ -27,6 +28,15 @@ sealed class BrowserScreenAction : Action {
      * in the scenario of closing all private tabs.
      */
     data object CancelPrivateDownloadsOnPrivateTabsClosedAccepted : BrowserScreenAction()
+
+    /**
+     * [Action] for when the reader mode status of a page has been updated.
+     *
+     * @property readerModeStatus The new reader mode status of the current page.
+     */
+    data class ReaderModeStatusUpdated(
+        val readerModeStatus: ReaderModeStatus,
+    ) : BrowserScreenAction()
 
     /**
      * [Action] for when the translation status of a page has been updated.
