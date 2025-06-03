@@ -98,7 +98,7 @@ regressions or other major problems **will be reverted immediately**.
 The **Tier-1 Firefox platforms** and their supported compilers are:
 
 -  Android on Linux x86, x86-64, ARMv7 and ARMv8-A (clang)
--  Linux/x86 and x86-64 (gcc and clang)
+-  Linux/x86 and x86-64 (gcc and clang), Linux/AArch64 (clang)
 -  macOS 10.15 and later on x86-64 and AArch64 (clang)
 -  Windows/x86, x86-64 and AArch64 (clang-cl)
 
@@ -122,7 +122,6 @@ required to revert their changes** if a fix cannot be found.
 
 The **Tier-2 Firefox platforms** and their supported compilers are:
 
--  Linux/AArch64 (clang)
 -  Windows/x86 (mingw-clang) - maintained by Tom Ritter and Jacek Caban
    -
 
