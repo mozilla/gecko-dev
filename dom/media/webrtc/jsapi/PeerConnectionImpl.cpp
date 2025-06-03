@@ -655,7 +655,7 @@ void RecordCodecTelemetry() {
       .Add();
 }
 
-nsresult PeerConnectionImpl::ConfigureJsepSessionCodecs() {
+nsresult PeerConnectionImpl::SortJsepSessionCodecs() {
   RecordCodecTelemetry();
 
   // We use this to sort the list of codecs once everything is configured
@@ -776,9 +776,9 @@ nsresult PeerConnectionImpl::GetDatachannelParameters(
 
 nsresult PeerConnectionImpl::AddRtpTransceiverToJsepSession(
     JsepTransceiver& transceiver) {
-  nsresult res = ConfigureJsepSessionCodecs();
+  nsresult res = SortJsepSessionCodecs();
   if (NS_FAILED(res)) {
-    CSFLogError(LOGTAG, "Failed to configure codecs");
+    CSFLogError(LOGTAG, "Failed to sort codecs");
     return res;
   }
 
@@ -1423,9 +1423,9 @@ PeerConnectionImpl::CreateOffer(const JsepOfferOptions& aOptions) {
 
   CSFLogDebug(LOGTAG, "CreateOffer()");
 
-  nsresult nrv = ConfigureJsepSessionCodecs();
+  nsresult nrv = SortJsepSessionCodecs();
   if (NS_FAILED(nrv)) {
-    CSFLogError(LOGTAG, "Failed to configure codecs");
+    CSFLogError(LOGTAG, "Failed to sort codecs");
     return nrv;
   }
 
@@ -1635,9 +1635,9 @@ PeerConnectionImpl::SetRemoteDescription(int32_t action, const char* aSDP) {
       return NS_OK;
     }
 
-    nsresult nrv = ConfigureJsepSessionCodecs();
+    nsresult nrv = SortJsepSessionCodecs();
     if (NS_FAILED(nrv)) {
-      CSFLogError(LOGTAG, "Failed to configure codecs");
+      CSFLogError(LOGTAG, "Failed to sort codecs");
       return nrv;
     }
   }
