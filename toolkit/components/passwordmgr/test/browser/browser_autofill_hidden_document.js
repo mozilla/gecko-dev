@@ -23,9 +23,11 @@ async function getDocumentVisibilityState(browser) {
 }
 
 add_setup(async function () {
-  Services.prefs.setBoolPref("signon.usernameOnlyForm.enabled", true);
-  registerCleanupFunction(() => {
-    Services.prefs.clearUserPref("signon.usernameOnlyForm.enabled");
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      ["signon.usernameOnlyForm.enabled", true],
+    ],
   });
 
   Services.logins.removeAllUserFacingLogins();

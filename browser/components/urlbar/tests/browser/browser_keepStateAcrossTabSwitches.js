@@ -4,6 +4,10 @@
 "use strict";
 
 add_setup(async function setup() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   registerCleanupFunction(PlacesUtils.history.clear);
 });
 

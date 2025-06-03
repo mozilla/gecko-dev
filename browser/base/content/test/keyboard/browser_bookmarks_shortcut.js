@@ -3,6 +3,12 @@
 
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Test the behavior of keypress shortcuts for the bookmarks toolbar.
  */

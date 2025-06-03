@@ -19,6 +19,10 @@ let editBookmarkPanelRemoveButtonRect;
 const TEST_URL = "data:text/html,<html><body></body></html>";
 
 add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   win = await BrowserTestUtils.openNewBrowserWindow();
 
   win.StarUI._createPanelIfNeeded();

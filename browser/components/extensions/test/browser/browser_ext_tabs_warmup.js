@@ -2,6 +2,12 @@
 /* vim: set sts=2 sw=2 et tw=80: */
 "use strict";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 add_task(async function testWarmupTab() {
   let tab1 = await BrowserTestUtils.openNewForegroundTab(
     gBrowser,

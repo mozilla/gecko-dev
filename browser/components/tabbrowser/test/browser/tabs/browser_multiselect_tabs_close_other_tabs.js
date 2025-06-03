@@ -2,7 +2,10 @@ const PREF_WARN_ON_CLOSE = "browser.tabs.warnOnCloseOtherTabs";
 
 add_task(async function setPref() {
   await SpecialPowers.pushPrefEnv({
-    set: [[PREF_WARN_ON_CLOSE, false]],
+    set: [
+      ["test.wait300msAfterTabSwitch", true],
+      [PREF_WARN_ON_CLOSE, false],
+    ],
   });
 });
 

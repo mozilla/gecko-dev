@@ -1,5 +1,11 @@
 const TEST_URI = "dragimage.html";
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 // This test checks that dragging an image onto the same document
 // does not drop it, even when the page cancels the dragover event.
 add_task(async function dragimage_remote_tab() {

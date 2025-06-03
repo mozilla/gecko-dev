@@ -60,6 +60,10 @@ const isExpectedLoginItemSelected = async ({ expectedGuid }) => {
 };
 
 add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+
   await Services.logins.addLogins(
     LOGINS_DATA.map(login => LoginTestUtils.testData.formLogin(login))
   );

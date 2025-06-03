@@ -360,7 +360,9 @@ export var BrowserTestUtils = {
 
     let promise = new Promise(resolve => {
       tabbrowser.addEventListener(
-        "TabSwitchDone",
+        Services.prefs.getBoolPref("test.wait300msAfterTabSwitch", false)
+          ? "TabSwitchDone"
+          : "TabSwitched",
         function () {
           TestUtils.executeSoon(() => {
             ChromeUtils.addProfilerMarker(

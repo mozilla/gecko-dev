@@ -82,6 +82,12 @@ async function runTest(stopLoadFunc) {
   await extension.unload();
 }
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Check that after we cancel a slow page load, we get an error associated with
  * our request.

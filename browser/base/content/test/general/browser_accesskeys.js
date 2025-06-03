@@ -1,5 +1,9 @@
 add_task(async function () {
-  await pushPrefs(["ui.key.contentAccess", 5], ["ui.key.chromeAccess", 5]);
+  await pushPrefs(
+    ["test.wait300msAfterTabSwitch", true],
+    ["ui.key.contentAccess", 5],
+    ["ui.key.chromeAccess", 5]
+  );
 
   const gPageURL1 =
     "data:text/html,<body><p>" +
