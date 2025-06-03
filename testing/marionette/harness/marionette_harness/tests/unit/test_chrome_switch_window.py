@@ -10,7 +10,7 @@ from unittest import skipIf
 # add this directory to the path
 sys.path.append(os.path.dirname(__file__))
 
-from test_switch_window_content import TestSwitchToWindowContent
+from test_switch_window import TestSwitchToWindowContent
 
 
 class TestSwitchWindowChrome(TestSwitchToWindowContent):

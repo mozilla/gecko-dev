@@ -4,17 +4,15 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!-- Test file for a XUL window by using a XHTML document instead.  -->
-
 <!DOCTYPE html>
 
 <html
   xmlns="http://www.w3.org/1999/xhtml"
-  id="remote-window"
-  windowtype="remote:xhtml"
+  id="remote-test-iframe"
+  windowtype="remote:test-xhtml"
 >
   <head>
-    <title>Test Window</title>
+    <title>iframe</title>
     <link rel="stylesheet" href="chrome://global/skin/global.css" />
   </head>
 
@@ -22,19 +20,6 @@
     <div id="types" style="display: flex; flex-direction: column">
       <input id="textInput" size="6" value="test" label="input" />
       <input type="checkbox" id="testBox" label="box" />
-      <button id="button" class="foo" label="button" />
-      <button id="options-button" label="options" />
-    </div>
-
-    <div id="frames" style="display: flex; flex-direction: column">
-      <iframe
-        id="iframe"
-        src="chrome://remote/content/marionette/test_iframe.xhtml"
-      />
-      <iframe
-        id="iframe-nested"
-        src="chrome://remote/content/marionette/test_nested_iframe.xhtml"
-      />
     </div>
   </body>
 </html>

@@ -19,7 +19,7 @@ class TestSendkeysMenupopup(WindowManagerMixin, MarionetteTestCase):
 
         self.marionette.set_context("chrome")
         new_window = self.open_chrome_window(
-            "chrome://remote/content/marionette/test_menupopup.xhtml"
+            "chrome://remote/content/marionette/test_xul.xhtml"
         )
         self.marionette.switch_to_window(new_window)
 
@@ -30,7 +30,7 @@ class TestSendkeysMenupopup(WindowManagerMixin, MarionetteTestCase):
         self.hidden_menuitem_el = self.marionette.find_element(By.ID, "option-hidden")
         self.menuitem_el = self.marionette.find_element(By.ID, "option-enabled")
         self.menupopup_el = self.marionette.find_element(By.ID, "options-menupopup")
-        self.testwindow_el = self.marionette.find_element(By.ID, "test-window")
+        self.testwindow_el = self.marionette.find_element(By.ID, "remote-window")
 
     def context_menu_state(self):
         return self.menupopup_el.get_property("state")

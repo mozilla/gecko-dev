@@ -743,12 +743,12 @@ reftest.Runner = class {
         )
       ) {
         lazy.logger.error(`Invalid window dimensions:
-browserRect.left: ${browserRect.left}
-browserRect.top: ${browserRect.top}
-win.innerWidth: ${win.innerWidth}
-browserRect.width: ${browserRect.width}
-win.innerHeight: ${win.innerHeight}
-browserRect.height: ${browserRect.height}`);
+ browserRect.left: ${browserRect.left}
+ browserRect.top: ${browserRect.top}
+ win.innerWidth: ${win.innerWidth}
+ browserRect.width: ${browserRect.width}
+ win.innerHeight: ${win.innerHeight}
+ browserRect.height: ${browserRect.height}`);
         throw new Error("Window has incorrect dimensions");
       }
 

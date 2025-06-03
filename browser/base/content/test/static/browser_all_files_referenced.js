@@ -250,10 +250,8 @@ var allowlist = [
     platforms: ["linux", "macosx"],
   },
   // Bug 1344267
-  { file: "chrome://remote/content/marionette/test_dialog.properties" },
   { file: "chrome://remote/content/marionette/test_dialog.xhtml" },
-  { file: "chrome://remote/content/marionette/test_menupopup.xhtml" },
-  { file: "chrome://remote/content/marionette/test_no_xul.xhtml" },
+  { file: "chrome://remote/content/marionette/test_xul.xhtml" },
   { file: "chrome://remote/content/marionette/test.xhtml" },
   // Bug 1348559
   { file: "chrome://pippki/content/resetpassword.xhtml" },

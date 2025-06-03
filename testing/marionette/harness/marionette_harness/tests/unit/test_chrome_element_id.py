@@ -9,8 +9,8 @@ from marionette_driver.marionette import WebElement
 from marionette_harness import MarionetteTestCase, parameterized, WindowManagerMixin
 
 
-PAGE_XHTML = "chrome://remote/content/marionette/test_no_xul.xhtml"
-PAGE_XUL = "chrome://remote/content/marionette/test.xhtml"
+PAGE_XHTML = "chrome://remote/content/marionette/test.xhtml"
+PAGE_XUL = "chrome://remote/content/marionette/test_xul.xhtml"
 
 
 class TestElementIDChrome(WindowManagerMixin, MarionetteTestCase):
