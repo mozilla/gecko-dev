@@ -76,15 +76,6 @@ NS_IMPL_ISUPPORTS(FreetypeReporter, nsIMemoryReporter)
 
 static FT_MemoryRec_ sFreetypeMemoryRecord;
 
-void gfxAndroidPlatform::FontAPIInitializeCallback(void* aUnused) {
-  AUTO_PROFILER_REGISTER_THREAD("InitializingFontAPI");
-  PR_SetCurrentThreadName("InitializingFontAPI");
-
-  // Call ASystemFontIterator_open
-  AndroidSystemFontIterator iterator;
-  iterator.Init();
-}
-
 PRThread* gfxAndroidPlatform::sFontAPIInitializeThread = nullptr;
 MOZ_CONSTINIT nsCString gfxAndroidPlatform::sManufacturer;
 
@@ -124,9 +115,16 @@ void gfxAndroidPlatform::InitializeFontAPI() {
     return;
   }
 
-  sFontAPIInitializeThread = PR_CreateThread(
-      PR_USER_THREAD, FontAPIInitializeCallback, nullptr, PR_PRIORITY_NORMAL,
-      PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
+  if (__builtin_available(android 29, *)) {
+    auto FontAPIInitializeCallback = [](void* aUnused) {
+      AUTO_PROFILER_REGISTER_THREAD("InitializingFontAPI");
+      PR_SetCurrentThreadName("InitializingFontAPI");
+      AndroidSystemFontIterator::Preload();
+    };
+    sFontAPIInitializeThread = PR_CreateThread(
+        PR_USER_THREAD, FontAPIInitializeCallback, nullptr, PR_PRIORITY_NORMAL,
+        PR_GLOBAL_THREAD, PR_JOINABLE_THREAD, 0);
+  }
 }
 
 // static

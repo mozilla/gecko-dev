@@ -1577,17 +1577,15 @@ void gfxFT2FontList::FindFonts() {
   bool useSystemFontAPI = !gfxAndroidPlatform::IsFontAPIDisabled();
 
   if (useSystemFontAPI) {
-    gfxAndroidPlatform::WaitForInitializeFontAPI();
-
     bool noFontByFontAPI = true;
-    AndroidSystemFontIterator iter;
-    if (iter.Init()) {
+    if (__builtin_available(android 29, *)) {
+      gfxAndroidPlatform::WaitForInitializeFontAPI();
+      AndroidSystemFontIterator iter;
       while (Maybe<AndroidFont> androidFont = iter.Next()) {
-        if (const char* fontPath = androidFont->GetFontFilePath()) {
-          noFontByFontAPI = false;
-          AppendFacesFromFontFile(nsDependentCString(fontPath),
-                                  mFontNameCache.get(), kStandard);
-        }
+        const char* _Nonnull fontPath = androidFont->GetFontFilePath();
+        noFontByFontAPI = false;
+        AppendFacesFromFontFile(nsDependentCString(fontPath),
+                                mFontNameCache.get(), kStandard);
       }
     }
 

@@ -56,8 +56,6 @@ class gfxAndroidPlatform final : public gfxPlatform {
   bool AccelerateLayersByDefault() override { return true; }
 
  private:
-  static void FontAPIInitializeCallback(void*);
-
   gfxImageFormat mOffscreenFormat;
 
   static PRThread* sFontAPIInitializeThread;
