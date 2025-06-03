@@ -102,10 +102,12 @@ IS_WINDOWS = os.name == 'nt'
 
 
 def print_line(prefix, m):
-    now = datetime.datetime.utcnow().isoformat().encode('utf-8')
-    # slice microseconds to 3 decimals.
-    now = now[:-3] if now[-7:-6] == b'.' else now
-    bytes = b'[%s %sZ] %s' % (prefix, now, m)
+    now = (
+        datetime.datetime.now(datetime.timezone.utc)
+        .isoformat(timespec="milliseconds")
+        .encode("utf-8")
+    )
+    bytes = b"[%s %s] %s" % (prefix, now, m)
     written = 0
     while written < len(bytes):
         written += (sys.stdout.buffer.write(bytes[written:]) or 0)
