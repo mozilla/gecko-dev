@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.fenix.ui.robots
 
+import android.net.Uri
 import android.util.Log
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -126,9 +127,12 @@ class CustomTabRobot {
         )
     }
 
-    fun verifyCustomTabUrl(Url: String) {
+    fun verifyCustomTabUrl(url: String) {
+        val uri = Uri.parse(url)
+        val expectedText = uri.host ?: url // fallback if host is null
+
         assertUIObjectExists(
-            itemWithResIdContainingText("$packageName:id/mozac_browser_toolbar_url_view", Url.drop(7)),
+            itemWithResIdContainingText("$packageName:id/mozac_browser_toolbar_url_view", expectedText),
         )
     }
 
