@@ -18,12 +18,10 @@ from marionette_harness import MarionetteTestCase
 class TestAccessibility(MarionetteTestCase):
     def setUp(self):
         super(TestAccessibility, self).setUp()
-        with self.marionette.using_context("chrome"):
-            self.marionette.set_pref("dom.ipc.processCount", 1)
+        self.marionette.set_pref("dom.ipc.processCount", 1)
 
     def tearDown(self):
-        with self.marionette.using_context("chrome"):
-            self.marionette.clear_pref("dom.ipc.processCount")
+        self.marionette.clear_pref("dom.ipc.processCount")
 
     # Elements that are accessible with and without the accessibliity API
     valid_elementIDs = [

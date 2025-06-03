@@ -9,7 +9,9 @@ from marionette_harness import MarionetteTestCase, WindowManagerMixin
 class TestTextChrome(WindowManagerMixin, MarionetteTestCase):
     def setUp(self):
         super(TestTextChrome, self).setUp()
-        win = self.open_chrome_window("chrome://remote/content/marionette/test.xhtml")
+        win = self.open_chrome_window(
+            "chrome://remote/content/marionette/test_xul.xhtml"
+        )
         self.marionette.switch_to_window(win)
 
         self.marionette.set_context("chrome")
@@ -24,7 +26,7 @@ class TestTextChrome(WindowManagerMixin, MarionetteTestCase):
         self.assertEqual(elem.text, "box")
 
     def test_clear_text(self):
-        input = self.marionette.find_element(By.ID, "textInput3")
+        input = self.marionette.find_element(By.ID, "textInput")
         self.assertEqual(
             "test",
             self.marionette.execute_script("return arguments[0].value;", [input]),

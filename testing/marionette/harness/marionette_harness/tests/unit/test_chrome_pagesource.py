@@ -11,7 +11,7 @@ class TestPageSourceChrome(WindowManagerMixin, MarionetteTestCase):
         self.marionette.set_context("chrome")
 
         new_window = self.open_chrome_window(
-            "chrome://remote/content/marionette/test.xhtml"
+            "chrome://remote/content/marionette/test_xul.xhtml"
         )
         self.marionette.switch_to_window(new_window)
 
@@ -21,6 +21,4 @@ class TestPageSourceChrome(WindowManagerMixin, MarionetteTestCase):
 
     def testShouldReturnXULDetails(self):
         source = self.marionette.page_source
-        self.assertTrue(
-            '<input xmlns="http://www.w3.org/1999/xhtml" id="textInput"' in source
-        )
+        self.assertIn('<checkbox id="testBox" label="box"', source)
