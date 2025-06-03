@@ -2643,6 +2643,12 @@ void ScriptLoader::CalculateBytecodeCacheFlag(ScriptLoadRequest* aRequest) {
     return;
   }
 
+  if (aRequest->IsModuleRequest() &&
+      aRequest->AsModuleRequest()->mModuleType != JS::ModuleType::JavaScript) {
+    aRequest->MarkSkippedBytecodeEncoding();
+    return;
+  }
+
   // We need the nsICacheInfoChannel to exist to be able to open the alternate
   // data output stream. This pointer would only be non-null if the bytecode was
   // activated at the time the channel got created in StartLoad.

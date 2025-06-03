@@ -60,6 +60,12 @@ support-files = [
   "page_bytecode_cache_asm_js.js",
 ]
 
+["browser_bytecode_json_module.js"]
+support-files = [
+  "page_bytecode_cache_json_module.html",
+  "page_bytecode_cache_json_module.json",
+]
+
 ["browser_cancel_keydown_keypress_event.js"]
 support-files = ["prevent_return_key.html"]
 

@@ -310,4 +310,5 @@ export default [
   // Support for Import attributes is only available in ESLint v9.19
   // https://bugzilla.mozilla.org/show_bug.cgi?id=1944290
   "netwerk/test/mochitests/test_import_json_module.mjs",
+  "dom/tests/browser/page_bytecode_cache_json_module.html",
 ];
