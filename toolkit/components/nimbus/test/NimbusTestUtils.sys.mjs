@@ -814,12 +814,13 @@ export const NimbusTestUtils = {
    * Wait for the given slugs to be the only active enrollments in the
    * NimbusEnrollments table.
    *
-   * @param {string[]} expectedSlugs The slugs of the only active enrollmetns we
+   * @param {string[]} expectedSlugs The slugs of the only active enrollments we
    * expect.
+   * @param {object} options
+   * @param {string | undefined} options.profileId The profile ID to use in the
+   * query. If not provided, the current profile ID will be used.
    */
-  async waitForActiveEnrollments(expectedSlugs) {
-    const profileId = ExperimentAPI.profileId;
-
+  async waitForActiveEnrollments(expectedSlugs, { profileId } = {}) {
     await lazy.TestUtils.waitForCondition(async () => {
       const conn = await lazy.ProfilesDatastoreService.getConnection();
       const slugs = await conn
@@ -832,7 +833,7 @@ export const NimbusTestUtils = {
               active = true AND
               profileId = :profileId;
           `,
-          { profileId }
+          { profileId: profileId ?? ExperimentAPI.profileId }
         )
         .then(rows => rows.map(row => row.getResultByName("slug")));
 
@@ -840,9 +841,7 @@ export const NimbusTestUtils = {
     }, `Waiting for enrollments of ${expectedSlugs} to sync to database`);
   },
 
-  async waitForInactiveEnrollment(slug) {
-    const profileId = ExperimentAPI.profileId;
-
+  async waitForInactiveEnrollment(slug, { profileId } = {}) {
     await lazy.TestUtils.waitForCondition(async () => {
       const conn = await lazy.ProfilesDatastoreService.getConnection();
       const result = await conn.execute(
@@ -854,16 +853,17 @@ export const NimbusTestUtils = {
               slug = :slug AND
               profileId = :profileId;
           `,
-        { profileId, slug }
+        {
+          profileId: profileId ?? ExperimentAPI.profileId,
+          slug,
+        }
       );
 
       return result.length === 1 && !result[0].getResultByName("active");
     }, `Waiting for ${slug} enrollment to exist and be inactive`);
   },
 
-  async waitForAllUnenrollments() {
-    const profileId = ExperimentAPI.profileId;
-
+  async waitForAllUnenrollments({ profileId } = {}) {
     await lazy.TestUtils.waitForCondition(async () => {
       const conn = await lazy.ProfilesDatastoreService.getConnection();
       const slugs = await conn
@@ -876,7 +876,7 @@ export const NimbusTestUtils = {
               active = true AND
               profileId = :profileId;
           `,
-          { profileId }
+          { profileId: profileId ?? ExperimentAPI.profileId }
         )
         .then(rows => rows.map(row => row.getResultByName("slug")));
 
