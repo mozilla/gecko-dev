@@ -314,14 +314,12 @@ class HomeFragment : Fragment() {
                     components.appStore.dispatch(
                         ContentRecommendationsAction.SponsoredContentsChange(
                             sponsoredContents = components.core.pocketStoriesService.getSponsoredContents(),
-                            showContentRecommendations = true,
                         ),
                     )
                 } else {
                     components.appStore.dispatch(
                         ContentRecommendationsAction.PocketSponsoredStoriesChange(
                             sponsoredStories = components.core.pocketStoriesService.getSponsoredStories(),
-                            showContentRecommendations = true,
                         ),
                     )
                 }

@@ -137,7 +137,6 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
                                 context.components.appStore.dispatch(
                                     ContentRecommendationsAction.SponsoredContentsChange(
                                         sponsoredContents = emptyList(),
-                                        showContentRecommendations = context.settings().showContentRecommendations,
                                     ),
                                 )
                             } else {
@@ -146,7 +145,6 @@ class HomeSettingsFragment : PreferenceFragmentCompat() {
                                 context.components.appStore.dispatch(
                                     ContentRecommendationsAction.PocketSponsoredStoriesChange(
                                         sponsoredStories = emptyList(),
-                                        showContentRecommendations = context.settings().showContentRecommendations,
                                     ),
                                 )
                             }
