@@ -1185,23 +1185,6 @@
       }
     ]
   },
-  "1830752": {
-    "label": "afisha.ru",
-    "bugs": {
-      "1934811": {
-        "issue": "broken-interactive-elements",
-        "matches": ["*://*.afisha.ru/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "css": ["bug1830752-afisha.ru-slider-pointer-events.css"]
-        }
-      }
-    ]
-  },
   "1830796": {
     "label": "copyleaks.com",
     "bugs": {
