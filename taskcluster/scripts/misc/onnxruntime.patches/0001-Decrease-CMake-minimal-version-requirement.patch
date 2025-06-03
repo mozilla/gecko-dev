@@ -1,0 +1,25 @@
+From d3bd721cc10f801103e27002405645ec22817d41 Mon Sep 17 00:00:00 2001
+From: serge-sans-paille <sguelton@mozilla.com>
+Date: Tue, 13 May 2025 12:11:33 +0200
+Subject: [PATCH 1/5] Decrease CMake minimal version requirement
+
+---
+ cmake/CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
+index a841b17a2a..98cb298af0 100644
+--- a/cmake/CMakeLists.txt
++++ b/cmake/CMakeLists.txt
+@@ -3,7 +3,7 @@
+ # Licensed under the MIT License.
+ 
+ # Minimum CMake required
+-cmake_minimum_required(VERSION 3.28)
++cmake_minimum_required(VERSION 3.25)
+ 
+ # Don't let cmake set a default value for CMAKE_CUDA_ARCHITECTURES
+ cmake_policy(SET CMP0104 OLD)
+-- 
+2.49.0
+

@@ -348,6 +348,36 @@ def create_git_fetch_task(config, name, fetch):
 
 
 @fetch_builder(
+    "onnxruntime-deps-fetch",
+    schema={
+        Required("repo"): str,
+        Required("revision"): str,
+        Required("artifact-name"): str,
+    },
+)
+def create_onnxruntime_deps_fetch_task(config, name, fetch):
+    artifact_name = fetch.get("artifact-name")
+    workdir = "/builds/worker"
+
+    script = os.path.join(workdir, "bin/fetch-onnxruntime-deps.sh")
+    repo = fetch["repo"]
+    revision = fetch["revision"]
+
+    cmd = ["bash", "-c", f"cd {workdir} && /bin/sh {script} {repo} {revision}"]
+
+    return {
+        "command": cmd,
+        "artifact_name": artifact_name,
+        "docker-image": "fetch-more",
+        "digest_data": [
+            f"repo={repo}",
+            f"revision={revision}",
+            f"artifact_name={artifact_name}",
+        ],
+    }
+
+
+@fetch_builder(
     "chromium-fetch",
     schema={
         Required("script"): str,
