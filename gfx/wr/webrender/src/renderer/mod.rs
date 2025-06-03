@@ -3541,6 +3541,7 @@ impl Renderer {
         let cap = composite_state.tiles.len();
         let mut segment_builder = SegmentBuilder::new();
         let mut tile_index_to_layer_index = vec![None; composite_state.tiles.len()];
+        let mut use_external_composite = false;
 
         // Calculate layers with full device rect
 
@@ -3649,6 +3650,7 @@ impl Renderer {
                         )
                     }
                     CompositorSurfaceUsage::External { .. } => {
+                        use_external_composite = true;
                         let rect = composite_state.get_device_rect(
                             &tile.local_rect,
                             tile.transform_index
@@ -3741,11 +3743,56 @@ impl Renderer {
             full_render = compositor.begin_frame(&input);
         }
 
-        let partial_present_mode = if full_render {
+        // Full render is requested when layer tree is updated.
+        let mut partial_present_mode = if full_render {
             None
         } else {
             partial_present_mode
         };
+
+        // Recalculate dirty rect if external composite is used with layer compositor
+        if let Some(ref _compositor) = self.compositor_config.layer_compositor() {
+            if partial_present_mode.is_some() && use_external_composite {
+                let mut combined_dirty_rect = DeviceRect::zero();
+                let fb_rect = DeviceRect::from_size(frame_device_size.to_f32());
+
+                // Work out how many dirty rects WR produced, and if that's more than
+                // what the device supports.
+                for (idx, tile) in composite_state.tiles.iter().enumerate() {
+                    if tile.kind == TileKind::Clear {
+                        continue;
+                    }
+
+                    let layer = &mut input_layers[tile_index_to_layer_index[idx].unwrap()];
+                    // Skip compositing external images
+                    match layer.usage {
+                        CompositorSurfaceUsage::Content | CompositorSurfaceUsage::DebugOverlay => {}
+                        CompositorSurfaceUsage::External { .. } => {
+                            continue;
+                        }
+                    }
+
+                    let dirty_rect = composite_state.get_device_rect(
+                        &tile.local_dirty_rect,
+                        tile.transform_index,
+                    );
+
+                    // In pathological cases where a tile is extremely zoomed, it
+                    // may end up with device coords outside the range of an i32,
+                    // so clamp it to the frame buffer rect here, before it gets
+                    // casted to an i32 rect below.
+                    if let Some(dirty_rect) = dirty_rect.intersection(&fb_rect) {
+                        combined_dirty_rect = combined_dirty_rect.union(&dirty_rect);
+                    }
+                }
+
+                let combined_dirty_rect = combined_dirty_rect.round();
+                // layer compositor does not expect to draw previsou partial present regtions
+                partial_present_mode = Some(PartialPresentMode::Single {
+                    dirty_rect: combined_dirty_rect,
+                });
+            }
+        }
 
         // Reverse the layers - we're now working in front-to-back order for tiles handling
         assert_eq!(swapchain_layers.len(), input_layers.len());
@@ -3784,7 +3831,6 @@ impl Renderer {
 
             // For normal tiles, add to occlusion tracker. For clear tiles, add directly
             // to the swapchain tile list
-            //let layer = swapchain_layers.last_mut().unwrap();
             let layer = &mut swapchain_layers[tile_index_to_layer_index[idx].unwrap()];
 
             // Clear tiles overwrite whatever is under them, so they are treated as opaque.
