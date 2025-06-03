@@ -66,6 +66,7 @@
 .button {
   align-items: center;
   justify-content: space-between;
+  font-family: inherit;
   font-size: inherit;
   appearance: none;
   background-color: var(--button-background-color-ghost);
