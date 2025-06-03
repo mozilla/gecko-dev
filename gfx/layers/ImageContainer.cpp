@@ -14,6 +14,7 @@
 #include "gfx2DGlue.h"
 #include "gfxPlatform.h"  // for gfxPlatform
 #include "gfxUtils.h"     // for gfxUtils
+#include "GPUVideoImage.h"
 #include "libyuv.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/ProfilerLabels.h"
@@ -239,7 +240,68 @@ ImageContainer::~ImageContainer() {
 nsresult Image::BuildSurfaceDescriptorBuffer(
     SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
     const std::function<MemoryOrShmem(uint32_t)>& aAllocate) {
-  return NS_ERROR_NOT_IMPLEMENTED;
+  RefPtr<SourceSurface> surface = GetAsSourceSurface();
+  if (NS_WARN_IF(!surface)) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  RefPtr<DataSourceSurface> dataSurface = surface->GetDataSurface();
+  if (NS_WARN_IF(!dataSurface)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  DataSourceSurface::ScopedMap map(dataSurface, DataSourceSurface::READ);
+  if (NS_WARN_IF(!map.IsMapped())) {
+    return NS_ERROR_FAILURE;
+  }
+
+  SurfaceFormat format = dataSurface->GetFormat();
+  IntSize size = dataSurface->GetSize();
+  uint8_t* output = nullptr;
+  int32_t stride = 0;
+  nsresult rv = AllocateSurfaceDescriptorBufferRgb(
+      size, format, output, aSdBuffer, stride, aAllocate);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (NS_WARN_IF(!SwizzleData(map.GetData(), map.GetStride(), format, output,
+                              stride, format, size))) {
+    return NS_ERROR_FAILURE;
+  }
+
+  return NS_OK;
+}
+
+nsresult Image::BuildSurfaceDescriptorGPUVideoOrBuffer(
+    SurfaceDescriptor& aSd, BuildSdbFlags aFlags,
+    const Maybe<VideoBridgeSource>& aDest,
+    const std::function<MemoryOrShmem(uint32_t)>& aAllocate,
+    const std::function<void(MemoryOrShmem&&)>& aFree) {
+  if (auto* gpuImage = AsGPUVideoImage()) {
+    if (auto maybeSd = gpuImage->GetDesc()) {
+      if (!aDest ||
+          (maybeSd->type() == SurfaceDescriptor::TSurfaceDescriptorGPUVideo &&
+           maybeSd->get_SurfaceDescriptorGPUVideo()
+                   .get_SurfaceDescriptorRemoteDecoder()
+                   .source() == aDest)) {
+        aSd = std::move(*maybeSd);
+        return NS_OK;
+      }
+    }
+  }
+
+  SurfaceDescriptorBuffer sdb;
+  nsresult rv = BuildSurfaceDescriptorBuffer(sdb, aFlags, aAllocate);
+  if (NS_FAILED(rv)) {
+    if (sdb.data().type() != MemoryOrShmem::Type::T__None) {
+      aFree(std::move(sdb.data()));
+    }
+    return rv;
+  }
+
+  aSd = std::move(sdb);
+  return NS_OK;
 }
 
 Maybe<SurfaceDescriptor> Image::GetDesc() { return GetDescFromTexClient(); }

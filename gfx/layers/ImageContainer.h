@@ -69,6 +69,7 @@ class D3D11YCbCrRecycleAllocator;
 class MacIOSurfaceRecycleAllocator;
 #endif
 class SurfaceDescriptorBuffer;
+enum class VideoBridgeSource : uint8_t;
 
 struct ImageBackendData {
   virtual ~ImageBackendData() = default;
@@ -144,6 +145,16 @@ class Image {
   virtual nsresult BuildSurfaceDescriptorBuffer(
       SurfaceDescriptorBuffer& aSdBuffer, BuildSdbFlags aFlags,
       const std::function<MemoryOrShmem(uint32_t)>& aAllocate);
+
+  /**
+   * Get a SurfaceDescriptorGPUVideo if possible, with the source matching aDest
+   * if given. Otherwise copy the data into a SurfaceDescriptorBuffer.
+   */
+  nsresult BuildSurfaceDescriptorGPUVideoOrBuffer(
+      SurfaceDescriptor& aSd, BuildSdbFlags aFlags,
+      const Maybe<VideoBridgeSource>& aDest,
+      const std::function<MemoryOrShmem(uint32_t)>& aAllocate,
+      const std::function<void(MemoryOrShmem&&)>& aFree);
 
   virtual bool IsValid() const { return true; }
 

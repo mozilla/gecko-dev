@@ -116,8 +116,15 @@ nsresult D3D11ZeroCopyTextureImage::BuildSurfaceDescriptorBuffer(
     return NS_ERROR_FAILURE;
   }
 
-  return gfx::Factory::CreateSdbForD3D11Texture(src, mSize, aSdBuffer,
-                                                aAllocate);
+  nsresult rv =
+      gfx::Factory::CreateSdbForD3D11Texture(src, mSize, aSdBuffer, aAllocate);
+  if (rv != NS_ERROR_NOT_IMPLEMENTED) {
+    // TODO(aosmond): We only support BGRA on this path, but depending on
+    // aFlags, we may be able to return a YCbCr format without conversion.
+    return rv;
+  }
+
+  return Image::BuildSurfaceDescriptorBuffer(aSdBuffer, aFlags, aAllocate);
 }
 
 ID3D11Texture2D* D3D11ZeroCopyTextureImage::GetTexture() const {

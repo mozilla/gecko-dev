@@ -269,7 +269,13 @@ MediaResult RemoteVideoDecoderParent::ProcessDecodedData(
             }
             return MemoryOrShmem();
           });
-      NS_ENSURE_SUCCESS(rv, rv);
+
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        if (sdBuffer.data().type() == MemoryOrShmem::TShmem) {
+          DeallocShmem(sdBuffer.data().get_Shmem());
+        }
+        return rv;
+      }
 
       sd = sdBuffer;
       size = image->GetSize();

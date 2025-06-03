@@ -290,7 +290,7 @@ mozilla::ipc::IPCResult RemoteDecoderManagerParent::RecvReadback(
     return IPC_OK();
   }
 
-  // Let's try reading directly into the shmem first to avoid extra copies.
+  // Read directly into the shmem to avoid extra copies, if possible.
   SurfaceDescriptorBuffer sdb;
   nsresult rv = image->BuildSurfaceDescriptorBuffer(
       sdb, Image::BuildSdbFlags::RgbOnly, [&](uint32_t aBufferSize) {
@@ -309,43 +309,7 @@ mozilla::ipc::IPCResult RemoteDecoderManagerParent::RecvReadback(
   if (sdb.data().type() == MemoryOrShmem::TShmem) {
     DeallocShmem(sdb.data().get_Shmem());
   }
-
-  if (rv != NS_ERROR_NOT_IMPLEMENTED) {
-    *aResult = null_t();
-    return IPC_OK();
-  }
-
-  // Fallback to reading to a SourceSurface and copying that into a shmem.
-  RefPtr<SourceSurface> source = image->GetAsSourceSurface();
-  if (!source) {
-    *aResult = null_t();
-    return IPC_OK();
-  }
-
-  SurfaceFormat format = source->GetFormat();
-  IntSize size = source->GetSize();
-  size_t length = ImageDataSerializer::ComputeRGBBufferSize(size, format);
-
-  Shmem buffer;
-  if (!length || !AllocShmem(length, &buffer)) {
-    *aResult = null_t();
-    return IPC_OK();
-  }
-
-  RefPtr<DrawTarget> dt = Factory::CreateDrawTargetForData(
-      gfx::BackendType::CAIRO, buffer.get<uint8_t>(), size,
-      ImageDataSerializer::ComputeRGBStride(format, size.width), format);
-  if (!dt) {
-    DeallocShmem(buffer);
-    *aResult = null_t();
-    return IPC_OK();
-  }
-
-  dt->CopySurface(source, IntRect(0, 0, size.width, size.height), IntPoint());
-  dt->Flush();
-
-  *aResult = SurfaceDescriptorBuffer(RGBDescriptor(size, format),
-                                     MemoryOrShmem(std::move(buffer)));
+  *aResult = null_t();
   return IPC_OK();
 }
 
