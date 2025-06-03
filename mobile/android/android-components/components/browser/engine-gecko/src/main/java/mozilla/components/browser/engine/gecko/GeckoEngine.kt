@@ -1576,6 +1576,18 @@ class GeckoEngine(
             get() = runtime.settings.userCharacteristicPingCurrentVersion
             set(value) { runtime.settings.setUserCharacteristicPingCurrentVersion(value) }
 
+        override var baselineFingerprintingProtection: Boolean?
+            get() = runtime.settings.baselineFingerprintingProtection
+            set(value) {
+                value?.let { runtime.settings.setBaselineFingerprintingProtection(it) }
+            }
+
+        override var baselineFingerprintingProtectionOverrides: String?
+            get() = runtime.settings.baselineFingerprintingProtectionOverrides
+            set(value) {
+                value?.let { runtime.settings.setBaselineFingerprintingProtectionOverrides(it) }
+            }
+
         override var webContentIsolationStrategy: WebContentIsolationStrategy?
             get() = runtime.settings.webContentIsolationStrategy?.intoWebContentIsolationStrategy()
             set(value) {
@@ -1648,6 +1660,8 @@ class GeckoEngine(
             this.fdlibmMathEnabled = it.fdlibmMathEnabled
             this.emailTrackerBlockingPrivateBrowsing = it.emailTrackerBlockingPrivateBrowsing
             this.userCharacteristicPingCurrentVersion = it.userCharacteristicPingCurrentVersion
+            this.baselineFingerprintingProtection = it.baselineFingerprintingProtection
+            this.baselineFingerprintingProtectionOverrides = it.baselineFingerprintingProtectionOverrides
             this.webContentIsolationStrategy = it.webContentIsolationStrategy
             this.fetchPriorityEnabled = it.fetchPriorityEnabled
             this.parallelMarkingEnabled = it.parallelMarkingEnabled

@@ -20,6 +20,7 @@ exclude: true
   ([bug 1955403]({{bugzilla}}1955403))
 - Added options on [`GeckoPreferenceController`][140.1] to [`register multiple prefs`][141.3] and [`deregister multiple prefs`][141.4]
 - Added [`GeckoRuntime.notifyTelemetryPrefChanged`][141.5] to notify Gecko about telemetry preference changes.
+- Added [`GeckoRuntimeSettings.getBaselineFingerprintingProtection`][141.6], [`GeckoRuntimeSettings.getBaselineFingerprintingProtectionOverrides`][141.7], [`GeckoRuntimeSettings.setBaselineFingerprintingProtection`][141.8], and [`GeckoRuntimeSettings.setBaselineFingerprintingProtectionOverrides`][141.9] to control the baseline fingerprinting protection settings via Nimbus.
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
@@ -27,6 +28,10 @@ exclude: true
 [141.3]: {{javadoc_URI}}/GeckoPreferenceController.Observer.html#registerPreferences(java.util.List)
 [141.4]: {{javadoc_URI}}/GeckoPreferenceController.Observer.html#unregisterPreferences(java.util.List)
 [141.5]: {{javadoc_URI}}/GeckoRuntime.html#notifyTelemetryPrefChanged(boolean)
+[141.6]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getBaselineFingerprintingProtection
+[141.7]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getBaselineFingerprintingProtectionOverrides
+[141.8]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBaselineFingerprintingProtection
+[141.9]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBaselineFingerprintingProtectionOverrides
 
 ## v140
 - Added a [`GeckoPreferenceController`][140.1] class to manage Gecko preferences.
@@ -1759,4 +1764,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 40efecf34c044bfe4a5bfc91cf73f25a4fd396ac
+[api-version]: 4e54a9f6716139292642eb12928dc85187b79c31
