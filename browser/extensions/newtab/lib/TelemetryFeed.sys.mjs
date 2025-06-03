@@ -37,6 +37,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Region: "resource://gre/modules/Region.sys.mjs",
   TelemetryEnvironment: "resource://gre/modules/TelemetryEnvironment.sys.mjs",
   UTEventReporting: "resource://newtab/lib/UTEventReporting.sys.mjs",
+  NewTabContentPing: "resource://newtab/lib/NewTabContentPing.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   pktApi: "chrome://pocket/content/pktApi.sys.mjs",
@@ -124,6 +125,7 @@ export class TelemetryFeed {
     this._aboutHomeSeen = false;
     this._classifySite = classifySite;
     this._browserOpenNewtabStart = null;
+    this.newtabContentPing = new lazy.NewTabContentPing();
 
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
@@ -332,30 +334,6 @@ export class TelemetryFeed {
   }
 
   /**
-   * Removes fields that can be linked to a user in any way, in order to preserve anonymity of the newtab_content
-   * ping.
-   * @returns
-   */
-  privatizePrivatePing(pingDict) {
-    const {
-      // eslint-disable-next-line no-unused-vars
-      tile_id,
-      // eslint-disable-next-line no-unused-vars
-      newtab_visit_id,
-      // eslint-disable-next-line no-unused-vars
-      matches_selected_topic,
-      // eslint-disable-next-line no-unused-vars
-      recommended_at,
-      // eslint-disable-next-line no-unused-vars
-      received_rank,
-      // eslint-disable-next-line no-unused-vars
-      event_source,
-      ...result
-    } = pingDict;
-    return result;
-  }
-
-  /**
    * Removes fields that link to any user content preference.
    * Redactions only occur if the appropriate pref is enabled.
    * @param {*} pingDict Input dictionary
@@ -460,7 +438,7 @@ export class TelemetryFeed {
     ) {
       GleanPings.newtab.submit("newtab_session_end");
       if (this.privatePingEnabled) {
-        this.configureContentPing("newtab_session_end");
+        this.configureContentPing();
       }
     }
 
@@ -759,9 +737,7 @@ export class TelemetryFeed {
           });
 
           if (this.privatePingEnabled && !is_sponsored) {
-            Glean.newtabContent.click.record(
-              this.privatizePrivatePing(gleanData)
-            );
+            this.newtabContentPing.recordEvent("click", gleanData);
           }
           if (shim) {
             if (this.canSendUnifiedAdsSpocCallbacks) {
@@ -834,8 +810,9 @@ export class TelemetryFeed {
           newtab_visit_id: session.session_id,
         });
         if (this.privatePingEnabled) {
-          Glean.newtabContent.thumbVotingInteraction.record(
-            this.privatizePrivatePing(gleanData)
+          this.newtabContentPing.recordEvent(
+            "thumbVotingInteraction",
+            gleanData
           );
         }
         break;
@@ -1026,7 +1003,7 @@ export class TelemetryFeed {
 
       if (Services.prefs.getBoolPref(PREF_NEWTAB_PING_ENABLED, true)) {
         if (this.privatePingEnabled) {
-          this.configureContentPing("component_init");
+          this.configureContentPing();
         }
         GleanPings.newtab.submit("component_init");
       }
@@ -1034,15 +1011,16 @@ export class TelemetryFeed {
   }
 
   /**
-   *
-   * @param {String} submitReason reason why the ping is being submitted.
-   * "component_init" | "newtab_session_end"
+   * Populates the newtab-content ping with metrics, and the schedules
+   * submission of the ping via NewTabContentPing.
    */
-  async configureContentPing(submitReason) {
+  async configureContentPing() {
+    let privateMetrics = {};
+
     const inferredInterests =
       this.privatePingInferredInterestsEnabled && this.inferredInterests;
     if (inferredInterests) {
-      Glean.newtabContent.inferredInterests.set(inferredInterests);
+      privateMetrics.inferredInterests = inferredInterests;
     }
 
     // When we have a coarse interest vector we want to make sure there isn't
@@ -1051,12 +1029,12 @@ export class TelemetryFeed {
     const reduceTrackingInformation = !!inferredInterests;
 
     if (!reduceTrackingInformation) {
-      Glean.newtabContent.coarseOs.set(lazy.NewTabUtils.normalizeOs());
+      privateMetrics.coarseOs = lazy.NewTabUtils.normalizeOs();
       const followed = this.getFollowedSections();
-      Glean.newtabContent.followedSections.set(followed);
+      privateMetrics.followedSections = followed;
     }
     const surfaceId = this._prefs.get(PREF_SURFACE_ID);
-    Glean.newtabContent.surfaceId.set(surfaceId);
+    privateMetrics.surfaceId = surfaceId;
 
     const curCountry = lazy.Region.home;
     if (
@@ -1064,17 +1042,18 @@ export class TelemetryFeed {
       SURFACE_COUNTRY_MAP[surfaceId].includes(curCountry)
     ) {
       // Only include supported current countries for the surface to reduce identifiability
-      Glean.newtabContent.country.set(curCountry);
+      privateMetrics.country = curCountry;
     }
-    Glean.newtabContent.utcOffset.set(lazy.NewTabUtils.getUtcOffset(surfaceId));
+    privateMetrics.utcOffset = lazy.NewTabUtils.getUtcOffset(surfaceId);
 
     // To prevent fingerprinting we only send current experiment / branch
     const experimentMetadata =
       lazy.NimbusFeatures.pocketNewtab.getEnrollmentMetadata();
-    Glean.newtabContent.experimentName.set(experimentMetadata?.slug ?? "");
-    Glean.newtabContent.experimentBranch.set(experimentMetadata?.branch ?? "");
+    privateMetrics.experimentName = experimentMetadata?.slug ?? "";
 
-    GleanPings.newtabContent.submit(submitReason);
+    privateMetrics.experimentBranch = experimentMetadata?.branch ?? "";
+
+    this.newtabContentPing.scheduleSubmission(privateMetrics);
   }
 
   async onAction(action) {
@@ -1276,7 +1255,6 @@ export class TelemetryFeed {
       const { section, section_position, event_source, is_section_followed } =
         action.data;
       const gleanDataForPrivatePing = {
-        newtab_visit_id: session.session_id,
         section,
         section_position,
         event_source,
@@ -1293,7 +1271,8 @@ export class TelemetryFeed {
             this.redactNewTabPing(gleanDataForNewtabPing)
           );
           if (this.privatePingEnabled) {
-            Glean.newtabContent.sectionsBlockSection.record(
+            this.newtabContentPing.recordEvent(
+              "sectionsBlockSection",
               gleanDataForPrivatePing
             );
           }
@@ -1303,7 +1282,8 @@ export class TelemetryFeed {
             this.redactNewTabPing(gleanDataForNewtabPing)
           );
           if (this.privatePingEnabled) {
-            Glean.newtabContent.sectionsUnblockSection.record(
+            this.newtabContentPing.recordEvent(
+              "sectionsUnblockSection",
               gleanDataForPrivatePing
             );
           }
@@ -1318,7 +1298,7 @@ export class TelemetryFeed {
             })
           );
           if (this.privatePingEnabled) {
-            Glean.newtabContent.sectionsImpression.record({
+            this.newtabContentPing.recordEvent("sectionsImpression", {
               section,
               section_position,
               is_section_followed,
@@ -1330,7 +1310,8 @@ export class TelemetryFeed {
             this.redactNewTabPing(gleanDataForNewtabPing)
           );
           if (this.privatePingEnabled) {
-            Glean.newtabContent.sectionsFollowSection.record(
+            this.newtabContentPing.recordEvent(
+              "sectionsFollowSection",
               gleanDataForPrivatePing
             );
           }
@@ -1341,7 +1322,8 @@ export class TelemetryFeed {
             this.redactNewTabPing(gleanDataForNewtabPing)
           );
           if (this.privatePingEnabled) {
-            Glean.newtabContent.sectionsUnfollowSection.record(
+            this.newtabContentPing.recordEvent(
+              "sectionsUnfollowSection",
               gleanDataForPrivatePing
             );
           }
@@ -1545,7 +1527,7 @@ export class TelemetryFeed {
           newtab_visit_id: session.session_id,
         });
         if (this.privatePingEnabled) {
-          Glean.newtabContent.dismiss.record(gleanData);
+          this.newtabContentPing.recordEvent("dismiss", gleanData);
         }
         continue;
       }
@@ -1639,9 +1621,7 @@ export class TelemetryFeed {
         });
 
         if (this.privatePingEnabled) {
-          Glean.newtabContent.impression.record(
-            this.privatizePrivatePing(gleanData)
-          );
+          this.newtabContentPing.recordEvent("impression", gleanData);
         }
       }
       if (tile.shim) {
@@ -1817,6 +1797,7 @@ export class TelemetryFeed {
 
   uninit() {
     this._stopObservingNewtabPingPrefs();
+    this.newtabContentPing.uninit();
 
     try {
       Services.obs.removeObserver(

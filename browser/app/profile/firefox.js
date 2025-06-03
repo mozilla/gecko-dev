@@ -1977,7 +1977,8 @@ pref("browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.locale-thu
   pref("browser.newtabpage.activity-stream.telemetry.privatePing.enabled", false);
 #endif
 // Redacts content interaction ids from original New Tab ping once data processing migrated to the Newtab_content private ping
-  pref("browser.newtabpage.activity-stream.telemetry.privatePing.redactNewtabPing.enabled", false);
+pref("browser.newtabpage.activity-stream.telemetry.privatePing.redactNewtabPing.enabled", false);
+pref("browser.newtabpage.activity-stream.telemetry.privatePing.maxSubmissionDelayMs", 5000);
 
   // Include differentialy private inferred New Tab interests with New Tab content Ping. Only used when user has enabled personalization.
 pref("browser.newtabpage.activity-stream.telemetry.privatePing.inferredInterests.enabled", false);
