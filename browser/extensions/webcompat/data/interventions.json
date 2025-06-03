@@ -3664,6 +3664,24 @@
       }
     ]
   },
+  "1966389": {
+    "label": "boots.com",
+    "bugs": {
+      "1966389": {
+        "issue": "broken-layout",
+        "matches": ["*://appointments.boots.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "all_frames": true,
+          "css": ["bug1966389-boots.com-align-element-widths.css"]
+        }
+      }
+    ]
+  },
   "1966585": {
     "label": "hiskin.care",
     "bugs": {

@@ -1,0 +1,20 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * www.boots.com/opticiansappointments - form elements are not the same width
+ * Bug #1966389 - https://bugzilla.mozilla.org/show_bug.cgi?id=1966389
+ * WebCompat issue #154274 - https://github.com/webcompat/web-bugs/issues/154274
+ *
+ * They are using the non-standard -webkit-fill-available, but we can use the
+ * similar -moz-available to work around the issue.
+ */
+@media only screen and (max-width: 1224px) {
+  .Address input,
+  .RebookAddress input,
+  .Age select,
+  .AppointmentType select {
+    width: -moz-available;
+  }
+}
