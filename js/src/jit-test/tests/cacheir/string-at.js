@@ -113,3 +113,18 @@ function testNegativeIndex() {
 for (let i = 0; i < 2; ++i) {
   testNegativeIndex();
 }
+
+function testAbsentIndex() {
+  let strings = makeStrings();
+  for (let i = 0; i < 200; ++i) {
+    let str = strings[i % strings.length];
+    let index = 0;
+    let ch = str.at(/* ToInteger(ToNumber(undefined)) = ToInteger(NaN) = 0 */);
+    let expected = str.charAt(index);
+    if (expected === "") expected = undefined;
+    assertEq(ch, expected);
+  }
+}
+for (let i = 0; i < 2; ++i) {
+  testAbsentIndex();
+}

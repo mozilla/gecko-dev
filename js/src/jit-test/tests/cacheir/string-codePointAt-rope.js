@@ -78,3 +78,17 @@ function testBothChildren() {
 for (var i = 0; i < 2; ++i) {
   testBothChildren();
 }
+
+// Load a character from the left rope child using an absent index. The input
+// to String.prototype.codePointAt is always rope.
+function testLeftChildAbsentIndex() {
+  for (var i = 0; i < 200; ++i) {
+    var {rope} = makeRope();
+
+    var ch = rope.codePointAt(/* ToInteger(ToNumber(undefined)) = ToInteger(NaN) = 0 */);
+    assertEq(ch, 0x40);
+  }
+}
+for (var i = 0; i < 2; ++i) {
+  testLeftChildAbsentIndex();
+}

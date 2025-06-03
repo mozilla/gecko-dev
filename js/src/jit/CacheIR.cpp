@@ -8181,12 +8181,16 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringSplitString() {
 
 AttachDecision InlinableNativeIRGenerator::tryAttachStringChar(
     StringChar kind) {
-  // Need one argument.
-  if (args_.length() != 1) {
+  // Need zero or one argument.
+  if (args_.length() > 1) {
     return AttachDecision::NoAction;
   }
 
-  auto attach = CanAttachStringChar(thisval_, args_[0], kind);
+  // Absent index argument defaults to zero:
+  // ToInteger(ToNumber(undefined)) = ToInteger(NaN) = 0.
+  auto indexArg = args_.length() > 0 ? args_[0] : Int32Value(0);
+
+  auto attach = CanAttachStringChar(thisval_, indexArg, kind);
   if (attach == AttachStringChar::No) {
     return AttachDecision::NoAction;
   }
@@ -8205,9 +8209,13 @@ AttachDecision InlinableNativeIRGenerator::tryAttachStringChar(
   StringOperandId strId = writer.guardToString(thisValId);
 
   // Guard int32 index.
-  ValOperandId indexId = loadArgument(calleeId, ArgumentKind::Arg0);
-  Int32OperandId int32IndexId =
-      EmitGuardToInt32Index(writer, args_[0], indexId);
+  Int32OperandId int32IndexId;
+  if (args_.length() > 0) {
+    ValOperandId indexId = loadArgument(calleeId, ArgumentKind::Arg0);
+    int32IndexId = EmitGuardToInt32Index(writer, args_[0], indexId);
+  } else {
+    int32IndexId = writer.loadInt32Constant(0);
+  }
 
   // Handle relative string indices, if necessary.
   if (kind == StringChar::At) {
