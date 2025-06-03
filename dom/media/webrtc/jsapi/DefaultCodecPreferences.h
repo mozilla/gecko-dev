@@ -35,6 +35,8 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
     return mSendingH264PacketizationModeZeroSupported;
   }
 
+  bool H264BaselineDisabled() const override { return mH264BaselineDisabled; }
+
   int32_t H264Level() const override { return mH264Level; }
 
   int32_t H264MaxBr() const override { return mH264MaxBr; }
@@ -77,6 +79,12 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
   static bool HardwareH264EnabledStatic();
 
   static bool SendingH264PacketizationModeZeroSupportedStatic();
+
+  static constexpr bool kDefaultH264BaselineDisabled = false;
+  static bool H264BaselineDisabledStatic() {
+    return Preferences::GetBool("media.navigator.video.disable_h264_baseline",
+                                kDefaultH264BaselineDisabled);
+  }
 
   // minimum suggested for WebRTC spec
   static constexpr int32_t kDefaultH264Level = 31;
@@ -189,6 +197,7 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
   const bool mHardwareH264Enabled = HardwareH264EnabledStatic();
   const bool mSendingH264PacketizationModeZeroSupported =
       SendingH264PacketizationModeZeroSupportedStatic();
+  const bool mH264BaselineDisabled = H264BaselineDisabledStatic();
   const int32_t mH264Level = H264LevelStatic();
   const int32_t mH264MaxBr = H264MaxBrStatic();
   const int32_t mH264MaxMbps = H264MaxMbpsStatic();

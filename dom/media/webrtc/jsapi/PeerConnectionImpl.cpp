@@ -2019,18 +2019,10 @@ void PeerConnectionImpl::GetDefaultVideoCodecs(
       JsepVideoCodecDescription::CreateDefaultH264_1(prefs));
   aSupportedCodecs.emplace_back(
       JsepVideoCodecDescription::CreateDefaultH264_0(prefs));
-
-  const bool disableBaseline = Preferences::GetBool(
-      "media.navigator.video.disable_h264_baseline", false);
-
-  // Only add Baseline if it hasn't been disabled.
-  if (!disableBaseline) {
-    aSupportedCodecs.emplace_back(
-        JsepVideoCodecDescription::CreateDefaultH264Baseline_1(prefs));
-    aSupportedCodecs.emplace_back(
-        JsepVideoCodecDescription::CreateDefaultH264Baseline_0(prefs));
-  }
-
+  aSupportedCodecs.emplace_back(
+      JsepVideoCodecDescription::CreateDefaultH264Baseline_1(prefs));
+  aSupportedCodecs.emplace_back(
+      JsepVideoCodecDescription::CreateDefaultH264Baseline_0(prefs));
   aSupportedCodecs.emplace_back(
       JsepVideoCodecDescription::CreateDefaultAV1(prefs));
 

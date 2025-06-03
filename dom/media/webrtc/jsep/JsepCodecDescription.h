@@ -30,6 +30,7 @@ class JsepCodecPreferences {
   virtual bool H264Enabled() const = 0;
   virtual bool SoftwareH264Enabled() const = 0;
   virtual bool SendingH264PacketizationModeZeroSupported() const = 0;
+  virtual bool H264BaselineDisabled() const = 0;
   virtual int32_t H264Level() const = 0;
   virtual int32_t H264MaxBr() const = 0;
   virtual int32_t H264MaxMbps() const = 0;
@@ -600,7 +601,7 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
   static UniquePtr<JsepVideoCodecDescription> CreateDefaultH264Baseline_0(
       const JsepCodecPreferences& aPrefs) {
     auto codec = MakeUnique<JsepVideoCodecDescription>("103", "H264", 90000);
-    codec->mEnabled = aPrefs.H264Enabled();
+    codec->mEnabled = aPrefs.H264Enabled() && !aPrefs.H264BaselineDisabled();
     codec->mPacketizationMode = 0;
     // Defaults for mandatory params
     codec->mProfileLevelId = 0x42001F;
@@ -616,7 +617,7 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
   static UniquePtr<JsepVideoCodecDescription> CreateDefaultH264Baseline_1(
       const JsepCodecPreferences& aPrefs) {
     auto codec = MakeUnique<JsepVideoCodecDescription>("105", "H264", 90000);
-    codec->mEnabled = aPrefs.H264Enabled();
+    codec->mEnabled = aPrefs.H264Enabled() && !aPrefs.H264BaselineDisabled();
     codec->mPacketizationMode = 1;
     // Defaults for mandatory params
     codec->mProfileLevelId = 0x42001F;
