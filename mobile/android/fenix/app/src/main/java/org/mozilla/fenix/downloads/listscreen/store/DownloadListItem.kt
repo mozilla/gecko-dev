@@ -21,35 +21,29 @@ sealed interface DownloadListItem
  * @property url The full url to the content that should be downloaded
  * @property fileName File name of the download item
  * @property filePath Full path of the download item
- * @property formattedSize The formatted size of the download item
  * @property displayedShortUrl The shortened url of the download item
  * @property contentType The type of file the download is
- * @property status The status that represents every state that a download can be in
- * @property createdTime The time period the file was downloaded in
+ * @property status The download status of the item
+ * @property timeCategory The time period the file was downloaded in
+ * @property description The description of the file item on the downloads screen
  */
 data class FileItem(
     val id: String,
     val url: String,
     val fileName: String?,
     val filePath: String,
-    val formattedSize: String,
     val displayedShortUrl: String,
     val contentType: String?,
     val status: DownloadState.Status,
-    val createdTime: CreatedTime,
+    val timeCategory: TimeCategory,
+    val description: String,
 ) : DownloadListItem {
-
-    /**
-     * A concise description that combines the `formattedSize` and
-     * the base domain of the `url` in the format "formattedSize • baseDomainUrl".
-     */
-    val description = "$formattedSize • $displayedShortUrl"
 
     /**
      * The icon resource ID associated with this [FileItem].
      */
     @DrawableRes
-    val icon = getIcon()
+    val icon: Int = getIcon()
 
     /**
      * The content type filter based on the [contentType] of the [FileItem]
@@ -131,18 +125,23 @@ data class FileItem(
 /**
  * Class representing a downloads section header
  *
- * @property createdTime The time period the header represents
+ * @property timeCategory The time period the header represents
  */
 data class HeaderItem(
-    val createdTime: CreatedTime,
+    val timeCategory: TimeCategory,
 ) : DownloadListItem
 
 /**
  * Enum class representing the time period used to group download items
  */
-enum class CreatedTime(
+enum class TimeCategory(
     @StringRes val stringRes: Int,
 ) {
+    /**
+     * Represents a download that is in progress
+     */
+    IN_PROGRESS(R.string.download_header_in_progress),
+
     /**
      * Represents the current day
      */

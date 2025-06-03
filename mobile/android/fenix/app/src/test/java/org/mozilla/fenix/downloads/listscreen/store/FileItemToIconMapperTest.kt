@@ -17,11 +17,11 @@ class FileItemToIconMapperTest {
             url = "url",
             fileName = "MyAwesomeFile",
             filePath = "",
-            formattedSize = "",
+            description = "Test description",
             displayedShortUrl = "url",
             contentType = "image/png",
             status = DownloadState.Status.COMPLETED,
-            createdTime = CreatedTime.TODAY,
+            timeCategory = TimeCategory.TODAY,
         )
 
         assertEquals(R.drawable.ic_file_type_image, fileItem.getIcon())

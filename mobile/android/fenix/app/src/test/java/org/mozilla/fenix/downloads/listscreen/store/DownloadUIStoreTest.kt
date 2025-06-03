@@ -9,7 +9,6 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.DownloadsUseCases
-import mozilla.components.feature.downloads.fake.FakeFileSizeFormatter
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.rule.MainCoroutineRule
 import org.junit.Assert.assertEquals
@@ -22,6 +21,7 @@ import org.mozilla.fenix.downloads.fake.FakeDateTimeProvider
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadDeleteMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadUIMapperMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.FakeDelayProvider
+import org.mozilla.fenix.downloads.listscreen.middleware.FakeFileItemDescriptionProvider
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.time.Duration.Companion.milliseconds
@@ -34,7 +34,7 @@ class DownloadUIStoreTest {
     private val dispatcher = coroutineTestRule.testDispatcher
     private val scope = coroutineTestRule.scope
 
-    private val fakeFormatter = FakeFileSizeFormatter()
+    private val fakeFileItemDescriptionProvider = FakeFileItemDescriptionProvider()
     private val today = LocalDate.of(2025, 5, 31)
     private val older = LocalDate.of(2025, 4, 20)
     private val fakeDateTimeProvider = FakeDateTimeProvider(today)
@@ -45,11 +45,11 @@ class DownloadUIStoreTest {
         url = "https://www.mozilla.com",
         fileName = "1.pdf",
         filePath = "downloads/1.pdf",
-        formattedSize = "77",
+        description = "Completed",
         contentType = "application/pdf",
         displayedShortUrl = "mozilla.com",
         status = DownloadState.Status.COMPLETED,
-        createdTime = CreatedTime.TODAY,
+        timeCategory = TimeCategory.TODAY,
     )
     private val downloadState1 = DownloadState(
         id = "1",
@@ -65,19 +65,19 @@ class DownloadUIStoreTest {
 
     private val fileItem2 = FileItem(
         id = "2",
-        url = "url",
+        url = "https://www.mozilla.com",
         fileName = "title",
         filePath = "downloads/title",
-        formattedSize = "77",
-        displayedShortUrl = "url",
+        description = "Completed",
+        displayedShortUrl = "mozilla.com",
         contentType = "jpg",
         status = DownloadState.Status.COMPLETED,
-        createdTime = CreatedTime.OLDER,
+        timeCategory = TimeCategory.OLDER,
     )
 
     private val downloadState2 = DownloadState(
         id = "2",
-        url = "url",
+        url = "https://www.mozilla.com",
         createdTime = older.toEpochMilli(zoneId),
         fileName = "title",
         status = DownloadState.Status.COMPLETED,
@@ -139,11 +139,11 @@ class DownloadUIStoreTest {
             url = "url",
             fileName = "title",
             filePath = "url",
-            formattedSize = "77",
+            description = "77 kB",
             displayedShortUrl = "url",
             contentType = "image/jpeg",
             status = DownloadState.Status.COMPLETED,
-            createdTime = CreatedTime.TODAY,
+            timeCategory = TimeCategory.TODAY,
         )
 
         val document = FileItem(
@@ -151,11 +151,11 @@ class DownloadUIStoreTest {
             url = "docurl",
             fileName = "doc",
             filePath = "docPath",
-            formattedSize = "77",
+            description = "77 kB",
             displayedShortUrl = "url",
             contentType = "application/pdf",
             status = DownloadState.Status.COMPLETED,
-            createdTime = CreatedTime.TODAY,
+            timeCategory = TimeCategory.TODAY,
         )
 
         val initialState = DownloadUIState(
@@ -188,11 +188,11 @@ class DownloadUIStoreTest {
             url = "url",
             fileName = "title",
             filePath = "filePath",
-            formattedSize = "77",
+            description = "77",
             displayedShortUrl = "url",
             contentType = "image/jpeg",
             status = DownloadState.Status.COMPLETED,
-            createdTime = CreatedTime.TODAY,
+            timeCategory = TimeCategory.TODAY,
         )
 
         val image2 = FileItem(
@@ -200,11 +200,11 @@ class DownloadUIStoreTest {
             url = "image2",
             fileName = "image2",
             filePath = "filePath2",
-            formattedSize = "1234",
+            description = "1234",
             displayedShortUrl = "image2",
             contentType = "image/jpg",
             status = DownloadState.Status.COMPLETED,
-            createdTime = CreatedTime.TODAY,
+            timeCategory = TimeCategory.TODAY,
         )
 
         val document = FileItem(
@@ -212,11 +212,11 @@ class DownloadUIStoreTest {
             url = "docurl",
             fileName = "doc",
             filePath = "docPath",
-            formattedSize = "77",
+            description = "77",
             displayedShortUrl = "url",
             contentType = "application/pdf",
             status = DownloadState.Status.COMPLETED,
-            createdTime = CreatedTime.TODAY,
+            timeCategory = TimeCategory.TODAY,
         )
 
         val initialState = DownloadUIState(
@@ -408,7 +408,7 @@ class DownloadUIStoreTest {
 
         val downloadUIMapperMiddleware = DownloadUIMapperMiddleware(
             browserStore = browserStore,
-            fileSizeFormatter = fakeFormatter,
+            fileItemDescriptionProvider = fakeFileItemDescriptionProvider,
             scope = scope,
             dateTimeProvider = fakeDateTimeProvider,
         )
@@ -468,7 +468,7 @@ class DownloadUIStoreTest {
             middleware = listOf(
                 DownloadUIMapperMiddleware(
                     browserStore = browserStore,
-                    fileSizeFormatter = fakeFormatter,
+                    fileItemDescriptionProvider = fakeFileItemDescriptionProvider,
                     scope = scope,
                     dateTimeProvider = fakeDateTimeProvider,
                 ),
@@ -478,29 +478,29 @@ class DownloadUIStoreTest {
 
         val expectedList = DownloadUIState.ItemsState.Items(
             listOf(
-                HeaderItem(CreatedTime.TODAY),
+                HeaderItem(TimeCategory.TODAY),
                 FileItem(
                     id = "3",
                     url = "https://www.google.com",
                     fileName = "3.pdf",
                     filePath = "downloads/3.pdf",
-                    formattedSize = "10000",
+                    description = "Completed",
                     displayedShortUrl = "google.com",
                     contentType = "text/plain",
                     status = DownloadState.Status.COMPLETED,
-                    createdTime = CreatedTime.TODAY,
+                    timeCategory = TimeCategory.TODAY,
                 ),
-                HeaderItem(CreatedTime.OLDER),
+                HeaderItem(TimeCategory.OLDER),
                 FileItem(
                     id = "1",
                     url = "https://www.google.com",
                     fileName = "1.pdf",
                     filePath = "downloads/1.pdf",
-                    formattedSize = "10000",
+                    description = "Completed",
                     displayedShortUrl = "google.com",
                     contentType = "application/pdf",
                     status = DownloadState.Status.COMPLETED,
-                    createdTime = CreatedTime.OLDER,
+                    timeCategory = TimeCategory.OLDER,
                 ),
             ),
         )
@@ -541,7 +541,7 @@ class DownloadUIStoreTest {
             middleware = listOf(
                 DownloadUIMapperMiddleware(
                     browserStore = browserStore,
-                    fileSizeFormatter = fakeFormatter,
+                    fileItemDescriptionProvider = fakeFileItemDescriptionProvider,
                     scope = scope,
                 ),
             ),
@@ -550,17 +550,17 @@ class DownloadUIStoreTest {
 
         val expectedList = DownloadUIState.ItemsState.Items(
             listOf(
-                HeaderItem(CreatedTime.OLDER),
+                HeaderItem(TimeCategory.OLDER),
                 FileItem(
                     id = "1",
                     url = "https://www.google.com",
                     fileName = "1.pdf",
                     filePath = "downloads/1.pdf",
-                    formattedSize = "10000",
+                    description = "Completed",
                     displayedShortUrl = "google.com",
                     contentType = "application/pdf",
                     status = DownloadState.Status.COMPLETED,
-                    createdTime = CreatedTime.OLDER,
+                    timeCategory = TimeCategory.OLDER,
                 ),
             ),
         )

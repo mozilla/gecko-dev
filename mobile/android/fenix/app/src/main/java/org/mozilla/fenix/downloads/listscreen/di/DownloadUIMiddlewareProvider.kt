@@ -10,6 +10,7 @@ import mozilla.components.lib.state.Middleware
 import org.mozilla.fenix.components.Components
 import org.mozilla.fenix.downloads.listscreen.middleware.BroadcastSender
 import org.mozilla.fenix.downloads.listscreen.middleware.DefaultBroadcastSender
+import org.mozilla.fenix.downloads.listscreen.middleware.DefaultFileItemDescriptionProvider
 import org.mozilla.fenix.downloads.listscreen.middleware.DefaultUndoDelayProvider
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadDeleteMiddleware
 import org.mozilla.fenix.downloads.listscreen.middleware.DownloadTelemetryMiddleware
@@ -34,7 +35,7 @@ internal object DownloadUIMiddlewareProvider {
         coroutineScope: CoroutineScope,
         applicationContext: Context,
     ): List<Middleware<DownloadUIState, DownloadUIAction>> = listOf(
-        provideUIMapperMiddleware(applicationContext.components, coroutineScope),
+        provideUIMapperMiddleware(applicationContext, coroutineScope),
         provideShareMiddleware(applicationContext),
         provideTelemetryMiddleware(),
         provideDeleteMiddleware(applicationContext.components),
@@ -51,12 +52,15 @@ internal object DownloadUIMiddlewareProvider {
         DownloadUIShareMiddleware(applicationContext = applicationContext)
 
     private fun provideUIMapperMiddleware(
-        components: Components,
+        applicationContext: Context,
         coroutineScope: CoroutineScope,
     ) = DownloadUIMapperMiddleware(
-        browserStore = components.core.store,
-        fileSizeFormatter = components.core.fileSizeFormatter,
+        browserStore = applicationContext.components.core.store,
         scope = coroutineScope,
+        fileItemDescriptionProvider = DefaultFileItemDescriptionProvider(
+            context = applicationContext,
+            fileSizeFormatter = applicationContext.components.core.fileSizeFormatter,
+        ),
     )
 
     private fun provideTelemetryMiddleware() = DownloadTelemetryMiddleware()

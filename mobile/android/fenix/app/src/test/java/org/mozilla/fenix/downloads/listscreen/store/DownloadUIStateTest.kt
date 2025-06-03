@@ -14,19 +14,19 @@ class DownloadUIStateTest {
         val fileItems = listOf(
             fileItem(
                 id = "1",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "2",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "3",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "4",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
         )
 
@@ -39,7 +39,7 @@ class DownloadUIStateTest {
 
         val expected = DownloadUIState.ItemsState.Items(
             listOf(
-                HeaderItem(createdTime = CreatedTime.LAST_30_DAYS),
+                HeaderItem(timeCategory = TimeCategory.LAST_30_DAYS),
                 fileItem(id = "1"),
                 fileItem(id = "3"),
             ),
@@ -53,35 +53,35 @@ class DownloadUIStateTest {
         val fileItems = listOf(
             fileItem(
                 id = "1",
-                createdTime = CreatedTime.OLDER,
+                timeCategory = TimeCategory.OLDER,
             ),
             fileItem(
                 id = "2",
-                createdTime = CreatedTime.OLDER,
+                timeCategory = TimeCategory.OLDER,
             ),
             fileItem(
                 id = "3",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "4",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "5",
-                createdTime = CreatedTime.YESTERDAY,
+                timeCategory = TimeCategory.YESTERDAY,
             ),
             fileItem(
                 id = "6",
-                createdTime = CreatedTime.TODAY,
+                timeCategory = TimeCategory.TODAY,
             ),
             fileItem(
                 id = "7",
-                createdTime = CreatedTime.TODAY,
+                timeCategory = TimeCategory.TODAY,
             ),
             fileItem(
                 id = "8",
-                createdTime = CreatedTime.LAST_7_DAYS,
+                timeCategory = TimeCategory.LAST_7_DAYS,
             ),
         )
 
@@ -94,38 +94,38 @@ class DownloadUIStateTest {
 
         val expected = DownloadUIState.ItemsState.Items(
             listOf(
-                HeaderItem(createdTime = CreatedTime.TODAY),
+                HeaderItem(timeCategory = TimeCategory.TODAY),
                 fileItem(
                     id = "6",
-                    createdTime = CreatedTime.TODAY,
+                    timeCategory = TimeCategory.TODAY,
                 ),
-                HeaderItem(createdTime = CreatedTime.YESTERDAY),
+                HeaderItem(timeCategory = TimeCategory.YESTERDAY),
                 fileItem(
                     id = "5",
-                    createdTime = CreatedTime.YESTERDAY,
+                    timeCategory = TimeCategory.YESTERDAY,
                 ),
-                HeaderItem(createdTime = CreatedTime.LAST_7_DAYS),
+                HeaderItem(timeCategory = TimeCategory.LAST_7_DAYS),
                 fileItem(
                     id = "8",
-                    createdTime = CreatedTime.LAST_7_DAYS,
+                    timeCategory = TimeCategory.LAST_7_DAYS,
                 ),
-                HeaderItem(createdTime = CreatedTime.LAST_30_DAYS),
+                HeaderItem(timeCategory = TimeCategory.LAST_30_DAYS),
                 fileItem(
                     id = "3",
-                    createdTime = CreatedTime.LAST_30_DAYS,
+                    timeCategory = TimeCategory.LAST_30_DAYS,
                 ),
                 fileItem(
                     id = "4",
-                    createdTime = CreatedTime.LAST_30_DAYS,
+                    timeCategory = TimeCategory.LAST_30_DAYS,
                 ),
-                HeaderItem(createdTime = CreatedTime.OLDER),
+                HeaderItem(timeCategory = TimeCategory.OLDER),
                 fileItem(
                     id = "1",
-                    createdTime = CreatedTime.OLDER,
+                    timeCategory = TimeCategory.OLDER,
                 ),
                 fileItem(
                     id = "2",
-                    createdTime = CreatedTime.OLDER,
+                    timeCategory = TimeCategory.OLDER,
                 ),
             ),
         )
@@ -138,37 +138,37 @@ class DownloadUIStateTest {
         val fileItems = listOf(
             fileItem(
                 id = "1",
-                createdTime = CreatedTime.OLDER,
+                timeCategory = TimeCategory.OLDER,
                 contentType = "image/png",
             ),
             fileItem(
                 id = "2",
-                createdTime = CreatedTime.OLDER,
+                timeCategory = TimeCategory.OLDER,
                 contentType = "video/mp4",
             ),
             fileItem(
                 id = "3",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "application/pdf",
             ),
             fileItem(
                 id = "4",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "text/plain",
             ),
             fileItem(
                 id = "5",
-                createdTime = CreatedTime.YESTERDAY,
+                timeCategory = TimeCategory.YESTERDAY,
                 contentType = "image/png",
             ),
             fileItem(
                 id = "6",
-                createdTime = CreatedTime.TODAY,
+                timeCategory = TimeCategory.TODAY,
                 contentType = "image/png",
             ),
             fileItem(
                 id = "7",
-                createdTime = CreatedTime.TODAY,
+                timeCategory = TimeCategory.TODAY,
                 contentType = "image/png",
             ),
         )
@@ -182,27 +182,27 @@ class DownloadUIStateTest {
 
         val expected = DownloadUIState.ItemsState.Items(
             listOf(
-                HeaderItem(createdTime = CreatedTime.TODAY),
+                HeaderItem(timeCategory = TimeCategory.TODAY),
                 fileItem(
                     id = "6",
-                    createdTime = CreatedTime.TODAY,
+                    timeCategory = TimeCategory.TODAY,
                     contentType = "image/png",
                 ),
                 fileItem(
                     id = "7",
-                    createdTime = CreatedTime.TODAY,
+                    timeCategory = TimeCategory.TODAY,
                     contentType = "image/png",
                 ),
-                HeaderItem(createdTime = CreatedTime.YESTERDAY),
+                HeaderItem(timeCategory = TimeCategory.YESTERDAY),
                 fileItem(
                     id = "5",
-                    createdTime = CreatedTime.YESTERDAY,
+                    timeCategory = TimeCategory.YESTERDAY,
                     contentType = "image/png",
                 ),
-                HeaderItem(createdTime = CreatedTime.OLDER),
+                HeaderItem(timeCategory = TimeCategory.OLDER),
                 fileItem(
                     id = "1",
-                    createdTime = CreatedTime.OLDER,
+                    timeCategory = TimeCategory.OLDER,
                     contentType = "image/png",
                 ),
             ),
@@ -217,17 +217,17 @@ class DownloadUIStateTest {
         val fileItems = listOf(
             fileItem(
                 id = "2",
-                createdTime = CreatedTime.OLDER,
+                timeCategory = TimeCategory.OLDER,
                 contentType = "video/mp4",
             ),
             fileItem(
                 id = "3",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "application/pdf",
             ),
             fileItem(
                 id = "4",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "text/plain",
             ),
         )
@@ -253,12 +253,12 @@ class DownloadUIStateTest {
         val fileItems = listOf(
             fileItem(
                 id = "2",
-                createdTime = CreatedTime.OLDER,
+                timeCategory = TimeCategory.OLDER,
                 contentType = "video/mp4",
             ),
             fileItem(
                 id = "3",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "video/mp4",
             ),
         )
@@ -280,17 +280,17 @@ class DownloadUIStateTest {
         val fileItems = listOf(
             fileItem(
                 id = "2",
-                createdTime = CreatedTime.OLDER,
+                timeCategory = TimeCategory.OLDER,
                 contentType = "video/mp4",
             ),
             fileItem(
                 id = "3",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "application/pdf",
             ),
             fileItem(
                 id = "4",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
                 contentType = "text/plain",
             ),
         )
@@ -314,25 +314,25 @@ class DownloadUIStateTest {
                 id = "1",
                 fileName = "somefile",
                 displayedShortUrl = "firefox.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "2",
                 fileName = "anotherfile",
                 displayedShortUrl = "mozilla.org",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "3",
                 fileName = "yetanotherfile",
                 displayedShortUrl = "mozilla.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "4",
                 fileName = "name",
                 displayedShortUrl = "firefox.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
         )
 
@@ -345,18 +345,18 @@ class DownloadUIStateTest {
 
         val expected = DownloadUIState.ItemsState.Items(
             listOf(
-                HeaderItem(createdTime = CreatedTime.LAST_30_DAYS),
+                HeaderItem(timeCategory = TimeCategory.LAST_30_DAYS),
                 fileItem(
                     id = "1",
                     fileName = "somefile",
                     displayedShortUrl = "firefox.com",
-                    createdTime = CreatedTime.LAST_30_DAYS,
+                    timeCategory = TimeCategory.LAST_30_DAYS,
                 ),
                 fileItem(
                     id = "4",
                     fileName = "name",
                     displayedShortUrl = "firefox.com",
-                    createdTime = CreatedTime.LAST_30_DAYS,
+                    timeCategory = TimeCategory.LAST_30_DAYS,
                 ),
             ),
         )
@@ -371,25 +371,25 @@ class DownloadUIStateTest {
                 id = "1",
                 fileName = "somefile",
                 displayedShortUrl = "firefox.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "2",
                 fileName = "anotherfile",
                 displayedShortUrl = "mozilla.org",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "3",
                 fileName = "yetanotherfile",
                 displayedShortUrl = "mozilla.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "4",
                 fileName = "name",
                 displayedShortUrl = "firefox.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
         )
 
@@ -402,24 +402,24 @@ class DownloadUIStateTest {
 
         val expected = DownloadUIState.ItemsState.Items(
             listOf(
-                HeaderItem(createdTime = CreatedTime.LAST_30_DAYS),
+                HeaderItem(timeCategory = TimeCategory.LAST_30_DAYS),
                 fileItem(
                     id = "1",
                     fileName = "somefile",
                     displayedShortUrl = "firefox.com",
-                    createdTime = CreatedTime.LAST_30_DAYS,
+                    timeCategory = TimeCategory.LAST_30_DAYS,
                 ),
                 fileItem(
                     id = "2",
                     fileName = "anotherfile",
                     displayedShortUrl = "mozilla.org",
-                    createdTime = CreatedTime.LAST_30_DAYS,
+                    timeCategory = TimeCategory.LAST_30_DAYS,
                 ),
                 fileItem(
                     id = "3",
                     fileName = "yetanotherfile",
                     displayedShortUrl = "mozilla.com",
-                    createdTime = CreatedTime.LAST_30_DAYS,
+                    timeCategory = TimeCategory.LAST_30_DAYS,
                 ),
             ),
         )
@@ -434,25 +434,25 @@ class DownloadUIStateTest {
                 id = "1",
                 fileName = "somefile",
                 displayedShortUrl = "firefox.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "2",
                 fileName = "anotherfile",
                 displayedShortUrl = "mozilla.org",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "3",
                 fileName = "yetanotherfile",
                 displayedShortUrl = "mozilla.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
             fileItem(
                 id = "4",
                 fileName = "name",
                 displayedShortUrl = "firefox.com",
-                createdTime = CreatedTime.LAST_30_DAYS,
+                timeCategory = TimeCategory.LAST_30_DAYS,
             ),
         )
 
@@ -500,13 +500,13 @@ class DownloadUIStateTest {
             id = "1",
             fileName = "somefile",
             displayedShortUrl = "firefox.com",
-            createdTime = CreatedTime.LAST_30_DAYS,
+            timeCategory = TimeCategory.LAST_30_DAYS,
         )
         val fileItem2 = fileItem(
             id = "2",
             fileName = "anotherfile",
             displayedShortUrl = "mozilla.org",
-            createdTime = CreatedTime.LAST_30_DAYS,
+            timeCategory = TimeCategory.LAST_30_DAYS,
         )
         val fileItems = listOf(
             fileItem1,
@@ -532,13 +532,13 @@ class DownloadUIStateTest {
             id = "1",
             fileName = "somefile",
             displayedShortUrl = "firefox.com",
-            createdTime = CreatedTime.LAST_30_DAYS,
+            timeCategory = TimeCategory.LAST_30_DAYS,
         )
         val fileItem2 = fileItem(
             id = "2",
             fileName = "anotherfile",
             displayedShortUrl = "mozilla.org",
-            createdTime = CreatedTime.LAST_30_DAYS,
+            timeCategory = TimeCategory.LAST_30_DAYS,
         )
         val fileItems = listOf(
             fileItem1,
@@ -562,13 +562,13 @@ class DownloadUIStateTest {
             id = "1",
             fileName = "somefile",
             displayedShortUrl = "firefox.com",
-            createdTime = CreatedTime.LAST_30_DAYS,
+            timeCategory = TimeCategory.LAST_30_DAYS,
         )
         val fileItem2 = fileItem(
             id = "2",
             fileName = "anotherfile",
             displayedShortUrl = "mozilla.org",
-            createdTime = CreatedTime.LAST_30_DAYS,
+            timeCategory = TimeCategory.LAST_30_DAYS,
         )
         val fileItems = listOf(
             fileItem1,
