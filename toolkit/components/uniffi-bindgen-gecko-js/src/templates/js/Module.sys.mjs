@@ -2,6 +2,9 @@
 // Trust me, you don't want to mess with it!
 
 import { UniFFITypeError } from "moz-src:///toolkit/components/uniffi-js/js/UniFFI.sys.mjs";
+{%- for import in imports %}
+{{ import }}
+{%- endfor %}
 
 // Objects intended to be used in the unit tests
 export var UnitTestObjs = {};

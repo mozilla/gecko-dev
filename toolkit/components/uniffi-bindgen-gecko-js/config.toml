@@ -118,3 +118,20 @@ main_thread = [
     "TestInterface.get_value",
     "TestInterface.ref_count",
 ]
+
+[uniffi_bindings_tests.custom_types.Url]
+type_name = "URL"
+lift  = "new URL({})"
+lower = "{}.toString()"
+
+[uniffi_bindings_tests.custom_types.TimeIntervalMs]
+# Convert milliseconds to Date
+type_name = "Date"
+lift = "new Date({})"
+lower = "{}.getTime()"
+
+[uniffi_bindings_tests.custom_types.TimeIntervalSecDbl]
+# Convert seconds (as float) to Date
+type_name = "Date"
+lift = "new Date({} * 1000)"
+lower = "{}.getTime() / 1000"

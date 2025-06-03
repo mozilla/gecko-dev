@@ -146,6 +146,7 @@ pub struct Module {
     pub ffi_uniffi_contract_version: RustFfiFunctionName,
     pub string_type_node: TypeNode,
     pub has_callback_interface: bool,
+    pub imports: Vec<String>,
 }
 
 #[derive(Debug, Clone, Node)]
@@ -420,6 +421,9 @@ pub struct CustomType {
     pub js_docstring: String,
     #[as_ref]
     pub self_type: TypeNode,
+    pub type_name: Option<String>,
+    pub lift_expr: Option<String>,
+    pub lower_expr: Option<String>,
 }
 
 #[derive(Debug, Clone, Node, AsRef)]

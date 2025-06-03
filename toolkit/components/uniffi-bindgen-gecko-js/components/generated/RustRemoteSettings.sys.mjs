@@ -1433,30 +1433,34 @@ export class FfiConverterOptionalTypeAttachment extends FfiConverterArrayBuffer 
         return 1 + FfiConverterTypeAttachment.computeSize(value)
     }
 }
-// Export the FFIConverter object to make external types work.
 export class FfiConverterTypeRsJsonObject extends FfiConverter {
-    static lift(buf) {
-        return FfiConverterString.lift(buf);    
+    static lift(value) {
+        return FfiConverterString.lift(value);
     }
-    
-    static lower(buf) {
-        return FfiConverterString.lower(buf);
+
+    static lower(value) {
+        return FfiConverterString.lower(value);
     }
-    
+
     static write(dataStream, value) {
         FfiConverterString.write(dataStream, value);
-    } 
-    
-    static read(buf) {
-        return FfiConverterString.read(buf);
     }
-    
+
+    static read(dataStream) {
+        const builtinVal = FfiConverterString.read(dataStream);
+        return builtinVal;
+    }
+
     static computeSize(value) {
         return FfiConverterString.computeSize(value);
     }
-}
 
-// TODO: We should also allow JS to customize the type eventually.
+    static checkType(value) {
+        if (value === null || value === undefined) {
+            throw new TypeError("value is null or undefined");
+        }
+    }
+}
 /**
  * A parsed Remote Settings record. Records can contain arbitrary fields, so clients
  * are required to further extract expected values from the [fields] member.

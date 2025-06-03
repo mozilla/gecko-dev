@@ -904,6 +904,21 @@ return handleRustResult(
 }
 
 /**
+ * getCustomTypesDemo
+ */
+export async function getCustomTypesDemo() {
+   
+const result = await UniFFIScaffolding.callAsyncWrapper(
+    133, // uniffi_uniffi_bindings_tests_fn_func_get_custom_types_demo
+)
+return handleRustResult(
+    result,
+    FfiConverterTypeCustomTypesDemo.lift.bind(FfiConverterTypeCustomTypesDemo),
+    null,
+)
+}
+
+/**
  * invokeTestCallbackInterfaceMethod
  */
 export function invokeTestCallbackInterfaceMethod(
@@ -911,7 +926,7 @@ export function invokeTestCallbackInterfaceMethod(
    
 FfiConverterTypeTestCallbackInterface.checkType(cbi);
 const result = UniFFIScaffolding.callSync(
-    133, // uniffi_uniffi_bindings_tests_fn_func_invoke_test_callback_interface_method
+    134, // uniffi_uniffi_bindings_tests_fn_func_invoke_test_callback_interface_method
     FfiConverterTypeTestCallbackInterface.lower(cbi),
 )
 return handleRustResult(
@@ -929,7 +944,7 @@ export function roundtripBool(
    
 FfiConverterBoolean.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    134, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_bool
+    135, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_bool
     FfiConverterBoolean.lower(a),
 )
 return handleRustResult(
@@ -947,7 +962,7 @@ export function roundtripComplexCompound(
    
 FfiConverterOptionalSequenceMapStringUInt32.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    135, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_complex_compound
+    136, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_complex_compound
     FfiConverterOptionalSequenceMapStringUInt32.lower(a),
 )
 return handleRustResult(
@@ -965,7 +980,7 @@ export function roundtripComplexEnum(
    
 FfiConverterTypeComplexEnum.checkType(en);
 const result = UniFFIScaffolding.callSync(
-    136, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_complex_enum
+    137, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_complex_enum
     FfiConverterTypeComplexEnum.lower(en),
 )
 return handleRustResult(
@@ -983,7 +998,7 @@ export function roundtripComplexRec(
    
 FfiConverterTypeComplexRec.checkType(rec);
 const result = UniFFIScaffolding.callSync(
-    137, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_complex_rec
+    138, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_complex_rec
     FfiConverterTypeComplexRec.lower(rec),
 )
 return handleRustResult(
@@ -1001,7 +1016,7 @@ export function roundtripCustomType(
    
 FfiConverterTypeHandle.checkType(handle);
 const result = UniFFIScaffolding.callSync(
-    138, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_custom_type
+    139, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_custom_type
     FfiConverterTypeHandle.lower(handle),
 )
 return handleRustResult(
@@ -1019,7 +1034,7 @@ export function roundtripEnumNoData(
    
 FfiConverterTypeEnumNoData.checkType(en);
 const result = UniFFIScaffolding.callSync(
-    139, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_enum_no_data
+    140, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_enum_no_data
     FfiConverterTypeEnumNoData.lower(en),
 )
 return handleRustResult(
@@ -1037,7 +1052,7 @@ export function roundtripEnumWithData(
    
 FfiConverterTypeEnumWithData.checkType(en);
 const result = UniFFIScaffolding.callSync(
-    140, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_enum_with_data
+    141, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_enum_with_data
     FfiConverterTypeEnumWithData.lower(en),
 )
 return handleRustResult(
@@ -1055,7 +1070,7 @@ export function roundtripF32(
    
 FfiConverterFloat32.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    141, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_f32
+    142, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_f32
     FfiConverterFloat32.lower(a),
 )
 return handleRustResult(
@@ -1073,7 +1088,7 @@ export function roundtripF64(
    
 FfiConverterFloat64.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    142, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_f64
+    143, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_f64
     FfiConverterFloat64.lower(a),
 )
 return handleRustResult(
@@ -1091,7 +1106,7 @@ export function roundtripHashMap(
    
 FfiConverterMapStringUInt32.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    143, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_hash_map
+    144, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_hash_map
     FfiConverterMapStringUInt32.lower(a),
 )
 return handleRustResult(
@@ -1109,7 +1124,7 @@ export function roundtripI16(
    
 FfiConverterInt16.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    144, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_i16
+    145, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_i16
     FfiConverterInt16.lower(a),
 )
 return handleRustResult(
@@ -1127,7 +1142,7 @@ export function roundtripI32(
    
 FfiConverterInt32.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    145, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_i32
+    146, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_i32
     FfiConverterInt32.lower(a),
 )
 return handleRustResult(
@@ -1145,7 +1160,7 @@ export function roundtripI64(
    
 FfiConverterInt64.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    146, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_i64
+    147, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_i64
     FfiConverterInt64.lower(a),
 )
 return handleRustResult(
@@ -1163,7 +1178,7 @@ export function roundtripI8(
    
 FfiConverterInt8.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    147, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_i8
+    148, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_i8
     FfiConverterInt8.lower(a),
 )
 return handleRustResult(
@@ -1181,7 +1196,7 @@ export function roundtripOption(
    
 FfiConverterOptionalUInt32.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    148, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_option
+    149, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_option
     FfiConverterOptionalUInt32.lower(a),
 )
 return handleRustResult(
@@ -1199,7 +1214,7 @@ export async function roundtripSimpleRec(
    
 FfiConverterTypeSimpleRec.checkType(rec);
 const result = await UniFFIScaffolding.callAsyncWrapper(
-    149, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_simple_rec
+    150, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_simple_rec
     FfiConverterTypeSimpleRec.lower(rec),
 )
 return handleRustResult(
@@ -1217,12 +1232,66 @@ export function roundtripString(
    
 FfiConverterString.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    150, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_string
+    151, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_string
     FfiConverterString.lower(a),
 )
 return handleRustResult(
     result,
     FfiConverterString.lift.bind(FfiConverterString),
+    null,
+)
+}
+
+/**
+ * roundtripTimeIntervalMs
+ */
+export async function roundtripTimeIntervalMs(
+    time) {
+   
+FfiConverterTypeTimeIntervalMs.checkType(time);
+const result = await UniFFIScaffolding.callAsyncWrapper(
+    152, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_ms
+    FfiConverterTypeTimeIntervalMs.lower(time),
+)
+return handleRustResult(
+    result,
+    FfiConverterTypeTimeIntervalMs.lift.bind(FfiConverterTypeTimeIntervalMs),
+    null,
+)
+}
+
+/**
+ * roundtripTimeIntervalSecDbl
+ */
+export async function roundtripTimeIntervalSecDbl(
+    time) {
+   
+FfiConverterTypeTimeIntervalSecDbl.checkType(time);
+const result = await UniFFIScaffolding.callAsyncWrapper(
+    153, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_sec_dbl
+    FfiConverterTypeTimeIntervalSecDbl.lower(time),
+)
+return handleRustResult(
+    result,
+    FfiConverterTypeTimeIntervalSecDbl.lift.bind(FfiConverterTypeTimeIntervalSecDbl),
+    null,
+)
+}
+
+/**
+ * roundtripTimeIntervalSecFlt
+ */
+export async function roundtripTimeIntervalSecFlt(
+    time) {
+   
+FfiConverterTypeTimeIntervalSecFlt.checkType(time);
+const result = await UniFFIScaffolding.callAsyncWrapper(
+    154, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_sec_flt
+    FfiConverterTypeTimeIntervalSecFlt.lower(time),
+)
+return handleRustResult(
+    result,
+    FfiConverterTypeTimeIntervalSecFlt.lift.bind(FfiConverterTypeTimeIntervalSecFlt),
     null,
 )
 }
@@ -1235,7 +1304,7 @@ export function roundtripU16(
    
 FfiConverterUInt16.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    151, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_u16
+    155, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_u16
     FfiConverterUInt16.lower(a),
 )
 return handleRustResult(
@@ -1253,7 +1322,7 @@ export function roundtripU32(
    
 FfiConverterUInt32.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    152, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_u32
+    156, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_u32
     FfiConverterUInt32.lower(a),
 )
 return handleRustResult(
@@ -1271,7 +1340,7 @@ export function roundtripU64(
    
 FfiConverterUInt64.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    153, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_u64
+    157, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_u64
     FfiConverterUInt64.lower(a),
 )
 return handleRustResult(
@@ -1289,12 +1358,30 @@ export function roundtripU8(
    
 FfiConverterUInt8.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    154, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_u8
+    158, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_u8
     FfiConverterUInt8.lower(a),
 )
 return handleRustResult(
     result,
     FfiConverterUInt8.lift.bind(FfiConverterUInt8),
+    null,
+)
+}
+
+/**
+ * roundtripUrl
+ */
+export async function roundtripUrl(
+    url) {
+   
+FfiConverterTypeUrl.checkType(url);
+const result = await UniFFIScaffolding.callAsyncWrapper(
+    159, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_url
+    FfiConverterTypeUrl.lower(url),
+)
+return handleRustResult(
+    result,
+    FfiConverterTypeUrl.lift.bind(FfiConverterTypeUrl),
     null,
 )
 }
@@ -1307,7 +1394,7 @@ export function roundtripVec(
    
 FfiConverterSequenceUInt32.checkType(a);
 const result = UniFFIScaffolding.callSync(
-    155, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_vec
+    160, // uniffi_uniffi_bindings_tests_fn_func_roundtrip_vec
     FfiConverterSequenceUInt32.lower(a),
 )
 return handleRustResult(
@@ -1345,7 +1432,7 @@ FfiConverterFloat32.checkType(i);
 FfiConverterFloat64.checkType(j);
 FfiConverterBoolean.checkType(negate);
 const result = UniFFIScaffolding.callSync(
-    156, // uniffi_uniffi_bindings_tests_fn_func_sum_with_many_types
+    161, // uniffi_uniffi_bindings_tests_fn_func_sum_with_many_types
     FfiConverterUInt8.lower(a),
     FfiConverterInt8.lower(b),
     FfiConverterUInt16.lower(c),
@@ -1373,7 +1460,7 @@ export function swapTestInterfaces(
    
 FfiConverterTypeTwoTestInterfaces.checkType(interfaces);
 const result = UniFFIScaffolding.callSync(
-    157, // uniffi_uniffi_bindings_tests_fn_func_swap_test_interfaces
+    162, // uniffi_uniffi_bindings_tests_fn_func_swap_test_interfaces
     FfiConverterTypeTwoTestInterfaces.lower(interfaces),
 )
 return handleRustResult(
@@ -1389,7 +1476,7 @@ return handleRustResult(
 export function testFunc() {
    
 const result = UniFFIScaffolding.callSync(
-    158, // uniffi_uniffi_bindings_tests_fn_func_test_func
+    163, // uniffi_uniffi_bindings_tests_fn_func_test_func
 )
 return handleRustResult(
     result,
@@ -2091,6 +2178,335 @@ export class FfiConverterTypeComplexRec extends FfiConverterArrayBuffer {
         }
     }
 }
+export class FfiConverterTypeUrl extends FfiConverter {
+    static lift(value) {
+        const builtinVal = FfiConverterString.lift(value);
+        return new URL(builtinVal);
+    }
+
+    static lower(value) {
+        const builtinVal = value.toString();
+        return FfiConverterString.lower(builtinVal);
+    }
+
+    static write(dataStream, value) {
+        const builtinVal = value.toString();
+        FfiConverterString.write(dataStream, builtinVal);
+    }
+
+    static read(dataStream) {
+        const builtinVal = FfiConverterString.read(dataStream);
+        return new URL(builtinVal);
+    }
+
+    static computeSize(value) {
+        const builtinVal = value.toString();
+        return FfiConverterString.computeSize(builtinVal);
+    }
+
+    static checkType(value) {
+        if (value === null || value === undefined) {
+            throw new TypeError("value is null or undefined");
+        }
+        if (value?.constructor?.name !== "URL") {
+            throw new TypeError(`${value} is not a URL`);
+        }
+    }
+}
+export class FfiConverterTypeHandle extends FfiConverter {
+    static lift(value) {
+        return FfiConverterUInt64.lift(value);
+    }
+
+    static lower(value) {
+        return FfiConverterUInt64.lower(value);
+    }
+
+    static write(dataStream, value) {
+        FfiConverterUInt64.write(dataStream, value);
+    }
+
+    static read(dataStream) {
+        const builtinVal = FfiConverterUInt64.read(dataStream);
+        return builtinVal;
+    }
+
+    static computeSize(value) {
+        return FfiConverterUInt64.computeSize(value);
+    }
+
+    static checkType(value) {
+        if (value === null || value === undefined) {
+            throw new TypeError("value is null or undefined");
+        }
+    }
+}
+export class FfiConverterTypeTimeIntervalMs extends FfiConverter {
+    static lift(value) {
+        const builtinVal = FfiConverterInt64.lift(value);
+        return new Date(builtinVal);
+    }
+
+    static lower(value) {
+        const builtinVal = value.getTime();
+        return FfiConverterInt64.lower(builtinVal);
+    }
+
+    static write(dataStream, value) {
+        const builtinVal = value.getTime();
+        FfiConverterInt64.write(dataStream, builtinVal);
+    }
+
+    static read(dataStream) {
+        const builtinVal = FfiConverterInt64.read(dataStream);
+        return new Date(builtinVal);
+    }
+
+    static computeSize(value) {
+        const builtinVal = value.getTime();
+        return FfiConverterInt64.computeSize(builtinVal);
+    }
+
+    static checkType(value) {
+        if (value === null || value === undefined) {
+            throw new TypeError("value is null or undefined");
+        }
+        if (value?.constructor?.name !== "Date") {
+            throw new TypeError(`${value} is not a Date`);
+        }
+    }
+}
+export class FfiConverterTypeTimeIntervalSecDbl extends FfiConverter {
+    static lift(value) {
+        const builtinVal = FfiConverterFloat64.lift(value);
+        return new Date(builtinVal * 1000);
+    }
+
+    static lower(value) {
+        const builtinVal = value.getTime() / 1000;
+        return FfiConverterFloat64.lower(builtinVal);
+    }
+
+    static write(dataStream, value) {
+        const builtinVal = value.getTime() / 1000;
+        FfiConverterFloat64.write(dataStream, builtinVal);
+    }
+
+    static read(dataStream) {
+        const builtinVal = FfiConverterFloat64.read(dataStream);
+        return new Date(builtinVal * 1000);
+    }
+
+    static computeSize(value) {
+        const builtinVal = value.getTime() / 1000;
+        return FfiConverterFloat64.computeSize(builtinVal);
+    }
+
+    static checkType(value) {
+        if (value === null || value === undefined) {
+            throw new TypeError("value is null or undefined");
+        }
+        if (value?.constructor?.name !== "Date") {
+            throw new TypeError(`${value} is not a Date`);
+        }
+    }
+}
+export class FfiConverterTypeTimeIntervalSecFlt extends FfiConverter {
+    static lift(value) {
+        return FfiConverterFloat32.lift(value);
+    }
+
+    static lower(value) {
+        return FfiConverterFloat32.lower(value);
+    }
+
+    static write(dataStream, value) {
+        FfiConverterFloat32.write(dataStream, value);
+    }
+
+    static read(dataStream) {
+        const builtinVal = FfiConverterFloat32.read(dataStream);
+        return builtinVal;
+    }
+
+    static computeSize(value) {
+        return FfiConverterFloat32.computeSize(value);
+    }
+
+    static checkType(value) {
+        if (value === null || value === undefined) {
+            throw new TypeError("value is null or undefined");
+        }
+    }
+}
+/**
+ * CustomTypesDemo
+ */
+export class CustomTypesDemo {
+    constructor(
+        {
+            url, 
+            handle, 
+            timeIntervalMs, 
+            timeIntervalSecDbl, 
+            timeIntervalSecFlt
+        } = {
+            url: undefined, 
+            handle: undefined, 
+            timeIntervalMs: undefined, 
+            timeIntervalSecDbl: undefined, 
+            timeIntervalSecFlt: undefined
+        }
+    ) {
+        try {
+            FfiConverterTypeUrl.checkType(url)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("url");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeHandle.checkType(handle)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("handle");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeTimeIntervalMs.checkType(timeIntervalMs)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeIntervalMs");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeTimeIntervalSecDbl.checkType(timeIntervalSecDbl)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeIntervalSecDbl");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeTimeIntervalSecFlt.checkType(timeIntervalSecFlt)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("timeIntervalSecFlt");
+            }
+            throw e;
+        }
+        /**
+         * url
+         */
+        this.url = url;
+        /**
+         * handle
+         */
+        this.handle = handle;
+        /**
+         * timeIntervalMs
+         */
+        this.timeIntervalMs = timeIntervalMs;
+        /**
+         * timeIntervalSecDbl
+         */
+        this.timeIntervalSecDbl = timeIntervalSecDbl;
+        /**
+         * timeIntervalSecFlt
+         */
+        this.timeIntervalSecFlt = timeIntervalSecFlt;
+    }
+
+    equals(other) {
+        return (
+            this.url == other.url
+            && this.handle == other.handle
+            && this.timeIntervalMs == other.timeIntervalMs
+            && this.timeIntervalSecDbl == other.timeIntervalSecDbl
+            && this.timeIntervalSecFlt == other.timeIntervalSecFlt
+        )
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeCustomTypesDemo extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        return new CustomTypesDemo({
+            url: FfiConverterTypeUrl.read(dataStream),
+            handle: FfiConverterTypeHandle.read(dataStream),
+            timeIntervalMs: FfiConverterTypeTimeIntervalMs.read(dataStream),
+            timeIntervalSecDbl: FfiConverterTypeTimeIntervalSecDbl.read(dataStream),
+            timeIntervalSecFlt: FfiConverterTypeTimeIntervalSecFlt.read(dataStream),
+        });
+    }
+    static write(dataStream, value) {
+        FfiConverterTypeUrl.write(dataStream, value.url);
+        FfiConverterTypeHandle.write(dataStream, value.handle);
+        FfiConverterTypeTimeIntervalMs.write(dataStream, value.timeIntervalMs);
+        FfiConverterTypeTimeIntervalSecDbl.write(dataStream, value.timeIntervalSecDbl);
+        FfiConverterTypeTimeIntervalSecFlt.write(dataStream, value.timeIntervalSecFlt);
+    }
+
+    static computeSize(value) {
+        let totalSize = 0;
+        totalSize += FfiConverterTypeUrl.computeSize(value.url);
+        totalSize += FfiConverterTypeHandle.computeSize(value.handle);
+        totalSize += FfiConverterTypeTimeIntervalMs.computeSize(value.timeIntervalMs);
+        totalSize += FfiConverterTypeTimeIntervalSecDbl.computeSize(value.timeIntervalSecDbl);
+        totalSize += FfiConverterTypeTimeIntervalSecFlt.computeSize(value.timeIntervalSecFlt);
+        return totalSize
+    }
+
+    static checkType(value) {
+        super.checkType(value);
+        if (!(value instanceof CustomTypesDemo)) {
+            throw new UniFFITypeError(`Expected 'CustomTypesDemo', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterTypeUrl.checkType(value.url);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".url");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeHandle.checkType(value.handle);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".handle");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeTimeIntervalMs.checkType(value.timeIntervalMs);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeIntervalMs");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeTimeIntervalSecDbl.checkType(value.timeIntervalSecDbl);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeIntervalSecDbl");
+            }
+            throw e;
+        }
+        try {
+            FfiConverterTypeTimeIntervalSecFlt.checkType(value.timeIntervalSecFlt);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".timeIntervalSecFlt");
+            }
+            throw e;
+        }
+    }
+}
 /**
  * RecWithDefault
  */
@@ -2177,7 +2593,7 @@ export class TestInterface {
        
         FfiConverterUInt32.checkType(value);
         const result = UniFFIScaffolding.callSync(
-            159, // uniffi_uniffi_bindings_tests_fn_constructor_testinterface_new
+            164, // uniffi_uniffi_bindings_tests_fn_constructor_testinterface_new
             FfiConverterUInt32.lower(value),
         )
         return handleRustResult(
@@ -2193,7 +2609,7 @@ export class TestInterface {
     getValue() {
        
         const result = UniFFIScaffolding.callSync(
-            160, // uniffi_uniffi_bindings_tests_fn_method_testinterface_get_value
+            165, // uniffi_uniffi_bindings_tests_fn_method_testinterface_get_value
             FfiConverterTypeTestInterface.lower(this),
         )
         return handleRustResult(
@@ -2211,7 +2627,7 @@ export class TestInterface {
     refCount() {
        
         const result = UniFFIScaffolding.callSync(
-            161, // uniffi_uniffi_bindings_tests_fn_method_testinterface_ref_count
+            166, // uniffi_uniffi_bindings_tests_fn_method_testinterface_ref_count
             FfiConverterTypeTestInterface.lower(this),
         )
         return handleRustResult(
@@ -2938,30 +3354,6 @@ export class FfiConverterTypeTestFlatError extends FfiConverterArrayBuffer {
 
     static errorClass = TestFlatError;
 }
-// Export the FFIConverter object to make external types work.
-export class FfiConverterTypeHandle extends FfiConverter {
-    static lift(buf) {
-        return FfiConverterUInt64.lift(buf);    
-    }
-    
-    static lower(buf) {
-        return FfiConverterUInt64.lower(buf);
-    }
-    
-    static write(dataStream, value) {
-        FfiConverterUInt64.write(dataStream, value);
-    } 
-    
-    static read(buf) {
-        return FfiConverterUInt64.read(buf);
-    }
-    
-    static computeSize(value) {
-        return FfiConverterUInt64.computeSize(value);
-    }
-}
-
-// TODO: We should also allow JS to customize the type eventually.
 /**
  * AsyncInterface
  */
@@ -2984,7 +3376,7 @@ export class AsyncInterface {
        
         FfiConverterString.checkType(name);
         const result = UniFFIScaffolding.callSync(
-            162, // uniffi_uniffi_bindings_tests_fn_constructor_asyncinterface_new
+            167, // uniffi_uniffi_bindings_tests_fn_constructor_asyncinterface_new
             FfiConverterString.lower(name),
         )
         return handleRustResult(
@@ -3000,7 +3392,7 @@ export class AsyncInterface {
     async name() {
        
         const result = await UniFFIScaffolding.callAsync(
-            163, // uniffi_uniffi_bindings_tests_fn_method_asyncinterface_name
+            168, // uniffi_uniffi_bindings_tests_fn_method_asyncinterface_name
             FfiConverterTypeAsyncInterface.lower(this),
         )
         return handleRustResult(
@@ -3060,7 +3452,7 @@ export class ComplexMethods {
     static init() {
        
         const result = UniFFIScaffolding.callSync(
-            164, // uniffi_uniffi_bindings_tests_fn_constructor_complexmethods_new
+            169, // uniffi_uniffi_bindings_tests_fn_constructor_complexmethods_new
         )
         return handleRustResult(
             result,
@@ -3077,7 +3469,7 @@ export class ComplexMethods {
        
         FfiConverterString.checkType(arg);
         const result = UniFFIScaffolding.callSync(
-            165, // uniffi_uniffi_bindings_tests_fn_method_complexmethods_method_with_default
+            170, // uniffi_uniffi_bindings_tests_fn_method_complexmethods_method_with_default
             FfiConverterTypeComplexMethods.lower(this),
             FfiConverterString.lower(arg),
         )
@@ -3096,7 +3488,7 @@ export class ComplexMethods {
        
         FfiConverterString.checkType(theArgument);
         const result = UniFFIScaffolding.callSync(
-            166, // uniffi_uniffi_bindings_tests_fn_method_complexmethods_method_with_multi_word_arg
+            171, // uniffi_uniffi_bindings_tests_fn_method_complexmethods_method_with_multi_word_arg
             FfiConverterTypeComplexMethods.lower(this),
             FfiConverterString.lower(theArgument),
         )

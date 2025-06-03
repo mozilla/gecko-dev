@@ -7048,6 +7048,7 @@ dependencies = [
  "async-trait",
  "thiserror 1.999.999",
  "uniffi",
+ "url",
 ]
 
 [[package]]

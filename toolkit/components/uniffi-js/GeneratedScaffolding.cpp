@@ -940,6 +940,7 @@ extern "C" {
   void uniffi_uniffi_bindings_tests_fn_func_func_with_error(uint32_t, RustCallStatus*);
   void uniffi_uniffi_bindings_tests_fn_func_func_with_flat_error(uint32_t, RustCallStatus*);
   RustBuffer uniffi_uniffi_bindings_tests_fn_func_func_with_multi_word_arg(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_bindings_tests_fn_func_get_custom_types_demo(RustCallStatus*);
   uint32_t uniffi_uniffi_bindings_tests_fn_func_invoke_test_callback_interface_method(uint64_t, RustCallStatus*);
   int8_t uniffi_uniffi_bindings_tests_fn_func_roundtrip_bool(int8_t, RustCallStatus*);
   RustBuffer uniffi_uniffi_bindings_tests_fn_func_roundtrip_complex_compound(RustBuffer, RustCallStatus*);
@@ -958,10 +959,14 @@ extern "C" {
   RustBuffer uniffi_uniffi_bindings_tests_fn_func_roundtrip_option(RustBuffer, RustCallStatus*);
   RustBuffer uniffi_uniffi_bindings_tests_fn_func_roundtrip_simple_rec(RustBuffer, RustCallStatus*);
   RustBuffer uniffi_uniffi_bindings_tests_fn_func_roundtrip_string(RustBuffer, RustCallStatus*);
+  int64_t uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_ms(int64_t, RustCallStatus*);
+  double uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_sec_dbl(double, RustCallStatus*);
+  float uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_sec_flt(float, RustCallStatus*);
   uint16_t uniffi_uniffi_bindings_tests_fn_func_roundtrip_u16(uint16_t, RustCallStatus*);
   uint32_t uniffi_uniffi_bindings_tests_fn_func_roundtrip_u32(uint32_t, RustCallStatus*);
   uint64_t uniffi_uniffi_bindings_tests_fn_func_roundtrip_u64(uint64_t, RustCallStatus*);
   uint8_t uniffi_uniffi_bindings_tests_fn_func_roundtrip_u8(uint8_t, RustCallStatus*);
+  RustBuffer uniffi_uniffi_bindings_tests_fn_func_roundtrip_url(RustBuffer, RustCallStatus*);
   RustBuffer uniffi_uniffi_bindings_tests_fn_func_roundtrip_vec(RustBuffer, RustCallStatus*);
   double uniffi_uniffi_bindings_tests_fn_func_sum_with_many_types(uint8_t, int8_t, uint16_t, int16_t, uint32_t, int32_t, uint64_t, int64_t, float, double, int8_t, RustCallStatus*);
   RustBuffer uniffi_uniffi_bindings_tests_fn_func_swap_test_interfaces(RustBuffer, RustCallStatus*);
@@ -997,6 +1002,7 @@ extern "C" {
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_func_with_error();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_func_with_flat_error();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_func_with_multi_word_arg();
+  uint16_t uniffi_uniffi_bindings_tests_checksum_func_get_custom_types_demo();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_invoke_test_callback_interface_method();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_bool();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_complex_compound();
@@ -1015,10 +1021,14 @@ extern "C" {
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_option();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_simple_rec();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_string();
+  uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_time_interval_ms();
+  uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_time_interval_sec_dbl();
+  uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_time_interval_sec_flt();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_u16();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_u32();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_u64();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_u8();
+  uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_url();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_roundtrip_vec();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_sum_with_many_types();
   uint16_t uniffi_uniffi_bindings_tests_checksum_func_swap_test_interfaces();
@@ -7037,6 +7047,33 @@ public:
     );
   }
 };
+class ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncGetCustomTypesDemo : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueRustBuffer mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueRustBuffer::FromRust(
+      uniffi_uniffi_bindings_tests_fn_func_get_custom_types_demo(
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
 class ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncInvokeTestCallbackInterfaceMethod : public UniffiSyncCallHandler {
 private:
   // LowerRustArgs stores the resulting arguments in these fields
@@ -7631,6 +7668,105 @@ public:
     );
   }
 };
+class ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripTimeIntervalMs : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueInt<int64_t> mTime{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueInt<int64_t> mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mTime.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueInt<int64_t>::FromRust(
+      uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_ms(
+        mTime.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripTimeIntervalSecDbl : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueFloat<double> mTime{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueFloat<double> mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mTime.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueFloat<double>::FromRust(
+      uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_sec_dbl(
+        mTime.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripTimeIntervalSecFlt : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueFloat<float> mTime{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueFloat<float> mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mTime.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueFloat<float>::FromRust(
+      uniffi_uniffi_bindings_tests_fn_func_roundtrip_time_interval_sec_flt(
+        mTime.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
 class ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU16 : public UniffiSyncCallHandler {
 private:
   // LowerRustArgs stores the resulting arguments in these fields
@@ -7750,6 +7886,39 @@ public:
     mUniffiReturnValue = FfiValueInt<uint8_t>::FromRust(
       uniffi_uniffi_bindings_tests_fn_func_roundtrip_u8(
         mA.IntoRust(),
+        aOutStatus
+      )
+    );
+  }
+
+  virtual void LiftSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::OwningUniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+    mUniffiReturnValue.Lift(
+      aCx,
+      &aDest.Construct(),
+      aError
+    );
+  }
+};
+class ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripUrl : public UniffiSyncCallHandler {
+private:
+  // LowerRustArgs stores the resulting arguments in these fields
+  FfiValueRustBuffer mUrl{};
+
+  // MakeRustCall stores the result of the call in these fields
+  FfiValueRustBuffer mUniffiReturnValue{};
+
+public:
+  void LowerRustArgs(const dom::Sequence<dom::OwningUniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    mUrl.Lower(aArgs[0], aError);
+    if (aError.Failed()) {
+      return;
+    }
+  }
+
+  void MakeRustCall(RustCallStatus* aOutStatus) override {
+    mUniffiReturnValue = FfiValueRustBuffer::FromRust(
+      uniffi_uniffi_bindings_tests_fn_func_roundtrip_url(
+        mUrl.IntoRust(),
         aOutStatus
       )
     );
@@ -8704,114 +8873,129 @@ UniquePtr<UniffiSyncCallHandler> GetSyncCallHandler(uint64_t aId) {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncFuncWithMultiWordArg>();
     }
     case 133: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncInvokeTestCallbackInterfaceMethod>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncGetCustomTypesDemo>();
     }
     case 134: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripBool>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncInvokeTestCallbackInterfaceMethod>();
     }
     case 135: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripComplexCompound>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripBool>();
     }
     case 136: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripComplexEnum>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripComplexCompound>();
     }
     case 137: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripComplexRec>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripComplexEnum>();
     }
     case 138: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripCustomType>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripComplexRec>();
     }
     case 139: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripEnumNoData>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripCustomType>();
     }
     case 140: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripEnumWithData>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripEnumNoData>();
     }
     case 141: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripF32>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripEnumWithData>();
     }
     case 142: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripF64>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripF32>();
     }
     case 143: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripHashMap>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripF64>();
     }
     case 144: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripI16>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripHashMap>();
     }
     case 145: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripI32>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripI16>();
     }
     case 146: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripI64>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripI32>();
     }
     case 147: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripI8>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripI64>();
     }
     case 148: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripOption>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripI8>();
     }
     case 149: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripSimpleRec>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripOption>();
     }
     case 150: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripString>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripSimpleRec>();
     }
     case 151: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU16>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripString>();
     }
     case 152: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU32>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripTimeIntervalMs>();
     }
     case 153: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU64>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripTimeIntervalSecDbl>();
     }
     case 154: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU8>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripTimeIntervalSecFlt>();
     }
     case 155: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripVec>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU16>();
     }
     case 156: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncSumWithManyTypes>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU32>();
     }
     case 157: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncSwapTestInterfaces>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU64>();
     }
     case 158: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncTestFunc>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripU8>();
     }
     case 159: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnConstructorTestinterfaceNew>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripUrl>();
     }
     case 160: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodTestinterfaceGetValue>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncRoundtripVec>();
     }
     case 161: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodTestinterfaceRefCount>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncSumWithManyTypes>();
     }
     case 162: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnConstructorAsyncinterfaceNew>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncSwapTestInterfaces>();
+    }
+    case 163: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncTestFunc>();
     }
     case 164: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnConstructorComplexmethodsNew>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnConstructorTestinterfaceNew>();
     }
     case 165: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodComplexmethodsMethodWithDefault>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodTestinterfaceGetValue>();
     }
     case 166: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodComplexmethodsMethodWithMultiWordArg>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodTestinterfaceRefCount>();
     }
     case 167: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsExternalTypesFnFuncRoundtripExtCustomType>();
-    }
-    case 168: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsExternalTypesFnFuncRoundtripExtEnum>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnConstructorAsyncinterfaceNew>();
     }
     case 169: {
-      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsExternalTypesFnFuncRoundtripExtInterface>();
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnConstructorComplexmethodsNew>();
     }
     case 170: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodComplexmethodsMethodWithDefault>();
+    }
+    case 171: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodComplexmethodsMethodWithMultiWordArg>();
+    }
+    case 172: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsExternalTypesFnFuncRoundtripExtCustomType>();
+    }
+    case 173: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsExternalTypesFnFuncRoundtripExtEnum>();
+    }
+    case 174: {
+      return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsExternalTypesFnFuncRoundtripExtInterface>();
+    }
+    case 175: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsExternalTypesFnFuncRoundtripExtRecord>();
     }
 #endif /* MOZ_UNIFFI_FIXTURES */
@@ -8877,7 +9061,7 @@ UniquePtr<UniffiAsyncCallHandler> GetAsyncCallHandler(uint64_t aId) {
     case 127: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnFuncAsyncThrowError>();
     }
-    case 163: {
+    case 168: {
       return MakeUnique<ScaffoldingCallHandlerUniffiUniffiBindingsTestsFnMethodAsyncinterfaceName>();
     }
 #endif /* MOZ_UNIFFI_FIXTURES */

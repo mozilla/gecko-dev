@@ -4,7 +4,7 @@
 
 use super::*;
 use crate::Config;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub fn pass(mut config_map: HashMap<String, Config>) -> impl FnMut(&mut Module) -> Result<()> {
     move |module: &mut Module| {
@@ -24,6 +24,32 @@ pub fn pass(mut config_map: HashMap<String, Config>) -> impl FnMut(&mut Module) 
             canonical_name: "String".to_string(),
             ..TypeNode::default()
         };
+
+        // Collect all imports first, then process custom types
+        let config = module.config.clone();
+        let mut all_imports = HashSet::new();
+
+        // Process custom types and collect imports
+        module.try_visit_mut(|custom: &mut CustomType| {
+            if let Some(custom_config) = config.custom_types.get(&custom.name) {
+                custom.type_name = custom_config.type_name.clone();
+                custom.lift_expr = Some(custom_config.lift.clone());
+                custom.lower_expr = Some(custom_config.lower.clone());
+
+                // Pre-render expressions with "builtinVal" identifier
+                custom.lift_expr = Some(custom_config.lift.replace("{}", "builtinVal"));
+                custom.lower_expr = Some(custom_config.lower.replace("{}", "value"));
+
+                // Collect imports at module level instead of per-type
+                all_imports.extend(custom_config.imports.iter().cloned());
+            }
+            Ok(())
+        })?;
+
+        let mut imports_vec: Vec<String> = all_imports.into_iter().collect();
+        imports_vec.sort(); // For deterministic output
+        module.imports = imports_vec;
+
         Ok(())
     }
 }

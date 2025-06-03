@@ -885,30 +885,34 @@ export class FfiConverterTypeRemoteCommand extends FfiConverterArrayBuffer {
       }
     }
 }
-// Export the FFIConverter object to make external types work.
 export class FfiConverterTypeTimestamp extends FfiConverter {
-    static lift(buf) {
-        return FfiConverterInt64.lift(buf);    
+    static lift(value) {
+        return FfiConverterInt64.lift(value);
     }
-    
-    static lower(buf) {
-        return FfiConverterInt64.lower(buf);
+
+    static lower(value) {
+        return FfiConverterInt64.lower(value);
     }
-    
+
     static write(dataStream, value) {
         FfiConverterInt64.write(dataStream, value);
-    } 
-    
-    static read(buf) {
-        return FfiConverterInt64.read(buf);
     }
-    
+
+    static read(dataStream) {
+        const builtinVal = FfiConverterInt64.read(dataStream);
+        return builtinVal;
+    }
+
     static computeSize(value) {
         return FfiConverterInt64.computeSize(value);
     }
-}
 
-// TODO: We should also allow JS to customize the type eventually.
+    static checkType(value) {
+        if (value === null || value === undefined) {
+            throw new TypeError("value is null or undefined");
+        }
+    }
+}
 // Export the FFIConverter object to make external types work.
 export class FfiConverterOptionalTypeTimestamp extends FfiConverterArrayBuffer {
     static checkType(value) {
@@ -1206,30 +1210,34 @@ export class FfiConverterTypeTabsApiError extends FfiConverterArrayBuffer {
 
     static errorClass = TabsApiError;
 }
-// Export the FFIConverter object to make external types work.
 export class FfiConverterTypeTabsGuid extends FfiConverter {
-    static lift(buf) {
-        return FfiConverterString.lift(buf);    
+    static lift(value) {
+        return FfiConverterString.lift(value);
     }
-    
-    static lower(buf) {
-        return FfiConverterString.lower(buf);
+
+    static lower(value) {
+        return FfiConverterString.lower(value);
     }
-    
+
     static write(dataStream, value) {
         FfiConverterString.write(dataStream, value);
-    } 
-    
-    static read(buf) {
-        return FfiConverterString.read(buf);
     }
-    
+
+    static read(dataStream) {
+        const builtinVal = FfiConverterString.read(dataStream);
+        return builtinVal;
+    }
+
     static computeSize(value) {
         return FfiConverterString.computeSize(value);
     }
-}
 
-// TODO: We should also allow JS to customize the type eventually.
+    static checkType(value) {
+        if (value === null || value === undefined) {
+            throw new TypeError("value is null or undefined");
+        }
+    }
+}
 // Export the FFIConverter object to make external types work.
 export class FfiConverterSequenceTypePendingCommand extends FfiConverterArrayBuffer {
     static read(dataStream) {

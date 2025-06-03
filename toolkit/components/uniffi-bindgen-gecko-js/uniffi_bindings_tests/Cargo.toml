@@ -10,6 +10,7 @@ crate-type = ["lib", "staticlib"]
 async-trait = "0.1"
 thiserror = "1"
 uniffi = { workspace = true, features = ["ffi-trace"] }
+url = "2.5"
 
 [features]
 default = ["simple_fns", "primitive_types", "complex_fns", "compound_types", "records", "enums",
