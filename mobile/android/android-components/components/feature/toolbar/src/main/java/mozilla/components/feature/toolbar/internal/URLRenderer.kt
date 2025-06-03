@@ -76,9 +76,8 @@ internal class URLRenderer(
         toolbar.url = when (configuration.renderStyle) {
             // Display only the eTLD+1 (direct subdomain of the public suffix), uncolored
             ToolbarFeature.RenderStyle.RegistrableDomain -> {
-                getRegistrableDomainOrHostSpan(url, configuration.publicSuffixList)?.let { (start, end) ->
-                    url.substring(start, end)
-                } ?: url
+                val host = url.toUri().host?.ifEmpty { null }
+                host?.let { getRegistrableDomain(host, configuration) } ?: url
             }
             // Display the registrableDomain with color and URL with another color
             ToolbarFeature.RenderStyle.ColoredUrl -> SpannableStringBuilder(url).apply {
@@ -97,6 +96,9 @@ internal class URLRenderer(
         }
     }
 }
+
+private suspend fun getRegistrableDomain(host: String, configuration: ToolbarFeature.UrlRenderConfiguration) =
+    configuration.publicSuffixList.getPublicSuffixPlusOne(host).await()
 
 /**
  * Determines the position span of the registrable domain within a host string.
