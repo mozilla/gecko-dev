@@ -74,7 +74,7 @@ ENV FLANK_VERSION 23.10.1
 RUN curl -L https://github.com/Flank/flank/releases/download/v${FLANK_VERSION}/flank.jar --output ${FLANK_DOWNLOAD} \
     && chmod +x ${FLANK_DOWNLOAD}
 
-# Used in parse-ui-test-fromfile.py
+# Used in taskcluster/scripts/tests/parse-junit-results.py for parsing and displaying JUnit XML results
 RUN pip3 install junitparser==3.2.0 beautifultable==1.1.0
 
 # Used for env var ingest in testrail.py
