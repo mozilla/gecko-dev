@@ -2160,19 +2160,17 @@ static bool GetNonexistentProperty(
     JSContext* cx, typename MaybeRooted<jsid, allowGC>::HandleType id,
     IsNameLookup nameLookup,
     typename MaybeRooted<Value, allowGC>::MutableHandleType vp) {
-  if constexpr (allowGC == AllowGC::CanGC) {
-    // If we are doing a name lookup, this is a ReferenceError.
-    if (nameLookup) {
+  // If we are doing a name lookup, this is a ReferenceError.
+  if (nameLookup) {
+    if constexpr (allowGC == AllowGC::CanGC) {
       ReportIsNotDefined(cx, id);
-      return false;
     }
-
-    // Otherwise, just return |undefined|.
-    vp.setUndefined();
-    return true;
-  } else {
     return false;
   }
+
+  // Otherwise, just return |undefined|.
+  vp.setUndefined();
+  return true;
 }
 
 template <AllowGC allowGC>
