@@ -106,7 +106,6 @@ import org.mozilla.fenix.ext.updateMicrosurveyPromptForConfigurationChange
 import org.mozilla.fenix.home.bookmarks.BookmarksFeature
 import org.mozilla.fenix.home.bookmarks.controller.DefaultBookmarksController
 import org.mozilla.fenix.home.ext.showWallpaperOnboardingDialog
-import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.pocket.controller.DefaultPocketStoriesController
 import org.mozilla.fenix.home.privatebrowsing.controller.DefaultPrivateBrowsingController
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabFeature
@@ -296,27 +295,16 @@ class HomeFragment : Fragment() {
         components.appStore.dispatch(AppAction.ModeChange(browsingModeManager.mode))
 
         lifecycleScope.launch(IO) {
-            // Show Merino content recommendations.
-            val showContentRecommendations = requireContext().settings().showContentRecommendations
-            // Show Pocket recommended stories.
-            val showPocketRecommendationsFeature =
-                requireContext().settings().showPocketRecommendationsFeature
-            // Show sponsored stories if recommended stories are enabled.
-            val showSponsoredStories = requireContext().settings().showPocketSponsoredStories &&
-                (showContentRecommendations || showPocketRecommendationsFeature)
+            val settings = requireContext().settings()
+            val showStories = settings.showPocketRecommendationsFeature
+            val showSponsoredStories = showStories && settings.showPocketSponsoredStories
 
-            if (showContentRecommendations) {
+            if (showStories) {
                 components.appStore.dispatch(
                     ContentRecommendationsAction.ContentRecommendationsFetched(
                         recommendations = components.core.pocketStoriesService.getContentRecommendations(),
                     ),
                 )
-            } else if (showPocketRecommendationsFeature) {
-                val categories = components.core.pocketStoriesService.getStories()
-                    .groupBy { story -> story.category }
-                    .map { (category, stories) -> PocketRecommendedStoriesCategory(category, stories) }
-
-                components.appStore.dispatch(ContentRecommendationsAction.PocketStoriesCategoriesChange(categories))
             } else {
                 components.appStore.dispatch(ContentRecommendationsAction.PocketStoriesClean)
             }
@@ -326,14 +314,14 @@ class HomeFragment : Fragment() {
                     components.appStore.dispatch(
                         ContentRecommendationsAction.SponsoredContentsChange(
                             sponsoredContents = components.core.pocketStoriesService.getSponsoredContents(),
-                            showContentRecommendations = showContentRecommendations,
+                            showContentRecommendations = true,
                         ),
                     )
                 } else {
                     components.appStore.dispatch(
                         ContentRecommendationsAction.PocketSponsoredStoriesChange(
                             sponsoredStories = components.core.pocketStoriesService.getSponsoredStories(),
-                            showContentRecommendations = showContentRecommendations,
+                            showContentRecommendations = true,
                         ),
                     )
                 }

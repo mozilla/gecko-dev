@@ -542,7 +542,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         // are read possibly needing to load them on the current thread. Move that to a background thread.
         lifecycleScope.launch(IO) {
             if (settings().showPocketRecommendationsFeature) {
-                components.core.pocketStoriesService.startPeriodicStoriesRefresh()
+                components.core.pocketStoriesService.startPeriodicContentRecommendationsRefresh()
             }
 
             if (settings().marsAPIEnabled && !settings().hasPocketSponsoredStoriesProfileMigrated) {
@@ -560,10 +560,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                         components.core.pocketStoriesService.refreshSponsoredStories()
                     }
                 }
-            }
-
-            if (settings().showContentRecommendations) {
-                components.core.pocketStoriesService.startPeriodicContentRecommendationsRefresh()
             }
         }
 
@@ -804,7 +800,6 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         )
 
         components.core.contileTopSitesUpdater.stopPeriodicWork()
-        components.core.pocketStoriesService.stopPeriodicStoriesRefresh()
         components.core.pocketStoriesService.stopPeriodicSponsoredStoriesRefresh()
         components.core.pocketStoriesService.stopPeriodicContentRecommendationsRefresh()
         components.core.pocketStoriesService.stopPeriodicSponsoredContentsRefresh()
