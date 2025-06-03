@@ -47,34 +47,6 @@ void* IonEntry::canonicalNativeAddrFor(void* ptr) const {
   return (void*)(((uint8_t*)nativeStartAddr()) + region.nativeOffset());
 }
 
-bool IonEntry::callStackAtAddr(void* ptr, BytecodeLocationVector& results,
-                               uint32_t* depth) const {
-  uint32_t ptrOffset;
-  JitcodeRegionEntry region = RegionAtAddr(*this, ptr, &ptrOffset);
-  *depth = region.scriptDepth();
-
-  JitcodeRegionEntry::ScriptPcIterator locationIter = region.scriptPcIterator();
-  MOZ_ASSERT(locationIter.hasMore());
-  bool first = true;
-  while (locationIter.hasMore()) {
-    uint32_t scriptIdx, pcOffset;
-    locationIter.readNext(&scriptIdx, &pcOffset);
-    // For the first entry pushed (innermost frame), the pcOffset is obtained
-    // from the delta-run encodings.
-    if (first) {
-      pcOffset = region.findPcOffset(ptrOffset, pcOffset);
-      first = false;
-    }
-    JSScript* script = getScript(scriptIdx);
-    jsbytecode* pc = script->offsetToPC(pcOffset);
-    if (!results.append(BytecodeLocation(script, pc))) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 uint32_t IonEntry::callStackAtAddr(void* ptr, const char** results,
                                    uint32_t maxResults) const {
   MOZ_ASSERT(maxResults >= 1);
@@ -134,13 +106,6 @@ static IonEntry& IonEntryForIonIC(JSRuntime* rt, const IonICEntry* icEntry) {
 
 void* IonICEntry::canonicalNativeAddrFor(void* ptr) const { return ptr; }
 
-bool IonICEntry::callStackAtAddr(JSRuntime* rt, void* ptr,
-                                 BytecodeLocationVector& results,
-                                 uint32_t* depth) const {
-  const IonEntry& entry = IonEntryForIonIC(rt, this);
-  return entry.callStackAtAddr(rejoinAddr(), results, depth);
-}
-
 uint32_t IonICEntry::callStackAtAddr(JSRuntime* rt, void* ptr,
                                      const char** results,
                                      uint32_t maxResults) const {
@@ -159,23 +124,6 @@ void* BaselineEntry::canonicalNativeAddrFor(void* ptr) const {
   return ptr;
 }
 
-bool BaselineEntry::callStackAtAddr(void* ptr, BytecodeLocationVector& results,
-                                    uint32_t* depth) const {
-  MOZ_ASSERT(containsPointer(ptr));
-  MOZ_ASSERT(script_->hasBaselineScript());
-
-  uint8_t* addr = reinterpret_cast<uint8_t*>(ptr);
-  jsbytecode* pc =
-      script_->baselineScript()->approximatePcForNativeAddress(script_, addr);
-  if (!results.append(BytecodeLocation(script_, pc))) {
-    return false;
-  }
-
-  *depth = 1;
-
-  return true;
-}
-
 uint32_t BaselineEntry::callStackAtAddr(void* ptr, const char** results,
                                         uint32_t maxResults) const {
   MOZ_ASSERT(containsPointer(ptr));
@@ -191,12 +139,6 @@ uint64_t BaselineEntry::lookupRealmID() const {
 
 void* BaselineInterpreterEntry::canonicalNativeAddrFor(void* ptr) const {
   return ptr;
-}
-
-bool BaselineInterpreterEntry::callStackAtAddr(void* ptr,
-                                               BytecodeLocationVector& results,
-                                               uint32_t* depth) const {
-  MOZ_CRASH("shouldn't be called for BaselineInterpreter entries");
 }
 
 uint32_t BaselineInterpreterEntry::callStackAtAddr(void* ptr,
@@ -449,26 +391,6 @@ bool IonICEntry::trace(JSTracer* trc) {
 void IonICEntry::traceWeak(JSTracer* trc) {
   IonEntry& entry = IonEntryForIonIC(trc->runtime(), this);
   entry.traceWeak(trc);
-}
-
-[[nodiscard]] bool JitcodeGlobalEntry::callStackAtAddr(
-    JSRuntime* rt, void* ptr, BytecodeLocationVector& results,
-    uint32_t* depth) const {
-  switch (kind()) {
-    case Kind::Ion:
-      return asIon().callStackAtAddr(ptr, results, depth);
-    case Kind::IonIC:
-      return asIonIC().callStackAtAddr(rt, ptr, results, depth);
-    case Kind::Baseline:
-      return asBaseline().callStackAtAddr(ptr, results, depth);
-    case Kind::BaselineInterpreter:
-      return asBaselineInterpreter().callStackAtAddr(ptr, results, depth);
-    case Kind::Dummy:
-      return asDummy().callStackAtAddr(rt, ptr, results, depth);
-    case Kind::SelfHostedShared:
-      return asSelfHostedShared().callStackAtAddr(ptr, results, depth);
-  }
-  MOZ_CRASH("Invalid kind");
 }
 
 uint32_t JitcodeGlobalEntry::callStackAtAddr(JSRuntime* rt, void* ptr,
