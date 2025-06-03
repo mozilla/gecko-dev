@@ -7,6 +7,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PersistentCache: "resource://newtab/lib/PersistentCache.sys.mjs",
   SearchSuggestionController:
     "moz-src:///toolkit/components/search/SearchSuggestionController.sys.mjs",
+  UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
 });
 
 import {
@@ -109,7 +110,14 @@ export class TrendingSearchFeed {
     }
 
     let results = [];
+
     for (let entry of fetchData.remote) {
+      // Construct the fully formatted search URL for the current trending result
+      const [searchUrl] = await lazy.UrlbarUtils.getSearchQueryUrl(
+        this.defaultEngine,
+        entry.value
+      );
+
       results.push({
         engine: this.defaultEngine.name,
         suggestion: entry.value,
@@ -117,6 +125,7 @@ export class TrendingSearchFeed {
         icon: !entry.value ? await this.defaultEngine.getIconUrl() : entry.icon,
         description: entry.description || undefined,
         isRichSuggestion: !!entry.icon,
+        searchUrl,
       });
     }
     return results;
