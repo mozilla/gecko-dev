@@ -9,7 +9,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   DownloadUtils: "resource://gre/modules/DownloadUtils.sys.mjs",
   featureEngineIdToFluentId: "chrome://global/content/ml/Utils.sys.mjs",
-  recordExtensionModelLinkTelemetry: "chrome://global/content/ml/Utils.sys.mjs",
+  recordModelCardLinkTelemetry: "chrome://global/content/ml/Utils.sys.mjs",
 });
 
 const DEFAULT_EXTENSION_ICON =
@@ -86,7 +86,7 @@ export class AddonMLModelDetails extends MozLitElement {
   }
 
   handleCardLinkClick() {
-    lazy.recordExtensionModelLinkTelemetry(this.addon);
+    lazy.recordModelCardLinkTelemetry(this.addon);
   }
 
   render() {

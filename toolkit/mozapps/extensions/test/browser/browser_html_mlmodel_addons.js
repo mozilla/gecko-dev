@@ -403,6 +403,7 @@ add_task(async function testModelHubDetails() {
         fluentArgs: { extensionName: `name-${extWithoutIcon.id}` },
       },
     ],
+    expectedGleanExtraSize: undefined,
   });
   await verifyAddonCardDetails({
     id: id2,
@@ -422,6 +423,7 @@ add_task(async function testModelHubDetails() {
         fluentArgs: { extensionName: `name-${extWithIcon.id}` },
       },
     ],
+    expectedGleanExtraSize: "5242880",
   });
 
   async function verifyAddonCardDetails({
@@ -431,6 +433,7 @@ add_task(async function testModelHubDetails() {
     expectedModelHomepageURL,
     expectedModelIconURL,
     expectedUsedBy,
+    expectedGleanExtraSize,
   }) {
     Services.fog.testResetFOG();
     let win = await loadInitialView("mlmodel");
@@ -510,13 +513,21 @@ add_task(async function testModelHubDetails() {
     );
 
     info("Test how many removes iniated telemetry");
-    let removeInitiatedEvent =
+    let removeInitiatedEvents =
       Glean.modelManagement.removeInitiated.testGetValue() || [];
     Assert.equal(
-      removeInitiatedEvent.length,
+      removeInitiatedEvents.length,
       2,
       "Got the expected removeInitiated telemetry"
     );
+
+    removeInitiatedEvents.forEach(({ extra }, i) => {
+      Assert.equal(
+        extra.size,
+        expectedGleanExtraSize,
+        `Got the expected size for remove initiated event ${i}`
+      );
+    });
 
     ok(
       !card.querySelector(".addon-detail-mlmodel").hidden,
@@ -557,10 +568,10 @@ add_task(async function testModelHubDetails() {
 
     EventUtils.sendMouseEvent({ type: "click" }, modelHomepageURL);
     info("Test model card link telemetry");
-    let extensionModelLinkEvent =
-      Glean.modelManagement.extensionModelLink.testGetValue() || [];
+    let modelCardLinkEvent =
+      Glean.modelManagement.modelCardLink.testGetValue() || [];
     Assert.equal(
-      extensionModelLinkEvent.length,
+      modelCardLinkEvent.length,
       1,
       "Got the expected extensionModelLink telemetry"
     );

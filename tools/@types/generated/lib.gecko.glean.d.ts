@@ -5759,7 +5759,7 @@ interface GleanImpl {
     removeInitiated: GleanEvent;
     removeConfirmation: GleanEvent;
     listItemManage: GleanEvent;
-    extensionModelLink: GleanEvent;
+    modelCardLink: GleanEvent;
     listView: GleanEvent;
     detailsView: GleanEvent;
   }

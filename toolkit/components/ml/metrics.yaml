@@ -215,7 +215,7 @@ model_management:
         description: The location from which the link was clicked e.g., details, list
         type: string
       size:
-        description: The size of the model in mb
+        description: The size of the model in bytes
         type: quantity
       last_used:
         description: hourse since the model was used
@@ -292,10 +292,10 @@ model_management:
         type: string
     expires: never
 
-  extension_model_link:
+  model_card_link:
     type: event
     description: |
-      Recorded when the user clicks the link from an AI model in extension details
+      Recorded when the user clicks the model card link in the model details
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1947256
     data_reviews:
