@@ -42,12 +42,6 @@ TRRLoadInfo::GetTriggeringPrincipal(nsIPrincipal** aTriggeringPrincipal) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP
-TRRLoadInfo::SetTriggeringPrincipalForTesting(
-    nsIPrincipal* aTriggeringPrincipal) {
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
 nsIPrincipal* TRRLoadInfo::TriggeringPrincipal() { return nullptr; }
 
 NS_IMETHODIMP

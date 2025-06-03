@@ -1587,7 +1587,6 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupLocked(
       old_addr_info = addrRec->addr_info;
       addrRec->addr_info = std::move(newRRSet);
       addrRec->addr_info_gencnt++;
-      addrRec->mLastUpdate = TimeStamp::NowLoRes();
     } else {
       if (addrRec->addr_info && newRRSet) {
         auto builder = addrRec->addr_info->Build();

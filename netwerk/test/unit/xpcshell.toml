@@ -541,10 +541,6 @@ skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64' 
 
 ["test_cookies_upgrade_10.js"]
 
-["test_cors_preflight_dns_cache.js"]
-run-sequentially = "node server exceptions dont replay well"
-run-if = ["!socketprocess_networking"] # can't read DNS cache syncly from socket process
-
 ["test_data_protocol.js"]
 
 ["test_defaultURI.js"]

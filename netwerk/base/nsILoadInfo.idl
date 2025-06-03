@@ -311,12 +311,6 @@ interface nsILoadInfo : nsISupports
   readonly attribute nsIPrincipal triggeringPrincipal;
 
   /**
-   * This method is intended to override the triggering principal
-   * in test environments.
-   */
-  void setTriggeringPrincipalForTesting(in nsIPrincipal aPrincipal);
-
-  /**
    * A C++-friendly version of triggeringPrincipal.
    */
   [noscript, notxpcom, nostdcall, binaryname(TriggeringPrincipal)]
