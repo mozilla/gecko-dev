@@ -58,7 +58,7 @@ class SettingsAddonsTest : TestSetup() {
     // Installs an add-on from the Add-ons menu and verifies the prompts
     @Test
     fun installAddonFromMainMenuTest() {
-        val addonName = "uBlock Origin"
+        val addonName = "AdGuard AdBlocker"
 
         homeScreen {}
             .openThreeDotMenu {}
