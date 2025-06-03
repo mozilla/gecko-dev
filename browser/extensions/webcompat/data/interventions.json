@@ -2830,23 +2830,6 @@
       }
     ]
   },
-  "1924500": {
-    "label": "tiktok.com (broken captcha slider)",
-    "bugs": {
-      "1924500": {
-        "issue": "broken-captcha",
-        "matches": ["*://www.tiktok.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "js": ["bug1924500-www.tiktok.com-fix-captcha-slider.js"]
-        }
-      }
-    ]
-  },
   "1925508": {
     "label": "developer.apple.com",
     "bugs": {
