@@ -21,6 +21,10 @@
         "issue": "broken-interactive-elements",
         "matches": ["*://*.arcsivr.com/*"]
       },
+      "1906654": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://*.dublinexpress.ie/*"]
+      },
       "1944007": {
         "issue": "broken-interactive-elements",
         "matches": ["*://*.discountcoffee.co.uk/*"]
