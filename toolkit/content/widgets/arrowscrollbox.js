@@ -653,6 +653,9 @@
       if (this.#verticalMode) {
         doScroll = true;
         scrollAmount = event.deltaY;
+        if (deltaMode == event.DOM_DELTA_PIXEL) {
+          instant = true;
+        }
       } else {
         // We allow vertical scrolling to scroll a horizontal scrollbox
         // because many users have a vertical scroll wheel but no
