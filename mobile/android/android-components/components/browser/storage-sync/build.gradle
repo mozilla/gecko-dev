@@ -33,16 +33,16 @@ dependencies {
     }
 
     api ComponentsDependencies.mozilla_appservices_tabs
-    api project(':concept-storage')
-    api project(':concept-sync')
+    api project(':components:concept-storage')
+    api project(':components:concept-sync')
 
-    implementation project(':concept-toolbar')
-    implementation project(':support-utils')
+    implementation project(':components:concept-toolbar')
+    implementation project(':components:support-utils')
 
     implementation libs.androidx.work.runtime
     implementation ComponentsDependencies.mozilla_appservices_syncmanager
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

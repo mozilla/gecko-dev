@@ -25,15 +25,15 @@ android {
 }
 
 dependencies {
-    implementation project(':concept-engine')
-    implementation project(':browser-state')
-    implementation project(':support-base')
-    implementation project(':support-ktx')
+    implementation project(':components:concept-engine')
+    implementation project(':components:browser-state')
+    implementation project(':components:support-base')
+    implementation project(':components:support-ktx')
 
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':support-test')
-    testImplementation project(':support-test-libstate')
+    testImplementation project(':components:support-test')
+    testImplementation project(':components:support-test-libstate')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

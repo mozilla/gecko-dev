@@ -40,25 +40,25 @@ android {
 dependencies {
     implementation platform(libs.androidx.compose.bom)
 
-    implementation project(':concept-engine')
-    implementation project(':concept-menu')
-    implementation project(':browser-toolbar')
-    implementation project(':browser-menu')
-    implementation project(':browser-menu2')
-    implementation project(':browser-domains')
-    implementation project(':browser-state')
-    implementation project(':compose-base')
-    implementation project(':compose-browser-toolbar')
+    implementation project(':components:concept-engine')
+    implementation project(':components:concept-menu')
+    implementation project(':components:browser-toolbar')
+    implementation project(':components:browser-menu')
+    implementation project(':components:browser-menu2')
+    implementation project(':components:browser-domains')
+    implementation project(':components:browser-state')
+    implementation project(':components:compose-base')
+    implementation project(':components:compose-browser-toolbar')
 
-    implementation project(':ui-colors')
-    implementation project(':ui-tabcounter')
-    implementation project(':ui-icons')
+    implementation project(':components:ui-colors')
+    implementation project(':components:ui-tabcounter')
+    implementation project(':components:ui-icons')
 
-    implementation project(':feature-toolbar')
+    implementation project(':components:feature-toolbar')
 
-    implementation project(':support-ktx')
+    implementation project(':components:support-ktx')
 
-    implementation project(':support-utils')
+    implementation project(':components:support-utils')
 
     implementation libs.kotlin.coroutines
 

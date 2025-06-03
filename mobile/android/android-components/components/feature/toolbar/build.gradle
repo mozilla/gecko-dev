@@ -25,22 +25,22 @@ android {
 }
 
 dependencies {
-    api project(':concept-toolbar')
-    implementation project(':feature-session')
-    implementation project(':browser-state')
-    implementation project(':browser-domains')
-    implementation project(':concept-engine')
-    implementation project(':concept-storage')
-    implementation project(':lib-publicsuffixlist')
-    implementation project(':support-utils')
-    implementation project(':support-ktx')
-    implementation project(':ui-icons')
+    api project(':components:concept-toolbar')
+    implementation project(':components:feature-session')
+    implementation project(':components:browser-state')
+    implementation project(':components:browser-domains')
+    implementation project(':components:concept-engine')
+    implementation project(':components:concept-storage')
+    implementation project(':components:lib-publicsuffixlist')
+    implementation project(':components:support-utils')
+    implementation project(':components:support-ktx')
+    implementation project(':components:ui-icons')
 
     implementation libs.androidx.core.ktx
 
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

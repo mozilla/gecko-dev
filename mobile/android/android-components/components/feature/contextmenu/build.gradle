@@ -25,15 +25,15 @@ android {
 }
 
 dependencies {
-    implementation project(":browser-state")
-    implementation project(':concept-engine')
-    implementation project(':feature-tabs')
-    implementation project(':feature-app-links')
-    implementation project(':browser-state')
-    implementation project(':support-utils')
-    implementation project(':support-ktx')
-    implementation project(':feature-search')
-    implementation project(':ui-widgets')
+    implementation project(":components:browser-state")
+    implementation project(':components:concept-engine')
+    implementation project(':components:feature-tabs')
+    implementation project(':components:feature-app-links')
+    implementation project(':components:browser-state')
+    implementation project(':components:support-utils')
+    implementation project(':components:support-ktx')
+    implementation project(':components:feature-search')
+    implementation project(':components:ui-widgets')
 
     implementation libs.google.material
     implementation libs.androidx.constraintlayout
@@ -44,8 +44,8 @@ dependencies {
     testImplementation libs.testing.coroutines
     testImplementation libs.testing.robolectric
 
-    testImplementation project(':support-test')
-    testImplementation project(':support-test-libstate')
+    testImplementation project(':components:support-test')
+    testImplementation project(':components:support-test-libstate')
 }
 
 apply from: '../../../android-lint.gradle'

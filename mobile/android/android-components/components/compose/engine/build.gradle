@@ -33,9 +33,9 @@ android {
 }
 
 dependencies {
-    implementation project(":browser-state")
-    implementation project(":concept-engine")
-    implementation project(":support-ktx")
+    implementation project(":components:browser-state")
+    implementation project(":components:concept-engine")
+    implementation project(":components:support-ktx")
 
     implementation libs.androidx.compose.ui
     implementation libs.androidx.compose.ui.tooling.preview
@@ -44,7 +44,7 @@ dependencies {
 
     debugImplementation libs.androidx.compose.ui.tooling
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
     testImplementation libs.androidx.compose.ui.test
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

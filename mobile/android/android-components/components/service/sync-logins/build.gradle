@@ -33,11 +33,11 @@ dependencies {
     api ComponentsDependencies.mozilla_appservices_sync15
 
     // Types defined in concept-sync are part of this module's public API.
-    api project(':concept-sync')
-    api project(':lib-dataprotect')
+    api project(':components:concept-sync')
+    api project(':components:lib-dataprotect')
 
-    implementation project(':concept-storage')
-    implementation project(':support-utils')
+    implementation project(':components:concept-storage')
+    implementation project(':components:support-utils')
     implementation libs.mozilla.glean
 
     implementation libs.kotlin.coroutines

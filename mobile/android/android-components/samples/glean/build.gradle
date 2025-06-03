@@ -58,18 +58,18 @@ android {
 
 dependencies {
     implementation libs.mozilla.glean
-    implementation project(':support-appservices')
-    implementation project(':service-glean')
-    implementation project(':service-nimbus')
-    implementation project(':support-base')
-    implementation project(':lib-fetch-httpurlconnection')
+    implementation project(':components:service-glean')
+    implementation project(':components:service-nimbus')
+    implementation project(':components:support-base')
+    implementation project(':components:support-appservices')
+    implementation project(':components:lib-fetch-httpurlconnection')
 
     implementation libs.kotlin.coroutines
 
     implementation libs.androidx.appcompat
     implementation libs.androidx.browser
 
-    implementation project(':samples-glean-library')
+    implementation project(':components:samples-glean-library')
 
     androidTestImplementation libs.androidx.test.core
     androidTestImplementation libs.androidx.test.monitor

@@ -25,18 +25,18 @@ android {
 dependencies {
     implementation libs.kotlin.coroutines
 
-    implementation project(':concept-fetch')
-    implementation project(':support-ktx')
-    implementation project(':support-ktx')
-    implementation project(':support-base')
+    implementation project(':components:concept-fetch')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-base')
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.mockwebserver
     testImplementation libs.testing.coroutines
 
-    testImplementation project(':lib-fetch-httpurlconnection')
+    testImplementation project(':components:lib-fetch-httpurlconnection')
 }
 
 apply from: '../../../android-lint.gradle'

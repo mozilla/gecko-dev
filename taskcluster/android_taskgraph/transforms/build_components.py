@@ -69,13 +69,14 @@ def interpolate_missing_values(config, tasks):
     for task in tasks:
         for field in ("description", "run.gradlew", "treeherder.symbol"):
             component = task["attributes"]["component"]
+            group = component.split(":")[1]
             _deep_format(
                 task,
                 field,
                 component=component,
                 nightlyVersion=nightly_version,
                 timestamp=timestamp,
-                treeherder_group=component[:25],
+                treeherder_group=group[:25],
             )
 
         yield task

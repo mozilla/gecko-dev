@@ -28,13 +28,13 @@ android {
 }
 
 dependencies {
-    implementation project(':concept-engine')
-    implementation project(':concept-menu')
-    implementation project(':browser-state')
-    implementation project(':support-base')
-    implementation project(':support-ktx')
-    implementation project(':ui-colors')
-    implementation project(':ui-icons')
+    implementation project(':components:concept-engine')
+    implementation project(':components:concept-menu')
+    implementation project(':components:browser-state')
+    implementation project(':components:support-base')
+    implementation project(':components:support-ktx')
+    implementation project(':components:ui-colors')
+    implementation project(':components:ui-icons')
 
     implementation libs.androidx.appcompat
     implementation libs.androidx.core.ktx
@@ -43,7 +43,7 @@ dependencies {
     implementation libs.androidx.constraintlayout
     implementation libs.androidx.coordinatorlayout
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

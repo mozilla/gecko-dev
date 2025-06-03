@@ -41,15 +41,15 @@ android {
 }
 
 dependencies {
-    implementation project(':concept-storage')
-    implementation project(':concept-toolbar')
-    implementation project(':browser-storage-sync')
-    implementation project(':service-firefox-accounts')
-    implementation project(':service-sync-logins')
-    implementation project(':service-sync-autofill')
-    implementation project(':support-appservices')
-    implementation project(':lib-fetch-httpurlconnection')
-    implementation project(':lib-dataprotect')
+    implementation project(':components:concept-storage')
+    implementation project(':components:concept-toolbar')
+    implementation project(':components:browser-storage-sync')
+    implementation project(':components:service-firefox-accounts')
+    implementation project(':components:service-sync-logins')
+    implementation project(':components:service-sync-autofill')
+    implementation project(':components:support-appservices')
+    implementation project(':components:lib-fetch-httpurlconnection')
+    implementation project(':components:lib-dataprotect')
 
     implementation libs.kotlin.reflect
     implementation libs.androidx.fragment

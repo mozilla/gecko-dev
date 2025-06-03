@@ -35,12 +35,12 @@ dependencies {
     implementation libs.kotlin.coroutines
 
     // Needed for rusthttp
-    api project(':concept-fetch')
+    api project(':components:concept-fetch')
     // Log.Priority is in the public api.
-    api project(':support-base')
+    api project(':components:support-base')
 
     testImplementation ComponentsDependencies.mozilla_appservices_rust_log_forwarder
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
 

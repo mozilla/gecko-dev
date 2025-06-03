@@ -54,7 +54,7 @@ def _get_upstream_deps_per_gradle_project(gradle_root, existing_build_config):
         # If we find the start of a new component section, update our tracking
         # variable
         if line.startswith("Project"):
-            current_project_name = line.split(":")[1].strip("'")
+            current_project_name = line.split(":", 1)[1].strip("'")
 
         # If we find a new local dependency, add it.
         local_dep_match = _LOCAL_DEPENDENCY_PATTERN.search(line)

@@ -27,11 +27,11 @@ android {
 dependencies {
     implementation libs.androidx.annotation
 
-    implementation project(':support-ktx')
+    implementation project(':components:support-ktx')
 
-    implementation project(':ui-icons')
+    implementation project(':components:ui-icons')
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
