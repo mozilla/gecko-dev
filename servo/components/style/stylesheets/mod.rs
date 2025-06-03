@@ -409,6 +409,13 @@ impl CssRule {
             },
         }
     }
+
+    fn is_empty_nested_declarations(&self, guard: &SharedRwLockReadGuard) -> bool {
+        match *self {
+            CssRule::NestedDeclarations(ref lock) => lock.read_with(guard).block.read_with(guard).is_empty(),
+            _ => false
+        }
+    }
 }
 
 /// https://drafts.csswg.org/cssom-1/#dom-cssrule-type

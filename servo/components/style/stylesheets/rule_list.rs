@@ -113,8 +113,14 @@ impl CssRules {
         dest: &mut CssStringWriter,
     ) -> fmt::Result {
         for rule in self.0.iter() {
+            if rule.is_empty_nested_declarations(guard) {
+                continue;
+            }
+
             dest.write_str("\n  ")?;
+            let old_len = dest.len();
             rule.to_css(guard, dest)?;
+            debug_assert_ne!(old_len, dest.len());
         }
         dest.write_str("\n}")
     }
