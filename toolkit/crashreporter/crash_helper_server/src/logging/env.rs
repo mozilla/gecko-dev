@@ -5,7 +5,7 @@
 use cfg_if::cfg_if;
 use mozbuild::config;
 use std::{
-    fs::{self, File},
+    fs::{self, exists, File},
     io,
     path::PathBuf,
 };
@@ -33,7 +33,13 @@ fn guess_user_app_data_dir() -> Option<PathBuf> {
 
     cfg_if! {
         if #[cfg(target_os = "linux")] {
-            Some(home_dir.join(".mozilla").join(config::MOZ_APP_NAME))
+            let legacy_data = home_dir.join(".mozilla").join(config::MOZ_APP_NAME);
+            let data_path = if std::env::var_os("MOZ_LEGACY_HOME").is_some() || exists(&legacy_data).ok()? {
+                legacy_data
+            } else {
+                dirs::config_dir()?.join(".mozilla").join(config::MOZ_APP_NAME)
+            };
+            Some(data_path)
         } else if #[cfg(target_os = "macos")] {
             Some(home_dir.join("Library").join("Application Support").join(config::MOZ_APP_BASENAME))
         } else if #[cfg(target_os = "windows")] {
