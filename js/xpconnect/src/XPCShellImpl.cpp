@@ -59,7 +59,6 @@
 #ifdef XP_WIN
 #  include "mozilla/mscom/ProcessRuntime.h"
 #  include "mozilla/ScopeExit.h"
-#  include "mozilla/widget/AudioSession.h"
 #  include "mozilla/WinDllServices.h"
 #  include "mozilla/WindowsBCryptInitialization.h"
 #  include <windows.h>
@@ -128,15 +127,6 @@ class XPCShellDirProvider : public nsIDirectoryServiceProvider2 {
   nsCOMPtr<nsIFile> mAppDir;
   nsCOMPtr<nsIFile> mAppFile;
 };
-
-#ifdef XP_WIN
-class MOZ_STACK_CLASS AutoAudioSession {
- public:
-  AutoAudioSession() { widget::StartAudioSession(); }
-
-  ~AutoAudioSession() { widget::StopAudioSession(); }
-};
-#endif
 
 #define EXITCODE_RUNTIME_ERROR 3
 #define EXITCODE_FILE_NOT_FOUND 4
@@ -1314,10 +1304,6 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
     // Initialize e10s check on the main thread, if not already done
     BrowserTabsRemoteAutostart();
 #if defined(XP_WIN)
-    // Plugin may require audio session if installed plugin can initialize
-    // asynchronized.
-    AutoAudioSession audioSession;
-
     // Ensure that DLL Services are running
     RefPtr<DllServices> dllSvc(DllServices::Get());
     dllSvc->StartUntrustedModulesProcessor(true);

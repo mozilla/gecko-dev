@@ -17,7 +17,6 @@
 #include "nsWindow.h"
 #include "nsString.h"
 #include "WinIMEHandler.h"
-#include "mozilla/widget/AudioSession.h"
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/Hal.h"
 #include "nsIDOMWakeLockListener.h"
@@ -36,10 +35,6 @@
 #include "mozilla/WindowsProcessMitigations.h"
 
 #include <winternl.h>
-
-#ifdef MOZ_BACKGROUNDTASKS
-#  include "mozilla/BackgroundTasks.h"
-#endif
 
 #if defined(ACCESSIBILITY)
 #  include "mozilla/a11y/Compatibility.h"
@@ -667,17 +662,7 @@ nsresult nsAppShell::Init() {
 
 NS_IMETHODIMP
 nsAppShell::Run(void) {
-  bool wantAudio = true;
   if (XRE_IsParentProcess()) {
-#ifdef MOZ_BACKGROUNDTASKS
-    if (BackgroundTasks::IsBackgroundTaskMode()) {
-      wantAudio = false;
-    }
-#endif
-    if (MOZ_LIKELY(wantAudio)) {
-      mozilla::widget::StartAudioSession();
-    }
-
     // Add an observer that disables the screen saver when requested by Gecko.
     // For example when we're playing video in the foreground tab. Whole firefox
     // only needs one wakelock instance, so we would only create one listener in
@@ -689,10 +674,6 @@ nsAppShell::Run(void) {
 
   if (XRE_IsParentProcess()) {
     RemoveScreenWakeLockListener();
-
-    if (MOZ_LIKELY(wantAudio)) {
-      mozilla::widget::StopAudioSession();
-    }
   }
 
   return rv;
