@@ -49,7 +49,7 @@ diff --git a/other-licenses/7zstub/src/CPP/7zip/Bundles/SFXSetup/SfxSetup.cpp b/
 +    if (result) {
 +      return result;
 +    }
-+    while ((buf[index] != '\0') && (index < bufLen)) {
++    while ((index < bufLen) && (buf[index] != '\0')) {
 +      index++;
 +    }
 +    index++;

@@ -136,7 +136,7 @@ FindStrInBuf(char const * buf, size_t bufLen, char const * str)
     if (result) {
       return result;
     }
-    while ((buf[index] != '\0') && (index < bufLen)) {
+    while ((index < bufLen) && (buf[index] != '\0')) {
       index++;
     }
     index++;
