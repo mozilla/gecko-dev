@@ -2984,7 +2984,6 @@ add_task(
 
 add_task(async function test_partitionKey() {
   let targetFile = getTempFile(TEST_TARGET_FILE_NAME);
-  Services.prefs.setBoolPref("privacy.partition.network_state", true);
 
   function promiseVerifyDownloadChannel(url, partitionKey) {
     return TestUtils.topicObserved("http-on-modify-request", subject => {
@@ -3052,8 +3051,6 @@ add_task(async function test_partitionKey() {
   }
 
   await verifyPromise;
-
-  Services.prefs.clearUserPref("privacy.partition.network_state");
 });
 
 add_task(async function test_isInCurrentBatch() {

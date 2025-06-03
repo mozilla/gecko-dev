@@ -18,9 +18,7 @@ add_task(async function test_star_redirect() {
     sss.resetState(
       // eslint-disable-next-line @microsoft/sdl/no-insecure-url
       NetUtil.newURI("http://example.com/"),
-      Services.prefs.getBoolPref("privacy.partition.network_state")
-        ? { partitionKey: "(http,example.com)" }
-        : {}
+      { partitionKey: "(http,example.com)" }
     );
     await PlacesUtils.bookmarks.eraseEverything();
     gBrowser.removeCurrentTab();

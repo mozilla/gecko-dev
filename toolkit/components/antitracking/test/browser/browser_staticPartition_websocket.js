@@ -80,11 +80,7 @@ function connect(browsingContext, host, protocol) {
 //
 // By observing the order of the handshakes we can ensure that the queue
 // partitioning is working correctly.
-async function runTest(partitioned) {
-  await SpecialPowers.pushPrefEnv({
-    set: [["privacy.partition.network_state", partitioned]],
-  });
-
+async function runTest() {
   let tabA = BrowserTestUtils.addTab(gBrowser, FIRST_PARTY_A);
   await BrowserTestUtils.browserLoaded(tabA.linkedBrowser);
   let tabB = BrowserTestUtils.addTab(gBrowser, FIRST_PARTY_B);
@@ -123,13 +119,8 @@ async function runTest(partitioned) {
   openPromiseA = openPromiseA.then(opened => {
     openedA = opened;
     info("Completed WS connection A");
-    if (partitioned) {
-      ok(openedA, "Should have opened A");
-      ok(openedB, "Should have opened B");
-    } else {
-      ok(openedA, "Should have opened A");
-      ok(openedB == null, "B should be pending");
-    }
+    ok(openedA, "Should have opened A");
+    ok(openedB, "Should have opened B");
   });
   await createPromiseA;
 
@@ -142,15 +133,9 @@ async function runTest(partitioned) {
   openPromiseB = openPromiseB.then(opened => {
     openedB = opened;
     info("Completed WS connection B");
-    if (partitioned) {
-      ok(openedA == null, "A should be pending");
-      ok(openedB, "Should have opened B");
-      ok(openedC == null, "C should be pending");
-    } else {
-      ok(openedA, "Should have opened A");
-      ok(openedB, "Should have opened B");
-      ok(openedC == null, "C should be pending");
-    }
+    ok(openedA == null, "A should be pending");
+    ok(openedB, "Should have opened B");
+    ok(openedC == null, "C should be pending");
   });
   await createPromiseB;
 
@@ -163,13 +148,8 @@ async function runTest(partitioned) {
   openPromiseC = openPromiseC.then(opened => {
     openedC = opened;
     info("Completed WS connection C");
-    if (partitioned) {
-      ok(openedB, "Should have opened B");
-      ok(openedC, "Should have opened C");
-    } else {
-      ok(opened, "Should have opened B");
-      ok(opened, "Should have opened C");
-    }
+    ok(openedB, "Should have opened B");
+    ok(openedC, "Should have opened C");
   });
   await createPromiseC;
 
@@ -189,10 +169,6 @@ add_setup(async function () {
   });
 });
 
-add_task(async function test_non_partitioned() {
-  await runTest(false);
-});
-
 add_task(async function test_partitioned() {
-  await runTest(true);
+  await runTest();
 });

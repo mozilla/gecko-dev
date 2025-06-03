@@ -4,10 +4,6 @@
  * Open a dummy page, then open about:cache and verify the opened page shows up in the cache.
  */
 add_task(async function () {
-  await SpecialPowers.pushPrefEnv({
-    set: [["privacy.partition.network_state", false]],
-  });
-
   const kRoot = getRootDirectory(gTestPath).replace(
     "chrome://mochitests/content/",
     "https://example.com/"
@@ -94,8 +90,9 @@ add_task(async function () {
       let links = [
         ...content.document.querySelectorAll("a[href*='" + kTestPage + "']"),
       ];
-      is(links.length, 1, "Should have 1 link to the entry for " + kTestPage);
-      links[0].click();
+      is(links.length, 2, "Should have 2 links to entries for " + kTestPage);
+      // First entry has no data size or anything.
+      links[1].click();
     }
   );
   await entryLoaded;

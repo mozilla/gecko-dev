@@ -98,51 +98,68 @@ function observeChannels(onChannel) {
 function startObservingChannels(aMode) {
   let stopObservingChannels = observeChannels(function (channel) {
     let originalURISpec = channel.originalURI.spec;
-    if (originalURISpec.includes("example.net")) {
-      let loadInfo = channel.loadInfo;
+    if (!originalURISpec.includes("example.net")) {
+      return;
+    }
+    let loadInfo = channel.loadInfo;
+    info(
+      `OA ${originalURISpec} mode=${aMode}: ${JSON.stringify(ChromeUtils.fillNonDefaultOriginAttributes(loadInfo.originAttributes))}`
+    );
 
-      switch (aMode) {
-        case TEST_MODE_FIRSTPARTY:
-          ok(
-            loadInfo.originAttributes.firstPartyDomain === "example.com" ||
-              loadInfo.originAttributes.firstPartyDomain === "example.org",
-            "first party for " +
-              originalURISpec +
-              " is " +
-              loadInfo.originAttributes.firstPartyDomain
-          );
-          break;
+    switch (aMode) {
+      case TEST_MODE_FIRSTPARTY:
+        ok(
+          loadInfo.originAttributes.firstPartyDomain === "example.com" ||
+            loadInfo.originAttributes.firstPartyDomain === "example.org",
+          "first party for " +
+            originalURISpec +
+            " is " +
+            loadInfo.originAttributes.firstPartyDomain
+        );
+        break;
 
-        case TEST_MODE_NO_ISOLATION:
-          ok(
+      case TEST_MODE_NO_ISOLATION: {
+        let dotComOA = ChromeUtils.fillNonDefaultOriginAttributes();
+        dotComOA.partitionKey = `(http,example.com)`;
+        let dotOrgOA = ChromeUtils.fillNonDefaultOriginAttributes();
+        dotOrgOA.partitionKey = `(http,example.org)`;
+        ok(
+          ChromeUtils.isOriginAttributesEqual(
+            loadInfo.originAttributes,
+            dotComOA
+          ) ||
+            ChromeUtils.isOriginAttributesEqual(
+              loadInfo.originAttributes,
+              dotOrgOA
+            ) ||
             ChromeUtils.isOriginAttributesEqual(
               loadInfo.originAttributes,
               ChromeUtils.fillNonDefaultOriginAttributes()
             ),
-            "OriginAttributes for " + originalURISpec + " is default."
-          );
-          break;
-
-        case TEST_MODE_CONTAINERS:
-          ok(
-            loadInfo.originAttributes.userContextId === 1 ||
-              loadInfo.originAttributes.userContextId === 2,
-            "userContextId for " +
-              originalURISpec +
-              " is " +
-              loadInfo.originAttributes.userContextId
-          );
-          break;
-
-        default:
-          ok(false, "Unknown test mode.");
+          `OriginAttributes for ${originalURISpec} is expected.`
+        );
+        break;
       }
+
+      case TEST_MODE_CONTAINERS:
+        ok(
+          loadInfo.originAttributes.userContextId === 1 ||
+            loadInfo.originAttributes.userContextId === 2,
+          "userContextId for " +
+            originalURISpec +
+            " is " +
+            loadInfo.originAttributes.userContextId
+        );
+        break;
+      default:
+        ok(false, "Unknown test mode.");
     }
   });
   return stopObservingChannels;
 }
 
 let stopObservingChannels;
+let gMode = -1;
 
 // The init function, which clears image and network caches, and generates
 // the random value for isolating video and audio elements across different
@@ -152,7 +169,6 @@ async function doInit(aMode) {
     set: [
       ["network.predictor.enabled", false],
       ["network.predictor.enable-prefetch", false],
-      ["privacy.partition.network_state", false],
       ["dom.security.https_first", false],
     ],
   });
@@ -162,6 +178,7 @@ async function doInit(aMode) {
 
   randomSuffix = Math.random();
   stopObservingChannels = startObservingChannels(aMode);
+  gMode = aMode;
 }
 
 // In the test function, we dynamically generate the video and audio element,
@@ -260,7 +277,6 @@ async function doTest(aBrowser) {
 
 // The check function, which checks the number of cache entries.
 async function doCheck(aShouldIsolate) {
-  let expectedEntryCount = 1;
   let data = [];
   data = data.concat(
     await cacheDataForContext(Services.loadContextInfo.default)
@@ -268,56 +284,34 @@ async function doCheck(aShouldIsolate) {
   data = data.concat(
     await cacheDataForContext(Services.loadContextInfo.private)
   );
-  data = data.concat(
-    await cacheDataForContext(Services.loadContextInfo.custom(true, {}))
-  );
-  data = data.concat(
-    await cacheDataForContext(
-      Services.loadContextInfo.custom(false, { userContextId: 1 })
-    )
-  );
-  data = data.concat(
-    await cacheDataForContext(
-      Services.loadContextInfo.custom(true, { userContextId: 1 })
-    )
-  );
-  data = data.concat(
-    await cacheDataForContext(
-      Services.loadContextInfo.custom(false, { userContextId: 2 })
-    )
-  );
-  data = data.concat(
-    await cacheDataForContext(
-      Services.loadContextInfo.custom(true, { userContextId: 2 })
-    )
-  );
-  data = data.concat(
-    await cacheDataForContext(
-      Services.loadContextInfo.custom(false, {
-        firstPartyDomain: "example.com",
-      })
-    )
-  );
-  data = data.concat(
-    await cacheDataForContext(
-      Services.loadContextInfo.custom(true, { firstPartyDomain: "example.com" })
-    )
-  );
-  data = data.concat(
-    await cacheDataForContext(
-      Services.loadContextInfo.custom(false, {
-        firstPartyDomain: "example.org",
-      })
-    )
-  );
-  data = data.concat(
-    await cacheDataForContext(
-      Services.loadContextInfo.custom(true, { firstPartyDomain: "example.org" })
-    )
-  );
-
-  if (aShouldIsolate) {
-    expectedEntryCount = 2;
+  for (let private of [true, false]) {
+    for (let anon of [true, false]) {
+      for (let userContextId of [0, 1, 2]) {
+        for (let firstPartyDomain of [
+          undefined,
+          "example.com",
+          "example.org",
+        ]) {
+          for (let partitionKey of [
+            undefined,
+            `(http,example.com)`,
+            `(http,example.org)`,
+            `(http,example.net)`,
+          ]) {
+            data = data.concat(
+              await cacheDataForContext(
+                Services.loadContextInfo.custom(anon, {
+                  partitionKey,
+                  firstPartyDomain,
+                  userContextId,
+                  privateBrowsingId: private ? 1 : 0,
+                })
+              )
+            );
+          }
+        }
+      }
+    }
   }
 
   for (let suffix of suffixes) {
@@ -326,15 +320,13 @@ async function doCheck(aShouldIsolate) {
       "example.net",
       suffix
     );
-    let result = expectedEntryCount === foundEntryCount;
+
+    // When isolation is off, we get one or two entries depending on
+    // whether the subresource does correct network partitioning.
+    let expectedEntryCount = aShouldIsolate ? [2] : [1, 2];
     ok(
-      result,
-      "Cache entries expected for " +
-        suffix +
-        ": " +
-        expectedEntryCount +
-        ", and found " +
-        foundEntryCount
+      expectedEntryCount.includes(foundEntryCount),
+      `${foundEntryCount} entries for ${suffix} for mode=${gMode} isolate=${aShouldIsolate ? "on" : "off"}`
     );
   }
 

@@ -71,7 +71,6 @@ add_task(async () => {
     set: [
       ["browser.cache.disk.enable", false],
       ["browser.cache.memory.enable", false],
-      ["privacy.partition.network_state", true],
       // The test harness acts as a proxy, so we need to make sure to also
       // partition for proxies.
       ["privacy.partition.network_state.connection_with_proxy", true],

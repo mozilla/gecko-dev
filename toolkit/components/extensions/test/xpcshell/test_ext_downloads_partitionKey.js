@@ -114,7 +114,6 @@ add_task(function setup() {
     Ci.nsIFile,
     downloadDir
   );
-  Services.prefs.setBoolPref("privacy.partition.network_state", true);
 
   Services.prefs.setIntPref(
     "network.cookie.cookieBehavior",
@@ -128,7 +127,6 @@ add_task(function setup() {
   registerCleanupFunction(() => {
     Services.prefs.clearUserPref("browser.download.folderList");
     Services.prefs.clearUserPref("browser.download.dir");
-    Services.prefs.clearUserPref("privacy.partition.network_state");
     Services.prefs.clearUserPref("network.cookie.cookieBehavior");
     Services.prefs.clearUserPref("network.cookie.cookieBehavior.pbmode");
 

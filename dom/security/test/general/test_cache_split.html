@@ -70,7 +70,9 @@
             info(`Starting Job with - ${test.steps.length} - Requests`);
             await resetCount();
             let { prefs, steps, name } = test;
-            await SpecialPowers.pushPrefEnv(prefs);
+            if (prefs) {
+              await SpecialPowers.pushPrefEnv(prefs);
+            }
             for (let step of steps) {
                 await checkStep(step, name);
             }
@@ -83,39 +85,6 @@
                 runTest({
                     name: `Isolated Cache`,
                     steps: [[SAME_ORIGIN, 1], [SAME_ORIGIN, 1], [CROSS_ORIGIN, 2]],
-                    prefs: {
-                        set: [
-                            ["privacy.partition.network_state", true]
-                        ],
-                    },
-                })
-        );
-        // Negative Test: The CROSS_ORIGIN should be able to
-        // acess the cache of SAME_ORIGIN
-        add_task(
-            async () =>
-                runTest({
-                    name: `Non Isolated Cache`,
-                    steps: [[SAME_ORIGIN, 1], [SAME_ORIGIN, 1], [CROSS_ORIGIN, 1]],
-                    prefs: {
-                        set: [
-                            ["privacy.partition.network_state", false]
-                        ],
-                    },
-                })
-        );
-        // Test that FPI does not affect Cache Isolation
-        add_task(
-            async () =>
-                runTest({
-                    name: `FPI interaction`,
-                    steps: [[SAME_ORIGIN, 1], [SAME_ORIGIN, 1], [CROSS_ORIGIN, 2]],
-                    prefs: {
-                        set: [
-                            ["privacy.firstparty.isolate", true],
-                            ["privacy.partition.network_state", false],
-                        ],
-                    },
                 })
         );
         // Test that cookieBehavior does not affect Cache Isolation
@@ -129,26 +98,11 @@
                             set: [
                                 ["privacy.firstparty.isolate", false],
                                 ["network.cookie.cookieBehavior", i],
-                                ["privacy.partition.network_state", true],
                             ],
                         },
                     })
             );
         }
-        add_task(
-            async () =>
-                runTest({
-                    name: `FPI interaction - 2`,
-                    steps: [[SAME_ORIGIN, 1], [SAME_ORIGIN, 1], [CROSS_ORIGIN, 2]],
-                    prefs: {
-                        set: [
-                          ["privacy.firstparty.isolate", true],
-                          ["privacy.partition.network_state", false],
-                        ],
-                    },
-                })
-        );
-
     </script>
 </body>
 

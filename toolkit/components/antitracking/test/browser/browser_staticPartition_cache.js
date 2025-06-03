@@ -62,135 +62,115 @@ add_task(async function () {
     ],
   });
 
-  const tests = [
-    {
-      prefValue: true,
-      originAttributes: { partitionKey: "(http,example.org)" },
-    },
-    {
-      prefValue: false,
-      originAttributes: {},
-    },
-  ];
+  const originAttributes = { partitionKey: "(http,example.org)" };
 
-  for (let test of tests) {
-    info("Clear image and network caches");
-    let tools = SpecialPowers.Cc["@mozilla.org/image/tools;1"].getService(
-      SpecialPowers.Ci.imgITools
-    );
-    let imageCache = tools.getImgCacheForDocument(window.document);
-    imageCache.clearCache(); // no parameter=all
-    Services.cache2.clear();
+  info("Clear image and network caches");
+  let tools = SpecialPowers.Cc["@mozilla.org/image/tools;1"].getService(
+    SpecialPowers.Ci.imgITools
+  );
+  let imageCache = tools.getImgCacheForDocument(window.document);
+  imageCache.clearCache(); // no parameter=all
+  Services.cache2.clear();
 
-    info("Enabling network state partitioning");
-    await SpecialPowers.pushPrefEnv({
-      set: [["privacy.partition.network_state", test.prefValue]],
+  info("Let's load a page to populate some entries");
+  let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser));
+  BrowserTestUtils.startLoadingURIString(tab.linkedBrowser, cacheURL);
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, cacheURL);
+
+  let argObj = {
+    randomSuffix: Math.random(),
+    urlPrefix:
+      "http://example.net/browser/browser/components/originattributes/test/browser/",
+  };
+
+  await SpecialPowers.spawn(tab.linkedBrowser, [argObj], async function (arg) {
+    // The CSS/JS cache needs to be cleared in-process.
+    ChromeUtils.clearResourceCache({
+      types: ["stylesheet", "script"],
     });
 
-    info("Let's load a page to populate some entries");
-    let tab = (gBrowser.selectedTab = BrowserTestUtils.addTab(gBrowser));
-    BrowserTestUtils.startLoadingURIString(tab.linkedBrowser, cacheURL);
-    await BrowserTestUtils.browserLoaded(tab.linkedBrowser, false, cacheURL);
+    let videoURL = arg.urlPrefix + "file_thirdPartyChild.video.webm";
+    let audioURL = arg.urlPrefix + "file_thirdPartyChild.audio.ogg";
+    let URLSuffix = "?r=" + arg.randomSuffix;
 
-    let argObj = {
-      randomSuffix: Math.random(),
-      urlPrefix:
-        "http://example.net/browser/browser/components/originattributes/test/browser/",
-    };
+    // Create the audio and video elements.
+    let audio = content.document.createElement("audio");
+    let video = content.document.createElement("video");
+    let audioSource = content.document.createElement("source");
 
-    await SpecialPowers.spawn(
-      tab.linkedBrowser,
-      [argObj],
-      async function (arg) {
-        // The CSS/JS cache needs to be cleared in-process.
-        ChromeUtils.clearResourceCache({
-          types: ["stylesheet", "script"],
-        });
+    // Append the audio element into the body, and wait until they're finished.
+    await new content.Promise(resolve => {
+      let audioLoaded = false;
 
-        let videoURL = arg.urlPrefix + "file_thirdPartyChild.video.webm";
-        let audioURL = arg.urlPrefix + "file_thirdPartyChild.audio.ogg";
-        let URLSuffix = "?r=" + arg.randomSuffix;
+      let audioListener = () => {
+        Assert.ok(true, `Audio suspended: ${audioURL + URLSuffix}`);
+        audio.removeEventListener("suspend", audioListener);
 
-        // Create the audio and video elements.
-        let audio = content.document.createElement("audio");
-        let video = content.document.createElement("video");
-        let audioSource = content.document.createElement("source");
+        audioLoaded = true;
+        if (audioLoaded) {
+          resolve();
+        }
+      };
 
-        // Append the audio element into the body, and wait until they're finished.
-        await new content.Promise(resolve => {
-          let audioLoaded = false;
+      Assert.ok(true, `Loading audio: ${audioURL + URLSuffix}`);
 
-          let audioListener = () => {
-            Assert.ok(true, `Audio suspended: ${audioURL + URLSuffix}`);
-            audio.removeEventListener("suspend", audioListener);
+      // Add the event listeners before everything in case we lose events.
+      audio.addEventListener("suspend", audioListener);
 
-            audioLoaded = true;
-            if (audioLoaded) {
-              resolve();
-            }
-          };
+      // Assign attributes for the audio element.
+      audioSource.setAttribute("src", audioURL + URLSuffix);
+      audioSource.setAttribute("type", "audio/ogg");
 
-          Assert.ok(true, `Loading audio: ${audioURL + URLSuffix}`);
+      audio.appendChild(audioSource);
+      audio.autoplay = true;
 
-          // Add the event listeners before everything in case we lose events.
-          audio.addEventListener("suspend", audioListener);
+      content.document.body.appendChild(audio);
+    });
 
-          // Assign attributes for the audio element.
-          audioSource.setAttribute("src", audioURL + URLSuffix);
-          audioSource.setAttribute("type", "audio/ogg");
+    // Append the video element into the body, and wait until it's finished.
+    await new content.Promise(resolve => {
+      let listener = () => {
+        Assert.ok(true, `Video suspended: ${videoURL + URLSuffix}`);
+        video.removeEventListener("suspend", listener);
+        resolve();
+      };
 
-          audio.appendChild(audioSource);
-          audio.autoplay = true;
+      Assert.ok(true, `Loading video: ${videoURL + URLSuffix}`);
 
-          content.document.body.appendChild(audio);
-        });
+      // Add the event listener before everything in case we lose the event.
+      video.addEventListener("suspend", listener);
 
-        // Append the video element into the body, and wait until it's finished.
-        await new content.Promise(resolve => {
-          let listener = () => {
-            Assert.ok(true, `Video suspended: ${videoURL + URLSuffix}`);
-            video.removeEventListener("suspend", listener);
-            resolve();
-          };
+      // Assign attributes for the video element.
+      video.setAttribute("src", videoURL + URLSuffix);
+      video.setAttribute("type", "video/ogg");
 
-          Assert.ok(true, `Loading video: ${videoURL + URLSuffix}`);
+      content.document.body.appendChild(video);
+    });
+  });
 
-          // Add the event listener before everything in case we lose the event.
-          video.addEventListener("suspend", listener);
+  let maybePartitionedSuffixes = [
+    "iframe.html",
+    "link.css",
+    "script.js",
+    "img.png",
+    "favicon.png",
+    "object.png",
+    "embed.png",
+    "xhr.html",
+    "worker.xhr.html",
+    "audio.ogg",
+    "video.webm",
+    "fetch.html",
+    "worker.fetch.html",
+    "request.html",
+    "worker.request.html",
+    "import.js",
+    "worker.js",
+    "sharedworker.js",
+  ];
 
-          // Assign attributes for the video element.
-          video.setAttribute("src", videoURL + URLSuffix);
-          video.setAttribute("type", "video/ogg");
+  info("Query the partitioned cache");
+  await checkCache(maybePartitionedSuffixes, originAttributes);
 
-          content.document.body.appendChild(video);
-        });
-      }
-    );
-
-    let maybePartitionedSuffixes = [
-      "iframe.html",
-      "link.css",
-      "script.js",
-      "img.png",
-      "favicon.png",
-      "object.png",
-      "embed.png",
-      "xhr.html",
-      "worker.xhr.html",
-      "audio.ogg",
-      "video.webm",
-      "fetch.html",
-      "worker.fetch.html",
-      "request.html",
-      "worker.request.html",
-      "import.js",
-      "worker.js",
-      "sharedworker.js",
-    ];
-
-    info("Query the cache (maybe) partitioned cache");
-    await checkCache(maybePartitionedSuffixes, test.originAttributes);
-
-    gBrowser.removeCurrentTab();
-  }
+  gBrowser.removeCurrentTab();
 });
