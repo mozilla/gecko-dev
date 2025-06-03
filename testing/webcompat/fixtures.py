@@ -32,6 +32,7 @@ UA_OVERRIDES_PREF = "extensions.webcompat.perform_ua_overrides"
 SYSTEM_ADDON_UPDATES_PREF = "extensions.systemAddon.update.enabled"
 DOWNLOAD_TO_TEMP_PREF = "browser.download.start_downloads_in_tmp_dir"
 DELETE_DOWNLOADS_PREF = "browser.helperApps.deleteTempFileOnExit"
+PLATFORM_OVERRIDE_PREF = "extensions.webcompat.platform_override"
 
 
 class WebDriver:
@@ -51,7 +52,7 @@ class WebDriver:
     def command_line_driver(self):
         raise NotImplementedError
 
-    def capabilities(self, test_config):
+    def capabilities(self, request, test_config):
         raise NotImplementedError
 
     def __enter__(self):
@@ -78,8 +79,12 @@ class FirefoxWebDriver(WebDriver):
             rv.append("-v")
         return rv
 
-    def capabilities(self, test_config):
+    def capabilities(self, request, test_config):
         prefs = {}
+
+        override = request.config.getoption("platform_override")
+        if override:
+            prefs[PLATFORM_OVERRIDE_PREF] = override
 
         if "use_interventions" in test_config:
             value = test_config["use_interventions"]
@@ -316,8 +321,8 @@ def install_addon(session, addon_file_path):
 
 
 @pytest.fixture(scope="function")
-async def session(driver, test_config):
-    caps = driver.capabilities(test_config)
+async def session(driver, request, test_config):
+    caps = driver.capabilities(request, test_config)
     caps.update(
         {
             "acceptInsecureCerts": True,
@@ -365,8 +370,11 @@ def firefox_version(session):
 
 
 @pytest.fixture(autouse=True)
-def platform(session):
-    return session.capabilities["platformName"]
+def platform(request, session, test_config):
+    return (
+        request.config.getoption("platform_override")
+        or session.capabilities["platformName"]
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -425,11 +433,14 @@ def only_firefox_versions(bug_number, firefox_version, request):
 @pytest.fixture(autouse=True)
 def only_platforms(bug_number, platform, request, session):
     is_fenix = "org.mozilla.fenix" in session.capabilities.get("moz:profile", "")
+    actualPlatform = session.capabilities["platformName"]
+    actualPlatformRequired = request.node.get_closest_marker("actual_platform_required")
     if request.node.get_closest_marker("only_platforms"):
         plats = request.node.get_closest_marker("only_platforms").args
         for only in plats:
             if only == platform or (only == "fenix" and is_fenix):
-                return
+                if actualPlatform == platform or not actualPlatformRequired:
+                    return
         pytest.skip(
             f"Bug #{bug_number} skipped on platform ({platform}, test only for {' or '.join(plats)})"
         )

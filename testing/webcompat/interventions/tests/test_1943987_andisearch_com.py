@@ -17,6 +17,7 @@ async def is_msgbar_offscreen(client):
 
 
 @pytest.mark.only_platforms("android")
+@pytest.mark.actual_platform_required
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
@@ -24,6 +25,7 @@ async def test_enabled(client):
 
 
 @pytest.mark.only_platforms("android")
+@pytest.mark.actual_platform_required
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):

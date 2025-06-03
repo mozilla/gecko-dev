@@ -117,6 +117,13 @@ def create_parser_interventions():
         default=False,
         help="Do not save a screenshot for each test failure",
     )
+    parser.add_argument(
+        "-P",
+        "--platform-override",
+        action="store",
+        choices=["android", "linux", "mac", "windows"],
+        help="Override key navigator properties to match the given platform and/or use responsive design mode to mimic the given platform",
+    )
 
     desktop_group = parser.add_argument_group("Desktop-specific arguments")
     desktop_group.add_argument("--binary", help="Path to browser binary")
@@ -314,6 +321,7 @@ class InterventionTest(MozbuildObject):
                     log_level=log_level,
                     failure_screenshots_dir=kwargs.get("failure_screenshots_dir"),
                     no_failure_screenshots=kwargs.get("no_failure_screenshots"),
+                    platform_override=kwargs.get("platform_override"),
                 )
 
         if kwargs["shims"] != "none":
@@ -342,6 +350,7 @@ class InterventionTest(MozbuildObject):
                     do2fa=kwargs["do2fa"],
                     failure_screenshots_dir=kwargs.get("failure_screenshots_dir"),
                     no_failure_screenshots=kwargs.get("no_failure_screenshots"),
+                    platform_override=kwargs.get("platform_override"),
                 )
 
         summary = status_handler.summarize()

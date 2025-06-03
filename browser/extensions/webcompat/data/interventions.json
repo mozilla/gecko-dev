@@ -806,7 +806,7 @@
     "interventions": [
       {
         "platforms": ["android"],
-        "ua_string": ["add_Chrome"]
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
       }
     ]
   },
@@ -1704,7 +1704,7 @@
     "interventions": [
       {
         "platforms": ["android"],
-        "ua_string": ["add_Chrome"]
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
       }
     ]
   },
@@ -3324,7 +3324,7 @@
     "interventions": [
       {
         "platforms": ["android"],
-        "ua_string": ["add_Chrome"]
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
       }
     ]
   },

@@ -337,15 +337,22 @@ var InterventionHelpers = {
     return false;
   },
 
+  async getOS() {
+    return (
+      (await browser.aboutConfigPrefs.getPref("platform_override")) ??
+      (await browser.runtime.getPlatformInfo()).os
+    );
+  },
+
   async getPlatformMatches() {
     if (!InterventionHelpers._platformMatches) {
-      const platformInfo = await browser.runtime.getPlatformInfo();
+      const os = await this.getOS();
       InterventionHelpers._platformMatches = [
         "all",
-        platformInfo.os,
-        platformInfo.os == "android" ? "android" : "desktop",
+        os,
+        os == "android" ? "android" : "desktop",
       ];
-      if (platformInfo.os == "android") {
+      if (os == "android") {
         const packageName = await browser.appConstants.getAndroidPackageName();
         if (packageName.includes("fenix") || packageName.includes("firefox")) {
           InterventionHelpers._platformMatches.push("fenix");

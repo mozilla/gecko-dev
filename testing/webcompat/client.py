@@ -24,6 +24,95 @@ class Client:
         self.subscriptions = {}
         self.content_blocker_loaded = False
 
+        platform_override = request.config.getoption("platform_override")
+        if (
+            platform_override
+            and platform_override != session.capabilities["platformName"]
+        ):
+            self.platform_override = platform_override
+
+    async def maybe_override_platform(self):
+        if hasattr(self, "_platform_override_checked"):
+            return
+        self._platform_override_checked = True
+
+        if not hasattr(self, "platform_override"):
+            return False
+
+        target = self.platform_override
+
+        with self.using_context("chrome"):
+            self.execute_script(
+                r"""
+                    const [ target ] = arguments;
+
+                    // Start responsive design mode if emulating an Android device.
+                    if (target === "android") {
+                        Services.prefs.setBoolPref("devtools.responsive.touchSimulation.enabled", true);
+                        Services.prefs.setIntPref("devtools.responsive.viewport.pixelRatio", 2);
+                        Services.prefs.setIntPref("devtools.responsive.viewport.width", 400);
+                        Services.prefs.setIntPref("devtools.responsive.viewport.height", 640);
+                        ChromeUtils.defineESModuleGetters(this, {
+                          loader: "resource://devtools/shared/loader/Loader.sys.mjs",
+                        });
+                        loader.lazyRequireGetter(
+                          this,
+                          "ResponsiveUIManager",
+                          "resource://devtools/client/responsive/manager.js"
+                        );
+                        const tab = gBrowser.selectedTab;
+                        ResponsiveUIManager.toggle(gBrowser.ownerDocument.defaultView, tab, {
+                          trigger: "toolbox",
+                        });
+                    }
+
+                    const ver = navigator.userAgent.match(/Firefox\/([0-9.]+)/)[1];
+                    const overrides = {
+                        android: {
+                            appVersion: "5.0 (Android 11)",
+                            oscpu: "Linux armv81",
+                            platform: "Linux armv81",
+                            userAgent: `Mozilla/5.0 (Android 15; Mobile; rv:${ver}) Gecko/${ver} Firefox/${ver}`,
+                        },
+                        linux: {
+                            appVersion: "5.0 (X11)",
+                            oscpu: "Linux x86_64",
+                            platform: "Linux x86_64",
+                            userAgent: `Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:${ver}) Gecko/20100101 Firefox/${ver}`,
+                        },
+                        mac: {
+                            appVersion: "5.0 (Macintosh)",
+                            oscpu: "Intel Mac OS X 10.15",
+                            platform: "MacIntel",
+                            userAgent: `Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:${ver}) Gecko/20100101 Firefox/${ver}`,
+                        },
+                        windows: {
+                            appVersion: "5.0 (Windows)",
+                            oscpu: "Windows NT 10.0; Win64; x64",
+                            platform: "Win32",
+                            userAgent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${ver}) Gecko/20100101 Firefox/${ver}`,
+                        },
+                    }[target];
+                    if (overrides) {
+                        const { appVersion, oscpu, platform, userAgent } = overrides;
+                        Services.prefs.setCharPref("general.appversion.override", appVersion);
+                        Services.prefs.setCharPref("general.oscpu.override", oscpu);
+                        Services.prefs.setCharPref("general.platform.override", platform);
+
+                        // We must override the userAgent as a header, like our addon does.
+                        const defaultUA = navigator.userAgent;
+                        Services.obs.addObserver(function (subject) {
+                            const channel = subject.QueryInterface(Ci.nsIHttpChannel);
+                            // If we raced with the webcompat addon, and it changed the UA already, leave it alone.
+                            if (defaultUA === channel.getRequestHeader("user-agent")) {
+                                channel.setRequestHeader("user-agent", userAgent, true);
+                            }
+                        }, "http-on-modify-request");
+                    }
+                    """,
+                target,
+            )
+
     @property
     def current_url(self):
         return self.session.url
@@ -415,6 +504,7 @@ class Client:
 
     async def navigate(self, url, timeout=90, no_skip=False, **kwargs):
         await self.await_interventions_started()
+        await self.maybe_override_platform()
         try:
             return await asyncio.wait_for(
                 asyncio.ensure_future(self._navigate(url, **kwargs)), timeout=timeout
@@ -1376,5 +1466,5 @@ class Client:
 
     def hide_elements(self, selector):
         self.add_stylesheet(
-            """{selector} {{ opacity:0 !important; pointer-events:none !important; }}"""
+            f"""{selector} {{ opacity:0 !important; pointer-events:none !important; }}"""
         )

@@ -1,5 +1,5 @@
 import pytest
-from webdriver.error import StaleElementReferenceException
+from webdriver.error import NoSuchElementException, StaleElementReferenceException
 
 URL = "https://app.kosmi.io"
 USERNAME_CSS = "input[placeholder='Username or Email']"
@@ -26,20 +26,35 @@ async def is_local_file_option_shown(client, credentials, platform):
     client.await_css(USERNAME_CSS, is_displayed=True).send_keys(credentials["username"])
     client.await_css(PASSWORD_CSS, is_displayed=True).send_keys(credentials["password"])
     client.soft_click(client.await_css(LOGIN_BUTTON_CSS, is_displayed=True))
-    if platform == "android":
-        client.await_text("s room", is_displayed=True).click()
-    else:
-        for _ in range(5):
-            try:
+    for _ in range(5):
+        try:
+            if platform == "android":
+                await client.apz_click(
+                    element=client.await_css(
+                        "div",
+                        condition="elem.firstChild?.nodeValue?.includes('\\'s room')",
+                        is_displayed=True,
+                        timeout=0.5,
+                    )
+                )
+            else:
                 client.await_css(
                     "button",
-                    condition="elem.innerText.includes('My room')",
+                    condition="elem.firstChild?.nodeValue?.includes('My room')",
                     is_displayed=True,
+                    timeout=0.5,
                 ).click()
-                break
-            except StaleElementReferenceException:
-                pass
-    client.soft_click(client.await_css(SELECT_MEDIA_CSS, is_displayed=True))
+            client.await_css(HERO_CSS, is_displayed=True, timeout=1)
+            break
+        except (NoSuchElementException, StaleElementReferenceException):
+            pass
+    for _ in range(5):
+        try:
+            client.soft_click(client.await_css(SELECT_MEDIA_CSS, is_displayed=True))
+            client.await_css(HERO_CSS, is_displayed=True, timeout=0.5)
+            break
+        except NoSuchElementException:
+            pass
     client.await_css(HERO_CSS, is_displayed=True)
     return client.find_css(LOCAL_FILE_CSS)
 

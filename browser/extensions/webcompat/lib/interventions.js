@@ -165,7 +165,7 @@ class Interventions {
       (await browser.runtime.getBrowserInfo()).version;
     const cleanVersion = parseFloat(version.match(/\d+(\.\d+)?/)[0]);
 
-    const { os } = await browser.runtime.getPlatformInfo();
+    const os = await InterventionHelpers.getOS();
     this.currentPlatform = os;
 
     for (const config of whichInterventions) {
