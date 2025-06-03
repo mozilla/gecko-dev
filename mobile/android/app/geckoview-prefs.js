@@ -376,6 +376,9 @@ pref("network.ohttp.configURL", "https://prod.ohttp-gateway.prod.webservices.moz
 // Controls OHTTP relay URL
 pref("network.ohttp.relayURL", "https://mozilla-ohttp.fastly-edge.com/");
 
+// block these ports due to tracking concerns.
+pref("network.security.ports.banned", "29009, 29010, 30102, 30103, 12387, 12388, 12580, 12581, 12582, 12583, 12584, 12585, 12586, 12587, 12588, 12589, 12590, 12591");
+
 // Complete the page load progress bar at different places according to this pref.
 // See the possible values below:
 // 0 no change
