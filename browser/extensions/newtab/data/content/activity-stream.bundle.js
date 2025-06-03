@@ -13215,12 +13215,55 @@ function Logo() {
   })));
 }
 
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/TrendingSearches/TrendingSearchesVarA.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+function TrendingSearchesVarA() {
+  const [showTrends, setShowTrends] = (0,external_React_namespaceObject.useState)(true);
+  const onArrowClick = () => {
+    setShowTrends(!showTrends);
+  };
+  const resultsObject = (0,external_ReactRedux_namespaceObject.useSelector)(state => state.TrendingSearch);
+  const searchResults = resultsObject.suggestions;
+  return /*#__PURE__*/React.createElement("section", {
+    className: "trending-searches-pill-wrapper"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "trending-searches-title-wrapper"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "trending-searches-icon icon icon-arrow-trending"
+  }), /*#__PURE__*/React.createElement("h2", {
+    className: "trending-searches-title"
+  }, "Trending on Google"), /*#__PURE__*/React.createElement("div", {
+    className: "close-open-trending-searches"
+  }, /*#__PURE__*/React.createElement("moz-button", {
+    iconsrc: `chrome://global/skin/icons/arrow-${showTrends ? "up" : "down"}.svg`,
+    onClick: onArrowClick,
+    className: `icon icon-arrowhead-up`,
+    type: "icon ghost"
+  }))), showTrends && /*#__PURE__*/React.createElement("ul", {
+    className: "trending-searches-list"
+  }, searchResults.map((result, index) => {
+    return /*#__PURE__*/React.createElement("li", {
+      key: index,
+      className: "trending-search-item"
+    }, /*#__PURE__*/React.createElement(SafeAnchor, {
+      url: ""
+    }, result.lowerCaseSuggestion));
+  })));
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/Search/Search.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* globals ContentSearchUIController, ContentSearchHandoffUIController */
+
 
 
 
@@ -13237,6 +13280,8 @@ class _Search extends (external_React_default()).PureComponent {
     this.onInputMount = this.onInputMount.bind(this);
     this.onInputMountHandoff = this.onInputMountHandoff.bind(this);
     this.onSearchHandoffButtonMount = this.onSearchHandoffButtonMount.bind(this);
+    this.trendingSearchEnabled = this.props.Prefs.values["trendingSearch.enabled"];
+    this.trendingSearchVariant = this.props.Prefs.values["trendingSearch.variant"];
   }
   handleEvent(event) {
     // Also track search events with our own telemetry
@@ -13349,7 +13394,7 @@ class _Search extends (external_React_default()).PureComponent {
    */
   render() {
     const wrapperClassName = ["search-wrapper", this.props.disable && "search-disabled", this.props.fakeFocus && "fake-focus"].filter(v => v).join(" ");
-    return /*#__PURE__*/external_React_default().createElement("div", {
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
       className: wrapperClassName
     }, this.props.showLogo && /*#__PURE__*/external_React_default().createElement(Logo, null), !this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
       className: "search-inner-wrapper no-handoff"
@@ -13364,7 +13409,7 @@ class _Search extends (external_React_default()).PureComponent {
       className: "search-button",
       "data-l10n-id": "newtab-search-box-search-button",
       onClick: this.onSearchClick
-    })), this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
+    }), this.trendingSearchEnabled && this.trendingSearchVariant === "a" && /*#__PURE__*/external_React_default().createElement(TrendingSearchesVarA, null)), this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
       className: "search-inner-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("button", {
       className: "search-handoff-button",
@@ -13386,7 +13431,7 @@ class _Search extends (external_React_default()).PureComponent {
       ref: el => {
         this.fakeCaret = el;
       }
-    }))));
+    })), this.trendingSearchEnabled && this.trendingSearchVariant === "a" && /*#__PURE__*/external_React_default().createElement(TrendingSearchesVarA, null))));
   }
 }
 const Search_Search = (0,external_ReactRedux_namespaceObject.connect)(state => ({

@@ -9,6 +9,7 @@ import { connect } from "react-redux";
 import { IS_NEWTAB } from "content-src/lib/constants";
 import { Logo } from "content-src/components/Logo/Logo";
 import React from "react";
+import { TrendingSearchesVarA } from "../DiscoveryStreamComponents/TrendingSearches/TrendingSearchesVarA";
 
 export class _Search extends React.PureComponent {
   constructor(props) {
@@ -21,6 +22,10 @@ export class _Search extends React.PureComponent {
     this.onInputMountHandoff = this.onInputMountHandoff.bind(this);
     this.onSearchHandoffButtonMount =
       this.onSearchHandoffButtonMount.bind(this);
+    this.trendingSearchEnabled =
+      this.props.Prefs.values["trendingSearch.enabled"];
+    this.trendingSearchVariant =
+      this.props.Prefs.values["trendingSearch.variant"];
   }
 
   handleEvent(event) {
@@ -150,53 +155,59 @@ export class _Search extends React.PureComponent {
       .join(" ");
 
     return (
-      <div className={wrapperClassName}>
-        {this.props.showLogo && <Logo />}
-        {!this.props.handoffEnabled && (
-          <div className="search-inner-wrapper no-handoff">
-            <input
-              id="newtab-search-text"
-              data-l10n-id="newtab-search-box-input"
-              maxLength="256"
-              ref={this.onInputMount}
-              type="search"
-            />
-            <button
-              id="searchSubmit"
-              className="search-button"
-              data-l10n-id="newtab-search-box-search-button"
-              onClick={this.onSearchClick}
-            />
-          </div>
-        )}
-        {this.props.handoffEnabled && (
-          <div className="search-inner-wrapper">
-            <button
-              className="search-handoff-button"
-              ref={this.onSearchHandoffButtonMount}
-              onClick={this.onSearchHandoffClick}
-              tabIndex="-1"
-            >
-              <div className="fake-textbox" />
+      <>
+        <div className={wrapperClassName}>
+          {this.props.showLogo && <Logo />}
+          {!this.props.handoffEnabled && (
+            <div className="search-inner-wrapper no-handoff">
               <input
+                id="newtab-search-text"
+                data-l10n-id="newtab-search-box-input"
+                maxLength="256"
+                ref={this.onInputMount}
                 type="search"
-                className="fake-editable"
+              />
+              <button
+                id="searchSubmit"
+                className="search-button"
+                data-l10n-id="newtab-search-box-search-button"
+                onClick={this.onSearchClick}
+              />
+              {this.trendingSearchEnabled &&
+                this.trendingSearchVariant === "a" && <TrendingSearchesVarA />}
+            </div>
+          )}
+          {this.props.handoffEnabled && (
+            <div className="search-inner-wrapper">
+              <button
+                className="search-handoff-button"
+                ref={this.onSearchHandoffButtonMount}
+                onClick={this.onSearchHandoffClick}
                 tabIndex="-1"
-                aria-hidden="true"
-                onDrop={this.onSearchHandoffDrop}
-                onPaste={this.onSearchHandoffPaste}
-                ref={this.onInputMountHandoff}
-              />
-              <div
-                className="fake-caret"
-                ref={el => {
-                  this.fakeCaret = el;
-                }}
-              />
-            </button>
-          </div>
-        )}
-      </div>
+              >
+                <div className="fake-textbox" />
+                <input
+                  type="search"
+                  className="fake-editable"
+                  tabIndex="-1"
+                  aria-hidden="true"
+                  onDrop={this.onSearchHandoffDrop}
+                  onPaste={this.onSearchHandoffPaste}
+                  ref={this.onInputMountHandoff}
+                />
+                <div
+                  className="fake-caret"
+                  ref={el => {
+                    this.fakeCaret = el;
+                  }}
+                />
+              </button>
+              {this.trendingSearchEnabled &&
+                this.trendingSearchVariant === "a" && <TrendingSearchesVarA />}
+            </div>
+          )}
+        </div>
+      </>
     );
   }
 }

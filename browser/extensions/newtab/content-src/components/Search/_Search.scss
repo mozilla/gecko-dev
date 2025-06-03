@@ -79,6 +79,22 @@ $glyph-forward: url('chrome://browser/skin/forward.svg');
 
   }
 
+  .search-inner-wrapper:has(.trending-searches-pill-wrapper) {
+    display: flex;
+    flex-direction: column;
+
+    .search-handoff-button {
+      height: 52px;
+    }
+
+    &.no-handoff {
+      #newtab-search-text,
+      .search-button {
+        height: 52px;
+      }
+    }
+  }
+
   .search-handoff-button,
   input {
     background: var(--newtab-background-color-secondary) var(--newtab-search-icon) $search-icon-padding center no-repeat;
