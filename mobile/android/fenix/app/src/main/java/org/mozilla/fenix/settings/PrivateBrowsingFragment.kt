@@ -11,6 +11,7 @@ import android.view.WindowManager
 import androidx.activity.result.ActivityResultLauncher
 import androidx.biometric.BiometricManager
 import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreference
 import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
@@ -126,6 +127,11 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
                 context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
                 true
             }
+        }
+
+        // Show bottom divider only if user does not have a device lock set
+        requirePreference<PreferenceCategory>(R.string.pbm_lock_category_bottom_divider).apply {
+            isVisible = !userHasEnabledCapability
         }
     }
 

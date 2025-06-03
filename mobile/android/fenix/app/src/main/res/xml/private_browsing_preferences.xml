@@ -2,7 +2,8 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <Preference
         android:key="@string/pref_key_add_private_browsing_shortcut"
         android:title="@string/preferences_add_private_browsing_shortcut" />
@@ -15,12 +16,21 @@
         android:key="@string/pref_key_allow_screenshots_in_private_mode"
         android:summary="@string/preferences_screenshots_in_private_mode_disclaimer"
         android:title="@string/preferences_allow_screenshots_in_private_mode" />
-    <SwitchPreference
-        android:defaultValue="false"
-        android:key="pref_key_private_browsing_locked_enabled"
-        android:summary="@string/preferences_pbm_lock_screen_summary_2"
-        android:title="@string/preferences_pbm_lock_screen_title"/>
-    <Preference
-        android:key="@string/pref_key_private_browsing_lock_device_feature_enabled"
-        android:title="@string/pbm_authentication_lock_device_feature_disabled" />
+    <androidx.preference.PreferenceCategory
+        android:layout="@layout/preference_category_empty"
+        app:allowDividerAbove="true"
+        app:iconSpaceReserved="false">
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="pref_key_private_browsing_locked_enabled"
+            android:summary="@string/preferences_pbm_lock_screen_summary_2"
+            android:title="@string/preferences_pbm_lock_screen_title" />
+        <Preference
+            android:key="@string/pref_key_private_browsing_lock_device_feature_enabled"
+            android:title="@string/pbm_authentication_lock_device_feature_disabled" />
+    </androidx.preference.PreferenceCategory>
+    <PreferenceCategory
+        android:key="@string/pbm_lock_category_bottom_divider"
+        android:selectable="false"
+        android:title="@string/empty_string" />
 </PreferenceScreen>
