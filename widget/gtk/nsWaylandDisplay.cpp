@@ -614,7 +614,36 @@ static void global_registry_remover(void* data, wl_registry* registry,
 static const struct wl_registry_listener registry_listener = {
     global_registry_handler, global_registry_remover};
 
-nsWaylandDisplay::~nsWaylandDisplay() = default;
+nsWaylandDisplay::~nsWaylandDisplay() {
+  g_list_free_full(mAsyncRoundtrips, (GDestroyNotify)wl_callback_destroy);
+}
+
+void nsWaylandDisplay::AsyncRoundtripCallback(void* aData,
+                                              wl_callback* aCallback,
+                                              uint32_t aTime) {
+  auto* display = static_cast<nsWaylandDisplay*>(aData);
+  display->mAsyncRoundtrips =
+      g_list_remove(display->mAsyncRoundtrips, aCallback);
+  wl_callback_destroy(aCallback);
+}
+
+static const struct wl_callback_listener async_roundtrip_listener = {
+    nsWaylandDisplay::AsyncRoundtripCallback};
+
+void nsWaylandDisplay::RequestAsyncRoundtrip() {
+  wl_callback* callback = wl_display_sync(mDisplay);
+  wl_callback_add_listener(callback, &async_roundtrip_listener, this);
+  mAsyncRoundtrips = g_list_append(mAsyncRoundtrips, callback);
+}
+
+void nsWaylandDisplay::WaitForAsyncRoundtrips() {
+  while (g_list_length(mAsyncRoundtrips) > 0) {
+    if (wl_display_dispatch(mDisplay) < 0) {
+      NS_WARNING("Failed to get events from Wayland display!");
+      return;
+    }
+  }
+}
 
 static void WlLogHandler(const char* format, va_list args) {
   char error[1000];

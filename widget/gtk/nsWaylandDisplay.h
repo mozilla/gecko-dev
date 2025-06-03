@@ -110,6 +110,11 @@ class nsWaylandDisplay {
   bool HasDMABufFeedback() const { return mDmabufIsFeedback; }
   void EnsureDMABufFormats();
 
+  static void AsyncRoundtripCallback(void* aData, wl_callback* aCallback,
+                                     uint32_t aTime);
+  void RequestAsyncRoundtrip();
+  void WaitForAsyncRoundtrips();
+
   ~nsWaylandDisplay();
 
  private:
@@ -136,6 +141,7 @@ class nsWaylandDisplay {
   wp_fractional_scale_manager_v1* mFractionalScaleManager = nullptr;
   wp_color_manager_v1* mColorManager = nullptr;
   RefPtr<DMABufFormats> mFormats;
+  GList* mAsyncRoundtrips = nullptr;
 
   struct ColorManagerSupportedFeature {
     bool mICC = false;
