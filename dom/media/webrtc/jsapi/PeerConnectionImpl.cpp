@@ -369,7 +369,6 @@ PeerConnectionImpl::PeerConnectionImpl(const GlobalObject* aGlobal)
       mUuidGen(MakeUnique<PCUuidGenerator>()),
       mIceRestartCount(0),
       mIceRollbackCount(0),
-      mHaveConfiguredCodecs(false),
       mTrickle(true)  // TODO(ekr@rtfm.com): Use pref
       ,
       mPrivateWindow(false),
