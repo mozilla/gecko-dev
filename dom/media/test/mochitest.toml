@@ -913,10 +913,9 @@ skip-if = ["os == 'win'"] # bug 1374189
 
 ["test_video_dimensions.html"]
 
-# Disabled - see bug 1970241
-#["test_video_low_power_telemetry.html"]
-#run-if = ["os == 'mac'"] # This telemetry is macOS-specific.
-#tags = "os_integration"
+["test_video_low_power_telemetry.html"]
+tags = "os_integration"
+skip-if = ["true"] # Bug 1970241
 
 ["test_video_to_canvas.html"]
 skip-if = ["os == 'android'"] # android(bug 1232305), bugs 1320418,1347953,1347954,1348140,1348386
