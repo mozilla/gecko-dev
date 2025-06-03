@@ -341,6 +341,20 @@ def image_digest(command_context, **kwargs):
     taskgraph_commands["image-digest"].func(kwargs)
 
 
+@SubCommand(
+    "taskgraph",
+    "load-task",
+    description="Loads a pre-built Docker image and drops you into a container with "
+    "the same environment variables and run-task setup as the specified task. "
+    "The task's payload.command will be replaced with 'bash'. You need to have "
+    "docker installed and running for this to work.",
+    parser=partial(get_taskgraph_command_parser, "load-task"),
+)
+def load_task(command_context, **kwargs):
+    setup_logging(command_context)
+    taskgraph_commands["load-task"].func(kwargs)
+
+
 @Command(
     "release-history",
     category="ci",
