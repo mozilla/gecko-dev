@@ -1703,8 +1703,8 @@ bool nsSocketTransport::RecoverFromError() {
   // time we will use a different address if available.
   // NS_BASE_STREAM_CLOSED is not an actual connection failure, so don't report
   // to DNS.
-  if (mState == STATE_CONNECTING && mDNSRecord &&
-      mCondition != NS_BASE_STREAM_CLOSED) {
+  if ((mState == STATE_CONNECTING || mState == STATE_TRANSFERRING) &&
+      mDNSRecord && mCondition != NS_BASE_STREAM_CLOSED) {
     mDNSRecord->ReportUnusable(SocketPort());
   }
 
