@@ -14,7 +14,6 @@ add_task(async function () {
   info("Starting test... ");
 
   const { document, store, windowRequire } = monitor.panelWin;
-  const { L10N } = windowRequire("devtools/client/netmonitor/src/utils/l10n");
   const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
 
   store.dispatch(Actions.batchEnable(false));
@@ -111,4 +110,38 @@ add_task(async function () {
       "The response image box doesn't have the intended visibility."
     );
   }
+});
+
+add_task(async function () {
+  const { tab, monitor } = await initNetMonitor(
+    JSON_BASIC_URL + "?name=root-null",
+    {
+      requestCount: 1,
+    }
+  );
+  info("Starting test... ");
+
+  const { document, store, windowRequire } = monitor.panelWin;
+  const Actions = windowRequire("devtools/client/netmonitor/src/actions/index");
+
+  store.dispatch(Actions.batchEnable(false));
+
+  // Execute requests.
+  await performRequests(monitor, tab, 1);
+
+  const onCodeMirrorReady = waitForDOM(
+    document,
+    "#response-panel .CodeMirror-code"
+  );
+
+  store.dispatch(Actions.toggleNetworkDetails());
+  clickOnSidebarTab(document, "response");
+  const [codeMirrorCodeEl] = await onCodeMirrorReady;
+  is(
+    codeMirrorCodeEl.querySelector("pre.CodeMirror-line span").textContent,
+    "null",
+    "root null JSON object is displayed in a CodeMirror editor"
+  );
+
+  await teardown(monitor);
 });

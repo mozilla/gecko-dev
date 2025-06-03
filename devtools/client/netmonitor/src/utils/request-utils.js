@@ -736,11 +736,12 @@ function parseJSON(payloadUnclean) {
   if (
     !error &&
     (typeof json !== "object" ||
+      json === null ||
       // Parsed JSON numbers might be different than the source, for example
       // JSON.parse("1516340399466235648") returns 1516340399466235600. In such case,
       // parseJsonLossless will return an object with `type: JSON_NUMBER` property.
       // We still want to display those numbers as the other numbers here.
-      json.type === lazy.JSON_NUMBER)
+      json?.type === lazy.JSON_NUMBER)
   ) {
     return {};
   }
