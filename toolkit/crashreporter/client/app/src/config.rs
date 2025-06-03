@@ -21,7 +21,7 @@ pub mod test {
 
     cfg_if::cfg_if! {
         if #[cfg(target_os = "linux")] {
-            use crate::std::{mock, env, fs::MockFS, fs::MockFiles};
+            use crate::std::{mock, env};
 
             fn cfg_get_data_dir_root() -> crate::std::path::PathBuf {
                 let cfg = super::Config::new();
@@ -41,7 +41,6 @@ pub mod test {
             #[test]
             fn data_dir_root_xdg_home() {
                 mock::builder()
-                    .set(env::MockHomeDir, "home_dir".into())
                     .set(env::MockEnv("XDG_CONFIG_HOME".into()), "home_dir/xdg/config".into())
                     .run(|| {
                         let path = cfg_get_data_dir_root();
@@ -54,20 +53,6 @@ pub mod test {
                 mock::builder()
                     .set(env::MockHomeDir, "home_dir".into())
                     .set(env::MockEnv("MOZ_LEGACY_HOME".into()), "1".into())
-                    .run(|| {
-                        let path = cfg_get_data_dir_root();
-                        assert_eq!(path, crate::std::path::PathBuf::from("home_dir/.vendor"));
-                    });
-            }
-
-            #[test]
-            fn data_dir_root_legacy_existing() {
-                let mock_files = MockFiles::new();
-                mock_files.add_dir("home_dir").add_dir("home_dir/.vendor");
-
-                mock::builder()
-                    .set(env::MockHomeDir, "home_dir".into())
-                    .set(MockFS, mock_files.clone())
                     .run(|| {
                         let path = cfg_get_data_dir_root();
                         assert_eq!(path, crate::std::path::PathBuf::from("home_dir/.vendor"));
@@ -512,19 +497,12 @@ impl Config {
     fn get_data_dir_root(&self, vendor: &str) -> anyhow::Result<PathBuf> {
         // home_dir is deprecated due to incorrect behavior on windows, but we only use it on linux
         #[allow(deprecated)]
-        let home_dir = std::env::home_dir();
-
-        let legacy_data = home_dir
-            .clone()
-            .map(|h| h.join(format!(".{}", vendor.to_lowercase())));
-        let data_path = if std::env::var_os("MOZ_LEGACY_HOME").is_some()
-            || legacy_data.as_ref().expect("No HOME env?").exists()
-        {
-            legacy_data
+        let data_path = if std::env::var_os("MOZ_LEGACY_HOME").is_some() {
+            std::env::home_dir().map(|h| h.join(format!(".{}", vendor.to_lowercase())))
         } else {
             std::env::var_os("XDG_CONFIG_HOME")
                 .map(PathBuf::from)
-                .or_else(|| home_dir.map(|home| home.join(".config")))
+                .or_else(|| std::env::home_dir().map(|home| home.join(".config")))
                 .map(|h| h.join(format!("{}", vendor.to_lowercase())))
         }
         .with_context(|| self.string("crashreporter-error-no-home-dir"))?;
