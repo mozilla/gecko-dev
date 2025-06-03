@@ -102,8 +102,6 @@
     "shims/adnexus-prebid.js",
     "shims/adsafeprotected-ima.js",
     "shims/apstag.js",
-    "shims/blogger.js",
-    "shims/bloggerAccount.js",
     "shims/bmauth.js",
     "shims/botd.mjs",
     "shims/branch.js",

@@ -845,26 +845,6 @@ const AVAILABLE_SHIMS = [
     onlyIfBlockedByETP: true,
   },
   {
-    id: "Blogger",
-    platform: "all",
-    name: "Blogger",
-    bug: "1776869",
-    contentScripts: [
-      {
-        js: "blogger.js",
-        matches: ["*://www.blogger.com/comment/frame/*"],
-        runAt: "document_start",
-        allFrames: true,
-      },
-      {
-        js: "bloggerAccount.js",
-        matches: ["*://www.blogger.com/blog/*"],
-        runAt: "document_end",
-      },
-    ],
-    onlyIfDFPIActive: true,
-  },
-  {
     // keep this below any other shims checking adsafeprotected URLs
     id: "AdSafeProtectedTrackingPixels",
     platform: "all",
