@@ -272,8 +272,8 @@ async function doLocaleTest({ shouldRunTask, osUnit, unitsByLocale }) {
         if (locale == "de") {
           delete expectedResult.payload.titleL10n;
           delete expectedResult.payload.bottomTextL10n;
-          expectedResult.payload.titleHtml =
-            "<strong>15.5°C</strong> · San Francisco, CA";
+          let temperatureStr = temperatureUnit == "c" ? "15.5°C" : "60°F";
+          expectedResult.payload.titleHtml = `<strong>${temperatureStr}</strong> · San Francisco, CA`;
           expectedResult.payload.bottomText = "AccuWeather® · Gesponsert";
         }
 
@@ -292,8 +292,8 @@ async function doLocaleTest({ shouldRunTask, osUnit, unitsByLocale }) {
         if (locale == "de") {
           delete expectedResult.payload.titleL10n;
           delete expectedResult.payload.bottomTextL10n;
-          expectedResult.payload.titleHtml =
-            "<strong>60°F</strong> · San Francisco, CA";
+          let temperatureStr = osUnit == "c" ? "15.5°C" : "60°F";
+          expectedResult.payload.titleHtml = `<strong>${temperatureStr}</strong> · San Francisco, CA`;
           expectedResult.payload.bottomText = "AccuWeather® · Gesponsert";
         }
 
