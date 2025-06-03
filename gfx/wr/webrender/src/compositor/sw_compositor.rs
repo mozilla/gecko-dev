@@ -450,8 +450,8 @@ impl SwCompositeJob {
                 let px = band_clip.min.x + x;
 
                 let pos = DevicePoint::new(
-                    self.rounded_clip.rect.min.x as f32 + half_clip_box_size.width - px as f32,
-                    self.rounded_clip.rect.min.y as f32 + half_clip_box_size.height - py as f32,
+                    -0.5 + self.rounded_clip.rect.min.x as f32 + half_clip_box_size.width - px as f32,
+                    -0.5 + self.rounded_clip.rect.min.y as f32 + half_clip_box_size.height - py as f32,
                 );
 
                 let i = (y * mask_width + x) as usize;
@@ -461,7 +461,8 @@ impl SwCompositeJob {
                     &self.rounded_clip.radii,
                 );
 
-                mask_pixels[i] = ((1.0 - d.min(1.0).max(0.0)) * 255.0) as u8;
+                let d = (0.5 - d).min(1.0).max(0.0);
+                mask_pixels[i] = (d * 255.0) as u8;
             }
         }
     }
