@@ -2382,3 +2382,41 @@ add_task(async function test_bug1959438_duplicateTabJustBeforeGroup() {
 
   gBrowser.removeAllTabsBut(initialTab);
 });
+
+add_task(async function test_bug1969925_adoptLastTabGroupFromWindow() {
+  // Assert that TabGrouped and TabUngrouped events fire correctly, even when
+  // adopting a tab group that is the only thing in the window
+  let newWin = await BrowserTestUtils.openNewBrowserWindow();
+  let initialTab = newWin.gBrowser.selectedTab;
+  let groupBeforeAdopt = newWin.gBrowser.addTabGroup([initialTab]);
+
+  let tabUngroupedPromise = BrowserTestUtils.waitForEvent(
+    newWin,
+    "TabUngrouped"
+  );
+  let tabGroupedPromise = BrowserTestUtils.waitForEvent(window, "TabGrouped");
+  let tabGroupCreate = BrowserTestUtils.waitForEvent(window, "TabGroupCreate");
+
+  gBrowser.adoptTabGroup(groupBeforeAdopt);
+
+  let [, tabUngroupedEvent, tabGroupedEvent] = await Promise.all([
+    tabGroupCreate,
+    tabUngroupedPromise,
+    tabGroupedPromise,
+  ]);
+
+  let groupAfterAdopt = gBrowser.tabGroups[0];
+
+  Assert.equal(
+    tabUngroupedEvent.target,
+    groupBeforeAdopt,
+    "TabUngrouped event fired from original group"
+  );
+  Assert.equal(
+    tabGroupedEvent.target,
+    groupAfterAdopt,
+    "TabGrouped event fired from adopted group"
+  );
+
+  await removeTabGroup(groupAfterAdopt);
+});

@@ -407,6 +407,13 @@
     }
 
     /**
+     * Same as `openTabs` but excluding hidden tabs.
+     */
+    get nonHiddenTabs() {
+      return this.tabContainer.nonHiddenTabs;
+    }
+
+    /**
      * Same as `openTabs` but excluding hidden tabs and tabs in collapsed groups.
      */
     get visibleTabs() {
@@ -3140,7 +3147,23 @@
 
       let oldSelectedTab = selectTab && group.ownerGlobal.gBrowser.selectedTab;
       let newTabs = [];
+
+      // bug1969925 adopting a tab group will cause the window to close if it
+      // is the only thing on the tab strip
+      // In this case, the `TabUngrouped` event will not fire, so we have to do it manually
+      let noOtherTabsInWindow = group.ownerGlobal.gBrowser.nonHiddenTabs.every(
+        t => t.group == group
+      );
+
       for (let tab of group.tabs) {
+        if (noOtherTabsInWindow) {
+          group.dispatchEvent(
+            new CustomEvent("TabUngrouped", {
+              bubbles: true,
+              detail: tab,
+            })
+          );
+        }
         let adoptedTab = this.adoptTab(tab, {
           elementIndex,
           tabIndex,

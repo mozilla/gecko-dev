@@ -1650,6 +1650,17 @@
     #openTabs;
 
     /**
+     * Same as `openTabs` but excluding hidden tabs.
+     */
+    get nonHiddenTabs() {
+      if (!this.#nonHiddenTabs) {
+        this.#nonHiddenTabs = this.openTabs.filter(tab => !tab.hidden);
+      }
+      return this.#nonHiddenTabs;
+    }
+    #nonHiddenTabs;
+
+    /**
      * Same as `openTabs` but excluding hidden tabs and tabs in collapsed groups.
      */
     get visibleTabs() {
@@ -1728,6 +1739,7 @@
 
     _invalidateCachedVisibleTabs() {
       this.#openTabs = null;
+      this.#nonHiddenTabs = null;
       this.#visibleTabs = null;
       // Focusable items must also be visible, but they do not depend on
       // this.#visibleTabs, so changes to visible tabs need to also invalidate
