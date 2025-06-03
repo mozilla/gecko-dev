@@ -470,9 +470,9 @@ void TCPSocket::ActivateTLS() {
     return;
   }
 
-  // Since we use mozilla::SyncRunnable::DispatchToThread, it is unnecessary to
-  // AddRef/Release TCPSocket in CallActivateTLS.
-  auto CallActivateTLS = [this]() mutable { ActivateTLSHelper(); };
+  auto CallActivateTLS = [sock = RefPtr{this}]() mutable {
+    sock->ActivateTLSHelper();
+  };
   mozilla::SyncRunnable::DispatchToThread(
       socketThread,
       NS_NewRunnableFunction("TCPSocket::UpgradeToSecure->ActivateTLSHelper",
