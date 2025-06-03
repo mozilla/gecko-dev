@@ -2508,6 +2508,53 @@
       }
     ]
   },
+  "1902404": {
+    "label": "pss.perodua.com.my",
+    "bugs": {
+      "1902404": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://pss.perodua.com.my/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["add_Chrome"]
+      }
+    ]
+  },
+  "1902406": {
+    "label": "sp.hi.co.kr",
+    "bugs": {
+      "1902406": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://sp.hi.co.kr/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1902406-sp.hi.co.kr-window-chrome-shim.js"]
+        }
+      }
+    ]
+  },
+  "1902411": {
+    "label": "agent.foundi.info",
+    "bugs": {
+      "1902411": {
+        "issue": "firefox-blocked-completely",
+        "matches": ["*://agent.foundi.info/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
+      }
+    ]
+  },
   "1902413": {
     "label": "ibanka.seb.lv",
     "bugs": {
@@ -2568,50 +2615,26 @@
       }
     ]
   },
-  "1902404": {
-    "label": "pss.perodua.com.my",
+  "1902478": {
+    "label": "La Personnelle and Desjardins General insurance",
     "bugs": {
-      "1902404": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://pss.perodua.com.my/*"]
+      "1902477": {
+        "issue": "blocked-content",
+        "matches": ["*://*.thepersonal.com/*"]
+      },
+      "1902478": {
+        "issue": "blocked-content",
+        "matches": ["*://*.lapersonnelle.com/*"]
+      },
+      "1902483": {
+        "issue": "blocked-content",
+        "matches": ["*://*.desjardinsgeneralinsurance.com/*"]
       }
     },
     "interventions": [
       {
         "platforms": ["all"],
         "ua_string": ["add_Chrome"]
-      }
-    ]
-  },
-  "1902406": {
-    "label": "sp.hi.co.kr",
-    "bugs": {
-      "1902406": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://sp.hi.co.kr/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "content_scripts": {
-          "js": ["bug1902406-sp.hi.co.kr-window-chrome-shim.js"]
-        }
-      }
-    ]
-  },
-  "1902411": {
-    "label": "agent.foundi.info",
-    "bugs": {
-      "1902411": {
-        "issue": "firefox-blocked-completely",
-        "matches": ["*://agent.foundi.info/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["all"],
-        "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
       }
     ]
   },
