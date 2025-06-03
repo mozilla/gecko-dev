@@ -58,7 +58,9 @@ import mozilla.components.service.location.LocationService
 import mozilla.components.service.location.MozillaLocationService
 import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.support.base.android.NotificationsDelegate
+import mozilla.components.support.base.worker.Frequency
 import mozilla.components.support.locale.LocaleManager
+import mozilla.components.support.remotesettings.DefaultRemoteSettingsSyncScheduler
 import mozilla.components.support.remotesettings.RemoteSettingsServer
 import mozilla.components.support.remotesettings.RemoteSettingsService
 import mozilla.components.support.remotesettings.into
@@ -89,6 +91,7 @@ import org.mozilla.focus.telemetry.startuptelemetry.StartupStateProvider
 import org.mozilla.focus.topsites.DefaultTopSitesStorage
 import org.mozilla.focus.utils.Settings
 import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 /**
  * Helper object for lazily initializing components.
@@ -124,6 +127,13 @@ class Components(
 
     val fileUploadsDirCleaner: FileUploadsDirCleaner by lazy {
         FileUploadsDirCleaner { context.cacheDir }
+    }
+
+    val remoteSettingsSyncScheduler by lazy {
+        DefaultRemoteSettingsSyncScheduler(
+            context,
+            Frequency(24, TimeUnit.HOURS),
+        )
     }
 
     val engineDefaultSettings by lazy {

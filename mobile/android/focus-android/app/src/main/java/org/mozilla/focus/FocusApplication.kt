@@ -27,6 +27,7 @@ import mozilla.components.support.base.log.Log
 import mozilla.components.support.base.log.sink.AndroidLogSink
 import mozilla.components.support.ktx.android.content.isMainProcess
 import mozilla.components.support.locale.LocaleAwareApplication
+import mozilla.components.support.remotesettings.GlobalRemoteSettingsDependencyProvider
 import mozilla.components.support.rusthttp.RustHttpConfig
 import mozilla.components.support.webextensions.WebExtensionSupport
 import org.mozilla.focus.biometrics.LockObserver
@@ -84,6 +85,8 @@ open class FocusApplication : LocaleAwareApplication(), Provider, CoroutineScope
             storeLink.start()
 
             initializeWebExtensionSupport()
+
+            initializeRemoteSettingsSupport()
 
             setupLeakCanary()
 
@@ -162,6 +165,11 @@ open class FocusApplication : LocaleAwareApplication(), Provider, CoroutineScope
             // experiments recipes from the server.
             finishNimbusInitialization(components.experiments)
         }
+    }
+
+    private fun initializeRemoteSettingsSupport() {
+        GlobalRemoteSettingsDependencyProvider.initialize(components.remoteSettingsService)
+        components.remoteSettingsSyncScheduler.registerForSync()
     }
 
     private fun setTheme(context: Context) {
