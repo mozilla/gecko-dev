@@ -322,24 +322,6 @@ urlbar:
         branch: user
       description: >-
         Boolean used to determine if the results defined in `exposureResults` should be shown in search results. Should be false for Control branch of an experiment.
-    pocketFeatureGate:
-      type: boolean
-      fallbackPref: browser.urlbar.pocket.featureGate
-      description: >-
-        Feature gate that controls whether all aspects of the Pocket suggestions
-        feature are exposed to the user.
-    pocketShowLessFrequentlyCap:
-      type: int
-      description: >-
-        If defined and non-zero, this is the maximum number of times the user
-        will be able to click the "Show less frequently" command for Pocket
-        suggestions. If undefined or zero, the user will be able to click the
-        command without any limit.
-    pocketSuggestIndex:
-      type: int
-      description: >-
-        The group-relative suggestedIndex of Pocket suggestions within the Firefox
-        Suggest section.
     quickSuggestAmpTopPickCharThreshold:
       type: int
       fallbackPref: browser.urlbar.quicksuggest.ampTopPickCharThreshold

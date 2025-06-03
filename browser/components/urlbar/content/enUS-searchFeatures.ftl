@@ -39,10 +39,6 @@ urlbar-group-addon =
 urlbar-group-mdn =
   .label = Recommended resource
 
-# Label shown above a Pocket suggestion in the urlbar results.
-urlbar-group-pocket =
-  .label = Recommended reads
-
 # A label shown above urlbar suggestions for businesses and other locations
 # in the user's city or a city they included in their search string (e.g., Yelp
 # suggestions).
@@ -151,16 +147,6 @@ firefox-suggest-addons-recommended = Recommended
 # This string is shown in MDN suggestions and indicates the suggestion is from
 # MDN.
 firefox-suggest-mdn-bottom-text = { -mdn-brand-name }
-
-## These strings are used for Pocket suggestions in the urlbar.
-
-# This string is shown in Pocket suggestions and indicates the suggestion is
-# from Pocket and is related to a particular keyword that matches the user's
-# search string.
-# Variables:
-#   $keywordSubstringTyped (string) - The part of the suggestion keyword that the user typed
-#   $keywordSubstringNotTyped (string) - The part of the suggestion keyword that the user did not yet type
-firefox-suggest-pocket-bottom-text = { -pocket-brand-name } · Related to <strong>{ $keywordSubstringTyped }</strong>{ $keywordSubstringNotTyped }
 
 ## These strings are used for Yelp suggestions in the urlbar.
 

@@ -204,13 +204,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // This pref will be set to true when perplexity search mode is detected.
   ["perplexity.hasBeenInSearchMode", false],
 
-  // Feature gate pref for Pocket suggestions in the urlbar.
-  ["pocket.featureGate", false],
-
-  // The number of times the user has clicked the "Show less frequently" command
-  // for Pocket suggestions.
-  ["pocket.showLessFrequentlyCount", 0],
-
   // If disabled, QuickActions will not be included in either the default search
   // mode or the QuickActions search mode.
   ["quickactions.enabled", true],
@@ -449,10 +442,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether results will include switch-to-tab results.
   ["suggest.openpage", true],
 
-  // If `pocket.featureGate` is true, this controls whether Pocket suggestions
-  // are turned on.
-  ["suggest.pocket", true],
-
   // Whether results will include QuickActions in the default search mode.
   ["suggest.quickactions", false],
 
@@ -605,8 +594,6 @@ const PREF_OTHER_DEFAULTS = new Map([
 const NIMBUS_DEFAULTS = {
   addonsShowLessFrequentlyCap: 0,
   fakespotMinKeywordLength: null,
-  pocketShowLessFrequentlyCap: 0,
-  pocketSuggestIndex: null,
   quickSuggestScoreMap: null,
   weatherKeywordsMinimumLength: null,
   weatherShowLessFrequentlyCap: null,

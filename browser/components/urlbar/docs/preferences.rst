@@ -163,9 +163,6 @@ browser.urlbar.merino.providers (string, default: "")
 browser.urlbar.openintab (boolean, default: false)
   Whether address bar results should be opened in new tabs by default.
 
-browser.urlbar.pocket.featureGate (boolean, default: false)
-  Feature gate pref for Pocket suggestions in the urlbar.
-
 browser.urlbar.quicksuggest.enabled (boolean, default: false)
   Whether the quick suggest feature is enabled, i.e., sponsored and recommended
   results related to the user's search string. This pref can be overridden by
@@ -195,10 +192,6 @@ browser.urlbar.sponsoredTopSites (boolean, default: false)
 
 browser.urlbar.suggest.addons (boolean, default: true)
   If ``browser.urlbar.addons.featureGate`` is true, this controls whether add-on
-  suggestions are turned on. Otherwise they won't be shown.
-
-browser.urlbar.suggest.pocket (boolean, default: true)
-  If ``browser.urlbar.pocket.featureGate`` is true, this controls whether Pocket
   suggestions are turned on. Otherwise they won't be shown.
 
 browser.urlbar.suggest.yelp (boolean, default: true)
