@@ -265,11 +265,15 @@ class Promise : public SupportsWeakPtr, public JSHolderBase {
   using SuccessSteps =
       const std::function<void(const Span<JS::Heap<JS::Value>>&)>&;
   using FailureSteps = const std::function<void(JS::Handle<JS::Value>)>&;
+  // Wait for all aPromises' results, calling either aFailureSteps if any
+  // promise rejects, or aSuccessSteps if all promises resolves.
+  // aCycleCollectedArg can be passed to keep state alive while waiting for the
+  // promises, making sure that it's cycle collected.
   MOZ_CAN_RUN_SCRIPT
   static void WaitForAll(nsIGlobalObject* aGlobal,
                          const Span<RefPtr<Promise>>& aPromises,
-                         SuccessSteps aSuccessSteps,
-                         FailureSteps aFailureSteps);
+                         SuccessSteps aSuccessSteps, FailureSteps aFailureSteps,
+                         nsISupports* aCycleCollectedArg = nullptr);
 
   template <typename Callback, typename... Args>
   using IsHandlerCallback =

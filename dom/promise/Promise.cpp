@@ -264,15 +264,16 @@ NS_IMPL_CYCLE_COLLECTION_WITH_JS_MEMBERS(WaitForAllResults, (), (mResult))
 /* static */
 void Promise::WaitForAll(nsIGlobalObject* aGlobal,
                          const Span<RefPtr<Promise>>& aPromises,
-                         SuccessSteps aSuccessSteps,
-                         FailureSteps aFailureSteps) {
+                         SuccessSteps aSuccessSteps, FailureSteps aFailureSteps,
+                         nsISupports* aCycleCollectedArg) {
   // Step 1 and step 2 are in WaitForAllResults.
 
   // Step 3
   const auto& rejectionHandlerSteps =
       [aFailureSteps](JSContext* aCx, JS::Handle<JS::Value> aArg,
                       ErrorResult& aRv,
-                      const RefPtr<WaitForAllResults>& aResult) {
+                      const RefPtr<WaitForAllResults>& aResult,
+                      const nsCOMPtr<nsISupports>& aCycleCollectedArg) {
         // Step 3.1
         if (aResult->mRejected) {
           return nullptr;
@@ -304,13 +305,15 @@ void Promise::WaitForAll(nsIGlobalObject* aGlobal,
   // fulfillmentHandlerSteps we wrap it into a cycle collecting and tracing
   // object.
   RefPtr result = MakeAndAddRef<WaitForAllResults>(total);
+  nsCOMPtr arg = aCycleCollectedArg;
   // Step 9
   for (const auto& promise : aPromises) {
     // Step 9.1 and step 9.2
     const auto& fulfillmentHandlerSteps =
         [aSuccessSteps, promiseIndex = index](
             JSContext* aCx, JS::Handle<JS::Value> aArg, ErrorResult& aRv,
-            const RefPtr<WaitForAllResults>& aResult)
+            const RefPtr<WaitForAllResults>& aResult,
+            const nsCOMPtr<nsISupports>& aCycleCollectedArg)
         -> already_AddRefed<Promise> {
       // Step 9.2.1
       aResult->mResult[promiseIndex].set(aArg.get());
@@ -325,7 +328,7 @@ void Promise::WaitForAll(nsIGlobalObject* aGlobal,
     };
     // Step 9.4 (and actually also step 4 and step 9.3)
     (void)promise->ThenCatchWithCycleCollectedArgs(
-        fulfillmentHandlerSteps, rejectionHandlerSteps, result);
+        fulfillmentHandlerSteps, rejectionHandlerSteps, result, arg);
 
     // Step 9.5
     index++;
