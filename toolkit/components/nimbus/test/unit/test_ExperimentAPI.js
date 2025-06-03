@@ -813,6 +813,14 @@ add_task(async function testGetProfileId() {
     "nimbus.profileId set on user branch"
   );
   Assert.ok(
+    Services.prefs.prefHasDefaultValue("nimbus.profileId"),
+    "nimbus.profileId set on default branch"
+  );
+  Assert.ok(
+    Services.prefs.prefIsLocked("nimbus.profileId"),
+    "nimbus.profileId is locked"
+  );
+  Assert.ok(
     !!Services.prefs.getStringPref("nimbus.profileId"),
     "can get profile ID pref"
   );

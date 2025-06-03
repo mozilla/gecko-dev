@@ -3,9 +3,6 @@
 const { ExperimentStore } = ChromeUtils.importESModule(
   "resource://nimbus/lib/ExperimentStore.sys.mjs"
 );
-const { ProfilesDatastoreService } = ChromeUtils.importESModule(
-  "moz-src:///toolkit/profile/ProfilesDatastoreService.sys.mjs"
-);
 
 const { SYNC_DATA_PREF_BRANCH, SYNC_DEFAULTS_PREF_BRANCH } = ExperimentStore;
 
@@ -754,7 +751,7 @@ add_task(async function test_storeValuePerPref_returnsSameValue_allTypes() {
 });
 
 add_task(async function test_cleanupOldRecipes() {
-  const { sandbox, manager, store, cleanup } = await setupTest();
+  const { sandbox, store, cleanup } = await setupTest();
 
   // We are intentionally putting some invalid data into the ExperimentStore.
   // NimbusTestUtils replaces addEnrollment with a version that does schema
@@ -772,15 +769,14 @@ add_task(async function test_cleanupOldRecipes() {
 
   const active = NimbusTestUtils.factories.experiment("active-6hrs", {
     active: true,
-    lastSeen: new Date(NOW - SIX_HOURS).toJSON(),
+    lastSeen: new Date(NOW - SIX_HOURS),
   });
 
   const inactiveToday = NimbusTestUtils.factories.experiment(
     "inactive-recent",
     {
       active: false,
-      unenrollReason: "unknown",
-      lastSeen: new Date(NOW - SIX_HOURS).toJSON(),
+      lastSeen: new Date(NOW - SIX_HOURS),
     }
   );
 
@@ -788,7 +784,6 @@ add_task(async function test_cleanupOldRecipes() {
     "inactive-6mo",
     {
       active: false,
-      unenrollReason: "unknown",
       lastSeen: new Date(NOW - 6 * ONE_MONTH),
     }
   );
@@ -797,8 +792,7 @@ add_task(async function test_cleanupOldRecipes() {
     "inactive-under-12mo",
     {
       active: false,
-      unenrollReason: "unknown",
-      lastSeen: new Date(NOW - ONE_YEAR + ONE_DAY).toJSON(),
+      lastSeen: new Date(NOW - ONE_YEAR + ONE_DAY),
     }
   );
 
@@ -806,8 +800,7 @@ add_task(async function test_cleanupOldRecipes() {
     "inactive-over-12mo",
     {
       active: false,
-      unenrollReason: "unknown",
-      lastSeen: new Date(NOW - ONE_YEAR - ONE_DAY).toJSON(),
+      lastSeen: new Date(NOW - ONE_YEAR - ONE_DAY),
     }
   );
 
@@ -815,86 +808,16 @@ add_task(async function test_cleanupOldRecipes() {
     "inactive-unknown",
     {
       active: false,
-      unenrollReason: "unknown",
     }
   );
   delete inactiveNoLastSeen.lastSeen;
 
   store.addEnrollment(active);
-  await store._addEnrollmentToDatabase(
-    active,
-    NimbusTestUtils.factories.recipe.withFeatureConfig(
-      active.slug,
-      active.branch.features[0]
-    )
-  );
   store.addEnrollment(inactiveToday);
-  await store._addEnrollmentToDatabase(
-    inactiveToday,
-    NimbusTestUtils.factories.recipe.withFeatureConfig(
-      inactiveToday.slug,
-      inactiveToday.branch.features[0]
-    )
-  );
   store.addEnrollment(inactiveSixMonths);
-  await store._addEnrollmentToDatabase(
-    inactiveSixMonths,
-    NimbusTestUtils.factories.recipe.withFeatureConfig(
-      inactiveSixMonths.slug,
-      inactiveSixMonths.branch.features[0]
-    )
-  );
   store.addEnrollment(inactiveUnderTwelveMonths);
-  await store._addEnrollmentToDatabase(
-    inactiveUnderTwelveMonths,
-    NimbusTestUtils.factories.recipe.withFeatureConfig(
-      inactiveUnderTwelveMonths.slug,
-      inactiveUnderTwelveMonths.branch.features[0]
-    )
-  );
   store.addEnrollment(inactiveOverTwelveMonths);
-  await store._addEnrollmentToDatabase(
-    inactiveOverTwelveMonths,
-    NimbusTestUtils.factories.recipe.withFeatureConfig(
-      inactiveOverTwelveMonths.slug,
-      inactiveOverTwelveMonths.branch.features[0]
-    )
-  );
-
-  // There is a NOT NULL constraint that prevents adding this enrollment to the
-  // database.
   store.addEnrollment(inactiveNoLastSeen);
-
-  // Insert a row belonging to another profile.
-  const otherProfileId = Services.uuid.generateUUID().toString().slice(1, -1);
-
-  const conn = await ProfilesDatastoreService.getConnection();
-  await conn.execute(
-    `
-      INSERT INTO NimbusEnrollments VALUES(
-        null,
-        :profileId,
-        :slug,
-        :branchSlug,
-        null,
-        :active,
-        :unenrollReason,
-        :lastSeen,
-        null,
-        null,
-        :source
-      );
-    `,
-    {
-      profileId: otherProfileId,
-      slug: inactiveOverTwelveMonths.slug,
-      branchSlug: inactiveOverTwelveMonths.branch.slug,
-      active: false,
-      unenrollReason: inactiveOverTwelveMonths.unenrollReason,
-      lastSeen: inactiveOverTwelveMonths.lastSeen,
-      source: inactiveOverTwelveMonths.source,
-    }
-  );
 
   store._cleanupOldRecipes();
 
@@ -915,18 +838,7 @@ add_task(async function test_cleanupOldRecipes() {
     "Should remove invalid enrollment"
   );
 
-  await NimbusTestUtils.waitForActiveEnrollments([active.slug]);
-
-  // There should still be a row for enrollments in the other profile.
-  await NimbusTestUtils.waitForActiveEnrollments([], {
-    profileId: otherProfileId,
-  });
-  await NimbusTestUtils.waitForInactiveEnrollment(
-    inactiveOverTwelveMonths.slug,
-    { profileId: otherProfileId }
-  );
-
-  await manager.unenroll(active.slug);
+  store.updateExperiment("active-6hrs", { active: false });
 
   await cleanup();
 });

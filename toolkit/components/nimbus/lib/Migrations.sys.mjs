@@ -88,22 +88,6 @@ function migrateMultiphase() {
   }
 }
 
-function migrateNoop() {
-  // This migration intentionally left blank.
-  //
-  // Bug 1956080 added `migrateEnrollmentsToSql` but the actual Nimbus profile
-  // ID added in that bug wasn't persistent (see bug 1969994) and reset every
-  // startup. Therefore the rows created by the first run of
-  // `migrateEnrollmentsToSql` are no longer associated with any profile and the
-  // `migrateEnrollmentsToSql` migration needs to run again with a new profile
-  // ID. A seperate migration was added in `ProfilesDatastoreService` to delete all
-  // entries from the `NimbusEnrollments` table.
-  //
-  // To prevent the `migrateEnrollmentsToSql` migration from running twice on a
-  // new client, this migration takes the place of the original
-  // `migrateEnrollmentsToSql`.
-}
-
 async function migrateEnrollmentsToSql() {
   if (
     !Services.prefs.getBoolPref(
@@ -385,7 +369,6 @@ export const NimbusMigrations = {
     ],
 
     [Phase.AFTER_STORE_INITIALIZED]: [
-      migration("noop", migrateNoop),
       migration("import-enrollments-to-sql", migrateEnrollmentsToSql),
     ],
 
