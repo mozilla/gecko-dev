@@ -336,9 +336,9 @@ add_task(async function actions_search_mode() {
   const expected = [
     {
       engagement_type: "enter",
-      groups: "general,general",
-      results: "action,action",
-      n_results: 2,
+      groups: "general",
+      results: "action",
+      n_results: 1,
     },
   ];
 

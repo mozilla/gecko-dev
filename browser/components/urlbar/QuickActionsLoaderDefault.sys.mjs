@@ -226,7 +226,7 @@ const DEFAULT_ACTIONS = {
     onPick: openUrlFun("about:preferences"),
   },
   themes: {
-    l10nCommands: ["quickactions-cmd-themes2"],
+    l10nCommands: ["quickactions-cmd-themes"],
     icon: "chrome://mozapps/skin/extensions/category-extensions.svg",
     label: "quickactions-themes",
     onPick: openAddonsUrl("addons://list/theme"),

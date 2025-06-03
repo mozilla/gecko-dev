@@ -58,26 +58,24 @@ class ProviderQuickActions extends ActionsProvider {
     let results = await this.getActions(input);
 
     if (lazy.UrlbarPrefs.get(MATCH_IN_PHRASE_PREF)) {
-      for (let [keyword, keys] of this.#keywords) {
-        if (input.includes(keyword) && keys.length) {
-          keys.forEach(key => results.add(key));
+      for (let [keyword, key] of this.#keywords) {
+        if (input.includes(keyword)) {
+          results.push(key);
         }
       }
     }
 
     // Remove invisible actions.
-    results.forEach(key => {
+    results = results.filter(key => {
       const action = this.#actions.get(key);
-      if (!(action.isVisible?.() ?? true)) {
-        results.delete(key);
-      }
+      return action.isVisible?.() ?? true;
     });
 
-    if (!results.size) {
+    if (!results.length) {
       return null;
     }
 
-    return [...results].map(key => {
+    return results.map(key => {
       let action = this.#actions.get(key);
       return new ActionsResult({
         key,
@@ -94,7 +92,7 @@ class ProviderQuickActions extends ActionsProvider {
 
   async getActions(prefix) {
     await lazy.QuickActionsLoaderDefault.ensureLoaded();
-    return this.#prefixes.get(prefix) ?? new Set();
+    return [...(this.#prefixes.get(prefix) ?? [])];
   }
 
   getAction(key) {
@@ -119,17 +117,15 @@ class ProviderQuickActions extends ActionsProvider {
    */
   addAction(key, definition) {
     this.#actions.set(key, definition);
-    definition.commands.forEach(cmd => {
-      let keys = this.#keywords.get(cmd) ?? [];
-      keys.push(key);
-      this.#keywords.set(cmd, keys);
-    });
+    definition.commands.forEach(cmd => this.#keywords.set(cmd, key));
     this.#loopOverPrefixes(definition.commands, prefix => {
       let result = this.#prefixes.get(prefix);
       if (result) {
-        result.add(key);
+        if (!result.includes(key)) {
+          result.push(key);
+        }
       } else {
-        result = new Set([key]);
+        result = [key];
       }
       this.#prefixes.set(prefix, result);
     });
@@ -143,17 +139,11 @@ class ProviderQuickActions extends ActionsProvider {
   removeAction(key) {
     let definition = this.#actions.get(key);
     this.#actions.delete(key);
-    definition.commands.forEach(cmd => {
-      let keys = this.#keywords.get(cmd) ?? [];
-      this.#keywords.set(
-        cmd,
-        keys.filter(k => k != key)
-      );
-    });
+    definition.commands.forEach(cmd => this.#keywords.delete(cmd));
     this.#loopOverPrefixes(definition.commands, prefix => {
       let result = this.#prefixes.get(prefix);
       if (result) {
-        result.delete(key);
+        result = result.filter(val => val != key);
       }
       this.#prefixes.set(prefix, result);
     });
@@ -162,14 +152,14 @@ class ProviderQuickActions extends ActionsProvider {
   /**
    * A map from keywords to an action.
    *
-   * @type {Map<string, Array>}
+   * @type {Map<string, string>}
    */
   #keywords = new Map();
 
   /**
    * A map of all prefixes to an array of actions.
    *
-   * @type {Map<string, Set>}
+   * @type {Map<string, string[]>}
    */
   #prefixes = new Map();
 

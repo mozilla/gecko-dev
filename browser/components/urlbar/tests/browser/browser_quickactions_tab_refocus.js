@@ -49,13 +49,11 @@ add_task(async function test_about_pages() {
       firstInput: "extensions",
       uri: "about:addons",
       component: "button[name=extension]",
-      numTabPress: 2,
     },
     {
       firstInput: "themes",
       uri: "about:addons",
       component: "button[name=theme]",
-      numTabPress: 2,
     },
     {
       firstLoad: "about:preferences#home",
@@ -70,7 +68,6 @@ add_task(async function test_about_pages() {
     secondInput,
     uri,
     component,
-    numTabPress = 1,
   } of testData) {
     info("Setup initial state");
     let firstTab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
@@ -88,9 +85,7 @@ add_task(async function test_about_pages() {
         window,
         value: firstInput,
       });
-      for (let i = 0; i < numTabPress; i++) {
-        EventUtils.synthesizeKey("KEY_Tab", {}, window);
-      }
+      EventUtils.synthesizeKey("KEY_Tab", {}, window);
       EventUtils.synthesizeKey("KEY_Enter", {}, window);
     }
     await onLoad;
@@ -106,9 +101,7 @@ add_task(async function test_about_pages() {
       window,
       value: secondInput || firstInput,
     });
-    for (let i = 0; i < numTabPress; i++) {
-      EventUtils.synthesizeKey("KEY_Tab", {}, window);
-    }
+    EventUtils.synthesizeKey("KEY_Tab", {}, window);
     EventUtils.synthesizeKey("KEY_Enter", {}, window);
     Assert.equal(
       gBrowser.selectedTab,
@@ -141,26 +134,22 @@ add_task(async function test_about_addons_pages() {
     {
       cmd: "extensions",
       testFun: async () => isSelected("button[name=extension]"),
-      numTabPress: 2,
     },
     {
       cmd: "themes",
       testFun: async () => isSelected("button[name=theme]"),
-      numTabPress: 2,
     },
   ];
 
   info("Pick all actions related about:addons");
   let originalTab = gBrowser.selectedTab;
-  for (const { cmd, testFun, numTabPress = 1 } of testData) {
+  for (const { cmd, testFun } of testData) {
     await BrowserTestUtils.openNewForegroundTab(gBrowser);
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
       value: cmd,
     });
-    for (let i = 0; i < numTabPress; i++) {
-      EventUtils.synthesizeKey("KEY_Tab", {}, window);
-    }
+    EventUtils.synthesizeKey("KEY_Tab", {}, window);
     EventUtils.synthesizeKey("KEY_Enter", {}, window);
     await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
     Assert.ok(await testFun(), "The page content is correct");
@@ -172,14 +161,12 @@ add_task(async function test_about_addons_pages() {
   );
 
   info("Pick all again");
-  for (const { cmd, testFun, numTabPress } of testData) {
+  for (const { cmd, testFun } of testData) {
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
       value: cmd,
     });
-    for (let i = 0; i < numTabPress; i++) {
-      EventUtils.synthesizeKey("KEY_Tab", {}, window);
-    }
+    EventUtils.synthesizeKey("KEY_Tab", {}, window);
     EventUtils.synthesizeKey("KEY_Enter", {}, window);
     await BrowserTestUtils.waitForCondition(() => testFun());
     Assert.ok(true, "The tab correspondent action is selected");
