@@ -261,20 +261,3 @@
 #downloadsFooterButtons > toolbarseparator {
   margin-inline: 0;
 }
-
-/*** Delete files in private browsing subview ***/
-#downloadsPanel-mainView[showing-private-browsing-choice] > .panel-view-body-unscrollable > #downloadsListBox > richlistitem {
-  display: none;
-}
-
-#downloadsPanel-privateBrowsing {
-  padding-inline-start: var(--space-medium);
-}
-
-#downloadsPanel-privateBrowsing > .panel-header {
-  text-align: start;
-}
-
-#downloadsPanel-privateBrowsing > toolbarseparator {
-  display: none;
-}

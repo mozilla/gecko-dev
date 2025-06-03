@@ -75,13 +75,6 @@ ChromeUtils.defineLazyGetter(lazy, "stringBundle", () =>
   )
 );
 
-XPCOMUtils.defineLazyServiceGetter(
-  lazy,
-  "gExternalAppLauncher",
-  "@mozilla.org/uriloader/external-helper-app-service;1",
-  Ci.nsPIExternalAppLauncher
-);
-
 const Timer = Components.Constructor(
   "@mozilla.org/timer;1",
   "nsITimer",
@@ -936,19 +929,6 @@ export var DownloadIntegration = {
         Services.obs.addObserver(DownloadObserver, topic);
       }
     }
-
-    Services.prefs.addObserver(
-      "browser.download.deletePrivate",
-      async function () {
-        let privateDownloadsList = await Downloads.getList(Downloads.PRIVATE);
-        let privateDownloads = await privateDownloadsList.getAll();
-        for (let download of privateDownloads) {
-          lazy.gExternalAppLauncher.deletePrivateFileWhenPossible(
-            new lazy.FileUtils.File(download.target.path)
-          );
-        }
-      }
-    );
     return Promise.resolve();
   },
 

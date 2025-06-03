@@ -27,8 +27,6 @@
   <command id="downloadsCmd_alwaysOpenInSystemViewer" />
   <command id="downloadsCmd_alwaysOpenSimilarFiles" />
   <command id="downloadsCmd_deleteFile" />
-  <command id="downloadsCmd_deletePrivate"/>
-  <command id="downloadsCmd_dismissDeletePrivate"/>
 </commandset>
 
 <!-- For accessibility to screen readers, we use a label on the panel instead
@@ -160,32 +158,6 @@
                 class="footer-button"
                 default="true"/>
       </html:moz-button-group>
-    </panelview>
-
-    <panelview id="downloadsPanel-privateBrowsing"
-               class="PanelUI-subview"
-               data-l10n-id="downloads-private-browsing-details"
-               no-panelview-transition="true"
-               has-custom-header="true"
-               no-back-button="true">
-      <box class="panel-header panel-header-with-additional-element">
-        <html:h1>
-          <html:span/>
-        </html:h1>
-      </box>
-      <vbox class="panel-view-body-unscrollable">
-        <description data-l10n-id="downloads-private-browsing-message"/>
-      </vbox>
-      <html:moz-button-group
-          class="panel-footer">
-        <button class="footer-button secondary"
-                command="downloadsCmd_deletePrivate"
-                data-l10n-id="downloads-private-browsing-delete-button"/>
-        <button class="footer-button primary"
-                default="true"
-                command="downloadsCmd_dismissDeletePrivate"
-                data-l10n-id="downloads-private-browsing-accept-button"/>
-    </html:moz-button-group>
     </panelview>
   </panelmultiview>
 

@@ -107,11 +107,6 @@ interface nsPIExternalAppLauncher : nsISupports
    * the private browsing mode has ended.
    */
   void deleteTemporaryPrivateFileWhenPossible(in nsIFile aTemporaryFile);
-  /**
-   * Delete a file downloaded inside private browsing mode when
-   * the private browsing mode has ended if deletePrivate pref is set to true
-   */
-  void deletePrivateFileWhenPossible(in nsIFile aPrivateFile);
 };
 
 /**
