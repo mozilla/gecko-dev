@@ -97,5 +97,32 @@ void HttpConnectionBase::RecordConnectionCloseTelemetry(nsresult aReason) {
       static_cast<uint32_t>(mCloseReason));
 }
 
+void HttpConnectionBase::RecordConnectionAddressType() {
+  if (mAddressTypeReported) {
+    return;
+  }
+
+  NetAddr addr;
+  GetPeerAddr(&addr);
+  if (addr.GetIpAddressSpace() != nsILoadInfo::IPAddressSpace::Public) {
+    return;
+  }
+
+  if (mConnInfo->UsingProxy()) {
+    return;
+  }
+
+  nsAutoCString key(HttpVersionToTelemetryLabel(Version()));
+
+  if (addr.IsIPAddrV4()) {
+    key.Append("_ipv4");
+  } else {
+    key.Append("_ipv6");
+  }
+
+  mozilla::glean::networking::connection_address_type.Get(key).Add(1);
+  mAddressTypeReported = true;
+}
+
 }  // namespace net
 }  // namespace mozilla

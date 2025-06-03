@@ -1384,6 +1384,25 @@ networking:
       - no_default_alpn
       - others
 
+  connection_address_type:
+    type: labeled_counter
+    description: Records the IP address family (IPv4 or IPv6) used when an HTTP transaction is dispatched.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968510
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968510
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    labels:
+      - http_1_ipv4
+      - http_2_ipv4
+      - http_3_ipv4
+      - http_1_ipv6
+      - http_2_ipv6
+      - http_3_ipv6
+
 opaque.response.blocking:
   javascript_validation_count:
     type: counter

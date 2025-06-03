@@ -516,6 +516,12 @@ void nsHttpTransaction::OnActivated() {
   mActivated = true;
   gHttpHandler->ConnMgr()->AddActiveTransaction(this);
   FinalizeConnInfo();
+  if (mConnection) {
+    RefPtr<HttpConnectionBase> conn = mConnection->HttpConnection();
+    if (conn) {
+      conn->RecordConnectionAddressType();
+    }
+  }
 }
 
 void nsHttpTransaction::GetSecurityCallbacks(nsIInterfaceRequestor** cb) {
