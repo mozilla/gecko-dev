@@ -34,6 +34,12 @@ class SecretSettingsFragment :
             isChecked = context.settings.useProductionRemoteSettingsServer
             onPreferenceChangeListener = SharedPreferenceUpdater()
         }
+
+        requirePreference<SwitchPreferenceCompat>(R.string.pref_key_use_remote_search_configuration).apply {
+            isVisible = true
+            isChecked = context.settings.useRemoteSearchConfiguration
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {

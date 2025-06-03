@@ -23,4 +23,7 @@
 
     <!-- Label for using remote settings server url. -->
     <string name="preferences_debug_settings_remote_settings_server" translatable="false">Use Remote Settings Production server \n(Staging will be used when disabled) \n(requires restart)</string>
+
+    <!-- Label for enabling remote search configuration -->
+    <string name="preferences_debug_settings_remote_search_configuration" translatable="false">Enable Remote Search Configuration (requires restart)</string>
 </resources>

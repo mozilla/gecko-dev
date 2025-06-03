@@ -43,6 +43,15 @@ features:
         value: {
           "is-cookie-handling-enabled": true
         }
+  remote-search-configuration:
+    description: Feature to use search configurations from remote servers.
+    variables:
+      enabled:
+        description: >
+          Uses search configuration from remote servers .
+        type: Boolean
+        default: false
+
 types:
   objects: { }
   enums: { }
