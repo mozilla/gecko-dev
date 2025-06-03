@@ -23,19 +23,19 @@ android {
 }
 
 dependencies {
-    api project(':components:concept-toolbar')
-    api project(':components:ui-autocomplete')
-    api project(':components:support-base')
+    api project(':concept-toolbar')
+    api project(':ui-autocomplete')
+    api project(':support-base')
 
-    implementation project(':components:concept-engine')
-    implementation project(':components:concept-menu')
-    implementation project(':components:browser-menu')
-    implementation project(':components:browser-menu2')
-    implementation project(':components:ui-icons')
-    implementation project(':components:ui-colors')
-    implementation project(':components:ui-widgets')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-utils')
+    implementation project(':concept-engine')
+    implementation project(':concept-menu')
+    implementation project(':browser-menu')
+    implementation project(':browser-menu2')
+    implementation project(':ui-icons')
+    implementation project(':ui-colors')
+    implementation project(':ui-widgets')
+    implementation project(':support-ktx')
+    implementation project(':support-utils')
 
     implementation libs.androidx.appcompat
     implementation libs.androidx.constraintlayout
@@ -44,7 +44,7 @@ dependencies {
 
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

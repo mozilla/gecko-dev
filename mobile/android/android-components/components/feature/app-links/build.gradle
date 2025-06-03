@@ -27,18 +27,18 @@ android {
 }
 
 dependencies {
-    implementation project(':components:browser-state')
-    implementation project(':components:concept-engine')
-    implementation project(':components:support-base')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-utils')
-    implementation project(':components:feature-session')
-    implementation project(':components:ui-widgets')
+    implementation project(':browser-state')
+    implementation project(':concept-engine')
+    implementation project(':support-base')
+    implementation project(':support-ktx')
+    implementation project(':support-utils')
+    implementation project(':feature-session')
+    implementation project(':ui-widgets')
 
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':components:support-test')
-    testImplementation project(':components:support-test-libstate')
+    testImplementation project(':support-test')
+    testImplementation project(':support-test-libstate')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.coroutines

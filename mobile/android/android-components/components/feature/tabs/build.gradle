@@ -26,20 +26,20 @@ android {
 }
 
 dependencies {
-    implementation project(':components:browser-state')
-    implementation project(':components:browser-session-storage')
-    implementation project(':components:browser-thumbnails')
-    implementation project(':components:browser-tabstray')
-    implementation project(':components:browser-toolbar')
-    api project(':components:feature-session')
-    implementation project(':components:concept-engine')
-    implementation project(':components:concept-tabstray')
-    implementation project(':components:concept-toolbar')
-    implementation project(':components:concept-menu')
-    implementation project(':components:ui-icons')
-    implementation project(':components:ui-tabcounter')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-base')
+    implementation project(':browser-state')
+    implementation project(':browser-session-storage')
+    implementation project(':browser-thumbnails')
+    implementation project(':browser-tabstray')
+    implementation project(':browser-toolbar')
+    api project(':feature-session')
+    implementation project(':concept-engine')
+    implementation project(':concept-tabstray')
+    implementation project(':concept-toolbar')
+    implementation project(':concept-menu')
+    implementation project(':ui-icons')
+    implementation project(':ui-tabcounter')
+    implementation project(':support-ktx')
+    implementation project(':support-base')
 
     implementation libs.androidx.fragment
     implementation libs.androidx.recyclerview
@@ -47,14 +47,14 @@ dependencies {
     implementation libs.kotlin.coroutines
 
     // In tests we are constructing our own SessionManager instance which needs to know about an "engine".
-    testImplementation project(':components:concept-engine')
+    testImplementation project(':concept-engine')
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.coroutines
     testImplementation libs.testing.robolectric
-    testImplementation project(":components:support-test-libstate")
+    testImplementation project(":support-test-libstate")
 }
 
 apply from: '../../../android-lint.gradle'

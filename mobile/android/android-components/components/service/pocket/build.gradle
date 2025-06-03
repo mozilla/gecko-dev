@@ -65,9 +65,9 @@ dependencies {
     implementation libs.androidx.room.runtime
     ksp libs.androidx.room.compiler
 
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-base')
-    implementation project(':components:concept-fetch')
+    implementation project(':support-ktx')
+    implementation project(':support-base')
+    implementation project(':concept-fetch')
 
     testImplementation libs.kotlin.reflect
 
@@ -80,10 +80,10 @@ dependencies {
     testImplementation libs.androidx.room.testing
     testImplementation libs.androidx.work.testing
 
-    testImplementation project(':components:support-test')
-    testImplementation project(':components:lib-fetch-httpurlconnection')
+    testImplementation project(':support-test')
+    testImplementation project(':lib-fetch-httpurlconnection')
 
-    androidTestImplementation project(':components:support-android-test')
+    androidTestImplementation project(':support-android-test')
 
     androidTestImplementation libs.androidx.room.testing
     androidTestImplementation libs.androidx.arch.core.testing

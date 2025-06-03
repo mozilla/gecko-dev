@@ -32,12 +32,12 @@ dependencies {
     implementation libs.kotlin.coroutines
     implementation libs.play.services.base
 
-    implementation project(':components:concept-push')
-    implementation project(':components:support-base')
+    implementation project(':concept-push')
+    implementation project(':support-base')
 
     api libs.firebase.messaging
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.junit.vintage

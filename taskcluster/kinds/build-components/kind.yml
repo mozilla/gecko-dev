@@ -11,7 +11,7 @@ transforms:
     - gecko_taskgraph.transforms.task:transforms
 
 not-for-components:
-    - components:samples-browser   # Their configs are too different, so they're handled in a specific kind
+    - samples-browser   # Their configs are too different, so they're handled in a specific kind
 
 kind-dependencies:
     - toolchain
@@ -78,19 +78,19 @@ task-defaults:
                 default:
                     by-component:
                         # No lintRelease on this task, gradle task isn't defined
-                        components:tooling-lint:
+                        tooling-lint:
                             - ':{component}:assemble'
                             - ':{component}:assembleAndroidTest'
                             - ':{component}:test'
                             - ':{component}:lint'
                         # No testRelease on this task, gradle task isn't defined
-                        components:tooling-detekt:
+                        tooling-detekt:
                             - ':{component}:assemble'
                             - ':{component}:assembleAndroidTest'
                             - ':{component}:test'
                             - ':{component}:lintRelease'
                         # No publish on these tasks
-                        components:tooling-fetch-tests|components:samples-.*:
+                        tooling-fetch-tests|samples-.*:
                             - ':{component}:assemble'
                             - ':{component}:assembleAndroidTest'
                             - ':{component}:testRelease'

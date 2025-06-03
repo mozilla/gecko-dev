@@ -23,14 +23,14 @@ android {
 }
 
 dependencies {
-    implementation project(':components:concept-engine')
-    implementation project(':components:support-webextensions')
+    implementation project(':concept-engine')
+    implementation project(':support-webextensions')
 
     implementation libs.androidx.core.ktx
 
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric

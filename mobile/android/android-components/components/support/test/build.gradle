@@ -32,8 +32,8 @@ android {
 }
 
 dependencies {
-    implementation project(':components:concept-fetch')
-    implementation project(':components:support-base')
+    implementation project(':concept-fetch')
+    implementation project(':support-base')
 
     implementation libs.kotlin.coroutines
     implementation libs.kotlin.reflect
@@ -52,7 +52,7 @@ dependencies {
 
     testImplementation libs.androidx.core
     testImplementation libs.androidx.test.junit
-    testImplementation project(':components:support-ktx')
+    testImplementation project(':support-ktx')
 }
 
 apply from: '../../../android-lint.gradle'
