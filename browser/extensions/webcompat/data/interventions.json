@@ -1903,6 +1903,23 @@
       }
     ]
   },
+  "1890762": {
+    "label": "urvaerket.dk",
+    "bugs": {
+      "1890762": {
+        "issue": "broken-scrolling",
+        "matches": ["*://*.urvaerket.dk/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["android"],
+        "content_scripts": {
+          "css": ["bug1890762-urvaerket.dk-fix-mobile-filter-scrolling.css"]
+        }
+      }
+    ]
+  },
   "1892898": {
     "label": "investopedia.com",
     "bugs": {

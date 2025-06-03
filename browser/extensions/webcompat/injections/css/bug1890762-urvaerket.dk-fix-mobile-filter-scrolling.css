@@ -1,0 +1,18 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * salling.dk - filters cannot be scrolled on the mobile layout
+ * Bug #1890762 - https://bugzilla.mozilla.org/show_bug.cgi?id=1890762
+ * WebCompat issue #75895 - https://github.com/webcompat/web-bugs/issues/75895
+ *
+ * They are relying on containers with display:inline-table and a definite height
+ * set with JS to propagate that value to relative-height children, which breaks
+ * the scrolling on those children. This CSS works around the problem.
+ */
+@media (max-width: 767px) {
+  .filter.open {
+    display: block;
+  }
+}
