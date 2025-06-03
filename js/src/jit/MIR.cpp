@@ -855,13 +855,6 @@ size_t MDefinition::defUseCount() const {
 }
 #endif
 
-bool MDefinition::updateWasmRefType() {
-  wasm::MaybeRefType newRefType = computeWasmRefType();
-  bool changed = wasmRefType_ != newRefType;
-  setWasmRefType(newRefType);
-  return changed;
-}
-
 bool MDefinition::hasOneUse() const {
   MUseIterator i(uses_.begin());
   if (i == uses_.end()) {

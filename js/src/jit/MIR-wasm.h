@@ -2551,8 +2551,7 @@ class MWasmLoadField : public MBinaryInstruction, public NoTypePolicy::Data {
            offset() == other->offset() &&
            structFieldIndex() == other->structFieldIndex() &&
            wideningOp() == other->wideningOp() &&
-           getAliasSet().flags() == other->getAliasSet().flags() &&
-           wasmRefType() == other->wasmRefType();
+           getAliasSet().flags() == other->getAliasSet().flags();
   }
 
 #ifdef JS_JITSPEW

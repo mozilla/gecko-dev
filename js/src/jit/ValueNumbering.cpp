@@ -56,7 +56,6 @@ bool ValueNumberer::VisibleValues::ValueHasher::match(Key k, Lookup l) {
 
   bool congruent =
       k->congruentTo(l);  // Ask the values themselves what they think.
-  MOZ_ASSERT_IF(congruent, k->wasmRefType() == l->wasmRefType());
 #ifdef JS_JITSPEW
   if (congruent != l->congruentTo(k)) {
     JitSpew(
@@ -119,9 +118,15 @@ bool ValueNumberer::VisibleValues::has(const MDefinition* def) const {
 // Call MDefinition::justReplaceAllUsesWith, and add some GVN-specific asserts.
 static void ReplaceAllUsesWith(MDefinition* from, MDefinition* to) {
   MOZ_ASSERT(from != to, "GVN shouldn't try to replace a value with itself");
-  MOZ_ASSERT(from->type() == to->type(), "Def replacement has different type");
+  MOZ_ASSERT(from->type() == to->type(),
+             "Def replacement has different MIR type");
   MOZ_ASSERT(!to->isDiscarded(),
              "GVN replaces an instruction by a removed instruction");
+
+  // Update the node's wasm ref type to the LUB of the two nodes being combined.
+  // This ensures that any type-based optimizations downstream remain correct.
+  to->setWasmRefType(wasm::MaybeRefType::leastUpperBound(from->wasmRefType(),
+                                                         to->wasmRefType()));
 
   // We don't need the extra setting of ImplicitlyUsed flags that the regular
   // replaceAllUsesWith does because we do it ourselves.
