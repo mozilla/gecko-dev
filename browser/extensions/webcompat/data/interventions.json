@@ -2982,21 +2982,6 @@
       }
     ]
   },
-  "1930632": {
-    "label": "support.hp.com",
-    "bugs": {
-      "1930632": {
-        "issue": "broken-layout",
-        "matches": ["*://support.hp.com/*"]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "ua_string": ["Chrome"]
-      }
-    ]
-  },
   "1931538": {
     "label": "buzzfeed.com",
     "bugs": {
