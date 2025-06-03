@@ -15,14 +15,9 @@ const TEST_MODULE_URL_1 =
 const TEST_SJS_URL =
   "https://example.net/browser/dom/tests/browser/counter_server.sjs";
 
-async function testScriptCacheAndPartition({
-  enableCache,
-  type,
-}) {
+async function testScriptCacheAndPartition({ enableCache, type }) {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["dom.script_loader.navigation_cache", enableCache],
-    ],
+    set: [["dom.script_loader.navigation_cache", enableCache]],
   });
   registerCleanupFunction(() => SpecialPowers.popPrefEnv());
 
