@@ -59,6 +59,9 @@ const VIEW_TEMPLATE = {
         {
           name: "output",
           tag: "strong",
+          attributes: {
+            dir: "ltr",
+          },
         },
         {
           name: "action",
