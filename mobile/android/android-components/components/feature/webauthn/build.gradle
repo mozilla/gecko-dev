@@ -23,9 +23,9 @@ android {
 }
 
 dependencies {
-    implementation project(':components:concept-engine')
+    implementation project(':concept-engine')
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

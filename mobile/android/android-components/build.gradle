@@ -144,7 +144,7 @@ subprojects {
             }
 
             dependencies {
-                lintChecks project(':components:tooling-lint')
+                lintChecks project(':tooling-lint')
             }
 
             kotlin {
@@ -286,7 +286,7 @@ detekt {
 tasks.withType(Detekt).configureEach() {
     // Custom detekt rules should be built before.
     // See https://detekt.dev/docs/introduction/extensions#pitfalls
-    dependsOn(":components:tooling-detekt:assemble")
+    dependsOn(":tooling-detekt:assemble")
 
     autoCorrect = true
 
@@ -305,16 +305,16 @@ tasks.withType(Detekt).configureEach() {
 
 // Apply same path exclusions as for the main task
 tasks.withType(DetektCreateBaselineTask).configureEach() {
-    dependsOn(":components:browser-icons:updateBuiltInExtensionVersion")
-    dependsOn(":components:feature-accounts:updateBuiltInExtensionVersion")
-    dependsOn(":components:feature-readerview:updateBuiltInExtensionVersion")
-    dependsOn(":components:feature-search:updateAdsExtensionVersion")
-    dependsOn(":components:feature-search:updateCookiesExtensionVersion")
-    dependsOn(":components:samples-browser:updateBorderifyExtensionVersion")
-    dependsOn(":components:samples-browser:updateTestExtensionVersion")
-    dependsOn(":components:samples-compose-browser:updateBorderifyExtensionVersion")
-    dependsOn(":components:samples-compose-browser:updateTestExtensionVersion")
-    dependsOn(":components:tooling-detekt:assemble")
+    dependsOn(":browser-icons:updateBuiltInExtensionVersion")
+    dependsOn(":feature-accounts:updateBuiltInExtensionVersion")
+    dependsOn(":feature-readerview:updateBuiltInExtensionVersion")
+    dependsOn(":feature-search:updateAdsExtensionVersion")
+    dependsOn(":feature-search:updateCookiesExtensionVersion")
+    dependsOn(":samples-browser:updateBorderifyExtensionVersion")
+    dependsOn(":samples-browser:updateTestExtensionVersion")
+    dependsOn(":samples-compose-browser:updateBorderifyExtensionVersion")
+    dependsOn(":samples-compose-browser:updateTestExtensionVersion")
+    dependsOn(":tooling-detekt:assemble")
 
     exclude "**/build.gradle.kts"
     exclude "**/build/**"
@@ -339,7 +339,7 @@ dependencies {
             attribute(Bundling.BUNDLING_ATTRIBUTE, getObjects().named(Bundling, Bundling.EXTERNAL))
         }
     }
-    detektPlugins project(":components:tooling-detekt")
+    detektPlugins project(":tooling-detekt")
 }
 
 tasks.register("ktlint", JavaExec) {

@@ -26,12 +26,12 @@ dependencies {
     implementation libs.androidx.annotation
     implementation libs.androidx.appcompat
     implementation libs.androidx.core.ktx
-    api project(':components:support-base')
-    implementation project(':components:support-ktx')
+    api project(':support-base')
+    implementation project(':support-ktx')
 
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 }
 
 apply from: '../../../android-lint.gradle'

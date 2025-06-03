@@ -32,18 +32,18 @@ android {
 }
 
 dependencies {
-    api project(":components:ui-autocomplete")
-    implementation project(":components:compose-base")
-    implementation project(":components:concept-engine")
-    implementation project(":components:concept-menu")
-    implementation project(":components:browser-menu2")
-    implementation project(":components:browser-state")
-    implementation project(":components:feature-session")
-    implementation project(":components:lib-state")
-    implementation project(":components:ui-icons")
-    implementation project(":components:ui-tabcounter")
-    implementation project(":components:support-ktx")
-    implementation project(":components:support-utils")
+    api project(":ui-autocomplete")
+    implementation project(":compose-base")
+    implementation project(":concept-engine")
+    implementation project(":concept-menu")
+    implementation project(":browser-menu2")
+    implementation project(":browser-state")
+    implementation project(":feature-session")
+    implementation project(":lib-state")
+    implementation project(":ui-icons")
+    implementation project(":ui-tabcounter")
+    implementation project(":support-ktx")
+    implementation project(":support-utils")
     implementation libs.accompanist.drawablepainter
     implementation libs.androidx.compose.ui
     implementation libs.androidx.compose.ui.tooling.preview
@@ -54,7 +54,7 @@ dependencies {
 
     debugImplementation libs.androidx.compose.ui.tooling
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
     testImplementation libs.androidx.compose.ui.test
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

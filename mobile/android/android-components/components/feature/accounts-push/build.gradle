@@ -27,20 +27,20 @@ android {
 }
 
 dependencies {
-    implementation project(':components:browser-state')
-    implementation project(':components:service-firefox-accounts')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-base')
-    implementation project(':components:concept-push')
-    implementation project(':components:feature-push')
+    implementation project(':browser-state')
+    implementation project(':service-firefox-accounts')
+    implementation project(':support-ktx')
+    implementation project(':support-base')
+    implementation project(':concept-push')
+    implementation project(':feature-push')
 
     implementation libs.androidx.work.runtime
     implementation libs.androidx.lifecycle.process
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':components:concept-engine')
-    testImplementation project(':components:support-test')
-    testImplementation project(':components:support-test-libstate')
+    testImplementation project(':concept-engine')
+    testImplementation project(':support-test')
+    testImplementation project(':support-test-libstate')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

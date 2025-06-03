@@ -44,12 +44,12 @@ android {
 }
 
 dependencies {
-    implementation project(':components:browser-state')
-    implementation project(':components:concept-engine')
-    implementation project(':components:ui-icons')
-    implementation project(':components:support-ktx')
-    implementation project(':components:feature-tabs')
-    implementation project(':components:support-utils')
+    implementation project(':browser-state')
+    implementation project(':concept-engine')
+    implementation project(':ui-icons')
+    implementation project(':support-ktx')
+    implementation project(':feature-tabs')
+    implementation project(':support-utils')
 
     implementation libs.kotlin.coroutines
 
@@ -60,14 +60,14 @@ dependencies {
     implementation libs.androidx.room.runtime
     ksp libs.androidx.room.compiler
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.coroutines
 
-    androidTestImplementation project(':components:support-android-test')
+    androidTestImplementation project(':support-android-test')
 
     androidTestImplementation libs.androidx.room.testing
     androidTestImplementation libs.androidx.test.core

@@ -25,8 +25,8 @@ android {
 }
 
 dependencies {
-    implementation project(':components:support-ktx')
-    implementation project(':components:lib-dataprotect')
+    implementation project(':support-ktx')
+    implementation project(':lib-dataprotect')
 
     implementation libs.kotlin.coroutines
 

@@ -72,10 +72,10 @@ dependencies {
 
     implementation ComponentsDependencies.mozilla_appservices_nimbus
 
-    implementation project(':components:support-base')
-    implementation project(':components:support-locale')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-utils')
+    implementation project(':support-base')
+    implementation project(':support-locale')
+    implementation project(':support-ktx')
+    implementation project(':support-utils')
 
     // We only compile against GeckoView and Glean. It's up to the app to add those dependencies if it wants to
     // send crash reports to Socorro (GV).
@@ -89,7 +89,7 @@ dependencies {
     testImplementation libs.testing.coroutines
     testImplementation libs.mozilla.glean.forUnitTests
     testImplementation libs.androidx.work.testing
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
     testImplementation libs.mozilla.glean
 }
 
