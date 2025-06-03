@@ -1436,8 +1436,9 @@ void RTCRtpSender::UpdateParametersCodecs() {
         *GetJsepTransceiver().mSendTrack.GetNegotiatedDetails());
     if (details.GetEncodingCount()) {
       for (const auto& jsepCodec : details.GetEncoding(0).GetCodecs()) {
-        if (!jsepCodec->DirectionSupported(sdp::kSend)) {
-          // Sending this codec is unsupported.
+        if (!jsepCodec->mEnabled ||
+            !jsepCodec->DirectionSupported(sdp::kSend)) {
+          // This codec is disabled or sending it is unsupported.
           continue;
         }
         RTCRtpCodecParameters codec;

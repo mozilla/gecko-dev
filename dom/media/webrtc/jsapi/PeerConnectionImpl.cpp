@@ -2086,23 +2086,16 @@ void PeerConnectionImpl::GetCapabilities(
 
   GetDefaultRtpExtensions(headers);
 
-  const bool redUlpfecEnabled =
-      Preferences::GetBool("media.navigator.video.red_ulpfec_enabled", false);
   bool haveAddedRtx = false;
 
   // Use the codecs for kind to fill out the RTCRtpCodec
   for (const auto& codec : codecs) {
-    // To avoid misleading information on codec capabilities skip those
-    // not signaled for audio/video (webrtc-datachannel)
-    // and any disabled by pref (ulpfec and red).
-    if (codec->mName == "webrtc-datachannel" ||
-        (codec->mName == "ulpfec" && !redUlpfecEnabled) ||
-        (codec->mName == "red" && !redUlpfecEnabled)) {
-      continue;
-    }
-
-    if (!codec->DirectionSupported(aDirection)) {
-      // Skip recvonly codecs for send capabilities.
+    // To avoid misleading information on codec capabilities skip:
+    // - Any disabled by pref
+    // - Recvonly codecs for send capabilities -- we have no sendonly codecs
+    // - Those not signaled for audio/video (webrtc-datachannel)
+    if (!codec->mEnabled || !codec->DirectionSupported(aDirection) ||
+        codec->mName == "webrtc-datachannel") {
       continue;
     }
 
