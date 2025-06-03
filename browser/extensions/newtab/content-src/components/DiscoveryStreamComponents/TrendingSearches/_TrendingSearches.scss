@@ -1,0 +1,54 @@
+.trending-searches-list-view {
+  &:not(.placeholder) {
+    border-radius: var(--border-radius-large);
+    box-shadow: var(--box-shadow-card);
+    background: var(--newtab-background-card);
+
+    h3 {
+      font-size: var(--font-size-root);
+      padding-block: var(--space-medium) var(--space-small);
+      border-block-end: 0.5px solid var(--newtab-button-static-hover-background);
+      margin-block: 0;
+      margin-inline: var(--space-large);
+    }
+
+    .trending-searches-list-items {
+      list-style: none;
+      padding-inline: var(--space-small);
+      margin-block: 0;
+    }
+
+    .trending-searches-list-item {
+      padding: var(--space-medium) var(--space-small);
+      border-radius: var(--border-radius-medium);
+
+      &:hover {
+        background-color: var(--newtab-background-color);
+      }
+
+      &:focus-within {
+        outline: var(--focus-outline);
+      }
+
+      .trending-searches-icon {
+        color: var(--newtab-text-primary-color);
+        margin-inline: var(--space-medium);
+      }
+    }
+
+    .trending-searches-list-item a {
+      color: var(--newtab-text-primary-color);
+      text-decoration: none;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      display: -webkit-box;
+      word-break: break-word;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &:focus {
+        outline: none;
+      }
+    }
+  }
+}

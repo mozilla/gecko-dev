@@ -273,6 +273,7 @@ for (const type of [
   "TOP_SITES_UPDATED",
   "TOTAL_BOOKMARKS_REQUEST",
   "TOTAL_BOOKMARKS_RESPONSE",
+  "TRENDING_SEARCH_TOGGLE_COLLAPSE",
   "TRENDING_SEARCH_UPDATE",
   "UNBLOCK_SECTION",
   "UNFOLLOW_SECTION",
@@ -4926,10 +4927,87 @@ const AdBanner = ({
     "data-l10n-id": "newtab-label-sponsored-fixed"
   }))));
 };
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/TrendingSearches/TrendingSearches.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+const PREF_TRENDING_VARIANT = "trendingSearch.variant";
+function TrendingSearches() {
+  const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
+  const {
+    TrendingSearch,
+    Prefs
+  } = (0,external_ReactRedux_namespaceObject.useSelector)(state => state);
+  const {
+    values: prefs
+  } = Prefs;
+  const {
+    suggestions,
+    collapsed
+  } = TrendingSearch;
+  const variant = prefs[PREF_TRENDING_VARIANT];
+  function onArrowClick() {
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.TRENDING_SEARCH_TOGGLE_COLLAPSE
+    }));
+  }
+  if (variant === "a") {
+    return /*#__PURE__*/external_React_default().createElement("section", {
+      className: "trending-searches-pill-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "trending-searches-title-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("span", {
+      className: "trending-searches-icon icon icon-arrow-trending"
+    }), /*#__PURE__*/external_React_default().createElement("h2", {
+      className: "trending-searches-title",
+      "data-l10n-id": "newtab-trending-searches-trending-on-google"
+    }), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "close-open-trending-searches"
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+      iconsrc: `chrome://global/skin/icons/arrow-${!collapsed ? "up" : "down"}.svg`,
+      onClick: onArrowClick,
+      className: `icon icon-arrowhead-up`,
+      "data-l10n-id": `newtab-trending-searches-${collapsed ? "hide" : "show"}-trending`,
+      type: "icon ghost"
+    }))), !collapsed && /*#__PURE__*/external_React_default().createElement("ul", {
+      className: "trending-searches-list"
+    }, suggestions.map((result, index) => {
+      return /*#__PURE__*/external_React_default().createElement("li", {
+        key: index,
+        className: "trending-search-item"
+      }, /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
+        url: ""
+      }, result.lowerCaseSuggestion));
+    })));
+  } else if (variant === "b") {
+    return /*#__PURE__*/external_React_default().createElement("div", {
+      className: "trending-searches-list-view"
+    }, /*#__PURE__*/external_React_default().createElement("h3", {
+      "data-l10n-id": "newtab-trending-searches-trending-on-google"
+    }), /*#__PURE__*/external_React_default().createElement("ul", {
+      className: "trending-searches-list-items"
+    }, suggestions.slice(0, 6).map(result => /*#__PURE__*/external_React_default().createElement("li", {
+      key: result.suggestion,
+      className: "trending-searches-list-item"
+    }, /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
+      url: "",
+      title: result.suggestion
+    }, /*#__PURE__*/external_React_default().createElement("span", {
+      className: "trending-searches-icon icon icon-arrow-trending"
+    }), result.lowerCaseSuggestion)))));
+  }
+}
+
 ;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/CardGrid/CardGrid.jsx
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -4956,6 +5034,8 @@ const PREF_BILLBOARD_ENABLED = "newtabAdSize.billboard";
 const PREF_LEADERBOARD_ENABLED = "newtabAdSize.leaderboard";
 const PREF_LEADERBOARD_POSITION = "newtabAdSize.leaderboard.position";
 const PREF_BILLBOARD_POSITION = "newtabAdSize.billboard.position";
+const PREF_TRENDING_SEARCH = "trendingSearch.enabled";
+const PREF_TRENDING_SEARCH_VARIANT = "trendingSearch.variant";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
 const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -5239,6 +5319,8 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const listFeedSelectedFeed = prefs[PREF_LIST_FEED_SELECTED_FEED];
     const billboardEnabled = prefs[PREF_BILLBOARD_ENABLED];
     const leaderboardEnabled = prefs[PREF_LEADERBOARD_ENABLED];
+    const trendingEnabled = prefs[PREF_TRENDING_SEARCH];
+    const trendingVariant = prefs[PREF_TRENDING_SEARCH_VARIANT];
 
     // filter out recs that should be in ListFeed
     const recs = this.props.data.recommendations.filter(item => !item.feedName).slice(0, items);
@@ -5333,6 +5415,9 @@ class _CardGrid extends (external_React_default()).PureComponent {
         // Place the list feed as the 3rd element in the card grid
         cards.splice(2, 1, this.renderListFeed(this.props.data.recommendations, listFeedSelectedFeed));
       }
+    }
+    if (trendingEnabled && trendingVariant === "b") {
+      cards.splice(1, 1, /*#__PURE__*/external_React_default().createElement(TrendingSearches, null));
     }
 
     // if a banner ad is enabled and we have any available, place them in the grid
@@ -7581,6 +7666,7 @@ const INITIAL_STATE = {
   },
   TrendingSearch: {
     suggestions: [],
+    collapsed: false,
   },
 };
 
@@ -8523,7 +8609,9 @@ function Ads(prevState = INITIAL_STATE.Ads, action) {
 function TrendingSearch(prevState = INITIAL_STATE.TrendingSearch, action) {
   switch (action.type) {
     case actionTypes.TRENDING_SEARCH_UPDATE:
-      return { suggestions: action.data };
+      return { ...prevState, suggestions: action.data };
+    case actionTypes.TRENDING_SERACH_TOGGLE_COLLAPSE:
+      return { ...prevState, collapsed: !prevState.collapsed };
     default:
       return prevState;
   }

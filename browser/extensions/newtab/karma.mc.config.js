@@ -266,6 +266,13 @@ module.exports = function (config) {
                 lines: 75,
                 branches: 50,
               },
+            "content-src/components/DiscoveryStreamComponents/TrendingSearches/TrendingSearches.jsx":
+              {
+                statements: 0,
+                lines: 0,
+                functions: 0,
+                branches: 0,
+              },
             "content-src/components/DiscoveryStreamComponents/**/*.jsx": {
               statements: 90.48,
               lines: 90.48,

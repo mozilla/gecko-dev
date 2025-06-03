@@ -176,6 +176,7 @@ export const INITIAL_STATE = {
   },
   TrendingSearch: {
     suggestions: [],
+    collapsed: false,
   },
 };
 
@@ -1118,7 +1119,9 @@ function Ads(prevState = INITIAL_STATE.Ads, action) {
 function TrendingSearch(prevState = INITIAL_STATE.TrendingSearch, action) {
   switch (action.type) {
     case at.TRENDING_SEARCH_UPDATE:
-      return { suggestions: action.data };
+      return { ...prevState, suggestions: action.data };
+    case at.TRENDING_SERACH_TOGGLE_COLLAPSE:
+      return { ...prevState, collapsed: !prevState.collapsed };
     default:
       return prevState;
   }
