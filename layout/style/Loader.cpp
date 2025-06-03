@@ -2298,10 +2298,7 @@ nsIPrincipal* Loader::LoaderPrincipal() const {
 }
 
 nsIPrincipal* Loader::PartitionedPrincipal() const {
-  if (mDocument && StaticPrefs::privacy_partition_network_state()) {
-    return mDocument->PartitionedPrincipal();
-  }
-  return LoaderPrincipal();
+  return mDocument ? mDocument->PartitionedPrincipal() : LoaderPrincipal();
 }
 
 bool Loader::ShouldBypassCache() const {

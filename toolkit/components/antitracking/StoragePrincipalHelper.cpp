@@ -541,31 +541,19 @@ bool StoragePrincipalHelper::GetRegularPrincipalOriginAttributes(
 // static
 bool StoragePrincipalHelper::GetOriginAttributesForNetworkState(
     nsIChannel* aChannel, OriginAttributes& aAttributes) {
-  return StoragePrincipalHelper::GetOriginAttributes(
-      aChannel, aAttributes,
-      StaticPrefs::privacy_partition_network_state() ? ePartitionedPrincipal
-                                                     : eRegularPrincipal);
+  return StoragePrincipalHelper::GetOriginAttributes(aChannel, aAttributes,
+                                                     ePartitionedPrincipal);
 }
 
 // static
 void StoragePrincipalHelper::GetOriginAttributesForNetworkState(
     dom::Document* aDocument, OriginAttributes& aAttributes) {
-  aAttributes = aDocument->NodePrincipal()->OriginAttributesRef();
-
-  if (!StaticPrefs::privacy_partition_network_state()) {
-    return;
-  }
-
   aAttributes = aDocument->PartitionedPrincipal()->OriginAttributesRef();
 }
 
 // static
 void StoragePrincipalHelper::UpdateOriginAttributesForNetworkState(
     nsIURI* aFirstPartyURI, OriginAttributes& aAttributes) {
-  if (!StaticPrefs::privacy_partition_network_state()) {
-    return;
-  }
-
   aAttributes.SetPartitionKey(aFirstPartyURI, false);
 }
 

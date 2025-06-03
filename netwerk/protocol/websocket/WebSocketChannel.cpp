@@ -544,10 +544,8 @@ class nsWSAdmissionManager {
 
   int32_t IndexOf(nsCString& aAddress, nsCString& aOriginSuffix) {
     for (uint32_t i = 0; i < mQueue.Length(); i++) {
-      bool isPartitioned = StaticPrefs::privacy_partition_network_state() ||
-                           StaticPrefs::privacy_firstparty_isolate();
-      if (aAddress == (mQueue[i])->mAddress &&
-          (!isPartitioned || aOriginSuffix == (mQueue[i])->mOriginSuffix)) {
+      if (aAddress == mQueue[i]->mAddress &&
+          aOriginSuffix == mQueue[i]->mOriginSuffix) {
         return i;
       }
     }
@@ -556,7 +554,9 @@ class nsWSAdmissionManager {
 
   int32_t IndexOf(WebSocketChannel* aChannel) {
     for (uint32_t i = 0; i < mQueue.Length(); i++) {
-      if (aChannel == (mQueue[i])->mChannel) return i;
+      if (aChannel == mQueue[i]->mChannel) {
+        return i;
+      }
     }
     return -1;
   }

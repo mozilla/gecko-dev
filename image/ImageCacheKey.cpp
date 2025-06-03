@@ -32,10 +32,8 @@ static nsIPrincipal* GetLoaderPrincipal(Document* aDocument) {
 }
 
 static nsIPrincipal* GetPartitionPrincipal(Document* aDocument) {
-  if (aDocument && StaticPrefs::privacy_partition_network_state()) {
-    return aDocument->PartitionedPrincipal();
-  }
-  return GetLoaderPrincipal(aDocument);
+  return aDocument ? aDocument->PartitionedPrincipal()
+                   : nsContentUtils::GetSystemPrincipal();
 }
 
 ImageCacheKey::ImageCacheKey(nsIURI* aURI, CORSMode aCORSMode,

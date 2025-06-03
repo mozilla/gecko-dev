@@ -13,10 +13,7 @@ using mozilla::BasePrincipal;
 
 gfxFontSrcPrincipal::gfxFontSrcPrincipal(nsIPrincipal* aNodePrincipal,
                                          nsIPrincipal* aStoragePrincipal)
-    : mNodePrincipal(aNodePrincipal),
-      mStoragePrincipal(mozilla::StaticPrefs::privacy_partition_network_state()
-                            ? aStoragePrincipal
-                            : aNodePrincipal) {
+    : mNodePrincipal(aNodePrincipal), mStoragePrincipal(aStoragePrincipal) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aNodePrincipal);
   MOZ_ASSERT(aStoragePrincipal);

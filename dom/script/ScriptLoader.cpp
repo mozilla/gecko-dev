@@ -332,10 +332,7 @@ nsIPrincipal* ScriptLoader::LoaderPrincipal() const {
 }
 
 nsIPrincipal* ScriptLoader::PartitionedPrincipal() const {
-  if (mDocument && StaticPrefs::privacy_partition_network_state()) {
-    return mDocument->PartitionedPrincipal();
-  }
-  return LoaderPrincipal();
+  return mDocument->PartitionedPrincipal();
 }
 
 bool ScriptLoader::ShouldBypassCache() const {
