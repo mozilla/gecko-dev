@@ -366,6 +366,8 @@
   <string name="browser_menu_save_description">添加书签、快捷方式、主页、收藏集、PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">将此页面加入书签</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">将页面加入书签</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">编辑书签</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -385,6 +387,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">已翻译成%1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">已翻译</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">打印…</string>
   <!--
@@ -1579,6 +1583,8 @@
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">测算中</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">下载失败</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">详细信息</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">搜索下载项</string>
   <!-- Text to indicate that no downloads match the search query. -->
