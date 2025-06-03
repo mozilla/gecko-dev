@@ -22,6 +22,8 @@ static const char* SameSiteToString(uint32_t aSameSite) {
       return "lax";
     case nsICookie::SAMESITE_STRICT:
       return "strict";
+    case nsICookie::SAMESITE_UNSET:
+      return "unset";
     default:
       MOZ_CRASH("Invalid nsICookie sameSite value");
       return "";
