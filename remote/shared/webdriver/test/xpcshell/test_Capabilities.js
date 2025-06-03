@@ -338,6 +338,12 @@ add_task(function test_Proxy_fromJSON() {
     /InvalidArgumentError/
   );
 
+  // missing required socks proxy
+  Assert.throws(
+    () => Proxy.fromJSON({ proxyType: "manual", socksVersion: 4 }),
+    /InvalidArgumentError/
+  );
+
   // Bug 1703805: Since Firefox 90 ftpProxy is no longer supported
   Assert.throws(
     () => Proxy.fromJSON({ proxyType: "manual", ftpProxy: "foo:21" }),

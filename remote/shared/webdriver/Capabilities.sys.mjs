@@ -365,6 +365,14 @@ export class Proxy {
             lazy.pprint`Expected "socksVersion" to be a positive integer, got ${json.socksVersion}`
           );
         }
+        if (
+          typeof json.socksVersion != "undefined" &&
+          typeof json.socksProxy == "undefined"
+        ) {
+          throw new lazy.error.InvalidArgumentError(
+            `Expected "socksProxy" to be provided if "socksVersion" is provided, got ${json.socksProxy}`
+          );
+        }
         if (typeof json.noProxy != "undefined") {
           let entries = lazy.assert.array(
             json.noProxy,
