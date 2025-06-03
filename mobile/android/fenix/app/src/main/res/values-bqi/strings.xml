@@ -105,6 +105,8 @@
     Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar.
   -->
   <string name="navbar_cfr_title" moz:removedIn="140" tools:ignore="UnusedResources">وا ناوبری نۊ زیتر گشت بزنین</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+  <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">من ی وبگه ای نوار مجال اسکرۊل و بلم سی جاگه قلوه گشتن، بؽڌار ابۊ.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">سی جا گورویی منجا بلگه یل من ویرگار ای بلگه، فلشا ن واڌارنین.</string>
   <!--
@@ -521,6 +523,8 @@
   <string name="juno_onboarding_default_browser_description_nimbus_3">گشت گر ن سۊد بر ایما و ایسا هیاری اده تا شرکتا نترسته بۊن ایسا ن بؽڌاری من وب بنیرن وو و دین کونن.</string>
   <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
   <string name="juno_onboarding_default_browser_description_nimbus_4" tools:ignore="UnusedResources">بیشتر ز 100 ملیووݩ نفر هریم سیخومی خوسووݩ ن وا پسند گشت گری ک ن سۊد بر هڌ، زفت اکونن.</string>
+  <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
+  <string name="juno_onboarding_default_browser_description_nimbus_5" tools:ignore="UnusedResources">رڌجۊرا اشناخته‌ وابیڌه؟ و جۊر خوتکار مسدۊد وابیڌنه. وردنی یل؟ پوی 700 تاسووݩ ن امتهووݩ کۊنین. PDF؟ خونده گر منی ایما دؽوۉداری هونووݩ ن آسووݩ کرده.</string>
   <!-- Text for the button to set firefox as default browser on the device -->
   <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">سامووݩ و عونوان گشت گر پؽش فرز</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -541,6 +545,11 @@
     Note: The word "Firefox" should NOT be translated
   -->
   <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">وارسۊویا هیاری اکونن تا وا Firefox ٱمن تر بۊین</string>
+  <!--
+    Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">به جۊر ایمن بلگه یل ن منجا دسگا یل خوتووݩ بفشنین وو پوی ویژیی یل هریم سیخومی ن من Firefox بجۊرین.</string>
   <!-- Text for the button to request notification permission on the device -->
   <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">رۊشن کردن وارسۊویا</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -550,6 +559,11 @@
     Note: The word "Firefox" should NOT be translated
   -->
   <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">ویجت پیتینیڌن Firefox ن امتهووݩ کۊنین</string>
+  <!--
+    Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
+    Note: The word "Firefox" should NOT be translated
+  -->
+  <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">وا Firefox من بلگه ٱسلی خوت، و راهتی و گشت گر اول هریم سیخومی دسرسی دارین ک رڌجۊرا منجا وبگهی ن مسدۊد اکونه.</string>
   <!--
     Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
     Note: The word "Firefox" should NOT be translated
@@ -570,6 +584,8 @@
   <string name="onboarding_add_on_start_browsing_button_2" moz:removedIn="140" tools:ignore="UnusedResources">ناهاڌن پا گشتن</string>
   <!-- Ublock name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Ublock Origin" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_ublock_name" moz:removedIn="140" tools:ignore="UnusedResources">uBlock Origin</string>
+  <!-- Ublock description for the onboarding add-ons card, used by Nimbus experiments. -->
+  <string name="onboarding_add_on_ublock_description" moz:removedIn="140" tools:ignore="UnusedResources">تبلیقات ن و بؽڌرین بارت مسدۊد کۊنین.</string>
   <!-- Privacy Badger name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Privacy Badger" is a brand name should NOT be translated -->
   <string name="onboarding_add_on_privacy_badger_name" moz:removedIn="140" tools:ignore="UnusedResources">Privacy Badger</string>
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
@@ -598,10 +614,13 @@
   <string name="onboarding_preferences_dialog_title" tools:ignore="BrandUsage">ایما ن هیاری بڌین Firefox ن بؽڌر کۊنیم</string>
   <!-- Title for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_title">و هالت خوتکار گوزارشا خراوی ن بفشنین</string>
+  <!-- Description for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
+  <string name="onboarding_preferences_dialog_crash_reporting_description">گوزارشا خراوی و ایما هیاری اده تا موشکلا گشت گر ن تشخیس دیم وو رفع کۊنیم. گوزارشا گاشڌ داده یل سیخومی یا هساس ایسا ن منسووݩ داشته بۊن.</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">قلوه دووسته بۊین</string>
   <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
   <string name="onboarding_preferences_dialog_usage_data_title">فشناڌن داده یل فنی وو تعامولا و Mozilla</string>
+  <string name="onboarding_preferences_dialog_usage_data_description_2" tools:ignore="BrandUsage">دووسمندیا زبار دسگا ایسا، سامووا سخت ٱفزار وو بارت و کار گرؽڌن ایسا ز Firefox و بؽڌر وابیڌن ویژیی یل، عملکرد وو پایداری پوی هیاری اده.</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">قلوه دووسته بۊین</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">ٱنجوم وابی</string>
@@ -627,12 +646,18 @@
   <string name="onboarding_term_of_service_line_three_link_text">دؽوۉداری</string>
   <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
   <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">منه روشد Firefox و ایما هیاری بڌین</string>
+  <!-- Marketing onboarding page body. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body" tools:ignore="BrandUsage,UnusedResources">هر سا و ایما اگۊین ک چتاور Firefox ن جۊستین وو و کارس اگیرین، و ایما هیاری ادین تا گشت گر خومووݩ ن و آڌومیل قلوه ای نشووݩ دیم.</string>
+  <!-- Marketing onboarding page opt-in checkbox. 'Mozilla' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_opt_in_checkbox" tools:ignore="UnusedResources">یک رسۊوی داده یل هدقلی وا شریکووݩ فناوری بازارجۊری Mozilla. ای داده یل هرگشت فوروهڌه نؽبۊن یا سی نشووݩ داڌن تبلیقات و ایسا و کار گرؽڌه نؽبۊن.</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">بارت و کار گرؽڌن ایما ز داده یل</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">قوۊل کردن وو ناهاڌن پا گشتن</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">نوکته دیندایی</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">بارت آشنایی خوت وا Firefox وو یو ک و کارس اگیری ن وا هومکورووݩ بازارجۊری Mozilla یک رسۊوی کۊنین. ای داده یل هرگشت فوروهڌه نؽبۊن.</string>
   <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">نشووݩ داڌن مووافقت وو ناهاڌن پا گشتن</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -645,6 +670,8 @@
   <string name="onboarding_customize_toolbar_top_option">روء</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">بلم</string>
+  <!-- Onboarding toolbar selection card content description for the main image. -->
+  <string name="onboarding_customize_toolbar_main_image_content_description">شؽوات گپ سربلگ نمای پسند نوار ٱوزار ک ی نوار ٱوزار شؽواتی ن نشووݩ اده.</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">شؽوات من نوار ٱوزار بلم</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">شؽوات نوار ٱوزار روء</string>
@@ -803,6 +830,8 @@
   <string name="errorpage_httpsonly_title">وبگه ایمن من دسرس نؽ</string>
   <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the first. -->
   <string name="errorpage_httpsonly_message_title">و ائتمال قلوه، وبگه ز HTTPS لادراری نؽکونه.</string>
+  <!-- Message shown in the error page for when trying to access a http website while https only mode is enabled. The message has two paragraphs. This is the second. -->
+  <string name="errorpage_httpsonly_message_summary">وا ای هال، گاشڌ ک ی رڌجۊر، درگیر بۊ. ٱر وبگه ن وا پؽش برین، نوا هیچ دووسمندی هساسی ن زنین. ٱر وا پؽش رئڌین، هالت تینا-HTTPS و جۊر مووقت سی وبگه کۊر ابۊ.</string>
   <!-- Preference for accessibility -->
   <string name="preferences_accessibility">دسرسی پزیری</string>
   <!-- Preference to override the Mozilla account server -->
@@ -1156,8 +1185,15 @@
   <string name="preference_usage_data_2">فشناڌن داده یل فنی وو تعامولی</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">قلوه دووسته بۊین</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">دووسمندیا زبار دسگا ایسا، سامووا سخت ٱفزار وو بارت و کار گرؽڌن ایسا و ایما هیاری اده تا ویژیی یل، عملکرد وو پایداری Firefox ن بؽڌر کۊنیم.</string>
   <!-- Preference switch for campaign measurement data (marketing data) collection -->
   <string name="preferences_marketing_data_2">داده یل هنداگیری کمپین</string>
+  <!--
+    Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for.
+  -->
+  <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">بارت آشنایی وا Firefox وو یو ک و کارس اگیری ن وا هومکورووݩ بازارجۊری Mozilla یک رسۊوی کۊنین.</string>
   <!-- Learn more link for marketing data preference -->
   <string name="preferences_marketing_data_learn_more">زبار داده یل بازاریابی قلوه دووسته بۊین</string>
   <!-- Preference switch for daily usage ping data collection -->
@@ -1581,6 +1617,8 @@
     The title of the Web Compat Reporter feature. This is displayed in the top app bar.
   -->
   <string name="webcompat_reporter_screen_title">گوزارش خراوی وبگه</string>
+  <!-- The description of the Web Compat Reporter feature. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="webcompat_reporter_description">و بؽڌر وابیڌن %1$s سی پوی هیاری کۊنین. کارکونووݩ Mozilla دووسمندیایی ک افشنین ن سی رفع موشکلا وبگه و کار اگرن.</string>
   <!-- The text field label of the URL text field. This is displayed above the user-inputted URL. -->
   <string name="webcompat_reporter_label_url">نشۊوی اینترنتی</string>
   <!-- The error message of the URL text field when an invalid URL has been entered. -->
@@ -1881,6 +1919,8 @@
   <string name="collections_header">کتنا</string>
   <!-- Content description (not visible, for screen readers etc.): Opens the collection menu when pressed -->
   <string name="collection_menu_button_content_description">نومگه کتن</string>
+  <!-- Label to describe what collections are to a new user without any collections -->
+  <string name="no_collections_description2">چیایی ک سیتووݩ موهم هڌن ن جمع کۊنین.\nپیتینیڌنا جۊر یک، وبگه یل وو بلگه یل ن وا هوم بونکۊ کۊنین تا دیندا دسرسی زی تری داشته بۊین.</string>
   <!-- Title for the "select tabs" step of the collection creator -->
   <string name="create_collection_select_tabs">پسند بلگه یل</string>
   <!-- Title for the "select collection" step of the collection creator -->
@@ -2021,6 +2061,15 @@
   <string name="notification_re_engagement_A_text">گشت سیخومی من %1$s دووسمندیا ایسا ن زفت نؽکونه.</string>
   <!-- Title B shown in the notification that pops up to re-engage the user -->
   <string name="notification_re_engagement_B_title">بنه پا پیتینیڌن ٱولیت</string>
+  <!-- Text B shown in the notification that pops up to re-engage the user -->
+  <string name="notification_re_engagement_B_text">ی چی و هیم نهنگا ن بپیتینین. یا ی چی جالو ن بجۊرین.</string>
+  <!--
+    Survey
+
+    Text shown in the fullscreen message that pops up to ask user to take a short survey.
+    The app name is in the text, due to limitations with localizing Nimbus experiments
+  -->
+  <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">وا شرکت من ی منشڌسنجی کۊتال و بؽڌر وابیڌن Firefox هیاری بڌین.</string>
   <!-- Preference for taking the short survey. -->
   <string name="preferences_take_survey">شرکت من منشڌسنجی</string>
   <!-- Preference for not taking the short survey. -->
@@ -2193,14 +2242,22 @@
   <string name="etp_settings">سامووا زفت کردنی</string>
   <!-- Preference title for enhanced tracking protection settings -->
   <string name="preference_enhanced_tracking_protection">زفت وابیڌن پؽش رئڌه جلاو رڌجۊری</string>
+  <!-- Preference summary for enhanced tracking protection settings on/off switch -->
+  <string name="preference_enhanced_tracking_protection_summary">سکو زفت وابیڌن کامل ن ری و ری کۊکی داره؛ زۊردار ترین سد ایما زد رڌجۊرا منجا وبگهی.</string>
+  <!-- Description of enhanced tracking protection. %s is the name of the app (for example "Firefox"). -->
+  <string name="preference_enhanced_tracking_protection_explanation_2">‏%s ایسا ن ز رڌجۊرا قلوه رایجی ک فعالیتا ریتور تووݩ ن و دین اکونن، زفت اکونه.</string>
   <!-- Text displayed that links to website about enhanced tracking protection -->
   <string name="preference_enhanced_tracking_protection_explanation_learn_more">قلوه دووسته بۊین</string>
   <!-- Preference for enhanced tracking protection for the standard protection settings -->
   <string name="preference_enhanced_tracking_protection_standard_default_1">استاندارد (پؽش فرز)</string>
+  <!-- Preference description for enhanced tracking protection for the standard protection settings -->
+  <string name="preference_enhanced_tracking_protection_standard_description_5">بلگه یل و جۊر معمۊل اگوئشن؛ ولی تعداد کمی رڌجۊر ن مسدۊد اکونه.</string>
   <!-- Accessibility text for the Standard protection information icon -->
   <string name="preference_enhanced_tracking_protection_standard_info_button">اۊ چیه ک و دست زفت وابیڌن رڌجۊری استاندارد مسدۊد وابیڌه</string>
   <!-- Preference for enhanced tracking protection for the strict protection settings -->
   <string name="preference_enhanced_tracking_protection_strict">سخت گرووه</string>
+  <!-- Preference description for enhanced tracking protection for the strict protection settings -->
+  <string name="preference_enhanced_tracking_protection_strict_description_4">زفت وابیڌن ز رڌجۊرا زۊردار تر وو کارایی زیتر ، ٱما ی قرد ز وبگه یل گاشڌ و خۊوی کار نکونن.</string>
   <!-- Accessibility text for the Strict protection information icon -->
   <string name="preference_enhanced_tracking_protection_strict_info_button">اۊ چیه ک و دست زفت وابیڌن رڌجۊری سخت گرووه مسدۊد وابیڌه</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings -->
@@ -2223,6 +2280,8 @@
   <string name="preference_enhanced_tracking_protection_custom_cookies_3">پوی کۊکیا موتفرقه (گاشڌ وبگه یل ن ز کار ونه)</string>
   <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
   <string name="preference_enhanced_tracking_protection_custom_cookies_4">پوی کۊکیا (وبگه یل ن خراو اکونه)</string>
+  <!-- Option for enhanced tracking protection for the custom protection settings for cookies -->
+  <string name="preference_enhanced_tracking_protection_custom_cookies_5">سوا کردن کۊکیا منجا وبگهی</string>
   <!-- Preference for Global Privacy Control for the custom privacy settings for Global Privacy Control. '&amp;' is replaced with the ampersand symbol: & -->
   <string name="preference_enhanced_tracking_protection_custom_global_privacy_control">و وبگه یل بۊگۊین ک داده یل ن یک رسۊوی نکونن وو نفۊرۊشن.</string>
   <!-- Preference for enhanced tracking protection for the custom protection settings for tracking content -->
@@ -2243,10 +2302,16 @@
   <string name="enhanced_tracking_protection_allowed">هشتسه</string>
   <!-- Category of trackers (social media trackers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_social_media_trackers_title">رڌجۊرا شبکه یل اجتماعی</string>
+  <!-- Description of social media trackers that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_social_media_trackers_description">ترستن شبکه یل اجتماعی ن سی رڌجۊری فعالیت گشتن ایسا من وب مئدۊد اکونه.</string>
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title">کۊکیا رڌجۊر منجا وبگهی</string>
   <!-- Category of trackers (cross-site tracking cookies) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cookies_title_2">کۊکیا منجا وبگهی</string>
+  <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_cookies_description">کۊکیایی ن ک شبکه یل تبلیغاتی وو شرکتا تهلیلی و کار سووݩ اگرن، سی گردواری داده یل گشتن ایسا، من وبگه یل قلوه ای مسدۊد اکونه.</string>
+  <!-- Description of cross-site tracking cookies that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_cookies_description_2">زفت وابیڌن کامل ری و ری کۊکیا، کۊکیا ن من وبگه یلی ک منسووݩ هڌین، سوا اکونه، پ رڌجۊرایی جۊر شبکه یل تبلیقاتی نترن سی و دین کردن ایسا منجا وبگه یل و کار سووݩ گرن.</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">ودر کونا رزم ٱرزا</string>
   <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
@@ -2324,6 +2389,8 @@
   <string name="preference_doh_max_protection_info_1">تینا و کار گرؽڌن جۊر کوݩ پسند بیڌه</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">کۊر</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">موبدل DNS پؽش فرز خوته و کار بگر</string>
   <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
   <string name="preference_doh_choose_provider">پسند جۊر کوݩ</string>
   <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
@@ -2344,6 +2411,8 @@
   <string name="preference_doh_provider_custom_dialog_add">ٱووردن</string>
   <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
   <string name="preference_doh_exceptions">استسنایل</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary">%1$s من ای وبگه یل وو زؽر دامنه یل سووݩ، DNS ٱمن و کار نؽروه.</string>
   <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
   <string name="preference_doh_exceptions_add">ٱووردن وبگه</string>
   <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
@@ -2458,8 +2527,12 @@
   <string name="saved_login_reveal_password">نشووݩ داڌن رزم</string>
   <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
   <string name="saved_login_hide_password">بؽڌار کردن رزم</string>
+  <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their passwords -->
+  <string name="logins_biometric_prompt_message_2">گۊشیڌن چفت سی نیشتن رزما زفت وابیڌه</string>
   <!-- Title of warning dialog if users have no device authentication set up -->
   <string name="logins_warning_dialog_title_2">ٱمن کردن رزما زفت وابیڌه</string>
+  <!-- Message of warning dialog if users have no device authentication set up -->
+  <string name="logins_warning_dialog_message_2">ی اولگۊی چفت دسگا، پین یا رزم ن سی زفت وابیڌن رزما زفت وابیڌه خوتووݩ سامووݩ کۊنین تا ز دسرسی آڌومیل دی جلاوگری کۊنین.</string>
   <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
   <string name="logins_warning_dialog_later">دیندا</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -2468,6 +2541,8 @@
   <string name="logins_biometric_prompt_message_pin">گۊشیڌن رزم دسگا</string>
   <!-- Title for Accessibility Force Enable Zoom Preference -->
   <string name="preference_accessibility_force_enable_zoom">گپ نمایی من پوی وبگه یل</string>
+  <!-- Summary for Accessibility Force Enable Zoom Preference -->
+  <string name="preference_accessibility_force_enable_zoom_summary">هتا من وبگه یلی ک ز ای هرکت جلاوگری اکونن، ترین خرج کردن وو گپ نمایی ن فعال کۊنین.</string>
   <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
   <string name="saved_logins_sort_strategy_alphabetically">نوم (A-Z)</string>
   <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
@@ -2542,6 +2617,8 @@
   <string name="credit_cards_biometric_prompt_message">سی نیشتن کارتا اعتواری چفت ن بۊگۊشین</string>
   <!-- Title of warning dialog if users have no device authentication set up -->
   <string name="credit_cards_warning_dialog_title_2">ایمن کردن روشا پرداخت زفت وابیڌه ایسا</string>
+  <!-- Message of warning dialog if users have no device authentication set up -->
+  <string name="credit_cards_warning_dialog_message_3">ی اولگۊی چفت دسگا، پین یا رزم ن سی زفت وابیڌن روشا پرداخت زفت وابیڌه خوتووݩ سامووݩ کۊنین تا ز دسرسی آڌومیل دی جلاوگری کۊنین.</string>
   <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
   <string name="credit_cards_warning_dialog_set_up_now">هیم سکو ر ونین</string>
   <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
@@ -2612,6 +2689,8 @@
   <string name="search_add_custom_engine_search_string_example" formatted="false">درخاست ن وا “%s” جایونی کۊنین. جۊر: \nhttps://www.google.com/search?q=%s</string>
   <!-- Accessibility description for the form in which details about the custom search engine are entered -->
   <string name="search_add_custom_engine_form_description">جۊزیات موتور پیتینیڌن سفارشی</string>
+  <!-- Label for the TextField in which user enters custom search engine suggestion URL -->
+  <string name="search_add_custom_engine_suggest_url_label">API پؽشنهاڌ پیتینیڌن (دل ب خایی)</string>
   <!-- Placeholder text shown in the Search Suggestion String TextField before a user enters text -->
   <string name="search_add_custom_engine_suggest_string_hint">نشۊوی اینترنتی API پؽشنهاڌی پیتینیڌن</string>
   <!-- Description text for the Search Suggestion String TextField. The %s is part of the string -->
@@ -2741,6 +2820,8 @@
     Title text displayed in the dialog when shortcuts limit is reached.
   -->
   <string name="shortcut_max_limit_title">و هندا موجاز ر نهنگ رسیڌین</string>
+  <!-- Content description text displayed in the dialog when shortcut limit is reached. -->
+  <string name="shortcut_max_limit_content">سی ٱووردن ر نهنگی نۊ، یکی ن پاک کۊنین. بزنین ری وبگه، واڌارنین وو وورداشتن ن پسند کۊنین.</string>
   <!-- Confirmation dialog button text when top sites limit is reached. -->
   <string name="top_sites_max_limit_confirmation_button">خا، فئمیم</string>
   <!-- Label for the preference to show the shortcuts for the most visited top sites on the homepage -->
@@ -2799,6 +2880,11 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">پؽشنهاڌا Firefox</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">ری و روشد من %s</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">پیتینیڌن گۊگل</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
@@ -2841,8 +2927,20 @@
   <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">قلوه دووسته بۊین</string>
   <!-- Text indicating that the Pocket story that also displays this text is a sponsored story by other 3rd party entity. -->
   <string name="pocket_stories_sponsor_indication">هؽزگری وابیڌه</string>
+  <!-- Snackbar message for enrolling in a Nimbus experiment from the secret settings when Studies preference is Off. -->
+  <string name="experiments_snackbar">و کار وندن دیر سنجی سی فشناڌن داده.</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->
   <string name="experiments_snackbar_button">راو و سامووا</string>
+  <!--
+    Review quality check feature
+
+    Paragraph explaining the grading system we use to classify the reliability of a product's reviews.
+  -->
+  <string name="review_quality_check_info_review_grade_header" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[ایما و هر مئسۊل ی <b>نومره هۊرۊفی</b> ز A تا F ادیم.]]></string>
+  <!-- Paragraph explaining how a product's adjusted grading is calculated. -->
+  <string name="review_quality_check_explanation_body_adjusted_grading" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>نومره بندی تعدیل وابیڌه</b> و ری واجۊریایی هڌ ک ایما موعتقدیم قابل اتمینووݩ هڌن.]]></string>
+  <!-- Paragraph explaining product review highlights. %s is the name of the retailer (e.g. Amazon). -->
+  <string name="review_quality_check_explanation_body_highlights" moz:removedIn="136" tools:ignore="UnusedResources"><![CDATA[<b>نوکات دیاری</b> ز %s واجۊریا من 80 رۊز گوڌشته ک ایما موعتقدیم قابل اتمینووݩ هڌن.]]></string>
   <!--
     Accessibility services actions labels. These will be appended to accessibility actions like "Double tap to.." but not by or applications but by services like Talkback.
 
@@ -3009,6 +3107,8 @@
     %1$s is web site url (for example:"wikipedia.com")
   -->
   <string name="never_translate_site_item_list_content_description_preference">پاک کردن %1$s</string>
+  <!-- The title of the warning card informs the user that an error has occurred at the never translate sites list. -->
+  <string name="never_translate_site_error_warning_text">نترستیم وبگه ن بار ونی کۊنیم. دیندا تر دووارته واجۊری کۊنین.</string>
   <!--
     The Delete site dialogue title will appear when the user clicks on a list item.
     %1$s is web site url (for example:"wikipedia.com")
@@ -3159,6 +3259,11 @@
     %d is a placeholder for the number of trackers blocked.
   -->
   <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description"><![CDATA[پاک کردن کۊکیا وو داده یل وبگه سی <b>%s</b> گاشڌ ایسا ن ز وبگه یل و در کونه یا سبدا استیڌنا ایسا ن پتی کونه.]]></string>
   <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
   <string name="clear_site_data_dialog_positive_button_text">پاک کردن</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
@@ -3210,6 +3315,12 @@
   <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">تینا عددا زبال موسبت ن بزنین</string>
   <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
   <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">عددی گفتر ز 0 بزنین</string>
+  <!--
+    The error message of the text field in the tab creation tool when the text field is a
+    quantity greater than the max tabs. %1$s is the maximum number of tabs
+    that can be generated in one operation.
+  -->
+  <string name="debug_drawer_tab_tools_tab_quantity_exceed_max_error">تعداد بلگه یل قلوه ز هندا موجاز (%1$s) ک تره من ی عملیات وورکل بۊ</string>
   <!-- The button text to add tabs to the active tab group in the tab creation tool. -->
   <string name="debug_drawer_tab_tools_tab_creation_tool_button_text_active">ٱووردن و بلگه یل فعال</string>
   <!-- The button text to add tabs to the inactive tab group in the tab creation tool. -->
@@ -3330,6 +3441,8 @@
     and the current region (device's detected location) for testing purposes.
   -->
   <string name="debug_drawer_region_tools_title">ٱوزارا وولات</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">سی آزمایش، مقدارا جاگه هووه ای وو سکویی ن مووقتن ز نۊ هؽل اکونه.</string>
   <!-- The text label for displaying home region. -->
   <string name="debug_drawer_home_region_label">وولات هووه ای</string>
   <!-- The text label for displaying current region. -->
@@ -3340,6 +3453,8 @@
   <string name="debug_drawer_override_current_region_label">نیڌه گرؽڌن وولات سکویی</string>
   <!-- The title of the button for overriding home and current region. -->
   <string name="debug_drawer_override_region">نیڌه گرؽڌن وولات سکویی و هووه</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">ز نۊ هؽل کردن همیشیی جاگه هووه ای</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3382,6 +3497,8 @@
   <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">من 14 مارس، وردنی یل وو پوی ویژیی یل Firefox اواستن چینا ک گوواهی بونچک مونقزی ابۊ.</string>
   <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">دفر دیندایی سی زفت کردن Firefox ایسا</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">نوسخه ایسا ز Firefox سی دل مونقزی وابیڌن ی گوواهی بونچک و خۊوی کار نؽکونه.</string>
   <!-- Push notification title about old Firefox version. "Update" is a noun. -->
   <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">ورۊ رسۊوی پؽشنهاڌ ابۊ</string>
   <!-- Push notification message about old Firefox version -->
@@ -3390,6 +3507,8 @@
   <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">ایسا ی نوسخه قڌیمی ز Firefox ن و کار اگرین</string>
   <!-- Push notification message about old Firefox version. "Update" is a verb. -->
   <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">پؽش ز 14 مارس ورۊ رسۊوی کۊنین تا تا ترسته بۊین وردنی یل وو پوی ویژیی یل ن هی و کار بگیرین.</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ی قرد ز ویژیی یا سووه اواستن.</string>
   <!--
     TextField Design System Component
 
@@ -3408,8 +3527,52 @@
   <string name="setup_checklist_title_state_incomplete">تموم کردن پۊرستن %1$s</string>
   <!-- Title for the setup checklist feature when the state is 'completed' -->
   <string name="setup_checklist_title_state_completed">ٱوهیت مووارک بۊ!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">سی سامووݩ %1$s سی بؽڌرین تجروبه گشتن، ای 3 مرهله ن کامل کۊنین.</string>
   <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
   <string name="setup_checklist_subtitle_3_steps_first_step">ی ر اۊفتاڌن خۊو! ایسا یکی ز س مرهله ن ٱنجوم داڌین.</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">تقریبن رسیڌیم! دو مرهله تموم وابیڌه وو ی مرهله دی باقی منده.</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">ایسا هر س مرهله ن ٱنجوم داڌین. ز ترات، هریم سخومی وو ٱمنیت %1$s فیس کۊنین.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">سی بؽڌر وابیڌن تجروبه گشتن، هر شیش مرهله ن سی سامووݩ %1$s کامل کۊنین.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">ی ر اۊفتاڌن خۊو! ایسا 1 مرهله ز 6 مرهله ن ٱنجوم داڌین.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">ایسا 2 مرهله ز 6 مرهله ن ٱنجوم داڌین. پؽش رئڌن تووݩ هرف نڌاره!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">نسم ر ن ٱوۊڌیم! س مرهله تموم وابیڌه وو 3 مرهله دی باقی منده.</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">ایسا 4 مرهله ن پوشت سر ناڌین. تینا 2 مرهله دی منده!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">تقریبن رسیڌین! تینا 1 مرهله دی تا تور دیندایی باقی منده.</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">ایسا پوی 6 مرهله ن ٱنجوم داڌین. ز ترات، هریم سخومی وو ٱمنیت %1$s فیس کۊنین.</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">سی بؽڌر وابیڌن تجروبه گشتن، هر 5 مرهله ن سی سامووݩ %1$s کامل کۊنین.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">ی ر اۊفتاڌن خۊو! ایسا یکی ز پنج مرهله ن ٱنجوم داڌین.</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">ایسا 2 مرهله ز 5 مرهله ن ٱنجوم داڌین. پؽش رئڌن تووݩ هرف نڌاره!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">نسم ر ن ٱوۊڌیم! س مرهله تموم وابیڌه وو 2 مرهله دی باقی منده.</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">تقریبن رسیڌین! تینا 1 مرهله دی تا تور دیندایی باقی منده.</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">ایسا پوی 5 مرهله ن ٱنجوم داڌین. ز ترات، هریم سخومی وو ٱمنیت %1$s فیس کۊنین.</string>
   <!--
     ===== Setup checklist feature: Task titles =====
 
@@ -3426,10 +3589,30 @@
   <string name="setup_checklist_task_explore_extensions">جوستن وردنی یل</string>
   <!-- The title of the search widget task for the setup checklist -->
   <string name="setup_checklist_task_search_widget">پۊرنیڌن ٱوزارک پیتینیڌن</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">النیا %1$s</string>
   <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_group_customize">%1$s خوتووݩ ن سفارشی کۊنین</string>
   <!-- The title of the 'helpful tools' group in the setup checklist -->
   <string name="setup_checklist_group_helpful_tools">ٱوزارا و درد بوخور</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">پاک کردن نومگه واجۊری</string>
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">وزیفه کامل وابیڌه</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">آیکون وزیفه</string>
   <!--
     Private browsing mode authentication screen
 
@@ -3440,6 +3623,14 @@
   <string name="pbm_authentication_unlock">گۊشیڌن چفت</string>
   <!-- Title text instructing the user to unlock private tabs -->
   <string name="pbm_authentication_unlock_private_tabs">گۊشیڌن چفت بلگه یل سیخومی</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">فعال‌ کردن چفت بلگه سی بلگه یل سیخومی</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">قیر فعال‌ کردن چفت بلگه سی بلگه یل سیخومی</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">سامووݩ چفت بلگه سی بؽڌار کردن بلگه یل</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">چفت بلگه ن سی بؽڌار کردن بلگه یل سیخومی و کار اگیرین؟</string>
   <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
   <string name="private_tab_cfr_negative">ن ممنووݩ</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
