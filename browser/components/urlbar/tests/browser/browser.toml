@@ -517,6 +517,8 @@ support-files = [
 
 ["browser_searchMode_oneOffButton.js"]
 
+["browser_searchMode_perplexity.js"]
+
 ["browser_searchMode_pickResult.js"]
 https_first_disabled = true
 
