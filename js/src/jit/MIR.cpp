@@ -1905,12 +1905,134 @@ static bool IsSubstrTo(MSubstr* substr, int32_t len) {
   return cst->isInt32(len) && strLength->string() == substr->string();
 }
 
+static bool IsSubstrLast(MSubstr* substr, int32_t start) {
+  MOZ_ASSERT(start < 0, "start from end is negative");
+
+  // We want to match either this pattern:
+  //
+  // begin = Max(StringLength(string) + start, 0)
+  // length = Max(StringLength(string) - begin, 0)
+  // Substr(string, begin, length)
+  //
+  // or this pattern:
+  //
+  // begin = Max(StringLength(string) + start, 0)
+  // length = Min(StringLength(string), StringLength(string) - begin)
+  // Substr(string, begin, length)
+  //
+  // which is generated for the self-hosted `String.p.{slice,substr}`
+  // functions when called with parameters `start < 0` and `end = undefined`.
+
+  auto* string = substr->string();
+
+  // Unnecessary bit-ops haven't yet been removed.
+  auto* begin = RemoveUnnecessaryBitOps(substr->begin());
+  auto* length = RemoveUnnecessaryBitOps(substr->length());
+
+  // Matches: Max(StringLength(string) + start, 0)
+  auto matchesBegin = [&]() {
+    if (!begin->isMinMax() || !begin->toMinMax()->isMax()) {
+      return false;
+    }
+
+    auto maxOperands = MatchOperands<MAdd, MConstant>(begin->toMinMax());
+    if (!maxOperands) {
+      return false;
+    }
+
+    auto [add, cst] = *maxOperands;
+    if (!cst->isInt32(0)) {
+      return false;
+    }
+
+    auto addOperands = MatchOperands<MStringLength, MConstant>(add);
+    if (!addOperands) {
+      return false;
+    }
+
+    auto [strLength, cstAdd] = *addOperands;
+    return strLength->string() == string && cstAdd->isInt32(start);
+  };
+
+  // Matches: Max(StringLength(string) - begin, 0)
+  auto matchesSliceLength = [&]() {
+    if (!length->isMinMax() || !length->toMinMax()->isMax()) {
+      return false;
+    }
+
+    auto maxOperands = MatchOperands<MSub, MConstant>(length->toMinMax());
+    if (!maxOperands) {
+      return false;
+    }
+
+    auto [sub, cst] = *maxOperands;
+    if (!cst->isInt32(0)) {
+      return false;
+    }
+
+    auto subOperands = MatchOperands<MStringLength, MMinMax>(sub);
+    if (!subOperands) {
+      return false;
+    }
+
+    auto [strLength, minmax] = *subOperands;
+    return strLength->string() == string && minmax == begin;
+  };
+
+  // Matches: Min(StringLength(string), StringLength(string) - begin)
+  auto matchesSubstrLength = [&]() {
+    if (!length->isMinMax() || length->toMinMax()->isMax()) {
+      return false;
+    }
+
+    auto minOperands = MatchOperands<MStringLength, MSub>(length->toMinMax());
+    if (!minOperands) {
+      return false;
+    }
+
+    auto [strLength1, sub] = *minOperands;
+    if (strLength1->string() != string) {
+      return false;
+    }
+
+    auto subOperands = MatchOperands<MStringLength, MMinMax>(sub);
+    if (!subOperands) {
+      return false;
+    }
+
+    auto [strLength2, minmax] = *subOperands;
+    return strLength2->string() == string && minmax == begin;
+  };
+
+  return matchesBegin() && (matchesSliceLength() || matchesSubstrLength());
+}
+
 MDefinition* MSubstr::foldsTo(TempAllocator& alloc) {
   // Fold |str.substring(0, 1)| to |str.charAt(0)|.
   if (IsSubstrTo(this, 1)) {
     MOZ_ASSERT(IsConstantZeroInt32(begin()));
 
     auto* charCode = MCharCodeAtOrNegative::New(alloc, string(), begin());
+    block()->insertBefore(this, charCode);
+
+    return MFromCharCodeEmptyIfNegative::New(alloc, charCode);
+  }
+
+  // Fold |str.slice(-1)| and |str.substr(-1)| to |str.charAt(str.length + -1)|.
+  if (IsSubstrLast(this, -1)) {
+    auto* length = MStringLength::New(alloc, string());
+    block()->insertBefore(this, length);
+
+    auto* index = MConstant::New(alloc, Int32Value(-1));
+    block()->insertBefore(this, index);
+
+    // Folded MToRelativeStringIndex, see MToRelativeStringIndex::foldsTo.
+    //
+    // Safe to truncate because |length| is never negative.
+    auto* add = MAdd::New(alloc, index, length, TruncateKind::Truncate);
+    block()->insertBefore(this, add);
+
+    auto* charCode = MCharCodeAtOrNegative::New(alloc, string(), add);
     block()->insertBefore(this, charCode);
 
     return MFromCharCodeEmptyIfNegative::New(alloc, charCode);
@@ -5263,6 +5385,9 @@ MDefinition* MCompare::tryFoldStringSubstring(TempAllocator& alloc) {
   if (IsSubstrTo(substr, stringLength)) {
     // Fold |str.substring(0, 2) == "aa"| to |str.startsWith("aa")|.
     replacement = MStringStartsWith::New(alloc, substr->string(), constant);
+  } else if (IsSubstrLast(substr, -stringLength)) {
+    // Fold |str.slice(-2) == "aa"| to |str.endsWith("aa")|.
+    replacement = MStringEndsWith::New(alloc, substr->string(), constant);
   } else {
     return this;
   }
