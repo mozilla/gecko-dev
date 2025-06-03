@@ -685,8 +685,9 @@ nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)
   mFormats = new DMABufFormats();
   mRegistry = wl_display_get_registry(mDisplay);
   wl_registry_add_listener(mRegistry, &registry_listener, this);
+  RequestAsyncRoundtrip();
   wl_display_roundtrip(mDisplay);
-  wl_display_roundtrip(mDisplay);
+  WaitForAsyncRoundtrips();
   EnsureDMABufFormats();
 
   for (auto& e : mSupportedTransfer) {
