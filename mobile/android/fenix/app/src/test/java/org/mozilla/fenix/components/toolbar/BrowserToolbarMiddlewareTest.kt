@@ -65,12 +65,15 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.browser.BrowserFragmentDirections
 import org.mozilla.fenix.browser.PageTranslationStatus
+import org.mozilla.fenix.browser.ReaderModeStatus
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.browsingmode.SimpleBrowsingModeManager
+import org.mozilla.fenix.browser.readermode.ReaderModeController
 import org.mozilla.fenix.browser.store.BrowserScreenAction.ClosingLastPrivateTab
 import org.mozilla.fenix.browser.store.BrowserScreenAction.PageTranslationStatusUpdated
+import org.mozilla.fenix.browser.store.BrowserScreenAction.ReaderModeStatusUpdated
 import org.mozilla.fenix.browser.store.BrowserScreenState
 import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
@@ -86,6 +89,7 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.ReaderModeClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
@@ -109,10 +113,11 @@ class BrowserToolbarMiddlewareTest {
     private val browserStore = BrowserStore()
     private val clipboard: ClipboardHandler = mockk()
     private val lifecycleOwner = FakeLifecycleOwner(Lifecycle.State.RESUMED)
-    private val navController: NavController = mockk()
+    private val navController: NavController = mockk(relaxed = true)
     private val browsingModeManager = SimpleBrowsingModeManager(Normal)
     private val browserAnimator: BrowserAnimator = mockk()
     private val thumbnailsFeature: BrowserThumbnails = mockk()
+    private val readerModeController: ReaderModeController = mockk()
     private val useCases: UseCases = mockk()
     private val settings: Settings = mockk {
         every { shouldUseBottomToolbar } returns true
@@ -1001,6 +1006,76 @@ class BrowserToolbarMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN the current page can be viewed in reader mode WHEN tapping on the reader mode button THEN show the reader mode UX`() {
+        val currentTab = createTab("test.com")
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab, createTab("firefox.com")),
+                selectedTabId = currentTab.id,
+            ),
+        )
+        val browserScreenStore = BrowserScreenStore()
+        val readerModeController: ReaderModeController = mockk(relaxed = true)
+        val middleware = buildMiddleware(
+            browserScreenStore = browserScreenStore,
+            browserStore = browserStore,
+        ).updateDependencies(readerModeController = readerModeController)
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        browserScreenStore.dispatch(
+            ReaderModeStatusUpdated(
+                ReaderModeStatus(
+                    isAvailable = true,
+                    isActive = false,
+                ),
+            ),
+        )
+
+        val readerModeButton = toolbarStore.state.displayState.pageActionsEnd[0] as ActionButton
+        assertEquals(expectedReaderModeButton(false), readerModeButton)
+
+        toolbarStore.dispatch(readerModeButton.onClick as BrowserToolbarEvent)
+        verify { readerModeController.showReaderView() }
+    }
+
+    @Test
+    fun `GIVEN the current page is already viewed in reader mode WHEN tapping on the reader mode button THEN close the reader mode UX`() {
+        val currentTab = createTab("test.com")
+        val browserStore = BrowserStore(
+            BrowserState(
+                tabs = listOf(currentTab, createTab("firefox.com")),
+                selectedTabId = currentTab.id,
+            ),
+        )
+        val browserScreenStore = BrowserScreenStore()
+        val readerModeController: ReaderModeController = mockk(relaxed = true)
+        val middleware = buildMiddleware(
+            browserScreenStore = browserScreenStore,
+            browserStore = browserStore,
+        ).updateDependencies(readerModeController = readerModeController)
+        val toolbarStore = BrowserToolbarStore(
+            middleware = listOf(middleware),
+        )
+
+        browserScreenStore.dispatch(
+            ReaderModeStatusUpdated(
+                ReaderModeStatus(
+                    isAvailable = true,
+                    isActive = true,
+                ),
+            ),
+        )
+
+        val readerModeButton = toolbarStore.state.displayState.pageActionsEnd[0] as ActionButton
+        assertEquals(expectedReaderModeButton(true), readerModeButton)
+
+        toolbarStore.dispatch(readerModeButton.onClick as BrowserToolbarEvent)
+        verify { readerModeController.hideReaderView() }
+    }
+
+    @Test
     fun `WHEN translation is possible THEN show a translate button`() {
         val browsingModeManager = SimpleBrowsingModeManager(Private)
         val navController: NavController = mockk(relaxed = true)
@@ -1022,7 +1097,15 @@ class BrowserToolbarMiddlewareTest {
             settings = settings,
         ).apply {
             updateLifecycleDependencies(
-                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk(), mockk()),
+                LifecycleDependencies(
+                    context = testContext,
+                    lifecycleOwner = lifecycleOwner,
+                    navController = navController,
+                    browsingModeManager = browsingModeManager,
+                    browserAnimator = mockk(),
+                    thumbnailsFeature = mockk(),
+                    readerModeController = mockk(),
+                ),
             )
         }
         val toolbarStore = BrowserToolbarStore(
@@ -1065,7 +1148,15 @@ class BrowserToolbarMiddlewareTest {
             settings = settings,
         ).apply {
             updateLifecycleDependencies(
-                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk(), mockk()),
+                LifecycleDependencies(
+                    context = testContext,
+                    lifecycleOwner = lifecycleOwner,
+                    navController = navController,
+                    browsingModeManager = browsingModeManager,
+                    browserAnimator = mockk(),
+                    thumbnailsFeature = mockk(),
+                    readerModeController = mockk(),
+                ),
             )
         }
         val toolbarStore = BrowserToolbarStore(
@@ -1106,7 +1197,7 @@ class BrowserToolbarMiddlewareTest {
         val currentNavDestination: NavDestination = mockk {
             every { id } returns R.id.browserFragment
         }
-        val navController: NavController = mockk {
+        val navController: NavController = mockk(relaxed = true) {
             every { currentDestination } returns currentNavDestination
         }
         val appStore: AppStore = mockk(relaxed = true)
@@ -1127,7 +1218,15 @@ class BrowserToolbarMiddlewareTest {
             settings = settings,
         ).apply {
             updateLifecycleDependencies(
-                LifecycleDependencies(testContext, lifecycleOwner, navController, browsingModeManager, mockk(), mockk()),
+                LifecycleDependencies(
+                    context = testContext,
+                    lifecycleOwner = lifecycleOwner,
+                    navController = navController,
+                    browsingModeManager = browsingModeManager,
+                    browserAnimator = mockk(),
+                    thumbnailsFeature = mockk(),
+                    readerModeController = mockk(),
+                ),
             )
         }
         val toolbarStore = BrowserToolbarStore(
@@ -1174,6 +1273,16 @@ class BrowserToolbarMiddlewareTest {
             }
         }
     }
+
+    private fun expectedReaderModeButton(isActive: Boolean = false) = ActionButton(
+        icon = R.drawable.ic_readermode,
+        contentDescription = when (isActive) {
+            true -> R.string.browser_menu_read_close
+            false -> R.string.browser_menu_read
+        },
+        isActive = isActive,
+        onClick = ReaderModeClicked(isActive),
+    )
 
     private val expectedTranslateButton = ActionButton(
         icon = R.drawable.mozac_ic_translate_24,
@@ -1256,6 +1365,7 @@ class BrowserToolbarMiddlewareTest {
         browsingModeManager: BrowsingModeManager = this@BrowserToolbarMiddlewareTest.browsingModeManager,
         browserAnimator: BrowserAnimator = this@BrowserToolbarMiddlewareTest.browserAnimator,
         thumbnailsFeature: BrowserThumbnails? = this@BrowserToolbarMiddlewareTest.thumbnailsFeature,
+        readerModeController: ReaderModeController = this@BrowserToolbarMiddlewareTest.readerModeController,
     ) = this.apply {
         updateLifecycleDependencies(
             LifecycleDependencies(
@@ -1265,6 +1375,7 @@ class BrowserToolbarMiddlewareTest {
                 browsingModeManager = browsingModeManager,
                 browserAnimator = browserAnimator,
                 thumbnailsFeature = thumbnailsFeature,
+                readerModeController = readerModeController,
             ),
         )
     }

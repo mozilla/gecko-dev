@@ -560,7 +560,7 @@ abstract class BaseBrowserFragment :
             browserToolbarMenuController,
         )
 
-        _browserToolbarView = initializeBrowserToolbar(activity, store)
+        _browserToolbarView = initializeBrowserToolbar(activity, store, readerMenuController)
 
         if (context.settings().microsurveyFeatureEnabled) {
             listenForMicrosurveyMessage(context)
@@ -1274,14 +1274,16 @@ abstract class BaseBrowserFragment :
     private fun initializeBrowserToolbar(
         activity: HomeActivity,
         store: BrowserStore,
+        readerMenuController: DefaultReaderModeController,
     ) = when (activity.settings().shouldUseComposableToolbar) {
-        true -> initializeBrowserToolbarComposable(activity, store)
+        true -> initializeBrowserToolbarComposable(activity, store, readerMenuController)
         false -> initializeBrowserToolbarView(activity, store)
     }
 
     private fun initializeBrowserToolbarComposable(
         activity: HomeActivity,
         store: BrowserStore,
+        readerMenuController: DefaultReaderModeController,
     ): BrowserToolbarComposable {
         val middleware = getOrCreate<BrowserScreenMiddleware>()
         browserScreenStore = StoreProvider.get(this) {
@@ -1301,6 +1303,7 @@ abstract class BaseBrowserFragment :
             browsingModeManager = activity.browsingModeManager,
             browserAnimator = browserAnimator,
             thumbnailsFeature = thumbnailsFeature.get(),
+            readerModeController = readerMenuController,
             settings = activity.settings(),
             customTabSession = customTabSessionId?.let { store.state.findCustomTab(it) },
             tabStripContent = buildTabStrip(activity),

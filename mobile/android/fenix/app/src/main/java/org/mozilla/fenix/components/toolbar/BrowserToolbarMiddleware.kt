@@ -63,6 +63,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Normal
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode.Private
 import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
+import org.mozilla.fenix.browser.readermode.ReaderModeController
 import org.mozilla.fenix.browser.store.BrowserScreenAction
 import org.mozilla.fenix.browser.store.BrowserScreenStore
 import org.mozilla.fenix.components.AppStore
@@ -73,6 +74,7 @@ import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.ReaderModeClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivateTab
@@ -108,6 +110,10 @@ internal sealed class PageOriginInteractions : BrowserToolbarEvent {
 
 @VisibleForTesting
 internal sealed class PageEndActionsInteractions : BrowserToolbarEvent {
+    data class ReaderModeClicked(
+        val isActive: Boolean,
+    ) : PageEndActionsInteractions()
+
     data object TranslateClicked : PageEndActionsInteractions()
 }
 
@@ -147,6 +153,7 @@ class BrowserToolbarMiddleware(
         observeTabsCountUpdates()
         observeAcceptingCancellingPrivateDownloads()
         observePageOriginUpdates()
+        observeReaderModeUpdates()
         observePageTranslationsUpdates()
     }
 
@@ -278,6 +285,11 @@ class BrowserToolbarMiddleware(
                 }
             }
 
+            is ReaderModeClicked -> when (action.isActive) {
+                true -> dependencies.readerModeController.hideReaderView()
+                false -> dependencies.readerModeController.showReaderView()
+            }
+
             is TranslateClicked -> {
                 Translations.action.record(Translations.ActionExtra("main_flow_toolbar"))
                 appStore.dispatch(SnackbarDismissed)
@@ -322,10 +334,25 @@ class BrowserToolbarMiddleware(
         ),
     )
 
-    private fun buildEndPageActions(): List<Action> {
+    private fun buildEndPageActions(): List<Action> = buildList {
+        val readerModeStatus = browserScreenStore.state.readerModeStatus
+        if (readerModeStatus.isAvailable) {
+            add(
+                ActionButton(
+                    icon = R.drawable.ic_readermode,
+                    contentDescription = when (readerModeStatus.isActive) {
+                        true -> R.string.browser_menu_read_close
+                        false -> R.string.browser_menu_read
+                    },
+                    isActive = readerModeStatus.isActive,
+                    onClick = ReaderModeClicked(readerModeStatus.isActive),
+                ),
+            )
+        }
+
         val translationStatus = browserScreenStore.state.pageTranslationStatus
-        return when (translationStatus.isTranslationPossible) {
-            true -> listOf(
+        if (translationStatus.isTranslationPossible) {
+            add(
                 ActionButton(
                     icon = R.drawable.mozac_ic_translate_24,
                     contentDescription = R.string.browser_toolbar_translate,
@@ -333,8 +360,6 @@ class BrowserToolbarMiddleware(
                     onClick = TranslateClicked,
                 ),
             )
-
-            false -> emptyList()
         }
     }
 
@@ -467,6 +492,15 @@ class BrowserToolbarMiddleware(
         }
     }
 
+    private fun observeReaderModeUpdates() {
+        observeWhileActive(browserScreenStore) {
+            distinctUntilChangedBy { it.readerModeStatus }
+                .collect {
+                    updateEndPageActions()
+                }
+        }
+    }
+
     private fun observePageTranslationsUpdates() {
         observeWhileActive(browserScreenStore) {
             distinctUntilChangedBy { it.pageTranslationStatus }
@@ -498,6 +532,7 @@ class BrowserToolbarMiddleware(
      * @property browsingModeManager [BrowsingModeManager] for querying the current browsing mode.
      * @property browserAnimator Helper for animating the browser content when navigating to other screens.
      * @property thumbnailsFeature [BrowserThumbnails] for requesting screenshots of the current tab.
+     * @property readerModeController [ReaderModeController] for showing or hiding the reader view UX.
      */
     data class LifecycleDependencies(
         val context: Context,
@@ -506,6 +541,7 @@ class BrowserToolbarMiddleware(
         val browsingModeManager: BrowsingModeManager,
         val browserAnimator: BrowserAnimator,
         val thumbnailsFeature: BrowserThumbnails?,
+        val readerModeController: ReaderModeController,
     )
 
     /**
