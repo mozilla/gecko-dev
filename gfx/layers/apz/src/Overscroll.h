@@ -209,6 +209,14 @@ class WidgetOverscrollEffect : public OverscrollEffectBase {
                          ScrollDirections aOverscrollableDirections) override {
     RefPtr<GeckoContentController> controller =
         mApzc.GetGeckoContentController();
+    if (!aOverscrollableDirections.contains(ScrollDirection::eHorizontal)) {
+      aOverscroll.x = 0;
+    }
+
+    if (!aOverscrollableDirections.contains(ScrollDirection::eVertical)) {
+      aOverscroll.y = 0;
+    }
+
     if (controller && !aOverscrollableDirections.isEmpty()) {
       mIsOverscrolled = true;
       controller->UpdateOverscrollOffset(mApzc.GetGuid(), aOverscroll.x,

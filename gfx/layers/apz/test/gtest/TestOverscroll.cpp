@@ -1602,6 +1602,45 @@ TEST_F(APZCOverscrollTester, SmallAmountOfOverscroll) {
 }
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+TEST_F(APZCOverscrollTester, StretchUpDown_Bug1892177) {
+  SCOPED_GFX_PREF_BOOL("apz.overscroll.enabled", true);
+
+  ScrollMetadata metadata;
+  FrameMetrics& metrics = metadata.GetMetrics();
+  metrics.SetCompositionBounds(ParentLayerRect(0, 0, 100, 100));
+  // Composition bounds show all of the horizontal space of that scrollable rect
+  metrics.SetScrollableRect(CSSRect(0, 0, 100, 1000));
+  apzc->SetFrameMetrics(metrics);
+
+  MockFunction<void(std::string checkPointName)> checkScroll;
+  {
+    // Motion of the scrollable screen:
+    // - Up to the vertical y limit of the page.
+    // - Right
+    InSequence s;
+    EXPECT_CALL(checkScroll, Call("Touch Scroll Diagonally Upwards Start"));
+
+    // Even though the touch gesture includes horizontal movement,
+    // do not show a horizontal overscroll effect because the page
+    // is not scrollable horizontally.
+    EXPECT_CALL(*mcc, UpdateOverscrollOffset(_, 0, _, _)).Times(AtLeast(1));
+
+    EXPECT_CALL(checkScroll, Call("Touch Scroll Diagonally Upwards End"));
+  }
+
+  checkScroll.Call("Touch Scroll Diagonally Upwards Start");
+  // Scroll up
+  ScreenIntPoint startPoint(10, 50);
+  ScreenIntPoint endPoint(20, 100);
+  Pan(apzc, startPoint, endPoint, PanOptions::KeepFingerDown);
+
+  checkScroll.Call("Touch Scroll Diagonally Upwards End");
+
+  EXPECT_TRUE(apzc->IsOverscrolled());
+}
+#endif
+
 #ifdef MOZ_WIDGET_ANDROID  // Only applies to WidgetOverscrollEffect
 TEST_F(APZCOverscrollTester, StuckInOverscroll_Bug1786452) {
   SCOPED_GFX_PREF_BOOL("apz.overscroll.enabled", true);
