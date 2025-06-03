@@ -3,6 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import multiprocessing
+import os
 import sys
 import time
 import warnings
@@ -119,6 +120,8 @@ def _collect(pipe, poll_interval):
     """
 
     data = []
+    processes = []
+    sample_processes = "MOZ_PROCESS_SAMPLING" in os.environ
 
     try:
         # Establish initial values.
@@ -133,6 +136,42 @@ def _collect(pipe, poll_interval):
         sout_index = swap_last._fields.index("sout")
 
         sleep_interval = poll_interval
+
+        known_processes = dict()
+
+        def update_known_processes():
+            nonlocal known_processes
+
+            if not sample_processes:
+                return
+
+            updated_known_processes = dict()
+            for p in psutil.process_iter():
+                pid = p.pid
+                create_time = p.create_time()
+                # If the process creation time does not match, a new process reused a pid.
+                if pid in known_processes and create_time == known_processes[pid][0]:
+                    updated_known_processes[pid] = known_processes[pid]
+                    del known_processes[pid]
+                else:
+                    cmd = []
+                    try:
+                        cmd = p.cmdline()
+                    except Exception as e:
+                        cmd = ["exception", str(e)]
+                    ppid = 0
+                    try:
+                        ppid = p.ppid()
+                    except Exception:
+                        pass
+
+                    updated_known_processes[pid] = (create_time, cmd, ppid)
+            update_time = time.time()
+            for pid, (create_time, cmd, ppid) in known_processes.items():
+                processes.append((pid, create_time, update_time, cmd, ppid))
+            known_processes = updated_known_processes
+
+        update_known_processes()
 
         while not _poll(pipe, poll_interval=sleep_interval):
             io = get_disk_io_counters()
@@ -174,6 +213,8 @@ def _collect(pipe, poll_interval):
                 )
             )
 
+            update_known_processes()
+
             collection_overhead = time.monotonic() - last_time - sleep_interval
             last_time = measured_end_time
             sleep_interval = max(poll_interval / 2, poll_interval - collection_overhead)
@@ -184,6 +225,21 @@ def _collect(pipe, poll_interval):
     finally:
         for entry in data:
             pipe.send(entry)
+
+        for pid, create_time, end_time, cmd, ppid in processes:
+            if len(cmd) > 0:
+                cmd[0] = os.path.basename(cmd[0])
+            cmdline = " ".join(
+                [
+                    arg
+                    for arg in cmd
+                    if not arg.startswith("-D")
+                    and not arg.startswith("-I")
+                    and not arg.startswith("-W")
+                    and not arg.startswith("-L")
+                ]
+            )
+            pipe.send(("process", pid, create_time, end_time, cmdline, ppid, None))
 
         pipe.send(("done", None, None, None, None, None, None))
         pipe.close()
@@ -276,6 +332,7 @@ class SystemResourceMonitor:
 
         self.events = []
         self.markers = []
+        self.processes = []
         self.phases = OrderedDict()
 
         self._active_phases = {}
@@ -390,6 +447,15 @@ class SystemResourceMonitor:
                 warnings.warn("failed to receive data: %s" % e)
                 # Assume we can't recover
                 break
+
+            if start_time == "process":
+                pid = end_time
+                start = self.convert_to_monotonic_time(io_diff)
+                end = self.convert_to_monotonic_time(cpu_diff)
+                cmd = cpu_percent
+                ppid = virt_mem
+                self.processes.append((pid, start, end, cmd, ppid))
+                continue
 
             # There should be nothing after the "done" message so
             # terminate.
@@ -942,6 +1008,31 @@ class SystemResourceMonitor:
                             {"key": "write_bytes", "color": "red", "type": "bar"},
                         ],
                     },
+                    {
+                        "name": "Process",
+                        "chartLabel": "{marker.data.cmd}",
+                        "tooltipLabel": "{marker.name}",
+                        "tableLabel": "{marker.data.cmd}",
+                        "display": ["marker-chart", "marker-table"],
+                        "data": [
+                            {
+                                "key": "cmd",
+                                "label": "Command line",
+                                "format": "string",
+                                "searchable": True,
+                            },
+                            {
+                                "key": "pid",
+                                "label": "Process ID",
+                                "format": "pid",
+                            },
+                            {
+                                "key": "ppid",
+                                "label": "Parent process ID",
+                                "format": "pid",
+                            },
+                        ],
+                    },
                 ],
                 "usesOnlyOneStackType": True,
             },
@@ -1191,6 +1282,10 @@ class SystemResourceMonitor:
 
             add_marker(phase_string_index, v[0], v[1], markerData, PHASE_CATEGORY, 3)
 
+        process_string_index = get_string_index("process")
+        for pid, start, end, cmd, ppid in self.processes:
+            markerData = {"type": "Process", "pid": pid, "ppid": ppid, "cmd": cmd}
+            add_marker(process_string_index, start, end, markerData)
         # Add generic markers
         for name, start, end, text in self.markers:
             markerData = {"type": "Text"}
