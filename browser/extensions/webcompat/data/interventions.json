@@ -442,28 +442,6 @@
       }
     ]
   },
-  "1707795": {
-    "label": "Office Excel spreadsheets",
-    "bugs": {
-      "1707795": {
-        "issue": "broken-scrolling",
-        "matches": [
-          "*://*.live.com/*",
-          "*://*.office.com/*",
-          "*://*.sharepoint.com/*"
-        ]
-      }
-    },
-    "interventions": [
-      {
-        "platforms": ["desktop"],
-        "content_scripts": {
-          "all_frames": true,
-          "css": ["bug1707795-office365-sheets-overscroll-disable.css"]
-        }
-      }
-    ]
-  },
   "1712807": {
     "label": "www.dealnews.com",
     "bugs": {
