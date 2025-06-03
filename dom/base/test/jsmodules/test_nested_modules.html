@@ -4,19 +4,23 @@
 <script src="/tests/SimpleTest/SimpleTest.js"></script>
 <script>
   SimpleTest.waitForExplicitFinish();
+  SimpleTest.requestLongerTimeout(2);
 
   function testLoaded() {
     ok(true, 'Not crash');
     SimpleTest.finish();
   }
 
-  (async function generateModules(n) {
+  async function generateModules(n, parseError) {
     const urls = [];
+
+    const leaf = parseError ? `^%$#@!` :
+      `console.log("Hello from module ${n}");`;
 
     for (let i = n; i >= 1; i--) {
       const nextUrl = urls[0] || '';
       const content = i === n
-        ? `console.log("Hello from module ${i}");`
+        ? leaf
         : `import "${nextUrl}";\nconsole.log("Entered module ${i}");`;
 
       const blob = new Blob([content], { type: 'application/javascript' });
@@ -33,6 +37,10 @@
     }
 
     urls.forEach(URL.revokeObjectURL);
-  })(4000);
+  }
+
+  generateModules(4000);
+  generateModules(10000);
+  generateModules(10000, true);
 </script>
 <body onload='testLoaded()'></body>
