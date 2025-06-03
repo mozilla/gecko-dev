@@ -105,6 +105,7 @@ const AVAILABLE_SHIMS = [
     ],
   },
   {
+    hiddenInAboutCompat: true,
     id: "EmbedTestShim",
     platform: "desktop",
     name: "Test shim for smartblock embed unblocking",
