@@ -220,11 +220,15 @@ const embedHelperLib = (() => {
       for (let { addedNodes, target, type } of mutations) {
         const nodes = type === "attributes" ? [target] : addedNodes;
         for (const node of nodes) {
+          if (node.nodeType !== Node.ELEMENT_NODE) {
+            // node is not an element, skip
+            continue;
+          }
           if (node.matches(embedSelector)) {
-            // If node is an embed, replace with placeholder
+            // If element is an embed, replace with placeholder
             createShimPlaceholders([node], SHIM_INFO);
           } else {
-            // If node is not an embed, check if any children are
+            // If element is not an embed, check if any children are
             // and replace if needed
             let maybeEmbedNodeList = node.querySelectorAll?.(embedSelector);
             if (maybeEmbedNodeList) {
