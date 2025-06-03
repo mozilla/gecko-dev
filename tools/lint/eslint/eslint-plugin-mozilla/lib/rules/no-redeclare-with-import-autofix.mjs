@@ -4,15 +4,31 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-import { dirname, join } from "path";
+import path from "path";
+import url from "url";
 
-const eslintBasePath = dirname(import.meta.resolve("eslint"));
+// Get the ESLint module URL and convert it to a simple path, and make sure we're
+// using the directory name.
+let eslintBasePath = path.dirname(
+  url.fileURLToPath(import.meta.resolve("eslint"))
+);
 
-const noredeclarePath = join(eslintBasePath, "rules/no-redeclare.js");
+/**
+ * Prepends the base path onto the module path, and converts to a file URL.
+ *
+ * @param {string} modulePath
+ * @returns {string}
+ */
+function getFileURLString(modulePath) {
+  let fullPath = path.join(eslintBasePath, modulePath);
+  return url.pathToFileURL(fullPath).href;
+}
+
 // eslint-disable-next-line no-unsanitized/method
-const baseRule = (await import(noredeclarePath)).default;
+const baseRule = (await import(getFileURLString("rules/no-redeclare.js")))
+  .default;
 const astUtils = // eslint-disable-next-line no-unsanitized/method
-  (await import(join(eslintBasePath, "rules/utils/ast-utils.js"))).default;
+  (await import(getFileURLString("rules/utils/ast-utils.js"))).default;
 
 // Hack alert: our eslint env is pretty confused about `require` and
 // `loader` for devtools modules - so ignore it for now.
