@@ -13,7 +13,10 @@
 // TODO : remove this when it's enabled by default in bug 1812189.
 add_setup(async function setSharedPrefs() {
   await SpecialPowers.pushPrefEnv({
-    set: [["dom.media.autoplay-policy-detection.enabled", true]],
+    set: [
+      ["dom.media.autoplay-policy-detection.enabled", true],
+      ["test.wait300msAfterTabSwitch", true],
+    ],
   });
 });
 
