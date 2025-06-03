@@ -1184,6 +1184,13 @@ void Statistics::sendGCTelemetry() {
 void Statistics::beginNurseryCollection() {
   count(COUNT_MINOR_GC);
   startingMinorGCNumber = gc->minorGCCount();
+  TimeStamp currentTime = TimeStamp::Now();
+  JSRuntime* runtime = gc->rt;
+
+  if (gc->nursery().lastCollectionEndTime()) {
+    runtime->metrics().GC_TIME_BETWEEN_MINOR_MS(
+        TimeBetween(gc->nursery().lastCollectionEndTime(), currentTime));
+  }
 }
 
 void Statistics::endNurseryCollection() { tenuredAllocsSinceMinorGC = 0; }

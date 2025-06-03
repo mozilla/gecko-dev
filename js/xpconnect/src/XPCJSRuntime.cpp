@@ -2673,6 +2673,10 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
       glean::javascript_gc::time_between_slices.AccumulateRawDuration(
           TimeDuration::FromMilliseconds(sample));
       break;
+    case JSMetric::GC_TIME_BETWEEN_MINOR_MS:
+      glean::javascript_gc::time_between_minor.AccumulateRawDuration(
+          TimeDuration::FromMilliseconds(sample));
+      break;
     case JSMetric::GC_TASK_START_DELAY_US:
       glean::javascript_gc::task_start_delay.AccumulateRawDuration(
           TimeDuration::FromMicroseconds(sample));

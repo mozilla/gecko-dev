@@ -267,6 +267,20 @@ javascript.gc:
       - jcoppeard@mozilla.com
     expires: never
 
+  time_between_minor:
+    type: timing_distribution
+    time_unit: millisecond
+    description: >
+      Time between minor garbage collections (nursery collections) for all runtimes.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1568489
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1568489
+    notification_emails:
+      - dev-telemetry-gc-alerts@mozilla.org
+      - jcoppeard@mozilla.com
+    expires: never
+
   task_start_delay:
     type: timing_distribution
     time_unit: microsecond
