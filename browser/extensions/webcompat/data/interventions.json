@@ -25,6 +25,10 @@
         "issue": "broken-interactive-elements",
         "matches": ["*://*.dublinexpress.ie/*"]
       },
+      "1913099": {
+        "issue": "broken-interactive-elements",
+        "matches": ["*://whooshmotorsports.com/*"]
+      },
       "1944007": {
         "issue": "broken-interactive-elements",
         "matches": ["*://*.discountcoffee.co.uk/*"]
