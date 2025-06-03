@@ -4,6 +4,7 @@
 
 import asyncio
 import json
+import math
 import os
 import re
 import subprocess
@@ -418,16 +419,27 @@ def need_visible_scrollbars(bug_number, check_visible_scrollbars, request, sessi
 def only_firefox_versions(bug_number, firefox_version, request):
     if request.node.get_closest_marker("only_firefox_versions"):
         kwargs = request.node.get_closest_marker("only_firefox_versions").kwargs
+
         min = float(kwargs["min"]) if "min" in kwargs else 0.0
-        max = float(kwargs["max"]) if "max" in kwargs else firefox_version
-        if firefox_version > max:
-            pytest.skip(
-                f"Bug #{bug_number} skipped on this Firefox version ({firefox_version} > {max})"
-            ) @ pytest.fixture(autouse=True)
-        elif firefox_version < min:
+        if firefox_version < min:
             pytest.skip(
                 f"Bug #{bug_number} skipped on this Firefox version ({firefox_version} < {min})"
             ) @ pytest.fixture(autouse=True)
+
+        if "max" in kwargs:
+            max = kwargs["max"]
+
+            # if we don't care about the minor version, ignore it
+            bad = False
+            if isinstance(max, float):
+                bad = firefox_version > max
+            else:
+                bad = math.floor(firefox_version) > max
+
+            if bad:
+                pytest.skip(
+                    f"Bug #{bug_number} skipped on this Firefox version ({firefox_version} > {max})"
+                ) @ pytest.fixture(autouse=True)
 
 
 @pytest.fixture(autouse=True)

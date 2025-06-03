@@ -2955,6 +2955,7 @@
     "interventions": [
       {
         "platforms": ["all"],
+        "max_version": 139,
         "content_scripts": {
           "js": ["bug1928954-publix.com-prevent-nav-on-javascript-url-click.js"]
         }

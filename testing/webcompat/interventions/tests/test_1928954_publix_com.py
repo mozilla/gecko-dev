@@ -27,12 +27,14 @@ async def does_click_navigate_away(client):
     return False
 
 
+@pytest.mark.only_firefox_versions(max=139)
 @pytest.mark.asyncio
 @pytest.mark.with_interventions
 async def test_enabled(client):
     assert not await does_click_navigate_away(client)
 
 
+@pytest.mark.only_firefox_versions(max=139)
 @pytest.mark.asyncio
 @pytest.mark.without_interventions
 async def test_disabled(client):
