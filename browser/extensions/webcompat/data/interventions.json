@@ -3912,5 +3912,23 @@
         "ua_string": ["Chrome", "add_Firefox_as_Gecko"]
       }
     ]
+  },
+  "1969165": {
+    "label": "appointments.mpi.mb.ca",
+    "bugs": {
+      "1969165": {
+        "issue": "page-fails-to-load",
+        "matches": ["*://appointments.mpi.mb.ca/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "skip_if": ["getWeekInfo_defined"],
+        "content_scripts": {
+          "js": ["bug196916-mpi.mb.ca-polyfill-getWeekInfo.js"]
+        }
+      }
+    ]
   }
 }
