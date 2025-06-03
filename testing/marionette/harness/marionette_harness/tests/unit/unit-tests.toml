@@ -12,52 +12,20 @@
 
 ["test_checkbox.py"]
 
+["test_checkbox_chrome.py"]
+
 ["test_chrome.py"]
 
 ["test_chrome_action.py"]
 
-["test_chrome_checkbox.py"]
-
-["test_chrome_click.py"]
-
 ["test_chrome_element_css.py"]
-
-["test_chrome_element_id.py"]
-
-["test_chrome_element_rect.py"]
-
-["test_chrome_element_state.py"]
-
-["test_chrome_findelement.py"]
-
-["test_chrome_get_current_url.py"]
-
-["test_chrome_pagesource.py"]
-
-["test_chrome_screenshot.py"]
-
-["test_chrome_sendkeys_menupopup.py"]
-
-["test_chrome_switch_frame.py"]
-
-["test_chrome_switch_window.py"]
-
-["test_chrome_text.py"]
-
-["test_chrome_title.py"]
-
-["test_chrome_window_close.py"]
-
-["test_chrome_window_handles.py"]
-
-["test_chrome_window_status.py"]
-
-["test_chrome_window_type.py"]
 
 ["test_cli_arguments.py"]
 skip-if = ["!manage_instance"]
 
 ["test_click.py"]
+
+["test_click_chrome.py"]
 
 ["test_click_scrolling.py"]
 
@@ -74,9 +42,15 @@ skip-if = ["asan", "!manage_instance"]
 
 ["test_element_id.py"]
 
+["test_element_id_chrome.py"]
+
 ["test_element_rect.py"]
 
+["test_element_rect_chrome.py"]
+
 ["test_element_state.py"]
+
+["test_element_state_chrome.py"]
 
 ["test_errors.py"]
 
@@ -98,11 +72,15 @@ skip-if = ["os == 'win'"] # http://bugs.python.org/issue14574
 
 ["test_findelement.py"]
 
+["test_findelement_chrome.py"]
+
 ["test_geckoinstance.py"]
 
 ["test_get_computed_label.py"]
 
 ["test_get_computed_role.py"]
+
+["test_get_current_url_chrome.py"]
 
 ["test_get_shadow_root.py"]
 
@@ -117,6 +95,8 @@ skip-if = ["os == 'win'"] # http://bugs.python.org/issue14574
 ["test_navigation.py"]
 
 ["test_pagesource.py"]
+
+["test_pagesource_chrome.py"]
 
 ["test_position.py"]
 
@@ -146,6 +126,8 @@ skip-if = ["os == 'mac'"] # bug 1674411
 
 ["test_select.py"]
 
+["test_sendkeys_menupopup_chrome.py"]
+
 ["test_session.py"]
 
 ["test_set_permission.py"]
@@ -154,15 +136,23 @@ skip-if = ["os == 'mac'"] # bug 1674411
 
 ["test_switch_frame.py"]
 
-["test_switch_window.py"]
+["test_switch_frame_chrome.py"]
+
+["test_switch_window_chrome.py"]
+
+["test_switch_window_content.py"]
 
 ["test_teardown_context_preserved.py"]
 
 ["test_text.py"]
 
+["test_text_chrome.py"]
+
 ["test_timeouts.py"]
 
 ["test_title.py"]
+
+["test_title_chrome.py"]
 
 ["test_transport.py"]
 
@@ -172,9 +162,13 @@ skip-if = ["os == 'mac'"] # bug 1674411
 
 ["test_wait.py"]
 
-["test_window_close.py"]
+["test_window_close_chrome.py"]
 
-["test_window_handles.py"]
+["test_window_close_content.py"]
+
+["test_window_handles_chrome.py"]
+
+["test_window_handles_content.py"]
 
 ["test_window_maximize.py"]
 
@@ -184,7 +178,11 @@ skip-if = [
   "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1709584
 ]
 
-["test_window_status.py"]
+["test_window_status_chrome.py"]
+
+["test_window_status_content.py"]
+
+["test_window_type_chrome.py"]
 
 ["test_windowless.py"]
 run-if = ["os == 'mac'"] # only supported on MacOS

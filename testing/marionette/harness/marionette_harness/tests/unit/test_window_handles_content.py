@@ -16,7 +16,7 @@ class TestWindowHandles(WindowManagerMixin, MarionetteTestCase):
     def setUp(self):
         super(TestWindowHandles, self).setUp()
 
-        self.chrome_dialog = "chrome://remote/content/marionette/test.xhtml"
+        self.chrome_dialog = "chrome://remote/content/marionette/test_dialog.xhtml"
 
     def tearDown(self):
         self.close_all_windows()

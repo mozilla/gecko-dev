@@ -9,8 +9,8 @@ from marionette_driver.marionette import WebElement, WEB_ELEMENT_KEY
 from marionette_harness import MarionetteTestCase, parameterized, WindowManagerMixin
 
 
-PAGE_XHTML = "chrome://remote/content/marionette/test.xhtml"
-PAGE_XUL = "chrome://remote/content/marionette/test_xul.xhtml"
+PAGE_XHTML = "chrome://remote/content/marionette/test_no_xul.xhtml"
+PAGE_XUL = "chrome://remote/content/marionette/test.xhtml"
 
 
 class TestElementsChrome(WindowManagerMixin, MarionetteTestCase):
@@ -58,9 +58,9 @@ class TestElementsChrome(WindowManagerMixin, MarionetteTestCase):
         win = self.open_chrome_window(chrome_url)
         self.marionette.switch_to_window(win)
 
-        el = self.marionette.find_element(By.ID, "button")
-        parent = self.marionette.find_element(By.ID, "types")
-        found_el = parent.find_element(By.TAG_NAME, "button")
+        el = self.marionette.find_element(By.ID, "textInput")
+        parent = self.marionette.find_element(By.ID, "things")
+        found_el = parent.find_element(By.TAG_NAME, "input")
         self.assertEqual(WebElement, type(found_el))
         self.assertEqual(WEB_ELEMENT_KEY, found_el.kind)
         self.assertEqual(el, found_el)
@@ -71,10 +71,10 @@ class TestElementsChrome(WindowManagerMixin, MarionetteTestCase):
         win = self.open_chrome_window(chrome_url)
         self.marionette.switch_to_window(win)
 
-        el = self.marionette.find_element(By.ID, "button")
-        parent = self.marionette.find_element(By.ID, "types")
-        found_els = parent.find_elements(By.TAG_NAME, "button")
-        self.assertIn(el.id, [found_el.id for found_el in found_els])
+        el = self.marionette.find_element(By.ID, "textInput3")
+        parent = self.marionette.find_element(By.ID, "things")
+        found_els = parent.find_elements(By.TAG_NAME, "input")
+        self.assertTrue(el.id in [found_el.id for found_el in found_els])
 
     @parameterized("XUL", PAGE_XUL)
     @parameterized("XHTML", PAGE_XHTML)
@@ -83,10 +83,10 @@ class TestElementsChrome(WindowManagerMixin, MarionetteTestCase):
         self.marionette.switch_to_window(win)
 
         el = self.marionette.execute_script(
-            "return window.document.getElementsByTagName('button')[0];"
+            "return window.document.getElementsByTagName('vbox')[0];"
         )
-        found_el = self.marionette.find_element(By.TAG_NAME, "button")
-        self.assertEqual("button", found_el.tag_name)
+        found_el = self.marionette.find_element(By.TAG_NAME, "vbox")
+        self.assertEqual("vbox", found_el.tag_name)
         self.assertEqual(WebElement, type(found_el))
         self.assertEqual(WEB_ELEMENT_KEY, found_el.kind)
         self.assertEqual(el, found_el)
@@ -98,9 +98,9 @@ class TestElementsChrome(WindowManagerMixin, MarionetteTestCase):
         self.marionette.switch_to_window(win)
 
         el = self.marionette.execute_script(
-            "return window.document.getElementsByClassName('foo')[0];"
+            "return window.document.getElementsByClassName('asdf')[0];"
         )
-        found_el = self.marionette.find_element(By.CLASS_NAME, "foo")
+        found_el = self.marionette.find_element(By.CLASS_NAME, "asdf")
         self.assertEqual(WebElement, type(found_el))
         self.assertEqual(WEB_ELEMENT_KEY, found_el.kind)
         self.assertEqual(el, found_el)
@@ -125,6 +125,14 @@ class TestElementsChrome(WindowManagerMixin, MarionetteTestCase):
         win = self.open_chrome_window(chrome_url)
         self.marionette.switch_to_window(win)
 
+        self.marionette.timeout.implicit = 1
+        self.assertRaises(
+            NoSuchElementException,
+            self.marionette.find_element,
+            By.ID,
+            "I'm not on the page",
+        )
+        self.marionette.timeout.implicit = 0
         self.assertRaises(
             NoSuchElementException,
             self.marionette.find_element,
@@ -141,14 +149,14 @@ class TestElementsChrome(WindowManagerMixin, MarionetteTestCase):
         self.assertRaises(
             NoSuchElementException, self.marionette.find_element, By.ID, "myid"
         )
-        self.marionette.timeout.implicit = 2
+        self.marionette.timeout.implicit = 4
         self.marionette.execute_script(
             """
             window.setTimeout(function () {
               var b = window.document.createXULElement('button');
               b.id = 'myid';
-              document.getElementById('types').appendChild(b);
-            }, 500); """
+              document.getElementById('things').appendChild(b);
+            }, 1000); """
         )
         found_el = self.marionette.find_element(By.ID, "myid")
         self.assertEqual(WebElement, type(found_el))
@@ -156,6 +164,6 @@ class TestElementsChrome(WindowManagerMixin, MarionetteTestCase):
 
         self.marionette.execute_script(
             """
-            var elem = window.document.getElementById('types');
+            var elem = window.document.getElementById('things');
             elem.removeChild(window.document.getElementById('myid')); """
         )

@@ -3,18 +3,13 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!-- Test file for a XUL window.  -->
-
+<!DOCTYPE window [ ]>
 <window
+  id="test-window"
   xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
   xmlns:html="http://www.w3.org/1999/xhtml"
-  id="remote-window"
-  title="Test Window"
-  windowtype="remote:xul"
 >
-  <linkset>
-    <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
-  </linkset>
+  <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
 
   <popupset id="options-popupset">
     <menupopup id="options-menupopup" position="before_end">
@@ -33,22 +28,7 @@
       />
     </menupopup>
   </popupset>
-
-  <vbox id="types">
-    <html:input id="textInput" size="6" value="test" label="input" />
-    <checkbox id="testBox" label="box" />
-    <button id="button" class="foo" label="button" />
-    <button id="options-button" popup="options-menupopup" label="options" />
-  </vbox>
-
-  <vbox id="frames">
-    <html:iframe
-      id="iframe"
-      src="chrome://remote/content/marionette/test_iframe.xhtml"
-    />
-    <html:iframe
-      id="iframe-nested"
-      src="chrome://remote/content/marionette/test_nested_iframe.xhtml"
-    />
-  </vbox>
+  <hbox align="center" style="height: 300px">
+    <button id="options-button" popup="options-menupopup" label="button" />
+  </hbox>
 </window>

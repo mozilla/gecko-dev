@@ -3,17 +3,21 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
 
-<!DOCTYPE window [ ]>
-<window
-  id="winTest"
-  title="Title Test"
-  windowtype="Test Type"
-  xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
-  xmlns:html="http://www.w3.org/1999/xhtml"
->
-  <html:link rel="stylesheet" href="chrome://global/skin/global.css" />
+<!-- Test file for a non XUL window by using a XHTML document instead.  -->
 
-  <dialog id="dia">
+<html
+  id="winTest"
+  xmlns:html="http://www.w3.org/1999/xhtml"
+  xmlns:xul="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+  xmlns="http://www.w3.org/1999/xhtml"
+>
+  <link rel="stylesheet" href="chrome://global/skin/global.css" />
+
+  <head>
+    <title>Title Test</title>
+  </head>
+
+  <body xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
     <vbox id="things">
       <input
         xmlns="http://www.w3.org/1999/xhtml"
@@ -37,23 +41,18 @@
         value="test"
         label="input"
       />
-      <checkbox id="testBox" label="box" />
+      <input type="checkbox" id="testBox" label="box" />
     </vbox>
 
-    <iframe
+    <html:iframe
       id="iframe"
       name="iframename"
       src="chrome://remote/content/marionette/test2.xhtml"
     />
-    <iframe
+    <html:iframe
       id="iframe"
       name="iframename"
       src="chrome://remote/content/marionette/test_nested_iframe.xhtml"
     />
-    <hbox id="testXulBox" />
-    <browser
-      id="aBrowser"
-      src="chrome://remote/content/marionette/test2.xhtml"
-    />
-  </dialog>
-</window>
+  </body>
+</html>
