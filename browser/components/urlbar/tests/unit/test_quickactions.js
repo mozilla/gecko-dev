@@ -111,3 +111,22 @@ add_task(async function interventions_disabled() {
     "Urlbar interventions are disabled when actions are enabled"
   );
 });
+
+add_task(async function test_multiple_exact_matches() {
+  ActionsProviderQuickActions.addAction("multiaction1", {
+    commands: ["testcommand1"],
+  });
+  ActionsProviderQuickActions.addAction("multiaction2", {
+    commands: ["testcommand1"],
+  });
+
+  let context = createContext("testcommand1", {});
+  let results = await ActionsProviderQuickActions.queryActions(context);
+
+  Assert.equal(results.length, 2, "Matched both actions");
+  Assert.equal(results[0].key, "multiaction1", "Matched the test action");
+  Assert.equal(results[1].key, "multiaction2", "Matched the test action");
+
+  ActionsProviderQuickActions.removeAction("multiaction1");
+  ActionsProviderQuickActions.removeAction("multiaction2");
+});

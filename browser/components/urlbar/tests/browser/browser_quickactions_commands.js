@@ -44,11 +44,13 @@ let COMMANDS_TESTS = [
   {
     cmd: "extensions",
     uri: "about:addons",
+    numTabPress: 2,
     testFun: async () => isSelected("button[name=extension]"),
   },
   {
     cmd: "themes",
     uri: "about:addons",
+    numTabPress: 2,
     testFun: async () => isSelected("button[name=theme]"),
   },
   {
@@ -86,6 +88,7 @@ let COMMANDS_TESTS = [
     uri: "about:addons",
     loadType: LOAD_TYPE.NEW_TAB,
     testFun: async () => isSelected("button[name=extension]"),
+    numTabPress: 2,
   },
   {
     cmd: "themes",
@@ -104,6 +107,7 @@ let COMMANDS_TESTS = [
     uri: "about:addons",
     loadType: LOAD_TYPE.NEW_TAB,
     testFun: async () => isSelected("button[name=theme]"),
+    numTabPress: 2,
   },
 ];
 
@@ -115,7 +119,14 @@ let isSelected = async selector =>
   });
 
 add_task(async function test_pages() {
-  for (const { cmd, uri, setup, loadType, testFun } of COMMANDS_TESTS) {
+  for (const {
+    cmd,
+    uri,
+    setup,
+    loadType,
+    testFun,
+    numTabPress = 1,
+  } of COMMANDS_TESTS) {
     info(`Testing ${cmd} command is triggered`);
     let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
@@ -133,7 +144,9 @@ add_task(async function test_pages() {
       window,
       value: cmd,
     });
-    EventUtils.synthesizeKey("KEY_Tab", {}, window);
+    for (let i = 0; i < numTabPress; i++) {
+      EventUtils.synthesizeKey("KEY_Tab", {}, window);
+    }
     EventUtils.synthesizeKey("KEY_Enter", {}, window);
 
     const newTab =
