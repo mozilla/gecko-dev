@@ -145,6 +145,8 @@ export const PageLoadStrategy = {
 
 /** Proxy configuration object representation. */
 export class Proxy {
+  #previousValuesForPreferences;
+
   /** @class */
   constructor() {
     this.proxyType = null;
@@ -157,6 +159,21 @@ export class Proxy {
     this.socksProxyPort = null;
     this.socksVersion = null;
     this.proxyAutoconfigUrl = null;
+
+    // List of applied preferences to clean up on destroy.
+    this.#previousValuesForPreferences = new Set();
+  }
+
+  destroy() {
+    for (const { type, name, value } of this.#previousValuesForPreferences) {
+      if (type === "int") {
+        Services.prefs.setIntPref(name, value);
+      } else if (type === "string") {
+        Services.prefs.setStringPref(name, value);
+      }
+    }
+
+    this.#previousValuesForPreferences = new Set();
   }
 
   /**
@@ -170,46 +187,40 @@ export class Proxy {
   init() {
     switch (this.proxyType) {
       case "autodetect":
-        Services.prefs.setIntPref("network.proxy.type", 4);
+        this.#setPreference("network.proxy.type", 4);
         return true;
 
       case "direct":
-        Services.prefs.setIntPref("network.proxy.type", 0);
+        this.#setPreference("network.proxy.type", 0);
         return true;
 
       case "manual":
-        Services.prefs.setIntPref("network.proxy.type", 1);
+        this.#setPreference("network.proxy.type", 1);
 
         if (this.httpProxy) {
-          Services.prefs.setStringPref("network.proxy.http", this.httpProxy);
+          this.#setPreference("network.proxy.http", this.httpProxy, "string");
           if (Number.isInteger(this.httpProxyPort)) {
-            Services.prefs.setIntPref(
-              "network.proxy.http_port",
-              this.httpProxyPort
-            );
+            this.#setPreference("network.proxy.http_port", this.httpProxyPort);
           }
         }
 
         if (this.sslProxy) {
-          Services.prefs.setStringPref("network.proxy.ssl", this.sslProxy);
+          this.#setPreference("network.proxy.ssl", this.sslProxy, "string");
           if (Number.isInteger(this.sslProxyPort)) {
-            Services.prefs.setIntPref(
-              "network.proxy.ssl_port",
-              this.sslProxyPort
-            );
+            this.#setPreference("network.proxy.ssl_port", this.sslProxyPort);
           }
         }
 
         if (this.socksProxy) {
-          Services.prefs.setStringPref("network.proxy.socks", this.socksProxy);
+          this.#setPreference("network.proxy.socks", this.socksProxy, "string");
           if (Number.isInteger(this.socksProxyPort)) {
-            Services.prefs.setIntPref(
+            this.#setPreference(
               "network.proxy.socks_port",
               this.socksProxyPort
             );
           }
           if (this.socksVersion) {
-            Services.prefs.setIntPref(
+            this.#setPreference(
               "network.proxy.socks_version",
               this.socksVersion
             );
@@ -217,23 +228,25 @@ export class Proxy {
         }
 
         if (this.noProxy) {
-          Services.prefs.setStringPref(
+          this.#setPreference(
             "network.proxy.no_proxies_on",
-            this.noProxy.join(", ")
+            this.noProxy.join(", "),
+            "string"
           );
         }
         return true;
 
       case "pac":
-        Services.prefs.setIntPref("network.proxy.type", 2);
-        Services.prefs.setStringPref(
+        this.#setPreference("network.proxy.type", 2);
+        this.#setPreference(
           "network.proxy.autoconfig_url",
-          this.proxyAutoconfigUrl
+          this.proxyAutoconfigUrl,
+          "string"
         );
         return true;
 
       case "system":
-        Services.prefs.setIntPref("network.proxy.type", 5);
+        this.#setPreference("network.proxy.type", 5);
         return true;
 
       default:
@@ -439,6 +452,28 @@ export class Proxy {
 
   toString() {
     return "[object Proxy]";
+  }
+
+  #setPreference(name, value, type = "int") {
+    let prevValue;
+
+    if (type === "int") {
+      if (Services.prefs.getPrefType(name) != Services.prefs.PREF_INVALID) {
+        prevValue = Services.prefs.getIntPref(name);
+      }
+
+      Services.prefs.setIntPref(name, value);
+    } else if (type === "string") {
+      if (Services.prefs.getPrefType(name) != Services.prefs.PREF_INVALID) {
+        prevValue = Services.prefs.getStringPref(name);
+      }
+
+      Services.prefs.setStringPref(name, value);
+    }
+
+    if (prevValue !== undefined) {
+      this.#previousValuesForPreferences.add({ name, type, value: prevValue });
+    }
   }
 }
 

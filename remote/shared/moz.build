@@ -10,6 +10,7 @@ BROWSER_CHROME_MANIFESTS += [
     "messagehandler/test/browser/browser_timeout.toml",
     "messagehandler/test/browser/webdriver/browser.toml",
     "test/browser/browser.toml",
+    "webdriver/test/browser/browser.toml",
 ]
 
 XPCSHELL_TESTS_MANIFESTS += [
