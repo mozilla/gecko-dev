@@ -2208,6 +2208,27 @@
       }
     ]
   },
+  "1899065": {
+    "label": "CenterParcs UK and Ireland",
+    "bugs": {
+      "1899065": {
+        "issue": "unsupported-warning",
+        "matches": ["*://*.centerparcs.co.uk/*"]
+      },
+      "1902410": {
+        "issue": "unsupported-warning",
+        "matches": ["*://*.centerparcs.ie/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "css": ["bug1899065-centerparcs-hide-unsupported-warning.css"]
+        }
+      }
+    ]
+  },
   "1899066": {
     "label": "bookcreator.com",
     "bugs": {

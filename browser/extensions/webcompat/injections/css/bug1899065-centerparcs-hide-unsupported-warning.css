@@ -1,0 +1,13 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/**
+ * centerparcs.co.uk and .ie - hide unsupported browser warning
+ * Bug #1899065 - https://bugzilla.mozilla.org/show_bug.cgi?id=1899065
+ * Bug #1902410 - https://bugzilla.mozilla.org/show_bug.cgi?id=1902410
+ * WebCompat issue #53044 - https://github.com/webcompat/web-bugs/issues/53044
+ */
+#unsupported-browser-message {
+  display: none !important;
+}
