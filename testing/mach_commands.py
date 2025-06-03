@@ -10,7 +10,6 @@ from datetime import date, timedelta
 from typing import List, Optional
 
 import requests
-from clean_skipfails import CleanSkipfails
 from mach.decorators import Command, CommandArgument, SubCommand
 from mozbuild.base import BuildEnvironmentNotFoundException
 from mozbuild.base import MachCommandConditions as conditions
@@ -1312,6 +1311,39 @@ def skipfails(
 
 @SubCommand(
     "manifest",
+    "high-freq-skip-fails",
+    description="Update manifests to skip failing tests",
+)
+@CommandArgument(
+    "-f",
+    "--failures",
+    default="30",
+    dest="failures",
+    help="Minimum number of failures for the bug to be skipped",
+)
+@CommandArgument(
+    "-d",
+    "--days",
+    default="7",
+    dest="days",
+    help="Number of days to look for failures since now",
+)
+def high_freq_skipfails(command_context, failures: str, days: str):
+    from high_freq_skipfails import HighFreqSkipfails
+
+    try:
+        failures_num = int(failures)
+    except ValueError:
+        failures_num = 30
+    try:
+        days_num = int(days)
+    except ValueError:
+        days_num = 7
+    HighFreqSkipfails(command_context, failures_num, days_num).run()
+
+
+@SubCommand(
+    "manifest",
     "clean-skip-fails",
     description="Update manifests to remove skip-if conditions for a specific platform. Only works for TOML manifests.",
 )
@@ -1348,6 +1380,8 @@ def clean_skipfails(
     os_version: Optional[str] = None,
     processor: Optional[str] = None,
 ):
+    from clean_skipfails import CleanSkipfails
+
     CleanSkipfails(
         command_context, manifest_search_path[0], os_name, os_version, processor
     ).run()
