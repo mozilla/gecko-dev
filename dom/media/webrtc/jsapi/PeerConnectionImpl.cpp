@@ -656,22 +656,6 @@ void RecordCodecTelemetry() {
 }
 
 nsresult PeerConnectionImpl::ConfigureJsepSessionCodecs() {
-  nsresult res;
-  nsCOMPtr<nsIPrefService> prefs =
-      do_GetService("@mozilla.org/preferences-service;1", &res);
-
-  if (NS_FAILED(res)) {
-    CSFLogError(LOGTAG, "%s: Couldn't get prefs service, res=%u", __FUNCTION__,
-                static_cast<unsigned>(res));
-    return res;
-  }
-
-  nsCOMPtr<nsIPrefBranch> branch = do_QueryInterface(prefs);
-  if (!branch) {
-    CSFLogError(LOGTAG, "%s: Couldn't get prefs branch", __FUNCTION__);
-    return NS_ERROR_FAILURE;
-  }
-
   RecordCodecTelemetry();
 
   // We use this to sort the list of codecs once everything is configured
