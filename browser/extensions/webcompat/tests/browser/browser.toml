@@ -16,7 +16,7 @@ support-files = [
 skip-if = ["debug"] # disabled until bug 1961939 is fixed.
 
 ["browser_custom_functions.js"]
-support-files = ["download_server.sjs"]
+support-files = ["download_server.sjs", "echo_headers.sjs"]
 
 ["browser_intervention_gating.js"]
 skip-if = ["debug"] # disabled until bug 1961939 is fixed.

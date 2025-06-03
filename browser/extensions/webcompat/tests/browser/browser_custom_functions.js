@@ -52,7 +52,90 @@ async function testResponseHeaderValue({
   }
 }
 
-add_task(async function test_custom_functions() {
+async function getRequestHeaders(browser, alter_request_headers) {
+  await setupTestIntervention([{ alter_request_headers }]);
+
+  let url =
+    "https://example.com/browser/browser/extensions/webcompat/tests/browser/echo_headers.sjs";
+  let loaded = BrowserTestUtils.browserLoaded(browser, true, url, true);
+  BrowserTestUtils.startLoadingURIString(browser, url);
+  await loaded;
+
+  const headers = await SpecialPowers.spawn(browser, [], async () => {
+    return content.wrappedJSObject.headers;
+  });
+
+  return headers;
+}
+
+add_task(async function test_alter_response_headers() {
+  await WebCompatExtension.started();
+
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  let browser = tab.linkedBrowser;
+
+  let headers = await getRequestHeaders(browser, [
+    {
+      headers: ["user-agent"],
+      replacement: "Test",
+    },
+  ]);
+  is(headers["user-agent"], "Test", "Test basic replacement");
+
+  headers = await getRequestHeaders(browser, [
+    {
+      headers: ["user-agent"],
+      replacement: null,
+    },
+  ]);
+  is(headers["user-agent"], undefined, "Test removal");
+
+  headers = await getRequestHeaders(browser, [
+    {
+      headers: ["user-agent"],
+      replace: "certainly won't match",
+      replacement: null,
+    },
+  ]);
+  is(headers["user-agent"], undefined, "Test selective removal");
+
+  headers = await getRequestHeaders(browser, [
+    {
+      headers: ["user-agent"],
+      replace: "(Firefox)",
+      replacement: "Special$1Change",
+    },
+  ]);
+  is(
+    headers["user-agent"],
+    navigator.userAgent.replace("Firefox", "SpecialFirefoxChange"),
+    "Test regexp replacement"
+  );
+
+  headers = await getRequestHeaders(browser, [
+    {
+      headers: ["unknown"],
+      fallback: "fallback",
+    },
+  ]);
+  is(headers.unknown, "fallback", "Test fallback");
+
+  headers = await getRequestHeaders(browser, [
+    {
+      headers: ["user-agent"],
+      fallback: "fallback",
+    },
+  ]);
+  is(
+    headers["user-agent"],
+    navigator.userAgent,
+    "Test fallback not used if found"
+  );
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function test_alter_response_headers() {
   await WebCompatExtension.started();
 
   const tab = await BrowserTestUtils.openNewForegroundTab(

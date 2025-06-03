@@ -58,12 +58,12 @@ function forgetListener(intervention, key) {
   return listener;
 }
 
-var CUSTOM_FUNCTIONS = {
-  alter_response_headers: {
+function makeHeaderAlterer(headerType, webRequestAPI) {
+  return {
     details: ["headers", "replacement"],
     optionalDetails: ["fallback", "replace", "types", "urls"],
     getKey(config) {
-      return `alter_headers:${JSON.stringify(config)}`;
+      return `alter_${headerType}_headers:${JSON.stringify(config)}`;
     },
     enable(config, intervention) {
       let { fallback, headers, replace, replacement, types, urls } = config;
@@ -77,43 +77,55 @@ var CUSTOM_FUNCTIONS = {
         replace === null ? null : new RegExp(replace ?? "^.*$", "gi");
       const listener = evt => {
         let found = false;
-        const responseHeaders = [];
-        for (const header of evt.responseHeaders) {
+        const finalHeaders = [];
+        for (const header of evt[`${headerType}Headers`]) {
           if (headers.includes(header.name.toLowerCase())) {
-            if (regex !== null && replacement !== null) {
-              found = true;
+            found = true;
+            if (
+              regex !== null &&
+              replacement !== null &&
+              replacement !== undefined
+            ) {
               const value = header.value.replaceAll(regex, replacement);
-              responseHeaders.push({ name: header.name, value });
+              finalHeaders.push({ name: header.name, value });
+            } else if (replacement !== null) {
+              finalHeaders.push(header);
             }
           } else {
-            responseHeaders.push(header);
+            finalHeaders.push(header);
           }
         }
         if (!found && (replace === undefined || typeof fallback === "string")) {
           const value = fallback ?? replacement;
           if (value !== null) {
-            responseHeaders.push({
+            finalHeaders.push({
               name: headers[0],
               value,
             });
           }
         }
-        return { responseHeaders };
+        const retval = {};
+        retval[`${headerType}Headers`] = finalHeaders;
+        return retval;
       };
-      browser.webRequest.onHeadersReceived.addListener(
-        listener,
-        { types, urls },
-        ["blocking", "responseHeaders"]
-      );
+      browser.webRequest[webRequestAPI].addListener(listener, { types, urls }, [
+        "blocking",
+        `${headerType}Headers`,
+      ]);
       rememberListener(intervention, this.getKey(config), listener);
     },
     disable(config, intervention) {
       const listener = forgetListener(intervention, this.getKey(config));
       if (listener) {
-        browser.webRequest.onHeadersReceived.removeListener(listener);
+        browser.webRequest[webRequestAPI].removeListener(listener);
       }
     },
-  },
+  };
+}
+
+var CUSTOM_FUNCTIONS = {
+  alter_request_headers: makeHeaderAlterer("request", "onBeforeSendHeaders"),
+  alter_response_headers: makeHeaderAlterer("response", "onHeadersReceived"),
   replace_string_in_request: {
     details: ["find", "replace", "urls"],
     optionalDetails: ["types"],
