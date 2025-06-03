@@ -38,7 +38,6 @@ from . import GECKO
 from .actions import render_actions_json
 from .files_changed import get_changed_files
 from .parameters import get_app_version, get_version
-from .try_option_syntax import parse_message
 from .util.backstop import ANDROID_PERFTEST_BACKSTOP_INDEX, BACKSTOP_INDEX, is_backstop
 from .util.bugbug import push_schedules
 from .util.chunking import resolver
@@ -371,7 +370,6 @@ def get_decision_parameters(graph_config, options):
     parameters["test_manifest_loader"] = "default"
     parameters["try_mode"] = None
     parameters["try_task_config"] = {}
-    parameters["try_options"] = None
 
     # owner must be an email, but sometimes (e.g., for ffxbld) it is not, in which
     # case, fake it
@@ -490,12 +488,6 @@ def set_try_config(parameters, task_config_file):
             raise Exception(
                 f"Unknown `try_task_config.json` version: {task_config_version}"
             )
-
-    if "try:" in parameters["message"]:
-        parameters["try_mode"] = "try_option_syntax"
-        parameters.update(parse_message(parameters["message"]))
-    else:
-        parameters["try_options"] = None
 
 
 def set_decision_indexes(decision_task_id, params, graph_config):

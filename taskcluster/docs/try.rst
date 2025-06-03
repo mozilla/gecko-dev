@@ -13,24 +13,7 @@ integration branches are at SCM level 3.
 Scheduling a Task on Try
 ------------------------
 
-There are three methods for scheduling a task on try: legacy try option syntax,
-try task config, and an empty try.
-
-Try Option Syntax
-:::::::::::::::::
-
-The first, older method is a command line string called ``try syntax`` which is passed
-into the decision task via the commit message. The resulting commit is then
-pushed to the https://hg.mozilla.org/try repository.  An example try syntax
-might look like:
-
-.. parsed-literal::
-
-    try: -b o -p linux64 -u mochitest-1 -t none
-
-This gets parsed by ``taskgraph.try_option_syntax:TryOptionSyntax`` and returns
-a list of matching task labels. For more information see the
-`TryServer wiki page <https://wiki.mozilla.org/Try>`_.
+There are two methods for scheduling a task on try: try task config, and an empty try.
 
 Try Task Config
 :::::::::::::::

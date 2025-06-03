@@ -118,14 +118,9 @@ Try Configuration
    The mode in which a try push is operating.  This can be one of:
 
     * ``"try_task_config"`` - Used to configure the taskgraph.
-    * ``"try_option_syntax"`` - Used when pushing to try with legacy try syntax.
     * ``"try_auto"`` - Used to make try pushes behave more like a push on ``autoland``.
     * ``"try_select"`` - Used by ``mach try`` to build a list of tasks locally.
     * ``None`` - Not a try push or ``mach try release``.
-
-``try_options``
-    The arguments given as try syntax (as a dictionary), or ``None`` if
-    ``try_mode`` is not ``try_option_syntax``.
 
 ``try_task_config``
     The contents of the ``try_task_config.json`` file, or ``{}`` if

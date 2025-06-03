@@ -23,7 +23,7 @@ from taskgraph.util.taskcluster import (
 )
 from taskgraph.util.yaml import load_yaml
 
-from gecko_taskgraph import GECKO, try_option_syntax
+from gecko_taskgraph import GECKO
 from gecko_taskgraph.util.attributes import (
     is_try,
     match_run_on_hg_branches,
@@ -347,77 +347,11 @@ def _try_task_config(full_task_graph, parameters, graph_config):
     return list(selected_tasks - missing)
 
 
-def _try_option_syntax(full_task_graph, parameters, graph_config):
-    """Generate a list of target tasks based on try syntax in
-    parameters['message'] and, for context, the full task graph."""
-    options = try_option_syntax.TryOptionSyntax(
-        parameters, full_task_graph, graph_config
-    )
-    target_tasks_labels = [
-        t.label
-        for t in full_task_graph.tasks.values()
-        if options.task_matches(t)
-        and filter_by_uncommon_try_tasks(t.label)
-        and filter_unsupported_artifact_builds(t, parameters)
-    ]
-
-    attributes = {
-        k: getattr(options, k)
-        for k in [
-            "no_retry",
-            "tag",
-        ]
-    }
-
-    for l in target_tasks_labels:
-        task = full_task_graph[l]
-        if "unittest_suite" in task.attributes:
-            task.attributes["task_duplicates"] = options.trigger_tests
-
-    for l in target_tasks_labels:
-        task = full_task_graph[l]
-        # If the developer wants test jobs to be rebuilt N times we add that value here
-        if options.trigger_tests > 1 and "unittest_suite" in task.attributes:
-            task.attributes["task_duplicates"] = options.trigger_tests
-
-        # If the developer wants test talos jobs to be rebuilt N times we add that value here
-        if (
-            options.talos_trigger_tests > 1
-            and task.attributes.get("unittest_suite") == "talos"
-        ):
-            task.attributes["task_duplicates"] = options.talos_trigger_tests
-
-        # If the developer wants test raptor jobs to be rebuilt N times we add that value here
-        if (
-            options.raptor_trigger_tests
-            and options.raptor_trigger_tests > 1
-            and task.attributes.get("unittest_suite") == "raptor"
-        ):
-            task.attributes["task_duplicates"] = options.raptor_trigger_tests
-
-        task.attributes.update(attributes)
-
-    # Add notifications here as well
-    if options.notifications:
-        for task in full_task_graph:
-            owner = parameters.get("owner")
-            routes = task.task.setdefault("routes", [])
-            if options.notifications == "all":
-                routes.append(f"notify.email.{owner}.on-any")
-            elif options.notifications == "failure":
-                routes.append(f"notify.email.{owner}.on-failed")
-                routes.append(f"notify.email.{owner}.on-exception")
-
-    return target_tasks_labels
-
-
 @register_target_task("try_tasks")
 def target_tasks_try(full_task_graph, parameters, graph_config):
     try_mode = parameters["try_mode"]
     if try_mode == "try_task_config":
         return _try_task_config(full_task_graph, parameters, graph_config)
-    if try_mode == "try_option_syntax":
-        return _try_option_syntax(full_task_graph, parameters, graph_config)
     # With no try mode, we schedule nothing, allowing the user to add tasks
     # later via treeherder.
     return []

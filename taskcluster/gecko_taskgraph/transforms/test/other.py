@@ -1124,8 +1124,6 @@ def set_profile(config, tasks):
 def set_tag(config, tasks):
     """Set test for a specific tag."""
     tag = None
-    if config.params["try_mode"] == "try_option_syntax":
-        tag = config.params["try_options"]["tag"]
     for task in tasks:
         if tag:
             task["mozharness"]["extra-options"].extend(["--tag", tag])

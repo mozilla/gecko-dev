@@ -209,7 +209,6 @@ avoid-blacklist-and-whitelist:
         - taskcluster/kinds/docker-image/kind.yml
         - taskcluster/gecko_taskgraph/actions/create_interactive.py
         - taskcluster/gecko_taskgraph/transforms/test/other.py
-        - taskcluster/gecko_taskgraph/try_option_syntax.py
         - testing/condprofile/condprof/client.py
         - testing/condprofile/condprof/tests/profile/prefs.js
         - testing/condprofile/condprof/tests/test_client.py

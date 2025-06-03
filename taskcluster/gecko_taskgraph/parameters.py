@@ -41,7 +41,6 @@ gecko_parameters_schema = {
     Required("signoff_urls"): dict,
     Required("test_manifest_loader"): str,
     Required("try_mode"): Any(None, str),
-    Required("try_options"): Any(None, dict),
     Required("try_task_config"): {
         Optional("tasks"): [str],
         Optional("browsertime"): bool,
@@ -143,7 +142,6 @@ def get_defaults(repo_root=None):
         "signoff_urls": {},
         "test_manifest_loader": "default",
         "try_mode": None,
-        "try_options": None,
         "try_task_config": {},
         "version": get_version(),
     }
