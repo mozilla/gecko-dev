@@ -317,6 +317,7 @@ dependencies {
 
     implementation project(':support-ktx')
     implementation project(':support-utils')
+    implementation project(':support-remotesettings')
     implementation project(':support-appservices')
     implementation project(':support-license')
 

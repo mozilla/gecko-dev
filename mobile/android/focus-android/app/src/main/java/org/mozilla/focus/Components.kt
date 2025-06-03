@@ -59,6 +59,9 @@ import mozilla.components.service.location.MozillaLocationService
 import mozilla.components.service.nimbus.NimbusApi
 import mozilla.components.support.base.android.NotificationsDelegate
 import mozilla.components.support.locale.LocaleManager
+import mozilla.components.support.remotesettings.RemoteSettingsServer
+import mozilla.components.support.remotesettings.RemoteSettingsService
+import mozilla.components.support.remotesettings.into
 import org.mozilla.focus.activity.MainActivity
 import org.mozilla.focus.browser.BlockedTrackersMiddleware
 import org.mozilla.focus.cfr.CfrMiddleware
@@ -258,6 +261,18 @@ class Components(
     val fileSizeFormatter: FileSizeFormatter by lazy { DefaultFileSizeFormatter(context.applicationContext) }
 
     val dateTimeProvider: DateTimeProvider by lazy { DefaultDateTimeProvider() }
+
+    val remoteSettingsService by lazy {
+        RemoteSettingsService(
+            context,
+            if (context.settings.useProductionRemoteSettingsServer) {
+                RemoteSettingsServer.Prod.into()
+            } else {
+                RemoteSettingsServer.Stage.into()
+            },
+            channel = BuildConfig.BUILD_TYPE,
+        )
+    }
 }
 
 private fun createCrashReporter(context: Context): CrashReporter {
