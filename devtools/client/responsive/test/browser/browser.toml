@@ -113,6 +113,8 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && d
 
 ["browser_preloaded_newtab.js"]
 
+["browser_resize_cancel.js"]
+
 ["browser_screenshot_button.js"]
 
 ["browser_screenshot_button_warning.js"]
