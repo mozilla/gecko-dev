@@ -183,7 +183,6 @@ class SessionControlViewTest {
         every { settings.showBookmarksHomeFeature } returns true
         every { settings.historyMetadataUIFeature } returns true
         every { settings.showPocketRecommendationsFeature } returns true
-        every { settings.showContentRecommendations } returns false
         every { settings.showSetupChecklist } returns false
 
         val results = normalModeAdapterItems(
@@ -201,10 +200,11 @@ class SessionControlViewTest {
             true,
         )
 
+        assertEquals(4, results.size)
         assertTrue(results[0] is AdapterItem.TopPlaceholderItem)
         assertTrue(results[1] is AdapterItem.PocketStoriesItem)
-        assertTrue(results[2] is AdapterItem.PocketCategoriesItem)
-        assertTrue(results[3] is AdapterItem.CustomizeHomeButton)
+        assertTrue(results[2] is AdapterItem.CustomizeHomeButton)
+        assertTrue(results[3] is AdapterItem.BottomSpacer)
 
         // When the first frame has not yet drawn don't add pocket.
         val results2 = normalModeAdapterItems(
@@ -222,48 +222,9 @@ class SessionControlViewTest {
             false,
         )
 
+        assertEquals(2, results2.size)
         assertTrue(results2[0] is AdapterItem.TopPlaceholderItem)
         assertTrue(results2[1] is AdapterItem.BottomSpacer)
-    }
-
-    @Test
-    fun `GIVEN pocket articles and content recommendations are enabled WHEN normalModeAdapterItems is called THEN do not show pocket topic categories and footer`() {
-        val settings: Settings = mockk()
-        val topSites = emptyList<TopSite>()
-        val collections = emptyList<TabCollection>()
-        val expandedCollections = emptySet<Long>()
-        val bookmarks = listOf<Bookmark>()
-        val historyMetadata = emptyList<RecentHistoryGroup>()
-        val pocketStories = listOf(PocketRecommendedStory("", "", "", "", "", 1, 1))
-
-        every { settings.showTopSitesFeature } returns true
-        every { settings.showRecentTabsFeature } returns true
-        every { settings.showBookmarksHomeFeature } returns true
-        every { settings.historyMetadataUIFeature } returns true
-        every { settings.showPocketRecommendationsFeature } returns true
-        every { settings.showContentRecommendations } returns true
-        every { settings.showSetupChecklist } returns false
-
-        val results = normalModeAdapterItems(
-            settings = settings,
-            topSites = topSites,
-            collections = collections,
-            expandedCollections = expandedCollections,
-            bookmarks = bookmarks,
-            showCollectionsPlaceholder = false,
-            nimbusMessageCard = null,
-            showRecentTab = false,
-            showRecentSyncedTab = false,
-            recentVisits = historyMetadata,
-            pocketStories = pocketStories,
-            firstFrameDrawn = true,
-        )
-
-        assertEquals(4, results.size)
-        assertTrue(results[0] is AdapterItem.TopPlaceholderItem)
-        assertTrue(results[1] is AdapterItem.PocketStoriesItem)
-        assertTrue(results[2] is AdapterItem.CustomizeHomeButton)
-        assertTrue(results[3] is AdapterItem.BottomSpacer)
     }
 
     @Test

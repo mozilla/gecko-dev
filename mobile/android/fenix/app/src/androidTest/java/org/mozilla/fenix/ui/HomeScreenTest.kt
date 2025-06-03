@@ -54,7 +54,6 @@ class HomeScreenTest : TestSetup() {
             verifyNoCollectionsText(activityTestRule)
             scrollToPocketProvokingStories()
             verifyThoughtProvokingStories(true)
-            verifyStoriesByTopicItems()
             verifyCustomizeHomepageButton(activityTestRule, true)
             verifyNavigationToolbar()
             verifyHomeMenuButton()

@@ -24,8 +24,9 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.mars.MARSUseCases
 import org.mozilla.fenix.home.pocket.PocketImpression
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
-import org.mozilla.fenix.home.pocket.view.POCKET_CATEGORIES_SELECTED_AT_A_TIME_COUNT
 import org.mozilla.fenix.utils.Settings
+
+private const val POCKET_CATEGORIES_SELECTED_AT_A_TIME_COUNT = 8
 
 /**
  * Contract for how all user interactions with the Pocket stories feature are to be handled.

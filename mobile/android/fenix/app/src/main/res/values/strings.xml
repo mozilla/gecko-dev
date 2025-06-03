@@ -2732,7 +2732,7 @@
     <!-- Header text for a section on the home screen. -->
     <string name="pocket_stories_header_2">Stories</string>
     <!-- Header text for a section on the home screen. -->
-    <string name="pocket_stories_categories_header">Stories by topic</string>
+    <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Stories by topic</string>
     <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
     <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Discover more</string>
     <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->

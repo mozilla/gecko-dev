@@ -14,8 +14,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.filter
 import androidx.compose.ui.test.hasAnyChild
 import androidx.compose.ui.test.hasAnySibling
@@ -25,7 +23,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onChildAt
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -497,52 +494,6 @@ class HomeScreenRobot {
 //            )
 //        }
 //    }
-
-    fun verifyStoriesByTopic(enabled: Boolean) {
-        if (enabled) {
-            scrollToElementByText(getStringResource(R.string.pocket_stories_categories_header))
-            assertUIObjectExists(itemContainingText(getStringResource(R.string.pocket_stories_categories_header)))
-        } else {
-            assertUIObjectExists(itemContainingText(getStringResource(R.string.pocket_stories_categories_header)), exists = false)
-        }
-    }
-
-    fun verifyStoriesByTopicItems() {
-        Log.i(TAG, "verifyStoriesByTopicItems: Trying to scroll into view the stories by topic home screen section")
-        homeScreenList().scrollIntoView(UiSelector().resourceId("pocket.categories"))
-        Log.i(TAG, "verifyStoriesByTopicItems: Scrolled into view the stories by topic home screen section")
-        Log.i(TAG, "verifyStoriesByTopicItems: Trying to verify that there are more than 1 \"Stories by topic\" categories")
-        assertTrue(mDevice.findObject(UiSelector().resourceId("pocket.categories")).childCount > 1)
-        Log.i(TAG, "verifyStoriesByTopicItems: Verified that there are more than 1 \"Stories by topic\" categories")
-    }
-
-    fun verifyStoriesByTopicItemState(composeTestRule: ComposeTestRule, isSelected: Boolean, position: Int) {
-        Log.i(TAG, "verifyStoriesByTopicItemState: Trying to scroll into view \"Stories by topic\" home screen section")
-        homeScreenList().scrollIntoView(mDevice.findObject(UiSelector().resourceId("pocket.header")))
-        Log.i(TAG, "verifyStoriesByTopicItemState: Scrolled into view \"Stories by topic\" home screen section")
-
-        if (isSelected) {
-            Log.i(TAG, "verifyStoriesByTopicItemState: Trying verify that the stories by topic home screen section is displayed")
-            composeTestRule.onNodeWithTag("pocket.categories").assertIsDisplayed()
-            Log.i(TAG, "verifyStoriesByTopicItemState: Verified that the stories by topic home screen section is displayed")
-            Log.i(TAG, "verifyStoriesByTopicItemState: Trying verify that the stories by topic item at position: $position is selected")
-            storyByTopicItem(composeTestRule, position).assertIsSelected()
-            Log.i(TAG, "verifyStoriesByTopicItemState: Verified that the stories by topic item at position: $position is selected")
-        } else {
-            Log.i(TAG, "verifyStoriesByTopicItemState: Trying verify that the stories by topic home screen section is displayed")
-            composeTestRule.onNodeWithTag("pocket.categories").assertIsDisplayed()
-            Log.i(TAG, "verifyStoriesByTopicItemState: Verified that the stories by topic home screen section is displayed")
-            Log.i(TAG, "verifyStoriesByTopicItemState: Trying to verify that the stories by topic item at position: $position is not selected")
-            storyByTopicItem(composeTestRule, position).assertIsNotSelected()
-            Log.i(TAG, "verifyStoriesByTopicItemState: Verified that the stories by topic item at position: $position is not selected")
-        }
-    }
-
-    fun clickStoriesByTopicItem(composeTestRule: ComposeTestRule, position: Int) {
-        Log.i(TAG, "clickStoriesByTopicItem: Trying to click stories by topic item from position: $position")
-        storyByTopicItem(composeTestRule, position).performClick()
-        Log.i(TAG, "clickStoriesByTopicItem: Clicked stories by topic item from position: $position")
-    }
 
     fun verifyCustomizeHomepageButton(composeTestRule: ComposeTestRule, enabled: Boolean) {
         if (enabled) {
@@ -1049,9 +1000,6 @@ private fun sponsoredShortcut(sponsoredShortcutTitle: String) =
             withText(sponsoredShortcutTitle),
         ),
     )
-
-private fun storyByTopicItem(composeTestRule: ComposeTestRule, position: Int) =
-    composeTestRule.onNodeWithTag("pocket.categories").onChildAt(position - 1)
 
 private fun homeScreen() =
     itemWithResId("$packageName:id/homepageView")
