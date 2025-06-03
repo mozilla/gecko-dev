@@ -69,9 +69,6 @@
 
 #include "mozilla/dom/UIDirectionManager.h"
 
-#ifdef XP_WIN
-#  include "mozilla/widget/AudioSession.h"
-#endif
 #include "CubebUtils.h"
 #include "WebAudioUtils.h"
 
@@ -221,12 +218,6 @@ nsresult nsLayoutStatics::Initialize() {
   }
 
   DecoderDoctorLogger::Init();
-
-#ifdef XP_WIN
-  if (XRE_IsParentProcess()) {
-    widget::CreateAudioSession();
-  }
-#endif
   CubebUtils::InitLibrary();
 
   nsHtml5Module::InitializeStatics();
@@ -356,11 +347,6 @@ void nsLayoutStatics::Shutdown() {
 
   CubebUtils::ShutdownLibrary();
   WebAudioUtils::Shutdown();
-#ifdef XP_WIN
-  if (XRE_IsParentProcess()) {
-    widget::DestroyAudioSession();
-  }
-#endif
 
   nsCORSListenerProxy::Shutdown();
 

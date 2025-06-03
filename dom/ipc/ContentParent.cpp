@@ -311,6 +311,7 @@
 #endif
 
 #ifdef XP_WIN
+#  include "mozilla/widget/AudioSession.h"
 #  include "mozilla/WinDllServices.h"
 #endif
 
