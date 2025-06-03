@@ -419,32 +419,8 @@ class DownloadUIStoreTest {
         assertEquals(expectedUIStateAfterFirstDeleteAction, store.state)
     }
 
-    private fun provideDownloadUIStore(
-        initialState: BrowserState = BrowserState(),
-    ): DownloadUIStore {
-        val browserStore = BrowserStore(initialState = initialState)
-
-        val deleteMiddleware = DownloadDeleteMiddleware(
-            FakeDelayProvider(UNDO_DELAY),
-            DownloadsUseCases.RemoveDownloadUseCase(browserStore),
-            dispatcher,
-        )
-
-        val downloadUIMapperMiddleware = DownloadUIMapperMiddleware(
-            browserStore = browserStore,
-            fileItemDescriptionProvider = fakeFileItemDescriptionProvider,
-            scope = scope,
-            dateTimeProvider = fakeDateTimeProvider,
-        )
-
-        return DownloadUIStore(
-            initialState = DownloadUIState.INITIAL,
-            middleware = listOf(deleteMiddleware, downloadUIMapperMiddleware),
-        )
-    }
-
     @Test
-    fun `WHEN downloads store is initialised THEN downloads state is updated to be sorted by created time`() {
+    fun `GIVEN live downloads is enabled WHEN downloads store is initialised THEN downloads state is updated to be sorted by created time`() {
         val fakeDateTimeProvider = FakeDateTimeProvider(LocalDate.of(2025, 5, 31))
         val zoneId = fakeDateTimeProvider.currentZoneId()
 
@@ -468,7 +444,8 @@ class DownloadUIStoreTest {
                 status = DownloadState.Status.FAILED,
                 contentLength = 10000,
                 destinationDirectory = "",
-                directoryPath = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
             ),
             "3" to DownloadState(
                 id = "3",
@@ -480,6 +457,39 @@ class DownloadUIStoreTest {
                 destinationDirectory = "",
                 directoryPath = "downloads",
                 contentType = "text/plain",
+            ),
+            "4" to DownloadState(
+                id = "4",
+                createdTime = LocalDate.of(2025, 5, 13).toEpochMilli(zoneId),
+                url = "https://www.google.com",
+                fileName = "4.pdf",
+                status = DownloadState.Status.PAUSED,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+            "5" to DownloadState(
+                id = "5",
+                createdTime = LocalDate.of(2025, 5, 14).toEpochMilli(zoneId),
+                url = "https://www.google.com",
+                fileName = "5.pdf",
+                status = DownloadState.Status.DOWNLOADING,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+            "6" to DownloadState(
+                id = "6",
+                createdTime = LocalDate.of(2025, 5, 15).toEpochMilli(zoneId),
+                url = "https://www.google.com",
+                fileName = "6.pdf",
+                status = DownloadState.Status.INITIATED,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
             ),
         )
 
@@ -495,6 +505,176 @@ class DownloadUIStoreTest {
                     fileItemDescriptionProvider = fakeFileItemDescriptionProvider,
                     scope = scope,
                     dateTimeProvider = fakeDateTimeProvider,
+                    isLiveDownloadsEnabled = true,
+                ),
+            ),
+        )
+        downloadsStore.waitUntilIdle()
+
+        val expectedList = DownloadUIState.ItemsState.Items(
+            listOf(
+                HeaderItem(TimeCategory.IN_PROGRESS),
+                FileItem(
+                    id = "6",
+                    url = "https://www.google.com",
+                    fileName = "6.pdf",
+                    filePath = "downloads/6.pdf",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.INITIATED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                    description = "Initiated",
+                ),
+                FileItem(
+                    id = "5",
+                    url = "https://www.google.com",
+                    fileName = "5.pdf",
+                    filePath = "downloads/5.pdf",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.DOWNLOADING,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                    description = "Downloading",
+                ),
+                FileItem(
+                    id = "4",
+                    url = "https://www.google.com",
+                    fileName = "4.pdf",
+                    filePath = "downloads/4.pdf",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.PAUSED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                    description = "Paused",
+                ),
+                FileItem(
+                    id = "2",
+                    url = "https://www.google.com",
+                    fileName = "2.pdf",
+                    filePath = "downloads/2.pdf",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.FAILED,
+                    timeCategory = TimeCategory.IN_PROGRESS,
+                    description = "Failed",
+                ),
+                HeaderItem(TimeCategory.TODAY),
+                FileItem(
+                    id = "3",
+                    url = "https://www.google.com",
+                    fileName = "3.pdf",
+                    filePath = "downloads/3.pdf",
+                    description = "Completed",
+                    displayedShortUrl = "google.com",
+                    contentType = "text/plain",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.TODAY,
+                ),
+                HeaderItem(TimeCategory.OLDER),
+                FileItem(
+                    id = "1",
+                    url = "https://www.google.com",
+                    fileName = "1.pdf",
+                    filePath = "downloads/1.pdf",
+                    description = "Completed",
+                    displayedShortUrl = "google.com",
+                    contentType = "application/pdf",
+                    status = DownloadState.Status.COMPLETED,
+                    timeCategory = TimeCategory.OLDER,
+                ),
+            ),
+        )
+
+        assertEquals(expectedList, downloadsStore.state.itemsState)
+    }
+
+    @Test
+    fun `GIVEN live downloads is disabled WHEN downloads store is initialised THEN downloads state is updated to show completed items sorted by created time`() {
+        val fakeDateTimeProvider = FakeDateTimeProvider(LocalDate.of(2025, 5, 31))
+        val zoneId = fakeDateTimeProvider.currentZoneId()
+
+        val downloads = mapOf(
+            "1" to DownloadState(
+                id = "1",
+                url = "https://www.google.com",
+                createdTime = LocalDate.of(2025, 3, 1).toEpochMilli(zoneId),
+                fileName = "1.pdf",
+                status = DownloadState.Status.COMPLETED,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+            "2" to DownloadState(
+                id = "2",
+                url = "https://www.google.com",
+                createdTime = LocalDate.of(2025, 4, 12).toEpochMilli(zoneId),
+                fileName = "2.pdf",
+                status = DownloadState.Status.FAILED,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+            "3" to DownloadState(
+                id = "3",
+                createdTime = LocalDate.of(2025, 5, 31).toEpochMilli(zoneId),
+                url = "https://www.google.com",
+                fileName = "3.pdf",
+                status = DownloadState.Status.COMPLETED,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "text/plain",
+            ),
+            "4" to DownloadState(
+                id = "4",
+                createdTime = LocalDate.of(2025, 5, 13).toEpochMilli(zoneId),
+                url = "https://www.google.com",
+                fileName = "4.pdf",
+                status = DownloadState.Status.PAUSED,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+            "5" to DownloadState(
+                id = "5",
+                createdTime = LocalDate.of(2025, 5, 14).toEpochMilli(zoneId),
+                url = "https://www.google.com",
+                fileName = "5.pdf",
+                status = DownloadState.Status.DOWNLOADING,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+            "6" to DownloadState(
+                id = "6",
+                createdTime = LocalDate.of(2025, 5, 15).toEpochMilli(zoneId),
+                url = "https://www.google.com",
+                fileName = "6.pdf",
+                status = DownloadState.Status.INITIATED,
+                contentLength = 10000,
+                destinationDirectory = "",
+                directoryPath = "downloads",
+                contentType = "application/pdf",
+            ),
+        )
+
+        val browserStore = BrowserStore(
+            initialState = BrowserState(downloads = downloads),
+        )
+
+        val downloadsStore = DownloadUIStore(
+            initialState = DownloadUIState.INITIAL,
+            middleware = listOf(
+                DownloadUIMapperMiddleware(
+                    browserStore = browserStore,
+                    fileItemDescriptionProvider = fakeFileItemDescriptionProvider,
+                    scope = scope,
+                    dateTimeProvider = fakeDateTimeProvider,
+                    isLiveDownloadsEnabled = false,
                 ),
             ),
         )
@@ -702,6 +882,30 @@ class DownloadUIStoreTest {
 
         store.dispatch(DownloadUIAction.RetryDownload("1"))
         assertEquals(expectedState, store.state)
+    }
+
+    private fun provideDownloadUIStore(
+        initialState: BrowserState = BrowserState(),
+    ): DownloadUIStore {
+        val browserStore = BrowserStore(initialState = initialState)
+
+        val deleteMiddleware = DownloadDeleteMiddleware(
+            FakeDelayProvider(UNDO_DELAY),
+            DownloadsUseCases.RemoveDownloadUseCase(browserStore),
+            dispatcher,
+        )
+
+        val downloadUIMapperMiddleware = DownloadUIMapperMiddleware(
+            browserStore = browserStore,
+            fileItemDescriptionProvider = fakeFileItemDescriptionProvider,
+            scope = scope,
+            dateTimeProvider = fakeDateTimeProvider,
+        )
+
+        return DownloadUIStore(
+            initialState = DownloadUIState.INITIAL,
+            middleware = listOf(deleteMiddleware, downloadUIMapperMiddleware),
+        )
     }
 
     private fun LocalDate.toEpochMilli(zoneId: ZoneId): Long {
