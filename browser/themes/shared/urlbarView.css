@@ -648,17 +648,29 @@
   width: 14px;
   -moz-context-properties: fill;
   vertical-align: top;
-  margin-inline-start: 0.35em;
 }
 
 .urlbarView-userContext-textMode > span {
   font-variant: small-caps;
 }
 
-/* Display userContext icon instead of text, when window is too narrow. */
+/* Display userContext icon instead of text when window is too narrow. */
 .urlbarView-results[wrap] .urlbarView-userContext-textMode,
 .urlbarView-results:not([wrap]) .urlbarView-userContext-iconMode {
   display: none;
+}
+
+/* Display a shortened version of the tab label when window is too narrow. */
+.urlbarView-results[wrap] .urlbarView-tabGroup-fullWidthMode,
+.urlbarView-results:not([wrap]) .urlbarView-tabGroup-narrowWidthMode {
+  display: none;
+}
+
+/* Force the tab group result chiclet to appear at full height, even if it has
+ * no text in it. This is the case if the group has no name and the chiclet is
+ * in narrow mode. */
+.urlbarView-results[wrap] .urlbarView-tabGroup-narrowWidthMode {
+  display: inline-block;
 }
 
 /* Tail suggestions */
@@ -775,6 +787,11 @@
       }
     }
 
+    &.urlbarView-tabGroup {
+      color: light-dark(var(--tab-group-color-pale), var(--tab-group-label-text-dark));
+      background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
+    }
+
     /* stylelint-disable-next-line media-query-no-invalid */
     @media not -moz-pref("browser.urlbar.scotchBonnet.enableOverride") {
       color: var(--urlbar-box-text-color);
@@ -788,14 +805,18 @@
     /* stylelint-disable-next-line media-query-no-invalid */
     @media -moz-pref("browser.urlbar.scotchBonnet.enableOverride") {
       -moz-context-properties: fill, fill-opacity;
-      padding-inline-start: calc(var(--urlbarView-favicon-width) + 8px);
-      background-image: url("chrome://browser/content/firefoxview/view-opentabs.svg");
-      background-repeat: no-repeat;
-      background-position: 4px center;
-      background-size: var(--urlbarView-favicon-width);
 
       border-inline: 1px solid var(--border-color-deemphasized);
       border-block-end: 1px solid var(--border-color-deemphasized);
+
+      &.urlbarView-switchToTab {
+        padding-inline-start: calc(var(--urlbarView-favicon-width) + 8px);
+        background-image: url("chrome://browser/content/firefoxview/view-opentabs.svg");
+        background-repeat: no-repeat;
+        background-position: 4px center;
+        background-size: var(--urlbarView-favicon-width);
+      }
+
       &:not(.urlbarView-userContext) {
         border-block-start: 1px solid var(--border-color-deemphasized);
       }

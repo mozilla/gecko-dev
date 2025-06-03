@@ -3131,14 +3131,16 @@ ChromeUtils.defineLazyGetter(lazy, "gAsyncDBLargeCacheConnPromised", () =>
       // mozStorage value defined as MAX_CACHE_SIZE_BYTES in
       // storage/mozStorageConnection.cpp.
       await conn.execute("PRAGMA cache_size = -6144"); // 6MiB
-      // These should be kept in sync with nsPlacesTables.h.
+      // This should be kept in sync with nsPlacesTables.h.
       await conn.execute(`
         CREATE TEMP TABLE IF NOT EXISTS moz_openpages_temp (
           url TEXT,
           userContextId INTEGER,
+          groupId TEXT,
           open_count INTEGER,
-          PRIMARY KEY (url, userContextId)
+          PRIMARY KEY (url, userContextId, groupId)
         )`);
+      // This should be kept in sync with nsPlacesTriggers.h.
       await conn.execute(`
         CREATE TEMP TRIGGER IF NOT EXISTS moz_openpages_temp_afterupdate_trigger
         AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW
@@ -3146,7 +3148,8 @@ ChromeUtils.defineLazyGetter(lazy, "gAsyncDBLargeCacheConnPromised", () =>
         BEGIN
           DELETE FROM moz_openpages_temp
           WHERE url = NEW.url
-            AND userContextId = NEW.userContextId;
+            AND userContextId = NEW.userContextId
+            AND groupId IS NEW.groupId;
         END`);
       gAsyncDBLargeCacheConnDeferred.resolve(conn);
       return conn;

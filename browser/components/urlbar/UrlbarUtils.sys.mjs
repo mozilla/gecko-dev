@@ -1833,6 +1833,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       lastVisit: {
         type: "number",
       },
+      tabGroup: {
+        type: "string",
+      },
       title: {
         type: "string",
       },

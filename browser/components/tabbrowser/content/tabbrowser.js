@@ -185,6 +185,8 @@
       window.addEventListener("activate", this);
       window.addEventListener("deactivate", this);
       window.addEventListener("TabGroupCreateByUser", this);
+      window.addEventListener("TabGrouped", this);
+      window.addEventListener("TabUngrouped", this);
 
       this.tabContainer.init();
       this._setupInitialBrowserAndTab();
@@ -2788,6 +2790,7 @@
             this.UrlbarProviderOpenTabs.registerOpenTab(
               lazyBrowserURI.spec,
               t.userContextId,
+              tabGroup?.id,
               PrivateBrowsingUtils.isWindowPrivate(window)
             );
             b.registeredOpenURI = lazyBrowserURI;
@@ -4961,6 +4964,7 @@
         this.UrlbarProviderOpenTabs.unregisterOpenTab(
           browser.registeredOpenURI.spec,
           userContextId,
+          aTab.group?.id,
           PrivateBrowsingUtils.isWindowPrivate(window)
         );
         delete browser.registeredOpenURI;
@@ -5428,6 +5432,10 @@
 
       SitePermissions.copyTemporaryPermissions(otherBrowser, ourBrowser);
 
+      // Add a reference to the original registeredOpenURI to the closing
+      // tab so that events operating on the tab before close can reference it.
+      aOtherTab._originalRegisteredOpenURI = otherBrowser.registeredOpenURI;
+
       // If the other tab is pending (i.e. has not been restored, yet)
       // then do not switch docShells but retrieve the other tab's state
       // and apply it to our tab.
@@ -5466,6 +5474,7 @@
         this.UrlbarProviderOpenTabs.unregisterOpenTab(
           otherBrowser.registeredOpenURI.spec,
           userContextId,
+          aOtherTab.group?.id,
           PrivateBrowsingUtils.isWindowPrivate(window)
         );
         delete otherBrowser.registeredOpenURI;
@@ -7135,6 +7144,51 @@
         case "TabGroupCreateByUser":
           this.tabGroupMenu.openCreateModal(aEvent.target);
           break;
+        case "TabGrouped": {
+          let tab = aEvent.detail;
+          let uri =
+            tab.linkedBrowser?.registeredOpenURI ||
+            tab._originalRegisteredOpenURI;
+          if (uri) {
+            this.UrlbarProviderOpenTabs.unregisterOpenTab(
+              uri.spec,
+              tab.userContextId,
+              null,
+              PrivateBrowsingUtils.isWindowPrivate(window)
+            );
+            this.UrlbarProviderOpenTabs.registerOpenTab(
+              uri.spec,
+              tab.userContextId,
+              tab.group?.id,
+              PrivateBrowsingUtils.isWindowPrivate(window)
+            );
+          }
+          break;
+        }
+        case "TabUngrouped": {
+          let tab = aEvent.detail;
+          let uri =
+            tab.linkedBrowser?.registeredOpenURI ||
+            tab._originalRegisteredOpenURI;
+          if (uri) {
+            // By the time the tab makes it to us it is already ungrouped, but
+            // the original group is preserved in the event target.
+            let originalGroup = aEvent.target;
+            this.UrlbarProviderOpenTabs.unregisterOpenTab(
+              uri.spec,
+              tab.userContextId,
+              originalGroup.id,
+              PrivateBrowsingUtils.isWindowPrivate(window)
+            );
+            this.UrlbarProviderOpenTabs.registerOpenTab(
+              uri.spec,
+              tab.userContextId,
+              null,
+              PrivateBrowsingUtils.isWindowPrivate(window)
+            );
+          }
+          break;
+        }
         case "activate":
         // Intentional fallthrough
         case "deactivate":
@@ -7222,6 +7276,7 @@
           this.UrlbarProviderOpenTabs.unregisterOpenTab(
             browser.registeredOpenURI.spec,
             userContextId,
+            tab.group?.id,
             PrivateBrowsingUtils.isWindowPrivate(window)
           );
           delete browser.registeredOpenURI;
@@ -8279,6 +8334,7 @@
           gBrowser.UrlbarProviderOpenTabs.unregisterOpenTab(
             uri.spec,
             userContextId,
+            this.mTab.group?.id,
             PrivateBrowsingUtils.isWindowPrivate(window)
           );
           delete this.mBrowser.registeredOpenURI;
@@ -8287,6 +8343,7 @@
           gBrowser.UrlbarProviderOpenTabs.registerOpenTab(
             aLocation.spec,
             userContextId,
+            this.mTab.group?.id,
             PrivateBrowsingUtils.isWindowPrivate(window)
           );
           this.mBrowser.registeredOpenURI = aLocation;

@@ -189,14 +189,15 @@
       ")")
 
 // Note: this should be kept up-to-date with the definition in
-//       nsPlacesAutoComplete.js.
-#define CREATE_MOZ_OPENPAGES_TEMP              \
-  nsLiteralCString(                            \
-      "CREATE TEMP TABLE moz_openpages_temp (" \
-      "  url TEXT"                             \
-      ", userContextId INTEGER"                \
-      ", open_count INTEGER"                   \
-      ", PRIMARY KEY (url, userContextId)"     \
+//       PlacesUtils.sys.mjs.
+#define CREATE_MOZ_OPENPAGES_TEMP                   \
+  nsLiteralCString(                                 \
+      "CREATE TEMP TABLE moz_openpages_temp ("      \
+      "  url TEXT"                                  \
+      ", userContextId INTEGER"                     \
+      ", groupId TEXT"                              \
+      ", open_count INTEGER"                        \
+      ", PRIMARY KEY (url, userContextId, groupId)" \
       ")")
 
 // This table is used to remove orphan origins after pages are removed from

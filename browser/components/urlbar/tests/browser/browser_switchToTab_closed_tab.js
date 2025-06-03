@@ -40,6 +40,7 @@ add_task(async function test_switchToTab_tab_closed() {
   await UrlbarProviderOpenTabs.registerOpenTab(
     testURL,
     gBrowser.contentPrincipal.userContextId,
+    null,
     false
   );
 

@@ -134,17 +134,18 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    * Return urls registered in the memory table.
    * This is mostly for testing purposes.
    *
-   * @returns {Promise<{url: string, userContextId: number, count: number}[]>}
+   * @returns {Promise<{url: string, userContextId: number, groupId: string | null, count: number}[]>}
    */
   static async getDatabaseRegisteredOpenTabsForTests() {
     let conn = await lazy.PlacesUtils.promiseLargeCacheDBConnection();
     let rows = await conn.execute(
-      "SELECT url, userContextId, open_count FROM moz_openpages_temp"
+      "SELECT url, userContextId, groupId, open_count FROM moz_openpages_temp"
     );
     return rows.map(r => ({
-      url: r.getResultByIndex(0),
-      userContextId: r.getResultByIndex(1),
-      count: r.getResultByIndex(2),
+      url: r.getResultByName("url"),
+      userContextId: r.getResultByName("userContextId"),
+      tabGroup: r.getResultByName("groupId"),
+      count: r.getResultByName("open_count"),
     }));
   }
 
@@ -191,7 +192,9 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
       // Populate the table with the current cached tabs.
       for (let [userContextId, entries] of gOpenTabUrls) {
         for (let [url, count] of entries) {
-          await addToMemoryTable(url, userContextId, count).catch(
+          // TODO bug1964713: Cached items don't store group ID, so we can't
+          // get the group ID the first time a tab is grouped or on session restore
+          await addToMemoryTable(url, userContextId, null, count).catch(
             console.error
           );
         }
@@ -203,9 +206,10 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    *
    * @param {string} url Address of the tab
    * @param {number|string} userContextId Containers user context id
+   * @param {?string} groupId The id of the group the tab belongs to
    * @param {boolean} isInPrivateWindow In private browsing window or not
    */
-  static async registerOpenTab(url, userContextId, isInPrivateWindow) {
+  static async registerOpenTab(url, userContextId, groupId, isInPrivateWindow) {
     // It's fairly common to retrieve the value from an HTML attribute, that
     // means we're getting sometimes a string, sometimes an integer. As we're
     // using this as key of a Map, we must treat it consistently.
@@ -221,6 +225,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
     lazy.logger.info("Registering openTab: ", {
       url,
       userContextId,
+      groupId,
       isInPrivateWindow,
     });
     userContextId = UrlbarProviderOpenTabs.getUserContextIdForOpenPagesTable(
@@ -234,7 +239,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
       gOpenTabUrls.set(userContextId, entries);
     }
     entries.set(url, (entries.get(url) ?? 0) + 1);
-    await addToMemoryTable(url, userContextId).catch(console.error);
+    await addToMemoryTable(url, userContextId, groupId).catch(console.error);
   }
 
   /**
@@ -242,9 +247,15 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    *
    * @param {string} url Address of the tab
    * @param {number|string} userContextId Containers user context id
+   * @param {?string} groupId The id of the group the tab belongs to
    * @param {boolean} isInPrivateWindow In private browsing window or not
    */
-  static async unregisterOpenTab(url, userContextId, isInPrivateWindow) {
+  static async unregisterOpenTab(
+    url,
+    userContextId,
+    groupId,
+    isInPrivateWindow
+  ) {
     // It's fairly common to retrieve the value from an HTML attribute, that
     // means we're getting sometimes a string, sometimes an integer. As we're
     // using this as key of a Map, we must treat it consistently.
@@ -252,6 +263,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
     lazy.logger.info("Unregistering openTab: ", {
       url,
       userContextId,
+      groupId,
       isInPrivateWindow,
     });
     userContextId = UrlbarProviderOpenTabs.getUserContextIdForOpenPagesTable(
@@ -273,7 +285,9 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
       } else {
         entries.set(url, oldCount - 1);
       }
-      await removeFromMemoryTable(url, userContextId).catch(console.error);
+      await removeFromMemoryTable(url, userContextId, groupId).catch(
+        console.error
+      );
     }
   }
 
@@ -296,7 +310,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
     await UrlbarProviderOpenTabs.promiseDBPopulated;
     await conn.executeCached(
       `
-      SELECT url, userContextId
+      SELECT url, userContextId, groupId
       FROM moz_openpages_temp
     `,
       {},
@@ -313,6 +327,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
             {
               url: row.getResultByName("url"),
               userContextId: row.getResultByName("userContextId"),
+              tabGroup: row.getResultByName("groupId"),
             }
           )
         );
@@ -326,10 +341,11 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
  *
  * @param {string} url Address of the page
  * @param {number} userContextId Containers user context id
+ * @param {?string} groupId The id of the group the tab belongs to
  * @param {number} [count] The number of times the page is open
  * @returns {Promise} resolved after the addition.
  */
-async function addToMemoryTable(url, userContextId, count = 1) {
+async function addToMemoryTable(url, userContextId, groupId, count = 1) {
   if (!UrlbarProviderOpenTabs.memoryTableInitialized) {
     return;
   }
@@ -337,18 +353,20 @@ async function addToMemoryTable(url, userContextId, count = 1) {
     let conn = await lazy.PlacesUtils.promiseLargeCacheDBConnection();
     await conn.executeCached(
       `
-      INSERT OR REPLACE INTO moz_openpages_temp (url, userContextId, open_count)
+      INSERT OR REPLACE INTO moz_openpages_temp (url, userContextId, groupId, open_count)
       VALUES ( :url,
                 :userContextId,
+                :groupId,
                 IFNULL( ( SELECT open_count + 1
                           FROM moz_openpages_temp
                           WHERE url = :url
-                          AND userContextId = :userContextId ),
+                          AND userContextId = :userContextId
+                          AND groupId IS :groupId ),
                         :count
                       )
               )
     `,
-      { url, userContextId, count }
+      { url, userContextId, groupId, count }
     );
   });
 }
@@ -358,9 +376,10 @@ async function addToMemoryTable(url, userContextId, count = 1) {
  *
  * @param {string} url Address of the page
  * @param {number} userContextId Containers user context id
+ * @param {?string} groupId The id of the group the tab belongs to
  * @returns {Promise} resolved after the removal.
  */
-async function removeFromMemoryTable(url, userContextId) {
+async function removeFromMemoryTable(url, userContextId, groupId) {
   if (!UrlbarProviderOpenTabs.memoryTableInitialized) {
     return;
   }
@@ -372,8 +391,9 @@ async function removeFromMemoryTable(url, userContextId) {
       SET open_count = open_count - 1
       WHERE url = :url
         AND userContextId = :userContextId
+        AND groupId IS :groupId
     `,
-      { url, userContextId }
+      { url, userContextId, groupId }
     );
   });
 }

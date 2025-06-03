@@ -330,21 +330,33 @@ function defaultRichSuggestionsFn(searchStr) {
   ];
 }
 
-async function addOpenPages(uri, count = 1, userContextId = 0) {
+async function addOpenPages(
+  uri,
+  count = 1,
+  userContextId = 0,
+  tabGroupId = null
+) {
   for (let i = 0; i < count; i++) {
     await UrlbarProviderOpenTabs.registerOpenTab(
       uri.spec,
       userContextId,
+      tabGroupId,
       false
     );
   }
 }
 
-async function removeOpenPages(aUri, aCount = 1, aUserContextId = 0) {
+async function removeOpenPages(
+  aUri,
+  aCount = 1,
+  aUserContextId = 0,
+  tabGroupId = null
+) {
   for (let i = 0; i < aCount; i++) {
     await UrlbarProviderOpenTabs.unregisterOpenTab(
       aUri.spec,
       aUserContextId,
+      tabGroupId,
       false
     );
   }
@@ -538,12 +550,14 @@ function makeOmniboxResult(
  * @param {string} [options.iconUri]
  *   A URI for the page icon.
  * @param {number} [options.userContextId]
- *   A id of the userContext in which the tab is located.
+ *   An id of the userContext in which the tab is located.
+ * @param {string} [options.tabGroup]
+ *   An id of the tab group in which the tab is located.
  * @returns {UrlbarResult}
  */
 function makeTabSwitchResult(
   queryContext,
-  { uri, title, iconUri, userContextId }
+  { uri, title, iconUri, userContextId, tabGroup }
 ) {
   return new UrlbarResult(
     UrlbarUtils.RESULT_TYPE.TAB_SWITCH,
@@ -554,6 +568,7 @@ function makeTabSwitchResult(
       // Check against undefined so consumers can pass in the empty string.
       icon: typeof iconUri != "undefined" ? iconUri : `page-icon:${uri}`,
       userContextId: [userContextId || 0],
+      tabGroup: [tabGroup || null],
     })
   );
 }

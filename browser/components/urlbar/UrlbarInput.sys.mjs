@@ -1261,10 +1261,11 @@ export class UrlbarInput {
         // tabs that are not currently open. Find out why tabs are not being
         // properly unregistered when they are being closed.
         if (!switched) {
-          console.error(`Tried to switch to non existant tab: ${url}`);
+          console.error(`Tried to switch to non-existent tab: ${url}`);
           lazy.UrlbarProviderOpenTabs.unregisterOpenTab(
             url,
             result.payload.userContextId,
+            result.payload.tabGroup,
             this.isPrivate
           );
         }
