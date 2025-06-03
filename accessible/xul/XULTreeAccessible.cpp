@@ -778,11 +778,7 @@ uint64_t XULTreeItemAccessibleBase::NativeState() const {
   if (IsExpandable()) {
     bool isContainerOpen;
     mTreeView->IsContainerOpen(mRow, &isContainerOpen);
-    if (isContainerOpen) {
-      state |= states::EXPANDED;
-    }
-
-    state |= states::EXPANDABLE;
+    state |= isContainerOpen ? states::EXPANDED : states::COLLAPSED;
   }
 
   // selected state
