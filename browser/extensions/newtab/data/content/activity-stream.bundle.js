@@ -104,7 +104,9 @@ for (const type of [
   "ADDONS_INFO_RESPONSE",
   "ADS_FEED_UPDATE",
   "ADS_INIT",
-  "ADS_UPDATE_DATA",
+  "ADS_RESET",
+  "ADS_UPDATE_SPOCS",
+  "ADS_UPDATE_TILES",
   "ARCHIVE_FROM_POCKET",
   "BLOCK_SECTION",
   "BLOCK_URL",
@@ -987,12 +989,18 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       spocs
     } = this.props.state.DiscoveryStream;
     const unifiedAdsSpocsEnabled = this.props.otherPrefs["unifiedAds.spocs.enabled"];
+
+    // Determine which mechanism is querying the UAPI ads server
+    const PREF_UNIFIED_ADS_ADSFEED_ENABLED = "unifiedAds.adsFeed.enabled";
+    const adsFeedEnabled = this.props.otherPrefs[PREF_UNIFIED_ADS_ADSFEED_ENABLED];
     const unifiedAdsEndpoint = this.props.otherPrefs["unifiedAds.endpoint"];
     let spocsData = [];
     if (spocs.data && spocs.data.newtab_spocs && spocs.data.newtab_spocs.items) {
       spocsData = spocs.data.newtab_spocs.items || [];
     }
     return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "adsfeed enabled"), /*#__PURE__*/external_React_default().createElement("td", null, adsFeedEnabled ? "true" : "false")), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
       className: "min"
     }, "spocs_endpoint"), /*#__PURE__*/external_React_default().createElement("td", null, unifiedAdsSpocsEnabled ? unifiedAdsEndpoint : spocs.spocs_endpoint)), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
       className: "min"
@@ -7428,7 +7436,9 @@ const INITIAL_STATE = {
   Ads: {
     initialized: false,
     lastUpdated: null,
-    topsites: {},
+    tiles: {},
+    spocs: {},
+    spocPlacements: {},
   },
   TopSites: {
     // Have we received real data from history yet?
@@ -8492,11 +8502,19 @@ function Ads(prevState = INITIAL_STATE.Ads, action) {
         ...prevState,
         initialized: true,
       };
-    case actionTypes.ADS_UPDATE_DATA:
+    case actionTypes.ADS_UPDATE_TILES:
       return {
         ...prevState,
-        topsites: action.data,
+        tiles: action.data.tiles,
       };
+    case actionTypes.ADS_UPDATE_SPOCS:
+      return {
+        ...prevState,
+        spocs: action.data.spocs,
+        spocPlacements: action.data.spocPlacements,
+      };
+    case actionTypes.ADS_RESET:
+      return { ...INITIAL_STATE.Ads };
     default:
       return prevState;
   }

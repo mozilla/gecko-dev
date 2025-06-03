@@ -74,6 +74,7 @@ const PREF_SYSTEM_TOPSTORIES = "feeds.system.topstories";
 const PREF_SYSTEM_TOPSITES = "feeds.system.topsites";
 const PREF_UNIFIED_ADS_BLOCKED_LIST = "unifiedAds.blockedAds";
 const PREF_UNIFIED_ADS_SPOCS_ENABLED = "unifiedAds.spocs.enabled";
+const PREF_UNIFIED_ADS_ADSFEED_ENABLED = "unifiedAds.adsFeed.enabled";
 const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
 const PREF_USER_TOPSITES = "feeds.topsites";
 const PREF_SPOCS_CLEAR_ENDPOINT = "discoverystream.endpointSpocsClear";
@@ -1275,10 +1276,42 @@ export class DiscoveryStreamFeed {
     return this.getSimpleAdsPlacements();
   }
 
+  async updateOrRemoveSpocs() {
+    const dispatch = update =>
+      this.store.dispatch(ac.BroadcastToContent(update));
+    // We refresh placements data because one of the spocs were turned off.
+    this.updatePlacements(
+      dispatch,
+      this.store.getState().DiscoveryStream.layout
+    );
+    // Currently the order of this is important.
+    // We need to check this after updatePlacements is called,
+    // because some of the spoc logic depends on the result of placement updates.
+    if (
+      !(
+        (this.showSponsoredStories ||
+          (this.showTopsites && this.showSponsoredTopsites)) &&
+        (this.showSponsoredTopsites ||
+          (this.showStories && this.showSponsoredStories))
+      )
+    ) {
+      // Ensure we delete any remote data potentially related to spocs.
+      this.clearSpocs();
+    }
+    // Placements have changed so consider spocs expired, and reload them.
+    await this.cache.set("spocs", {});
+    await this.loadSpocs(dispatch);
+  }
+
+  // eslint-disable-next-line max-statements
   async loadSpocs(sendUpdate, isStartup) {
     const cachedData = (await this.cache.get()) || {};
     const unifiedAdsEnabled =
       this.store.getState().Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED];
+
+    const adsFeedEnabled =
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ADSFEED_ENABLED];
+
     let spocsState = cachedData.spocs;
     let placements = this.getPlacements();
     let unifiedAdsPlacements = [];
@@ -1334,7 +1367,8 @@ export class DiscoveryStreamFeed {
           ...(placements.length ? { placements } : {}),
         };
 
-        if (unifiedAdsEnabled) {
+        // Bug 1964715: Remove this logic when AdsFeed is 100% enabled
+        if (unifiedAdsEnabled && !adsFeedEnabled) {
           const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
           endpoint = `${endpointBaseUrl}v1/ads`;
           unifiedAdsPlacements = this.getAdsPlacements();
@@ -1356,18 +1390,30 @@ export class DiscoveryStreamFeed {
         headers.append("content-type", "application/json");
 
         let spocsResponse;
-        try {
-          spocsResponse = await this.fetchFromEndpoint(
-            endpoint,
-            {
-              method: "POST",
-              headers,
-              body: JSON.stringify(body),
-            },
-            marsOhttpEnabled
-          );
-        } catch (error) {
-          console.error("Error trying to load spocs feeds:", error);
+        // Logic decision point: Query ads servers in this file or utilize AdsFeed method
+        if (adsFeedEnabled) {
+          const { spocs, spocPlacements } = state.Ads;
+
+          if (spocs) {
+            spocsResponse = { newtab_spocs: spocs };
+            unifiedAdsPlacements = spocPlacements;
+          } else {
+            throw new Error("DSFeed cannot read AdsFeed spocs");
+          }
+        } else {
+          try {
+            spocsResponse = await this.fetchFromEndpoint(
+              endpoint,
+              {
+                method: "POST",
+                headers,
+                body: JSON.stringify(body),
+              },
+              marsOhttpEnabled
+            );
+          } catch (error) {
+            console.error("Error trying to load spocs feeds:", error);
+          }
         }
 
         if (spocsResponse) {
@@ -1398,6 +1444,15 @@ export class DiscoveryStreamFeed {
               let freshSpocs = spocsState.spocs[placement.name];
 
               if (unifiedAdsEnabled) {
+                if (!unifiedAdsPlacements) {
+                  throw new Error("unifiedAdsPlacements has no value");
+                }
+
+                // No placements to reduce upon
+                if (!unifiedAdsPlacements.length) {
+                  return;
+                }
+
                 freshSpocs = unifiedAdsPlacements.reduce(
                   (accumulator, currentValue) => {
                     return accumulator.concat(
@@ -1528,9 +1583,13 @@ export class DiscoveryStreamFeed {
     };
 
     if (unifiedAdsEnabled) {
+      const adsFeedEnabled =
+        state.Prefs.values[PREF_UNIFIED_ADS_ADSFEED_ENABLED];
+
       const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
 
-      if (!endpointBaseUrl) {
+      // Exit if there no DELETE endpoint or AdsFeed is enabled (which will handle the DELETE request)
+      if (!endpointBaseUrl || adsFeedEnabled) {
         return;
       }
 
@@ -2379,6 +2438,10 @@ export class DiscoveryStreamFeed {
     await this.cache.set("feeds", {});
   }
 
+  async resetSpocs() {
+    await this.cache.set("spocs", {});
+  }
+
   async resetAllCache() {
     await this.resetContentCache();
     // Reset in-memory caches.
@@ -2702,30 +2765,7 @@ export class DiscoveryStreamFeed {
       // Check if spocs was disabled. Remove them if they were.
       case PREF_SHOW_SPONSORED:
       case PREF_SHOW_SPONSORED_TOPSITES: {
-        const dispatch = update =>
-          this.store.dispatch(ac.BroadcastToContent(update));
-        // We refresh placements data because one of the spocs were turned off.
-        this.updatePlacements(
-          dispatch,
-          this.store.getState().DiscoveryStream.layout
-        );
-        // Currently the order of this is important.
-        // We need to check this after updatePlacements is called,
-        // because some of the spoc logic depends on the result of placement updates.
-        if (
-          !(
-            (this.showSponsoredStories ||
-              (this.showTopsites && this.showSponsoredTopsites)) &&
-            (this.showSponsoredTopsites ||
-              (this.showStories && this.showSponsoredStories))
-          )
-        ) {
-          // Ensure we delete any remote data potentially related to spocs.
-          this.clearSpocs();
-        }
-        // Placements have changed so consider spocs expired, and reload them.
-        await this.cache.set("spocs", {});
-        await this.loadSpocs(dispatch);
+        this.updateOrRemoveSpocs();
         break;
       }
     }
@@ -3018,6 +3058,10 @@ export class DiscoveryStreamFeed {
         break;
       case at.INFERRED_PERSONALIZATION_MODEL_UPDATE:
         await this.cache.set("inferredModel", action.data);
+        break;
+      case at.ADS_UPDATE_SPOCS:
+        await this.updateOrRemoveSpocs();
+        break;
     }
   }
 }

@@ -31,7 +31,9 @@ export const INITIAL_STATE = {
   Ads: {
     initialized: false,
     lastUpdated: null,
-    topsites: {},
+    tiles: {},
+    spocs: {},
+    spocPlacements: {},
   },
   TopSites: {
     // Have we received real data from history yet?
@@ -1095,11 +1097,19 @@ function Ads(prevState = INITIAL_STATE.Ads, action) {
         ...prevState,
         initialized: true,
       };
-    case at.ADS_UPDATE_DATA:
+    case at.ADS_UPDATE_TILES:
       return {
         ...prevState,
-        topsites: action.data,
+        tiles: action.data.tiles,
       };
+    case at.ADS_UPDATE_SPOCS:
+      return {
+        ...prevState,
+        spocs: action.data.spocs,
+        spocPlacements: action.data.spocPlacements,
+      };
+    case at.ADS_RESET:
+      return { ...INITIAL_STATE.Ads };
     default:
       return prevState;
   }

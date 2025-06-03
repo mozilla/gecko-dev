@@ -86,6 +86,7 @@ describe("DiscoveryStreamFeed", () => {
           "discoverystream.recs.personalized": true,
           "system.showSponsored": false,
           "discoverystream.spocs.startupCache.enabled": true,
+          "unifiedAds.adsFeed.enabled": false,
         },
       },
     });

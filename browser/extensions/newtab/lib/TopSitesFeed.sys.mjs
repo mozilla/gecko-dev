@@ -82,8 +82,6 @@ const PREF_UNIFIED_ADS_PLACEMENTS = "discoverystream.placements.tiles";
 const PREF_UNIFIED_ADS_COUNTS = "discoverystream.placements.tiles.counts";
 const PREF_UNIFIED_ADS_BLOCKED_LIST = "unifiedAds.blockedAds";
 const PREF_UNIFIED_ADS_ADSFEED_ENABLED = "unifiedAds.adsFeed.enabled";
-const PREF_UNIFIED_ADS_ADSFEED_TILES_ENABLED =
-  "unifiedAds.adsFeed.tiles.enabled";
 
 // Search experiment stuff
 const FILTER_DEFAULT_SEARCH_PREF = "improvesearch.noDefaultSearchTile";
@@ -506,14 +504,11 @@ export class ContileIntegration {
 
     const adsFeedEnabled = state.Prefs.values[PREF_UNIFIED_ADS_ADSFEED_ENABLED];
 
-    const adsFeedTilesEnabled =
-      state.Prefs.values[PREF_UNIFIED_ADS_ADSFEED_TILES_ENABLED];
-
     const debugServiceName = unifiedAdsTilesEnabled ? "MARS" : "Contile";
 
     try {
       // Fetch Data via TopSitesFeed.sys.mjs
-      if (!adsFeedEnabled || !adsFeedTilesEnabled) {
+      if (!adsFeedEnabled) {
         // Fetch tiles via UAPI service directly from TopSitesFeed.sys.mjs
         if (unifiedAdsTilesEnabled) {
           let fetchPromise;
@@ -643,9 +638,9 @@ export class ContileIntegration {
 
       // If using UAPI, normalize the data
       if (unifiedAdsTilesEnabled) {
-        if (adsFeedEnabled && adsFeedTilesEnabled) {
+        if (adsFeedEnabled) {
           // IMPORTANT: Ignore all previous fetch logic and get ads data from AdsFeed
-          const { tiles } = state.Ads.topsites;
+          const { tiles } = state.Ads;
           body = { tiles };
         } else {
           // Converts UAPI response into normalized tiles[] array
@@ -2143,7 +2138,7 @@ export class TopSitesFeed {
       case at.UPDATE_PINNED_SEARCH_SHORTCUTS:
         this.updatePinnedSearchShortcuts(action.data);
         break;
-      case at.ADS_UPDATE_DATA:
+      case at.ADS_UPDATE_TILES:
         this._contile.refresh();
         break;
       case at.DISCOVERY_STREAM_SPOCS_UPDATE:

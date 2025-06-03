@@ -19,26 +19,29 @@ import {
 
 // Prefs for AdsFeeds to run
 const PREF_UNIFIED_ADS_ADSFEED_ENABLED = "unifiedAds.adsFeed.enabled";
-const PREF_UNIFIED_ADS_ADSFEED_TILES_ENABLED =
-  "unifiedAds.adsFeed.tiles.enabled";
-const PREF_UNIFIED_ADS_ADSFEED_SPOCS_ENABLED =
-  "unifiedAds.adsFeed.spocs.enabled";
-
-const PREF_UNIFIED_ADS_BLOCKED_LIST = "unifiedAds.blockedAds";
-const PREF_UNIFIED_ADS_COUNTS = "discoverystream.placements.tiles.counts";
-const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
-const PREF_UNIFIED_ADS_PLACEMENTS = "discoverystream.placements.tiles";
-
-// Prefs to enable UAPI ad types
 const PREF_UNIFIED_ADS_SPOCS_ENABLED = "unifiedAds.spocs.enabled";
 const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.tiles.enabled";
 
+// Prefs for UAPI
+const PREF_UNIFIED_ADS_BLOCKED_LIST = "unifiedAds.blockedAds";
+const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
+
+// Prefs for Tiles
+const PREF_TILES_COUNTS = "discoverystream.placements.tiles.counts";
+const PREF_TILES_PLACEMENTS = "discoverystream.placements.tiles";
+
+// Prefs for Sponsored Content
+const PREF_SPOC_COUNTS = "discoverystream.placements.spocs.counts";
+const PREF_SPOC_PLACEMENTS = "discoverystream.placements.spocs";
+
 // Primary pref that is toggled when enabling top site sponsored tiles
 const PREF_FEED_TOPSITES = "feeds.topsites";
+const PREF_SYSTEM_TOPSITES = "feeds.system.topsites";
 const PREF_SHOW_SPONSORED_TOPSITES = "showSponsoredTopSites";
 
 // Primary pref that is toggled when enabling sponsored stories
-const PREF_FEED_SECTIONS_TOPSTORIES = "feeds.section.topstories";
+const PREF_FEED_SECTION_TOPSTORIES = "feeds.section.topstories";
+const PREF_SYSTEM_TOPSTORIES = "feeds.system.topstories";
 const PREF_SHOW_SPONSORED = "showSponsored";
 const PREF_SYSTEM_SHOW_SPONSORED = "system.showSponsored";
 
@@ -51,6 +54,8 @@ export class AdsFeed {
     this.loaded = false;
     this.lastUpdated = null;
     this.tiles = [];
+    this.spocs = [];
+    this.spocPlacements = [];
     this.cache = this.PersistentCache(CACHE_KEY, true);
   }
 
@@ -63,9 +68,40 @@ export class AdsFeed {
   async resetAdsFeed() {
     await this._resetCache();
     this.tiles = [];
+    this.spocs = [];
+    this.spocPlacements = [];
     this.lastUpdated = null;
     this.loaded = false;
     this.enabled = false;
+
+    this.store.dispatch(
+      ac.OnlyToMain({
+        type: at.ADS_RESET,
+      })
+    );
+  }
+
+  async deleteUserAdsData() {
+    const state = this.store.getState();
+    const headers = new Headers();
+    const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
+
+    if (!endpointBaseUrl) {
+      return;
+    }
+
+    const endpoint = `${endpointBaseUrl}v1/delete_user`;
+    const body = {
+      context_id: await lazy.ContextId.request(),
+    };
+
+    headers.append("content-type", "application/json");
+
+    await this.fetch(endpoint, {
+      method: "DELETE",
+      headers,
+      body: JSON.stringify(body),
+    });
   }
 
   isEnabled() {
@@ -75,8 +111,15 @@ export class AdsFeed {
     const adsFeedEnabled =
       this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ADSFEED_ENABLED];
 
+    if (!adsFeedEnabled) {
+      // Exit early as AdsFeed is turned off and shouldn't do anything
+      return false;
+    }
+
     // Check all known prefs that top site tiles are enabled
-    const tilesEnabled = this.store.getState().Prefs.values[PREF_FEED_TOPSITES];
+    const tilesEnabled =
+      this.store.getState().Prefs.values[PREF_FEED_TOPSITES] &&
+      this.store.getState().Prefs.values[PREF_SYSTEM_TOPSITES];
 
     const sponsoredTilesEnabled =
       this.store.getState().Prefs.values[PREF_SHOW_SPONSORED_TOPSITES] &&
@@ -89,9 +132,10 @@ export class AdsFeed {
       this.store.getState().Prefs.values[PREF_SHOW_SPONSORED];
 
     const storiesEnabled =
-      this.store.getState().Prefs.values[PREF_FEED_SECTIONS_TOPSTORIES];
+      this.store.getState().Prefs.values[PREF_FEED_SECTION_TOPSTORIES] &&
+      this.store.getState().Prefs.values[PREF_SYSTEM_TOPSTORIES];
 
-    // Confirm at least one ads section (tiles, spocs) are enabled to enable the adsfeed
+    // Confirm at least one ads section (tiles, spocs) are enabled to enable the AdsFeed
     if (
       (tilesEnabled && sponsoredTilesEnabled) ||
       (storiesEnabled && sponsoredStoriesEnabled)
@@ -102,6 +146,9 @@ export class AdsFeed {
 
       return adsFeedEnabled;
     }
+
+    // If the AdsFeed is enabled but no placements are enabled, delete user ads data
+    this.deleteUserAdsData();
 
     return false;
   }
@@ -117,9 +164,11 @@ export class AdsFeed {
   /**
    * Normalize new Unified Ads API response into
    * previous Contile ads response
+   * @param {array} - Array of UAPI placement objects ("newtab_tile_1", etc.)
+   * @returns {object} - Object containing array of formatted UAPI objects to match legacy Contile system
    */
   _normalizeTileData(data) {
-    const formattedTileData = [];
+    const formattedTileDataArray = [];
     const responseTilesData = Object.values(data);
 
     // Bug 1930653: Confirm response has data before iterating
@@ -138,29 +187,23 @@ export class AdsFeed {
           image_size: 200,
         };
 
-        formattedTileData.push(formattedData);
+        formattedTileDataArray.push(formattedData);
       }
     }
 
-    return { tiles: formattedTileData };
+    return { tiles: formattedTileDataArray };
   }
 
   /**
-   * Return object of supported ad types to query from MARS API from the adsfeed file
+   * Return object of supported ad types to query from MARS API from the AdsFeed file
    * @returns {object}
    */
   getSupportedAdTypes() {
     const supportsAdsFeedTiles =
-      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_TILES_ENABLED] &&
-      this.store.getState().Prefs.values[
-        PREF_UNIFIED_ADS_ADSFEED_TILES_ENABLED
-      ];
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_TILES_ENABLED];
 
     const supportsAdsFeedSpocs =
-      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED] &&
-      this.store.getState().Prefs.values[
-        PREF_UNIFIED_ADS_ADSFEED_SPOCS_ENABLED
-      ];
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED];
 
     return {
       tiles: supportsAdsFeedTiles,
@@ -170,7 +213,7 @@ export class AdsFeed {
 
   /**
    * Get ads data either from cache or from API and
-   * broadcast the data via at.ADS_UPDATE_DATA event
+   * broadcast the data via at.ADS_UPDATE_{DATA_TYPE} event
    * @param {boolean} isStartup=false - This is only used for reporting
    * and is passed to the update functions meta attribute
    * @returns {void}
@@ -203,6 +246,13 @@ export class AdsFeed {
     // Update tile information if tile data is supported
     if (supportedAdTypes.tiles) {
       this.tiles = data.tiles;
+    }
+
+    // Update tile information if spoc data is supported
+    if (supportedAdTypes.spocs) {
+      this.spocs = data.spocs;
+      // DSFeed uses unifiedAdsPlacements to determine which spocs to fetch/place into the feed.
+      this.spocPlacements = data.spocPlacements;
     }
 
     this.lastUpdated = data.lastUpdated;
@@ -240,18 +290,52 @@ export class AdsFeed {
     // Overwrite URL to Unified Ads endpoint
     const fetchUrl = `${endpointBaseUrl}v1/ads`;
 
-    let placements;
-    let counts;
+    // Can include both tile and spoc placement data
+    let placements = [];
+    let responseData;
+    let returnData = {};
 
     // Determine which data needs to be fetched
     if (supportedAdTypes.tiles) {
-      placements = state.Prefs.values[PREF_UNIFIED_ADS_PLACEMENTS]?.split(`,`)
+      const tilesPlacementsArray = state.Prefs.values[
+        PREF_TILES_PLACEMENTS
+      ]?.split(`,`)
         .map(s => s.trim())
         .filter(item => item);
-      counts = state.Prefs.values[PREF_UNIFIED_ADS_COUNTS]?.split(`,`)
+      const tilesCountsArray = state.Prefs.values[PREF_TILES_COUNTS]?.split(`,`)
         .map(s => s.trim())
         .filter(item => item)
         .map(item => parseInt(item, 10));
+
+      const tilesPlacements = tilesPlacementsArray.map((placement, index) => ({
+        placement,
+        count: tilesCountsArray[index],
+      }));
+
+      placements.push(...tilesPlacements);
+    }
+
+    // Determine which data needs to be fetched
+    if (supportedAdTypes.spocs) {
+      const spocPlacementsArray = state.Prefs.values[
+        PREF_SPOC_PLACEMENTS
+      ]?.split(`,`)
+        .map(s => s.trim())
+        .filter(item => item);
+
+      const spocCountsArray = state.Prefs.values[PREF_SPOC_COUNTS]?.split(`,`)
+        .map(s => s.trim())
+        .filter(item => item)
+        .map(item => parseInt(item, 10));
+
+      const spocPlacements = spocPlacementsArray.map((placement, index) => ({
+        placement,
+        count: spocCountsArray[index],
+      }));
+
+      returnData.spocPlacements = spocPlacements;
+
+      placements.push(...spocPlacements);
     }
 
     let fetchPromise;
@@ -264,18 +348,16 @@ export class AdsFeed {
       headers,
       body: JSON.stringify({
         context_id: await lazy.ContextId.request(),
-        placements: placements.map((placement, index) => ({
-          placement,
-          count: counts[index],
-        })),
+        placements,
         blocks: blockedSponsors.split(","),
         credentials: "omit",
       }),
       signal,
     };
 
+    // Make Oblivious Fetch Request
     if (marsOhttpEnabled && ohttpConfigURL && ohttpRelayURL) {
-      let config = await lazy.ObliviousHTTP.getOHTTPConfig(ohttpConfigURL);
+      const config = await lazy.ObliviousHTTP.getOHTTPConfig(ohttpConfigURL);
       if (!config) {
         console.error(
           new Error(
@@ -296,14 +378,38 @@ export class AdsFeed {
 
     const response = await fetchPromise;
 
-    // If supportedAdTypes tiles type, normalize it!
-    if (supportedAdTypes.tiles) {
-      const responseData = await response.json();
-      const normalizedTileData = this._normalizeTileData(responseData);
-      return normalizedTileData;
+    if (response && response.status === 200) {
+      responseData = await response.json();
+    } else {
+      throw new Error(
+        `Error fetching data: ${response.status} - ${response.statusText}`
+      );
     }
 
-    return await response.json();
+    if (supportedAdTypes.tiles) {
+      const filteredRespDataTiles = Object.keys(responseData)
+        .filter(key => key.startsWith("newtab_tile_"))
+        .reduce((acc, key) => {
+          acc[key] = responseData[key];
+          return acc;
+        }, {});
+
+      const normalizedTileData = this._normalizeTileData(filteredRespDataTiles);
+      returnData.tiles = normalizedTileData.tiles;
+    }
+
+    if (supportedAdTypes.spocs) {
+      const filteredRespDataNonTiles = Object.keys(responseData)
+        .filter(key => !key.startsWith("newtab_tile_"))
+        .reduce((acc, key) => {
+          acc[key] = responseData[key];
+          return acc;
+        }, {});
+
+      returnData.spocs = filteredRespDataNonTiles.newtab_spocs;
+    }
+
+    return returnData;
   }
 
   /**
@@ -318,43 +424,88 @@ export class AdsFeed {
   }
 
   /**
-   * Sets cached data and dispatches ADS_UPDATE_DATA event to update store with new ads data
+   * Sets cached data and dispatches at.ADS_UPDATE_{DATA_TYPE} event to update store with new ads data
    * @param {boolean} isStartup
    * @returns {void}
    */
   async update(isStartup) {
     await this.cache.set("ads", {
-      tiles: this.tiles,
+      ...(this.tiles ? { tiles: this.tiles } : {}),
+      ...(this.spocs ? { spocs: this.spocs } : {}),
+      ...(this.spocPlacements ? { spocPlacements: this.spocPlacements } : {}),
       lastUpdated: this.lastUpdated,
     });
 
-    // TODO: Submit data based on supportedTypes
-    this.store.dispatch(
-      ac.BroadcastToContent({
-        type: at.ADS_UPDATE_DATA,
-        data: {
-          tiles: this.tiles,
-        },
-        meta: {
-          isStartup,
-        },
-      })
-    );
+    if (this.tiles && this.tiles.length) {
+      this.store.dispatch(
+        ac.BroadcastToContent({
+          type: at.ADS_UPDATE_TILES,
+          data: {
+            tiles: this.tiles,
+          },
+          meta: {
+            isStartup,
+          },
+        })
+      );
+    }
+
+    if (this.spocs && this.spocs.length) {
+      this.store.dispatch(
+        ac.BroadcastToContent({
+          type: at.ADS_UPDATE_SPOCS,
+          data: {
+            spocs: this.spocs,
+            spocPlacements: this.spocPlacements,
+          },
+          meta: {
+            isStartup,
+          },
+        })
+      );
+    }
   }
 
   async onPrefChangedAction(action) {
     switch (action.data.name) {
-      case PREF_FEED_SECTIONS_TOPSTORIES:
-      case PREF_FEED_TOPSITES:
-      case PREF_SHOW_SPONSORED_TOPSITES:
-      case PREF_SHOW_SPONSORED:
-      case PREF_SYSTEM_SHOW_SPONSORED:
-      case PREF_UNIFIED_ADS_ADSFEED_TILES_ENABLED:
-      case PREF_UNIFIED_ADS_ADSFEED_SPOCS_ENABLED:
+      case PREF_UNIFIED_ADS_TILES_ENABLED:
+      case PREF_UNIFIED_ADS_SPOCS_ENABLED:
       case PREF_UNIFIED_ADS_ADSFEED_ENABLED:
+        // TODO: Should we use the value of these prefs to determine what to do?
+        // AdsFeed Feature Prefs
         if (this.isEnabled()) {
           await this.getAdsData(false);
         } else {
+          await this.deleteUserAdsData();
+          await this.resetAdsFeed();
+        }
+        break;
+      case PREF_SHOW_SPONSORED_TOPSITES:
+      case PREF_SHOW_SPONSORED:
+      case PREF_SYSTEM_SHOW_SPONSORED:
+        if (!this.isEnabled()) {
+          // Only act on these prefs if AdsFeed is enabled
+          break;
+        }
+
+        if (action.data.value) {
+          await this.getAdsData(false);
+        } else {
+          await this.deleteUserAdsData();
+          await this.resetAdsFeed();
+        }
+
+        break;
+      // Shortcuts or Stories Enabled/Disabled
+      case PREF_FEED_TOPSITES:
+      case PREF_SYSTEM_TOPSITES:
+      case PREF_SYSTEM_TOPSTORIES:
+      case PREF_FEED_SECTION_TOPSTORIES:
+        // TODO: Should we use the value of these prefs to determine what to do?
+        if (this.isEnabled()) {
+          await this.getAdsData(false);
+        } else {
+          await this.deleteUserAdsData();
           await this.resetAdsFeed();
         }
         break;
@@ -374,8 +525,19 @@ export class AdsFeed {
           await this.getAdsData(false);
         }
         break;
+
       case at.PREF_CHANGED:
         await this.onPrefChangedAction(action);
+        break;
+      case at.DISCOVERY_STREAM_CONFIG_CHANGE: // Event emitted from ASDevTools "Reset Cache" button
+      case at.DISCOVERY_STREAM_DEV_EXPIRE_CACHE: // Event emitted from ASDevTools "Expire Cache" button
+        // Clear cache
+        await this.resetAdsFeed();
+
+        // Get new ads
+        if (this.isEnabled()) {
+          await this.getAdsData(false);
+        }
         break;
     }
   }

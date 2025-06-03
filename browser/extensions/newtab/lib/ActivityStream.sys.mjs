@@ -294,22 +294,6 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "unifiedAds.adsFeed.tiles.enabled",
-    {
-      title:
-        "Use AdsFeed.sys.mjs to fetch/cache/serve sponsored top sites tiles",
-      value: false,
-    },
-  ],
-  [
-    "unifiedAds.adsFeed.spocs.enabled",
-    {
-      title:
-        "Use AdsFeed.sys.mjs to fetch/cache/serve sponsored content in recommended stories",
-      value: false,
-    },
-  ],
-  [
     "unifiedAds.tiles.enabled",
     {
       title:

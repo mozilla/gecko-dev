@@ -490,6 +490,11 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     const unifiedAdsSpocsEnabled =
       this.props.otherPrefs["unifiedAds.spocs.enabled"];
 
+    // Determine which mechanism is querying the UAPI ads server
+    const PREF_UNIFIED_ADS_ADSFEED_ENABLED = "unifiedAds.adsFeed.enabled";
+    const adsFeedEnabled =
+      this.props.otherPrefs[PREF_UNIFIED_ADS_ADSFEED_ENABLED];
+
     const unifiedAdsEndpoint = this.props.otherPrefs["unifiedAds.endpoint"];
 
     let spocsData = [];
@@ -506,6 +511,10 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
       <React.Fragment>
         <table>
           <tbody>
+            <Row>
+              <td className="min">adsfeed enabled</td>
+              <td>{adsFeedEnabled ? "true" : "false"}</td>
+            </Row>
             <Row>
               <td className="min">spocs_endpoint</td>
               <td>
