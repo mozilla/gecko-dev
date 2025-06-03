@@ -2054,11 +2054,8 @@ void PeerConnectionImpl::GetDefaultVideoCodecs(
         JsepVideoCodecDescription::CreateDefaultH264Baseline_0(prefs));
   }
 
-  if (WebrtcVideoConduit::HasAv1() &&
-      StaticPrefs::media_webrtc_codec_video_av1_enabled()) {
-    aSupportedCodecs.emplace_back(
-        JsepVideoCodecDescription::CreateDefaultAV1(prefs));
-  }
+  aSupportedCodecs.emplace_back(
+      JsepVideoCodecDescription::CreateDefaultAV1(prefs));
 
   aSupportedCodecs.emplace_back(
       JsepVideoCodecDescription::CreateDefaultUlpFec(prefs));
