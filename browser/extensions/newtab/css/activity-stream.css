@@ -5433,7 +5433,7 @@ main section {
     padding: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-1-large.refined-cards.ds-card.sections-card-ui .meta {
-    padding: var(--space-large) var(--space-small);
+    padding: var(--space-large) var(--space-small) 0;
     color: var(--newtab-text-primary-color);
   }
   .ds-section-grid.ds-card-grid .col-1-large.refined-cards.ds-card.sections-card-ui .meta .info-wrap .excerpt {
@@ -5447,7 +5447,7 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-1-large.refined-cards.ds-card.sections-card-ui .card-stp-button-position-wrapper {
     inset-inline-end: var(--space-xlarge);
-    inset-block-end: var(--space-xlarge);
+    inset-block-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-1-large.refined-cards.ds-card.sections-card-ui:hover .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-1-large.refined-cards.ds-card.sections-card-ui:active .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-1-large.refined-cards.ds-card.sections-card-ui:focus-visible .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-1-large.refined-cards.ds-card.sections-card-ui.active .meta .source-wrapper .source {
     display: block;
@@ -5761,7 +5761,7 @@ main section {
     padding: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-2-large.refined-cards.ds-card.sections-card-ui .meta {
-    padding: var(--space-large) var(--space-small);
+    padding: var(--space-large) var(--space-small) 0;
     color: var(--newtab-text-primary-color);
   }
   .ds-section-grid.ds-card-grid .col-2-large.refined-cards.ds-card.sections-card-ui .meta .info-wrap .excerpt {
@@ -5775,7 +5775,7 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-2-large.refined-cards.ds-card.sections-card-ui .card-stp-button-position-wrapper {
     inset-inline-end: var(--space-xlarge);
-    inset-block-end: var(--space-xlarge);
+    inset-block-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-2-large.refined-cards.ds-card.sections-card-ui:hover .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-2-large.refined-cards.ds-card.sections-card-ui:active .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-2-large.refined-cards.ds-card.sections-card-ui:focus-visible .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-2-large.refined-cards.ds-card.sections-card-ui.active .meta .source-wrapper .source {
     display: block;
@@ -6090,7 +6090,7 @@ main section {
     padding: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-3-large.refined-cards.ds-card.sections-card-ui .meta {
-    padding: var(--space-large) var(--space-small);
+    padding: var(--space-large) var(--space-small) 0;
     color: var(--newtab-text-primary-color);
   }
   .ds-section-grid.ds-card-grid .col-3-large.refined-cards.ds-card.sections-card-ui .meta .info-wrap .excerpt {
@@ -6104,7 +6104,7 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-3-large.refined-cards.ds-card.sections-card-ui .card-stp-button-position-wrapper {
     inset-inline-end: var(--space-xlarge);
-    inset-block-end: var(--space-xlarge);
+    inset-block-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-3-large.refined-cards.ds-card.sections-card-ui:hover .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-3-large.refined-cards.ds-card.sections-card-ui:active .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-3-large.refined-cards.ds-card.sections-card-ui:focus-visible .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-3-large.refined-cards.ds-card.sections-card-ui.active .meta .source-wrapper .source {
     display: block;
@@ -6418,7 +6418,7 @@ main section {
     padding: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-4-large.refined-cards.ds-card.sections-card-ui .meta {
-    padding: var(--space-large) var(--space-small);
+    padding: var(--space-large) var(--space-small) 0;
     color: var(--newtab-text-primary-color);
   }
   .ds-section-grid.ds-card-grid .col-4-large.refined-cards.ds-card.sections-card-ui .meta .info-wrap .excerpt {
@@ -6432,7 +6432,7 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-4-large.refined-cards.ds-card.sections-card-ui .card-stp-button-position-wrapper {
     inset-inline-end: var(--space-xlarge);
-    inset-block-end: var(--space-xlarge);
+    inset-block-end: var(--space-small);
   }
   .ds-section-grid.ds-card-grid .col-4-large.refined-cards.ds-card.sections-card-ui:hover .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-4-large.refined-cards.ds-card.sections-card-ui:active .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-4-large.refined-cards.ds-card.sections-card-ui:focus-visible .meta .source-wrapper .source, .ds-section-grid.ds-card-grid .col-4-large.refined-cards.ds-card.sections-card-ui.active .meta .source-wrapper .source {
     display: block;

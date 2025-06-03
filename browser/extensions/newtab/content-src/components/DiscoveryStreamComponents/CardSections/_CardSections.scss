@@ -312,7 +312,7 @@
       }
 
       .meta {
-        padding: var(--space-large) var(--space-small);
+        padding: var(--space-large) var(--space-small) 0;
         color: var(--newtab-text-primary-color);
 
         .info-wrap .excerpt {
@@ -330,7 +330,7 @@
 
       .card-stp-button-position-wrapper {
         inset-inline-end: var(--space-xlarge);
-        inset-block-end: var(--space-xlarge);
+        inset-block-end: var(--space-small);
       }
 
       &:hover,
