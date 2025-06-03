@@ -79,7 +79,9 @@ function doCheck(shouldIsolate, a, b, mode) {
   // one per first party domain.  if first party isolation is disabled, then
   // gHits should be 1 since there would be one image load from the server and
   // one load from the image cache.
-  info(`XXX check (${mode}: gHits == ${gHits}, shouldIsolate == ${shouldIsolate}`);
+  info(
+    `XXX check (${mode}: gHits == ${gHits}, shouldIsolate == ${shouldIsolate}`
+  );
   if (mode == TEST_MODE_NO_ISOLATION) {
     todo(false, "This test depended on no network partitioning");
     return true;

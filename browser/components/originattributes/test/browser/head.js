@@ -425,7 +425,12 @@ this.IsolationTestTools = {
           let shouldIsolate =
             aMode !== TEST_MODE_NO_ISOLATION && tabSettingA !== tabSettingB;
           if (aCompareResultFunc) {
-            result = await aCompareResultFunc(shouldIsolate, resultA, resultB, aMode);
+            result = await aCompareResultFunc(
+              shouldIsolate,
+              resultA,
+              resultB,
+              aMode
+            );
           } else {
             result = shouldIsolate ? resultA !== resultB : resultA === resultB;
           }
