@@ -2476,6 +2476,23 @@
       }
     ]
   },
+  "1902399": {
+    "label": "recochoku.jp",
+    "bugs": {
+      "1902399": {
+        "issue": "unsupported-warning",
+        "matches": ["*://recochoku.jp/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["all"],
+        "content_scripts": {
+          "js": ["bug1902399-recochoku.jp-hide-unsupported-browser-warning.js"]
+        }
+      }
+    ]
+  },
   "1902403": {
     "label": "musicstore.auone.jp",
     "bugs": {
