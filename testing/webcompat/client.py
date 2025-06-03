@@ -210,7 +210,7 @@ class Client:
             )
 
     async def send_apz_mouse_event(
-        self, event_type, coords=None, element=None, button=0
+        self, event_type, coords=None, element=None, offset=None, button=0
     ):
         # note: use button=2 for context menu/right click (0 is left button)
         if event_type == "down":
@@ -225,6 +225,9 @@ class Client:
             if element is None:
                 raise ValueError("require coords and/or element")
             coords = self.get_element_screen_position(element)
+            if offset:
+                coords[0] += offset[0]
+                coords[1] += offset[1]
         with self.using_context("chrome"):
             return self.execute_async_script(
                 """
@@ -1468,3 +1471,39 @@ class Client:
         self.add_stylesheet(
             f"""{selector} {{ opacity:0 !important; pointer-events:none !important; }}"""
         )
+
+    def set_clipboard(self, string):
+        with self.using_context("chrome"):
+            self.execute_script(
+                """
+                  Cc["@mozilla.org/widget/clipboardhelper;1"]
+                    .getService(Ci.nsIClipboardHelper)
+                    .copyString(arguments[0]);
+            """,
+                string,
+            )
+
+    def do_paste(self):
+        with self.using_context("chrome"):
+            self.execute_script(
+                """
+                function _getEventUtils(win) {
+                    const eventUtilsObject = {
+                      window: win,
+                      parent: win,
+                      _EU_Ci: Ci,
+                      _EU_Cc: Cc,
+                    };
+                    Services.scriptloader.loadSubScript(
+                      "chrome://remote/content/external/EventUtils.js",
+                      eventUtilsObject
+                    );
+                    return eventUtilsObject;
+                }
+                const win = browser.ownerGlobal;
+                if (!win.EventUtils) {
+                    win.EventUtils = _getEventUtils(win);
+                }
+                win.EventUtils.synthesizeKey("v", { accelKey: true }, win);
+            """
+            )

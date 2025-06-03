@@ -3857,6 +3857,25 @@
       }
     ]
   },
+  "1967510": {
+    "label": "gemini.google.com",
+    "bugs": {
+      "1967510": {
+        "issue": "broken-editor",
+        "matches": ["*://gemini.google.com/*"]
+      }
+    },
+    "interventions": [
+      {
+        "platforms": ["desktop"],
+        "content_scripts": {
+          "js": [
+            "bug1967510-gemini.google.com-fix-copy-pasting-between-inputs.js"
+          ]
+        }
+      }
+    ]
+  },
   "1967694": {
     "label": "onlyfaucet.com",
     "bugs": {
