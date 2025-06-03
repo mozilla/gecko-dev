@@ -3914,7 +3914,6 @@ nsresult nsDocShell::ReloadNavigable(
     nsPIDOMWindowInner* windowInner = windowOuter->GetCurrentInnerWindow();
     MOZ_DIAGNOSTIC_ASSERT(windowInner);
     RefPtr navigation = windowInner->Navigation();
-    MOZ_DIAGNOSTIC_ASSERT(navigation);
 
     // 1.2 Let destinationNavigationAPIState be navigable's active session
     //     history entry's navigation API state.
@@ -3934,7 +3933,8 @@ nsresult nsDocShell::ReloadNavigable(
     //     and navigationAPIState set to destinationNavigationAPIState.
     // 1.5 If continue is false, then return.
     RefPtr destinationURL = mActiveEntry ? mActiveEntry->GetURI() : nullptr;
-    if (!navigation->FirePushReplaceReloadNavigateEvent(
+    if (navigation &&
+        !navigation->FirePushReplaceReloadNavigateEvent(
             aCx, NavigationType::Reload, destinationURL,
             /* aIsSameDocument */ false, Some(aUserInvolvement),
             /* aSourceElement*/ nullptr, /* aFormDataEntryList */ nullptr,
@@ -9591,16 +9591,16 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
       NS_IsFetchScheme(aLoadState->URI()) &&
       document->NodePrincipal()->Subsumes(aLoadState->TriggeringPrincipal())) {
     if (nsCOMPtr<nsPIDOMWindowInner> window = document->GetInnerWindow()) {
-      // Step 20.1
+      // Step 21.1
       if (RefPtr<Navigation> navigation = window->Navigation()) {
         AutoJSAPI jsapi;
         if (jsapi.Init(window)) {
           RefPtr<Element> sourceElement = aLoadState->GetSourceElement();
 
-          // Step 20.2
+          // Step 21.2
           RefPtr<FormData> formData = aLoadState->GetFormDataEntryList();
 
-          // Step 20.3
+          // Step 21.3
           RefPtr<nsIStructuredCloneContainer> navigationAPIStateForFiring =
               aLoadState->GetNavigationAPIState();
           if (!navigationAPIStateForFiring) {
@@ -9608,7 +9608,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
           }
 
           nsCOMPtr<nsIURI> destinationURL = aLoadState->URI();
-          // Step 20.4
+          // Step 21.4
           bool shouldContinue = navigation->FirePushReplaceReloadNavigateEvent(
               jsapi.cx(), aLoadState->GetNavigationType(), destinationURL,
               /* aIsSameDocument */ false,
@@ -9616,7 +9616,7 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
               formData.forget(), navigationAPIStateForFiring,
               /* aClassicHistoryAPIState */ nullptr);
 
-          // Step 20.5
+          // Step 21.5
           if (!shouldContinue) {
             return NS_OK;
           }
