@@ -74,24 +74,31 @@ const experimentBranchAccessor = {
 
 const NIMBUS_PROFILE_ID_PREF = "nimbus.profileId";
 
-let cachedProfileId = null;
-
 /**
  * Ensure the Nimbus profile ID exists.
  *
  * @returns {string} The profile ID.
  */
 function ensureNimbusProfileId() {
-  if (!cachedProfileId) {
+  let profileId;
+
+  if (Services.prefs.prefIsLocked(NIMBUS_PROFILE_ID_PREF)) {
+    profileId = Services.prefs.getStringPref(NIMBUS_PROFILE_ID_PREF);
+  } else {
     if (Services.prefs.prefHasUserValue(NIMBUS_PROFILE_ID_PREF)) {
-      cachedProfileId = Services.prefs.getStringPref(NIMBUS_PROFILE_ID_PREF);
+      profileId = Services.prefs.getStringPref(NIMBUS_PROFILE_ID_PREF);
     } else {
-      cachedProfileId = Services.uuid.generateUUID().toString().slice(1, -1);
-      Services.prefs.setStringPref(NIMBUS_PROFILE_ID_PREF, cachedProfileId);
+      profileId = Services.uuid.generateUUID().toString().slice(1, -1);
+      Services.prefs.setStringPref(NIMBUS_PROFILE_ID_PREF, profileId);
     }
+
+    Services.prefs
+      .getDefaultBranch(null)
+      .setStringPref(NIMBUS_PROFILE_ID_PREF, profileId);
+    Services.prefs.lockPref(NIMBUS_PROFILE_ID_PREF);
   }
 
-  return cachedProfileId;
+  return profileId;
 }
 
 /**

@@ -349,22 +349,18 @@ export class ExperimentStore extends SharedDataMap {
   /**
    * Remove inactive enrollments older than 12 months
    */
-  async _cleanupOldRecipes() {
+  _cleanupOldRecipes() {
     const threshold = 365.25 * 24 * 3600 * 1000;
     const nowTimestamp = new Date().getTime();
-    const slugsToRemove = this.getAll()
-      .filter(
-        experiment =>
-          !experiment.active &&
-          // Flip the comparison here to catch scenarios in which lastSeen is
-          // invalid or undefined. The result with be a comparison with NaN
-          // which is always false
-          !(nowTimestamp - new Date(experiment.lastSeen).getTime() < threshold)
-      )
-      .map(r => r.slug);
-
-    this._removeEntriesByKeys(slugsToRemove);
-    await this._deleteEnrollmentsBySlug(slugsToRemove);
+    const recipesToRemove = this.getAll().filter(
+      experiment =>
+        !experiment.active &&
+        // Flip the comparison here to catch scenarios in which lastSeen is
+        // invalid or undefined. The result with be a comparison with NaN
+        // which is always false
+        !(nowTimestamp - new Date(experiment.lastSeen).getTime() < threshold)
+    );
+    this._removeEntriesByKeys(recipesToRemove.map(r => r.slug));
   }
 
   _emitUpdates(enrollment) {
@@ -534,7 +530,7 @@ export class ExperimentStore extends SharedDataMap {
           branchSlug: enrollment.branch.slug,
           recipe: recipe ? JSON.stringify(recipe) : null,
           active: enrollment.active,
-          unenrollReason: enrollment.unenrollReason ?? null,
+          unenrollReason: null,
           lastSeen: enrollment.lastSeen,
           setPrefs: enrollment.prefs ? JSON.stringify(enrollment.prefs) : null,
           prefFlips: enrollment.prefFlips
@@ -595,56 +591,6 @@ export class ExperimentStore extends SharedDataMap {
     } catch (e) {
       console.error(
         `ExperimentStore: Failed writing unenrollment for ${slug} to NimbusEnrollments`,
-        e
-      );
-      success = false;
-    }
-
-    Glean.nimbusEvents.databaseWrite.record({ success });
-  }
-
-  async _deleteEnrollmentsBySlug(slugsToRemove) {
-    if (
-      !Services.prefs.getBoolPref(
-        "nimbus.profilesdatastoreservice.enabled",
-        false
-      )
-    ) {
-      // We are in an xpcshell test that has not initialized the
-      // ProfilesDatastoreService.
-      //
-      // TODO(bug 1967779): require the ProfilesDatastoreService to be initialized
-      // and remove this check.
-      return;
-    }
-
-    if (!slugsToRemove.length) {
-      return;
-    }
-
-    let success = true;
-
-    try {
-      const conn = await lazy.ProfilesDatastoreService.getConnection();
-      await conn.executeTransaction(async () => {
-        for (const slug of slugsToRemove) {
-          await conn.execute(
-            `
-            DELETE FROM NimbusEnrollments
-            WHERE 
-              profileId = :profileId AND
-              slug = :slug;
-            `,
-            {
-              profileId: lazy.ExperimentAPI.profileId,
-              slug,
-            }
-          );
-        }
-      });
-    } catch (e) {
-      console.error(
-        `ExperimentStore: failed to remove enrollments for ${slugsToRemove}`,
         e
       );
       success = false;
