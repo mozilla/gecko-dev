@@ -29,12 +29,8 @@ async def letters_sometimes_vanish(client):
     # is_one_solid_color not have to fuzz), and try another 5 random letters a few times just to make
     # sure the cards always appear. The need for delaying the various simulated events during the
     # animation makes this test slower than it probably needs to be, but that's fine.
-    client.execute_script(
-        """
-       const s = document.createElement("style");
-       s.textContent = "#board .react-card-flip * { border:0 !important; animation-duration:0.5s !important; }";
-       document.head.appendChild(s);
-    """
+    client.add_stylesheet(
+        "#board .react-card-flip * { border:0 !important; animation-duration:0.5s !important; }"
     )
 
     # click on 5 random letters, check if any are invisible, then delete them and retry

@@ -1363,3 +1363,18 @@ class Client:
             if max - min > max_fuzz:
                 return False
         return True
+
+    def add_stylesheet(self, sheet):
+        self.execute_script(
+            """
+           const s = document.createElement("style");
+           s.textContent = arguments[0];
+           document.head.appendChild(s);
+        """,
+            sheet,
+        )
+
+    def hide_elements(self, selector):
+        self.add_stylesheet(
+            """{selector} {{ opacity:0 !important; pointer-events:none !important; }}"""
+        )
