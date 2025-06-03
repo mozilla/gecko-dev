@@ -143,6 +143,19 @@ export const PageLoadStrategy = {
   Normal: "normal",
 };
 
+/**
+ * Enum of proxy types.
+ *
+ * @enum
+ */
+export const ProxyTypes = {
+  Autodetect: "autodetect",
+  Direct: "direct",
+  Manual: "manual",
+  Pac: "pac",
+  System: "system",
+};
+
 /** Proxy configuration object representation. */
 export class Proxy {
   #previousValuesForPreferences;
@@ -186,15 +199,15 @@ export class Proxy {
    */
   init() {
     switch (this.proxyType) {
-      case "autodetect":
+      case ProxyTypes.Autodetect:
         this.#setPreference("network.proxy.type", 4);
         return true;
 
-      case "direct":
+      case ProxyTypes.Direct:
         this.#setPreference("network.proxy.type", 0);
         return true;
 
-      case "manual":
+      case ProxyTypes.Manual:
         this.#setPreference("network.proxy.type", 1);
 
         if (this.httpProxy) {
@@ -236,7 +249,7 @@ export class Proxy {
         }
         return true;
 
-      case "pac":
+      case ProxyTypes.Pac:
         this.#setPreference("network.proxy.type", 2);
         this.#setPreference(
           "network.proxy.autoconfig_url",
@@ -245,7 +258,7 @@ export class Proxy {
         );
         return true;
 
-      case "system":
+      case ProxyTypes.System:
         this.#setPreference("network.proxy.type", 5);
         return true;
 

@@ -13,6 +13,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   getWebDriverSessionById:
     "chrome://remote/content/shared/webdriver/Session.sys.mjs",
   pprint: "chrome://remote/content/shared/Format.sys.mjs",
+  Proxy: "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
+  ProxyPerUserContextManager:
+    "chrome://remote/content/webdriver-bidi/ProxyPerUserContextManager.sys.mjs",
+  ProxyTypes: "chrome://remote/content/shared/webdriver/Capabilities.sys.mjs",
   TabManager: "chrome://remote/content/shared/TabManager.sys.mjs",
   UserContextManager:
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
@@ -69,10 +73,13 @@ ChromeUtils.defineESModuleGetters(lazy, {
  */
 
 class BrowserModule extends RootBiDiModule {
+  #proxyManager;
   #userContextsWithInsecureCertificatesOverrides;
 
   constructor(messageHandler) {
     super(messageHandler);
+
+    this.#proxyManager = new lazy.ProxyPerUserContextManager();
 
     // A set of internal user context ids to keep track of user contexts
     // which had insecure certificates overrides set for them.
@@ -88,6 +95,8 @@ class BrowserModule extends RootBiDiModule {
     }
 
     this.#userContextsWithInsecureCertificatesOverrides = null;
+
+    this.#proxyManager.destroy();
   }
 
   /**
@@ -150,18 +159,41 @@ class BrowserModule extends RootBiDiModule {
    * @param {boolean=} options.acceptInsecureCerts
    *     Indicates whether untrusted and self-signed TLS certificates
    *     should be implicitly trusted on navigation for this user context.
+   * @param {object=} options.proxy
+   *     An object which holds the proxy settings.
    *
    * @returns {UserContextInfo}
    *     UserContextInfo object for the created user context.
+   *
+   * @throws {InvalidArgumentError}
+   *     Raised if an argument is of an invalid type or value.
+   * @throws {UnsupportedOperationError}
+   *     Raised when the command is called with unsupported proxy types.
    */
   async createUserContext(options = {}) {
-    const { acceptInsecureCerts = null } = options;
+    const { acceptInsecureCerts = null, proxy = null } = options;
 
     if (acceptInsecureCerts !== null) {
       lazy.assert.boolean(
         acceptInsecureCerts,
         lazy.pprint`Expected "acceptInsecureCerts" to be a boolean, got ${acceptInsecureCerts}`
       );
+    }
+
+    let proxyObject;
+    if (proxy !== null) {
+      proxyObject = lazy.Proxy.fromJSON(proxy);
+
+      if (
+        proxyObject.proxyType === lazy.ProxyTypes.System ||
+        proxyObject.proxyType === lazy.ProxyTypes.Autodetect ||
+        proxyObject.proxyType === lazy.ProxyTypes.Pac
+      ) {
+        // Bug 1968887: Add support for "system", "autodetect" and "pac" proxy types.
+        throw new lazy.error.UnsupportedOperationError(
+          `Proxy type "${proxyObject.proxyType}" is not supported`
+        );
+      }
     }
 
     const userContextId = lazy.UserContextManager.createContext("webdriver");
@@ -174,6 +206,10 @@ class BrowserModule extends RootBiDiModule {
       } else {
         lazy.Certificates.enableSecurityChecks(internalId);
       }
+    }
+
+    if (proxy !== null) {
+      this.#proxyManager.addConfiguration(internalId, proxyObject);
     }
 
     return { userContext: userContextId };
@@ -237,6 +273,8 @@ class BrowserModule extends RootBiDiModule {
     // Reset the state to clean up the platform state.
     lazy.Certificates.resetSecurityChecksForUserContext(internalId);
     this.#userContextsWithInsecureCertificatesOverrides.delete(internalId);
+
+    this.#proxyManager.deleteConfiguration(internalId);
   }
 
   #getClientWindowInfo(window) {

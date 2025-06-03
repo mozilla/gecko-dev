@@ -6,6 +6,8 @@ args = [
 ]
 support-files = ["head.js"]
 
+["browser_ProxyPerUserContextManager.js"]
+
 ["browser_RemoteValue.js"]
 
 ["browser_RemoteValueDOM.js"]
