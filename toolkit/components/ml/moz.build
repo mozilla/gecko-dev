@@ -4,6 +4,8 @@
 
 SPHINX_TREES["/toolkit/components/ml"] = "docs"
 
+if CONFIG["ONNX_RUNTIME"]:
+    FINAL_TARGET_FILES += ["%" + CONFIG["ONNX_RUNTIME"]]
 
 JAR_MANIFESTS += ["jar.mn"]
 

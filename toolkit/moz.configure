@@ -4131,3 +4131,56 @@ with only_when(target_is_windows & compile_environment):
         return dir
 
     set_config("MOZ_WINDOWS_RS_DIR", windows_rs_dir)
+
+
+# ONNX runtime support
+# ==============================================================
+
+option(
+    "--with-onnx-runtime",
+    nargs="?",
+    help="Location of the ONNX Runtime",
+)
+
+
+@depends("--with-onnx-runtime")
+def need_boostrap_onnxruntime(with_onnx_runtime):
+    return with_onnx_runtime and len(with_onnx_runtime) == 0
+
+
+@depends(target)
+def onnxruntime_task_name(target):
+    return f"onnxruntime-{target.toolchain}"
+
+
+@depends_if(
+    "--with-onnx-runtime",
+    library_name_info.dll,
+    target.toolchain,
+    bootstrap_path(onnxruntime_task_name, when=need_boostrap_onnxruntime),
+)
+@imports("os")
+def onnx_runtime_path(with_onnx_runtime, dllinfo, toolchain, bootstrap):
+    if not with_onnx_runtime:
+        return
+
+    if len(with_onnx_runtime):
+        dirname = with_onnx_runtime[0]
+    elif bootstrap:
+        dirname = bootstrap
+    else:
+        die(
+            f"Cannot find onnxruntime for {toolchain}. Provide one with --with-onnx-runtime=location"
+        )
+
+    location = os.path.abspath(
+        os.path.join(dirname, f"{dllinfo.prefix}onnxruntime.{dllinfo.suffix}")
+    )
+
+    if os.path.exists(location):
+        return location
+    else:
+        die(f"Cannot find bootstrapped onnxruntime in {location}")
+
+
+set_config("ONNX_RUNTIME", onnx_runtime_path)
