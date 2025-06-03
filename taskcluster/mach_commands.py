@@ -20,6 +20,29 @@ from mach.util import strtobool
 logger = logging.getLogger("taskcluster")
 
 
+def setup_logging(command_context, quiet=False, verbose=True):
+    """
+    Set up Python logging for all loggers, sending results to stderr (so
+    that command output can be redirected easily) and adding the typical
+    mach timestamp.
+    """
+    # remove the old terminal handler
+    old = command_context.log_manager.replace_terminal_handler(None)
+
+    # re-add it, with level and fh set appropriately
+    if not quiet:
+        level = logging.DEBUG if verbose else logging.INFO
+        command_context.log_manager.add_terminal_logging(
+            fh=sys.stderr,
+            level=level,
+            write_interval=old.formatter.write_interval,
+            write_times=old.formatter.write_times,
+        )
+
+    # all of the taskgraph logging is unstructured logging
+    command_context.log_manager.enable_unstructured()
+
+
 def get_taskgraph_command_parser(name):
     """Given a command name, obtain its argument parser.
 
@@ -186,7 +209,31 @@ def run_show_taskgraph(command_context, **options):
     help="parameters file (.yml or .json; see `taskcluster/docs/parameters.rst`)`",
 )
 def taskgraph_actions(command_context, **options):
-    return show_actions(command_context, options)
+    import gecko_taskgraph
+    import gecko_taskgraph.actions
+    from taskgraph.generator import TaskGraphGenerator
+    from taskgraph.parameters import parameters_loader
+
+    try:
+        setup_logging(
+            command_context, quiet=options["quiet"], verbose=options["verbose"]
+        )
+        parameters = parameters_loader(options["parameters"])
+
+        tgg = TaskGraphGenerator(
+            root_dir=options.get("root"),
+            parameters=parameters,
+        )
+
+        actions = gecko_taskgraph.actions.render_actions_json(
+            tgg.parameters,
+            tgg.graph_config,
+            decision_task_id="DECISION-TASK",
+        )
+        print(json.dumps(actions, sort_keys=True, indent=2, separators=(",", ": ")))
+    except Exception:
+        traceback.print_exc()
+        sys.exit(1)
 
 
 @SubCommand(
@@ -255,75 +302,26 @@ def test_action_callback(command_context, **options):
     taskgraph_commands["test-action-callback"].func(options)
 
 
-def setup_logging(command_context, quiet=False, verbose=True):
-    """
-    Set up Python logging for all loggers, sending results to stderr (so
-    that command output can be redirected easily) and adding the typical
-    mach timestamp.
-    """
-    # remove the old terminal handler
-    old = command_context.log_manager.replace_terminal_handler(None)
-
-    # re-add it, with level and fh set appropriately
-    if not quiet:
-        level = logging.DEBUG if verbose else logging.INFO
-        command_context.log_manager.add_terminal_logging(
-            fh=sys.stderr,
-            level=level,
-            write_interval=old.formatter.write_interval,
-            write_times=old.formatter.write_times,
-        )
-
-    # all of the taskgraph logging is unstructured logging
-    command_context.log_manager.enable_unstructured()
-
-
-def show_actions(command_context, options):
-    import gecko_taskgraph
-    import gecko_taskgraph.actions
-    from taskgraph.generator import TaskGraphGenerator
-    from taskgraph.parameters import parameters_loader
-
-    try:
-        setup_logging(
-            command_context, quiet=options["quiet"], verbose=options["verbose"]
-        )
-        parameters = parameters_loader(options["parameters"])
-
-        tgg = TaskGraphGenerator(
-            root_dir=options.get("root"),
-            parameters=parameters,
-        )
-
-        actions = gecko_taskgraph.actions.render_actions_json(
-            tgg.parameters,
-            tgg.graph_config,
-            decision_task_id="DECISION-TASK",
-        )
-        print(json.dumps(actions, sort_keys=True, indent=2, separators=(",", ": ")))
-    except Exception:
-        traceback.print_exc()
-        sys.exit(1)
-
-
-@Command(
-    "taskcluster-load-image",
-    category="ci",
+@SubCommand(
+    "taskgraph",
+    "load-image",
     description="Load a pre-built Docker image. Note that you need to "
     "have docker installed and running for this to work.",
     parser=partial(get_taskgraph_command_parser, "load-image"),
 )
 def load_image(command_context, **kwargs):
+    setup_logging(command_context)
     taskgraph_commands["load-image"].func(kwargs)
 
 
-@Command(
-    "taskcluster-build-image",
-    category="ci",
+@SubCommand(
+    "taskgraph",
+    "build-image",
     description="Build a Docker image",
     parser=partial(get_taskgraph_command_parser, "build-image"),
 )
 def build_image(command_context, **kwargs):
+    setup_logging(command_context)
     try:
         taskgraph_commands["build-image"].func(kwargs)
     except Exception:
@@ -331,14 +329,15 @@ def build_image(command_context, **kwargs):
         sys.exit(1)
 
 
-@Command(
-    "taskcluster-image-digest",
-    category="ci",
+@SubCommand(
+    "taskgraph",
+    "image-digest",
     description="Print the digest of the image of this name based on the "
     "current contents of the tree.",
     parser=partial(get_taskgraph_command_parser, "build-image"),
 )
 def image_digest(command_context, **kwargs):
+    setup_logging(command_context)
     taskgraph_commands["image-digest"].func(kwargs)
 
 

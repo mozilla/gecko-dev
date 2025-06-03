@@ -202,9 +202,6 @@ MACH_COMMANDS = {
         "browser/components/storybook/mach_commands.py", ["run"]
     ),
     "talos-test": MachCommandReference("testing/talos/mach_commands.py"),
-    "taskcluster-build-image": MachCommandReference("taskcluster/mach_commands.py"),
-    "taskcluster-image-digest": MachCommandReference("taskcluster/mach_commands.py"),
-    "taskcluster-load-image": MachCommandReference("taskcluster/mach_commands.py"),
     "taskgraph": MachCommandReference("taskcluster/mach_commands.py"),
     "telemetry-tests-client": MachCommandReference(
         "toolkit/components/telemetry/tests/marionette/mach_commands.py"
