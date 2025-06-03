@@ -3,19 +3,19 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 task-defaults:
-    platform: linux1804-64/opt
+    platform: linux2404-64/opt
     always-target:
         by-platform:
             macosx.*: false
             default: true
     worker-type:
         by-platform:
-            linux1804-64.*: t-linux-docker
+            linux2404-64.*: t-linux-docker
             macosx1470-64.*: t-osx-1400-r8
             windows11-64.*: win11-64-24h2-source
     worker:
         by-platform:
-            linux1804-64.*:
+            linux2404-64.*:
                 docker-image: {in-tree: "lint"}
                 max-run-time: 3600
             macosx.*:
@@ -59,7 +59,7 @@ firefox-ci:
 fog:
     description: Python unit tests for Firefox on Glean
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -75,7 +75,7 @@ fog:
 mach:
     description: python/mach unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -92,7 +92,7 @@ mach:
 marionette-harness:
     description: testing/marionette/harness unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - windows11-64/opt
     python-version: [3]
     treeherder:
@@ -109,26 +109,26 @@ marionette-harness:
 mochitest-harness:
     description: testing/mochitest unittests
     platform:
-        - linux1804-64/opt
-        - linux1804-64/debug
-        - linux1804-64-asan/opt
+        - linux2404-64/opt
+        - linux2404-64/debug
+        - linux2404-64-asan/opt
     always-target: false
     require-build:
         by-project:
             try:
-                linux1804-64-asan/opt: build-linux64-asan/opt
-                linux1804-64/debug: build-linux64/debug
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64-asan/opt: build-linux64-asan/opt
+                linux2404-64/debug: build-linux64/debug
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64-asan/opt: build-linux64-asan/opt
-                linux1804-64/debug: build-linux64/debug
-                linux1804-64/opt: build-linux64-shippable/opt
+                linux2404-64-asan/opt: build-linux64-asan/opt
+                linux2404-64/debug: build-linux64/debug
+                linux2404-64/opt: build-linux64-shippable/opt
     treeherder:
         symbol: py3(mch)
     worker:
         by-platform:
-            linux1804-64.*:
-                docker-image: {in-tree: "ubuntu1804-test"}
+            linux2404-64.*:
+                docker-image: {in-tree: "ubuntu2404-test"}
                 max-run-time: 3600
     run:
         using: run-task
@@ -162,7 +162,7 @@ mochitest-harness:
 mozbase:
     description: testing/mozbase unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -190,7 +190,7 @@ mozharness:
 mozlint:
     description: python/mozlint unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -203,13 +203,13 @@ mozlint:
     dependencies:
         clang-tidy:
             by-platform:
-                linux1804-64/opt: toolchain-linux64-clang-tidy
+                linux2404-64/opt: toolchain-linux64-clang-tidy
                 macosx1470-64/opt: toolchain-macosx64-clang-tidy
                 windows11-64/opt: toolchain-win64-clang-tidy
     fetches:
         toolchain:
             by-platform:
-                linux1804-64/opt:
+                linux2404-64/opt:
                     - linux64-node
                     - linux64-rust
                 macosx1470-64/opt:
@@ -241,7 +241,7 @@ mozrelease:
 mozterm:
     description: python/mozterm unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - windows11-64/opt
     python-version: [3]
     treeherder:
@@ -256,7 +256,7 @@ mozterm:
 mozversioncontrol:
     description: python/mozversioncontrol unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -268,7 +268,7 @@ mozversioncontrol:
     fetches:
         toolchain:
             by-platform:
-                linux1804-64/opt:
+                linux2404-64/opt:
                     - linux64-jj
                 macosx1470-64/opt:
                     - macosx64-jj
@@ -281,7 +281,7 @@ mozversioncontrol:
 raptor:
     description: testing/raptor unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -297,26 +297,26 @@ raptor:
 reftest-harness:
     description: layout/tools/reftest unittests
     platform:
-        - linux1804-64/opt
-        - linux1804-64/debug
-        - linux1804-64-asan/opt
+        - linux2404-64/opt
+        - linux2404-64/debug
+        - linux2404-64-asan/opt
     require-build:
         by-project:
             try:
-                linux1804-64-asan/opt: build-linux64-asan/opt
-                linux1804-64/debug: build-linux64/debug
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64-asan/opt: build-linux64-asan/opt
+                linux2404-64/debug: build-linux64/debug
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64-asan/opt: build-linux64-asan/opt
-                linux1804-64/debug: build-linux64/debug
-                linux1804-64/opt: build-linux64-shippable/opt
+                linux2404-64-asan/opt: build-linux64-asan/opt
+                linux2404-64/debug: build-linux64/debug
+                linux2404-64/opt: build-linux64-shippable/opt
     always-target: false
     treeherder:
         symbol: py3(ref)
     worker:
         by-platform:
-            linux1804-64.*:
-                docker-image: {in-tree: "ubuntu1804-test"}
+            linux2404-64.*:
+                docker-image: {in-tree: "ubuntu2404-test"}
                 max-run-time: 3600
     run:
         using: run-task
@@ -362,7 +362,7 @@ taskgraph-tests:
 tryselect:
     description: tools/tryselect unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - windows11-64/opt
     python-version: [3]
     treeherder:
@@ -381,7 +381,7 @@ tryselect:
 mozbuild:
     description: mozbuild unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -393,7 +393,7 @@ mozbuild:
     fetches:
         toolchain:
             by-platform:
-                linux1804-64/opt:
+                linux2404-64/opt:
                     - linux64-node
                     - linux64-uv
                 macosx1470-64/opt:
@@ -422,7 +422,7 @@ mozbuild:
 mozperftest:
     description: mozperftest unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     treeherder:
@@ -432,7 +432,7 @@ mozperftest:
     fetches:
         toolchain:
             by-platform:
-                linux1804-64/opt:
+                linux2404-64/opt:
                     - linux64-node
                     - browsertime
                 macosx1470-64/opt:
@@ -450,23 +450,23 @@ nimbus:
     description: >
         Ensure the targeting context metric is up-to-date with the targeting context definition.
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
     treeherder:
         symbol: py3(nimbus)
     require-build:
         by-project:
             try:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
     fetches:
         build:
             - artifact: target.tar.xz
             - artifact: target.common.tests.tar.gz
     worker:
         by-platform:
-            linux1804-64.*:
-                docker-image: {in-tree: "ubuntu1804-test"}
+            linux2404-64.*:
+                docker-image: {in-tree: "ubuntu2404-test"}
                 max-run-time: 3600
     run:
         using: run-task
@@ -491,23 +491,23 @@ fxms-schemas:
         Ensure messaging-system schemas are up-to-date and run Experimenter
         integration tests.
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
     treeherder:
         symbol: py3(fxms)
     require-build:
         by-project:
             try:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
     fetches:
         build:
             - artifact: target.tar.xz
             - artifact: target.common.tests.tar.gz
     worker:
         by-platform:
-            linux1804-64.*:
-                docker-image: {in-tree: "ubuntu1804-test"}
+            linux2404-64.*:
+                docker-image: {in-tree: "ubuntu2404-test"}
                 max-run-time: 3600
     run:
         using: run-task
@@ -532,7 +532,7 @@ fxms-schemas:
 condprof:
     description: testing/condprofile unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -577,18 +577,18 @@ telemetry-integration-tests:
     description: pytest-based integration tests for Telemetry
     always-target: false
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
     worker:
         by-platform:
-            linux1804-64.*:
-                docker-image: {in-tree: "ubuntu1804-test"}
+            linux2404-64.*:
+                docker-image: {in-tree: "ubuntu2404-test"}
                 max-run-time: 3600
     require-build:
         by-project:
             try:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64/opt: build-linux64-shippable/opt
+                linux2404-64/opt: build-linux64-shippable/opt
     treeherder:
         symbol: tt(i)
         tier: 3
@@ -615,7 +615,7 @@ telemetry-integration-tests:
 telemetry-python:
     description: Python unit tests for Telemetry
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
         - macosx1470-64/opt
         - windows11-64/opt
     python-version: [3]
@@ -627,7 +627,7 @@ telemetry-python:
     fetches:
         toolchain:
             by-platform:
-                linux1804-64/opt:
+                linux2404-64/opt:
                     - linux64-node
                 macosx1470-64/opt:
                     - macosx64-node
@@ -640,7 +640,7 @@ telemetry-python:
 webext:
     description: WebExtensions python utilities unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
     python-version: [3]
     treeherder:
         symbol: webext-py
@@ -658,7 +658,7 @@ webext:
 xpcom:
     description: xpcom unit tests
     platform:
-        - linux1804-64/opt
+        - linux2404-64/opt
     python-version: [3]
     treeherder:
         symbol: xpcom

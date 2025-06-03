@@ -3,10 +3,10 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
 task-defaults:
-    platform: linux1804-64/opt
+    platform: linux2404-64/opt
     worker-type: t-linux-docker
     worker:
-        docker-image: {in-tree: "ubuntu1804-test"}
+        docker-image: {in-tree: "ubuntu2404-test"}
         max-run-time: 1800
     treeherder:
         kind: test
@@ -23,11 +23,11 @@ newtab-unit-tests:
     require-build:
         by-project:
             autoland:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             try:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64/opt: build-linux64-shippable/opt
+                linux2404-64/opt: build-linux64-shippable/opt
     fetches:
         build:
             - target.tar.xz
@@ -41,7 +41,7 @@ newtab-unit-tests:
             cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/extensions/newtab &&
             cp -r $MOZ_FETCHES_DIR/newtab/node_modules node_modules &&
-            FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox node bin/try-runner.js
+            FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox PATH=$PATH:$MOZ_FETCHES_DIR/node/bin node bin/try-runner.js
     when:
         files-changed:
             - "browser/extensions/newtab/**"
@@ -58,9 +58,9 @@ newtab-unit-tests-ccov:
     require-build:
         by-project:
             try:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64/opt: build-linux64-shippable/opt
+                linux2404-64/opt: build-linux64-shippable/opt
     fetches:
         build:
             - target.tar.xz
@@ -74,7 +74,7 @@ newtab-unit-tests-ccov:
             cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/extensions/newtab &&
             cp -r $MOZ_FETCHES_DIR/newtab/node_modules node_modules &&
-            FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox node bin/try-runner.js
+            FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox PATH=$PATH:$MOZ_FETCHES_DIR/node/bin node bin/try-runner.js
     # This should only run on mozilla-central, as the bot will only parse mozilla-central
     # coverage anyways.
     run-on-projects: ["mozilla-central"]
@@ -89,13 +89,16 @@ messagingsystem-unit-tests:
     require-build:
         by-project:
             autoland:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             try:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64/opt: build-linux64-shippable/opt
+                linux2404-64/opt: build-linux64-shippable/opt
     fetches:
+        build:
+            - target.tar.xz
         toolchain:
+            - linux64-node
             - node-modules
             - aboutwelcome-node-modules
             - asrouter-node-modules
@@ -107,7 +110,7 @@ messagingsystem-unit-tests:
             cp -r $MOZ_FETCHES_DIR/aboutwelcome/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/components/asrouter &&
             cp -r $MOZ_FETCHES_DIR/asrouter/node_modules node_modules &&
-            node bin/try-runner.js
+            FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox PATH=$PATH:$MOZ_FETCHES_DIR/node/bin node bin/try-runner.js
     when:
         files-changed:
             - "browser/components/aboutwelcome/**"
@@ -125,11 +128,14 @@ messagingsystem-unit-tests-ccov:
     require-build:
         by-project:
             try:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64/opt: build-linux64-shippable/opt
+                linux2404-64/opt: build-linux64-shippable/opt
     fetches:
+        build:
+            - target.tar.xz
         toolchain:
+            - linux64-node
             - node-modules
             - aboutwelcome-node-modules
             - asrouter-node-modules
@@ -141,7 +147,7 @@ messagingsystem-unit-tests-ccov:
             cp -r $MOZ_FETCHES_DIR/aboutwelcome/node_modules node_modules &&
             cd /builds/worker/checkouts/gecko/browser/components/asrouter &&
             cp -r $MOZ_FETCHES_DIR/asrouter/node_modules node_modules &&
-            node bin/try-runner.js
+            FIREFOX_BIN=$MOZ_FETCHES_DIR/firefox/firefox PATH=$PATH:$MOZ_FETCHES_DIR/node/bin node bin/try-runner.js
     # This should only run on mozilla-central, as the bot will only parse mozilla-central
     # coverage anyways.
     run-on-projects: ["mozilla-central"]
@@ -164,7 +170,10 @@ devtools-tests:
     run:
         command: >
             cd devtools/client/bin/ &&
-            node devtools-node-test-runner.js --suite=all --artifact=/builds/worker/issues.json
+            $MOZ_FETCHES_DIR/node/bin/node devtools-node-test-runner.js --suite=all --artifact=/builds/worker/issues.json
+    fetches:
+        toolchain:
+            - linux64-node
     when:
         files-changed:
             - 'devtools/client/**'
@@ -188,9 +197,12 @@ devtools-verify-bundle:
         command: >
             cd devtools/client/debugger &&
             yarn &&
-            node bin/bundle.js &&
+            $MOZ_FETCHES_DIR/node/bin/node bin/bundle.js &&
             cd ../../.. &&
             ./mach python taskcluster/scripts/misc/verify-devtools-bundle.py --output /builds/worker/issues.json
+    fetches:
+        toolchain:
+            - linux64-node
     when:
         files-changed:
             - 'devtools/**'
@@ -205,7 +217,7 @@ eslint-plugin-mozilla:
         command: >
             cp -r $MOZ_FETCHES_DIR/eslint-plugin-mozilla/node_modules tools/lint/eslint/eslint-plugin-mozilla/node_modules &&
             ./mach configure --disable-compile-environment &&
-            ./mach npm test --prefix tools/lint/eslint/eslint-plugin-mozilla
+            PATH=$PATH:$MOZ_FETCHES_DIR/node/bin ./mach npm test --prefix tools/lint/eslint/eslint-plugin-mozilla
     when:
         files-changed:
             - 'tools/lint/eslint/eslint-plugin-mozilla/**'
@@ -224,7 +236,7 @@ stylelint-plugin-mozilla:
         command: >
             cp -r $MOZ_FETCHES_DIR/stylelint-plugin-mozilla/node_modules tools/lint/stylelint/stylelint-plugin-mozilla/node_modules &&
             ./mach configure --disable-compile-environment &&
-            ./mach npm test --prefix tools/lint/stylelint/stylelint-plugin-mozilla
+            PATH=$PATH:$MOZ_FETCHES_DIR/node/bin ./mach npm test --prefix tools/lint/stylelint/stylelint-plugin-mozilla
     when:
         files-changed:
             - 'tools/lint/stylelint/stylelint-plugin-mozilla/**'
@@ -240,20 +252,23 @@ design-tokens-tests:
     require-build:
         by-project:
             autoland:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             try:
-                linux1804-64/opt: build-linux64/opt
+                linux2404-64/opt: build-linux64/opt
             default:
-                linux1804-64/opt: build-linux64-shippable/opt
+                linux2404-64/opt: build-linux64-shippable/opt
     run:
         command: >
             cd /builds/worker/checkouts/gecko &&
             rm -rf node_modules &&
-            npm ci &&
+            PATH=$PATH:$MOZ_FETCHES_DIR/node/bin $MOZ_FETCHES_DIR/node/bin/npm ci &&
             cd /builds/worker/checkouts/gecko/toolkit/themes/shared/design-system &&
             rm -rf node_modules &&
-            npm ci &&
-            node tests/try-runner.js
+            PATH=$PATH:$MOZ_FETCHES_DIR/node/bin $MOZ_FETCHES_DIR/node/bin/npm ci &&
+            $MOZ_FETCHES_DIR/node/bin/node tests/try-runner.js
+    fetches:
+        toolchain:
+            - linux64-node
     when:
         files-changed:
             - "toolkit/themes/shared/design-system/**"
