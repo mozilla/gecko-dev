@@ -72,6 +72,7 @@ export class MozRadio extends SelectControlItemMixin(MozBaseInputElement) {
       tabindex=${this.itemTabIndex}
       ?disabled=${this.isDisabled}
       accesskey=${ifDefined(this.accessKey)}
+      aria-label=${ifDefined(this.ariaLabel ?? undefined)}
       @click=${this.handleClick}
       @change=${this.handleChange}
     />`;

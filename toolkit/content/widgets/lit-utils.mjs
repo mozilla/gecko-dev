@@ -235,6 +235,8 @@ export class MozLitElement extends LitElement {
  * @property {boolean} parentDisabled - When this element is nested under another input and that
  *     input is disabled or unchecked/unpressed the parent will set this property to true so this
  *     element can be disabled.
+ * @property {string} ariaLabel
+ *  The aria-label text for cases where there is no visible label.
  */
 export class MozBaseInputElement extends MozLitElement {
   #internals;
@@ -250,6 +252,7 @@ export class MozBaseInputElement extends MozLitElement {
     supportPage: { type: String, attribute: "support-page" },
     accessKey: { type: String, mapped: true, fluent: true },
     parentDisabled: { type: Boolean, state: true },
+    ariaLabel: { type: String, mapped: true },
   };
   static inputLayout = "inline";
 

@@ -50,10 +50,6 @@
         );
       });
 
-      add_task(async function testMozInputSearchAriaLabel() {
-        await testHelpers.verifyAriaLabel("moz-input-search");
-      });
-
       add_task(async function testMozInputSearchSearchEvent() {
         const mozInputSearch = document.querySelector("moz-input-search");
         const inputElement = mozInputSearch.shadowRoot.querySelector("#input");

@@ -134,6 +134,7 @@ export default class MozSelect extends MozBaseInputElement {
           @change=${this.redispatchEvent}
           ?disabled=${this.disabled || this.parentDisabled}
           aria-describedby="description"
+          aria-label=${ifDefined(this.ariaLabel ?? undefined)}
         >
           ${this.options.map(
             option => html`

@@ -23,7 +23,6 @@ import "chrome://global/content/elements/moz-label.mjs";
  */
 export default class MozToggle extends MozBaseInputElement {
   static properties = {
-    ariaLabel: { type: String, mapped: true },
     pressed: { type: Boolean, reflect: true },
   };
 
@@ -59,8 +58,8 @@ export default class MozToggle extends MozBaseInputElement {
       value=${this.value}
       ?disabled=${disabled}
       aria-pressed=${pressed}
-      aria-label=${ifDefined(ariaLabel ?? undefined)}
       aria-describedby="description"
+      aria-label=${ifDefined(ariaLabel ?? undefined)}
       accesskey=${ifDefined(this.accessKey)}
       @click=${handleClick}
     ></button>`;

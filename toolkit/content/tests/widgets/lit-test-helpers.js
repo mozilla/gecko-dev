@@ -166,6 +166,7 @@ class InputTestHelpers extends LitTestHelpers {
    */
   async testCommonInputProperties(elementName) {
     await this.verifyLabel(elementName);
+    await this.verifyAriaLabel(elementName);
     await this.verifyName(elementName);
     await this.verifyValue(elementName);
     await this.verifyIcon(elementName);
