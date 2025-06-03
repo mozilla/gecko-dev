@@ -3612,7 +3612,7 @@
     },
     "interventions": [
       {
-        "platforms": ["fenix"],
+        "platforms": ["android"],
         "content_scripts": {
           "js": ["bug1956165-www.youtube.com-picture-in-picture-fix.js"]
         }
