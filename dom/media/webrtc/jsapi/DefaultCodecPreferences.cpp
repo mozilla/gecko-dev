@@ -16,6 +16,10 @@ bool DefaultCodecPreferences::AV1EnabledStatic() {
          StaticPrefs::media_webrtc_codec_video_av1_enabled();
 }
 
+bool DefaultCodecPreferences::AV1PreferredStatic() {
+  return StaticPrefs::media_webrtc_codec_video_av1_experimental_preferred();
+}
+
 bool DefaultCodecPreferences::H264EnabledStatic() {
   return SoftwareH264EnabledStatic() || HardwareH264EnabledStatic();
 }

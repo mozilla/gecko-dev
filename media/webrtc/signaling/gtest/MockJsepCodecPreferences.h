@@ -28,6 +28,7 @@ class MockJsepCodecPreferences : public JsepCodecPreferences {
         mUseRemb(Prefs::kDefaultUseRemb) {}
 
   bool AV1Enabled() const override { return mAv1Enabled; }
+  bool AV1Preferred() const override { return mAv1Preferred; }
   bool H264Enabled() const override { return mH264Enabled; }
   bool SoftwareH264Enabled() const override { return mSoftwareH264Enabled; }
   bool SendingH264PacketizationModeZeroSupported() const override {
@@ -48,6 +49,7 @@ class MockJsepCodecPreferences : public JsepCodecPreferences {
   bool RedUlpfecEnabled() const override { return mRedUlpfecEnabled; }
 
   bool mAv1Enabled = true;
+  bool mAv1Preferred = false;
   bool mH264Enabled = true;
   bool mSoftwareH264Enabled = true;
   bool mH264PacketizationModeZeroSupported = true;

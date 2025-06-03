@@ -26,6 +26,7 @@ class JsepCodecPreferences {
   virtual ~JsepCodecPreferences() = default;
 
   virtual bool AV1Enabled() const = 0;
+  virtual bool AV1Preferred() const = 0;
   virtual bool H264Enabled() const = 0;
   virtual bool SoftwareH264Enabled() const = 0;
   virtual bool SendingH264PacketizationModeZeroSupported() const = 0;
@@ -515,6 +516,7 @@ class JsepVideoCodecDescription final : public JsepCodecDescription {
     // https://aomediacodec.github.io/av1-rtp-spec/#722-rid-restrictions-mapping-for-av1
     auto codec = MakeUnique<JsepVideoCodecDescription>("99", "AV1", 90000);
     codec->mEnabled = aPrefs.AV1Enabled();
+    codec->mStronglyPreferred = aPrefs.AV1Preferred();
     codec->mAv1Config.mProfile = Nothing();
     if (aPrefs.UseRtx()) {
       codec->EnableRtx("100");

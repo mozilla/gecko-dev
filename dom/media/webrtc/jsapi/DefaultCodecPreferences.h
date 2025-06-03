@@ -25,6 +25,7 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
       : mOverrideRtxEnabled(aOverrideRtxPreference) {}
 
   bool AV1Enabled() const override { return mAV1Enabled; }
+  bool AV1Preferred() const override { return mAV1Preferred; }
   bool H264Enabled() const override { return mH264Enabled; }
 
   bool SoftwareH264Enabled() const override { return mSoftwareH264Enabled; }
@@ -66,6 +67,8 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
   bool RedUlpfecEnabled() const override { return mRedUlpfecEnabled; }
 
   static bool AV1EnabledStatic();
+
+  static bool AV1PreferredStatic();
 
   static bool H264EnabledStatic();
 
@@ -180,6 +183,7 @@ class DefaultCodecPreferences final : public JsepCodecPreferences {
       OverrideRtxPreference::NoOverride;
 
   const bool mAV1Enabled = AV1EnabledStatic();
+  const bool mAV1Preferred = AV1PreferredStatic();
   const bool mH264Enabled = H264EnabledStatic();
   const bool mSoftwareH264Enabled = SoftwareH264EnabledStatic();
   const bool mHardwareH264Enabled = HardwareH264EnabledStatic();
