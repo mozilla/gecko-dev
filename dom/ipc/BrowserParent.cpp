@@ -2282,6 +2282,12 @@ bool BrowserParent::SendHandleTap(
                    aInputBlockId, aDoubleTapToZoomMetrics);
 }
 
+mozilla::ipc::IPCResult BrowserParent::RecvSynthesizedEventResponse(
+    const uint64_t& aCallbackId) {
+  AutoSynthesizedEventCallbackNotifier::NotifySavedCallback(aCallbackId);
+  return IPC_OK();
+}
+
 mozilla::ipc::IPCResult BrowserParent::RecvSyncMessage(
     const nsString& aMessage, const ClonedMessageData& aData,
     nsTArray<StructuredCloneData>* aRetVal) {

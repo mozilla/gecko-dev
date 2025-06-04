@@ -782,13 +782,25 @@ nsDOMWindowUtils::SendWheelEvent(float aX, float aY, double aDeltaX,
                                  double aDeltaY, double aDeltaZ,
                                  uint32_t aDeltaMode, int32_t aModifiers,
                                  int32_t aLineOrPageDeltaX,
-                                 int32_t aLineOrPageDeltaY, uint32_t aOptions) {
+                                 int32_t aLineOrPageDeltaY, uint32_t aOptions,
+                                 nsISynthesizedEventCallback* aCallback) {
+  if (XRE_IsContentProcess() && aCallback &&
+      ((aOptions & WHEEL_EVENT_ASYNC_ENABLED) ||
+       StaticPrefs::test_events_async_enabled())) {
+    NS_WARNING(
+        "nsDOMWindowUtils::SendWheelEvent() does not support being called in "
+        "the content process with both a callback and async enabled");
+    return NS_ERROR_FAILURE;
+  }
+
   // get the widget to send the event to
   nsPoint offset;
   nsCOMPtr<nsIWidget> widget = GetWidget(&offset);
   if (!widget) {
     return NS_ERROR_NULL_POINTER;
   }
+
+  mozilla::widget::AutoSynthesizedEventCallbackNotifier notifier(aCallback);
 
   WidgetWheelEvent wheelEvent(true, eWheel, widget);
   wheelEvent.mModifiers = nsContentUtils::GetWidgetModifiers(aModifiers);
@@ -803,6 +815,7 @@ nsDOMWindowUtils::SendWheelEvent(float aX, float aY, double aDeltaX,
       (aOptions & WHEEL_EVENT_CUSTOMIZED_BY_USER_PREFS) != 0;
   wheelEvent.mLineOrPageDeltaX = aLineOrPageDeltaX;
   wheelEvent.mLineOrPageDeltaY = aLineOrPageDeltaY;
+  wheelEvent.mCallbackId = notifier.SaveCallback();
 
   nsPresContext* presContext = GetPresContext();
   NS_ENSURE_TRUE(presContext, NS_ERROR_FAILURE);
@@ -817,6 +830,14 @@ nsDOMWindowUtils::SendWheelEvent(float aX, float aY, double aDeltaX,
     nsEventStatus status = nsEventStatus_eIgnore;
     nsresult rv = widget->DispatchEvent(&wheelEvent, status);
     NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  // The callback ID may be cleared when the event also needs to be dispatched
+  // to a content process. In such cases, the callback will be notified after
+  // the event has been dispatched in the target content process.
+  if (wheelEvent.mCallbackId.isSome()) {
+    mozilla::widget::AutoSynthesizedEventCallbackNotifier::NotifySavedCallback(
+        wheelEvent.mCallbackId.ref());
   }
 
   if (widget->AsyncPanZoomEnabled()) {

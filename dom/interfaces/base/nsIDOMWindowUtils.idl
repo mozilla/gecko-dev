@@ -510,6 +510,13 @@ interface nsIDOMWindowUtils : nsISupports {
    *                           dispatch NS_MOUSE_SCROLL event for vertical
    *                           scroll.
    * @param aOptions           Set following flags.
+   * @param aCallback          The callback will be notified when the
+   *                           synthesized wheel event has been dispatched.
+   *                           XXX: This is not implemented in the content
+   *                           process when async is enabled (i.e., either the
+   *                           option has WHEEL_EVENT_ASYNC_ENABLED or the
+   *                           test.events.async.enabled pref is true). In such
+   *                           cases, passing aCallback will throw an exception.
    */
   const unsigned long WHEEL_EVENT_CAUSED_BY_NO_LINE_OR_PAGE_DELTA_DEVICE = 0x0001;
   const unsigned long WHEEL_EVENT_CAUSED_BY_MOMENTUM                     = 0x0002;
@@ -532,7 +539,8 @@ interface nsIDOMWindowUtils : nsISupports {
                       in long aModifiers,
                       in long aLineOrPageDeltaX,
                       in long aLineOrPageDeltaY,
-                      in unsigned long aOptions);
+                      in unsigned long aOptions,
+                      [optional] in nsISynthesizedEventCallback aCallback);
 
   /**
    * Native modifiers for sendNativeKeyEvent and sendNativeMouseEvent.

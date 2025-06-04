@@ -571,7 +571,6 @@ both:
     async ReleasePointerLock();
 
 child:
-    async SynthesizedEventResponse(uint64_t aCallbackId);
     async UpdateSHistory();
     async CloneDocumentTreeIntoSelf(MaybeDiscardedBrowsingContext aBc, PrintData aPrintData) returns(bool aSuccess);
     async UpdateRemotePrintSettings(PrintData aPrintData);
@@ -844,6 +843,10 @@ child:
                         uint32_t aDropEffect, nullable nsIPrincipal aPrincipal,
                         nullable nsIContentSecurityPolicy csp);
 
+both:
+    async SynthesizedEventResponse(uint64_t aCallbackId);
+
+child:
     [Priority=input] async CompositionEvent(WidgetCompositionEvent event);
     async NormalPriorityCompositionEvent(WidgetCompositionEvent event);
 

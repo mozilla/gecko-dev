@@ -157,32 +157,39 @@ struct ParamTraits<mozilla::WidgetWheelEvent> {
     WriteParam(aWriter, aParam.mCanTriggerSwipe);
     WriteParam(aWriter, aParam.mAllowToOverrideSystemScrollSpeed);
     WriteParam(aWriter, aParam.mDeltaValuesHorizontalizedForDefaultHandler);
+    WriteParam(aWriter, aParam.mCallbackId);
+
+    // Mark the event as stopped to notify callback.
+    const_cast<mozilla::WidgetWheelEvent&>(aParam).mCallbackId.reset();
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
     uint8_t scrollType = 0;
-    bool rv = ReadParam(aReader,
-                        static_cast<mozilla::WidgetMouseEventBase*>(aResult)) &&
-              ReadParam(aReader, &aResult->mDeltaX) &&
-              ReadParam(aReader, &aResult->mDeltaY) &&
-              ReadParam(aReader, &aResult->mDeltaZ) &&
-              ReadParam(aReader, &aResult->mDeltaMode) &&
-              ReadParam(aReader, &aResult->mWheelTicksX) &&
-              ReadParam(aReader, &aResult->mWheelTicksY) &&
-              ReadParam(aReader, &aResult->mCustomizedByUserPrefs) &&
-              ReadParam(aReader, &aResult->mMayHaveMomentum) &&
-              ReadParam(aReader, &aResult->mIsMomentum) &&
-              ReadParam(aReader, &aResult->mIsNoLineOrPageDelta) &&
-              ReadParam(aReader, &aResult->mLineOrPageDeltaX) &&
-              ReadParam(aReader, &aResult->mLineOrPageDeltaY) &&
-              ReadParam(aReader, &scrollType) &&
-              ReadParam(aReader, &aResult->mOverflowDeltaX) &&
-              ReadParam(aReader, &aResult->mOverflowDeltaY) &&
-              ReadParam(aReader, &aResult->mViewPortIsOverscrolled) &&
-              ReadParam(aReader, &aResult->mCanTriggerSwipe) &&
-              ReadParam(aReader, &aResult->mAllowToOverrideSystemScrollSpeed) &&
-              ReadParam(aReader,
-                        &aResult->mDeltaValuesHorizontalizedForDefaultHandler);
+    bool rv =
+        ReadParam(aReader,
+                  static_cast<mozilla::WidgetMouseEventBase*>(aResult)) &&
+        ReadParam(aReader, &aResult->mDeltaX) &&
+        ReadParam(aReader, &aResult->mDeltaY) &&
+        ReadParam(aReader, &aResult->mDeltaZ) &&
+        ReadParam(aReader, &aResult->mDeltaMode) &&
+        ReadParam(aReader, &aResult->mWheelTicksX) &&
+        ReadParam(aReader, &aResult->mWheelTicksY) &&
+        ReadParam(aReader, &aResult->mCustomizedByUserPrefs) &&
+        ReadParam(aReader, &aResult->mMayHaveMomentum) &&
+        ReadParam(aReader, &aResult->mIsMomentum) &&
+        ReadParam(aReader, &aResult->mIsNoLineOrPageDelta) &&
+        ReadParam(aReader, &aResult->mLineOrPageDeltaX) &&
+        ReadParam(aReader, &aResult->mLineOrPageDeltaY) &&
+        ReadParam(aReader, &scrollType) &&
+        ReadParam(aReader, &aResult->mOverflowDeltaX) &&
+        ReadParam(aReader, &aResult->mOverflowDeltaY) &&
+        ReadParam(aReader, &aResult->mViewPortIsOverscrolled) &&
+        ReadParam(aReader, &aResult->mCanTriggerSwipe) &&
+        ReadParam(aReader, &aResult->mAllowToOverrideSystemScrollSpeed) &&
+        ReadParam(aReader,
+                  &aResult->mDeltaValuesHorizontalizedForDefaultHandler) &&
+        ReadParam(aReader, &aResult->mCallbackId);
+
     aResult->mScrollType =
         static_cast<mozilla::WidgetWheelEvent::ScrollType>(scrollType);
     return rv;

@@ -1061,8 +1061,16 @@ function synthesizeTouchAtCenter(aTarget, aEvent = {}, aWindow = window) {
  * @param {number} aTop - Floating-point value for the Y offset in CSS pixels.
  * @param {WheelEventData} aEvent - Details of the wheel event to dispatch.
  * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
+ * @param {Function} [aCallback=null] - A callback function that is invoked when
+ *                                      the wheel event is dispatched.
  */
-function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
+function synthesizeWheelAtPoint(
+  aLeft,
+  aTop,
+  aEvent,
+  aWindow = window,
+  aCallback = null
+) {
   var utils = _getDOMWindowUtils(aWindow);
   if (!utils) {
     return;
@@ -1141,7 +1149,8 @@ function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
     modifiers,
     lineOrPageDeltaX,
     lineOrPageDeltaY,
-    options
+    options,
+    aCallback
   );
 }
 
@@ -1156,20 +1165,24 @@ function synthesizeWheelAtPoint(aLeft, aTop, aEvent, aWindow = window) {
  * @param {number} aOffsetY - Y offset in CSS pixels from the element’s top edge.
  * @param {WheelEventData} aEvent - Details of the wheel event to dispatch.
  * @param {DOMWindow} [aWindow=window] - DOM window used to dispatch the event.
+ * @param {Function} [aCallback=null] - A callback function that is invoked when
+ *                                      the wheel event is dispatched.
  */
 function synthesizeWheel(
   aTarget,
   aOffsetX,
   aOffsetY,
   aEvent,
-  aWindow = window
+  aWindow = window,
+  aCallback = null
 ) {
   var rect = aTarget.getBoundingClientRect();
   synthesizeWheelAtPoint(
     rect.left + aOffsetX,
     rect.top + aOffsetY,
     aEvent,
-    aWindow
+    aWindow,
+    aCallback
   );
 }
 

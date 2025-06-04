@@ -573,6 +573,9 @@ class BrowserParent final : public PBrowserParent,
 
   void SendMouseWheelEvent(WidgetWheelEvent& aEvent);
 
+  mozilla::ipc::IPCResult RecvSynthesizedEventResponse(
+      const uint64_t& aCallbackId);
+
   /**
    * Only when the event is synthesized, retrieving writing mode may flush
    * the layout.
