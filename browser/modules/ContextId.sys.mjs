@@ -12,7 +12,7 @@ const CONTEXT_ID_ROTATION_DAYS_PREF =
   "browser.contextual-services.contextId.rotation-in-days";
 const CONTEXT_ID_RUST_COMPONENT_ENABLED_PREF =
   "browser.contextual-services.contextId.rust-component.enabled";
-const SHUTDOWN_TOPIC = "profile-before-change";
+const TOPIC_APP_QUIT = "quit-application";
 
 const lazy = {};
 
@@ -78,7 +78,7 @@ export class _ContextId extends EventTarget {
         this.observe(subject, topic, data);
       };
 
-      Services.obs.addObserver(this.#observer, SHUTDOWN_TOPIC);
+      Services.obs.addObserver(this.#observer, TOPIC_APP_QUIT);
     }
   }
 
@@ -90,10 +90,10 @@ export class _ContextId extends EventTarget {
    * @param {string} _data
    */
   observe(_subject, topic, _data) {
-    if (topic == SHUTDOWN_TOPIC) {
+    if (topic == TOPIC_APP_QUIT) {
       // Unregister ourselves as the callback to avoid leak assertions.
       this.#comp.unsetCallback();
-      Services.obs.removeObserver(this.#observer, SHUTDOWN_TOPIC);
+      Services.obs.removeObserver(this.#observer, TOPIC_APP_QUIT);
     }
   }
 
