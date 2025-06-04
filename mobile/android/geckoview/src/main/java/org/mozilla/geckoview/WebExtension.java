@@ -1876,9 +1876,6 @@ public class WebExtension {
      */
     public final @NonNull String[] requiredOrigins;
 
-    /** Required data collection permissions for this extension. */
-    public final @NonNull String[] requiredDataCollectionPermissions;
-
     /**
      * Optional permissions for this extension.
      *
@@ -1914,12 +1911,6 @@ public class WebExtension {
      * Host permissions </a>.
      */
     public final @NonNull String[] grantedOptionalOrigins;
-
-    /** Optional data collection permissions for this extension. */
-    public final @NonNull String[] optionalDataCollectionPermissions;
-
-    /** Granted optional data collection permissions for this extension. */
-    public final @NonNull String[] grantedOptionalDataCollectionPermissions;
 
     /**
      * Branding name for this extension.
@@ -2093,13 +2084,10 @@ public class WebExtension {
       icon = null;
       requiredPermissions = null;
       requiredOrigins = null;
-      requiredDataCollectionPermissions = null;
       optionalPermissions = null;
       optionalOrigins = null;
-      optionalDataCollectionPermissions = null;
       grantedOptionalPermissions = null;
       grantedOptionalOrigins = null;
-      grantedOptionalDataCollectionPermissions = null;
       name = null;
       description = null;
       version = null;
@@ -2129,16 +2117,10 @@ public class WebExtension {
     /* package */ MetaData(final GeckoBundle bundle) {
       requiredPermissions = bundle.getStringArray("requiredPermissions");
       requiredOrigins = bundle.getStringArray("requiredOrigins");
-      requiredDataCollectionPermissions =
-          bundle.getStringArray("requiredDataCollectionPermissions");
       optionalPermissions = bundle.getStringArray("optionalPermissions");
       optionalOrigins = bundle.getStringArray("optionalOrigins");
-      optionalDataCollectionPermissions =
-          bundle.getStringArray("optionalDataCollectionPermissions");
       grantedOptionalPermissions = bundle.getStringArray("grantedOptionalPermissions");
       grantedOptionalOrigins = bundle.getStringArray("grantedOptionalOrigins");
-      grantedOptionalDataCollectionPermissions =
-          bundle.getStringArray("grantedOptionalDataCollectionPermissions");
       description = bundle.getString("description");
       version = bundle.getString("version");
       creatorName = bundle.getString("creatorName");

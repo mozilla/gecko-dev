@@ -2737,7 +2737,6 @@ package org.mozilla.geckoview {
     field @Nullable public final String downloadUrl;
     field public final boolean enabled;
     field @Nullable public final String fullDescription;
-    field @NonNull public final String[] grantedOptionalDataCollectionPermissions;
     field @NonNull public final String[] grantedOptionalOrigins;
     field @NonNull public final String[] grantedOptionalPermissions;
     field @Nullable public final String homepageUrl;
@@ -2746,11 +2745,9 @@ package org.mozilla.geckoview {
     field public final boolean isRecommended;
     field @Nullable public final String name;
     field public final boolean openOptionsPageInTab;
-    field @NonNull public final String[] optionalDataCollectionPermissions;
     field @NonNull public final String[] optionalOrigins;
     field @NonNull public final String[] optionalPermissions;
     field @Nullable public final String optionsPageUrl;
-    field @NonNull public final String[] requiredDataCollectionPermissions;
     field @NonNull public final String[] requiredOrigins;
     field @NonNull public final String[] requiredPermissions;
     field public final int reviewCount;
@@ -2888,8 +2885,7 @@ package org.mozilla.geckoview {
   }
 
   @UiThread public static interface WebExtensionController.PromptDelegate {
-    method @Deprecated @DeprecationSchedule(id="web-extension-on-install-prompt-request",version=143) @Nullable default public GeckoResult<WebExtension.PermissionPromptResponse> onInstallPromptRequest(@NonNull WebExtension, @NonNull String[], @NonNull String[]);
-    method @Nullable default public GeckoResult<WebExtension.PermissionPromptResponse> onInstallPromptRequest(@NonNull WebExtension, @NonNull String[], @NonNull String[], @NonNull String[]);
+    method @Nullable default public GeckoResult<WebExtension.PermissionPromptResponse> onInstallPromptRequest(@NonNull WebExtension, @NonNull String[], @NonNull String[]);
     method @Nullable default public GeckoResult<AllowOrDeny> onOptionalPrompt(@NonNull WebExtension, @NonNull String[], @NonNull String[]);
     method @Nullable default public GeckoResult<AllowOrDeny> onUpdatePrompt(@NonNull WebExtension, @NonNull WebExtension, @NonNull String[], @NonNull String[]);
   }
