@@ -278,7 +278,7 @@ void MacroAssembler::PushFrameDescriptorForJitCall(FrameType type,
 void MacroAssembler::pushFrameDescriptorForJitCall(FrameType type,
                                                    Register argc,
                                                    Register scratch) {
-  lshift32(Imm32(NUMACTUALARGS_SHIFT), argc, scratch);
+  lshift32(Imm32(FrameDescriptor::NumActualArgsShift), argc, scratch);
   or32(Imm32(int32_t(type)), scratch);
   push(scratch);
 }
@@ -292,7 +292,7 @@ void MacroAssembler::PushFrameDescriptorForJitCall(FrameType type,
 
 void MacroAssembler::loadNumActualArgs(Register framePtr, Register dest) {
   loadPtr(Address(framePtr, JitFrameLayout::offsetOfDescriptor()), dest);
-  rshift32(Imm32(NUMACTUALARGS_SHIFT), dest);
+  rshift32(Imm32(FrameDescriptor::NumActualArgsShift), dest);
 }
 
 void MacroAssembler::PushCalleeToken(Register callee, bool constructing) {
