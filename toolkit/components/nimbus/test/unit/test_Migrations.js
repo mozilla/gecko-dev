@@ -929,10 +929,9 @@ add_task(async function test_migration_firefoxLabsEnrollments_idempotent() {
   }
 });
 
-const IMPORT_TO_SQL_MIGRATION =
-  NimbusMigrations.MIGRATIONS[
-    NimbusMigrations.Phase.AFTER_STORE_INITIALIZED
-  ][0];
+const IMPORT_TO_SQL_MIGRATION = NimbusMigrations.MIGRATIONS[
+  NimbusMigrations.Phase.AFTER_STORE_INITIALIZED
+].find(m => m.name === "import-enrollments-to-sql");
 
 add_task(async function testMigrateEnrollmentsToSql() {
   const PREFFLIPS_EXPERIMENT_VALUE = {
