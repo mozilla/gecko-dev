@@ -873,7 +873,6 @@
     <ID>UndocumentedPublicFunction:SearchDialogController.kt$SearchDialogController$@VisibleForTesting(otherwise = VisibleForTesting.PRIVATE) fun buildDialog(): AlertDialog.Builder</ID>
     <ID>UndocumentedPublicFunction:SearchDialogInteractor.kt$SearchDialogInteractor$fun onCameraPermissionsNeeded()</ID>
     <ID>UndocumentedPublicFunction:SearchStringValidator.kt$SearchStringValidator$fun isSearchStringValid(client: Client, searchString: String): Result</ID>
-    <ID>UndocumentedPublicFunction:SearchWidgetProvider.kt$SearchWidgetProvider.Companion$fun updateAllWidgets(context: Context)</ID>
     <ID>UndocumentedPublicFunction:SelectBookmarkFolderAdapter.kt$SelectBookmarkFolderAdapter$fun updateData(tree: BookmarkNode?, hideFolderGuid: String?)</ID>
     <ID>UndocumentedPublicFunction:SelectBookmarkFolderAdapter.kt$SelectBookmarkFolderAdapter.BookmarkFolderViewHolder$fun bind(folder: BookmarkNodeWithDepth, selected: Boolean, onSelect: (BookmarkNode) -&gt; Unit)</ID>
     <ID>UndocumentedPublicFunction:SessionControlAdapter.kt$AdapterItem$open fun contentsSameAs(other: AdapterItem)</ID>

@@ -199,9 +199,17 @@ class SearchWidgetProvider : AppWidgetProvider() {
         private const val REQUEST_CODE_NEW_TAB = 0
         private const val REQUEST_CODE_VOICE = 1
 
-        fun updateAllWidgets(context: Context) {
-            val widgetManager = AppWidgetManager.getInstance(context)
-            val widgetIds = widgetManager.getAppWidgetIds(ComponentName(context, SearchWidgetProvider::class.java))
+        /**
+         * Updates all instances of the search widget.
+         *
+         * This function is used to refresh the widget when its appearance or behavior
+         * needs to be changed, for example, when the voice search setting is toggled.
+         *
+         * @param context The application context.
+         * @param appWidgetManager An instance of [AppWidgetManager].
+         */
+        fun updateAllWidgets(context: Context, appWidgetManager: AppWidgetManager) {
+            val widgetIds = appWidgetManager.getAppWidgetIds(ComponentName(context, SearchWidgetProvider::class.java))
 
             if (widgetIds.isNotEmpty()) {
                 context.sendBroadcast(

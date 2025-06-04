@@ -12,9 +12,7 @@ import io.mockk.Runs
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
-import io.mockk.mockkStatic
 import io.mockk.slot
-import io.mockk.unmockkStatic
 import io.mockk.verify
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -143,48 +141,42 @@ class SearchWidgetProviderTest {
 
     @Test
     fun `GIVEN widgets set on screen shown WHEN updateAllWidgets is called THEN it sends a broadcast to update all widgets`() {
-        try {
-            mockkStatic(AppWidgetManager::class)
-            val widgetManager: AppWidgetManager = mockk()
-            every { AppWidgetManager.getInstance(any()) } returns widgetManager
-            val componentNameCaptor = slot<ComponentName>()
-            val widgetsToUpdate = intArrayOf(1, 2)
-            every { widgetManager.getAppWidgetIds(capture(componentNameCaptor)) } returns widgetsToUpdate
-            val context: Context = mockk(relaxed = true)
-            val intentCaptor = slot<Intent>()
-            every { context.sendBroadcast(capture(intentCaptor)) } just Runs
+        val widgetManager: AppWidgetManager = mockk()
+        val componentNameCaptor = slot<ComponentName>()
+        val widgetsToUpdate = intArrayOf(1, 2)
+        every { widgetManager.getAppWidgetIds(capture(componentNameCaptor)) } returns widgetsToUpdate
+        val context: Context = mockk(relaxed = true)
+        val intentCaptor = slot<Intent>()
+        every { context.sendBroadcast(capture(intentCaptor)) } just Runs
 
-            SearchWidgetProvider.updateAllWidgets(context)
+        SearchWidgetProvider.updateAllWidgets(context, widgetManager)
 
-            verify { context.sendBroadcast(any()) }
-            assertEquals(SearchWidgetProvider::class.java.name, componentNameCaptor.captured.className)
-            assertEquals(SearchWidgetProvider::class.java.name, intentCaptor.captured.component!!.className)
-            assertEquals(AppWidgetManager.ACTION_APPWIDGET_UPDATE, intentCaptor.captured.action)
-            @Suppress("DEPRECATION")
-            assertEquals(widgetsToUpdate, intentCaptor.captured.extras!!.get(AppWidgetManager.EXTRA_APPWIDGET_IDS))
-        } finally {
-            unmockkStatic(AppWidgetManager::class)
-        }
+        verify { context.sendBroadcast(any()) }
+        assertEquals(SearchWidgetProvider::class.java.name, componentNameCaptor.captured.className)
+        assertEquals(
+            SearchWidgetProvider::class.java.name,
+            intentCaptor.captured.component!!.className,
+        )
+        assertEquals(AppWidgetManager.ACTION_APPWIDGET_UPDATE, intentCaptor.captured.action)
+        @Suppress("DEPRECATION")
+        assertEquals(
+            widgetsToUpdate,
+            intentCaptor.captured.extras!!.get(AppWidgetManager.EXTRA_APPWIDGET_IDS),
+        )
     }
 
     @Test
     fun `GIVEN no widgets set shown WHEN updateAllWidgets is called THEN it does not try to update widgets`() {
-        try {
-            mockkStatic(AppWidgetManager::class)
-            val widgetManager: AppWidgetManager = mockk()
-            every { AppWidgetManager.getInstance(any()) } returns widgetManager
-            val componentNameCaptor = slot<ComponentName>()
-            val widgetsToUpdate = intArrayOf()
-            every { widgetManager.getAppWidgetIds(capture(componentNameCaptor)) } returns widgetsToUpdate
-            val context: Context = mockk(relaxed = true)
-            val intentCaptor = slot<Intent>()
-            every { context.sendBroadcast(capture(intentCaptor)) } just Runs
+        val widgetManager: AppWidgetManager = mockk()
+        val componentNameCaptor = slot<ComponentName>()
+        val widgetsToUpdate = intArrayOf()
+        every { widgetManager.getAppWidgetIds(capture(componentNameCaptor)) } returns widgetsToUpdate
+        val context: Context = mockk(relaxed = true)
+        val intentCaptor = slot<Intent>()
+        every { context.sendBroadcast(capture(intentCaptor)) } just Runs
 
-            SearchWidgetProvider.updateAllWidgets(context)
+        SearchWidgetProvider.updateAllWidgets(context, widgetManager)
 
-            verify(exactly = 0) { context.sendBroadcast(any()) }
-        } finally {
-            unmockkStatic(AppWidgetManager::class)
-        }
+        verify(exactly = 0) { context.sendBroadcast(any()) }
     }
 }

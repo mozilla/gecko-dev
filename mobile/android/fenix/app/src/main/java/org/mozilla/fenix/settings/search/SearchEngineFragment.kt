@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings.search
 
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.os.Bundle
 import androidx.annotation.VisibleForTesting
@@ -185,7 +186,8 @@ class SearchEngineFragment : PreferenceFragmentCompat() {
      */
     @VisibleForTesting
     internal fun updateAllWidgets(context: Context) {
-        SearchWidgetProvider.updateAllWidgets(context)
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        SearchWidgetProvider.updateAllWidgets(context, appWidgetManager)
     }
 
     /**
