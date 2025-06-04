@@ -1465,17 +1465,6 @@ IPCResult WindowGlobalParent::RecvGetIdentityCredential(
   return IPC_OK();
 }
 
-IPCResult WindowGlobalParent::RecvStoreIdentityCredential(
-    const IPCIdentityCredential& aCredential,
-    const StoreIdentityCredentialResolver& aResolver) {
-  IdentityCredential::StoreInMainProcess(DocumentPrincipal(), aCredential)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aResolver](const bool& aResult) { aResolver(NS_OK); },
-          [aResolver](nsresult aErr) { aResolver(aErr); });
-  return IPC_OK();
-}
-
 IPCResult WindowGlobalParent::RecvDisconnectIdentityCredential(
     const IdentityCredentialDisconnectOptions& aOptions,
     const DisconnectIdentityCredentialResolver& aResolver) {

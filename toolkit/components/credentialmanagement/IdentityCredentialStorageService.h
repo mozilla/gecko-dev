@@ -87,8 +87,6 @@ class IdentityCredentialStorageService final
   // Grab all data from the disk database and insert it into the memory
   // database/ This is used at start up
   nsresult LoadMemoryTableFromDisk();
-  nsresult LoadLightweightMemoryTableFromDisk();
-  nsresult LoadHeavyweightMemoryTableFromDisk();
 
   // Used to (thread-safely) track how many operations have been launched to the
   // worker thread so that we can wait for it to hit zero before close the disk
@@ -121,14 +119,6 @@ class IdentityCredentialStorageService final
                                  nsIPrincipal* aIDPPrincipal);
 
   static nsresult ClearData(mozIStorageConnection* aDatabaseConnection);
-
-  static nsresult UpsertLightweightData(
-      mozIStorageConnection* aDatabaseConnection,
-      const dom::IPCIdentityCredential& aData);
-
-  static nsresult DeleteLightweightData(
-      mozIStorageConnection* aDatabaseConnection,
-      const dom::IPCIdentityCredential& aData);
 
   static nsresult DeleteDataFromOriginAttributesPattern(
       mozIStorageConnection* aDatabaseConnection,
