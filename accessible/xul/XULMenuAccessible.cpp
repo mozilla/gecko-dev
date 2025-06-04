@@ -47,11 +47,9 @@ uint64_t XULMenuitemAccessible::NativeState() const {
 
   // Has Popup?
   if (mContent->NodeInfo()->Equals(nsGkAtoms::menu, kNameSpaceID_XUL)) {
-    state |= states::HASPOPUP;
+    state |= states::HASPOPUP | states::EXPANDABLE;
     if (mContent->AsElement()->HasAttr(nsGkAtoms::open)) {
       state |= states::EXPANDED;
-    } else {
-      state |= states::COLLAPSED;
     }
   }
 
@@ -354,9 +352,13 @@ uint64_t XULMenupopupAccessible::NativeState() const {
                "XULMenupopup doesn't have INVISIBLE when it's inactive");
 #endif
 
-  if (state & states::INVISIBLE) state |= states::OFFSCREEN | states::COLLAPSED;
+  if (state & states::INVISIBLE) {
+    state |= states::OFFSCREEN;
+  } else {
+    state |= states::EXPANDED;
+  }
 
-  return state;
+  return state | states::EXPANDABLE;
 }
 
 ENameValueFlag XULMenupopupAccessible::NativeName(nsString& aName) const {
