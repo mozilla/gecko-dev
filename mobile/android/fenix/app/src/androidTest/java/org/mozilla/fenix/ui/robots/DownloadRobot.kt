@@ -11,6 +11,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
@@ -170,6 +171,17 @@ class DownloadRobot {
     }
 
     @OptIn(ExperimentalTestApi::class)
+    fun verifyDownloadFileIsNotDisplayed(testRule: HomeActivityComposeTestRule, fileName: String) {
+        Log.i(TAG, "verifyDownloadFileIsNotDisplayed: Trying to verify that the downloaded file: $fileName is not displayed")
+        testRule.waitUntilDoesNotExist(
+            hasTestTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM}.$fileName"),
+        )
+        testRule.onNodeWithTag("${DownloadsListTestTag.DOWNLOADS_LIST_ITEM}.$fileName")
+            .assertIsNotDisplayed()
+        Log.i(TAG, "verifyDownloadFileIsNotDisplayed: Trying to verify that the downloaded file: $fileName is not displayed")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
     fun verifyEmptyDownloadsList(testRule: HomeActivityComposeTestRule) {
         Log.i(TAG, "verifyEmptyDownloadsList: Waiting for $waitingTime until the \"No downloads yet\" list message exists")
         testRule.waitUntilAtLeastOneExists(hasText(testRule.activity.getString(R.string.download_empty_message_2)), waitingTime)
@@ -216,6 +228,14 @@ class DownloadRobot {
                 longClick()
             }
         Log.i(TAG, "longClickDownloadedItem: Long clicked downloaded file: $title")
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    fun clickDownloadsFilter(filter: String, composeTestRule: ComposeTestRule) {
+        composeTestRule.waitUntilExactlyOneExists((hasText(filter)))
+        Log.i(TAG, "clickImagesFilter: Trying to click the \"Images\" downloads filter")
+        composeTestRule.onNodeWithText(filter).performClick()
+        Log.i(TAG, "clickImagesFilter: Clicked the \"Images\" download downloads filter")
     }
 
     class Transition {
@@ -288,6 +308,16 @@ class DownloadRobot {
 
             HomeScreenRobot().interact()
             return HomeScreenRobot.Transition()
+        }
+
+        fun shareDownloadedItem(testRule: HomeActivityComposeTestRule, fileName: String, interact: ShareOverlayRobot.() -> Unit): ShareOverlayRobot.Transition {
+            Log.i(TAG, "shareDownloadedItem: Trying to click the Share file menu item to share downloaded file: $fileName")
+            testRule.onNodeWithText(testRule.activity.getString(R.string.download_share_file))
+                .performClick()
+            Log.i(TAG, "shareDownloadedItem: Clicked the Share file menu item to share downloaded file: $fileName")
+
+            ShareOverlayRobot().interact()
+            return ShareOverlayRobot.Transition()
         }
     }
 }

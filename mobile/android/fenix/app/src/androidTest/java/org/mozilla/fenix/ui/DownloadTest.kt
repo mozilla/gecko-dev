@@ -25,6 +25,7 @@ import org.mozilla.fenix.helpers.TestAssetHelper
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
 import org.mozilla.fenix.helpers.TestHelper.clickSnackbarButton
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.verifySnackBarText
 import org.mozilla.fenix.helpers.TestSetup
 import org.mozilla.fenix.helpers.perf.DetectMemoryLeaksRule
 import org.mozilla.fenix.ui.robots.browserScreen
@@ -391,6 +392,48 @@ class DownloadTest : TestSetup() {
         }.openNotificationShade {
             expandNotificationMessage("3GB.zip")
             clickDownloadNotificationControlButton("CANCEL")
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2981843
+    @Test
+    fun verifyTheDownloadFiltersTest() {
+        val firstDownloadedFile = "smallZip.zip"
+        val secondDownloadedFile = "web_icon.png"
+
+        downloadRobot {
+            openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = firstDownloadedFile)
+            verifySnackBarText("Download completed")
+        }
+        browserScreen {
+        }.clickDownloadLink(secondDownloadedFile) {
+        }.clickDownload {
+            verifySnackBarText("Download completed")
+        }
+        browserScreen {
+        }.openThreeDotMenu {
+        }.openDownloadsManager {
+            clickDownloadsFilter("Images", composeTestRule = activityTestRule)
+            verifyDownloadedFileExistsInDownloadsList(activityTestRule, secondDownloadedFile)
+            verifyDownloadFileIsNotDisplayed(activityTestRule, firstDownloadedFile)
+        }
+    }
+
+    // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2987000
+    @Test
+    fun shareDownloadedFileTest() {
+        downloadRobot {
+            openPageAndDownloadFile(url = downloadTestPage.toUri(), downloadFile = "web_icon.png")
+            verifySnackBarText("Download completed")
+        }
+        browserScreen {
+        }.openThreeDotMenu {
+        }.openDownloadsManager {
+            verifyDownloadedFileExistsInDownloadsList(activityTestRule, "web_icon.png")
+            clickDownloadItemMenuIcon(activityTestRule, "web_icon.png")
+        }.shareDownloadedItem(activityTestRule, "web_icon.png") {
+            verifyAndroidShareLayout()
+            verifySharingWithSelectedApp(appName = "Gmail", "", "")
         }
     }
 }
