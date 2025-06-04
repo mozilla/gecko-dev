@@ -1859,10 +1859,6 @@ bool BytecodeEmitter::emitCallIncDec(UnaryNode* incDec) {
     //              [stack] CALLRESULT
     return false;
   }
-  if (!emit1(JSOp::ToNumeric)) {
-    //              [stack] N
-    return false;
-  }
 
   // The increment/decrement has no side effects, so proceed to throw for
   // invalid assignment target.
