@@ -163,6 +163,87 @@ export const NimbusTestUtils = {
 
       await NimbusTestUtils.cleanupEnrollmentDatabase();
     },
+
+    /**
+     * Assert that an enrollment exists in the NimbusEnrollments table.
+     *
+     * @param {string} slug The slug to check for.
+     *
+     * @param {object} options
+     *
+     * @param {boolean | undefined} options.active If provided, this function
+     * will assert that the enrollment is active (if true) or inactive (if
+     * false).
+     *
+     * @param {string} options.profileId The profile ID to query with. Defaults
+     * to the current profile ID.
+     */
+    async enrollmentExists(
+      slug,
+      { active: expectedActive, profileId = ExperimentAPI.profileId } = {}
+    ) {
+      const conn = await lazy.ProfilesDatastoreService.getConnection();
+
+      const result = await conn.execute(
+        `
+        SELECT
+          active,
+          unenrollReason
+          FROM NimbusEnrollments
+        WHERE
+          slug = :slug AND
+          profileId = :profileId;
+        `,
+        { slug, profileId }
+      );
+
+      NimbusTestUtils.Assert.ok(
+        result.length === 1,
+        `Enrollment for ${slug} in profile ${profileId} exists`
+      );
+
+      if (typeof expectedActive === "boolean") {
+        const active = result[0].getResultByName("active");
+        const unenrollReason = result[0].getResultByName("unenrollReason");
+
+        NimbusTestUtils.Assert.equal(
+          expectedActive,
+          active,
+          `Enrollment for ${slug} is ${expectedActive} -- unenrollReason = ${unenrollReason}`
+        );
+      }
+    },
+
+    /**
+     * Assert that an enrollment does not exist in the NimbusEnrollments table.
+     *
+     * @param {string} slug The slug to check for.
+     * @param {object} options
+     * @param {string} options.profileId The profielID to query with. Defaults
+     * to the current profile ID.
+     */
+    async enrollmentDoesNotExist(
+      slug,
+      { profileId = ExperimentAPI.profileId } = {}
+    ) {
+      const conn = await lazy.ProfilesDatastoreService.getConnection();
+
+      const result = await conn.execute(
+        `
+          SELECT 1
+          FROM NimbusEnrollments
+          WHERE
+            slug = :slug AND
+            profileId = :profileId;
+        `,
+        { slug, profileId }
+      );
+
+      NimbusTestUtils.Assert.ok(
+        result.length === 0,
+        `Enrollment for ${slug} in profile ${profileId} does not exist`
+      );
+    },
   },
 
   factories: {
@@ -814,7 +895,7 @@ export const NimbusTestUtils = {
    * Wait for the given slugs to be the only active enrollments in the
    * NimbusEnrollments table.
    *
-   * @param {string[]} expectedSlugs The slugs of the only active enrollmetns we
+   * @param {string[]} expectedSlugs The slugs of the only active enrollments we
    * expect.
    */
   async waitForActiveEnrollments(expectedSlugs) {
