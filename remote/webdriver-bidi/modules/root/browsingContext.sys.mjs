@@ -1996,6 +1996,7 @@ class BrowsingContextModule extends RootBiDiModule {
     if (this.#subscribedEvents.has("browsingContext.historyUpdated")) {
       const browsingContextInfo = {
         context: navigableId,
+        timestamp: Date.now(),
         url,
       };
       this.#emitContextEventForBrowsingContext(
