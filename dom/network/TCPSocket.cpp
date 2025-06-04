@@ -470,8 +470,10 @@ void TCPSocket::ActivateTLS() {
     return;
   }
 
-  auto CallActivateTLS = [sock = RefPtr{this}]() mutable {
-    sock->ActivateTLSHelper();
+  // Since we use mozilla::SyncRunnable::DispatchToThread, it is unnecessary to
+  // AddRef/Release TCPSocket in CallActivateTLS.
+  auto CallActivateTLS = [&self = *this]() mutable {
+    self.ActivateTLSHelper();
   };
   mozilla::SyncRunnable::DispatchToThread(
       socketThread,
