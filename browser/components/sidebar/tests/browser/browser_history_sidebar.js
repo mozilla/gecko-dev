@@ -894,3 +894,53 @@ add_task(async function test_history_empty_state() {
   );
   SidebarController.hide();
 });
+
+add_task(async function test_sort_by_site_headings() {
+  const { component, contentWindow } = await showHistorySidebar();
+  const {
+    _menu: menu,
+    menuButton,
+    _menuSortBySite: sortBySiteButton,
+  } = component;
+
+  await PlacesUtils.history.insertMany([
+    {
+      url: "file:///example.html",
+      title: "Example Local File",
+      visits: [{ date: today }],
+    },
+    {
+      url: "https://www.example.com/",
+      title: "Example Website",
+      visits: [{ date: today }],
+    },
+  ]);
+
+  info("Sort history by site.");
+  let promiseMenuShown = BrowserTestUtils.waitForEvent(menu, "popupshown");
+  EventUtils.synthesizeMouseAtCenter(menuButton, {}, contentWindow);
+  await promiseMenuShown;
+  menu.activateItem(sortBySiteButton);
+  await BrowserTestUtils.waitForMutationCondition(
+    component.shadowRoot,
+    { childList: true, subtree: true },
+    () => component.cards.length === 2
+  );
+
+  const [fileCard, websiteCard] = component.cards;
+  Assert.deepEqual(
+    document.l10n.getAttributes(fileCard),
+    {
+      args: null,
+      id: "sidebar-history-site-localhost",
+    },
+    "Correct heading shown for local files."
+  );
+  Assert.equal(
+    websiteCard.heading,
+    "example.com",
+    "Correct heading shown for websites."
+  );
+
+  SidebarController.hide();
+});

@@ -9,6 +9,7 @@ import {
   html,
   ifDefined,
   when,
+  nothing,
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { navigateToLink } from "chrome://browser/content/firefoxview/helpers.mjs";
 
@@ -366,6 +367,8 @@ export class SidebarHistory extends SidebarPage {
       heading=${domain}
       @keydown=${this.handleCardKeydown}
       tabindex=${ifDefined(tabIndex)}
+      data-l10n-id=${domain ? nothing : "sidebar-history-site-localhost"}
+      data-l10n-attrs=${domain ? nothing : "heading"}
     >
       ${this.#tabListTemplate(this.getTabItems(items))}
     </moz-card>`;
