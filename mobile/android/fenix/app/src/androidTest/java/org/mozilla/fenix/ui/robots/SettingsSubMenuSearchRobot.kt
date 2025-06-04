@@ -43,6 +43,7 @@ import org.hamcrest.Matchers.endsWith
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.mozilla.fenix.R
+import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.DataGenerationHelper.getAvailableSearchEngines
 import org.mozilla.fenix.helpers.DataGenerationHelper.getRegionSearchEnginesList
@@ -265,12 +266,28 @@ class SettingsSubMenuSearchRobot {
     }
 
     fun changeDefaultSearchEngine(searchEngineName: String) {
-        Log.i(TAG, "changeDefaultSearchEngine: Trying to verify that the $searchEngineName option is visible")
-        onView(withText(searchEngineName)).check(matches(withEffectiveVisibility(ViewMatchers.Visibility.VISIBLE)))
-        Log.i(TAG, "changeDefaultSearchEngine: Verified that the $searchEngineName option is visible")
-        Log.i(TAG, "changeDefaultSearchEngine: Trying to click the $searchEngineName option")
-        onView(withText(searchEngineName)).perform(click())
-        Log.i(TAG, "changeDefaultSearchEngine: Clicked the $searchEngineName option")
+        for (i in 1..RETRY_COUNT) {
+            Log.i(TAG, "changeDefaultSearchEngine: Started try #$i")
+            try {
+                assertUIObjectExists(itemWithResIdAndText("$packageName:id/engine_text", searchEngineName))
+                Log.i(TAG, "changeDefaultSearchEngine: Trying to click the $searchEngineName option")
+                itemWithResIdAndText("$packageName:id/engine_text", searchEngineName).click()
+                Log.i(TAG, "changeDefaultSearchEngine: Clicked the $searchEngineName option")
+                verifyDefaultSearchEngineSelected(searchEngineName)
+
+                break
+            } catch (e: Exception) {
+                if (i == RETRY_COUNT) {
+                    throw e
+                } else {
+                    Log.i(TAG, "changeDefaultSearchEngine: Exception caught, executing fallback methods")
+                    settingsSubMenuSearch {
+                    }.goBackToSearchSettings {
+                        openDefaultSearchEngineMenu()
+                    }
+                }
+            }
+        }
     }
 
     fun selectSearchShortcut(shortcut: EngineShortcut) {
@@ -486,6 +503,18 @@ class SettingsSubMenuSearchRobot {
             return SettingsRobot.Transition()
         }
 
+        fun goBackToSearchSettings(interact: SettingsSubMenuSearchRobot.() -> Unit): SettingsSubMenuSearchRobot.Transition {
+            Log.i(TAG, "goBackToSearchSettings: Waiting for device to be idle")
+            mDevice.waitForIdle()
+            Log.i(TAG, "goBackToSearchSettings: Waited for device to be idle")
+            Log.i(TAG, "goBackToSearchSettings: Trying to click the navigate up button")
+            goBackButton().perform(click())
+            Log.i(TAG, "goBackToSearchSettings: Clicked the navigate up button")
+
+            SettingsSubMenuSearchRobot().interact()
+            return SettingsSubMenuSearchRobot.Transition()
+        }
+
         fun clickCustomSearchStringLearnMoreLink(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             Log.i(TAG, "clickCustomSearchStringLearnMoreLink: Trying to click the \"Search string URL\" learn more link")
             onView(withId(R.id.custom_search_engines_learn_more)).click()
@@ -504,6 +533,11 @@ class SettingsSubMenuSearchRobot {
             return BrowserRobot.Transition()
         }
     }
+}
+
+fun settingsSubMenuSearch(interact: SettingsSubMenuSearchRobot.() -> Unit): SettingsSubMenuSearchRobot.Transition {
+    SettingsSubMenuSearchRobot().interact()
+    return SettingsSubMenuSearchRobot.Transition()
 }
 
 /**
