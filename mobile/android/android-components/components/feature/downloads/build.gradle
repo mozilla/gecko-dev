@@ -87,7 +87,7 @@ dependencies {
     androidTestImplementation libs.androidx.test.rules
     androidTestImplementation libs.testing.coroutines
 
-    testFixturesImplementation libs.kotlinx.coroutines.core
+    testFixturesImplementation libs.kotlin.coroutines.core
 
 }
 
