@@ -15,10 +15,10 @@ include protocol PBrowser;
 include protocol PInProcess;
 include protocol PBrowserBridge;
 include protocol PWebAuthnTransaction;
-include protocol PWebIdentity;
 
 include DOMTypes;
 include ClientIPCTypes;
+include IPCIdentityCredential;
 include NeckoChannelParams;
 include SessionStoreTypes;
 
@@ -37,7 +37,9 @@ using mozilla::dom::MaybeDiscardedWindowContext from "mozilla/dom/WindowContext.
 [RefCounted] using mozilla::dom::SessionStoreRestoreData from "mozilla/dom/SessionStoreRestoreData.h";
 using mozilla::dom::CredentialMediationRequirement from "mozilla/dom/CredentialManagementBinding.h";
 using mozilla::dom::IdentityCredentialDisconnectOptions from "mozilla/dom/IdentityCredentialBinding.h";
+using mozilla::dom::IdentityCredentialInit from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::IdentityCredentialRequestOptions from "mozilla/dom/IdentityCredentialBinding.h";
+using mozilla::dom::IdentityLoginTargetType from "mozilla/dom/IdentityCredentialBinding.h";
 using mozilla::dom::LoginStatus from "mozilla/dom/LoginStatusBinding.h";
 
 namespace mozilla {
@@ -67,7 +69,6 @@ async protocol PWindowGlobal
 {
   manager PBrowser or PInProcess;
   manages PWebAuthnTransaction;
-  manages PWebIdentity;
 
 child:
   async __delete__();
@@ -96,6 +97,8 @@ child:
     returns (bool success);
 
   async RestoreTabContent(nullable SessionStoreRestoreData aData) returns (bool success);
+
+  async NavigateForIdentityCredentialDiscovery(nsCString aUri, IdentityLoginTargetType aType);
 
 both:
   async RawMessage(JSActorMessageMeta aMetadata, ClonedMessageData? aData,
@@ -204,6 +207,23 @@ parent:
 
   async ReloadWithHttpsOnlyException();
 
+  // Used by the Credential Manager API and FedCM to keep the discovery of
+  // a credential abstracted from the content process. This is required because
+  // credentialed requests that are specifically not partitioned are made and
+  // the results must not enter the child process until the user consents via
+  // purpose built UI.
+  async GetIdentityCredential(IdentityCredentialRequestOptions aOptions,
+                              CredentialMediationRequirement aMediationRequirement,
+                              bool aHasUserActivation)
+    returns (IPCIdentityCredential? identityCredential, nsresult rv);
+  async StoreIdentityCredential(IPCIdentityCredential aCredential)
+      returns (nsresult rv);
+  async DisconnectIdentityCredential(IdentityCredentialDisconnectOptions aOptions) returns (nsresult rv);
+  async PreventSilentAccess() returns (nsresult rv);
+
+  // Indicate that the page has reported itself as logged in
+  async SetLoginStatus(LoginStatus foo) returns (nsresult rv);
+
   async GetStorageAccessPermission(bool aIncludeIdentityCredential) returns(uint32_t permission_action);
 
 
@@ -222,7 +242,6 @@ parent:
   async RecordUserActivationForBTP();
 
   async PWebAuthnTransaction();
-  async PWebIdentity();
 
 child:
   async NotifyPermissionChange(nsCString type, uint32_t permission);

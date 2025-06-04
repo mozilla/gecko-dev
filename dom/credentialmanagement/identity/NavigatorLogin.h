@@ -22,8 +22,8 @@ class NavigatorLogin : public nsWrapperCache {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(NavigatorLogin)
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(NavigatorLogin)
 
-  explicit NavigatorLogin(nsPIDOMWindowInner* aGlobal);
-  nsPIDOMWindowInner* GetParentObject() const { return mOwner; }
+  explicit NavigatorLogin(nsIGlobalObject* aGlobal);
+  nsIGlobalObject* GetParentObject() const { return mOwner; }
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
@@ -41,7 +41,7 @@ class NavigatorLogin : public nsWrapperCache {
   virtual ~NavigatorLogin();
 
  private:
-  nsCOMPtr<nsPIDOMWindowInner> mOwner;
+  nsCOMPtr<nsIGlobalObject> mOwner;
 };
 
 }  // namespace mozilla::dom
