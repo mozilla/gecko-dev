@@ -1024,6 +1024,13 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
     return false;
   }
 
+  // We can speculatively inline scripts while they're in blinterp,
+  // but by the time we actually Ion-compile the outer script, the
+  // callee should have at least reached baseline.
+  if (!targetFunction->nonLazyScript()->hasBaselineScript()) {
+    return false;
+  }
+
   bool isTrialInlined =
       fallbackStub->trialInliningState() == TrialInliningState::Inlined;
   MOZ_ASSERT_IF(!isTrialInlined, fallbackStub->trialInliningState() ==
