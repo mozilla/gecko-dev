@@ -13,16 +13,22 @@ EXPORTS.mozilla.dom += [
     "IdentityCredentialSerializationHelpers.h",
     "IdentityNetworkHelpers.h",
     "NavigatorLogin.h",
+    "WebIdentityChild.h",
+    "WebIdentityHandler.h",
+    "WebIdentityParent.h",
 ]
 
 IPDL_SOURCES += [
-    "IPCIdentityCredential.ipdlh",
+    "PWebIdentity.ipdl",
 ]
 
 UNIFIED_SOURCES += [
     "IdentityCredential.cpp",
     "IdentityNetworkHelpers.cpp",
     "NavigatorLogin.cpp",
+    "WebIdentityChild.cpp",
+    "WebIdentityHandler.cpp",
+    "WebIdentityParent.cpp",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")

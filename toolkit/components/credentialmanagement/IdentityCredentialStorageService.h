@@ -14,7 +14,6 @@
 #include "mozilla/OriginAttributes.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageFunction.h"
-#include "mozilla/dom/IPCIdentityCredential.h"
 #include "nsIAsyncShutdown.h"
 #include "nsIFile.h"
 #include "nsIIdentityCredentialStorageService.h"

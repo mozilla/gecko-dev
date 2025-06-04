@@ -514,7 +514,6 @@ nsresult IdentityCredentialStorageService::DisconnectData(
   return NS_OK;
 }
 
-
 // static
 nsresult IdentityCredentialStorageService::ClearData(
     mozIStorageConnection* aDatabaseConnection) {
