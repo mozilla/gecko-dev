@@ -879,8 +879,6 @@ void LogModule::SetCaptureStacks(bool aCaptureStacks) {
   sLogModuleManager->SetCaptureStacks(aCaptureStacks);
 }
 
-void LogModule::DisableModules() { sLogModuleManager->DisableModules(); }
-
 // This function is defined in gecko_logger/src/lib.rs
 // We mirror the level in rust code so we don't get forwarded all of the
 // rust logging and have to create an LogModule for each rust component.

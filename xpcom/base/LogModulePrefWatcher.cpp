@@ -10,7 +10,6 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "nsIObserverService.h"
-#include "NSPRLogModulesParser.h"
 #include "nsString.h"
 #include "nsXULAppAPI.h"
 #include "prenv.h"
@@ -25,7 +24,6 @@ static const char kLoggingPrefLogFile[] = "logging.config.LOG_FILE";
 static const char kLoggingPrefAddTimestamp[] = "logging.config.add_timestamp";
 static const char kLoggingPrefSync[] = "logging.config.sync";
 static const char kLoggingPrefStacks[] = "logging.config.profilerstacks";
-static const char kLoggingPrefLogModules[] = "logging.config.modules";
 
 namespace mozilla {
 
@@ -88,33 +86,6 @@ static void LoadPrefValue(const char* aName) {
     } else if (prefName.EqualsLiteral(kLoggingPrefStacks)) {
       bool captureStacks = Preferences::GetBool(aName, false);
       LogModule::SetCaptureStacks(captureStacks);
-    } else if (prefName.EqualsLiteral(kLoggingPrefLogModules)) {
-      // The content of the preference will be parsed as a MOZ_LOG string, then
-      // the corresponding log modules (if any) will be enabled, others will be
-      // disabled.
-      LogModule::DisableModules();
-      LogModule::SetCaptureStacks(false);
-
-      const char* modulesFromEnv = PR_GetEnv("MOZ_LOG");
-      const bool hasModulesEnv = modulesFromEnv && modulesFromEnv[0];
-
-      rv = Preferences::GetCString(aName, prefValue);
-      const bool hasModulesPref = NS_SUCCEEDED(rv) && !prefValue.IsEmpty();
-
-      if (hasModulesEnv || hasModulesPref) {
-        NSPRLogModulesParser(
-            hasModulesPref ? prefValue.BeginReading() : modulesFromEnv,
-            [](const char* aName, LogLevel aLevel, int32_t aValue) mutable {
-              // Only the special string "profilerstacks" is taken into account,
-              // because we're especially interested in usage with the Firefox
-              // Profiler.
-              if (strcmp(aName, "profilerstacks") == 0) {
-                LogModule::SetCaptureStacks(true);
-              } else {
-                LogModule::Get(aName)->SetLevel(aLevel);
-              }
-            });
-      }
     }
   }
 
