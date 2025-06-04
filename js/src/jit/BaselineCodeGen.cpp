@@ -819,7 +819,7 @@ void BaselineCompilerCodeGen::storeFrameSizeAndPushDescriptor(
   masm.store32(Imm32(frame.frameSize()), frame.addressOfDebugFrameSize());
 #endif
 
-  masm.pushFrameDescriptor(FrameType::BaselineJS);
+  masm.push(FrameDescriptor(FrameType::BaselineJS));
 }
 
 template <>
@@ -834,7 +834,7 @@ void BaselineInterpreterCodeGen::storeFrameSizeAndPushDescriptor(
   masm.store32(scratch, frame.addressOfDebugFrameSize());
 #endif
 
-  masm.pushFrameDescriptor(FrameType::BaselineJS);
+  masm.push(FrameDescriptor(FrameType::BaselineJS));
 }
 
 static uint32_t GetVMFunctionArgSize(const VMFunctionData& fun) {
@@ -869,7 +869,7 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
     uint32_t frameBaseSize = BaselineFrame::frameSizeForNumValueSlots(0);
     masm.store32(Imm32(frameBaseSize), frame.addressOfDebugFrameSize());
 #endif
-    masm.pushFrameDescriptor(FrameType::BaselineJS);
+    masm.push(FrameDescriptor(FrameType::BaselineJS));
   }
   // Perform the call.
   masm.call(code);
@@ -6427,7 +6427,7 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
 #endif
 
   masm.PushCalleeToken(callee, /* constructing = */ false);
-  masm.pushFrameDescriptorForJitCall(FrameType::BaselineJS, /* argc = */ 0);
+  masm.push(FrameDescriptor(FrameType::BaselineJS, /* argc = */ 0));
 
   // PushCalleeToken bumped framePushed. Reset it.
   MOZ_ASSERT(masm.framePushed() == sizeof(uintptr_t));

@@ -241,6 +241,7 @@ enum class Trap;
 namespace jit {
 
 // Defined in JitFrames.h
+class FrameDescriptor;
 enum class ExitFrameType : uint8_t;
 
 class AutoSaveLiveRegisters;
@@ -558,6 +559,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void PushEmptyRooted(VMFunctionData::RootType rootType);
   inline CodeOffset PushWithPatch(ImmWord word);
   inline CodeOffset PushWithPatch(ImmPtr imm);
+
+  using MacroAssemblerSpecific::push;
 
   void Pop(const Operand op) DEFINED_ON(x86_shared);
   void Pop(Register reg) PER_SHARED_ARCH;
@@ -894,15 +897,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   // The frame descriptor is the second field of all Jit frames, pushed before
   // calling the Jit function. See CommonFrameLayout::descriptor_.
-  inline void pushFrameDescriptor(FrameType type);
-  inline void PushFrameDescriptor(FrameType type);
+  inline void push(FrameDescriptor descriptor);
+  inline void Push(FrameDescriptor descriptor);
 
   // For JitFrameLayout, the descriptor also stores the number of arguments
   // passed by the caller. See MakeFrameDescriptorForJitCall.
-  inline void pushFrameDescriptorForJitCall(FrameType type, uint32_t argc);
   inline void pushFrameDescriptorForJitCall(FrameType type, Register argc,
                                             Register scratch);
-  inline void PushFrameDescriptorForJitCall(FrameType type, uint32_t argc);
   inline void PushFrameDescriptorForJitCall(FrameType type, Register argc,
                                             Register scratch);
 

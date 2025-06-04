@@ -3871,7 +3871,7 @@ void MacroAssembler::generateBailoutTail(Register scratch,
             FramePointer);
 
     // Enter exit frame for the FinishBailoutToBaseline call.
-    pushFrameDescriptor(FrameType::BaselineJS);
+    push(FrameDescriptor(FrameType::BaselineJS));
     push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
     push(FramePointer);
     // No GC things to mark on the stack, push a bare token.
