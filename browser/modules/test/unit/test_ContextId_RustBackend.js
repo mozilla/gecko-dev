@@ -16,7 +16,6 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TEST_CONTEXT_ID = "decafbad-0cd1-0cd2-0cd3-decafbad1000";
 const TEST_CONTEXT_ID_WITH_BRACES = "{" + TEST_CONTEXT_ID + "}";
-const TOPIC_APP_QUIT = "quit-application";
 
 do_get_profile();
 
@@ -79,37 +78,8 @@ async function doesNotRotate(instance, taskFn) {
   controller.abort();
 }
 
-/**
- * Calls a testing function with a ContextId instance. Once the testing function
- * resolves (or if it throws), this function will take care of cleaning up the
- * instance.
- *
- * @param {function(_ContextId): Promise<undefined>} taskFn
- *   A testing function, which will be passed an instance of _ContextId to run
- *   its test on. The function can be async.
- * @returns {Promise<undefined>}
- */
-async function withTestingContextId(taskFn) {
-  let instance = new _ContextId();
-  try {
-    await taskFn(instance);
-  } finally {
-    instance.observe(null, TOPIC_APP_QUIT, null);
-  }
-}
-
 add_setup(() => {
   Services.fog.initializeFOG();
-  registerCleanupFunction(() => {
-    // Importing from ContextId.sys.mjs will have automatically instantiated
-    // and registered the default ContextId. We need to inform it that we're
-    // shutting down so that it can uninitialiez itself.
-    const { ContextId } = ChromeUtils.importESModule(
-      "moz-src:///browser/modules/ContextId.sys.mjs"
-    );
-
-    ContextId.observe(null, TOPIC_APP_QUIT, null);
-  });
 });
 
 /**
@@ -126,33 +96,32 @@ add_task(async function test_get_existing() {
   Services.prefs.clearUserPref(CONTEXT_ID_TIMESTAMP_PREF);
   Services.prefs.setIntPref(CONTEXT_ID_ROTATION_DAYS_PREF, 0);
 
-  await withTestingContextId(async instance => {
-    let persisted = waitForPersist(instance);
+  let instance = new _ContextId();
+  let persisted = waitForPersist(instance);
 
-    Assert.equal(
-      await instance.request(),
-      TEST_CONTEXT_ID,
-      "Should have gotten the stored context ID"
-    );
+  Assert.equal(
+    await instance.request(),
+    TEST_CONTEXT_ID,
+    "Should have gotten the stored context ID"
+  );
 
-    await persisted;
-    Assert.equal(
-      typeof Services.prefs.getIntPref(CONTEXT_ID_TIMESTAMP_PREF, 0),
-      "number",
-      "We stored a timestamp for the context ID."
-    );
-    Assert.equal(
-      Services.prefs.getCharPref(CONTEXT_ID_PREF),
-      TEST_CONTEXT_ID,
-      "We stored a the context ID without braces."
-    );
+  await persisted;
+  Assert.equal(
+    typeof Services.prefs.getIntPref(CONTEXT_ID_TIMESTAMP_PREF, 0),
+    "number",
+    "We stored a timestamp for the context ID."
+  );
+  Assert.equal(
+    Services.prefs.getCharPref(CONTEXT_ID_PREF),
+    TEST_CONTEXT_ID,
+    "We stored a the context ID without braces."
+  );
 
-    Assert.equal(
-      await instance.request(),
-      TEST_CONTEXT_ID,
-      "Should have gotten the same stored context ID back again."
-    );
-  });
+  Assert.equal(
+    await instance.request(),
+    TEST_CONTEXT_ID,
+    "Should have gotten the same stored context ID back again."
+  );
 });
 
 /**
@@ -163,28 +132,27 @@ add_task(async function test_generate() {
   Services.prefs.clearUserPref(CONTEXT_ID_PREF);
   Services.prefs.clearUserPref(CONTEXT_ID_TIMESTAMP_PREF);
 
-  await withTestingContextId(async instance => {
-    let persisted = waitForPersist(instance);
+  let instance = new _ContextId();
+  let persisted = waitForPersist(instance);
 
-    const generatedContextID = await instance.request();
-    await persisted;
+  const generatedContextID = await instance.request();
+  await persisted;
 
-    Assert.ok(
-      UUID_REGEX.test(generatedContextID),
-      "Should have gotten a UUID generated for the context ID."
-    );
-    Assert.equal(
-      typeof Services.prefs.getIntPref(CONTEXT_ID_TIMESTAMP_PREF, 0),
-      "number",
-      "We stored a timestamp for the context ID."
-    );
+  Assert.ok(
+    UUID_REGEX.test(generatedContextID),
+    "Should have gotten a UUID generated for the context ID."
+  );
+  Assert.equal(
+    typeof Services.prefs.getIntPref(CONTEXT_ID_TIMESTAMP_PREF, 0),
+    "number",
+    "We stored a timestamp for the context ID."
+  );
 
-    Assert.equal(
-      await instance.request(),
-      generatedContextID,
-      "Should have gotten the same stored context ID back again."
-    );
-  });
+  Assert.equal(
+    await instance.request(),
+    generatedContextID,
+    "Should have gotten the same stored context ID back again."
+  );
 });
 
 /**
@@ -197,28 +165,27 @@ add_task(async function test_no_rotation() {
   Services.prefs.setIntPref(CONTEXT_ID_TIMESTAMP_PREF, 1);
   Services.prefs.setIntPref(CONTEXT_ID_ROTATION_DAYS_PREF, 0);
 
-  await withTestingContextId(async instance => {
-    Assert.ok(
-      !instance.rotationEnabled,
-      "ContextId should report that rotation is not enabled."
-    );
+  let instance = new _ContextId();
+  Assert.ok(
+    !instance.rotationEnabled,
+    "ContextId should report that rotation is not enabled."
+  );
 
-    await doesNotRotate(instance, async () => {
-      Assert.equal(
-        await instance.request(),
-        TEST_CONTEXT_ID,
-        "Should have gotten the stored context ID"
-      );
-    });
-
-    // We should be able to synchronously request the context ID in this
-    // configuration.
+  await doesNotRotate(instance, async () => {
     Assert.equal(
-      instance.requestSynchronously(),
+      await instance.request(),
       TEST_CONTEXT_ID,
-      "Got the stored context ID back synchronously."
+      "Should have gotten the stored context ID"
     );
   });
+
+  // We should be able to synchronously request the context ID in this
+  // configuration.
+  Assert.equal(
+    instance.requestSynchronously(),
+    TEST_CONTEXT_ID,
+    "Got the stored context ID back synchronously."
+  );
 });
 
 /**
@@ -234,37 +201,34 @@ add_task(async function test_rotation() {
   const ROTATION_DAYS = 30;
   Services.prefs.setIntPref(CONTEXT_ID_ROTATION_DAYS_PREF, ROTATION_DAYS);
 
-  await withTestingContextId(async instance => {
-    Assert.ok(
-      instance.rotationEnabled,
-      "ContextId should report that rotation is enabled."
-    );
+  let instance = new _ContextId();
+  Assert.ok(
+    instance.rotationEnabled,
+    "ContextId should report that rotation is enabled."
+  );
 
-    let generatedContextID;
+  let generatedContextID;
 
-    await waitForRotated(TEST_CONTEXT_ID, async () => {
-      let persisted = waitForPersist(instance);
-      generatedContextID = await instance.request();
-      await persisted;
-    });
-
-    Assert.ok(
-      UUID_REGEX.test(generatedContextID),
-      "Should have gotten a UUID generated for the context ID."
-    );
-
-    let creationTimestamp = Services.prefs.getIntPref(
-      CONTEXT_ID_TIMESTAMP_PREF
-    );
-    // We should have bumped the creation timestamp.
-    Assert.greater(creationTimestamp, 1);
-
-    // We should NOT be able to synchronously request the context ID in this
-    // configuration.
-    Assert.throws(() => {
-      instance.requestSynchronously();
-    }, /Cannot request context ID synchronously/);
+  await waitForRotated(TEST_CONTEXT_ID, async () => {
+    let persisted = waitForPersist(instance);
+    generatedContextID = await instance.request();
+    await persisted;
   });
+
+  Assert.ok(
+    UUID_REGEX.test(generatedContextID),
+    "Should have gotten a UUID generated for the context ID."
+  );
+
+  let creationTimestamp = Services.prefs.getIntPref(CONTEXT_ID_TIMESTAMP_PREF);
+  // We should have bumped the creation timestamp.
+  Assert.greater(creationTimestamp, 1);
+
+  // We should NOT be able to synchronously request the context ID in this
+  // configuration.
+  Assert.throws(() => {
+    instance.requestSynchronously();
+  }, /Cannot request context ID synchronously/);
 });
 
 /**
@@ -278,33 +242,32 @@ add_task(async function test_force_rotation() {
   const ROTATION_DAYS = 30;
   Services.prefs.setIntPref(CONTEXT_ID_ROTATION_DAYS_PREF, ROTATION_DAYS);
 
-  await withTestingContextId(async instance => {
-    Assert.equal(
-      await instance.request(),
-      TEST_CONTEXT_ID,
-      "Should have gotten the stored context ID"
-    );
+  let instance = new _ContextId();
+  Assert.equal(
+    await instance.request(),
+    TEST_CONTEXT_ID,
+    "Should have gotten the stored context ID"
+  );
 
-    await waitForRotated(TEST_CONTEXT_ID, async () => {
-      await instance.forceRotation();
-    });
-
-    let generatedContextID = await instance.request();
-
-    Assert.notEqual(
-      generatedContextID,
-      TEST_CONTEXT_ID,
-      "The context ID should have been regenerated."
-    );
-    Assert.ok(
-      UUID_REGEX.test(generatedContextID),
-      "Should have gotten a UUID generated for the context ID."
-    );
-
-    // We should NOT be able to synchronously request the context ID in this
-    // configuration.
-    Assert.throws(() => {
-      instance.requestSynchronously();
-    }, /Cannot request context ID synchronously/);
+  await waitForRotated(TEST_CONTEXT_ID, async () => {
+    await instance.forceRotation();
   });
+
+  let generatedContextID = await instance.request();
+
+  Assert.notEqual(
+    generatedContextID,
+    TEST_CONTEXT_ID,
+    "The context ID should have been regenerated."
+  );
+  Assert.ok(
+    UUID_REGEX.test(generatedContextID),
+    "Should have gotten a UUID generated for the context ID."
+  );
+
+  // We should NOT be able to synchronously request the context ID in this
+  // configuration.
+  Assert.throws(() => {
+    instance.requestSynchronously();
+  }, /Cannot request context ID synchronously/);
 });
