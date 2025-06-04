@@ -59,6 +59,7 @@ class PlacesSemanticHistoryManager {
   qualifiedForSemanticSearch = false;
   #promiseRemoved = null;
   enoughEntries = false;
+  #shutdownProgress = { state: "Not started" };
 
   /**
    * Constructor for PlacesSemanticHistoryManager.
@@ -104,7 +105,8 @@ class PlacesSemanticHistoryManager {
 
     lazy.AsyncShutdown.appShutdownConfirmed.addBlocker(
       "SemanticManager: shutdown",
-      () => this.shutdown()
+      () => this.shutdown(),
+      { fetchState: () => this.#shutdownProgress }
     );
 
     // Add the observer for pages-rank-changed and history-cleared topics
@@ -572,14 +574,18 @@ class PlacesSemanticHistoryManager {
    * Shuts down the manager, ensuring cleanup of tasks and connections.
    */
   async shutdown() {
-    await this.#updateTask?.finalize();
+    this.#shutdownProgress.state = "In progress";
+    await this.#finalize();
+    this.#shutdownProgress.state = "Task finalized";
     await this.semanticDB.closeConnection();
+    this.#shutdownProgress.state = "Connection closed";
 
     lazy.PlacesUtils.observers.removeListener(
       ["pages-rank-changed", "history-cleared"],
       this.handlePlacesEvents
     );
 
+    this.#shutdownProgress.state = "Complete";
     lazy.logger.info("PlacesSemanticHistoryManager shut down.");
   }
 
