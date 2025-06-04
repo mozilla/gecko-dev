@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 
-import json
 import os
 import re
 import sys
@@ -18,6 +17,7 @@ from moztest.resolve import TestManifestLoader, TestResolver, get_suite_definiti
 from taskgraph.generator import TaskGraphGenerator
 from taskgraph.parameters import ParameterMismatch, parameters_loader
 from taskgraph.taskgraph import TaskGraph
+from taskgraph.util import json
 
 here = os.path.abspath(os.path.dirname(__file__))
 build = MozbuildObject.from_environment(cwd=here)
