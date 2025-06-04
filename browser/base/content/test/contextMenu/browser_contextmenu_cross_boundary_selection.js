@@ -10,6 +10,13 @@ const PAGE = `
     </template>
   </div>
   `;
+
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 /**
  * Tests that right click on a cross boundary selection shows the context menu
  */
