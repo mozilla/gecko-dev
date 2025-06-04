@@ -24,6 +24,7 @@
 #include "mozilla/SSE.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Unused.h"
+#include "mozilla/widget/WinRegistry.h"
 #include "mozilla/WindowsProcessMitigations.h"
 
 #include <intrin.h>
@@ -451,9 +452,25 @@ nsresult GfxInfo::Init() {
   const char* spoofedWindowsVersion =
       PR_GetEnv("MOZ_GFX_SPOOF_WINDOWS_VERSION");
   if (spoofedWindowsVersion) {
-    Unused << PR_sscanf(spoofedWindowsVersion, "%x,%u", &mWindowsVersion,
-                        &mWindowsBuildNumber);
+    uint32_t major = 0;
+    uint32_t minor = 0;
+    uint32_t build = 0;
+    uint32_t ubr = 0;
+    Unused << PR_sscanf(spoofedWindowsVersion, "%u,%u,%u,%u", &major, &minor,
+                        &build, &ubr);
+    mWindowsVersionEx = GfxVersionEx(major, minor, build, ubr);
+    mWindowsVersion = (major << 16) + minor;
+    mWindowsBuildNumber = build;
   } else {
+    uint32_t ubr = 0;
+    WinRegistry::Key ubrKey(
+        HKEY_LOCAL_MACHINE,
+        u"Software\\Microsoft\\Windows NT\\CurrentVersion"_ns,
+        WinRegistry::KeyMode::QueryValue);
+    if (ubrKey) {
+      ubr = ubrKey.GetValueAsDword(u"UBR"_ns).valueOr(0);
+    }
+
     OSVERSIONINFO vinfo;
     vinfo.dwOSVersionInfoSize = sizeof(vinfo);
 #ifdef _MSC_VER
@@ -466,6 +483,8 @@ nsresult GfxInfo::Init() {
 #endif
       mWindowsVersion = kWindowsUnknown;
     } else {
+      mWindowsVersionEx = GfxVersionEx(
+          vinfo.dwMajorVersion, vinfo.dwMinorVersion, vinfo.dwBuildNumber, ubr);
       mWindowsVersion =
           int32_t(vinfo.dwMajorVersion << 16) + vinfo.dwMinorVersion;
       mWindowsBuildNumber = vinfo.dwBuildNumber;
@@ -2097,6 +2116,12 @@ NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString& aDriverVersion) {
 
 NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion) {
   mWindowsVersion = aVersion;
+  return NS_OK;
+}
+
+NS_IMETHODIMP GfxInfo::SpoofOSVersionEx(uint32_t aMajor, uint32_t aMinor,
+                                        uint32_t aBuild, uint32_t aRevision) {
+  mWindowsVersionEx = GfxVersionEx(aMajor, aMinor, aBuild, aRevision);
   return NS_OK;
 }
 

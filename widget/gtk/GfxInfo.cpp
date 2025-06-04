@@ -1554,6 +1554,16 @@ NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion) {
   return NS_OK;
 }
 
+NS_IMETHODIMP GfxInfo::SpoofOSVersionEx(uint32_t aMajor, uint32_t aMinor,
+                                        uint32_t aBuild, uint32_t aRevision) {
+  // We don't support OS versioning on Linux. There's just "Linux", so this is
+  // just for testing purposes.
+#  ifdef DEBUG
+  mOSVersionEx = GfxVersionEx(aMajor, aMinor, aBuild, aRevision);
+#  endif
+  return NS_OK;
+}
+
 #endif
 
 }  // namespace mozilla::widget

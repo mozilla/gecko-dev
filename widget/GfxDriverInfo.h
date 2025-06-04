@@ -204,6 +204,93 @@ enum class ScreenSizeStatus : uint8_t {
   Large            // > 3440x1440
 };
 
+class GfxVersionEx final {
+  static constexpr size_t MAX_PARTS = 4;
+
+ public:
+  GfxVersionEx() = default;
+  GfxVersionEx(const GfxVersionEx& aOther) = default;
+  GfxVersionEx(GfxVersionEx&& aOther) = default;
+  GfxVersionEx& operator=(const GfxVersionEx& aOther) = default;
+  GfxVersionEx& operator=(GfxVersionEx&& aOther) = default;
+
+  GfxVersionEx(uint32_t aMajor, uint32_t aMinor, uint32_t aBuild)
+      : mParts{aMajor, aMinor, aBuild} {}
+
+  GfxVersionEx(uint32_t aMajor, uint32_t aMinor, uint32_t aBuild,
+               uint32_t aRevision)
+      : mParts{aMajor, aMinor, aBuild, aRevision} {}
+
+  bool Parse(const nsACString& aVersion) {
+    size_t i = 0;
+    for (const auto& part : aVersion.Split('.')) {
+      nsresult rv;
+      mParts[i] = part.ToUnsignedInteger(&rv);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return false;
+      }
+
+      if (++i == MAX_PARTS) {
+        break;
+      }
+    }
+
+    while (i < MAX_PARTS) {
+      mParts[i++] = 0;
+    }
+
+    return true;
+  }
+
+  int32_t Compare(const GfxVersionEx& aOther) const {
+    for (size_t i = 0; i < MAX_PARTS; ++i) {
+      if (mParts[i] < aOther.mParts[i]) {
+        return -1;
+      }
+      if (mParts[i] > aOther.mParts[i]) {
+        return 1;
+      }
+    }
+    return 0;
+  }
+
+  bool Compare(const GfxVersionEx& aOther, const GfxVersionEx& aOtherMax,
+               VersionComparisonOp aCmp) const {
+    if (aCmp == DRIVER_COMPARISON_IGNORED) {
+      return true;
+    }
+
+    switch (aCmp) {
+      case DRIVER_LESS_THAN:
+        return Compare(aOther) < 0;
+      case DRIVER_LESS_THAN_OR_EQUAL:
+        return Compare(aOther) <= 0;
+      case DRIVER_GREATER_THAN:
+        return Compare(aOther) > 0;
+      case DRIVER_GREATER_THAN_OR_EQUAL:
+        return Compare(aOther) >= 0;
+      case DRIVER_EQUAL:
+        return Compare(aOther) == 0;
+      case DRIVER_NOT_EQUAL:
+        return Compare(aOther) != 0;
+      case DRIVER_BETWEEN_EXCLUSIVE:
+        return Compare(aOther) > 0 && Compare(aOtherMax) < 0;
+      case DRIVER_BETWEEN_INCLUSIVE:
+        return Compare(aOther) >= 0 && Compare(aOtherMax) <= 0;
+      case DRIVER_BETWEEN_INCLUSIVE_START:
+        return Compare(aOther) >= 0 && Compare(aOtherMax) < 0;
+      default:
+        NS_WARNING("Unsupported op in GfxDriverInfo");
+        break;
+    }
+
+    return false;
+  }
+
+ private:
+  uint32_t mParts[MAX_PARTS]{};
+};
+
 /* Array of devices to match, or an empty array for all devices */
 class GfxDeviceFamily final {
  public:
@@ -249,6 +336,12 @@ class GfxDriverInfo final {
 
   OperatingSystem mOperatingSystem;
   uint32_t mOperatingSystemVersion;
+
+  GfxVersionEx mOperatingSystemVersionEx;
+  GfxVersionEx mOperatingSystemVersionExMax;
+  VersionComparisonOp mOperatingSystemVersionExComparisonOp =
+      DRIVER_COMPARISON_IGNORED;
+
   ScreenSizeStatus mScreen;
   BatteryStatus mBattery;
   nsString mWindowProtocol;

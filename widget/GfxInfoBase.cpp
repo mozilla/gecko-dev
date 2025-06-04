@@ -356,6 +356,13 @@ static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
       aDriverInfo->mOperatingSystem = BlocklistOSToOperatingSystem(dataValue);
     } else if (key.EqualsLiteral("osversion")) {
       aDriverInfo->mOperatingSystemVersion = strtoul(value.get(), nullptr, 10);
+    } else if (key.EqualsLiteral("osVersionEx")) {
+      aDriverInfo->mOperatingSystemVersionEx.Parse(value);
+    } else if (key.EqualsLiteral("osVersionExMax")) {
+      aDriverInfo->mOperatingSystemVersionExMax.Parse(value);
+    } else if (key.EqualsLiteral("osVersionExComparator")) {
+      aDriverInfo->mOperatingSystemVersionExComparisonOp =
+          BlocklistComparatorToComparisonOp(dataValue);
     } else if (key.EqualsLiteral("windowProtocol")) {
       aDriverInfo->mWindowProtocol = dataValue;
     } else if (key.EqualsLiteral("vendor")) {
@@ -584,8 +591,7 @@ inline bool MatchingAllowStatus(int32_t aStatus) {
 // However, it is valid for aBlockedOS to be one of those generic values,
 // as we could be blocking all of the versions.
 inline bool MatchingOperatingSystems(OperatingSystem aBlockedOS,
-                                     OperatingSystem aSystemOS,
-                                     uint32_t aSystemOSBuild) {
+                                     OperatingSystem aSystemOS) {
   MOZ_ASSERT(aSystemOS != OperatingSystem::Windows &&
              aSystemOS != OperatingSystem::OSX);
 
@@ -598,24 +604,6 @@ inline bool MatchingOperatingSystems(OperatingSystem aBlockedOS,
   if (aBlockedOS == OperatingSystem::Windows) {
     // We do want even "unknown" aSystemOS to fall under "all windows"
     return true;
-  }
-
-  constexpr uint32_t kMinWin10BuildNumber = 18362;
-  if (aBlockedOS == OperatingSystem::RecentWindows10 &&
-      aSystemOS == OperatingSystem::Windows10) {
-    // For allowlist purposes, we sometimes want to restrict to only recent
-    // versions of Windows 10. This is a bit of a kludge but easier than adding
-    // complicated blocklist infrastructure for build ID comparisons like driver
-    // versions.
-    return aSystemOSBuild >= kMinWin10BuildNumber;
-  }
-
-  if (aBlockedOS == OperatingSystem::NotRecentWindows10) {
-    if (aSystemOS == OperatingSystem::Windows10) {
-      return aSystemOSBuild < kMinWin10BuildNumber;
-    } else {
-      return true;
-    }
   }
 #endif
 
@@ -687,7 +675,8 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
     return 0;
   }
 
-  uint32_t osBuild = OperatingSystemBuild();
+  uint32_t osVersion = OperatingSystemVersion();
+  GfxVersionEx osVersionEx = OperatingSystemVersionEx();
 
   // Get the adapters once then reuse below
   nsAutoString adapterVendorID[2];
@@ -741,12 +730,18 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
 
     // Do the operating system check first, no point in getting the driver
     // info if we won't need to use it.
-    if (!MatchingOperatingSystems(info[i]->mOperatingSystem, os, osBuild)) {
+    if (!MatchingOperatingSystems(info[i]->mOperatingSystem, os)) {
       continue;
     }
 
     if (info[i]->mOperatingSystemVersion &&
-        info[i]->mOperatingSystemVersion != OperatingSystemVersion()) {
+        info[i]->mOperatingSystemVersion != osVersion) {
+      continue;
+    }
+
+    if (!osVersionEx.Compare(info[i]->mOperatingSystemVersionEx,
+                             info[i]->mOperatingSystemVersionExMax,
+                             info[i]->mOperatingSystemVersionExComparisonOp)) {
       continue;
     }
 

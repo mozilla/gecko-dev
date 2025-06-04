@@ -54,7 +54,7 @@ class GfxInfo : public GfxInfoBase {
   NS_IMETHOD GetDrmRenderDevice(nsACString& aDrmRenderDevice) override;
 
   uint32_t OperatingSystemVersion() override { return mWindowsVersion; }
-  uint32_t OperatingSystemBuild() override { return mWindowsBuildNumber; }
+  GfxVersionEx OperatingSystemVersionEx() override { return mWindowsVersionEx; }
 
 #ifdef DEBUG
   NS_DECL_ISUPPORTS_INHERITED
@@ -91,6 +91,7 @@ class GfxInfo : public GfxInfoBase {
   nsString mAdapterVendorID[2];
   nsString mAdapterDeviceID[2];
   nsString mAdapterSubsysID[2];
+  GfxVersionEx mWindowsVersionEx;
   uint32_t mWindowsVersion = 0;
   uint32_t mWindowsBuildNumber = 0;
   uint32_t mActiveGPUIndex = 0;  // This must be 0 or 1

@@ -5,6 +5,7 @@
 # file, you can obtain one at http://mozilla.org/MPL/2.0/.
 
 UNIFIED_SOURCES = [
+    "TestGfxInfo.cpp",
     "TestTimeConverter.cpp",
     "TestTouchResampler.cpp",
 ]
@@ -19,6 +20,8 @@ if CONFIG["OS_ARCH"] == "WINNT":
     ]
 
 FINAL_LIBRARY = "xul-gtest"
+
+include("/ipc/chromium/chromium-config.mozbuild")
 
 LOCAL_INCLUDES += [
     "/widget",
