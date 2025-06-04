@@ -147,7 +147,6 @@ def run(
     closed_tree=False,
     show_estimates=False,
     disable_target_task_filter=False,
-    push_to_lando=False,
     push_to_vcs=False,
     show_chunk_numbers=False,
     new_test_config=False,
@@ -296,6 +295,5 @@ def run(
         stage_changes=stage_changes,
         dry_run=dry_run,
         closed_tree=closed_tree,
-        push_to_lando=push_to_lando,
         push_to_vcs=push_to_vcs,
     )

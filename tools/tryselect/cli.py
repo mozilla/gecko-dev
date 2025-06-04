@@ -6,7 +6,7 @@
 import os
 import subprocess
 import tempfile
-from argparse import SUPPRESS, ArgumentParser
+from argparse import ArgumentParser
 
 from .task_config import all_task_configs
 
@@ -28,14 +28,6 @@ COMMON_ARGUMENT_GROUPS = {
                 "action": "store_true",
                 "default": False,
                 "help": "Push despite a closed try tree",
-            },
-        ],
-        [
-            ["--push-to-lando"],
-            {
-                "action": "store_true",
-                "default": False,
-                "help": SUPPRESS,
             },
         ],
         [

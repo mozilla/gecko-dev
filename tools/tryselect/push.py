@@ -204,7 +204,6 @@ def push_to_try(
     closed_tree=False,
     files_to_change=None,
     allow_log_capture=False,
-    push_to_lando=False,
     push_to_vcs=False,
 ):
     push = not stage_changes and not dry_run
@@ -250,10 +249,6 @@ def push_to_try(
             vcs.stage_changes(changed_files)
 
         return
-
-    if push_to_lando or not push_to_vcs:
-        print("Note: `--push-to-lando` is now the default behaviour of `mach try`.")
-        print("Note: Use `--push-to-vcs` to push changes to try directly.")
 
     try:
         if push_to_vcs:
