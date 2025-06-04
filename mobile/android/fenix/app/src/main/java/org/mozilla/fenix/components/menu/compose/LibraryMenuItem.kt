@@ -19,6 +19,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.Hyphens
@@ -46,23 +47,12 @@ fun LibraryMenuItem(
     shape: RoundedCornerShape = RoundedCornerShape(4.dp),
     onClick: () -> Unit,
 ) {
-    val labelColor = when (state) {
-        MenuItemState.ACTIVE -> FirefoxTheme.colors.textAccent
-        MenuItemState.WARNING -> FirefoxTheme.colors.textCritical
-        else -> FirefoxTheme.colors.textPrimary
-    }
-    val iconTint = when (state) {
-        MenuItemState.ACTIVE -> FirefoxTheme.colors.iconAccentViolet
-        MenuItemState.WARNING -> FirefoxTheme.colors.iconCritical
-        else -> FirefoxTheme.colors.iconSecondary
-    }
-
     Surface(
         modifier = modifier
             .fillMaxWidth()
+            .clip(shape)
             .clickable(enabled = state != MenuItemState.DISABLED, onClick = onClick),
         color = FirefoxTheme.colors.layer3,
-        contentColor = labelColor,
         shape = shape,
     ) {
         Column(
@@ -72,7 +62,7 @@ fun LibraryMenuItem(
             Icon(
                 painter = painterResource(iconRes),
                 contentDescription = stringResource(labelRes),
-                tint = iconTint,
+                tint = FirefoxTheme.colors.iconPrimary,
             )
             Spacer(Modifier.height(4.dp))
             Text(
@@ -85,6 +75,7 @@ fun LibraryMenuItem(
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 softWrap = true,
+                color = FirefoxTheme.colors.textPrimary,
             )
         }
     }
