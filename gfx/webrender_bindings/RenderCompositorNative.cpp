@@ -269,7 +269,10 @@ void RenderCompositorNative::CompositorEndFrame() {
   }
   mDrawnPixelCount = 0;
 
+#if !defined(XP_DARWIN)
+  // MacOS fails rendering without the flush here.
   DoFlush();
+#endif
 
   mNativeLayerRoot->SetLayers(mAddedLayers);
   mNativeLayerRoot->CommitToScreen();
