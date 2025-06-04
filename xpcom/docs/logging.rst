@@ -252,10 +252,6 @@ To adjust the logging after Firefox has started, you can set prefs under the
 ``logging.`` prefix. For example, setting ``logging.foo`` to ``3`` will set the log
 module ``foo`` to start logging at level 3.
 
-The MOZ_LOG syntax can be used directly as well, by setting the preference
-``logging.config.modules``. All modules can be used but only the special string
-`profilerstacks` is supported.
-
 A number of special prefs can be set as well, described in the table below:
 
 +-------------------------------------+------------+-------------------------------+--------------------------------------------------------+

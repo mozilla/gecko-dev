@@ -10849,14 +10849,6 @@
   value: true
   mirror: never
 
-# Allow setting log modules at runtimes easily with a MOZ_LOG string.
-# This preference is empty by default but defined, this makes it easy to use
-# especially on mobile by searching for it in about:config.
-- name: logging.config.modules
-  type: String
-  value: ""
-  mirror: never
-
 #---------------------------------------------------------------------------
 # Prefs starting with "mathml."
 #---------------------------------------------------------------------------
