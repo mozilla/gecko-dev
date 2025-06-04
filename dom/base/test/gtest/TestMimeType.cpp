@@ -1074,3 +1074,29 @@ TEST(MimeTypeParsing, contentTypes20)
   ASSERT_TRUE(contentType.EqualsLiteral("text/plain"));
   ASSERT_TRUE(contentCharset.EqualsLiteral(""));
 }
+
+TEST(MimeTypeParsing, subTypeJson)
+{
+  const nsAutoCString val("text/json");
+  RefPtr<CMimeType> parsed = CMimeType::Parse(val);
+  ASSERT_TRUE(parsed);
+  nsCString subtype;
+  parsed->GetSubtype(subtype);
+  ASSERT_TRUE(subtype.EqualsLiteral("json"));
+}
+
+// U+002F(/) is not a valid HTTP token code point
+// https://mimesniff.spec.whatwg.org/#http-token-code-point
+TEST(MimeTypeParsing, invalidSubtype1)
+{
+  const nsAutoCString val("text/json/");
+  RefPtr<CMimeType> parsed = CMimeType::Parse(val);
+  ASSERT_TRUE(!parsed);
+}
+
+TEST(MimeTypeParsing, invalidSubtype2)
+{
+  const nsAutoCString val("text/json/bad");
+  RefPtr<CMimeType> parsed = CMimeType::Parse(val);
+  ASSERT_TRUE(!parsed);
+}

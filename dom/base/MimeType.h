@@ -65,6 +65,9 @@ class TMimeType final {
   // Returns the `<mType>/<mSubtype>`
   void GetEssence(nsTSubstring<char_type>& aOutput) const;
 
+  // Returns the `<mSubtype>`
+  void GetSubtype(nsTSubstring<char_type>& aOutput) const;
+
   bool IsBase64() const { return mIsBase64; }
 
   // @param aName - the name of the parameter
