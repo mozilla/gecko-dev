@@ -183,7 +183,6 @@ void MediaHardwareKeysEventSourceMacMediaCenter::SetPlaybackState(
     center.playbackState = MPNowPlayingPlaybackStatePlaying;
   } else if (aState == MediaSessionPlaybackState::Paused) {
     center.playbackState = MPNowPlayingPlaybackStatePaused;
-    UpdatePositionInfo();
   } else if (aState == MediaSessionPlaybackState::None) {
     center.playbackState = MPNowPlayingPlaybackStateStopped;
   }
@@ -249,26 +248,18 @@ void MediaHardwareKeysEventSourceMacMediaCenter::SetSupportedMediaKeys(
 
 void MediaHardwareKeysEventSourceMacMediaCenter::SetPositionState(
     const Maybe<PositionState>& aState) {
-  mPositionState = aState;
-  UpdatePositionInfo();
-}
-
-void MediaHardwareKeysEventSourceMacMediaCenter::UpdatePositionInfo() {
-  if (mPositionState.isSome()) {
+  if (aState.isSome()) {
     MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
     NSMutableDictionary* nowPlayingInfo =
         [[center.nowPlayingInfo mutableCopy] autorelease]
             ?: [NSMutableDictionary dictionary];
 
-    [nowPlayingInfo setObject:@(mPositionState->mDuration)
+    [nowPlayingInfo setObject:@(aState->mDuration)
                        forKey:MPMediaItemPropertyPlaybackDuration];
-    [nowPlayingInfo setObject:@(mPositionState->CurrentPlaybackPosition())
+    [nowPlayingInfo setObject:@(aState->CurrentPlaybackPosition())
                        forKey:MPNowPlayingInfoPropertyElapsedPlaybackTime];
-    [nowPlayingInfo
-        setObject:@(center.playbackState == MPNowPlayingPlaybackStatePlaying
-                        ? mPositionState->mPlaybackRate
-                        : 0.0)
-           forKey:MPNowPlayingInfoPropertyPlaybackRate];
+    [nowPlayingInfo setObject:@(aState->mPlaybackRate)
+                       forKey:MPNowPlayingInfoPropertyPlaybackRate];
     center.nowPlayingInfo = nowPlayingInfo;
   }
 }

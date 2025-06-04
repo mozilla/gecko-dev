@@ -418,7 +418,8 @@ class HTMLMediaElement::MediaControlKeyListener final
 
     MOZ_ASSERT(mControlAgent);
     auto* owner = Owner();
-    PositionState state(owner->Duration(), owner->PlaybackRate(),
+    PositionState state(owner->Duration(),
+                        owner->Paused() ? 0.0 : owner->PlaybackRate(),
                         owner->CurrentTime(), TimeStamp::Now());
     MEDIACONTROL_LOG(
         "Notify media position state (duration=%f, playbackRate=%f, "
@@ -595,7 +596,8 @@ class HTMLMediaElement::MediaControlKeyListener final
     mState = aState;
     mControlAgent->NotifyMediaPlaybackChanged(mOwnerBrowsingContextId, mState);
 
-    if (aState == MediaPlaybackState::ePlayed) {
+    if (aState == MediaPlaybackState::ePlayed ||
+        aState == MediaPlaybackState::ePaused) {
       NotifyMediaPositionState();
     }
   }
@@ -2766,8 +2768,9 @@ void HTMLMediaElement::SelectResource() {
       LOG(LogLevel::Debug, ("%p Trying load from src=%s", this,
                             NS_ConvertUTF16toUTF8(src).get()));
       if (profiler_is_collecting_markers()) {
-        profiler_add_marker("loadresource", geckoprofiler::category::MEDIA_PLAYBACK,
-                            {}, LoadSourceMarker{}, nsString{src}, nsString{},
+        profiler_add_marker("loadresource",
+                            geckoprofiler::category::MEDIA_PLAYBACK, {},
+                            LoadSourceMarker{}, nsString{src}, nsString{},
                             nsString{}, Flow::FromPointer(this));
       }
 
@@ -2826,9 +2829,8 @@ void HTMLMediaElement::NotifyLoadError(const nsACString& aErrorDetails) {
     NS_WARNING("Should know the source we were loading from!");
   }
   if (profiler_is_collecting_markers()) {
-    profiler_add_marker("loaderror",
-                        geckoprofiler::category::MEDIA_PLAYBACK, {},
-                        LoadErrorMarker{}, aErrorDetails,
+    profiler_add_marker("loaderror", geckoprofiler::category::MEDIA_PLAYBACK,
+                        {}, LoadErrorMarker{}, aErrorDetails,
                         Flow::FromPointer(this));
   }
 }
@@ -3048,8 +3050,9 @@ void HTMLMediaElement::LoadFromSourceChildren() {
          NS_ConvertUTF16toUTF8(media).get()));
 
     if (profiler_is_collecting_markers()) {
-      profiler_add_marker("loadresource", geckoprofiler::category::MEDIA_PLAYBACK,
-                          {}, LoadSourceMarker{}, nsString{src}, nsString{type},
+      profiler_add_marker("loadresource",
+                          geckoprofiler::category::MEDIA_PLAYBACK, {},
+                          LoadSourceMarker{}, nsString{src}, nsString{type},
                           nsString{media}, Flow::FromPointer(this));
     }
 
@@ -4491,8 +4494,8 @@ HTMLMediaElement::~HTMLMediaElement() {
       !mHasSelfReference,
       "How can we be destroyed if we're still holding a self reference?");
 
-  PROFILER_MARKER("~HTMLMediaElement", MEDIA_PLAYBACK, {}, TerminatingFlowMarker,
-                  Flow::FromPointer(this));
+  PROFILER_MARKER("~HTMLMediaElement", MEDIA_PLAYBACK, {},
+                  TerminatingFlowMarker, Flow::FromPointer(this));
 
   mWatchManager.Shutdown();
 
@@ -7218,7 +7221,8 @@ void HTMLMediaElement::MakeAssociationWithCDMResolved() {
                           mMediaKeys->GetMediaKeySystemConfigurationString(),
                           Flow::FromPointer(this));
     } else {
-      PROFILER_MARKER("removemediakey", MEDIA_PLAYBACK, {}, FlowMarker, Flow::FromPointer(this));
+      PROFILER_MARKER("removemediakey", MEDIA_PLAYBACK, {}, FlowMarker,
+                      Flow::FromPointer(this));
     }
   }
 }

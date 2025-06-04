@@ -286,12 +286,6 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterSetPosition)
            5.0) < 0.1);
   ASSERT_TRUE([center.nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate]
       isEqualToNumber:@1.0]);
-
-  source->SetPlaybackState(MediaSessionPlaybackState::Paused);
-
-  PR_Sleep(PR_SecondsToInterval(1));
-  ASSERT_TRUE([center.nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate]
-      isEqualToNumber:@0.0]);
 }
 
 NS_ASSUME_NONNULL_END
