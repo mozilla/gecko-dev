@@ -22,7 +22,6 @@ const {
   getClickedRequest,
 } = require("resource://devtools/client/netmonitor/src/selectors/index.js");
 const {
-  getUrl,
   getUrlQuery,
   parseQueryString,
 } = require("resource://devtools/client/netmonitor/src/utils/request-utils.js");
@@ -271,17 +270,24 @@ class HTTPCustomRequestPanel extends Component {
   onUpdateQueryParams() {
     const { urlQueryParams, url } = this.state;
 
-    const urlObj = getUrl(url);
-    urlObj.search = "";
-
+    const searchParams = new URLSearchParams();
     for (const { name, value, checked } of urlQueryParams) {
-      if (checked) {
-        urlObj.searchParams.set(name, value);
+      // We only want to add checked parameters with a non-empty name
+      if (checked && name) {
+        searchParams.set(name, value);
       }
     }
 
+    // We can't use `getUrl` here as `url` is the value of the input and might not be a
+    // valid URL. We still want to try to set the params in the URL input in such case,
+    // so append them after the first "?" char we find.
+    let finalURL = url.split("?")[0];
+    if (searchParams.size) {
+      finalURL += `?${searchParams}`;
+    }
+
     this.setState({
-      url: urlObj.toString(),
+      url: finalURL,
     });
   }
 

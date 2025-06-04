@@ -138,7 +138,7 @@ async function runTests(tab, monitor, document, isPrivate = false) {
 
     is(
       customUrl.value,
-      "https://www.example.com/?My-param=",
+      "https://www.example.com?My-param=",
       "The url should still be there after the user close the panel and re-opened"
     );
 

@@ -47,45 +47,143 @@ add_task(async function () {
 
   const queryScenarios = [
     {
+      url: HTTPS_CUSTOM_GET_URL,
       queryString: "",
       expectedParametersSize: 0,
       expectedParameters: [],
+      expectedInputValueAfterAddingParamName: `${HTTPS_CUSTOM_GET_URL}?My-param=`,
+      expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: HTTPS_CUSTOM_GET_URL,
     },
     {
+      url: HTTPS_CUSTOM_GET_URL,
       queryString: "?",
       expectedParametersSize: 0,
       expectedParameters: [],
+      expectedInputValueAfterAddingParamName: `${HTTPS_CUSTOM_GET_URL}?My-param=`,
+      expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: HTTPS_CUSTOM_GET_URL,
     },
     {
+      url: HTTPS_CUSTOM_GET_URL,
       queryString: "?a",
       expectedParametersSize: 1,
       expectedParameters: [{ name: "a", value: "" }],
+      expectedInputValueAfterAddingParamName: `${HTTPS_CUSTOM_GET_URL}?a=&My-param=`,
+      expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?a=&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `${HTTPS_CUSTOM_GET_URL}?a=`,
     },
     {
+      url: HTTPS_CUSTOM_GET_URL,
       queryString: "?a=",
       expectedParametersSize: 1,
       expectedParameters: [{ name: "a", value: "" }],
+      expectedInputValueAfterAddingParamName: `${HTTPS_CUSTOM_GET_URL}?a=&My-param=`,
+      expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?a=&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `${HTTPS_CUSTOM_GET_URL}?a=`,
     },
     {
+      url: HTTPS_CUSTOM_GET_URL,
       queryString: "?a=3",
       expectedParametersSize: 1,
       expectedParameters: [{ name: "a", value: "3" }],
+      expectedInputValueAfterAddingParamName: `${HTTPS_CUSTOM_GET_URL}?a=3&My-param=`,
+      expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?a=3&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `${HTTPS_CUSTOM_GET_URL}?a=3`,
     },
     {
+      url: HTTPS_CUSTOM_GET_URL,
       queryString: "?a=3&",
       expectedParametersSize: 2,
       expectedParameters: [
         { name: "a", value: "3" },
         { name: "", value: "" },
       ],
+      expectedInputValueAfterAddingParamName: `${HTTPS_CUSTOM_GET_URL}?a=3&My-param=`,
+      expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?a=3&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `${HTTPS_CUSTOM_GET_URL}?a=3`,
     },
     {
+      url: HTTPS_CUSTOM_GET_URL,
       queryString: "?a=3&b=4",
       expectedParametersSize: 2,
       expectedParameters: [
         { name: "a", value: "3" },
         { name: "b", value: "4" },
       ],
+      expectedInputValueAfterAddingParamName: `${HTTPS_CUSTOM_GET_URL}?a=3&b=4&My-param=`,
+      expectedInputValueAfterAddingParamValue: `${HTTPS_CUSTOM_GET_URL}?a=3&b=4&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `${HTTPS_CUSTOM_GET_URL}?a=3&b=4`,
+    },
+    // Checking with an invalid URL string
+    {
+      url: "invalid",
+      queryString: "",
+      expectedParametersSize: 0,
+      expectedParameters: [],
+      expectedInputValueAfterAddingParamName: `invalid?My-param=`,
+      expectedInputValueAfterAddingParamValue: `invalid?My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `invalid`,
+    },
+    {
+      url: "invalid",
+      queryString: "?",
+      expectedParametersSize: 0,
+      expectedParameters: [],
+      expectedInputValueAfterAddingParamName: `invalid?My-param=`,
+      expectedInputValueAfterAddingParamValue: `invalid?My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: "invalid",
+    },
+    {
+      url: "invalid",
+      queryString: "?a",
+      expectedParametersSize: 1,
+      expectedParameters: [{ name: "a", value: "" }],
+      expectedInputValueAfterAddingParamName: `invalid?a=&My-param=`,
+      expectedInputValueAfterAddingParamValue: `invalid?a=&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `invalid?a=`,
+    },
+    {
+      url: "invalid",
+      queryString: "?a=",
+      expectedParametersSize: 1,
+      expectedParameters: [{ name: "a", value: "" }],
+      expectedInputValueAfterAddingParamName: `invalid?a=&My-param=`,
+      expectedInputValueAfterAddingParamValue: `invalid?a=&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `invalid?a=`,
+    },
+    {
+      url: "invalid",
+      queryString: "?a=3",
+      expectedParametersSize: 1,
+      expectedParameters: [{ name: "a", value: "3" }],
+      expectedInputValueAfterAddingParamName: `invalid?a=3&My-param=`,
+      expectedInputValueAfterAddingParamValue: `invalid?a=3&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `invalid?a=3`,
+    },
+    {
+      url: "invalid",
+      queryString: "?a=3&",
+      expectedParametersSize: 2,
+      expectedParameters: [
+        { name: "a", value: "3" },
+        { name: "", value: "" },
+      ],
+      expectedInputValueAfterAddingParamName: `invalid?a=3&My-param=`,
+      expectedInputValueAfterAddingParamValue: `invalid?a=3&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `invalid?a=3`,
+    },
+    {
+      url: "invalid",
+      queryString: "?a=3&b=4",
+      expectedParametersSize: 2,
+      expectedParameters: [
+        { name: "a", value: "3" },
+        { name: "b", value: "4" },
+      ],
+      expectedInputValueAfterAddingParamName: `invalid?a=3&b=4&My-param=`,
+      expectedInputValueAfterAddingParamValue: `invalid?a=3&b=4&My-param=my-value`,
+      expectedInputValueAfterUncheckingParam: `invalid?a=3&b=4`,
     },
   ];
 
@@ -93,75 +191,27 @@ add_task(async function () {
     assertQueryScenario(document, sceanario);
   }
 
-  info("Adding new parameters by query parameters section");
-  const newParameterName = document.querySelector(
-    "#http-custom-query .map-add-new-inputs .http-custom-input-name"
-  );
-  newParameterName.focus();
-  EventUtils.sendString("My-param");
-
-  is(
-    document.querySelector("#http-custom-url-value").value,
-    `${HTTPS_CUSTOM_GET_URL}?a=3&b=4&My-param=`,
-    "The URL should be updated"
-  );
-
-  const newParameterValue = Array.from(
-    document.querySelectorAll(
-      "#http-custom-query .http-custom-input .http-custom-input-value"
-    )
-  ).pop();
-  newParameterValue.focus();
-  EventUtils.sendString("my-value");
-
-  // Check if the url is updated
-  is(
-    document.querySelector("#http-custom-url-value").value,
-    `${HTTPS_CUSTOM_GET_URL}?a=3&b=4&My-param=my-value`,
-    "The URL should be updated"
-  );
-
-  info("Adding new parameters by query parameters section");
-  is(
-    document.querySelectorAll(
-      "#http-custom-query .tabpanel-summary-container.http-custom-input"
-    ).length,
-    3,
-    "The parameter section should be have 3 elements"
-  );
-
-  info(
-    "Uncheck the parameter an make sure the parameter is removed from the new url"
-  );
-  const params = document.querySelectorAll(
-    "#http-custom-query  .tabpanel-summary-container.http-custom-input"
-  );
-
-  const lastParam = Array.from(params).pop();
-  const checkbox = lastParam.querySelector("input");
-  checkbox.click();
-
-  // Check if the url is updated after uncheck one parameter through the parameter section
-  is(
-    document.querySelector("#http-custom-url-value").value,
-    `${HTTPS_CUSTOM_GET_URL}?a=3&b=4`,
-    "The URL should be updated"
-  );
-
   await teardown(monitor);
 });
 
 function assertQueryScenario(
   document,
-  { queryString, expectedParametersSize, expectedParameters }
+  {
+    url,
+    queryString,
+    expectedParametersSize,
+    expectedParameters,
+    expectedInputValueAfterAddingParamName,
+    expectedInputValueAfterAddingParamValue,
+    expectedInputValueAfterUncheckingParam,
+  }
 ) {
   info(`Assert that "${queryString}" shows in the list properly`);
   const urlValue = document.querySelector(".http-custom-url-value");
   urlValue.focus();
   urlValue.value = "";
 
-  const newURL = HTTPS_CUSTOM_GET_URL + queryString;
-  EventUtils.sendString(newURL);
+  EventUtils.sendString(url + queryString);
 
   is(
     document.querySelectorAll(
@@ -191,4 +241,59 @@ function assertQueryScenario(
       "The query param value in the form should match on the URL"
     );
   }
+
+  info("Adding new parameters by query parameters section");
+
+  const newParameterName = document.querySelector(
+    "#http-custom-query .map-add-new-inputs .http-custom-input-name"
+  );
+  newParameterName.focus();
+  EventUtils.sendString("My-param");
+
+  is(
+    document.querySelector("#http-custom-url-value").value,
+    expectedInputValueAfterAddingParamName,
+    "The URL should be updated with the new parameter name"
+  );
+
+  const newParameterValue = Array.from(
+    document.querySelectorAll(
+      "#http-custom-query .http-custom-input .http-custom-input-value"
+    )
+  ).pop();
+  newParameterValue.focus();
+  EventUtils.sendString("my-value");
+
+  // Check if the url is updated
+  is(
+    document.querySelector("#http-custom-url-value").value,
+    expectedInputValueAfterAddingParamValue,
+    "The URL should be updated with the new parameter value"
+  );
+
+  is(
+    document.querySelectorAll(
+      "#http-custom-query .tabpanel-summary-container.http-custom-input"
+    ).length,
+    expectedParametersSize + 1,
+    "The parameter section should now have a new element"
+  );
+
+  info(
+    "Uncheck the parameter an make sure the parameter is removed from the new url"
+  );
+  const params = document.querySelectorAll(
+    "#http-custom-query  .tabpanel-summary-container.http-custom-input"
+  );
+
+  const lastParam = Array.from(params).at(-1);
+  const checkbox = lastParam.querySelector("input[type=checkbox]");
+  checkbox.click();
+
+  // Check if the url is updated after uncheck one parameter through the parameter section
+  is(
+    document.querySelector("#http-custom-url-value").value,
+    expectedInputValueAfterUncheckingParam,
+    "The URL should be updated after unchecking the added parameter"
+  );
 }
