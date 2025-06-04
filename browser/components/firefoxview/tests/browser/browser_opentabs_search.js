@@ -54,8 +54,13 @@ add_task(async function search_open_tabs() {
     );
 
     info("Clear the search query.");
-    openTabs.searchTextbox.select();
-    EventUtils.synthesizeKey("VK_BACK_SPACE");
+    let inputChildren = SpecialPowers.InspectorUtils.getChildrenForNode(
+      openTabs.searchTextbox.input,
+      true,
+      false
+    );
+    let clearButton = inputChildren.find(e => e.localName == "button");
+    EventUtils.synthesizeMouseAtCenter(clearButton, {}, content);
     await TestUtils.waitForCondition(
       () => openTabs.viewCards[0].tabList.rowEls.length === winTabs.length,
       "The original window's list is restored."
