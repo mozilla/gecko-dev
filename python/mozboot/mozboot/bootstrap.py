@@ -972,7 +972,7 @@ def ensure_watchman(topsrcdir: Path, git_str: str):
 
     hooks = Path(
         subprocess.check_output(
-            [git_str, "rev-parse", "--git-path", "hooks"],
+            [git_str, "rev-parse", "--path-format=absolute", "--git-path", "hooks"],
             cwd=str(topsrcdir),
             universal_newlines=True,
         ).strip()
