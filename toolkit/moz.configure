@@ -4174,7 +4174,7 @@ def onnx_runtime_path(with_onnx_runtime, dllinfo, toolchain, bootstrap):
         )
 
     location = os.path.abspath(
-        os.path.join(dirname, f"{dllinfo.prefix}onnxruntime.{dllinfo.suffix}")
+        os.path.join(dirname, f"{dllinfo.prefix}onnxruntime{dllinfo.suffix}")
     )
 
     if os.path.exists(location):
