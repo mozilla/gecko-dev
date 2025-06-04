@@ -161,6 +161,33 @@ class URLRendererTest {
         assertEquals(0, spans.size)
     }
 
+    private suspend fun testRenderWithRegistrableDomain(
+        testUrl: String,
+        expectedUrl: String,
+    ) {
+        val configuration = ToolbarFeature.UrlRenderConfiguration(
+            publicSuffixList = PublicSuffixList(testContext, Dispatchers.Unconfined),
+            registrableDomainColor = Color.RED,
+            urlColor = Color.GREEN,
+            renderStyle = ToolbarFeature.RenderStyle.RegistrableDomain,
+        )
+
+        val toolbar: Toolbar = mock()
+
+        val renderer = URLRenderer(toolbar, configuration)
+
+        renderer.updateUrl(testUrl)
+
+        val captor = argumentCaptor<CharSequence>()
+        verify(toolbar).url = captor.capture()
+
+        assertNotNull(captor.value)
+        assertTrue(captor.value is String)
+        val url = captor.value as String
+
+        assertEquals(expectedUrl, url)
+    }
+
     @Test
     fun `GIVEN a simple domain WHEN getting registrable domain span in host THEN span is returned`() {
         runTestOnMain {
@@ -400,6 +427,86 @@ class URLRendererTest {
     fun `GIVEN a content URI WHEN rendering it THEN nothing is colored`() {
         runTestOnMain {
             testRenderWithUncoloredUrl("content://media/external/file/1000000000")
+        }
+    }
+
+    @Test
+    fun `GIVEN a simple URL WHEN rendering it THEN registrable domain is set`() {
+        runTestOnMain {
+            testRenderWithRegistrableDomain(
+                testUrl = "https://www.mozilla.org/",
+                expectedUrl = "mozilla.org",
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN a URL with a trailing period in the domain WHEN rendering it THEN registrable domain is set`() {
+        runTestOnMain {
+            testRenderWithRegistrableDomain(
+                testUrl = "https://www.mozilla.org./",
+                expectedUrl = "mozilla.org",
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN a URL with a repeated domain WHEN rendering it THEN the last occurrence of domain is set`() {
+        runTestOnMain {
+            testRenderWithRegistrableDomain(
+                testUrl = "https://mozilla.org.mozilla.org/",
+                expectedUrl = "mozilla.org",
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN a URL with an IPv4 address WHEN rendering it THEN the IP part is set`() {
+        runTestOnMain {
+            testRenderWithRegistrableDomain(
+                testUrl = "http://127.0.0.1/",
+                expectedUrl = "127.0.0.1",
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN a URL with an IPv6 address WHEN rendering it THEN the IP part is set`() {
+        runTestOnMain {
+            testRenderWithRegistrableDomain(
+                testUrl = "http://[::1]/",
+                expectedUrl = "[::1]",
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN a URL with a non PSL domain WHEN rendering it THEN host set`() {
+        runTestOnMain {
+            testRenderWithRegistrableDomain(
+                testUrl = "http://localhost/",
+                expectedUrl = "localhost",
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN an internal page name WHEN rendering it THEN it is set`() {
+        runTestOnMain {
+            testRenderWithRegistrableDomain(
+                testUrl = "about:mozilla",
+                expectedUrl = "about:mozilla",
+            )
+        }
+    }
+
+    @Test
+    fun `GIVEN a content URI WHEN rendering it THEN it is set`() {
+        runTestOnMain {
+            testRenderWithRegistrableDomain(
+                testUrl = "content://media/external/file/1000000000",
+                expectedUrl = "content://media/external/file/1000000000",
+            )
         }
     }
 }
