@@ -318,7 +318,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
 
         @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
         fun queueInitStorageAndServices() {
-            queue.runIfReadyOrQueue {
+            components.performance.visualCompletenessQueue.queue.runIfReadyOrQueue {
                 GlobalScope.launch(IO) {
                     logger.info("Running post-visual completeness tasks...")
                     logElapsedTime(logger, "Storage initialization") {
@@ -392,26 +392,15 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         }
 
         @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
-        fun queueIncrementNumberOfAppLaunches() {
-            queue.runIfReadyOrQueue {
-                GlobalScope.launch(IO) {
-                    settings().numberOfAppLaunches += 1
-                }
-            }
-        }
-
-        @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
         fun queueReviewPrompt() {
-            queue.runIfReadyOrQueue {
-                GlobalScope.launch(IO) {
-                    components.reviewPromptController.trackApplicationLaunch()
-                }
+            GlobalScope.launch(IO) {
+                components.reviewPromptController.trackApplicationLaunch()
             }
         }
 
         @OptIn(DelicateCoroutinesApi::class) // GlobalScope usage
         fun queueRestoreLocale() {
-            queue.runIfReadyOrQueue {
+            components.performance.visualCompletenessQueue.queue.runIfReadyOrQueue {
                 GlobalScope.launch(IO) {
                     components.useCases.localeUseCases.restore()
                 }
@@ -460,7 +449,6 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
         // startup path, before the UI finishes drawing (i.e. visual completeness).
         queueInitStorageAndServices()
         queueMetrics()
-        queueIncrementNumberOfAppLaunches()
         queueReviewPrompt()
         queueRestoreLocale()
         queueStorageMaintenance()
