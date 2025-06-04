@@ -103,7 +103,7 @@ class GfxInfoBase : public nsIGfxInfo,
   static void AddCollector(GfxInfoCollectorBase* collector);
   static void RemoveCollector(GfxInfoCollectorBase* collector);
 
-  static nsTArray<GfxDriverInfo>* sDriverInfo;
+  static StaticAutoPtr<nsTArray<RefPtr<GfxDriverInfo>>> sDriverInfo;
   static StaticAutoPtr<nsTArray<mozilla::gfx::GfxInfoFeatureStatus>>
       sFeatureStatus;
   static bool sDriverInfoObserverInitialized;
@@ -133,12 +133,12 @@ class GfxInfoBase : public nsIGfxInfo,
 
   virtual nsresult GetFeatureStatusImpl(
       int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
-      const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
-      OperatingSystem* aOS = nullptr);
+      const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo,
+      nsACString& aFailureId, OperatingSystem* aOS = nullptr);
 
   // Gets the driver info table. Used by GfxInfoBase to check for general cases
   // (while subclasses check for more specific ones).
-  virtual const nsTArray<GfxDriverInfo>& GetGfxDriverInfo() = 0;
+  virtual const nsTArray<RefPtr<GfxDriverInfo>>& GetGfxDriverInfo() = 0;
 
   virtual void DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> obj);
 
@@ -167,16 +167,17 @@ class GfxInfoBase : public nsIGfxInfo,
 
  private:
   virtual int32_t FindBlocklistedDeviceInList(
-      const nsTArray<GfxDriverInfo>& aDriverInfo, nsAString& aSuggestedVersion,
-      int32_t aFeature, nsACString& aFailureId, OperatingSystem os,
-      bool aForAllowing);
+      const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo,
+      nsAString& aSuggestedVersion, int32_t aFeature, nsACString& aFailureId,
+      OperatingSystem os, bool aForAllowing);
 
   std::pair<nsIGfxInfo::FontVisibilityDeviceDetermination, nsString>*
   GetFontVisibilityDeterminationPair();
 
   bool IsFeatureAllowlisted(int32_t aFeature) const;
 
-  void EvaluateDownloadedBlocklist(nsTArray<GfxDriverInfo>& aDriverInfo);
+  void EvaluateDownloadedBlocklist(
+      nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo);
 
   bool BuildFeatureStateLog(JSContext* aCx, const gfx::FeatureState& aFeature,
                             JS::MutableHandle<JS::Value> aOut);

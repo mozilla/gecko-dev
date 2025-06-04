@@ -358,7 +358,7 @@ void GfxInfo::AddCrashReportAnnotations() {
       CrashReporter::Annotation::AdapterDriverVersion, mGLStrings->Version());
 }
 
-const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
+const nsTArray<RefPtr<GfxDriverInfo>>& GfxInfo::GetGfxDriverInfo() {
   if (sDriverInfo->IsEmpty()) {
     APPEND_TO_DRIVER_BLOCKLIST2(
         OperatingSystem::Android, DeviceFamily::All,
@@ -372,7 +372,7 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
 
 nsresult GfxInfo::GetFeatureStatusImpl(
     int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
-    const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
+    const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo, nsACString& aFailureId,
     OperatingSystem* aOS /* = nullptr */) {
   NS_ENSURE_ARG_POINTER(aStatus);
   aSuggestedDriverVersion.SetIsVoid(true);

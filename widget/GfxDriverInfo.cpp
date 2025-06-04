@@ -11,7 +11,7 @@
 
 using namespace mozilla::widget;
 
-GfxDeviceFamily*
+MOZ_CONSTINIT RefPtr<GfxDeviceFamily>
     GfxDriverInfo::sDeviceFamilies[static_cast<size_t>(DeviceFamily::Max)];
 nsString*
     GfxDriverInfo::sWindowProtocol[static_cast<size_t>(WindowProtocol::Max)];
@@ -27,7 +27,6 @@ GfxDriverInfo::GfxDriverInfo()
       mAdapterVendor(GfxDriverInfo::GetDeviceVendor(DeviceFamily::All)),
       mDriverVendor(GfxDriverInfo::GetDriverVendor(DriverVendor::All)),
       mDevices(GfxDriverInfo::GetDeviceFamily(DeviceFamily::All)),
-      mDeleteDevices(false),
       mFeature(optionalFeatures),
       mFeatureStatus(nsIGfxInfo::FEATURE_STATUS_OK),
       mComparisonOp(DRIVER_COMPARISON_IGNORED),
@@ -40,7 +39,8 @@ GfxDriverInfo::GfxDriverInfo()
 GfxDriverInfo::GfxDriverInfo(
     OperatingSystem os, ScreenSizeStatus screen, BatteryStatus battery,
     const nsAString& windowProtocol, const nsAString& vendor,
-    const nsAString& driverVendor, GfxDeviceFamily* devices, int32_t feature,
+    const nsAString& driverVendor,
+    already_AddRefed<const GfxDeviceFamily> devices, int32_t feature,
     int32_t featureStatus, VersionComparisonOp op, uint64_t driverVersion,
     const char* ruleId, const char* suggestedVersion /* = nullptr */,
     bool ownDevices /* = false */, bool gpu2 /* = false */)
@@ -52,7 +52,6 @@ GfxDriverInfo::GfxDriverInfo(
       mAdapterVendor(vendor),
       mDriverVendor(driverVendor),
       mDevices(devices),
-      mDeleteDevices(ownDevices),
       mFeature(feature),
       mFeatureStatus(featureStatus),
       mComparisonOp(op),
@@ -61,41 +60,6 @@ GfxDriverInfo::GfxDriverInfo(
       mSuggestedVersion(suggestedVersion),
       mRuleId(ruleId),
       mGpu2(gpu2) {}
-
-GfxDriverInfo::GfxDriverInfo(const GfxDriverInfo& aOrig)
-    : mOperatingSystem(aOrig.mOperatingSystem),
-      mOperatingSystemVersion(aOrig.mOperatingSystemVersion),
-      mScreen(aOrig.mScreen),
-      mBattery(aOrig.mBattery),
-      mWindowProtocol(aOrig.mWindowProtocol),
-      mAdapterVendor(aOrig.mAdapterVendor),
-      mDriverVendor(aOrig.mDriverVendor),
-      mFeature(aOrig.mFeature),
-      mFeatureStatus(aOrig.mFeatureStatus),
-      mComparisonOp(aOrig.mComparisonOp),
-      mDriverVersion(aOrig.mDriverVersion),
-      mDriverVersionMax(aOrig.mDriverVersionMax),
-      mSuggestedVersion(aOrig.mSuggestedVersion),
-      mRuleId(aOrig.mRuleId),
-      mGpu2(aOrig.mGpu2) {
-  // If we're managing the lifetime of the device family, we have to make a
-  // copy of the original's device family.
-  if (aOrig.mDeleteDevices && aOrig.mDevices) {
-    GfxDeviceFamily* devices = new GfxDeviceFamily;
-    *devices = *aOrig.mDevices;
-    mDevices = devices;
-  } else {
-    mDevices = aOrig.mDevices;
-  }
-
-  mDeleteDevices = aOrig.mDeleteDevices;
-}
-
-GfxDriverInfo::~GfxDriverInfo() {
-  if (mDeleteDevices) {
-    delete mDevices;
-  }
-}
 
 void GfxDeviceFamily::Append(const nsAString& aDeviceId) {
   mIds.AppendElement(aDeviceId);
@@ -139,7 +103,8 @@ nsresult GfxDeviceFamily::Contains(nsAString& aDeviceId) const {
   deviceFamily->Append(NS_LITERAL_STRING_FROM_CSTRING(device))
 #define APPEND_RANGE(start, end) deviceFamily->AppendRange(start, end)
 
-const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
+already_AddRefed<const GfxDeviceFamily> GfxDriverInfo::GetDeviceFamily(
+    DeviceFamily id) {
   if (id >= DeviceFamily::Max) {
     MOZ_ASSERT_UNREACHABLE("DeviceFamily id is out of range");
     return nullptr;
@@ -164,11 +129,11 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
   // If it already exists, we must have processed it once, so return it now.
   auto idx = static_cast<size_t>(id);
   if (sDeviceFamilies[idx]) {
-    return sDeviceFamilies[idx];
+    return do_AddRef(sDeviceFamilies[idx]);
   }
 
-  sDeviceFamilies[idx] = new GfxDeviceFamily;
-  GfxDeviceFamily* deviceFamily = sDeviceFamilies[idx];
+  sDeviceFamilies[idx] = MakeRefPtr<GfxDeviceFamily>();
+  RefPtr<GfxDeviceFamily> deviceFamily = sDeviceFamilies[idx];
 
   switch (id) {
     case DeviceFamily::IntelGMA500:
@@ -702,7 +667,7 @@ const GfxDeviceFamily* GfxDriverInfo::GetDeviceFamily(DeviceFamily id) {
       break;
   }
 
-  return deviceFamily;
+  return deviceFamily.forget();
 }
 
 const nsAString& GfxDriverInfo::GetWindowProtocol(WindowProtocol id) {
