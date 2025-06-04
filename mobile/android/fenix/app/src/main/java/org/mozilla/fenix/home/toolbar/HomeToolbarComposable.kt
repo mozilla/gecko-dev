@@ -23,7 +23,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import androidx.navigation.NavController
-import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.compose.base.Divider
@@ -135,10 +134,6 @@ internal class HomeToolbarComposable(
         Box {
             BrowserToolbar(
                 store = store,
-                browserStore = context.components.core.store,
-                onTextEdit = {},
-                onTextCommit = {},
-                target = Target.Tab("none"),
             )
             if (shouldShowDivider) {
                 Divider(
