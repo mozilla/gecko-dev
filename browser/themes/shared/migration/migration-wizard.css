@@ -57,10 +57,8 @@ div[name="page-loading"] > .buttons > button {
 
 .deemphasized-text {
   font-size: 0.84em;
-}
 
-@media not (prefers-contrast) {
-  .deemphasized-text {
+  &:not(a) {
     color: var(--text-color-deemphasized);
   }
 }
@@ -317,6 +315,7 @@ summary {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
