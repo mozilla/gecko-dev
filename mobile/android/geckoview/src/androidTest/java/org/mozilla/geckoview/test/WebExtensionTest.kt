@@ -605,6 +605,47 @@ class WebExtensionTest : BaseSessionTest() {
         sessionRule.waitForResult(controller.uninstall(extension))
     }
 
+    @Test
+    fun dataCollectionPermissions() {
+        sessionRule.setPrefsUntilTestEnd(
+            mapOf(
+                "xpinstall.signatures.required" to false,
+                "extensions.dataCollectionPermissions.enabled" to true,
+            ),
+        )
+
+        val extension = sessionRule.waitForResult(
+            controller.ensureBuiltIn(
+                "resource://android/assets/web_extensions/data-collection/",
+                "data-collection@test.mozilla.org",
+            ),
+        )
+        assertEquals("data-collection@test.mozilla.org", extension.id)
+
+        var requiredDataCollectionPermissions = extension.metaData.requiredDataCollectionPermissions
+        assertArrayEquals(
+            "requiredDataCollectionPermissions has the expected permissions",
+            arrayOf("healthInfo"),
+            requiredDataCollectionPermissions,
+        )
+
+        var optionalDataCollectionPermissions = extension.metaData.optionalDataCollectionPermissions
+        assertArrayEquals(
+            "optionalDataCollectionPermissions has the expected permissions",
+            arrayOf("technicalAndInteraction", "locationInfo"),
+            optionalDataCollectionPermissions,
+        )
+
+        var grantedOptionalDataCollectionPermissions = extension.metaData.grantedOptionalDataCollectionPermissions
+        assertThat(
+            "Expected no granted data collection permissions.",
+            grantedOptionalDataCollectionPermissions.size,
+            equalTo(0),
+        )
+
+        sessionRule.waitForResult(controller.uninstall(extension))
+    }
+
     private fun assertBodyBorderEqualTo(expected: String) {
         val color = mainSession.evaluateJS("document.body.style.borderColor")
         assertThat(
