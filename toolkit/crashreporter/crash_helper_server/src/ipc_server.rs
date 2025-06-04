@@ -40,7 +40,10 @@ impl IPCServer {
     ) -> Result<IPCServerState, IPCError> {
         let events = wait_for_events(&mut self.listener, &mut self.connectors)?;
 
-        for event in events {
+        // We reverse the order of events, so that we start processing them
+        // from the highest indexes toward the lowest. If we did the opposite
+        // removed connections would invalidate the successive indexes.
+        for event in events.into_iter().rev() {
             match event {
                 IPCEvent::Connect(connector) => {
                     self.connectors.push(connector);
