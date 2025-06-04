@@ -194,6 +194,18 @@ downloads-history =
 downloads-details =
     .title = Download details
 
+## These strings are displayed in the private browsing view of the downloads panel
+
+downloads-private-browsing-details =
+  .title = Files stay on your device
+downloads-private-browsing-message = Anyone using this device can see downloads, even when you close all private windows.
+downloads-private-browsing-delete-button =
+  .label = Delete files automatically
+  .accesskey = D
+downloads-private-browsing-accept-button =
+  .label = Got it
+  .accesskey = G
+
 ## Displayed when a site attempts to automatically download many files.
 ## Variables:
 ##   $num (number) - Number of blocked downloads.

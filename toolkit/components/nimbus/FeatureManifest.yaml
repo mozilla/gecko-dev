@@ -4880,3 +4880,15 @@ contextID:
       description: >-
         Enables the Rust component backend for ContextId.sys.mjs, which is
         a prerequisite for doing rotations.
+
+deletePrivate:
+  description: Enable or disable the option for users to delete files at the end of a private browsing session
+  owner: rking@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.download.enableDeletePrivate
+      description: Whether the setting for deleting files downloaded in private browsing is available to the user

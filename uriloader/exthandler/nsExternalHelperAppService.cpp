@@ -1184,6 +1184,12 @@ nsExternalHelperAppService::DeleteTemporaryFileOnExit(nsIFile* aTemporaryFile) {
 }
 
 NS_IMETHODIMP
+nsExternalHelperAppService::DeletePrivateFileWhenPossible(
+    nsIFile* aPrivateFile) {
+  return DeleteTemporaryFileHelper(aPrivateFile, mPrivateFilesList);
+}
+
+NS_IMETHODIMP
 nsExternalHelperAppService::DeleteTemporaryPrivateFileWhenPossible(
     nsIFile* aTemporaryFile) {
   return DeleteTemporaryFileHelper(aTemporaryFile, mTemporaryPrivateFilesList);
@@ -1207,6 +1213,10 @@ void nsExternalHelperAppService::ExpungeTemporaryFilesHelper(
 
 void nsExternalHelperAppService::ExpungeTemporaryFiles() {
   ExpungeTemporaryFilesHelper(mTemporaryFilesList);
+}
+
+void nsExternalHelperAppService::ExpungePrivateFiles() {
+  ExpungeTemporaryFilesHelper(mPrivateFilesList);
 }
 
 void nsExternalHelperAppService::ExpungeTemporaryPrivateFiles() {
@@ -1284,6 +1294,10 @@ nsExternalHelperAppService::Observe(nsISupports* aSubject, const char* aTopic,
   if (!strcmp(aTopic, "profile-before-change")) {
     ExpungeTemporaryFiles();
   } else if (!strcmp(aTopic, "last-pb-context-exited")) {
+    if (Preferences::GetBool("browser.download.enableDeletePrivate", true) &&
+        Preferences::GetBool("browser.download.deletePrivate", true)) {
+      ExpungePrivateFiles();
+    }
     ExpungeTemporaryPrivateFiles();
   }
   return NS_OK;

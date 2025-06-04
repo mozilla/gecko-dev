@@ -1593,6 +1593,22 @@
   value: false
   mirror: always
 
+# See bug 1790641
+- name: browser.download.enableDeletePrivate
+  type: bool
+  value: false
+  mirror: always
+
+- name: browser.download.deletePrivate
+  type: bool
+  value: false
+  mirror: always
+
+- name: browser.download.deletePrivateChosen
+  type: bool
+  value: false
+  mirror: always
+
 # See bug 1731668
 - name: browser.download.enable_spam_prevention
   type: bool

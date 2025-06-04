@@ -408,6 +408,9 @@ download-choose-folder =
 download-always-ask-where =
     .label = Always ask you where to save files
     .accesskey = A
+download-private-browsing-delete =
+    .label = Delete files downloaded in private browsing when all private windows are closed
+    .accesskey = D
 
 applications-header = Applications
 

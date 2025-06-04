@@ -640,8 +640,6 @@ Download.prototype = {
     if (this.launchWhenSucceeded) {
       this.launch().catch(console.error);
 
-      // Always schedule files to be deleted at the end of the private browsing
-      // mode, regardless of the value of the pref.
       if (this.source.isPrivate) {
         lazy.gExternalAppLauncher.deleteTemporaryPrivateFileWhenPossible(
           new lazy.FileUtils.File(this.target.path)
@@ -657,6 +655,19 @@ Download.prototype = {
           new lazy.FileUtils.File(this.target.path)
         );
       }
+    }
+
+    if (
+      Services.prefs.getBoolPref(
+        "browser.download.enableDeletePrivate",
+        false
+      ) &&
+      Services.prefs.getBoolPref("browser.download.deletePrivate", false) &&
+      this.source.isPrivate
+    ) {
+      lazy.gExternalAppLauncher.deletePrivateFileWhenPossible(
+        new lazy.FileUtils.File(this.target.path)
+      );
     }
   },
 
