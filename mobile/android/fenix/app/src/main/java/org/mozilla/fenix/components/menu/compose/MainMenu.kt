@@ -87,6 +87,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param isBookmarked Whether or not the current tab is bookmarked.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
  * @param isPdf Whether or not the current tab is a PDF.
+ * @param isReaderViewActive Whether or not Reader View is active or not.
  * @param isTranslationSupported Whether or not translation is supported.
  * @param isWebCompatReporterSupported Whether or not the report broken site feature is supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
@@ -95,6 +96,7 @@ import org.mozilla.fenix.utils.DURATION_MS_MAIN_MENU
  * @param scrollState The [ScrollState] used for vertical scrolling.
  * @param webExtensionMenuCount The number of web extensions.
  * @param onMoreMenuClick Invoked when the user clicks on the more menu item.
+ * @param onCustomizeReaderViewMenuClick Invoked when the user clicks on the Customize Reader View button.
  * @param onMozillaAccountButtonClick Invoked when the user clicks on Mozilla account button.
  * @param onSettingsButtonClick Invoked when the user clicks on the settings button.
  * @param onBookmarkPageMenuClick Invoked when the user clicks on the bookmark page menu item.
@@ -132,6 +134,7 @@ fun MainMenu(
     isBookmarked: Boolean,
     isDesktopMode: Boolean,
     isPdf: Boolean,
+    isReaderViewActive: Boolean,
     isTranslationSupported: Boolean,
     isWebCompatReporterSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
@@ -140,6 +143,7 @@ fun MainMenu(
     scrollState: ScrollState,
     webExtensionMenuCount: Int,
     onMoreMenuClick: () -> Unit,
+    onCustomizeReaderViewMenuClick: () -> Unit,
     onMozillaAccountButtonClick: () -> Unit,
     onSettingsButtonClick: () -> Unit,
     onBookmarkPageMenuClick: () -> Unit,
@@ -179,6 +183,16 @@ fun MainMenu(
         },
         scrollState = scrollState,
     ) {
+        MenuGroup {
+            if (isReaderViewActive) {
+                MenuItem(
+                    label = stringResource(id = R.string.browser_menu_customize_reader_view_2),
+                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_tool_24),
+                    onClick = onCustomizeReaderViewMenuClick,
+                )
+            }
+        }
+
         if (accessPoint == MenuAccessPoint.Home) {
             HomepageMenuGroup(
                 onCustomizeHomepageMenuClick = onCustomizeHomepageMenuClick,
@@ -897,12 +911,14 @@ private fun MenuDialogPreview() {
                 isExtensionsProcessDisabled = true,
                 isExtensionsExpanded = false,
                 isMoreMenuExpanded = true,
+                isReaderViewActive = false,
                 isTranslationSupported = true,
                 isWebCompatReporterSupported = true,
                 extensionsMenuItemDescription = "No extensions enabled",
                 scrollState = ScrollState(0),
                 webExtensionMenuCount = 1,
                 allWebExtensionsDisabled = false,
+                onCustomizeReaderViewMenuClick = {},
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
                 onBookmarkPageMenuClick = {},
@@ -950,6 +966,7 @@ private fun MenuDialogPrivatePreview() {
                 showQuitMenu = true,
                 isExtensionsExpanded = true,
                 isMoreMenuExpanded = true,
+                isReaderViewActive = false,
                 isTranslationSupported = true,
                 isWebCompatReporterSupported = true,
                 isExtensionsProcessDisabled = false,
@@ -957,6 +974,7 @@ private fun MenuDialogPrivatePreview() {
                 scrollState = ScrollState(0),
                 webExtensionMenuCount = 0,
                 allWebExtensionsDisabled = false,
+                onCustomizeReaderViewMenuClick = {},
                 onMozillaAccountButtonClick = {},
                 onSettingsButtonClick = {},
                 onBookmarkPageMenuClick = {},

@@ -34,7 +34,6 @@ internal fun ToolsSubmenu(
     translatedLanguage: String,
     onBackButtonClick: () -> Unit,
     onReaderViewMenuClick: () -> Unit,
-    onCustomizeReaderViewMenuClick: () -> Unit,
     onTranslatePageMenuClick: () -> Unit,
     onPrintMenuClick: () -> Unit,
     onShareMenuClick: () -> Unit,
@@ -59,16 +58,6 @@ internal fun ToolsSubmenu(
                 isReaderViewActive = isReaderViewActive,
                 onClick = onReaderViewMenuClick,
             )
-
-            if (isReaderViewActive) {
-                Divider(color = FirefoxTheme.colors.borderSecondary)
-
-                MenuItem(
-                    label = stringResource(id = R.string.browser_menu_customize_reader_view_2),
-                    beforeIconPainter = painterResource(id = R.drawable.mozac_ic_reader_view_customize_24),
-                    onClick = onCustomizeReaderViewMenuClick,
-                )
-            }
 
             if (isTranslationSupported) {
                 Divider(color = FirefoxTheme.colors.borderSecondary)
@@ -215,7 +204,6 @@ private fun ToolsSubmenuPreview() {
                 translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},
-                onCustomizeReaderViewMenuClick = {},
                 onTranslatePageMenuClick = {},
                 onPrintMenuClick = {},
                 onShareMenuClick = {},
@@ -248,7 +236,6 @@ private fun ToolsSubmenuPrivatePreview() {
                 translatedLanguage = "",
                 onBackButtonClick = {},
                 onReaderViewMenuClick = {},
-                onCustomizeReaderViewMenuClick = {},
                 onTranslatePageMenuClick = {},
                 onPrintMenuClick = {},
                 onShareMenuClick = {},

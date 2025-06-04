@@ -503,6 +503,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     isBookmarked = isBookmarked,
                                     isDesktopMode = isDesktopMode,
                                     isPdf = isPdf,
+                                    isReaderViewActive = isReaderViewActive,
                                     isTranslationSupported = isTranslationSupported,
                                     isWebCompatReporterSupported = isWebCompatReporterSupported,
                                     extensionsMenuItemDescription = getExtensionsMenuItemDescription(
@@ -585,6 +586,9 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onCustomizeHomepageMenuClick = {
                                         store.dispatch(MenuAction.Navigate.CustomizeHomepage)
+                                    },
+                                    onCustomizeReaderViewMenuClick = {
+                                        store.dispatch(MenuAction.CustomizeReaderView)
                                     },
                                     onNewInFirefoxMenuClick = {
                                         store.dispatch(MenuAction.Navigate.ReleaseNotes)
@@ -773,9 +777,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     },
                                     onReaderViewMenuClick = {
                                         store.dispatch(MenuAction.ToggleReaderView)
-                                    },
-                                    onCustomizeReaderViewMenuClick = {
-                                        store.dispatch(MenuAction.CustomizeReaderView)
                                     },
                                     onTranslatePageMenuClick = {
                                         selectedTab?.let {
