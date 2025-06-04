@@ -903,9 +903,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // For JitFrameLayout, the descriptor also stores the number of arguments
   // passed by the caller. See MakeFrameDescriptorForJitCall.
   inline void pushFrameDescriptorForJitCall(FrameType type, Register argc,
-                                            Register scratch);
+                                            Register scratch,
+                                            bool hasInlineICScript = false);
   inline void PushFrameDescriptorForJitCall(FrameType type, Register argc,
-                                            Register scratch);
+                                            Register scratch,
+                                            bool hasInlineICScript = false);
 
   // Load the number of actual arguments from the frame's JitFrameLayout.
   inline void loadNumActualArgs(Register framePtr, Register dest);
@@ -5895,7 +5897,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void loadJitCodeRaw(Register func, Register dest);
   void loadBaselineJitCodeRaw(Register func, Register dest,
                               Label* failure = nullptr);
-  void storeICScriptInJSContext(Register icScript);
 
   void loadBaselineFramePtr(Register framePtr, Register dest);
 
