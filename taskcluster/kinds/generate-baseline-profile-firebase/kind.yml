@@ -65,13 +65,11 @@ tasks:
             secrets:
                 - name: project/mobile/firefox-android/fenix/firebase
                   key: firebaseToken
-                  path: .firebase_token.json
+                  path: mobile/android/test_infra/.firebase_token.json
                   json: true
-            pre-commands:
-                - ["cd", "mobile/android/fenix"]
             commands:
-                - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm64-v8a-baseline-profile, /builds/worker/fetches/target.arm64-v8a.apk, --apk_test, /builds/worker/fetches/target.noarch.apk]
-                - [python3, ../../../taskcluster/scripts/tests/copy-artifacts-from-ftl.py, "baseline_profile"]
+                - [python3, taskcluster/scripts/tests/test-lab.py, fenix/arm64-v8a-baseline-profile.yml, /builds/worker/fetches/target.arm64-v8a.apk, --apk_test, /builds/worker/fetches/target.noarch.apk]
+                - [python3, taskcluster/scripts/tests/copy-artifacts-from-ftl.py, "baseline_profile"]
         treeherder:
             platform: fenix-android-all/opt
             symbol: Bpgo(run)

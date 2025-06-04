@@ -2,37 +2,41 @@
 # Flank Documentation: https://flank.github.io/flank/
 gcloud:
   results-bucket: fenix_test_artifacts
-  record-video: true
-  timeout: 15m
+  record-video: false
+  timeout: 10m
   async: false
-  num-flaky-test-attempts: 1
 
   app: /app/path
-  test: /test/path
 
   auto-google-login: false
   use-orchestrator: true
   environment-variables:
     clearPackageData: true
-  directories-to-pull:
-    - /sdcard/screenshots
-  performance-metrics: true
   other-files:
-    /data/local/tmp/org.mozilla.fenix.debug-geckoview-config.yaml: ./automation/taskcluster/androidTest/geckoview-configs/org.mozilla.fenix.debug-geckoview-config.yaml
-
-  test-targets:
-    - notPackage org.mozilla.fenix.syncintegration
-    - notPackage org.mozilla.fenix.experimentintegration
-    - package org.mozilla.fenix.ui.efficiency.tests
+    /data/local/tmp/org.mozilla.fenix.debug-geckoview-config.yaml: geckoview-configs/org.mozilla.fenix.debug-geckoview-config.yaml
 
   device:
+    - model: java
+      version: 30
+      locale: en_US
     - model: MediumPhone.arm
+      version: 32
+      locale: en_US
+    - model: redfin
+      version: 30
+      locale: en_US
+    - model: oriole
+      version: 31
+      locale: en_US
+    - model: e1q
       version: 34
       locale: en_US
 
+  type: robo
+  robo-script: robo-scripts/default-browser-dismissal.json
+
 flank:
   project: GOOGLE_PROJECT
-  max-test-shards: 100
   num-test-runs: 1
   output-style: compact
   full-junit-result: true

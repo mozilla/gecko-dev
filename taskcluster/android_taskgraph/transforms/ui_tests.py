@@ -44,7 +44,7 @@ def define_ui_test_command_line(config, tasks):
 
     for task in tasks:
         component = task["attributes"]["component"]
-        device_type = "arm"  # This maps to existing Flank configurations in automation/taskcluster/androidTest (e.g, flank-arm.yml)
+        flank_config = "components/arm.yml"
 
         apk_app, apk_test = None, None
 
@@ -99,8 +99,8 @@ def define_ui_test_command_line(config, tasks):
         post_gradlew.append(
             [
                 "python3",
-                "../../../taskcluster/scripts/tests/test-lab.py",
-                device_type,
+                "taskcluster/scripts/tests/test-lab.py",
+                flank_config,
                 apk_app,
                 "--apk_test",
                 apk_test,

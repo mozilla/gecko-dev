@@ -3,7 +3,7 @@
 gcloud:
   results-bucket: fenix_test_artifacts
   record-video: false
-  timeout: 10m
+  timeout: 5m
   async: false
 
   app: /app/path
@@ -12,28 +12,14 @@ gcloud:
   use-orchestrator: true
   environment-variables:
     clearPackageData: true
-  other-files:
-    /data/local/tmp/org.mozilla.fenix.debug-geckoview-config.yaml: ./automation/taskcluster/androidTest/geckoview-configs/org.mozilla.fenix.debug-geckoview-config.yaml
 
   device:
-    - model: java
-      version: 30
-      locale: en_US
     - model: MediumPhone.arm
-      version: 32
-      locale: en_US
-    - model: redfin
       version: 30
-      locale: en_US
-    - model: oriole
-      version: 31
-      locale: en_US
-    - model: e1q
-      version: 34
       locale: en_US
 
   type: robo
-  robo-script: ./automation/taskcluster/androidTest/robo-scripts/default-browser-dismissal.json
+  robo-script: robo-scripts/default-browser-dismissal.json
 
 flank:
   project: GOOGLE_PROJECT

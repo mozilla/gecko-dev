@@ -31,8 +31,11 @@ class Worker(Enum):
     RESULTS_DIR = "/builds/worker/artifacts/results"
 
 
-ANDROID_TEST = "./automation/taskcluster/androidTest"
+# Locate other scripts and configs relative to this script. The actual
+# invocation of Flank will be relative to ANDROID_TEST path below.
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
+TOPSRCDIR = os.path.join(SCRIPT_DIR, "../../..")
+ANDROID_TEST = os.path.join(TOPSRCDIR, "mobile/android/test_infra")
 
 
 def setup_logging():
@@ -54,7 +57,11 @@ def run_command(
     """
 
     with subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        cwd=ANDROID_TEST,
     ) as process:
         if log_path:
             with open(log_path, "a") as log_file:
@@ -110,7 +117,7 @@ def execute_tests(
         "android",
         "run",
         "--config",
-        f"{ANDROID_TEST}/flank-{flank_config}.yml",
+        f"{ANDROID_TEST}/flank-configs/{flank_config}",
         "--app",
         str(apk_app),
         "--local-result-dir",
@@ -177,7 +184,8 @@ def main():
     )
     parser.add_argument(
         "flank_config",
-        help="The YML configuration for Flank to use e.g, automation/taskcluster/androidTest/flank-<config>.yml",
+        help="The YML configuration for Flank to use e.g, 'fenix/flank-arm-debug.yml'."
+        + " This is relative to 'mobile/android/test_infra/flank-configs'.",
     )
     parser.add_argument(
         "apk_app", help="Absolute path to a Android APK application package"
