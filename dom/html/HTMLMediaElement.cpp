@@ -2424,6 +2424,7 @@ void HTMLMediaElement::ShutdownDecoder() {
 
 void HTMLMediaElement::AbortExistingLoads() {
   MOZ_ASSERT(NS_IsMainThread());
+  LOG(LogLevel::Debug, ("%p Abort existing loads", this));
   // Abort any already-running instance of the resource selection algorithm.
   mLoadWaitStatus = NOT_WAITING;
 
@@ -3186,10 +3187,13 @@ void HTMLMediaElement::UpdatePreloadAction() {
   }
 
   if (nextAction == HTMLMediaElement::PRELOAD_NONE && mIsDoingExplicitLoad) {
+    LOG(LogLevel::Debug,
+        ("%p Force to preload metadata when explicit loading a preload none element", this));
     nextAction = HTMLMediaElement::PRELOAD_METADATA;
   }
 
   mPreloadAction = nextAction;
+  LOG(LogLevel::Debug,("%p Preload action=%d", this, nextAction));
 
   if (nextAction == HTMLMediaElement::PRELOAD_ENOUGH) {
     if (mSuspendedForPreloadNone) {
@@ -3204,8 +3208,18 @@ void HTMLMediaElement::UpdatePreloadAction() {
     }
 
   } else if (nextAction == HTMLMediaElement::PRELOAD_METADATA) {
-    // Ensure that the video can be suspended after first frame.
-    mAllowSuspendAfterFirstFrame = true;
+    // If no preload attribute is present but Load() has been explicitly called,
+    // assume more data may be needed and avoid suspending the decoder. This is
+    // done because some sites may rely on the `canplaythrough` event after
+    // calling load(), even though it’s not guaranteed to fire.
+    //
+    // This behavior can be reconsidered once bug 1969224 is resolved.
+    if (!HasAttr(nsGkAtoms::preload) && mIsDoingExplicitLoad) {
+      mAllowSuspendAfterFirstFrame = false;
+    } else {
+      // Ensure that the video can be suspended after first frame.
+      mAllowSuspendAfterFirstFrame = true;
+    }
     if (mSuspendedForPreloadNone) {
       // Our load was previouly suspended due to the media having preload
       // value "none". The preload value has changed to preload:metadata, so
@@ -5702,12 +5716,31 @@ void HTMLMediaElement::FirstFrameLoaded() {
 
   ChangeDelayLoadStatus(false);
 
-  if (mDecoder && mAllowSuspendAfterFirstFrame && mPaused &&
-      !HasAttr(nsGkAtoms::autoplay) &&
-      mPreloadAction == HTMLMediaElement::PRELOAD_METADATA) {
+  if (ShouldSuspendDownloadAfterFirstFrameLoaded()) {
+    LOG(LogLevel::Debug, ("%p Suspend decoder after first frame loaded", this));
     mSuspendedAfterFirstFrame = true;
     mDecoder->Suspend();
   }
+}
+
+bool HTMLMediaElement::ShouldSuspendDownloadAfterFirstFrameLoaded() const {
+  if (!mDecoder) {
+    return false;
+  }
+
+  // If the media is set to autoplay, avoid suspending, to preload as much as
+  // possible.
+  if (HasAttr(nsGkAtoms::autoplay)) {
+    return false;
+  }
+
+  // If the media is currently playing, do not suspend downloading.
+  if (!mPaused) {
+    return false;
+  }
+
+  return mPreloadAction == HTMLMediaElement::PRELOAD_METADATA &&
+         mAllowSuspendAfterFirstFrame;
 }
 
 void HTMLMediaElement::NetworkError(const MediaResult& aError) {

@@ -1832,6 +1832,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   uint32_t GetPreloadDefault() const;
   uint32_t GetPreloadDefaultAuto() const;
 
+  bool ShouldSuspendDownloadAfterFirstFrameLoaded() const;
+
   /**
    * This function is called by AfterSetAttr and OnAttrSetButNotChanged.
    * It will not be called if the value is being unset.
