@@ -703,15 +703,6 @@ skip script test262/intl402/PluralRules/prototype/resolvedOptions/properties.js
 skip script test262/intl402/PluralRules/prototype/resolvedOptions/order.js
 skip script test262/intl402/PluralRules/prototype/constructor/notation.js
 
-# https://bugzilla.mozilla.org/show_bug.cgi?id=1950162
-skip script test262/intl402/Temporal/ZonedDateTime/construct-non-utc-non-iso.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/weekOfYear/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/ZonedDateTime/prototype/yearOfWeek/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/PlainDate/prototype/weekOfYear/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/PlainDate/prototype/yearOfWeek/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/weekOfYear/non-iso-week-of-year.js
-skip script test262/intl402/Temporal/PlainDateTime/prototype/yearOfWeek/non-iso-week-of-year.js
-
 # https://bugzilla.mozilla.org/show_bug.cgi?id=1962010
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/rule-change-without-offset-transition.js
 

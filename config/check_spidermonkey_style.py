@@ -86,9 +86,6 @@ included_inclnames_to_ignore = set(
         "ICU4XIsoDate.h",  # ICU4X
         "ICU4XIsoWeekday.h",  # ICU4X
         "ICU4XSentenceSegmenter.h",  # ICU4X
-        "ICU4XWeekCalculator.h",  # ICU4X
-        "ICU4XWeekOf.h",  # ICU4X
-        "ICU4XWeekRelativeUnit.h",  # ICU4X
         "ICU4XWordSegmenter.h",  # ICU4X
         "mozmemory.h",  # included without a path
         "mozmemory_stall.h",  # included without a path

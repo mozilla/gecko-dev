@@ -38,8 +38,6 @@
 #include "ICU4XError.h"
 #include "ICU4XIsoDate.h"
 #include "ICU4XIsoWeekday.h"
-#include "ICU4XWeekCalculator.h"
-#include "ICU4XWeekRelativeUnit.h"
 
 #include "jsnum.h"
 #include "jstypes.h"
@@ -793,29 +791,6 @@ class ICU4XIsoDateDeleter {
 
 using UniqueICU4XIsoDate =
     mozilla::UniquePtr<capi::ICU4XIsoDate, ICU4XIsoDateDeleter>;
-
-class ICU4XWeekCalculatorDeleter {
- public:
-  void operator()(capi::ICU4XWeekCalculator* ptr) {
-    capi::ICU4XWeekCalculator_destroy(ptr);
-  }
-};
-
-using UniqueICU4XWeekCalculator =
-    mozilla::UniquePtr<capi::ICU4XWeekCalculator, ICU4XWeekCalculatorDeleter>;
-
-static UniqueICU4XWeekCalculator CreateICU4WeekCalculator(JSContext* cx,
-                                                          CalendarId calendar) {
-  MOZ_ASSERT(calendar == CalendarId::Gregorian);
-
-  auto firstWeekday = capi::ICU4XIsoWeekday_Monday;
-  uint8_t minWeekDays = 1;
-
-  auto* result =
-      capi::ICU4XWeekCalculator_create_from_first_day_of_week_and_min_week_days(
-          firstWeekday, minWeekDays);
-  return UniqueICU4XWeekCalculator{result};
-}
 
 // Define IMPLEMENTS_DR2126 if DR2126 is implemented.
 //
@@ -2866,38 +2841,12 @@ bool js::temporal::CalendarWeekOfYear(JSContext* cx,
   }
 
   // Step 2.
-
+  //
   // Non-Gregorian calendars don't get week-of-year support for now.
   //
+  // https://github.com/tc39/proposal-temporal/issues/3096
   // https://github.com/tc39/proposal-intl-era-monthcode/issues/15
-  if (calendarId != CalendarId::Gregorian) {
-    result.setUndefined();
-    return true;
-  }
-
-  auto cal = CreateICU4XCalendar(cx, calendarId);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  auto weekCal = CreateICU4WeekCalculator(cx, calendarId);
-  if (!weekCal) {
-    return false;
-  }
-
-  auto week = capi::ICU4XDate_week_of_year(dt.get(), weekCal.get());
-  if (!week.is_ok) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
-    return false;
-  }
-
-  result.setInt32(week.ok.week);
+  result.setUndefined();
   return true;
 }
 
@@ -2919,56 +2868,12 @@ bool js::temporal::CalendarYearOfWeek(JSContext* cx,
   }
 
   // Step 2.
-
-  // Non-Gregorian calendars don't get week-of-year support for now.
   //
+  // Non-ISO8601 calendars don't get year-of-week support for now.
+  //
+  // https://github.com/tc39/proposal-temporal/issues/3096
   // https://github.com/tc39/proposal-intl-era-monthcode/issues/15
-  if (calendarId != CalendarId::Gregorian) {
-    result.setUndefined();
-    return true;
-  }
-
-  auto cal = CreateICU4XCalendar(cx, calendarId);
-  if (!cal) {
-    return false;
-  }
-
-  auto dt = CreateICU4XDate(cx, date, calendarId, cal.get());
-  if (!dt) {
-    return false;
-  }
-
-  auto weekCal = CreateICU4WeekCalculator(cx, calendarId);
-  if (!weekCal) {
-    return false;
-  }
-
-  auto week = capi::ICU4XDate_week_of_year(dt.get(), weekCal.get());
-  if (!week.is_ok) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_CALENDAR_INTERNAL_ERROR);
-    return false;
-  }
-
-  int32_t relative = 0;
-  switch (week.ok.unit) {
-    case capi::ICU4XWeekRelativeUnit_Previous:
-      relative = -1;
-      break;
-    case capi::ICU4XWeekRelativeUnit_Current:
-      relative = 0;
-      break;
-    case capi::ICU4XWeekRelativeUnit_Next:
-      relative = 1;
-      break;
-  }
-
-  int32_t calendarYear;
-  if (!CalendarDateYear(cx, calendarId, dt.get(), &calendarYear)) {
-    return false;
-  }
-
-  result.setInt32(calendarYear + relative);
+  result.setUndefined();
   return true;
 }
 
