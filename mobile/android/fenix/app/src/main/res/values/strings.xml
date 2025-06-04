@@ -421,19 +421,19 @@
 
     <!-- Home onboarding -->
     <!-- Home onboarding dialog welcome screen title text. -->
-    <string name="onboarding_home_welcome_title_2">Welcome to a more personal internet</string>
+    <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">Welcome to a more personal internet</string>
     <!-- Home onboarding dialog welcome screen description text. -->
-    <string name="onboarding_home_welcome_description">More colors. Better privacy. Same commitment to people over profits.</string>
+    <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">More colors. Better privacy. Same commitment to people over profits.</string>
     <!-- Home onboarding dialog sign into sync screen title text. -->
-    <string name="onboarding_home_sync_title_3">Switching screens is easier than ever</string>
+    <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">Switching screens is easier than ever</string>
     <!-- Home onboarding dialog sign into sync screen description text. -->
-    <string name="onboarding_home_sync_description">Pick up where you left off with tabs from other devices now on your homepage.</string>
+    <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Pick up where you left off with tabs from other devices now on your homepage.</string>
     <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-    <string name="onboarding_home_get_started_button">Get started</string>
+    <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Get started</string>
     <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-    <string name="onboarding_home_sign_in_button">Sign in</string>
+    <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Sign in</string>
     <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-    <string name="onboarding_home_skip_button">Skip</string>
+    <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Skip</string>
     <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
     <string name="sync_cfr_message">Your tabs are syncing! Pick up where you left off on your other device.</string>
     <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->

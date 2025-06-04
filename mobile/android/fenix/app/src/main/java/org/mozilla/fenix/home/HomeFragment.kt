@@ -990,7 +990,7 @@ class HomeFragment : Fragment() {
 
     private fun onFirstHomepageFrameDrawn() {
         with(requireContext().components.settings) {
-            if (!featureRecommended && !showHomeOnboardingDialog && showWallpaperOnboardingDialog(featureRecommended)) {
+            if (!featureRecommended && showWallpaperOnboardingDialog(featureRecommended)) {
                 featureRecommended = sessionControlInteractor.showWallpapersOnboardingDialog(
                     requireContext().components.appStore.state.wallpaperState,
                 )

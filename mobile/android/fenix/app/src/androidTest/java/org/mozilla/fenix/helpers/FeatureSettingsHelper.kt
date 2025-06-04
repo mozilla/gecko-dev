@@ -13,12 +13,6 @@ import org.mozilla.fenix.ext.settings
  */
 interface FeatureSettingsHelper {
     /**
-     * Whether the onboarding for existing users should be shown or not.
-     * It should appear only once on the first visit to homescreen.
-     */
-    var isHomeOnboardingDialogEnabled: Boolean
-
-    /**
      * Whether the Pocket stories feature is enabled or not.
      */
     var isPocketEnabled: Boolean

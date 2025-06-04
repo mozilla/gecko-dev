@@ -1672,15 +1672,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if home onboarding dialog should be shown.
-     */
-    var showHomeOnboardingDialog by lazyFeatureFlagPreference(
-        appContext.getPreferenceKey(R.string.pref_key_should_show_home_onboarding_dialog),
-        featureFlag = true,
-        default = { mr2022Sections[Mr2022Section.HOME_ONBOARDING_DIALOG_EXISTING_USERS] == true },
-    )
-
-    /**
      * Indicates if the recent tabs functionality should be visible.
      */
     var showRecentTabsFeature by lazyFeatureFlagPreference(

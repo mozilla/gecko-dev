@@ -263,25 +263,10 @@ class HomeScreenRobot {
         Log.i(TAG, "swipeSecondOnboardingCardToRight: Performed swipe right action on second onboarding card")
     }
 
-    fun clickGetStartedButton(testRule: ComposeTestRule) {
-        Log.i(TAG, "clickGetStartedButton: Trying to click \"Get started\" onboarding button")
-        testRule.onNodeWithText(getStringResource(R.string.onboarding_home_get_started_button))
-            .performClick()
-        Log.i(TAG, "clickGetStartedButton: Clicked \"Get started\" onboarding button")
-    }
-
     fun clickCloseButton(testRule: ComposeTestRule) {
         Log.i(TAG, "clickCloseButton: Trying to click close onboarding button")
         testRule.onNode(hasContentDescription("Close")).performClick()
         Log.i(TAG, "clickCloseButton: Clicked close onboarding button")
-    }
-
-    fun clickSkipButton(testRule: ComposeTestRule) {
-        Log.i(TAG, "clickSkipButton: Trying to click \"Skip\" onboarding button")
-        testRule
-            .onNodeWithText(getStringResource(R.string.onboarding_home_skip_button))
-            .performClick()
-        Log.i(TAG, "clickSkipButton: Clicked \"Skip\" onboarding button")
     }
 
     fun verifyCommonMythsLink() =
@@ -674,18 +659,6 @@ class HomeScreenRobot {
 
             SearchRobot().interact()
             return SearchRobot.Transition()
-        }
-
-        fun clickUpgradingUserOnboardingSignInButton(
-            testRule: ComposeTestRule,
-            interact: SyncSignInRobot.() -> Unit,
-        ): SyncSignInRobot.Transition {
-            Log.i(TAG, "clickUpgradingUserOnboardingSignInButton: Trying to click the upgrading user onboarding \"Sign in\" button")
-            testRule.onNodeWithText("Sign in").performClick()
-            Log.i(TAG, "clickUpgradingUserOnboardingSignInButton: Clicked the upgrading user onboarding \"Sign in\" button")
-
-            SyncSignInRobot().interact()
-            return SyncSignInRobot.Transition()
         }
 
         fun togglePrivateBrowsingMode(switchPBModeOn: Boolean = true) {

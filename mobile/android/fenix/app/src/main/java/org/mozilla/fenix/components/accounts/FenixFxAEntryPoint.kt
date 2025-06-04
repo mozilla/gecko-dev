@@ -44,11 +44,6 @@ enum class FenixFxAEntryPoint(override val entryName: String) : FxAEntryPoint, P
     BookmarkView("bookmark-view"),
 
     /**
-     * Authenticating from the homepage onboarding dialog
-     */
-    HomeOnboardingDialog("home-onboarding-dialog"),
-
-    /**
      * Authenticating from the settings menu
      */
     SettingsMenu("settings-menu"),

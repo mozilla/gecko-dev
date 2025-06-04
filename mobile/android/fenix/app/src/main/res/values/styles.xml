@@ -551,7 +551,6 @@
 
     <style name="CreateCollectionDialogStyle" parent="DialogStyleBase"/>
     <style name="CreateShortcutDialogStyle" parent="DialogStyleBase"/>
-    <style name="HomeOnboardingDialogStyle" parent="DialogStyleBase"/>
     <style name="ResearchSurfaceDialogStyle" parent="NormalThemeBase">
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowTranslucentNavigation">false</item>

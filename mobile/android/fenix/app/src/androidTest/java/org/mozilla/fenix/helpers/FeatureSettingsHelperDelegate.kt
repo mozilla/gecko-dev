@@ -16,21 +16,18 @@ import org.mozilla.fenix.helpers.ETPPolicy.STANDARD
 import org.mozilla.fenix.helpers.ETPPolicy.STRICT
 import org.mozilla.fenix.helpers.FeatureSettingsHelper.Companion.settings
 import org.mozilla.fenix.helpers.TestHelper.appContext
-import org.mozilla.fenix.onboarding.FenixOnboarding
 import org.mozilla.fenix.settings.PhoneFeature
 import org.mozilla.fenix.utils.Settings
 
 /**
  * Helper for querying the status and modifying various features and settings in the application.
  */
-class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
+class FeatureSettingsHelperDelegate : FeatureSettingsHelper {
     /**
      * The current feature flags used inside the app before the tests start.
      * These will be restored when the tests end.
      */
     private val initialFeatureFlags = FeatureFlags(
-        isHomeOnboardingDialogEnabled = settings.showHomeOnboardingDialog,
-        homeOnboardingDialogVersion = getHomeOnboardingVersion(),
         isPocketEnabled = settings.showPocketRecommendationsFeature,
         isRecentTabsFeatureEnabled = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled = settings.historyMetadataUIFeature,
@@ -53,17 +50,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
      * The current feature flags updated in tests.
      */
     private var updatedFeatureFlags = initialFeatureFlags.copy()
-
-    override var isHomeOnboardingDialogEnabled: Boolean
-        get() = updatedFeatureFlags.isHomeOnboardingDialogEnabled &&
-            FenixOnboarding(appContext).userHasBeenOnboarded()
-        set(value) {
-            updatedFeatureFlags.isHomeOnboardingDialogEnabled = value
-            updatedFeatureFlags.homeOnboardingDialogVersion = when (value) {
-                true -> FenixOnboarding.CURRENT_ONBOARDING_VERSION
-                false -> 0
-            }
-        }
 
     override var isPocketEnabled: Boolean by updatedFeatureFlags::isPocketEnabled
     override var isWallpaperOnboardingEnabled: Boolean by updatedFeatureFlags::isWallpaperOnboardingEnabled
@@ -95,8 +81,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
     override var isDeleteSitePermissionsEnabled: Boolean by updatedFeatureFlags::isDeleteSitePermissionsEnabled
 
     private fun applyFeatureFlags(featureFlags: FeatureFlags) {
-        settings.showHomeOnboardingDialog = featureFlags.isHomeOnboardingDialogEnabled
-        setHomeOnboardingVersion(featureFlags.homeOnboardingDialogVersion)
         settings.showPocketRecommendationsFeature = featureFlags.isPocketEnabled
         settings.showRecentTabsFeature = featureFlags.isRecentTabsFeatureEnabled
         settings.historyMetadataUIFeature = featureFlags.isRecentlyVisitedFeatureEnabled
@@ -117,8 +101,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
 }
 
 private data class FeatureFlags(
-    var isHomeOnboardingDialogEnabled: Boolean,
-    var homeOnboardingDialogVersion: Int,
     var isPocketEnabled: Boolean,
     var isRecentTabsFeatureEnabled: Boolean,
     var isRecentlyVisitedFeatureEnabled: Boolean,
@@ -190,22 +172,6 @@ private fun setETPPolicy(policy: ETPPolicy) {
             Log.i(TAG, "setETPPolicy: ETP policy was set to: \"Custom\"")
         }
     }
-}
-
-private fun getHomeOnboardingVersion(): Int {
-    Log.i(TAG, "getHomeOnboardingVersion: Trying to get the onboarding version")
-    return FenixOnboarding(appContext)
-        .preferences
-        .getInt(FenixOnboarding.LAST_VERSION_ONBOARDING_KEY, 0)
-}
-
-private fun setHomeOnboardingVersion(version: Int) {
-    Log.i(TAG, "setHomeOnboardingVersion: Trying to set the onboarding version to: $version")
-    FenixOnboarding(appContext)
-        .preferences.edit()
-        .putInt(FenixOnboarding.LAST_VERSION_ONBOARDING_KEY, version)
-        .commit()
-    Log.i(TAG, "setHomeOnboardingVersion: Onboarding version was set to: $version")
 }
 
 internal fun getFeaturePermission(feature: PhoneFeature, settings: Settings): SitePermissionsRules.Action {

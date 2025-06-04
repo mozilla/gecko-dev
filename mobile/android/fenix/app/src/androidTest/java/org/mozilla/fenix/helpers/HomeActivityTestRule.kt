@@ -51,8 +51,6 @@ class HomeActivityTestRule(
         initialTouchMode: Boolean = false,
         launchActivity: Boolean = true,
         skipOnboarding: Boolean = false,
-        isHomeOnboardingDialogEnabled: Boolean = settings.showHomeOnboardingDialog &&
-            FenixOnboarding(appContext).userHasBeenOnboarded(),
         isPocketEnabled: Boolean = settings.showPocketRecommendationsFeature,
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
@@ -69,7 +67,6 @@ class HomeActivityTestRule(
         shouldUseBottomToolbar: Boolean = settings.shouldUseBottomToolbar,
         isComposeHomepageEnabled: Boolean = true,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
-        this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
@@ -168,8 +165,6 @@ class HomeActivityIntentTestRule internal constructor(
         initialTouchMode: Boolean = false,
         launchActivity: Boolean = true,
         skipOnboarding: Boolean = false,
-        isHomeOnboardingDialogEnabled: Boolean = settings.showHomeOnboardingDialog &&
-            FenixOnboarding(appContext).userHasBeenOnboarded(),
         isPocketEnabled: Boolean = settings.showPocketRecommendationsFeature,
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
@@ -187,7 +182,6 @@ class HomeActivityIntentTestRule internal constructor(
         onboardingFeatureEnabled: Boolean = true,
         isComposeHomepageEnabled: Boolean = true,
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
-        this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
@@ -259,8 +253,6 @@ class HomeActivityIntentTestRule internal constructor(
      * settings and override any changes made in the meantime.
      */
     fun updateCachedSettings() {
-        isHomeOnboardingDialogEnabled =
-            settings.showHomeOnboardingDialog && FenixOnboarding(appContext).userHasBeenOnboarded()
         isPocketEnabled = settings.showPocketRecommendationsFeature
         isRecentTabsFeatureEnabled = settings.showRecentTabsFeature
         isRecentlyVisitedFeatureEnabled = settings.historyMetadataUIFeature

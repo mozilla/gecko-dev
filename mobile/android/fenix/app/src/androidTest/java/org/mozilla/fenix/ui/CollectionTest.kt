@@ -35,7 +35,6 @@ class CollectionTest : TestSetup() {
     val composeTestRule =
         AndroidComposeTestRule(
             HomeActivityIntentTestRule(
-                isHomeOnboardingDialogEnabled = false,
                 isRecentTabsFeatureEnabled = false,
                 isRecentlyVisitedFeatureEnabled = false,
                 isPocketEnabled = false,
