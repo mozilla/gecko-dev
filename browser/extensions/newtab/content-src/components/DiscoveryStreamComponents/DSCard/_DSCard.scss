@@ -550,7 +550,46 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
         box-shadow: 0 2px 14px 0 var(--newtab-section-card-box-shadow-color);
       }
     }
+
+    &.refined-cards {
+      .img-wrapper .ds-image img {
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+
+      .meta {
+        z-index: 10;
+        padding: var(--space-large);
+        padding-block-end: 0;
+
+      }
+
+      .info-wrap {
+        margin-block-start: auto;
+      }
+
+      .title {
+        text-transform: none;
+      }
+
+      .sections-card-footer {
+        display: none;
+      }
+
+      .card-stp-button-position-wrapper {
+        z-index: 10;
+        top: 0;
+        position: absolute;
+
+      }
+
+      .card-stp-button-position-wrapper .context-menu-position-container {
+        align-self: flex-start;
+        padding-block-start: var(--space-medium);
+      }
+    }
   }
+
 }
 
 .ds-card-grid .refined-cards {

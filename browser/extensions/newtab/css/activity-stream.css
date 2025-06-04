@@ -7341,6 +7341,40 @@ main section {
 .ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.sections-card-ui:hover .img-wrapper .ds-image img {
   box-shadow: 0 2px 14px 0 var(--newtab-section-card-box-shadow-color);
 }
+.ds-card-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .img-wrapper .ds-image img,
+.ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .img-wrapper .ds-image img {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.ds-card-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .meta,
+.ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .meta {
+  z-index: 10;
+  padding: var(--space-large);
+  padding-block-end: 0;
+}
+.ds-card-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .info-wrap,
+.ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .info-wrap {
+  margin-block-start: auto;
+}
+.ds-card-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .title,
+.ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .title {
+  text-transform: none;
+}
+.ds-card-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .sections-card-footer,
+.ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .sections-card-footer {
+  display: none;
+}
+.ds-card-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .card-stp-button-position-wrapper,
+.ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .card-stp-button-position-wrapper {
+  z-index: 10;
+  top: 0;
+  position: absolute;
+}
+.ds-card-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .card-stp-button-position-wrapper .context-menu-position-container,
+.ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle.refined-cards .card-stp-button-position-wrapper .context-menu-position-container {
+  align-self: flex-start;
+  padding-block-start: var(--space-medium);
+}
 
 .ds-card-grid .refined-cards .meta {
   color: var(--newtab-text-primary-color);
