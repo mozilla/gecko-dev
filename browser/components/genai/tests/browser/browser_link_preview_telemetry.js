@@ -32,23 +32,30 @@ async function waitForPanelOpen(message = "waiting for preview panel to open") {
 }
 
 add_task(async function test_default_telemetry() {
-  Services.fog.testResetFOG();
-
-  Assert.equal(
-    Glean.genaiLinkpreview.cardAiConsent.testGetValue(),
-    null,
-    "No cardAiConsent events"
+  // Open a window to initialize metrics in case previous test file reset
+  await BrowserTestUtils.closeWindow(
+    await BrowserTestUtils.openNewBrowserWindow()
   );
 
   Assert.equal(
-    Glean.genaiLinkpreview.keyPointsToggle.testGetValue(),
-    null,
-    "No keyPointsToggle events"
+    Glean.genaiLinkpreview.aiOptin.testGetValue(),
+    true,
+    "Got default optin for testing"
   );
   Assert.equal(
-    Glean.genaiLinkpreview.onboardingCard.testGetValue(),
-    null,
-    "No onboardingCard events initially"
+    Glean.genaiLinkpreview.enabled.testGetValue(),
+    false,
+    "Got default enabled for testing"
+  );
+  Assert.equal(
+    Glean.genaiLinkpreview.keyPoints.testGetValue(),
+    true,
+    "Got default keypoints for testing"
+  );
+  Assert.equal(
+    Glean.genaiLinkpreview.shortcut.testGetValue(),
+    "shift,shift_alt,long_press",
+    "Got default shortcut for testing"
   );
 });
 
@@ -419,6 +426,11 @@ add_task(async function test_try_it_now_button_telemetry() {
 
   events = Glean.genaiLinkpreview.start.testGetValue();
   Assert.equal(events.length, 1, "One genaiLinkpreview card events recorded");
+  Assert.equal(
+    events[0].extra.source,
+    "onboarding",
+    "Source should be onboarding"
+  );
   // Cleanup
   panel.remove();
 });
@@ -529,4 +541,163 @@ add_task(async function test_onboarding_shift_type_telemetry() {
   );
 
   panel.remove();
+});
+
+/**
+ * Tests that the pref_changed telemetry event is recorded correctly for various preferences.
+ */
+add_task(async function test_pref_changed_event_telemetry() {
+  Services.fog.testResetFOG();
+
+  function assertTelemetryEvents(
+    gleanPrefName,
+    expectedEnabledValue,
+    contextMessage
+  ) {
+    const events = Glean.genaiLinkpreview.prefChanged.testGetValue();
+    const baseMessage = `pref_changed: ${gleanPrefName} to ${expectedEnabledValue} (${contextMessage})`;
+
+    Assert.ok(events, `${baseMessage} - events should exist`);
+    Assert.equal(events.length, 1, `${baseMessage} - event count should be 1`);
+    Assert.equal(
+      events[0].extra.pref,
+      gleanPrefName,
+      `${baseMessage} - pref name`
+    );
+    Assert.equal(
+      events[0].extra.enabled,
+      String(expectedEnabledValue),
+      `${baseMessage} - enabled state`
+    );
+  }
+
+  const prefsToTest = [
+    { prefPath: "browser.ml.linkPreview.optin", gleanName: "key_points" },
+    { prefPath: "browser.ml.linkPreview.shift", gleanName: "shift" },
+    { prefPath: "browser.ml.linkPreview.shiftAlt", gleanName: "shift_alt" },
+    { prefPath: "browser.ml.linkPreview.longPress", gleanName: "long_press" },
+    { prefPath: "browser.ml.linkPreview.enabled", gleanName: "link_previews" },
+  ];
+
+  for (const { prefPath, gleanName } of prefsToTest) {
+    await SpecialPowers.pushPrefEnv({ set: [[prefPath, false]] });
+    Services.fog.testResetFOG();
+    await SpecialPowers.pushPrefEnv({ set: [[prefPath, true]] });
+    assertTelemetryEvents(
+      gleanName,
+      true,
+      `from false to true for ${prefPath}`
+    );
+  }
+});
+
+add_task(async function test_shortcut_metric_updates() {
+  Services.fog.testResetFOG();
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.linkPreview.enabled", true]],
+  });
+
+  function assertShortcutMetric(expectedValue, contextMessage) {
+    const actualValue = Glean.genaiLinkpreview.shortcut.testGetValue() ?? "";
+    Assert.equal(
+      actualValue,
+      expectedValue,
+      `Shortcut metric check: ${contextMessage} - expected "${expectedValue}", got "${actualValue}"`
+    );
+  }
+
+  const prefShift = "browser.ml.linkPreview.shift";
+  const prefShiftAlt = "browser.ml.linkPreview.shiftAlt";
+  const prefLongPress = "browser.ml.linkPreview.longPress";
+
+  // Case 1: All preferences false
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, false],
+      [prefShiftAlt, false],
+      [prefLongPress, false],
+    ],
+  });
+  assertShortcutMetric("", "All preferences false");
+
+  // Case 2: Only shift true
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, true],
+      [prefShiftAlt, false],
+      [prefLongPress, false],
+    ],
+  });
+  assertShortcutMetric("shift", "Only shift true");
+
+  // Case 3: Only shiftAlt true
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, false],
+      [prefShiftAlt, true],
+      [prefLongPress, false],
+    ],
+  });
+  assertShortcutMetric("shift_alt", "Only shiftAlt true");
+
+  // Case 4: Only longPress true
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, false],
+      [prefShiftAlt, false],
+      [prefLongPress, true],
+    ],
+  });
+  assertShortcutMetric("long_press", "Only longPress true");
+
+  // Case 5: shift and shiftAlt true
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, true],
+      [prefShiftAlt, true],
+      [prefLongPress, false],
+    ],
+  });
+  assertShortcutMetric("shift,shift_alt", "shift and shiftAlt true");
+
+  // Case 6: shift and longPress true
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, true],
+      [prefShiftAlt, false],
+      [prefLongPress, true],
+    ],
+  });
+  assertShortcutMetric("shift,long_press", "shift and longPress true");
+
+  // Case 7: shiftAlt and longPress true
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, false],
+      [prefShiftAlt, true],
+      [prefLongPress, true],
+    ],
+  });
+  assertShortcutMetric("shift_alt,long_press", "shiftAlt and longPress true");
+
+  // Case 8: All preferences true
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, true],
+      [prefShiftAlt, true],
+      [prefLongPress, true],
+    ],
+  });
+  assertShortcutMetric("shift,shift_alt,long_press", "All preferences true");
+
+  // Case 9: Back to all preferences false to ensure proper reset/update
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      [prefShift, false],
+      [prefShiftAlt, false],
+      [prefLongPress, false],
+    ],
+  });
+  assertShortcutMetric("", "All preferences false again");
 });
