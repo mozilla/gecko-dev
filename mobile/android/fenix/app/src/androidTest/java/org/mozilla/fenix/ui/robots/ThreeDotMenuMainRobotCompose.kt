@@ -62,11 +62,13 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         composeTestRule.refreshButton().assertIsDisplayed()
         composeTestRule.shareButton().assertIsDisplayed()
 
+        composeTestRule.bookmarkPageButton().assertIsDisplayed()
         composeTestRule.desktopSiteButton().assertIsDisplayed()
         composeTestRule.findInPageButton().assertIsDisplayed()
         composeTestRule.toolsMenuButton().assertIsDisplayed()
         composeTestRule.saveMenuButton().assertIsDisplayed()
         composeTestRule.extensionsButton().assertIsDisplayed()
+        composeTestRule.moreButton().assertIsDisplayed()
 
         composeTestRule.bookmarksButton().assertIsDisplayed()
         composeTestRule.historyButton().assertIsDisplayed()
@@ -82,7 +84,6 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         Log.i(TAG, "verifySaveSubMenuItems: Trying to verify the \"Save\" sub menu items.")
         composeTestRule.backToMainMenuButton().assertIsDisplayed()
         composeTestRule.saveSubMenuTitle().assertIsDisplayed()
-        composeTestRule.bookmarkThisPageButton().assertIsDisplayed()
         composeTestRule.addToShortcutsButton().assertIsDisplayed()
         composeTestRule.addToHomeScreenButton().assertIsDisplayed()
         composeTestRule.saveToCollectionButton().assertIsDisplayed()
@@ -147,22 +148,13 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
     fun verifySwitchToDesktopSiteButtonIsEnabled(
         isEnabled: Boolean,
     ) {
-        Log.i(
-            TAG,
-            "verifySwitchToDesktopSiteButtonIsEnabled: Trying to verify the Switch to Desktop Site button from the new main menu design is enabled.",
-        )
+        Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Trying to verify the Switch to Desktop Site button from the new main menu design is enabled.")
         if (isEnabled) {
             composeTestRule.desktopSiteButton().assertIsEnabled()
-            Log.i(
-                TAG,
-                "verifySwitchToDesktopSiteButtonIsEnabled: Verified the Switch to Desktop Site button from the new main menu design is enabled.",
-            )
+            Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Verified the Switch to Desktop Site button from the new main menu design is enabled.")
         } else {
             composeTestRule.desktopSiteButton().assertIsNotEnabled()
-            Log.i(
-                TAG,
-                "verifySwitchToDesktopSiteButtonIsEnabled: Verified the Switch to Desktop Site button from the new main menu design is disabled.",
-            )
+            Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Verified the Switch to Desktop Site button from the new main menu design is disabled.")
         }
     }
 
@@ -270,7 +262,7 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
     }
 
     fun verifyBookmarkThisPageButton() {
-        composeTestRule.bookmarkThisPageButton().assertIsDisplayed()
+        composeTestRule.bookmarkPageButton().assertIsDisplayed()
     }
 
     fun clickQuitFirefoxButton() {
@@ -379,7 +371,7 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
 
         fun clickBookmarkThisPageButton(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             Log.i(TAG, "clickBookmarkThisPageButton: Trying to click the \"Bookmark this page\" button from the new main menu design.")
-            composeTestRule.bookmarkThisPageButton().performClick()
+            composeTestRule.bookmarkPageButton().performClick()
             Log.i(TAG, "clickBookmarkThisPageButton: Clicked the \"Bookmark this page\" button from the new main menu design.")
 
             BrowserRobot().interact()
@@ -605,6 +597,8 @@ private fun ComposeTestRule.extensionsButton() = onNodeWithTag(EXTENSIONS)
 
 private fun ComposeTestRule.noExtensionsButton() = onNodeWithContentDescription("ExtensionsNo extensions enabled")
 
+private fun ComposeTestRule.moreButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_more_settings))
+
 private fun ComposeTestRule.bookmarksButton() = onNodeWithContentDescription(getStringResource(R.string.library_bookmarks))
 
 private fun ComposeTestRule.historyButton() = onNodeWithContentDescription(getStringResource(R.string.library_history))
@@ -627,15 +621,15 @@ private fun ComposeTestRule.toolsMenuButton() = onNodeWithTag("mainMenu.tools")
 
 private fun ComposeTestRule.saveMenuButton() = onNodeWithTag("mainMenu.save")
 
-private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_desktop_site))
+private fun ComposeTestRule.bookmarkPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_bookmark_this_page_2))
+
+private fun ComposeTestRule.desktopSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_desktop_site))
 
 private fun ComposeTestRule.mobileSiteButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_switch_to_mobile_site))
 
 // Save sub menu items
 
 private fun ComposeTestRule.saveSubMenuTitle() = onNodeWithText(getStringResource(R.string.browser_menu_save))
-
-private fun ComposeTestRule.bookmarkThisPageButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_bookmark_this_page_2))
 
 private fun ComposeTestRule.editBookmarkButton() = onNodeWithContentDescription(getStringResource(R.string.browser_menu_edit_bookmark))
 
