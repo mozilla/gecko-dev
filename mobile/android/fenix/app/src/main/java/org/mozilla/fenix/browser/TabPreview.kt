@@ -18,6 +18,7 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
+import mozilla.components.browser.state.helper.Target
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.state.TabSessionState
@@ -162,6 +163,10 @@ class TabPreview @JvmOverloads constructor(
                     Box {
                         BrowserToolbar(
                             store = browserToolbarStore,
+                            browserStore = context.components.core.store,
+                            onTextEdit = {},
+                            onTextCommit = {},
+                            target = Target.SelectedTab,
                         )
 
                         Divider(

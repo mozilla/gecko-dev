@@ -31,15 +31,6 @@ sealed interface BrowserToolbarAction : Action {
         val displayState: DisplayState = DisplayState(),
         val editState: EditState = EditState(),
     ) : BrowserToolbarAction
-
-    /**
-     * Commits the currently edited URL/text and typically switches back to display mode.
-     * This action is dispatched when the user submits their input (e.g., by pressing enter
-     * or tapping a submit button) in the edit toolbar.
-     *
-     * @property text The text to commit as the final URL or search query.
-     */
-    data class CommitUrl(val text: String) : BrowserToolbarAction
 }
 
 /**
