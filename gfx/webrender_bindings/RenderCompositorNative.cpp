@@ -269,8 +269,6 @@ void RenderCompositorNative::CompositorEndFrame() {
   }
   mDrawnPixelCount = 0;
 
-  DoFlush();
-
   mNativeLayerRoot->SetLayers(mAddedLayers);
   mNativeLayerRoot->CommitToScreen();
   mSurfacePoolHandle->OnEndFrame();
