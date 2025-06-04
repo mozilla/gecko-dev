@@ -295,11 +295,6 @@ bool jit::DispatchOffThreadBaselineBatch(JSContext* cx) {
 
     MOZ_ASSERT(cx->realm() == script->realm());
 
-    if (!IsBaselineJitEnabled(cx)) {
-      script->disableBaselineCompile();
-      continue;
-    }
-
     if (!OffThreadBaselineCompilationAvailable(cx, script)) {
       BaselineOptions options({BaselineOption::ForceMainThreadCompilation});
       MethodStatus status = BaselineCompile(cx, script, options);

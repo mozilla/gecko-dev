@@ -126,10 +126,6 @@ class MOZ_RAII BaselineCacheIRCompiler : public CacheIRCompiler {
                                     bool sameRealm,
                                     uint32_t nargsAndFlagsOffset,
                                     mozilla::Maybe<uint32_t> icScriptOffset);
-  bool emitCallScriptedFunctionShared(ObjOperandId calleeId,
-                                      Int32OperandId argcId, CallFlags flags,
-                                      uint32_t argcFixed,
-                                      mozilla::Maybe<uint32_t> icScriptOffset);
 
   template <typename IdType>
   bool emitCallScriptedProxyGetShared(ValOperandId targetId,

@@ -31,7 +31,7 @@ inline void EmitBaselineTailCallVM(TrampolinePtr target, MacroAssembler& masm,
 
   // Push frame descriptor (minus the return address) and perform the tail call.
   static_assert(ICTailCallReg == lr);
-  masm.push(FrameDescriptor(FrameType::BaselineJS));
+  masm.pushFrameDescriptor(FrameType::BaselineJS);
 
   // The return address will be pushed by the VM wrapper, for compatibility
   // with direct calls. Refer to the top of generateVMWrapper().
@@ -42,7 +42,7 @@ inline void EmitBaselineTailCallVM(TrampolinePtr target, MacroAssembler& masm,
 }
 
 inline void EmitBaselineCallVM(TrampolinePtr target, MacroAssembler& masm) {
-  masm.push(FrameDescriptor(FrameType::BaselineStub));
+  masm.pushFrameDescriptor(FrameType::BaselineStub);
   masm.call(target);
 }
 
@@ -60,7 +60,7 @@ inline void EmitBaselineEnterStubFrame(MacroAssembler& masm, Register scratch) {
 
   // Push frame descriptor and return address.
   // Save old frame pointer, stack pointer, and stub reg.
-  masm.Push(FrameDescriptor(FrameType::BaselineJS));
+  masm.PushFrameDescriptor(FrameType::BaselineJS);
   masm.Push(ICTailCallReg);
   masm.Push(FramePointer);
 

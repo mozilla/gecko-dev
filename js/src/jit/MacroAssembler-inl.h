@@ -253,29 +253,40 @@ uint32_t MacroAssembler::callJit(ImmPtr callee) {
   return currentOffset();
 }
 
-void MacroAssembler::push(FrameDescriptor descriptor) {
-  push(Imm32(descriptor.value()));
+void MacroAssembler::pushFrameDescriptor(FrameType type) {
+  uint32_t descriptor = MakeFrameDescriptor(type);
+  push(Imm32(descriptor));
 }
 
-void MacroAssembler::Push(FrameDescriptor descriptor) {
-  Push(Imm32(descriptor.value()));
+void MacroAssembler::PushFrameDescriptor(FrameType type) {
+  uint32_t descriptor = MakeFrameDescriptor(type);
+  Push(Imm32(descriptor));
+}
+
+void MacroAssembler::pushFrameDescriptorForJitCall(FrameType type,
+                                                   uint32_t argc) {
+  uint32_t descriptor = MakeFrameDescriptorForJitCall(type, argc);
+  push(Imm32(descriptor));
+}
+
+void MacroAssembler::PushFrameDescriptorForJitCall(FrameType type,
+                                                   uint32_t argc) {
+  uint32_t descriptor = MakeFrameDescriptorForJitCall(type, argc);
+  Push(Imm32(descriptor));
 }
 
 void MacroAssembler::pushFrameDescriptorForJitCall(FrameType type,
                                                    Register argc,
-                                                   Register scratch,
-                                                   bool hasInlineICScript) {
+                                                   Register scratch) {
   lshift32(Imm32(FrameDescriptor::NumActualArgsShift), argc, scratch);
-  FrameDescriptor base(type, 0, hasInlineICScript);
-  or32(Imm32(base.value()), scratch);
+  or32(Imm32(int32_t(type)), scratch);
   push(scratch);
 }
 
 void MacroAssembler::PushFrameDescriptorForJitCall(FrameType type,
                                                    Register argc,
-                                                   Register scratch,
-                                                   bool hasInlineICScript) {
-  pushFrameDescriptorForJitCall(type, argc, scratch, hasInlineICScript);
+                                                   Register scratch) {
+  pushFrameDescriptorForJitCall(type, argc, scratch);
   framePushed_ += sizeof(uintptr_t);
 }
 
@@ -314,7 +325,7 @@ void MacroAssembler::loadFunctionFromCalleeToken(Address token, Register dest) {
 uint32_t MacroAssembler::buildFakeExitFrame(Register scratch) {
   mozilla::DebugOnly<uint32_t> initialDepth = framePushed();
 
-  Push(FrameDescriptor(FrameType::IonJS));
+  PushFrameDescriptor(FrameType::IonJS);
   uint32_t retAddr = pushFakeReturnAddress(scratch);
   Push(FramePointer);
 

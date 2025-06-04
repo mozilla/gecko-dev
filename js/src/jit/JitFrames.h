@@ -71,17 +71,13 @@ struct VMFunctionData;
 // A frame descriptor word has the following data:
 //
 //    high bits: [ numActualArgs |
-//                 has-inlined-icscript bit |
 //                 has-cached-saved-frame bit |
 //    low bits:    frame type ]
 //
-
 // * numActualArgs: for JitFrameLayout, the number of arguments passed by the
 //   caller.
-// * HasInlinedICScript: Set when passing a private ICScript to a trial-inlined
-//   script.
-// * HasCachedSavedFrame: Used to power the LiveSavedFrameCache optimization.
-//   See the comment in Activation.h
+// * Has-cache-saved-frame bit: Used to power the LiveSavedFrameCache
+//   optimization. See the comment in Activation.h
 // * Frame Type: BaselineJS, Exit, etc. (jit::FrameType)
 //
 
@@ -90,15 +86,11 @@ class FrameDescriptor {
   static const uint32_t TypeBits = 4;
   static const uint32_t TypeMask = (1 << TypeBits) - 1;
   static const uint32_t HasCachedSavedFrame = 1 << TypeBits;
-  static const uint32_t HasInlinedICScript = 1 << (TypeBits + 1);
-  static const uint32_t NumActualArgsShift = TypeBits + 2;
+  static const uint32_t NumActualArgsShift = TypeBits + 1;
 
   explicit FrameDescriptor(FrameType type) : raw_(uint32_t(type)) {}
-  FrameDescriptor(FrameType type, uint32_t argc, bool hasInlined = false)
+  FrameDescriptor(FrameType type, uint32_t argc)
       : raw_(argc << NumActualArgsShift | uint32_t(type)) {
-    if (hasInlined) {
-      setHasInlinedICScript();
-    }
     MOZ_ASSERT(numActualArgs() == argc, "argc must fit in descriptor");
   }
 
@@ -113,9 +105,6 @@ class FrameDescriptor {
   bool hasCachedSavedFrame() const { return raw_ & HasCachedSavedFrame; }
   void setHasCachedSavedFrame() { raw_ |= HasCachedSavedFrame; }
   void clearHasCachedSavedFrame() { raw_ &= ~HasCachedSavedFrame; }
-
-  bool hasInlinedICScript() const { return raw_ & HasInlinedICScript; }
-  void setHasInlinedICScript() { raw_ |= HasInlinedICScript; }
 
   uint32_t value() const {
     MOZ_ASSERT(raw_ == uint32_t(raw_));
@@ -738,27 +727,19 @@ class ICStub;
 class BaselineStubFrameLayout : public CommonFrameLayout {
   // Info on the stack
   //
-  // +-------------------------------------------+
-  // |BaselineStubFrameLayout                    |
-  // +-------------------------------------------+
-  // | - Descriptor                              | <= Marks end of
-  // | - Return address                          |    FrameType::BaselineJS
-  // | - CallerFramePtr                          | <= Frame pointer points here
-  // +-------------------------------------------+
-  // | - StubPtr                                 | <= Technically these fields
-  // | - InlinedICScript or LocallyTracedValue   |    precede the FrameLayout in
-  // |                      LocallyTracedValue...|    memory.
-  // +-------------------------------------------+
-  //
-  // StubPtr is always present (but can be null; see generateDebugTrapHandler).
-  // InlinedICScript is only present if the HasInlinedICScript flag is set in
-  // the callee's frame descriptor (not shown in this diagram). Alternatively,
-  // we support up to 255 locally traced values (with the count stored in
-  // stub->jitCode()->localTracingSlots()).
+  // +-----------------------+
+  // |BaselineStubFrameLayout|
+  // +-----------------------+
+  // | - Descriptor          | => Marks end of FrameType::BaselineJS
+  // | - Return address      |
+  // | - CallerFramePtr      |
+  // +-----------------------+
+  // | - StubPtr             | Technically this last field is not part
+  // +-----------------------+ of the frame layout.
+
  public:
   static constexpr size_t ICStubOffset = sizeof(void*);
   static constexpr int ICStubOffsetFromFP = -int(ICStubOffset);
-  static constexpr int InlinedICScriptOffsetFromFP = 2 * -int(sizeof(void*));
   static constexpr size_t LocallyTracedValueOffset = 2 * sizeof(void*);
 
   static inline size_t Size() { return sizeof(BaselineStubFrameLayout); }
