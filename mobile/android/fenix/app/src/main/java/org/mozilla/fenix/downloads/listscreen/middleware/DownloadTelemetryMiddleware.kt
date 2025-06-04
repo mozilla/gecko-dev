@@ -44,6 +44,22 @@ class DownloadTelemetryMiddleware : Middleware<DownloadUIState, DownloadUIAction
                 Downloads.shareFile.record(NoExtras())
             }
 
+            is DownloadUIAction.PauseDownload -> {
+                Downloads.pauseDownload.record(NoExtras())
+            }
+
+            is DownloadUIAction.ResumeDownload -> {
+               Downloads.resumeDownload.record(NoExtras())
+            }
+
+            is DownloadUIAction.CancelDownload -> {
+                Downloads.cancelDownload.record(NoExtras())
+            }
+
+            is DownloadUIAction.RetryDownload -> {
+                Downloads.retryDownload.record(NoExtras())
+            }
+
             else -> {}
         }
     }
