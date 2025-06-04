@@ -51,6 +51,8 @@ private fun reduce(state: BrowserToolbarState, action: BrowserToolbarAction): Br
             ),
         )
 
+        is BrowserToolbarAction.CommitUrl -> state
+
         is BrowserActionsStartUpdated -> state.copy(
             displayState = state.displayState.copy(
                 browserActionsStart = action.actions,
