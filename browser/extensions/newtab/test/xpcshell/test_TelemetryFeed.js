@@ -9,6 +9,7 @@ const { updateAppInfo } = ChromeUtils.importESModule(
 
 ChromeUtils.defineESModuleGetters(this, {
   AboutNewTab: "resource:///modules/AboutNewTab.sys.mjs",
+  ContextId: "moz-src:///browser/modules/ContextId.sys.mjs",
   actionCreators: "resource://newtab/common/Actions.mjs",
   actionTypes: "resource://newtab/common/Actions.mjs",
   ExtensionSettingsStore:
@@ -96,10 +97,12 @@ add_setup(async function setup() {
     platformVersion: "122",
   });
 
-  Services.prefs.setCharPref(
-    "browser.contextual-services.contextId",
-    FAKE_UUID
-  );
+  let sandbox = sinon.createSandbox();
+  sandbox.stub(ContextId, "requestSynchronously").returns(FAKE_UUID);
+
+  registerCleanupFunction(() => {
+    sandbox.restore();
+  });
 });
 
 add_task(async function test_construction() {
@@ -199,11 +202,17 @@ add_task(async function test_deletionRequest_scalars() {
     "deletion.request.impression_id",
     instance._impressionId
   );
-  TelemetryTestUtils.assertScalar(
-    snapshot,
-    "deletion.request.context_id",
-    FAKE_UUID
-  );
+
+  // We'll only set the context_id in the deletion request if rotation is
+  // disabled.
+  if (!ContextId.rotationEnabled) {
+    TelemetryTestUtils.assertScalar(
+      snapshot,
+      "deletion.request.context_id",
+      FAKE_UUID
+    );
+  }
+
   instance.uninit();
 });
 
