@@ -605,8 +605,7 @@ static const nsExtraMimeTypeEntry extraMimeEntries[] = {
     {"application/epub+zip", "epub", "Electronic publication (EPUB)"}};
 
 static const nsDefaultMimeTypeEntry sForbiddenPrimaryExtensions[] = {
-    {IMAGE_JPEG, "jfif"},
-    {AUDIO_MP3, "mpga"}};
+    {IMAGE_JPEG, "jfif"}, {AUDIO_MP3, "mpga"}};
 
 /**
  * File extensions for which decoding should be disabled.
