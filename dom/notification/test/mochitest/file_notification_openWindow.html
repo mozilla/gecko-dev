@@ -14,7 +14,10 @@ window.onload = () => {
     window.open("https://example.org/").close();
 
     // If we make it here, then we didn't crash. Tell the worker we're done.
-    navigator.serviceWorker.controller.postMessage("DONE");
+    navigator.serviceWorker.controller.postMessage({
+      type: "DONE",
+      referrer: document.referrer
+    });
 
     // We're done!
     window.close();

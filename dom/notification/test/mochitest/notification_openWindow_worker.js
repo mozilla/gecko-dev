@@ -5,7 +5,7 @@ const gTestURL = gRoot + "test_notification_serviceworker_openWindow.html";
 const gClientURL = gRoot + "file_notification_openWindow.html";
 
 onmessage = function (event) {
-  if (event.data !== "DONE") {
+  if (event.data?.type !== "DONE") {
     dump(`ERROR: received unexpected message: ${JSON.stringify(event.data)}\n`);
   }
 
@@ -15,7 +15,7 @@ onmessage = function (event) {
         // The |gClientURL| window closes itself after posting the DONE message,
         // so we don't need to send it anything here.
         if (client.url === gTestURL) {
-          client.postMessage("DONE");
+          client.postMessage(event.data);
         }
       }
     })
