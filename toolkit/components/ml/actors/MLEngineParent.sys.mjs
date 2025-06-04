@@ -771,10 +771,10 @@ class ResponseOrChunkResolvers {
  * the engine.
  *
  * @typedef {object} Request
- * @property {?string} id - The identifier for tracking this request. If not provided, an id will be auto-generated. Each inference callback will reference this id.
+ * @property {?string} [id] - The identifier for tracking this request. If not provided, an id will be auto-generated. Each inference callback will reference this id.
  * @property {any[]} args - The arguments to pass to the pipeline. The required arguments depend on your model. See [Hugging Face Transformers documentation](https://huggingface.co/docs/transformers.js/en/api/models) for more details.
  * @property {?object} options - The generation options to pass to the model. Refer to the [GenerationConfigType documentation](https://huggingface.co/docs/transformers.js/en/api/utils/generation#module_utils/generation..GenerationConfigType) for available options.
- * @property {?Uint8Array} data - For the imagetoText model, this is the array containing the image data.
+ * @property {?Uint8Array} [data] - For the imagetoText model, this is the array containing the image data.
  *
  * @template Response
  */
@@ -1109,8 +1109,8 @@ class MLEngine {
   /**
    * Terminates the engine.
    *
-   * @param {boolean} shutdown - Flag indicating whether to shutdown the engine.
-   * @param {boolean} replacement - Flag indicating whether the engine is being replaced.
+   * @param {boolean} [shutdown] - Flag indicating whether to shutdown the engine.
+   * @param {boolean} [replacement] - Flag indicating whether the engine is being replaced.
    * @returns {Promise<void>} A promise that resolves once the engine is terminated.
    */
   async terminate(shutdown, replacement) {

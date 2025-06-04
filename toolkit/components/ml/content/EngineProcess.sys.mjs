@@ -1073,11 +1073,10 @@ export class EngineProcess {
 }
 
 /**
- * Creates a new ML engine instance with the provided options.
+ * Creates a new `MLEngine` instance with the provided options.
  *
  * @param {object} options - Configuration options for the ML engine.
  * @param {?function(ProgressAndStatusCallbackParams):void} notificationsCallback A function to call to indicate notifications.
- * @returns {Promise<MLEngine>} - A promise that resolves to the ML engine instance.
  */
 export async function createEngine(options, notificationsCallback = null) {
   try {

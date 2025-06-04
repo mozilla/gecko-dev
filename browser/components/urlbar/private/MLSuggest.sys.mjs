@@ -119,12 +119,12 @@ class _MLSuggest {
       return null;
     }
 
-    const locationResVal = await this.#combineLocations(
+    const locationResVal = this.#combineLocations(
       nerResult,
       lazy.UrlbarPrefs.get("nerThreshold")
     );
 
-    const intentLabel = await this.#applyIntentThreshold(
+    const intentLabel = this.#applyIntentThreshold(
       intentRes,
       lazy.UrlbarPrefs.get("intentThreshold")
     );
@@ -239,7 +239,7 @@ class _MLSuggest {
    * @returns {string}
    *   The determined intent label or 'unknown' if the threshold is not met.
    */
-  async #applyIntentThreshold(intentResult, intentThreshold) {
+  #applyIntentThreshold(intentResult, intentThreshold) {
     return intentResult[0]?.score > intentThreshold
       ? intentResult[0].label
       : "";
@@ -261,12 +261,8 @@ class _MLSuggest {
    * @param {number} nerThreshold
    *   The confidence threshold for including entities. Tokens with a confidence
    *   score below this threshold will be ignored.
-   * @returns {object}
-   *   An object with `city` and `state` fields:
-   *   - {string|null} city: The detected city, or `null` if no city is found.
-   *   - {string|null} state: The detected state, or `null` if no state is found.
    */
-  async #combineLocations(nerResult, nerThreshold) {
+  #combineLocations(nerResult, nerThreshold) {
     let cityResult = [];
     let stateResult = [];
     let cityStateResult = [];
@@ -329,7 +325,7 @@ class _MLSuggest {
    *   The confidence threshold for including tokens. Tokens with a score below
    *   this threshold will be ignored.
    */
-  async #processNERToken(res, resultArray, nerThreshold) {
+  #processNERToken(res, resultArray, nerThreshold) {
     // Skip low-confidence tokens
     if (res.score <= nerThreshold) {
       return;
@@ -366,7 +362,7 @@ class _MLSuggest {
    *   An array of strings representing detected entities (e.g., cities or states).
    *   The array is modified in place if the last element ends with punctuation.
    */
-  async #removePunctFromEndIfPresent(resultArray) {
+  #removePunctFromEndIfPresent(resultArray) {
     const lastTokenIndex = resultArray.length - 1;
     if (
       resultArray.length &&
