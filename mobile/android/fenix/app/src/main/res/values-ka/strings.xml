@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">ვრცლად</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">გაფართოებების მართვა</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">დამატებით</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">მოკლედ</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">სასურველი გაფართოებები</string>
   <!--
@@ -239,6 +243,8 @@
   <string name="browser_menu_extensions_disabled_description">დროებით ამორთულია</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">გაფართოებები არაა ჩართული</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">მოსინჯეთ რჩეული გაფართოება</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">ანგარიშის შესახებ</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -366,6 +372,8 @@
   <string name="browser_menu_save_description">ჩანიშვნა, მალსახმობი, მთავარი გვერდი, კრებული, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ამ გვერდის ჩანიშვნა</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">გვერდის ჩანიშვნა</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">სანიშნის ჩასწორება</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -385,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">%1$s თარგმანი</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">ნათარგმნი</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">ბეჭდვა…</string>
   <!--
@@ -1329,7 +1339,7 @@
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">ჩანართების დახურვა</string>
   <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
-  <string name="close_tabs_manually">ხელით</string>
+  <string name="close_tabs_manually">არასდროს</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">ერთი დღის შემდეგ</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
@@ -1579,6 +1589,8 @@
   <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">ელოდება</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">ჩამოტვირთვა ვერ მოხერხდა</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">ვრცლად</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">ძიება ჩამოტვირთვებში</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1889,6 +1901,10 @@
   <string name="studies_on">ჩართ.</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">გამორთ.</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">ჩართ.</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">გამორთ.</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">ნებართვები</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -3650,4 +3666,22 @@
   <string name="private_tab_cfr_negative">არა, გმადლობთ</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">ჩანართების ჩაკეტვა</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">როგორ მოგეწონათ %1$s?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">ხარვეზებს ვაწყდები</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">მშვენიერია!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">გმადლობთ, რომ გიყვართ %1$s. გცალიათ, რომ შეფასებითაც გამოხატოთ სიყვარული?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">შეაფასეთ %1$s, იხილეთ Play Store</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">სამწუხაროა, რომ სიძნელეებს წააწყდით. გვაცნობეთ, თუ რით შეიძლება გავაუმჯობესოთ %1$s.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">გამოგვეხმაურეთ</string>
 </resources>

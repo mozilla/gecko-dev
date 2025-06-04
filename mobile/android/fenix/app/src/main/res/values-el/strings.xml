@@ -759,7 +759,7 @@
   <!-- Preference category for privacy and security settings -->
   <string name="preferences_category_privacy_security">Απόρρητο και ασφάλεια</string>
   <!-- Preference for advanced site settings -->
-  <string name="preferences_site_settings">Ρυθμίσεις ιστοτόπου</string>
+  <string name="preferences_site_settings">Ρυθμίσεις ιστοτόπων</string>
   <!-- Preference for private browsing options -->
   <string name="preferences_private_browsing_options">Ιδιωτική περιήγηση</string>
   <!-- Preference for opening links in a private tab -->
@@ -1199,7 +1199,7 @@
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preferences_daily_usage_ping_title">Ping ημερήσιας χρήσης</string>
   <string name="preferences_daily_usage_ping_description">Αυτό βοηθά τη Mozilla να εκτιμήσει τους ενεργούς χρήστες.</string>
-  <string name="preferences_daily_usage_ping_learn_more">Μάθετε περισσότερα για την ενημέρωση ημερήσιας χρήσης</string>
+  <string name="preferences_daily_usage_ping_learn_more">Μάθετε περισσότερα σχετικά με το ping ημερήσιας χρήσης</string>
   <!-- Preference switch title for automatically submitting crash reports -->
   <string name="preferences_automatically_send_crashes_title">Αυτόματη αποστολή αναφορών κατάρρευσης</string>
   <!-- Preference switch description for automatically submitting crash reports -->
@@ -1339,7 +1339,7 @@
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">Κλείσιμο καρτελών</string>
   <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
-  <string name="close_tabs_manually">Χειροκίνητα</string>
+  <string name="close_tabs_manually">Ποτέ</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">Μετά από μία μέρα</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
@@ -1391,7 +1391,7 @@
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">Ενεργές</string>
   <!-- Description for studies -->
-  <string name="studies_description_3">Δοκιμάστε λειτουργίες και ιδέες πριν διατεθούν σε όλους.</string>
+  <string name="studies_description_3">Δοκιμάστε λειτουργίες και ιδέες πριν γίνουν διαθέσιμες σε όλους.</string>
   <!-- Title of the Studies data preference -->
   <string name="studies_title">Εγκατάσταση και εκτέλεση μελετών</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
@@ -1734,11 +1734,11 @@
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Αποθήκευση</string>
   <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_custom">Ταξινόμηση κατά προσαρμοσμένη σειρά</string>
+  <string name="bookmark_sort_menu_custom">Προσαρμοσμένη σειρά</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_newest">Ταξινόμηση κατά νεότερο</string>
+  <string name="bookmark_sort_menu_newest">Πρώτα οι νεότεροι</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
-  <string name="bookmark_sort_menu_oldest">Ταξινόμηση κατά παλαιότερο</string>
+  <string name="bookmark_sort_menu_oldest">Πρώτα οι παλαιότεροι</string>
   <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_a_to_z">Ταξινόμηση: Α - Ω</string>
   <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
@@ -1806,11 +1806,11 @@
   <!-- Title for the bookmark list empty state -->
   <string name="bookmark_empty_list_title">Δεν υπάρχει κανένας σελιδοδείκτης ακόμα</string>
   <!-- Description for the bookmark list empty state when you're not signed into sync. -->
-  <string name="bookmark_empty_list_guest_description">Αποθηκεύστε ιστοσελίδες κατά την περιήγησή σας. Συνδεθείτε για να λάβετε σελιδοδείκτες από άλλες συγχρονισμένες συσκευές.</string>
+  <string name="bookmark_empty_list_guest_description">Αποθηκεύστε ιστοτόπους κατά την περιήγησή σας. Συνδεθείτε για να λάβετε σελιδοδείκτες από άλλες συγχρονισμένες συσκευές.</string>
   <!-- Text for the button to navigate to sync authentication -->
   <string name="bookmark_empty_list_guest_cta">Σύνδεση για συγχρονισμό</string>
   <!-- Description for the bookmark list empty state when you're signed into sync. -->
-  <string name="bookmark_empty_list_authenticated_description">Αποθηκεύστε ιστοσελίδες κατά την περιήγησή σας. Θα λάβουμε τους σελιδοδείκτες από άλλες συγχρονισμένες συσκευές.</string>
+  <string name="bookmark_empty_list_authenticated_description">Αποθηκεύστε ιστοτόπους κατά την περιήγησή σας. Θα φέρουμε και τους σελιδοδείκτες των άλλων συγχρονισμένων συσκευών.</string>
   <!-- Description for the bookmark list empty state when you're in an empty folder. -->
   <string name="bookmark_empty_list_folder_description">Προσθέστε σελιδοδείκτες καθώς περιηγείστε, ώστε να βρείτε αργότερα τις αγαπημένες σας ιστοσελίδες.</string>
   <!-- Description for the add new folder button when selecting a folder. -->
@@ -2130,7 +2130,7 @@
   <!-- Title for Accessibility Text Automatic Size Scaling Preference -->
   <string name="preference_accessibility_auto_size_2">Αυτόματο μέγεθος γραμματοσειράς</string>
   <!-- Summary for Accessibility Text Automatic Size Scaling Preference -->
-  <string name="preference_accessibility_auto_size_summary">Το μέγεθος θα καθορίζεται από τις ρυθμίσεις του Android. Απενεργοποιήστε το για να διαχειριστείτε το μέγεθος από εδώ.</string>
+  <string name="preference_accessibility_auto_size_summary">Το μέγεθος θα καθορίζεται από τις ρυθμίσεις του Android. Απενεργοποιήστε αυτήν τη ρύθμιση για να διαχειριστείτε το μέγεθος από εδώ.</string>
   <!-- Title for the Delete browsing data preference -->
   <string name="preferences_delete_browsing_data">Διαγραφή δεδομένων περιήγησης</string>
   <!-- Title for the tabs item in Delete browsing data -->
@@ -2155,7 +2155,7 @@
   <!-- Title for the cached images and files item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_cached_files">Προσωρινές εικόνες και αρχεία</string>
   <!-- Subtitle for the cached images and files item in Delete browsing data -->
-  <string name="preferences_delete_browsing_data_cached_files_subtitle">Απελευθερώνει χώρο αποθήκευσης</string>
+  <string name="preferences_delete_browsing_data_cached_files_subtitle">Απελευθερώνει αποθηκευτικό χώρο</string>
   <!-- Title for the site permissions item in Delete browsing data -->
   <string name="preferences_delete_browsing_data_site_permissions">Δικαιώματα ιστοτόπων</string>
   <!-- Title for the downloads item in Delete browsing data -->
@@ -2497,9 +2497,9 @@
   <!-- Preference for managing the saving of logins and passwords in Fenix -->
   <string name="preferences_passwords_save_logins_2">Αποθήκευση κωδικών πρόσβασης</string>
   <!-- Preference option for asking to save passwords in Fenix -->
-  <string name="preferences_passwords_save_logins_ask_to_save">Ερώτηση για αποθήκευση</string>
+  <string name="preferences_passwords_save_logins_ask_to_save">Να γίνεται ερώτηση για αποθήκευση</string>
   <!-- Preference option for never saving passwords in Fenix -->
-  <string name="preferences_passwords_save_logins_never_save">Ποτέ αποθήκευση</string>
+  <string name="preferences_passwords_save_logins_never_save">Να μη γίνεται ποτέ αποθήκευση</string>
   <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
   <string name="preferences_passwords_autofill2">Αυτόματη συμπλήρωση στο %1$s</string>
   <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
@@ -2523,7 +2523,7 @@
   <!-- Preference to access list of login exceptions that we never save logins for -->
   <string name="preferences_passwords_exceptions">Εξαιρέσεις</string>
   <!-- Empty description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
-  <string name="preferences_passwords_exceptions_description_empty_2">Το %s δεν θα αποθηκεύει κωδικούς πρόσβασης για τους ιστοτόπους που αναφέρονται εδώ.</string>
+  <string name="preferences_passwords_exceptions_description_empty_2">Το %s δεν θα αποθηκεύει κωδικούς πρόσβασης για τους ιστοτόπους που παρατίθενται εδώ.</string>
   <!-- Description of list of login exceptions that we never save passwords for. %s is the name of the app (for example "Firefox"). -->
   <string name="preferences_passwords_exceptions_description_2">Το %s δεν θα αποθηκεύει κωδικούς πρόσβασης για αυτούς τους ιστοτόπους.</string>
   <!-- Text on button to remove all saved login exceptions -->
@@ -2573,7 +2573,7 @@
   <!-- Title for Accessibility Force Enable Zoom Preference -->
   <string name="preference_accessibility_force_enable_zoom">Ζουμ σε όλους τους ιστοτόπους</string>
   <!-- Summary for Accessibility Force Enable Zoom Preference -->
-  <string name="preference_accessibility_force_enable_zoom_summary">Ενεργοποιήστε το για χρήση χειρονομιών ζουμ, ακόμη και σε ιστοτόπους που δεν τις επιτρέπουν.</string>
+  <string name="preference_accessibility_force_enable_zoom_summary">Ενεργοποιήστε αυτήν τη ρύθμιση για τη χρήση χειρονομιών ζουμ, ακόμα και σε ιστοτόπους που δεν τις επιτρέπουν.</string>
   <!-- Saved logins sorting strategy menu item -by name- (if selected, it will sort saved logins alphabetically) -->
   <string name="saved_logins_sort_strategy_alphabetically">Όνομα (Α-Ω)</string>
   <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
@@ -3106,7 +3106,7 @@
   -->
   <string name="automatic_translation_toolbar_title_preference">Αυτόματη μετάφραση</string>
   <!-- Screen header presenting the automatic translation preference feature. It will appear under the toolbar. -->
-  <string name="automatic_translation_header_preference">Επιλέξτε μια γλώσσα για να διαχειριστείτε τις προτιμήσεις «πάντα μετάφραση» και «ποτέ μετάφραση».</string>
+  <string name="automatic_translation_header_preference">Επιλέξτε μια γλώσσα για να διαχειριστείτε τις προτιμήσεις μετάφρασής της.</string>
   <!-- The title of the warning card informs the user that the system could not load languages for translation settings. -->
   <string name="automatic_translation_error_warning_text">Δεν ήταν δυνατή η φόρτωση των γλωσσών. Ελέγξτε ξανά αργότερα.</string>
   <!--
@@ -3118,11 +3118,11 @@
   <!-- Preference option for offering to translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_offer_to_translate_summary_preference">Το %1$s θα προτείνει τη μετάφραση ιστοτόπων σε αυτήν τη γλώσσα.</string>
   <!-- Preference option for always translate. Radio button title text. -->
-  <string name="automatic_translation_option_always_translate_title_preference">Πάντα μετάφραση</string>
+  <string name="automatic_translation_option_always_translate_title_preference">Να γίνεται πάντα μετάφραση</string>
   <!-- Preference option for always translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="automatic_translation_option_always_translate_summary_preference">Το %1$s θα μεταφράσει αυτόματα αυτήν τη γλώσσα όταν φορτωθεί η σελίδα.</string>
+  <string name="automatic_translation_option_always_translate_summary_preference">Το %1$s θα μεταφράζει αυτόματα αυτήν τη γλώσσα κατά τη φόρτωση των σελίδων.</string>
   <!-- Preference option for never translate. Radio button title text. -->
-  <string name="automatic_translation_option_never_translate_title_preference">Ποτέ μετάφραση</string>
+  <string name="automatic_translation_option_never_translate_title_preference">Να μη γίνεται ποτέ μετάφραση</string>
   <!-- Preference option for never translate. Radio button summary text. %1$s is the name of the app (for example "Firefox"). -->
   <string name="automatic_translation_option_never_translate_summary_preference">Το %1$s δεν θα προτείνει ποτέ τη μετάφραση ιστοτόπων σε αυτήν τη γλώσσα.</string>
   <!--
@@ -3156,7 +3156,7 @@
   -->
   <string name="download_languages_translations_toolbar_title_preference">Λήψη γλωσσών</string>
   <!-- Screen header presenting the download language preference feature. It will appear under the toolbar. %1$s is a link using download_languages_header_learn_more_preference as text ("Learn more"). Talkback will append this to say "Double tap to open link to learn more". -->
-  <string name="download_languages_header_preference">Κάντε λήψη ολόκληρων των γλωσσών για πιο γρήγορες μεταφράσεις και εκτός σύνδεσης. %1$s</string>
+  <string name="download_languages_header_preference">Κάντε λήψη ολόκληρων των γλωσσών για πιο γρήγορες μεταφράσεις, ακόμα και εκτός σύνδεσης. %1$s</string>
   <!-- Clickable text from the screen header that links to a website. -->
   <string name="download_languages_header_learn_more_preference">Μάθετε περισσότερα</string>
   <!-- The subhead of the download language preference screen will appear above the pivot language. -->

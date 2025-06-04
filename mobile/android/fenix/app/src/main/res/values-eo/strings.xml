@@ -3116,7 +3116,7 @@
   -->
   <string name="delete_language_file_dialog_title">Ĉu forigi %1$s (%2$s)?</string>
   <!-- Additional information for the dialog used by the translations feature to confirm deleting a language. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="delete_language_file_dialog_message">Se vi forigas tiun ĉi lingvon, %1$s elŝutos lingvojn al via staplo po iom dum vi tradukas.</string>
+  <string name="delete_language_file_dialog_message">Se vi forigas tiun ĉi lingvon, %1$s elŝutos lingvojn al via stokejo po iom dum vi tradukas.</string>
   <!--
     Title for the dialog used by the translations feature to confirm deleting all languages file.
     The dialog will be presented when the user requests deletion of all languages file.
@@ -3124,7 +3124,7 @@
   -->
   <string name="delete_language_all_languages_file_dialog_title">Ĉu forigi ĉiujn lingvojn (%1$s)?</string>
   <!-- Additional information for the dialog used by the translations feature to confirm deleting all languages file. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="delete_language_all_languages_file_dialog_message">Se vi forigas tiun ĉi lingvon, %1$s elŝutos lingvojn al via staplo po iom dum vi tradukas.</string>
+  <string name="delete_language_all_languages_file_dialog_message">Se vi forigas tiun ĉi lingvon, %1$s elŝutos lingvojn al via stokejo po iom dum vi tradukas.</string>
   <!-- Button text on the dialog used by the translations feature to confirm deleting a language. -->
   <string name="delete_language_file_dialog_positive_button_text">Forigi</string>
   <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
@@ -3137,7 +3137,7 @@
   -->
   <string name="download_language_file_dialog_title">Ĉu elŝuti dum datumŝpara reĝimo (%1$s)?</string>
   <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
-  <string name="download_language_file_dialog_message_all_languages">Ni elŝutas partojn de lingvoj al via staplo por gardi viajn tradukojn privataj.</string>
+  <string name="download_language_file_dialog_message_all_languages">Ni elŝutas partojn de lingvoj al via stokejo por gardi viajn tradukojn privataj.</string>
   <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
   <string name="download_language_file_dialog_checkbox_text">Ĉiam elŝuti en datumŝpara regïmo</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->

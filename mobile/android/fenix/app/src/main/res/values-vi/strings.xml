@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Tìm hiểu thêm</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Quản lý tiện ích</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Thêm</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Ít hơn</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Tiện ích mở rộng được đề xuất</string>
   <!--
@@ -389,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Đã dịch sang %1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Đã dịch</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">In…</string>
   <!--
@@ -1333,7 +1339,7 @@
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">Đóng thẻ</string>
   <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
-  <string name="close_tabs_manually">Thủ công</string>
+  <string name="close_tabs_manually">Không bao giờ</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">Sau một ngày</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
@@ -1895,6 +1901,10 @@
   <string name="studies_on">Bật</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Tắt</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">Bật</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">Tắt</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Quyền hạn</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -3656,4 +3666,22 @@
   <string name="private_tab_cfr_negative">Không, cảm ơn</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">Khóa thẻ</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Bạn đang nghĩ gì về %1$s?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Tôi đang gặp sự cố</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">Thật tuyệt vời!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Cảm ơn bạn đã yêu thích %1$s. Bạn có muốn dành chút thời gian để chia sẻ điều này bằng cách đánh giá không?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Đánh giá %1$s trên Cửa hàng Play</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Chúng tôi rất tiếc vì bạn đang gặp sự cố. Hãy cho chúng tôi biết cách chúng tôi có thể cải thiện %1$s.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Để lại phản hồi</string>
 </resources>

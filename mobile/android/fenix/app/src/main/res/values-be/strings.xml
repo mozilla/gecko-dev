@@ -206,6 +206,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Даведацца больш</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Кіраваць пашырэннямі</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Больш</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Менш</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Рэкамендаваныя пашырэнні</string>
   <!--
@@ -335,6 +339,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Перакладзена на %1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Перакладзена</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Друкаваць…</string>
   <!--
@@ -1098,7 +1104,7 @@
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">Закрываць карткі</string>
   <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
-  <string name="close_tabs_manually">Уручную</string>
+  <string name="close_tabs_manually">Ніколі</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">Праз дзень</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
@@ -1269,12 +1275,16 @@
   <string name="download_time_period_last_7_days">Апошнія 7 дзён</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Даўней</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Падрабязнасці</string>
   <!--
     Downloads Content Type Filters
 
     Text for the filter button to show all files in the downloads list
   -->
   <string name="download_content_type_filter_all">Усе</string>
+  <!-- Text for the filter button to show only documents in the downloads list -->
+  <string name="download_content_type_filter_document">Дакументы</string>
   <!-- Text for the filter button to show all other file types in the downloads list -->
   <string name="download_content_type_filter_other_1">Іншыя</string>
   <!--
