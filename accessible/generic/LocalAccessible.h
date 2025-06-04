@@ -765,6 +765,8 @@ class LocalAccessible : public nsISupports, public Accessible {
    */
   void NativeDescription(nsString& aDescription) const;
 
+  uint64_t ExplicitState() const;
+
   /**
    * Return object attributes provided by native markup. It doesn't take into
    * account ARIA.
