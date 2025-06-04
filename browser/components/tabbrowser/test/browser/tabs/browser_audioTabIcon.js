@@ -6,6 +6,12 @@ const INITIAL_TABATTR_REMOVAL_DELAY_MS = Services.prefs.getIntPref(
   TABATTR_REMOVAL_PREFNAME
 );
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["test.wait300msAfterTabSwitch", true]],
+  });
+});
+
 async function pause(tab, options) {
   let extendedDelay = options && options.extendedDelay;
   if (extendedDelay) {
