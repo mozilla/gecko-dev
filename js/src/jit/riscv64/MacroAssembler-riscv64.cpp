@@ -483,7 +483,7 @@ void MacroAssemblerRiscv64Compat::movePtr(wasm::SymbolicAddress imm,
 }
 
 bool MacroAssemblerRiscv64Compat::buildOOLFakeExitFrame(void* fakeReturnAddr) {
-  asMasm().PushFrameDescriptor(FrameType::IonJS);  // descriptor_
+  asMasm().Push(FrameDescriptor(FrameType::IonJS));  // descriptor_
   asMasm().Push(ImmPtr(fakeReturnAddr));
   asMasm().Push(FramePointer);
   return true;

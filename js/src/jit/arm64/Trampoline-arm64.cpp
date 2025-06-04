@@ -216,7 +216,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.subFromStackPtr(scratch);
 
     // Enter exit frame.
-    masm.pushFrameDescriptor(FrameType::BaselineJS);
+    masm.push(FrameDescriptor(FrameType::BaselineJS));
     masm.push(xzr);  // Push xzr for a fake return address.
     masm.push(FramePointer);
     // No GC things to mark: push a bare token.
@@ -509,16 +509,8 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       argumentsRectifierReturnOffset_ = masm.callJitNoProfiler(r3);
       break;
     case ArgumentsRectifierKind::TrialInlining:
-      Label noBaselineScript, done;
-      masm.loadBaselineJitCodeRaw(r5, r3, &noBaselineScript);
+      masm.loadJitCodeRawNoIon(r5, r3, r0);
       masm.callJitNoProfiler(r3);
-      masm.jump(&done);
-
-      // See BaselineCacheIRCompiler::emitCallInlinedFunction.
-      masm.bind(&noBaselineScript);
-      masm.loadJitCodeRaw(r5, r3);
-      masm.callJitNoProfiler(r3);
-      masm.bind(&done);
       break;
   }
 

@@ -11244,7 +11244,7 @@ void CacheIRCompiler::callVMInternal(MacroAssembler& masm, VMFunctionId id) {
     TrampolinePtr code = cx_->runtime()->jitRuntime()->getVMWrapper(id);
     const VMFunctionData& fun = GetVMFunction(id);
     uint32_t frameSize = fun.explicitStackSlots() * sizeof(void*);
-    masm.PushFrameDescriptor(FrameType::IonICCall);
+    masm.Push(FrameDescriptor(FrameType::IonICCall));
     masm.callJit(code);
 
     // Pop rest of the exit frame and the arguments left on the stack.

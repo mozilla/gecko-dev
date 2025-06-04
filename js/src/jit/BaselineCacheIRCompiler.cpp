@@ -145,6 +145,22 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
   }
 }
 
+void AutoStubFrame::pushInlinedICScript(MacroAssembler& masm,
+                                        Address icScriptAddr) {
+  // The baseline prologue expects the inlined ICScript to
+  // be at a fixed offset from the stub frame pointer.
+  MOZ_ASSERT(compiler.localTracingSlots_ == 0);
+  masm.Push(icScriptAddr);
+
+#ifndef JS_64BIT
+  // We expect the stack to be Value-aligned when we start pushing arguments.
+  // We are already aligned when we enter the stub frame. Pushing a 32-bit
+  // ICScript requires an additional adjustment to maintain alignment.
+  static_assert(sizeof(Value) == 2 * sizeof(uintptr_t));
+  masm.subFromStackPtr(Imm32(sizeof(uintptr_t)));
+#endif
+}
+
 void AutoStubFrame::storeTracedValue(MacroAssembler& masm, ValueOperand value) {
   MOZ_ASSERT(compiler.localTracingSlots_ < 255);
   MOZ_ASSERT(masm.framePushed() - framePushedAtEnterStubFrame_ ==
@@ -558,11 +574,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
   // First, retrieve raw jitcode for getter.
   masm.loadPtr(getterAddr, callee);
   if (isInlined) {
-    FailurePath* failure;
-    if (!addFailurePath(&failure)) {
-      return false;
-    }
-    masm.loadBaselineJitCodeRaw(callee, code, failure->label());
+    masm.loadJitCodeRawNoIon(callee, code, scratch);
   } else {
     masm.loadJitCodeRaw(callee, code);
   }
@@ -576,6 +588,10 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
     masm.switchToObjectRealm(callee, scratch);
   }
 
+  if (isInlined) {
+    stubFrame.pushInlinedICScript(masm, stubAddress(*icScriptOffset));
+  }
+
   // Align the stack such that the JitFrameLayout is aligned on
   // JitStackAlignment.
   masm.alignJitStackBasedOnNArgs(0, /*countIncludesThis = */ false);
@@ -585,15 +601,9 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
   // properly on ARM.
   masm.Push(receiver);
 
-  if (isInlined) {
-    // Store icScript in the context.
-    Address icScriptAddr(stubAddress(*icScriptOffset));
-    masm.loadPtr(icScriptAddr, scratch);
-    masm.storeICScriptInJSContext(scratch);
-  }
-
   masm.Push(callee);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, /* argc = */ 0);
+  masm.Push(
+      FrameDescriptor(FrameType::BaselineStub, /* argc = */ 0, isInlined));
 
   // Handle arguments underflow.
   Label noUnderflow;
@@ -1671,16 +1681,6 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
   // First, load the callee.
   masm.loadPtr(setterAddr, callee);
 
-  if (isInlined) {
-    // If we are calling a trial-inlined setter, guard that the
-    // target has a BaselineScript.
-    FailurePath* failure;
-    if (!addFailurePath(&failure)) {
-      return false;
-    }
-    masm.loadBaselineJitCodeRaw(callee, code, failure->label());
-  }
-
   allocator.discardStack(masm);
 
   AutoStubFrame stubFrame(*this);
@@ -1688,6 +1688,10 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
 
   if (!sameRealm) {
     masm.switchToObjectRealm(callee, scratch);
+  }
+
+  if (isInlined) {
+    stubFrame.pushInlinedICScript(masm, stubAddress(*icScriptOffset));
   }
 
   // Align the stack such that the JitFrameLayout is aligned on
@@ -1703,23 +1707,12 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
   masm.Push(callee);
 
   // Push frame descriptor.
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, /* argc = */ 1);
-
-  if (isInlined) {
-    // Store icScript in the context.
-    Address icScriptAddr(stubAddress(*icScriptOffset));
-    masm.loadPtr(icScriptAddr, scratch);
-    masm.storeICScriptInJSContext(scratch);
-  }
+  masm.Push(
+      FrameDescriptor(FrameType::BaselineStub, /* argc = */ 1, isInlined));
 
   // Load the jitcode pointer.
   if (isInlined) {
-    // On non-x86 platforms, this pointer is still in a register
-    // after guarding on it above. On x86, we don't have enough
-    // registers and have to reload it here.
-#ifdef JS_CODEGEN_X86
-    masm.loadBaselineJitCodeRaw(callee, code);
-#endif
+    masm.loadJitCodeRawNoIon(callee, code, /*scratch = */ callee);
   } else {
     masm.loadJitCodeRaw(callee, code);
   }
@@ -3414,7 +3407,7 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
   // Construct a native exit frame.
   masm.push(argcReg);
 
-  masm.pushFrameDescriptor(FrameType::BaselineStub);
+  masm.push(FrameDescriptor(FrameType::BaselineStub));
   masm.push(ICTailCallReg);
   masm.push(FramePointer);
   masm.loadJSContext(scratch);
@@ -3724,17 +3717,17 @@ void BaselineCacheIRCompiler::updateReturnValue() {
   masm.bind(&skipThisReplace);
 }
 
-bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
-                                                       Int32OperandId argcId,
-                                                       CallFlags flags,
-                                                       uint32_t argcFixed) {
-  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+bool BaselineCacheIRCompiler::emitCallScriptedFunctionShared(
+    ObjOperandId calleeId, Int32OperandId argcId, CallFlags flags,
+    uint32_t argcFixed, Maybe<uint32_t> icScriptOffset) {
   AutoOutputRegister output(*this);
   AutoScratchRegisterMaybeOutput scratch(allocator, masm, output);
   AutoScratchRegister scratch2(allocator, masm);
 
   Register calleeReg = allocator.useRegister(masm, calleeId);
   Register argcReg = allocator.useRegister(masm, argcId);
+
+  bool isInlined = icScriptOffset.isSome();
 
   bool isConstructing = flags.isConstructing();
   bool isSameRealm = flags.isSameRealm();
@@ -3752,6 +3745,9 @@ bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
   if (!isSameRealm) {
     masm.switchToObjectRealm(calleeReg, scratch);
   }
+  if (isInlined) {
+    stubFrame.pushInlinedICScript(masm, stubAddress(*icScriptOffset));
+  }
 
   if (isConstructing) {
     createThis(argcReg, calleeReg, scratch, flags,
@@ -3761,14 +3757,19 @@ bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
   pushArguments(argcReg, calleeReg, scratch, scratch2, flags, argcFixed,
                 /*isJitCall =*/true);
 
-  // Load the start of the target JitCode.
-  Register code = scratch2;
-  masm.loadJitCodeRaw(calleeReg, code);
-
   // Note that we use Push, not push, so that callJit will align the stack
   // properly on ARM.
   masm.PushCalleeToken(calleeReg, isConstructing);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, argcReg, scratch);
+  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, argcReg, scratch,
+                                     isInlined);
+
+  // Load the start of the target JitCode.
+  Register code = scratch2;
+  if (isInlined) {
+    masm.loadJitCodeRawNoIon(calleeReg, code, scratch);
+  } else {
+    masm.loadJitCodeRaw(calleeReg, code);
+  }
 
   // Handle arguments underflow.
   Label noUnderflow;
@@ -3799,10 +3800,14 @@ bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
   return true;
 }
 
-bool BaselineCacheIRCompiler::emitCallWasmFunction(
-    ObjOperandId calleeId, Int32OperandId argcId, CallFlags flags,
-    uint32_t argcFixed, uint32_t funcExportOffset, uint32_t instanceOffset) {
-  return emitCallScriptedFunction(calleeId, argcId, flags, argcFixed);
+bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
+                                                       Int32OperandId argcId,
+                                                       CallFlags flags,
+                                                       uint32_t argcFixed) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+  Maybe<uint32_t> icScriptOffset = mozilla::Nothing();
+  return emitCallScriptedFunctionShared(calleeId, argcId, flags, argcFixed,
+                                        icScriptOffset);
 }
 
 bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
@@ -3811,98 +3816,14 @@ bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
                                                       CallFlags flags,
                                                       uint32_t argcFixed) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
-  AutoOutputRegister output(*this);
-  AutoScratchRegisterMaybeOutput scratch(allocator, masm, output);
-  AutoScratchRegisterMaybeOutputType scratch2(allocator, masm, output);
-  AutoScratchRegister codeReg(allocator, masm);
+  return emitCallScriptedFunctionShared(calleeId, argcId, flags, argcFixed,
+                                        mozilla::Some(icScriptOffset));
+}
 
-  Register calleeReg = allocator.useRegister(masm, calleeId);
-  Register argcReg = allocator.useRegister(masm, argcId);
-
-  bool isConstructing = flags.isConstructing();
-  bool isSameRealm = flags.isSameRealm();
-
-  FailurePath* failure;
-  if (!addFailurePath(&failure)) {
-    return false;
-  }
-
-  masm.loadBaselineJitCodeRaw(calleeReg, codeReg, failure->label());
-
-  if (!updateArgc(flags, argcReg, scratch)) {
-    return false;
-  }
-
-  allocator.discardStack(masm);
-
-  // Push a stub frame so that we can perform a non-tail call.
-  AutoStubFrame stubFrame(*this);
-  stubFrame.enter(masm, scratch);
-
-  if (!isSameRealm) {
-    masm.switchToObjectRealm(calleeReg, scratch);
-  }
-
-  Label baselineScriptDiscarded;
-  if (isConstructing) {
-    createThis(argcReg, calleeReg, scratch, flags,
-               /* isBoundFunction = */ false);
-
-    // CreateThisFromIC may trigger a GC and discard the BaselineScript.
-    // We have already called discardStack, so we can't use a FailurePath.
-    // Instead, we skip storing the ICScript in the JSContext and use a
-    // normal non-inlined call.
-    masm.loadBaselineJitCodeRaw(calleeReg, codeReg, &baselineScriptDiscarded);
-  }
-
-  // Store icScript in the context.
-  Address icScriptAddr(stubAddress(icScriptOffset));
-  masm.loadPtr(icScriptAddr, scratch);
-  masm.storeICScriptInJSContext(scratch);
-
-  if (isConstructing) {
-    Label skip;
-    masm.jump(&skip);
-    masm.bind(&baselineScriptDiscarded);
-    masm.loadJitCodeRaw(calleeReg, codeReg);
-    masm.bind(&skip);
-  }
-
-  pushArguments(argcReg, calleeReg, scratch, scratch2, flags, argcFixed,
-                /*isJitCall =*/true);
-
-  // Note that we use Push, not push, so that callJit will align the stack
-  // properly on ARM.
-  masm.PushCalleeToken(calleeReg, isConstructing);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, argcReg, scratch);
-
-  // Handle arguments underflow.
-  Label noUnderflow;
-  masm.loadFunctionArgCount(calleeReg, calleeReg);
-  masm.branch32(Assembler::AboveOrEqual, argcReg, calleeReg, &noUnderflow);
-
-  // Call the trial-inlining arguments rectifier.
-  ArgumentsRectifierKind kind = ArgumentsRectifierKind::TrialInlining;
-  TrampolinePtr argumentsRectifier =
-      cx_->runtime()->jitRuntime()->getArgumentsRectifier(kind);
-  masm.movePtr(argumentsRectifier, codeReg);
-
-  masm.bind(&noUnderflow);
-  masm.callJit(codeReg);
-
-  // If this is a constructing call, and the callee returns a non-object,
-  // replace it with the |this| object passed in.
-  if (isConstructing) {
-    updateReturnValue();
-  }
-
-  stubFrame.leave(masm);
-
-  if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(codeReg);
-  }
-
-  return true;
+bool BaselineCacheIRCompiler::emitCallWasmFunction(
+    ObjOperandId calleeId, Int32OperandId argcId, CallFlags flags,
+    uint32_t argcFixed, uint32_t funcExportOffset, uint32_t instanceOffset) {
+  return emitCallScriptedFunction(calleeId, argcId, flags, argcFixed);
 }
 
 #ifdef JS_PUNBOX64
@@ -3968,7 +3889,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedProxyGetShared(
   masm.loadJitCodeRaw(callee, code);
 
   masm.Push(callee);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, 3);
+  masm.Push(FrameDescriptor(FrameType::BaselineStub, 3));
 
   masm.callJit(code);
 
@@ -4376,7 +4297,7 @@ bool BaselineCacheIRCompiler::emitCloseIterScriptedResult(
   }
   masm.Push(TypedOrValueRegister(MIRType::Object, AnyRegister(iter)));
   masm.Push(callee);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, /* argc = */ 0);
+  masm.Push(FrameDescriptor(FrameType::BaselineStub, /* argc = */ 0));
 
   masm.callJit(code);
 

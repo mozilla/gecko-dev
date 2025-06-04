@@ -122,7 +122,7 @@ uint32_t JitRuntime::generateArraySortTrampoline(MacroAssembler& masm,
 
   auto pushExitFrame = [&](Register cxReg, Register scratchReg) {
     MOZ_ASSERT(masm.framePushed() == FrameSize);
-    masm.PushFrameDescriptor(FrameType::TrampolineNative);
+    masm.Push(FrameDescriptor(FrameType::TrampolineNative));
     masm.Push(ImmWord(0));  // Fake return address.
     masm.Push(FramePointer);
     masm.enterFakeExitFrame(cxReg, scratchReg, ExitFrameType::Bare);

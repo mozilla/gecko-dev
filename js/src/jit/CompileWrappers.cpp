@@ -76,10 +76,6 @@ const void* CompileRuntime::addressOfInterruptBits() {
   return runtime()->mainContextFromAnyThread()->addressOfInterruptBits();
 }
 
-const void* CompileRuntime::addressOfInlinedICScript() {
-  return runtime()->mainContextFromAnyThread()->addressOfInlinedICScript();
-}
-
 const void* CompileRuntime::addressOfRealm() {
   return runtime()->mainContextFromAnyThread()->addressOfRealm();
 }

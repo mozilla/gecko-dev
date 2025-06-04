@@ -1020,7 +1020,14 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
   }
 
   RootedFunction targetFunction(cx_, inlineData->target);
-  if (!TrialInliner::canInline(targetFunction, script_, loc)) {
+  if (!TrialInliner::canInline(cx_, targetFunction, script_, loc)) {
+    return false;
+  }
+
+  // We can speculatively inline scripts while they're in blinterp,
+  // but by the time we actually Ion-compile the outer script, the
+  // callee should have at least reached baseline.
+  if (!targetFunction->nonLazyScript()->hasBaselineScript()) {
     return false;
   }
 
