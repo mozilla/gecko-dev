@@ -7,11 +7,8 @@ package org.mozilla.fenix.home.intent
 import android.content.Intent
 import androidx.navigation.NavController
 import io.mockk.Called
-import io.mockk.every
 import io.mockk.mockk
-import io.mockk.mockkObject
 import io.mockk.verify
-import mozilla.components.lib.crash.Crash
 import mozilla.components.lib.crash.Crash.NativeCodeCrash
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,20 +35,19 @@ class CrashReporterIntentProcessorTest {
 
     @Test
     fun `GIVEN a crash Intent WHEN processing it THEN update crash details and return true`() {
-        val processor = CrashReporterIntentProcessor(appStore)
-        val intent = Intent()
         val crash = mockk<NativeCodeCrash>(relaxed = true)
+        val processor = CrashReporterIntentProcessor(
+            appStore,
+            isCrashIntent = { true },
+            getCrashFromIntent = { crash },
+        )
+        val intent = Intent()
 
-        mockkObject(Crash.Companion) {
-            every { Crash.Companion.isCrashIntent(intent) } returns true
-            every { Crash.Companion.fromIntent(intent) } returns crash
+        val result = processor.process(intent, navController, out)
 
-            val result = processor.process(intent, navController, out)
-
-            assertTrue(result)
-            verify { navController wasNot Called }
-            verify { out wasNot Called }
-            verify { appStore.dispatch(AppAction.AddNonFatalCrash(crash)) }
-        }
+        assertTrue(result)
+        verify { navController wasNot Called }
+        verify { out wasNot Called }
+        verify { appStore.dispatch(AppAction.AddNonFatalCrash(crash)) }
     }
 }
