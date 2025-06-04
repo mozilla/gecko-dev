@@ -59,7 +59,7 @@ using namespace mozilla::widget;
 using namespace mozilla;
 using mozilla::MutexAutoLock;
 
-StaticAutoPtr<nsTArray<RefPtr<GfxDriverInfo>>> GfxInfoBase::sDriverInfo;
+nsTArray<GfxDriverInfo>* GfxInfoBase::sDriverInfo;
 StaticAutoPtr<nsTArray<gfx::GfxInfoFeatureStatus>> GfxInfoBase::sFeatureStatus;
 bool GfxInfoBase::sDriverInfoObserverInitialized;
 bool GfxInfoBase::sShutdownOccurred;
@@ -85,9 +85,11 @@ class ShutdownObserver : public nsIObserver {
                      const char16_t* aData) override {
     MOZ_ASSERT(strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0);
 
+    delete GfxInfoBase::sDriverInfo;
     GfxInfoBase::sDriverInfo = nullptr;
 
     for (auto& deviceFamily : GfxDriverInfo::sDeviceFamilies) {
+      delete deviceFamily;
       deviceFamily = nullptr;
     }
 
@@ -235,24 +237,13 @@ static OperatingSystem BlocklistOSToOperatingSystem(const nsAString& os) {
   return OperatingSystem::Unknown;
 }
 
-static RefreshRateStatus BlocklistToRefreshRateStatus(
-    const nsAString& refreshRateStatus) {
-#define GFXINFO_REFRESH_RATE_STATUS(id, name)   \
-  if (refreshRateStatus.Equals(u##name##_ns)) { \
-    return RefreshRateStatus::id;               \
-  }
-#include "mozilla/widget/GfxInfoRefreshRateStatusDefs.h"
-#undef GFXINFO_OS
-  return RefreshRateStatus::Unknown;
-}
-
-static already_AddRefed<const GfxDeviceFamily> BlocklistDevicesToDeviceFamily(
+static GfxDeviceFamily* BlocklistDevicesToDeviceFamily(
     nsTArray<nsCString>& devices) {
   if (devices.Length() == 0) return nullptr;
 
   // For each device, get its device ID, and return a freshly-allocated
   // GfxDeviceFamily with the contents of that array.
-  auto deviceIds = MakeRefPtr<GfxDeviceFamily>();
+  GfxDeviceFamily* deviceIds = new GfxDeviceFamily;
 
   for (uint32_t i = 0; i < devices.Length(); ++i) {
     // We make sure we don't add any "empty" device entries to the array, so
@@ -260,7 +251,7 @@ static already_AddRefed<const GfxDeviceFamily> BlocklistDevicesToDeviceFamily(
     deviceIds->Append(NS_ConvertUTF8toUTF16(devices[i]));
   }
 
-  return deviceIds.forget();
+  return deviceIds;
 }
 
 static int32_t BlocklistFeatureToGfxFeature(const nsAString& aFeature) {
@@ -325,7 +316,7 @@ static VersionComparisonOp BlocklistComparatorToComparisonOp(
   os:WINNT 6.0\tvendor:0x8086\tdevices:0x2582,0x2782\tfeature:DIRECT3D_10_LAYERS\tfeatureStatus:BLOCKED_DRIVER_VERSION\tdriverVersion:8.52.322.2202\tdriverVersionComparator:LESS_THAN_OR_EQUAL
 */
 static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
-                                       GfxDriverInfo* aDriverInfo) {
+                                       GfxDriverInfo& aDriverInfo) {
   // If we get an application version to be zero, something is not working
   // and we are not going to bother checking the blocklist versions.
   // See TestGfxWidgets.cpp for how version comparison works.
@@ -338,7 +329,7 @@ static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
         << GfxInfoBase::GetApplicationVersion().get();
   }
 
-  aDriverInfo->mRuleId = "FEATURE_FAILURE_DL_BLOCKLIST_NO_ID"_ns;
+  aDriverInfo.mRuleId = "FEATURE_FAILURE_DL_BLOCKLIST_NO_ID"_ns;
 
   for (const auto& keyValue : aBlocklistEntry.Split('\t')) {
     nsTArray<nsCString> splitted;
@@ -362,68 +353,45 @@ static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
 
     if (key.EqualsLiteral("blockID")) {
       nsCString blockIdStr = "FEATURE_FAILURE_DL_BLOCKLIST_"_ns + value;
-      aDriverInfo->mRuleId = blockIdStr.get();
+      aDriverInfo.mRuleId = blockIdStr.get();
     } else if (key.EqualsLiteral("os")) {
-      aDriverInfo->mOperatingSystem = BlocklistOSToOperatingSystem(dataValue);
+      aDriverInfo.mOperatingSystem = BlocklistOSToOperatingSystem(dataValue);
     } else if (key.EqualsLiteral("osversion")) {
-      aDriverInfo->mOperatingSystemVersion = strtoul(value.get(), nullptr, 10);
-    } else if (key.EqualsLiteral("osVersionEx")) {
-      aDriverInfo->mOperatingSystemVersionEx.Parse(value);
-    } else if (key.EqualsLiteral("osVersionExMax")) {
-      aDriverInfo->mOperatingSystemVersionExMax.Parse(value);
-    } else if (key.EqualsLiteral("osVersionExComparator")) {
-      aDriverInfo->mOperatingSystemVersionExComparisonOp =
-          BlocklistComparatorToComparisonOp(dataValue);
-    } else if (key.EqualsLiteral("refreshRateStatus")) {
-      aDriverInfo->mRefreshRateStatus = BlocklistToRefreshRateStatus(dataValue);
-    } else if (key.EqualsLiteral("minRefreshRate")) {
-      aDriverInfo->mMinRefreshRate = strtoul(value.get(), nullptr, 10);
-    } else if (key.EqualsLiteral("minRefreshRateMax")) {
-      aDriverInfo->mMinRefreshRateMax = strtoul(value.get(), nullptr, 10);
-    } else if (key.EqualsLiteral("minRefreshRateComparator")) {
-      aDriverInfo->mMinRefreshRateComparisonOp =
-          BlocklistComparatorToComparisonOp(dataValue);
-    } else if (key.EqualsLiteral("maxRefreshRate")) {
-      aDriverInfo->mMaxRefreshRate = strtoul(value.get(), nullptr, 10);
-    } else if (key.EqualsLiteral("maxRefreshRateMax")) {
-      aDriverInfo->mMaxRefreshRateMax = strtoul(value.get(), nullptr, 10);
-    } else if (key.EqualsLiteral("maxRefreshRateComparator")) {
-      aDriverInfo->mMaxRefreshRateComparisonOp =
-          BlocklistComparatorToComparisonOp(dataValue);
+      aDriverInfo.mOperatingSystemVersion = strtoul(value.get(), nullptr, 10);
     } else if (key.EqualsLiteral("windowProtocol")) {
-      aDriverInfo->mWindowProtocol = dataValue;
+      aDriverInfo.mWindowProtocol = dataValue;
     } else if (key.EqualsLiteral("vendor")) {
-      aDriverInfo->mAdapterVendor = dataValue;
+      aDriverInfo.mAdapterVendor = dataValue;
     } else if (key.EqualsLiteral("driverVendor")) {
-      aDriverInfo->mDriverVendor = dataValue;
+      aDriverInfo.mDriverVendor = dataValue;
     } else if (key.EqualsLiteral("feature")) {
-      aDriverInfo->mFeature = BlocklistFeatureToGfxFeature(dataValue);
-      if (aDriverInfo->mFeature == nsIGfxInfo::FEATURE_INVALID) {
+      aDriverInfo.mFeature = BlocklistFeatureToGfxFeature(dataValue);
+      if (aDriverInfo.mFeature == nsIGfxInfo::FEATURE_INVALID) {
         // If we don't recognize the feature, we do not want to proceed.
         gfxWarning() << "Unrecognized feature " << value.get();
         return false;
       }
     } else if (key.EqualsLiteral("featureStatus")) {
-      aDriverInfo->mFeatureStatus =
+      aDriverInfo.mFeatureStatus =
           BlocklistFeatureStatusToGfxFeatureStatus(dataValue);
     } else if (key.EqualsLiteral("driverVersion")) {
       uint64_t version;
       if (ParseDriverVersion(dataValue, &version))
-        aDriverInfo->mDriverVersion = version;
+        aDriverInfo.mDriverVersion = version;
     } else if (key.EqualsLiteral("driverVersionMax")) {
       uint64_t version;
       if (ParseDriverVersion(dataValue, &version))
-        aDriverInfo->mDriverVersionMax = version;
+        aDriverInfo.mDriverVersionMax = version;
     } else if (key.EqualsLiteral("driverVersionComparator")) {
-      aDriverInfo->mComparisonOp = BlocklistComparatorToComparisonOp(dataValue);
+      aDriverInfo.mComparisonOp = BlocklistComparatorToComparisonOp(dataValue);
     } else if (key.EqualsLiteral("model")) {
-      aDriverInfo->mModel = dataValue;
+      aDriverInfo.mModel = dataValue;
     } else if (key.EqualsLiteral("product")) {
-      aDriverInfo->mProduct = dataValue;
+      aDriverInfo.mProduct = dataValue;
     } else if (key.EqualsLiteral("manufacturer")) {
-      aDriverInfo->mManufacturer = dataValue;
+      aDriverInfo.mManufacturer = dataValue;
     } else if (key.EqualsLiteral("hardware")) {
-      aDriverInfo->mHardware = dataValue;
+      aDriverInfo.mHardware = dataValue;
     } else if (key.EqualsLiteral("versionRange")) {
       nsTArray<nsCString> versionRange;
       ParseString(value, ',', versionRange);
@@ -453,7 +421,12 @@ static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
     } else if (key.EqualsLiteral("devices")) {
       nsTArray<nsCString> devices;
       ParseString(value, ',', devices);
-      aDriverInfo->mDevices = BlocklistDevicesToDeviceFamily(devices);
+      GfxDeviceFamily* deviceIds = BlocklistDevicesToDeviceFamily(devices);
+      if (deviceIds) {
+        // Get GfxDriverInfo to adopt the devices array we created.
+        aDriverInfo.mDeleteDevices = true;
+        aDriverInfo.mDevices = deviceIds;
+      }
     }
     // We explicitly ignore unknown elements.
   }
@@ -465,13 +438,19 @@ NS_IMETHODIMP
 GfxInfoBase::Observe(nsISupports* aSubject, const char* aTopic,
                      const char16_t* aData) {
   if (strcmp(aTopic, "blocklist-data-gfxItems") == 0) {
-    nsTArray<RefPtr<GfxDriverInfo>> driverInfo;
+    nsTArray<GfxDriverInfo> driverInfo;
     NS_ConvertUTF16toUTF8 utf8Data(aData);
 
     for (const auto& blocklistEntry : utf8Data.Split('\n')) {
-      auto di = MakeRefPtr<GfxDriverInfo>();
+      GfxDriverInfo di;
       if (BlocklistEntryToDriverInfo(blocklistEntry, di)) {
-        driverInfo.AppendElement(std::move(di));
+        // XXX Changing this to driverInfo.AppendElement(di) causes leaks.
+        // Probably some non-standard semantics of the copy/move operations?
+        *driverInfo.AppendElement() = di;
+        // Prevent di falling out of scope from destroying the devices.
+        di.mDeleteDevices = false;
+      } else {
+        driverInfo.AppendElement();
       }
     }
 
@@ -502,34 +481,8 @@ void GfxInfoBase::GetData() {
     return;
   }
 
-  auto& screenManager = ScreenManager::GetSingleton();
-  screenManager.GetTotalScreenPixels(&mScreenPixels);
-
-  if (mScreenCount == 0) {
-    const auto& screenList = screenManager.CurrentScreenList();
-    mScreenCount = screenList.Length();
-
-    mMinRefreshRate = std::numeric_limits<int32_t>::max();
-    mMaxRefreshRate = std::numeric_limits<int32_t>::min();
-    for (auto& screen : ScreenManager::GetSingleton().CurrentScreenList()) {
-      int32_t refreshRate = screen->GetRefreshRate();
-      mMinRefreshRate = std::min(mMinRefreshRate, refreshRate);
-      mMaxRefreshRate = std::max(mMaxRefreshRate, refreshRate);
-    }
-  }
+  ScreenManager::GetSingleton().GetTotalScreenPixels(&mScreenPixels);
 }
-
-#ifdef DEBUG
-NS_IMETHODIMP
-GfxInfoBase::SpoofMonitorInfo(uint32_t aScreenCount, int32_t aMinRefreshRate,
-                              int32_t aMaxRefreshRate) {
-  MOZ_ASSERT(aScreenCount > 0);
-  mScreenCount = aScreenCount;
-  mMinRefreshRate = aMinRefreshRate;
-  mMaxRefreshRate = aMaxRefreshRate;
-  return NS_OK;
-}
-#endif
 
 NS_IMETHODIMP
 GfxInfoBase::GetFeatureStatus(int32_t aFeature, nsACString& aFailureId,
@@ -577,7 +530,7 @@ GfxInfoBase::GetFeatureStatus(int32_t aFeature, nsACString& aFailureId,
   }
 
   nsString version;
-  nsTArray<RefPtr<GfxDriverInfo>> driverInfo;
+  nsTArray<GfxDriverInfo> driverInfo;
   nsresult rv =
       GetFeatureStatusImpl(aFeature, aStatus, version, driverInfo, aFailureId);
   return rv;
@@ -644,7 +597,8 @@ inline bool MatchingAllowStatus(int32_t aStatus) {
 // However, it is valid for aBlockedOS to be one of those generic values,
 // as we could be blocking all of the versions.
 inline bool MatchingOperatingSystems(OperatingSystem aBlockedOS,
-                                     OperatingSystem aSystemOS) {
+                                     OperatingSystem aSystemOS,
+                                     uint32_t aSystemOSBuild) {
   MOZ_ASSERT(aSystemOS != OperatingSystem::Windows &&
              aSystemOS != OperatingSystem::OSX);
 
@@ -659,10 +613,22 @@ inline bool MatchingOperatingSystems(OperatingSystem aBlockedOS,
     return true;
   }
 
-  if (aBlockedOS == OperatingSystem::Windows10or11 &&
-      (aSystemOS == OperatingSystem::Windows10 ||
-       aSystemOS == OperatingSystem::Windows11)) {
-    return true;
+  constexpr uint32_t kMinWin10BuildNumber = 18362;
+  if (aBlockedOS == OperatingSystem::RecentWindows10 &&
+      aSystemOS == OperatingSystem::Windows10) {
+    // For allowlist purposes, we sometimes want to restrict to only recent
+    // versions of Windows 10. This is a bit of a kludge but easier than adding
+    // complicated blocklist infrastructure for build ID comparisons like driver
+    // versions.
+    return aSystemOSBuild >= kMinWin10BuildNumber;
+  }
+
+  if (aBlockedOS == OperatingSystem::NotRecentWindows10) {
+    if (aSystemOS == OperatingSystem::Windows10) {
+      return aSystemOSBuild < kMinWin10BuildNumber;
+    } else {
+      return true;
+    }
   }
 #endif
 
@@ -674,53 +640,6 @@ inline bool MatchingOperatingSystems(OperatingSystem aBlockedOS,
 #endif
 
   return aSystemOS == aBlockedOS;
-}
-
-/* static */
-bool GfxInfoBase::MatchingRefreshRateStatus(RefreshRateStatus aSystemStatus,
-                                            RefreshRateStatus aBlockedStatus) {
-  switch (aBlockedStatus) {
-    case RefreshRateStatus::Any:
-      return true;
-    case RefreshRateStatus::AnySame:
-      return aSystemStatus == RefreshRateStatus::Single ||
-             aSystemStatus == RefreshRateStatus::MultipleSame;
-    default:
-      break;
-  }
-  return aSystemStatus == aBlockedStatus;
-}
-
-/* static */ bool GfxInfoBase::MatchingRefreshRates(int32_t aSystem,
-                                                    int32_t aBlocked,
-                                                    int32_t aBlockedMax,
-                                                    VersionComparisonOp aCmp) {
-  switch (aCmp) {
-    case DRIVER_COMPARISON_IGNORED:
-      return true;
-    case DRIVER_LESS_THAN:
-      return aSystem < aBlocked;
-    case DRIVER_LESS_THAN_OR_EQUAL:
-      return aSystem <= aBlocked;
-    case DRIVER_GREATER_THAN:
-      return aSystem > aBlocked;
-    case DRIVER_GREATER_THAN_OR_EQUAL:
-      return aSystem >= aBlocked;
-    case DRIVER_EQUAL:
-      return aSystem == aBlocked;
-    case DRIVER_NOT_EQUAL:
-      return aSystem != aBlocked;
-    case DRIVER_BETWEEN_EXCLUSIVE:
-      return aSystem > aBlocked && aSystem < aBlockedMax;
-    case DRIVER_BETWEEN_INCLUSIVE:
-      return aSystem >= aBlocked && aSystem <= aBlockedMax;
-    case DRIVER_BETWEEN_INCLUSIVE_START:
-      return aSystem >= aBlocked && aSystem < aBlockedMax;
-    default:
-      NS_WARNING("Unhandled op in GfxDriverInfo");
-      break;
-  }
-  return false;
 }
 
 inline bool MatchingBattery(BatteryStatus aBatteryStatus, bool aHasBattery) {
@@ -763,7 +682,7 @@ inline bool MatchingScreenSize(ScreenSizeStatus aScreenStatus,
 }
 
 int32_t GfxInfoBase::FindBlocklistedDeviceInList(
-    const nsTArray<RefPtr<GfxDriverInfo>>& info, nsAString& aSuggestedVersion,
+    const nsTArray<GfxDriverInfo>& info, nsAString& aSuggestedVersion,
     int32_t aFeature, nsACString& aFailureId, OperatingSystem os,
     bool aForAllowing) {
   int32_t status = nsIGfxInfo::FEATURE_STATUS_UNKNOWN;
@@ -775,23 +694,13 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
     return 0;
   }
 
-  RefreshRateStatus refreshRateStatus;
-  if (mScreenCount <= 1) {
-    refreshRateStatus = RefreshRateStatus::Single;
-  } else if (mMinRefreshRate == mMaxRefreshRate) {
-    refreshRateStatus = RefreshRateStatus::MultipleSame;
-  } else {
-    refreshRateStatus = RefreshRateStatus::Mixed;
-  }
-
   bool hasBattery = false;
   rv = GetHasBattery(&hasBattery);
   if (NS_FAILED(rv) && rv != NS_ERROR_NOT_IMPLEMENTED) {
     return 0;
   }
 
-  uint32_t osVersion = OperatingSystemVersion();
-  GfxVersionEx osVersionEx = OperatingSystemVersionEx();
+  uint32_t osBuild = OperatingSystemBuild();
 
   // Get the adapters once then reuse below
   nsAutoString adapterVendorID[2];
@@ -829,7 +738,7 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
   for (; i < info.Length(); i++) {
     // If the status is FEATURE_ALLOW_*, then it is for the allowlist, not
     // blocklisting. Only consider entries for our search mode.
-    if (MatchingAllowStatus(info[i]->mFeatureStatus) != aForAllowing) {
+    if (MatchingAllowStatus(info[i].mFeatureStatus) != aForAllowing) {
       continue;
     }
 
@@ -838,70 +747,45 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
     // GPU, but leaving the code in for that possibility for now.
     // (Actually, currently mGpu2 will never be true, so this can
     // be optimized out.)
-    uint32_t infoIndex = info[i]->mGpu2 ? 1 : 0;
+    uint32_t infoIndex = info[i].mGpu2 ? 1 : 0;
     if (adapterInfoFailed[infoIndex]) {
       continue;
     }
 
     // Do the operating system check first, no point in getting the driver
     // info if we won't need to use it.
-    if (!MatchingOperatingSystems(info[i]->mOperatingSystem, os)) {
+    if (!MatchingOperatingSystems(info[i].mOperatingSystem, os, osBuild)) {
       continue;
     }
 
-    if (info[i]->mOperatingSystemVersion &&
-        info[i]->mOperatingSystemVersion != osVersion) {
+    if (info[i].mOperatingSystemVersion &&
+        info[i].mOperatingSystemVersion != OperatingSystemVersion()) {
       continue;
     }
 
-    if (!osVersionEx.Compare(info[i]->mOperatingSystemVersionEx,
-                             info[i]->mOperatingSystemVersionExMax,
-                             info[i]->mOperatingSystemVersionExComparisonOp)) {
+    if (!MatchingBattery(info[i].mBattery, hasBattery)) {
       continue;
     }
 
-    if (!MatchingRefreshRateStatus(refreshRateStatus,
-                                   info[i]->mRefreshRateStatus)) {
+    if (!MatchingScreenSize(info[i].mScreen, mScreenPixels)) {
       continue;
     }
 
-    if (mScreenCount > 0 &&
-        !MatchingRefreshRates(mMinRefreshRate, info[i]->mMinRefreshRate,
-                              info[i]->mMinRefreshRateMax,
-                              info[i]->mMinRefreshRateComparisonOp)) {
+    if (!DoesWindowProtocolMatch(info[i].mWindowProtocol, windowProtocol)) {
       continue;
     }
 
-    if (mScreenCount > 0 &&
-        !MatchingRefreshRates(mMaxRefreshRate, info[i]->mMaxRefreshRate,
-                              info[i]->mMaxRefreshRateMax,
-                              info[i]->mMaxRefreshRateComparisonOp)) {
+    if (!DoesVendorMatch(info[i].mAdapterVendor, adapterVendorID[infoIndex])) {
       continue;
     }
 
-    if (!MatchingBattery(info[i]->mBattery, hasBattery)) {
-      continue;
-    }
-
-    if (!MatchingScreenSize(info[i]->mScreen, mScreenPixels)) {
-      continue;
-    }
-
-    if (!DoesWindowProtocolMatch(info[i]->mWindowProtocol, windowProtocol)) {
-      continue;
-    }
-
-    if (!DoesVendorMatch(info[i]->mAdapterVendor, adapterVendorID[infoIndex])) {
-      continue;
-    }
-
-    if (!DoesDriverVendorMatch(info[i]->mDriverVendor,
+    if (!DoesDriverVendorMatch(info[i].mDriverVendor,
                                adapterDriverVendor[infoIndex])) {
       continue;
     }
 
-    if (info[i]->mDevices && !info[i]->mDevices->IsEmpty()) {
-      nsresult rv = info[i]->mDevices->Contains(adapterDeviceID[infoIndex]);
+    if (info[i].mDevices && !info[i].mDevices->IsEmpty()) {
+      nsresult rv = info[i].mDevices->Contains(adapterDeviceID[infoIndex]);
       if (rv == NS_ERROR_NOT_AVAILABLE) {
         // Not found
         continue;
@@ -918,58 +802,57 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
 
     bool match = false;
 
-    if (!info[i]->mHardware.IsEmpty() &&
-        !info[i]->mHardware.Equals(Hardware())) {
+    if (!info[i].mHardware.IsEmpty() && !info[i].mHardware.Equals(Hardware())) {
       continue;
     }
-    if (!info[i]->mModel.IsEmpty() && !info[i]->mModel.Equals(Model())) {
+    if (!info[i].mModel.IsEmpty() && !info[i].mModel.Equals(Model())) {
       continue;
     }
-    if (!info[i]->mProduct.IsEmpty() && !info[i]->mProduct.Equals(Product())) {
+    if (!info[i].mProduct.IsEmpty() && !info[i].mProduct.Equals(Product())) {
       continue;
     }
-    if (!info[i]->mManufacturer.IsEmpty() &&
-        !info[i]->mManufacturer.Equals(Manufacturer())) {
+    if (!info[i].mManufacturer.IsEmpty() &&
+        !info[i].mManufacturer.Equals(Manufacturer())) {
       continue;
     }
 
 #if defined(XP_WIN) || defined(ANDROID) || defined(MOZ_WIDGET_GTK)
-    switch (info[i]->mComparisonOp) {
+    switch (info[i].mComparisonOp) {
       case DRIVER_LESS_THAN:
-        match = driverVersion[infoIndex] < info[i]->mDriverVersion;
+        match = driverVersion[infoIndex] < info[i].mDriverVersion;
         break;
       case DRIVER_BUILD_ID_LESS_THAN:
-        match = (driverVersion[infoIndex] & 0xFFFF) < info[i]->mDriverVersion;
+        match = (driverVersion[infoIndex] & 0xFFFF) < info[i].mDriverVersion;
         break;
       case DRIVER_LESS_THAN_OR_EQUAL:
-        match = driverVersion[infoIndex] <= info[i]->mDriverVersion;
+        match = driverVersion[infoIndex] <= info[i].mDriverVersion;
         break;
       case DRIVER_BUILD_ID_LESS_THAN_OR_EQUAL:
-        match = (driverVersion[infoIndex] & 0xFFFF) <= info[i]->mDriverVersion;
+        match = (driverVersion[infoIndex] & 0xFFFF) <= info[i].mDriverVersion;
         break;
       case DRIVER_GREATER_THAN:
-        match = driverVersion[infoIndex] > info[i]->mDriverVersion;
+        match = driverVersion[infoIndex] > info[i].mDriverVersion;
         break;
       case DRIVER_GREATER_THAN_OR_EQUAL:
-        match = driverVersion[infoIndex] >= info[i]->mDriverVersion;
+        match = driverVersion[infoIndex] >= info[i].mDriverVersion;
         break;
       case DRIVER_EQUAL:
-        match = driverVersion[infoIndex] == info[i]->mDriverVersion;
+        match = driverVersion[infoIndex] == info[i].mDriverVersion;
         break;
       case DRIVER_NOT_EQUAL:
-        match = driverVersion[infoIndex] != info[i]->mDriverVersion;
+        match = driverVersion[infoIndex] != info[i].mDriverVersion;
         break;
       case DRIVER_BETWEEN_EXCLUSIVE:
-        match = driverVersion[infoIndex] > info[i]->mDriverVersion &&
-                driverVersion[infoIndex] < info[i]->mDriverVersionMax;
+        match = driverVersion[infoIndex] > info[i].mDriverVersion &&
+                driverVersion[infoIndex] < info[i].mDriverVersionMax;
         break;
       case DRIVER_BETWEEN_INCLUSIVE:
-        match = driverVersion[infoIndex] >= info[i]->mDriverVersion &&
-                driverVersion[infoIndex] <= info[i]->mDriverVersionMax;
+        match = driverVersion[infoIndex] >= info[i].mDriverVersion &&
+                driverVersion[infoIndex] <= info[i].mDriverVersionMax;
         break;
       case DRIVER_BETWEEN_INCLUSIVE_START:
-        match = driverVersion[infoIndex] >= info[i]->mDriverVersion &&
-                driverVersion[infoIndex] < info[i]->mDriverVersionMax;
+        match = driverVersion[infoIndex] >= info[i].mDriverVersion &&
+                driverVersion[infoIndex] < info[i].mDriverVersionMax;
         break;
       case DRIVER_COMPARISON_IGNORED:
         // We don't have a comparison op, so we match everything.
@@ -985,14 +868,14 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
     match = true;
 #endif
 
-    if (match || info[i]->mDriverVersion == GfxDriverInfo::allDriverVersions) {
-      if (info[i]->mFeature == GfxDriverInfo::allFeatures ||
-          info[i]->mFeature == aFeature ||
-          (info[i]->mFeature == GfxDriverInfo::optionalFeatures &&
+    if (match || info[i].mDriverVersion == GfxDriverInfo::allDriverVersions) {
+      if (info[i].mFeature == GfxDriverInfo::allFeatures ||
+          info[i].mFeature == aFeature ||
+          (info[i].mFeature == GfxDriverInfo::optionalFeatures &&
            OnlyAllowFeatureOnKnownConfig(aFeature))) {
-        status = info[i]->mFeatureStatus;
-        if (!info[i]->mRuleId.IsEmpty()) {
-          aFailureId = info[i]->mRuleId.get();
+        status = info[i].mFeatureStatus;
+        if (!info[i].mRuleId.IsEmpty()) {
+          aFailureId = info[i].mRuleId.get();
         } else {
           aFailureId = "FEATURE_FAILURE_DL_BLOCKLIST_NO_ID";
         }
@@ -1026,16 +909,16 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
   // Depends on Windows driver versioning. We don't pass a GfxDriverInfo object
   // back to the Windows handler, so we must handle this here.
   if (status == FEATURE_BLOCKED_DRIVER_VERSION) {
-    if (info[i]->mSuggestedVersion) {
-      aSuggestedVersion.AppendPrintf("%s", info[i]->mSuggestedVersion);
-    } else if (info[i]->mComparisonOp == DRIVER_LESS_THAN &&
-               info[i]->mDriverVersion != GfxDriverInfo::allDriverVersions) {
+    if (info[i].mSuggestedVersion) {
+      aSuggestedVersion.AppendPrintf("%s", info[i].mSuggestedVersion);
+    } else if (info[i].mComparisonOp == DRIVER_LESS_THAN &&
+               info[i].mDriverVersion != GfxDriverInfo::allDriverVersions) {
       aSuggestedVersion.AppendPrintf(
           "%lld.%lld.%lld.%lld",
-          (info[i]->mDriverVersion & 0xffff000000000000) >> 48,
-          (info[i]->mDriverVersion & 0x0000ffff00000000) >> 32,
-          (info[i]->mDriverVersion & 0x00000000ffff0000) >> 16,
-          (info[i]->mDriverVersion & 0x000000000000ffff));
+          (info[i].mDriverVersion & 0xffff000000000000) >> 48,
+          (info[i].mDriverVersion & 0x0000ffff00000000) >> 32,
+          (info[i].mDriverVersion & 0x00000000ffff0000) >> 16,
+          (info[i].mDriverVersion & 0x000000000000ffff));
     }
   }
 #endif
@@ -1082,7 +965,7 @@ bool GfxInfoBase::IsFeatureAllowlisted(int32_t aFeature) const {
 
 nsresult GfxInfoBase::GetFeatureStatusImpl(
     int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedVersion,
-    const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo, nsACString& aFailureId,
+    const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
     OperatingSystem* aOS /* = nullptr */) {
   if (aFeature <= 0) {
     gfxWarning() << "Invalid feature <= 0";
@@ -1132,7 +1015,7 @@ nsresult GfxInfoBase::GetFeatureStatusImpl(
                                     aFailureId, os, /* aForAllowing */ false);
   } else {
     if (!sDriverInfo) {
-      sDriverInfo = new nsTArray<RefPtr<GfxDriverInfo>>();
+      sDriverInfo = new nsTArray<GfxDriverInfo>();
     }
     status = FindBlocklistedDeviceInList(GetGfxDriverInfo(), aSuggestedVersion,
                                          aFeature, aFailureId, os,
@@ -1180,7 +1063,7 @@ GfxInfoBase::GetFeatureSuggestedDriverVersion(int32_t aFeature,
 
   int32_t status;
   nsCString discardFailureId;
-  nsTArray<RefPtr<GfxDriverInfo>> driverInfo;
+  nsTArray<GfxDriverInfo> driverInfo;
   return GetFeatureStatusImpl(aFeature, &status, aVersion, driverInfo,
                               discardFailureId);
 }
@@ -1198,7 +1081,7 @@ GfxInfoBase::GetFeatureSuggestedDriverVersionStr(const nsAString& aFeature,
 }
 
 void GfxInfoBase::EvaluateDownloadedBlocklist(
-    nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo) {
+    nsTArray<GfxDriverInfo>& aDriverInfo) {
   // If the list is empty, then we don't actually want to call
   // GetFeatureStatusImpl since we will use the static list instead. In that
   // case, all we want to do is make sure the pref is removed.
@@ -1985,6 +1868,24 @@ NS_IMETHODIMP
 GfxInfoBase::GetUsingAcceleratedCanvas(bool* aOutValue) {
   *aOutValue = gfx::gfxVars::UseAcceleratedCanvas2D();
   return NS_OK;
+}
+
+NS_IMETHODIMP_(int32_t)
+GfxInfoBase::GetMaxRefreshRate(bool* aMixed) {
+  if (aMixed) {
+    *aMixed = false;
+  }
+
+  int32_t maxRefreshRate = 0;
+  for (auto& screen : ScreenManager::GetSingleton().CurrentScreenList()) {
+    int32_t refreshRate = screen->GetRefreshRate();
+    if (aMixed && maxRefreshRate > 0 && maxRefreshRate != refreshRate) {
+      *aMixed = true;
+    }
+    maxRefreshRate = std::max(maxRefreshRate, refreshRate);
+  }
+
+  return maxRefreshRate > 0 ? maxRefreshRate : -1;
 }
 
 NS_IMETHODIMP

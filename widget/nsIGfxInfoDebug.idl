@@ -16,13 +16,4 @@ interface nsIGfxInfoDebug : nsISupports
   void spoofDriverVersion(in AString aDriverVersion);
 
   void spoofOSVersion(in unsigned long aVersion);
-
-  void spoofOSVersionEx(in unsigned long aMajor,
-                        in unsigned long aMinor,
-                        in unsigned long aBuild,
-                        in unsigned long aRevision);
-
-  void spoofMonitorInfo(in unsigned long aScreenCount,
-                        in long aMinRefreshRate,
-                        in long aMaxRefreshRate);
 };

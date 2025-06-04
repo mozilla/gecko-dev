@@ -851,7 +851,7 @@ void GfxInfo::V4L2ProbeDevice(nsCString& dev) {
   }
 }
 
-const nsTArray<RefPtr<GfxDriverInfo>>& GfxInfo::GetGfxDriverInfo() {
+const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
   if (!sDriverInfo->Length()) {
     // Mesa 10.0 provides the GLX_MESA_query_renderer extension, which allows us
     // to query device IDs backing a GL context for blocklisting.
@@ -1240,7 +1240,7 @@ bool GfxInfo::DoesDriverVendorMatch(const nsAString& aBlocklistVendor,
 
 nsresult GfxInfo::GetFeatureStatusImpl(
     int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
-    const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo, nsACString& aFailureId,
+    const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
     OperatingSystem* aOS /* = nullptr */)
 
 {
@@ -1551,16 +1551,6 @@ NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString& aDriverVersion) {
 
 NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion) {
   // We don't support OS versioning on Linux. There's just "Linux".
-  return NS_OK;
-}
-
-NS_IMETHODIMP GfxInfo::SpoofOSVersionEx(uint32_t aMajor, uint32_t aMinor,
-                                        uint32_t aBuild, uint32_t aRevision) {
-  // We don't support OS versioning on Linux. There's just "Linux", so this is
-  // just for testing purposes.
-#  ifdef DEBUG
-  mOSVersionEx = GfxVersionEx(aMajor, aMinor, aBuild, aRevision);
-#  endif
   return NS_OK;
 }
 
