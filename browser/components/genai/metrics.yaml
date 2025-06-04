@@ -663,23 +663,6 @@ genai.chatbot:
 genai.linkpreview:
   # metrics
 
-  ai_optin:
-    type: boolean
-    lifetime: application
-    description: >
-      Records if the user has opted-in to use AI for key points generation
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1969012
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D251779
-    data_sensitivity:
-      - interaction
-    expires: 150
-    notification_emails:
-      - elee@mozilla.com
-    send_in_pings:
-      - metrics
-
   enabled:
     type: boolean
     lifetime: application
@@ -689,40 +672,6 @@ genai.linkpreview:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
     data_reviews:
       - https://phabricator.services.mozilla.com/D243790
-    data_sensitivity:
-      - interaction
-    expires: 150
-    notification_emails:
-      - elee@mozilla.com
-    send_in_pings:
-      - metrics
-
-  key_points:
-    type: boolean
-    lifetime: application
-    description: >
-      Records if the user defaults to expanded state for key point generation
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1969012
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D251779
-    data_sensitivity:
-      - interaction
-    expires: 150
-    notification_emails:
-      - elee@mozilla.com
-    send_in_pings:
-      - metrics
-
-  shortcut:
-    type: string
-    lifetime: application
-    description: >
-      Records which type of shortcut the user selected for Link Previews (comma separated if more than one)
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1969012
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D251779
     data_sensitivity:
       - interaction
     expires: 150
@@ -772,9 +721,6 @@ genai.linkpreview:
       duration:
         type: quantity
         description: Milliseconds the card stayed open
-      tab:
-        type: string
-        description: The type of tab where the event occurred. Potential values home, newtab
 
   card_link:
     type: event
@@ -792,15 +738,9 @@ genai.linkpreview:
     send_in_pings:
       - events
     extra_keys:
-      key_points:
-        type: boolean
-        description: Whether key points were visible when the link was clicked.
       source:
         type: string
         description: Which link, e.g., error, retry, title, visit
-      tab:
-        type: string
-        description: The type of tab where the event occurred. Potential values home, newtab
 
   fetch:
     type: event
@@ -836,9 +776,6 @@ genai.linkpreview:
       skipped:
         type: boolean
         description: Skipped for newer fetch
-      tab:
-        type: string
-        description: The type of tab where the event occurred. Potential values home, newtab
       time:
         type: quantity
         description: Milliseconds to fetch and extract page
@@ -901,6 +838,26 @@ genai.linkpreview:
         type: boolean
         description: Link preview card is expanded
 
+  labs_checkbox:
+    type: event
+    description: >
+      Recorded when the user clicks on the Labs checkbox
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D243790
+    data_sensitivity:
+      - interaction
+    expires: 150
+    notification_emails:
+      - elee@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      enabled:
+        type: boolean
+        description: New/current state is enabled
+
   onboarding_card:
     type: event
     description: >
@@ -924,31 +881,6 @@ genai.linkpreview:
         type: string
         description: The type of onboarding trigger, e.g. "longPress" or "shiftKey".
 
-  pref_changed:
-    type: event
-    description: >
-      Recorded when the user toggles prefs
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1951148
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1969012
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D243790
-      - https://phabricator.services.mozilla.com/D251779
-    data_sensitivity:
-      - interaction
-    expires: 150
-    notification_emails:
-      - elee@mozilla.com
-    send_in_pings:
-      - events
-    extra_keys:
-      enabled:
-        type: boolean
-        description: New/current state is enabled
-      pref:
-        type: string
-        description: Which checkbox was clicked. Potential values link_previews, key_points, shift, shift_option, long_press
-
   start:
     type: event
     description: >
@@ -971,6 +903,3 @@ genai.linkpreview:
       source:
         type: string
         description: Entrypoint shortcut (longpress, shift, shift-alt), context, onboarding
-      tab:
-        type: string
-        description: The type of tab where the event occurred. Potential values home, newtab

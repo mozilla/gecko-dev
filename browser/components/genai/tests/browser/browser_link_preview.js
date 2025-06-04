@@ -209,7 +209,7 @@ add_task(async function test_link_preview_with_long_press() {
   is(stub.callCount, 1, "preview shown");
   is(stub.firstCall.args[0], window, "link preview shown for correct window");
   is(stub.firstCall.args[1], TEST_LINK_URL, "preview test link");
-  is(stub.firstCall.args[2], "long_press", "source set for long press");
+  is(stub.firstCall.args[2], "longpress", "source set for long press");
 
   stub.restore();
 });
@@ -472,7 +472,6 @@ add_task(async function test_link_preview_panel_shown() {
   let events = Glean.genaiLinkpreview.start.testGetValue();
   is(events[0].extra.cached, "false", "not cached");
   is(events[0].extra.source, "shift", "source is keyboard combo");
-  is(events[0].extra.tab, "blank", "tab context is blank");
 
   await BrowserTestUtils.waitForEvent(panel, "popupshown");
 
@@ -486,7 +485,6 @@ add_task(async function test_link_preview_panel_shown() {
   is(events[0].extra.skipped, "false", "not skipped");
   ok(events[0].extra.time, "got time");
   is(events[0].extra.title, "true", "got title");
-  is(events[0].extra.tab, "blank", "tab context is blank");
 
   const card = panel.querySelector("link-preview-card");
   ok(card, "card created for link preview");
@@ -525,7 +523,6 @@ add_task(async function test_link_preview_panel_shown() {
 
   events = Glean.genaiLinkpreview.cardClose.testGetValue();
   ok(events[0].extra.duration, "got duration");
-  is(events[0].extra.tab, "blank", "tab context is blank");
 
   panel.remove();
   stub.restore();
