@@ -704,10 +704,11 @@ HRESULT nsClipboard::FillSTGMedium(IDataObject* aDataObject, UINT aFormat,
 // Get the data out of the global data handle. The size we
 // return should be the size returned from GetGlobalData(), since the
 // string returned from Windows may have nulls inserted -- it may not
-// even be null-terminated.  GetGlobalData adds bytes for null
-// termination to the buffer but they are not considered in the returned
-// byte count.  We check and skip the last counted byte if it is a null
-// since Windows also appears to add null termination.  See GetGlobalData.
+// even be null-terminated.  This does not agree with the documentation of
+// CF_TEXT/CF_UNICODETEXT but it is reality.  GetGlobalData
+// adds bytes for null termination to the buffer but they are not considered
+// in the returned byte count.  We check and skip bytes based on the policy
+// described below.  See also GetGlobalData.
 template <typename CharType>
 static nsresult GetCharDataFromGlobalData(STGMEDIUM& aStm, CharType** aData,
                                           uint32_t* aByteLen) {
@@ -715,23 +716,19 @@ static nsresult GetCharDataFromGlobalData(STGMEDIUM& aStm, CharType** aData,
   MOZ_TRY(nsClipboard::GetGlobalData(aStm.hGlobal,
                                      reinterpret_cast<void**>(aData), &nBytes));
   auto nChars = nBytes / sizeof(CharType);
-  if (nChars < 1) {
-    *aByteLen = 0;
-    return NS_OK;
-  }
 
-  const CharType* data = *aData;
-  if (nChars > 1 && data[nChars - 2] == CharType(0x00) &&
-      data[nChars - 1] == CharType(0x0a)) {
-    // The char array ends in the nonsense combination null + LF.  Remove both.
-    // Word sometimes does this.
+  // Word sometimes adds a null, then a LF (0x0a), to the end of strings.
+  // Special case their removal.
+  if (nChars > 1 && (*aData)[nChars - 2] == CharType(0) &&
+      (*aData)[nChars - 1] == CharType(0xa)) {
     nChars -= 2;
-  } else if (data[nChars - 1] == CharType(0)) {
-    // Remove null termination.
-    nChars -= 1;
   }
-  *aByteLen = nChars * sizeof(CharType);
-
+  // Remove any nulls that appear at the end of the string.
+  CharType* afterLastChar = *aData + nChars;
+  auto it = std::find_if(std::reverse_iterator(afterLastChar),
+                         std::reverse_iterator(*aData),
+                         [](CharType ch) { return ch != CharType(0); });
+  *aByteLen = std::distance(*aData, it.base()) * sizeof(CharType);
   return NS_OK;
 }
 
