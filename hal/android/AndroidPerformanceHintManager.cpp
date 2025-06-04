@@ -10,25 +10,17 @@
 
 #include "AndroidBuild.h"
 
-#include <dlfcn.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <sys/types.h>
+
+#include <android/performance_hint.h>
 
 typedef struct APerformanceHintManager APerformanceHintManager;
 typedef struct APerformanceHintSession APerformanceHintSession;
 
 namespace mozilla {
 namespace hal_impl {
-
-#define LOAD_FN(api, lib, name)                                      \
-  do {                                                               \
-    api->m##name = reinterpret_cast<Fn##name>(dlsym(handle, #name)); \
-    if (!api->m##name) {                                             \
-      HAL_ERR("Failed to load %s", #name);                           \
-      return nullptr;                                                \
-    }                                                                \
-  } while (false)
 
 class PerformanceHintManagerApi final {
  public:
@@ -73,20 +65,21 @@ class PerformanceHintManagerApi final {
       return nullptr;
     }
 
-    void* const handle = dlopen("libandroid.so", RTLD_LAZY | RTLD_LOCAL);
-    if (!handle) {
-      HAL_ERR("Failed to open libandroid.so");
+    if (__builtin_available(android 33, *)) {
+      auto api = WrapUnique(new PerformanceHintManagerApi());
+      api->mAPerformanceHint_getManager = ::APerformanceHint_getManager;
+      api->mAPerformanceHint_createSession = ::APerformanceHint_createSession;
+      api->mAPerformanceHint_updateTargetWorkDuration =
+          ::APerformanceHint_updateTargetWorkDuration;
+      api->mAPerformanceHint_reportActualWorkDuration =
+          ::APerformanceHint_reportActualWorkDuration;
+      api->mAPerformanceHint_closeSession = ::APerformanceHint_closeSession;
+
+      return api;
+    } else {
+      HAL_ERR("Failed to load PerformanceHintManager symbols");
       return nullptr;
     }
-
-    auto api = WrapUnique(new PerformanceHintManagerApi());
-    LOAD_FN(api, handle, APerformanceHint_getManager);
-    LOAD_FN(api, handle, APerformanceHint_createSession);
-    LOAD_FN(api, handle, APerformanceHint_updateTargetWorkDuration);
-    LOAD_FN(api, handle, APerformanceHint_reportActualWorkDuration);
-    LOAD_FN(api, handle, APerformanceHint_closeSession);
-
-    return api;
   }
 
   using FnAPerformanceHint_getManager = APerformanceHintManager* (*)();
