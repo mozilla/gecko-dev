@@ -121,7 +121,7 @@ fun DownloadsScreen(
                     context = context,
                     undoAction = {
                         downloadsStore.dispatch(
-                            DownloadUIAction.UndoPendingDeletionSet(it),
+                            DownloadUIAction.UndoPendingDeletion,
                         )
                     },
                 )
@@ -526,7 +526,7 @@ private fun showDeleteSnackbar(
     coroutineScope: CoroutineScope,
     snackbarHostState: AcornSnackbarHostState,
     context: Context,
-    undoAction: (Set<String>) -> Unit,
+    undoAction: () -> Unit,
 ) {
     coroutineScope.launch {
         snackbarHostState.showSnackbar(
@@ -535,10 +535,7 @@ private fun showDeleteSnackbar(
                 duration = SnackbarState.Duration.Custom(undoDelayProvider.undoDelay.toInt()),
                 action = Action(
                     label = context.getString(R.string.download_undo_delete_snackbar_action),
-                    onClick = {
-                        val itemIds = selectedItems.mapTo(mutableSetOf()) { it.id }
-                        undoAction.invoke(itemIds)
-                    },
+                    onClick = { undoAction.invoke() },
                 ),
             ),
         )
