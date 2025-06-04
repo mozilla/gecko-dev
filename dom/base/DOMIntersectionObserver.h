@@ -76,6 +76,8 @@ class DOMIntersectionObserverEntry final : public nsISupports,
 #define NS_DOM_INTERSECTION_OBSERVER_IID \
   {0x8570a575, 0xe303, 0x4d18, {0xb6, 0xb1, 0x4d, 0x2b, 0x49, 0xd8, 0xef, 0x94}}
 
+using IntersectionObserverMargin = StyleRect<LengthPercentage>;
+
 // An input suitable to compute intersections with multiple targets.
 struct IntersectionInput {
   // Whether the root is implicit (null, originally).
@@ -89,6 +91,8 @@ struct IntersectionInput {
   nsRect mRootRect;
   // The root margin computed against the root rect.
   nsMargin mRootMargin;
+  // The scroll margin computed against the root rect.
+  IntersectionObserverMargin mScrollMargin;
   // If this is in an OOP iframe, the visible rect of the OOP frame.
   Maybe<nsRect> mRemoteDocumentVisibleRect;
 };
@@ -135,6 +139,9 @@ class DOMIntersectionObserver final : public nsISupports,
   void GetRootMargin(nsACString&);
   bool SetRootMargin(const nsACString&);
 
+  void GetScrollMargin(nsACString&);
+  bool SetScrollMargin(const nsACString&);
+
   void GetThresholds(nsTArray<double>& aRetVal);
   void Observe(Element& aTarget);
   void Unobserve(Element& aTarget);
@@ -148,7 +155,8 @@ class DOMIntersectionObserver final : public nsISupports,
 
   static IntersectionInput ComputeInput(
       const Document& aDocument, const nsINode* aRoot,
-      const StyleRect<LengthPercentage>* aRootMargin);
+      const StyleRect<LengthPercentage>* aRootMargin,
+      const StyleRect<LengthPercentage>* aScrollMargin);
 
   enum class IsForProximityToViewport : bool { No, Yes };
   enum class BoxToUse : uint8_t {
@@ -186,6 +194,7 @@ class DOMIntersectionObserver final : public nsISupports,
   Variant<RefPtr<dom::IntersectionCallback>, NativeCallback> mCallback;
   RefPtr<nsINode> mRoot;
   StyleRect<LengthPercentage> mRootMargin;
+  StyleRect<LengthPercentage> mScrollMargin;
   AutoTArray<double, 1> mThresholds;
 
   // These hold raw pointers which are explicitly cleared by UnlinkTarget().

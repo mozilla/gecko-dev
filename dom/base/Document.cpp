@@ -7492,7 +7492,8 @@ bool Document::ShouldThrottleFrameRequests() const {
   // it if needed by adding an intersection margin or something of that sort.
   auto margin = DOMIntersectionObserver::LazyLoadingRootMargin();
   const IntersectionInput input = DOMIntersectionObserver::ComputeInput(
-      *el->OwnerDoc(), /* aRoot = */ nullptr, &margin);
+      *el->OwnerDoc(), /* aRoot = */ nullptr, &margin,
+      /* aScrollMargin = */ nullptr);
   const IntersectionOutput output = DOMIntersectionObserver::Intersect(
       input, *el, DOMIntersectionObserver::BoxToUse::Content);
   return !output.Intersects();
@@ -17402,7 +17403,7 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
 void Document::UpdateRemoteFrameEffects(bool aIncludeInactive) {
   auto margin = DOMIntersectionObserver::LazyLoadingRootMargin();
   const IntersectionInput input = DOMIntersectionObserver::ComputeInput(
-      *this, /* aRoot = */ nullptr, &margin);
+      *this, /* aRoot = */ nullptr, &margin, /* aScrollMargin = */ nullptr);
   if (auto* wc = GetWindowContext()) {
     for (const RefPtr<BrowsingContext>& child : wc->Children()) {
       UpdateEffectsOnBrowsingContext(child, input, aIncludeInactive);

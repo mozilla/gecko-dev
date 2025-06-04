@@ -3254,6 +3254,11 @@
   value: true
   mirror: always
 
+- name: dom.intersection_observer.scroll_margin.enabled
+  type: bool
+  value: true
+  mirror: always
+
 # How often to check for CPOW timeouts (ms). CPOWs are only timed
 # out by the hang monitor.
 - name: dom.ipc.cpow.timeout

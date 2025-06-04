@@ -369,7 +369,8 @@ void LargestContentfulPaint::UpdateSize(
   // algorithm using element as the target and viewport as the root.
   // (From https://wicg.github.io/element-timing/#sec-report-image-element)
   IntersectionInput input = DOMIntersectionObserver::ComputeInput(
-      *frame->PresContext()->Document(), rootFrame->GetContent(), nullptr);
+      *frame->PresContext()->Document(), rootFrame->GetContent(), nullptr,
+      nullptr);
   const IntersectionOutput output =
       DOMIntersectionObserver::Intersect(input, *aContainingBlock);
 

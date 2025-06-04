@@ -4756,7 +4756,7 @@ static bool ShouldBlockCustomCursor(nsPresContext* aPresContext,
   }
 
   auto input = DOMIntersectionObserver::ComputeInput(*aPresContext->Document(),
-                                                     nullptr, nullptr);
+                                                     nullptr, nullptr, nullptr);
 
   if (!input.mRootFrame) {
     return false;
