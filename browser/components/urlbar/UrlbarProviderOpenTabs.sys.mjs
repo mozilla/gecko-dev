@@ -27,8 +27,9 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
 const PRIVATE_USER_CONTEXT_ID = -1;
 
 /**
- * Maps the open tabs by userContextId.
- * Each entry is a Map of url => count.
+ * Maps the open tabs by userContextId, then by groupId.
+ * It is a nested map structure as follows:
+ *   Map(userContextId => Map(groupId | null => Map(url => count)))
  */
 var gOpenTabUrls = new Map();
 
@@ -79,7 +80,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    *
    * @param {number|string} userContextId Containers user context id
    * @param {boolean} [isInPrivateWindow] In private browsing window or not
-   * @returns {Array} urls
+   * @returns {Array} [url, userContextId, groupId | null]
    */
   static getOpenTabUrlsForUserContextId(
     userContextId,
@@ -93,39 +94,54 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
       userContextId,
       isInPrivateWindow
     );
-    return Array.from(gOpenTabUrls.get(userContextId)?.keys() ?? []);
+
+    let groupEntries = gOpenTabUrls.get(userContextId);
+    if (!groupEntries) {
+      return [];
+    }
+
+    let result = new Set();
+    groupEntries.forEach((urls, groupId) => {
+      for (let url of urls.keys()) {
+        result.add([url, userContextId, groupId]);
+      }
+    });
+    return Array.from(result);
   }
 
   /**
-   * Return unique urls that are open, along with their user context id.
+   * Return unique urls that are open, along with their user context id and group id.
    *
    * @param {boolean} [isInPrivateWindow] Whether it's for a private browsing window
-   * @returns {Map} { url => Set({userContextIds}) }
+   * @returns {Map} { url => Set({userContextId, groupId}) }
    */
   static getOpenTabUrls(isInPrivateWindow = false) {
     let uniqueUrls = new Map();
     if (isInPrivateWindow) {
-      let urls = UrlbarProviderOpenTabs.getOpenTabUrlsForUserContextId(
+      let urlInfo = UrlbarProviderOpenTabs.getOpenTabUrlsForUserContextId(
         PRIVATE_USER_CONTEXT_ID,
         true
       );
-      for (let url of urls) {
-        uniqueUrls.set(url, new Set([PRIVATE_USER_CONTEXT_ID]));
+      for (let [url, contextId, groupId] of urlInfo) {
+        uniqueUrls.set(url, new Set([[contextId, groupId]]));
       }
     } else {
-      for (let [userContextId, urls] of gOpenTabUrls) {
+      gOpenTabUrls.forEach((groups, userContextId) => {
         if (userContextId == PRIVATE_USER_CONTEXT_ID) {
-          continue;
+          return;
         }
-        for (let url of urls.keys()) {
-          let userContextIds = uniqueUrls.get(url);
-          if (!userContextIds) {
-            userContextIds = new Set();
-            uniqueUrls.set(url, userContextIds);
+
+        groups.forEach((urls, groupId) => {
+          for (let url of urls.keys()) {
+            let userContextAndGroupIds = uniqueUrls.get(url);
+            if (!userContextAndGroupIds) {
+              userContextAndGroupIds = new Set();
+              uniqueUrls.set(url, userContextAndGroupIds);
+            }
+            userContextAndGroupIds.add([userContextId, groupId]);
           }
-          userContextIds.add(userContextId);
-        }
-      }
+        });
+      });
     }
     return uniqueUrls;
   }
@@ -190,13 +206,13 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
       // Must be set before populating.
       UrlbarProviderOpenTabs.memoryTableInitialized = true;
       // Populate the table with the current cached tabs.
-      for (let [userContextId, entries] of gOpenTabUrls) {
-        for (let [url, count] of entries) {
-          // TODO bug1964713: Cached items don't store group ID, so we can't
-          // get the group ID the first time a tab is grouped or on session restore
-          await addToMemoryTable(url, userContextId, null, count).catch(
-            console.error
-          );
+      for (let [userContextId, groupEntries] of gOpenTabUrls) {
+        for (let [groupId, entries] of groupEntries) {
+          for (let [url, count] of entries) {
+            await addToMemoryTable(url, userContextId, groupId, count).catch(
+              console.error
+            );
+          }
         }
       }
     });
@@ -214,6 +230,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
     // means we're getting sometimes a string, sometimes an integer. As we're
     // using this as key of a Map, we must treat it consistently.
     userContextId = parseInt(userContextId);
+    groupId = groupId ?? null;
     if (!Number.isInteger(userContextId)) {
       lazy.logger.error("Invalid userContextId while registering openTab: ", {
         url,
@@ -233,12 +250,19 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
       isInPrivateWindow
     );
 
-    let entries = gOpenTabUrls.get(userContextId);
-    if (!entries) {
-      entries = new Map();
-      gOpenTabUrls.set(userContextId, entries);
+    let contextEntries = gOpenTabUrls.get(userContextId);
+    if (!contextEntries) {
+      contextEntries = new Map();
+      gOpenTabUrls.set(userContextId, contextEntries);
     }
-    entries.set(url, (entries.get(url) ?? 0) + 1);
+
+    let groupEntries = contextEntries.get(groupId);
+    if (!groupEntries) {
+      groupEntries = new Map();
+      contextEntries.set(groupId, groupEntries);
+    }
+
+    groupEntries.set(url, (groupEntries.get(url) ?? 0) + 1);
     await addToMemoryTable(url, userContextId, groupId).catch(console.error);
   }
 
@@ -260,6 +284,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
     // means we're getting sometimes a string, sometimes an integer. As we're
     // using this as key of a Map, we must treat it consistently.
     userContextId = parseInt(userContextId);
+    groupId = groupId ?? null;
     lazy.logger.info("Unregistering openTab: ", {
       url,
       userContextId,
@@ -271,23 +296,26 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
       isInPrivateWindow
     );
 
-    let entries = gOpenTabUrls.get(userContextId);
-    if (entries) {
-      let oldCount = entries.get(url);
-      if (oldCount == 0) {
-        console.error("Tried to unregister a non registered open tab");
-        return;
+    let contextEntries = gOpenTabUrls.get(userContextId);
+    if (contextEntries) {
+      let groupEntries = contextEntries.get(groupId);
+      if (groupEntries) {
+        let oldCount = groupEntries.get(url);
+        if (oldCount == 0) {
+          console.error("Tried to unregister a non registered open tab");
+          return;
+        }
+        if (oldCount == 1) {
+          groupEntries.delete(url);
+          // Note: `groupEntries` might be an empty Map now, though we don't remove it
+          // from `gOpenTabUrls` as it's likely to be reused later.
+        } else {
+          groupEntries.set(url, oldCount - 1);
+        }
+        await removeFromMemoryTable(url, userContextId, groupId).catch(
+          console.error
+        );
       }
-      if (oldCount == 1) {
-        entries.delete(url);
-        // Note: `entries` might be an empty Map now, though we don't remove it
-        // from `gOpenTabUrls` as it's likely to be reused later.
-      } else {
-        entries.set(url, oldCount - 1);
-      }
-      await removeFromMemoryTable(url, userContextId, groupId).catch(
-        console.error
-      );
     }
   }
 

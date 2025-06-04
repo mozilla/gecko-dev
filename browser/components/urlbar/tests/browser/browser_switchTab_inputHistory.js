@@ -116,7 +116,10 @@ add_task(
     // registration may be delayed.
     await TestUtils.waitForCondition(
       () =>
-        UrlbarProviderOpenTabs.getOpenTabUrlsForUserContextId(1).includes(url),
+        UrlbarProviderOpenTabs.getOpenTabUrlsForUserContextId(1).some(
+          ([urlMatch, userContextIdMatch, groupIdMatch]) =>
+            urlMatch == url && userContextIdMatch == 1 && groupIdMatch == null
+        ),
       "Awaiting for open tab to be registered"
     );
 
