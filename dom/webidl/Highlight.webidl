@@ -41,7 +41,7 @@ partial interface Highlight {
   // Iterating a setlike is not possible from C++ yet.
   // Therefore a separate data structure must be held and kept in sync.
   [Throws]
-  undefined add(AbstractRange range);
+  Highlight add(AbstractRange range);
   [Throws]
   undefined clear();
   [Throws]
@@ -63,7 +63,7 @@ partial interface HighlightRegistry {
   // Iterating a maplike is not possible from C++ yet.
   // Therefore, a separate data structure must be held and kept in sync.
   [Throws]
-  undefined set(DOMString key, Highlight value);
+  HighlightRegistry set(DOMString key, Highlight value);
   [Throws]
   undefined clear();
   [Throws]

@@ -125,7 +125,7 @@ void Highlight::SetType(HighlightType aHighlightType) {
   Repaint();
 }
 
-void Highlight::Add(AbstractRange& aRange, ErrorResult& aRv) {
+Highlight* Highlight::Add(AbstractRange& aRange, ErrorResult& aRv) {
   // Manually check if the range `aKey` is already present in this highlight,
   // because `SetlikeHelpers::Add()` doesn't indicate this.
   // To keep the setlike and the mirrored array in sync, the range must not
@@ -134,11 +134,11 @@ void Highlight::Add(AbstractRange& aRange, ErrorResult& aRv) {
   // `nsTArray<>::Contains()`.
   if (Highlight_Binding::SetlikeHelpers::Has(this, aRange, aRv) ||
       aRv.Failed()) {
-    return;
+    return this;
   }
   Highlight_Binding::SetlikeHelpers::Add(this, aRange, aRv);
   if (aRv.Failed()) {
-    return;
+    return this;
   }
 
   MOZ_ASSERT(!mRanges.Contains(&aRange),
@@ -155,9 +155,10 @@ void Highlight::Add(AbstractRange& aRange, ErrorResult& aRv) {
     // no strong reference is needed to keep `registry` alive.
     MOZ_KnownLive(registry)->MaybeAddRangeToHighlightSelection(aRange, *this);
     if (aRv.Failed()) {
-      return;
+      return this;
     }
   }
+  return this;
 }
 
 void Highlight::Clear(ErrorResult& aRv) {

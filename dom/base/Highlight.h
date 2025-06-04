@@ -144,7 +144,7 @@ class Highlight final : public nsISupports, public nsWrapperCache {
    *
    * Also notifies all `HighlightRegistry` instances.
    */
-  MOZ_CAN_RUN_SCRIPT void Add(AbstractRange& aRange, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT Highlight* Add(AbstractRange& aRange, ErrorResult& aRv);
 
   /**
    * @brief Removes all ranges from this highlight.
