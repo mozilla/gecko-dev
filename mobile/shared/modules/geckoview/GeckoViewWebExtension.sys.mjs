@@ -378,13 +378,19 @@ async function exportExtension(aAddon, aSourceURI) {
 
   const requiredPermissions = aAddon.userPermissions?.permissions ?? [];
   const requiredOrigins = aAddon.userPermissions?.origins ?? [];
+  const requiredDataCollectionPermissions =
+    aAddon.userPermissions?.data_collection ?? [];
   const optionalPermissions = aAddon.optionalPermissions?.permissions ?? [];
   const optionalOrigins = aAddon.optionalOriginsNormalized;
+  const optionalDataCollectionPermissions =
+    aAddon.optionalPermissions?.data_collection ?? [];
   const grantedPermissions = normalizePermissions(
     await lazy.ExtensionPermissions.get(id)
   );
   const grantedOptionalPermissions = grantedPermissions?.permissions ?? [];
   const grantedOptionalOrigins = grantedPermissions?.origins ?? [];
+  const grantedOptionalDataCollectionPermissions =
+    grantedPermissions?.data_collection ?? [];
 
   return {
     webExtensionId: id,
@@ -419,10 +425,13 @@ async function exportExtension(aAddon, aSourceURI) {
       version,
       requiredPermissions,
       requiredOrigins,
+      requiredDataCollectionPermissions,
       optionalPermissions,
       optionalOrigins,
+      optionalDataCollectionPermissions,
       grantedOptionalPermissions,
       grantedOptionalOrigins,
+      grantedOptionalDataCollectionPermissions,
     },
   };
 }
@@ -539,6 +548,7 @@ class ExtensionPromptObserver {
       extension,
       permissions: await filterPromptPermissions(permissions.permissions),
       origins: permissions.origins,
+      dataCollectionPermissions: permissions.data_collection,
     });
 
     if (response.allow) {
