@@ -3187,13 +3187,14 @@ void HTMLMediaElement::UpdatePreloadAction() {
   }
 
   if (nextAction == HTMLMediaElement::PRELOAD_NONE && mIsDoingExplicitLoad) {
-    LOG(LogLevel::Debug,
-        ("%p Force to preload metadata when explicit loading a preload none element", this));
+    LOG(LogLevel::Debug, ("%p Force to preload metadata when explicit loading "
+                          "a preload none element",
+                          this));
     nextAction = HTMLMediaElement::PRELOAD_METADATA;
   }
 
   mPreloadAction = nextAction;
-  LOG(LogLevel::Debug,("%p Preload action=%d", this, nextAction));
+  LOG(LogLevel::Debug, ("%p Preload action=%d", this, nextAction));
 
   if (nextAction == HTMLMediaElement::PRELOAD_ENOUGH) {
     if (mSuspendedForPreloadNone) {
