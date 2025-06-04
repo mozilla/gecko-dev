@@ -5335,6 +5335,9 @@ main section {
   .ds-section-grid.ds-card-grid .col-1-medium.refined-cards.ds-card.sections-card-ui:hover {
     box-shadow: var(--box-shadow-card-hover);
   }
+  .ds-section-grid.ds-card-grid .col-1-medium .card-stp-thumbs-buttons-wrapper {
+    visibility: visible;
+  }
   .ds-section-grid.ds-card-grid .col-1-medium.refined-cards .ds-card-link {
     padding: unset;
     flex-grow: 1;
@@ -5662,6 +5665,9 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-2-medium.refined-cards.ds-card.sections-card-ui:hover {
     box-shadow: var(--box-shadow-card-hover);
+  }
+  .ds-section-grid.ds-card-grid .col-2-medium .card-stp-thumbs-buttons-wrapper {
+    visibility: visible;
   }
   .ds-section-grid.ds-card-grid .col-2-medium.refined-cards .ds-card-link {
     padding: unset;
@@ -5992,6 +5998,9 @@ main section {
   .ds-section-grid.ds-card-grid .col-3-medium.refined-cards.ds-card.sections-card-ui:hover {
     box-shadow: var(--box-shadow-card-hover);
   }
+  .ds-section-grid.ds-card-grid .col-3-medium .card-stp-thumbs-buttons-wrapper {
+    visibility: visible;
+  }
   .ds-section-grid.ds-card-grid .col-3-medium.refined-cards .ds-card-link {
     padding: unset;
     flex-grow: 1;
@@ -6319,6 +6328,9 @@ main section {
   }
   .ds-section-grid.ds-card-grid .col-4-medium.refined-cards.ds-card.sections-card-ui:hover {
     box-shadow: var(--box-shadow-card-hover);
+  }
+  .ds-section-grid.ds-card-grid .col-4-medium .card-stp-thumbs-buttons-wrapper {
+    visibility: visible;
   }
   .ds-section-grid.ds-card-grid .col-4-medium.refined-cards .ds-card-link {
     padding: unset;
@@ -7091,6 +7103,7 @@ main section {
 }
 .ds-card .meta {
   display: flex;
+  justify-content: space-between;
   flex-direction: column;
   padding: var(--space-medium) var(--space-large);
   flex-grow: 1;

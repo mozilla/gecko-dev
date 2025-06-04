@@ -247,6 +247,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
   .meta {
     display: flex;
+    justify-content: space-between;
     flex-direction: column;
     padding: var(--space-medium) var(--space-large);;
     flex-grow: 1;
