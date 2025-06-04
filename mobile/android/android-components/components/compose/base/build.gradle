@@ -42,6 +42,13 @@ dependencies {
     implementation libs.androidx.compose.foundation
     implementation libs.androidx.compose.material
 
+    implementation libs.androidx.compose.material3
+    implementation libs.androidx.compose.material3.adaptive
+    implementation libs.androidx.compose.material3.adaptivelayout
+    implementation libs.androidx.compose.material3.adaptivenavigation
+    implementation libs.androidx.compose.material3.adaptivenavigationsuite
+    implementation libs.androidx.compose.material3.windowsizeclass
+
     debugImplementation libs.androidx.compose.ui.tooling
 
     testImplementation project(':support-test')

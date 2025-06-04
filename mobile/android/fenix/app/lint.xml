@@ -95,4 +95,7 @@
 
     <!-- Correctness: checks with increased severity -->
     <issue id="PrivateResource" severity="error" />
+
+    <!-- Ignore until M3 migration is complete -->
+    <issue id="UsingMaterialAndMaterial3Libraries" severity="ignore" />
 </lint>

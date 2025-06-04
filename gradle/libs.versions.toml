@@ -147,6 +147,12 @@ androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", versi
 androidx-compose-animation = { group = "androidx.compose.animation", name = "animation" }
 androidx-compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
 androidx-compose-material = { group = "androidx.compose.material", name = "material" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material3-adaptive = { group = "androidx.compose.material3.adaptive", name = "adaptive" }
+androidx-compose-material3-adaptivelayout = { group = "androidx.compose.material3.adaptive", name = "adaptive-layout" }
+androidx-compose-material3-adaptivenavigation = { group = "androidx.compose.material3.adaptive", name = "adaptive-navigation" }
+androidx-compose-material3-adaptivenavigationsuite = { group = "androidx.compose.material3", name = "material3-adaptive-navigation-suite" }
+androidx-compose-material3-windowsizeclass = { group = "androidx.compose.material3", name = "material3-window-size-class" }
 androidx-compose-material-icons = { group = "androidx.compose.material", name = "material-icons-core" }
 androidx-compose-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata" }
 androidx-compose-runtime-saveable = { group = "androidx.compose.runtime", name = "runtime-saveable" }
