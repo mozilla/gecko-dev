@@ -1820,7 +1820,7 @@ pocketNewtab:
       type: boolean
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.sponsoredCheckboxes.group
+        pref: browser.newtabpage.activity-stream.system.sponsoredCheckboxes
       description: >-
         When true, checkboxes for sponsored results in top sites and recommended stories are grouped separately
         on about:preferences#home

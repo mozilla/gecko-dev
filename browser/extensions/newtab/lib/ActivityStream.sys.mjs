@@ -1185,6 +1185,23 @@ export const PREFS_CONFIG = new Map([
       },
     },
   ],
+  // Sponsored checkboxes placement experiment
+  [
+    "system.showSponsoredCheckboxes",
+    {
+      title:
+        "Switches on grouping of sponsored checkboxes on 'about:settings#home' page",
+      value: false,
+    },
+  ],
+  [
+    "showSponsoredCheckboxes",
+    {
+      title:
+        "'Support Firefox' pref on 'about:settings#home' page. Toggles all sponsored results on and off at the same time",
+      value: true,
+    },
+  ],
 ]);
 
 // Array of each feed's FEEDS_CONFIG factory and values to add to PREFS_CONFIG

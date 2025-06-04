@@ -44,10 +44,6 @@ const BUILT_IN_SECTIONS = ({ pocketNewtab }) => ({
         ...(Services.prefs.getBoolPref(
           "browser.newtabpage.activity-stream.system.showSponsored",
           true
-        ) && // Hide this nested pref if "Support Firefox" checkbox is enabled
-        !Services.prefs.getBoolPref(
-          "browser.newtabpage.activity-stream.sponsoredCheckboxes.group",
-          false
         )
           ? [
               {

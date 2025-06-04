@@ -9,15 +9,9 @@ import {
 
 export const PREFERENCES_LOADED_EVENT = "home-pane-loaded";
 
-const lazy = {};
-
-ChromeUtils.defineESModuleGetters(lazy, {
-  NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-});
-
 // These "section" objects are formatted in a way to be similar to the ones from
 // SectionsManager to construct the preferences view.
-const PREFS_BEFORE_SECTIONS = () => [
+const PREFS_FOR_SETTINGS = () => [
   {
     id: "search",
     pref: {
@@ -57,7 +51,7 @@ const PREFS_BEFORE_SECTIONS = () => [
           eventSource: "SPONSORED_TOP_SITES",
           // Hide this nested pref if "Support Firefox" checkbox is enabled
           shouldHidePref: Services.prefs.getBoolPref(
-            "browser.newtabpage.activity-stream.sponsoredCheckboxes.group",
+            "browser.newtabpage.activity-stream.system.showSponsoredCheckboxes",
             false
           ),
         },
@@ -66,6 +60,43 @@ const PREFS_BEFORE_SECTIONS = () => [
     maxRows: 4,
     rowsPref: "topSitesRows",
     eventSource: "TOP_SITES",
+  },
+  {
+    id: "topstories",
+    pref: {
+      feed: "feeds.section.topstories",
+      titleString: {
+        id: "home-prefs-recommended-by-header-generic",
+      },
+      descString: {
+        id: "home-prefs-recommended-by-description-generic",
+      },
+      nestedPrefs: [
+        ...(Services.prefs.getBoolPref(
+          "browser.newtabpage.activity-stream.system.showSponsored",
+          true
+        ) && // Hide this nested pref if "Support Firefox" checkbox is enabled
+        !Services.prefs.getBoolPref(
+          "browser.newtabpage.activity-stream.system.showSponsoredCheckboxes",
+          false
+        )
+          ? [
+              {
+                name: "showSponsored",
+                titleString:
+                  "home-prefs-recommended-by-option-sponsored-stories",
+                icon: "icon-info",
+                eventSource: "POCKET_SPOCS",
+              },
+            ]
+          : []),
+      ],
+    },
+    shouldHidePref: !Services.prefs.getBoolPref(
+      "browser.newtabpage.activity-stream.feeds.section.topstories",
+      true
+    ),
+    eventSource: "TOP_STORIES",
   },
   {
     id: "support-firefox",
@@ -86,7 +117,7 @@ const PREFS_BEFORE_SECTIONS = () => [
       ],
     },
     shouldHidePref: !Services.prefs.getBoolPref(
-      "browser.newtabpage.activity-stream.sponsoredCheckboxes.group",
+      "browser.newtabpage.activity-stream.system.showSponsoredCheckboxes",
       false
     ),
   },
@@ -121,24 +152,6 @@ export class AboutPreferences {
     }
   }
 
-  /**
-   * Drop obsolete, pre-Discovery Stream pref for Recommended Stories
-   * that sets the number of rows for stories.
-   *
-   * @param sections
-   * @returns {*}
-   */
-  handleDiscoverySettings(sections) {
-    // Deep copy object to not modify original Sections state in store
-    let sectionsCopy = JSON.parse(JSON.stringify(sections));
-    sectionsCopy.forEach(obj => {
-      if (obj.id === "topstories") {
-        obj.rowsPref = "";
-      }
-    });
-    return sectionsCopy;
-  }
-
   setupUserEvent(element, eventSource) {
     element.addEventListener("command", e => {
       const { checked } = e.target;
@@ -157,12 +170,12 @@ export class AboutPreferences {
   observe(window) {
     const { document, Preferences } = window;
 
-    let sections = this.store.getState().Sections;
-    sections = this.handleDiscoverySettings(sections);
+    // Extract just the "Recent activity" pref info from SectionsManager as we have everything else already
+    const highlights = this.store
+      .getState()
+      .Sections.find(el => el.id === "highlights");
 
-    const featureConfig = lazy.NimbusFeatures.newtab.getAllVariables() || {};
-
-    const allSections = [...PREFS_BEFORE_SECTIONS(featureConfig), ...sections];
+    const allSections = [...PREFS_FOR_SETTINGS(), highlights];
 
     // Render the preferences
     allSections.forEach(pref => {
