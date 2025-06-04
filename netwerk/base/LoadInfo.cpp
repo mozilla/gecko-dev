@@ -1036,6 +1036,12 @@ LoadInfo::GetTriggeringPrincipal(nsIPrincipal** aTriggeringPrincipal) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+LoadInfo::SetTriggeringPrincipalForTesting(nsIPrincipal* aTriggeringPrincipal) {
+  mTriggeringPrincipal = aTriggeringPrincipal;
+  return NS_OK;
+}
+
 nsIPrincipal* LoadInfo::TriggeringPrincipal() { return mTriggeringPrincipal; }
 
 NS_IMETHODIMP
