@@ -647,8 +647,8 @@ function assertQuickSuggestPing(expectedPing) {
 
 function expectedPingContextId() {
   // `contextId` in the `quick-suggest` pings should always be the value in this
-  // pref, a UUID, but without the leading and trailing braces.
+  // pref, a UUID, but with any braces stripped.
   return Services.prefs
     .getCharPref("browser.contextual-services.contextId")
-    .substring(1, 37);
+    .replace(/\{|\}/g, "");
 }
