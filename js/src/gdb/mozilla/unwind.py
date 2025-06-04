@@ -97,7 +97,7 @@ class UnwinderTypeCache(TypeCache):
 
     def initialize(self):
         self.d = {}
-        self.d["FRAMETYPE_MASK"] = self.jit_value("FrameDescriptor::TypeMask")
+        self.d["FRAMETYPE_MASK"] = (1 << self.jit_value("FRAMETYPE_BITS")) - 1
         self.d["FRAMESIZE_SHIFT"] = self.jit_value("FRAMESIZE_SHIFT")
         self.d["FRAME_HEADER_SIZE_SHIFT"] = self.jit_value("FRAME_HEADER_SIZE_SHIFT")
         self.d["FRAME_HEADER_SIZE_MASK"] = self.jit_value("FRAME_HEADER_SIZE_MASK")

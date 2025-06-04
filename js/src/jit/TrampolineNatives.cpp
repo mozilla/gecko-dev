@@ -122,7 +122,7 @@ uint32_t JitRuntime::generateArraySortTrampoline(MacroAssembler& masm,
 
   auto pushExitFrame = [&](Register cxReg, Register scratchReg) {
     MOZ_ASSERT(masm.framePushed() == FrameSize);
-    masm.Push(FrameDescriptor(FrameType::TrampolineNative));
+    masm.PushFrameDescriptor(FrameType::TrampolineNative);
     masm.Push(ImmWord(0));  // Fake return address.
     masm.Push(FramePointer);
     masm.enterFakeExitFrame(cxReg, scratchReg, ExitFrameType::Bare);
@@ -153,7 +153,7 @@ uint32_t JitRuntime::generateArraySortTrampoline(MacroAssembler& masm,
   masm.setFramePushed(FrameSize);
 
   // Call the comparator. Store the frame descriptor before each call to ensure
-  // the HasCachedSavedFrame flag from a previous call is cleared.
+  // the HASCACHEDSAVEDFRAME_BIT flag from a previous call is cleared.
   uintptr_t jitCallDescriptor = MakeFrameDescriptorForJitCall(
       jit::FrameType::TrampolineNative, ArraySortData::ComparatorActualArgs);
   Label callDone, jitCallFast, jitCallSlow;

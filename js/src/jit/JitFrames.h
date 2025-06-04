@@ -71,74 +71,21 @@ struct VMFunctionData;
 // A frame descriptor word has the following data:
 //
 //    high bits: [ numActualArgs |
-//                 has-inlined-icscript bit |
 //                 has-cached-saved-frame bit |
 //    low bits:    frame type ]
 //
-
 // * numActualArgs: for JitFrameLayout, the number of arguments passed by the
 //   caller.
-// * HasInlinedICScript: Set when passing a private ICScript to a trial-inlined
-//   script.
-// * HasCachedSavedFrame: Used to power the LiveSavedFrameCache optimization.
-//   See the comment in Activation.h
+// * Has-cache-saved-frame bit: Used to power the LiveSavedFrameCache
+//   optimization. See the comment in Activation.h
 // * Frame Type: BaselineJS, Exit, etc. (jit::FrameType)
 //
 
-class FrameDescriptor {
- public:
-  static const uint32_t TypeBits = 4;
-  static const uint32_t TypeMask = (1 << TypeBits) - 1;
-  static const uint32_t HasCachedSavedFrame = 1 << TypeBits;
-  static const uint32_t HasInlinedICScript = 1 << (TypeBits + 1);
-  static const uint32_t NumActualArgsShift = TypeBits + 2;
-
-  explicit FrameDescriptor(FrameType type) : raw_(uint32_t(type)) {}
-  FrameDescriptor(FrameType type, uint32_t argc, bool hasInlined = false)
-      : raw_(argc << NumActualArgsShift | uint32_t(type)) {
-    if (hasInlined) {
-      setHasInlinedICScript();
-    }
-    MOZ_ASSERT(numActualArgs() == argc, "argc must fit in descriptor");
-  }
-
-  FrameType type() const { return FrameType(raw_ & TypeMask); }
-  void changeType(FrameType type) {
-    raw_ &= ~TypeMask;
-    raw_ |= uintptr_t(type);
-  }
-
-  uint32_t numActualArgs() const { return raw_ >> NumActualArgsShift; }
-
-  bool hasCachedSavedFrame() const { return raw_ & HasCachedSavedFrame; }
-  void setHasCachedSavedFrame() { raw_ |= HasCachedSavedFrame; }
-  void clearHasCachedSavedFrame() { raw_ &= ~HasCachedSavedFrame; }
-
-  bool hasInlinedICScript() const { return raw_ & HasInlinedICScript; }
-  void setHasInlinedICScript() { raw_ |= HasInlinedICScript; }
-
-  uint32_t value() const {
-    MOZ_ASSERT(raw_ == uint32_t(raw_));
-    return raw_;
-  }
-
- private:
-  uintptr_t raw_;
-};
-
-static inline uint32_t MakeFrameDescriptor(FrameType type) {
-  FrameDescriptor descriptor(type);
-  return descriptor.value();
-}
-
-// For JitFrameLayout, the descriptor also stores the number of arguments passed
-// by the caller. Note that |type| is the type of the *older* frame and |argc|
-// is the number of arguments passed to the *newer* frame.
-static inline uint32_t MakeFrameDescriptorForJitCall(FrameType type,
-                                                     uint32_t argc) {
-  FrameDescriptor descriptor(type, argc);
-  return descriptor.value();
-}
+static const uintptr_t FRAMETYPE_BITS = 4;
+static const uintptr_t FRAMETYPE_MASK = (1 << FRAMETYPE_BITS) - 1;
+static const uintptr_t HASCACHEDSAVEDFRAME_BIT = 1 << FRAMETYPE_BITS;
+static const uintptr_t NUMACTUALARGS_SHIFT =
+    FRAMETYPE_BITS + 1 /* HASCACHEDSAVEDFRAME_BIT */;
 
 struct BaselineBailoutInfo;
 
@@ -233,6 +180,21 @@ void TraceWeakJitActivationsInSweepingZones(JSContext* cx, JSTracer* trc);
 void UpdateJitActivationsForMinorGC(JSRuntime* rt);
 void UpdateJitActivationsForCompactingGC(JSRuntime* rt);
 
+static inline uint32_t MakeFrameDescriptor(FrameType type) {
+  return uint32_t(type);
+}
+
+// For JitFrameLayout, the descriptor also stores the number of arguments passed
+// by the caller. Note that |type| is the type of the *older* frame and |argc|
+// is the number of arguments passed to the *newer* frame.
+static inline uint32_t MakeFrameDescriptorForJitCall(FrameType type,
+                                                     uint32_t argc) {
+  uint32_t descriptor = (argc << NUMACTUALARGS_SHIFT) | uint32_t(type);
+  MOZ_ASSERT((descriptor >> NUMACTUALARGS_SHIFT) == argc,
+             "argc must fit in descriptor");
+  return descriptor;
+}
+
 // Returns the JSScript associated with the topmost JIT frame.
 JSScript* GetTopJitJSScript(JSContext* cx);
 
@@ -250,21 +212,26 @@ inline uint8_t* alignDoubleSpill(uint8_t* pointer) {
 class CommonFrameLayout {
   uint8_t* callerFramePtr_;
   uint8_t* returnAddress_;
-  FrameDescriptor descriptor_;
+  uintptr_t descriptor_;
 
  public:
   static constexpr size_t offsetOfDescriptor() {
     return offsetof(CommonFrameLayout, descriptor_);
   }
-  FrameDescriptor descriptor() const { return descriptor_; }
+  uintptr_t descriptor() const { return descriptor_; }
   static constexpr size_t offsetOfReturnAddress() {
     return offsetof(CommonFrameLayout, returnAddress_);
   }
-  FrameType prevType() const { return descriptor_.type(); }
-  void changePrevType(FrameType type) { descriptor_.changeType(type); }
-  bool hasCachedSavedFrame() const { return descriptor_.hasCachedSavedFrame(); }
-  void setHasCachedSavedFrame() { descriptor_.setHasCachedSavedFrame(); }
-  void clearHasCachedSavedFrame() { descriptor_.clearHasCachedSavedFrame(); }
+  FrameType prevType() const { return FrameType(descriptor_ & FRAMETYPE_MASK); }
+  void changePrevType(FrameType type) {
+    descriptor_ &= ~FRAMETYPE_MASK;
+    descriptor_ |= uintptr_t(type);
+  }
+  bool hasCachedSavedFrame() const {
+    return descriptor_ & HASCACHEDSAVEDFRAME_BIT;
+  }
+  void setHasCachedSavedFrame() { descriptor_ |= HASCACHEDSAVEDFRAME_BIT; }
+  void clearHasCachedSavedFrame() { descriptor_ &= ~HASCACHEDSAVEDFRAME_BIT; }
   uint8_t* returnAddress() const { return returnAddress_; }
   void setReturnAddress(uint8_t* addr) { returnAddress_ = addr; }
 
@@ -307,7 +274,9 @@ class JitFrameLayout : public CommonFrameLayout {
     return (JS::Value*)(this + 1);
   }
   JS::Value* actualArgs() { return thisAndActualArgs() + 1; }
-  uintptr_t numActualArgs() const { return descriptor().numActualArgs(); }
+  uintptr_t numActualArgs() const {
+    return descriptor() >> NUMACTUALARGS_SHIFT;
+  }
 
   // Computes a reference to a stack or argument slot, where a slot is a
   // distance from the base frame pointer, as would be used for LStackSlot
@@ -738,27 +707,19 @@ class ICStub;
 class BaselineStubFrameLayout : public CommonFrameLayout {
   // Info on the stack
   //
-  // +-------------------------------------------+
-  // |BaselineStubFrameLayout                    |
-  // +-------------------------------------------+
-  // | - Descriptor                              | <= Marks end of
-  // | - Return address                          |    FrameType::BaselineJS
-  // | - CallerFramePtr                          | <= Frame pointer points here
-  // +-------------------------------------------+
-  // | - StubPtr                                 | <= Technically these fields
-  // | - InlinedICScript or LocallyTracedValue   |    precede the FrameLayout in
-  // |                      LocallyTracedValue...|    memory.
-  // +-------------------------------------------+
-  //
-  // StubPtr is always present (but can be null; see generateDebugTrapHandler).
-  // InlinedICScript is only present if the HasInlinedICScript flag is set in
-  // the callee's frame descriptor (not shown in this diagram). Alternatively,
-  // we support up to 255 locally traced values (with the count stored in
-  // stub->jitCode()->localTracingSlots()).
+  // +-----------------------+
+  // |BaselineStubFrameLayout|
+  // +-----------------------+
+  // | - Descriptor          | => Marks end of FrameType::BaselineJS
+  // | - Return address      |
+  // | - CallerFramePtr      |
+  // +-----------------------+
+  // | - StubPtr             | Technically this last field is not part
+  // +-----------------------+ of the frame layout.
+
  public:
   static constexpr size_t ICStubOffset = sizeof(void*);
   static constexpr int ICStubOffsetFromFP = -int(ICStubOffset);
-  static constexpr int InlinedICScriptOffsetFromFP = 2 * -int(sizeof(void*));
   static constexpr size_t LocallyTracedValueOffset = 2 * sizeof(void*);
 
   static inline size_t Size() { return sizeof(BaselineStubFrameLayout); }
