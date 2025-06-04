@@ -56,6 +56,7 @@ class LinkPreviewCard extends MozLitElement {
     optin: { type: Boolean },
     pageData: { type: Object },
     progress: { type: Number }, // -1 = off, 0-100 = download progress
+    regionSupported: { type: Boolean },
   };
 
   constructor() {
@@ -67,6 +68,7 @@ class LinkPreviewCard extends MozLitElement {
     this.optin = false;
     this.optinRef = createRef();
     this.progress = -1;
+    this.regionSupported = true;
   }
 
   /**
@@ -413,6 +415,10 @@ class LinkPreviewCard extends MozLitElement {
    * @returns {import('lit').TemplateResult} The content card HTML
    */
   renderKeyPointsSection(pageUrl) {
+    if (!this.regionSupported) {
+      return "";
+    }
+
     // Determine if there's any generation error state
     const isGenerationError =
       this.isMissingDataErrorState || this.generationError;

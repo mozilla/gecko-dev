@@ -7,6 +7,9 @@ const { LinkPreview } = ChromeUtils.importESModule(
 const { LinkPreviewModel } = ChromeUtils.importESModule(
   "moz-src:///browser/components/genai/LinkPreviewModel.sys.mjs"
 );
+const { Region } = ChromeUtils.importESModule(
+  "resource://gre/modules/Region.sys.mjs"
+);
 const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
@@ -392,4 +395,58 @@ add_task(async function test_model_optin_confirm_action() {
   LinkPreview.keyboardComboActive = false;
   Services.prefs.setBoolPref("browser.ml.linkPreview.optin", false);
   Services.prefs.setBoolPref("browser.ml.linkPreview.collapsed", false);
+});
+
+/**
+ * Test that for a disallowed region, the opt-in card is not shown and
+ * key points are hidden.
+ *
+ * This test verifies that if the current search region is in the list of
+ * disallowed regions for key points, the opt-in prompt will not be shown
+ * and no attempt will be made to generate key points.
+ */
+add_task(async function test_no_optin_or_keypoints_in_disallowed_region() {
+  const currentRegion = Region.home;
+
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.linkPreview.enabled", true],
+      ["browser.ml.linkPreview.optin", false],
+      ["browser.ml.linkPreview.collapsed", false],
+      ["browser.ml.linkPreview.noKeyPointsRegions", currentRegion],
+    ],
+  });
+
+  const generateStub = sinon.stub(LinkPreviewModel, "generateTextAI");
+
+  LinkPreview.keyboardComboActive = true;
+  XULBrowserWindow.setOverLink(
+    "https://example.com/browser/browser/components/genai/tests/browser/data/readableEn.html",
+    {}
+  );
+
+  let panel = await TestUtils.waitForCondition(() =>
+    document.getElementById("link-preview-panel")
+  );
+  await BrowserTestUtils.waitForEvent(panel, "popupshown");
+  const card = panel.querySelector("link-preview-card");
+  ok(card, "card created for link preview");
+
+  ok(
+    !LinkPreview.canShowKeyPoints,
+    "LinkPreview should indicate key points cannot be shown"
+  );
+
+  // Verify that the opt-in element is NOT present
+  const modelOptinElement = card.shadowRoot.querySelector("model-optin");
+  ok(!modelOptinElement, "model-optin element should NOT be present");
+
+  is(
+    generateStub.callCount,
+    0,
+    "generateTextAI should not be called in a disallowed region"
+  );
+
+  panel.remove();
+  generateStub.restore();
 });
