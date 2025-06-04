@@ -18,10 +18,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2f1a0ba74bf71cfa0
  6 files changed, 24 insertions(+), 4 deletions(-)
 
 diff --git a/api/frame_transformer_interface.h b/api/frame_transformer_interface.h
-index 2bcc32d531..8ab8c13659 100644
+index fd53f30af4..538d538749 100644
 --- a/api/frame_transformer_interface.h
 +++ b/api/frame_transformer_interface.h
-@@ -103,6 +103,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
+@@ -105,6 +105,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
    RTC_EXPORT explicit TransformableVideoFrameInterface(Passkey passkey);
    virtual ~TransformableVideoFrameInterface() = default;
    virtual bool IsKeyFrame() const = 0;
@@ -45,7 +45,7 @@ index 0a29968b0c..c23051401e 100644
      return flexfec_ssrc_;
    }
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index 7fbfe65099..ca2f0168c9 100644
+index c3eeced7d7..c91dd8ce51 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
 @@ -189,6 +189,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)
@@ -148,7 +148,7 @@ index e44a62685e..0f50f92108 100644
    // happen if a hardware encoder was used.
    std::unique_ptr<TaskQueueBase, TaskQueueDeleter> transformation_queue_;
 diff --git a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
-index c736cc647d..41f41219e2 100644
+index 5ffdee93f8..c99ac3c7e7 100644
 --- a/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
 +++ b/modules/rtp_rtcp/source/rtp_video_stream_receiver_frame_transformer_delegate.cc
 @@ -60,6 +60,11 @@ class TransformableVideoReceiverFrame

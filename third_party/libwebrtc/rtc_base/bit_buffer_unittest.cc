@@ -19,7 +19,7 @@
 #include "test/gmock.h"
 #include "test/gtest.h"
 
-namespace rtc {
+namespace webrtc {
 
 using ::testing::ElementsAre;
 using ::webrtc::BitstreamReader;
@@ -253,4 +253,4 @@ TEST(BitBufferWriterTest, WriteStringTooSmallBuffer) {
   EXPECT_FALSE(writer.WriteString("abc"));
 }
 
-}  // namespace rtc
+}  // namespace webrtc

@@ -102,7 +102,7 @@ int64_t ASN1TimeToSec(const unsigned char* s, size_t length, bool long_format) {
   if (bytes_left != 1) {
     return -1;
   }
-  return TmToSeconds(tm);
+  return webrtc::TmToSeconds(tm);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -185,8 +185,9 @@ bool SSLIdentity::PemToDer(absl::string_view pem_type,
     return false;
   }
   std::string inner(pem_string.substr(body + 1, trailer - (body + 1)));
-  *der = Base64::Decode(inner, Base64::DO_PARSE_WHITE | Base64::DO_PAD_ANY |
-                                   Base64::DO_TERM_BUFFER);
+  *der = webrtc::Base64::Decode(inner, webrtc::Base64::DO_PARSE_WHITE |
+                                           webrtc::Base64::DO_PAD_ANY |
+                                           webrtc::Base64::DO_TERM_BUFFER);
   return true;
 }
 
@@ -197,7 +198,7 @@ std::string SSLIdentity::DerToPem(absl::string_view pem_type,
   result << "-----BEGIN " << pem_type << "-----\n";
 
   std::string b64_encoded;
-  Base64::EncodeFromArray(data, length, &b64_encoded);
+  webrtc::Base64::EncodeFromArray(data, length, &b64_encoded);
   // Divide the Base-64 encoded data into 64-character chunks, as per 4.3.2.4
   // of RFC 1421.
   static const size_t kChunkSize = 64;

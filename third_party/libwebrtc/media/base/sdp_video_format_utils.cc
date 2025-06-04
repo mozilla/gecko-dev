@@ -12,9 +12,11 @@
 
 #include <cstring>
 #include <map>
+#include <optional>
 #include <string>
 #include <utility>
 
+#include "api/rtp_parameters.h"
 #include "api/video_codecs/h264_profile_level_id.h"
 #ifdef RTC_ENABLE_H265
 #include "api/video_codecs/h265_profile_tier_level.h"

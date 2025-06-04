@@ -261,7 +261,7 @@ std::unique_ptr<BoringSSLCertificate> BoringSSLCertificate::Generate(
   SSLIdentityParams actual_params(params);
   if (actual_params.common_name.empty()) {
     // Use a random string, arbitrarily 8 chars long.
-    actual_params.common_name = CreateRandomString(8);
+    actual_params.common_name = webrtc::CreateRandomString(8);
   }
   bssl::UniquePtr<CRYPTO_BUFFER> cert_buffer =
       MakeCertificate(key_pair->pkey(), actual_params);

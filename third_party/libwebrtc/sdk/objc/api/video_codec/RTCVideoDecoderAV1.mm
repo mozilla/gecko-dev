@@ -26,7 +26,7 @@
 
     - (std::unique_ptr<webrtc::VideoDecoder>)build:
         (const webrtc::Environment&)env {
-      return webrtc::CreateDav1dDecoder();
+      return webrtc::CreateDav1dDecoder(env);
     }
 
     @end

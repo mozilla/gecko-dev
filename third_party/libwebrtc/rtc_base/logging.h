@@ -66,7 +66,6 @@
 #include <utility>
 
 #include "absl/base/attributes.h"
-#include "absl/meta/type_traits.h"
 #include "absl/strings/has_absl_stringify.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -88,7 +87,7 @@
 #define RTC_LOG_ENABLED() 1
 #endif
 
-namespace rtc {
+namespace webrtc {
 
 //////////////////////////////////////////////////////////////////////
 // The meanings of the levels are:
@@ -129,8 +128,8 @@ class LogLineRef {
   absl::string_view message() const { return message_; }
   absl::string_view filename() const { return filename_; }
   int line() const { return line_; }
-  std::optional<PlatformThreadId> thread_id() const { return thread_id_; }
-  webrtc::Timestamp timestamp() const { return timestamp_; }
+  std::optional<rtc::PlatformThreadId> thread_id() const { return thread_id_; }
+  Timestamp timestamp() const { return timestamp_; }
   absl::string_view tag() const { return tag_; }
   LoggingSeverity severity() const { return severity_; }
 
@@ -145,18 +144,18 @@ class LogLineRef {
   void set_message(std::string message) { message_ = std::move(message); }
   void set_filename(absl::string_view filename) { filename_ = filename; }
   void set_line(int line) { line_ = line; }
-  void set_thread_id(std::optional<PlatformThreadId> thread_id) {
+  void set_thread_id(std::optional<rtc::PlatformThreadId> thread_id) {
     thread_id_ = thread_id;
   }
-  void set_timestamp(webrtc::Timestamp timestamp) { timestamp_ = timestamp; }
+  void set_timestamp(Timestamp timestamp) { timestamp_ = timestamp; }
   void set_tag(absl::string_view tag) { tag_ = tag; }
   void set_severity(LoggingSeverity severity) { severity_ = severity; }
 
   std::string message_;
   absl::string_view filename_;
   int line_ = 0;
-  std::optional<PlatformThreadId> thread_id_;
-  webrtc::Timestamp timestamp_ = webrtc::Timestamp::MinusInfinity();
+  std::optional<rtc::PlatformThreadId> thread_id_;
+  Timestamp timestamp_ = Timestamp::MinusInfinity();
   // The default Android debug output tag.
   absl::string_view tag_ = "libjingle";
   // The severity level of this message
@@ -184,7 +183,7 @@ class LogSink {
   virtual void OnLogMessage(const LogLineRef& line);
 
  private:
-  friend class ::rtc::LogMessage;
+  friend class LogMessage;
 #if RTC_LOG_ENABLED()
   // Members for LogMessage class to keep linked list of the registered sinks.
   LogSink* next_ = nullptr;
@@ -325,12 +324,12 @@ inline Val<LogArgType::kLogMetadataErr, LogMetadataErr> MakeVal(
 
 // The enum class types are not implicitly convertible to arithmetic types.
 template <typename T,
-          absl::enable_if_t<std::is_enum<T>::value &&
-                            !absl::HasAbslStringify<T>::value &&
-                            !std::is_arithmetic<T>::value>* = nullptr>
-inline decltype(MakeVal(std::declval<absl::underlying_type_t<T>>())) MakeVal(
+          std::enable_if_t<std::is_enum<T>::value &&
+                           !absl::HasAbslStringify<T>::value &&
+                           !std::is_arithmetic<T>::value>* = nullptr>
+inline decltype(MakeVal(std::declval<std::underlying_type_t<T>>())) MakeVal(
     T x) {
-  return {static_cast<absl::underlying_type_t<T>>(x)};
+  return {static_cast<std::underlying_type_t<T>>(x)};
 }
 
 #ifdef WEBRTC_ANDROID
@@ -350,7 +349,7 @@ ToStringVal MakeVal(const T& x) {
 // TODO(bugs.webrtc.org/9278): Get rid of this overload when callers don't need
 // it anymore. No in-tree caller does, but some external callers still do.
 template <typename T,
-          typename T1 = absl::decay_t<T>,
+          typename T1 = std::decay_t<T>,
           std::enable_if_t<std::is_class<T1>::value &&               //
                            !std::is_same<T1, std::string>::value &&  //
                            !std::is_same<T1, LogMetadata>::value &&  //
@@ -476,7 +475,7 @@ class LogMessage {
   LogMessage& operator=(const LogMessage&) = delete;
 
   void AddTag(const char* tag);
-  webrtc::StringBuilder& stream();
+  StringBuilder& stream();
   // Returns the time at which this function was called for the first time.
   // The time will be used as the logging start time.
   // If this is not called externally, the LogMessage ctor also calls it, in
@@ -542,7 +541,7 @@ class LogMessage {
   ~LogMessage() = default;
 
   inline void AddTag(const char* tag) {}
-  inline rtc::StringBuilder& stream() { return print_stream_; }
+  inline StringBuilder& stream() { return print_stream_; }
   inline static int64_t LogStartTime() { return 0; }
   inline static uint32_t WallClockStartTime() { return 0; }
   inline static void LogThreads(bool on = true) {}
@@ -624,7 +623,7 @@ class LogMessage {
 #endif  // RTC_LOG_ENABLED()
 
   // The stringbuilder that buffers the formatted message before output
-  webrtc::StringBuilder print_stream_;
+  StringBuilder print_stream_;
 
   static bool aec_debug_;
   static std::string aec_filename_base_;
@@ -634,22 +633,23 @@ class LogMessage {
 // Logging Helpers
 //////////////////////////////////////////////////////////////////////
 
-#define RTC_LOG_FILE_LINE(sev, file, line)        \
-  ::rtc::webrtc_logging_impl::LogCall() &         \
-      ::rtc::webrtc_logging_impl::LogStreamer<>() \
-          << ::rtc::webrtc_logging_impl::LogMetadata(file, line, sev)
+#define RTC_LOG_FILE_LINE(sev, file, line)           \
+  ::webrtc::webrtc_logging_impl::LogCall() &         \
+      ::webrtc::webrtc_logging_impl::LogStreamer<>() \
+          << ::webrtc::webrtc_logging_impl::LogMetadata(file, line, sev)
 
-#define RTC_LOG(sev)                          \
-  !::rtc::LogMessage::IsNoop<::rtc::sev>() && \
-      RTC_LOG_FILE_LINE(::rtc::sev, __FILE__, __LINE__)
+#define RTC_LOG(sev)                                \
+  !::webrtc::LogMessage::IsNoop<::webrtc::sev>() && \
+      RTC_LOG_FILE_LINE(::webrtc::sev, __FILE__, __LINE__)
 
-#define RTC_LOG_IF(sev, condition)                           \
-  !::rtc::LogMessage::IsNoop<::rtc::sev>() && (condition) && \
-      RTC_LOG_FILE_LINE(::rtc::sev, __FILE__, __LINE__)
+#define RTC_LOG_IF(sev, condition)                                 \
+  !::webrtc::LogMessage::IsNoop<::webrtc::sev>() && (condition) && \
+      RTC_LOG_FILE_LINE(::webrtc::sev, __FILE__, __LINE__)
 
 // The _V version is for when a variable is passed in.
-#define RTC_LOG_V(sev) \
-  !::rtc::LogMessage::IsNoop(sev) && RTC_LOG_FILE_LINE(sev, __FILE__, __LINE__)
+#define RTC_LOG_V(sev)                  \
+  !::webrtc::LogMessage::IsNoop(sev) && \
+      RTC_LOG_FILE_LINE(sev, __FILE__, __LINE__)
 
 // The _F version prefixes the message with the current function name.
 #if (defined(__GNUC__) && !defined(NDEBUG)) || defined(WANT_PRETTY_LOG_F)
@@ -665,19 +665,19 @@ class LogMessage {
 #define RTC_LOG_T_F(sev) RTC_LOG(sev) << this << ": " << __FUNCTION__ << ": "
 #endif
 
-#define RTC_LOG_CHECK_LEVEL(sev) ::rtc::LogCheckLevel(::rtc::sev)
-#define RTC_LOG_CHECK_LEVEL_V(sev) ::rtc::LogCheckLevel(sev)
+#define RTC_LOG_CHECK_LEVEL(sev) ::webrtc::LogCheckLevel(::webrtc::sev)
+#define RTC_LOG_CHECK_LEVEL_V(sev) ::webrtc::LogCheckLevel(sev)
 
 inline bool LogCheckLevel(LoggingSeverity sev) {
   return (LogMessage::GetMinLogSeverity() <= sev);
 }
 
-#define RTC_LOG_E(sev, ctx, err)                                 \
-  !::rtc::LogMessage::IsNoop<::rtc::sev>() &&                    \
-      ::rtc::webrtc_logging_impl::LogCall() &                    \
-          ::rtc::webrtc_logging_impl::LogStreamer<>()            \
-              << ::rtc::webrtc_logging_impl::LogMetadataErr {    \
-    {__FILE__, __LINE__, ::rtc::sev}, ::rtc::ERRCTX_##ctx, (err) \
+#define RTC_LOG_E(sev, ctx, err)                                       \
+  !::webrtc::LogMessage::IsNoop<::webrtc::sev>() &&                    \
+      ::webrtc::webrtc_logging_impl::LogCall() &                       \
+          ::webrtc::webrtc_logging_impl::LogStreamer<>()               \
+              << ::webrtc::webrtc_logging_impl::LogMetadataErr {       \
+    {__FILE__, __LINE__, ::webrtc::sev}, ::webrtc::ERRCTX_##ctx, (err) \
   }
 
 #define RTC_LOG_T(sev) RTC_LOG(sev) << this << ": "
@@ -710,12 +710,12 @@ inline const char* AdaptString(const std::string& str) {
 }
 }  // namespace webrtc_logging_impl
 
-#define RTC_LOG_TAG(sev, tag)                                 \
-  !::rtc::LogMessage::IsNoop(sev) &&                          \
-      ::rtc::webrtc_logging_impl::LogCall() &                 \
-          ::rtc::webrtc_logging_impl::LogStreamer<>()         \
-              << ::rtc::webrtc_logging_impl::LogMetadataTag { \
-    sev, ::rtc::webrtc_logging_impl::AdaptString(tag)         \
+#define RTC_LOG_TAG(sev, tag)                                    \
+  !::webrtc::LogMessage::IsNoop(sev) &&                          \
+      ::webrtc::webrtc_logging_impl::LogCall() &                 \
+          ::webrtc::webrtc_logging_impl::LogStreamer<>()         \
+              << ::webrtc::webrtc_logging_impl::LogMetadataTag { \
+    sev, ::webrtc::webrtc_logging_impl::AdaptString(tag)         \
   }
 
 #else
@@ -734,10 +734,10 @@ inline const char* AdaptString(const std::string& str) {
 #define RTC_DLOG_F(sev) RTC_LOG_F(sev)
 #define RTC_DLOG_IF_F(sev, condition) RTC_LOG_IF_F(sev, condition)
 #else
-#define RTC_DLOG_EAT_STREAM_PARAMS()                \
-  while (false)                                     \
-  ::rtc::webrtc_logging_impl::LogMessageVoidify() & \
-      (::rtc::webrtc_logging_impl::LogStreamer<>())
+#define RTC_DLOG_EAT_STREAM_PARAMS()                   \
+  while (false)                                        \
+  ::webrtc::webrtc_logging_impl::LogMessageVoidify() & \
+      (::webrtc::webrtc_logging_impl::LogStreamer<>())
 #define RTC_DLOG(sev) RTC_DLOG_EAT_STREAM_PARAMS()
 #define RTC_DLOG_IF(sev, condition) RTC_DLOG_EAT_STREAM_PARAMS()
 #define RTC_DLOG_V(sev) RTC_DLOG_EAT_STREAM_PARAMS()
@@ -745,6 +745,20 @@ inline const char* AdaptString(const std::string& str) {
 #define RTC_DLOG_IF_F(sev, condition) RTC_DLOG_EAT_STREAM_PARAMS()
 #endif
 
+}  // namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::LoggingSeverity;
+using ::webrtc::LogLineRef;
+using ::webrtc::LogMessage;
+using ::webrtc::LogSink;
+using ::webrtc::LS_ERROR;
+using ::webrtc::LS_INFO;
+using ::webrtc::LS_NONE;
+using ::webrtc::LS_VERBOSE;
+using ::webrtc::LS_WARNING;
 }  // namespace rtc
 
 #pragma GCC diagnostic pop

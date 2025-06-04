@@ -103,7 +103,7 @@ class UlpfecGenerator : public VideoFecGenerator {
   const int red_payload_type_;
   const int ulpfec_payload_type_;
 
-  rtc::RaceChecker race_checker_;
+  RaceChecker race_checker_;
   const std::unique_ptr<ForwardErrorCorrection> fec_
       RTC_GUARDED_BY(race_checker_);
   ForwardErrorCorrection::PacketList media_packets_

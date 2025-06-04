@@ -42,30 +42,30 @@ absl::string_view IceCandidateTypeToString(IceCandidateType type) {
 }
 }  // namespace webrtc
 
-namespace cricket {
+namespace webrtc {
 
 Candidate::Candidate()
-    : id_(rtc::CreateRandomString(8)),
-      component_(ICE_CANDIDATE_COMPONENT_DEFAULT),
+    : id_(CreateRandomString(8)),
+      component_(cricket::ICE_CANDIDATE_COMPONENT_DEFAULT),
       priority_(0),
-      network_type_(rtc::ADAPTER_TYPE_UNKNOWN),
-      underlying_type_for_vpn_(rtc::ADAPTER_TYPE_UNKNOWN),
+      network_type_(webrtc::ADAPTER_TYPE_UNKNOWN),
+      underlying_type_for_vpn_(webrtc::ADAPTER_TYPE_UNKNOWN),
       generation_(0),
       network_id_(0),
       network_cost_(0) {}
 
 Candidate::Candidate(int component,
                      absl::string_view protocol,
-                     const rtc::SocketAddress& address,
+                     const SocketAddress& address,
                      uint32_t priority,
                      absl::string_view username,
                      absl::string_view password,
-                     webrtc::IceCandidateType type,
+                     IceCandidateType type,
                      uint32_t generation,
                      absl::string_view foundation,
                      uint16_t network_id /*= 0*/,
                      uint16_t network_cost /*= 0*/)
-    : id_(rtc::CreateRandomString(8)),
+    : id_(CreateRandomString(8)),
       component_(component),
       protocol_(protocol),
       address_(address),
@@ -73,8 +73,8 @@ Candidate::Candidate(int component,
       username_(username),
       password_(password),
       type_(type),
-      network_type_(rtc::ADAPTER_TYPE_UNKNOWN),
-      underlying_type_for_vpn_(rtc::ADAPTER_TYPE_UNKNOWN),
+      network_type_(webrtc::ADAPTER_TYPE_UNKNOWN),
+      underlying_type_for_vpn_(webrtc::ADAPTER_TYPE_UNKNOWN),
       generation_(generation),
       foundation_(foundation),
       network_id_(network_id),
@@ -85,7 +85,7 @@ Candidate::Candidate(const Candidate&) = default;
 Candidate::~Candidate() = default;
 
 void Candidate::generate_id() {
-  id_ = rtc::CreateRandomString(8);
+  id_ = CreateRandomString(8);
 }
 
 bool Candidate::is_local() const {
@@ -123,7 +123,7 @@ bool Candidate::MatchesForRemoval(const Candidate& c) const {
 }
 
 std::string Candidate::ToStringInternal(bool sensitive) const {
-  rtc::StringBuilder ost;
+  StringBuilder ost;
   std::string address =
       sensitive ? address_.ToSensitiveString() : address_.ToString();
   std::string related_address = sensitive ? related_address_.ToSensitiveString()
@@ -157,7 +157,7 @@ uint32_t Candidate::GetPriority(uint32_t type_preference,
   // local preference =  (NIC Type << 8 | Addr_Pref) + relay preference.
   // The relay preference is based on the number of TURN servers, the
   // first TURN server gets the highest preference.
-  int addr_pref = IPAddressPrecedence(address_.ipaddr());
+  int addr_pref = webrtc::IPAddressPrecedence(address_.ipaddr());
   int local_preference =
       ((network_adapter_preference << 8) | addr_pref) + relay_preference;
 
@@ -196,33 +196,36 @@ bool Candidate::operator!=(const Candidate& o) const {
 }
 
 Candidate Candidate::ToSanitizedCopy(bool use_hostname_address,
-                                     bool filter_related_address) const {
+                                     bool filter_related_address,
+                                     bool filter_ufrag) const {
   Candidate copy(*this);
   if (use_hostname_address) {
-    rtc::IPAddress ip;
+    IPAddress ip;
     if (address().hostname().empty()) {
       // IP needs to be redacted, but no hostname available.
-      rtc::SocketAddress redacted_addr("redacted-ip.invalid", address().port());
+      SocketAddress redacted_addr("redacted-ip.invalid", address().port());
       copy.set_address(redacted_addr);
-    } else if (IPFromString(address().hostname(), &ip)) {
+    } else if (webrtc::IPFromString(address().hostname(), &ip)) {
       // The hostname is an IP literal, and needs to be redacted too.
-      rtc::SocketAddress redacted_addr("redacted-literal.invalid",
-                                       address().port());
+      SocketAddress redacted_addr("redacted-literal.invalid", address().port());
       copy.set_address(redacted_addr);
     } else {
-      rtc::SocketAddress hostname_only_addr(address().hostname(),
-                                            address().port());
+      SocketAddress hostname_only_addr(address().hostname(), address().port());
       copy.set_address(hostname_only_addr);
     }
   }
   if (filter_related_address) {
     copy.set_related_address(
-        rtc::EmptySocketAddressWithFamily(copy.address().family()));
+        webrtc::EmptySocketAddressWithFamily(copy.address().family()));
   }
+  if (filter_ufrag) {
+    copy.set_username("");
+  }
+
   return copy;
 }
 
-void Candidate::ComputeFoundation(const rtc::SocketAddress& base_address,
+void Candidate::ComputeFoundation(const SocketAddress& base_address,
                                   uint64_t tie_breaker) {
   // https://www.rfc-editor.org/rfc/rfc5245#section-4.1.1.3
   // The foundation is an identifier, scoped within a session.  Two candidates
@@ -239,7 +242,7 @@ void Candidate::ComputeFoundation(const rtc::SocketAddress& base_address,
   // TURN servers used to obtain them have different IP addresses, or their
   // transport protocols are different.
 
-  rtc::StringBuilder sb;
+  StringBuilder sb;
   sb << type_name() << base_address.ipaddr().ToString() << protocol_
      << relay_protocol_;
 
@@ -250,13 +253,13 @@ void Candidate::ComputeFoundation(const rtc::SocketAddress& base_address,
   // - 1 (that is, a 64-bit positive integer).  This number is used in
   // connectivity checks to detect and repair this case [...]
   sb << rtc::ToString(tie_breaker);
-  foundation_ = rtc::ToString(rtc::ComputeCrc32(sb.Release()));
+  foundation_ = rtc::ToString(webrtc::ComputeCrc32(sb.Release()));
 }
 
 void Candidate::ComputePrflxFoundation() {
   RTC_DCHECK(is_prflx());
   RTC_DCHECK(!id_.empty());
-  foundation_ = rtc::ToString(rtc::ComputeCrc32(id_));
+  foundation_ = rtc::ToString(webrtc::ComputeCrc32(id_));
 }
 
 void Candidate::Assign(std::string& s, absl::string_view view) {
@@ -266,4 +269,4 @@ void Candidate::Assign(std::string& s, absl::string_view view) {
   s.assign(view.data(), view.size());
 }
 
-}  // namespace cricket
+}  // namespace webrtc

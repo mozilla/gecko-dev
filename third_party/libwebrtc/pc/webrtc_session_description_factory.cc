@@ -30,8 +30,9 @@
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
-#include "call/payload_type.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
+#include "pc/media_options.h"
 #include "pc/media_session.h"
 #include "pc/sdp_state_provider.h"
 #include "pc/session_description.h"
@@ -88,7 +89,7 @@ void WebRtcSessionDescriptionFactory::CopyCandidatesFromSessionDescription(
   }
   const cricket::ContentInfos& contents =
       source_desc->description()->contents();
-  const cricket::ContentInfo* cinfo =
+  const ContentInfo* cinfo =
       source_desc->description()->GetContentByName(content_name);
   if (!cinfo) {
     return;
@@ -114,11 +115,11 @@ WebRtcSessionDescriptionFactory::WebRtcSessionDescriptionFactory(
     const SdpStateProvider* sdp_info,
     const std::string& session_id,
     bool dtls_enabled,
-    std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
-    rtc::scoped_refptr<rtc::RTCCertificate> certificate,
-    std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
+    std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator,
+    rtc::scoped_refptr<RTCCertificate> certificate,
+    std::function<void(const rtc::scoped_refptr<webrtc::RTCCertificate>&)>
         on_certificate_ready,
-    PayloadTypeSuggester* pt_suggester,
+    cricket::CodecLookupHelper* codec_lookup_helper,
     const FieldTrialsView& field_trials)
     : signaling_thread_(context->signaling_thread()),
       transport_desc_factory_(field_trials),
@@ -126,7 +127,7 @@ WebRtcSessionDescriptionFactory::WebRtcSessionDescriptionFactory(
                             context->use_rtx(),
                             context->ssrc_generator(),
                             &transport_desc_factory_,
-                            pt_suggester),
+                            codec_lookup_helper),
       // RFC 4566 suggested a Network Time Protocol (NTP) format timestamp
       // as the session id and session version. To simplify, it should be fine
       // to just use a random number as session id and start version from
@@ -289,7 +290,7 @@ void WebRtcSessionDescriptionFactory::InternalCreateOffer(
     PostCreateSessionDescriptionFailed(request.observer.get(), result.error());
     return;
   }
-  std::unique_ptr<cricket::SessionDescription> desc = std::move(result.value());
+  std::unique_ptr<SessionDescription> desc = std::move(result.value());
   RTC_CHECK(desc);
 
   // RFC 3264
@@ -351,7 +352,7 @@ void WebRtcSessionDescriptionFactory::InternalCreateAnswer(
     PostCreateSessionDescriptionFailed(request.observer.get(), result.error());
     return;
   }
-  std::unique_ptr<cricket::SessionDescription> desc = std::move(result.value());
+  std::unique_ptr<SessionDescription> desc = std::move(result.value());
   RTC_CHECK(desc);
 
   // RFC 3264
@@ -442,7 +443,7 @@ void WebRtcSessionDescriptionFactory::OnCertificateRequestFailed() {
 }
 
 void WebRtcSessionDescriptionFactory::SetCertificate(
-    rtc::scoped_refptr<rtc::RTCCertificate> certificate) {
+    rtc::scoped_refptr<RTCCertificate> certificate) {
   RTC_DCHECK(certificate);
   RTC_LOG(LS_VERBOSE) << "Setting new certificate.";
 

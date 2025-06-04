@@ -39,6 +39,7 @@
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "rtc_base/checks.h"
 #include "video/config/video_encoder_config.h"
 
 namespace webrtc {
@@ -256,6 +257,9 @@ class VideoSendStream {
                                        SetParametersCallback callback) = 0;
 
   virtual Stats GetStats() = 0;
+
+  // TODO: webrtc:40644448 - Make this pure virtual.
+  virtual void SetStats(const Stats& stats) { RTC_CHECK_NOTREACHED(); }
 
   virtual void GenerateKeyFrame(const std::vector<std::string>& rids) = 0;
 

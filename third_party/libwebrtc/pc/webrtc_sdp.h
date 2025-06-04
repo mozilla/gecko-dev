@@ -31,10 +31,6 @@
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/system/rtc_export.h"
 
-namespace cricket {
-class Candidate;
-}  // namespace cricket
-
 namespace webrtc {
 class IceCandidateInterface;
 class JsepIceCandidate;
@@ -54,8 +50,7 @@ std::string SdpSerializeCandidate(const IceCandidateInterface& candidate);
 
 // Serializes a cricket Candidate.
 // candidate - The candidate to be serialized.
-RTC_EXPORT std::string SdpSerializeCandidate(
-    const cricket::Candidate& candidate);
+RTC_EXPORT std::string SdpSerializeCandidate(const Candidate& candidate);
 
 // Deserializes the passed in SDP string to a JsepSessionDescription.
 // message - SDP string to be Deserialized.
@@ -87,7 +82,7 @@ RTC_EXPORT bool SdpDeserializeCandidate(absl::string_view message,
 // return - true on success, false on failure.
 RTC_EXPORT bool SdpDeserializeCandidate(absl::string_view transport_name,
                                         absl::string_view message,
-                                        cricket::Candidate* candidate,
+                                        Candidate* candidate,
                                         SdpParseError* error);
 
 // Parses `message` according to the grammar defined in RFC 5245, Section 15.1
@@ -97,7 +92,7 @@ RTC_EXPORT bool SdpDeserializeCandidate(absl::string_view transport_name,
 // If `is_raw` is false, `message` is expected to be prefixed with "a=".
 // If `is_raw` is true, no prefix is expected in `messaage`.
 RTC_EXPORT bool ParseCandidate(absl::string_view message,
-                               cricket::Candidate* candidate,
+                               Candidate* candidate,
                                SdpParseError* error,
                                bool is_raw);
 

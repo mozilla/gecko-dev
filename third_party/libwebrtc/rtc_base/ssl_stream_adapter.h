@@ -28,7 +28,7 @@
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/stream.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Constants for SSL profile.
 constexpr int kTlsNullWithNullNull = 0;
@@ -124,8 +124,9 @@ class SSLStreamAdapter : public StreamInterface {
   // Caller is responsible for freeing the returned object.
   static std::unique_ptr<SSLStreamAdapter> Create(
       std::unique_ptr<StreamInterface> stream,
-      absl::AnyInvocable<void(SSLHandshakeError)> handshake_error = nullptr,
-      const webrtc::FieldTrialsView* field_trials = nullptr);
+      absl::AnyInvocable<void(webrtc::SSLHandshakeError)> handshake_error =
+          nullptr,
+      const FieldTrialsView* field_trials = nullptr);
 
   SSLStreamAdapter() = default;
   ~SSLStreamAdapter() override = default;
@@ -133,8 +134,8 @@ class SSLStreamAdapter : public StreamInterface {
   // Specify our SSL identity: key and certificate. SSLStream takes ownership
   // of the SSLIdentity object and will free it when appropriate. Should be
   // called no more than once on a given SSLStream instance.
-  virtual void SetIdentity(std::unique_ptr<SSLIdentity> identity) = 0;
-  virtual SSLIdentity* GetIdentityForTesting() const = 0;
+  virtual void SetIdentity(std::unique_ptr<rtc::SSLIdentity> identity) = 0;
+  virtual rtc::SSLIdentity* GetIdentityForTesting() const = 0;
 
   // Call this to indicate that we are to play the server role (or client role,
   // if the default argument is replaced by SSL_CLIENT).
@@ -195,7 +196,7 @@ class SSLStreamAdapter : public StreamInterface {
 
   // Retrieves the peer's certificate chain including leaf certificate, if a
   // connection has been established.
-  virtual std::unique_ptr<SSLCertChain> GetPeerSSLCertChain() const = 0;
+  virtual std::unique_ptr<rtc::SSLCertChain> GetPeerSSLCertChain() const = 0;
 
   // Retrieves the IANA registration id of the cipher suite used for the
   // connection (e.g. 0x2F for "TLS_RSA_WITH_AES_128_CBC_SHA").
@@ -237,8 +238,9 @@ class SSLStreamAdapter : public StreamInterface {
 
   // Returns true iff the supplied cipher is deemed to be strong.
   // TODO(torbjorng): Consider removing the KeyType argument.
-  static bool IsAcceptableCipher(int cipher, KeyType key_type);
-  static bool IsAcceptableCipher(absl::string_view cipher, KeyType key_type);
+  static bool IsAcceptableCipher(int cipher, rtc::KeyType key_type);
+  static bool IsAcceptableCipher(absl::string_view cipher,
+                                 rtc::KeyType key_type);
 
   ////////////////////////////////////////////////////////////////////////////
   // Testing only member functions
@@ -262,6 +264,10 @@ class SSLStreamAdapter : public StreamInterface {
   // authentication.
   bool GetClientAuthEnabled() const { return client_auth_enabled_; }
 
+  // Return number of times DTLS retransmission has been triggered.
+  // Used for testing (and maybe put into stats?).
+  virtual int GetRetransmissionCount() const = 0;
+
  private:
   // If true (default), the client is required to provide a certificate during
   // handshake. If no certificate is given, handshake fails. This applies to
@@ -269,6 +275,50 @@ class SSLStreamAdapter : public StreamInterface {
   bool client_auth_enabled_ = true;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::GetSrtpKeyAndSaltLengths;
+using ::webrtc::IsGcmCryptoSuite;
+using ::webrtc::kCsAeadAes128Gcm;
+using ::webrtc::kCsAeadAes256Gcm;
+using ::webrtc::kCsAesCm128HmacSha1_32;
+using ::webrtc::kCsAesCm128HmacSha1_80;
+using ::webrtc::kDtls10VersionBytes;
+using ::webrtc::kDtls12VersionBytes;
+using ::webrtc::kDtls13VersionBytes;
+using ::webrtc::kSrtpAeadAes128Gcm;
+using ::webrtc::kSrtpAeadAes256Gcm;
+using ::webrtc::kSrtpAes128CmSha1_32;
+using ::webrtc::kSrtpAes128CmSha1_80;
+using ::webrtc::kSrtpCryptoSuiteMaxValue;
+using ::webrtc::kSrtpInvalidCryptoSuite;
+using ::webrtc::kSslCipherSuiteMaxValue;
+using ::webrtc::kSslSignatureAlgorithmMaxValue;
+using ::webrtc::kSslSignatureAlgorithmUnknown;
+using ::webrtc::kTlsNullWithNullNull;
+using ::webrtc::SrtpCryptoSuiteToName;
+using ::webrtc::SSE_MSG_TRUNC;
+using ::webrtc::SSL_CLIENT;
+using ::webrtc::SSL_MODE_DTLS;
+using ::webrtc::SSL_MODE_TLS;
+using ::webrtc::SSL_PROTOCOL_DTLS_10;
+using ::webrtc::SSL_PROTOCOL_DTLS_12;
+using ::webrtc::SSL_PROTOCOL_DTLS_13;
+using ::webrtc::SSL_PROTOCOL_NOT_GIVEN;
+using ::webrtc::SSL_PROTOCOL_TLS_10;
+using ::webrtc::SSL_PROTOCOL_TLS_11;
+using ::webrtc::SSL_PROTOCOL_TLS_12;
+using ::webrtc::SSL_PROTOCOL_TLS_13;
+using ::webrtc::SSL_SERVER;
+using ::webrtc::SSLHandshakeError;
+using ::webrtc::SSLMode;
+using ::webrtc::SSLPeerCertificateDigestError;
+using ::webrtc::SSLProtocolVersion;
+using ::webrtc::SSLRole;
+using ::webrtc::SSLStreamAdapter;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SSL_STREAM_ADAPTER_H_

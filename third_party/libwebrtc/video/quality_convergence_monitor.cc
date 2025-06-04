@@ -56,6 +56,7 @@ QualityConvergenceMonitor::Parameters GetParameters(
   int max_qp = 0;
   switch (codec) {
     case kVideoCodecVP8:
+      dynamic_config.enabled = true;
       dynamic_config.Parser()->Parse(trials.Lookup("WebRTC-QCM-Dynamic-VP8"));
       max_qp = 127;
       break;

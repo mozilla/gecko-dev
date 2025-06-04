@@ -597,6 +597,10 @@ void SharedScreenCastStreamPrivate::StopAndCleanupStream() {
       webrtc::MutexLock lock(&queue_lock_);
       queue_.Reset();
     }
+    {
+      webrtc::MutexLock latest_frame_lock(&latest_frame_lock_);
+      latest_available_frame_ = nullptr;
+    }
   }
 
   if (pw_core_) {

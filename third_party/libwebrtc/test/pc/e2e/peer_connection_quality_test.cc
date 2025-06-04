@@ -56,6 +56,7 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/task_utils/repeating_task.h"
+#include "rtc_base/thread.h"
 #include "system_wrappers/include/cpu_info.h"
 #include "system_wrappers/include/field_trial.h"
 #include "test/field_trial.h"
@@ -273,7 +274,7 @@ void PeerConnectionE2EQualityTest::Run(RunParams run_params) {
       << !bob_configurer->configurable_params()->video_configs.empty()
       << "; audio=" << bob_configurer->params()->audio_config.has_value();
 
-  const std::unique_ptr<rtc::Thread> signaling_thread =
+  const std::unique_ptr<Thread> signaling_thread =
       time_controller_.CreateThread(kSignalThreadName);
   media_helper_ = std::make_unique<MediaHelper>(
       video_quality_analyzer_injection_helper_.get(), task_queue_factory_.get(),
@@ -521,7 +522,7 @@ void PeerConnectionE2EQualityTest::SetupCallOnSignalingThread(
     // multiple audio streams, then we need transceiver for each Bob's audio
     // stream.
     RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> result =
-        alice_->AddTransceiver(cricket::MediaType::MEDIA_TYPE_AUDIO,
+        alice_->AddTransceiver(webrtc::MediaType::AUDIO,
                                receive_only_transceiver_init);
     RTC_CHECK(result.ok());
     alice_transceivers_counter++;
@@ -561,8 +562,7 @@ void PeerConnectionE2EQualityTest::SetupCallOnSignalingThread(
       alice_video_transceivers_non_simulcast_counter++;
     }
     RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> result =
-        alice_->AddTransceiver(cricket::MediaType::MEDIA_TYPE_VIDEO,
-                               transceiver_params);
+        alice_->AddTransceiver(webrtc::MediaType::VIDEO, transceiver_params);
     RTC_CHECK(result.ok());
 
     alice_transceivers_counter++;
@@ -573,7 +573,7 @@ void PeerConnectionE2EQualityTest::SetupCallOnSignalingThread(
   for (size_t i = alice_video_transceivers_non_simulcast_counter;
        i < bob_->configurable_params().video_configs.size(); ++i) {
     RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>> result =
-        alice_->AddTransceiver(cricket::MediaType::MEDIA_TYPE_VIDEO,
+        alice_->AddTransceiver(webrtc::MediaType::VIDEO,
                                receive_only_transceiver_init);
     RTC_CHECK(result.ok());
     alice_transceivers_counter++;
@@ -599,19 +599,19 @@ void PeerConnectionE2EQualityTest::SetPeerCodecPreferences(TestPeer* peer) {
           peer->params().video_codecs, true, peer->params().use_ulp_fec,
           peer->params().use_flex_fec,
           peer->pc_factory()
-              ->GetRtpReceiverCapabilities(cricket::MediaType::MEDIA_TYPE_VIDEO)
+              ->GetRtpReceiverCapabilities(webrtc::MediaType::VIDEO)
               .codecs);
   std::vector<RtpCodecCapability> without_rtx_video_capabilities =
       FilterVideoCodecCapabilities(
           peer->params().video_codecs, false, peer->params().use_ulp_fec,
           peer->params().use_flex_fec,
           peer->pc_factory()
-              ->GetRtpReceiverCapabilities(cricket::MediaType::MEDIA_TYPE_VIDEO)
+              ->GetRtpReceiverCapabilities(webrtc::MediaType::VIDEO)
               .codecs);
 
   // Set codecs for transceivers
   for (auto transceiver : peer->pc()->GetTransceivers()) {
-    if (transceiver->media_type() == cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    if (transceiver->media_type() == webrtc::MediaType::VIDEO) {
       if (transceiver->sender()->init_send_encodings().size() > 1) {
         // If transceiver's sender has more then 1 send encodings, it means it
         // has multiple simulcast streams, so we need disable RTX on it.
@@ -646,7 +646,7 @@ PeerConnectionE2EQualityTest::CreateSignalingInterceptor(
 }
 
 void PeerConnectionE2EQualityTest::WaitUntilIceCandidatesGathered(
-    rtc::Thread* signaling_thread) {
+    Thread* signaling_thread) {
   ASSERT_TRUE(time_controller_.Wait(
       [&]() {
         bool result;
@@ -659,7 +659,7 @@ void PeerConnectionE2EQualityTest::WaitUntilIceCandidatesGathered(
 }
 
 void PeerConnectionE2EQualityTest::WaitUntilPeersAreConnected(
-    rtc::Thread* signaling_thread) {
+    Thread* signaling_thread) {
   // This means that ICE and DTLS are connected.
   alice_connected_ = time_controller_.Wait(
       [&]() {

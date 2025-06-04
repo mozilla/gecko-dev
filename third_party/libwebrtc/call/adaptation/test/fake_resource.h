@@ -11,9 +11,7 @@
 #ifndef CALL_ADAPTATION_TEST_FAKE_RESOURCE_H_
 #define CALL_ADAPTATION_TEST_FAKE_RESOURCE_H_
 
-#include <optional>
 #include <string>
-#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/adaptation/resource.h"

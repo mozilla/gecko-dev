@@ -108,7 +108,7 @@ WgcCaptureSession::WgcCaptureSession(intptr_t source_id,
       item_(std::move(item)),
       size_(size),
       source_id_(source_id) {
-  RTC_CHECK(source_id);
+  is_window_source_ = ::IsWindow(reinterpret_cast<HWND>(source_id_));
 }
 
 WgcCaptureSession::~WgcCaptureSession() {
@@ -469,13 +469,18 @@ HRESULT WgcCaptureSession::ProcessFrame() {
   DesktopFrame* current_frame = queue_.current_frame();
   DesktopFrame* previous_frame = queue_.previous_frame();
 
-  // If the captured window moves to another screen, the HMONITOR assosciated
-  // with the captured window will change. Therefore, we need to get the value
-  // of HMONITOR per frame.
   HMONITOR monitor;
-  if (!GetHmonitorFromDeviceIndex(source_id_, &monitor)) {
+  if (is_window_source_) {
+    // If the captured window moves to another screen, the HMONITOR associated
+    // with the captured window will change. Therefore, we need to get the value
+    // of HMONITOR per frame.
     monitor = MonitorFromWindow(reinterpret_cast<HWND>(source_id_),
                                 /*dwFlags=*/MONITOR_DEFAULTTONEAREST);
+  } else {
+    if (!GetHmonitorFromDeviceIndex(source_id_, &monitor)) {
+      RTC_LOG(LS_ERROR) << "Failed to get HMONITOR from device index.";
+      return E_FAIL;
+    }
   }
 
   // Captures the device scale factor of the monitor where the frame is captured

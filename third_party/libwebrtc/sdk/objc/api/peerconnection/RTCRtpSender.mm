@@ -128,7 +128,7 @@
   if (self) {
     _factory = factory;
     _nativeRtpSender = nativeRtpSender;
-    if (_nativeRtpSender->media_type() == cricket::MEDIA_TYPE_AUDIO) {
+    if (_nativeRtpSender->media_type() == webrtc::MediaType::AUDIO) {
       rtc::scoped_refptr<webrtc::DtmfSenderInterface> nativeDtmfSender(
           _nativeRtpSender->GetDtmfSender());
       if (nativeDtmfSender) {

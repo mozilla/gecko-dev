@@ -15,7 +15,10 @@
 #include <memory>
 #include <string>
 
+#include "api/field_trials_view.h"
+#include "p2p/base/ice_credentials_iterator.h"
 #include "p2p/base/transport_description.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/ssl_fingerprint.h"
 

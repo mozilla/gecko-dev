@@ -92,9 +92,9 @@ class PeerConnectionRtpBaseTest : public ::testing::Test {
   explicit PeerConnectionRtpBaseTest(SdpSemantics sdp_semantics)
       : sdp_semantics_(sdp_semantics),
         pc_factory_(CreatePeerConnectionFactory(
-            rtc::Thread::Current(),
-            rtc::Thread::Current(),
-            rtc::Thread::Current(),
+            Thread::Current(),
+            Thread::Current(),
+            Thread::Current(),
             FakeAudioCaptureModule::Create(),
             CreateBuiltinAudioEncoderFactory(),
             CreateBuiltinAudioDecoderFactory(),
@@ -154,7 +154,7 @@ class PeerConnectionRtpBaseTest : public ::testing::Test {
         pc_factory_, result.MoveValue(), std::move(observer));
   }
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
 };
 
 class PeerConnectionRtpTest
@@ -322,8 +322,7 @@ TEST_F(PeerConnectionRtpTestPlanB,
 
   // Change the stream ID of the sender in the session description.
   auto offer = caller->CreateOfferAndSetAsLocal();
-  auto* audio_desc =
-      cricket::GetFirstAudioContentDescription(offer->description());
+  auto* audio_desc = GetFirstAudioContentDescription(offer->description());
   ASSERT_EQ(audio_desc->mutable_streams().size(), 1u);
   audio_desc->mutable_streams()[0].set_stream_ids({kStreamId2});
   ASSERT_TRUE(callee->SetRemoteDescription(std::move(offer)));
@@ -347,11 +346,11 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, AddTransceiverCallsOnTrack) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
 
-  auto audio_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto audio_transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   RtpTransceiverInit video_transceiver_init;
   video_transceiver_init.stream_ids = {kStreamId1, kStreamId2};
   auto video_transceiver =
-      caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, video_transceiver_init);
+      caller->AddTransceiver(webrtc::MediaType::VIDEO, video_transceiver_init);
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
 
@@ -401,7 +400,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, SetDirectionCallsOnTrack) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   EXPECT_TRUE(
       transceiver->SetDirectionWithError(RtpTransceiverDirection::kInactive)
           .ok());
@@ -432,7 +431,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, SetDirectionHoldCallsOnTrackTwice) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
 
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
   EXPECT_EQ(0u, caller->observer()->on_track_transceivers_.size());
@@ -503,7 +502,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
 TEST_F(PeerConnectionRtpTestUnifiedPlan,
        ChangeDirectionInAnswerResultsInRemoveTrackEvent) {
   auto caller = CreatePeerConnection();
-  caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  caller->AddTransceiver(webrtc::MediaType::AUDIO);
   auto callee = CreatePeerConnection();
   callee->AddAudioTrack("audio_track", {});
 
@@ -804,8 +803,8 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, TracksDoNotEndWhenSsrcChanges) {
   // Caller offers to receive audio and video.
   RtpTransceiverInit init;
   init.direction = RtpTransceiverDirection::kRecvOnly;
-  caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init);
-  caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init);
+  caller->AddTransceiver(webrtc::MediaType::AUDIO, init);
+  caller->AddTransceiver(webrtc::MediaType::VIDEO, init);
 
   // Callee wants to send audio and video tracks.
   callee->AddTrack(callee->CreateAudioTrack("audio_track"), {});
@@ -898,8 +897,7 @@ TEST_F(PeerConnectionRtpTestPlanB,
 
   auto offer = caller->CreateOfferAndSetAsLocal();
   auto mutable_streams =
-      cricket::GetFirstAudioContentDescription(offer->description())
-          ->mutable_streams();
+      GetFirstAudioContentDescription(offer->description())->mutable_streams();
   ASSERT_EQ(mutable_streams.size(), 2u);
   // Clear the IDs in the StreamParams.
   mutable_streams[0].id.clear();
@@ -941,7 +939,7 @@ TEST_P(PeerConnectionRtpTest,
   auto offer = caller->CreateOfferAndSetAsLocal();
   callee->pc()->SetRemoteDescription(observer.get(), offer.release());
   callee = nullptr;
-  rtc::Thread::Current()->ProcessMessages(0);
+  Thread::Current()->ProcessMessages(0);
   EXPECT_FALSE(observer->called());
 }
 
@@ -959,7 +957,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        AddTransceiverHasCorrectInitProperties) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   EXPECT_EQ(std::nullopt, transceiver->mid());
   EXPECT_FALSE(transceiver->stopped());
   EXPECT_EQ(RtpTransceiverDirection::kSendRecv, transceiver->direction());
@@ -972,14 +970,14 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        AddAudioTransceiverCreatesAudioSenderAndReceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
-  EXPECT_EQ(cricket::MEDIA_TYPE_AUDIO, transceiver->media_type());
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
+  EXPECT_EQ(webrtc::MediaType::AUDIO, transceiver->media_type());
 
   ASSERT_TRUE(transceiver->sender());
-  EXPECT_EQ(cricket::MEDIA_TYPE_AUDIO, transceiver->sender()->media_type());
+  EXPECT_EQ(webrtc::MediaType::AUDIO, transceiver->sender()->media_type());
 
   ASSERT_TRUE(transceiver->receiver());
-  EXPECT_EQ(cricket::MEDIA_TYPE_AUDIO, transceiver->receiver()->media_type());
+  EXPECT_EQ(webrtc::MediaType::AUDIO, transceiver->receiver()->media_type());
 
   auto track = transceiver->receiver()->track();
   ASSERT_TRUE(track);
@@ -993,14 +991,14 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        AddAudioTransceiverCreatesVideoSenderAndReceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, transceiver->media_type());
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::VIDEO);
+  EXPECT_EQ(webrtc::MediaType::VIDEO, transceiver->media_type());
 
   ASSERT_TRUE(transceiver->sender());
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, transceiver->sender()->media_type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, transceiver->sender()->media_type());
 
   ASSERT_TRUE(transceiver->receiver());
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, transceiver->receiver()->media_type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, transceiver->receiver()->media_type());
 
   auto track = transceiver->receiver()->track();
   ASSERT_TRUE(track);
@@ -1014,7 +1012,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
 TEST_F(PeerConnectionRtpTestUnifiedPlan, AddTransceiverShowsInLists) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   EXPECT_EQ(
       std::vector<rtc::scoped_refptr<RtpTransceiverInterface>>{transceiver},
       caller->pc()->GetTransceivers());
@@ -1036,7 +1034,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
 
   RtpTransceiverInit init;
   init.direction = RtpTransceiverDirection::kSendOnly;
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO, init);
   EXPECT_EQ(RtpTransceiverDirection::kSendOnly, transceiver->direction());
 }
 
@@ -1091,7 +1089,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        AddTransceiverWithInvalidKindReturnsError) {
   auto caller = CreatePeerConnection();
 
-  auto result = caller->pc()->AddTransceiver(cricket::MEDIA_TYPE_DATA);
+  auto result = caller->pc()->AddTransceiver(webrtc::MediaType::DATA);
   EXPECT_EQ(RTCErrorType::INVALID_PARAMETER, result.error().type());
 }
 
@@ -1113,7 +1111,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, AddAudioTrackCreatesAudioSender) {
   auto sender = caller->AddTrack(audio_track);
   ASSERT_TRUE(sender);
 
-  EXPECT_EQ(cricket::MEDIA_TYPE_AUDIO, sender->media_type());
+  EXPECT_EQ(webrtc::MediaType::AUDIO, sender->media_type());
   EXPECT_EQ(audio_track, sender->track());
 }
 
@@ -1126,7 +1124,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, AddVideoTrackCreatesVideoSender) {
   auto sender = caller->AddTrack(video_track);
   ASSERT_TRUE(sender);
 
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, sender->media_type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, sender->media_type());
   EXPECT_EQ(video_track, sender->track());
 }
 
@@ -1150,7 +1148,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, AddFirstTrackCreatesTransceiver) {
 TEST_F(PeerConnectionRtpTestUnifiedPlan, AddTrackReusesTransceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   auto audio_track = caller->CreateAudioTrack("a");
   auto sender = caller->AddTrack(audio_track);
   ASSERT_TRUE(sender);
@@ -1166,7 +1164,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        AddTrackWithSendEncodingDoesNotReuseTransceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   auto audio_track = caller->CreateAudioTrack("a");
   RtpEncodingParameters encoding;
   auto sender = caller->AddTrack(audio_track, {}, {encoding});
@@ -1200,8 +1198,8 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, TwoAddTrackCreatesTwoTransceivers) {
 TEST_F(PeerConnectionRtpTestUnifiedPlan, AddTrackReusesTransceiverOfType) {
   auto caller = CreatePeerConnection();
 
-  auto audio_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
-  auto video_transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  auto audio_transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
+  auto video_transceiver = caller->AddTransceiver(webrtc::MediaType::VIDEO);
   auto sender = caller->AddVideoTrack("v");
 
   ASSERT_EQ(2u, caller->pc()->GetTransceivers().size());
@@ -1216,7 +1214,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        AddTrackDoesNotReuseTransceiverOfWrongType) {
   auto caller = CreatePeerConnection();
 
-  caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  caller->AddTransceiver(webrtc::MediaType::AUDIO);
   auto sender = caller->AddVideoTrack("v");
 
   auto transceivers = caller->pc()->GetTransceivers();
@@ -1231,8 +1229,8 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        AddTrackReusesFirstMatchingTransceiver) {
   auto caller = CreatePeerConnection();
 
-  caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
-  caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  caller->AddTransceiver(webrtc::MediaType::AUDIO);
+  caller->AddTransceiver(webrtc::MediaType::AUDIO);
   auto sender = caller->AddAudioTrack("a");
 
   auto transceivers = caller->pc()->GetTransceivers();
@@ -1250,7 +1248,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
 
   RtpTransceiverInit init;
   init.direction = RtpTransceiverDirection::kInactive;
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO, init);
   EXPECT_TRUE(caller->observer()->legacy_renegotiation_needed());
   EXPECT_TRUE(caller->observer()->has_negotiation_needed_event());
 
@@ -1273,7 +1271,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
 
   RtpTransceiverInit init;
   init.direction = RtpTransceiverDirection::kRecvOnly;
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO, init);
   EXPECT_TRUE(caller->observer()->legacy_renegotiation_needed());
   EXPECT_TRUE(caller->observer()->has_negotiation_needed_event());
 
@@ -1494,8 +1492,8 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CreateAnswerSameTrackLabel) {
 
   RtpTransceiverInit recvonly;
   recvonly.direction = RtpTransceiverDirection::kRecvOnly;
-  caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, recvonly);
-  caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, recvonly);
+  caller->AddTransceiver(webrtc::MediaType::AUDIO, recvonly);
+  caller->AddTransceiver(webrtc::MediaType::VIDEO, recvonly);
 
   ASSERT_TRUE(callee->SetRemoteDescription(caller->CreateOffer()));
 
@@ -1544,7 +1542,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
   EXPECT_FALSE(caller->observer()->legacy_renegotiation_needed());
   EXPECT_FALSE(caller->observer()->has_negotiation_needed_event());
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   EXPECT_TRUE(caller->observer()->legacy_renegotiation_needed());
   EXPECT_TRUE(caller->observer()->has_negotiation_needed_event());
 
@@ -1563,7 +1561,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        NoRenegotiationNeededAfterTransceiverSetSameDirection) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
 
   caller->observer()->clear_legacy_renegotiation_needed();
   caller->observer()->clear_latest_negotiation_needed_event();
@@ -1578,7 +1576,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        NoRenegotiationNeededAfterSetDirectionOnStoppedTransceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   transceiver->StopInternal();
 
   caller->observer()->clear_legacy_renegotiation_needed();
@@ -1593,7 +1591,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        CheckStoppedCurrentDirectionOnStoppedTransceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   transceiver->StopInternal();
 
   EXPECT_TRUE(transceiver->stopping());
@@ -1607,7 +1605,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        CheckForInvalidStateOnStoppingTransceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   transceiver->StopStandard();
 
   EXPECT_TRUE(transceiver->stopping());
@@ -1623,7 +1621,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        CheckForInvalidStateOnStoppedTransceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   transceiver->StopInternal();
 
   EXPECT_TRUE(transceiver->stopping());
@@ -1639,7 +1637,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        CheckForTypeErrorForStoppedOnTransceiver) {
   auto caller = CreatePeerConnection();
 
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   EXPECT_EQ(
       RTCErrorType::INVALID_PARAMETER,
       transceiver->SetDirectionWithError(RtpTransceiverDirection::kStopped)
@@ -1652,7 +1650,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        SetLocalDescriptionWithStoppedMediaSection) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
   callee->pc()->GetTransceivers()[0]->StopStandard();
   ASSERT_TRUE(callee->ExchangeOfferAnswerWith(caller.get()));
@@ -1665,7 +1663,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
        StopAndNegotiateCausesTransceiverToDisappear) {
   auto caller = CreatePeerConnection();
   auto callee = CreatePeerConnection();
-  auto transceiver = caller->AddTransceiver(cricket::MEDIA_TYPE_AUDIO);
+  auto transceiver = caller->AddTransceiver(webrtc::MediaType::AUDIO);
   ASSERT_TRUE(caller->ExchangeOfferAnswerWith(callee.get()));
   callee->pc()->GetTransceivers()[0]->StopStandard();
   ASSERT_TRUE(callee->ExchangeOfferAnswerWith(caller.get()));
@@ -1731,7 +1729,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan,
   init.send_encodings[0].ssrc = 1;
   EXPECT_EQ(RTCErrorType::UNSUPPORTED_PARAMETER,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init)
+                ->AddTransceiver(webrtc::MediaType::AUDIO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1750,7 +1748,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
   init.send_encodings[0].scale_resolution_down_by = 0.5;
   EXPECT_EQ(RTCErrorType::INVALID_RANGE,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                ->AddTransceiver(webrtc::MediaType::VIDEO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1758,7 +1756,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
   init.send_encodings[0].bitrate_priority = 0;
   EXPECT_EQ(RTCErrorType::INVALID_RANGE,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                ->AddTransceiver(webrtc::MediaType::VIDEO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1767,7 +1765,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
   init.send_encodings[0].max_bitrate_bps = 100000;
   EXPECT_EQ(RTCErrorType::INVALID_RANGE,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                ->AddTransceiver(webrtc::MediaType::VIDEO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1775,7 +1773,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
   init.send_encodings[0].num_temporal_layers = 0;
   EXPECT_EQ(RTCErrorType::INVALID_RANGE,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                ->AddTransceiver(webrtc::MediaType::VIDEO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1783,7 +1781,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
   init.send_encodings[0].num_temporal_layers = 5;
   EXPECT_EQ(RTCErrorType::INVALID_RANGE,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                ->AddTransceiver(webrtc::MediaType::VIDEO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1793,7 +1791,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
       cricket::CreateVideoCodec(SdpVideoFormat("VP8", {})).ToCodecParameters();
   EXPECT_EQ(RTCErrorType::NONE,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                ->AddTransceiver(webrtc::MediaType::VIDEO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1803,7 +1801,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
       cricket::CreateVideoCodec(SdpVideoFormat("VP8", {})).ToCodecParameters();
   EXPECT_EQ(RTCErrorType::NONE,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                ->AddTransceiver(webrtc::MediaType::VIDEO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1813,7 +1811,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, CheckForInvalidEncodingParameters) {
       cricket::CreateVideoCodec(SdpVideoFormat("VP8", {})).ToCodecParameters();
   EXPECT_EQ(RTCErrorType::UNSUPPORTED_OPERATION,
             caller->pc()
-                ->AddTransceiver(cricket::MEDIA_TYPE_VIDEO, init)
+                ->AddTransceiver(webrtc::MediaType::VIDEO, init)
                 .error()
                 .type());
   init.send_encodings = default_send_encodings;
@@ -1829,7 +1827,7 @@ TEST_F(PeerConnectionRtpTestUnifiedPlan, SendEncodingsPassedToSender) {
   init.send_encodings[0].active = false;
   init.send_encodings[0].max_bitrate_bps = 180000;
 
-  auto result = caller->pc()->AddTransceiver(cricket::MEDIA_TYPE_AUDIO, init);
+  auto result = caller->pc()->AddTransceiver(webrtc::MediaType::AUDIO, init);
   ASSERT_TRUE(result.ok());
 
   auto init_send_encodings = result.value()->sender()->init_send_encodings();
@@ -1867,16 +1865,14 @@ TEST_F(PeerConnectionMsidSignalingTest, UnifiedPlanTalkingToOurself) {
 
   // Offer should have had both a=msid and a=ssrc MSID lines.
   auto* offer = callee->pc()->remote_description();
-  EXPECT_EQ(
-      (cricket::kMsidSignalingSemantic | cricket::kMsidSignalingMediaSection |
-       cricket::kMsidSignalingSsrcAttribute),
-      offer->description()->msid_signaling());
+  EXPECT_EQ((kMsidSignalingSemantic | kMsidSignalingMediaSection |
+             kMsidSignalingSsrcAttribute),
+            offer->description()->msid_signaling());
 
   // Answer should have had only a=msid lines.
   auto* answer = caller->pc()->remote_description();
-  EXPECT_EQ(
-      cricket::kMsidSignalingSemantic | cricket::kMsidSignalingMediaSection,
-      answer->description()->msid_signaling());
+  EXPECT_EQ(kMsidSignalingSemantic | kMsidSignalingMediaSection,
+            answer->description()->msid_signaling());
 }
 
 TEST_F(PeerConnectionMsidSignalingTest, PlanBOfferToUnifiedPlanAnswer) {
@@ -1889,15 +1885,13 @@ TEST_F(PeerConnectionMsidSignalingTest, PlanBOfferToUnifiedPlanAnswer) {
 
   // Offer should have only a=ssrc MSID lines.
   auto* offer = callee->pc()->remote_description();
-  EXPECT_EQ(
-      cricket::kMsidSignalingSemantic | cricket::kMsidSignalingSsrcAttribute,
-      offer->description()->msid_signaling());
+  EXPECT_EQ(kMsidSignalingSemantic | kMsidSignalingSsrcAttribute,
+            offer->description()->msid_signaling());
 
   // Answer should have only a=ssrc MSID lines to match the offer.
   auto* answer = caller->pc()->remote_description();
-  EXPECT_EQ(
-      cricket::kMsidSignalingSemantic | cricket::kMsidSignalingSsrcAttribute,
-      answer->description()->msid_signaling());
+  EXPECT_EQ(kMsidSignalingSemantic | kMsidSignalingSsrcAttribute,
+            answer->description()->msid_signaling());
 }
 
 // This tests that a Plan B endpoint appropriately sets the remote description
@@ -1919,10 +1913,9 @@ TEST_F(PeerConnectionMsidSignalingTest, UnifiedPlanToPlanBAnswer) {
 
   // Offer should have had both a=msid and a=ssrc MSID lines.
   auto* offer = callee->pc()->remote_description();
-  EXPECT_EQ(
-      (cricket::kMsidSignalingSemantic | cricket::kMsidSignalingMediaSection |
-       cricket::kMsidSignalingSsrcAttribute),
-      offer->description()->msid_signaling());
+  EXPECT_EQ((kMsidSignalingSemantic | kMsidSignalingMediaSection |
+             kMsidSignalingSsrcAttribute),
+            offer->description()->msid_signaling());
 
   // Callee should always have 1 stream for all of it's receivers.
   const auto& track_events = callee->observer()->add_track_events_;
@@ -1943,8 +1936,8 @@ TEST_F(PeerConnectionMsidSignalingTest, PureUnifiedPlanToUs) {
   auto offer = caller->CreateOffer();
   // Simulate a pure Unified Plan offerer by setting the MSID signaling to media
   // section only.
-  offer->description()->set_msid_signaling(cricket::kMsidSignalingSemantic |
-                                           cricket::kMsidSignalingMediaSection);
+  offer->description()->set_msid_signaling(kMsidSignalingSemantic |
+                                           kMsidSignalingMediaSection);
 
   ASSERT_TRUE(
       caller->SetLocalDescription(CloneSessionDescription(offer.get())));
@@ -1952,9 +1945,8 @@ TEST_F(PeerConnectionMsidSignalingTest, PureUnifiedPlanToUs) {
 
   // Answer should have only a=msid to match the offer.
   auto answer = callee->CreateAnswer();
-  EXPECT_EQ(
-      cricket::kMsidSignalingSemantic | cricket::kMsidSignalingMediaSection,
-      answer->description()->msid_signaling());
+  EXPECT_EQ(kMsidSignalingSemantic | kMsidSignalingMediaSection,
+            answer->description()->msid_signaling());
 }
 
 // Sender setups in a call.

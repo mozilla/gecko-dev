@@ -29,7 +29,7 @@
 #include <errno.h>
 #endif  // WEBRTC_POSIX
 
-namespace rtc {
+namespace webrtc {
 
 static const size_t kMaxPacketSize = 64 * 1024;
 
@@ -46,11 +46,10 @@ static const size_t kMinimumRecvSize = 128;
 static const int kListenBacklog = 5;
 
 // Binds and connects `socket`
-Socket* AsyncTCPSocketBase::ConnectSocket(
-    rtc::Socket* socket,
-    const rtc::SocketAddress& bind_address,
-    const rtc::SocketAddress& remote_address) {
-  std::unique_ptr<rtc::Socket> owned_socket(socket);
+Socket* AsyncTCPSocketBase::ConnectSocket(Socket* socket,
+                                          const SocketAddress& bind_address,
+                                          const SocketAddress& remote_address) {
+  std::unique_ptr<Socket> owned_socket(socket);
   if (socket->Bind(bind_address) < 0) {
     RTC_LOG(LS_ERROR) << "Bind() failed with error " << socket->GetError();
     return nullptr;
@@ -267,7 +266,7 @@ int AsyncTCPSocket::Send(const void* pv,
   if (!IsOutBufferEmpty())
     return static_cast<int>(cb);
 
-  PacketLength pkt_len = HostToNetwork16(static_cast<PacketLength>(cb));
+  PacketLength pkt_len = webrtc::HostToNetwork16(static_cast<PacketLength>(cb));
   AppendToOutBuffer(&pkt_len, kPacketLenSize);
   AppendToOutBuffer(pv, cb);
 
@@ -278,7 +277,7 @@ int AsyncTCPSocket::Send(const void* pv,
     return res;
   }
 
-  rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis(),
+  rtc::SentPacket sent_packet(options.packet_id, TimeMillis(),
                               options.info_signaled_after_sent);
   CopySocketInformationToPacketInfo(cb, *this, &sent_packet.info);
   SignalSentPacket(this, sent_packet);
@@ -296,13 +295,13 @@ size_t AsyncTCPSocket::ProcessInput(rtc::ArrayView<const uint8_t> data) {
     if (bytes_left < kPacketLenSize)
       return processed_bytes;
 
-    PacketLength pkt_len = rtc::GetBE16(data.data() + processed_bytes);
+    PacketLength pkt_len = webrtc::GetBE16(data.data() + processed_bytes);
     if (bytes_left < kPacketLenSize + pkt_len)
       return processed_bytes;
 
     rtc::ReceivedPacket received_packet(
         data.subview(processed_bytes + kPacketLenSize, pkt_len), remote_addr,
-        webrtc::Timestamp::Micros(rtc::TimeMicros()));
+        Timestamp::Micros(TimeMicros()));
     NotifyPacketReceived(received_packet);
     processed_bytes += kPacketLenSize + pkt_len;
   }
@@ -336,8 +335,8 @@ SocketAddress AsyncTcpListenSocket::GetLocalAddress() const {
 void AsyncTcpListenSocket::OnReadEvent(Socket* socket) {
   RTC_DCHECK(socket_.get() == socket);
 
-  rtc::SocketAddress address;
-  rtc::Socket* new_socket = socket->Accept(&address);
+  SocketAddress address;
+  Socket* new_socket = socket->Accept(&address);
   if (!new_socket) {
     // TODO(stefan): Do something better like forwarding the error
     // to the user.
@@ -355,4 +354,4 @@ void AsyncTcpListenSocket::HandleIncomingConnection(Socket* socket) {
   SignalNewConnection(this, new AsyncTCPSocket(socket));
 }
 
-}  // namespace rtc
+}  // namespace webrtc

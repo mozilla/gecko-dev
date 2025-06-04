@@ -67,11 +67,11 @@ namespace rtc {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-class OpenSSLStreamAdapter final : public SSLStreamAdapter {
+class OpenSSLStreamAdapter final : public webrtc::SSLStreamAdapter {
  public:
   OpenSSLStreamAdapter(
-      std::unique_ptr<StreamInterface> stream,
-      absl::AnyInvocable<void(SSLHandshakeError)> handshake_error,
+      std::unique_ptr<webrtc::StreamInterface> stream,
+      absl::AnyInvocable<void(webrtc::SSLHandshakeError)> handshake_error,
       const webrtc::FieldTrialsView* field_trials = nullptr);
   ~OpenSSLStreamAdapter() override;
 
@@ -79,8 +79,8 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   SSLIdentity* GetIdentityForTesting() const override;
 
   // Default argument is for compatibility
-  void SetServerRole(SSLRole role = SSL_SERVER) override;
-  SSLPeerCertificateDigestError SetPeerCertificateDigest(
+  void SetServerRole(webrtc::SSLRole role = webrtc::SSL_SERVER) override;
+  webrtc::SSLPeerCertificateDigestError SetPeerCertificateDigest(
       absl::string_view digest_alg,
       rtc::ArrayView<const uint8_t> digest_val) override;
 
@@ -89,24 +89,24 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   // Goes from state SSL_NONE to either SSL_CONNECTING or SSL_WAIT, depending
   // on whether the underlying stream is already open or not.
   int StartSSL() override;
-  [[deprecated]] void SetMode(SSLMode mode) override;
-  void SetMaxProtocolVersion(SSLProtocolVersion version) override;
+  [[deprecated]] void SetMode(webrtc::SSLMode mode) override;
+  void SetMaxProtocolVersion(webrtc::SSLProtocolVersion version) override;
   void SetInitialRetransmissionTimeout(int timeout_ms) override;
 
-  StreamResult Read(rtc::ArrayView<uint8_t> data,
-                    size_t& read,
-                    int& error) override;
-  StreamResult Write(rtc::ArrayView<const uint8_t> data,
-                     size_t& written,
-                     int& error) override;
+  webrtc::StreamResult Read(rtc::ArrayView<uint8_t> data,
+                            size_t& read,
+                            int& error) override;
+  webrtc::StreamResult Write(rtc::ArrayView<const uint8_t> data,
+                             size_t& written,
+                             int& error) override;
   void Close() override;
-  StreamState GetState() const override;
+  webrtc::StreamState GetState() const override;
 
   std::optional<absl::string_view> GetTlsCipherSuiteName() const override;
 
   bool GetSslCipherSuite(int* cipher) const override;
-  [[deprecated("Use GetSslVersionBytes")]] SSLProtocolVersion GetSslVersion()
-      const override;
+  [[deprecated("Use GetSslVersionBytes")]] webrtc::SSLProtocolVersion
+  GetSslVersion() const override;
   bool GetSslVersionBytes(int* version) const override;
   // Key Extractor interface
   bool ExportSrtpKeyingMaterial(
@@ -131,7 +131,11 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   static void EnableTimeCallbackForTesting();
 
   // Return max DTLS SSLProtocolVersion supported by implementation.
-  static SSLProtocolVersion GetMaxSupportedDTLSProtocolVersion();
+  static webrtc::SSLProtocolVersion GetMaxSupportedDTLSProtocolVersion();
+
+  // Return number of times DTLS retransmission has been triggered.
+  // Used for testing (and maybe put into stats?).
+  int GetRetransmissionCount() const override { return retransmission_count_; }
 
  private:
   enum SSLState {
@@ -199,15 +203,15 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
            !peer_certificate_digest_value_.empty();
   }
 
-  const std::unique_ptr<StreamInterface> stream_;
-  absl::AnyInvocable<void(SSLHandshakeError)> handshake_error_;
+  const std::unique_ptr<webrtc::StreamInterface> stream_;
+  absl::AnyInvocable<void(webrtc::SSLHandshakeError)> handshake_error_;
 
-  rtc::Thread* const owner_;
+  webrtc::Thread* const owner_;
   webrtc::ScopedTaskSafety task_safety_;
   webrtc::RepeatingTaskHandle timeout_task_;
 
   SSLState state_;
-  SSLRole role_;
+  webrtc::SSLRole role_;
   int ssl_error_code_;  // valid when state_ == SSL_ERROR or SSL_CLOSED
   // Whether the SSL negotiation is blocked on needing to read or
   // write to the wrapped stream.
@@ -235,10 +239,10 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   std::string srtp_ciphers_;
 
   // Do DTLS or not
-  SSLMode ssl_mode_;
+  webrtc::SSLMode ssl_mode_;
 
   // Max. allowed protocol version
-  SSLProtocolVersion ssl_max_version_;
+  webrtc::SSLProtocolVersion ssl_max_version_;
 
   // A 50-ms initial timeout ensures rapid setup on fast connections, but may
   // be too aggressive for low bandwidth links.
@@ -248,6 +252,8 @@ class OpenSSLStreamAdapter final : public SSLStreamAdapter {
   // 1 == Max
   // 2 == Enabled (both min and max)
   const int force_dtls_13_ = 0;
+
+  int retransmission_count_ = 0;
 };
 
 /////////////////////////////////////////////////////////////////////////////

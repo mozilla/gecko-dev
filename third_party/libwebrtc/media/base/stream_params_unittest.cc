@@ -12,8 +12,13 @@
 
 #include <stdint.h>
 
+#include <cstddef>
+#include <string>
+#include <vector>
+
 #include "media/base/test_utils.h"
 #include "rtc_base/arraysize.h"
+#include "rtc_base/unique_id_generator.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 

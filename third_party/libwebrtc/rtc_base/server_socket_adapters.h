@@ -13,7 +13,7 @@
 
 #include "rtc_base/socket_adapters.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Interface for implementing proxy server sockets.
 class AsyncProxyServerSocket : public BufferedReadAdapter {
@@ -38,6 +38,13 @@ class AsyncSSLServerSocket : public BufferedReadAdapter {
   void ProcessInput(char* data, size_t* len) override;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::AsyncProxyServerSocket;
+using ::webrtc::AsyncSSLServerSocket;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SERVER_SOCKET_ADAPTERS_H_

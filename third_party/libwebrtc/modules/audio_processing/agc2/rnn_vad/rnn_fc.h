@@ -61,7 +61,7 @@ class FullyConnectedLayer {
   const std::vector<float> bias_;
   const std::vector<float> weights_;
   const VectorMath vector_math_;
-  rtc::FunctionView<float(float)> activation_function_;
+  FunctionView<float(float)> activation_function_;
   // Over-allocated array with size equal to `output_size_`.
   std::array<float, kFullyConnectedLayerMaxUnits> output_;
 };

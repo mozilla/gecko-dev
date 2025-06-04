@@ -23,18 +23,15 @@
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/field_trials_view.h"
-#include "api/packet_socket_factory.h"
 #include "api/test/network_emulation/cross_traffic.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
+#include "api/test/peer_network_dependencies.h"
 #include "api/test/simulated_network.h"
 #include "api/test/time_controller.h"
 #include "api/units/data_rate.h"
 #include "rtc_base/ip_address.h"
-#include "rtc_base/network.h"
 #include "rtc_base/network_constants.h"
 #include "rtc_base/socket_address.h"
-#include "rtc_base/socket_factory.h"
-#include "rtc_base/thread.h"
 
 namespace webrtc {
 
@@ -74,12 +71,12 @@ struct EmulatedEndpointConfig {
   IpAddressFamily generated_ip_family = IpAddressFamily::kIpv4;
   // If specified will be used as IP address for endpoint node. Must be unique
   // among all created nodes.
-  std::optional<rtc::IPAddress> ip;
+  std::optional<IPAddress> ip;
   // Should endpoint be enabled or not, when it will be created.
   // Enabled endpoints will be available for webrtc to send packets.
   bool start_as_enabled = true;
   // Network type which will be used to represent endpoint to WebRTC.
-  rtc::AdapterType type = rtc::AdapterType::ADAPTER_TYPE_UNKNOWN;
+  AdapterType type = AdapterType::ADAPTER_TYPE_UNKNOWN;
   // Allow endpoint to send packets specifying source IP address different to
   // the current endpoint IP address. If false endpoint will crash if attempt
   // to send such packet will be done.
@@ -116,7 +113,7 @@ class EmulatedTURNServerInterface {
 
   // Returns socket address, which client should use to connect to TURN server
   // and do TURN allocation.
-  virtual rtc::SocketAddress GetClientEndpointAddress() const = 0;
+  virtual SocketAddress GetClientEndpointAddress() const = 0;
 
   // Get non-null peer endpoint, that is "connected to the internet".
   // This shall typically be connected to another TURN server.
@@ -126,37 +123,10 @@ class EmulatedTURNServerInterface {
 // Provide interface to obtain all required objects to inject network emulation
 // layer into PeerConnection. Also contains information about network interfaces
 // accessible by PeerConnection.
-class EmulatedNetworkManagerInterface {
+class EmulatedNetworkManagerInterface
+    : public webrtc_pc_e2e::PeerNetworkDependencies {
  public:
-  virtual ~EmulatedNetworkManagerInterface() = default;
-
-  // Returns thread that have to be used as network thread
-  // for WebRTC to properly setup network emulation. Returned thread is owned
-  // by EmulatedNetworkManagerInterface implementation.
-  virtual absl::Nonnull<rtc::Thread*> network_thread() = 0;
-
-  // Returns network manager that have to be injected into
-  // WebRTC to properly setup network emulation. Returned manager is owned by
-  // EmulatedNetworkManagerInterface implementation.
-  // Deprecated in favor of injecting NetworkManager into PeerConnectionFactory
-  // instead of creating and injecting BasicPortAllocator into PeerConnection.
-  [[deprecated("bugs.webrtc.org/42232556")]]  //
-  virtual absl::Nonnull<rtc::NetworkManager*>
-  network_manager() = 0;
-
-  // Returns packet socket factory that have to be injected
-  // into WebRTC to properly setup network emulation. Returned factory is owned
-  // by EmulatedNetworkManagerInterface implementation.
-  // Deprecated in favor of injecting SocketFactory into PeerConnectionFactory
-  // instead of creating and injecting BasicPortAllocator into PeerConnection.
-  [[deprecated("bugs.webrtc.org/42232556")]]  //
-  virtual absl::Nonnull<rtc::PacketSocketFactory*>
-  packet_socket_factory() = 0;
-
-  // Returns objects to pass to PeerConnectionFactoryDependencies.
-  virtual absl::Nonnull<rtc::SocketFactory*> socket_factory() = 0;
-  virtual absl::Nonnull<std::unique_ptr<rtc::NetworkManager>>
-  ReleaseNetworkManager() = 0;
+  ~EmulatedNetworkManagerInterface() override = default;
 
   // Returns list of endpoints that are associated with this instance. Pointers
   // are guaranteed to be non-null and are owned by NetworkEmulationManager.

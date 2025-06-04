@@ -28,7 +28,7 @@
 #include "rtc_base/thread.h"
 #include "rtc_base/time_utils.h"
 
-namespace rtc {
+namespace webrtc {
 
 // DESIGN: Each packet received is put it into a list of packets.
 //         Callers can retrieve received packets from any thread by calling
@@ -85,7 +85,7 @@ std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
   int64_t end = TimeAfter(timeout_ms);
   while (TimeUntil(end) > 0) {
     {
-      webrtc::MutexLock lock(&mutex_);
+      MutexLock lock(&mutex_);
       if (!packets_.empty()) {
         break;
       }
@@ -95,7 +95,7 @@ std::unique_ptr<TestClient::Packet> TestClient::NextPacket(int timeout_ms) {
 
   // Return the first packet placed in the queue.
   std::unique_ptr<Packet> packet;
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   if (!packets_.empty()) {
     packet = std::move(packets_.front());
     packets_.erase(packets_.begin());
@@ -119,8 +119,7 @@ bool TestClient::CheckNextPacket(const char* buf,
   return res;
 }
 
-bool TestClient::CheckTimestamp(
-    std::optional<webrtc::Timestamp> packet_timestamp) {
+bool TestClient::CheckTimestamp(std::optional<Timestamp> packet_timestamp) {
   bool res = true;
   if (!packet_timestamp) {
     res = false;
@@ -138,8 +137,8 @@ void TestClient::AdvanceTime(int ms) {
   // If the test is using a fake clock, we must advance the fake clock to
   // advance time. Otherwise, ProcessMessages will work.
   if (fake_clock_) {
-    for (int64_t start = rtc ::TimeMillis(); rtc ::TimeMillis() < start + ms;) {
-      fake_clock_->AdvanceTime(webrtc ::TimeDelta ::Millis(1));
+    for (int64_t start = TimeMillis(); TimeMillis() < start + ms;) {
+      fake_clock_->AdvanceTime(webrtc::TimeDelta::Millis(1));
     };
   } else {
     Thread::Current()->ProcessMessages(1);
@@ -160,7 +159,7 @@ int TestClient::SetOption(Socket::Option opt, int value) {
 
 void TestClient::OnPacket(AsyncPacketSocket* socket,
                           const rtc::ReceivedPacket& received_packet) {
-  webrtc::MutexLock lock(&mutex_);
+  MutexLock lock(&mutex_);
   packets_.push_back(std::make_unique<Packet>(received_packet));
 }
 
@@ -179,4 +178,4 @@ TestClient::Packet::Packet(const Packet& p)
       buf(p.buf.data(), p.buf.size()),
       packet_time(p.packet_time) {}
 
-}  // namespace rtc
+}  // namespace webrtc

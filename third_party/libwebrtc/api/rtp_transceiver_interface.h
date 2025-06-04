@@ -63,7 +63,7 @@ class RTC_EXPORT RtpTransceiverInterface : public webrtc::RefCountInterface {
  public:
   // Media type of the transceiver. Any sender(s)/receiver(s) will have this
   // type as well.
-  virtual cricket::MediaType media_type() const = 0;
+  virtual webrtc::MediaType media_type() const = 0;
 
   // The mid attribute is the mid negotiated and present in the local and
   // remote descriptions. Before negotiation is complete, the mid value may be

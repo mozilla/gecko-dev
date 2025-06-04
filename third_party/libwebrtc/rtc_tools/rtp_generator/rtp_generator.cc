@@ -320,7 +320,7 @@ void RtpGenerator::WaitUntilAllVideoStreamsFinish() {
         min_wait_time = std::min(min_wait_time, end_ms - current_time);
       }
     }
-    rtc::Thread::Current()->SleepMs(min_wait_time);
+    Thread::Current()->SleepMs(min_wait_time);
   } while (current_time < max_end_ms);
 }
 

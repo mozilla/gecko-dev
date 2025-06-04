@@ -18,9 +18,9 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/metronome/test/fake_metronome.h"
 #include "api/units/frequency.h"
 #include "api/units/time_delta.h"
@@ -181,7 +181,7 @@ class VideoStreamBufferControllerFixture
   }
 
   using WaitResult =
-      absl::variant<std::unique_ptr<EncodedFrame>, TimeDelta /*wait_time*/>;
+      std::variant<std::unique_ptr<EncodedFrame>, TimeDelta /*wait_time*/>;
 
   std::optional<WaitResult> WaitForFrameOrTimeout(TimeDelta wait) {
     if (wait_result_) {
@@ -238,8 +238,8 @@ class VideoStreamBufferControllerFixture
  private:
   void SetWaitResult(WaitResult result) {
     RTC_DCHECK(!wait_result_);
-    if (absl::holds_alternative<std::unique_ptr<EncodedFrame>>(result)) {
-      RTC_DCHECK(absl::get<std::unique_ptr<EncodedFrame>>(result));
+    if (std::holds_alternative<std::unique_ptr<EncodedFrame>>(result)) {
+      RTC_DCHECK(std::get<std::unique_ptr<EncodedFrame>>(result));
     }
     wait_result_.emplace(std::move(result));
   }

@@ -72,8 +72,8 @@ class TransportFeedback : public Rtpfb {
   // `BaseTime()`. For missed packets calls `handler` with `delta_since_base =
   // PlusInfinity()`.
   void ForAllPackets(
-      rtc::FunctionView<void(uint16_t sequence_number,
-                             TimeDelta delta_since_base)> handler) const;
+      FunctionView<void(uint16_t sequence_number, TimeDelta delta_since_base)>
+          handler) const;
 
   uint16_t GetBaseSequence() const;
 

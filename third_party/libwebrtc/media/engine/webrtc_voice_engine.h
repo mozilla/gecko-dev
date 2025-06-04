@@ -116,8 +116,15 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
       const webrtc::CryptoOptions& crypto_options,
       webrtc::AudioCodecPairId codec_pair_id) override;
 
-  const std::vector<Codec>& send_codecs() const override;
-  const std::vector<Codec>& recv_codecs() const override;
+  const std::vector<Codec>& LegacySendCodecs() const override;
+  const std::vector<Codec>& LegacyRecvCodecs() const override;
+
+  webrtc::AudioEncoderFactory* encoder_factory() const override {
+    return encoder_factory_.get();
+  }
+  webrtc::AudioDecoderFactory* decoder_factory() const override {
+    return decoder_factory_.get();
+  }
   std::vector<webrtc::RtpHeaderExtensionCapability> GetRtpHeaderExtensions()
       const override;
 
@@ -193,7 +200,9 @@ class WebRtcVoiceSendChannel final : public MediaChannelUtil,
 
   ~WebRtcVoiceSendChannel() override;
 
-  MediaType media_type() const override { return MEDIA_TYPE_AUDIO; }
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
+  }
   VideoMediaSendChannelInterface* AsVideoSendChannel() override {
     RTC_CHECK_NOTREACHED();
     return nullptr;
@@ -356,7 +365,9 @@ class WebRtcVoiceReceiveChannel final
 
   ~WebRtcVoiceReceiveChannel() override;
 
-  MediaType media_type() const override { return MEDIA_TYPE_AUDIO; }
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
+  }
 
   VideoMediaReceiveChannelInterface* AsVideoReceiveChannel() override {
     RTC_CHECK_NOTREACHED();

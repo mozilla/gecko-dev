@@ -11,20 +11,32 @@
 #ifndef PC_TEST_FAKE_DATA_CHANNEL_CONTROLLER_H_
 #define PC_TEST_FAKE_DATA_CHANNEL_CONTROLLER_H_
 
+#include <cstddef>
 #include <set>
 #include <string>
 #include <utility>
 
+#include "absl/algorithm/container.h"
+#include "absl/strings/string_view.h"
+#include "api/data_channel_interface.h"
 #include "api/priority.h"
+#include "api/rtc_error.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "api/transport/data_channel_transport_interface.h"
 #include "pc/sctp_data_channel.h"
+#include "pc/sctp_utils.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 #include "rtc_base/weak_ptr.h"
 
 class FakeDataChannelController
     : public webrtc::SctpDataChannelControllerInterface {
  public:
-  explicit FakeDataChannelController(rtc::Thread* network_thread)
-      : signaling_thread_(rtc::Thread::Current()),
+  explicit FakeDataChannelController(webrtc::Thread* network_thread)
+      : signaling_thread_(webrtc::Thread::Current()),
         network_thread_(network_thread),
         send_blocked_(false),
         transport_available_(false),
@@ -226,8 +238,8 @@ class FakeDataChannelController
   }
 
  private:
-  rtc::Thread* const signaling_thread_;
-  rtc::Thread* const network_thread_;
+  webrtc::Thread* const signaling_thread_;
+  webrtc::Thread* const network_thread_;
   webrtc::StreamId last_sid_ RTC_GUARDED_BY(network_thread_);
   webrtc::SendDataParams last_send_data_params_ RTC_GUARDED_BY(network_thread_);
   bool send_blocked_ RTC_GUARDED_BY(network_thread_);

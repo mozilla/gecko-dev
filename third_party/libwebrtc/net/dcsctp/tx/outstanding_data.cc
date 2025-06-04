@@ -461,8 +461,8 @@ void OutstandingData::NackAll() {
     }
   }
 
-  for (UnwrappedTSN tsn : tsns_to_nack) {
-    NackItem(tsn, /*retransmit_now=*/true,
+  for (UnwrappedTSN tsn_to_nack : tsns_to_nack) {
+    NackItem(tsn_to_nack, /*retransmit_now=*/true,
              /*do_fast_retransmit=*/false);
   }
 

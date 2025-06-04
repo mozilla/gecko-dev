@@ -11,14 +11,56 @@
 #ifndef PC_TEST_MOCK_PEER_CONNECTION_INTERNAL_H_
 #define PC_TEST_MOCK_PEER_CONNECTION_INTERNAL_H_
 
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
+#include "api/adaptation/resource.h"
 #include "api/audio/audio_device.h"
+#include "api/candidate.h"
+#include "api/crypto/crypto_options.h"
+#include "api/data_channel_interface.h"
+#include "api/dtls_transport_interface.h"
+#include "api/field_trials_view.h"
+#include "api/jsep.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtc_event_log_output.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_receiver_interface.h"
+#include "api/rtp_sender_interface.h"
+#include "api/rtp_transceiver_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/sctp_transport_interface.h"
+#include "api/set_remote_description_observer_interface.h"
+#include "api/stats/rtc_stats_collector_callback.h"
+#include "api/transport/bandwidth_estimation_settings.h"
+#include "api/transport/bitrate_settings.h"
+#include "api/transport/network_control.h"
+#include "call/call.h"
+#include "call/payload_type_picker.h"
+#include "p2p/base/port.h"
+#include "p2p/base/port_allocator.h"
+#include "pc/data_channel_utils.h"
+#include "pc/jsep_transport_controller.h"
 #include "pc/peer_connection_internal.h"
+#include "pc/peer_connection_message_handler.h"
+#include "pc/rtp_transceiver.h"
+#include "pc/rtp_transmission_manager.h"
+#include "pc/session_description.h"
+#include "pc/transport_stats.h"
+#include "pc/usage_pattern.h"
+#include "rtc_base/rtc_certificate.h"
+#include "rtc_base/ssl_certificate.h"
+#include "rtc_base/ssl_stream_adapter.h"
+#include "rtc_base/thread.h"
 #include "test/gmock.h"
 
 namespace webrtc {
@@ -64,11 +106,11 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType),
+              (webrtc::MediaType),
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType, const RtpTransceiverInit&),
+              (webrtc::MediaType, const RtpTransceiverInit&),
               (override));
   MOCK_METHOD(rtc::scoped_refptr<RtpSenderInterface>,
               CreateSender,
@@ -211,7 +253,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               (override));
   MOCK_METHOD(void, StopRtcEventLog, (), (override));
   MOCK_METHOD(void, Close, (), (override));
-  MOCK_METHOD(rtc::Thread*, signaling_thread, (), (const, override));
+  MOCK_METHOD(Thread*, signaling_thread, (), (const, override));
 
   // PeerConnectionSdpMethods
   MOCK_METHOD(std::string, session_id, (), (const, override));
@@ -243,7 +285,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   MOCK_METHOD(cricket::PortAllocator*, port_allocator, (), (override));
   MOCK_METHOD(LegacyStatsCollector*, legacy_stats, (), (override));
   MOCK_METHOD(PeerConnectionObserver*, Observer, (), (const, override));
-  MOCK_METHOD(std::optional<rtc::SSLRole>, GetSctpSslRole_n, (), (override));
+  MOCK_METHOD(std::optional<SSLRole>, GetSctpSslRole_n, (), (override));
   MOCK_METHOD(PeerConnectionInterface::IceConnectionState,
               ice_connection_state_internal,
               (),
@@ -262,12 +304,12 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType,
+              (webrtc::MediaType,
                rtc::scoped_refptr<MediaStreamTrackInterface>,
                const RtpTransceiverInit&,
                bool),
               (override));
-  MOCK_METHOD(void, StartSctpTransport, (int, int, int), (override));
+  MOCK_METHOD(RTCError, StartSctpTransport, (const SctpOptions&), (override));
   MOCK_METHOD(void,
               AddRemoteCandidate,
               (absl::string_view, const cricket::Candidate&),
@@ -282,8 +324,8 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   MOCK_METHOD(const FieldTrialsView&, trials, (), (const, override));
 
   // PeerConnectionInternal
-  MOCK_METHOD(rtc::Thread*, network_thread, (), (const, override));
-  MOCK_METHOD(rtc::Thread*, worker_thread, (), (const, override));
+  MOCK_METHOD(Thread*, network_thread, (), (const, override));
+  MOCK_METHOD(Thread*, worker_thread, (), (const, override));
   MOCK_METHOD(bool, initial_offerer, (), (const, override));
   MOCK_METHOD(
       std::vector<
@@ -323,7 +365,7 @@ class MockPeerConnectionInternal : public PeerConnectionInternal {
   MOCK_METHOD(bool, IceRestartPending, (const std::string&), (const, override));
   MOCK_METHOD(bool,
               GetSslRole,
-              (const std::string&, rtc::SSLRole*),
+              (const std::string&, webrtc::SSLRole*),
               (override));
   MOCK_METHOD(void, NoteDataAddedEvent, (), (override));
   MOCK_METHOD(void,

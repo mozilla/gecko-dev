@@ -92,7 +92,7 @@ RtpParameters RestoreEncodingLayers(
 
 class SignalingThreadCallback {
  public:
-  SignalingThreadCallback(rtc::Thread* signaling_thread,
+  SignalingThreadCallback(Thread* signaling_thread,
                           SetParametersCallback callback)
       : signaling_thread_(signaling_thread), callback_(std::move(callback)) {}
   SignalingThreadCallback(SignalingThreadCallback&& other)
@@ -126,7 +126,7 @@ class SignalingThreadCallback {
     callback_ = nullptr;
   }
 
-  rtc::Thread* signaling_thread_;
+  Thread* signaling_thread_;
   SetParametersCallback callback_;
 };
 
@@ -150,11 +150,11 @@ bool UnimplementedRtpParameterHasValue(const RtpParameters& parameters) {
 }
 
 RtpSenderBase::RtpSenderBase(const Environment& env,
-                             rtc::Thread* worker_thread,
+                             Thread* worker_thread,
                              const std::string& id,
                              SetStreamsObserver* set_streams_observer)
     : env_(env),
-      signaling_thread_(rtc::Thread::Current()),
+      signaling_thread_(Thread::Current()),
       worker_thread_(worker_thread),
       id_(id),
       set_streams_observer_(set_streams_observer) {
@@ -229,7 +229,7 @@ RtpParameters RtpSenderBase::GetParametersInternalWithAllLayers() const {
 RtpParameters RtpSenderBase::GetParameters() const {
   RTC_DCHECK_RUN_ON(signaling_thread_);
   RtpParameters result = GetParametersInternal();
-  last_transaction_id_ = rtc::CreateRandomUuid();
+  last_transaction_id_ = CreateRandomUuid();
   result.transaction_id = last_transaction_id_.value();
   return result;
 }
@@ -372,7 +372,7 @@ RTCError RtpSenderBase::SetParameters(const RtpParameters& parameters) {
   // blocking call is required to keep them working. The encoder configuration
   // also involves another thread with an asynchronous task, thus we still do
   // need to wait for the callback to be resolved this way.
-  std::unique_ptr<rtc::Event> done_event = std::make_unique<rtc::Event>();
+  std::unique_ptr<Event> done_event = std::make_unique<Event>();
   SetParametersInternal(
       parameters,
       [done = done_event.get(), &result](RTCError error) {
@@ -380,7 +380,7 @@ RTCError RtpSenderBase::SetParameters(const RtpParameters& parameters) {
         done->Set();
       },
       true);
-  done_event->Wait(rtc::Event::kForever);
+  done_event->Wait(Event::kForever);
   last_transaction_id_.reset();
   return result;
 }
@@ -647,7 +647,7 @@ void LocalAudioSinkAdapter::SetSink(cricket::AudioSource::Sink* sink) {
 
 rtc::scoped_refptr<AudioRtpSender> AudioRtpSender::Create(
     const webrtc::Environment& env,
-    rtc::Thread* worker_thread,
+    Thread* worker_thread,
     const std::string& id,
     LegacyStatsCollectorInterface* stats,
     SetStreamsObserver* set_streams_observer) {
@@ -656,15 +656,15 @@ rtc::scoped_refptr<AudioRtpSender> AudioRtpSender::Create(
 }
 
 AudioRtpSender::AudioRtpSender(const webrtc::Environment& env,
-                               rtc::Thread* worker_thread,
+                               Thread* worker_thread,
                                const std::string& id,
                                LegacyStatsCollectorInterface* legacy_stats,
                                SetStreamsObserver* set_streams_observer)
     : RtpSenderBase(env, worker_thread, id, set_streams_observer),
       legacy_stats_(legacy_stats),
-      dtmf_sender_(DtmfSender::Create(rtc::Thread::Current(), this)),
+      dtmf_sender_(DtmfSender::Create(Thread::Current(), this)),
       dtmf_sender_proxy_(
-          DtmfSenderProxy::Create(rtc::Thread::Current(), dtmf_sender_)),
+          DtmfSenderProxy::Create(Thread::Current(), dtmf_sender_)),
       sink_adapter_(new LocalAudioSinkAdapter()) {}
 
 AudioRtpSender::~AudioRtpSender() {
@@ -802,7 +802,7 @@ void AudioRtpSender::ClearSend() {
 
 rtc::scoped_refptr<VideoRtpSender> VideoRtpSender::Create(
     const Environment& env,
-    rtc::Thread* worker_thread,
+    Thread* worker_thread,
     const std::string& id,
     SetStreamsObserver* set_streams_observer) {
   return rtc::make_ref_counted<VideoRtpSender>(env, worker_thread, id,
@@ -810,7 +810,7 @@ rtc::scoped_refptr<VideoRtpSender> VideoRtpSender::Create(
 }
 
 VideoRtpSender::VideoRtpSender(const Environment& env,
-                               rtc::Thread* worker_thread,
+                               Thread* worker_thread,
                                const std::string& id,
                                SetStreamsObserver* set_streams_observer)
     : RtpSenderBase(env, worker_thread, id, set_streams_observer) {}

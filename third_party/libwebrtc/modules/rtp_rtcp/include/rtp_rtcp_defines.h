@@ -19,11 +19,11 @@
 #include <memory>
 #include <optional>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/rtp_headers.h"
@@ -388,6 +388,10 @@ class StreamDataCountersCallback {
  public:
   virtual ~StreamDataCountersCallback() {}
 
+  // TODO: webrtc:40644448 - Make this pure virtual.
+  virtual StreamDataCounters GetDataCounters(uint32_t ssrc) const {
+    RTC_CHECK_NOTREACHED();
+  }
   virtual void DataCountersUpdated(const StreamDataCounters& counters,
                                    uint32_t ssrc) = 0;
 };

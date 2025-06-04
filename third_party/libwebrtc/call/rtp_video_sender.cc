@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/base/nullability.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
@@ -35,6 +36,8 @@
 #include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/pending_task_safety_flag.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/transport/rtp/dependency_descriptor.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
@@ -425,8 +428,6 @@ RtpVideoSender::RtpVideoSender(
       rtp_config_(rtp_config),
       transport_(transport),
       independent_frame_ids_(
-          !env.field_trials().IsDisabled(
-              "WebRTC-Video-SimulcastIndependentFrameIds") &&
           env.field_trials().IsDisabled("WebRTC-GenericDescriptorAuth")),
       transport_overhead_bytes_per_packet_(0),
       encoder_target_rate_bps_(0),
@@ -800,8 +801,8 @@ std::map<uint32_t, RtpState> RtpVideoSender::GetRtpStates() const {
       std::optional<RtpState> fec_state =
           rtp_streams_[i].fec_generator->GetRtpState();
       if (fec_state) {
-        uint32_t ssrc = rtp_config_.flexfec.ssrc;
-        rtp_states[ssrc] = *fec_state;
+        uint32_t fec_ssrc = rtp_config_.flexfec.ssrc;
+        rtp_states[fec_ssrc] = *fec_state;
       }
     }
   }

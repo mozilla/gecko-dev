@@ -17,6 +17,8 @@
 
 // PacketTimeUpdateParams is defined in asyncpacketsocket.h.
 // TODO(sergeyu): Find more appropriate place for PacketTimeUpdateParams.
+#include "absl/strings/string_view.h"
+#include "api/array_view.h"
 #include "media/base/turn_utils.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
 #include "rtc_base/async_packet_socket.h"
@@ -72,9 +74,10 @@ void UpdateAbsSendTimeExtensionValue(uint8_t* extension_data,
 
 // Assumes `length` is actual packet length + tag length. Updates HMAC at end of
 // the RTP packet.
-void UpdateRtpAuthTag(uint8_t* rtp,
-                      size_t length,
-                      const rtc::PacketTimeUpdateParams& packet_time_params) {
+void UpdateRtpAuthTag(
+    uint8_t* rtp,
+    size_t length,
+    const webrtc::PacketTimeUpdateParams& packet_time_params) {
   // If there is no key, return.
   if (packet_time_params.srtp_auth_key.empty()) {
     return;
@@ -145,7 +148,7 @@ bool GetRtcpSsrc(const void* data, size_t len, uint32_t* value) {
   // SDES packet parsing is not supported.
   if (pl_type == kRtcpTypeSDES)
     return false;
-  *value = rtc::GetBE32(static_cast<const uint8_t*>(data) + 4);
+  *value = webrtc::GetBE32(static_cast<const uint8_t*>(data) + 4);
   return true;
 }
 
@@ -217,7 +220,7 @@ bool ValidateRtpHeader(const uint8_t* rtp,
 
   // Getting extension profile length.
   // Length is in 32 bit words.
-  uint16_t extension_length_in_32bits = rtc::GetBE16(rtp + 2);
+  uint16_t extension_length_in_32bits = webrtc::GetBE16(rtp + 2);
   size_t extension_length = extension_length_in_32bits * 4;
 
   size_t rtp_header_length = extension_length +
@@ -265,9 +268,9 @@ bool UpdateRtpAbsSendTimeExtension(uint8_t* rtp,
   rtp += header_length_without_extension;
 
   // Getting extension profile ID and length.
-  uint16_t profile_id = rtc::GetBE16(rtp);
+  uint16_t profile_id = webrtc::GetBE16(rtp);
   // Length is in 32 bit words.
-  uint16_t extension_length_in_32bits = rtc::GetBE16(rtp + 2);
+  uint16_t extension_length_in_32bits = webrtc::GetBE16(rtp + 2);
   size_t extension_length = extension_length_in_32bits * 4;
 
   rtp += kRtpExtensionHeaderLen;  // Moving past extension header.
@@ -352,10 +355,11 @@ bool UpdateRtpAbsSendTimeExtension(uint8_t* rtp,
   return found;
 }
 
-bool ApplyPacketOptions(uint8_t* data,
-                        size_t length,
-                        const rtc::PacketTimeUpdateParams& packet_time_params,
-                        uint64_t time_us) {
+bool ApplyPacketOptions(
+    uint8_t* data,
+    size_t length,
+    const webrtc::PacketTimeUpdateParams& packet_time_params,
+    uint64_t time_us) {
   RTC_DCHECK(data);
   RTC_DCHECK(length);
 

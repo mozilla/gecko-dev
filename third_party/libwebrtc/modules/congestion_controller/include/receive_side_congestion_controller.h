@@ -14,12 +14,9 @@
 #include <cstdint>
 #include <memory>
 
-#include "absl/base/attributes.h"
-#include "absl/base/nullability.h"
 #include "api/environment/environment.h"
 #include "api/media_types.h"
 #include "api/sequence_checker.h"
-#include "api/transport/network_control.h"
 #include "api/units/data_rate.h"
 #include "api/units/time_delta.h"
 #include "modules/congestion_controller/remb_throttler.h"

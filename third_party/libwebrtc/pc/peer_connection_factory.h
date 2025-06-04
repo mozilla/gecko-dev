@@ -20,6 +20,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/audio_options.h"
+#include "api/environment/environment.h"
 #include "api/fec_controller.h"
 #include "api/field_trials_view.h"
 #include "api/media_stream_interface.h"
@@ -37,10 +38,10 @@
 #include "api/transport/sctp_transport_factory_interface.h"
 #include "call/call.h"
 #include "call/rtp_transport_controller_send_factory_interface.h"
+#include "media/base/media_engine.h"
 #include "p2p/base/port_allocator.h"
+#include "pc/codec_vendor.h"
 #include "pc/connection_context.h"
-#include "rtc_base/checks.h"
-#include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
 
@@ -64,10 +65,10 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
       PeerConnectionDependencies dependencies) override;
 
   RtpCapabilities GetRtpSenderCapabilities(
-      cricket::MediaType kind) const override;
+      webrtc::MediaType kind) const override;
 
   RtpCapabilities GetRtpReceiverCapabilities(
-      cricket::MediaType kind) const override;
+      webrtc::MediaType kind) const override;
 
   rtc::scoped_refptr<MediaStreamInterface> CreateLocalMediaStream(
       const std::string& stream_id) override;
@@ -90,13 +91,13 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
     return context_->sctp_transport_factory();
   }
 
-  rtc::Thread* signaling_thread() const {
+  Thread* signaling_thread() const {
     // This method can be called on a different thread when the factory is
     // created in CreatePeerConnectionFactory().
     return context_->signaling_thread();
   }
 
-  rtc::Thread* worker_thread() const { return context_->worker_thread(); }
+  Thread* worker_thread() const { return context_->worker_thread(); }
 
   const Options& options() const {
     RTC_DCHECK_RUN_ON(signaling_thread());
@@ -108,6 +109,7 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
   }
 
   cricket::MediaEngineInterface* media_engine() const;
+  cricket::CodecVendor& CodecVendorForTesting() { return codec_vendor_; }
 
  protected:
   // Constructor used by the static Create() method. Modifies the dependencies.
@@ -122,7 +124,7 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
   virtual ~PeerConnectionFactory();
 
  private:
-  rtc::Thread* network_thread() const { return context_->network_thread(); }
+  Thread* network_thread() const { return context_->network_thread(); }
 
   bool IsTrialEnabled(absl::string_view key) const;
 
@@ -135,6 +137,7 @@ class PeerConnectionFactory : public PeerConnectionFactoryInterface {
   rtc::scoped_refptr<ConnectionContext> context_;
   PeerConnectionFactoryInterface::Options options_
       RTC_GUARDED_BY(signaling_thread());
+  cricket::CodecVendor codec_vendor_;
   std::unique_ptr<RtcEventLogFactoryInterface> event_log_factory_;
   std::unique_ptr<FecControllerFactoryInterface> fec_controller_factory_;
   std::unique_ptr<NetworkStatePredictorFactoryInterface>

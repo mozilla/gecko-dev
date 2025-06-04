@@ -57,7 +57,7 @@ namespace webrtc_pc_e2e {
 // factories.
 struct PeerConnectionFactoryComponents {
   std::unique_ptr<rtc::NetworkManager> network_manager;
-  rtc::SocketFactory* socket_factory = nullptr;
+  SocketFactory* socket_factory = nullptr;
   std::unique_ptr<RtcEventLogFactoryInterface> event_log_factory;
   std::unique_ptr<FecControllerFactoryInterface> fec_controller_factory;
   std::unique_ptr<NetworkControllerFactoryInterface> network_controller_factory;
@@ -85,7 +85,7 @@ struct PeerConnectionFactoryComponents {
 struct PeerConnectionComponents {
   std::unique_ptr<webrtc::AsyncDnsResolverFactoryInterface>
       async_dns_resolver_factory;
-  std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator;
+  std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator;
   std::unique_ptr<rtc::SSLCertificateVerifier> tls_cert_verifier;
   std::unique_ptr<IceTransportFactory> ice_transport_factory;
 };
@@ -93,9 +93,9 @@ struct PeerConnectionComponents {
 // Contains all components, that can be overridden in peer connection. Also
 // has a network thread, that will be used to communicate with another peers.
 struct InjectableComponents {
-  InjectableComponents(rtc::Thread* network_thread,
+  InjectableComponents(Thread* network_thread,
                        std::unique_ptr<rtc::NetworkManager> network_manager,
-                       rtc::SocketFactory* socket_factory)
+                       SocketFactory* socket_factory)
       : network_thread(network_thread),
         worker_thread(nullptr),
         pcf_dependencies(std::make_unique<PeerConnectionFactoryComponents>()),
@@ -105,8 +105,8 @@ struct InjectableComponents {
     pcf_dependencies->socket_factory = socket_factory;
   }
 
-  rtc::Thread* const network_thread;
-  rtc::Thread* worker_thread;
+  Thread* const network_thread;
+  Thread* worker_thread;
 
   std::unique_ptr<PeerConnectionFactoryComponents> pcf_dependencies;
   std::unique_ptr<PeerConnectionComponents> pc_dependencies;
@@ -125,7 +125,7 @@ struct Params {
   // IMPORTANT: if you use WebRTC Network Emulation
   // (api/test/network_emulation_manager.h) and set this field, remember to set
   // cricket::PORTALLOCATOR_DISABLE_TCP.
-  uint32_t port_allocator_flags = cricket::PORTALLOCATOR_DISABLE_TCP;
+  uint32_t port_allocator_flags = PORTALLOCATOR_DISABLE_TCP;
   // If `rtc_event_log_path` is set, an RTCEventLog will be saved in that
   // location and it will be available for further analysis.
   std::optional<std::string> rtc_event_log_path;

@@ -16,6 +16,7 @@
 #include "api/adaptation/resource.h"
 #include "api/scoped_refptr.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
 

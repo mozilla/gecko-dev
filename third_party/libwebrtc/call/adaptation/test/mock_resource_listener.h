@@ -12,6 +12,7 @@
 #define CALL_ADAPTATION_TEST_MOCK_RESOURCE_LISTENER_H_
 
 #include "api/adaptation/resource.h"
+#include "api/scoped_refptr.h"
 #include "test/gmock.h"
 
 namespace webrtc {

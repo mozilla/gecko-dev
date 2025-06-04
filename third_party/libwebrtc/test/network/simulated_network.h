@@ -115,7 +115,7 @@ class RTC_EXPORT SimulatedNetwork : public SimulatedNetworkInterface {
 
   // Guards the data structures involved in delay and loss processing, such as
   // the packet queues.
-  rtc::RaceChecker process_checker_;
+  RaceChecker process_checker_;
   // Models the capacity of the network by rejecting packets if the queue is
   // full and keeping them in the queue until they are ready to exit (according
   // to the link capacity, which cannot be violated, e.g. a 1 kbps link will

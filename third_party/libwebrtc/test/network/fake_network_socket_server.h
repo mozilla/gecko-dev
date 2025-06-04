@@ -33,24 +33,24 @@ class FakeNetworkSocketServer : public rtc::SocketServer {
   ~FakeNetworkSocketServer() override;
 
   // rtc::SocketFactory methods:
-  rtc::Socket* CreateSocket(int family, int type) override;
+  Socket* CreateSocket(int family, int type) override;
 
   // rtc::SocketServer methods:
   // Called by the network thread when this server is installed, kicking off the
   // message handler loop.
-  void SetMessageQueue(rtc::Thread* thread) override;
+  void SetMessageQueue(Thread* thread) override;
   bool Wait(webrtc::TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 
  protected:
   friend class FakeNetworkSocket;
-  EmulatedEndpointImpl* GetEndpointNode(const rtc::IPAddress& ip);
+  EmulatedEndpointImpl* GetEndpointNode(const IPAddress& ip);
   void Unregister(FakeNetworkSocket* socket);
 
  private:
   const EndpointsContainer* endpoints_container_;
-  rtc::Event wakeup_;
-  rtc::Thread* thread_ = nullptr;
+  Event wakeup_;
+  Thread* thread_ = nullptr;
 
   Mutex lock_;
   std::vector<FakeNetworkSocket*> sockets_ RTC_GUARDED_BY(lock_);

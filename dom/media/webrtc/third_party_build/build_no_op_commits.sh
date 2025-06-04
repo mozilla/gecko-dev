@@ -26,12 +26,18 @@ cd $MOZ_LIBWEBRTC_SRC
 MANUAL_INTERVENTION_COMMIT_FILE="$TMP_DIR/manual_commits.txt"
 rm -f $MANUAL_INTERVENTION_COMMIT_FILE
 
+# find the last upstream commit used by the previous update, so we don't
+# accidentally grab release branch commits that were added after we started
+# the previous update.
+LAST_UPSTREAM_COMMIT_SHA=`tail -1 $CURRENT_DIR/third_party/libwebrtc/README.mozilla.last-vendor`
+echo "previous update's last commit: $LAST_UPSTREAM_COMMIT_SHA"
+
 # Find the common commit between our previous work branch and trunk
-CURRENT_RELEASE_BASE=`git merge-base branch-heads/$MOZ_PRIOR_UPSTREAM_BRANCH_HEAD_NUM master`
+CURRENT_RELEASE_BASE=`git merge-base $LAST_UPSTREAM_COMMIT_SHA master`
 
 # Write no-op files for the cherry-picked release branch commits.  For more
 # details on what this is doing, see make_upstream_revert_noop.sh.
-COMMIT_RANGE="$CURRENT_RELEASE_BASE..branch-heads/$MOZ_PRIOR_UPSTREAM_BRANCH_HEAD_NUM"
+COMMIT_RANGE="$CURRENT_RELEASE_BASE..$LAST_UPSTREAM_COMMIT_SHA"
 echo ""
 echo "Libwebrtc release branch commits are usually cherry-picked from upcoming"
 echo "commits.  Since these upcoming commits will result in near-zero files"
@@ -67,8 +73,15 @@ for commit in $COMMITS; do
 
 done
 
-# This section checks for commits that may have been cherry-picked in more
-# than one release branch.
+# This section checks for commits that may have been cherry-picked in
+# more than one release branch.  An example of multiple cherry-picks
+# across release branches can be seen when starting the following
+# updates:
+#   Bug 1934695 - updated default_config_env for v132
+#   Bug 1903098 - updated default_config_env for v126 (this is moz
+#     cherry-pick that is then cherry-picked in the upcoming release
+#     branch)
+
 TARGET_RELEASE_BASE=`git merge-base $MOZ_TARGET_UPSTREAM_BRANCH_HEAD master`
 
 COMMIT_RANGE="$TARGET_RELEASE_BASE..$MOZ_TARGET_UPSTREAM_BRANCH_HEAD"
@@ -119,6 +132,7 @@ for commit in $NEW_COMMITS; do
 done
 
 if [ ! -f $MANUAL_INTERVENTION_COMMIT_FILE ]; then
+  echo ""
   echo "No commits require manual intervention"
   exit
 fi

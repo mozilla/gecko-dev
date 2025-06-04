@@ -23,20 +23,20 @@
 #include "rtc_base/string_encode.h"
 #include "rtc_base/thread.h"
 
-namespace rtc {
+namespace webrtc {
 
 const int kFakeIPv4NetworkPrefixLength = 24;
 const int kFakeIPv6NetworkPrefixLength = 64;
 
 // Fake network manager that allows us to manually specify the IPs to use.
-class FakeNetworkManager : public NetworkManagerBase {
+class FakeNetworkManager : public rtc::NetworkManagerBase {
  public:
   FakeNetworkManager() {}
 
   struct Iface {
     SocketAddress socket_address;
-    AdapterType adapter_type;
-    std::optional<AdapterType> underlying_vpn_adapter_type;
+    rtc::AdapterType adapter_type;
+    std::optional<rtc::AdapterType> underlying_vpn_adapter_type;
   };
   typedef std::vector<Iface> IfaceList;
 
@@ -46,14 +46,14 @@ class FakeNetworkManager : public NetworkManagerBase {
   }
 
   void AddInterface(const SocketAddress& iface, absl::string_view if_name) {
-    AddInterface(iface, if_name, ADAPTER_TYPE_UNKNOWN);
+    AddInterface(iface, if_name, rtc::ADAPTER_TYPE_UNKNOWN);
   }
 
-  void AddInterface(
-      const SocketAddress& iface,
-      absl::string_view if_name,
-      AdapterType type,
-      std::optional<AdapterType> underlying_vpn_adapter_type = std::nullopt) {
+  void AddInterface(const SocketAddress& iface,
+                    absl::string_view if_name,
+                    rtc::AdapterType type,
+                    std::optional<rtc::AdapterType>
+                        underlying_vpn_adapter_type = std::nullopt) {
     SocketAddress address(if_name, 0);
     address.SetResolvedIP(iface.ipaddr());
     ifaces_.push_back({address, type, underlying_vpn_adapter_type});
@@ -82,16 +82,16 @@ class FakeNetworkManager : public NetworkManagerBase {
 
   void StopUpdating() override { --start_count_; }
 
-  using NetworkManagerBase::set_default_local_addresses;
-  using NetworkManagerBase::set_enumeration_permission;
+  using rtc::NetworkManagerBase::set_default_local_addresses;
+  using rtc::NetworkManagerBase::set_enumeration_permission;
 
   // rtc::NetworkManager override.
-  webrtc::MdnsResponderInterface* GetMdnsResponder() const override {
+  MdnsResponderInterface* GetMdnsResponder() const override {
     return mdns_responder_.get();
   }
 
   void set_mdns_responder(
-      std::unique_ptr<webrtc::MdnsResponderInterface> mdns_responder) {
+      std::unique_ptr<MdnsResponderInterface> mdns_responder) {
     mdns_responder_ = std::move(mdns_responder);
   }
 
@@ -99,7 +99,7 @@ class FakeNetworkManager : public NetworkManagerBase {
   void DoUpdateNetworks() {
     if (start_count_ == 0)
       return;
-    std::vector<std::unique_ptr<Network>> networks;
+    std::vector<std::unique_ptr<rtc::Network>> networks;
     for (IfaceList::iterator it = ifaces_.begin(); it != ifaces_.end(); ++it) {
       int prefix_length = 0;
       if (it->socket_address.ipaddr().family() == AF_INET) {
@@ -107,8 +107,9 @@ class FakeNetworkManager : public NetworkManagerBase {
       } else if (it->socket_address.ipaddr().family() == AF_INET6) {
         prefix_length = kFakeIPv6NetworkPrefixLength;
       }
-      IPAddress prefix = TruncateIP(it->socket_address.ipaddr(), prefix_length);
-      auto net = std::make_unique<Network>(
+      IPAddress prefix =
+          webrtc::TruncateIP(it->socket_address.ipaddr(), prefix_length);
+      auto net = std::make_unique<rtc::Network>(
           it->socket_address.hostname(), it->socket_address.hostname(), prefix,
           prefix_length, it->adapter_type);
       if (it->underlying_vpn_adapter_type.has_value()) {
@@ -131,9 +132,17 @@ class FakeNetworkManager : public NetworkManagerBase {
   int start_count_ = 0;
   bool sent_first_update_ = false;
 
-  std::unique_ptr<webrtc::MdnsResponderInterface> mdns_responder_;
+  std::unique_ptr<MdnsResponderInterface> mdns_responder_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::FakeNetworkManager;
+using ::webrtc::kFakeIPv4NetworkPrefixLength;
+using ::webrtc::kFakeIPv6NetworkPrefixLength;
 }  // namespace rtc
 
 #endif  // RTC_BASE_FAKE_NETWORK_H_

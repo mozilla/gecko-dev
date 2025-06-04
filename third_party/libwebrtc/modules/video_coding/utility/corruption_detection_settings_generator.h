@@ -12,8 +12,8 @@
 #define MODULES_VIDEO_CODING_UTILITY_CORRUPTION_DETECTION_SETTINGS_GENERATOR_H_
 
 #include <optional>
+#include <variant>
 
-#include "absl/types/variant.h"
 #include "api/video/corruption_detection_filter_settings.h"
 
 namespace webrtc {
@@ -78,7 +78,7 @@ class CorruptionDetectionSettingsGenerator {
  private:
   double CalculateStdDev(int qp) const;
 
-  const absl::variant<RationalFunctionParameters, ExponentialFunctionParameters>
+  const std::variant<RationalFunctionParameters, ExponentialFunctionParameters>
       function_params_;
   const ErrorThresholds error_thresholds_;
   const TransientParameters transient_params_;

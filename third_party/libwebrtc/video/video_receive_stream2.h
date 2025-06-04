@@ -72,7 +72,7 @@ struct VideoFrameMetaData {
         decode_timestamp(now) {}
 
   int64_t render_time_ms() const {
-    return timestamp_us / rtc::kNumMicrosecsPerMillisec;
+    return timestamp_us / kNumMicrosecsPerMillisec;
   }
 
   const uint32_t rtp_timestamp;

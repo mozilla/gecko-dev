@@ -10,15 +10,15 @@
 
 #include "media/engine/internal_decoder_factory.h"
 
+#include <memory>
+
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
-#include "api/video_codecs/av1_profile.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_decoder.h"
-#include "api/video_codecs/vp9_profile.h"
+#include "api/video_codecs/video_decoder_factory.h"
 #include "media/base/media_constants.h"
 #include "system_wrappers/include/field_trial.h"
-#include "test/field_trial.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 

@@ -71,12 +71,12 @@ class ScopedTimer {
  public:
   ScopedTimer(ApiCallStatistics* api_call_statistics,
               ApiCallStatistics::CallType call_type)
-      : start_time_(rtc::TimeNanos()),
+      : start_time_(TimeNanos()),
         call_type_(call_type),
         api_call_statistics_(api_call_statistics) {}
 
   ~ScopedTimer() {
-    api_call_statistics_->Add(rtc::TimeNanos() - start_time_, call_type_);
+    api_call_statistics_->Add(TimeNanos() - start_time_, call_type_);
   }
 
  private:

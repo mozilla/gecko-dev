@@ -303,11 +303,11 @@ class VideoAnalyzer : public PacketReceiver,
   const double avg_ssim_threshold_;
   bool is_quick_test_enabled_;
 
-  std::vector<rtc::PlatformThread> comparison_thread_pool_;
-  rtc::Event comparison_available_event_;
+  std::vector<PlatformThread> comparison_thread_pool_;
+  Event comparison_available_event_;
   std::deque<FrameComparison> comparisons_ RTC_GUARDED_BY(comparison_lock_);
   bool quit_ RTC_GUARDED_BY(comparison_lock_);
-  rtc::Event done_;
+  Event done_;
 
   std::unique_ptr<VideoRtpDepacketizer> vp8_depacketizer_;
   std::unique_ptr<VideoRtpDepacketizer> vp9_depacketizer_;

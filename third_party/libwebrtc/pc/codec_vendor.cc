@@ -1,5 +1,5 @@
 /*
- *  Copyright 2004 The WebRTC project authors. All Rights Reserved.
+ *  Copyright 2025 The WebRTC project authors. All Rights Reserved.
  *
  *  Use of this source code is governed by a BSD-style license
  *  that can be found in the LICENSE file in the root of the source
@@ -22,10 +22,12 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/field_trials_view.h"
 #include "api/media_types.h"
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
 #include "api/rtp_transceiver_direction.h"
+#include "call/payload_type.h"
 #include "media/base/codec.h"
 #include "media/base/codec_comparators.h"
 #include "media/base/codec_list.h"
@@ -35,10 +37,12 @@
 #include "pc/media_options.h"
 #include "pc/rtp_media_utils.h"
 #include "pc/session_description.h"
+#include "pc/typed_codec_vendor.h"
 #include "pc/used_ids.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/string_encode.h"
+#include "rtc_base/strings/string_builder.h"
 #include "rtc_base/unique_id_generator.h"
 
 #ifdef RTC_ENABLE_H265
@@ -84,7 +88,8 @@ void StripCNCodecs(CodecList& audio_codecs) {
       audio_codecs.end());
 }
 
-bool IsMediaContentOfType(const ContentInfo* content, MediaType media_type) {
+bool IsMediaContentOfType(const webrtc::ContentInfo* content,
+                          webrtc::MediaType media_type) {
   if (!content || !content->media_description()) {
     return false;
   }
@@ -330,7 +335,7 @@ CodecList ComputeCodecsUnion(const CodecList codecs1, const CodecList codecs2) {
 }
 
 RTCError MergeCodecsFromDescription(
-    const std::vector<const ContentInfo*>& current_active_contents,
+    const std::vector<const webrtc::ContentInfo*>& current_active_contents,
     CodecList& audio_codecs,
     CodecList& video_codecs,
     UsedPayloadTypes* used_pltypes) {
@@ -340,9 +345,9 @@ RTCError MergeCodecsFromDescription(
     if (!checked_codec_list.ok()) {
       RTC_LOG(LS_ERROR) << checked_codec_list.error();
     }
-    if (IsMediaContentOfType(content, MEDIA_TYPE_AUDIO)) {
+    if (IsMediaContentOfType(content, webrtc::MediaType::AUDIO)) {
       MergeCodecs(checked_codec_list.value(), audio_codecs, used_pltypes);
-    } else if (IsMediaContentOfType(content, MEDIA_TYPE_VIDEO)) {
+    } else if (IsMediaContentOfType(content, webrtc::MediaType::VIDEO)) {
       MergeCodecs(checked_codec_list.value(), video_codecs, used_pltypes);
     }
   }
@@ -382,7 +387,7 @@ void NegotiateVideoCodecLevelsForOffer(
   // Ideally this should be done for all codecs, but RFCs of other codecs
   // do not clear define the expected behavior for the level in the offer.
 #ifdef RTC_ENABLE_H265
-  if (media_description_options.type == MEDIA_TYPE_VIDEO) {
+  if (media_description_options.type == webrtc::MediaType::VIDEO) {
     std::unordered_map<webrtc::H265Profile, webrtc::H265Level>
         supported_h265_profiles;
     // The assumption here is that H.265 codecs with the same profile and tier
@@ -567,12 +572,12 @@ webrtc::RTCError AssignCodecIdsAndLinkRed(
 webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
     const MediaDescriptionOptions& media_description_options,
     const MediaSessionOptions& session_options,
-    const ContentInfo* current_content,
+    const webrtc::ContentInfo* current_content,
     PayloadTypeSuggester& pt_suggester,
     const CodecList& codecs) {
   CodecList filtered_codecs;
   CodecList supported_codecs =
-      media_description_options.type == MEDIA_TYPE_AUDIO
+      media_description_options.type == webrtc::MediaType::AUDIO
           ? GetAudioCodecsForOffer(media_description_options.direction)
           : GetVideoCodecsForOffer(media_description_options.direction);
 
@@ -596,7 +601,7 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
                                    current_content->mid() +
                                    "' does not match previous type.");
         }
-        const MediaContentDescription* mcd =
+        const webrtc::MediaContentDescription* mcd =
             current_content->media_description();
         for (const Codec& codec : mcd->codecs()) {
           if (webrtc::FindMatchingCodec(mcd->codecs(), codecs.codecs(),
@@ -621,7 +626,7 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
             !FindMatchingCodec(supported_codecs, filtered_codecs, codec)) {
           // Use the `found_codec` from `codecs` because it has the
           // correctly mapped payload type (most of the time).
-          if (media_description_options.type == MEDIA_TYPE_VIDEO &&
+          if (media_description_options.type == webrtc::MediaType::VIDEO &&
               found_codec->GetResiliencyType() == Codec::ResiliencyType::kRtx) {
             // For RTX we might need to adjust the apt parameter if we got a
             // remote offer without RTX for a codec for which we support RTX.
@@ -646,11 +651,11 @@ webrtc::RTCErrorOr<std::vector<Codec>> CodecVendor::GetNegotiatedCodecsForOffer(
       }
     }
 
-    if (media_description_options.type == MEDIA_TYPE_AUDIO &&
+    if (media_description_options.type == webrtc::MediaType::AUDIO &&
         !session_options.vad_enabled) {
       // If application doesn't want CN codecs in offer.
       StripCNCodecs(filtered_codecs);
-    } else if (media_description_options.type == MEDIA_TYPE_VIDEO &&
+    } else if (media_description_options.type == webrtc::MediaType::VIDEO &&
                session_options.raw_packetization_for_video) {
       for (Codec& codec : filtered_codecs) {
         if (codec.IsMediaCodec()) {
@@ -680,7 +685,7 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
     const MediaSessionOptions& session_options,
     webrtc::RtpTransceiverDirection offer_rtd,
     webrtc::RtpTransceiverDirection answer_rtd,
-    const ContentInfo* current_content,
+    const webrtc::ContentInfo* current_content,
     const std::vector<Codec> codecs_from_offer,
     PayloadTypeSuggester& pt_suggester,
     const CodecList& codecs) {
@@ -688,7 +693,7 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
   CodecList negotiated_codecs;
   if (media_description_options.codecs_to_include.empty()) {
     const CodecList& supported_codecs =
-        media_description_options.type == MEDIA_TYPE_AUDIO
+        media_description_options.type == webrtc::MediaType::AUDIO
             ? GetAudioCodecsForAnswer(offer_rtd, answer_rtd)
             : GetVideoCodecsForAnswer(offer_rtd, answer_rtd);
     if (!media_description_options.codec_preferences.empty()) {
@@ -708,7 +713,7 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
                                    current_content->mid() +
                                    "' does not match previous type.");
         }
-        const MediaContentDescription* mcd =
+        const webrtc::MediaContentDescription* mcd =
             current_content->media_description();
         for (const Codec& codec : mcd->codecs()) {
           if (webrtc::FindMatchingCodec(mcd->codecs(), codecs.codecs(),
@@ -733,11 +738,11 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
       filtered_codecs = ComputeCodecsUnion(filtered_codecs, other_codecs);
     }
 
-    if (media_description_options.type == MEDIA_TYPE_AUDIO &&
+    if (media_description_options.type == webrtc::MediaType::AUDIO &&
         !session_options.vad_enabled) {
       // If application doesn't want CN codecs in offer.
       StripCNCodecs(filtered_codecs);
-    } else if (media_description_options.type == MEDIA_TYPE_VIDEO &&
+    } else if (media_description_options.type == webrtc::MediaType::VIDEO &&
                session_options.raw_packetization_for_video) {
       for (Codec& codec : filtered_codecs) {
         if (codec.IsMediaCodec()) {
@@ -767,41 +772,25 @@ webrtc::RTCErrorOr<Codecs> CodecVendor::GetNegotiatedCodecsForAnswer(
   return negotiated_codecs.codecs();
 }
 
-TypedCodecVendor::TypedCodecVendor(MediaEngineInterface* media_engine,
-                                   MediaType type,
-                                   bool is_sender,
-                                   bool rtx_enabled) {
-  if (type == MEDIA_TYPE_AUDIO) {
-    if (is_sender) {
-      codecs_ =
-          CodecList::CreateFromTrustedData(media_engine->voice().send_codecs());
-    } else {
-      codecs_ =
-          CodecList::CreateFromTrustedData(media_engine->voice().recv_codecs());
-    }
-  } else {
-    if (is_sender) {
-      codecs_ = CodecList::CreateFromTrustedData(
-          media_engine->video().send_codecs(rtx_enabled));
-    } else {
-      codecs_ = CodecList::CreateFromTrustedData(
-          media_engine->video().recv_codecs(rtx_enabled));
-    }
-  }
-}
-
-CodecVendor::CodecVendor(MediaEngineInterface* media_engine, bool rtx_enabled) {
-  // Null media_engine is permitted in order to allow unit testing where
+CodecVendor::CodecVendor(MediaEngineInterface* media_engine,
+                         bool rtx_enabled,
+                         const webrtc::FieldTrialsView&
+                             trials) {  // Null media_engine is permitted in
+                                        // order to allow unit testing where
   // the codecs are explicitly set by the test.
   if (media_engine) {
-    audio_send_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_AUDIO,
-                                          /* is_sender= */ true, rtx_enabled);
-    audio_recv_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_AUDIO,
-                                          /* is_sender= */ false, rtx_enabled);
-    video_send_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_VIDEO,
-                                          /* is_sender= */ true, rtx_enabled);
-    video_recv_codecs_ = TypedCodecVendor(media_engine, MEDIA_TYPE_VIDEO,
-                                          /* is_sender= */ false, rtx_enabled);
+    audio_send_codecs_ =
+        TypedCodecVendor(media_engine, webrtc::MediaType::AUDIO,
+                         /* is_sender= */ true, rtx_enabled, trials);
+    audio_recv_codecs_ =
+        TypedCodecVendor(media_engine, webrtc::MediaType::AUDIO,
+                         /* is_sender= */ false, rtx_enabled, trials);
+    video_send_codecs_ =
+        TypedCodecVendor(media_engine, webrtc::MediaType::VIDEO,
+                         /* is_sender= */ true, rtx_enabled, trials);
+    video_recv_codecs_ =
+        TypedCodecVendor(media_engine, webrtc::MediaType::VIDEO,
+                         /* is_sender= */ false, rtx_enabled, trials);
   }
 }
 
@@ -839,7 +828,7 @@ void CodecVendor::set_video_codecs(const CodecList& send_codecs,
 // 3. For each individual media description (m= section), filter codecs based
 //    on the directional attribute (happens in another method).
 RTCError CodecVendor::GetCodecsForOffer(
-    const std::vector<const ContentInfo*>& current_active_contents,
+    const std::vector<const webrtc::ContentInfo*>& current_active_contents,
     CodecList& audio_codecs,
     CodecList& video_codecs) const {
   // First - get all codecs from the current description if the media type
@@ -865,8 +854,8 @@ RTCError CodecVendor::GetCodecsForOffer(
 // 4. For each individual media description (m= section), filter codecs based
 //    on the directional attribute (happens in another method).
 RTCError CodecVendor::GetCodecsForAnswer(
-    const std::vector<const ContentInfo*>& current_active_contents,
-    const SessionDescription& remote_offer,
+    const std::vector<const webrtc::ContentInfo*>& current_active_contents,
+    const webrtc::SessionDescription& remote_offer,
     CodecList& audio_codecs,
     CodecList& video_codecs) const {
   // First - get all codecs from the current description if the media type
@@ -887,7 +876,7 @@ RTCError CodecVendor::GetCodecsForAnswer(
     if (!offered_codecs.ok()) {
       return offered_codecs.MoveError();
     }
-    if (IsMediaContentOfType(&content, MEDIA_TYPE_AUDIO)) {
+    if (IsMediaContentOfType(&content, webrtc::MediaType::AUDIO)) {
       for (const Codec& offered_audio_codec : offered_codecs.value()) {
         if (!FindMatchingCodec(offered_codecs.value(),
                                filtered_offered_audio_codecs,
@@ -897,7 +886,7 @@ RTCError CodecVendor::GetCodecsForAnswer(
           filtered_offered_audio_codecs.push_back(offered_audio_codec);
         }
       }
-    } else if (IsMediaContentOfType(&content, MEDIA_TYPE_VIDEO)) {
+    } else if (IsMediaContentOfType(&content, webrtc::MediaType::VIDEO)) {
       std::vector<Codec> pending_rtx_codecs;
       for (const Codec& offered_video_codec : offered_codecs.value()) {
         if (!FindMatchingCodec(offered_codecs.value(),

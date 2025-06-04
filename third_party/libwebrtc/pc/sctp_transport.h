@@ -63,7 +63,7 @@ class SctpTransport : public SctpTransportInterface,
   void Clear();
   // Initialize the cricket::SctpTransport. This can be called from
   // the signaling thread.
-  void Start(int local_port, int remote_port, int max_message_size);
+  void Start(const SctpOptions& options);
 
   // TODO(https://bugs.webrtc.org/10629): Move functions that need
   // internal() to be functions on the SctpTransport interface,
@@ -92,7 +92,7 @@ class SctpTransport : public SctpTransportInterface,
 
   // NOTE: `owner_thread_` is the thread that the SctpTransport object is
   // constructed on. In the context of PeerConnection, it's the network thread.
-  rtc::Thread* const owner_thread_;
+  Thread* const owner_thread_;
   SctpTransportInformation info_ RTC_GUARDED_BY(owner_thread_);
   std::unique_ptr<cricket::SctpTransportInternal> internal_sctp_transport_
       RTC_GUARDED_BY(owner_thread_);

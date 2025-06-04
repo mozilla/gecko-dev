@@ -10,7 +10,10 @@
 
 #include "p2p/base/ice_credentials_iterator.h"
 
+#include <vector>
+
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/transport_description.h"
 #include "rtc_base/crypto_random.h"
 
 namespace cricket {
@@ -22,8 +25,8 @@ IceCredentialsIterator::IceCredentialsIterator(
 IceCredentialsIterator::~IceCredentialsIterator() = default;
 
 IceParameters IceCredentialsIterator::CreateRandomIceCredentials() {
-  return IceParameters(rtc::CreateRandomString(ICE_UFRAG_LENGTH),
-                       rtc::CreateRandomString(ICE_PWD_LENGTH), false);
+  return IceParameters(webrtc::CreateRandomString(ICE_UFRAG_LENGTH),
+                       webrtc::CreateRandomString(ICE_PWD_LENGTH), false);
 }
 
 IceParameters IceCredentialsIterator::GetIceCredentials() {

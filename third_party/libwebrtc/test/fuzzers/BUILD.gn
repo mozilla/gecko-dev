@@ -829,6 +829,20 @@ webrtc_fuzzer_test("vp9_replay_fuzzer") {
   seed_corpus = "corpora/rtpdump-corpus/vp9"
 }
 
+webrtc_fuzzer_test("webrtc_base64_decode_fuzzer") {
+  sources = [ "base64_decode_fuzzer.cc" ]
+  deps = [ "../../rtc_base:base64" ]
+}
+
+webrtc_fuzzer_test("webrtc_base64_encode_fuzzer") {
+  sources = [ "base64_encode_fuzzer.cc" ]
+  deps = [
+    "../../api:array_view",
+    "../../rtc_base:base64",
+    "../../rtc_base:checks",
+  ]
+}
+
 group("fuzzers") {
   testonly = true
   deps = [
@@ -888,6 +902,8 @@ group("fuzzers") {
     ":vp9_depacketizer_fuzzer",
     ":vp9_qp_parser_fuzzer",
     ":vp9_replay_fuzzer",
+    ":webrtc_base64_decode_fuzzer",
+    ":webrtc_base64_encode_fuzzer",
   ]
   if (rtc_use_h265) {
     deps += [

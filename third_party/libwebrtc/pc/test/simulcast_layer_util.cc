@@ -10,7 +10,16 @@
 
 #include "pc/test/simulcast_layer_util.h"
 
+#include <iterator>
+#include <string>
+#include <vector>
+
 #include "absl/algorithm/container.h"
+#include "api/jsep.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_transceiver_interface.h"
+#include "pc/session_description.h"
+#include "pc/simulcast_description.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {

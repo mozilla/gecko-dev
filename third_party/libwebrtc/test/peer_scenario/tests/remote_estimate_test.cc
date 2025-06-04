@@ -23,8 +23,7 @@ namespace test {
 namespace {
 RtpHeaderExtensionMap AudioExtensions(
     const SessionDescriptionInterface& session) {
-  auto* audio_desc =
-      cricket::GetFirstAudioContentDescription(session.description());
+  auto* audio_desc = GetFirstAudioContentDescription(session.description());
   return RtpHeaderExtensionMap(audio_desc->rtp_header_extensions());
 }
 

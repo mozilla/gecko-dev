@@ -15,9 +15,13 @@
 
 #include "p2p/base/active_ice_controller_factory_interface.h"
 #include "p2p/base/active_ice_controller_interface.h"
+#include "p2p/base/connection.h"
+#include "p2p/base/ice_switch_reason.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/transport_description.h"
 #include "test/gmock.h"
 
-namespace cricket {
+namespace webrtc {
 
 class MockActiveIceController : public cricket::ActiveIceControllerInterface {
  public:
@@ -25,7 +29,7 @@ class MockActiveIceController : public cricket::ActiveIceControllerInterface {
       const cricket::ActiveIceControllerFactoryArgs& /* args */) {}
   ~MockActiveIceController() override = default;
 
-  MOCK_METHOD(void, SetIceConfig, (const cricket::IceConfig&), (override));
+  MOCK_METHOD(void, SetIceConfig, (const webrtc::IceConfig&), (override));
   MOCK_METHOD(void,
               OnConnectionAdded,
               (const cricket::Connection*),
@@ -49,7 +53,7 @@ class MockActiveIceController : public cricket::ActiveIceControllerInterface {
   MOCK_METHOD(bool,
               GetUseCandidateAttribute,
               (const cricket::Connection*,
-               cricket::NominationMode,
+               webrtc::NominationMode,
                cricket::IceMode),
               (const, override));
   MOCK_METHOD(void,
@@ -84,6 +88,13 @@ class MockActiveIceControllerFactory
   MOCK_METHOD(void, RecordActiveIceControllerCreated, ());
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace cricket {
+using ::webrtc::MockActiveIceController;
+using ::webrtc::MockActiveIceControllerFactory;
 }  // namespace cricket
 
 #endif  // P2P_TEST_MOCK_ACTIVE_ICE_CONTROLLER_H_

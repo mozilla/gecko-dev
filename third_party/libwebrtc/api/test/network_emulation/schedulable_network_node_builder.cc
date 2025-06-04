@@ -37,9 +37,8 @@ void SchedulableNetworkNodeBuilder::set_start_condition(
 
 webrtc::EmulatedNetworkNode* SchedulableNetworkNodeBuilder::Build(
     std::optional<uint64_t> random_seed) {
-  uint64_t seed = random_seed.has_value()
-                      ? *random_seed
-                      : static_cast<uint64_t>(rtc::TimeNanos());
+  uint64_t seed = random_seed.has_value() ? *random_seed
+                                          : static_cast<uint64_t>(TimeNanos());
   return net_.CreateEmulatedNode(std::make_unique<SchedulableNetworkBehavior>(
       std::move(schedule_), seed, *net_.time_controller()->GetClock(),
       std::move(start_condition_)));

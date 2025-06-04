@@ -86,7 +86,7 @@ TEST(RtpParametersConversionTest, ToAudioRtpCodecCapability) {
   RtpCodecCapability codec = ToRtpCodecCapability(cricket_codec);
 
   EXPECT_EQ("foo", codec.name);
-  EXPECT_EQ(cricket::MEDIA_TYPE_AUDIO, codec.kind);
+  EXPECT_EQ(webrtc::MediaType::AUDIO, codec.kind);
   EXPECT_EQ(50, codec.preferred_payload_type);
   EXPECT_EQ(22222, codec.clock_rate);
   EXPECT_EQ(4, codec.num_channels);
@@ -108,7 +108,7 @@ TEST(RtpParametersConversionTest, ToVideoRtpCodecCapability) {
   RtpCodecCapability codec = ToRtpCodecCapability(cricket_codec);
 
   EXPECT_EQ("VID", codec.name);
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, codec.kind);
+  EXPECT_EQ(webrtc::MediaType::VIDEO, codec.kind);
   EXPECT_EQ(101, codec.preferred_payload_type);
   EXPECT_EQ(80000, codec.clock_rate);
   ASSERT_EQ(2u, codec.parameters.size());

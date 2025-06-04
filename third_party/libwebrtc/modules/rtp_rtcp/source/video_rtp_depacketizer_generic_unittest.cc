@@ -47,7 +47,7 @@ TEST(VideoRtpDepacketizerGeneric, ExtendedHeaderParsesFrameId) {
       depacketizer.Parse(rtp_payload);
 
   ASSERT_TRUE(parsed);
-  const auto* generic_header = absl::get_if<RTPVideoHeaderLegacyGeneric>(
+  const auto* generic_header = std::get_if<RTPVideoHeaderLegacyGeneric>(
       &parsed->video_header.video_type_header);
   ASSERT_TRUE(generic_header);
   EXPECT_EQ(generic_header->picture_id, 0x1337);

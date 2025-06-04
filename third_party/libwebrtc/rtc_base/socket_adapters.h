@@ -16,12 +16,13 @@
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "rtc_base/async_socket.h"
-
 namespace rtc {
-
 struct HttpAuthContext;
 class ByteBufferReader;
 class ByteBufferWriter;
+}  // namespace rtc
+
+namespace webrtc {
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -61,8 +62,8 @@ class BufferedReadAdapter : public AsyncSocketAdapter {
 // fake SSL handshake. Used for "ssltcp" P2P functionality.
 class AsyncSSLSocket : public BufferedReadAdapter {
  public:
-  static ArrayView<const uint8_t> SslClientHello();
-  static ArrayView<const uint8_t> SslServerHello();
+  static rtc::ArrayView<const uint8_t> SslClientHello();
+  static rtc::ArrayView<const uint8_t> SslServerHello();
 
   explicit AsyncSSLSocket(Socket* socket);
 
@@ -76,6 +77,13 @@ class AsyncSSLSocket : public BufferedReadAdapter {
   void ProcessInput(char* data, size_t* len) override;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::AsyncSSLSocket;
+using ::webrtc::BufferedReadAdapter;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SOCKET_ADAPTERS_H_

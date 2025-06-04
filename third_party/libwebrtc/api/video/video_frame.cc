@@ -185,7 +185,7 @@ VideoFrame::Builder& VideoFrame::Builder::set_video_frame_buffer(
 
 VideoFrame::Builder& VideoFrame::Builder::set_timestamp_ms(
     int64_t timestamp_ms) {
-  timestamp_us_ = timestamp_ms * rtc::kNumMicrosecsPerMillisec;
+  timestamp_us_ = timestamp_ms * kNumMicrosecsPerMillisec;
   return *this;
 }
 
@@ -280,7 +280,7 @@ VideoFrame::VideoFrame(const rtc::scoped_refptr<VideoFrameBuffer>& buffer,
     : video_frame_buffer_(buffer),
       timestamp_rtp_(timestamp_rtp),
       ntp_time_ms_(0),
-      timestamp_us_(render_time_ms * rtc::kNumMicrosecsPerMillisec),
+      timestamp_us_(render_time_ms * kNumMicrosecsPerMillisec),
       rotation_(rotation) {
   RTC_DCHECK(buffer);
 }
@@ -347,7 +347,7 @@ void VideoFrame::set_video_frame_buffer(
 }
 
 int64_t VideoFrame::render_time_ms() const {
-  return timestamp_us() / rtc::kNumMicrosecsPerMillisec;
+  return timestamp_us() / kNumMicrosecsPerMillisec;
 }
 
 }  // namespace webrtc

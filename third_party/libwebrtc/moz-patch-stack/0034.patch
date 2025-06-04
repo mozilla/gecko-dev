@@ -10,7 +10,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bb6417a4cfac1416a
  1 file changed, 7 insertions(+)
 
 diff --git a/rtc_base/platform_thread.h b/rtc_base/platform_thread.h
-index cfc9d17af4..eeaa052d27 100644
+index db2b105da2..c70736888a 100644
 --- a/rtc_base/platform_thread.h
 +++ b/rtc_base/platform_thread.h
 @@ -22,8 +22,13 @@
@@ -19,7 +19,7 @@ index cfc9d17af4..eeaa052d27 100644
  
 +#include "rtc_base/deprecated/recursive_critical_section.h"
 +
- namespace rtc {
+ namespace webrtc {
  
 +// Bug 1691641
 +class PlatformUIThread;
@@ -35,4 +35,4 @@ index cfc9d17af4..eeaa052d27 100644
 +  friend PlatformUIThread;
  };
  
- }  // namespace rtc
+ }  //  namespace webrtc

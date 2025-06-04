@@ -57,8 +57,9 @@ rtc_library("frame_instrumentation_generator") {
     "../../modules/video_coding:video_coding_utility",
     "../../rtc_base:checks",
     "../../rtc_base:logging",
+    "../../rtc_base:macromagic",
+    "../../rtc_base/synchronization:mutex",
     "//third_party/abseil-cpp/absl/algorithm:container",
-    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 
@@ -156,13 +157,15 @@ if (rtc_include_tests) {
     sources = [ "frame_instrumentation_generator_unittest.cc" ]
     deps = [
       ":frame_instrumentation_generator",
+      "../../api:make_ref_counted",
       "../../api:scoped_refptr",
+      "../../api/video:corruption_detection_filter_settings",
       "../../api/video:encoded_image",
       "../../api/video:video_frame",
       "../../api/video:video_frame_type",
       "../../common_video:frame_instrumentation_data",
+      "../../rtc_base:refcount",
       "../../test:test_support",
-      "//third_party/abseil-cpp/absl/types:variant",
     ]
   }
 

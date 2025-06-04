@@ -46,13 +46,13 @@ class VideoRtpReceiver : public RtpReceiverInternal {
  public:
   // An SSRC of 0 will create a receiver that will match the first SSRC it
   // sees. Must be called on signaling thread.
-  VideoRtpReceiver(rtc::Thread* worker_thread,
+  VideoRtpReceiver(Thread* worker_thread,
                    std::string receiver_id,
                    std::vector<std::string> streams_ids);
   // TODO(hbos): Remove this when streams() is removed.
   // https://crbug.com/webrtc/9480
   VideoRtpReceiver(
-      rtc::Thread* worker_thread,
+      Thread* worker_thread,
       const std::string& receiver_id,
       const std::vector<rtc::scoped_refptr<MediaStreamInterface>>& streams);
 
@@ -68,8 +68,8 @@ class VideoRtpReceiver : public RtpReceiverInternal {
   std::vector<std::string> stream_ids() const override;
   std::vector<rtc::scoped_refptr<MediaStreamInterface>> streams()
       const override;
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
 
   std::string id() const override { return id_; }
@@ -146,7 +146,7 @@ class VideoRtpReceiver : public RtpReceiverInternal {
   } source_callback_{this};
 
   RTC_NO_UNIQUE_ADDRESS SequenceChecker signaling_thread_checker_;
-  rtc::Thread* const worker_thread_;
+  Thread* const worker_thread_;
 
   const std::string id_;
   cricket::VideoMediaReceiveChannelInterface* media_channel_

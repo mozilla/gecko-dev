@@ -585,7 +585,7 @@ void AudioProcessingImpl::InitializeLocked() {
   InitializeCaptureLevelsAdjuster();
 
   if (aec_dump_) {
-    aec_dump_->WriteInitMessage(formats_.api_format, rtc::TimeUTCMillis());
+    aec_dump_->WriteInitMessage(formats_.api_format, TimeUTCMillis());
   }
 }
 
@@ -1823,7 +1823,7 @@ void AudioProcessingImpl::AttachAecDump(std::unique_ptr<AecDump> aec_dump) {
   // 'aec_dump' parameter, which is after locks are released.
   aec_dump_.swap(aec_dump);
   WriteAecDumpConfigMessage(true);
-  aec_dump_->WriteInitMessage(formats_.api_format, rtc::TimeUTCMillis());
+  aec_dump_->WriteInitMessage(formats_.api_format, TimeUTCMillis());
 }
 
 void AudioProcessingImpl::DetachAecDump() {

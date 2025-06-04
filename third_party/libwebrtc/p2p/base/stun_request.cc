@@ -11,14 +11,23 @@
 #include "p2p/base/stun_request.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/memory/memory.h"
+#include "api/array_view.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/stun.h"
+#include "api/units/time_delta.h"
+#include "rtc_base/byte_buffer.h"
 #include "rtc_base/checks.h"
-#include "rtc_base/crypto_random.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/time_utils.h"  // For TimeMillis
@@ -259,7 +268,7 @@ const StunMessage* StunRequest::msg() const {
 
 int StunRequest::Elapsed() const {
   RTC_DCHECK_RUN_ON(network_thread());
-  return static_cast<int>(rtc::TimeMillis() - tstamp_);
+  return static_cast<int>(webrtc::TimeMillis() - tstamp_);
 }
 
 void StunRequest::SendInternal() {
@@ -270,7 +279,7 @@ void StunRequest::SendInternal() {
     return;
   }
 
-  tstamp_ = rtc::TimeMillis();
+  tstamp_ = webrtc::TimeMillis();
 
   rtc::ByteBufferWriter buf;
   msg_->Write(&buf);

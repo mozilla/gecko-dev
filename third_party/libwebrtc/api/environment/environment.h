@@ -22,20 +22,15 @@
 #include <utility>
 
 #include "absl/base/nullability.h"
+#include "api/field_trials_view.h"
 #include "api/ref_counted_base.h"
+#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/scoped_refptr.h"
+#include "api/task_queue/task_queue_factory.h"
 #include "rtc_base/system/rtc_export.h"
+#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
-
-// These classes are forward declared to keep Environment dependencies
-// lightweight. Users who need any of the types below should include their
-// header explicitely.
-class Clock;
-class TaskQueueFactory;
-class FieldTrialsView;
-class RtcEventLog;
-
 // Contains references to WebRTC utilities. Object of this class should be
 // passed as a construction parameter and saved by value in each class that
 // needs it. Most classes shouldn't create a new instance of the `Environment`,

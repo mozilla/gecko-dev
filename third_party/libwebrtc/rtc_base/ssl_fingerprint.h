@@ -18,11 +18,11 @@
 
 #include "absl/strings/string_view.h"
 #include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/rtc_certificate.h"
 #include "rtc_base/system/rtc_export.h"
 
 namespace rtc {
 
-class RTCCertificate;
 class SSLCertificate;
 class SSLIdentity;
 
@@ -50,7 +50,7 @@ struct RTC_EXPORT SSLFingerprint {
   // Creates a fingerprint from a certificate, using the same digest algorithm
   // as the certificate's signature.
   static std::unique_ptr<SSLFingerprint> CreateFromCertificate(
-      const RTCCertificate& cert);
+      const webrtc::RTCCertificate& cert);
 
   SSLFingerprint(absl::string_view algorithm,
                  ArrayView<const uint8_t> digest_view);

@@ -11,9 +11,17 @@
 #include "p2p/base/stun_dictionary.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
+#include <memory>
+#include <optional>
 #include <utility>
+#include <vector>
 
+#include "api/rtc_error.h"
+#include "api/transport/stun.h"
+#include "rtc_base/byte_buffer.h"
 #include "rtc_base/logging.h"
 
 namespace cricket {

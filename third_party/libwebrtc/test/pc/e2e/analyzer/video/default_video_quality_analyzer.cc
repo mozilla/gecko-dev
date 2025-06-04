@@ -205,11 +205,11 @@ uint16_t DefaultVideoQualityAnalyzer::OnFrameCaptured(
 
     auto state_it = stream_states_.find(stream_index);
     if (state_it == stream_states_.end()) {
-      stream_states_.emplace(stream_index,
-                             StreamState(peer_index, frame_receivers_indexes,
-                                         captured_time, clock_));
+      stream_states_.emplace(
+          stream_index, AnalyzerStreamState(peer_index, frame_receivers_indexes,
+                                            captured_time, clock_));
     }
-    StreamState* state = &stream_states_.at(stream_index);
+    AnalyzerStreamState* state = &stream_states_.at(stream_index);
     state->PushBack(frame_id);
     std::optional<TimeDelta> time_between_captured_frames = std::nullopt;
     if (state->last_captured_frame_time().has_value()) {
@@ -218,8 +218,8 @@ uint16_t DefaultVideoQualityAnalyzer::OnFrameCaptured(
     }
     state->SetLastCapturedFrameTime(captured_time);
     // Update frames in flight info.
-    auto it = captured_frames_in_flight_.find(frame_id);
-    if (it != captured_frames_in_flight_.end()) {
+    auto captured_frame_it = captured_frames_in_flight_.find(frame_id);
+    if (captured_frame_it != captured_frames_in_flight_.end()) {
       // If we overflow uint16_t and hit previous frame id and this frame is
       // still in flight, it means that this stream wasn't rendered for long
       // time and we need to process existing frame as dropped.
@@ -245,11 +245,11 @@ uint16_t DefaultVideoQualityAnalyzer::OnFrameCaptured(
             InternalStatsKey(stream_index, peer_index, i),
             /*captured=*/std::nullopt,
             /*rendered=*/std::nullopt, FrameComparisonType::kDroppedFrame,
-            it->second.GetStatsForPeer(i));
+            captured_frame_it->second.GetStatsForPeer(i));
       }
 
-      frames_storage_.Remove(it->second.id());
-      captured_frames_in_flight_.erase(it);
+      frames_storage_.Remove(captured_frame_it->second.id());
+      captured_frames_in_flight_.erase(captured_frame_it);
     }
     captured_frames_in_flight_.emplace(
         frame_id, FrameInFlight(stream_index, frame_id, captured_time,
@@ -348,7 +348,7 @@ void DefaultVideoQualityAnalyzer::OnFrameEncoded(
     }
   }
   Timestamp now = Now();
-  StreamState& state = stream_states_.at(frame_in_flight.stream());
+  AnalyzerStreamState& state = stream_states_.at(frame_in_flight.stream());
   std::optional<TimeDelta> time_between_encoded_frames = std::nullopt;
   if (state.last_encoded_frame_time().has_value()) {
     time_between_encoded_frames = now - *state.last_encoded_frame_time();
@@ -532,7 +532,7 @@ void DefaultVideoQualityAnalyzer::OnFrameRendered(
   std::optional<VideoFrame> captured_frame = frames_storage_.Get(frame.id());
 
   const size_t stream_index = frame_in_flight->stream();
-  StreamState* state = &stream_states_.at(stream_index);
+  AnalyzerStreamState* state = &stream_states_.at(stream_index);
   const InternalStatsKey stats_key(stream_index, state->sender(), peer_index);
 
   // Update frames counters.
@@ -791,7 +791,7 @@ void DefaultVideoQualityAnalyzer::Stop() {
 
     for (auto& state_entry : stream_states_) {
       const size_t stream_index = state_entry.first;
-      StreamState& stream_state = state_entry.second;
+      AnalyzerStreamState& stream_state = state_entry.second;
 
       // Populate `last_rendered_frame_times` map for all peers that were met in
       // call, not only for the currently presented ones.
@@ -951,9 +951,10 @@ uint16_t DefaultVideoQualityAnalyzer::GetNextFrameId() {
 }
 
 void DefaultVideoQualityAnalyzer::
-    AddExistingFramesInFlightForStreamToComparator(size_t stream_index,
-                                                   StreamState& stream_state,
-                                                   size_t peer_index) {
+    AddExistingFramesInFlightForStreamToComparator(
+        size_t stream_index,
+        AnalyzerStreamState& stream_state,
+        size_t peer_index) {
   InternalStatsKey stats_key(stream_index, stream_state.sender(), peer_index);
 
   // Add frames in flight for this stream into frames comparator.
@@ -977,7 +978,7 @@ int DefaultVideoQualityAnalyzer::ProcessNotSeenFramesBeforeRendered(
     size_t peer_index,
     uint16_t rendered_frame_id,
     const InternalStatsKey& stats_key,
-    StreamState& state) {
+    AnalyzerStreamState& state) {
   int dropped_count = 0;
   while (!state.IsEmpty(peer_index) &&
          state.Front(peer_index) != rendered_frame_id) {

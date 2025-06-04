@@ -11,13 +11,12 @@
 #ifndef P2P_BASE_PACKET_TRANSPORT_INTERNAL_H_
 #define P2P_BASE_PACKET_TRANSPORT_INTERNAL_H_
 
+#include <cstddef>
 #include <optional>
 #include <string>
-#include <utility>
-#include <vector>
 
 #include "absl/functional/any_invocable.h"
-#include "p2p/base/port.h"
+#include "api/sequence_checker.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/callback_list.h"
 #include "rtc_base/network/received_packet.h"
@@ -25,6 +24,7 @@
 #include "rtc_base/socket.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace rtc {
 struct PacketOptions;
@@ -56,11 +56,11 @@ class RTC_EXPORT PacketTransportInternal : public sigslot::has_slots<> {
 
   // Sets a socket option. Note that not all options are
   // supported by all transport types.
-  virtual int SetOption(rtc::Socket::Option opt, int value) = 0;
+  virtual int SetOption(webrtc::Socket::Option opt, int value) = 0;
 
   // TODO(pthatcher): Once Chrome's MockPacketTransportInterface implements
   // this, remove the default implementation.
-  virtual bool GetOption(rtc::Socket::Option opt, int* value);
+  virtual bool GetOption(webrtc::Socket::Option opt, int* value);
 
   // Returns the most recent error that occurred on this channel.
   virtual int GetError() = 0;

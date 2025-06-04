@@ -214,8 +214,8 @@ bool DtlsSrtpTransport::ExtractParams(
 
   int key_len;
   int salt_len;
-  if (!rtc::GetSrtpKeyAndSaltLengths((*selected_crypto_suite), &key_len,
-                                     &salt_len)) {
+  if (!GetSrtpKeyAndSaltLengths((*selected_crypto_suite), &key_len,
+                                &salt_len)) {
     RTC_LOG(LS_ERROR) << "Unknown DTLS-SRTP crypto suite"
                       << selected_crypto_suite;
     return false;
@@ -243,13 +243,13 @@ bool DtlsSrtpTransport::ExtractParams(
   server_write_key.AppendData(&dtls_buffer[key_len + key_len + salt_len],
                               salt_len);
 
-  rtc::SSLRole role;
+  SSLRole role;
   if (!dtls_transport->GetDtlsRole(&role)) {
     RTC_LOG(LS_WARNING) << "Failed to get the DTLS role.";
     return false;
   }
 
-  if (role == rtc::SSL_SERVER) {
+  if (role == SSL_SERVER) {
     *send_key = std::move(server_write_key);
     *recv_key = std::move(client_write_key);
   } else {

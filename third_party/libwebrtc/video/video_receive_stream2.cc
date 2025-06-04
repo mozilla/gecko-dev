@@ -411,7 +411,7 @@ void VideoReceiveStream2::Stop() {
   call_stats_->DeregisterStatsObserver(this);
 
   if (decoder_running_) {
-    rtc::Event done;
+    Event done;
     decode_queue_->PostTask([this, &done] {
       RTC_DCHECK_RUN_ON(&decode_sequence_checker_);
       // Set `decoder_stopped_` before deregistering all decoders. This means
@@ -423,7 +423,7 @@ void VideoReceiveStream2::Stop() {
       }
       done.Set();
     });
-    done.Wait(rtc::Event::kForever);
+    done.Wait(Event::kForever);
 
     decoder_running_ = false;
     stats_proxy_.DecoderThreadStopped();
@@ -543,7 +543,7 @@ void VideoReceiveStream2::CreateAndRegisterExternalDecoder(
     char filename_buffer[256];
     SimpleStringBuilder ssb(filename_buffer);
     ssb << decoded_output_file << "/webrtc_receive_stream_" << remote_ssrc()
-        << "-" << rtc::TimeMicros() << ".ivf";
+        << "-" << TimeMicros() << ".ivf";
     video_decoder = CreateFrameDumpingDecoderWrapper(
         std::move(video_decoder), FileWrapper::OpenWriteOnly(ssb.str()));
   }
@@ -972,16 +972,16 @@ int VideoReceiveStream2::DecodeAndMaybeDispatchEncodedFrame(
     }
     if (!pending_resolution.has_value() || !pending_resolution->empty()) {
       // Flush the buffered frames.
-      for (const auto& frame : buffered_encoded_frames_) {
+      for (const auto& buffered_frame : buffered_encoded_frames_) {
         RecordableEncodedFrame::EncodedResolution resolution{
-            frame->EncodedImage()._encodedWidth,
-            frame->EncodedImage()._encodedHeight};
-        if (IsKeyFrameAndUnspecifiedResolution(*frame)) {
+            buffered_frame->EncodedImage()._encodedWidth,
+            buffered_frame->EncodedImage()._encodedHeight};
+        if (IsKeyFrameAndUnspecifiedResolution(*buffered_frame)) {
           RTC_DCHECK(!pending_resolution->empty());
           resolution = *pending_resolution;
         }
         encoded_frame_buffer_function_(
-            WebRtcRecordableEncodedFrame(*frame, resolution));
+            WebRtcRecordableEncodedFrame(*buffered_frame, resolution));
       }
       buffered_encoded_frames_.clear();
     }
@@ -1108,7 +1108,7 @@ VideoReceiveStream2::RecordingState
 VideoReceiveStream2::SetAndGetRecordingState(RecordingState state,
                                              bool generate_key_frame) {
   RTC_DCHECK_RUN_ON(&worker_sequence_checker_);
-  rtc::Event event;
+  Event event;
 
   // Save old state, set the new state.
   RecordingState old_state;
@@ -1146,7 +1146,7 @@ VideoReceiveStream2::SetAndGetRecordingState(RecordingState state,
     }
   }
 
-  event.Wait(rtc::Event::kForever);
+  event.Wait(Event::kForever);
   return old_state;
 }
 

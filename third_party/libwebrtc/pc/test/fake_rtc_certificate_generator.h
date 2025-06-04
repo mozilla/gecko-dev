@@ -11,19 +11,22 @@
 #ifndef PC_TEST_FAKE_RTC_CERTIFICATE_GENERATOR_H_
 #define PC_TEST_FAKE_RTC_CERTIFICATE_GENERATOR_H_
 
+#include <cstdint>
 #include <optional>
 #include <string>
 #include <utility>
 
-#include "api/peer_connection_interface.h"
+#include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/units/time_delta.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/rtc_certificate_generator.h"
+#include "rtc_base/ssl_identity.h"
 
 // RSA with mod size 1024, pub exp 0x10001.
-static const rtc::RTCCertificatePEM kRsaPems[] = {
-    rtc::RTCCertificatePEM(
+static const webrtc::RTCCertificatePEM kRsaPems[] = {
+    webrtc::RTCCertificatePEM(
         "-----BEGIN RSA PRI"  // Linebreak to avoid detection of private
         "VATE KEY-----\n"     // keys by linters.
         "MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMYRkbhmI7kVA/rM\n"
@@ -52,7 +55,7 @@ static const rtc::RTCCertificatePEM kRsaPems[] = {
         "LJE/mGw3MyFHEqi81jh95J+ypl6xKW6Rm8jKLR87gUvCaVYn/Z4/P3AqcQTB7wOv\n"
         "UD0A8qfhfDM+LK6rPAnCsVN0NRDY3jvd6rzix9M=\n"
         "-----END CERTIFICATE-----\n"),
-    rtc::RTCCertificatePEM(
+    webrtc::RTCCertificatePEM(
         "-----BEGIN RSA PRI"  // Linebreak to avoid detection of private
         "VATE KEY-----\n"     // keys by linters.
         "MIICXQIBAAKBgQDeYqlyJ1wuiMsi905e3X81/WA/G3ym50PIDZBVtSwZi7JVQPgj\n"
@@ -90,8 +93,8 @@ static const rtc::RTCCertificatePEM kRsaPems[] = {
 // `SSLIdentity::Create` and invoking `identity->PrivateKeyToPEMString()`,
 // `identity->PublicKeyToPEMString()` and
 // `identity->certificate().ToPEMString()`.
-static const rtc::RTCCertificatePEM kEcdsaPems[] = {
-    rtc::RTCCertificatePEM(
+static const webrtc::RTCCertificatePEM kEcdsaPems[] = {
+    webrtc::RTCCertificatePEM(
         "-----BEGIN PRI"   // Linebreak to avoid detection of private
         "VATE KEY-----\n"  // keys by linters.
         "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg+qaRsR5uHtqG689M\n"
@@ -106,7 +109,7 @@ static const rtc::RTCCertificatePEM kEcdsaPems[] = {
         "vK0wCgYIKoZIzj0EAwIDSQAwRgIhAIIc3+CqfkZ9lLwTj1PvUtt3KhnqF2kD0War\n"
         "cCoTBbCxAiEAyp9Cn4vo2ZBhRIVDKyoxmwak8Z0PAVhJAQaWCgoY2D4=\n"
         "-----END CERTIFICATE-----\n"),
-    rtc::RTCCertificatePEM(
+    webrtc::RTCCertificatePEM(
         "-----BEGIN PRI"   // Linebreak to avoid detection of private
         "VATE KEY-----\n"  // keys by linters.
         "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQghL/G4JRYnuDNbQuh\n"
@@ -123,7 +126,7 @@ static const rtc::RTCCertificatePEM kEcdsaPems[] = {
         "-----END CERTIFICATE-----\n")};
 
 class FakeRTCCertificateGenerator
-    : public rtc::RTCCertificateGeneratorInterface {
+    : public webrtc::RTCCertificateGeneratorInterface {
  public:
   FakeRTCCertificateGenerator() : should_fail_(false), should_wait_(false) {}
 
@@ -161,12 +164,12 @@ class FakeRTCCertificateGenerator
         });
   }
 
-  static rtc::scoped_refptr<rtc::RTCCertificate> GenerateCertificate() {
+  static rtc::scoped_refptr<webrtc::RTCCertificate> GenerateCertificate() {
     switch (rtc::KT_DEFAULT) {
       case rtc::KT_RSA:
-        return rtc::RTCCertificate::FromPEM(kRsaPems[0]);
+        return webrtc::RTCCertificate::FromPEM(kRsaPems[0]);
       case rtc::KT_ECDSA:
-        return rtc::RTCCertificate::FromPEM(kEcdsaPems[0]);
+        return webrtc::RTCCertificate::FromPEM(kEcdsaPems[0]);
       default:
         RTC_DCHECK_NOTREACHED();
         return nullptr;
@@ -174,7 +177,7 @@ class FakeRTCCertificateGenerator
   }
 
  private:
-  const rtc::RTCCertificatePEM& get_pem(const rtc::KeyType& key_type) const {
+  const webrtc::RTCCertificatePEM& get_pem(const rtc::KeyType& key_type) const {
     switch (key_type) {
       case rtc::KT_RSA:
         return kRsaPems[key_index_];
@@ -208,8 +211,8 @@ class FakeRTCCertificateGenerator
       ++generated_failures_;
       std::move(callback)(nullptr);
     } else {
-      rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-          rtc::RTCCertificate::FromPEM(get_pem(key_type));
+      rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+          webrtc::RTCCertificate::FromPEM(get_pem(key_type));
       RTC_DCHECK(certificate);
       ++generated_certificates_;
       std::move(callback)(std::move(certificate));

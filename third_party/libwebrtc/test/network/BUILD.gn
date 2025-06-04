@@ -16,6 +16,7 @@ rtc_library("emulated_network") {
   ]
   if (rtc_include_tests) {
     visibility += [
+      "../../modules/congestion_controller/goog_cc:goog_cc_unittests",
       "../peer_scenario:*",
       "../scenario:*",
     ]
@@ -58,7 +59,6 @@ rtc_library("emulated_network") {
     "../../api/units:data_size",
     "../../api/units:time_delta",
     "../../api/units:timestamp",
-    "../../p2p:basic_packet_socket_factory",
     "../../p2p:p2p_server_utils",
     "../../p2p:port_interface",
     "../../rtc_base:async_packet_socket",

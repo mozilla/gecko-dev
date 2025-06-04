@@ -518,7 +518,8 @@ bool SrtpSession::GetSendStreamPacketIndex(rtc::CopyOnWriteBuffer& buffer,
   int64_t extended_seq_num = (roc << 16) + seq_num;
 
   // Shift extended sequence number, put into network byte order
-  *index = static_cast<int64_t>(rtc::NetworkToHost64(extended_seq_num << 16));
+  *index =
+      static_cast<int64_t>(webrtc::NetworkToHost64(extended_seq_num << 16));
   return true;
 }
 
@@ -560,7 +561,7 @@ bool SrtpSession::DoSetKey(int type,
   // Enable external HMAC authentication only for outgoing streams and only
   // for cipher suites that support it (i.e. only non-GCM cipher suites).
   if (type == ssrc_any_outbound && IsExternalAuthEnabled() &&
-      !rtc::IsGcmCryptoSuite(crypto_suite)) {
+      !webrtc::IsGcmCryptoSuite(crypto_suite)) {
     policy.rtp.auth_type = EXTERNAL_HMAC_SHA1;
   }
   if (!extension_ids.empty()) {
@@ -672,7 +673,7 @@ void SrtpSession::HandleEventThunk(srtp_event_data_t* ev) {
 // be inspected in Wireshark using the RTP, VP8 and H264 dissectors.
 void SrtpSession::DumpPacket(const rtc::CopyOnWriteBuffer& buffer,
                              bool outbound) {
-  int64_t time_of_day = rtc::TimeUTCMillis() % (24 * 3600 * 1000);
+  int64_t time_of_day = webrtc::TimeUTCMillis() % (24 * 3600 * 1000);
   int64_t hours = time_of_day / (3600 * 1000);
   int64_t minutes = (time_of_day / (60 * 1000)) % 60;
   int64_t seconds = (time_of_day / 1000) % 60;

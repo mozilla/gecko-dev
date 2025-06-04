@@ -21,7 +21,7 @@
 #include "rtc_base/time_utils.h"
 #include "test/gtest.h"
 
-namespace rtc {
+namespace webrtc {
 
 namespace {
 
@@ -32,8 +32,8 @@ static const char* kTestCertCommonName = "RTCCertificateTest's certificate";
 class RTCCertificateTest : public ::testing::Test {
  protected:
   scoped_refptr<RTCCertificate> GenerateECDSA() {
-    std::unique_ptr<SSLIdentity> identity(
-        SSLIdentity::Create(kTestCertCommonName, KeyParams::ECDSA()));
+    std::unique_ptr<rtc::SSLIdentity> identity(
+        rtc::SSLIdentity::Create(kTestCertCommonName, rtc::KeyParams::ECDSA()));
     RTC_CHECK(identity);
     return RTCCertificate::Create(std::move(identity));
   }
@@ -70,15 +70,16 @@ class RTCCertificateTest : public ::testing::Test {
       uint64_t expires_s) const {
     RTC_CHECK(webrtc::IsValueInRangeForNumericType<time_t>(expires_s));
 
-    SSLIdentityParams params;
+    rtc::SSLIdentityParams params;
     params.common_name = kTestCertCommonName;
     params.not_before = 0;
     params.not_after = static_cast<time_t>(expires_s);
     // Certificate type does not matter for our purposes, using ECDSA because it
     // is fast to generate.
-    params.key_params = KeyParams::ECDSA();
+    params.key_params = rtc::KeyParams::ECDSA();
 
-    std::unique_ptr<SSLIdentity> identity(SSLIdentity::CreateForTest(params));
+    std::unique_ptr<rtc::SSLIdentity> identity(
+        rtc::SSLIdentity::CreateForTest(params));
     return RTCCertificate::Create(std::move(identity));
   }
 };
@@ -137,4 +138,4 @@ TEST_F(RTCCertificateTest, FromPEMWithInvalidPEM) {
   EXPECT_FALSE(certificate);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

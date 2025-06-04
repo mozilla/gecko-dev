@@ -1,26 +1,24 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 7 Feb 2025 15:53:00 -0600
-Subject: Bug 1942428 - (fix-882b32d00f) fix
- -Wtautological-unsigned-zero-compare in payload_type.h
+Date: Tue, 13 May 2025 22:39:00 +0000
+Subject: Bug 1966238 - (fix-bf85c38fb3) fix build for our added 'pid' field in
+ DesktopCapturer::Source r?pehrsons!
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/f3ed04250e9ec1b22731ac690eb66bc96ff894d6
+Differential Revision: https://phabricator.services.mozilla.com/D249164
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b6b37905a574e7706d98eb683e6800c9525815e7
 ---
- call/payload_type.h | 4 ++++
- 1 file changed, 4 insertions(+)
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/call/payload_type.h b/call/payload_type.h
-index 672c489fc6..b2466f6d18 100644
---- a/call/payload_type.h
-+++ b/call/payload_type.h
-@@ -33,7 +33,11 @@ class PayloadType : public StrongAlias<class PayloadTypeTag, uint8_t> {
-     if (rtcp_mux && (id > 63 && id < 96)) {
-       return false;
-     }
-+#if defined(WEBRTC_MOZILLA_BUILD)
-+    return id <= 127; // id is unsigned, therefor always >= 0
-+#else
-     return id >= 0 && id <= 127;
-+#endif
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index f180d3bc62..a664c013bc 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -434,7 +434,7 @@ bool ScreenCapturerSck::GetSourceList(SourceList* sources) {
+   RTC_DCHECK_RUN_ON(&api_checker_);
+   sources->clear();
+   if (capture_options_.allow_sck_system_picker() && picker_handle_) {
+-    sources->push_back({picker_handle_->Source(), std::string()});
++    sources->push_back({picker_handle_->Source(), 0, std::string()});
    }
-   template <typename Sink>
-   friend void AbslStringify(Sink& sink, const PayloadType pt) {
+   return true;
+ }

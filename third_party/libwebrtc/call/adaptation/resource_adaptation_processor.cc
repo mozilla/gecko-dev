@@ -19,11 +19,19 @@
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
+#include "api/adaptation/resource.h"
+#include "api/make_ref_counted.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
 #include "api/video/video_adaptation_counters.h"
+#include "call/adaptation/resource_adaptation_processor_interface.h"
+#include "call/adaptation/video_source_restrictions.h"
 #include "call/adaptation/video_stream_adapter.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/synchronization/mutex.h"
 
 namespace webrtc {
 

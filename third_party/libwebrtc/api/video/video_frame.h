@@ -108,7 +108,8 @@ class RTC_EXPORT VideoFrame {
         const rtc::scoped_refptr<VideoFrameBuffer>& buffer);
     Builder& set_timestamp_ms(int64_t timestamp_ms);
     Builder& set_timestamp_us(int64_t timestamp_us);
-    Builder& set_capture_time_identifier(
+    [[deprecated("Use set_presentation_timestamp instead")]] Builder&
+    set_capture_time_identifier(
         const std::optional<Timestamp>& presentation_timestamp);
     Builder& set_presentation_timestamp(
         const std::optional<Timestamp>& presentation_timestamp);

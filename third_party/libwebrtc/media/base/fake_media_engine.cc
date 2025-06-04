@@ -10,14 +10,40 @@
 
 #include "media/base/fake_media_engine.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <map>
 #include <memory>
 #include <optional>
+#include <string>
 #include <utility>
+#include <vector>
 
-#include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
+#include "api/audio/audio_device.h"
+#include "api/audio_codecs/audio_codec_pair_id.h"
+#include "api/audio_options.h"
+#include "api/call/audio_sink.h"
+#include "api/crypto/crypto_options.h"
+#include "api/make_ref_counted.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/rtp/rtp_source.h"
+#include "api/video/recordable_encoded_frame.h"
+#include "api/video/video_bitrate_allocator_factory.h"
+#include "api/video/video_sink_interface.h"
+#include "api/video/video_source_interface.h"
+#include "call/audio_state.h"
+#include "call/call.h"
+#include "media/base/codec.h"
 #include "media/base/media_channel.h"
+#include "media/base/media_config.h"
+#include "media/base/media_engine.h"
+#include "media/base/stream_params.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/system/file_wrapper.h"
 
 namespace cricket {
 using webrtc::TaskQueueBase;
@@ -534,7 +560,10 @@ bool FakeVideoMediaReceiveChannel::GetStats(VideoMediaReceiveInfo* /* info */) {
   return false;
 }
 
-FakeVoiceEngine::FakeVoiceEngine() {
+FakeVoiceEngine::FakeVoiceEngine()
+    : encoder_factory_(webrtc::make_ref_counted<FakeVoiceEncoderFactory>(this)),
+      decoder_factory_(
+          webrtc::make_ref_counted<FakeVoiceDecoderFactory>(this)) {
   // Add a fake audio codec. Note that the name must not be "" as there are
   // sanity checks against that.
   SetCodecs({cricket::CreateAudioCodec(101, "fake_audio_codec", 8000, 1)});
@@ -567,10 +596,10 @@ FakeVoiceEngine::CreateReceiveChannel(
                                                      call->network_thread());
   return ch;
 }
-const std::vector<Codec>& FakeVoiceEngine::send_codecs() const {
+const std::vector<Codec>& FakeVoiceEngine::LegacySendCodecs() const {
   return send_codecs_;
 }
-const std::vector<Codec>& FakeVoiceEngine::recv_codecs() const {
+const std::vector<Codec>& FakeVoiceEngine::LegacyRecvCodecs() const {
   return recv_codecs_;
 }
 void FakeVoiceEngine::SetCodecs(const std::vector<Codec>& codecs) {
@@ -640,11 +669,11 @@ FakeVideoEngine::CreateReceiveChannel(
                                                      call->network_thread());
   return ch;
 }
-std::vector<Codec> FakeVideoEngine::send_codecs(bool /* use_rtx */) const {
+std::vector<Codec> FakeVideoEngine::LegacySendCodecs(bool /* use_rtx */) const {
   return send_codecs_;
 }
 
-std::vector<Codec> FakeVideoEngine::recv_codecs(bool /* use_rtx */) const {
+std::vector<Codec> FakeVideoEngine::LegacyRecvCodecs(bool /* use_rtx */) const {
   return recv_codecs_;
 }
 

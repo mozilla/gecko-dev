@@ -111,7 +111,7 @@ class VideoCodecUnitTest : public ::testing::Test {
   FakeEncodeCompleteCallback encode_complete_callback_;
   FakeDecodeCompleteCallback decode_complete_callback_;
 
-  rtc::Event encoded_frame_event_;
+  Event encoded_frame_event_;
   Mutex encoded_frame_section_;
   size_t wait_for_encoded_frames_threshold_;
   std::vector<EncodedImage> encoded_frames_
@@ -119,7 +119,7 @@ class VideoCodecUnitTest : public ::testing::Test {
   std::vector<CodecSpecificInfo> codec_specific_infos_
       RTC_GUARDED_BY(encoded_frame_section_);
 
-  rtc::Event decoded_frame_event_;
+  Event decoded_frame_event_;
   Mutex decoded_frame_section_;
   std::optional<VideoFrame> decoded_frame_
       RTC_GUARDED_BY(decoded_frame_section_);

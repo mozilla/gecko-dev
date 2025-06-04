@@ -10,6 +10,9 @@
 
 #include "p2p/base/transport_description.h"
 
+#include <string>
+
+#include "api/rtc_error.h"
 #include "test/gtest.h"
 
 using webrtc::RTCErrorType;

@@ -74,7 +74,7 @@ struct SetupMessage {
 class DataChannelServerObserverImpl : public webrtc::DataChannelObserver {
  public:
   explicit DataChannelServerObserverImpl(webrtc::DataChannelInterface* dc,
-                                         rtc::Thread* signaling_thread)
+                                         webrtc::Thread* signaling_thread)
       : dc_(dc), signaling_thread_(signaling_thread) {}
 
   void OnStateChange() override {
@@ -113,10 +113,12 @@ class DataChannelServerObserverImpl : public webrtc::DataChannelObserver {
 
   bool IsOkToCallOnTheNetworkThread() override { return true; }
 
-  bool WaitForClosedState() { return closed_event_.Wait(rtc::Event::kForever); }
+  bool WaitForClosedState() {
+    return closed_event_.Wait(webrtc::Event::kForever);
+  }
 
   bool WaitForSetupMessage() {
-    return setup_message_event_.Wait(rtc::Event::kForever);
+    return setup_message_event_.Wait(webrtc::Event::kForever);
   }
 
   void StartSending() {
@@ -168,9 +170,9 @@ class DataChannelServerObserverImpl : public webrtc::DataChannelObserver {
   }
 
   webrtc::DataChannelInterface* const dc_;
-  rtc::Thread* const signaling_thread_;
-  rtc::Event closed_event_;
-  rtc::Event setup_message_event_;
+  webrtc::Thread* const signaling_thread_;
+  webrtc::Event closed_event_;
+  webrtc::Event setup_message_event_;
   size_t remaining_data_ = 0u;
   size_t total_queued_up_ = 0u;
   struct SetupMessage setup_;
@@ -206,17 +208,17 @@ class DataChannelClientObserverImpl : public webrtc::DataChannelObserver {
   void OnBufferedAmountChange(uint64_t sent_data_size) override {}
   bool IsOkToCallOnTheNetworkThread() override { return true; }
 
-  bool WaitForOpenState() { return open_event_.Wait(rtc::Event::kForever); }
+  bool WaitForOpenState() { return open_event_.Wait(webrtc::Event::kForever); }
 
   // Wait until the received byte count reaches the desired value.
   bool WaitForBytesReceivedThreshold() {
-    return bytes_received_event_.Wait(rtc::Event::kForever);
+    return bytes_received_event_.Wait(webrtc::Event::kForever);
   }
 
  private:
   webrtc::DataChannelInterface* const dc_;
-  rtc::Event open_event_;
-  rtc::Event bytes_received_event_;
+  webrtc::Event open_event_;
+  webrtc::Event bytes_received_event_;
   const uint64_t bytes_received_threshold_;
   uint64_t bytes_received_ = 0u;
 };
@@ -225,7 +227,7 @@ int RunServer() {
   bool oneshot = absl::GetFlag(FLAGS_oneshot);
   uint16_t port = absl::GetFlag(FLAGS_port);
 
-  auto signaling_thread = rtc::Thread::Create();
+  auto signaling_thread = webrtc::Thread::Create();
   signaling_thread->Start();
   {
     auto factory = webrtc::PeerConnectionClient::CreateDefaultFactory(
@@ -295,7 +297,7 @@ int RunClient() {
   size_t transfer_size = absl::GetFlag(FLAGS_transfer_size) * 1024 * 1024;
   size_t packet_size = absl::GetFlag(FLAGS_packet_size);
 
-  auto signaling_thread = rtc::Thread::Create();
+  auto signaling_thread = webrtc::Thread::Create();
   signaling_thread->Start();
   {
     auto factory = webrtc::PeerConnectionClient::CreateDefaultFactory(
@@ -309,7 +311,7 @@ int RunClient() {
 
     // Set up the callback to receive the data channel from the sender.
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel;
-    rtc::Event got_data_channel;
+    webrtc::Event got_data_channel;
     client.SetOnDataChannel(
         [&](rtc::scoped_refptr<webrtc::DataChannelInterface> channel) {
           data_channel = std::move(channel);
@@ -327,7 +329,7 @@ int RunClient() {
     }
 
     // Wait for the data channel to be received
-    got_data_channel.Wait(rtc::Event::kForever);
+    got_data_channel.Wait(webrtc::Event::kForever);
 
     absl::Cleanup unregister_observer(
         [data_channel] { data_channel->UnregisterObserver(); });

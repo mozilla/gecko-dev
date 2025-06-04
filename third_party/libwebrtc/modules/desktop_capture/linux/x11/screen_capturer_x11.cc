@@ -239,7 +239,7 @@ void ScreenCapturerX11::Start(Callback* callback) {
 
 void ScreenCapturerX11::CaptureFrame() {
   TRACE_EVENT0("webrtc", "ScreenCapturerX11::CaptureFrame");
-  int64_t capture_start_time_nanos = rtc::TimeNanos();
+  int64_t capture_start_time_nanos = TimeNanos();
 
   queue_.MoveToNextFrame();
   if (queue_.current_frame() && queue_.current_frame()->IsShared()) {
@@ -280,8 +280,8 @@ void ScreenCapturerX11::CaptureFrame() {
   }
 
   last_invalid_region_ = result->updated_region();
-  result->set_capture_time_ms((rtc::TimeNanos() - capture_start_time_nanos) /
-                              rtc::kNumNanosecsPerMillisec);
+  result->set_capture_time_ms((TimeNanos() - capture_start_time_nanos) /
+                              kNumNanosecsPerMillisec);
   result->set_capturer_id(DesktopCapturerId::kX11CapturerLinux);
   callback_->OnCaptureResult(Result::SUCCESS, std::move(result));
 }

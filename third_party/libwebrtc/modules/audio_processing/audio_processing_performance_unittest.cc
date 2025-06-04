@@ -493,14 +493,14 @@ class CallSimulator : public ::testing::TestWithParam<SimulationConfig> {
   // Start the threads used in the test.
   void StartThreads() {
     const auto attributes =
-        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kRealtime);
-    render_thread_ = rtc::PlatformThread::SpawnJoinable(
+        ThreadAttributes().SetPriority(ThreadPriority::kRealtime);
+    render_thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (render_thread_state_->Process()) {
           }
         },
         "render", attributes);
-    capture_thread_ = rtc::PlatformThread::SpawnJoinable(
+    capture_thread_ = PlatformThread::SpawnJoinable(
         [this] {
           while (capture_thread_state_->Process()) {
           }
@@ -509,7 +509,7 @@ class CallSimulator : public ::testing::TestWithParam<SimulationConfig> {
   }
 
   // Event handler for the test.
-  rtc::Event test_complete_;
+  Event test_complete_;
 
   // Thread related variables.
   Random rand_gen_;
@@ -520,8 +520,8 @@ class CallSimulator : public ::testing::TestWithParam<SimulationConfig> {
   LockedFlag capture_call_checker_;
   std::unique_ptr<TimedThreadApiProcessor> render_thread_state_;
   std::unique_ptr<TimedThreadApiProcessor> capture_thread_state_;
-  rtc::PlatformThread render_thread_;
-  rtc::PlatformThread capture_thread_;
+  PlatformThread render_thread_;
+  PlatformThread capture_thread_;
 };
 
 // Implements the callback functionality for the threads.

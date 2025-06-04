@@ -381,7 +381,7 @@ bool StunMessage::ValidateMessageIntegrityOfType(int mi_attr_type,
   }
 
   // Getting the message length from the STUN header.
-  uint16_t msg_length = rtc::GetBE16(&data[2]);
+  uint16_t msg_length = webrtc::GetBE16(&data[2]);
   if (size != (msg_length + kStunHeaderSize)) {
     return false;
   }
@@ -392,8 +392,8 @@ bool StunMessage::ValidateMessageIntegrityOfType(int mi_attr_type,
   while (current_pos + 4 <= size) {
     uint16_t attr_type, attr_length;
     // Getting attribute type and length.
-    attr_type = rtc::GetBE16(&data[current_pos]);
-    attr_length = rtc::GetBE16(&data[current_pos + sizeof(attr_type)]);
+    attr_type = webrtc::GetBE16(&data[current_pos]);
+    attr_length = webrtc::GetBE16(&data[current_pos + sizeof(attr_type)]);
 
     // If M-I, sanity check it, and break out.
     if (attr_type == mi_attr_type) {
@@ -434,7 +434,8 @@ bool StunMessage::ValidateMessageIntegrityOfType(int mi_attr_type,
     //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //     |0 0|     STUN Message Type     |         Message Length        |
     //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    rtc::SetBE16(temp_data.get() + 2, static_cast<uint16_t>(new_adjusted_len));
+    webrtc::SetBE16(temp_data.get() + 2,
+                    static_cast<uint16_t>(new_adjusted_len));
   }
 
   char hmac[kStunMessageIntegritySize];
@@ -510,26 +511,26 @@ bool StunMessage::ValidateFingerprint(const char* data, size_t size) {
   // Skip the rest if the magic cookie isn't present.
   const char* magic_cookie =
       data + kStunTransactionIdOffset - kStunMagicCookieLength;
-  if (rtc::GetBE32(magic_cookie) != kStunMagicCookie)
+  if (webrtc::GetBE32(magic_cookie) != kStunMagicCookie)
     return false;
 
   // Check the fingerprint type and length.
   const char* fingerprint_attr_data = data + size - fingerprint_attr_size;
-  if (rtc::GetBE16(fingerprint_attr_data) != STUN_ATTR_FINGERPRINT ||
-      rtc::GetBE16(fingerprint_attr_data + sizeof(uint16_t)) !=
+  if (webrtc::GetBE16(fingerprint_attr_data) != STUN_ATTR_FINGERPRINT ||
+      webrtc::GetBE16(fingerprint_attr_data + sizeof(uint16_t)) !=
           StunUInt32Attribute::SIZE)
     return false;
 
   // Check the fingerprint value.
   uint32_t fingerprint =
-      rtc::GetBE32(fingerprint_attr_data + kStunAttributeHeaderSize);
+      webrtc::GetBE32(fingerprint_attr_data + kStunAttributeHeaderSize);
   return ((fingerprint ^ STUN_FINGERPRINT_XOR_VALUE) ==
-          rtc::ComputeCrc32(data, size - fingerprint_attr_size));
+          webrtc::ComputeCrc32(data, size - fingerprint_attr_size));
 }
 
 // static
 std::string StunMessage::GenerateTransactionId() {
-  return rtc::CreateRandomString(kStunTransactionIdLength);
+  return webrtc::CreateRandomString(kStunTransactionIdLength);
 }
 
 bool StunMessage::IsStunMethod(rtc::ArrayView<int> methods,
@@ -542,10 +543,10 @@ bool StunMessage::IsStunMethod(rtc::ArrayView<int> methods,
   // Skip the rest if the magic cookie isn't present.
   const char* magic_cookie =
       data + kStunTransactionIdOffset - kStunMagicCookieLength;
-  if (rtc::GetBE32(magic_cookie) != kStunMagicCookie)
+  if (webrtc::GetBE32(magic_cookie) != kStunMagicCookie)
     return false;
 
-  int method = rtc::GetBE16(data);
+  int method = webrtc::GetBE16(data);
   for (int m : methods) {
     if (m == method) {
       return true;
@@ -569,7 +570,7 @@ bool StunMessage::AddFingerprint() {
 
   int msg_len_for_crc32 = static_cast<int>(
       buf.Length() - kStunAttributeHeaderSize - fingerprint_attr->length());
-  uint32_t c = rtc::ComputeCrc32(buf.Data(), msg_len_for_crc32);
+  uint32_t c = webrtc::ComputeCrc32(buf.Data(), msg_len_for_crc32);
 
   // Insert the correct CRC-32, XORed with a constant, into the attribute.
   fingerprint_attr->SetValue(c ^ STUN_FINGERPRINT_XOR_VALUE);
@@ -608,7 +609,7 @@ bool StunMessage::Read(ByteBufferReader* buf) {
   static_assert(sizeof(magic_cookie_int) == kStunMagicCookieLength,
                 "Integer size mismatch: magic_cookie_int and kStunMagicCookie");
   std::memcpy(&magic_cookie_int, magic_cookie.data(), sizeof(magic_cookie_int));
-  if (rtc::NetworkToHost32(magic_cookie_int) != kStunMagicCookie) {
+  if (webrtc::NetworkToHost32(magic_cookie_int) != kStunMagicCookie) {
     // If magic cookie is invalid it means that the peer implements
     // RFC3489 instead of RFC5389.
     transaction_id.insert(0, magic_cookie);
@@ -876,7 +877,7 @@ StunAttribute::CreateUnknownAttributes() {
 }
 
 StunAddressAttribute::StunAddressAttribute(uint16_t type,
-                                           const rtc::SocketAddress& addr)
+                                           const webrtc::SocketAddress& addr)
     : StunAttribute(type, 0) {
   SetAddress(addr);
 }
@@ -909,8 +910,8 @@ bool StunAddressAttribute::Read(ByteBufferReader* buf) {
                                            sizeof(v4addr)))) {
       return false;
     }
-    rtc::IPAddress ipaddr(v4addr);
-    SetAddress(rtc::SocketAddress(ipaddr, port));
+    webrtc::IPAddress ipaddr(v4addr);
+    SetAddress(webrtc::SocketAddress(ipaddr, port));
   } else if (stun_family == STUN_ADDRESS_IPV6) {
     in6_addr v6addr;
     if (length() != SIZE_IP6) {
@@ -920,8 +921,8 @@ bool StunAddressAttribute::Read(ByteBufferReader* buf) {
                                            sizeof(v6addr)))) {
       return false;
     }
-    rtc::IPAddress ipaddr(v6addr);
-    SetAddress(rtc::SocketAddress(ipaddr, port));
+    webrtc::IPAddress ipaddr(v6addr);
+    SetAddress(webrtc::SocketAddress(ipaddr, port));
   } else {
     return false;
   }
@@ -954,8 +955,9 @@ bool StunAddressAttribute::Write(ByteBufferWriter* buf) const {
   return true;
 }
 
-StunXorAddressAttribute::StunXorAddressAttribute(uint16_t type,
-                                                 const rtc::SocketAddress& addr)
+StunXorAddressAttribute::StunXorAddressAttribute(
+    uint16_t type,
+    const webrtc::SocketAddress& addr)
     : StunAddressAttribute(type, addr), owner_(NULL) {}
 
 StunXorAddressAttribute::StunXorAddressAttribute(uint16_t type,
@@ -971,15 +973,15 @@ void StunXorAddressAttribute::SetOwner(StunMessage* owner) {
   owner_ = owner;
 }
 
-rtc::IPAddress StunXorAddressAttribute::GetXoredIP() const {
+webrtc::IPAddress StunXorAddressAttribute::GetXoredIP() const {
   if (owner_) {
-    rtc::IPAddress ip = ipaddr();
+    webrtc::IPAddress ip = ipaddr();
     switch (ip.family()) {
       case AF_INET: {
         in_addr v4addr = ip.ipv4_address();
         v4addr.s_addr =
-            (v4addr.s_addr ^ rtc::HostToNetwork32(kStunMagicCookie));
-        return rtc::IPAddress(v4addr);
+            (v4addr.s_addr ^ webrtc::HostToNetwork32(kStunMagicCookie));
+        return webrtc::IPAddress(v4addr);
       }
       case AF_INET6: {
         in6_addr v6addr = ip.ipv6_address();
@@ -992,11 +994,11 @@ rtc::IPAddress StunXorAddressAttribute::GetXoredIP() const {
           // Transaction ID is in network byte order, but magic cookie
           // is stored in host byte order.
           ip_as_ints[0] =
-              (ip_as_ints[0] ^ rtc::HostToNetwork32(kStunMagicCookie));
+              (ip_as_ints[0] ^ webrtc::HostToNetwork32(kStunMagicCookie));
           ip_as_ints[1] = (ip_as_ints[1] ^ transactionid_as_ints[0]);
           ip_as_ints[2] = (ip_as_ints[2] ^ transactionid_as_ints[1]);
           ip_as_ints[3] = (ip_as_ints[3] ^ transactionid_as_ints[2]);
-          return rtc::IPAddress(v6addr);
+          return webrtc::IPAddress(v6addr);
         }
         break;
       }
@@ -1004,15 +1006,15 @@ rtc::IPAddress StunXorAddressAttribute::GetXoredIP() const {
   }
   // Invalid ip family or transaction ID, or missing owner.
   // Return an AF_UNSPEC address.
-  return rtc::IPAddress();
+  return webrtc::IPAddress();
 }
 
 bool StunXorAddressAttribute::Read(ByteBufferReader* buf) {
   if (!StunAddressAttribute::Read(buf))
     return false;
   uint16_t xoredport = port() ^ (kStunMagicCookie >> 16);
-  rtc::IPAddress xored_ip = GetXoredIP();
-  SetAddress(rtc::SocketAddress(xored_ip, xoredport));
+  webrtc::IPAddress xored_ip = GetXoredIP();
+  SetAddress(webrtc::SocketAddress(xored_ip, xoredport));
   return true;
 }
 
@@ -1022,7 +1024,7 @@ bool StunXorAddressAttribute::Write(ByteBufferWriter* buf) const {
     RTC_LOG(LS_ERROR) << "Error writing xor-address attribute: unknown family.";
     return false;
   }
-  rtc::IPAddress xored_ip = GetXoredIP();
+  webrtc::IPAddress xored_ip = GetXoredIP();
   if (xored_ip.family() == AF_UNSPEC) {
     return false;
   }

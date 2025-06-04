@@ -64,7 +64,7 @@ class BitrateAdjusterTest : public ::testing::Test {
  protected:
   static const float kMinAdjustedBitratePct;
   static const float kMaxAdjustedBitratePct;
-  rtc::ScopedFakeClock clock_;
+  ScopedFakeClock clock_;
   BitrateAdjuster adjuster_;
 };
 

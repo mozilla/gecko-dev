@@ -12,33 +12,65 @@
 #define MEDIA_BASE_FAKE_MEDIA_ENGINE_H_
 
 #include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/base/nullability.h"
 #include "absl/functional/any_invocable.h"
-#include "api/audio/audio_processing.h"
+#include "absl/strings/string_view.h"
+#include "api/audio/audio_device.h"
+#include "api/audio_codecs/audio_codec_pair_id.h"
+#include "api/audio_codecs/audio_decoder.h"
+#include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/audio_codecs/audio_encoder.h"
+#include "api/audio_codecs/audio_encoder_factory.h"
+#include "api/audio_codecs/audio_format.h"
+#include "api/audio_options.h"
 #include "api/call/audio_sink.h"
+#include "api/crypto/crypto_options.h"
+#include "api/crypto/frame_decryptor_interface.h"
+#include "api/crypto/frame_encryptor_interface.h"
+#include "api/environment/environment.h"
+#include "api/frame_transformer_interface.h"
 #include "api/media_types.h"
+#include "api/rtc_error.h"
+#include "api/rtp_headers.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_sender_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/rtp/rtp_source.h"
+#include "api/video/recordable_encoded_frame.h"
+#include "api/video/video_bitrate_allocator_factory.h"
+#include "api/video/video_sink_interface.h"
+#include "api/video/video_source_interface.h"
+#include "call/audio_state.h"
 #include "media/base/audio_source.h"
+#include "media/base/codec.h"
 #include "media/base/media_channel.h"
 #include "media/base/media_channel_impl.h"
+#include "media/base/media_config.h"
 #include "media/base/media_engine.h"
 #include "media/base/rtp_utils.h"
 #include "media/base/stream_params.h"
-#include "media/engine/webrtc_video_engine.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
-#include "rtc_base/thread.h"
+#include "rtc_base/system/file_wrapper.h"
 #include "test/explicit_key_value_config.h"
-#include "test/scoped_key_value_config.h"
 
 using webrtc::RtpExtension;
 
@@ -471,8 +503,8 @@ class FakeVoiceMediaReceiveChannel
   VoiceMediaReceiveChannelInterface* AsVoiceReceiveChannel() override {
     return this;
   }
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_AUDIO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
   }
 
   bool SetReceiverParameters(const AudioReceiverParameters& params) override;
@@ -563,8 +595,8 @@ class FakeVoiceMediaSendChannel
     return nullptr;
   }
   VoiceMediaSendChannelInterface* AsVoiceSendChannel() override { return this; }
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_AUDIO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
   }
 
   bool SetSenderParameters(const AudioSenderParameter& params) override;
@@ -641,8 +673,8 @@ class FakeVideoMediaReceiveChannel
   VoiceMediaReceiveChannelInterface* AsVoiceReceiveChannel() override {
     return nullptr;
   }
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
 
   const std::vector<Codec>& recv_codecs() const;
@@ -715,8 +747,8 @@ class FakeVideoMediaSendChannel
   VoiceMediaSendChannelInterface* AsVoiceSendChannel() override {
     return nullptr;
   }
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
 
   const std::vector<Codec>& send_codecs() const;
@@ -787,8 +819,15 @@ class FakeVoiceEngine : public VoiceEngineInterface {
 
   // TODO(ossu): For proper testing, These should either individually settable
   //             or the voice engine should reference mockable factories.
-  const std::vector<Codec>& send_codecs() const override;
-  const std::vector<Codec>& recv_codecs() const override;
+  // TODO: https://issues.webrtc.org/360058654 - stop faking codecs here.
+  const std::vector<Codec>& LegacySendCodecs() const override;
+  const std::vector<Codec>& LegacyRecvCodecs() const override;
+  webrtc::AudioEncoderFactory* encoder_factory() const override {
+    return encoder_factory_.get();
+  }
+  webrtc::AudioDecoderFactory* decoder_factory() const override {
+    return decoder_factory_.get();
+  }
   void SetCodecs(const std::vector<Codec>& codecs);
   void SetRecvCodecs(const std::vector<Codec>& codecs);
   void SetSendCodecs(const std::vector<Codec>& codecs);
@@ -803,8 +842,66 @@ class FakeVoiceEngine : public VoiceEngineInterface {
       std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions);
 
  private:
+  class FakeVoiceEncoderFactory : public webrtc::AudioEncoderFactory {
+   public:
+    explicit FakeVoiceEncoderFactory(FakeVoiceEngine* owner) : owner_(owner) {}
+    std::vector<webrtc::AudioCodecSpec> GetSupportedEncoders() override {
+      // The reason for this convoluted mapping is because there are
+      // too many tests that expect to push codecs into the fake voice
+      // engine's "send_codecs/recv_codecs" and have them show up later.
+      std::vector<webrtc::AudioCodecSpec> specs;
+      for (const auto& codec : owner_->send_codecs_) {
+        specs.push_back(webrtc::AudioCodecSpec{
+            {codec.name, codec.clockrate, codec.channels},
+            {codec.clockrate, codec.channels, codec.bitrate}});
+      }
+      return specs;
+    }
+    std::optional<webrtc::AudioCodecInfo> QueryAudioEncoder(
+        const webrtc::SdpAudioFormat& format) override {
+      return std::nullopt;
+    }
+    absl::Nullable<std::unique_ptr<webrtc::AudioEncoder>> Create(
+        const webrtc::Environment& env,
+        const webrtc::SdpAudioFormat& format,
+        Options options) override {
+      return nullptr;
+    }
+    FakeVoiceEngine* owner_;
+  };
+  class FakeVoiceDecoderFactory : public webrtc::AudioDecoderFactory {
+   public:
+    explicit FakeVoiceDecoderFactory(FakeVoiceEngine* owner) : owner_(owner) {}
+    std::vector<webrtc::AudioCodecSpec> GetSupportedDecoders() override {
+      // The reason for this convoluted mapping is because there are
+      // too many tests that expect to push codecs into the fake voice
+      // engine's "send_codecs/recv_codecs" and have them show up later.
+      std::vector<webrtc::AudioCodecSpec> specs;
+      for (const auto& codec : owner_->recv_codecs_) {
+        specs.push_back(webrtc::AudioCodecSpec{
+            {codec.name, codec.clockrate, codec.channels},
+            {codec.clockrate, codec.channels, codec.bitrate}});
+      }
+      return specs;
+    }
+    bool IsSupportedDecoder(const webrtc::SdpAudioFormat& format) override {
+      return false;
+    }
+    absl::Nullable<std::unique_ptr<webrtc::AudioDecoder>> Create(
+        const webrtc::Environment& env,
+        const webrtc::SdpAudioFormat& format,
+        std::optional<webrtc::AudioCodecPairId> codec_pair_id) override {
+      return nullptr;
+    }
+
+   private:
+    FakeVoiceEngine* owner_;
+  };
+
   std::vector<Codec> recv_codecs_;
   std::vector<Codec> send_codecs_;
+  webrtc::scoped_refptr<FakeVoiceEncoderFactory> encoder_factory_;
+  webrtc::scoped_refptr<FakeVoiceDecoderFactory> decoder_factory_;
   std::vector<webrtc::RtpHeaderExtensionCapability> header_extensions_;
 
   friend class FakeMediaEngine;
@@ -829,10 +926,14 @@ class FakeVideoEngine : public VideoEngineInterface {
   FakeVideoMediaSendChannel* GetSendChannel(size_t index);
   FakeVideoMediaReceiveChannel* GetReceiveChannel(size_t index);
 
-  std::vector<Codec> send_codecs() const override { return send_codecs(true); }
-  std::vector<Codec> recv_codecs() const override { return recv_codecs(true); }
-  std::vector<Codec> send_codecs(bool include_rtx) const override;
-  std::vector<Codec> recv_codecs(bool include_rtx) const override;
+  std::vector<Codec> LegacySendCodecs() const override {
+    return LegacySendCodecs(true);
+  }
+  std::vector<Codec> LegacyRecvCodecs() const override {
+    return LegacyRecvCodecs(true);
+  }
+  std::vector<Codec> LegacySendCodecs(bool include_rtx) const override;
+  std::vector<Codec> LegacyRecvCodecs(bool include_rtx) const override;
   void SetSendCodecs(const std::vector<Codec>& codecs);
   void SetRecvCodecs(const std::vector<Codec>& codecs);
   bool SetCapture(bool capture);

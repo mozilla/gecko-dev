@@ -268,7 +268,7 @@ class VideoReceiveStream2Test : public ::testing::TestWithParam<bool> {
   internal::CallStats call_stats_;
   testing::NiceMock<MockVideoDecoder> mock_decoder_;
   FakeVideoRenderer fake_renderer_;
-  cricket::FakeCall fake_call_;
+  FakeCall fake_call_;
   MockTransport mock_transport_;
   test::RtcpPacketParser rtcp_packet_parser_;
   PacketRouter packet_router_;

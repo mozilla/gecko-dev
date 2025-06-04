@@ -200,7 +200,7 @@ class FifoAudioStream : public AudioStream {
   using Buffer16 = rtc::BufferT<int16_t>;
 
   mutable Mutex lock_;
-  rtc::RaceChecker race_checker_;
+  RaceChecker race_checker_;
 
   std::list<Buffer16> fifo_ RTC_GUARDED_BY(lock_);
   size_t write_count_ RTC_GUARDED_BY(race_checker_) = 0;
@@ -232,7 +232,7 @@ class LatencyAudioStream : public AudioStream {
       {
         MutexLock lock(&lock_);
         if (!pulse_time_) {
-          pulse_time_ = rtc::TimeMillis();
+          pulse_time_ = TimeMillis();
         }
       }
       constexpr int16_t impulse = std::numeric_limits<int16_t>::max();
@@ -260,7 +260,7 @@ class LatencyAudioStream : public AudioStream {
     const size_t max = source[index_of_max];
     if (max > kImpulseThreshold) {
       PRINTD("(%zu, %zu)", max, index_of_max);
-      int64_t now_time = rtc::TimeMillis();
+      int64_t now_time = TimeMillis();
       int extra_delay = IndexToMilliseconds(index_of_max, source.size());
       PRINTD("[%d]", rtc::checked_cast<int>(now_time - pulse_time_));
       PRINTD("[%d]", extra_delay);
@@ -316,7 +316,7 @@ class LatencyAudioStream : public AudioStream {
   }
 
   Mutex lock_;
-  rtc::RaceChecker race_checker_;
+  RaceChecker race_checker_;
   SequenceChecker read_thread_checker_;
   SequenceChecker write_thread_checker_;
 
@@ -338,7 +338,7 @@ class MockAudioTransport : public test::MockAudioTransport {
   // implementation where the number of callbacks is counted and an event
   // is set after a certain number of callbacks. Audio parameters are also
   // checked.
-  void HandleCallbacks(rtc::Event* event,
+  void HandleCallbacks(Event* event,
                        AudioStream* audio_stream,
                        int num_callbacks) {
     event_ = event;
@@ -491,7 +491,7 @@ class MockAudioTransport : public test::MockAudioTransport {
  private:
   Mutex lock_;
   TransportType type_ = TransportType::kInvalid;
-  rtc::Event* event_ = nullptr;
+  Event* event_ = nullptr;
   AudioStream* audio_stream_ = nullptr;
   size_t num_callbacks_ = 0;
   size_t play_count_ RTC_GUARDED_BY(lock_) = 0;
@@ -573,7 +573,7 @@ class MAYBE_AudioDeviceTest
   }
 
   bool requirements_satisfied() const { return requirements_satisfied_; }
-  rtc::Event* event() { return &event_; }
+  Event* event() { return &event_; }
   AudioDeviceModule::AudioLayer audio_layer() const { return audio_layer_; }
 
   // AudioDeviceModuleForTest extends the default ADM interface with some extra
@@ -661,7 +661,7 @@ class MAYBE_AudioDeviceTest
   AudioDeviceModule::AudioLayer audio_layer_;
   std::unique_ptr<TaskQueueFactory> task_queue_factory_;
   bool requirements_satisfied_ = true;
-  rtc::Event event_;
+  Event event_;
   rtc::scoped_refptr<AudioDeviceModuleForTest> audio_device_;
   bool stereo_playout_ = false;
 };

@@ -194,6 +194,7 @@ enum SdpMungingType {
   kMid = 25,
   kPayloadTypes = 26,
   kSsrcs = 27,
+  kIceOptionsRenomination = 28,
   // RTP header extension munging.
   kRtpHeaderExtensionRemoved = 40,
   kRtpHeaderExtensionAdded = 41,
@@ -204,9 +205,14 @@ enum SdpMungingType {
   kAudioCodecsReordered = 62,
   kAudioCodecsAddedMultiOpus = 63,
   kAudioCodecsAddedL16 = 64,
+  kAudioCodecsRtcpFbAudioNack = 65,
+  kAudioCodecsFmtpOpusFec = 66,
+  kAudioCodecsFmtpOpusCbr = 67,
   kAudioCodecsFmtpOpusStereo = 68,
+  kAudioCodecsFmtpOpusDtx = 69,
   kAudioCodecsFmtp = 70,
   kAudioCodecsRtcpFb = 71,
+  kAudioCodecsRtcpFbRrtr = 72,
   // Video-related munging.
   kVideoCodecsRemoved = 80,
   kVideoCodecsAdded = 81,

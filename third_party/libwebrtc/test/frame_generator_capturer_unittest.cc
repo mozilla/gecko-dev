@@ -89,5 +89,39 @@ TEST(FrameGeneratorCapturerTest, ChangeResolution) {
   EXPECT_EQ(kHeight / 2, capturer->GetResolution()->height);
 }
 
+TEST(FrameGeneratorCapturerTest, AllowZeroHertz) {
+  GlobalSimulatedTimeController time(Timestamp::Seconds(1000));
+  FrameGeneratorCapturerConfig config;
+  config.image_slides->framerate = 30;
+  config.image_slides->change_interval = TimeDelta::Millis(500);
+  config.allow_zero_hertz = true;
+  auto capturer = CreateFrameGeneratorCapturer(
+      time.GetClock(), *time.GetTaskQueueFactory(), config);
+  testing::StrictMock<MockVideoSinkInterfaceVideoFrame> mock_sink;
+  capturer->AddOrUpdateSink(&mock_sink, rtc::VideoSinkWants());
+  capturer->Start();
+  // The video changes frame every 500ms so during 10s we expect to capture 20
+  // frames. The framerate set to 30 is ignored.
+  EXPECT_CALL(mock_sink, OnFrame).Times(21);
+  time.AdvanceTime(TimeDelta::Seconds(10));
+}
+
+TEST(FrameGeneratorCapturerTest, AllowZeroHertzMinimumFps) {
+  GlobalSimulatedTimeController time(Timestamp::Seconds(1000));
+  FrameGeneratorCapturerConfig config;
+  config.image_slides->framerate = 1;
+  config.image_slides->change_interval = TimeDelta::Seconds(11);
+  config.allow_zero_hertz = true;
+  auto capturer = CreateFrameGeneratorCapturer(
+      time.GetClock(), *time.GetTaskQueueFactory(), config);
+  testing::StrictMock<MockVideoSinkInterfaceVideoFrame> mock_sink;
+  capturer->AddOrUpdateSink(&mock_sink, rtc::VideoSinkWants());
+  capturer->Start();
+  // The video frame never changes but the capturer still sends a minimum of one
+  // frame per second.
+  EXPECT_CALL(mock_sink, OnFrame).Times(11);
+  time.AdvanceTime(TimeDelta::Seconds(10));
+}
+
 }  // namespace test
 }  // namespace webrtc

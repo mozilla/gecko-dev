@@ -13,6 +13,8 @@
 
 #include <stdint.h>
 
+namespace webrtc {
+
 // Filter settings for automatic corruption detection. See
 // http://www.webrtc.org/experiments/rtp-hdrext/corruption-detection for more
 // information.
@@ -23,5 +25,7 @@ struct CorruptionDetectionFilterSettings {
   int luma_error_threshold = 0;
   int chroma_error_threshold = 0;
 };
+
+}  // namespace webrtc
 
 #endif  // API_VIDEO_CORRUPTION_DETECTION_FILTER_SETTINGS_H_

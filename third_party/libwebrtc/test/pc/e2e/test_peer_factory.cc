@@ -197,9 +197,9 @@ PeerConnectionFactoryDependencies CreatePCFDependencies(
     std::unique_ptr<PeerConnectionFactoryComponents> pcf_dependencies,
     TimeController& time_controller,
     rtc::scoped_refptr<AudioDeviceModule> audio_device_module,
-    rtc::Thread* signaling_thread,
-    rtc::Thread* worker_thread,
-    rtc::Thread* network_thread) {
+    Thread* signaling_thread,
+    Thread* worker_thread,
+    Thread* network_thread) {
   PeerConnectionFactoryDependencies pcf_deps;
   pcf_deps.signaling_thread = signaling_thread;
   pcf_deps.worker_thread = worker_thread;
@@ -313,7 +313,7 @@ std::unique_ptr<TestPeer> TestPeerFactory::CreateTestPeer(
                           components->pcf_dependencies.get(),
                           video_analyzer_helper_);
 
-  std::unique_ptr<rtc::Thread> owned_worker_thread =
+  std::unique_ptr<Thread> owned_worker_thread =
       components->worker_thread != nullptr
           ? nullptr
           : time_controller_.CreateThread("worker_thread");

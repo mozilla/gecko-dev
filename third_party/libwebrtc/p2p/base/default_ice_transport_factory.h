@@ -15,8 +15,10 @@
 #include <string>
 
 #include "api/ice_transport_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "p2p/base/p2p_transport_channel.h"
-#include "rtc_base/thread.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
 
@@ -30,7 +32,7 @@ class DefaultIceTransport : public IceTransportInterface {
       std::unique_ptr<cricket::P2PTransportChannel> internal);
   ~DefaultIceTransport();
 
-  cricket::IceTransportInternal* internal() override {
+  IceTransportInternal* internal() override {
     RTC_DCHECK_RUN_ON(&thread_checker_);
     return internal_.get();
   }

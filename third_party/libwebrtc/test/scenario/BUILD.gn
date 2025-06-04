@@ -197,6 +197,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "../../system_wrappers:field_trial",
       "../../test:field_trial",
       "../../test:test_support",
+      "../../test:video_test_constants",
       "../logging:log_writer",
       "//testing/gmock",
     ]

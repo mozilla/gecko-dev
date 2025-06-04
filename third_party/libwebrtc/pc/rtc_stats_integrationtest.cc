@@ -55,8 +55,8 @@ const int64_t kGetStatsTimeoutMs = 10000;
 class RTCStatsIntegrationTest : public ::testing::Test {
  public:
   RTCStatsIntegrationTest()
-      : network_thread_(new rtc::Thread(&virtual_socket_server_)),
-        worker_thread_(rtc::Thread::Create()) {
+      : network_thread_(new Thread(&virtual_socket_server_)),
+        worker_thread_(Thread::Create()) {
     RTC_CHECK(network_thread_->Start());
     RTC_CHECK(worker_thread_->Start());
 
@@ -151,9 +151,9 @@ class RTCStatsIntegrationTest : public ::testing::Test {
 
   // `network_thread_` uses `virtual_socket_server_` so they must be
   // constructed/destructed in the correct order.
-  rtc::VirtualSocketServer virtual_socket_server_;
-  std::unique_ptr<rtc::Thread> network_thread_;
-  std::unique_ptr<rtc::Thread> worker_thread_;
+  VirtualSocketServer virtual_socket_server_;
+  std::unique_ptr<Thread> network_thread_;
+  std::unique_ptr<Thread> worker_thread_;
   rtc::scoped_refptr<PeerConnectionTestWrapper> caller_;
   rtc::scoped_refptr<PeerConnectionTestWrapper> callee_;
 };
@@ -841,7 +841,12 @@ class RTCStatsReportVerifier {
           outbound_stream.frames_sent);
       verifier.TestAttributeIsNonNegative<uint32_t>(
           outbound_stream.huge_frames_sent);
-      verifier.MarkAttributeTested(outbound_stream.rid, true);
+      // RID is N/A because this test uses singlecast.
+      verifier.TestAttributeIsUndefined(outbound_stream.rid);
+      // In singlecast, the only encoding that exists has index 0.
+      verifier.TestAttributeIsDefined(outbound_stream.encoding_index);
+      EXPECT_TRUE(outbound_stream.encoding_index.has_value() &&
+                  outbound_stream.encoding_index.value() == 0);
       verifier.TestAttributeIsDefined(outbound_stream.scalability_mode);
       verifier.TestAttributeIsNonNegative<uint32_t>(outbound_stream.rtx_ssrc);
     } else {
@@ -857,11 +862,11 @@ class RTCStatsReportVerifier {
       verifier.TestAttributeIsUndefined(
           outbound_stream.quality_limitation_resolution_changes);
       verifier.TestAttributeIsUndefined(outbound_stream.content_type);
-      // TODO(hbos): Implement for audio as well.
       verifier.TestAttributeIsUndefined(outbound_stream.encoder_implementation);
       verifier.TestAttributeIsUndefined(
           outbound_stream.power_efficient_encoder);
       verifier.TestAttributeIsUndefined(outbound_stream.rid);
+      verifier.TestAttributeIsUndefined(outbound_stream.encoding_index);
       verifier.TestAttributeIsUndefined(outbound_stream.frames_per_second);
       verifier.TestAttributeIsUndefined(outbound_stream.frame_height);
       verifier.TestAttributeIsUndefined(outbound_stream.frame_width);

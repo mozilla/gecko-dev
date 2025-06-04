@@ -10,11 +10,17 @@
 
 #include "media/base/adapted_video_track_source.h"
 
+#include <cstdint>
+
 #include "api/scoped_refptr.h"
 #include "api/video/i420_buffer.h"
+#include "api/video/video_frame.h"
 #include "api/video/video_frame_buffer.h"
 #include "api/video/video_rotation.h"
-#include "rtc_base/checks.h"
+#include "api/video/video_sink_interface.h"
+#include "api/video/video_source_interface.h"
+#include "api/video_track_source_constraints.h"
+#include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/time_utils.h"
 
 namespace rtc {
@@ -106,7 +112,7 @@ bool AdaptedVideoTrackSource::AdaptFrame(int width,
   }
 
   if (!video_adapter_.AdaptFrameResolution(
-          width, height, time_us * rtc::kNumNanosecsPerMicrosec, crop_width,
+          width, height, time_us * webrtc::kNumNanosecsPerMicrosec, crop_width,
           crop_height, out_width, out_height)) {
     broadcaster_.OnDiscardedFrame();
     // VideoAdapter dropped the frame.

@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -74,9 +75,20 @@ class MockSendPacketObserver : public SendPacketObserver {
 class MockStreamDataCountersCallback : public StreamDataCountersCallback {
  public:
   MOCK_METHOD(void,
-              DataCountersUpdated,
-              (const StreamDataCounters& counters, uint32_t ssrc),
-              (override));
+              MockDataCountersUpdated,
+              (const StreamDataCounters& counters, uint32_t ssrc));
+
+  StreamDataCounters GetDataCounters(uint32_t ssrc) const override {
+    auto it = counters_by_ssrc.find(ssrc);
+    return it != counters_by_ssrc.end() ? it->second : StreamDataCounters();
+  }
+  void DataCountersUpdated(const StreamDataCounters& counters,
+                           uint32_t ssrc) override {
+    MockDataCountersUpdated(counters, ssrc);
+    counters_by_ssrc[ssrc] = counters;
+  }
+
+  std::map<uint32_t, StreamDataCounters> counters_by_ssrc;
 };
 
 struct TransmittedPacket {
@@ -571,14 +583,14 @@ TEST_F(RtpSenderEgressTest, StreamDataCountersCallbacks) {
   expected_transmitted_counter.header_bytes += media_packet->headers_size();
   expected_transmitted_counter.total_packet_delay += TimeDelta::Millis(10);
 
-  EXPECT_CALL(
-      mock_rtp_stats_callback_,
-      DataCountersUpdated(AllOf(Field(&StreamDataCounters::transmitted,
-                                      expected_transmitted_counter),
-                                Field(&StreamDataCounters::retransmitted,
-                                      expected_retransmission_counter),
-                                Field(&StreamDataCounters::fec, kEmptyCounter)),
-                          kSsrc));
+  EXPECT_CALL(mock_rtp_stats_callback_,
+              MockDataCountersUpdated(
+                  AllOf(Field(&StreamDataCounters::transmitted,
+                              expected_transmitted_counter),
+                        Field(&StreamDataCounters::retransmitted,
+                              expected_retransmission_counter),
+                        Field(&StreamDataCounters::fec, kEmptyCounter)),
+                  kSsrc));
   sender->SendPacket(std::move(media_packet), PacedPacketInfo());
   time_controller_.AdvanceTime(TimeDelta::Zero());
 
@@ -604,14 +616,14 @@ TEST_F(RtpSenderEgressTest, StreamDataCountersCallbacks) {
       retransmission_packet->headers_size();
   expected_retransmission_counter.total_packet_delay += TimeDelta::Millis(20);
 
-  EXPECT_CALL(
-      mock_rtp_stats_callback_,
-      DataCountersUpdated(AllOf(Field(&StreamDataCounters::transmitted,
-                                      expected_transmitted_counter),
-                                Field(&StreamDataCounters::retransmitted,
-                                      expected_retransmission_counter),
-                                Field(&StreamDataCounters::fec, kEmptyCounter)),
-                          kSsrc));
+  EXPECT_CALL(mock_rtp_stats_callback_,
+              MockDataCountersUpdated(
+                  AllOf(Field(&StreamDataCounters::transmitted,
+                              expected_transmitted_counter),
+                        Field(&StreamDataCounters::retransmitted,
+                              expected_retransmission_counter),
+                        Field(&StreamDataCounters::fec, kEmptyCounter)),
+                  kSsrc));
   sender->SendPacket(std::move(retransmission_packet), PacedPacketInfo());
   time_controller_.AdvanceTime(TimeDelta::Zero());
 
@@ -626,14 +638,14 @@ TEST_F(RtpSenderEgressTest, StreamDataCountersCallbacks) {
   expected_transmitted_counter.header_bytes += padding_packet->headers_size();
   expected_transmitted_counter.total_packet_delay += TimeDelta::Millis(30);
 
-  EXPECT_CALL(
-      mock_rtp_stats_callback_,
-      DataCountersUpdated(AllOf(Field(&StreamDataCounters::transmitted,
-                                      expected_transmitted_counter),
-                                Field(&StreamDataCounters::retransmitted,
-                                      expected_retransmission_counter),
-                                Field(&StreamDataCounters::fec, kEmptyCounter)),
-                          kSsrc));
+  EXPECT_CALL(mock_rtp_stats_callback_,
+              MockDataCountersUpdated(
+                  AllOf(Field(&StreamDataCounters::transmitted,
+                              expected_transmitted_counter),
+                        Field(&StreamDataCounters::retransmitted,
+                              expected_retransmission_counter),
+                        Field(&StreamDataCounters::fec, kEmptyCounter)),
+                  kSsrc));
   sender->SendPacket(std::move(padding_packet), PacedPacketInfo());
   time_controller_.AdvanceTime(TimeDelta::Zero());
 }
@@ -654,7 +666,7 @@ TEST_F(RtpSenderEgressTest, StreamDataCountersCallbacksFec) {
 
   EXPECT_CALL(
       mock_rtp_stats_callback_,
-      DataCountersUpdated(
+      MockDataCountersUpdated(
           AllOf(Field(&StreamDataCounters::transmitted,
                       expected_transmitted_counter),
                 Field(&StreamDataCounters::retransmitted, kEmptyCounter),
@@ -678,7 +690,7 @@ TEST_F(RtpSenderEgressTest, StreamDataCountersCallbacksFec) {
 
   EXPECT_CALL(
       mock_rtp_stats_callback_,
-      DataCountersUpdated(
+      MockDataCountersUpdated(
           AllOf(Field(&StreamDataCounters::transmitted,
                       expected_transmitted_counter),
                 Field(&StreamDataCounters::retransmitted, kEmptyCounter),
@@ -888,11 +900,15 @@ TEST_F(RtpSenderEgressTest, SendPacketUpdatesStats) {
   sender.SendPacket(std::move(fec_packet), PacedPacketInfo());
 
   time_controller_.AdvanceTime(TimeDelta::Zero());
-  StreamDataCounters rtp_stats;
-  StreamDataCounters rtx_stats;
+  StreamDataCounters rtp_stats =
+      mock_rtp_stats_callback_.GetDataCounters(kSsrc);
+  StreamDataCounters rtx_stats =
+      mock_rtp_stats_callback_.GetDataCounters(kRtxSsrc);
+  StreamDataCounters fec_stats =
+      mock_rtp_stats_callback_.GetDataCounters(kFlexFecSsrc);
   sender.GetDataCounters(&rtp_stats, &rtx_stats);
-  EXPECT_EQ(rtp_stats.transmitted.packets, 2u);
-  EXPECT_EQ(rtp_stats.fec.packets, 1u);
+  EXPECT_EQ(rtp_stats.transmitted.packets, 1u);
+  EXPECT_EQ(fec_stats.transmitted.packets, 1u);
   EXPECT_EQ(rtx_stats.retransmitted.packets, 1u);
 }
 

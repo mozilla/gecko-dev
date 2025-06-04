@@ -34,7 +34,9 @@ rtc_library("dav1d_decoder") {
 
   deps = [
     "../..:video_codec_interface",
+    "../../../../api:refcountedbase",
     "../../../../api:scoped_refptr",
+    "../../../../api/environment",
     "../../../../api/video:encoded_image",
     "../../../../api/video:video_frame",
     "../../../../api/video_codecs:video_codecs_api",
@@ -79,10 +81,22 @@ if (rtc_include_tests) {
   rtc_library("video_coding_codecs_av1_tests") {
     testonly = true
 
-    sources = [ "av1_svc_config_unittest.cc" ]
+    sources = [
+      "av1_svc_config_unittest.cc",
+      "dav1d_decoder_unittest.cc",
+    ]
+
     deps = [
       ":av1_svc_config",
+      ":dav1d_decoder",
+      "../..:video_codec_interface",
+      "../../../../api:array_view",
+      "../../../../api/environment",
+      "../../../../api/environment:environment_factory",
+      "../../../../api/video:encoded_image",
+      "../../../../api/video:video_frame",
       "../../../../api/video_codecs:video_codecs_api",
+      "../../../../test:explicit_key_value_config",
       "../../../../test:test_support",
     ]
 
@@ -92,18 +106,13 @@ if (rtc_include_tests) {
         "libaom_av1_unittest.cc",
       ]
       deps += [
-        ":dav1d_decoder",
         ":libaom_av1_encoder",
         "../..:encoded_video_frame_producer",
-        "../..:video_codec_interface",
         "../../../../api:create_frame_generator",
         "../../../../api:frame_generator_api",
         "../../../../api:mock_video_encoder",
-        "../../../../api/environment",
-        "../../../../api/environment:environment_factory",
         "../../../../api/units:data_size",
         "../../../../api/units:time_delta",
-        "../../../../api/video:video_frame",
         "../../../../modules/rtp_rtcp:rtp_rtcp_format",
         "../../../../test:fileutils",
         "../../../../test:scoped_key_value_config",

@@ -45,7 +45,13 @@
 #include "test/gtest.h"
 #include "test/wait_until.h"
 
-namespace rtc {
+#define MAYBE_SKIP_IPV6                        \
+  if (!::rtc::HasIPv6Enabled()) {              \
+    RTC_LOG(LS_INFO) << "No IPv6... skipping"; \
+    return;                                    \
+  }
+
+namespace webrtc {
 
 using webrtc::testing::SSE_CLOSE;
 using webrtc::testing::SSE_ERROR;
@@ -53,12 +59,6 @@ using webrtc::testing::SSE_OPEN;
 using webrtc::testing::SSE_READ;
 using webrtc::testing::SSE_WRITE;
 using webrtc::testing::StreamSink;
-
-#define MAYBE_SKIP_IPV6                        \
-  if (!HasIPv6Enabled()) {                     \
-    RTC_LOG(LS_INFO) << "No IPv6... skipping"; \
-    return;                                    \
-  }
 
 // Data size to be used in TcpInternal tests.
 static const size_t kTcpInternalDataSize = 1024 * 1024;  // bytes
@@ -254,7 +254,7 @@ void SocketTest::TestSocketSendRecvWithEcnIPV6() {
 // values on Windows, but an empty address of the same family on Linux/MacOS X.
 bool IsUnspecOrEmptyIP(const IPAddress& address) {
 #if !defined(WEBRTC_WIN)
-  return IPIsAny(address);
+  return webrtc::IPIsAny(address);
 #else
   return address.family() == AF_UNSPEC;
 #endif
@@ -861,13 +861,13 @@ void SocketTest::TcpInternal(const IPAddress& loopback,
   EXPECT_EQ(sender->GetRemoteAddress(), receiver->GetLocalAddress());
 
   // Create test data.
-  rtc::Buffer send_buffer(0, data_size);
-  rtc::Buffer recv_buffer(0, data_size);
+  Buffer send_buffer(0, data_size);
+  Buffer recv_buffer(0, data_size);
   for (size_t i = 0; i < data_size; ++i) {
     char ch = static_cast<char>(i % 256);
     send_buffer.AppendData(&ch, sizeof(ch));
   }
-  rtc::Buffer recved_data(0, data_size);
+  Buffer recved_data(0, data_size);
 
   // Send and receive a bunch of data.
   size_t sent_size = 0;
@@ -1034,7 +1034,7 @@ void SocketTest::SingleFlowControlCallbackInternal(const IPAddress& loopback) {
   int extras = 0;
   for (int i = 0; i < 100; ++i) {
     accepted->Send(&buf, arraysize(buf));
-    rtc::Thread::Current()->ProcessMessages(1);
+    Thread::Current()->ProcessMessages(1);
     if (sink.Check(accepted.get(), SSE_WRITE)) {
       extras++;
     }
@@ -1047,7 +1047,7 @@ void SocketTest::SingleFlowControlCallbackInternal(const IPAddress& loopback) {
 }
 
 void SocketTest::UdpInternal(const IPAddress& loopback) {
-  SocketAddress empty = EmptySocketAddressWithFamily(loopback.family());
+  SocketAddress empty = webrtc::EmptySocketAddressWithFamily(loopback.family());
   // Test basic bind and connect behavior.
   Socket* socket = socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM);
   EXPECT_EQ(Socket::CS_CLOSED, socket->GetState());
@@ -1093,7 +1093,7 @@ void SocketTest::UdpInternal(const IPAddress& loopback) {
 }
 
 void SocketTest::UdpReadyToSend(const IPAddress& loopback) {
-  SocketAddress empty = EmptySocketAddressWithFamily(loopback.family());
+  SocketAddress empty = webrtc::EmptySocketAddressWithFamily(loopback.family());
   // RFC 5737 - The blocks 192.0.2.0/24 (TEST-NET-1) ... are provided for use in
   // documentation.
   // RFC 3849 - 2001:DB8::/32 as a documentation-only prefix.
@@ -1114,7 +1114,7 @@ void SocketTest::UdpReadyToSend(const IPAddress& loopback) {
 #if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID)
   send_buffer_size /= 2;
 #endif
-  client->SetOption(rtc::Socket::OPT_SNDBUF, send_buffer_size);
+  client->SetOption(Socket::OPT_SNDBUF, send_buffer_size);
 
   int error = 0;
   uint32_t start_ms = Time();
@@ -1249,7 +1249,7 @@ void SocketTest::SocketRecvTimestamp(const IPAddress& loopback) {
       webrtc::WaitUntil([&] { return sink.Check(socket.get(), SSE_READ); },
                         ::testing::IsTrue()),
       webrtc::IsRtcOk());
-  rtc::Buffer buffer;
+  Buffer buffer;
   Socket::ReceiveBuffer receive_buffer_1(buffer);
   ASSERT_GT(socket->RecvFrom(receive_buffer_1), 0);
 
@@ -1275,7 +1275,7 @@ void SocketTest::SocketRecvTimestamp(const IPAddress& loopback) {
 }
 
 void SocketTest::UdpSocketRecvTimestampUseRtcEpoch(const IPAddress& loopback) {
-  SocketAddress empty = EmptySocketAddressWithFamily(loopback.family());
+  SocketAddress empty = webrtc::EmptySocketAddressWithFamily(loopback.family());
   std::unique_ptr<Socket> socket(
       socket_factory_->CreateSocket(loopback.family(), SOCK_DGRAM));
   ASSERT_EQ(socket->Bind(SocketAddress(loopback, 0)), 0);
@@ -1291,14 +1291,14 @@ void SocketTest::UdpSocketRecvTimestampUseRtcEpoch(const IPAddress& loopback) {
   client2->SendTo("foo", 3, address);
   std::unique_ptr<TestClient::Packet> packet_1 = client1->NextPacket(10000);
   ASSERT_TRUE(packet_1 != nullptr);
-  EXPECT_NEAR(packet_1->packet_time->us(), rtc::TimeMicros(), 1000'000);
+  EXPECT_NEAR(packet_1->packet_time->us(), TimeMicros(), 1000'000);
 
   Thread::SleepMs(100);
   client2->SendTo("bar", 3, address);
   std::unique_ptr<TestClient::Packet> packet_2 = client1->NextPacket(10000);
   ASSERT_TRUE(packet_2 != nullptr);
   EXPECT_GT(packet_2->packet_time->us(), packet_1->packet_time->us());
-  EXPECT_NEAR(packet_2->packet_time->us(), rtc::TimeMicros(), 1000'000);
+  EXPECT_NEAR(packet_2->packet_time->us(), TimeMicros(), 1000'000);
 }
 
 void SocketTest::SocketSendRecvWithEcn(const IPAddress& loopback) {
@@ -1308,7 +1308,7 @@ void SocketTest::SocketSendRecvWithEcn(const IPAddress& loopback) {
   EXPECT_EQ(0, socket->Bind(SocketAddress(loopback, 0)));
   SocketAddress address = socket->GetLocalAddress();
   sink.Monitor(socket.get());
-  rtc::Buffer buffer;
+  Buffer buffer;
   Socket::ReceiveBuffer receive_buffer(buffer);
 
   socket->SendTo("foo", 3, address);
@@ -1349,4 +1349,4 @@ void SocketTest::SocketSendRecvWithEcn(const IPAddress& loopback) {
   EXPECT_EQ(receive_buffer.ecn, EcnMarking::kCe);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

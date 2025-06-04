@@ -19,6 +19,7 @@
 #include "api/priority.h"
 #include "api/rtc_error.h"
 #include "api/transport/data_channel_transport_interface.h"
+#include "net/dcsctp/public/dcsctp_message.h"
 #include "net/dcsctp/public/dcsctp_options.h"
 #include "net/dcsctp/public/dcsctp_socket.h"
 #include "net/dcsctp/public/mock_dcsctp_socket.h"
@@ -27,6 +28,7 @@
 #include "p2p/dtls/fake_dtls_transport.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/thread.h"
+#include "system_wrappers/include/clock.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
@@ -81,13 +83,13 @@ class Peer {
         .WillOnce(Return(ByMove(std::move(socket_ptr))));
 
     sctp_transport_ = std::make_unique<webrtc::DcSctpTransport>(
-        env_, rtc::Thread::Current(), &fake_dtls_transport_,
+        env_, Thread::Current(), &fake_dtls_transport_,
         std::move(mock_dcsctp_socket_factory));
     sctp_transport_->SetDataChannelSink(&sink_);
     sctp_transport_->SetOnConnectedCallback([this]() { sink_.OnConnected(); });
   }
 
-  cricket::FakeDtlsTransport fake_dtls_transport_;
+  FakeDtlsTransport fake_dtls_transport_;
   webrtc::SimulatedClock simulated_clock_;
   Environment env_;
   dcsctp::MockDcSctpSocket* socket_;
@@ -97,7 +99,7 @@ class Peer {
 }  // namespace
 
 TEST(DcSctpTransportTest, OpenSequence) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
   peer_a.fake_dtls_transport_.SetWritable(true);
 
@@ -107,14 +109,15 @@ TEST(DcSctpTransportTest, OpenSequence) {
                        &dcsctp::DcSctpSocketCallbacks::OnConnected));
   EXPECT_CALL(peer_a.sink_, OnReadyToSend);
   EXPECT_CALL(peer_a.sink_, OnConnected);
-
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
 }
 
 // Tests that the close sequence invoked from one end results in the stream to
 // be reset from both ends and all the proper signals are sent.
 TEST(DcSctpTransportTest, CloseSequence) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
   Peer peer_b;
   peer_a.fake_dtls_transport_.SetDestination(&peer_b.fake_dtls_transport_,
@@ -138,8 +141,12 @@ TEST(DcSctpTransportTest, CloseSequence) {
     EXPECT_CALL(peer_b.sink_, OnChannelClosed(1));
   }
 
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
-  peer_b.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
+  peer_b.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
   peer_a.sctp_transport_->OpenStream(1, kDefaultPriority);
   peer_b.sctp_transport_->OpenStream(1, kDefaultPriority);
   peer_a.sctp_transport_->ResetStream(1);
@@ -160,7 +167,7 @@ TEST(DcSctpTransportTest, CloseSequence) {
 // terminates properly. Both peers will think they initiated it, so no
 // OnClosingProcedureStartedRemotely should be called.
 TEST(DcSctpTransportTest, CloseSequenceSimultaneous) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
   Peer peer_b;
   peer_a.fake_dtls_transport_.SetDestination(&peer_b.fake_dtls_transport_,
@@ -180,8 +187,12 @@ TEST(DcSctpTransportTest, CloseSequenceSimultaneous) {
     EXPECT_CALL(peer_b.sink_, OnChannelClosed(1));
   }
 
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
-  peer_b.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
+  peer_b.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
   peer_a.sctp_transport_->OpenStream(1, kDefaultPriority);
   peer_b.sctp_transport_->OpenStream(1, kDefaultPriority);
   peer_a.sctp_transport_->ResetStream(1);
@@ -200,7 +211,7 @@ TEST(DcSctpTransportTest, CloseSequenceSimultaneous) {
 }
 
 TEST(DcSctpTransportTest, SetStreamPriority) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   {
@@ -217,17 +228,21 @@ TEST(DcSctpTransportTest, SetStreamPriority) {
   EXPECT_CALL(*peer_a.socket_, Send(_, _)).Times(0);
 
   peer_a.sctp_transport_->OpenStream(1, PriorityValue(1337));
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
   peer_a.sctp_transport_->OpenStream(2, PriorityValue(3141));
 }
 
 TEST(DcSctpTransportTest, DiscardMessageClosedChannel) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   EXPECT_CALL(*peer_a.socket_, Send(_, _)).Times(0);
 
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
 
   SendDataParams params;
   rtc::CopyOnWriteBuffer payload;
@@ -236,13 +251,15 @@ TEST(DcSctpTransportTest, DiscardMessageClosedChannel) {
 }
 
 TEST(DcSctpTransportTest, DiscardMessageClosingChannel) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   EXPECT_CALL(*peer_a.socket_, Send(_, _)).Times(0);
 
   peer_a.sctp_transport_->OpenStream(1, kDefaultPriority);
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
   peer_a.sctp_transport_->ResetStream(1);
 
   SendDataParams params;
@@ -252,7 +269,7 @@ TEST(DcSctpTransportTest, DiscardMessageClosingChannel) {
 }
 
 TEST(DcSctpTransportTest, SendDataOpenChannel) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
   dcsctp::DcSctpOptions options;
 
@@ -260,7 +277,9 @@ TEST(DcSctpTransportTest, SendDataOpenChannel) {
   EXPECT_CALL(*peer_a.socket_, options()).WillOnce(ReturnPointee(&options));
 
   peer_a.sctp_transport_->OpenStream(1, kDefaultPriority);
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
 
   SendDataParams params;
   rtc::CopyOnWriteBuffer payload;
@@ -268,7 +287,7 @@ TEST(DcSctpTransportTest, SendDataOpenChannel) {
 }
 
 TEST(DcSctpTransportTest, DeliversMessage) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   EXPECT_CALL(peer_a.sink_,
@@ -276,7 +295,9 @@ TEST(DcSctpTransportTest, DeliversMessage) {
       .Times(1);
 
   peer_a.sctp_transport_->OpenStream(1, kDefaultPriority);
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
 
   static_cast<dcsctp::DcSctpSocketCallbacks*>(peer_a.sctp_transport_.get())
       ->OnMessageReceived(
@@ -284,13 +305,15 @@ TEST(DcSctpTransportTest, DeliversMessage) {
 }
 
 TEST(DcSctpTransportTest, DropMessageWithUnknownPpid) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Peer peer_a;
 
   EXPECT_CALL(peer_a.sink_, OnDataReceived(_, _, _)).Times(0);
 
   peer_a.sctp_transport_->OpenStream(1, kDefaultPriority);
-  peer_a.sctp_transport_->Start(5000, 5000, 256 * 1024);
+  peer_a.sctp_transport_->Start({.local_port = 5000,
+                                 .remote_port = 5000,
+                                 .max_message_size = 256 * 1024});
 
   static_cast<dcsctp::DcSctpSocketCallbacks*>(peer_a.sctp_transport_.get())
       ->OnMessageReceived(

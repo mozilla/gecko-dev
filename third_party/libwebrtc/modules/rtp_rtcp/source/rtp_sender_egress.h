@@ -148,8 +148,10 @@ class RtpSenderEgress {
   bool force_part_of_allocation_ RTC_GUARDED_BY(worker_queue_);
   uint32_t timestamp_offset_ RTC_GUARDED_BY(worker_queue_);
 
+  // These counters are only used if `rtp_stats_callback_` is null.
   StreamDataCounters rtp_stats_ RTC_GUARDED_BY(worker_queue_);
   StreamDataCounters rtx_rtp_stats_ RTC_GUARDED_BY(worker_queue_);
+
   // One element per value in RtpPacketMediaType, with index matching value.
   std::vector<BitrateTracker> send_rates_ RTC_GUARDED_BY(worker_queue_);
   std::optional<std::pair<FecProtectionParams, FecProtectionParams>>

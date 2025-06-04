@@ -13,28 +13,26 @@
 
 #include <memory>
 #include <set>
+#include <utility>
 
-#include "api/audio_codecs/builtin_audio_decoder_factory.h"
-#include "api/audio_codecs/builtin_audio_encoder_factory.h"
-#include "api/create_peerconnection_factory.h"
+#include "absl/algorithm/container.h"
 #include "api/enable_media_with_defaults.h"
 #include "api/field_trials.h"
 #include "api/field_trials_view.h"
+#include "api/media_types.h"
 #include "api/peer_connection_interface.h"
-#include "api/stats/rtcstats_objects.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/task_queue/default_task_queue_factory.h"
-#include "api/video_codecs/builtin_video_decoder_factory.h"
-#include "api/video_codecs/builtin_video_encoder_factory.h"
-#include "media/engine/webrtc_media_engine.h"
 #include "pc/peer_connection_wrapper.h"
 #include "pc/session_description.h"
 #include "pc/test/fake_audio_capture_module.h"
-#include "pc/test/frame_generator_capturer_video_track_source.h"
-#include "pc/test/peer_connection_test_wrapper.h"
-#include "rtc_base/gunit.h"
+#include "pc/test/mock_peer_connection_observers.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/internal/default_socket_server.h"
-#include "rtc_base/physical_socket_server.h"
+#include "rtc_base/socket_server.h"
 #include "rtc_base/thread.h"
+#include "system_wrappers/include/clock.h"
 #include "test/gtest.h"
 
 #ifdef WEBRTC_ANDROID
@@ -66,7 +64,7 @@ class PeerConnectionFieldTrialTest : public ::testing::Test {
 
   void CreatePCFactory(std::unique_ptr<FieldTrialsView> field_trials) {
     PeerConnectionFactoryDependencies pcf_deps;
-    pcf_deps.signaling_thread = rtc::Thread::Current();
+    pcf_deps.signaling_thread = Thread::Current();
     pcf_deps.trials = std::move(field_trials);
     pcf_deps.task_queue_factory = CreateDefaultTaskQueueFactory();
     pcf_deps.adm = FakeAudioCaptureModule::Create();
@@ -93,8 +91,8 @@ class PeerConnectionFieldTrialTest : public ::testing::Test {
   }
 
   Clock* const clock_;
-  std::unique_ptr<rtc::SocketServer> socket_server_;
-  rtc::AutoSocketServerThread main_thread_;
+  std::unique_ptr<SocketServer> socket_server_;
+  AutoSocketServerThread main_thread_;
   rtc::scoped_refptr<PeerConnectionFactoryInterface> pc_factory_ = nullptr;
   PeerConnectionInterface::RTCConfiguration config_;
 };
@@ -106,15 +104,15 @@ TEST_F(PeerConnectionFieldTrialTest, EnableDependencyDescriptorAdvertised) {
       "WebRTC-DependencyDescriptorAdvertised/Enabled/"));
 
   WrapperPtr caller = CreatePeerConnection();
-  caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  caller->AddTransceiver(webrtc::MediaType::VIDEO);
 
   auto offer = caller->CreateOffer();
   auto contents1 = offer->description()->contents();
   ASSERT_EQ(1u, contents1.size());
 
-  const cricket::MediaContentDescription* media_description1 =
+  const MediaContentDescription* media_description1 =
       contents1[0].media_description();
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description1->type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, media_description1->type());
   const cricket::RtpHeaderExtensions& rtp_header_extensions1 =
       media_description1->rtp_header_extensions();
 
@@ -140,15 +138,15 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
 
   WrapperPtr caller = CreatePeerConnection();
   WrapperPtr callee = CreatePeerConnection();
-  caller->AddTransceiver(cricket::MEDIA_TYPE_VIDEO);
+  caller->AddTransceiver(webrtc::MediaType::VIDEO);
 
   auto offer = caller->CreateOffer();
   cricket::ContentInfos& contents1 = offer->description()->contents();
   ASSERT_EQ(1u, contents1.size());
 
-  cricket::MediaContentDescription* media_description1 =
+  MediaContentDescription* media_description1 =
       contents1[0].media_description();
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description1->type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, media_description1->type());
   cricket::RtpHeaderExtensions rtp_header_extensions1 =
       media_description1->rtp_header_extensions();
 
@@ -190,9 +188,9 @@ TEST_F(PeerConnectionFieldTrialTest, MAYBE_InjectDependencyDescriptor) {
   cricket::ContentInfos& contents2 = answer->description()->contents();
   ASSERT_EQ(1u, contents2.size());
 
-  cricket::MediaContentDescription* media_description2 =
+  MediaContentDescription* media_description2 =
       contents2[0].media_description();
-  EXPECT_EQ(cricket::MEDIA_TYPE_VIDEO, media_description2->type());
+  EXPECT_EQ(webrtc::MediaType::VIDEO, media_description2->type());
   cricket::RtpHeaderExtensions rtp_header_extensions2 =
       media_description2->rtp_header_extensions();
 

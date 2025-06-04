@@ -32,7 +32,7 @@ SamplesStatsCounter& SamplesStatsCounter::operator=(SamplesStatsCounter&&) =
     default;
 
 void SamplesStatsCounter::AddSample(double value) {
-  AddSample(StatsSample{value, Timestamp::Micros(rtc::TimeMicros())});
+  AddSample(StatsSample{value, Timestamp::Micros(TimeMicros())});
 }
 
 void SamplesStatsCounter::AddSample(StatsSample sample) {

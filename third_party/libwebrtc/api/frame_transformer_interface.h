@@ -57,7 +57,9 @@ class TransformableFrameInterface {
 
   // TODO(https://bugs.webrtc.org/373365537): Remove this once its usage is
   // removed from blink.
-  virtual std::optional<Timestamp> GetCaptureTimeIdentifier() const {
+  [[deprecated(
+      "Use GetPresentationTimestamp instead")]] virtual std::optional<Timestamp>
+  GetCaptureTimeIdentifier() const {
     return std::nullopt;
   }
 

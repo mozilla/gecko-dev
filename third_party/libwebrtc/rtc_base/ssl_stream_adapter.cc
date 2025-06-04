@@ -23,7 +23,7 @@
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/stream.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Deprecated, prefer SrtpCryptoSuiteToName.
 const char kCsAesCm128HmacSha1_80[] = "AES_CM_128_HMAC_SHA1_80";
@@ -82,21 +82,21 @@ bool IsGcmCryptoSuite(int crypto_suite) {
 
 std::unique_ptr<SSLStreamAdapter> SSLStreamAdapter::Create(
     std::unique_ptr<StreamInterface> stream,
-    absl::AnyInvocable<void(SSLHandshakeError)> handshake_error,
-    const webrtc::FieldTrialsView* field_trials) {
-  return std::make_unique<OpenSSLStreamAdapter>(
+    absl::AnyInvocable<void(webrtc::SSLHandshakeError)> handshake_error,
+    const FieldTrialsView* field_trials) {
+  return std::make_unique<rtc::OpenSSLStreamAdapter>(
       std::move(stream), std::move(handshake_error), field_trials);
 }
 
 bool SSLStreamAdapter::IsBoringSsl() {
-  return OpenSSLStreamAdapter::IsBoringSsl();
+  return rtc::OpenSSLStreamAdapter::IsBoringSsl();
 }
-bool SSLStreamAdapter::IsAcceptableCipher(int cipher, KeyType key_type) {
-  return OpenSSLStreamAdapter::IsAcceptableCipher(cipher, key_type);
+bool SSLStreamAdapter::IsAcceptableCipher(int cipher, rtc::KeyType key_type) {
+  return rtc::OpenSSLStreamAdapter::IsAcceptableCipher(cipher, key_type);
 }
 bool SSLStreamAdapter::IsAcceptableCipher(absl::string_view cipher,
-                                          KeyType key_type) {
-  return OpenSSLStreamAdapter::IsAcceptableCipher(cipher, key_type);
+                                          rtc::KeyType key_type) {
+  return rtc::OpenSSLStreamAdapter::IsAcceptableCipher(cipher, key_type);
 }
 
 // Default shim for backward compat.
@@ -118,13 +118,13 @@ bool SSLStreamAdapter::SetPeerCertificateDigest(
 ///////////////////////////////////////////////////////////////////////////////
 
 void SSLStreamAdapter::EnableTimeCallbackForTesting() {
-  OpenSSLStreamAdapter::EnableTimeCallbackForTesting();
+  rtc::OpenSSLStreamAdapter::EnableTimeCallbackForTesting();
 }
 
 SSLProtocolVersion SSLStreamAdapter::GetMaxSupportedDTLSProtocolVersion() {
-  return OpenSSLStreamAdapter::GetMaxSupportedDTLSProtocolVersion();
+  return rtc::OpenSSLStreamAdapter::GetMaxSupportedDTLSProtocolVersion();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-}  // namespace rtc
+}  // namespace webrtc

@@ -23,7 +23,7 @@
 
 #include "rtc_base/synchronization/yield_policy.h"
 
-namespace rtc {
+namespace webrtc {
 
 // RTC_DISALLOW_WAIT() utility
 //
@@ -56,10 +56,8 @@ namespace rtc {
 class Event {
  public:
   // TODO(bugs.webrtc.org/14366): Consider removing this redundant alias.
-  static constexpr webrtc::TimeDelta kForever =
-      webrtc::TimeDelta::PlusInfinity();
-  static constexpr webrtc::TimeDelta kDefaultWarnDuration =
-      webrtc::TimeDelta::Seconds(3);
+  static constexpr TimeDelta kForever = TimeDelta::PlusInfinity();
+  static constexpr TimeDelta kDefaultWarnDuration = TimeDelta::Seconds(3);
 
   Event();
   Event(bool manual_reset, bool initially_signaled);
@@ -80,10 +78,10 @@ class Event {
   //
   // Returns true if the event was signaled, false if there was a timeout or
   // some other error.
-  bool Wait(webrtc::TimeDelta give_up_after, webrtc::TimeDelta warn_after);
+  bool Wait(TimeDelta give_up_after, TimeDelta warn_after);
 
   // Waits with the given timeout and a reasonable default warning timeout.
-  bool Wait(webrtc::TimeDelta give_up_after) {
+  bool Wait(TimeDelta give_up_after) {
     return Wait(give_up_after, give_up_after.IsPlusInfinity()
                                    ? kDefaultWarnDuration
                                    : kForever);
@@ -134,6 +132,14 @@ class ScopedDisallowWait {
 };
 #endif
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::Event;
+using ::webrtc::ScopedAllowBaseSyncPrimitives;
+using ::webrtc::ScopedAllowBaseSyncPrimitivesForTesting;
 }  // namespace rtc
 
 #endif  // RTC_BASE_EVENT_H_

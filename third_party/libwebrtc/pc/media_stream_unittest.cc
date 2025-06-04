@@ -57,7 +57,7 @@ class MediaStreamTest : public ::testing::Test {
     ASSERT_TRUE(stream_.get() != NULL);
 
     video_track_ = VideoTrack::Create(
-        kVideoTrackId, FakeVideoTrackSource::Create(), rtc::Thread::Current());
+        kVideoTrackId, FakeVideoTrackSource::Create(), Thread::Current());
     ASSERT_TRUE(video_track_.get() != NULL);
     EXPECT_EQ(MediaStreamTrackInterface::kLive, video_track_->state());
 
@@ -80,7 +80,7 @@ class MediaStreamTest : public ::testing::Test {
     EXPECT_FALSE(track->enabled());
   }
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   scoped_refptr<MediaStreamInterface> stream_;
   scoped_refptr<AudioTrackInterface> audio_track_;
   scoped_refptr<VideoTrackInterface> video_track_;

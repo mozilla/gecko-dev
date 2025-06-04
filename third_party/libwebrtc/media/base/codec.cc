@@ -154,31 +154,31 @@ bool Codec::MatchesRtpCodec(const webrtc::RtpCodec& codec_capability) const {
           codec_parameters.parameters == codec_capability.parameters);
 }
 
-bool Codec::GetParam(const std::string& name, std::string* out) const {
-  webrtc::CodecParameterMap::const_iterator iter = params.find(name);
+bool Codec::GetParam(const std::string& key, std::string* out) const {
+  webrtc::CodecParameterMap::const_iterator iter = params.find(key);
   if (iter == params.end())
     return false;
   *out = iter->second;
   return true;
 }
 
-bool Codec::GetParam(const std::string& name, int* out) const {
-  webrtc::CodecParameterMap::const_iterator iter = params.find(name);
+bool Codec::GetParam(const std::string& key, int* out) const {
+  webrtc::CodecParameterMap::const_iterator iter = params.find(key);
   if (iter == params.end())
     return false;
   return rtc::FromString(iter->second, out);
 }
 
-void Codec::SetParam(const std::string& name, const std::string& value) {
-  params[name] = value;
+void Codec::SetParam(const std::string& key, const std::string& value) {
+  params[key] = value;
 }
 
-void Codec::SetParam(const std::string& name, int value) {
-  params[name] = rtc::ToString(value);
+void Codec::SetParam(const std::string& key, int value) {
+  params[key] = rtc::ToString(value);
 }
 
-bool Codec::RemoveParam(const std::string& name) {
-  return params.erase(name) == 1;
+bool Codec::RemoveParam(const std::string& key) {
+  return params.erase(key) == 1;
 }
 
 void Codec::AddFeedbackParam(const FeedbackParam& param) {
@@ -203,11 +203,11 @@ webrtc::RtpCodecParameters Codec::ToCodecParameters() const {
   switch (type) {
     case Type::kAudio: {
       codec_params.num_channels = static_cast<int>(channels);
-      codec_params.kind = MEDIA_TYPE_AUDIO;
+      codec_params.kind = webrtc::MediaType::AUDIO;
       break;
     }
     case Type::kVideo: {
-      codec_params.kind = MEDIA_TYPE_VIDEO;
+      codec_params.kind = webrtc::MediaType::VIDEO;
       break;
     }
   }
@@ -383,8 +383,8 @@ void AddH264ConstrainedBaselineProfileToSupportedFormats(
                });
 
   if (supported_formats->size() > original_size) {
-    RTC_LOG(LS_WARNING) << "Explicitly added H264 constrained baseline to list "
-                           "of supported formats.";
+    RTC_LOG(LS_INFO) << "Explicitly added H264 constrained baseline to list "
+                        "of supported formats.";
   }
 }
 

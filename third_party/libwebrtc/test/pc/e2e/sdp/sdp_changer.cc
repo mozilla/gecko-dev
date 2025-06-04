@@ -10,15 +10,34 @@
 
 #include "test/pc/e2e/sdp/sdp_changer.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
-#include "absl/memory/memory.h"
+#include "api/array_view.h"
+#include "api/jsep.h"
 #include "api/jsep_session_description.h"
+#include "api/media_types.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_transceiver_direction.h"
 #include "api/test/pclf/media_configuration.h"
 #include "media/base/media_constants.h"
+#include "media/base/rid_description.h"
+#include "media/base/stream_params.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/transport_description.h"
+#include "p2p/base/transport_info.h"
 #include "pc/sdp_utils.h"
+#include "pc/session_description.h"
+#include "pc/simulcast_description.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"
+#include "rtc_base/unique_id_generator.h"
 
 namespace webrtc {
 namespace webrtc_pc_e2e {
@@ -113,8 +132,8 @@ std::vector<RtpCodecCapability> FilterVideoCodecCapabilities(
 void SignalingInterceptor::FillSimulcastContext(
     SessionDescriptionInterface* offer) {
   for (auto& content : offer->description()->contents()) {
-    cricket::MediaContentDescription* media_desc = content.media_description();
-    if (media_desc->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    MediaContentDescription* media_desc = content.media_description();
+    if (media_desc->type() != webrtc::MediaType::VIDEO) {
       continue;
     }
     if (media_desc->HasSimulcast()) {
@@ -169,8 +188,8 @@ LocalAndRemoteSdp SignalingInterceptor::PatchOffer(
     const VideoCodecConfig& first_codec) {
   for (auto& content : offer->description()->contents()) {
     context_.mids_order.push_back(content.mid());
-    cricket::MediaContentDescription* media_desc = content.media_description();
-    if (media_desc->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    MediaContentDescription* media_desc = content.media_description();
+    if (media_desc->type() != webrtc::MediaType::VIDEO) {
       continue;
     }
     if (content.media_description()->streams().empty()) {
@@ -208,20 +227,19 @@ LocalAndRemoteSdp SignalingInterceptor::PatchVp8Offer(
 
   // Clone original offer description. We mustn't access original offer after
   // this point.
-  std::unique_ptr<cricket::SessionDescription> desc =
-      offer->description()->Clone();
+  std::unique_ptr<SessionDescription> desc = offer->description()->Clone();
 
   for (auto& info : context_.simulcast_infos) {
     // For each simulcast section we have to perform:
     //   1. Swap MID and RID header extensions
     //   2. Remove RIDs from streams and remove SimulcastDescription
     //   3. For each RID duplicate media section
-    cricket::ContentInfo* simulcast_content = desc->GetContentByName(info.mid);
+    ContentInfo* simulcast_content = desc->GetContentByName(info.mid);
 
     // Now we need to prepare common prototype for "m=video" sections, in which
     // single simulcast section will be converted. Do it before removing content
     // because otherwise description will be deleted.
-    std::unique_ptr<cricket::MediaContentDescription> prototype_media_desc =
+    std::unique_ptr<MediaContentDescription> prototype_media_desc =
         simulcast_content->media_description()->Clone();
 
     // Remove simulcast video section from offer.
@@ -271,7 +289,7 @@ LocalAndRemoteSdp SignalingInterceptor::PatchVp8Offer(
   }
 
   // Now we need to add bundle line to have all media bundled together.
-  cricket::ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
+  ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
   for (auto& content : desc->contents()) {
     bundle_group.AddContentName(content.mid());
   }
@@ -316,8 +334,7 @@ LocalAndRemoteSdp SignalingInterceptor::PatchVp9Offer(
   }
 
   for (auto& content : offer->description()->contents()) {
-    if (content.media_description()->type() !=
-        cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    if (content.media_description()->type() != webrtc::MediaType::VIDEO) {
       // We are interested in only video tracks
       continue;
     }
@@ -365,8 +382,8 @@ LocalAndRemoteSdp SignalingInterceptor::PatchAnswer(
     std::unique_ptr<SessionDescriptionInterface> answer,
     const VideoCodecConfig& first_codec) {
   for (auto& content : answer->description()->contents()) {
-    cricket::MediaContentDescription* media_desc = content.media_description();
-    if (media_desc->type() != cricket::MediaType::MEDIA_TYPE_VIDEO) {
+    MediaContentDescription* media_desc = content.media_description();
+    if (media_desc->type() != webrtc::MediaType::VIDEO) {
       continue;
     }
     if (content.media_description()->direction() !=
@@ -398,16 +415,14 @@ LocalAndRemoteSdp SignalingInterceptor::PatchVp8Answer(
     return LocalAndRemoteSdp(std::move(answer), std::move(answer_for_remote));
   }
 
-  std::unique_ptr<cricket::SessionDescription> desc =
-      answer->description()->Clone();
+  std::unique_ptr<SessionDescription> desc = answer->description()->Clone();
 
   for (auto& info : context_.simulcast_infos) {
-    cricket::ContentInfo* simulcast_content =
-        desc->GetContentByName(info.rids[0]);
+    ContentInfo* simulcast_content = desc->GetContentByName(info.rids[0]);
     RTC_CHECK(simulcast_content);
 
     // Get media description, which will be converted to simulcast answer.
-    std::unique_ptr<cricket::MediaContentDescription> media_desc =
+    std::unique_ptr<MediaContentDescription> media_desc =
         simulcast_content->media_description()->Clone();
     // Set `simulcast_content` to nullptr, because then it will be removed, so
     // it will point to deleted object.
@@ -464,7 +479,7 @@ LocalAndRemoteSdp SignalingInterceptor::PatchVp8Answer(
   desc = RestoreMediaSectionsOrder(std::move(desc));
 
   // Now we need to add bundle line to have all media bundled together.
-  cricket::ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
+  ContentGroup bundle_group(cricket::GROUP_TYPE_BUNDLE);
   for (auto& content : desc->contents()) {
     bundle_group.AddContentName(content.mid());
   }
@@ -502,16 +517,16 @@ LocalAndRemoteSdp SignalingInterceptor::PatchVp8Answer(
   return LocalAndRemoteSdp(std::move(answer), std::move(patched_answer));
 }
 
-std::unique_ptr<cricket::SessionDescription>
+std::unique_ptr<SessionDescription>
 SignalingInterceptor::RestoreMediaSectionsOrder(
-    std::unique_ptr<cricket::SessionDescription> source) {
-  std::unique_ptr<cricket::SessionDescription> out = source->Clone();
+    std::unique_ptr<SessionDescription> source) {
+  std::unique_ptr<SessionDescription> out = source->Clone();
   for (auto& mid : context_.mids_order) {
     RTC_CHECK(out->RemoveContentByName(mid));
   }
   RTC_CHECK_EQ(out->contents().size(), 0);
   for (auto& mid : context_.mids_order) {
-    cricket::ContentInfo* content = source->GetContentByName(mid);
+    ContentInfo* content = source->GetContentByName(mid);
     RTC_CHECK(content);
     out->AddContent(mid, content->type, content->media_description()->Clone());
   }
@@ -576,7 +591,7 @@ SignalingInterceptor::PatchAnswererIceCandidates(
 
 SignalingInterceptor::SimulcastSectionInfo::SimulcastSectionInfo(
     const std::string& mid,
-    cricket::MediaProtocolType media_protocol_type,
+    MediaProtocolType media_protocol_type,
     const std::vector<cricket::RidDescription>& rids_desc)
     : mid(mid), media_protocol_type(media_protocol_type) {
   for (auto& rid : rids_desc) {

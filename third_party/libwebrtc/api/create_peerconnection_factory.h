@@ -25,13 +25,8 @@
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder_factory.h"
 #include "rtc_base/system/rtc_export.h"
+#include "rtc_base/thread.h"
 
-namespace rtc {
-// TODO(bugs.webrtc.org/9987): Move rtc::Thread to api/ or expose a better
-// type. At the moment, rtc::Thread is not part of api/ so it cannot be
-// included in order to avoid to leak internal types.
-class Thread;  // IWYU pragma: keep
-}  // namespace rtc
 namespace webrtc {
 class AudioFrameProcessor;
 
@@ -40,9 +35,9 @@ class AudioFrameProcessor;
 // extra internal video codecs will be added.
 RTC_EXPORT rtc::scoped_refptr<PeerConnectionFactoryInterface>
 CreatePeerConnectionFactory(
-    rtc::Thread* network_thread,
-    rtc::Thread* worker_thread,
-    rtc::Thread* signaling_thread,
+    Thread* network_thread,
+    Thread* worker_thread,
+    Thread* signaling_thread,
     rtc::scoped_refptr<AudioDeviceModule> default_adm,
     rtc::scoped_refptr<AudioEncoderFactory> audio_encoder_factory,
     rtc::scoped_refptr<AudioDecoderFactory> audio_decoder_factory,

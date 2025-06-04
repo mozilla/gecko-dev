@@ -10,7 +10,7 @@
 
 #include "rtc_base/race_checker.h"
 
-namespace rtc {
+namespace webrtc {
 
 RaceChecker::RaceChecker() {}
 
@@ -23,7 +23,7 @@ RaceChecker::RaceChecker() {}
 // is also a chance that an actual race is missed, however the probability of
 // that has been considered small enough to be an acceptable trade off.
 bool RaceChecker::Acquire() const {
-  const PlatformThreadRef current_thread = CurrentThreadRef();
+  const rtc::PlatformThreadRef current_thread = rtc::CurrentThreadRef();
   // Set new accessing thread if this is a new use.
   const int current_access_count = access_count_;
   access_count_ = access_count_ + 1;
@@ -32,8 +32,8 @@ bool RaceChecker::Acquire() const {
   // If this is being used concurrently this check will fail for the second
   // thread entering since it won't set the thread. Recursive use of checked
   // methods are OK since the accessing thread remains the same.
-  const PlatformThreadRef accessing_thread = accessing_thread_;
-  return IsThreadRefEqual(accessing_thread, current_thread);
+  const rtc::PlatformThreadRef accessing_thread = accessing_thread_;
+  return rtc::IsThreadRefEqual(accessing_thread, current_thread);
 }
 
 void RaceChecker::Release() const {
@@ -53,4 +53,4 @@ RaceCheckerScope::~RaceCheckerScope() {
 }
 
 }  // namespace internal
-}  // namespace rtc
+}  // namespace webrtc

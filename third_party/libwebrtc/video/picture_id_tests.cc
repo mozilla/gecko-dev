@@ -102,12 +102,12 @@ class PictureIdObserver : public test::RtpRtcpObserver {
         depacketizer_->Parse(rtp_packet.PayloadBuffer());
     EXPECT_TRUE(parsed_payload);
 
-    if (const auto* vp8_header = absl::get_if<RTPVideoHeaderVP8>(
+    if (const auto* vp8_header = std::get_if<RTPVideoHeaderVP8>(
             &parsed_payload->video_header.video_type_header)) {
       parsed->picture_id = vp8_header->pictureId;
       parsed->tl0_pic_idx = vp8_header->tl0PicIdx;
       parsed->temporal_idx = vp8_header->temporalIdx;
-    } else if (const auto* vp9_header = absl::get_if<RTPVideoHeaderVP9>(
+    } else if (const auto* vp9_header = std::get_if<RTPVideoHeaderVP9>(
                    &parsed_payload->video_header.video_type_header)) {
       parsed->picture_id = vp9_header->picture_id;
       parsed->tl0_pic_idx = vp9_header->tl0_pic_idx;

@@ -17,9 +17,9 @@
 #include <iterator>
 #include <optional>
 #include <utility>
+#include <variant>
 
 #include "absl/algorithm/container.h"
-#include "absl/types/variant.h"
 #include "api/video/video_timing.h"
 #include "api/video_codecs/video_decoder.h"
 #include "common_video/frame_instrumentation_data.h"
@@ -138,7 +138,7 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
   if (corruption_score_calculator_ &&
       frame_info->frame_instrumentation_data.has_value()) {
     if (const FrameInstrumentationData* data =
-            absl::get_if<FrameInstrumentationData>(
+            std::get_if<FrameInstrumentationData>(
                 &*frame_info->frame_instrumentation_data)) {
       corruption_score = corruption_score_calculator_->CalculateCorruptionScore(
           decodedImage, *data);
@@ -317,7 +317,7 @@ int32_t VCMGenericDecoder::Decode(
     Timestamp now,
     int64_t render_time_ms,
     const std::optional<
-        absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>&
+        std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>&
         frame_instrumentation_data) {
   TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
                frame.RtpTimestamp());

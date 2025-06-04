@@ -10,26 +10,31 @@
 
 #include "media/base/media_channel_impl.h"
 
+#include <cstdint>
 #include <map>
 #include <string>
-#include <type_traits>
 #include <utility>
 
 #include "absl/functional/any_invocable.h"
+#include "api/array_view.h"
 #include "api/audio_options.h"
+#include "api/call/transport.h"
+#include "api/crypto/frame_decryptor_interface.h"
+#include "api/crypto/frame_encryptor_interface.h"
+#include "api/frame_transformer_interface.h"
 #include "api/media_stream_interface.h"
 #include "api/rtc_error.h"
 #include "api/rtp_sender_interface.h"
-#include "api/units/time_delta.h"
-#include "api/video/video_timing.h"
-#include "api/video_codecs/scalability_mode.h"
-#include "common_video/include/quality_limitation_reason.h"
-#include "media/base/codec.h"
+#include "api/sequence_checker.h"
+#include "api/task_queue/pending_task_safety_flag.h"
+#include "api/task_queue/task_queue_base.h"
 #include "media/base/media_channel.h"
 #include "media/base/rtp_utils.h"
-#include "media/base/stream_params.h"
-#include "modules/rtp_rtcp/include/report_block_data.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/dscp.h"
+#include "rtc_base/socket.h"
 
 namespace cricket {
 using webrtc::FrameDecryptorInterface;
@@ -69,7 +74,7 @@ bool MediaChannelUtil::SendRtcp(rtc::CopyOnWriteBuffer* packet,
 }
 
 int MediaChannelUtil::SetOption(MediaChannelNetworkInterface::SocketType type,
-                                rtc::Socket::Option opt,
+                                webrtc::Socket::Option opt,
                                 int option) {
   return transport_.SetOption(type, opt, option);
 }
@@ -236,10 +241,10 @@ void MediaChannelUtil::TransportForMediaChannels::UpdateDscp() {
   rtc::DiffServCodePoint value =
       enable_dscp_ ? preferred_dscp_ : rtc::DSCP_DEFAULT;
   int ret = SetOptionLocked(MediaChannelNetworkInterface::ST_RTP,
-                            rtc::Socket::OPT_DSCP, value);
+                            webrtc::Socket::OPT_DSCP, value);
   if (ret == 0)
     SetOptionLocked(MediaChannelNetworkInterface::ST_RTCP,
-                    rtc::Socket::OPT_DSCP, value);
+                    webrtc::Socket::OPT_DSCP, value);
 }
 
 bool MediaChannelUtil::TransportForMediaChannels::DoSendPacket(
@@ -256,7 +261,7 @@ bool MediaChannelUtil::TransportForMediaChannels::DoSendPacket(
 
 int MediaChannelUtil::TransportForMediaChannels::SetOption(
     MediaChannelNetworkInterface::SocketType type,
-    rtc::Socket::Option opt,
+    webrtc::Socket::Option opt,
     int option) {
   RTC_DCHECK_RUN_ON(network_thread_);
   return SetOptionLocked(type, opt, option);
@@ -264,7 +269,7 @@ int MediaChannelUtil::TransportForMediaChannels::SetOption(
 
 int MediaChannelUtil::TransportForMediaChannels::SetOptionLocked(
     MediaChannelNetworkInterface::SocketType type,
-    rtc::Socket::Option opt,
+    webrtc::Socket::Option opt,
     int option) {
   if (!network_interface_)
     return -1;

@@ -10,12 +10,20 @@
 
 #include "p2p/base/transport_description.h"
 
+#include <cstddef>
+#include <optional>
+#include <string>
+#include <vector>
+
+#include "absl/algorithm/container.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
+#include "api/rtc_error.h"
 #include "p2p/base/p2p_constants.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/strings/string_builder.h"
 
 using webrtc::RTCError;

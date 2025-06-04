@@ -11,30 +11,44 @@
 #ifndef VIDEO_RTP_VIDEO_STREAM_RECEIVER2_H_
 #define VIDEO_RTP_VIDEO_STREAM_RECEIVER2_H_
 
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <optional>
-#include <string>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/environment/environment.h"
+#include "api/frame_transformer_interface.h"
+#include "api/rtp_headers.h"
+#include "api/rtp_packet_info.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/rtp/dependency_descriptor.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "api/video/color_space.h"
+#include "api/video/encoded_frame.h"
+#include "api/video/video_codec_constants.h"
 #include "api/video/video_codec_type.h"
 #include "call/rtp_packet_sink_interface.h"
 #include "call/syncable.h"
 #include "call/video_receive_stream.h"
 #include "common_video/frame_instrumentation_data.h"
+#include "modules/include/module_common_types.h"
 #include "modules/rtp_rtcp/include/receive_statistics.h"
 #include "modules/rtp_rtcp/include/recovered_packet_receiver.h"
 #include "modules/rtp_rtcp/include/remote_ntp_time_estimator.h"
-#include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
+#include "modules/rtp_rtcp/include/rtcp_statistics.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/absolute_capture_time_interpolator.h"
 #include "modules/rtp_rtcp/source/capture_clock_offset_updater.h"
-#include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
+#include "modules/rtp_rtcp/source/frame_object.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_impl2.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_interface.h"
@@ -47,6 +61,7 @@
 #include "modules/video_coding/nack_requester.h"
 #include "modules/video_coding/packet_buffer.h"
 #include "modules/video_coding/rtp_frame_reference_finder.h"
+#include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/numerics/sequence_number_unwrapper.h"
 #include "rtc_base/system/no_unique_address.h"
@@ -309,7 +324,8 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   // This function assumes that it's being called from only one thread.
   void ParseAndHandleEncapsulatingHeader(const RtpPacketReceived& packet)
       RTC_RUN_ON(packet_sequence_checker_);
-  void NotifyReceiverOfEmptyPacket(uint16_t seq_num, bool is_h26x)
+  void NotifyReceiverOfEmptyPacket(uint16_t seq_num,
+                                   std::optional<VideoCodecType> codec)
       RTC_RUN_ON(packet_sequence_checker_);
   bool IsRedEnabled() const;
   void InsertSpsPpsIntoTracker(uint8_t payload_type)
@@ -325,11 +341,13 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
                                      bool is_keyframe)
       RTC_RUN_ON(packet_sequence_checker_);
   void SetLastCorruptionDetectionIndex(
-      const absl::variant<FrameInstrumentationSyncData,
-                          FrameInstrumentationData>& frame_instrumentation_data,
+      const std::variant<FrameInstrumentationSyncData,
+                         FrameInstrumentationData>& frame_instrumentation_data,
       int spatial_idx);
 
-  bool IsH26xPayloadType(uint8_t payload_type) const
+  std::optional<VideoCodecType> GetCodecFromPayloadType(
+      uint8_t payload_type) const RTC_RUN_ON(packet_sequence_checker_);
+  bool UseH26xPacketBuffer(std::optional<VideoCodecType> codec) const
       RTC_RUN_ON(packet_sequence_checker_);
 
   const Environment env_;
@@ -381,8 +399,9 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
   VideoStreamBufferControllerStatsObserver* const vcm_receive_statistics_;
   video_coding::PacketBuffer packet_buffer_
       RTC_GUARDED_BY(packet_sequence_checker_);
-  // h26x_packet_buffer_ is nullptr if codec list doens't contain H.264 or
-  // H.265, or field trial WebRTC-Video-H26xPacketBuffer is not enabled.
+  // h26x_packet_buffer_ is applicable to H.264 and H.265. For H.265 it is
+  // always used but for H.264 it is only used if WebRTC-Video-H26xPacketBuffer
+  // is enabled, see condition inside UseH26xPacketBuffer().
   std::unique_ptr<H26xPacketBuffer> h26x_packet_buffer_
       RTC_GUARDED_BY(packet_sequence_checker_);
   UniqueTimestampCounter frame_counter_

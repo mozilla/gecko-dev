@@ -39,10 +39,6 @@ void LoadDecoders(webrtc::NetEq* neteq) {
             neteq->RegisterPayloadType(0, SdpAudioFormat("pcmu", 8000, 1)));
   ASSERT_EQ(true,
             neteq->RegisterPayloadType(8, SdpAudioFormat("pcma", 8000, 1)));
-#ifdef WEBRTC_CODEC_ILBC
-  ASSERT_EQ(true,
-            neteq->RegisterPayloadType(102, SdpAudioFormat("ilbc", 8000, 1)));
-#endif
 #if defined(WEBRTC_CODEC_ISAC) || defined(WEBRTC_CODEC_ISACFX)
   ASSERT_EQ(true,
             neteq->RegisterPayloadType(103, SdpAudioFormat("isac", 16000, 1)));

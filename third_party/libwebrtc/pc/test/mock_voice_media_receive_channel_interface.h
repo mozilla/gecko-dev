@@ -10,18 +10,25 @@
 #ifndef PC_TEST_MOCK_VOICE_MEDIA_RECEIVE_CHANNEL_INTERFACE_H_
 #define PC_TEST_MOCK_VOICE_MEDIA_RECEIVE_CHANNEL_INTERFACE_H_
 
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <set>
-#include <string>
+#include <type_traits>
 #include <vector>
 
 #include "api/call/audio_sink.h"
+#include "api/crypto/frame_decryptor_interface.h"
+#include "api/frame_transformer_interface.h"
+#include "api/media_types.h"
+#include "api/rtp_headers.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
+#include "api/transport/rtp/rtp_source.h"
 #include "media/base/media_channel.h"
-#include "media/base/media_channel_impl.h"
+#include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "rtc_base/gunit.h"
 #include "test/gmock.h"
-#include "test/gtest.h"
 
 namespace cricket {
 
@@ -81,7 +88,7 @@ class MockVoiceMediaReceiveChannelInterface
               AsVoiceReceiveChannel,
               (),
               (override));
-  MOCK_METHOD(cricket::MediaType, media_type, (), (const, override));
+  MOCK_METHOD(webrtc::MediaType, media_type, (), (const, override));
   MOCK_METHOD(bool, AddRecvStream, (const StreamParams& sp), (override));
   MOCK_METHOD(bool, RemoveRecvStream, (uint32_t ssrc), (override));
   MOCK_METHOD(void, ResetUnsignaledRecvStream, (), (override));

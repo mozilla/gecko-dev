@@ -11,11 +11,18 @@
 #ifndef PC_PEER_CONNECTION_FACTORY_PROXY_H_
 #define PC_PEER_CONNECTION_FACTORY_PROXY_H_
 
-#include <memory>
+#include <cstdint>
+#include <cstdio>
 #include <string>
-#include <utility>
 
+#include "absl/strings/string_view.h"
+#include "api/audio_options.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
 #include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "pc/proxy.h"
 
 namespace webrtc {
@@ -29,12 +36,10 @@ PROXY_METHOD2(RTCErrorOr<rtc::scoped_refptr<PeerConnectionInterface>>,
               CreatePeerConnectionOrError,
               const PeerConnectionInterface::RTCConfiguration&,
               PeerConnectionDependencies)
-PROXY_CONSTMETHOD1(RtpCapabilities,
-                   GetRtpSenderCapabilities,
-                   cricket::MediaType)
+PROXY_CONSTMETHOD1(RtpCapabilities, GetRtpSenderCapabilities, webrtc::MediaType)
 PROXY_CONSTMETHOD1(RtpCapabilities,
                    GetRtpReceiverCapabilities,
-                   cricket::MediaType)
+                   webrtc::MediaType)
 PROXY_METHOD1(rtc::scoped_refptr<MediaStreamInterface>,
               CreateLocalMediaStream,
               const std::string&)

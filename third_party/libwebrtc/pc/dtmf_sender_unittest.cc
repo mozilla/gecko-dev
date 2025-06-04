@@ -92,9 +92,9 @@ class FakeDtmfProvider : public DtmfProviderInterface {
     // TODO(ronghuawu): Make the timer (basically the rtc::TimeNanos)
     // mockable and use a fake timer in the unit tests.
     if (last_insert_dtmf_call_ > 0) {
-      gap = static_cast<int>(rtc::TimeMillis() - last_insert_dtmf_call_);
+      gap = static_cast<int>(webrtc::TimeMillis() - last_insert_dtmf_call_);
     }
-    last_insert_dtmf_call_ = rtc::TimeMillis();
+    last_insert_dtmf_call_ = webrtc::TimeMillis();
 
     dtmf_info_queue_.push_back(DtmfInfo(code, duration, gap));
     return true;
@@ -119,7 +119,7 @@ class DtmfSenderTest : public ::testing::Test {
   DtmfSenderTest()
       : observer_(new FakeDtmfObserver()), provider_(new FakeDtmfProvider()) {
     provider_->SetCanInsertDtmf(true);
-    dtmf_ = DtmfSender::Create(rtc::Thread::Current(), provider_.get());
+    dtmf_ = DtmfSender::Create(webrtc::Thread::Current(), provider_.get());
     dtmf_->RegisterObserver(observer_.get());
   }
 
@@ -214,11 +214,11 @@ class DtmfSenderTest : public ::testing::Test {
     }
   }
 
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   std::unique_ptr<FakeDtmfObserver> observer_;
   std::unique_ptr<FakeDtmfProvider> provider_;
   rtc::scoped_refptr<DtmfSender> dtmf_;
-  rtc::ScopedFakeClock fake_clock_;
+  webrtc::ScopedFakeClock fake_clock_;
 };
 
 TEST_F(DtmfSenderTest, CanInsertDtmf) {

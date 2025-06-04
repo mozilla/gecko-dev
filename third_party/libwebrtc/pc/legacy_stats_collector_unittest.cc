@@ -13,23 +13,31 @@
 #include <stdio.h>
 
 #include <cstdint>
+#include <memory>
 #include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "absl/algorithm/container.h"
 #include "api/audio/audio_processing_statistics.h"
 #include "api/audio_codecs/audio_encoder.h"
 #include "api/candidate.h"
 #include "api/data_channel_interface.h"
+#include "api/legacy_stats_types.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
 #include "api/media_stream_track.h"
 #include "api/media_types.h"
+#include "api/peer_connection_interface.h"
 #include "api/rtp_sender_interface.h"
 #include "api/scoped_refptr.h"
 #include "call/call.h"
 #include "media/base/media_channel.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "pc/media_stream.h"
-#include "pc/rtp_receiver.h"
-#include "pc/rtp_sender.h"
+#include "pc/peer_connection_internal.h"
 #include "pc/sctp_data_channel.h"
 #include "pc/test/fake_peer_connection_for_stats.h"
 #include "pc/test/fake_video_track_source.h"
@@ -37,9 +45,11 @@
 #include "pc/test/mock_rtp_sender_internal.h"
 #include "pc/transport_stats.h"
 #include "pc/video_track.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/fake_ssl_identity.h"
 #include "rtc_base/message_digest.h"
 #include "rtc_base/net_helper.h"
+#include "rtc_base/network_constants.h"
 #include "rtc_base/null_socket_server.h"
 #include "rtc_base/rtc_certificate.h"
 #include "rtc_base/socket_address.h"
@@ -288,7 +298,7 @@ void CheckCertChainReports(const StatsReports& reports,
 
     std::string der_base64;
     EXPECT_TRUE(GetValue(report, StatsReport::kStatsValueNameDer, &der_base64));
-    std::string der = rtc::Base64::Decode(der_base64, rtc::Base64::DO_STRICT);
+    std::string der = Base64::Decode(der_base64, Base64::DO_STRICT);
     EXPECT_EQ(ders[i], der);
 
     std::string fingerprint_algorithm;
@@ -654,9 +664,9 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     }
   }
 
-  void TestCertificateReports(const rtc::FakeSSLIdentity& local_identity,
+  void TestCertificateReports(const FakeSSLIdentity& local_identity,
                               const std::vector<std::string>& local_ders,
-                              const rtc::FakeSSLIdentity& remote_identity,
+                              const FakeSSLIdentity& remote_identity,
                               const std::vector<std::string>& remote_ders) {
     const std::string kTransportName = "transport";
 
@@ -668,13 +678,13 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     // Fake stats to process.
     TransportChannelStats channel_stats;
     channel_stats.component = 1;
-    channel_stats.srtp_crypto_suite = rtc::kSrtpAes128CmSha1_80;
+    channel_stats.srtp_crypto_suite = kSrtpAes128CmSha1_80;
     channel_stats.tls_cipher_suite_name = "cipher_suite_for_test";
     pc->SetTransportStats(kTransportName, channel_stats);
 
     // Fake certificate to report.
-    rtc::scoped_refptr<rtc::RTCCertificate> local_certificate(
-        rtc::RTCCertificate::Create(local_identity.Clone()));
+    rtc::scoped_refptr<RTCCertificate> local_certificate(
+        RTCCertificate::Create(local_identity.Clone()));
     pc->SetLocalCertificate(kTransportName, local_certificate);
     pc->SetRemoteCertChain(kTransportName,
                            remote_identity.cert_chain().Clone());
@@ -720,12 +730,11 @@ class LegacyStatsCollectorTest : public ::testing::Test {
     std::string srtp_crypto_suite =
         ExtractStatsValue(StatsReport::kStatsReportTypeComponent, reports,
                           StatsReport::kStatsValueNameSrtpCipher);
-    EXPECT_EQ(rtc::SrtpCryptoSuiteToName(rtc::kSrtpAes128CmSha1_80),
-              srtp_crypto_suite);
+    EXPECT_EQ(SrtpCryptoSuiteToName(kSrtpAes128CmSha1_80), srtp_crypto_suite);
   }
 
  private:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
 };
 
 static rtc::scoped_refptr<MockRtpSenderInternal> CreateMockSender(
@@ -737,8 +746,8 @@ static rtc::scoped_refptr<MockRtpSenderInternal> CreateMockSender(
   EXPECT_CALL(*sender, media_type())
       .WillRepeatedly(
           Return(track->kind() == MediaStreamTrackInterface::kAudioKind
-                     ? cricket::MEDIA_TYPE_AUDIO
-                     : cricket::MEDIA_TYPE_VIDEO));
+                     ? webrtc::MediaType::AUDIO
+                     : webrtc::MediaType::VIDEO));
   EXPECT_CALL(*sender, SetMediaChannel(_)).Times(AtMost(2));
   EXPECT_CALL(*sender, SetTransceiverAsStopped()).Times(AtMost(1));
   EXPECT_CALL(*sender, Stop());
@@ -754,8 +763,8 @@ static rtc::scoped_refptr<MockRtpReceiverInternal> CreateMockReceiver(
   EXPECT_CALL(*receiver, media_type())
       .WillRepeatedly(
           Return(track->kind() == MediaStreamTrackInterface::kAudioKind
-                     ? cricket::MEDIA_TYPE_AUDIO
-                     : cricket::MEDIA_TYPE_VIDEO));
+                     ? webrtc::MediaType::AUDIO
+                     : webrtc::MediaType::VIDEO));
   EXPECT_CALL(*receiver, SetMediaChannel(_)).WillRepeatedly(Return());
   EXPECT_CALL(*receiver, Stop()).WillRepeatedly(Return());
   return receiver;
@@ -770,7 +779,7 @@ class StatsCollectorTrackTest : public LegacyStatsCollectorTest,
   void AddOutgoingVideoTrack(FakePeerConnectionForStats* pc,
                              LegacyStatsCollectorForTest* stats) {
     video_track_ = VideoTrack::Create(
-        kLocalTrackId, FakeVideoTrackSource::Create(), rtc::Thread::Current());
+        kLocalTrackId, FakeVideoTrackSource::Create(), Thread::Current());
     if (GetParam()) {
       if (!stream_)
         stream_ = MediaStream::Create("streamid");
@@ -786,7 +795,7 @@ class StatsCollectorTrackTest : public LegacyStatsCollectorTest,
   void AddIncomingVideoTrack(FakePeerConnectionForStats* pc,
                              LegacyStatsCollectorForTest* stats) {
     video_track_ = VideoTrack::Create(
-        kRemoteTrackId, FakeVideoTrackSource::Create(), rtc::Thread::Current());
+        kRemoteTrackId, FakeVideoTrackSource::Create(), Thread::Current());
     if (GetParam()) {
       stream_ = MediaStream::Create("streamid");
       stream_->AddTrack(video_track());
@@ -869,7 +878,7 @@ TEST(StatsCollectionTest, DetachAndMerge) {
 // Similar to `DetachAndMerge` above but detaches on one thread, merges on
 // another to test that we don't trigger sequence checker.
 TEST(StatsCollectionTest, DetachAndMergeThreaded) {
-  rtc::Thread new_thread(std::make_unique<rtc::NullSocketServer>());
+  Thread new_thread(std::make_unique<NullSocketServer>());
   new_thread.Start();
 
   StatsReport::Id id(
@@ -1318,21 +1327,21 @@ TEST_P(StatsCollectorTrackTest, ReportsFromRemoteTrack) {
 // information from local/remote candidates.
 TEST_F(LegacyStatsCollectorTest, IceCandidateReport) {
   const std::string kTransportName = "transport";
-  const rtc::AdapterType kNetworkType = rtc::ADAPTER_TYPE_ETHERNET;
+  const AdapterType kNetworkType = ADAPTER_TYPE_ETHERNET;
   constexpr uint32_t kPriority = 1000;
 
   constexpr int kLocalPort = 2000;
   const std::string kLocalIp = "192.168.0.1";
-  const rtc::SocketAddress kLocalAddress(kLocalIp, kLocalPort);
+  const SocketAddress kLocalAddress(kLocalIp, kLocalPort);
 
   constexpr int kRemotePort = 2001;
   const std::string kRemoteIp = "192.168.0.2";
-  const rtc::SocketAddress kRemoteAddress(kRemoteIp, kRemotePort);
+  const SocketAddress kRemoteAddress(kRemoteIp, kRemotePort);
 
   auto pc = CreatePeerConnection();
   auto stats = CreateStatsCollector(pc.get());
 
-  cricket::Candidate local;
+  Candidate local;
   EXPECT_GT(local.id().length(), 0u);
   RTC_DCHECK_EQ(local.type(), IceCandidateType::kHost);
   local.set_protocol(cricket::UDP_PROTOCOL_NAME);
@@ -1340,7 +1349,7 @@ TEST_F(LegacyStatsCollectorTest, IceCandidateReport) {
   local.set_priority(kPriority);
   local.set_network_type(kNetworkType);
 
-  cricket::Candidate remote;
+  Candidate remote;
   EXPECT_GT(remote.id().length(), 0u);
   remote.set_type(IceCandidateType::kPrflx);
   remote.set_protocol(cricket::UDP_PROTOCOL_NAME);
@@ -1432,7 +1441,7 @@ TEST_F(LegacyStatsCollectorTest, ChainedCertificateReportsCreated) {
   local_ders[2] = "some";
   local_ders[3] = "der";
   local_ders[4] = "values";
-  rtc::FakeSSLIdentity local_identity(DersToPems(local_ders));
+  FakeSSLIdentity local_identity(DersToPems(local_ders));
 
   // Build remote certificate chain
   std::vector<std::string> remote_ders(4);
@@ -1440,7 +1449,7 @@ TEST_F(LegacyStatsCollectorTest, ChainedCertificateReportsCreated) {
   remote_ders[1] = "non-";
   remote_ders[2] = "intersecting";
   remote_ders[3] = "set";
-  rtc::FakeSSLIdentity remote_identity(DersToPems(remote_ders));
+  FakeSSLIdentity remote_identity(DersToPems(remote_ders));
 
   TestCertificateReports(local_identity, local_ders, remote_identity,
                          remote_ders);
@@ -1451,11 +1460,11 @@ TEST_F(LegacyStatsCollectorTest, ChainedCertificateReportsCreated) {
 TEST_F(LegacyStatsCollectorTest, ChainlessCertificateReportsCreated) {
   // Build local certificate.
   std::string local_der = "This is the local der.";
-  rtc::FakeSSLIdentity local_identity(DerToPem(local_der));
+  FakeSSLIdentity local_identity(DerToPem(local_der));
 
   // Build remote certificate.
   std::string remote_der = "This is somebody else's der.";
-  rtc::FakeSSLIdentity remote_identity(DerToPem(remote_der));
+  FakeSSLIdentity remote_identity(DerToPem(remote_der));
 
   TestCertificateReports(local_identity, std::vector<std::string>(1, local_der),
                          remote_identity,
@@ -1504,13 +1513,13 @@ TEST_F(LegacyStatsCollectorTest, NoTransport) {
 TEST_F(LegacyStatsCollectorTest, UnsupportedDigestIgnored) {
   // Build a local certificate.
   std::string local_der = "This is the local der.";
-  rtc::FakeSSLIdentity local_identity(DerToPem(local_der));
+  FakeSSLIdentity local_identity(DerToPem(local_der));
 
   // Build a remote certificate with an unsupported digest algorithm.
   std::string remote_der = "This is somebody else's der.";
-  rtc::FakeSSLCertificate remote_cert(DerToPem(remote_der));
+  FakeSSLCertificate remote_cert(DerToPem(remote_der));
   remote_cert.set_digest_algorithm("foobar");
-  rtc::FakeSSLIdentity remote_identity(remote_cert);
+  FakeSSLIdentity remote_identity(remote_cert);
 
   TestCertificateReports(local_identity, std::vector<std::string>(1, local_der),
                          remote_identity, std::vector<std::string>());

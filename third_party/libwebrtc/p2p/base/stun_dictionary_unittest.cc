@@ -10,10 +10,16 @@
 
 #include "p2p/base/stun_dictionary.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "rtc_base/gunit.h"
+#include "api/transport/stun.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/socket_address.h"
 #include "test/gtest.h"
 
 namespace {
@@ -279,7 +285,7 @@ TEST(StunDictionary, DataTypes) {
   StunDictionaryWriter writer;
   StunDictionaryView dictionary;
 
-  rtc::SocketAddress addr("127.0.0.1", 8080);
+  webrtc::SocketAddress addr("127.0.0.1", 8080);
 
   writer.SetUInt32(kKey1)->SetValue(27);
   writer.SetUInt64(kKey1 + 1)->SetValue(28);
@@ -299,7 +305,7 @@ TEST(StunDictionary, ParseError) {
   StunDictionaryWriter writer;
   StunDictionaryView dictionary;
 
-  rtc::SocketAddress addr("127.0.0.1", 8080);
+  webrtc::SocketAddress addr("127.0.0.1", 8080);
 
   writer.SetUInt32(kKey1)->SetValue(27);
   writer.SetUInt64(kKey1 + 1)->SetValue(28);

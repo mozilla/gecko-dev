@@ -41,7 +41,6 @@ namespace webrtc {
 
 constexpr int kTestMaxSctpStreams = 1234;
 
-using cricket::FakeDtlsTransport;
 using ::testing::ElementsAre;
 
 namespace {
@@ -53,9 +52,7 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
   }
   void SetDataChannelSink(DataChannelSink* sink) override {}
   void SetDtlsTransport(cricket::DtlsTransportInternal* transport) override {}
-  bool Start(int local_port, int remote_port, int max_message_size) override {
-    return true;
-  }
+  bool Start(const SctpOptions& options) override { return true; }
   bool OpenStream(int sid, PriorityValue priority) override { return true; }
   bool ResetStream(int sid) override { return true; }
   RTCError SendData(int sid,
@@ -150,14 +147,14 @@ class SctpTransportTest : public ::testing::Test {
     return static_cast<FakeCricketSctpTransport*>(transport_->internal());
   }
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   rtc::scoped_refptr<SctpTransport> transport_;
   rtc::scoped_refptr<DtlsTransport> dtls_transport_;
   TestSctpTransportObserver observer_;
 };
 
 TEST(SctpTransportSimpleTest, CreateClearDelete) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   std::unique_ptr<cricket::DtlsTransportInternal> cricket_transport =
       std::make_unique<FakeDtlsTransport>("audio",
                                           cricket::ICE_CANDIDATE_COMPONENT_RTP);
@@ -223,7 +220,7 @@ TEST_F(SctpTransportTest, CloseWhenTransportCloses) {
   ASSERT_THAT(WaitUntil([&] { return observer_.State(); },
                         ::testing::Eq(SctpTransportState::kConnected)),
               IsRtcOk());
-  static_cast<cricket::FakeDtlsTransport*>(dtls_transport_->internal())
+  static_cast<FakeDtlsTransport*>(dtls_transport_->internal())
       ->SetDtlsState(DtlsTransportState::kClosed);
   ASSERT_THAT(WaitUntil([&] { return observer_.State(); },
                         ::testing::Eq(SctpTransportState::kClosed)),

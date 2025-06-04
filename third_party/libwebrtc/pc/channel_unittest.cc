@@ -120,7 +120,7 @@ class VoiceTraits : public Traits<cricket::VoiceChannel,
                                   cricket::FakeVoiceMediaReceiveChannel,
                                   cricket::VoiceMediaSendChannelInterface,
                                   cricket::VoiceMediaReceiveChannelInterface,
-                                  cricket::AudioContentDescription,
+                                  webrtc::AudioContentDescription,
                                   cricket::VoiceMediaInfo,
                                   cricket::AudioOptions> {};
 
@@ -129,7 +129,7 @@ class VideoTraits : public Traits<cricket::VideoChannel,
                                   cricket::FakeVideoMediaReceiveChannel,
                                   cricket::VideoMediaSendChannelInterface,
                                   cricket::VideoMediaReceiveChannelInterface,
-                                  cricket::VideoContentDescription,
+                                  webrtc::VideoContentDescription,
                                   cricket::VideoMediaInfo,
                                   cricket::VideoOptions> {};
 
@@ -154,9 +154,9 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
         rtp_packet_(rtp_data.data(), rtp_data.size()),
         rtcp_packet_(rtcp_data.data(), rtcp_data.size()) {
     if (network_is_worker == NetworkIsWorker::Yes) {
-      network_thread_ = rtc::Thread::Current();
+      network_thread_ = webrtc::Thread::Current();
     } else {
-      network_thread_keeper_ = rtc::Thread::Create();
+      network_thread_keeper_ = webrtc::Thread::Create();
       network_thread_keeper_->SetName("Network", nullptr);
       network_thread_ = network_thread_keeper_.get();
     }
@@ -215,29 +215,29 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
     // Make sure if using raw packet transports, they're used for both
     // channels.
     RTC_DCHECK_EQ(flags1 & RAW_PACKET_TRANSPORT, flags2 & RAW_PACKET_TRANSPORT);
-    rtc::Thread* worker_thread = rtc::Thread::Current();
+    webrtc::Thread* worker_thread = webrtc::Thread::Current();
 
     network_thread_->BlockingCall([&] {
       // Based on flags, create fake DTLS or raw packet transports.
 
       if (flags1 & RAW_PACKET_TRANSPORT) {
         fake_rtp_packet_transport1_.reset(
-            new rtc::FakePacketTransport("channel1_rtp"));
+            new webrtc::FakePacketTransport("channel1_rtp"));
         if (!(flags1 & RTCP_MUX)) {
           fake_rtcp_packet_transport1_.reset(
-              new rtc::FakePacketTransport("channel1_rtcp"));
+              new webrtc::FakePacketTransport("channel1_rtcp"));
         }
       } else {
         // Confirmed to work with KT_RSA and KT_ECDSA.
-        fake_rtp_dtls_transport1_.reset(new cricket::FakeDtlsTransport(
+        fake_rtp_dtls_transport1_.reset(new webrtc::FakeDtlsTransport(
             "channel1", cricket::ICE_CANDIDATE_COMPONENT_RTP, network_thread_));
         if (!(flags1 & RTCP_MUX)) {
-          fake_rtcp_dtls_transport1_.reset(new cricket::FakeDtlsTransport(
+          fake_rtcp_dtls_transport1_.reset(new webrtc::FakeDtlsTransport(
               "channel1", cricket::ICE_CANDIDATE_COMPONENT_RTCP,
               network_thread_));
         }
         if (flags1 & DTLS) {
-          auto cert1 = rtc::RTCCertificate::Create(
+          auto cert1 = webrtc::RTCCertificate::Create(
               rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
           fake_rtp_dtls_transport1_->SetLocalCertificate(cert1);
           if (fake_rtcp_dtls_transport1_) {
@@ -248,22 +248,22 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
       // Based on flags, create fake DTLS or raw packet transports.
       if (flags2 & RAW_PACKET_TRANSPORT) {
         fake_rtp_packet_transport2_.reset(
-            new rtc::FakePacketTransport("channel2_rtp"));
+            new webrtc::FakePacketTransport("channel2_rtp"));
         if (!(flags2 & RTCP_MUX)) {
           fake_rtcp_packet_transport2_.reset(
-              new rtc::FakePacketTransport("channel2_rtcp"));
+              new webrtc::FakePacketTransport("channel2_rtcp"));
         }
       } else {
         // Confirmed to work with KT_RSA and KT_ECDSA.
-        fake_rtp_dtls_transport2_.reset(new cricket::FakeDtlsTransport(
+        fake_rtp_dtls_transport2_.reset(new webrtc::FakeDtlsTransport(
             "channel2", cricket::ICE_CANDIDATE_COMPONENT_RTP, network_thread_));
         if (!(flags2 & RTCP_MUX)) {
-          fake_rtcp_dtls_transport2_.reset(new cricket::FakeDtlsTransport(
+          fake_rtcp_dtls_transport2_.reset(new webrtc::FakeDtlsTransport(
               "channel2", cricket::ICE_CANDIDATE_COMPONENT_RTCP,
               network_thread_));
         }
         if (flags2 & DTLS) {
-          auto cert2 = rtc::RTCCertificate::Create(
+          auto cert2 = webrtc::RTCCertificate::Create(
               rtc::SSLIdentity::Create("session2", rtc::KT_DEFAULT));
           fake_rtp_dtls_transport2_->SetLocalCertificate(cert2);
           if (fake_rtcp_dtls_transport2_) {
@@ -305,8 +305,8 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
     }
   }
   std::unique_ptr<typename T::Channel> CreateChannel(
-      rtc::Thread* worker_thread,
-      rtc::Thread* network_thread,
+      webrtc::Thread* worker_thread,
+      webrtc::Thread* network_thread,
       std::unique_ptr<typename T::MediaSendChannel> ch_send,
       std::unique_ptr<typename T::MediaReceiveChannel> ch_receive,
       webrtc::RtpTransportInternal* rtp_transport,
@@ -523,10 +523,10 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
   rtc::Buffer CreateRtpData(uint32_t ssrc, int sequence_number, int pl_type) {
     rtc::Buffer data(rtp_packet_.data(), rtp_packet_.size());
     // Set SSRC in the rtp packet copy.
-    rtc::SetBE32(data.data() + 8, ssrc);
-    rtc::SetBE16(data.data() + 2, sequence_number);
+    webrtc::SetBE32(data.data() + 8, ssrc);
+    webrtc::SetBE16(data.data() + 2, sequence_number);
     if (pl_type >= 0) {
-      rtc::Set8(data.data(), 1, static_cast<uint8_t>(pl_type));
+      webrtc::Set8(data.data(), 1, static_cast<uint8_t>(pl_type));
     }
     return data;
   }
@@ -559,17 +559,17 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
   class ScopedCallThread {
    public:
     explicit ScopedCallThread(absl::AnyInvocable<void() &&> functor)
-        : thread_(rtc::Thread::Create()) {
+        : thread_(webrtc::Thread::Create()) {
       thread_->Start();
       thread_->PostTask(std::move(functor));
     }
 
     ~ScopedCallThread() { thread_->Stop(); }
 
-    rtc::Thread* thread() { return thread_.get(); }
+    webrtc::Thread* thread() { return thread_.get(); }
 
    private:
-    std::unique_ptr<rtc::Thread> thread_;
+    std::unique_ptr<webrtc::Thread> thread_;
   };
 
   cricket::CandidatePairInterface* last_selected_candidate_pair() {
@@ -1128,7 +1128,8 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
     EXPECT_TRUE(SendAccept());
     ScopedCallThread send_rtp1([this] { SendRtp1(); });
     ScopedCallThread send_rtp2([this] { SendRtp2(); });
-    rtc::Thread* involved_threads[] = {send_rtp1.thread(), send_rtp2.thread()};
+    webrtc::Thread* involved_threads[] = {send_rtp1.thread(),
+                                          send_rtp2.thread()};
     WaitForThreads(involved_threads);
     EXPECT_TRUE(CheckRtp1());
     EXPECT_TRUE(CheckRtp2());
@@ -1421,14 +1422,14 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
       new_rtp_transport_ = CreateDtlsSrtpTransport(
           fake_rtp_dtls_transport2_.get(), fake_rtcp_dtls_transport2_.get());
       channel1_->SetOption(cricket::BaseChannel::ST_RTP,
-                           rtc::Socket::Option::OPT_SNDBUF, kSndBufSize);
+                           webrtc::Socket::Option::OPT_SNDBUF, kSndBufSize);
       channel2_->SetOption(cricket::BaseChannel::ST_RTP,
-                           rtc::Socket::Option::OPT_RCVBUF, kRcvBufSize);
+                           webrtc::Socket::Option::OPT_RCVBUF, kRcvBufSize);
       channel1_->SetRtpTransport(new_rtp_transport_.get());
       send_success = fake_rtp_dtls_transport2_->GetOption(
-          rtc::Socket::Option::OPT_SNDBUF, &send_buf);
+          webrtc::Socket::Option::OPT_SNDBUF, &send_buf);
       rcv_success = fake_rtp_dtls_transport2_->GetOption(
-          rtc::Socket::Option::OPT_RCVBUF, &rcv_buf);
+          webrtc::Socket::Option::OPT_RCVBUF, &rcv_buf);
     });
 
     ASSERT_TRUE(send_success);
@@ -1490,28 +1491,28 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
 
  protected:
   void WaitForThreads() { WaitForThreads(rtc::ArrayView<rtc::Thread*>()); }
-  static void ProcessThreadQueue(rtc::Thread* thread) {
+  static void ProcessThreadQueue(webrtc::Thread* thread) {
     RTC_DCHECK(thread->IsCurrent());
     while (!thread->empty()) {
       thread->ProcessMessages(0);
     }
   }
   static void FlushCurrentThread() {
-    rtc::Thread::Current()->ProcessMessages(0);
+    webrtc::Thread::Current()->ProcessMessages(0);
   }
   void WaitForThreads(rtc::ArrayView<rtc::Thread*> threads) {
     // `threads` and current thread post packets to network thread.
     for (rtc::Thread* thread : threads) {
       SendTask(thread, [thread] { ProcessThreadQueue(thread); });
     }
-    ProcessThreadQueue(rtc::Thread::Current());
+    ProcessThreadQueue(webrtc::Thread::Current());
     // Network thread move them around and post back to worker = current thread.
     if (!network_thread_->IsCurrent()) {
       SendTask(network_thread_,
                [this] { ProcessThreadQueue(network_thread_); });
     }
     // Worker thread = current Thread process received messages.
-    ProcessThreadQueue(rtc::Thread::Current());
+    ProcessThreadQueue(webrtc::Thread::Current());
   }
 
   // Accessors that return the standard VideoMedia{Send|Receive}ChannelInterface
@@ -1559,22 +1560,22 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
         channel2_->media_receive_channel());
   }
 
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   // TODO(pbos): Remove playout from all media channels and let renderers mute
   // themselves.
   const bool verify_playout_;
   rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> network_thread_safety_ =
       webrtc::PendingTaskSafetyFlag::CreateDetached();
-  std::unique_ptr<rtc::Thread> network_thread_keeper_;
-  rtc::Thread* network_thread_;
-  std::unique_ptr<cricket::FakeDtlsTransport> fake_rtp_dtls_transport1_;
-  std::unique_ptr<cricket::FakeDtlsTransport> fake_rtcp_dtls_transport1_;
-  std::unique_ptr<cricket::FakeDtlsTransport> fake_rtp_dtls_transport2_;
-  std::unique_ptr<cricket::FakeDtlsTransport> fake_rtcp_dtls_transport2_;
-  std::unique_ptr<rtc::FakePacketTransport> fake_rtp_packet_transport1_;
-  std::unique_ptr<rtc::FakePacketTransport> fake_rtcp_packet_transport1_;
-  std::unique_ptr<rtc::FakePacketTransport> fake_rtp_packet_transport2_;
-  std::unique_ptr<rtc::FakePacketTransport> fake_rtcp_packet_transport2_;
+  std::unique_ptr<webrtc::Thread> network_thread_keeper_;
+  webrtc::Thread* network_thread_;
+  std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtp_dtls_transport1_;
+  std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtcp_dtls_transport1_;
+  std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtp_dtls_transport2_;
+  std::unique_ptr<webrtc::FakeDtlsTransport> fake_rtcp_dtls_transport2_;
+  std::unique_ptr<webrtc::FakePacketTransport> fake_rtp_packet_transport1_;
+  std::unique_ptr<webrtc::FakePacketTransport> fake_rtcp_packet_transport1_;
+  std::unique_ptr<webrtc::FakePacketTransport> fake_rtp_packet_transport2_;
+  std::unique_ptr<webrtc::FakePacketTransport> fake_rtcp_packet_transport2_;
   std::unique_ptr<webrtc::RtpTransportInternal> rtp_transport1_;
   std::unique_ptr<webrtc::RtpTransportInternal> rtp_transport2_;
   std::unique_ptr<webrtc::RtpTransportInternal> new_rtp_transport_;
@@ -1595,13 +1596,13 @@ class ChannelTest : public ::testing::Test, public sigslot::has_slots<> {
 
 template <>
 std::unique_ptr<cricket::VoiceChannel> ChannelTest<VoiceTraits>::CreateChannel(
-    rtc::Thread* worker_thread,
-    rtc::Thread* network_thread,
+    webrtc::Thread* worker_thread,
+    webrtc::Thread* network_thread,
     std::unique_ptr<cricket::FakeVoiceMediaSendChannel> send_ch,
     std::unique_ptr<cricket::FakeVoiceMediaReceiveChannel> receive_ch,
     webrtc::RtpTransportInternal* rtp_transport,
     int flags) {
-  rtc::Thread* signaling_thread = rtc::Thread::Current();
+  webrtc::Thread* signaling_thread = webrtc::Thread::Current();
   auto channel = std::make_unique<cricket::VoiceChannel>(
       worker_thread, network_thread, signaling_thread, std::move(send_ch),
       std::move(receive_ch), cricket::CN_AUDIO, (flags & DTLS) != 0,
@@ -1618,15 +1619,15 @@ void ChannelTest<VoiceTraits>::CreateContent(
     int flags,
     const cricket::Codec& audio_codec,
     const cricket::Codec& video_codec,
-    cricket::AudioContentDescription* audio) {
+    webrtc::AudioContentDescription* audio) {
   audio->AddCodec(audio_codec);
   audio->set_rtcp_mux((flags & RTCP_MUX) != 0);
 }
 
 template <>
 void ChannelTest<VoiceTraits>::CopyContent(
-    const cricket::AudioContentDescription& source,
-    cricket::AudioContentDescription* audio) {
+    const webrtc::AudioContentDescription& source,
+    webrtc::AudioContentDescription* audio) {
   *audio = source;
 }
 
@@ -1634,7 +1635,7 @@ template <>
 void ChannelTest<VoiceTraits>::AddLegacyStreamInContent(
     uint32_t ssrc,
     int flags,
-    cricket::AudioContentDescription* audio) {
+    webrtc::AudioContentDescription* audio) {
   audio->AddLegacyStream(ssrc);
 }
 
@@ -1675,13 +1676,13 @@ class VoiceChannelWithEncryptedRtpHeaderExtensionsDoubleThreadTest
 // override to add NULL parameter
 template <>
 std::unique_ptr<cricket::VideoChannel> ChannelTest<VideoTraits>::CreateChannel(
-    rtc::Thread* worker_thread,
-    rtc::Thread* network_thread,
+    webrtc::Thread* worker_thread,
+    webrtc::Thread* network_thread,
     std::unique_ptr<cricket::FakeVideoMediaSendChannel> send_ch,
     std::unique_ptr<cricket::FakeVideoMediaReceiveChannel> receive_ch,
     webrtc::RtpTransportInternal* rtp_transport,
     int flags) {
-  rtc::Thread* signaling_thread = rtc::Thread::Current();
+  webrtc::Thread* signaling_thread = webrtc::Thread::Current();
   auto channel = std::make_unique<cricket::VideoChannel>(
       worker_thread, network_thread, signaling_thread, std::move(send_ch),
       std::move(receive_ch), cricket::CN_VIDEO, (flags & DTLS) != 0,
@@ -1698,15 +1699,15 @@ void ChannelTest<VideoTraits>::CreateContent(
     int flags,
     const cricket::Codec& audio_codec,
     const cricket::Codec& video_codec,
-    cricket::VideoContentDescription* video) {
+    webrtc::VideoContentDescription* video) {
   video->AddCodec(video_codec);
   video->set_rtcp_mux((flags & RTCP_MUX) != 0);
 }
 
 template <>
 void ChannelTest<VideoTraits>::CopyContent(
-    const cricket::VideoContentDescription& source,
-    cricket::VideoContentDescription* video) {
+    const webrtc::VideoContentDescription& source,
+    webrtc::VideoContentDescription* video) {
   *video = source;
 }
 
@@ -1714,7 +1715,7 @@ template <>
 void ChannelTest<VideoTraits>::AddLegacyStreamInContent(
     uint32_t ssrc,
     int flags,
-    cricket::VideoContentDescription* video) {
+    webrtc::VideoContentDescription* video) {
   video->AddLegacyStream(ssrc);
 }
 
@@ -2156,7 +2157,7 @@ TEST_F(VideoChannelSingleThreadTest, TestSetLocalOfferWithPacketization) {
   const cricket::Codec kVp8Codec = cricket::CreateVideoCodec(97, "VP8");
   cricket::Codec vp9_codec = cricket::CreateVideoCodec(98, "VP9");
   vp9_codec.packetization = cricket::kPacketizationParamRaw;
-  cricket::VideoContentDescription video;
+  webrtc::VideoContentDescription video;
   video.set_codecs({kVp8Codec, vp9_codec});
 
   CreateChannels(0, 0);
@@ -2179,7 +2180,7 @@ TEST_F(VideoChannelSingleThreadTest, TestSetRemoteOfferWithPacketization) {
   const cricket::Codec kVp8Codec = cricket::CreateVideoCodec(97, "VP8");
   cricket::Codec vp9_codec = cricket::CreateVideoCodec(98, "VP9");
   vp9_codec.packetization = cricket::kPacketizationParamRaw;
-  cricket::VideoContentDescription video;
+  webrtc::VideoContentDescription video;
   video.set_codecs({kVp8Codec, vp9_codec});
 
   CreateChannels(0, 0);
@@ -2201,7 +2202,7 @@ TEST_F(VideoChannelSingleThreadTest, TestSetAnswerWithPacketization) {
   const cricket::Codec kVp8Codec = cricket::CreateVideoCodec(97, "VP8");
   cricket::Codec vp9_codec = cricket::CreateVideoCodec(98, "VP9");
   vp9_codec.packetization = cricket::kPacketizationParamRaw;
-  cricket::VideoContentDescription video;
+  webrtc::VideoContentDescription video;
   video.set_codecs({kVp8Codec, vp9_codec});
 
   CreateChannels(0, 0);
@@ -2233,9 +2234,9 @@ TEST_F(VideoChannelSingleThreadTest, TestSetLocalAnswerWithoutPacketization) {
   const cricket::Codec kLocalCodec = cricket::CreateVideoCodec(98, "VP8");
   cricket::Codec remote_codec = cricket::CreateVideoCodec(99, "VP8");
   remote_codec.packetization = cricket::kPacketizationParamRaw;
-  cricket::VideoContentDescription local_video;
+  webrtc::VideoContentDescription local_video;
   local_video.set_codecs({kLocalCodec});
-  cricket::VideoContentDescription remote_video;
+  webrtc::VideoContentDescription remote_video;
   remote_video.set_codecs({remote_codec});
 
   CreateChannels(0, 0);
@@ -2255,9 +2256,9 @@ TEST_F(VideoChannelSingleThreadTest, TestSetRemoteAnswerWithoutPacketization) {
   cricket::Codec local_codec = cricket::CreateVideoCodec(98, "VP8");
   local_codec.packetization = cricket::kPacketizationParamRaw;
   const cricket::Codec kRemoteCodec = cricket::CreateVideoCodec(99, "VP8");
-  cricket::VideoContentDescription local_video;
+  webrtc::VideoContentDescription local_video;
   local_video.set_codecs({local_codec});
-  cricket::VideoContentDescription remote_video;
+  webrtc::VideoContentDescription remote_video;
   remote_video.set_codecs({kRemoteCodec});
 
   CreateChannels(0, 0);
@@ -2280,9 +2281,9 @@ TEST_F(VideoChannelSingleThreadTest,
   local_codec.packetization = cricket::kPacketizationParamRaw;
   cricket::Codec remote_codec = cricket::CreateVideoCodec(99, "VP8");
   remote_codec.packetization = "unknownpacketizationattributevalue";
-  cricket::VideoContentDescription local_video;
+  webrtc::VideoContentDescription local_video;
   local_video.set_codecs({local_codec});
-  cricket::VideoContentDescription remote_video;
+  webrtc::VideoContentDescription remote_video;
   remote_video.set_codecs({remote_codec});
 
   CreateChannels(0, 0);
@@ -2304,9 +2305,9 @@ TEST_F(VideoChannelSingleThreadTest,
   cricket::Codec local_codec = cricket::CreateVideoCodec(98, "VP8");
   local_codec.packetization = cricket::kPacketizationParamRaw;
   const cricket::Codec kRemoteCodec = cricket::CreateVideoCodec(99, "VP8");
-  cricket::VideoContentDescription local_video;
+  webrtc::VideoContentDescription local_video;
   local_video.set_codecs({local_codec});
-  cricket::VideoContentDescription remote_video;
+  webrtc::VideoContentDescription remote_video;
   remote_video.set_codecs({kRemoteCodec});
 
   CreateChannels(0, 0);
@@ -2331,9 +2332,9 @@ TEST_F(VideoChannelSingleThreadTest,
   cricket::Codec vp9 = cricket::CreateVideoCodec(98, "VP9");
   cricket::Codec vp9_foo = cricket::CreateVideoCodec(99, "VP9");
   vp9_foo.packetization = "bar";
-  cricket::VideoContentDescription local;
+  webrtc::VideoContentDescription local;
   local.set_codecs({vp8_foo, vp8_bar, vp9_foo});
-  cricket::VideoContentDescription remote;
+  webrtc::VideoContentDescription remote;
   remote.set_codecs({vp8_foo, vp9});
 
   CreateChannels(0, 0);
@@ -2367,9 +2368,9 @@ TEST_F(VideoChannelSingleThreadTest,
   cricket::Codec vp9 = cricket::CreateVideoCodec(98, "VP9");
   cricket::Codec vp9_foo = cricket::CreateVideoCodec(99, "VP9");
   vp9_foo.packetization = "bar";
-  cricket::VideoContentDescription local;
+  webrtc::VideoContentDescription local;
   local.set_codecs({vp8_foo, vp9});
-  cricket::VideoContentDescription remote;
+  webrtc::VideoContentDescription remote;
   remote.set_codecs({vp8_foo, vp8_bar, vp9_foo});
 
   CreateChannels(0, 0);
@@ -2399,9 +2400,9 @@ TEST_F(VideoChannelSingleThreadTest,
   cricket::Codec vp8 = cricket::CreateVideoCodec(96, "VP8");
   cricket::Codec vp8_raw = cricket::CreateVideoCodec(97, "VP8");
   vp8_raw.packetization = cricket::kPacketizationParamRaw;
-  cricket::VideoContentDescription local;
+  webrtc::VideoContentDescription local;
   local.set_codecs({vp8, vp8_raw});
-  cricket::VideoContentDescription remote;
+  webrtc::VideoContentDescription remote;
   remote.set_codecs({vp8_raw, vp8});
 
   CreateChannels(0, 0);
@@ -2431,9 +2432,9 @@ TEST_F(VideoChannelSingleThreadTest,
   cricket::Codec vp8 = cricket::CreateVideoCodec(96, "VP8");
   cricket::Codec vp8_raw = cricket::CreateVideoCodec(97, "VP8");
   vp8_raw.packetization = cricket::kPacketizationParamRaw;
-  cricket::VideoContentDescription local;
+  webrtc::VideoContentDescription local;
   local.set_codecs({vp8_raw, vp8});
-  cricket::VideoContentDescription remote;
+  webrtc::VideoContentDescription remote;
   remote.set_codecs({vp8, vp8_raw});
 
   CreateChannels(0, 0);

@@ -80,7 +80,7 @@ class RtpSenderAudioTest : public ::testing::Test {
     rtp_module_.SetSequenceNumber(kSeqNum);
   }
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   SimulatedClock fake_clock_;
   const Environment env_;
   LoopbackTransportTest transport_;

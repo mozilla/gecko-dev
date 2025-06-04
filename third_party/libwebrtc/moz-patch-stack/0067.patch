@@ -116,7 +116,7 @@ index 4981acf0ca..f0c48f3702 100644
    num_discarded_packets_ += num_discarded_packets;
  }
 diff --git a/video/receive_statistics_proxy.cc b/video/receive_statistics_proxy.cc
-index 8fbaf0ac0e..7924ef2594 100644
+index aa50d6c752..c5cc528451 100644
 --- a/video/receive_statistics_proxy.cc
 +++ b/video/receive_statistics_proxy.cc
 @@ -20,6 +20,7 @@
@@ -127,7 +127,7 @@ index 8fbaf0ac0e..7924ef2594 100644
  #include "system_wrappers/include/clock.h"
  #include "system_wrappers/include/metrics.h"
  #include "video/video_receive_stream2.h"
-@@ -766,6 +767,9 @@ void ReceiveStatisticsProxy::OnCompleteFrame(bool is_keyframe,
+@@ -765,6 +766,9 @@ void ReceiveStatisticsProxy::OnCompleteFrame(bool is_keyframe,
                                               VideoContentType content_type) {
    RTC_DCHECK_RUN_ON(&main_thread_);
  
@@ -137,7 +137,7 @@ index 8fbaf0ac0e..7924ef2594 100644
    // Content type extension is set only for keyframes and should be propagated
    // for all the following delta frames. Here we may receive frames out of order
    // and miscategorise some delta frames near the layer switch.
-@@ -791,6 +795,8 @@ void ReceiveStatisticsProxy::OnCompleteFrame(bool is_keyframe,
+@@ -790,6 +794,8 @@ void ReceiveStatisticsProxy::OnCompleteFrame(bool is_keyframe,
  void ReceiveStatisticsProxy::OnDroppedFrames(uint32_t frames_dropped) {
    // Can be called on either the decode queue or the worker thread
    // See FrameBuffer2 for more details.
@@ -146,7 +146,7 @@ index 8fbaf0ac0e..7924ef2594 100644
    worker_thread_->PostTask(
        SafeTask(task_safety_.flag(), [frames_dropped, this]() {
          RTC_DCHECK_RUN_ON(&main_thread_);
-@@ -801,6 +807,9 @@ void ReceiveStatisticsProxy::OnDroppedFrames(uint32_t frames_dropped) {
+@@ -800,6 +806,9 @@ void ReceiveStatisticsProxy::OnDroppedFrames(uint32_t frames_dropped) {
  void ReceiveStatisticsProxy::OnDiscardedPackets(uint32_t packets_discarded) {
    // Can be called on either the decode queue or the worker thread
    // See FrameBuffer2 for more details.
@@ -156,7 +156,7 @@ index 8fbaf0ac0e..7924ef2594 100644
    worker_thread_->PostTask(
        SafeTask(task_safety_.flag(), [packets_discarded, this]() {
          RTC_DCHECK_RUN_ON(&main_thread_);
-@@ -829,6 +838,8 @@ void ReceiveStatisticsProxy::OnStreamInactive() {
+@@ -828,6 +837,8 @@ void ReceiveStatisticsProxy::OnStreamInactive() {
  
  void ReceiveStatisticsProxy::OnRttUpdate(int64_t avg_rtt_ms) {
    RTC_DCHECK_RUN_ON(&main_thread_);
@@ -166,18 +166,18 @@ index 8fbaf0ac0e..7924ef2594 100644
  }
  
 diff --git a/video/rtp_video_stream_receiver2.cc b/video/rtp_video_stream_receiver2.cc
-index 73a8da11aa..5bf7f51c8e 100644
+index fad4b2cb84..6a41d05d1c 100644
 --- a/video/rtp_video_stream_receiver2.cc
 +++ b/video/rtp_video_stream_receiver2.cc
-@@ -49,6 +49,7 @@
- #include "rtc_base/checks.h"
- #include "rtc_base/logging.h"
+@@ -91,6 +91,7 @@
+ #include "rtc_base/numerics/sequence_number_util.h"
  #include "rtc_base/strings/string_builder.h"
+ #include "rtc_base/thread.h"
 +#include "rtc_base/trace_event.h"
- #include "system_wrappers/include/metrics.h"
  #include "system_wrappers/include/ntp_time.h"
+ #include "video/buffered_frame_decryptor.h"
  
-@@ -1325,6 +1326,9 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
+@@ -1402,6 +1403,9 @@ void RtpVideoStreamReceiver2::FrameDecoded(int64_t picture_id) {
                          packet_infos_.upper_bound(unwrapped_rtp_seq_num));
      uint32_t num_packets_cleared = packet_buffer_.ClearTo(seq_num);
      if (num_packets_cleared > 0) {

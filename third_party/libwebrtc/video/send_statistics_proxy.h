@@ -57,6 +57,7 @@ class SendStatisticsProxy : public VideoStreamEncoderObserver,
   ~SendStatisticsProxy() override;
 
   virtual VideoSendStream::Stats GetStats();
+  void SetStats(const VideoSendStream::Stats& stats);
 
   void OnSendEncodedImage(const EncodedImage& encoded_image,
                           const CodecSpecificInfo* codec_info) override;
@@ -116,6 +117,7 @@ class SendStatisticsProxy : public VideoStreamEncoderObserver,
       uint32_t ssrc,
       const RtcpPacketTypeCounter& packet_counter) override;
   // From StreamDataCountersCallback.
+  StreamDataCounters GetDataCounters(uint32_t ssrc) const override;
   void DataCountersUpdated(const StreamDataCounters& counters,
                            uint32_t ssrc) override;
 

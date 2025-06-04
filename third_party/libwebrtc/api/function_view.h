@@ -37,7 +37,7 @@
 // copyable, so it's probably cheaper to pass it by value than by const
 // reference.
 
-namespace rtc {
+namespace webrtc {
 
 template <typename T>
 class FunctionView;  // Undefined.
@@ -126,6 +126,12 @@ class FunctionView<RetT(ArgT...)> final {
   RetT (*call_)(VoidUnion, ArgT...);
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::FunctionView;
 }  // namespace rtc
 
 #endif  // API_FUNCTION_VIEW_H_

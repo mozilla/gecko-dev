@@ -134,7 +134,6 @@ rtc_library("deprecated_session_info") {
     "../../../modules/video_coding:codec_globals_headers",
     "../../../rtc_base:logging",
     "//third_party/abseil-cpp/absl/algorithm:container",
-    "//third_party/abseil-cpp/absl/types:variant",
   ]
   sources = [
     "session_info.cc",

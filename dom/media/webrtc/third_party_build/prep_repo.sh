@@ -92,12 +92,6 @@ if [ "x$PREVIOUS_RELEASE_BRANCH_BASE" == "x$NEXT_RELEASE_BRANCH_BASE" ]; then
 fi
 ERROR_HELP=""
 
-# find the last upstream commit used by the previous update, so we don't
-# accidentally grab release branch commits that were added after we started
-# the previous update.
-LAST_UPSTREAM_COMMIT_SHA=`tail -1 $CURRENT_DIR/third_party/libwebrtc/README.mozilla.last-vendor`
-echo "previous update's last commit: $LAST_UPSTREAM_COMMIT_SHA"
-
 # create a new branch at the common commit and checkout the new branch
 ERROR_HELP=$"
 Unable to create branch '$MOZ_LIBWEBRTC_BRANCH'.  This probably means
@@ -114,15 +108,30 @@ git branch $MOZ_LIBWEBRTC_BRANCH $PREVIOUS_RELEASE_BRANCH_BASE
 ERROR_HELP=""
 git checkout $MOZ_LIBWEBRTC_BRANCH
 
-# make sure we're starting with a clean tmp directory
-rm -f $TMP_DIR/*.patch $TMP_DIR/*.patch.bak
+# find the last upstream commit used by the previous update, so we don't
+# accidentally grab release branch commits that were added after we started
+# the previous update.
+LAST_UPSTREAM_COMMIT_SHA=`tail -1 $CURRENT_DIR/third_party/libwebrtc/README.mozilla.last-vendor`
+echo "previous update's last commit: $LAST_UPSTREAM_COMMIT_SHA"
 
-# grab the patches for all the commits in chrome's release branch for libwebrtc
-git format-patch -o $TMP_DIR -k $PREVIOUS_RELEASE_BRANCH_BASE..$LAST_UPSTREAM_COMMIT_SHA
-# tweak the release branch commit summaries to show they were cherry picked
-sed -i.bak -e "/^Subject: / s/^Subject: /Subject: (cherry-pick-branch-heads\/$MOZ_PRIOR_UPSTREAM_BRANCH_HEAD_NUM) /" $TMP_DIR/*.patch
-git am $TMP_DIR/*.patch # applies to branch mozpatches
-rm $TMP_DIR/*.patch $TMP_DIR/*.patch.bak
+# Check that the previous libwebrtc update run actually had release
+# branch commits.  If it did, our LAST_UPSTREAM_COMMIT_SHA will be
+# different than the PREVIOUS_RELEASE_BRANCH_BASE (which we convert to a
+# short sha).  If the two shas are the same, meaning there where no
+# fixes on the upstream's release branch, we have no work to do here.
+# An example of this if occurance is v136 update.
+PREV_REL_BRANCH_SHORT_SHA=`git rev-parse --short $PREVIOUS_RELEASE_BRANCH_BASE`
+if [ "x$PREV_REL_BRANCH_SHORT_SHA" != "x$LAST_UPSTREAM_COMMIT_SHA" ]; then
+  # make sure we're starting with a clean tmp directory
+  rm -f $TMP_DIR/*.patch $TMP_DIR/*.patch.bak
+
+  # grab the patches for all the commits in chrome's release branch for libwebrtc
+  git format-patch -o $TMP_DIR -k $PREVIOUS_RELEASE_BRANCH_BASE..$LAST_UPSTREAM_COMMIT_SHA
+  # tweak the release branch commit summaries to show they were cherry picked
+  sed -i.bak -e "/^Subject: / s/^Subject: /Subject: (cherry-pick-branch-heads\/$MOZ_PRIOR_UPSTREAM_BRANCH_HEAD_NUM) /" $TMP_DIR/*.patch
+  git am $TMP_DIR/*.patch # applies to branch mozpatches
+  rm $TMP_DIR/*.patch $TMP_DIR/*.patch.bak
+fi
 
 # we don't use restore_patch_stack.py here because it would overwrite the patches
 # from the previous release branch we just added in the above step.

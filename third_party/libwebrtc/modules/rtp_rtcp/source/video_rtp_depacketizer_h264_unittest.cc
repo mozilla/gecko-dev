@@ -61,7 +61,7 @@ TEST(VideoRtpDepacketizerH264Test, SingleNalu) {
   EXPECT_EQ(parsed->video_header.codec, kVideoCodecH264);
   EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
   const RTPVideoHeaderH264& h264 =
-      absl::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
   EXPECT_EQ(h264.packetization_type, kH264SingleNalu);
   EXPECT_EQ(h264.nalu_type, H264::kIdr);
 }
@@ -89,7 +89,7 @@ TEST(VideoRtpDepacketizerH264Test, SingleNaluSpsWithResolution) {
   EXPECT_EQ(parsed->video_header.width, 1280u);
   EXPECT_EQ(parsed->video_header.height, 720u);
   const auto& h264 =
-      absl::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
   EXPECT_EQ(h264.packetization_type, kH264SingleNalu);
 }
 
@@ -124,7 +124,7 @@ TEST(VideoRtpDepacketizerH264Test, StapAKey) {
   EXPECT_EQ(parsed->video_header.codec, kVideoCodecH264);
   EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
   const auto& h264 =
-      absl::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
   EXPECT_EQ(h264.packetization_type, H264PacketizationTypes::kH264StapA);
   // NALU type for aggregated packets is the type of the first packet only.
   EXPECT_EQ(h264.nalu_type, H264::kSps);
@@ -159,7 +159,7 @@ TEST(VideoRtpDepacketizerH264Test, StapANaluSpsWithResolution) {
   EXPECT_EQ(parsed->video_header.width, 1280u);
   EXPECT_EQ(parsed->video_header.height, 720u);
   const auto& h264 =
-      absl::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
   EXPECT_EQ(h264.packetization_type, H264PacketizationTypes::kH264StapA);
 }
 
@@ -304,7 +304,7 @@ TEST(VideoRtpDepacketizerH264Test, StapADelta) {
   EXPECT_EQ(parsed->video_header.codec, kVideoCodecH264);
   EXPECT_TRUE(parsed->video_header.is_first_packet_in_frame);
   const RTPVideoHeaderH264& h264 =
-      absl::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
   EXPECT_EQ(h264.packetization_type, H264PacketizationTypes::kH264StapA);
   // NALU type for aggregated packets is the type of the first packet only.
   EXPECT_EQ(h264.nalu_type, H264::kSlice);
@@ -350,7 +350,7 @@ TEST(VideoRtpDepacketizerH264Test, FuA) {
   EXPECT_TRUE(parsed1->video_header.is_first_packet_in_frame);
   {
     const RTPVideoHeaderH264& h264 =
-        absl::get<RTPVideoHeaderH264>(parsed1->video_header.video_type_header);
+        std::get<RTPVideoHeaderH264>(parsed1->video_header.video_type_header);
     EXPECT_EQ(h264.packetization_type, H264PacketizationTypes::kH264FuA);
     EXPECT_EQ(h264.nalu_type, H264::kIdr);
     ASSERT_THAT(h264.nalus, SizeIs(1));
@@ -369,7 +369,7 @@ TEST(VideoRtpDepacketizerH264Test, FuA) {
   EXPECT_EQ(parsed2->video_header.codec, kVideoCodecH264);
   {
     const RTPVideoHeaderH264& h264 =
-        absl::get<RTPVideoHeaderH264>(parsed2->video_header.video_type_header);
+        std::get<RTPVideoHeaderH264>(parsed2->video_header.video_type_header);
     EXPECT_EQ(h264.packetization_type, H264PacketizationTypes::kH264FuA);
     EXPECT_EQ(h264.nalu_type, H264::kIdr);
     // NALU info is only expected for the first FU-A packet.
@@ -384,7 +384,7 @@ TEST(VideoRtpDepacketizerH264Test, FuA) {
   EXPECT_EQ(parsed3->video_header.codec, kVideoCodecH264);
   {
     const RTPVideoHeaderH264& h264 =
-        absl::get<RTPVideoHeaderH264>(parsed3->video_header.video_type_header);
+        std::get<RTPVideoHeaderH264>(parsed3->video_header.video_type_header);
     EXPECT_EQ(h264.packetization_type, H264PacketizationTypes::kH264FuA);
     EXPECT_EQ(h264.nalu_type, H264::kIdr);
     // NALU info is only expected for the first FU-A packet.
@@ -431,7 +431,7 @@ TEST(VideoRtpDepacketizerH264Test, SeiPacket) {
   auto parsed = depacketizer.Parse(rtc::CopyOnWriteBuffer(kPayload));
   ASSERT_TRUE(parsed);
   const RTPVideoHeaderH264& h264 =
-      absl::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(parsed->video_header.video_type_header);
   EXPECT_EQ(parsed->video_header.frame_type, VideoFrameType::kVideoFrameDelta);
   EXPECT_EQ(h264.packetization_type, kH264SingleNalu);
   EXPECT_EQ(h264.nalu_type, H264::kSei);

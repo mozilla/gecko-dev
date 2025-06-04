@@ -20,6 +20,7 @@
 #include "media/base/codec.h"
 #include "media/base/media_constants.h"
 #include "media/base/stream_params.h"
+#include "p2p/base/transport_description.h"
 #include "p2p/base/transport_info.h"
 #include "pc/session_description.h"
 #include "rtc_base/checks.h"
@@ -68,6 +69,18 @@ SdpMungingType DetermineTransportModification(
         transport_infos_to_set[i].description.transport_options) {
       RTC_LOG(LS_WARNING) << "SDP munging: ice_options does not match last "
                              "created description.";
+      bool created_renomination =
+          absl::c_find(
+              last_created_transport_infos[i].description.transport_options,
+              cricket::ICE_OPTION_RENOMINATION) !=
+          last_created_transport_infos[i].description.transport_options.end();
+      bool set_renomination =
+          absl::c_find(transport_infos_to_set[i].description.transport_options,
+                       cricket::ICE_OPTION_RENOMINATION) !=
+          transport_infos_to_set[i].description.transport_options.end();
+      if (!created_renomination && set_renomination) {
+        return SdpMungingType::kIceOptionsRenomination;
+      }
       return SdpMungingType::kIceOptions;
     }
   }
@@ -75,8 +88,8 @@ SdpMungingType DetermineTransportModification(
 }
 
 SdpMungingType DetermineAudioSdpMungingType(
-    const cricket::MediaContentDescription* last_created_media_description,
-    const cricket::MediaContentDescription* media_description_to_set) {
+    const MediaContentDescription* last_created_media_description,
+    const MediaContentDescription* media_description_to_set) {
   RTC_DCHECK(last_created_media_description);
   RTC_DCHECK(media_description_to_set);
   // Removing codecs should be done via setCodecPreferences or negotiation, not
@@ -148,12 +161,119 @@ SdpMungingType DetermineAudioSdpMungingType(
     RTC_LOG(LS_WARNING) << "SDP munging: audio codecs added.";
     return SdpMungingType::kAudioCodecsAdded;
   }
+
+  // Audio NACK is not offered by default.
+  bool created_nack =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        return codec.HasFeedbackParam(
+                            cricket::FeedbackParam(cricket::kRtcpFbParamNack));
+                      }) != last_created_media_description->codecs().end();
+  bool set_nack =
+      absl::c_find_if(media_description_to_set->codecs(),
+                      [](const cricket::Codec codec) {
+                        return codec.HasFeedbackParam(
+                            cricket::FeedbackParam(cricket::kRtcpFbParamNack));
+                      }) != media_description_to_set->codecs().end();
+  if (!created_nack && set_nack) {
+    RTC_LOG(LS_WARNING) << "SDP munging: audio nack enabled.";
+    return SdpMungingType::kAudioCodecsRtcpFbAudioNack;
+  }
+
+  // RRTR is not offered by default.
+  bool created_rrtr =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        return codec.HasFeedbackParam(
+                            cricket::FeedbackParam(cricket::kRtcpFbParamRrtr));
+                      }) != last_created_media_description->codecs().end();
+  bool set_rrtr =
+      absl::c_find_if(media_description_to_set->codecs(),
+                      [](const cricket::Codec codec) {
+                        return codec.HasFeedbackParam(
+                            cricket::FeedbackParam(cricket::kRtcpFbParamRrtr));
+                      }) != media_description_to_set->codecs().end();
+  if (!created_rrtr && set_rrtr) {
+    RTC_LOG(LS_WARNING) << "SDP munging: audio rrtr enabled.";
+    return SdpMungingType::kAudioCodecsRtcpFbRrtr;
+  }
+
+  // Opus FEC is on by default. Should not be munged, can be controlled by
+  // the other side.
+  bool created_opus_fec =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        std::string value;
+                        return codec.name == cricket::kOpusCodecName &&
+                               codec.GetParam(cricket::kCodecParamUseInbandFec,
+                                              &value) &&
+                               value == cricket::kParamValueTrue;
+                      }) != last_created_media_description->codecs().end();
+  bool set_opus_fec =
+      absl::c_find_if(
+          media_description_to_set->codecs(), [](const cricket::Codec codec) {
+            std::string value;
+            return codec.name == cricket::kOpusCodecName &&
+                   codec.GetParam(cricket::kCodecParamUseInbandFec, &value) &&
+                   value == cricket::kParamValueTrue;
+          }) != media_description_to_set->codecs().end();
+  if (created_opus_fec && !set_opus_fec) {
+    RTC_LOG(LS_WARNING) << "SDP munging: Opus FEC disabled.";
+    return SdpMungingType::kAudioCodecsFmtpOpusFec;
+  }
+  // Opus DTX is off by default. Should not be munged, can be controlled by
+  // the other side.
+  bool created_opus_dtx =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        std::string value;
+                        return codec.name == cricket::kOpusCodecName &&
+                               codec.GetParam(cricket::kCodecParamUseDtx,
+                                              &value) &&
+                               value == cricket::kParamValueTrue;
+                      }) != last_created_media_description->codecs().end();
+  bool set_opus_dtx =
+      absl::c_find_if(
+          media_description_to_set->codecs(), [](const cricket::Codec codec) {
+            std::string value;
+            return codec.name == cricket::kOpusCodecName &&
+                   codec.GetParam(cricket::kCodecParamUseDtx, &value) &&
+                   value == cricket::kParamValueTrue;
+          }) != media_description_to_set->codecs().end();
+  if (!created_opus_dtx && set_opus_dtx) {
+    RTC_LOG(LS_WARNING) << "SDP munging: Opus DTX enabled.";
+    return SdpMungingType::kAudioCodecsFmtpOpusDtx;
+  }
+
+  // Opus CBR is off by default. Should not be munged, can be controlled by
+  // the other side.
+  bool created_opus_cbr =
+      absl::c_find_if(last_created_media_description->codecs(),
+                      [](const cricket::Codec codec) {
+                        std::string value;
+                        return codec.name == cricket::kOpusCodecName &&
+                               codec.GetParam(cricket::kCodecParamCbr,
+                                              &value) &&
+                               value == cricket::kParamValueTrue;
+                      }) != last_created_media_description->codecs().end();
+  bool set_opus_cbr =
+      absl::c_find_if(
+          media_description_to_set->codecs(), [](const cricket::Codec codec) {
+            std::string value;
+            return codec.name == cricket::kOpusCodecName &&
+                   codec.GetParam(cricket::kCodecParamCbr, &value) &&
+                   value == cricket::kParamValueTrue;
+          }) != media_description_to_set->codecs().end();
+  if (!created_opus_cbr && set_opus_cbr) {
+    RTC_LOG(LS_WARNING) << "SDP munging: Opus CBR enabled.";
+    return SdpMungingType::kAudioCodecsFmtpOpusCbr;
+  }
   return SdpMungingType::kNoModification;
 }
 
 SdpMungingType DetermineVideoSdpMungingType(
-    const cricket::MediaContentDescription* last_created_media_description,
-    const cricket::MediaContentDescription* media_description_to_set) {
+    const MediaContentDescription* last_created_media_description,
+    const MediaContentDescription* media_description_to_set) {
   RTC_DCHECK(last_created_media_description);
   RTC_DCHECK(media_description_to_set);
   // Removing codecs should be done via setCodecPreferences or negotiation, not
@@ -261,29 +381,32 @@ SdpMungingType DetermineSdpMungingType(
                            "last created description.";
     return SdpMungingType::kNumberOfContents;
   }
-  for (size_t i = 0; i < last_created_contents.size(); i++) {
+  for (size_t content_index = 0; content_index < last_created_contents.size();
+       content_index++) {
     // TODO: crbug.com/40567530 - more checks are needed here.
-    if (last_created_contents[i].mid() != contents_to_set[i].mid()) {
+    if (last_created_contents[content_index].mid() !=
+        contents_to_set[content_index].mid()) {
       RTC_LOG(LS_WARNING) << "SDP munging: mid does not match "
                              "last created description.";
       return SdpMungingType::kMid;
     }
 
     auto* last_created_media_description =
-        last_created_contents[i].media_description();
-    auto* media_description_to_set = contents_to_set[i].media_description();
+        last_created_contents[content_index].media_description();
+    auto* media_description_to_set =
+        contents_to_set[content_index].media_description();
     if (!(last_created_media_description && media_description_to_set)) {
       continue;
     }
     // Validate video and audio contents.
-    cricket::MediaType media_type = last_created_media_description->type();
-    if (media_type == cricket::MEDIA_TYPE_VIDEO) {
+    webrtc::MediaType media_type = last_created_media_description->type();
+    if (media_type == webrtc::MediaType::VIDEO) {
       type = DetermineVideoSdpMungingType(last_created_media_description,
                                           media_description_to_set);
       if (type != SdpMungingType::kNoModification) {
         return type;
       }
-    } else if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+    } else if (media_type == webrtc::MediaType::AUDIO) {
       type = DetermineAudioSdpMungingType(last_created_media_description,
                                           media_description_to_set);
       if (type != SdpMungingType::kNoModification) {
@@ -303,7 +426,7 @@ SdpMungingType DetermineSdpMungingType(
         // Codec position swapped.
         for (size_t j = i + 1; j < last_created_codecs.size(); j++) {
           if (last_created_codecs[i] == codecs_to_set[j]) {
-            return media_type == cricket::MEDIA_TYPE_AUDIO
+            return media_type == webrtc::MediaType::AUDIO
                        ? SdpMungingType::kAudioCodecsReordered
                        : SdpMungingType::kVideoCodecsReordered;
           }
@@ -314,13 +437,13 @@ SdpMungingType DetermineSdpMungingType(
           return SdpMungingType::kPayloadTypes;
         }
         if (last_created_codecs[i].params != codecs_to_set[i].params) {
-          return media_type == cricket::MEDIA_TYPE_AUDIO
+          return media_type == webrtc::MediaType::AUDIO
                      ? SdpMungingType::kAudioCodecsFmtp
                      : SdpMungingType::kVideoCodecsFmtp;
         }
         if (last_created_codecs[i].feedback_params !=
             codecs_to_set[i].feedback_params) {
-          return media_type == cricket::MEDIA_TYPE_AUDIO
+          return media_type == webrtc::MediaType::AUDIO
                      ? SdpMungingType::kAudioCodecsRtcpFb
                      : SdpMungingType::kVideoCodecsRtcpFb;
         }

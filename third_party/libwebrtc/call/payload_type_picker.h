@@ -52,6 +52,13 @@ class PayloadTypePicker {
   };
   std::vector<MapEntry> entries_;
   std::set<PayloadType> seen_payload_types_;
+  template <typename Sink>
+  friend void AbslStringify(Sink& sink, const PayloadTypePicker& picker) {
+    sink.Append("Reserved:");
+    for (PayloadType pt : picker.seen_payload_types_) {
+      absl::Format(&sink, " %v", pt);
+    }
+  }
 };
 
 class PayloadTypeRecorder {

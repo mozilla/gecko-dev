@@ -525,7 +525,12 @@
       'mixins': ['debug', 'reclient', 'strict_field_trials'],
     },
     'debug_static_bot': {
-      'mixins': ['debug', 'minimal_symbols', 'reclient', 'strict_field_trials'],
+      'mixins': [
+        'debug',
+        'minimal_symbols',
+        'reclient',
+        'strict_field_trials',
+      ],
     },
     'disable_trace_events': {
       'gn_args': 'rtc_disable_trace_events=true',
@@ -614,7 +619,11 @@
       'gn_args': 'is_debug=false',
     },
     'release_bot': {
-      'mixins': ['pure_release_bot', 'dcheck_always_on', 'strict_field_trials'],
+      'mixins': [
+        'pure_release_bot',
+        'dcheck_always_on',
+        'strict_field_trials',
+      ],
     },
     'rtc_objc_test_prefix': {
       'gn_args': 'rtc_objc_prefix="RTC_TESTING"',

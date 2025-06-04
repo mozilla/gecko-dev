@@ -90,7 +90,7 @@ int AudioDecoder::Decode(const uint8_t* encoded,
                          int16_t* decoded,
                          SpeechType* speech_type) {
   TRACE_EVENT0("webrtc", "AudioDecoder::Decode");
-  rtc::MsanCheckInitialized(rtc::MakeArrayView(encoded, encoded_len));
+  MsanCheckInitialized(rtc::MakeArrayView(encoded, encoded_len));
   int duration = PacketDuration(encoded, encoded_len);
   if (duration >= 0 &&
       duration * Channels() * sizeof(int16_t) > max_decoded_bytes) {
@@ -107,7 +107,7 @@ int AudioDecoder::DecodeRedundant(const uint8_t* encoded,
                                   int16_t* decoded,
                                   SpeechType* speech_type) {
   TRACE_EVENT0("webrtc", "AudioDecoder::DecodeRedundant");
-  rtc::MsanCheckInitialized(rtc::MakeArrayView(encoded, encoded_len));
+  MsanCheckInitialized(rtc::MakeArrayView(encoded, encoded_len));
   int duration = PacketDurationRedundant(encoded, encoded_len);
   if (duration >= 0 &&
       duration * Channels() * sizeof(int16_t) > max_decoded_bytes) {

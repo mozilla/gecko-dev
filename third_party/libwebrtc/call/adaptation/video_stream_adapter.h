@@ -11,22 +11,22 @@
 #ifndef CALL_ADAPTATION_VIDEO_STREAM_ADAPTER_H_
 #define CALL_ADAPTATION_VIDEO_STREAM_ADAPTER_H_
 
-#include <memory>
+#include <cstdint>
 #include <optional>
-#include <utility>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/adaptation/resource.h"
 #include "api/field_trials_view.h"
 #include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "api/video/video_adaptation_counters.h"
+#include "api/video_codecs/video_codec.h"
 #include "call/adaptation/adaptation_constraint.h"
-#include "call/adaptation/degradation_preference_provider.h"
 #include "call/adaptation/video_source_restrictions.h"
 #include "call/adaptation/video_stream_input_state.h"
 #include "call/adaptation/video_stream_input_state_provider.h"
-#include "modules/video_coding/utility/quality_scaler.h"
 #include "rtc_base/experiments/balanced_degradation_settings.h"
 #include "rtc_base/system/no_unique_address.h"
 #include "rtc_base/thread_annotations.h"
@@ -177,7 +177,7 @@ class VideoStreamAdapter {
       const RTC_RUN_ON(&sequence_checker_);
 
   using RestrictionsOrState =
-      absl::variant<RestrictionsWithCounters, Adaptation::Status>;
+      std::variant<RestrictionsWithCounters, Adaptation::Status>;
   RestrictionsOrState GetAdaptationUpStep(
       const VideoStreamInputState& input_state) const
       RTC_RUN_ON(&sequence_checker_);
@@ -221,8 +221,7 @@ class VideoStreamAdapter {
       const VideoStreamInputState& input_state) const
       RTC_RUN_ON(&sequence_checker_);
 
-  RTC_NO_UNIQUE_ADDRESS SequenceChecker sequence_checker_
-      RTC_GUARDED_BY(&sequence_checker_);
+  RTC_NO_UNIQUE_ADDRESS SequenceChecker sequence_checker_;
   // Gets the input state which is the basis of all adaptations.
   // Thread safe.
   VideoStreamInputStateProvider* input_state_provider_;

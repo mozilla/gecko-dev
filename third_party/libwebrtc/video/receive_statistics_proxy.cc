@@ -57,7 +57,7 @@ bool IsCurrentTaskQueueOrThread(TaskQueueBase* task_queue) {
   if (task_queue->IsCurrent())
     return true;
 
-  rtc::Thread* current_thread = rtc::ThreadManager::Instance()->CurrentThread();
+  Thread* current_thread = ThreadManager::Instance()->CurrentThread();
   if (!current_thread)
     return false;
 
@@ -135,8 +135,7 @@ void ReceiveStatisticsProxy::UpdateHistograms(
   if (first_decoded_frame_time_ms_) {
     const int64_t elapsed_ms =
         (clock_->TimeInMilliseconds() - *first_decoded_frame_time_ms_);
-    if (elapsed_ms >=
-        metrics::kMinRunTimeInSeconds * rtc::kNumMillisecsPerSec) {
+    if (elapsed_ms >= metrics::kMinRunTimeInSeconds * kNumMillisecsPerSec) {
       int decoded_fps = static_cast<int>(
           (stats_.frames_decoded * 1000.0f / elapsed_ms) + 0.5f);
       RTC_HISTOGRAM_COUNTS_100("WebRTC.Video.DecodedFramesPerSecond",
@@ -198,10 +197,10 @@ void ReceiveStatisticsProxy::UpdateHistograms(
                << key_frames_permille << '\n';
   }
 
-  std::optional<int> qp = qp_counters_.vp8.Avg(kMinRequiredSamples);
-  if (qp) {
-    RTC_HISTOGRAM_COUNTS_200("WebRTC.Video.Decoded.Vp8.Qp", *qp);
-    log_stream << "WebRTC.Video.Decoded.Vp8.Qp " << *qp << '\n';
+  std::optional<int> vp8_qp = qp_counters_.vp8.Avg(kMinRequiredSamples);
+  if (vp8_qp) {
+    RTC_HISTOGRAM_COUNTS_200("WebRTC.Video.Decoded.Vp8.Qp", *vp8_qp);
+    log_stream << "WebRTC.Video.Decoded.Vp8.Qp " << *vp8_qp << '\n';
   }
 
   std::optional<int> decode_ms = decode_time_counter_.Avg(kMinRequiredSamples);
@@ -325,7 +324,7 @@ void ReceiveStatisticsProxy::UpdateHistograms(
                    << media_bitrate_kbps << '\n';
       }
 
-      int num_total_frames =
+      num_total_frames =
           stats.frame_counts.key_frames + stats.frame_counts.delta_frames;
       if (num_total_frames >= kMinRequiredSamples) {
         int num_key_frames = stats.frame_counts.key_frames;
@@ -457,7 +456,7 @@ VideoReceiveStreamInterface::Stats ReceiveStatisticsProxy::GetStats() const {
       video_quality_observer_->TotalPausesDurationMs();
   stats_.total_inter_frame_delay =
       static_cast<double>(video_quality_observer_->TotalFramesDurationMs()) /
-      rtc::kNumMillisecsPerSec;
+      kNumMillisecsPerSec;
   stats_.total_squared_inter_frame_delay =
       video_quality_observer_->SumSquaredFrameDurationsSec();
 

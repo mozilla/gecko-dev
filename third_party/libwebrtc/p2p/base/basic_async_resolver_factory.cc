@@ -13,10 +13,10 @@
 #include <memory>
 #include <utility>
 
-#include "absl/memory/memory.h"
+#include "absl/functional/any_invocable.h"
 #include "api/async_dns_resolver.h"
 #include "rtc_base/async_dns_resolver.h"
-#include "rtc_base/logging.h"
+#include "rtc_base/socket_address.h"
 
 namespace webrtc {
 
@@ -27,7 +27,7 @@ BasicAsyncDnsResolverFactory::Create() {
 
 std::unique_ptr<webrtc::AsyncDnsResolverInterface>
 BasicAsyncDnsResolverFactory::CreateAndResolve(
-    const rtc::SocketAddress& addr,
+    const SocketAddress& addr,
     absl::AnyInvocable<void()> callback) {
   std::unique_ptr<webrtc::AsyncDnsResolverInterface> resolver = Create();
   resolver->Start(addr, std::move(callback));
@@ -36,7 +36,7 @@ BasicAsyncDnsResolverFactory::CreateAndResolve(
 
 std::unique_ptr<webrtc::AsyncDnsResolverInterface>
 BasicAsyncDnsResolverFactory::CreateAndResolve(
-    const rtc::SocketAddress& addr,
+    const SocketAddress& addr,
     int family,
     absl::AnyInvocable<void()> callback) {
   std::unique_ptr<webrtc::AsyncDnsResolverInterface> resolver = Create();

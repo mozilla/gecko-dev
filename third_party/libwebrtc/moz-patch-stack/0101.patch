@@ -9,10 +9,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecf
  1 file changed, 11 insertions(+), 6 deletions(-)
 
 diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 655b155c6a..39b31d16ce 100644
+index 80b8ced167..6d58cea256 100644
 --- a/media/BUILD.gn
 +++ b/media/BUILD.gn
-@@ -55,6 +55,11 @@ rtc_library("rtc_media_base") {
+@@ -56,6 +56,11 @@ rtc_library("rtc_media_base") {
      "base/video_broadcaster.h",  # Used downstream
      "base/video_common.h",  # Used downstream
    ]
@@ -24,7 +24,7 @@ index 655b155c6a..39b31d16ce 100644
    deps = [
      ":adapted_video_track_source",
      ":codec",
-@@ -127,12 +132,6 @@ rtc_library("rtc_media_base") {
+@@ -129,12 +134,6 @@ rtc_library("rtc_media_base") {
      "../video/config:encoder_config",
      "//third_party/abseil-cpp/absl/base:core_headers",
    ]
@@ -37,7 +37,7 @@ index 655b155c6a..39b31d16ce 100644
  }
  
  rtc_library("adapted_video_track_source") {
-@@ -140,6 +139,12 @@ rtc_library("adapted_video_track_source") {
+@@ -142,6 +141,12 @@ rtc_library("adapted_video_track_source") {
      "base/adapted_video_track_source.cc",
      "base/adapted_video_track_source.h",
    ]

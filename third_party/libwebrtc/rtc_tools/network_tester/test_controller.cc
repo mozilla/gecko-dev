@@ -28,8 +28,7 @@ TestController::TestController(int min_port,
                                const std::string& config_file_path,
                                const std::string& log_file_path)
     : socket_server_(rtc::CreateDefaultSocketServer()),
-      packet_sender_thread_(
-          std::make_unique<rtc::Thread>(socket_server_.get())),
+      packet_sender_thread_(std::make_unique<Thread>(socket_server_.get())),
       socket_factory_(socket_server_.get()),
       config_file_path_(config_file_path),
       packet_logger_(log_file_path),
@@ -43,8 +42,8 @@ TestController::TestController(int min_port,
   packet_sender_thread_->BlockingCall([&] {
     RTC_DCHECK_RUN_ON(packet_sender_thread_.get());
     udp_socket_ =
-        std::unique_ptr<rtc::AsyncPacketSocket>(socket_factory_.CreateUdpSocket(
-            rtc::SocketAddress(rtc::GetAnyIP(AF_INET), 0), min_port, max_port));
+        std::unique_ptr<AsyncPacketSocket>(socket_factory_.CreateUdpSocket(
+            SocketAddress(GetAnyIP(AF_INET), 0), min_port, max_port));
     RTC_CHECK(udp_socket_ != nullptr);
     udp_socket_->RegisterReceivedPacketCallback(
         [&](rtc::AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
@@ -61,7 +60,7 @@ TestController::~TestController() {
 
 void TestController::SendConnectTo(const std::string& hostname, int port) {
   RTC_DCHECK_RUN_ON(&test_controller_thread_checker_);
-  remote_address_ = rtc::SocketAddress(hostname, port);
+  remote_address_ = SocketAddress(hostname, port);
   NetworkTesterPacket packet;
   packet.set_type(NetworkTesterPacket::HAND_SHAKING);
   SendData(packet, std::nullopt);
@@ -107,7 +106,7 @@ bool TestController::IsTestDone() {
   return local_test_done_ && remote_test_done_;
 }
 
-void TestController::OnReadPacket(rtc::AsyncPacketSocket* socket,
+void TestController::OnReadPacket(AsyncPacketSocket* socket,
                                   const rtc::ReceivedPacket& received_packet) {
   RTC_DCHECK_RUN_ON(packet_sender_thread_.get());
   RTC_LOG(LS_VERBOSE) << "OnReadPacket";
@@ -120,10 +119,10 @@ void TestController::OnReadPacket(rtc::AsyncPacketSocket* socket,
   RTC_CHECK(packet.has_type());
   switch (packet.type()) {
     case NetworkTesterPacket::HAND_SHAKING: {
-      NetworkTesterPacket packet;
-      packet.set_type(NetworkTesterPacket::TEST_START);
+      NetworkTesterPacket start_packet;
+      start_packet.set_type(NetworkTesterPacket::TEST_START);
       remote_address_ = received_packet.source_address();
-      SendData(packet, std::nullopt);
+      SendData(start_packet, std::nullopt);
       packet_sender_.reset(new PacketSender(this, packet_sender_thread_.get(),
                                             task_safety_flag_,
                                             config_file_path_));

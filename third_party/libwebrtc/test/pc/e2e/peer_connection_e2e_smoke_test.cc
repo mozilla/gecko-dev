@@ -81,7 +81,7 @@ class PeerConnectionE2EQualityTestSmokeTest : public ::testing::Test {
   }
 
   void AddPeer(EmulatedNetworkManagerInterface* network,
-               rtc::FunctionView<void(PeerConfigurer*)> update_configurer) {
+               FunctionView<void(PeerConfigurer*)> update_configurer) {
     auto configurer = std::make_unique<PeerConfigurer>(*network);
     update_configurer(configurer.get());
     fixture_->AddPeer(std::move(configurer));

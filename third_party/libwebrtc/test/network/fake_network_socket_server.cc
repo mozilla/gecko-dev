@@ -41,40 +41,38 @@
 namespace webrtc {
 namespace test {
 namespace {
-std::string ToString(const rtc::SocketAddress& addr) {
+std::string ToString(const SocketAddress& addr) {
   return addr.HostAsURIString() + ":" + std::to_string(addr.port());
 }
 
 }  // namespace
 
 // Represents a socket, which will operate with emulated network.
-class FakeNetworkSocket : public rtc::Socket,
+class FakeNetworkSocket : public Socket,
                           public EmulatedNetworkReceiverInterface {
  public:
   explicit FakeNetworkSocket(FakeNetworkSocketServer* scoket_manager,
-                             rtc::Thread* thread);
+                             Thread* thread);
   ~FakeNetworkSocket() override;
 
   // Will be invoked by EmulatedEndpoint to deliver packets into this socket.
   void OnPacketReceived(EmulatedIpPacket packet) override;
 
   // rtc::Socket methods:
-  rtc::SocketAddress GetLocalAddress() const override;
-  rtc::SocketAddress GetRemoteAddress() const override;
-  int Bind(const rtc::SocketAddress& addr) override;
-  int Connect(const rtc::SocketAddress& addr) override;
+  SocketAddress GetLocalAddress() const override;
+  SocketAddress GetRemoteAddress() const override;
+  int Bind(const SocketAddress& addr) override;
+  int Connect(const SocketAddress& addr) override;
   int Close() override;
   int Send(const void* pv, size_t cb) override;
-  int SendTo(const void* pv,
-             size_t cb,
-             const rtc::SocketAddress& addr) override;
+  int SendTo(const void* pv, size_t cb, const SocketAddress& addr) override;
   int Recv(void* pv, size_t cb, int64_t* timestamp) override {
     RTC_DCHECK_NOTREACHED() << " Use RecvFrom instead.";
     return 0;
   }
   int RecvFrom(ReceiveBuffer& buffer) override;
   int Listen(int backlog) override;
-  rtc::Socket* Accept(rtc::SocketAddress* paddr) override;
+  Socket* Accept(SocketAddress* paddr) override;
   int GetError() const override;
   void SetError(int error) override;
   ConnState GetState() const override;
@@ -83,10 +81,10 @@ class FakeNetworkSocket : public rtc::Socket,
 
  private:
   FakeNetworkSocketServer* const socket_server_;
-  rtc::Thread* const thread_;
+  Thread* const thread_;
   EmulatedEndpointImpl* endpoint_ RTC_GUARDED_BY(&thread_);
-  rtc::SocketAddress local_addr_ RTC_GUARDED_BY(&thread_);
-  rtc::SocketAddress remote_addr_ RTC_GUARDED_BY(&thread_);
+  SocketAddress local_addr_ RTC_GUARDED_BY(&thread_);
+  SocketAddress remote_addr_ RTC_GUARDED_BY(&thread_);
   ConnState state_ RTC_GUARDED_BY(&thread_);
   int error_ RTC_GUARDED_BY(&thread_);
   std::map<Option, int> options_map_ RTC_GUARDED_BY(&thread_);
@@ -96,7 +94,7 @@ class FakeNetworkSocket : public rtc::Socket,
 };
 
 FakeNetworkSocket::FakeNetworkSocket(FakeNetworkSocketServer* socket_server,
-                                     rtc::Thread* thread)
+                                     Thread* thread)
     : socket_server_(socket_server),
       thread_(thread),
       state_(CS_CLOSED),
@@ -129,17 +127,17 @@ void FakeNetworkSocket::OnPacketReceived(EmulatedIpPacket packet) {
   socket_server_->WakeUp();
 }
 
-rtc::SocketAddress FakeNetworkSocket::GetLocalAddress() const {
+SocketAddress FakeNetworkSocket::GetLocalAddress() const {
   RTC_DCHECK_RUN_ON(thread_);
   return local_addr_;
 }
 
-rtc::SocketAddress FakeNetworkSocket::GetRemoteAddress() const {
+SocketAddress FakeNetworkSocket::GetRemoteAddress() const {
   RTC_DCHECK_RUN_ON(thread_);
   return remote_addr_;
 }
 
-int FakeNetworkSocket::Bind(const rtc::SocketAddress& addr) {
+int FakeNetworkSocket::Bind(const SocketAddress& addr) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_CHECK(local_addr_.IsNil())
       << "Socket already bound to address: " << ToString(local_addr_);
@@ -163,7 +161,7 @@ int FakeNetworkSocket::Bind(const rtc::SocketAddress& addr) {
   return 0;
 }
 
-int FakeNetworkSocket::Connect(const rtc::SocketAddress& addr) {
+int FakeNetworkSocket::Connect(const SocketAddress& addr) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_CHECK(remote_addr_.IsNil())
       << "Socket already connected to address: " << ToString(remote_addr_);
@@ -182,7 +180,7 @@ int FakeNetworkSocket::Send(const void* pv, size_t cb) {
 
 int FakeNetworkSocket::SendTo(const void* pv,
                               size_t cb,
-                              const rtc::SocketAddress& addr) {
+                              const SocketAddress& addr) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_CHECK(!local_addr_.IsNil())
       << "Socket have to be bind to some local address";
@@ -217,7 +215,7 @@ int FakeNetworkSocket::Listen(int backlog) {
   RTC_CHECK(false) << "Listen() isn't valid for SOCK_DGRAM";
 }
 
-rtc::Socket* FakeNetworkSocket::Accept(rtc::SocketAddress* /*paddr*/) {
+Socket* FakeNetworkSocket::Accept(SocketAddress* /*paddr*/) {
   RTC_CHECK(false) << "Accept() isn't valid for SOCK_DGRAM";
 }
 
@@ -243,7 +241,7 @@ void FakeNetworkSocket::SetError(int error) {
   error_ = error;
 }
 
-rtc::Socket::ConnState FakeNetworkSocket::GetState() const {
+Socket::ConnState FakeNetworkSocket::GetState() const {
   RTC_DCHECK_RUN_ON(thread_);
   return state_;
 }
@@ -271,7 +269,7 @@ FakeNetworkSocketServer::FakeNetworkSocketServer(
 FakeNetworkSocketServer::~FakeNetworkSocketServer() = default;
 
 EmulatedEndpointImpl* FakeNetworkSocketServer::GetEndpointNode(
-    const rtc::IPAddress& ip) {
+    const IPAddress& ip) {
   return endpoints_container_->LookupByLocalAddress(ip);
 }
 
@@ -280,7 +278,7 @@ void FakeNetworkSocketServer::Unregister(FakeNetworkSocket* socket) {
   sockets_.erase(absl::c_find(sockets_, socket));
 }
 
-rtc::Socket* FakeNetworkSocketServer::CreateSocket(int family, int type) {
+Socket* FakeNetworkSocketServer::CreateSocket(int family, int type) {
   RTC_DCHECK(family == AF_INET || family == AF_INET6);
   // We support only UDP sockets for now.
   RTC_DCHECK(type == SOCK_DGRAM) << "Only UDP sockets are supported";
@@ -293,14 +291,14 @@ rtc::Socket* FakeNetworkSocketServer::CreateSocket(int family, int type) {
   return out;
 }
 
-void FakeNetworkSocketServer::SetMessageQueue(rtc::Thread* thread) {
+void FakeNetworkSocketServer::SetMessageQueue(Thread* thread) {
   thread_ = thread;
 }
 
 // Always returns true (if return false, it won't be invoked again...)
 bool FakeNetworkSocketServer::Wait(webrtc::TimeDelta max_wait_duration,
                                    bool process_io) {
-  RTC_DCHECK(thread_ == rtc::Thread::Current());
+  RTC_DCHECK(thread_ == Thread::Current());
   if (!max_wait_duration.IsZero())
     wakeup_.Wait(max_wait_duration);
 

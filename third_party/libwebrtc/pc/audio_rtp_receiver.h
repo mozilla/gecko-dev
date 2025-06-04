@@ -51,14 +51,14 @@ class AudioRtpReceiver : public ObserverInterface,
   // a call to either `SetupUnsignaledMediaChannel` or `SetupMediaChannel`
   // will be made, which will internally start the source on the worker thread.
   AudioRtpReceiver(
-      rtc::Thread* worker_thread,
+      Thread* worker_thread,
       std::string receiver_id,
       std::vector<std::string> stream_ids,
       bool is_unified_plan,
       cricket::VoiceMediaReceiveChannelInterface* voice_channel = nullptr);
   // TODO(https://crbug.com/webrtc/9480): Remove this when streams() is removed.
   AudioRtpReceiver(
-      rtc::Thread* worker_thread,
+      Thread* worker_thread,
       const std::string& receiver_id,
       const std::vector<rtc::scoped_refptr<MediaStreamInterface>>& streams,
       bool is_unified_plan,
@@ -82,8 +82,8 @@ class AudioRtpReceiver : public ObserverInterface,
   std::vector<rtc::scoped_refptr<MediaStreamInterface>> streams()
       const override;
 
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_AUDIO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
   }
 
   std::string id() const override { return id_; }
@@ -131,7 +131,7 @@ class AudioRtpReceiver : public ObserverInterface,
   void SetOutputVolume_w(double volume) RTC_RUN_ON(worker_thread_);
 
   RTC_NO_UNIQUE_ADDRESS SequenceChecker signaling_thread_checker_;
-  rtc::Thread* const worker_thread_;
+  Thread* const worker_thread_;
   const std::string id_;
   const rtc::scoped_refptr<RemoteAudioSource> source_;
   const rtc::scoped_refptr<AudioTrackProxyWithInternal<AudioTrack>> track_;

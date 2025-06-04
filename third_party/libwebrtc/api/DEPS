@@ -84,6 +84,10 @@ specific_include_rules = {
     "+rtc_base/socket_address.h",
   ],
 
+  "create_peerconnection_factory\.h": [
+    "+rtc_base/thread.h",
+  ],
+
   "data_channel_interface\.h": [
     "+rtc_base/copy_on_write_buffer.h",
   ],
@@ -103,6 +107,10 @@ specific_include_rules = {
   "packet_socket_factory\.h": [
     "+rtc_base/async_packet_socket.h",
     "+rtc_base/socket_address.h",
+  ],
+
+  "turn_customizer\.h": [
+    "+p2p/base/port_interface.h",
   ],
 
   "peer_connection_interface\.h": [
@@ -238,6 +246,10 @@ specific_include_rules = {
 
   "field_trials_registry\.h": [
     "+rtc_base/containers/flat_set.h",
+  ],
+
+  "ice_transport_factory\.h": [
+    "+p2p/base/port_allocator.h",
   ],
 
   # .cc files in api/ should not be restricted in what they can #include,

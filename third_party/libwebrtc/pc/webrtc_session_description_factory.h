@@ -25,8 +25,9 @@
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/task_queue/task_queue_base.h"
-#include "call/payload_type.h"
 #include "p2p/base/transport_description_factory.h"
+#include "pc/codec_vendor.h"
+#include "pc/media_options.h"
 #include "pc/media_session.h"
 #include "pc/sdp_state_provider.h"
 #include "rtc_base/rtc_certificate.h"
@@ -50,11 +51,11 @@ class WebRtcSessionDescriptionFactory {
       const SdpStateProvider* sdp_info,
       const std::string& session_id,
       bool dtls_enabled,
-      std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator,
-      rtc::scoped_refptr<rtc::RTCCertificate> certificate,
-      std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
+      std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator,
+      rtc::scoped_refptr<RTCCertificate> certificate,
+      std::function<void(const rtc::scoped_refptr<webrtc::RTCCertificate>&)>
           on_certificate_ready,
-      PayloadTypeSuggester* pt_suggester,
+      cricket::CodecLookupHelper* codec_lookup_helper,
       const FieldTrialsView& field_trials);
   ~WebRtcSessionDescriptionFactory();
 
@@ -130,21 +131,21 @@ class WebRtcSessionDescriptionFactory {
   void Post(absl::AnyInvocable<void() &&> callback);
 
   void OnCertificateRequestFailed();
-  void SetCertificate(rtc::scoped_refptr<rtc::RTCCertificate> certificate);
+  void SetCertificate(rtc::scoped_refptr<RTCCertificate> certificate);
 
   std::queue<CreateSessionDescriptionRequest>
       create_session_description_requests_;
   TaskQueueBase* const signaling_thread_;
   cricket::TransportDescriptionFactory transport_desc_factory_;
-  cricket::MediaSessionDescriptionFactory session_desc_factory_;
+  MediaSessionDescriptionFactory session_desc_factory_;
   uint64_t session_version_;
-  const std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator_;
+  const std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator_;
   const SdpStateProvider* sdp_info_;
   const std::string session_id_;
   CertificateRequestState certificate_request_state_;
   std::queue<absl::AnyInvocable<void() &&>> callbacks_;
 
-  std::function<void(const rtc::scoped_refptr<rtc::RTCCertificate>&)>
+  std::function<void(const rtc::scoped_refptr<webrtc::RTCCertificate>&)>
       on_certificate_ready_;
 
   WeakPtrFactory<WebRtcSessionDescriptionFactory> weak_factory_{this};

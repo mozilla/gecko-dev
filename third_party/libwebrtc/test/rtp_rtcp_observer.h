@@ -70,7 +70,7 @@ class RtpRtcpObserver {
   RtpRtcpObserver() : RtpRtcpObserver(TimeDelta::Zero()) {}
   explicit RtpRtcpObserver(TimeDelta event_timeout) : timeout_(event_timeout) {}
 
-  rtc::Event observation_complete_;
+  Event observation_complete_;
 
  private:
   const TimeDelta timeout_;

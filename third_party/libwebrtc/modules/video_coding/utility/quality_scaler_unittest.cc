@@ -45,7 +45,7 @@ class FakeQpUsageHandler : public QualityScalerQpUsageHandlerInterface {
     event.Set();
   }
 
-  rtc::Event event;
+  Event event;
   int adapt_up_events_ = 0;
   int adapt_down_events_ = 0;
 };

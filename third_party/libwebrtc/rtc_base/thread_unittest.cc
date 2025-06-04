@@ -49,7 +49,7 @@
 
 #endif
 
-namespace rtc {
+namespace webrtc {
 namespace {
 
 using ::testing::ElementsAre;
@@ -124,10 +124,10 @@ class SocketClient : public TestGenerator, public sigslot::has_slots<> {
   MessageClient* post_handler_;
 };
 
-class CustomThread : public rtc::Thread {
+class CustomThread : public Thread {
  public:
   CustomThread()
-      : Thread(std::unique_ptr<SocketServer>(new rtc::NullSocketServer())) {}
+      : Thread(std::unique_ptr<SocketServer>(new NullSocketServer())) {}
   ~CustomThread() override { Stop(); }
   bool Start() { return false; }
 
@@ -158,7 +158,7 @@ class SignalWhenDestroyedThread : public Thread {
 
 // See: https://code.google.com/p/webrtc/issues/detail?id=2409
 TEST(ThreadTest, DISABLED_Main) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   const SocketAddress addr("127.0.0.1", 0);
 
   // Create the messaging client on its own thread.
@@ -200,7 +200,7 @@ TEST(ThreadTest, DISABLED_Main) {
 }
 
 TEST(ThreadTest, CountBlockingCalls) {
-  rtc::AutoThread current;
+  AutoThread current;
 
   // When the test runs, this will print out:
   //   (thread_unittest.cc:262): Blocking TestBody: total=2 (actual=1, could=1)
@@ -353,7 +353,7 @@ TEST(ThreadTest, InvokesDisallowedWhenDisallowAllInvokes) {
 #endif  // (!defined(NDEBUG) || RTC_DCHECK_IS_ON)
 
 TEST(ThreadTest, InvokesAllowedByDefault) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   // Create and start the thread.
   auto thread1 = Thread::CreateWithSocketServer();
   auto thread2 = Thread::CreateWithSocketServer();
@@ -430,17 +430,17 @@ TEST(ThreadTest, ThreeThreadsBlockingCall) {
     explicit LockedBool(bool value) : value_(value) {}
 
     void Set(bool value) {
-      webrtc::MutexLock lock(&mutex_);
+      MutexLock lock(&mutex_);
       value_ = value;
     }
 
     bool Get() {
-      webrtc::MutexLock lock(&mutex_);
+      MutexLock lock(&mutex_);
       return value_;
     }
 
    private:
-    webrtc::Mutex mutex_;
+    Mutex mutex_;
     bool value_ RTC_GUARDED_BY(mutex_);
   };
 
@@ -516,7 +516,7 @@ static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(
 
 TEST(ThreadTest, DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder) {
   ScopedBaseFakeClock clock;
-  Thread q(CreateDefaultSocketServer(), true);
+  Thread q(rtc::CreateDefaultSocketServer(), true);
   q.Start();
   DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(clock, q);
 
@@ -530,7 +530,7 @@ TEST(ThreadTest, DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder) {
 // all messages (both delayed and non delayed) up until the current time, on
 // all registered message queues.
 TEST(ThreadManager, ProcessAllMessageQueues) {
-  rtc::AutoThread main_thread;
+  AutoThread main_thread;
   Event entered_process_all_message_queues(true, false);
   auto a = Thread::CreateWithSocketServer();
   auto b = Thread::CreateWithSocketServer();
@@ -635,7 +635,7 @@ class DestructionFunctor {
 };
 
 TEST(ThreadPostTaskTest, InvokesWithLambda) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   Event event;
@@ -644,7 +644,7 @@ TEST(ThreadPostTaskTest, InvokesWithLambda) {
 }
 
 TEST(ThreadPostTaskTest, InvokesWithCopiedFunctor) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   LifeCycleFunctor::Stats stats;
@@ -658,7 +658,7 @@ TEST(ThreadPostTaskTest, InvokesWithCopiedFunctor) {
 }
 
 TEST(ThreadPostTaskTest, InvokesWithMovedFunctor) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   LifeCycleFunctor::Stats stats;
@@ -672,7 +672,7 @@ TEST(ThreadPostTaskTest, InvokesWithMovedFunctor) {
 }
 
 TEST(ThreadPostTaskTest, InvokesWithReferencedFunctorShouldCopy) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   LifeCycleFunctor::Stats stats;
@@ -687,7 +687,7 @@ TEST(ThreadPostTaskTest, InvokesWithReferencedFunctorShouldCopy) {
 }
 
 TEST(ThreadPostTaskTest, InvokesWithCopiedFunctorDestroyedOnTargetThread) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   Event event;
@@ -701,7 +701,7 @@ TEST(ThreadPostTaskTest, InvokesWithCopiedFunctorDestroyedOnTargetThread) {
 }
 
 TEST(ThreadPostTaskTest, InvokesWithMovedFunctorDestroyedOnTargetThread) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   Event event;
@@ -716,7 +716,7 @@ TEST(ThreadPostTaskTest, InvokesWithMovedFunctorDestroyedOnTargetThread) {
 
 TEST(ThreadPostTaskTest,
      InvokesWithReferencedFunctorShouldCopyAndDestroyedOnTargetThread) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   Event event;
@@ -731,7 +731,7 @@ TEST(ThreadPostTaskTest,
 }
 
 TEST(ThreadPostTaskTest, InvokesOnBackgroundThread) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   Event event;
@@ -748,7 +748,7 @@ TEST(ThreadPostTaskTest, InvokesOnBackgroundThread) {
 }
 
 TEST(ThreadPostTaskTest, InvokesAsynchronously) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   // The first event ensures that SendSingleMessage() is not blocking this
@@ -764,7 +764,7 @@ TEST(ThreadPostTaskTest, InvokesAsynchronously) {
 }
 
 TEST(ThreadPostTaskTest, InvokesInPostedOrder) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   Event first;
@@ -786,7 +786,7 @@ TEST(ThreadPostTaskTest, InvokesInPostedOrder) {
 }
 
 TEST(ThreadPostDelayedTaskTest, InvokesAsynchronously) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   // The first event ensures that SendSingleMessage() is not blocking this
@@ -805,7 +805,7 @@ TEST(ThreadPostDelayedTaskTest, InvokesAsynchronously) {
 
 TEST(ThreadPostDelayedTaskTest, InvokesInDelayOrder) {
   ScopedFakeClock clock;
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
+  std::unique_ptr<Thread> background_thread(rtc::Thread::Create());
   background_thread->Start();
 
   Event first;
@@ -831,31 +831,30 @@ TEST(ThreadPostDelayedTaskTest, InvokesInDelayOrder) {
 }
 
 TEST(ThreadPostDelayedTaskTest, IsCurrentTaskQueue) {
-  auto current_tq = webrtc::TaskQueueBase::Current();
+  auto current_tq = TaskQueueBase::Current();
   {
-    std::unique_ptr<rtc::Thread> thread(rtc::Thread::Create());
+    std::unique_ptr<Thread> thread(rtc::Thread::Create());
     thread->WrapCurrent();
-    EXPECT_EQ(webrtc::TaskQueueBase::Current(),
-              static_cast<webrtc::TaskQueueBase*>(thread.get()));
+    EXPECT_EQ(TaskQueueBase::Current(),
+              static_cast<TaskQueueBase*>(thread.get()));
     thread->UnwrapCurrent();
   }
-  EXPECT_EQ(webrtc::TaskQueueBase::Current(), current_tq);
+  EXPECT_EQ(TaskQueueBase::Current(), current_tq);
 }
 
-class ThreadFactory : public webrtc::TaskQueueFactory {
+class ThreadFactory : public TaskQueueFactory {
  public:
-  std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>
-  CreateTaskQueue(absl::string_view /* name */,
-                  Priority /*priority*/) const override {
+  std::unique_ptr<TaskQueueBase, TaskQueueDeleter> CreateTaskQueue(
+      absl::string_view /* name */,
+      Priority /*priority*/) const override {
     std::unique_ptr<Thread> thread = Thread::Create();
     thread->Start();
-    return std::unique_ptr<webrtc::TaskQueueBase, webrtc::TaskQueueDeleter>(
-        thread.release());
+    return std::unique_ptr<TaskQueueBase, TaskQueueDeleter>(thread.release());
   }
 };
 
-std::unique_ptr<webrtc::TaskQueueFactory> CreateDefaultThreadFactory(
-    const webrtc::FieldTrialsView*) {
+std::unique_ptr<TaskQueueFactory> CreateDefaultThreadFactory(
+    const FieldTrialsView*) {
   return std::make_unique<ThreadFactory>();
 }
 
@@ -866,4 +865,4 @@ INSTANTIATE_TEST_SUITE_P(RtcThread,
                          ::testing::Values(CreateDefaultThreadFactory));
 
 }  // namespace
-}  // namespace rtc
+}  // namespace webrtc

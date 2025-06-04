@@ -240,7 +240,7 @@ class RtpSenderBase : public RtpSenderInternal, public ObserverInterface {
   // is called. `set_streams_observer` is not owned by this object. If not
   // null, it must be valid at least until this sender becomes stopped.
   RtpSenderBase(const Environment& env,
-                rtc::Thread* worker_thread,
+                Thread* worker_thread,
                 const std::string& id,
                 SetStreamsObserver* set_streams_observer);
   // TODO(bugs.webrtc.org/8694): Since SSRC == 0 is technically valid, figure
@@ -262,8 +262,8 @@ class RtpSenderBase : public RtpSenderInternal, public ObserverInterface {
   virtual void RemoveTrackFromStats() {}
 
   const Environment env_;
-  rtc::Thread* const signaling_thread_;
-  rtc::Thread* const worker_thread_;
+  Thread* const signaling_thread_;
+  Thread* const worker_thread_;
   uint32_t ssrc_ = 0;
   bool stopped_ RTC_GUARDED_BY(signaling_thread_) = false;
   bool is_transceiver_stopped_ RTC_GUARDED_BY(signaling_thread_) = false;
@@ -354,7 +354,7 @@ class AudioRtpSender : public DtmfProviderInterface, public RtpSenderBase {
   // null, it must be valid at least until this sender becomes stopped.
   static rtc::scoped_refptr<AudioRtpSender> Create(
       const Environment& env,
-      rtc::Thread* worker_thread,
+      Thread* worker_thread,
       const std::string& id,
       LegacyStatsCollectorInterface* stats,
       SetStreamsObserver* set_streams_observer);
@@ -367,8 +367,8 @@ class AudioRtpSender : public DtmfProviderInterface, public RtpSenderBase {
   // ObserverInterface implementation.
   void OnChanged() override;
 
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_AUDIO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::AUDIO;
   }
   std::string track_kind() const override {
     return MediaStreamTrackInterface::kAudioKind;
@@ -379,7 +379,7 @@ class AudioRtpSender : public DtmfProviderInterface, public RtpSenderBase {
 
  protected:
   AudioRtpSender(const Environment& env,
-                 rtc::Thread* worker_thread,
+                 Thread* worker_thread,
                  const std::string& id,
                  LegacyStatsCollectorInterface* legacy_stats,
                  SetStreamsObserver* set_streams_observer);
@@ -421,7 +421,7 @@ class VideoRtpSender : public RtpSenderBase {
   // null, it must be valid at least until this sender becomes stopped.
   static rtc::scoped_refptr<VideoRtpSender> Create(
       const Environment& env,
-      rtc::Thread* worker_thread,
+      Thread* worker_thread,
       const std::string& id,
       SetStreamsObserver* set_streams_observer);
   virtual ~VideoRtpSender();
@@ -429,8 +429,8 @@ class VideoRtpSender : public RtpSenderBase {
   // ObserverInterface implementation
   void OnChanged() override;
 
-  cricket::MediaType media_type() const override {
-    return cricket::MEDIA_TYPE_VIDEO;
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
   }
   std::string track_kind() const override {
     return MediaStreamTrackInterface::kVideoKind;
@@ -441,7 +441,7 @@ class VideoRtpSender : public RtpSenderBase {
 
  protected:
   VideoRtpSender(const Environment& env,
-                 rtc::Thread* worker_thread,
+                 Thread* worker_thread,
                  const std::string& id,
                  SetStreamsObserver* set_streams_observer);
 

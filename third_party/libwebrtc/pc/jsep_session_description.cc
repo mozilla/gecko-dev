@@ -27,7 +27,7 @@
 #include "rtc_base/socket_address.h"
 
 using cricket::Candidate;
-using cricket::SessionDescription;
+using ::webrtc::SessionDescription;
 
 namespace webrtc {
 namespace {
@@ -39,7 +39,7 @@ constexpr int kDummyPort = 9;
 // candidates.
 void UpdateConnectionAddress(
     const JsepCandidateCollection& candidate_collection,
-    cricket::MediaContentDescription* media_desc) {
+    MediaContentDescription* media_desc) {
   int port = kDummyPort;
   std::string ip = kDummyAddress;
   std::string hostname;
@@ -67,14 +67,13 @@ void UpdateConnectionAddress(
     }
     current_preference = preference;
     current_family = family;
-    const rtc::SocketAddress& candidate_addr =
-        jsep_candidate->candidate().address();
+    const SocketAddress& candidate_addr = jsep_candidate->candidate().address();
     port = candidate_addr.port();
     ip = candidate_addr.ipaddr().ToString();
     hostname = candidate_addr.hostname();
   }
-  rtc::SocketAddress connection_addr(ip, port);
-  if (rtc::IPIsUnspec(connection_addr.ipaddr()) && !hostname.empty()) {
+  SocketAddress connection_addr(ip, port);
+  if (IPIsUnspec(connection_addr.ipaddr()) && !hostname.empty()) {
     // When a hostname candidate becomes the (default) connection address,
     // we use the dummy address 0.0.0.0 and port 9 in the c= and the m= lines.
     //
@@ -91,7 +90,7 @@ void UpdateConnectionAddress(
     // populate the c= and the m= lines. See `BuildMediaDescription` in
     // webrtc_sdp.cc for the SDP generation with
     // `media_desc->connection_address()`.
-    connection_addr = rtc::SocketAddress(kDummyAddress, kDummyPort);
+    connection_addr = SocketAddress(kDummyAddress, kDummyPort);
   }
   media_desc->set_connection_address(connection_addr);
 }
@@ -147,7 +146,7 @@ std::unique_ptr<SessionDescriptionInterface> CreateSessionDescription(
     SdpType type,
     const std::string& session_id,
     const std::string& session_version,
-    std::unique_ptr<cricket::SessionDescription> description) {
+    std::unique_ptr<SessionDescription> description) {
   auto jsep_description = std::make_unique<JsepSessionDescription>(type);
   bool initialize_success = jsep_description->Initialize(
       std::move(description), session_id, session_version);
@@ -171,7 +170,7 @@ JsepSessionDescription::JsepSessionDescription(const std::string& type) {
 
 JsepSessionDescription::JsepSessionDescription(
     SdpType type,
-    std::unique_ptr<cricket::SessionDescription> description,
+    std::unique_ptr<SessionDescription> description,
     absl::string_view session_id,
     absl::string_view session_version)
     : description_(std::move(description)),
@@ -185,7 +184,7 @@ JsepSessionDescription::JsepSessionDescription(
 JsepSessionDescription::~JsepSessionDescription() {}
 
 bool JsepSessionDescription::Initialize(
-    std::unique_ptr<cricket::SessionDescription> description,
+    std::unique_ptr<SessionDescription> description,
     const std::string& session_id,
     const std::string& session_version) {
   if (!description)

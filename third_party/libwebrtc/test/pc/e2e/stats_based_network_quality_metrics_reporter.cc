@@ -53,7 +53,7 @@ constexpr TimeDelta kStatsWaitTimeout = TimeDelta::Seconds(1);
 
 EmulatedNetworkStats PopulateStats(std::vector<EmulatedEndpoint*> endpoints,
                                    NetworkEmulationManager* network_emulation) {
-  rtc::Event stats_loaded;
+  Event stats_loaded;
   EmulatedNetworkStats stats;
   network_emulation->GetStats(endpoints, [&](EmulatedNetworkStats s) {
     stats = std::move(s);
@@ -64,10 +64,10 @@ EmulatedNetworkStats PopulateStats(std::vector<EmulatedEndpoint*> endpoints,
   return stats;
 }
 
-std::map<rtc::IPAddress, std::string> PopulateIpToPeer(
+std::map<IPAddress, std::string> PopulateIpToPeer(
     const std::map<std::string, std::vector<EmulatedEndpoint*>>&
         peer_endpoints) {
-  std::map<rtc::IPAddress, std::string> out;
+  std::map<IPAddress, std::string> out;
   for (const auto& entry : peer_endpoints) {
     for (const EmulatedEndpoint* const endpoint : entry.second) {
       RTC_CHECK(out.find(endpoint->GetPeerLocalAddress()) == out.end())
@@ -149,7 +149,7 @@ class EmulatedNetworkStatsAccumulator {
   std::map<std::string, NetworkLayerStats> n_stats_
       RTC_GUARDED_BY(sequence_checker_);
 
-  rtc::Event all_stats_collected_;
+  Event all_stats_collected_;
   Mutex mutex_;
   std::map<std::string, NetworkLayerStats> stats_ RTC_GUARDED_BY(mutex_);
   bool stats_released_ = false;
@@ -244,7 +244,7 @@ StatsBasedNetworkQualityMetricsReporter::NetworkLayerStatsCollector::
     const NetworkLayerStats& stats = peer_to_stats[peer_name];
     for (const auto& income_stats_entry :
          stats.endpoints_stats.incoming_stats_per_source) {
-      const rtc::IPAddress& source_ip = income_stats_entry.first;
+      const IPAddress& source_ip = income_stats_entry.first;
       auto it = ip_to_peer_.find(source_ip);
       if (it == ip_to_peer_.end()) {
         // Source IP is unknown for this collector, so will be skipped.

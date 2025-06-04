@@ -46,9 +46,9 @@ using cricket::ICE_PWD_LENGTH;
 using cricket::ICE_UFRAG_LENGTH;
 using cricket::Port;
 using cricket::TCPPort;
-using rtc::SocketAddress;
 using ::testing::Eq;
 using ::testing::IsTrue;
+using ::webrtc::SocketAddress;
 
 static int kTimeout = 1000;
 static const SocketAddress kLocalAddr("11.11.11.11", 0);
@@ -86,11 +86,11 @@ class ConnectionObserver : public sigslot::has_slots<> {
 class TCPPortTest : public ::testing::Test, public sigslot::has_slots<> {
  public:
   TCPPortTest()
-      : ss_(new rtc::VirtualSocketServer()),
+      : ss_(new webrtc::VirtualSocketServer()),
         main_(ss_.get()),
         socket_factory_(ss_.get()),
-        username_(rtc::CreateRandomString(ICE_UFRAG_LENGTH)),
-        password_(rtc::CreateRandomString(ICE_PWD_LENGTH)) {}
+        username_(webrtc::CreateRandomString(ICE_UFRAG_LENGTH)),
+        password_(webrtc::CreateRandomString(ICE_PWD_LENGTH)) {}
 
   rtc::Network* MakeNetwork(const SocketAddress& addr) {
     networks_.emplace_back("unittest", "unittest", addr.ipaddr(), 32);
@@ -131,9 +131,9 @@ class TCPPortTest : public ::testing::Test, public sigslot::has_slots<> {
   // Network with that IP and add it to this list. Using a list instead of a
   // vector so that when it grows, pointers aren't invalidated.
   std::list<rtc::Network> networks_;
-  std::unique_ptr<rtc::VirtualSocketServer> ss_;
-  rtc::AutoSocketServerThread main_;
-  rtc::BasicPacketSocketFactory socket_factory_;
+  std::unique_ptr<webrtc::VirtualSocketServer> ss_;
+  webrtc::AutoSocketServerThread main_;
+  webrtc::BasicPacketSocketFactory socket_factory_;
   std::string username_;
   std::string password_;
   webrtc::test::ScopedKeyValueConfig field_trials_;
@@ -225,8 +225,8 @@ TEST_F(TCPPortTest, TCPPortNotDiscardedIfNotBoundToBestIP) {
 // between rtc::IPAddress and rtc::InterfaceAddress.
 TEST_F(TCPPortTest, TCPPortNotDiscardedIfBoundToTemporaryIP) {
   networks_.emplace_back("unittest", "unittest", kLocalIPv6Addr.ipaddr(), 32);
-  networks_.back().AddIP(rtc::InterfaceAddress(
-      kLocalIPv6Addr.ipaddr(), rtc::IPV6_ADDRESS_FLAG_TEMPORARY));
+  networks_.back().AddIP(webrtc::InterfaceAddress(
+      kLocalIPv6Addr.ipaddr(), webrtc::IPV6_ADDRESS_FLAG_TEMPORARY));
 
   auto local_port = CreateTCPPort(&networks_.back());
   auto remote_port = CreateTCPPort(kRemoteIPv6Addr);
@@ -276,7 +276,7 @@ TEST_F(TCPPortTest, SignalSentPacket) {
       webrtc::IsRtcOk());
 
   // Need to get the port of the actual outgoing socket, not the server socket..
-  cricket::Candidate client_candidate = client->Candidates()[0];
+  webrtc::Candidate client_candidate = client->Candidates()[0];
   client_candidate.set_address(static_cast<cricket::TCPConnection*>(client_conn)
                                    ->socket()
                                    ->GetLocalAddress());
@@ -288,8 +288,8 @@ TEST_F(TCPPortTest, SignalSentPacket) {
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
       webrtc::IsRtcOk());
 
-  client_conn->Ping(rtc::TimeMillis());
-  server_conn->Ping(rtc::TimeMillis());
+  client_conn->Ping(webrtc::TimeMillis());
+  server_conn->Ping(webrtc::TimeMillis());
   ASSERT_THAT(
       webrtc::WaitUntil([&] { return client_conn->writable(); }, IsTrue(),
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
@@ -338,7 +338,7 @@ TEST_F(TCPPortTest, SignalSentPacketAfterReconnect) {
       webrtc::IsRtcOk());
 
   // Need to get the port of the actual outgoing socket.
-  cricket::Candidate client_candidate = client->Candidates()[0];
+  webrtc::Candidate client_candidate = client->Candidates()[0];
   client_candidate.set_address(static_cast<cricket::TCPConnection*>(client_conn)
                                    ->socket()
                                    ->GetLocalAddress());
@@ -350,7 +350,7 @@ TEST_F(TCPPortTest, SignalSentPacketAfterReconnect) {
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
       webrtc::IsRtcOk());
   EXPECT_FALSE(client_conn->writable());
-  client_conn->Ping(rtc::TimeMillis());
+  client_conn->Ping(webrtc::TimeMillis());
   ASSERT_THAT(
       webrtc::WaitUntil([&] { return client_conn->writable(); }, IsTrue(),
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
@@ -415,14 +415,14 @@ TEST_F(TCPPortTest, SignalSentPacketAfterReconnect) {
       webrtc::IsRtcOk());
 
   // Send Stun Binding request.
-  client_conn->Ping(rtc::TimeMillis());
+  client_conn->Ping(webrtc::TimeMillis());
   // The Stun Binding request is reported as sent.
   EXPECT_THAT(
       webrtc::WaitUntil([&] { return client_counter.sent_packets(); }, Eq(2),
                         {.timeout = webrtc::TimeDelta::Millis(kTimeout)}),
       webrtc::IsRtcOk());
   // Wait a bit for the Stun response to be received.
-  rtc::Thread::Current()->ProcessMessages(100);
+  webrtc::Thread::Current()->ProcessMessages(100);
 
   // After the Stun Ping response has been received, packets can be sent again
   // and SignalSentPacket should be invoked.

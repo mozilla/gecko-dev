@@ -61,7 +61,7 @@ class RTCStatsCollector : public RefCountInterface {
   static rtc::scoped_refptr<RTCStatsCollector> Create(
       PeerConnectionInternal* pc,
       const Environment& env,
-      int64_t cache_lifetime_us = 50 * rtc::kNumMicrosecsPerMillisec);
+      int64_t cache_lifetime_us = 50 * kNumMicrosecsPerMillisec);
 
   // Gets a recent stats report. If there is a report cached that is still fresh
   // it is returned, otherwise new stats are gathered and returned. A report is
@@ -172,7 +172,7 @@ class RTCStatsCollector : public RefCountInterface {
   // then `mid` and `transport_name` will be null.
   struct RtpTransceiverStatsInfo {
     rtc::scoped_refptr<RtpTransceiver> transceiver;
-    cricket::MediaType media_type;
+    webrtc::MediaType media_type;
     std::optional<std::string> mid;
     std::optional<std::string> transport_name;
     TrackMediaInfoMap track_media_info_map;
@@ -257,9 +257,9 @@ class RTCStatsCollector : public RefCountInterface {
   PeerConnectionInternal* const pc_;
   const Environment env_;
   const bool stats_timestamp_with_environment_clock_;
-  rtc::Thread* const signaling_thread_;
-  rtc::Thread* const worker_thread_;
-  rtc::Thread* const network_thread_;
+  Thread* const signaling_thread_;
+  Thread* const worker_thread_;
+  Thread* const network_thread_;
 
   int num_pending_partial_reports_;
   int64_t partial_report_timestamp_us_;
@@ -277,7 +277,7 @@ class RTCStatsCollector : public RefCountInterface {
   // This is reset before async-invoking ProducePartialResultsOnNetworkThread()
   // and set when ProducePartialResultsOnNetworkThread() is complete, after it
   // has updated the value of `network_report_`.
-  rtc::Event network_report_event_;
+  Event network_report_event_;
 
   // Cleared and set in `PrepareTransceiverStatsInfosAndCallStats_s_w_n`,
   // starting out on the signaling thread, then network. Later read on the

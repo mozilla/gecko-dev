@@ -27,7 +27,7 @@
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 
-namespace rtc {
+namespace webrtc {
 
 // A test echo server, echoes back any packets sent to it.
 // Useful for unit tests.
@@ -50,15 +50,17 @@ class TestEchoServer : public sigslot::has_slots<> {
           [&](rtc::AsyncPacketSocket* socket,
               const rtc::ReceivedPacket& packet) { OnPacket(socket, packet); });
       packet_socket->SubscribeCloseEvent(
-          this, [this](AsyncPacketSocket* s, int err) { OnClose(s, err); });
+          this,
+          [this](rtc::AsyncPacketSocket* s, int err) { OnClose(s, err); });
       client_sockets_.push_back(packet_socket);
     }
   }
-  void OnPacket(AsyncPacketSocket* socket, const rtc::ReceivedPacket& packet) {
+  void OnPacket(rtc::AsyncPacketSocket* socket,
+                const rtc::ReceivedPacket& packet) {
     rtc::PacketOptions options;
     socket->Send(packet.payload().data(), packet.payload().size(), options);
   }
-  void OnClose(AsyncPacketSocket* socket, int err) {
+  void OnClose(rtc::AsyncPacketSocket* socket, int err) {
     ClientList::iterator it = absl::c_find(client_sockets_, socket);
     client_sockets_.erase(it);
     // `OnClose` is triggered by socket Close callback, deleting `socket` while
@@ -71,6 +73,12 @@ class TestEchoServer : public sigslot::has_slots<> {
   ClientList client_sockets_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::TestEchoServer;
 }  // namespace rtc
 
 #endif  // RTC_BASE_TEST_ECHO_SERVER_H_

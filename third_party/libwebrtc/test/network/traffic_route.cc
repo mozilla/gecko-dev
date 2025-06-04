@@ -87,8 +87,8 @@ void CrossTrafficRouteImpl::SendPacket(size_t packet_size, uint16_t dest_port) {
   rtc::CopyOnWriteBuffer data(packet_size);
   std::fill_n(data.MutableData(), data.size(), 0);
   receiver_->OnPacketReceived(EmulatedIpPacket(
-      /*from=*/rtc::SocketAddress(),
-      rtc::SocketAddress(endpoint_->GetPeerLocalAddress(), dest_port), data,
+      /*from=*/SocketAddress(),
+      SocketAddress(endpoint_->GetPeerLocalAddress(), dest_port), data,
       clock_->CurrentTime()));
 }
 

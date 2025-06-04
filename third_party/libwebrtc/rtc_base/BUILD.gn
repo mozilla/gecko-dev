@@ -439,7 +439,6 @@ rtc_library("logging") {
     "../api/units:timestamp",
     "synchronization:mutex",
     "//third_party/abseil-cpp/absl/base:core_headers",
-    "//third_party/abseil-cpp/absl/meta:type_traits",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
@@ -495,7 +494,6 @@ rtc_library("checks") {
     "../api:scoped_refptr",
     "system:inline",
     "system:rtc_export",
-    "//third_party/abseil-cpp/absl/meta:type_traits",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
@@ -523,7 +521,7 @@ rtc_library("rate_limiter") {
 
 rtc_source_set("sanitizer") {
   sources = [ "sanitizer.h" ]
-  deps = [ "//third_party/abseil-cpp/absl/meta:type_traits" ]
+  deps = []
 }
 
 rtc_source_set("bounded_inline_vector") {
@@ -1193,13 +1191,17 @@ if (!build_with_mozilla) {
     ":logging",
     ":macromagic",
     ":mdns_responder_interface",
+    ":network_constants",
     ":socket",
+    ":socket_address",
     ":socket_factory",
     ":stringutils",
     ":threading",
     "../api:array_view",
     "../api:field_trials_view",
+    "../api:scoped_refptr",
     "../api:sequence_checker",
+    "../api/environment",
     "../api/task_queue:pending_task_safety_flag",
     "../api/transport:field_trial_based_config",
     "../api/units:time_delta",
@@ -1209,6 +1211,7 @@ if (!build_with_mozilla) {
     "third_party/sigslot",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/base:core_headers",
+    "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
@@ -1751,8 +1754,6 @@ rtc_library("rtc_base_tests_utils") {
     "proxy_server.h",
     "server_socket_adapters.cc",
     "server_socket_adapters.h",
-    "sigslot_tester.h",
-    "test_base64.h",
     "test_certificate_verifier.h",
     "test_echo_server.cc",
     "test_echo_server.h",
@@ -1802,6 +1803,7 @@ rtc_library("rtc_base_tests_utils") {
     "synchronization:mutex",
     "third_party/sigslot",
     "//third_party/abseil-cpp/absl/algorithm:container",
+    "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
@@ -1824,6 +1826,19 @@ rtc_library("task_queue_for_test") {
     "../api/task_queue",
     "../api/task_queue:default_task_queue_factory",
     "//third_party/abseil-cpp/absl/cleanup",
+    "//third_party/abseil-cpp/absl/strings:string_view",
+  ]
+}
+
+rtc_library("base64") {
+  sources = [
+    "base64.cc",
+    "base64.h",
+  ]
+  deps = [
+    ":checks",
+    "../api:array_view",
+    "third_party/base64",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
@@ -1971,6 +1986,7 @@ if (rtc_include_tests) {
       deps = [
         ":async_packet_socket",
         ":async_udp_socket",
+        ":base64",
         ":bit_buffer",
         ":bitrate_tracker",
         ":bitstream_reader",
@@ -2041,7 +2057,7 @@ if (rtc_include_tests) {
         "network:received_packet",
         "synchronization:mutex",
         "task_utils:repeating_task",
-        "third_party/base64",
+        "third_party/base64:base64_unittest",
         "third_party/sigslot",
         "//third_party/abseil-cpp/absl/base:core_headers",
         "//third_party/abseil-cpp/absl/memory",
@@ -2139,7 +2155,6 @@ if (rtc_include_tests) {
         "rolling_accumulator_unittest.cc",
         "rtc_certificate_generator_unittest.cc",
         "rtc_certificate_unittest.cc",
-        "sigslot_tester_unittest.cc",
         "test_client_unittest.cc",
         "thread_unittest.cc",
         "unique_id_generator_unittest.cc",
@@ -2192,6 +2207,8 @@ if (rtc_include_tests) {
         "../api:rtc_error_matchers",
         "../api:scoped_refptr",
         "../api:sequence_checker",
+        "../api/environment",
+        "../api/environment:environment_factory",
         "../api/task_queue",
         "../api/task_queue:pending_task_safety_flag",
         "../api/task_queue:task_queue_test",

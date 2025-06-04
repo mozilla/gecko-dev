@@ -9,6 +9,9 @@
  */
 #include "modules/audio_processing/aec3/matched_filter.h"
 
+#include <string>
+#include <vector>
+
 // Defines WEBRTC_ARCH_X86_FAMILY, used below.
 #include "rtc_base/system/arch.h"
 
@@ -21,11 +24,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <initializer_list>
-#include <iterator>
-#include <numeric>
 #include <optional>
 
 #include "api/array_view.h"
+#include "modules/audio_processing/aec3/aec3_common.h"
 #include "modules/audio_processing/aec3/downsampled_render_buffer.h"
 #include "modules/audio_processing/logging/apm_data_dumper.h"
 #include "rtc_base/checks.h"
@@ -361,20 +363,20 @@ void MatchedFilterCore_AccumulatedError_SSE2(
       const float alpha = smoothing * e / x2_sum;
       const __m128 alpha_128 = _mm_set1_ps(alpha);
       // filter = filter + smoothing * (y - filter * x) * x / x * x.
-      float* h_p = &h[0];
-      const float* x_p =
+      float* h_p2 = &h[0];
+      const float* x_p2 =
           chunk1 != h_size ? scratch_memory.data() : &x[x_start_index];
       // Perform 128 bit vector operations.
       const int limit_by_4 = h_size >> 2;
-      for (int k = limit_by_4; k > 0; --k, h_p += 4, x_p += 4) {
+      for (int k = limit_by_4; k > 0; --k, h_p2 += 4, x_p2 += 4) {
         // Load the data into 128 bit vectors.
-        __m128 h_k = _mm_loadu_ps(h_p);
-        const __m128 x_k = _mm_loadu_ps(x_p);
+        __m128 h_k = _mm_loadu_ps(h_p2);
+        const __m128 x_k = _mm_loadu_ps(x_p2);
         // Compute h = h + alpha * x.
         const __m128 alpha_x = _mm_mul_ps(alpha_128, x_k);
         h_k = _mm_add_ps(h_k, alpha_x);
         // Store the result.
-        _mm_storeu_ps(h_p, h_k);
+        _mm_storeu_ps(h_p2, h_k);
       }
       *filters_updated = true;
     }
@@ -464,26 +466,26 @@ void MatchedFilterCore_SSE2(size_t x_start_index,
       const float alpha = smoothing * e / x2_sum;
       const __m128 alpha_128 = _mm_set1_ps(alpha);
       // filter = filter + smoothing * (y - filter * x) * x / x * x.
-      float* h_p = &h[0];
+      float* h_p2 = &h[0];
       x_p = &x[x_start_index];
       // Perform the loop in two chunks.
       for (int limit : {chunk1, chunk2}) {
         // Perform 128 bit vector operations.
         const int limit_by_4 = limit >> 2;
-        for (int k = limit_by_4; k > 0; --k, h_p += 4, x_p += 4) {
+        for (int k = limit_by_4; k > 0; --k, h_p2 += 4, x_p += 4) {
           // Load the data into 128 bit vectors.
-          __m128 h_k = _mm_loadu_ps(h_p);
+          __m128 h_k = _mm_loadu_ps(h_p2);
           const __m128 x_k = _mm_loadu_ps(x_p);
 
           // Compute h = h + alpha * x.
           const __m128 alpha_x = _mm_mul_ps(alpha_128, x_k);
           h_k = _mm_add_ps(h_k, alpha_x);
           // Store the result.
-          _mm_storeu_ps(h_p, h_k);
+          _mm_storeu_ps(h_p2, h_k);
         }
         // Perform non-vector operations for any remaining items.
-        for (int k = limit - limit_by_4 * 4; k > 0; --k, ++h_p, ++x_p) {
-          *h_p += alpha * *x_p;
+        for (int k = limit - limit_by_4 * 4; k > 0; --k, ++h_p2, ++x_p) {
+          *h_p2 += alpha * *x_p;
         }
         x_p = &x[0];
       }
@@ -543,10 +545,10 @@ void MatchedFilterCore(size_t x_start_index,
       const float alpha = smoothing * e / x2_sum;
 
       // filter = filter + smoothing * (y - filter * x) * x / x * x.
-      size_t x_index = x_start_index;
+      size_t x_index2 = x_start_index;
       for (size_t k = 0; k < h.size(); ++k) {
-        h[k] += alpha * x[x_index];
-        x_index = x_index < (x.size() - 1) ? x_index + 1 : 0;
+        h[k] += alpha * x[x_index2];
+        x_index2 = x_index2 < (x.size() - 1) ? x_index2 + 1 : 0;
       }
       *filters_updated = true;
     }

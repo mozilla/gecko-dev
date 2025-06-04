@@ -29,19 +29,19 @@
 #include "test/gtest.h"
 #include "test/wait_until.h"
 
-namespace rtc {
-
 #define MAYBE_SKIP_IPV4                        \
-  if (!HasIPv4Enabled()) {                     \
+  if (!::rtc::HasIPv4Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv4... skipping"; \
     return;                                    \
   }
 
 #define MAYBE_SKIP_IPV6                        \
-  if (!HasIPv6Enabled()) {                     \
+  if (!::rtc::HasIPv6Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv6... skipping"; \
     return;                                    \
   }
+
+namespace webrtc {
 
 class PhysicalSocketTest;
 
@@ -104,7 +104,7 @@ class FakeNetworkBinder : public NetworkBinderInterface {
   int num_binds() { return num_binds_; }
 
  private:
-  NetworkBindingResult result_ = NetworkBindingResult::SUCCESS;
+  NetworkBindingResult result_ = rtc::NetworkBindingResult::SUCCESS;
   int num_binds_ = 0;
 };
 
@@ -130,7 +130,7 @@ class PhysicalSocketTest : public SocketTest {
   void WritableAfterPartialWrite(const IPAddress& loopback);
 
   FakePhysicalSocketServer server_;
-  rtc::AutoSocketServerThread thread_;
+  AutoSocketServerThread thread_;
   bool fail_accept_;
   int max_send_size_;
 };
@@ -200,7 +200,7 @@ TEST_F(PhysicalSocketTest, TestConnectFailIPv4) {
 }
 
 void PhysicalSocketTest::ConnectInternalAcceptError(const IPAddress& loopback) {
-  webrtc::testing::StreamSink sink;
+  testing::StreamSink sink;
   SocketAddress accept_addr;
 
   // Create two clients.
@@ -208,13 +208,13 @@ void PhysicalSocketTest::ConnectInternalAcceptError(const IPAddress& loopback) {
       server_.CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(client1.get());
   EXPECT_EQ(Socket::CS_CLOSED, client1->GetState());
-  EXPECT_TRUE(IsUnspecOrEmptyIP(client1->GetLocalAddress().ipaddr()));
+  EXPECT_TRUE(webrtc::IsUnspecOrEmptyIP(client1->GetLocalAddress().ipaddr()));
 
   std::unique_ptr<Socket> client2(
       server_.CreateSocket(loopback.family(), SOCK_STREAM));
   sink.Monitor(client2.get());
   EXPECT_EQ(Socket::CS_CLOSED, client2->GetState());
-  EXPECT_TRUE(IsUnspecOrEmptyIP(client2->GetLocalAddress().ipaddr()));
+  EXPECT_TRUE(webrtc::IsUnspecOrEmptyIP(client2->GetLocalAddress().ipaddr()));
 
   // Create server and listen.
   std::unique_ptr<Socket> server(
@@ -540,4 +540,4 @@ TEST_F(PhysicalSocketTest, UdpSocketRecvTimestampUseRtcEpochIPv6) {
   SocketTest::TestUdpSocketRecvTimestampUseRtcEpochIPv6();
 }
 
-}  // namespace rtc
+}  // namespace webrtc

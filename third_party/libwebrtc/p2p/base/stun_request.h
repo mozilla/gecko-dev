@@ -23,6 +23,7 @@
 #include "api/task_queue/task_queue_base.h"
 #include "api/transport/stun.h"
 #include "api/units/time_delta.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace cricket {
 

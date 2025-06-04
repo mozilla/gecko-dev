@@ -37,7 +37,7 @@ class MockRtpReceiver : public rtc::RefCountedObject<RtpReceiverInterface> {
               streams,
               (),
               (const, override));
-  MOCK_METHOD(cricket::MediaType, media_type, (), (const, override));
+  MOCK_METHOD(webrtc::MediaType, media_type, (), (const, override));
   MOCK_METHOD(std::string, id, (), (const, override));
   MOCK_METHOD(RtpParameters, GetParameters, (), (const, override));
   MOCK_METHOD(bool,

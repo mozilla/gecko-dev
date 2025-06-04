@@ -108,7 +108,7 @@ class TransformableVideoReceiverFrame
     if (auto& absolute_capture_time =
             frame_->GetRtpVideoHeader().absolute_capture_time) {
       if (absolute_capture_time->estimated_capture_clock_offset) {
-        return TimeDelta::Micros(UQ32x32ToInt64Us(
+        return TimeDelta::Micros(Q32x32ToInt64Us(
             *absolute_capture_time->estimated_capture_clock_offset));
       }
     }
@@ -128,7 +128,8 @@ RtpVideoStreamReceiverFrameTransformerDelegate::
         RtpVideoFrameReceiver* receiver,
         Clock* clock,
         rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
-        TaskQueueBase* network_thread, uint32_t ssrc)
+        TaskQueueBase* network_thread,
+        uint32_t ssrc)
     : receiver_(receiver),
       frame_transformer_(std::move(frame_transformer)),
       network_thread_(network_thread),

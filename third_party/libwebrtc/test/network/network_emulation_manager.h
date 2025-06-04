@@ -106,7 +106,7 @@ class NetworkEmulationManagerImpl : public NetworkEmulationManager {
   using CrossTrafficSource =
       std::pair<std::unique_ptr<CrossTrafficGenerator>, RepeatingTaskHandle>;
 
-  std::optional<rtc::IPAddress> GetNextIPv4Address();
+  std::optional<IPAddress> GetNextIPv4Address();
 
   const TimeMode time_mode_;
   const EmulatedNetworkStatsGatheringMode stats_gathering_mode_;
@@ -118,7 +118,7 @@ class NetworkEmulationManagerImpl : public NetworkEmulationManager {
   RepeatingTaskHandle process_task_handle_;
 
   uint32_t next_ip4_address_;
-  std::set<rtc::IPAddress> used_ip_addresses_;
+  std::set<IPAddress> used_ip_addresses_;
 
   // All objects can be added to the manager only when it is idle.
   std::vector<std::unique_ptr<EmulatedEndpoint>> endpoints_;

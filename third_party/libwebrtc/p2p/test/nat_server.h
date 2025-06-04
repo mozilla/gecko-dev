@@ -11,18 +11,22 @@
 #ifndef P2P_TEST_NAT_SERVER_H_
 #define P2P_TEST_NAT_SERVER_H_
 
+#include <cstddef>
 #include <map>
 #include <set>
 
 #include "p2p/test/nat_types.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/async_udp_socket.h"
+#include "rtc_base/network/received_packet.h"
 #include "rtc_base/proxy_server.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/socket_address_pair.h"
 #include "rtc_base/socket_factory.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Change how routes (socketaddress pairs) are compared based on the type of
 // NAT.  The NAT server maintains a hashtable of the routes that it knows
@@ -61,11 +65,11 @@ const int NAT_SERVER_TCP_PORT = 4238;
 class NATServer {
  public:
   NATServer(NATType type,
-            rtc::Thread& internal_socket_thread,
+            Thread& internal_socket_thread,
             SocketFactory* internal,
             const SocketAddress& internal_udp_addr,
             const SocketAddress& internal_tcp_addr,
-            rtc::Thread& external_socket_thread,
+            Thread& external_socket_thread,
             SocketFactory* external,
             const SocketAddress& external_ip);
   ~NATServer();
@@ -101,7 +105,7 @@ class NATServer {
     SocketAddressPair route;
     AsyncUDPSocket* socket;
     AddressSet* allowlist;
-    webrtc::Mutex mutex_;
+    Mutex mutex_;
   };
 
   typedef std::map<SocketAddressPair, TransEntry*, RouteCmp> InternalMap;
@@ -114,16 +118,26 @@ class NATServer {
   bool ShouldFilterOut(TransEntry* entry, const SocketAddress& ext_addr);
 
   NAT* nat_;
-  rtc::Thread& internal_socket_thread_;
-  rtc::Thread& external_socket_thread_;
+  Thread& internal_socket_thread_;
+  Thread& external_socket_thread_;
   SocketFactory* external_;
   SocketAddress external_ip_;
   AsyncUDPSocket* udp_server_socket_;
-  ProxyServer* tcp_proxy_server_;
+  rtc::ProxyServer* tcp_proxy_server_;
   InternalMap* int_map_;
   ExternalMap* ext_map_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::AddrCmp;
+using ::webrtc::NAT_SERVER_TCP_PORT;
+using ::webrtc::NAT_SERVER_UDP_PORT;
+using ::webrtc::NATServer;
+using ::webrtc::RouteCmp;
 }  // namespace rtc
 
 #endif  // P2P_TEST_NAT_SERVER_H_

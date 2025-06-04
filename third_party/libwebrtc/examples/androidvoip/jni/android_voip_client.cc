@@ -110,8 +110,6 @@ int GetPayloadType(const std::string& codec_name) {
     return static_cast<int>(PayloadType::kOpus);
   } else if (codec_name == "ISAC") {
     return static_cast<int>(PayloadType::kIsac);
-  } else if (codec_name == "ILBC") {
-    return static_cast<int>(PayloadType::kIlbc);
   }
 
   RTC_DCHECK_NOTREACHED();

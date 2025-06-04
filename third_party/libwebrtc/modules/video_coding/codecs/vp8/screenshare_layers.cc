@@ -118,7 +118,7 @@ Vp8FrameConfig ScreenshareLayers::NextFrameConfig(size_t stream_index,
     return dependency_info.frame_config;
   }
 
-  const int64_t now_ms = rtc::TimeMillis();
+  const int64_t now_ms = TimeMillis();
 
   int64_t unwrapped_timestamp = time_wrap_handler_.Unwrap(timestamp);
   int64_t ts_diff;
@@ -383,7 +383,7 @@ void ScreenshareLayers::OnEncodeDone(size_t stream_index,
     }
   }
 
-  encode_framerate_.Update(1, rtc::TimeMillis());
+  encode_framerate_.Update(1, TimeMillis());
 
   if (number_of_temporal_layers_ == 1)
     return;
@@ -586,7 +586,7 @@ void ScreenshareLayers::UpdateHistograms() {
   if (stats_.first_frame_time_ms_ == -1)
     return;
   int64_t duration_sec =
-      (rtc::TimeMillis() - stats_.first_frame_time_ms_ + 500) / 1000;
+      (TimeMillis() - stats_.first_frame_time_ms_ + 500) / 1000;
   if (duration_sec >= metrics::kMinRunTimeInSeconds) {
     RTC_HISTOGRAM_COUNTS_10000(
         "WebRTC.Video.Screenshare.Layer0.FrameRate",

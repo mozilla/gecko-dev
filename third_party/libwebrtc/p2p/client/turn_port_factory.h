@@ -25,7 +25,7 @@ class TurnPortFactory : public RelayPortFactoryInterface {
   ~TurnPortFactory() override;
 
   std::unique_ptr<Port> Create(const CreateRelayPortArgs& args,
-                               rtc::AsyncPacketSocket* udp_socket) override;
+                               webrtc::AsyncPacketSocket* udp_socket) override;
 
   std::unique_ptr<Port> Create(const CreateRelayPortArgs& args,
                                int min_port,

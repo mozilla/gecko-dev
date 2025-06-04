@@ -38,7 +38,7 @@ bool ValidateSimulcastLayers(const std::vector<RidDescription>& rids,
 void MediaDescriptionOptions::AddAudioSender(
     const std::string& track_id,
     const std::vector<std::string>& stream_ids) {
-  RTC_DCHECK(type == MEDIA_TYPE_AUDIO);
+  RTC_DCHECK(type == webrtc::MediaType::AUDIO);
   AddSenderInternal(track_id, stream_ids, {}, SimulcastLayerList(), 1);
 }
 
@@ -48,7 +48,7 @@ void MediaDescriptionOptions::AddVideoSender(
     const std::vector<RidDescription>& rids,
     const SimulcastLayerList& simulcast_layers,
     int num_sim_layers) {
-  RTC_DCHECK(type == MEDIA_TYPE_VIDEO);
+  RTC_DCHECK(type == webrtc::MediaType::VIDEO);
   RTC_DCHECK(rids.empty() || num_sim_layers == 0)
       << "RIDs are the compliant way to indicate simulcast.";
   RTC_DCHECK(ValidateSimulcastLayers(rids, simulcast_layers));
@@ -73,7 +73,7 @@ void MediaDescriptionOptions::AddSenderInternal(
   sender_options.push_back(options);
 }
 
-bool MediaSessionOptions::HasMediaDescription(MediaType type) const {
+bool MediaSessionOptions::HasMediaDescription(webrtc::MediaType type) const {
   return absl::c_any_of(
       media_description_options,
       [type](const MediaDescriptionOptions& t) { return t.type == type; });

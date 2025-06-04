@@ -172,6 +172,7 @@ if (rtc_include_tests) {
       "..:module_api_public",
       "../../api:rtp_headers",
       "../../api/environment:environment_factory",
+      "../../api/transport:bandwidth_usage",
       "../../api/transport:mock_network_control",
       "../../api/transport:network_control",
       "../../api/units:data_rate",

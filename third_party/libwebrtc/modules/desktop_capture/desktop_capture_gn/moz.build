@@ -264,8 +264,8 @@ if CONFIG["TARGET_CPU"] == "arm":
     DEFINES["_GNU_SOURCE"] = True
 
     LOCAL_INCLUDES += [
-        "/gfx/angle/checkout/include/",
-        "/third_party/libepoxy/libepoxy/include/"
+        "/third_party/libepoxy/libepoxy/include/",
+        "/third_party/libwebrtc/third_party/libepoxy/libepoxy/include/"
     ]
 
     SOURCES += [
@@ -319,8 +319,8 @@ if CONFIG["TARGET_CPU"] == "mips32":
     DEFINES["_GNU_SOURCE"] = True
 
     LOCAL_INCLUDES += [
-        "/gfx/angle/checkout/include/",
-        "/third_party/libepoxy/libepoxy/include/"
+        "/third_party/libepoxy/libepoxy/include/",
+        "/third_party/libwebrtc/third_party/libepoxy/libepoxy/include/"
     ]
 
     SOURCES += [
@@ -343,8 +343,8 @@ if CONFIG["TARGET_CPU"] == "mips64":
     DEFINES["_GNU_SOURCE"] = True
 
     LOCAL_INCLUDES += [
-        "/gfx/angle/checkout/include/",
-        "/third_party/libepoxy/libepoxy/include/"
+        "/third_party/libepoxy/libepoxy/include/",
+        "/third_party/libwebrtc/third_party/libepoxy/libepoxy/include/"
     ]
 
     SOURCES += [
@@ -419,8 +419,8 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "aarch64":
     DEFINES["_GNU_SOURCE"] = True
 
     LOCAL_INCLUDES += [
-        "/gfx/angle/checkout/include/",
-        "/third_party/libepoxy/libepoxy/include/"
+        "/third_party/libepoxy/libepoxy/include/",
+        "/third_party/libwebrtc/third_party/libepoxy/libepoxy/include/"
     ]
 
     SOURCES += [
@@ -475,8 +475,8 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86":
     DEFINES["_GNU_SOURCE"] = True
 
     LOCAL_INCLUDES += [
-        "/gfx/angle/checkout/include/",
-        "/third_party/libepoxy/libepoxy/include/"
+        "/third_party/libepoxy/libepoxy/include/",
+        "/third_party/libwebrtc/third_party/libepoxy/libepoxy/include/"
     ]
 
     SOURCES += [
@@ -499,8 +499,8 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
     DEFINES["_GNU_SOURCE"] = True
 
     LOCAL_INCLUDES += [
-        "/gfx/angle/checkout/include/",
-        "/third_party/libepoxy/libepoxy/include/"
+        "/third_party/libepoxy/libepoxy/include/",
+        "/third_party/libwebrtc/third_party/libepoxy/libepoxy/include/"
     ]
 
     SOURCES += [

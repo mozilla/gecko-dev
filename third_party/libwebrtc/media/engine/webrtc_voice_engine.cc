@@ -754,12 +754,12 @@ void WebRtcVoiceEngine::ApplyOptions(const AudioOptions& options_in) {
   ap->ApplyConfig(apm_config);
 }
 
-const std::vector<Codec>& WebRtcVoiceEngine::send_codecs() const {
+const std::vector<Codec>& WebRtcVoiceEngine::LegacySendCodecs() const {
   RTC_DCHECK(signal_thread_checker_.IsCurrent());
   return send_codecs_;
 }
 
-const std::vector<Codec>& WebRtcVoiceEngine::recv_codecs() const {
+const std::vector<Codec>& WebRtcVoiceEngine::LegacyRecvCodecs() const {
   RTC_DCHECK(signal_thread_checker_.IsCurrent());
   return recv_codecs_;
 }
@@ -1237,7 +1237,7 @@ class WebRtcVoiceSendChannel::WebRtcAudioSendStream : public AudioSource::Sink {
 
   const AdaptivePtimeConfig adaptive_ptime_config_;
   webrtc::SequenceChecker worker_thread_checker_;
-  rtc::RaceChecker audio_capture_race_checker_;
+  webrtc::RaceChecker audio_capture_race_checker_;
   webrtc::Call* call_ = nullptr;
   webrtc::AudioSendStream::Config config_;
   // The stream is owned by WebRtcAudioSendStream and may be reallocated if
@@ -2491,16 +2491,16 @@ bool WebRtcVoiceReceiveChannel::SetBaseMinimumPlayoutDelayMs(uint32_t ssrc,
     default_recv_base_minimum_delay_ms_ = delay_ms;
     ssrcs = unsignaled_recv_ssrcs_;
   }
-  for (uint32_t ssrc : ssrcs) {
-    const auto it = recv_streams_.find(ssrc);
+  for (uint32_t recv_ssrc : ssrcs) {
+    const auto it = recv_streams_.find(recv_ssrc);
     if (it == recv_streams_.end()) {
       RTC_LOG(LS_WARNING) << "SetBaseMinimumPlayoutDelayMs: no recv stream "
-                          << ssrc;
+                          << recv_ssrc;
       return false;
     }
     it->second->SetBaseMinimumPlayoutDelayMs(delay_ms);
     RTC_LOG(LS_INFO) << "SetBaseMinimumPlayoutDelayMs() to " << delay_ms
-                     << " for recv stream with ssrc " << ssrc;
+                     << " for recv stream with ssrc " << recv_ssrc;
   }
   return true;
 }
@@ -2556,7 +2556,8 @@ void WebRtcVoiceReceiveChannel::OnPacketReceived(
         // applied directly in RtpTransport::DemuxPacket;
         packet.IdentifyExtensions(recv_rtp_extension_map_);
         if (!packet.arrival_time().IsFinite()) {
-          packet.set_arrival_time(webrtc::Timestamp::Micros(rtc::TimeMicros()));
+          packet.set_arrival_time(
+              webrtc::Timestamp::Micros(webrtc::TimeMicros()));
         }
 
         call_->Receiver()->DeliverRtpPacket(

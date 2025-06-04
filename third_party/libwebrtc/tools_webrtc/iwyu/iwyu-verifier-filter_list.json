@@ -1,0 +1,11 @@
+{
+  "excluded_paths": [
+    "examples/androidnativeapi/jni/",
+    "examples/androidvoip/jni/",
+    "examples/objc/",
+    "examples/objcnativeapi/objc/",
+    "modules/desktop_capture/win/",
+    "test/ios/",
+    "test/mac/"
+  ]
+}

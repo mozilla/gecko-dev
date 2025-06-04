@@ -28,7 +28,7 @@
 #include "rtc_base/net_helpers.h"
 #include "rtc_base/string_utils.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Prefixes used for categorizing IPv6 addresses.
 static const in6_addr kV4MappedPrefix = {
@@ -46,7 +46,7 @@ static in_addr ExtractMappedAddress(const in6_addr& addr);
 
 uint32_t IPAddress::v4AddressAsHostOrderInteger() const {
   if (family_ == AF_INET) {
-    return NetworkToHost32(u_.ip4.s_addr);
+    return webrtc::NetworkToHost32(u_.ip4.s_addr);
   } else {
     return 0;
   }
@@ -112,8 +112,8 @@ bool IPAddress::operator<(const IPAddress& other) const {
   // Comparing addresses of the same family.
   switch (family_) {
     case AF_INET: {
-      return NetworkToHost32(u_.ip4.s_addr) <
-             NetworkToHost32(other.u_.ip4.s_addr);
+      return webrtc::NetworkToHost32(u_.ip4.s_addr) <
+             webrtc::NetworkToHost32(other.u_.ip4.s_addr);
     }
     case AF_INET6: {
       return memcmp(&u_.ip6.s6_addr, &other.u_.ip6.s6_addr, 16) < 0;
@@ -371,9 +371,9 @@ IPAddress TruncateIP(const IPAddress& ip, int length) {
       return IPAddress(INADDR_ANY);
     }
     int mask = (0xFFFFFFFF << (32 - length));
-    uint32_t host_order_ip = NetworkToHost32(ip.ipv4_address().s_addr);
+    uint32_t host_order_ip = webrtc::NetworkToHost32(ip.ipv4_address().s_addr);
     in_addr masked;
-    masked.s_addr = HostToNetwork32(host_order_ip & mask);
+    masked.s_addr = webrtc::HostToNetwork32(host_order_ip & mask);
     return IPAddress(masked);
   } else if (ip.family() == AF_INET6) {
     if (length > 127) {
@@ -390,8 +390,8 @@ IPAddress TruncateIP(const IPAddress& ip, int length) {
     uint32_t* v6_as_ints = reinterpret_cast<uint32_t*>(&v6addr.s6_addr);
     for (int i = 0; i < 4; ++i) {
       if (i == position) {
-        uint32_t host_order_inner = NetworkToHost32(v6_as_ints[i]);
-        v6_as_ints[i] = HostToNetwork32(host_order_inner & inner_mask);
+        uint32_t host_order_inner = webrtc::NetworkToHost32(v6_as_ints[i]);
+        v6_as_ints[i] = webrtc::HostToNetwork32(host_order_inner & inner_mask);
       } else if (i > position) {
         v6_as_ints[i] = 0;
       }
@@ -406,7 +406,7 @@ int CountIPMaskBits(const IPAddress& mask) {
   int bits = 0;
   switch (mask.family()) {
     case AF_INET: {
-      word_to_count = NetworkToHost32(mask.ipv4_address().s_addr);
+      word_to_count = webrtc::NetworkToHost32(mask.ipv4_address().s_addr);
       break;
     }
     case AF_INET6: {
@@ -420,7 +420,7 @@ int CountIPMaskBits(const IPAddress& mask) {
         }
       }
       if (i < 4) {
-        word_to_count = NetworkToHost32(v6_as_ints[i]);
+        word_to_count = webrtc::NetworkToHost32(v6_as_ints[i]);
       }
       bits = (i * 32);
       break;
@@ -554,22 +554,22 @@ int IPAddressPrecedence(const IPAddress& ip) {
 
 IPAddress GetLoopbackIP(int family) {
   if (family == AF_INET) {
-    return rtc::IPAddress(INADDR_LOOPBACK);
+    return IPAddress(INADDR_LOOPBACK);
   }
   if (family == AF_INET6) {
-    return rtc::IPAddress(in6addr_loopback);
+    return IPAddress(in6addr_loopback);
   }
-  return rtc::IPAddress();
+  return IPAddress();
 }
 
 IPAddress GetAnyIP(int family) {
   if (family == AF_INET) {
-    return rtc::IPAddress(INADDR_ANY);
+    return IPAddress(INADDR_ANY);
   }
   if (family == AF_INET6) {
-    return rtc::IPAddress(in6addr_any);
+    return IPAddress(in6addr_any);
   }
-  return rtc::IPAddress();
+  return IPAddress();
 }
 
-}  // namespace rtc
+}  // namespace webrtc

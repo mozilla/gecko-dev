@@ -135,7 +135,7 @@ class LambdaPeerConnectionObserver final : public PeerConnectionObserver {
       handler(address, port, url, error_code, error_text);
   }
   void OnIceCandidatesRemoved(
-      const std::vector<cricket::Candidate>& candidates) override {
+      const std::vector<Candidate>& candidates) override {
     for (const auto& handler : handlers_->on_ice_candidates_removed)
       handler(candidates);
   }
@@ -241,7 +241,7 @@ class FakeVideoDecoderFactory : public VideoDecoderFactory {
 
 PeerScenarioClient::PeerScenarioClient(
     NetworkEmulationManager* net,
-    rtc::Thread* signaling_thread,
+    Thread* signaling_thread,
     std::unique_ptr<LogWriterFactoryInterface> log_writer_factory,
     PeerScenarioClient::Config config)
     : endpoints_(CreateEndpoints(net, config.endpoints)),

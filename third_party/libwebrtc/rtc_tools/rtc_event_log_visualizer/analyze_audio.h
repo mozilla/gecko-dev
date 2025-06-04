@@ -60,14 +60,14 @@ void CreateNetEqNetworkStatsGraph(
     const ParsedRtcEventLog& parsed_log,
     const AnalyzerConfig& config,
     const NetEqStatsGetterMap& neteq_stats_getters,
-    rtc::FunctionView<float(const NetEqNetworkStatistics&)> stats_extractor,
+    FunctionView<float(const NetEqNetworkStatistics&)> stats_extractor,
     const std::string& plot_name,
     Plot* plot);
 void CreateNetEqLifetimeStatsGraph(
     const ParsedRtcEventLog& parsed_log,
     const AnalyzerConfig& config,
     const NetEqStatsGetterMap& neteq_stats_getters,
-    rtc::FunctionView<float(const NetEqLifetimeStatistics&)> stats_extractor,
+    FunctionView<float(const NetEqLifetimeStatistics&)> stats_extractor,
     const std::string& plot_name,
     Plot* plot);
 

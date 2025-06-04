@@ -177,7 +177,7 @@ IdentityAndInfo CreateFakeIdentityAndInfoFromDers(
         "CERTIFICATE", reinterpret_cast<const unsigned char*>(der.c_str()),
         der.length()));
   }
-  info.identity.reset(new rtc::FakeSSLIdentity(info.pems));
+  info.identity.reset(new webrtc::FakeSSLIdentity(info.pems));
   // Strip header/footer and newline characters of PEM strings.
   for (size_t i = 0; i < info.pems.size(); ++i) {
     absl::StrReplaceAll({{"-----BEGIN CERTIFICATE-----", ""},
@@ -506,11 +506,11 @@ class SSLIdentityExpirationTest : public ::testing::Test {
  public:
   SSLIdentityExpirationTest() {
     // Set use of the test RNG to get deterministic expiration timestamp.
-    rtc::SetRandomTestMode(true);
+    webrtc::SetRandomTestMode(true);
   }
   ~SSLIdentityExpirationTest() override {
     // Put it back for the next test.
-    rtc::SetRandomTestMode(false);
+    webrtc::SetRandomTestMode(false);
   }
 
   void TestASN1TimeToSec() {
@@ -580,7 +580,7 @@ class SSLIdentityExpirationTest : public ::testing::Test {
     for (const auto& entry : data) {
       size_t length = strlen(entry.string);
       memcpy(buf, entry.string, length);    // Copy the ASN1 string...
-      buf[length] = rtc::CreateRandomId();  // ...and terminate it with junk.
+      buf[length] = webrtc::CreateRandomId();  // ...and terminate it with junk.
       int64_t res = rtc::ASN1TimeToSec(buf, length, entry.long_format);
       RTC_LOG(LS_VERBOSE) << entry.string;
       ASSERT_EQ(entry.want, res);
@@ -589,7 +589,7 @@ class SSLIdentityExpirationTest : public ::testing::Test {
     for (const auto& entry : data) {
       size_t length = strlen(entry.string);
       memcpy(buf, entry.string, length);    // Copy the ASN1 string...
-      buf[length] = rtc::CreateRandomId();  // ...and terminate it with junk.
+      buf[length] = webrtc::CreateRandomId();  // ...and terminate it with junk.
       int64_t res = rtc::ASN1TimeToSec(buf, length - 1, entry.long_format);
       RTC_LOG(LS_VERBOSE) << entry.string;
       ASSERT_EQ(-1, res);
@@ -604,7 +604,7 @@ class SSLIdentityExpirationTest : public ::testing::Test {
       // we hit time offset limitations in OpenSSL on some 32-bit systems.
       time_t time_before_generation = time(nullptr);
       time_t lifetime =
-          rtc::CreateRandomId() % (0x80000000 - time_before_generation);
+          webrtc::CreateRandomId() % (0x80000000 - time_before_generation);
       rtc::KeyParams key_params = rtc::KeyParams::ECDSA(rtc::EC_NIST_P256);
       auto identity =
           rtc::SSLIdentity::Create("", key_params, lifetime);

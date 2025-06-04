@@ -117,7 +117,7 @@ NetworkEmulationManagerImpl::NodeBuilder() {
 
 EmulatedEndpointImpl* NetworkEmulationManagerImpl::CreateEndpoint(
     EmulatedEndpointConfig config) {
-  std::optional<rtc::IPAddress> ip = config.ip;
+  std::optional<IPAddress> ip = config.ip;
   if (!ip) {
     switch (config.generated_ip_family) {
       case EmulatedEndpointConfig::IpAddressFamily::kIpv4:
@@ -147,15 +147,16 @@ void NetworkEmulationManagerImpl::EnableEndpoint(EmulatedEndpoint* endpoint) {
   EmulatedNetworkManager* network_manager =
       endpoint_to_network_manager_[endpoint];
   RTC_CHECK(network_manager);
-  network_manager->EnableEndpoint(static_cast<EmulatedEndpointImpl*>(endpoint));
+  static_cast<EmulatedEndpointImpl*>(endpoint)->Enable();
+  network_manager->UpdateNetworks();
 }
 
 void NetworkEmulationManagerImpl::DisableEndpoint(EmulatedEndpoint* endpoint) {
   EmulatedNetworkManager* network_manager =
       endpoint_to_network_manager_[endpoint];
   RTC_CHECK(network_manager);
-  network_manager->DisableEndpoint(
-      static_cast<EmulatedEndpointImpl*>(endpoint));
+  static_cast<EmulatedEndpointImpl*>(endpoint)->Disable();
+  network_manager->UpdateNetworks();
 }
 
 EmulatedRoute* NetworkEmulationManagerImpl::CreateRoute(
@@ -314,12 +315,7 @@ NetworkEmulationManagerImpl::CreateEmulatedNetworkManagerInterface(
       time_controller_.get(), task_queue_.Get(), endpoints_container.get());
   for (auto* endpoint : endpoints) {
     // Associate endpoint with network manager.
-    bool insertion_result =
-        endpoint_to_network_manager_.insert({endpoint, network_manager.get()})
-            .second;
-    RTC_CHECK(insertion_result)
-        << "Endpoint ip=" << endpoint->GetPeerLocalAddress().ToString()
-        << " is already used for another network";
+    endpoint_to_network_manager_[endpoint] = network_manager.get();
   }
 
   EmulatedNetworkManagerInterface* out = network_manager.get();
@@ -359,11 +355,10 @@ void NetworkEmulationManagerImpl::GetStats(
       });
 }
 
-std::optional<rtc::IPAddress>
-NetworkEmulationManagerImpl::GetNextIPv4Address() {
+std::optional<IPAddress> NetworkEmulationManagerImpl::GetNextIPv4Address() {
   uint32_t addresses_count = kMaxIPv4Address - kMinIPv4Address;
   for (uint32_t i = 0; i < addresses_count; i++) {
-    rtc::IPAddress ip(next_ip4_address_);
+    IPAddress ip(next_ip4_address_);
     if (next_ip4_address_ == kMaxIPv4Address) {
       next_ip4_address_ = kMinIPv4Address;
     } else {

@@ -38,7 +38,7 @@ PROXY_CONSTMETHOD0(rtc::scoped_refptr<DtlsTransportInterface>, dtls_transport)
 PROXY_CONSTMETHOD0(std::vector<std::string>, stream_ids)
 PROXY_CONSTMETHOD0(std::vector<rtc::scoped_refptr<MediaStreamInterface>>,
                    streams)
-BYPASS_PROXY_CONSTMETHOD0(cricket::MediaType, media_type)
+BYPASS_PROXY_CONSTMETHOD0(webrtc::MediaType, media_type)
 BYPASS_PROXY_CONSTMETHOD0(std::string, id)
 PROXY_SECONDARY_CONSTMETHOD0(RtpParameters, GetParameters)
 PROXY_METHOD1(void, SetObserver, RtpReceiverObserverInterface*)

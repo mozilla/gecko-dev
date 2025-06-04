@@ -59,8 +59,8 @@ class RtpTransport : public RtpTransportInternal {
 
   const std::string& transport_name() const override;
 
-  int SetRtpOption(rtc::Socket::Option opt, int value) override;
-  int SetRtcpOption(rtc::Socket::Option opt, int value) override;
+  int SetRtpOption(Socket::Option opt, int value) override;
+  int SetRtcpOption(Socket::Option opt, int value) override;
 
   rtc::PacketTransportInternal* rtp_packet_transport() const {
     return rtp_packet_transport_;

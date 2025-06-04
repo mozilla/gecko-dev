@@ -24,24 +24,24 @@
 #include "rtc_base/thread.h"
 #include "test/gtest.h"
 
-namespace rtc {
-namespace {
-
 #define MAYBE_SKIP_IPV4                        \
-  if (!HasIPv4Enabled()) {                     \
+  if (!::rtc::HasIPv4Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv4... skipping"; \
     return;                                    \
   }
 
 #define MAYBE_SKIP_IPV6                        \
-  if (!HasIPv6Enabled()) {                     \
+  if (!::rtc::HasIPv6Enabled()) {              \
     RTC_LOG(LS_INFO) << "No IPv6... skipping"; \
     return;                                    \
   }
 
+namespace webrtc {
+namespace {
+
 void TestUdpInternal(const SocketAddress& loopback) {
-  rtc::PhysicalSocketServer socket_server;
-  rtc::AutoSocketServerThread main_thread(&socket_server);
+  PhysicalSocketServer socket_server;
+  AutoSocketServerThread main_thread(&socket_server);
   Socket* socket = socket_server.CreateSocket(loopback.family(), SOCK_DGRAM);
   socket->Bind(loopback);
 
@@ -54,9 +54,9 @@ void TestUdpInternal(const SocketAddress& loopback) {
 }
 
 void TestTcpInternal(const SocketAddress& loopback) {
-  rtc::PhysicalSocketServer socket_server;
-  rtc::AutoSocketServerThread main_thread(&socket_server);
-  TestEchoServer server(&main_thread, loopback);
+  PhysicalSocketServer socket_server;
+  AutoSocketServerThread main_thread(&socket_server);
+  webrtc::TestEchoServer server(&main_thread, loopback);
 
   Socket* socket = socket_server.CreateSocket(loopback.family(), SOCK_STREAM);
   std::unique_ptr<AsyncTCPSocket> tcp_socket = absl::WrapUnique(
@@ -105,4 +105,4 @@ TEST(TestClientTest, MAYBE_TestTcpIPv6) {
 }
 
 }  // namespace
-}  // namespace rtc
+}  // namespace webrtc

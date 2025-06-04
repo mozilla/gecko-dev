@@ -1500,7 +1500,7 @@ void ApmTest::ProcessDebugDump(absl::string_view in_filename,
 }
 
 void ApmTest::VerifyDebugDumpTest(Format format) {
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   const std::string in_filename = test::ResourcePath("ref03", "aecdump");
   std::string format_string;
   switch (format) {
@@ -1823,7 +1823,7 @@ TEST_F(ApmTest, Process) {
       const int kMaxOutputAverageNear = 26;
 #else
       const int kMaxOutputAverageOffset = 0;
-      const int kMaxOutputAverageNear = kIntNear;
+      const int kMaxOutputAverageNear = 7;
 #endif
       EXPECT_NEAR(test->analog_level_average(), analog_level_average, kIntNear);
       EXPECT_NEAR(test->max_output_average(),

@@ -107,7 +107,7 @@ class BoundSocket : public webrtc::EmulatedNetworkReceiverInterface {
     endpoint_ = endpoint;
     uint16_t port = endpoint->BindReceiver(0, this).value();
     source_address_ =
-        rtc::SocketAddress(endpoint_->GetPeerLocalAddress(), port);
+        webrtc::SocketAddress(endpoint_->GetPeerLocalAddress(), port);
   }
 
   void SetDestination(const BoundSocket& socket) {
@@ -131,8 +131,8 @@ class BoundSocket : public webrtc::EmulatedNetworkReceiverInterface {
 
   std::function<void(rtc::CopyOnWriteBuffer)> receiver_;
   webrtc::EmulatedEndpoint* endpoint_ = nullptr;
-  rtc::SocketAddress source_address_;
-  rtc::SocketAddress dest_address_;
+  webrtc::SocketAddress source_address_;
+  webrtc::SocketAddress dest_address_;
 };
 
 // Sends at a constant rate but with random packet sizes.
@@ -142,7 +142,7 @@ class SctpActor : public DcSctpSocketCallbacks {
             BoundSocket& emulated_socket,
             const DcSctpOptions& sctp_options)
       : log_prefix_(std::string(name) + ": "),
-        thread_(rtc::Thread::Current()),
+        thread_(webrtc::Thread::Current()),
         emulated_socket_(emulated_socket),
         timeout_factory_(
             *thread_,
@@ -190,7 +190,7 @@ class SctpActor : public DcSctpSocketCallbacks {
     return timeout_factory_.CreateTimeout(precision);
   }
 
-  Timestamp Now() override { return Timestamp::Millis(rtc::TimeMillis()); }
+  Timestamp Now() override { return Timestamp::Millis(webrtc::TimeMillis()); }
 
   uint32_t GetRandomInt(uint32_t low, uint32_t high) override {
     return random_.Rand(low, high);
@@ -306,14 +306,14 @@ class SctpActor : public DcSctpSocketCallbacks {
   std::string log_prefix() const {
     webrtc::StringBuilder sb;
     sb << log_prefix_;
-    sb << rtc::TimeMillis();
+    sb << webrtc::TimeMillis();
     sb << ": ";
     return sb.Release();
   }
 
   ActorMode mode_ = ActorMode::kAtRest;
   const std::string log_prefix_;
-  rtc::Thread* thread_;
+  webrtc::Thread* thread_;
   BoundSocket& emulated_socket_;
   TaskQueueTimeoutFactory timeout_factory_;
   webrtc::Random random_;

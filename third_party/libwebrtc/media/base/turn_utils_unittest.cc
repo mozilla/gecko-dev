@@ -10,6 +10,9 @@
 
 #include "media/base/turn_utils.h"
 
+#include <cstddef>
+#include <cstdint>
+
 #include "test/gtest.h"
 
 namespace cricket {

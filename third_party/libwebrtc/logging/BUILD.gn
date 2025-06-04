@@ -472,6 +472,7 @@ rtc_library("fake_rtc_event_log") {
     "../api:libjingle_logging_api",
     "../api/environment",
     "../api/rtc_event_log",
+    "../api/rtc_event_log:rtc_event_log_factory_interface",
     "../rtc_base:macromagic",
     "../rtc_base/synchronization:mutex",
     "//third_party/abseil-cpp/absl/base:nullability",

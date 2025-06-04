@@ -137,7 +137,7 @@ AudioEncoderRuntimeConfig AudioNetworkAdaptorImpl::GetEncoderRuntimeConfig() {
   prev_config_ = config;
 
   if (debug_dump_writer_)
-    debug_dump_writer_->DumpEncoderRuntimeConfig(config, rtc::TimeMillis());
+    debug_dump_writer_->DumpEncoderRuntimeConfig(config, TimeMillis());
 
   if (event_log_writer_)
     event_log_writer_->MaybeLogEncoderConfig(config);
@@ -159,7 +159,7 @@ ANAStats AudioNetworkAdaptorImpl::GetStats() const {
 
 void AudioNetworkAdaptorImpl::DumpNetworkMetrics() {
   if (debug_dump_writer_)
-    debug_dump_writer_->DumpNetworkMetrics(last_metrics_, rtc::TimeMillis());
+    debug_dump_writer_->DumpNetworkMetrics(last_metrics_, TimeMillis());
 }
 
 void AudioNetworkAdaptorImpl::UpdateNetworkMetrics(

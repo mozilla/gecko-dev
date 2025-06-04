@@ -226,7 +226,7 @@ std::unique_ptr<RtcEventFrameDecoded> EventGenerator::NewFrameDecodedEvent(
       kVideoCodecGeneric, kVideoCodecVP8,  kVideoCodecVP9,
       kVideoCodecAV1,     kVideoCodecH264, kVideoCodecH265};
   const int64_t render_time_ms =
-      rtc::TimeMillis() + prng_.Rand(kMinRenderDelayMs, kMaxRenderDelayMs);
+      TimeMillis() + prng_.Rand(kMinRenderDelayMs, kMaxRenderDelayMs);
   const int width = prng_.Rand(kMinWidth, kMaxWidth);
   const int height = prng_.Rand(kMinHeight, kMaxHeight);
   const VideoCodecType codec = kCodecList[prng_.Rand(0, kNumCodecTypes - 1)];

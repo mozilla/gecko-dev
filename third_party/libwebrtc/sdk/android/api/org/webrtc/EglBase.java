@@ -132,7 +132,7 @@ public interface EglBase {
       }
       if (supportsPixelBuffer) {
         list.add(EGL10.EGL_SURFACE_TYPE);
-        list.add(EGL10.EGL_PBUFFER_BIT);
+        list.add(EGL10.EGL_PBUFFER_BIT | EGL10.EGL_WINDOW_BIT);
       }
       if (isRecordable) {
         list.add(EGL_RECORDABLE_ANDROID);

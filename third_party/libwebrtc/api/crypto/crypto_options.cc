@@ -41,18 +41,18 @@ std::vector<int> CryptoOptions::GetSupportedDtlsSrtpCryptoSuites() const {
   // As the cipher suite is potentially insecure, it will only be used if
   // enabled by both peers.
   if (srtp.enable_aes128_sha1_32_crypto_cipher) {
-    crypto_suites.push_back(rtc::kSrtpAes128CmSha1_32);
+    crypto_suites.push_back(kSrtpAes128CmSha1_32);
   }
   if (srtp.enable_aes128_sha1_80_crypto_cipher) {
-    crypto_suites.push_back(rtc::kSrtpAes128CmSha1_80);
+    crypto_suites.push_back(kSrtpAes128CmSha1_80);
   }
 
   // Note: GCM cipher suites are not the top choice since they increase the
   // packet size. In order to negotiate them the other side must not support
   // kSrtpAes128CmSha1_80.
   if (srtp.enable_gcm_crypto_suites) {
-    crypto_suites.push_back(rtc::kSrtpAeadAes256Gcm);
-    crypto_suites.push_back(rtc::kSrtpAeadAes128Gcm);
+    crypto_suites.push_back(kSrtpAeadAes256Gcm);
+    crypto_suites.push_back(kSrtpAeadAes128Gcm);
   }
   RTC_CHECK(!crypto_suites.empty());
   return crypto_suites;

@@ -391,7 +391,7 @@ class StunAddressAttribute : public StunAttribute {
   static const uint16_t SIZE_UNDEF = 0;
   static const uint16_t SIZE_IP4 = 8;
   static const uint16_t SIZE_IP6 = 20;
-  StunAddressAttribute(uint16_t type, const rtc::SocketAddress& addr);
+  StunAddressAttribute(uint16_t type, const webrtc::SocketAddress& addr);
   StunAddressAttribute(uint16_t type, uint16_t length);
 
   StunAttributeValueType value_type() const override;
@@ -406,15 +406,15 @@ class StunAddressAttribute : public StunAttribute {
     return STUN_ADDRESS_UNDEF;
   }
 
-  const rtc::SocketAddress& GetAddress() const { return address_; }
-  const rtc::IPAddress& ipaddr() const { return address_.ipaddr(); }
+  const webrtc::SocketAddress& GetAddress() const { return address_; }
+  const webrtc::IPAddress& ipaddr() const { return address_.ipaddr(); }
   uint16_t port() const { return address_.port(); }
 
-  void SetAddress(const rtc::SocketAddress& addr) {
+  void SetAddress(const webrtc::SocketAddress& addr) {
     address_ = addr;
     EnsureAddressLength();
   }
-  void SetIP(const rtc::IPAddress& ip) {
+  void SetIP(const webrtc::IPAddress& ip) {
     address_.SetIP(ip);
     EnsureAddressLength();
   }
@@ -440,7 +440,7 @@ class StunAddressAttribute : public StunAttribute {
       }
     }
   }
-  rtc::SocketAddress address_;
+  webrtc::SocketAddress address_;
 };
 
 // Implements STUN attributes that record an Internet address. When encoded
@@ -448,7 +448,7 @@ class StunAddressAttribute : public StunAttribute {
 // transaction ID of the message.
 class StunXorAddressAttribute : public StunAddressAttribute {
  public:
-  StunXorAddressAttribute(uint16_t type, const rtc::SocketAddress& addr);
+  StunXorAddressAttribute(uint16_t type, const webrtc::SocketAddress& addr);
   StunXorAddressAttribute(uint16_t type, uint16_t length, StunMessage* owner);
 
   StunAttributeValueType value_type() const override;
@@ -457,7 +457,7 @@ class StunXorAddressAttribute : public StunAddressAttribute {
   bool Write(rtc::ByteBufferWriter* buf) const override;
 
  private:
-  rtc::IPAddress GetXoredIP() const;
+  webrtc::IPAddress GetXoredIP() const;
   StunMessage* owner_;
 };
 

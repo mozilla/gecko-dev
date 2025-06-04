@@ -68,6 +68,8 @@ usage() {
 
 COMMAND=" --edit"
 INCLUDE_ARGS=""
+GMOCK_INCLUDES="--extra-arg=-I../../third_party/googletest/src/googlemock/include/"
+GTEST_INCLUDES="--extra-arg=-I../../third_party/googletest/src/googletest/include/"
 CHECK_MODE=false
 
 while getopts 'd:rncw:h' opts; do
@@ -107,11 +109,7 @@ done
 HAS_OUTPUT=false
 for FILE in "$@"
 do
-  # Run the command in $WORKDIR because of this reported issue:
-  # https://github.com/llvm/llvm-project/issues/110843
-  cd $WORKDIR
-  OUTPUT=$(../../$CLEANER $INCLUDE_ARGS $COMMAND ../../$FILE)
-  cd -
+  OUTPUT=$($CLEANER -p $WORKDIR $INCLUDE_ARGS $GMOCK_INCLUDES $GTEST_INCLUDES $COMMAND $FILE)
 
   # include-cleaner does not support custom mappings for certain deps
   # this ensures that the gtest/gmock deps it inserts are replaced

@@ -12,7 +12,6 @@
 #define P2P_BASE_WRAPPING_ACTIVE_ICE_CONTROLLER_H_
 
 #include <memory>
-#include <optional>
 
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "p2p/base/active_ice_controller_interface.h"
@@ -44,13 +43,13 @@ class WrappingActiveIceController : public ActiveIceControllerInterface {
   // outlive the ICE controller.
   WrappingActiveIceController(
       IceAgentInterface* ice_agent,
-      IceControllerFactoryInterface* wrapped_factory,
-      const IceControllerFactoryArgs& wrapped_factory_args);
+      webrtc::IceControllerFactoryInterface* wrapped_factory,
+      const webrtc::IceControllerFactoryArgs& wrapped_factory_args);
   virtual ~WrappingActiveIceController();
 
-  void SetIceConfig(const IceConfig& config) override;
+  void SetIceConfig(const webrtc::IceConfig& config) override;
   bool GetUseCandidateAttribute(const Connection* connection,
-                                NominationMode mode,
+                                webrtc::NominationMode mode,
                                 IceMode remote_ice_mode) const override;
 
   void OnConnectionAdded(const Connection* connection) override;
@@ -79,7 +78,7 @@ class WrappingActiveIceController : public ActiveIceControllerInterface {
 
   void PruneConnections();
 
-  rtc::Thread* const network_thread_;
+  webrtc::Thread* const network_thread_;
   webrtc::ScopedTaskSafety task_safety_;
 
   bool started_pinging_ RTC_GUARDED_BY(network_thread_) = false;

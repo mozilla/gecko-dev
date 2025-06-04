@@ -18,8 +18,8 @@ namespace webrtc {
 
 RtpFrameReferenceFinder::ReturnVector RtpVp8RefFinder::ManageFrame(
     std::unique_ptr<RtpFrameObject> frame) {
-  const RTPVideoHeaderVP8& codec_header = absl::get<RTPVideoHeaderVP8>(
-      frame->GetRtpVideoHeader().video_type_header);
+  const RTPVideoHeaderVP8& codec_header =
+      std::get<RTPVideoHeaderVP8>(frame->GetRtpVideoHeader().video_type_header);
 
   if (codec_header.temporalIdx != kNoTemporalIdx)
     frame->SetTemporalIndex(codec_header.temporalIdx);
@@ -214,7 +214,7 @@ void RtpVp8RefFinder::RetryStashedFrames(
   do {
     complete_frame = false;
     for (auto it = stashed_frames_.begin(); it != stashed_frames_.end();) {
-      const RTPVideoHeaderVP8& codec_header = absl::get<RTPVideoHeaderVP8>(
+      const RTPVideoHeaderVP8& codec_header = std::get<RTPVideoHeaderVP8>(
           it->frame->GetRtpVideoHeader().video_type_header);
       FrameDecision decision =
           ManageFrameInternal(it->frame.get(), codec_header, it->unwrapped_tl0);

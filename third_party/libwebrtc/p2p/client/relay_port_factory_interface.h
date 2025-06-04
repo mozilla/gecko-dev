@@ -14,14 +14,16 @@
 #include <memory>
 #include <string>
 
+#include "api/packet_socket_factory.h"
+#include "p2p/base/port_allocator.h"
 #include "p2p/base/port_interface.h"
-#include "rtc_base/ref_count.h"
+#include "rtc_base/async_packet_socket.h"
+#include "rtc_base/thread.h"
 
 namespace rtc {
-class AsyncPacketSocket;
+
 class Network;
-class PacketSocketFactory;
-class Thread;
+
 }  // namespace rtc
 
 namespace webrtc {
@@ -32,15 +34,14 @@ class FieldTrialsView;
 namespace cricket {
 class Port;
 struct ProtocolAddress;
-struct RelayServerConfig;
 
 // A struct containing arguments to RelayPortFactory::Create()
 struct CreateRelayPortArgs {
-  rtc::Thread* network_thread;
-  rtc::PacketSocketFactory* socket_factory;
+  webrtc::Thread* network_thread;
+  webrtc::PacketSocketFactory* socket_factory;
   const rtc::Network* network;
   const ProtocolAddress* server_address;
-  const RelayServerConfig* config;
+  const webrtc::RelayServerConfig* config;
   std::string username;
   std::string password;
   webrtc::TurnCustomizer* turn_customizer = nullptr;
@@ -58,8 +59,9 @@ class RelayPortFactoryInterface {
 
   // This variant is used for UDP connection to the relay server
   // using a already existing shared socket.
-  virtual std::unique_ptr<Port> Create(const CreateRelayPortArgs& args,
-                                       rtc::AsyncPacketSocket* udp_socket) = 0;
+  virtual std::unique_ptr<Port> Create(
+      const CreateRelayPortArgs& args,
+      webrtc::AsyncPacketSocket* udp_socket) = 0;
 
   // This variant is used for the other cases.
   virtual std::unique_ptr<Port> Create(const CreateRelayPortArgs& args,

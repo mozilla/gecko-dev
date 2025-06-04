@@ -26,12 +26,12 @@
 #include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
-#include "api/call/transport.h"
 #include "api/crypto/crypto_options.h"
 #include "api/crypto/frame_decryptor_interface.h"
 #include "api/crypto/frame_encryptor_interface.h"
 #include "api/field_trials_view.h"
 #include "api/frame_transformer_interface.h"
+#include "api/media_types.h"
 #include "api/rtc_error.h"
 #include "api/rtp_headers.h"
 #include "api/rtp_parameters.h"
@@ -41,7 +41,6 @@
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/transport/bitrate_settings.h"
-#include "api/transport/field_trial_based_config.h"
 #include "api/transport/rtp/rtp_source.h"
 #include "api/video/recordable_encoded_frame.h"
 #include "api/video/video_bitrate_allocator_factory.h"
@@ -64,6 +63,7 @@
 #include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/network/sent_packet.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -116,10 +116,15 @@ class WebRtcVideoEngine : public VideoEngineInterface {
       const VideoOptions& options,
       const webrtc::CryptoOptions& crypto_options) override;
 
-  std::vector<Codec> send_codecs() const override { return send_codecs(true); }
-  std::vector<Codec> recv_codecs() const override { return recv_codecs(true); }
-  std::vector<Codec> send_codecs(bool include_rtx) const override;
-  std::vector<Codec> recv_codecs(bool include_rtx) const override;
+  // TODO: https://issues.webrtc.org/360058654 - remove Legacy functions.
+  std::vector<Codec> LegacySendCodecs() const override {
+    return LegacySendCodecs(true);
+  }
+  std::vector<Codec> LegacyRecvCodecs() const override {
+    return LegacyRecvCodecs(true);
+  }
+  std::vector<Codec> LegacySendCodecs(bool include_rtx) const override;
+  std::vector<Codec> LegacyRecvCodecs(bool include_rtx) const override;
   std::vector<webrtc::RtpHeaderExtensionCapability> GetRtpHeaderExtensions()
       const override;
 
@@ -165,7 +170,9 @@ class WebRtcVideoSendChannel : public MediaChannelUtil,
       webrtc::VideoBitrateAllocatorFactory* bitrate_allocator_factory);
   ~WebRtcVideoSendChannel() override;
 
-  MediaType media_type() const override { return MEDIA_TYPE_VIDEO; }
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
+  }
   // Type manipulations
   VideoMediaSendChannelInterface* AsVideoSendChannel() override { return this; }
   VoiceMediaSendChannelInterface* AsVoiceSendChannel() override {
@@ -569,7 +576,9 @@ class WebRtcVideoReceiveChannel : public MediaChannelUtil,
   ~WebRtcVideoReceiveChannel() override;
 
  public:
-  MediaType media_type() const override { return MEDIA_TYPE_VIDEO; }
+  webrtc::MediaType media_type() const override {
+    return webrtc::MediaType::VIDEO;
+  }
   VideoMediaReceiveChannelInterface* AsVideoReceiveChannel() override {
     return this;
   }

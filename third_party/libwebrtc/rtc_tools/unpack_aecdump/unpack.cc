@@ -199,8 +199,8 @@ class RuntimeSettingWriter {
  public:
   RuntimeSettingWriter(
       std::string name,
-      rtc::FunctionView<bool(const Event)> is_exporter_for,
-      rtc::FunctionView<std::string(const Event)> get_timeline_label)
+      FunctionView<bool(const Event)> is_exporter_for,
+      FunctionView<std::string(const Event)> get_timeline_label)
       : setting_name_(std::move(name)),
         is_exporter_for_(is_exporter_for),
         get_timeline_label_(get_timeline_label) {}
@@ -245,8 +245,8 @@ class RuntimeSettingWriter {
   FILE* file_ = nullptr;
   int frame_offset_ = 0;
   const std::string setting_name_;
-  const rtc::FunctionView<bool(Event)> is_exporter_for_;
-  const rtc::FunctionView<std::string(Event)> get_timeline_label_;
+  const FunctionView<bool(Event)> is_exporter_for_;
+  const FunctionView<std::string(Event)> get_timeline_label_;
 };
 
 // Returns RuntimeSetting exporters for runtime setting types defined in

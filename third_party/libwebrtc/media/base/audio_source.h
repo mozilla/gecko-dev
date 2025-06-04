@@ -12,6 +12,7 @@
 #define MEDIA_BASE_AUDIO_SOURCE_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 
 namespace cricket {

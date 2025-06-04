@@ -12,25 +12,22 @@
 #define CALL_ADAPTATION_RESOURCE_ADAPTATION_PROCESSOR_H_
 
 #include <map>
-#include <memory>
-#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/string_view.h"
 #include "api/adaptation/resource.h"
-#include "api/rtp_parameters.h"
+#include "api/ref_count.h"
 #include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/video/video_adaptation_counters.h"
-#include "api/video/video_frame.h"
 #include "call/adaptation/resource_adaptation_processor_interface.h"
 #include "call/adaptation/video_source_restrictions.h"
 #include "call/adaptation/video_stream_adapter.h"
-#include "call/adaptation/video_stream_input_state.h"
-#include "call/adaptation/video_stream_input_state_provider.h"
-#include "video/video_stream_encoder_observer.h"
+#include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
 

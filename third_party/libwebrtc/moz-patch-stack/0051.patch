@@ -18,7 +18,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0300b32b7de70fb89
  5 files changed, 10 insertions(+), 3 deletions(-)
 
 diff --git a/BUILD.gn b/BUILD.gn
-index 52da18d3ee..f67e79408d 100644
+index e3804f1745..d90a6fab92 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -223,6 +223,9 @@ config("common_inherited_config") {
@@ -32,10 +32,10 @@ index 52da18d3ee..f67e79408d 100644
      defines += [ "WEBRTC_MAC" ]
    }
 diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
-index 1a737e1596..b47765018d 100644
+index a88e742c88..f36b3e28c3 100644
 --- a/modules/video_capture/BUILD.gn
 +++ b/modules/video_capture/BUILD.gn
-@@ -72,7 +72,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+@@ -73,7 +73,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
        "video_capture_options.h",
      ]
  

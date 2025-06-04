@@ -129,7 +129,7 @@ void AudioFrame::CopyFrom(const AudioFrame& src) {
 }
 
 void AudioFrame::UpdateProfileTimeStamp() {
-  profile_timestamp_ms_ = rtc::TimeMillis();
+  profile_timestamp_ms_ = TimeMillis();
 }
 
 int64_t AudioFrame::ElapsedProfileTimeMs() const {
@@ -137,7 +137,7 @@ int64_t AudioFrame::ElapsedProfileTimeMs() const {
     // Profiling has not been activated.
     return -1;
   }
-  return rtc::TimeSince(profile_timestamp_ms_);
+  return TimeSince(profile_timestamp_ms_);
 }
 
 const int16_t* AudioFrame::data() const {

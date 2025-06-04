@@ -11,6 +11,7 @@
 #ifndef P2P_BASE_TRANSPORT_DESCRIPTION_H_
 #define P2P_BASE_TRANSPORT_DESCRIPTION_H_
 
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string>
@@ -19,7 +20,7 @@
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
 #include "api/rtc_error.h"
-#include "p2p/base/p2p_constants.h"
+#include "p2p/base/p2p_constants.h"  // IWYU pragma: keep
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/system/rtc_export.h"
 

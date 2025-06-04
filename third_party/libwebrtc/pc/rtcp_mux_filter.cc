@@ -32,7 +32,7 @@ void RtcpMuxFilter::SetActive() {
   state_ = ST_ACTIVE;
 }
 
-bool RtcpMuxFilter::SetOffer(bool offer_enable, ContentSource src) {
+bool RtcpMuxFilter::SetOffer(bool offer_enable, webrtc::ContentSource src) {
   if (state_ == ST_ACTIVE) {
     // Fail if we try to deactivate and no-op if we try and activate.
     return offer_enable;
@@ -44,12 +44,12 @@ bool RtcpMuxFilter::SetOffer(bool offer_enable, ContentSource src) {
   }
 
   offer_enable_ = offer_enable;
-  state_ = (src == CS_LOCAL) ? ST_SENTOFFER : ST_RECEIVEDOFFER;
+  state_ = (src == webrtc::CS_LOCAL) ? ST_SENTOFFER : ST_RECEIVEDOFFER;
   return true;
 }
 
 bool RtcpMuxFilter::SetProvisionalAnswer(bool answer_enable,
-                                         ContentSource src) {
+                                         webrtc::ContentSource src) {
   if (state_ == ST_ACTIVE) {
     // Fail if we try to deactivate and no-op if we try and activate.
     return answer_enable;
@@ -62,7 +62,7 @@ bool RtcpMuxFilter::SetProvisionalAnswer(bool answer_enable,
 
   if (offer_enable_) {
     if (answer_enable) {
-      if (src == CS_REMOTE)
+      if (src == webrtc::CS_REMOTE)
         state_ = ST_RECEIVEDPRANSWER;
       else  // CS_LOCAL
         state_ = ST_SENTPRANSWER;
@@ -70,7 +70,7 @@ bool RtcpMuxFilter::SetProvisionalAnswer(bool answer_enable,
       // The provisional answer doesn't want to use RTCP mux.
       // Go back to the original state after the offer was set and wait for next
       // provisional or final answer.
-      if (src == CS_REMOTE)
+      if (src == webrtc::CS_REMOTE)
         state_ = ST_SENTOFFER;
       else  // CS_LOCAL
         state_ = ST_RECEIVEDOFFER;
@@ -84,7 +84,7 @@ bool RtcpMuxFilter::SetProvisionalAnswer(bool answer_enable,
   return true;
 }
 
-bool RtcpMuxFilter::SetAnswer(bool answer_enable, ContentSource src) {
+bool RtcpMuxFilter::SetAnswer(bool answer_enable, webrtc::ContentSource src) {
   if (state_ == ST_ACTIVE) {
     // Fail if we try to deactivate and no-op if we try and activate.
     return answer_enable;
@@ -108,18 +108,19 @@ bool RtcpMuxFilter::SetAnswer(bool answer_enable, ContentSource src) {
   return true;
 }
 
-bool RtcpMuxFilter::ExpectOffer(bool offer_enable, ContentSource source) {
+bool RtcpMuxFilter::ExpectOffer(bool offer_enable,
+                                webrtc::ContentSource source) {
   return ((state_ == ST_INIT) ||
           (state_ == ST_ACTIVE && offer_enable == offer_enable_) ||
-          (state_ == ST_SENTOFFER && source == CS_LOCAL) ||
-          (state_ == ST_RECEIVEDOFFER && source == CS_REMOTE));
+          (state_ == ST_SENTOFFER && source == webrtc::CS_LOCAL) ||
+          (state_ == ST_RECEIVEDOFFER && source == webrtc::CS_REMOTE));
 }
 
-bool RtcpMuxFilter::ExpectAnswer(ContentSource source) {
-  return ((state_ == ST_SENTOFFER && source == CS_REMOTE) ||
-          (state_ == ST_RECEIVEDOFFER && source == CS_LOCAL) ||
-          (state_ == ST_SENTPRANSWER && source == CS_LOCAL) ||
-          (state_ == ST_RECEIVEDPRANSWER && source == CS_REMOTE));
+bool RtcpMuxFilter::ExpectAnswer(webrtc::ContentSource source) {
+  return ((state_ == ST_SENTOFFER && source == webrtc::CS_REMOTE) ||
+          (state_ == ST_RECEIVEDOFFER && source == webrtc::CS_LOCAL) ||
+          (state_ == ST_SENTPRANSWER && source == webrtc::CS_LOCAL) ||
+          (state_ == ST_RECEIVEDPRANSWER && source == webrtc::CS_REMOTE));
 }
 
 }  // namespace cricket

@@ -67,7 +67,7 @@ void DirectTransport::SetReceiver(PacketReceiver* receiver) {
 bool DirectTransport::SendRtp(rtc::ArrayView<const uint8_t> data,
                               const PacketOptions& options) {
   if (send_call_) {
-    rtc::SentPacket sent_packet(options.packet_id, rtc::TimeMillis());
+    rtc::SentPacket sent_packet(options.packet_id, TimeMillis());
     sent_packet.info.included_in_feedback = options.included_in_feedback;
     sent_packet.info.included_in_allocation = options.included_in_allocation;
     sent_packet.info.packet_size_bytes = data.size();
@@ -87,7 +87,7 @@ bool DirectTransport::SendRtp(rtc::ArrayView<const uint8_t> data,
     default:
       RTC_CHECK_NOTREACHED();
   }
-  RtpPacketReceived packet(extensions, Timestamp::Micros(rtc::TimeMicros()));
+  RtpPacketReceived packet(extensions, Timestamp::Micros(TimeMicros()));
   if (media_type == MediaType::VIDEO) {
     packet.set_payload_type_frequency(kVideoPayloadTypeFrequency);
   }

@@ -16,7 +16,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8d832e832ffe51324
  1 file changed, 13 insertions(+)
 
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index ebf3fabfce..e519806634 100644
+index a2329a999a..5e853ef093 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
 @@ -48,6 +48,14 @@
@@ -34,8 +34,8 @@ index ebf3fabfce..e519806634 100644
  #include <errno.h>
  
  #include <atomic>
-@@ -739,4 +747,9 @@ inline const char* AdaptString(const std::string& str) {
- 
+@@ -753,4 +761,9 @@ using ::webrtc::LS_VERBOSE;
+ using ::webrtc::LS_WARNING;
  }  // namespace rtc
  
 +#pragma GCC diagnostic pop

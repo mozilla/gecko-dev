@@ -373,7 +373,7 @@ void EncoderBitrateAdjuster::OnEncodedFrame(DataSize size,
   // Detectors may not exist, for instance if ScreenshareLayers is used.
   auto& detector = overshoot_detectors_[stream_index][temporal_index];
   if (detector) {
-    detector->OnEncodedFrame(size.bytes(), rtc::TimeMillis());
+    detector->OnEncodedFrame(size.bytes(), TimeMillis());
   }
   if (media_rate_trackers_[stream_index]) {
     media_rate_trackers_[stream_index]->OnDataProduced(size,

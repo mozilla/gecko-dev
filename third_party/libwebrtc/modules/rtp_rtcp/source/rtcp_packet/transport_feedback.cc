@@ -366,7 +366,7 @@ TransportFeedback::GetReceivedPackets() const {
 }
 
 void TransportFeedback::ForAllPackets(
-    rtc::FunctionView<void(uint16_t, TimeDelta)> handler) const {
+    FunctionView<void(uint16_t, TimeDelta)> handler) const {
   TimeDelta delta_since_base = TimeDelta::Zero();
   auto received_it = received_packets_.begin();
   const uint16_t last_seq_num = base_seq_no_ + num_seq_no_;

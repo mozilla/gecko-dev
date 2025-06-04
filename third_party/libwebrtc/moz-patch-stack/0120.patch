@@ -1,294 +1,944 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 12 Sep 2024 22:36:00 +0000
-Subject: Bug 1918096 - In ScreenCapturerSck adapt to sources that change
- resolution. r=webrtc-reviewers,ng
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 10 Oct 2024 13:42:00 +0000
+Subject: Bug 1921707 - point to new build directory location in
+ third_party/libwebrtc r=ng,webrtc-reviewers
 
-If the resolution is smaller than the allocated surface, we crop.
-If the resolution is larger than the allocated surface, we reconfigure with a
-larger surface.
+Ran:
+ack -l "\"//build/config" third_party/libwebrtc | xargs sed -i.bak -E 's/\"\/\/build\/config/\"\/\/chromium\/build\/config/'
+ack -l "\"//build/dot" third_party/libwebrtc | xargs sed -i.bak -E 's/\"\/\/build\/dot/\"\/\/chromium\/build\/dot/'
+ack -l "\"//build/mac" third_party/libwebrtc | xargs sed -i.bak -E 's/\"\/\/build\/mac/\"\/\/chromium\/build\/mac/'
+find third_party -name "*.bak" | xargs rm
+hg revert third_party/libwebrtc/moz-patch-stack
 
-The allocated surface has the size we told it to have in the
-SCStreamConfiguration, in pixels.
-
-If the source is a screen, the size is pretty static. Changing display settings
-  could affect it.
-If the source is a window, the size is initially the size of the window. The
-  user resizing the window affects the size.
-If the source is multiple windows, the size initially seems to be that of the
-  display they're sitting on. Windows across multiple displays are not captured
-  into the same surface, as of macOS 14.
-
-Differential Revision: https://phabricator.services.mozilla.com/D221941
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bc6215142feaab1a3f7820006129219504851bc8
+Differential Revision: https://phabricator.services.mozilla.com/D224543
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a342f5eca8622c8b918d6119f74aff96cc8cf582
 ---
- .../mac/desktop_frame_iosurface.h             |  9 +-
- .../mac/desktop_frame_iosurface.mm            | 47 ++++++++--
- .../mac/screen_capturer_sck.mm                | 94 +++++++++++++++++--
- 3 files changed, 131 insertions(+), 19 deletions(-)
+ .gn                                           |  4 +--
+ BUILD.gn                                      | 12 ++++----
+ api/BUILD.gn                                  |  4 +--
+ api/audio/test/BUILD.gn                       |  4 +--
+ api/audio_codecs/BUILD.gn                     |  4 +--
+ api/audio_codecs/L16/BUILD.gn                 |  4 +--
+ api/audio_codecs/g711/BUILD.gn                |  4 +--
+ api/audio_codecs/g722/BUILD.gn                |  4 +--
+ api/audio_codecs/opus/BUILD.gn                |  4 +--
+ api/audio_codecs/test/BUILD.gn                |  4 +--
+ api/video/BUILD.gn                            |  4 +--
+ api/video_codecs/BUILD.gn                     |  4 +--
+ audio/BUILD.gn                                |  4 +--
+ build_overrides/build.gni                     |  2 +-
+ build_overrides/partition_alloc.gni           | 20 ++++++-------
+ common_audio/BUILD.gn                         |  4 +--
+ common_audio/third_party/ooura/BUILD.gn       |  2 +-
+ examples/BUILD.gn                             | 14 +++++-----
+ .../androidapp/third_party/autobanh/BUILD.gn  |  2 +-
+ examples/androidnativeapi/BUILD.gn            |  4 +--
+ examples/androidvoip/BUILD.gn                 |  4 +--
+ logging/BUILD.gn                              |  4 +--
+ media/BUILD.gn                                |  2 +-
+ modules/audio_device/BUILD.gn                 |  4 +--
+ modules/audio_processing/aec3/BUILD.gn        |  2 +-
+ modules/audio_processing/aecm/BUILD.gn        |  2 +-
+ modules/audio_processing/agc/BUILD.gn         |  2 +-
+ modules/audio_processing/agc2/BUILD.gn        |  2 +-
+ .../audio_processing/agc2/rnn_vad/BUILD.gn    |  8 +++---
+ modules/audio_processing/ns/BUILD.gn          |  2 +-
+ modules/desktop_capture/BUILD.gn              |  4 +--
+ modules/portal/BUILD.gn                       |  2 +-
+ modules/video_coding/BUILD.gn                 |  2 +-
+ pc/BUILD.gn                                   |  4 +--
+ rtc_base/BUILD.gn                             |  4 +--
+ rtc_base/memory/BUILD.gn                      |  4 +--
+ rtc_base/synchronization/BUILD.gn             |  4 +--
+ rtc_base/system/BUILD.gn                      |  4 +--
+ rtc_tools/network_tester/BUILD.gn             |  4 +--
+ sdk/BUILD.gn                                  | 10 +++----
+ system_wrappers/BUILD.gn                      |  4 +--
+ test/BUILD.gn                                 |  6 ++--
+ test/fuzzers/BUILD.gn                         |  4 +--
+ tools/grit/BUILD.gn                           |  2 +-
+ tools/grit/grit_rule.gni                      | 16 +++++------
+ webrtc.gni                                    | 28 +++++++++----------
+ 46 files changed, 121 insertions(+), 121 deletions(-)
 
-diff --git a/modules/desktop_capture/mac/desktop_frame_iosurface.h b/modules/desktop_capture/mac/desktop_frame_iosurface.h
-index 73da0f693c..ed90e40993 100644
---- a/modules/desktop_capture/mac/desktop_frame_iosurface.h
-+++ b/modules/desktop_capture/mac/desktop_frame_iosurface.h
-@@ -26,7 +26,7 @@ class DesktopFrameIOSurface final : public DesktopFrame {
-   // Lock an IOSurfaceRef containing a snapshot of a display. Return NULL if
-   // failed to lock.
-   static std::unique_ptr<DesktopFrameIOSurface> Wrap(
--      rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface);
-+      rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface, CGRect rect = {});
+diff --git a/.gn b/.gn
+index fe7020cb97..4c9b95c31b 100644
+--- a/.gn
++++ b/.gn
+@@ -6,10 +6,10 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
  
-   ~DesktopFrameIOSurface() override;
+-import("//build/dotfile_settings.gni")
++import("//chromium/build/dotfile_settings.gni")
  
-@@ -35,7 +35,12 @@ class DesktopFrameIOSurface final : public DesktopFrame {
+ # The location of the build configuration file.
+-buildconfig = "//build/config/BUILDCONFIG.gn"
++buildconfig = "//chromium/build/config/BUILDCONFIG.gn"
  
-  private:
-   // This constructor expects `io_surface` to hold a non-null IOSurfaceRef.
--  explicit DesktopFrameIOSurface(rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface);
-+  DesktopFrameIOSurface(
-+      rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface,
-+      uint8_t* data,
-+      int32_t width,
-+      int32_t height,
-+      int32_t stride);
+ # The python interpreter to use by default. On Windows, this will look
+ # for vpython3.exe and vpython3.bat.
+diff --git a/BUILD.gn b/BUILD.gn
+index ca973787ee..6f68d7ecad 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -21,15 +21,15 @@
+ # - visibility = [ ":*" ] - directory private.
+ # As a general guideline, only targets in api/ should have public visibility.
  
-   const rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface_;
- };
-diff --git a/modules/desktop_capture/mac/desktop_frame_iosurface.mm b/modules/desktop_capture/mac/desktop_frame_iosurface.mm
-index 11f2e9eaa2..a9b06428d1 100644
---- a/modules/desktop_capture/mac/desktop_frame_iosurface.mm
-+++ b/modules/desktop_capture/mac/desktop_frame_iosurface.mm
-@@ -17,7 +17,7 @@ namespace webrtc {
- 
- // static
- std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
--    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface) {
-+    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface, CGRect rect) {
-   if (!io_surface) {
-     return nullptr;
-   }
-@@ -42,18 +42,45 @@ std::unique_ptr<DesktopFrameIOSurface> DesktopFrameIOSurface::Wrap(
-     return nullptr;
-   }
- 
--  return std::unique_ptr<DesktopFrameIOSurface>(
--      new DesktopFrameIOSurface(io_surface));
-+  size_t surfaceWidth = IOSurfaceGetWidth(io_surface.get());
-+  size_t surfaceHeight = IOSurfaceGetHeight(io_surface.get());
-+  uint8_t* data =
-+      static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get()));
-+  size_t offset = 0;
-+  size_t width = surfaceWidth;
-+  size_t height = surfaceHeight;
-+  size_t offsetColumns = 0;
-+  size_t offsetRows = 0;
-+  int32_t stride = IOSurfaceGetBytesPerRow(io_surface.get());
-+  if (rect.size.width > 0 && rect.size.height > 0) {
-+    width = std::floor(rect.size.width);
-+    height = std::floor(rect.size.height);
-+    offsetColumns = std::ceil(rect.origin.x);
-+    offsetRows = std::ceil(rect.origin.y);
-+    RTC_CHECK_GE(surfaceWidth, offsetColumns + width);
-+    RTC_CHECK_GE(surfaceHeight, offsetRows + height);
-+    offset = stride * offsetRows + bytes_per_pixel * offsetColumns;
-+  }
-+
-+  RTC_LOG(LS_VERBOSE) << "DesktopFrameIOSurface wrapping IOSurface with size "
-+                      << surfaceWidth << "x" << surfaceHeight
-+                      << ". Cropping to (" << offsetColumns << "," << offsetRows
-+                      << "; " << width << "x" << height
-+                      << "). Stride=" << stride / bytes_per_pixel
-+                      << ", buffer-offset-px=" << offset / bytes_per_pixel
-+                      << ", buffer-offset-bytes=" << offset;
-+
-+  return std::unique_ptr<DesktopFrameIOSurface>(new DesktopFrameIOSurface(
-+      io_surface, data + offset, width, height, stride));
+-import("//build/config/linux/pkg_config.gni")
+-import("//build/config/sanitizers/sanitizers.gni")
++import("//chromium/build/config/linux/pkg_config.gni")
++import("//chromium/build/config/sanitizers/sanitizers.gni")
+ import("webrtc.gni")
+ if (rtc_enable_protobuf) {
+   import("//third_party/protobuf/proto_library.gni")
+ }
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+   import("//third_party/jni_zero/jni_zero.gni")
  }
  
- DesktopFrameIOSurface::DesktopFrameIOSurface(
--    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface)
--    : DesktopFrame(
--          DesktopSize(IOSurfaceGetWidth(io_surface.get()),
--                      IOSurfaceGetHeight(io_surface.get())),
--          IOSurfaceGetBytesPerRow(io_surface.get()),
--          static_cast<uint8_t*>(IOSurfaceGetBaseAddress(io_surface.get())),
--          nullptr),
-+    rtc::ScopedCFTypeRef<IOSurfaceRef> io_surface,
-+    uint8_t* data,
-+    int32_t width,
-+    int32_t height,
-+    int32_t stride)
-+    : DesktopFrame(DesktopSize(width, height), stride, data, nullptr),
-       io_surface_(io_surface) {
-   RTC_DCHECK(io_surface_);
+@@ -535,7 +535,7 @@ if (!build_with_chromium) {
+ 
+     sources = []
+     complete_static_lib = true
+-    suppressed_configs += [ "//build/config/compiler:thin_archive" ]
++    suppressed_configs += [ "//chromium/build/config/compiler:thin_archive" ]
+     defines = []
+ 
+     deps = [
+@@ -842,7 +842,7 @@ rtc_static_library("dcsctp") {
+   visibility = [ "//:default" ]
+   sources = []
+   complete_static_lib = true
+-  suppressed_configs += [ "//build/config/compiler:thin_archive" ]
++  suppressed_configs += [ "//chromium/build/config/compiler:thin_archive" ]
+   defines = []
+   deps = [
+     "net/dcsctp/public:factory",
+diff --git a/api/BUILD.gn b/api/BUILD.gn
+index 357f2c82bc..6cb9ab8688 100644
+--- a/api/BUILD.gn
++++ b/api/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
  }
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index 915aa90bd7..1a84a39c9c 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.mm
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -182,6 +182,13 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final
-   // more accurately track the dirty rectangles from the
-   // SCStreamFrameInfoDirtyRects attachment.
-   bool frame_is_dirty_ RTC_GUARDED_BY(latest_frame_lock_) = true;
-+
-+  // Tracks whether a reconfigure is needed.
-+  bool frame_needs_reconfigure_ RTC_GUARDED_BY(latest_frame_lock_) = false;
-+  // If a reconfigure is needed, this will be set to the size in pixels required
-+  // to fit the entire source without downscaling.
-+  std::optional<CGSize> frame_reconfigure_img_size_
-+      RTC_GUARDED_BY(latest_frame_lock_);
- };
  
- ScreenCapturerSck::ScreenCapturerSck(const DesktopCaptureOptions& options)
-@@ -261,6 +268,7 @@ void ScreenCapturerSck::CaptureFrame() {
+ group("api") {
+diff --git a/api/audio/test/BUILD.gn b/api/audio/test/BUILD.gn
+index 91b8d3195c..8d66ee1abb 100644
+--- a/api/audio/test/BUILD.gn
++++ b/api/audio/test/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ if (rtc_include_tests) {
+diff --git a/api/audio_codecs/BUILD.gn b/api/audio_codecs/BUILD.gn
+index 0da1fe4fed..dd636fd158 100644
+--- a/api/audio_codecs/BUILD.gn
++++ b/api/audio_codecs/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_library("audio_codecs_api") {
+diff --git a/api/audio_codecs/L16/BUILD.gn b/api/audio_codecs/L16/BUILD.gn
+index 8ce7122cec..b7ec211eaf 100644
+--- a/api/audio_codecs/L16/BUILD.gn
++++ b/api/audio_codecs/L16/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_library("audio_encoder_L16") {
+diff --git a/api/audio_codecs/g711/BUILD.gn b/api/audio_codecs/g711/BUILD.gn
+index 6c00e040fe..380e167dc6 100644
+--- a/api/audio_codecs/g711/BUILD.gn
++++ b/api/audio_codecs/g711/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_library("audio_encoder_g711") {
+diff --git a/api/audio_codecs/g722/BUILD.gn b/api/audio_codecs/g722/BUILD.gn
+index a3ee0d4e0c..322c52ac64 100644
+--- a/api/audio_codecs/g722/BUILD.gn
++++ b/api/audio_codecs/g722/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_source_set("audio_encoder_g722_config") {
+diff --git a/api/audio_codecs/opus/BUILD.gn b/api/audio_codecs/opus/BUILD.gn
+index fad98a9619..5fd83d4aa0 100644
+--- a/api/audio_codecs/opus/BUILD.gn
++++ b/api/audio_codecs/opus/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_library("audio_encoder_opus_config") {
+diff --git a/api/audio_codecs/test/BUILD.gn b/api/audio_codecs/test/BUILD.gn
+index 40714b196e..2c6b39f59e 100644
+--- a/api/audio_codecs/test/BUILD.gn
++++ b/api/audio_codecs/test/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ if (rtc_include_tests) {
+diff --git a/api/video/BUILD.gn b/api/video/BUILD.gn
+index c98fb3017f..1e95af2f3e 100644
+--- a/api/video/BUILD.gn
++++ b/api/video/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_library("video_rtp_headers") {
+diff --git a/api/video_codecs/BUILD.gn b/api/video_codecs/BUILD.gn
+index 4692207be7..9bf7a34a1b 100644
+--- a/api/video_codecs/BUILD.gn
++++ b/api/video_codecs/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_source_set("scalability_mode") {
+diff --git a/audio/BUILD.gn b/audio/BUILD.gn
+index 412d51e288..e15971e8af 100644
+--- a/audio/BUILD.gn
++++ b/audio/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_library("audio") {
+diff --git a/build_overrides/build.gni b/build_overrides/build.gni
+index 57e8900e3e..e2d0a8ce72 100644
+--- a/build_overrides/build.gni
++++ b/build_overrides/build.gni
+@@ -41,7 +41,7 @@ enable_perfetto_trace_processor = true
+ # except for local iOS builds where it's unsupported.
+ # Allow for mac cross compile on linux machines.
+ if (host_os == "mac" || host_os == "linux") {
+-  _result = exec_script("//build/mac/should_use_hermetic_xcode.py",
++  _result = exec_script("//chromium/build/mac/should_use_hermetic_xcode.py",
+                         [ target_os ],
+                         "value")
+   assert(_result != 2,
+diff --git a/build_overrides/partition_alloc.gni b/build_overrides/partition_alloc.gni
+index 3f674f8e58..f00a081f4f 100644
+--- a/build_overrides/partition_alloc.gni
++++ b/build_overrides/partition_alloc.gni
+@@ -7,20 +7,20 @@
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+ # Dependencies from //build defining variables used by partition_alloc.
+-import("//build/config/android/config.gni")
+-import("//build/config/cast.gni")
+-import("//build/config/chromeos/ui_mode.gni")
+-import("//build/config/compiler/compiler.gni")
+-import("//build/config/cronet/config.gni")
+-import("//build/config/dcheck_always_on.gni")
+-import("//build/config/logging.gni")
+-partition_alloc_enable_arc_config = "//build/config/compiler:enable_arc"
++import("//chromium/build/config/android/config.gni")
++import("//chromium/build/config/cast.gni")
++import("//chromium/build/config/chromeos/ui_mode.gni")
++import("//chromium/build/config/compiler/compiler.gni")
++import("//chromium/build/config/cronet/config.gni")
++import("//chromium/build/config/dcheck_always_on.gni")
++import("//chromium/build/config/logging.gni")
++partition_alloc_enable_arc_config = "//chromium/build/config/compiler:enable_arc"
+ 
+ # partition_alloc is performance critical and it should generally be optimized
+ # for speed, even in debug mode. WebRTC doesn't really need its debug version.
+ partition_alloc_remove_configs =
+-    [ "//build/config/compiler:default_optimization" ]
+-partition_alloc_add_configs = [ "//build/config/compiler:optimize_speed" ]
++    [ "//chromium/build/config/compiler:default_optimization" ]
++partition_alloc_add_configs = [ "//chromium/build/config/compiler:optimize_speed" ]
+ 
+ # Disable partition_alloc for WebRTC standalone builds.
+ use_partition_alloc_as_malloc_default = false
+diff --git a/common_audio/BUILD.gn b/common_audio/BUILD.gn
+index 82fceb8ead..f859612711 100644
+--- a/common_audio/BUILD.gn
++++ b/common_audio/BUILD.gn
+@@ -291,7 +291,7 @@ if (rtc_build_with_neon) {
+ 
+     if (target_cpu != "arm64") {
+       # Enable compilation for the NEON instruction set.
+-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++      suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+       cflags = [ "-mfpu=neon" ]
+     }
+ 
+@@ -314,7 +314,7 @@ if (rtc_build_with_neon) {
+ 
+     if (target_cpu != "arm64") {
+       # Enable compilation for the NEON instruction set.
+-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++      suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+       cflags = [ "-mfpu=neon" ]
+     }
+ 
+diff --git a/common_audio/third_party/ooura/BUILD.gn b/common_audio/third_party/ooura/BUILD.gn
+index a0ddf777db..cf15513e18 100644
+--- a/common_audio/third_party/ooura/BUILD.gn
++++ b/common_audio/third_party/ooura/BUILD.gn
+@@ -40,7 +40,7 @@ rtc_library("fft_size_128") {
+ 
+     if (target_cpu != "arm64") {
+       # Enable compilation for the NEON instruction set.
+-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++      suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+       cflags += [ "-mfpu=neon" ]
+     }
    }
+diff --git a/examples/BUILD.gn b/examples/BUILD.gn
+index b4c2bd766b..5673934238 100644
+--- a/examples/BUILD.gn
++++ b/examples/BUILD.gn
+@@ -9,15 +9,15 @@
+ import("../webrtc.gni")
  
-   std::unique_ptr<DesktopFrame> frame;
-+  bool needs_reconfigure = false;
-   {
-     MutexLock lock(&latest_frame_lock_);
-     if (latest_frame_) {
-@@ -272,6 +280,8 @@ void ScreenCapturerSck::CaptureFrame() {
-         frame_is_dirty_ = false;
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+   import("//third_party/jni_zero/jni_zero.gni")
+ } else if (is_mac) {
+-  import("//build/config/mac/rules.gni")
++  import("//chromium/build/config/mac/rules.gni")
+ } else if (is_ios) {
+-  import("//build/config/ios/rules.gni")
++  import("//chromium/build/config/ios/rules.gni")
+ } else if (is_linux || is_chromeos) {
+-  import("//build/config/linux/pkg_config.gni")
++  import("//chromium/build/config/linux/pkg_config.gni")
+ }
+ 
+ group("examples") {
+@@ -634,7 +634,7 @@ if (is_ios || (is_mac && target_cpu != "x86")) {
+           "../sdk:mediaconstraints_objc",
+           "../sdk:peerconnectionfactory_base_objc",
+           "../sdk:videocapture_objc",
+-          "//build/config/ios:xctest",
++          "//chromium/build/config/ios:xctest",
+           "//third_party/ocmock",
+         ]
        }
-     }
-+    needs_reconfigure = frame_needs_reconfigure_;
-+    frame_needs_reconfigure_ = false;
-   }
+@@ -737,7 +737,7 @@ if (is_linux || is_chromeos || is_win) {
+         "peerconnection/client/main_wnd.cc",
+         "peerconnection/client/main_wnd.h",
+       ]
+-      configs += [ "//build/config/win:windowed" ]
++      configs += [ "//chromium/build/config/win:windowed" ]
+       deps += [
+         "../rtc_base:win32",
+         "../rtc_base:win32_socket_init",
+diff --git a/examples/androidapp/third_party/autobanh/BUILD.gn b/examples/androidapp/third_party/autobanh/BUILD.gn
+index b671239bae..e545b2cde3 100644
+--- a/examples/androidapp/third_party/autobanh/BUILD.gn
++++ b/examples/androidapp/third_party/autobanh/BUILD.gn
+@@ -7,7 +7,7 @@
+ # be found in the AUTHORS file in the root of the source tree.
  
-   if (frame) {
-@@ -284,6 +294,10 @@ void ScreenCapturerSck::CaptureFrame() {
-                         << " CaptureFrame() -> ERROR_TEMPORARY";
-     callback_->OnCaptureResult(Result::ERROR_TEMPORARY, nullptr);
-   }
-+
-+  if (needs_reconfigure) {
-+    StartOrReconfigureCapturer();
-+  }
+ if (is_android) {
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/rules.gni")
+ 
+   android_java_prebuilt("autobanh_java") {
+     jar_path = "lib/autobanh.jar"
+diff --git a/examples/androidnativeapi/BUILD.gn b/examples/androidnativeapi/BUILD.gn
+index 65ab875893..0e4594ee9d 100644
+--- a/examples/androidnativeapi/BUILD.gn
++++ b/examples/androidnativeapi/BUILD.gn
+@@ -42,8 +42,8 @@ if (is_android) {
+       "jni/onload.cc",
+     ]
+ 
+-    suppressed_configs += [ "//build/config/android:hide_all_but_jni_onload" ]
+-    configs += [ "//build/config/android:hide_all_but_jni" ]
++    suppressed_configs += [ "//chromium/build/config/android:hide_all_but_jni_onload" ]
++    configs += [ "//chromium/build/config/android:hide_all_but_jni" ]
+ 
+     deps = [
+       ":generated_jni",
+diff --git a/examples/androidvoip/BUILD.gn b/examples/androidvoip/BUILD.gn
+index 05bccd7f77..4292004919 100644
+--- a/examples/androidvoip/BUILD.gn
++++ b/examples/androidvoip/BUILD.gn
+@@ -51,8 +51,8 @@ if (is_android) {
+       "jni/onload.cc",
+     ]
+ 
+-    suppressed_configs += [ "//build/config/android:hide_all_but_jni_onload" ]
+-    configs += [ "//build/config/android:hide_all_but_jni" ]
++    suppressed_configs += [ "//chromium/build/config/android:hide_all_but_jni_onload" ]
++    configs += [ "//chromium/build/config/android:hide_all_but_jni" ]
+ 
+     deps = [
+       ":generated_jni",
+diff --git a/logging/BUILD.gn b/logging/BUILD.gn
+index c87d3b2f9a..a4a5889301 100644
+--- a/logging/BUILD.gn
++++ b/logging/BUILD.gn
+@@ -11,8 +11,8 @@ if (rtc_enable_protobuf) {
+   import("//third_party/protobuf/proto_library.gni")
+ }
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
  }
  
- void ScreenCapturerSck::EnsureVisible() {
-@@ -308,6 +322,9 @@ void ScreenCapturerSck::EnsureVisible() {
-     stream = stream_;
-     stream_ = nil;
-     filter_ = nil;
-+    MutexLock lock2(&latest_frame_lock_);
-+    frame_needs_reconfigure_ = false;
-+    frame_reconfigure_img_size_ = std::nullopt;
-   }
-   [stream removeStreamOutput:helper_ type:SCStreamOutputTypeScreen error:nil];
-   [stream stopCaptureWithCompletionHandler:nil];
-@@ -474,13 +491,22 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
-   {
-     MutexLock lock(&latest_frame_lock_);
-     latest_frame_dpi_ = filter.pointPixelScale * kStandardDPI;
-+    if (filter_ != filter) {
-+      frame_reconfigure_img_size_ = std::nullopt;
-+    }
-+    auto sourceImgRect = frame_reconfigure_img_size_.value_or(
-+        CGSizeMake(filter.contentRect.size.width * filter.pointPixelScale,
-+                   filter.contentRect.size.height * filter.pointPixelScale));
-+    config.width = sourceImgRect.width;
-+    config.height = sourceImgRect.height;
-   }
+ group("logging") {
+diff --git a/media/BUILD.gn b/media/BUILD.gn
+index 3b5bf148dc..d404cd381b 100644
+--- a/media/BUILD.gn
++++ b/media/BUILD.gn
+@@ -6,7 +6,7 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
  
-   filter_ = filter;
+-import("//build/config/linux/pkg_config.gni")
++import("//chromium/build/config/linux/pkg_config.gni")
+ import("//libwebrtc/third_party/libaom/options.gni")
+ import("../webrtc.gni")
  
-   if (stream_) {
-     RTC_LOG(LS_INFO) << "ScreenCapturerSck " << this
--                     << " Updating stream configuration.";
-+                     << " Updating stream configuration to size="
-+                     << config.width << "x" << config.height << ".";
-     [stream_ updateContentFilter:filter completionHandler:nil];
-     [stream_ updateConfiguration:config completionHandler:nil];
-   } else {
-@@ -525,21 +551,69 @@ void ScreenCapturerSck::StartWithFilter(SCContentFilter* __strong filter) {
+diff --git a/modules/audio_device/BUILD.gn b/modules/audio_device/BUILD.gn
+index 55c39a530f..bf53fee4d5 100644
+--- a/modules/audio_device/BUILD.gn
++++ b/modules/audio_device/BUILD.gn
+@@ -9,8 +9,8 @@
+ import("../../webrtc.gni")
  
- void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
-                                        NSDictionary* attachment) {
--  RTC_LOG(LS_VERBOSE) << "ScreenCapturerSck " << this << " " << __func__
--                      << " width=" << IOSurfaceGetWidth(io_surface)
--                      << ", height=" << IOSurfaceGetHeight(io_surface) << ".";
--
-+  double scaleFactor = 1;
-+  double contentScale = 1;
-+  CGRect contentRect = {};
-+  CGRect boundingRect = {};
-+  CGRect overlayRect = {};
-   const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
-+  if (auto factor = (NSNumber*)attachment[SCStreamFrameInfoScaleFactor]) {
-+    scaleFactor = [factor floatValue];
-+  }
-+  if (auto scale = (NSNumber*)attachment[SCStreamFrameInfoContentScale]) {
-+    contentScale = [scale floatValue];
-+  }
-+  if (const auto* rectDict =
-+          (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoContentRect]) {
-+    if (!CGRectMakeWithDictionaryRepresentation(rectDict, &contentRect)) {
-+      contentRect = CGRect();
-+    }
-+  }
-+  if (const auto* rectDict =
-+          (__bridge CFDictionaryRef)attachment[SCStreamFrameInfoBoundingRect]) {
-+    if (!CGRectMakeWithDictionaryRepresentation(rectDict, &boundingRect)) {
-+      boundingRect = CGRect();
-+    }
-+  }
-+  if (@available(macOS 14.2, *)) {
-+    if (const auto* rectDict = (__bridge CFDictionaryRef)
-+            attachment[SCStreamFrameInfoPresenterOverlayContentRect]) {
-+      if (!CGRectMakeWithDictionaryRepresentation(rectDict, &overlayRect)) {
-+        overlayRect = CGRect();
-+      }
-+    }
-+  }
-+
-+  auto imgBoundingRect = CGRectMake(scaleFactor * boundingRect.origin.x,
-+                                    scaleFactor * boundingRect.origin.y,
-+                                    scaleFactor * boundingRect.size.width,
-+                                    scaleFactor * boundingRect.size.height);
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
  
-   rtc::ScopedCFTypeRef<IOSurfaceRef> scoped_io_surface(
-       io_surface, rtc::RetainPolicy::RETAIN);
-   std::unique_ptr<DesktopFrameIOSurface> desktop_frame_io_surface =
--      DesktopFrameIOSurface::Wrap(scoped_io_surface);
-+      DesktopFrameIOSurface::Wrap(scoped_io_surface, imgBoundingRect);
-   if (!desktop_frame_io_surface) {
-     RTC_LOG(LS_ERROR) << "Failed to lock IOSurface.";
-     return;
+ config("audio_device_warnings_config") {
+diff --git a/modules/audio_processing/aec3/BUILD.gn b/modules/audio_processing/aec3/BUILD.gn
+index afd80a29cf..2d7a333c9e 100644
+--- a/modules/audio_processing/aec3/BUILD.gn
++++ b/modules/audio_processing/aec3/BUILD.gn
+@@ -124,7 +124,7 @@ rtc_library("aec3") {
+ 
+   defines = []
+   if (rtc_build_with_neon && target_cpu != "arm64") {
+-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+     cflags = [ "-mfpu=neon" ]
    }
  
-+  const size_t width = IOSurfaceGetWidth(io_surface);
-+  const size_t height = IOSurfaceGetHeight(io_surface);
-+
-+  RTC_LOG(LS_VERBOSE) << "ScreenCapturerSck " << this << " " << __func__
-+                      << ". New surface: width=" << width
-+                      << ", height=" << height << ", contentRect="
-+                      << NSStringFromRect(contentRect).UTF8String
-+                      << ", boundingRect="
-+                      << NSStringFromRect(boundingRect).UTF8String
-+                      << ", overlayRect=("
-+                      << NSStringFromRect(overlayRect).UTF8String
-+                      << ", scaleFactor=" << scaleFactor
-+                      << ", contentScale=" << contentScale
-+                      << ". Cropping to rect "
-+                      << NSStringFromRect(imgBoundingRect).UTF8String << ".";
-+
-   std::unique_ptr<SharedDesktopFrame> frame =
-       SharedDesktopFrame::Wrap(std::move(desktop_frame_io_surface));
+diff --git a/modules/audio_processing/aecm/BUILD.gn b/modules/audio_processing/aecm/BUILD.gn
+index a77f04aba5..b0e089d378 100644
+--- a/modules/audio_processing/aecm/BUILD.gn
++++ b/modules/audio_processing/aecm/BUILD.gn
+@@ -31,7 +31,7 @@ rtc_library("aecm_core") {
  
-@@ -575,8 +649,14 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface,
+     if (target_cpu != "arm64") {
+       # Enable compilation for the NEON instruction set.
+-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++      suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+       cflags += [ "-mfpu=neon" ]
+     }
+   }
+diff --git a/modules/audio_processing/agc/BUILD.gn b/modules/audio_processing/agc/BUILD.gn
+index 14b75f1229..626997322e 100644
+--- a/modules/audio_processing/agc/BUILD.gn
++++ b/modules/audio_processing/agc/BUILD.gn
+@@ -86,7 +86,7 @@ rtc_library("legacy_agc") {
+   if (rtc_build_with_neon) {
+     if (target_cpu != "arm64") {
+       # Enable compilation for the NEON instruction set.
+-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++      suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+       cflags = [ "-mfpu=neon" ]
+     }
+   }
+diff --git a/modules/audio_processing/agc2/BUILD.gn b/modules/audio_processing/agc2/BUILD.gn
+index 5da168a292..c37c525f15 100644
+--- a/modules/audio_processing/agc2/BUILD.gn
++++ b/modules/audio_processing/agc2/BUILD.gn
+@@ -255,7 +255,7 @@ rtc_library("vad_wrapper") {
+ 
+   defines = []
+   if (rtc_build_with_neon && current_cpu != "arm64") {
+-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+     cflags = [ "-mfpu=neon" ]
+   }
+ 
+diff --git a/modules/audio_processing/agc2/rnn_vad/BUILD.gn b/modules/audio_processing/agc2/rnn_vad/BUILD.gn
+index 2b265650a0..fd69ef810e 100644
+--- a/modules/audio_processing/agc2/rnn_vad/BUILD.gn
++++ b/modules/audio_processing/agc2/rnn_vad/BUILD.gn
+@@ -19,7 +19,7 @@ rtc_library("rnn_vad") {
+ 
+   defines = []
+   if (rtc_build_with_neon && target_cpu != "arm64") {
+-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+     cflags = [ "-mfpu=neon" ]
+   }
+ 
+@@ -87,7 +87,7 @@ rtc_source_set("rnn_vad_layers") {
+ 
+   defines = []
+   if (rtc_build_with_neon && current_cpu != "arm64") {
+-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+     cflags = [ "-mfpu=neon" ]
+   }
+ 
+@@ -148,7 +148,7 @@ rtc_library("rnn_vad_pitch") {
+ 
+   defines = []
+   if (rtc_build_with_neon && current_cpu != "arm64") {
+-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+     cflags = [ "-mfpu=neon" ]
+   }
+ 
+@@ -271,7 +271,7 @@ if (rtc_include_tests) {
+ 
+     defines = []
+     if (rtc_build_with_neon && current_cpu != "arm64") {
+-      suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++      suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+       cflags = [ "-mfpu=neon" ]
+     }
+ 
+diff --git a/modules/audio_processing/ns/BUILD.gn b/modules/audio_processing/ns/BUILD.gn
+index 6587fd14f3..a3b3be86b6 100644
+--- a/modules/audio_processing/ns/BUILD.gn
++++ b/modules/audio_processing/ns/BUILD.gn
+@@ -44,7 +44,7 @@ rtc_static_library("ns") {
+ 
+   defines = []
+   if (rtc_build_with_neon && target_cpu != "arm64") {
+-    suppressed_configs += [ "//build/config/compiler:compiler_arm_fpu" ]
++    suppressed_configs += [ "//chromium/build/config/compiler:compiler_arm_fpu" ]
+     cflags = [ "-mfpu=neon" ]
+   }
+ 
+diff --git a/modules/desktop_capture/BUILD.gn b/modules/desktop_capture/BUILD.gn
+index d508767753..0e3ea6cec0 100644
+--- a/modules/desktop_capture/BUILD.gn
++++ b/modules/desktop_capture/BUILD.gn
+@@ -6,8 +6,8 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+-import("//build/config/linux/gtk/gtk.gni")
+-import("//build/config/ui.gni")
++import("//chromium/build/config/linux/gtk/gtk.gni")
++import("//chromium/build/config/ui.gni")
+ import("../../webrtc.gni")
+ 
+ use_desktop_capture_differ_sse2 = target_cpu == "x86" || target_cpu == "x64"
+diff --git a/modules/portal/BUILD.gn b/modules/portal/BUILD.gn
+index 4db7816bc4..7993e482f4 100644
+--- a/modules/portal/BUILD.gn
++++ b/modules/portal/BUILD.gn
+@@ -6,7 +6,7 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+-import("//build/config/linux/pkg_config.gni")
++import("//chromium/build/config/linux/pkg_config.gni")
+ import("//tools/generate_stubs/rules.gni")
+ import("../../webrtc.gni")
+ 
+diff --git a/modules/video_coding/BUILD.gn b/modules/video_coding/BUILD.gn
+index 096e1b87ad..695b7dd145 100644
+--- a/modules/video_coding/BUILD.gn
++++ b/modules/video_coding/BUILD.gn
+@@ -6,7 +6,7 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+-import("//build/config/linux/pkg_config.gni")
++import("//chromium/build/config/linux/pkg_config.gni")
+ import("//libwebrtc/third_party/libaom/options.gni")
+ import("../../webrtc.gni")
+ 
+diff --git a/pc/BUILD.gn b/pc/BUILD.gn
+index 1b7ef662d2..3432363e49 100644
+--- a/pc/BUILD.gn
++++ b/pc/BUILD.gn
+@@ -30,8 +30,8 @@
+ 
+ import("../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ if (rtc_build_libsrtp) {
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index 303d51ea03..a88fc71c97 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -9,8 +9,8 @@
+ import("../webrtc.gni")
+ 
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_source_set("protobuf_utils") {
+diff --git a/rtc_base/memory/BUILD.gn b/rtc_base/memory/BUILD.gn
+index 0037851b1f..66a1acc6a7 100644
+--- a/rtc_base/memory/BUILD.gn
++++ b/rtc_base/memory/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_library("aligned_malloc") {
+diff --git a/rtc_base/synchronization/BUILD.gn b/rtc_base/synchronization/BUILD.gn
+index 6b05f5ce1d..e6dca83a70 100644
+--- a/rtc_base/synchronization/BUILD.gn
++++ b/rtc_base/synchronization/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_library("yield") {
+diff --git a/rtc_base/system/BUILD.gn b/rtc_base/system/BUILD.gn
+index 3ca6994c81..f248ce40da 100644
+--- a/rtc_base/system/BUILD.gn
++++ b/rtc_base/system/BUILD.gn
+@@ -8,8 +8,8 @@
+ 
+ import("../../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ rtc_source_set("arch") {
+diff --git a/rtc_tools/network_tester/BUILD.gn b/rtc_tools/network_tester/BUILD.gn
+index 2ad4abd328..c1a19c0cd1 100644
+--- a/rtc_tools/network_tester/BUILD.gn
++++ b/rtc_tools/network_tester/BUILD.gn
+@@ -176,8 +176,8 @@ if (is_android) {
+       "../../rtc_base:threading",
+     ]
+ 
+-    suppressed_configs += [ "//build/config/android:hide_all_but_jni_onload" ]
+-    configs += [ "//build/config/android:hide_all_but_jni" ]
++    suppressed_configs += [ "//chromium/build/config/android:hide_all_but_jni_onload" ]
++    configs += [ "//chromium/build/config/android:hide_all_but_jni" ]
+ 
+     output_extension = "so"
+   }
+diff --git a/sdk/BUILD.gn b/sdk/BUILD.gn
+index 185af67fa6..1a1849d772 100644
+--- a/sdk/BUILD.gn
++++ b/sdk/BUILD.gn
+@@ -9,11 +9,11 @@
+ import("//third_party/libaom/options.gni")
+ import("../webrtc.gni")
+ if (is_ios) {
+-  import("//build/config/ios/ios_sdk.gni")
+-  import("//build/config/ios/rules.gni")
++  import("//chromium/build/config/ios/ios_sdk.gni")
++  import("//chromium/build/config/ios/rules.gni")
+ }
+ if (is_mac) {
+-  import("//build/config/mac/rules.gni")
++  import("//chromium/build/config/mac/rules.gni")
+ }
+ 
+ group("sdk") {
+@@ -64,7 +64,7 @@ if (is_ios || is_mac) {
+     ]
+ 
+     if (use_clang_coverage) {
+-      configs = [ "//build/config/coverage:default_coverage" ]
++      configs = [ "//chromium/build/config/coverage:default_coverage" ]
      }
    }
  
-+  MutexLock lock(&latest_frame_lock_);
-+  if (contentScale > 0 && contentScale < 1) {
-+    frame_needs_reconfigure_ = true;
-+    double scale = 1 / contentScale;
-+    frame_reconfigure_img_size_ =
-+        CGSizeMake(std::ceil(scale * width), std::ceil(scale * height));
-+  }
-   if (dirty) {
--    MutexLock lock(&latest_frame_lock_);
-     frame_is_dirty_ = true;
-     std::swap(latest_frame_, frame);
+@@ -1245,7 +1245,7 @@ if (is_ios || is_mac) {
+           }
+ 
+           public_deps = [
+-            "//build/config/ios:xctest",
++            "//chromium/build/config/ios:xctest",
+             "//third_party/ocmock",
+           ]
+         }
+diff --git a/system_wrappers/BUILD.gn b/system_wrappers/BUILD.gn
+index 786c469689..62e1694729 100644
+--- a/system_wrappers/BUILD.gn
++++ b/system_wrappers/BUILD.gn
+@@ -7,8 +7,8 @@
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ import("../webrtc.gni")
+ 
+diff --git a/test/BUILD.gn b/test/BUILD.gn
+index de26d6abff..f1b470b913 100644
+--- a/test/BUILD.gn
++++ b/test/BUILD.gn
+@@ -6,10 +6,10 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+-import("//build/config/ui.gni")
++import("//chromium/build/config/ui.gni")
+ import("../webrtc.gni")
+ if (is_android) {
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/rules.gni")
+   import("//third_party/jni_zero/jni_zero.gni")
+ }
+ 
+@@ -431,7 +431,7 @@ if (is_ios) {
+     testonly = true
+     visibility = [ "*" ]
+     sources = [ "ios/google_test_runner.mm" ]
+-    configs += [ "//build/config/ios:xctest_config" ]
++    configs += [ "//chromium/build/config/ios:xctest_config" ]
+     frameworks = [ "UIKit.framework" ]
+     deps = [ ":google_test_runner_delegate" ]
    }
+diff --git a/test/fuzzers/BUILD.gn b/test/fuzzers/BUILD.gn
+index 60a9d18b99..08d77f5771 100644
+--- a/test/fuzzers/BUILD.gn
++++ b/test/fuzzers/BUILD.gn
+@@ -6,7 +6,7 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+-import("//build/config/features.gni")
++import("//chromium/build/config/features.gni")
+ import("//testing/libfuzzer/fuzzer_test.gni")
+ import("../../webrtc.gni")
+ 
+@@ -73,7 +73,7 @@ template("webrtc_fuzzer_test") {
+     }
+ 
+     if (!build_with_chromium && is_clang) {
+-      suppressed_configs = [ "//build/config/clang:find_bad_constructs" ]
++      suppressed_configs = [ "//chromium/build/config/clang:find_bad_constructs" ]
+     }
+   }
+ }
+diff --git a/tools/grit/BUILD.gn b/tools/grit/BUILD.gn
+index 1cd3c75b55..a1c5e19021 100644
+--- a/tools/grit/BUILD.gn
++++ b/tools/grit/BUILD.gn
+@@ -6,7 +6,7 @@
+ # directory. By depending on this, a target can force itself to be rebuilt if
+ # grit itself changes.
+ 
+-import("//build/config/sanitizers/sanitizers.gni")
++import("//chromium/build/config/sanitizers/sanitizers.gni")
+ 
+ action("grit_sources") {
+   depfile = "$target_out_dir/grit_sources.d"
+diff --git a/tools/grit/grit_rule.gni b/tools/grit/grit_rule.gni
+index fb107ef1a3..b718fa583d 100644
+--- a/tools/grit/grit_rule.gni
++++ b/tools/grit/grit_rule.gni
+@@ -86,14 +86,14 @@
+ #     # You can also put deps here if the grit source depends on generated
+ #     # files.
+ #   }
+-import("//build/config/chrome_build.gni")
+-import("//build/config/chromeos/ui_mode.gni")
+-import("//build/config/compiler/compiler.gni")
+-import("//build/config/compute_inputs_for_analyze.gni")
+-import("//build/config/crypto.gni")
+-import("//build/config/features.gni")
+-import("//build/config/sanitizers/sanitizers.gni")
+-import("//build/config/ui.gni")
++import("//chromium/build/config/chrome_build.gni")
++import("//chromium/build/config/chromeos/ui_mode.gni")
++import("//chromium/build/config/compiler/compiler.gni")
++import("//chromium/build/config/compute_inputs_for_analyze.gni")
++import("//chromium/build/config/crypto.gni")
++import("//chromium/build/config/features.gni")
++import("//chromium/build/config/sanitizers/sanitizers.gni")
++import("//chromium/build/config/ui.gni")
+ import("//build/toolchain/gcc_toolchain.gni")
+ 
+ declare_args() {
+diff --git a/webrtc.gni b/webrtc.gni
+index 33d81920f4..7e6602dfd7 100644
+--- a/webrtc.gni
++++ b/webrtc.gni
+@@ -5,12 +5,12 @@
+ # tree. An additional intellectual property rights grant can be found
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
+-import("//build/config/arm.gni")
+-import("//build/config/features.gni")
+-import("//build/config/mips.gni")
+-import("//build/config/ozone.gni")
+-import("//build/config/sanitizers/sanitizers.gni")
+-import("//build/config/sysroot.gni")
++import("//chromium/build/config/arm.gni")
++import("//chromium/build/config/features.gni")
++import("//chromium/build/config/mips.gni")
++import("//chromium/build/config/ozone.gni")
++import("//chromium/build/config/sanitizers/sanitizers.gni")
++import("//chromium/build/config/sysroot.gni")
+ import("//libwebrtc/build_overrides/build.gni")
+ 
+ if (!build_with_chromium && is_component_build) {
+@@ -28,20 +28,20 @@ if (!build_with_chromium && is_component_build) {
+ }
+ 
+ if (is_ios) {
+-  import("//build/config/ios/rules.gni")
++  import("//chromium/build/config/ios/rules.gni")
+ }
+ 
+ if (is_mac) {
+-  import("//build/config/mac/rules.gni")
++  import("//chromium/build/config/mac/rules.gni")
+ }
+ 
+ if (is_android) {
+-  import("//build/config/android/config.gni")
+-  import("//build/config/android/rules.gni")
++  import("//chromium/build/config/android/config.gni")
++  import("//chromium/build/config/android/rules.gni")
+ }
+ 
+ if (is_fuchsia) {
+-  import("//build/config/fuchsia/config.gni")
++  import("//chromium/build/config/fuchsia/config.gni")
+ }
+ 
+ if (build_with_chromium) {
+@@ -379,8 +379,8 @@ rtc_common_configs = [ webrtc_root + ":common_config" ]
+ 
+ if (is_mac || is_ios) {
+   if (filter_include(default_compiler_configs,
+-                     [ "//build/config/compiler:enable_arc" ]) == []) {
+-    rtc_common_configs += [ "//build/config/compiler:enable_arc" ]
++                     [ "//chromium/build/config/compiler:enable_arc" ]) == []) {
++    rtc_common_configs += [ "//chromium/build/config/compiler:enable_arc" ]
+   }
+ }
+ 
+@@ -398,7 +398,7 @@ rtc_common_inherited_config = webrtc_root + ":common_inherited_config"
+ # Common configs to remove or add in all rtc targets.
+ rtc_remove_configs = []
+ if (!build_with_chromium && is_clang) {
+-  rtc_remove_configs += [ "//build/config/clang:find_bad_constructs" ]
++  rtc_remove_configs += [ "//chromium/build/config/clang:find_bad_constructs" ]
+ }
+ rtc_add_configs = rtc_common_configs
+ rtc_prod_configs = [ webrtc_root + ":rtc_prod_config" ]

@@ -29,19 +29,19 @@ using webrtc::VideoTrackSource;
 
 class VideoTrackTest : public ::testing::Test {
  public:
-  VideoTrackTest() : frame_source_(640, 480, rtc::kNumMicrosecsPerSec / 30) {
+  VideoTrackTest() : frame_source_(640, 480, webrtc::kNumMicrosecsPerSec / 30) {
     static const char kVideoTrackId[] = "track_id";
     video_track_source_ = rtc::make_ref_counted<FakeVideoTrackSource>(
         /*is_screencast=*/false);
     video_track_ = VideoTrack::Create(kVideoTrackId, video_track_source_,
-                                      rtc::Thread::Current());
+                                      webrtc::Thread::Current());
   }
 
  protected:
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   rtc::scoped_refptr<FakeVideoTrackSource> video_track_source_;
   rtc::scoped_refptr<VideoTrack> video_track_;
-  cricket::FakeFrameSource frame_source_;
+  webrtc::FakeFrameSource frame_source_;
 };
 
 // VideoTrack::Create will create an API proxy around the source object.

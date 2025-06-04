@@ -20,7 +20,7 @@
 #include "rtc_base/virtual_socket_server.h"
 #include "test/gtest.h"
 
-namespace rtc {
+namespace webrtc {
 
 static const SocketAddress kAddr("22.22.22.22", 0);
 
@@ -52,4 +52,4 @@ TEST(AsyncUDPSocketTest, SetSocketOptionIfEctChange) {
   EXPECT_EQ(ect, 0);
 }
 
-}  // namespace rtc
+}  // namespace webrtc

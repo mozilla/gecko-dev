@@ -56,7 +56,6 @@ void AcmReceiveTestOldApi::RegisterDefaultCodecs() {
                      {110, {"PCMU", 8000, 2}},
                      {8, {"PCMA", 8000, 1}},
                      {118, {"PCMA", 8000, 2}},
-                     {102, {"ILBC", 8000, 1}},
                      {9, {"G722", 8000, 1}},
                      {119, {"G722", 8000, 2}},
                      {120, {"OPUS", 48000, 2, {{"stereo", "1"}}}},

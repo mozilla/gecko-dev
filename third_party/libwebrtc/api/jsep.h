@@ -27,16 +27,14 @@
 #include <string>
 #include <vector>
 
+#include "api/candidate.h"
 #include "api/ref_count.h"
 #include "api/rtc_error.h"
 #include "rtc_base/system/rtc_export.h"
 
-namespace cricket {
-class Candidate;
-class SessionDescription;
-}  // namespace cricket
-
 namespace webrtc {
+
+class SessionDescription;
 
 struct SdpParseError {
  public:
@@ -62,7 +60,7 @@ class RTC_EXPORT IceCandidateInterface {
   // is associated with. Needed when an endpoint doesn't support MIDs.
   virtual int sdp_mline_index() const = 0;
   // Only for use internally.
-  virtual const cricket::Candidate& candidate() const = 0;
+  virtual const Candidate& candidate() const = 0;
   // The URL of the ICE server which this candidate was gathered from.
   // TODO(zhihuang): Remove the default implementation once the subclasses
   // implement this method.
@@ -83,7 +81,7 @@ RTC_EXPORT IceCandidateInterface* CreateIceCandidate(const std::string& sdp_mid,
 RTC_EXPORT std::unique_ptr<IceCandidateInterface> CreateIceCandidate(
     const std::string& sdp_mid,
     int sdp_mline_index,
-    const cricket::Candidate& candidate);
+    const Candidate& candidate);
 
 // This class represents a collection of candidates for a specific m= section.
 // Used in SessionDescriptionInterface.
@@ -144,8 +142,8 @@ class RTC_EXPORT SessionDescriptionInterface {
   }
 
   // Only for use internally.
-  virtual cricket::SessionDescription* description() = 0;
-  virtual const cricket::SessionDescription* description() const = 0;
+  virtual SessionDescription* description() = 0;
+  virtual const SessionDescription* description() const = 0;
 
   // Get the session id and session version, which are defined based on
   // RFC 4566 for the SDP o= line.
@@ -174,8 +172,7 @@ class RTC_EXPORT SessionDescriptionInterface {
   // Removes the candidates from the description, if found.
   //
   // Returns the number of candidates removed.
-  virtual size_t RemoveCandidates(
-      const std::vector<cricket::Candidate>& candidates);
+  virtual size_t RemoveCandidates(const std::vector<Candidate>& candidates);
 
   // Returns the number of m= sections in the session description.
   virtual size_t number_of_mediasections() const = 0;
@@ -231,7 +228,7 @@ std::unique_ptr<SessionDescriptionInterface> CreateSessionDescription(
     SdpType type,
     const std::string& session_id,
     const std::string& session_version,
-    std::unique_ptr<cricket::SessionDescription> description);
+    std::unique_ptr<SessionDescription> description);
 
 // CreateOffer and CreateAnswer callback interface.
 class RTC_EXPORT CreateSessionDescriptionObserver

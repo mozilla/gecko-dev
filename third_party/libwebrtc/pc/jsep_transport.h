@@ -83,7 +83,7 @@ class JsepTransport {
   // description may be set before a local certificate is generated.
   JsepTransport(
       const std::string& mid,
-      const rtc::scoped_refptr<rtc::RTCCertificate>& local_certificate,
+      const rtc::scoped_refptr<webrtc::RTCCertificate>& local_certificate,
       rtc::scoped_refptr<webrtc::IceTransportInterface> ice_transport,
       rtc::scoped_refptr<webrtc::IceTransportInterface> rtcp_ice_transport,
       std::unique_ptr<webrtc::RtpTransport> unencrypted_rtp_transport,
@@ -106,13 +106,13 @@ class JsepTransport {
   // Must be called before applying local session description.
   // Needed in order to verify the local fingerprint.
   void SetLocalCertificate(
-      const rtc::scoped_refptr<rtc::RTCCertificate>& local_certificate) {
+      const rtc::scoped_refptr<webrtc::RTCCertificate>& local_certificate) {
     RTC_DCHECK_RUN_ON(network_thread_);
     local_certificate_ = local_certificate;
   }
 
   // Return the local certificate provided by SetLocalCertificate.
-  rtc::scoped_refptr<rtc::RTCCertificate> GetLocalCertificate() const {
+  rtc::scoped_refptr<webrtc::RTCCertificate> GetLocalCertificate() const {
     RTC_DCHECK_RUN_ON(network_thread_);
     return local_certificate_;
   }
@@ -145,7 +145,7 @@ class JsepTransport {
 
   // Returns role if negotiated, or empty std::optional if it hasn't been
   // negotiated yet.
-  std::optional<rtc::SSLRole> GetDtlsRole() const;
+  std::optional<webrtc::SSLRole> GetDtlsRole() const;
 
   bool GetStats(TransportStats* stats) const;
 
@@ -224,7 +224,7 @@ class JsepTransport {
   // Returns an error if the certificate's identity does not match the
   // fingerprint, or either is NULL.
   webrtc::RTCError VerifyCertificateFingerprint(
-      const rtc::RTCCertificate* certificate,
+      const webrtc::RTCCertificate* certificate,
       const rtc::SSLFingerprint* fingerprint) const;
 
   void SetActiveResetSrtpParams(bool active_reset_srtp_params);
@@ -233,7 +233,7 @@ class JsepTransport {
   // This is used to store info needed when generating subsequent SDP.
   webrtc::RTCError RecordPayloadTypes(bool local,
                                       webrtc::SdpType type,
-                                      const ContentInfo& content);
+                                      const webrtc::ContentInfo& content);
 
   const webrtc::PayloadTypeRecorder& remote_payload_types() const {
     return remote_payload_types_;
@@ -251,7 +251,9 @@ class JsepTransport {
   }
 
  private:
-  bool SetRtcpMux(bool enable, webrtc::SdpType type, ContentSource source);
+  bool SetRtcpMux(bool enable,
+                  webrtc::SdpType type,
+                  webrtc::ContentSource source);
 
   void ActivateRtcpMux() RTC_RUN_ON(network_thread_);
 
@@ -270,16 +272,16 @@ class JsepTransport {
       webrtc::SdpType local_description_type,
       ConnectionRole local_connection_role,
       ConnectionRole remote_connection_role,
-      std::optional<rtc::SSLRole>* negotiated_dtls_role);
+      std::optional<webrtc::SSLRole>* negotiated_dtls_role);
 
   // Pushes down the ICE parameters from the remote description.
   void SetRemoteIceParameters(const IceParameters& ice_parameters,
-                              IceTransportInternal* ice);
+                              webrtc::IceTransportInternal* ice);
 
   // Pushes down the DTLS parameters obtained via negotiation.
   static webrtc::RTCError SetNegotiatedDtlsParameters(
       DtlsTransportInternal* dtls_transport,
-      std::optional<rtc::SSLRole> dtls_role,
+      std::optional<webrtc::SSLRole> dtls_role,
       rtc::SSLFingerprint* remote_fingerprint);
 
   bool GetTransportStats(DtlsTransportInternal* dtls_transport,
@@ -287,11 +289,11 @@ class JsepTransport {
                          TransportStats* stats) const;
 
   // Owning thread, for safety checks
-  const rtc::Thread* const network_thread_;
+  const webrtc::Thread* const network_thread_;
   const std::string mid_;
   // needs-ice-restart bit as described in JSEP.
   bool needs_ice_restart_ RTC_GUARDED_BY(network_thread_) = false;
-  rtc::scoped_refptr<rtc::RTCCertificate> local_certificate_
+  rtc::scoped_refptr<webrtc::RTCCertificate> local_certificate_
       RTC_GUARDED_BY(network_thread_);
   std::unique_ptr<JsepTransportDescription> local_description_
       RTC_GUARDED_BY(network_thread_);

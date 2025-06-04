@@ -114,7 +114,7 @@ bool LayerFilteringTransport::SendRtp(rtc::ArrayView<const uint8_t> packet,
       bool end_of_frame;
 
       if (is_vp8) {
-        temporal_idx = absl::get<RTPVideoHeaderVP8>(
+        temporal_idx = std::get<RTPVideoHeaderVP8>(
                            parsed_payload->video_header.video_type_header)
                            .temporalIdx;
         spatial_idx = kNoSpatialIdx;
@@ -122,7 +122,7 @@ bool LayerFilteringTransport::SendRtp(rtc::ArrayView<const uint8_t> packet,
         non_ref_for_inter_layer_pred = false;
         end_of_frame = true;
       } else {
-        const auto& vp9_header = absl::get<RTPVideoHeaderVP9>(
+        const auto& vp9_header = std::get<RTPVideoHeaderVP9>(
             parsed_payload->video_header.video_type_header);
         temporal_idx = vp9_header.temporal_idx;
         spatial_idx = vp9_header.spatial_idx;

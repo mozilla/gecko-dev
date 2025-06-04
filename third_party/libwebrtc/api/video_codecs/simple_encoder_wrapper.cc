@@ -17,11 +17,11 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
 #include "api/units/data_size.h"
@@ -198,7 +198,7 @@ void SimpleEncoderWrapper::Encode(
 
       void EncodeComplete(
           const VideoEncoderInterface::EncodeResult& result) override {
-        auto* data = absl::get_if<VideoEncoderInterface::EncodedData>(&result);
+        auto* data = std::get_if<VideoEncoderInterface::EncodedData>(&result);
 
         SimpleEncoderWrapper::EncodeResult res;
         if (!data) {

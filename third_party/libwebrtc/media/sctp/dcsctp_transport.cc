@@ -28,6 +28,7 @@
 #include "api/environment/environment.h"
 #include "api/priority.h"
 #include "api/rtc_error.h"
+#include "api/sctp_transport_interface.h"
 #include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/transport/data_channel_transport_interface.h"
@@ -133,7 +134,7 @@ bool IsEmptyPPID(dcsctp::PPID ppid) {
 }  // namespace
 
 DcSctpTransport::DcSctpTransport(const Environment& env,
-                                 rtc::Thread* network_thread,
+                                 Thread* network_thread,
                                  cricket::DtlsTransportInternal* transport)
     : DcSctpTransport(env,
                       network_thread,
@@ -142,7 +143,7 @@ DcSctpTransport::DcSctpTransport(const Environment& env,
 
 DcSctpTransport::DcSctpTransport(
     const Environment& env,
-    rtc::Thread* network_thread,
+    Thread* network_thread,
     cricket::DtlsTransportInternal* transport,
     std::unique_ptr<dcsctp::DcSctpSocketFactory> socket_factory)
     : network_thread_(network_thread),
@@ -192,29 +193,27 @@ void DcSctpTransport::SetDtlsTransport(
   MaybeConnectSocket();
 }
 
-bool DcSctpTransport::Start(int local_sctp_port,
-                            int remote_sctp_port,
-                            int max_message_size) {
+bool DcSctpTransport::Start(const SctpOptions& options) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  RTC_DCHECK(max_message_size > 0);
-  RTC_DLOG(LS_INFO) << debug_name_ << "->Start(local=" << local_sctp_port
-                    << ", remote=" << remote_sctp_port
-                    << ", max_message_size=" << max_message_size << ")";
+  RTC_DCHECK(options.max_message_size > 0);
+  RTC_DLOG(LS_INFO) << debug_name_ << "->Start(local=" << options.local_port
+                    << ", remote=" << options.remote_port
+                    << ", max_message_size=" << options.max_message_size << ")";
 
   if (!socket_) {
-    dcsctp::DcSctpOptions options;
-    options.local_port = local_sctp_port;
-    options.remote_port = remote_sctp_port;
-    options.max_message_size = max_message_size;
-    options.max_timer_backoff_duration = kMaxTimerBackoffDuration;
+    dcsctp::DcSctpOptions dcsctp_options;
+    dcsctp_options.local_port = options.local_port;
+    dcsctp_options.remote_port = options.remote_port;
+    dcsctp_options.max_message_size = options.max_message_size;
+    dcsctp_options.max_timer_backoff_duration = kMaxTimerBackoffDuration;
     // Don't close the connection automatically on too many retransmissions.
-    options.max_retransmissions = std::nullopt;
-    options.max_init_retransmits = std::nullopt;
-    options.per_stream_send_queue_limit =
+    dcsctp_options.max_retransmissions = std::nullopt;
+    dcsctp_options.max_init_retransmits = std::nullopt;
+    dcsctp_options.per_stream_send_queue_limit =
         DataChannelInterface::MaxSendQueueSize();
     // This is just set to avoid denial-of-service. Practically unlimited.
-    options.max_send_buffer_size = std::numeric_limits<size_t>::max();
-    options.enable_message_interleaving =
+    dcsctp_options.max_send_buffer_size = std::numeric_limits<size_t>::max();
+    dcsctp_options.enable_message_interleaving =
         env_.field_trials().IsEnabled("WebRTC-DataChannelMessageInterleaving");
 
     std::unique_ptr<dcsctp::PacketObserver> packet_observer;
@@ -223,18 +222,18 @@ bool DcSctpTransport::Start(int local_sctp_port,
           std::make_unique<dcsctp::TextPcapPacketObserver>(debug_name_);
     }
 
-    socket_ = socket_factory_->Create(debug_name_, *this,
-                                      std::move(packet_observer), options);
+    socket_ = socket_factory_->Create(
+        debug_name_, *this, std::move(packet_observer), dcsctp_options);
   } else {
-    if (local_sctp_port != socket_->options().local_port ||
-        remote_sctp_port != socket_->options().remote_port) {
+    if (options.local_port != socket_->options().local_port ||
+        options.remote_port != socket_->options().remote_port) {
       RTC_LOG(LS_ERROR)
-          << debug_name_ << "->Start(local=" << local_sctp_port
-          << ", remote=" << remote_sctp_port
+          << debug_name_ << "->Start(local=" << options.local_port
+          << ", remote=" << options.remote_port
           << "): Can't change ports on already started transport.";
       return false;
     }
-    socket_->SetMaxMessageSize(max_message_size);
+    socket_->SetMaxMessageSize(options.max_message_size);
   }
 
   MaybeConnectSocket();
@@ -376,11 +375,11 @@ RTCError DcSctpTransport::SendData(int sid,
       ready_to_send_data_ = false;
       return RTCError(RTCErrorType::RESOURCE_EXHAUSTED);
     default:
-      absl::string_view message = dcsctp::ToString(error);
+      absl::string_view error_message = dcsctp::ToString(error);
       RTC_LOG(LS_ERROR) << debug_name_
                         << "->SendData(...): send() failed with error "
-                        << message << ".";
-      return RTCError(RTCErrorType::NETWORK_ERROR, message);
+                        << error_message << ".";
+      return RTCError(RTCErrorType::NETWORK_ERROR, error_message);
   }
 }
 
@@ -462,7 +461,7 @@ SendPacketStatus DcSctpTransport::SendPacketWithStatus(
                         << ") failed with error: " << transport_->GetError()
                         << ".";
 
-    if (rtc::IsBlockingError(transport_->GetError())) {
+    if (IsBlockingError(transport_->GetError())) {
       return SendPacketStatus::kTemporaryFailure;
     }
     return SendPacketStatus::kError;
@@ -722,7 +721,10 @@ void DcSctpTransport::OnDtlsTransportState(
     RTC_DLOG(LS_INFO) << debug_name_ << " DTLS restart";
     dcsctp::DcSctpOptions options = socket_->options();
     socket_.reset();
-    Start(options.local_port, options.remote_port, options.max_message_size);
+    RTC_DCHECK_LE(options.max_message_size, kSctpSendBufferSize);
+    Start({.local_port = options.local_port,
+           .remote_port = options.remote_port,
+           .max_message_size = static_cast<int>(options.max_message_size)});
   }
 }
 

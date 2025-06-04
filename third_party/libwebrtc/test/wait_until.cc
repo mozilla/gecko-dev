@@ -10,8 +10,9 @@
 
 #include "test/wait_until.h"
 
+#include <variant>
+
 #include "absl/functional/overload.h"
-#include "absl/types/variant.h"
 #include "api/test/time_controller.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -23,11 +24,9 @@ namespace webrtc {
 namespace wait_until_internal {
 
 Timestamp GetTimeFromClockVariant(const ClockVariant& clock) {
-  return absl::visit(
+  return std::visit(
       absl::Overload{
-          [](const absl::monostate&) {
-            return Timestamp::Micros(rtc::TimeMicros());
-          },
+          [](const std::monostate&) { return Timestamp::Micros(TimeMicros()); },
           [](SimulatedClock* clock) { return clock->CurrentTime(); },
           [](TimeController* time_controller) {
             return time_controller->GetClock()->CurrentTime();
@@ -40,14 +39,14 @@ Timestamp GetTimeFromClockVariant(const ClockVariant& clock) {
 }
 
 void AdvanceTimeOnClockVariant(ClockVariant& clock, TimeDelta delta) {
-  absl::visit(absl::Overload{
-                  [&](const absl::monostate&) {
-                    rtc::Thread::Current()->ProcessMessages(0);
-                    rtc::Thread::Current()->SleepMs(delta.ms());
-                  },
-                  [&](auto* clock) { clock->AdvanceTime(delta); },
-              },
-              clock);
+  std::visit(absl::Overload{
+                 [&](const std::monostate&) {
+                   Thread::Current()->ProcessMessages(0);
+                   Thread::Current()->SleepMs(delta.ms());
+                 },
+                 [&](auto* clock) { clock->AdvanceTime(delta); },
+             },
+             clock);
 }
 
 }  // namespace wait_until_internal

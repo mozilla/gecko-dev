@@ -80,7 +80,7 @@ class RtpDependencyDescriptorWriter {
   const DependencyDescriptor& descriptor_;
   const FrameDependencyStructure& structure_;
   std::bitset<32> active_chains_;
-  rtc::BitBufferWriter bit_writer_;
+  BitBufferWriter bit_writer_;
   TemplateMatch best_template_;
 };
 

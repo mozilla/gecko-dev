@@ -37,9 +37,8 @@ class VideoRtpReceiverTest : public testing::Test {
  protected:
   class MockVideoMediaSendChannel : public cricket::FakeVideoMediaSendChannel {
    public:
-    MockVideoMediaSendChannel(
-        const cricket::VideoOptions& options,
-        TaskQueueBase* network_thread = rtc::Thread::Current())
+    MockVideoMediaSendChannel(const cricket::VideoOptions& options,
+                              TaskQueueBase* network_thread = Thread::Current())
         : FakeVideoMediaSendChannel(options, network_thread) {}
     MOCK_METHOD(void,
                 GenerateSendKeyFrame,
@@ -52,7 +51,7 @@ class VideoRtpReceiverTest : public testing::Test {
    public:
     MockVideoMediaReceiveChannel(
         const cricket::VideoOptions& options,
-        TaskQueueBase* network_thread = rtc::Thread::Current())
+        TaskQueueBase* network_thread = Thread::Current())
         : FakeVideoMediaReceiveChannel(options, network_thread) {}
     MOCK_METHOD(void,
                 SetRecordableEncodedFrameCallback,
@@ -71,7 +70,7 @@ class VideoRtpReceiverTest : public testing::Test {
   };
 
   VideoRtpReceiverTest()
-      : worker_thread_(rtc::Thread::Create()),
+      : worker_thread_(Thread::Create()),
         channel_(cricket::VideoOptions()),
         receiver_(rtc::make_ref_counted<VideoRtpReceiver>(
             worker_thread_.get(),
@@ -98,8 +97,8 @@ class VideoRtpReceiverTest : public testing::Test {
     return receiver_->streams()[0]->FindVideoTrack("receiver")->GetSource();
   }
 
-  rtc::AutoThread main_thread_;
-  std::unique_ptr<rtc::Thread> worker_thread_;
+  AutoThread main_thread_;
+  std::unique_ptr<Thread> worker_thread_;
   NiceMock<MockVideoMediaReceiveChannel> channel_;
   rtc::scoped_refptr<VideoRtpReceiver> receiver_;
 };

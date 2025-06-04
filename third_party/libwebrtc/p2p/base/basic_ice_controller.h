@@ -12,22 +12,32 @@
 #define P2P_BASE_BASIC_ICE_CONTROLLER_H_
 
 #include <algorithm>
+#include <cstdint>
+#include <functional>
 #include <map>
+#include <optional>
 #include <set>
-#include <utility>
 #include <vector>
 
+#include "api/array_view.h"
+#include "p2p/base/connection.h"
 #include "p2p/base/ice_controller_factory_interface.h"
 #include "p2p/base/ice_controller_interface.h"
+#include "p2p/base/ice_switch_reason.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/p2p_constants.h"
+#include "p2p/base/transport_description.h"
+#include "rtc_base/network.h"
+#include "rtc_base/network_constants.h"
 
 namespace cricket {
 
 class BasicIceController : public IceControllerInterface {
  public:
-  explicit BasicIceController(const IceControllerFactoryArgs& args);
+  explicit BasicIceController(const webrtc::IceControllerFactoryArgs& args);
   virtual ~BasicIceController();
 
-  void SetIceConfig(const IceConfig& config) override;
+  void SetIceConfig(const webrtc::IceConfig& config) override;
   void SetSelectedConnection(const Connection* selected_connection) override;
   void AddConnection(const Connection* connection) override;
   void OnConnectionDestroyed(const Connection* connection) override;
@@ -45,7 +55,7 @@ class BasicIceController : public IceControllerInterface {
   PingResult SelectConnectionToPing(int64_t last_ping_sent_ms) override;
 
   bool GetUseCandidateAttr(const Connection* conn,
-                           NominationMode mode,
+                           webrtc::NominationMode mode,
                            IceMode remote_ice_mode) const override;
 
   SwitchResult ShouldSwitchConnection(IceSwitchReason reason,
@@ -112,7 +122,7 @@ class BasicIceController : public IceControllerInterface {
   int CompareCandidatePairNetworks(
       const Connection* a,
       const Connection* b,
-      std::optional<rtc::AdapterType> network_preference) const;
+      std::optional<webrtc::AdapterType> network_preference) const;
 
   // The methods below return a positive value if `a` is preferable to `b`,
   // a negative value if `b` is preferable, and 0 if they're equally preferable.
@@ -145,7 +155,7 @@ class BasicIceController : public IceControllerInterface {
   std::function<IceRole()> ice_role_func_;
   std::function<bool(const Connection*)> is_connection_pruned_func_;
 
-  IceConfig config_;
+  webrtc::IceConfig config_;
   const IceFieldTrials* field_trials_;
 
   // `connections_` is a sorted list with the first one always be the

@@ -21,7 +21,7 @@
 #include "rtc_base/network/received_packet.h"
 #include "rtc_base/synchronization/mutex.h"
 
-namespace rtc {
+namespace webrtc {
 
 // A simple client that can send TCP or UDP data and check that it receives
 // what it expects to receive. Useful for testing server functionality.
@@ -34,7 +34,7 @@ class TestClient : public sigslot::has_slots<> {
 
     SocketAddress addr;
     Buffer buf;
-    std::optional<webrtc::Timestamp> packet_time;
+    std::optional<Timestamp> packet_time;
   };
 
   // Default timeout for NextPacket reads.
@@ -98,17 +98,23 @@ class TestClient : public sigslot::has_slots<> {
   void OnPacket(AsyncPacketSocket* socket,
                 const rtc::ReceivedPacket& received_packet);
   void OnReadyToSend(AsyncPacketSocket* socket);
-  bool CheckTimestamp(std::optional<webrtc::Timestamp> packet_timestamp);
+  bool CheckTimestamp(std::optional<Timestamp> packet_timestamp);
   void AdvanceTime(int ms);
 
   ThreadProcessingFakeClock* fake_clock_ = nullptr;
-  webrtc::Mutex mutex_;
+  Mutex mutex_;
   std::unique_ptr<AsyncPacketSocket> socket_;
   std::vector<std::unique_ptr<Packet>> packets_;
   int ready_to_send_count_ = 0;
-  std::optional<webrtc::Timestamp> prev_packet_timestamp_;
+  std::optional<Timestamp> prev_packet_timestamp_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::TestClient;
 }  // namespace rtc
 
 #endif  // RTC_BASE_TEST_CLIENT_H_

@@ -67,7 +67,7 @@ class IceServerParsingTest : public ::testing::Test {
 
  protected:
   cricket::ServerAddresses stun_servers_;
-  std::vector<cricket::RelayServerConfig> turn_servers_;
+  std::vector<RelayServerConfig> turn_servers_;
 };
 
 // Make sure all STUN/TURN prefixes are parsed correctly.
@@ -90,7 +90,7 @@ TEST_F(IceServerParsingTest, ParseStunPrefixes) {
   EXPECT_EQ(1U, turn_servers_.size());
   EXPECT_EQ(cricket::PROTO_TLS, turn_servers_[0].ports[0].proto);
   EXPECT_TRUE(turn_servers_[0].tls_cert_policy ==
-              cricket::TlsCertPolicy::TLS_CERT_POLICY_SECURE);
+              TlsCertPolicy::TLS_CERT_POLICY_SECURE);
 
   EXPECT_TRUE(ParseUrl(
       "turns:hostname", "username", "password",
@@ -98,7 +98,7 @@ TEST_F(IceServerParsingTest, ParseStunPrefixes) {
   EXPECT_EQ(0U, stun_servers_.size());
   EXPECT_EQ(1U, turn_servers_.size());
   EXPECT_TRUE(turn_servers_[0].tls_cert_policy ==
-              cricket::TlsCertPolicy::TLS_CERT_POLICY_INSECURE_NO_CHECK);
+              TlsCertPolicy::TLS_CERT_POLICY_INSECURE_NO_CHECK);
   EXPECT_EQ(cricket::PROTO_TLS, turn_servers_[0].ports[0].proto);
 
   // invalid prefixes
@@ -166,7 +166,7 @@ TEST_F(IceServerParsingTest, ParseHostnameAndPort) {
                PeerConnectionInterface::TlsCertPolicy::kTlsCertPolicySecure,
                "hostname"));
   EXPECT_EQ(1U, turn_servers_.size());
-  rtc::SocketAddress address = turn_servers_[0].ports[0].address;
+  SocketAddress address = turn_servers_[0].ports[0].address;
   EXPECT_EQ("hostname", address.hostname());
   EXPECT_EQ(1234, address.port());
   EXPECT_FALSE(address.IsUnresolvedIP());

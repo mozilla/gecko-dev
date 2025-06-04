@@ -22,7 +22,7 @@
 #include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Simulates UDP semantics over TCP.  Send and Recv packet sizes
 // are preserved, and drops packets silently on Send, rather than
@@ -112,7 +112,7 @@ class AsyncTcpListenSocket : public AsyncListenSocket {
   State GetState() const override;
   SocketAddress GetLocalAddress() const override;
 
-  virtual void HandleIncomingConnection(rtc::Socket* socket);
+  virtual void HandleIncomingConnection(Socket* socket);
 
  private:
   // Called by the underlying socket
@@ -121,6 +121,14 @@ class AsyncTcpListenSocket : public AsyncListenSocket {
   std::unique_ptr<Socket> socket_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::AsyncTcpListenSocket;
+using ::webrtc::AsyncTCPSocket;
+using ::webrtc::AsyncTCPSocketBase;
 }  // namespace rtc
 
 #endif  // RTC_BASE_ASYNC_TCP_SOCKET_H_

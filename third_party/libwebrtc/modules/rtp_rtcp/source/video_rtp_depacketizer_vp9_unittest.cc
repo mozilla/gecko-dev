@@ -79,7 +79,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseBasicHeader) {
   expected.beginning_of_frame = true;
   expected.end_of_frame = true;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 }
 
 TEST(VideoRtpDepacketizerVp9Test, ParseOneBytePictureId) {
@@ -96,7 +96,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseOneBytePictureId) {
   expected.picture_id = kMaxOneBytePictureId;
   expected.max_picture_id = kMaxOneBytePictureId;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 }
 
 TEST(VideoRtpDepacketizerVp9Test, ParseTwoBytePictureId) {
@@ -114,7 +114,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseTwoBytePictureId) {
   expected.picture_id = kMaxTwoBytePictureId;
   expected.max_picture_id = kMaxTwoBytePictureId;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 }
 
 TEST(VideoRtpDepacketizerVp9Test, ParseLayerInfoWithNonFlexibleMode) {
@@ -142,7 +142,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseLayerInfoWithNonFlexibleMode) {
   expected.inter_layer_predicted = kDbit ? true : false;
   expected.tl0_pic_idx = kTl0PicIdx;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 }
 
 TEST(VideoRtpDepacketizerVp9Test, ParseLayerInfoWithFlexibleMode) {
@@ -169,7 +169,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseLayerInfoWithFlexibleMode) {
   expected.spatial_idx = kSpatialIdx;
   expected.inter_layer_predicted = kDbit ? true : false;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 }
 
 TEST(VideoRtpDepacketizerVp9Test, ParseRefIdx) {
@@ -209,7 +209,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseRefIdx) {
   expected.ref_picture_id[1] = 0x7FFF;
   expected.ref_picture_id[2] = 32658;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 }
 
 TEST(VideoRtpDepacketizerVp9Test, ParseRefIdxFailsWithNoPictureId) {
@@ -267,7 +267,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseSsData) {
   expected.gof.num_ref_pics[1] = 1;
   expected.gof.pid_diff[1][0] = 33;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 }
 
 TEST(VideoRtpDepacketizerVp9Test, ParseFirstPacketInKeyFrame) {
@@ -342,7 +342,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseNonRefForInterLayerPred) {
   expected.beginning_of_frame = true;
   expected.non_ref_for_inter_layer_pred = false;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 
   packet[0] = 0x05;  // I:0 P:0 L:0 F:0 B:0 E:1 V:0 Z:1
   VideoRtpDepacketizerVp9::ParseRtpPayload(packet, &video_header);
@@ -351,7 +351,7 @@ TEST(VideoRtpDepacketizerVp9Test, ParseNonRefForInterLayerPred) {
   expected.end_of_frame = true;
   expected.non_ref_for_inter_layer_pred = true;
   VerifyHeader(expected,
-               absl::get<RTPVideoHeaderVP9>(video_header.video_type_header));
+               std::get<RTPVideoHeaderVP9>(video_header.video_type_header));
 }
 
 TEST(VideoRtpDepacketizerVp9Test, ReferencesInputCopyOnWriteBuffer) {

@@ -11,14 +11,16 @@
 #ifndef P2P_BASE_ICE_CONTROLLER_INTERFACE_H_
 #define P2P_BASE_ICE_CONTROLLER_INTERFACE_H_
 
+#include <cstdint>
 #include <optional>
 #include <string>
-#include <utility>
 #include <vector>
 
+#include "api/array_view.h"
 #include "p2p/base/connection.h"
 #include "p2p/base/ice_switch_reason.h"
 #include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/transport_description.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/system/rtc_export.h"
 
@@ -96,7 +98,7 @@ class IceControllerInterface {
   virtual ~IceControllerInterface() = default;
 
   // These setters are called when the state of P2PTransportChannel is mutated.
-  virtual void SetIceConfig(const IceConfig& config) = 0;
+  virtual void SetIceConfig(const webrtc::IceConfig& config) = 0;
   virtual void SetSelectedConnection(const Connection* selected_connection) = 0;
   virtual void AddConnection(const Connection* connection) = 0;
   virtual void OnConnectionDestroyed(const Connection* connection) = 0;
@@ -124,7 +126,7 @@ class IceControllerInterface {
 
   // Compute the "STUN_ATTR_USE_CANDIDATE" for `conn`.
   virtual bool GetUseCandidateAttr(const Connection* conn,
-                                   NominationMode mode,
+                                   webrtc::NominationMode mode,
                                    IceMode remote_ice_mode) const = 0;
 
   // These methods is only added to not have to change all unit tests

@@ -13,10 +13,10 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "absl/strings/string_view.h"
-#include "absl/types/variant.h"
 #include "api/async_dns_resolver.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
@@ -30,9 +30,9 @@
 #include "api/rtc_event_log/rtc_event_log_factory_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/test/frame_generator_interface.h"
-#include "api/test/network_emulation_manager.h"
 #include "api/test/pclf/media_configuration.h"
 #include "api/test/pclf/media_quality_test_params.h"
+#include "api/test/peer_network_dependencies.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/transport/network_control.h"
 #include "api/video_codecs/video_decoder_factory.h"
@@ -47,10 +47,10 @@ namespace webrtc_pc_e2e {
 class PeerConfigurer {
  public:
   using VideoSource =
-      absl::variant<std::unique_ptr<test::FrameGeneratorInterface>,
-                    CapturingDeviceIndex>;
+      std::variant<std::unique_ptr<test::FrameGeneratorInterface>,
+                   CapturingDeviceIndex>;
 
-  explicit PeerConfigurer(EmulatedNetworkManagerInterface& network);
+  explicit PeerConfigurer(PeerNetworkDependencies& network);
 
   // Sets peer name that will be used to report metrics related to this peer.
   // If not set, some default name will be assigned. All names have to be
@@ -93,7 +93,7 @@ class PeerConfigurer {
       std::unique_ptr<webrtc::AsyncDnsResolverFactoryInterface>
           async_dns_resolver_factory);
   PeerConfigurer* SetRTCCertificateGenerator(
-      std::unique_ptr<rtc::RTCCertificateGeneratorInterface> cert_generator);
+      std::unique_ptr<RTCCertificateGeneratorInterface> cert_generator);
   PeerConfigurer* SetSSLCertificateVerifier(
       std::unique_ptr<rtc::SSLCertificateVerifier> tls_cert_verifier);
   PeerConfigurer* SetIceTransportFactory(

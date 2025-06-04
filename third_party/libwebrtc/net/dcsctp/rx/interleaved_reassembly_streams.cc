@@ -273,16 +273,16 @@ void InterleavedReassemblyStreams::RestoreFromState(
   // Validate that the component is in pristine state.
   RTC_DCHECK(streams_.empty());
 
-  for (const DcSctpSocketHandoverState::OrderedStream& state :
+  for (const DcSctpSocketHandoverState::OrderedStream& stream_state :
        state.rx.ordered_streams) {
-    FullStreamId stream_id(IsUnordered(false), StreamID(state.id));
+    FullStreamId stream_id(IsUnordered(false), StreamID(stream_state.id));
     streams_.emplace(
         std::piecewise_construct, std::forward_as_tuple(stream_id),
-        std::forward_as_tuple(stream_id, this, MID(state.next_ssn)));
+        std::forward_as_tuple(stream_id, this, MID(stream_state.next_ssn)));
   }
-  for (const DcSctpSocketHandoverState::UnorderedStream& state :
+  for (const DcSctpSocketHandoverState::UnorderedStream& stream_state :
        state.rx.unordered_streams) {
-    FullStreamId stream_id(IsUnordered(true), StreamID(state.id));
+    FullStreamId stream_id(IsUnordered(true), StreamID(stream_state.id));
     streams_.emplace(std::piecewise_construct, std::forward_as_tuple(stream_id),
                      std::forward_as_tuple(stream_id, this));
   }

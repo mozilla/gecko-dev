@@ -77,7 +77,7 @@ size_t GetTemporalLayerIndex(const CodecSpecificInfo& codec_specific) {
 }
 
 int GetElapsedTimeMicroseconds(int64_t start_ns, int64_t stop_ns) {
-  int64_t diff_us = (stop_ns - start_ns) / rtc::kNumNanosecsPerMicrosec;
+  int64_t diff_us = (stop_ns - start_ns) / kNumNanosecsPerMicrosec;
   RTC_DCHECK_GE(diff_us, std::numeric_limits<int>::min());
   RTC_DCHECK_LE(diff_us, std::numeric_limits<int>::max());
   return static_cast<int>(diff_us);
@@ -298,7 +298,7 @@ void VideoProcessor::ProcessFrame() {
 
   // For the highest measurement accuracy of the encode time, the start/stop
   // time recordings should wrap the Encode call as tightly as possible.
-  const int64_t encode_start_ns = rtc::TimeNanos();
+  const int64_t encode_start_ns = TimeNanos();
   for (size_t i = 0; i < num_simulcast_or_spatial_layers_; ++i) {
     FrameStatistics* frame_stat = stats_->GetFrame(frame_number, i);
     frame_stat->encode_start_ns = encode_start_ns;
@@ -371,7 +371,7 @@ void VideoProcessor::FrameEncoded(
 
   // For the highest measurement accuracy of the encode time, the start/stop
   // time recordings should wrap the Encode call as tightly as possible.
-  const int64_t encode_stop_ns = rtc::TimeNanos();
+  const int64_t encode_stop_ns = TimeNanos();
 
   const VideoCodecType codec_type = codec_specific.codecType;
   if (config_.encoded_frame_checker) {
@@ -493,7 +493,7 @@ void VideoProcessor::FrameEncoded(
   if (!config_.encode_in_real_time) {
     // To get pure encode time for next layers, measure time spent in encode
     // callback and subtract it from encode time of next layers.
-    post_encode_time_ns_ += rtc::TimeNanos() - encode_stop_ns;
+    post_encode_time_ns_ += TimeNanos() - encode_stop_ns;
   }
 }
 
@@ -553,7 +553,7 @@ void VideoProcessor::FrameDecoded(const VideoFrame& decoded_frame,
 
   // For the highest measurement accuracy of the decode time, the start/stop
   // time recordings should wrap the Decode call as tightly as possible.
-  const int64_t decode_stop_ns = rtc::TimeNanos();
+  const int64_t decode_stop_ns = TimeNanos();
 
   FrameStatistics* frame_stat =
       stats_->GetFrameWithTimestamp(decoded_frame.rtp_timestamp(), spatial_idx);
@@ -637,7 +637,7 @@ void VideoProcessor::DecodeFrame(const EncodedImage& encoded_image,
   FrameStatistics* frame_stat =
       stats_->GetFrameWithTimestamp(encoded_image.RtpTimestamp(), spatial_idx);
 
-  frame_stat->decode_start_ns = rtc::TimeNanos();
+  frame_stat->decode_start_ns = TimeNanos();
   frame_stat->decode_return_code =
       decoders_->at(spatial_idx)->Decode(encoded_image, 0);
 }

@@ -64,7 +64,7 @@ class DtlsStunPiggybackController {
 
   // Intercepts DTLS packets which should go into the STUN packets during the
   // handshake.
-  bool MaybeConsumePacket(rtc::ArrayView<const uint8_t> data);
+  void CapturePacket(rtc::ArrayView<const uint8_t> data);
   void ClearCachedPacketForTesting();
 
   // Called by Connection, when sending a STUN BINDING { REQUEST / RESPONSE }
@@ -78,14 +78,20 @@ class DtlsStunPiggybackController {
   void ReportDataPiggybacked(const StunByteStringAttribute* data,
                              const StunByteStringAttribute* ack);
 
+  int GetCountOfReceivedData() const { return data_recv_count_; }
+
  private:
   State state_ RTC_GUARDED_BY(sequence_checker_) = State::TENTATIVE;
   rtc::Buffer pending_packet_ RTC_GUARDED_BY(sequence_checker_);
   absl::AnyInvocable<void(rtc::ArrayView<const uint8_t>)> dtls_data_callback_;
+  absl::AnyInvocable<void()> disable_piggybacking_callback_;
 
   std::set<uint16_t> handshake_messages_received_
       RTC_GUARDED_BY(sequence_checker_);
   rtc::ByteBufferWriter handshake_ack_writer_ RTC_GUARDED_BY(sequence_checker_);
+
+  // Count of data attributes received.
+  int data_recv_count_ = 0;
 
   // In practice this will be the network thread.
   RTC_NO_UNIQUE_ADDRESS webrtc::SequenceChecker sequence_checker_;

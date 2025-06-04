@@ -14,16 +14,37 @@
 #ifndef PC_TEST_MOCK_PEER_CONNECTION_OBSERVERS_H_
 #define PC_TEST_MOCK_PEER_CONNECTION_OBSERVERS_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "api/candidate.h"
 #include "api/data_channel_interface.h"
+#include "api/jsep.h"
 #include "api/jsep_ice_candidate.h"
+#include "api/legacy_stats_types.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtp_receiver_interface.h"
+#include "api/rtp_transceiver_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/set_local_description_observer_interface.h"
+#include "api/set_remote_description_observer_interface.h"
+#include "api/stats/rtc_stats_collector_callback.h"
+#include "api/stats/rtc_stats_report.h"
 #include "pc/stream_collection.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/string_encode.h"
+#include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
 
@@ -125,7 +146,7 @@ class MockPeerConnectionObserver : public PeerConnectionObserver {
   }
 
   void OnIceCandidatesRemoved(
-      const std::vector<cricket::Candidate>& candidates) override {
+      const std::vector<Candidate>& candidates) override {
     num_candidates_removed_++;
     callback_triggered_ = true;
   }

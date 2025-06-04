@@ -69,7 +69,7 @@ class AudioCodingModule {
   // access to the unique_ptr; it may call the encoder, steal the encoder and
   // replace it with another encoder or with nullptr, etc.
   virtual void ModifyEncoder(
-      rtc::FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) = 0;
+      FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) = 0;
 
   // Utility method for simply replacing the existing encoder with a new one.
   void SetEncoder(std::unique_ptr<AudioEncoder> new_encoder) {

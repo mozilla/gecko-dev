@@ -11,8 +11,8 @@
 
 #include <string>
 #include <utility>
+#include <variant>
 
-#include "absl/types/variant.h"
 #include "api/media_stream_interface.h"
 #include "api/test/create_frame_generator.h"
 #include "api/test/pclf/media_configuration.h"
@@ -23,6 +23,16 @@
 
 namespace webrtc {
 namespace webrtc_pc_e2e {
+
+namespace {
+
+bool IsScreencast(const VideoConfig& video_config) {
+  return video_config.content_hint == VideoTrackInterface::ContentHint::kText ||
+         video_config.content_hint ==
+             VideoTrackInterface::ContentHint::kDetailed;
+}
+
+}  // namespace
 
 void MediaHelper::MaybeAddAudio(TestPeer* peer) {
   if (!peer->params().audio_config) {
@@ -53,13 +63,10 @@ MediaHelper::MaybeAddVideo(TestPeer* peer) {
         video_config, peer->ReleaseVideoSource(i),
         video_quality_analyzer_injection_helper_->CreateFramePreprocessor(
             params.name.value(), video_config));
-    bool is_screencast =
-        video_config.content_hint == VideoTrackInterface::ContentHint::kText ||
-        video_config.content_hint ==
-            VideoTrackInterface::ContentHint::kDetailed;
     rtc::scoped_refptr<TestVideoCapturerVideoTrackSource> source =
         rtc::make_ref_counted<TestVideoCapturerVideoTrackSource>(
-            std::move(capturer), is_screencast, video_config.stream_label);
+            std::move(capturer), IsScreencast(video_config),
+            video_config.stream_label);
     out.push_back(source);
     RTC_LOG(LS_INFO) << "Adding video with video_config.stream_label="
                      << video_config.stream_label.value();
@@ -101,7 +108,7 @@ std::unique_ptr<test::TestVideoCapturer> MediaHelper::CreateVideoCapturer(
     std::unique_ptr<test::TestVideoCapturer::FramePreprocessor>
         frame_preprocessor) {
   CapturingDeviceIndex* capturing_device_index =
-      absl::get_if<CapturingDeviceIndex>(&source);
+      std::get_if<CapturingDeviceIndex>(&source);
   if (capturing_device_index != nullptr) {
     std::unique_ptr<test::TestVideoCapturer> capturer =
         test::CreateVideoCapturer(video_config.width, video_config.height,
@@ -116,9 +123,9 @@ std::unique_ptr<test::TestVideoCapturer> MediaHelper::CreateVideoCapturer(
 
   auto capturer = std::make_unique<test::FrameGeneratorCapturer>(
       clock_,
-      absl::get<std::unique_ptr<test::FrameGeneratorInterface>>(
+      std::get<std::unique_ptr<test::FrameGeneratorInterface>>(
           std::move(source)),
-      video_config.fps, *task_queue_factory_);
+      video_config.fps, *task_queue_factory_, IsScreencast(video_config));
   capturer->SetFramePreprocessor(std::move(frame_preprocessor));
   capturer->Init();
   return capturer;

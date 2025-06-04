@@ -301,7 +301,7 @@ void DataChannelController::OnDataChannelOpenMessage(
 // RTC_RUN_ON(network_thread())
 RTCError DataChannelController::ReserveOrAllocateSid(
     std::optional<StreamId>& sid,
-    std::optional<rtc::SSLRole> fallback_ssl_role) {
+    std::optional<SSLRole> fallback_ssl_role) {
   if (sid.has_value()) {
     return sid_allocator_.ReserveSid(*sid)
                ? RTCError::OK()
@@ -309,7 +309,7 @@ RTCError DataChannelController::ReserveOrAllocateSid(
   }
 
   // Attempt to allocate an ID based on the negotiated role.
-  std::optional<rtc::SSLRole> role = pc_->GetSctpSslRole_n();
+  std::optional<SSLRole> role = pc_->GetSctpSslRole_n();
   if (!role)
     role = fallback_ssl_role;
   if (role) {
@@ -402,7 +402,7 @@ DataChannelController::InternalCreateDataChannelWithProxy(
                                       signaling_safety_.flag());
 }
 
-void DataChannelController::AllocateSctpSids(rtc::SSLRole role) {
+void DataChannelController::AllocateSctpSids(SSLRole role) {
   RTC_DCHECK_RUN_ON(network_thread());
 
   const bool ready_to_send =
@@ -480,11 +480,11 @@ void DataChannelController::NotifyDataChannelsOfTransportCreated() {
   }
 }
 
-rtc::Thread* DataChannelController::network_thread() const {
+Thread* DataChannelController::network_thread() const {
   return pc_->network_thread();
 }
 
-rtc::Thread* DataChannelController::signaling_thread() const {
+Thread* DataChannelController::signaling_thread() const {
   return pc_->signaling_thread();
 }
 

@@ -11,34 +11,59 @@
 #ifndef P2P_CLIENT_BASIC_PORT_ALLOCATOR_H_
 #define P2P_CLIENT_BASIC_PORT_ALLOCATOR_H_
 
+#include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
+#include "absl/base/attributes.h"
+#include "absl/base/nullability.h"
 #include "absl/strings/string_view.h"
+#include "api/candidate.h"
+#include "api/environment/environment.h"
 #include "api/field_trials_view.h"
+#include "api/packet_socket_factory.h"
 #include "api/task_queue/pending_task_safety_flag.h"
+#include "api/transport/enums.h"
+#include "api/transport/field_trial_based_config.h"
 #include "api/turn_customizer.h"
+#include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
+#include "p2p/base/port_interface.h"
 #include "p2p/client/relay_port_factory_interface.h"
 #include "p2p/client/turn_port_factory.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/memory/always_valid_pointer.h"
 #include "rtc_base/network.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/system/rtc_export.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
 
 namespace cricket {
 
-class RTC_EXPORT BasicPortAllocator : public PortAllocator {
+class RTC_EXPORT BasicPortAllocator : public webrtc::PortAllocator {
  public:
+  BasicPortAllocator(
+      const webrtc::Environment& env,
+      absl::Nonnull<rtc::NetworkManager*> network_manager,
+      absl::Nonnull<rtc::PacketSocketFactory*> socket_factory,
+      absl::Nullable<webrtc::TurnCustomizer*> turn_customizer = nullptr,
+      absl::Nullable<RelayPortFactoryInterface*> relay_port_factory = nullptr);
+
   // The NetworkManager is a mandatory argument. The other arguments are
   // optional. All pointers are owned by caller and must have a life time
   // that exceeds that of BasicPortAllocator.
+  // Deprecated, prefer constructor above.
+  // TODO: bugs.webrtc.org/405883462 - mark [[deprecated]] or remove when
+  // chromium migrated not to use this constructor.
   BasicPortAllocator(rtc::NetworkManager* network_manager,
-                     rtc::PacketSocketFactory* socket_factory,
+                     webrtc::PacketSocketFactory* socket_factory,
                      webrtc::TurnCustomizer* customizer = nullptr,
                      RelayPortFactoryInterface* relay_port_factory = nullptr,
                      const webrtc::FieldTrialsView* field_trials = nullptr);
@@ -59,23 +84,23 @@ class RTC_EXPORT BasicPortAllocator : public PortAllocator {
 
   // If socket_factory() is set to NULL each PortAllocatorSession
   // creates its own socket factory.
-  rtc::PacketSocketFactory* socket_factory() {
+  webrtc::PacketSocketFactory* socket_factory() {
     CheckRunOnValidThreadIfInitialized();
     return socket_factory_;
   }
 
-  PortAllocatorSession* CreateSessionInternal(
+  webrtc::PortAllocatorSession* CreateSessionInternal(
       absl::string_view content_name,
       int component,
       absl::string_view ice_ufrag,
       absl::string_view ice_pwd) override;
 
   // Convenience method that adds a TURN server to the configuration.
-  void AddTurnServerForTesting(const RelayServerConfig& turn_server);
+  void AddTurnServerForTesting(const webrtc::RelayServerConfig& turn_server);
 
   RelayPortFactoryInterface* relay_port_factory() {
     CheckRunOnValidThreadIfInitialized();
-    return relay_port_factory_;
+    return relay_port_factory_.get();
   }
 
   void SetVpnList(const std::vector<rtc::NetworkMask>& vpn_list) override;
@@ -87,18 +112,20 @@ class RTC_EXPORT BasicPortAllocator : public PortAllocator {
  private:
   bool MdnsObfuscationEnabled() const override;
 
+  // TODO: bugs.webrtc.org/405883462 - Make Environment non-optional and remove
+  // `field_trials_` member when BasicPortAllocator without 'Environment' is
+  // removed.
+  std::optional<webrtc::Environment> env_;
   webrtc::AlwaysValidPointer<const webrtc::FieldTrialsView,
                              webrtc::FieldTrialBasedConfig>
       field_trials_;
   rtc::NetworkManager* network_manager_;
   // Always externally-owned pointer to a socket factory.
-  rtc::PacketSocketFactory* const socket_factory_;
+  webrtc::PacketSocketFactory* const socket_factory_;
   int network_ignore_mask_ = rtc::kDefaultNetworkIgnoreMask;
 
-  // This instance is created if caller does pass a factory.
-  const std::unique_ptr<RelayPortFactoryInterface> default_relay_port_factory_;
-  // This is the factory being used.
-  RelayPortFactoryInterface* const relay_port_factory_;
+  webrtc::AlwaysValidPointer<RelayPortFactoryInterface, TurnPortFactory>
+      relay_port_factory_;
 };
 
 struct PortConfiguration;
@@ -114,7 +141,8 @@ enum class SessionState {
 
 // This class is thread-compatible and assumes it's created, operated upon and
 // destroyed on the network thread.
-class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
+class RTC_EXPORT BasicPortAllocatorSession
+    : public webrtc::PortAllocatorSession {
  public:
   BasicPortAllocatorSession(BasicPortAllocator* allocator,
                             absl::string_view content_name,
@@ -124,8 +152,8 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
   ~BasicPortAllocatorSession() override;
 
   virtual BasicPortAllocator* allocator();
-  rtc::Thread* network_thread() { return network_thread_; }
-  rtc::PacketSocketFactory* socket_factory() { return socket_factory_; }
+  webrtc::Thread* network_thread() { return network_thread_; }
+  webrtc::PacketSocketFactory* socket_factory() { return socket_factory_; }
 
   // If the new filter allows new types of candidates compared to the previous
   // filter, gathered candidates that were discarded because of not matching the
@@ -144,8 +172,8 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
   bool IsCleared() const override;
   bool IsStopped() const override;
   // These will all be cricket::Ports.
-  std::vector<PortInterface*> ReadyPorts() const override;
-  std::vector<Candidate> ReadyCandidates() const override;
+  std::vector<webrtc::PortInterface*> ReadyPorts() const override;
+  std::vector<webrtc::Candidate> ReadyCandidates() const override;
   bool CandidatesAllocationDone() const override;
   void RegatherOnFailedNetworks() override;
   void GetCandidateStatsFromReadyPorts(
@@ -235,12 +263,12 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
                                PortConfiguration* config,
                                uint32_t* flags);
   void AddAllocatedPort(Port* port, AllocationSequence* seq);
-  void OnCandidateReady(Port* port, const Candidate& c);
+  void OnCandidateReady(Port* port, const webrtc::Candidate& c);
   void OnCandidateError(Port* port, const IceCandidateErrorEvent& event);
   void OnPortComplete(Port* port);
   void OnPortError(Port* port);
-  void OnProtocolEnabled(AllocationSequence* seq, ProtocolType proto);
-  void OnPortDestroyed(PortInterface* port);
+  void OnProtocolEnabled(AllocationSequence* seq, webrtc::ProtocolType proto);
+  void OnPortDestroyed(webrtc::PortInterface* port);
   void MaybeSignalCandidatesAllocationDone();
   void OnPortAllocationComplete();
   PortData* FindPort(Port* port);
@@ -248,10 +276,10 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
   std::vector<const rtc::Network*> GetFailedNetworks();
   void Regather(const std::vector<const rtc::Network*>& networks,
                 bool disable_equivalent_phases,
-                IceRegatheringReason reason);
+                webrtc::IceRegatheringReason reason);
 
-  bool CheckCandidateFilter(const Candidate& c) const;
-  bool CandidatePairable(const Candidate& c, const Port* port) const;
+  bool CheckCandidateFilter(const webrtc::Candidate& c) const;
+  bool CandidatePairable(const webrtc::Candidate& c, const Port* port) const;
 
   std::vector<PortData*> GetUnprunedPorts(
       const std::vector<const rtc::Network*>& networks);
@@ -262,15 +290,15 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
   // Gets filtered and sanitized candidates generated from a port and
   // append to `candidates`.
   void GetCandidatesFromPort(const PortData& data,
-                             std::vector<Candidate>* candidates) const;
+                             std::vector<webrtc::Candidate>* candidates) const;
   Port* GetBestTurnPortForNetwork(absl::string_view network_name) const;
   // Returns true if at least one TURN port is pruned.
   bool PruneTurnPorts(Port* newly_pairable_turn_port);
   bool PruneNewlyPairableTurnPort(PortData* newly_pairable_turn_port);
 
   BasicPortAllocator* allocator_;
-  rtc::Thread* network_thread_;
-  rtc::PacketSocketFactory* socket_factory_;
+  webrtc::Thread* network_thread_;
+  webrtc::PacketSocketFactory* socket_factory_;
   bool allocation_started_;
   bool network_manager_started_;
   bool allocation_sequences_created_;
@@ -278,7 +306,7 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
   std::vector<AllocationSequence*> sequences_;
   std::vector<PortData> ports_;
   std::vector<IceCandidateErrorEvent> candidate_error_events_;
-  uint32_t candidate_filter_ = CF_ALL;
+  uint32_t candidate_filter_ = webrtc::CF_ALL;
   // Policy on how to prune turn ports, taken from the port allocator.
   webrtc::PortPrunePolicy turn_port_prune_policy_;
   SessionState state_ = SessionState::CLEARED;
@@ -292,13 +320,13 @@ class RTC_EXPORT BasicPortAllocatorSession : public PortAllocatorSession {
 // TODO(deadbeef): Rename "relay" to "turn_server" in this struct.
 struct RTC_EXPORT PortConfiguration {
   // TODO(jiayl): remove `stun_address` when Chrome is updated.
-  rtc::SocketAddress stun_address;
+  webrtc::SocketAddress stun_address;
   ServerAddresses stun_servers;
   std::string username;
   std::string password;
   bool use_turn_server_as_stun_server_disabled = false;
 
-  typedef std::vector<RelayServerConfig> RelayList;
+  typedef std::vector<webrtc::RelayServerConfig> RelayList;
   RelayList relays;
 
   PortConfiguration(const ServerAddresses& stun_servers,
@@ -311,15 +339,15 @@ struct RTC_EXPORT PortConfiguration {
   ServerAddresses StunServers();
 
   // Adds another relay server, with the given ports and modifier, to the list.
-  void AddRelay(const RelayServerConfig& config);
+  void AddRelay(const webrtc::RelayServerConfig& config);
 
   // Determines whether the given relay server supports the given protocol.
-  bool SupportsProtocol(const RelayServerConfig& relay,
-                        ProtocolType type) const;
-  bool SupportsProtocol(ProtocolType type) const;
+  bool SupportsProtocol(const webrtc::RelayServerConfig& relay,
+                        webrtc::ProtocolType type) const;
+  bool SupportsProtocol(webrtc::ProtocolType type) const;
   // Helper method returns the server addresses for the matching RelayType and
   // Protocol type.
-  ServerAddresses GetRelayServerAddresses(ProtocolType type) const;
+  ServerAddresses GetRelayServerAddresses(webrtc::ProtocolType type) const;
 };
 
 class UDPPort;
@@ -372,9 +400,10 @@ class AllocationSequence {
   void Stop();
 
  private:
-  void CreateTurnPort(const RelayServerConfig& config, int relative_priority);
+  void CreateTurnPort(const webrtc::RelayServerConfig& config,
+                      int relative_priority);
 
-  typedef std::vector<ProtocolType> ProtocolList;
+  typedef std::vector<webrtc::ProtocolType> ProtocolList;
 
   void Process(int epoch);
   bool IsFlagSet(uint32_t flag) { return ((flags_ & flag) != 0); }
@@ -383,21 +412,21 @@ class AllocationSequence {
   void CreateStunPorts();
   void CreateRelayPorts();
 
-  void OnReadPacket(rtc::AsyncPacketSocket* socket,
+  void OnReadPacket(webrtc::AsyncPacketSocket* socket,
                     const rtc::ReceivedPacket& packet);
 
-  void OnPortDestroyed(PortInterface* port);
+  void OnPortDestroyed(webrtc::PortInterface* port);
 
   BasicPortAllocatorSession* session_;
   bool network_failed_ = false;
   const rtc::Network* network_;
   // Compared with the new best IP in DisableEquivalentPhases.
-  rtc::IPAddress previous_best_ip_;
+  webrtc::IPAddress previous_best_ip_;
   PortConfiguration* config_;
   State state_;
   uint32_t flags_;
   ProtocolList protocols_;
-  std::unique_ptr<rtc::AsyncPacketSocket> udp_socket_;
+  std::unique_ptr<webrtc::AsyncPacketSocket> udp_socket_;
   // There will be only one udp port per AllocationSequence.
   UDPPort* udp_port_;
   std::vector<Port*> relay_ports_;

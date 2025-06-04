@@ -882,7 +882,7 @@ int32_t AudioDeviceLinuxALSA::InitRecordingLocked() {
   // Start by closing any existing pcm-input devices
   //
   if (_handleRecord != NULL) {
-    int errVal = LATE(snd_pcm_close)(_handleRecord);
+    errVal = LATE(snd_pcm_close)(_handleRecord);
     _handleRecord = NULL;
     _recIsInitialized = false;
     if (errVal < 0) {

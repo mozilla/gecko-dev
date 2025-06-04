@@ -735,7 +735,6 @@ std::vector<uint8_t> CreateRedPayload(size_t num_payloads,
                                       int payload_type,
                                       int payload_size,
                                       int timestamp_offset) {
-  constexpr int kRedHeaderLength = 4;
   const size_t size =
       payload_size + 1 + (num_payloads - 1) * (payload_size + kRedHeaderLength);
   std::vector<uint8_t> payload(size, 0);

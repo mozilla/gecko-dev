@@ -10,7 +10,6 @@
 
 #include "api/adaptation/resource.h"
 
-#include <memory>
 
 #include "api/scoped_refptr.h"
 #include "call/adaptation/test/fake_resource.h"

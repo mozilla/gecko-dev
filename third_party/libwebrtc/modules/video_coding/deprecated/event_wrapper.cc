@@ -30,7 +30,7 @@ class EventWrapperImpl : public EventWrapper {
   }
 
  private:
-  rtc::Event event_;
+  Event event_;
 };
 
 // static

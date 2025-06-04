@@ -12,7 +12,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -20,24 +23,37 @@
 #include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
+#include "api/candidate.h"
 #include "api/rtc_error.h"
+#include "api/sequence_checker.h"
+#include "api/task_queue/task_queue_base.h"
+#include "api/transport/stun.h"
 #include "api/units/time_delta.h"
+#include "p2p/base/connection.h"
 #include "p2p/base/p2p_constants.h"
+#include "p2p/base/port_interface.h"
 #include "p2p/base/stun_request.h"
+#include "p2p/base/transport_description.h"
+#include "rtc_base/async_packet_socket.h"
 #include "rtc_base/byte_buffer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
+#include "rtc_base/dscp.h"
 #include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/mdns_responder_interface.h"
 #include "rtc_base/net_helper.h"
+#include "rtc_base/net_helpers.h"
 #include "rtc_base/network.h"
+#include "rtc_base/network/received_packet.h"
+#include "rtc_base/network/sent_packet.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/string_utils.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
+#include "rtc_base/weak_ptr.h"
 
 using webrtc::IceCandidateType;
 
@@ -51,15 +67,15 @@ using ::webrtc::TaskQueueBase;
 using ::webrtc::TimeDelta;
 
 rtc::PacketInfoProtocolType ConvertProtocolTypeToPacketInfoProtocolType(
-    cricket::ProtocolType type) {
+    webrtc::ProtocolType type) {
   switch (type) {
-    case cricket::ProtocolType::PROTO_UDP:
+    case webrtc::ProtocolType::PROTO_UDP:
       return rtc::PacketInfoProtocolType::kUdp;
-    case cricket::ProtocolType::PROTO_TCP:
+    case webrtc::ProtocolType::PROTO_TCP:
       return rtc::PacketInfoProtocolType::kTcp;
-    case cricket::ProtocolType::PROTO_SSLTCP:
+    case webrtc::ProtocolType::PROTO_SSLTCP:
       return rtc::PacketInfoProtocolType::kSsltcp;
-    case cricket::ProtocolType::PROTO_TLS:
+    case webrtc::ProtocolType::PROTO_TLS:
       return rtc::PacketInfoProtocolType::kTls;
     default:
       return rtc::PacketInfoProtocolType::kUnknown;
@@ -76,14 +92,15 @@ static const char* const PROTO_NAMES[] = {UDP_PROTOCOL_NAME, TCP_PROTOCOL_NAME,
                                           SSLTCP_PROTOCOL_NAME,
                                           TLS_PROTOCOL_NAME};
 
-const char* ProtoToString(ProtocolType proto) {
+const char* ProtoToString(webrtc::ProtocolType proto) {
   return PROTO_NAMES[proto];
 }
 
-std::optional<ProtocolType> StringToProto(absl::string_view proto_name) {
-  for (size_t i = 0; i <= PROTO_LAST; ++i) {
+std::optional<webrtc::ProtocolType> StringToProto(
+    absl::string_view proto_name) {
+  for (size_t i = 0; i <= webrtc::PROTO_LAST; ++i) {
     if (absl::EqualsIgnoreCase(PROTO_NAMES[i], proto_name)) {
-      return static_cast<ProtocolType>(i);
+      return static_cast<webrtc::ProtocolType>(i);
     }
   }
   return std::nullopt;
@@ -129,8 +146,8 @@ Port::Port(const PortParametersRef& args,
   // we should just create one.
   if (ice_username_fragment_.empty()) {
     RTC_DCHECK(password_.empty());
-    ice_username_fragment_ = rtc::CreateRandomString(ICE_UFRAG_LENGTH);
-    password_ = rtc::CreateRandomString(ICE_PWD_LENGTH);
+    ice_username_fragment_ = webrtc::CreateRandomString(ICE_UFRAG_LENGTH);
+    password_ = webrtc::CreateRandomString(ICE_PWD_LENGTH);
   }
   network_->SignalTypeChanged.connect(this, &Port::OnNetworkTypeChanged);
 
@@ -192,11 +209,11 @@ void Port::SetIceParameters(int component,
   }
 }
 
-const std::vector<Candidate>& Port::Candidates() const {
+const std::vector<webrtc::Candidate>& Port::Candidates() const {
   return candidates_;
 }
 
-Connection* Port::GetConnection(const rtc::SocketAddress& remote_addr) {
+Connection* Port::GetConnection(const webrtc::SocketAddress& remote_addr) {
   AddressMap::const_iterator iter = connections_.find(remote_addr);
   if (iter != connections_.end())
     return iter->second;
@@ -204,9 +221,9 @@ Connection* Port::GetConnection(const rtc::SocketAddress& remote_addr) {
     return NULL;
 }
 
-void Port::AddAddress(const rtc::SocketAddress& address,
-                      const rtc::SocketAddress& base_address,
-                      const rtc::SocketAddress& related_address,
+void Port::AddAddress(const webrtc::SocketAddress& address,
+                      const webrtc::SocketAddress& base_address,
+                      const webrtc::SocketAddress& related_address,
                       absl::string_view protocol,
                       absl::string_view relay_protocol,
                       absl::string_view tcptype,
@@ -220,8 +237,9 @@ void Port::AddAddress(const rtc::SocketAddress& address,
   // TODO(tommi): Set relay_protocol and optionally provide the base address
   // to automatically compute the foundation in the ctor? It would be a good
   // thing for the Candidate class to know the base address and keep it const.
-  Candidate c(component_, protocol, address, 0U, username_fragment(), password_,
-              type, generation_, "", network_->id(), network_cost_);
+  webrtc::Candidate c(component_, protocol, address, 0U, username_fragment(),
+                      password_, type, generation_, "", network_->id(),
+                      network_cost_);
   // Set the relay protocol before computing the foundation field.
   c.set_relay_protocol(relay_protocol);
   // TODO(bugs.webrtc.org/14605): ensure IceTiebreaker() is set.
@@ -250,7 +268,7 @@ void Port::AddAddress(const rtc::SocketAddress& address,
   }
 }
 
-bool Port::MaybeObfuscateAddress(const Candidate& c, bool is_final) {
+bool Port::MaybeObfuscateAddress(const webrtc::Candidate& c, bool is_final) {
   // TODO(bugs.webrtc.org/9723): Use a config to control the feature of IP
   // handling with mDNS.
   if (network_->GetMdnsResponder() == nullptr) {
@@ -265,14 +283,14 @@ bool Port::MaybeObfuscateAddress(const Candidate& c, bool is_final) {
   auto callback = [weak_ptr, copy, is_final](const rtc::IPAddress& addr,
                                              absl::string_view name) mutable {
     RTC_DCHECK(copy.address().ipaddr() == addr);
-    rtc::SocketAddress hostname_address(name, copy.address().port());
+    webrtc::SocketAddress hostname_address(name, copy.address().port());
     // In Port and Connection, we need the IP address information to
     // correctly handle the update of candidate type to prflx. The removal
     // of IP address when signaling this candidate will take place in
     // BasicPortAllocatorSession::OnCandidateReady, via SanitizeCandidate.
     hostname_address.SetResolvedIP(addr);
     copy.set_address(hostname_address);
-    copy.set_related_address(rtc::SocketAddress());
+    copy.set_related_address(webrtc::SocketAddress());
     if (weak_ptr != nullptr) {
       RTC_DCHECK_RUN_ON(weak_ptr->thread_);
       weak_ptr->set_mdns_name_registration_status(
@@ -286,7 +304,7 @@ bool Port::MaybeObfuscateAddress(const Candidate& c, bool is_final) {
   return true;
 }
 
-void Port::FinishAddingAddress(const Candidate& c, bool is_final) {
+void Port::FinishAddingAddress(const webrtc::Candidate& c, bool is_final) {
   candidates_.push_back(c);
   SignalCandidateReady(this, c);
 
@@ -317,10 +335,11 @@ void Port::AddOrReplaceConnection(Connection* conn) {
   }
 }
 
-void Port::OnReadPacket(const rtc::ReceivedPacket& packet, ProtocolType proto) {
+void Port::OnReadPacket(const rtc::ReceivedPacket& packet,
+                        webrtc::ProtocolType proto) {
   const char* data = reinterpret_cast<const char*>(packet.payload().data());
   size_t size = packet.payload().size();
-  const rtc::SocketAddress& addr = packet.source_address();
+  const webrtc::SocketAddress& addr = packet.source_address();
   // If the user has enabled port packets, just hand this over.
   if (enable_port_packets_) {
     SignalReadPacket(this, data, size, addr);
@@ -379,14 +398,14 @@ void Port::OnReadyToSend() {
   }
 }
 
-void Port::AddPrflxCandidate(const Candidate& local) {
+void Port::AddPrflxCandidate(const webrtc::Candidate& local) {
   RTC_DCHECK_RUN_ON(thread_);
   candidates_.push_back(local);
 }
 
 bool Port::GetStunMessage(const char* data,
                           size_t size,
-                          const rtc::SocketAddress& addr,
+                          const webrtc::SocketAddress& addr,
                           std::unique_ptr<IceMessage>* out_msg,
                           std::string* out_username) {
   RTC_DCHECK_RUN_ON(thread_);
@@ -552,16 +571,16 @@ bool Port::GetStunMessage(const char* data,
   return true;
 }
 
-bool Port::IsCompatibleAddress(const rtc::SocketAddress& addr) {
+bool Port::IsCompatibleAddress(const webrtc::SocketAddress& addr) {
   // Get a representative IP for the Network this port is configured to use.
-  rtc::IPAddress ip = network_->GetBestIP();
+  webrtc::IPAddress ip = network_->GetBestIP();
   // We use single-stack sockets, so families must match.
   if (addr.family() != ip.family()) {
     return false;
   }
   // Link-local IPv6 ports can only connect to other link-local IPv6 ports.
   if (ip.family() == AF_INET6 &&
-      (IPIsLinkLocal(ip) != IPIsLinkLocal(addr.ipaddr()))) {
+      (webrtc::IPIsLinkLocal(ip) != webrtc::IPIsLinkLocal(addr.ipaddr()))) {
     return false;
   }
   return true;
@@ -616,7 +635,7 @@ bool Port::ParseStunUsername(const StunMessage* stun_msg,
   return true;
 }
 
-bool Port::MaybeIceRoleConflict(const rtc::SocketAddress& addr,
+bool Port::MaybeIceRoleConflict(const webrtc::SocketAddress& addr,
                                 IceMessage* stun_msg,
                                 absl::string_view remote_ufrag) {
   RTC_DCHECK_RUN_ON(thread_);
@@ -683,18 +702,18 @@ std::string Port::CreateStunUsername(absl::string_view remote_username) const {
   return std::string(remote_username) + ":" + username_fragment();
 }
 
-bool Port::HandleIncomingPacket(rtc::AsyncPacketSocket* /* socket */,
+bool Port::HandleIncomingPacket(webrtc::AsyncPacketSocket* /* socket */,
                                 const rtc::ReceivedPacket& /* packet */) {
   RTC_DCHECK_NOTREACHED();
   return false;
 }
 
-bool Port::CanHandleIncomingPacketsFrom(const rtc::SocketAddress&) const {
+bool Port::CanHandleIncomingPacketsFrom(const webrtc::SocketAddress&) const {
   return false;
 }
 
 void Port::SendBindingErrorResponse(StunMessage* message,
-                                    const rtc::SocketAddress& addr,
+                                    const webrtc::SocketAddress& addr,
                                     int error_code,
                                     absl::string_view reason) {
   RTC_DCHECK_RUN_ON(thread_);
@@ -745,7 +764,7 @@ void Port::SendBindingErrorResponse(StunMessage* message,
 
 void Port::SendUnknownAttributesErrorResponse(
     StunMessage* message,
-    const rtc::SocketAddress& addr,
+    const webrtc::SocketAddress& addr,
     const std::vector<uint16_t>& unknown_types) {
   RTC_DCHECK_RUN_ON(thread_);
   RTC_DCHECK(message->type() == STUN_BINDING_REQUEST);
@@ -816,17 +835,17 @@ void Port::PostDestroyIfDead(bool delayed) {
 
 void Port::DestroyIfDead() {
   RTC_DCHECK_RUN_ON(thread_);
-  bool dead =
-      (state_ == State::INIT || state_ == State::PRUNED) &&
-      connections_.empty() &&
-      rtc::TimeMillis() - last_time_all_connections_removed_ >= timeout_delay_;
+  bool dead = (state_ == State::INIT || state_ == State::PRUNED) &&
+              connections_.empty() &&
+              webrtc::TimeMillis() - last_time_all_connections_removed_ >=
+                  timeout_delay_;
   if (dead) {
     Destroy();
   }
 }
 
 void Port::SubscribePortDestroyed(
-    std::function<void(PortInterface*)> callback) {
+    std::function<void(webrtc::PortInterface*)> callback) {
   port_destroyed_callback_list_.AddReceiver(callback);
 }
 
@@ -889,7 +908,7 @@ bool Port::OnConnectionDestroyed(Connection* conn) {
   // fails and is removed before kPortTimeoutDelay, then this message will
   // not cause the Port to be destroyed.
   if (connections_.empty()) {
-    last_time_all_connections_removed_ = rtc::TimeMillis();
+    last_time_all_connections_removed_ = webrtc::TimeMillis();
     PostDestroyIfDead(/*delayed=*/true);
   }
 

@@ -67,7 +67,7 @@ class PeerConnectionClient : public webrtc::PeerConnectionObserver {
 
   // Creates a default PeerConnectionFactory object.
   static rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
-  CreateDefaultFactory(rtc::Thread* signaling_thread);
+  CreateDefaultFactory(Thread* signaling_thread);
 
  private:
   void AddIceCandidate(

@@ -310,7 +310,7 @@ void VideoAdapter::OnOutputFormatRequest(
     target_aspect_ratio = std::make_pair(format->width, format->height);
     max_pixel_count = format->width * format->height;
     if (format->interval > 0)
-      max_fps = rtc::kNumNanosecsPerSec / format->interval;
+      max_fps = webrtc::kNumNanosecsPerSec / format->interval;
   }
   OnOutputFormatRequest(target_aspect_ratio, max_pixel_count, max_fps);
 }

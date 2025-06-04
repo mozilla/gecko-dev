@@ -11,7 +11,7 @@
 #ifndef P2P_TEST_NAT_TYPES_H_
 #define P2P_TEST_NAT_TYPES_H_
 
-namespace rtc {
+namespace webrtc {
 
 /* Identifies each type of NAT that can be simulated. */
 enum NATType {
@@ -42,6 +42,17 @@ class NAT {
   static NAT* Create(NATType type);
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::NAT;
+using ::webrtc::NAT_ADDR_RESTRICTED;
+using ::webrtc::NAT_OPEN_CONE;
+using ::webrtc::NAT_PORT_RESTRICTED;
+using ::webrtc::NAT_SYMMETRIC;
+using ::webrtc::NATType;
 }  // namespace rtc
 
 #endif  // P2P_TEST_NAT_TYPES_H_

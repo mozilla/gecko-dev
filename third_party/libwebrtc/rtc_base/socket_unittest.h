@@ -18,7 +18,7 @@
 #include "rtc_base/socket_factory.h"
 #include "test/gtest.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Generic socket tests, to be used when testing individual socket servers.
 // Derive your specific test class from SocketTest, install your
@@ -101,13 +101,20 @@ class SocketTest : public ::testing::Test {
   void UdpSocketRecvTimestampUseRtcEpoch(const IPAddress& loopback);
   void SocketSendRecvWithEcn(const IPAddress& loopback);
 
-  SocketFactory* socket_factory_;
+  rtc::SocketFactory* socket_factory_;
 };
 
 // For unbound sockets, GetLocalAddress / GetRemoteAddress return AF_UNSPEC
 // values on Windows, but an empty address of the same family on Linux/MacOS X.
 bool IsUnspecOrEmptyIP(const IPAddress& address);
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::IsUnspecOrEmptyIP;
+using ::webrtc::SocketTest;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SOCKET_UNITTEST_H_

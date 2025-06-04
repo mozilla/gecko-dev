@@ -17,7 +17,7 @@
 namespace rtc {
 
 TEST(FifoBufferTest, TestAll) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   const size_t kSize = 16;
   const uint8_t in[kSize * 2 + 1] = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
   uint8_t out[kSize * 2];
@@ -237,7 +237,7 @@ TEST(FifoBufferTest, TestAll) {
 }
 
 TEST(FifoBufferTest, FullBufferCheck) {
-  rtc::AutoThread main_thread;
+  webrtc::AutoThread main_thread;
   FifoBuffer buff(10);
   buff.ConsumeWriteBuffer(10);
 

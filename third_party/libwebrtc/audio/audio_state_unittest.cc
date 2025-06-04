@@ -223,7 +223,6 @@ TEST_P(AudioStateTest, RecordedAudioArrivesAtSingleStream) {
     EXPECT_CALL(*ap, ProcessStream(_, _, _, Matcher<int16_t*>(_)));
   }
 
-  constexpr int kSampleRate = 16000;
   constexpr size_t kNumChannels = 2;
   auto audio_data = Create10msTestData(kSampleRate, kNumChannels);
   uint32_t new_mic_level = 667;
@@ -282,7 +281,6 @@ TEST_P(AudioStateTest, RecordedAudioArrivesAtMultipleStreams) {
     EXPECT_CALL(*ap, ProcessStream(_, _, _, Matcher<int16_t*>(_)));
   }
 
-  constexpr int kSampleRate = 16000;
   constexpr size_t kNumChannels = 1;
   auto audio_data = Create10msTestData(kSampleRate, kNumChannels);
   uint32_t new_mic_level = 667;
@@ -296,7 +294,6 @@ TEST_P(AudioStateTest, RecordedAudioArrivesAtMultipleStreams) {
 }
 
 TEST_P(AudioStateTest, EnableChannelSwap) {
-  constexpr int kSampleRate = 16000;
   constexpr size_t kNumChannels = 2;
 
   ConfigHelper helper(GetParam());
@@ -472,7 +469,7 @@ TEST_P(AudioStateTest, AlwaysCallInitPlayoutBeforeStartPlayout) {
   }
 
   // SetPlayout(false) starts the NullAudioPoller...which needs a thread.
-  rtc::ThreadManager::Instance()->WrapCurrentThread();
+  ThreadManager::Instance()->WrapCurrentThread();
 
   EXPECT_CALL(*adm, StopPlayout());
   audio_state->SetPlayout(false);
@@ -486,7 +483,7 @@ TEST_P(AudioStateTest, AlwaysCallInitPlayoutBeforeStartPlayout) {
 
   // Playout without streams starts the NullAudioPoller...
   // which needs a thread.
-  rtc::ThreadManager::Instance()->WrapCurrentThread();
+  ThreadManager::Instance()->WrapCurrentThread();
 
   EXPECT_CALL(*adm, StopPlayout());
   audio_state->RemoveReceivingStream(&stream);
@@ -519,7 +516,7 @@ TEST_P(AudioStateTest, AddStreamDoesNothingIfPlayoutDisabled) {
 
   // AddReceivingStream with playout disabled start the NullAudioPoller...
   // which needs a thread.
-  rtc::ThreadManager::Instance()->WrapCurrentThread();
+  ThreadManager::Instance()->WrapCurrentThread();
 
   MockAudioReceiveStream stream;
   audio_state->AddReceivingStream(&stream);

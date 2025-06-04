@@ -27,8 +27,8 @@
 #include "p2p/base/packet_transport_internal.h"
 #include "rtc_base/buffer.h"
 #include "rtc_base/callback_list.h"
+#include "rtc_base/rtc_certificate.h"
 #include "rtc_base/ssl_certificate.h"
-#include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_stream_adapter.h"
 
 namespace cricket {
@@ -58,9 +58,9 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
 
   virtual bool IsDtlsActive() const = 0;
 
-  virtual bool GetDtlsRole(rtc::SSLRole* role) const = 0;
+  virtual bool GetDtlsRole(webrtc::SSLRole* role) const = 0;
 
-  virtual bool SetDtlsRole(rtc::SSLRole role) = 0;
+  virtual bool SetDtlsRole(webrtc::SSLRole role) = 0;
 
   // Finds out which TLS/DTLS version is running.
   virtual bool GetSslVersionBytes(int* version) const = 0;
@@ -80,11 +80,11 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
   virtual uint16_t GetSslPeerSignatureAlgorithm() const = 0;
 
   // Gets the local RTCCertificate used for DTLS.
-  virtual rtc::scoped_refptr<rtc::RTCCertificate> GetLocalCertificate()
+  virtual rtc::scoped_refptr<webrtc::RTCCertificate> GetLocalCertificate()
       const = 0;
 
   virtual bool SetLocalCertificate(
-      const rtc::scoped_refptr<rtc::RTCCertificate>& certificate) = 0;
+      const rtc::scoped_refptr<webrtc::RTCCertificate>& certificate) = 0;
 
   // Gets a copy of the remote side's SSL certificate chain.
   virtual std::unique_ptr<rtc::SSLCertChain> GetRemoteSSLCertChain() const = 0;
@@ -104,15 +104,15 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
       absl::string_view digest_alg,
       const uint8_t* digest,
       size_t digest_len,
-      std::optional<rtc::SSLRole> role) = 0;
+      std::optional<webrtc::SSLRole> role) = 0;
 
   ABSL_DEPRECATED("Set the max version via construction.")
-  bool SetSslMaxProtocolVersion(rtc::SSLProtocolVersion /* version */) {
+  bool SetSslMaxProtocolVersion(webrtc::SSLProtocolVersion /* version */) {
     return true;
   }
 
   // Expose the underneath IceTransport.
-  virtual IceTransportInternal* ice_transport() = 0;
+  virtual webrtc::IceTransportInternal* ice_transport() = 0;
 
   // F: void(DtlsTransportInternal*, const webrtc::DtlsTransportState)
   template <typename F>
@@ -142,7 +142,7 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
     dtls_handshake_error_callback_list_.AddReceiver(std::forward<F>(callback));
   }
 
-  void SendDtlsHandshakeError(rtc::SSLHandshakeError error) {
+  void SendDtlsHandshakeError(webrtc::SSLHandshakeError error) {
     dtls_handshake_error_callback_list_.Send(error);
   }
 
@@ -150,7 +150,7 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
   DtlsTransportInternal();
 
  private:
-  webrtc::CallbackList<const rtc::SSLHandshakeError>
+  webrtc::CallbackList<const webrtc::SSLHandshakeError>
       dtls_handshake_error_callback_list_;
   webrtc::CallbackList<DtlsTransportInternal*, const webrtc::DtlsTransportState>
       dtls_transport_state_callback_list_;

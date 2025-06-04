@@ -19,8 +19,8 @@ class CandidatePairInterface {
  public:
   virtual ~CandidatePairInterface() {}
 
-  virtual const Candidate& local_candidate() const = 0;
-  virtual const Candidate& remote_candidate() const = 0;
+  virtual const webrtc::Candidate& local_candidate() const = 0;
+  virtual const webrtc::Candidate& remote_candidate() const = 0;
 };
 
 // Specific implementation of the interface, suitable for being a
@@ -28,11 +28,11 @@ class CandidatePairInterface {
 struct CandidatePair final : public CandidatePairInterface {
   ~CandidatePair() override = default;
 
-  const Candidate& local_candidate() const override { return local; }
-  const Candidate& remote_candidate() const override { return remote; }
+  const webrtc::Candidate& local_candidate() const override { return local; }
+  const webrtc::Candidate& remote_candidate() const override { return remote; }
 
-  Candidate local;
-  Candidate remote;
+  webrtc::Candidate local;
+  webrtc::Candidate remote;
 };
 
 }  // namespace cricket

@@ -26,12 +26,12 @@ namespace rtc {
 
 // FifoBuffer allows for efficient, thread-safe buffering of data between
 // writer and reader.
-class FifoBuffer final : public StreamInterface {
+class FifoBuffer final : public webrtc::StreamInterface {
  public:
   // Creates a FIFO buffer with the specified capacity.
   explicit FifoBuffer(size_t length);
   // Creates a FIFO buffer with the specified capacity and owner
-  FifoBuffer(size_t length, Thread* owner);
+  FifoBuffer(size_t length, webrtc::Thread* owner);
   ~FifoBuffer() override;
 
   FifoBuffer(const FifoBuffer&) = delete;
@@ -41,13 +41,13 @@ class FifoBuffer final : public StreamInterface {
   bool GetBuffered(size_t* data_len) const;
 
   // StreamInterface methods
-  StreamState GetState() const override;
-  StreamResult Read(rtc::ArrayView<uint8_t> buffer,
-                    size_t& bytes_read,
-                    int& error) override;
-  StreamResult Write(rtc::ArrayView<const uint8_t> buffer,
-                     size_t& bytes_written,
-                     int& error) override;
+  webrtc::StreamState GetState() const override;
+  webrtc::StreamResult Read(rtc::ArrayView<uint8_t> buffer,
+                            size_t& bytes_read,
+                            int& error) override;
+  webrtc::StreamResult Write(rtc::ArrayView<const uint8_t> buffer,
+                             size_t& bytes_written,
+                             int& error) override;
   void Close() override;
 
   // Seek to a byte offset from the beginning of the stream.  Returns false if
@@ -93,20 +93,22 @@ class FifoBuffer final : public StreamInterface {
 
   // Helper method that implements Read. Caller must acquire a lock
   // when calling this method.
-  StreamResult ReadLocked(void* buffer, size_t bytes, size_t* bytes_read)
+  webrtc::StreamResult ReadLocked(void* buffer,
+                                  size_t bytes,
+                                  size_t* bytes_read)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(callback_sequence_);
 
   // Helper method that implements Write. Caller must acquire a lock
   // when calling this method.
-  StreamResult WriteLocked(const void* buffer,
-                           size_t bytes,
-                           size_t* bytes_written)
+  webrtc::StreamResult WriteLocked(const void* buffer,
+                                   size_t bytes,
+                                   size_t* bytes_written)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(callback_sequence_);
 
   webrtc::ScopedTaskSafety task_safety_;
 
   // keeps the opened/closed state of the stream
-  StreamState state_ RTC_GUARDED_BY(callback_sequence_);
+  webrtc::StreamState state_ RTC_GUARDED_BY(callback_sequence_);
   // the allocated buffer
   std::unique_ptr<char[]> buffer_ RTC_GUARDED_BY(callback_sequence_);
   // size of the allocated buffer
@@ -116,7 +118,7 @@ class FifoBuffer final : public StreamInterface {
   // offset to the readable data
   size_t read_position_ RTC_GUARDED_BY(callback_sequence_);
   // stream callbacks are dispatched on this thread
-  Thread* const owner_;
+  webrtc::Thread* const owner_;
 };
 
 }  // namespace rtc

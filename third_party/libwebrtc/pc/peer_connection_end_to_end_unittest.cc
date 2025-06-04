@@ -35,7 +35,6 @@
 #include "api/data_channel_interface.h"
 #include "api/environment/environment.h"
 #include "api/make_ref_counted.h"
-#include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
@@ -84,8 +83,8 @@ class PeerConnectionEndToEndBaseTest : public sigslot::has_slots<>,
   typedef std::vector<rtc::scoped_refptr<DataChannelInterface>> DataChannelList;
 
   explicit PeerConnectionEndToEndBaseTest(SdpSemantics sdp_semantics)
-      : network_thread_(std::make_unique<rtc::Thread>(&pss_)),
-        worker_thread_(rtc::Thread::Create()) {
+      : network_thread_(std::make_unique<webrtc::Thread>(&pss_)),
+        worker_thread_(webrtc::Thread::Create()) {
     RTC_CHECK(network_thread_->Start());
     RTC_CHECK(worker_thread_->Start());
     caller_ = rtc::make_ref_counted<PeerConnectionTestWrapper>(
@@ -250,10 +249,10 @@ class PeerConnectionEndToEndBaseTest : public sigslot::has_slots<>,
   }
 
  protected:
-  rtc::AutoThread main_thread_;
-  rtc::PhysicalSocketServer pss_;
-  std::unique_ptr<rtc::Thread> network_thread_;
-  std::unique_ptr<rtc::Thread> worker_thread_;
+  webrtc::AutoThread main_thread_;
+  webrtc::PhysicalSocketServer pss_;
+  std::unique_ptr<webrtc::Thread> network_thread_;
+  std::unique_ptr<webrtc::Thread> worker_thread_;
   rtc::scoped_refptr<PeerConnectionTestWrapper> caller_;
   rtc::scoped_refptr<PeerConnectionTestWrapper> callee_;
   DataChannelList caller_signaled_data_channels_;
@@ -762,7 +761,7 @@ TEST_P(PeerConnectionEndToEndTest, CloseDataChannelRemotelyWhileNotReferenced) {
 
   // Wait for a bit longer so the remote data channel will receive the
   // close message and be destroyed.
-  rtc::Thread::Current()->ProcessMessages(100);
+  webrtc::Thread::Current()->ProcessMessages(100);
 }
 
 // Test behavior of creating too many datachannels.

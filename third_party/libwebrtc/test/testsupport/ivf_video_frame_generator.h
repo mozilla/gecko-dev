@@ -90,7 +90,7 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
   // frame was sent to decoder and decoder callback was invoked.
   Mutex frame_decode_lock_;
 
-  rtc::Event next_frame_decoded_;
+  Event next_frame_decoded_;
   std::optional<VideoFrame> next_frame_ RTC_GUARDED_BY(frame_decode_lock_);
 };
 

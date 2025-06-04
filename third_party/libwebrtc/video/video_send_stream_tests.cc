@@ -19,10 +19,10 @@
 #include <string>
 #include <tuple>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "absl/strings/match.h"
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
@@ -2132,7 +2132,7 @@ TEST_F(VideoSendStreamTest,
     }
 
     Mutex mutex_;
-    rtc::Event init_encode_called_;
+    Event init_encode_called_;
     int last_initialized_frame_width_ RTC_GUARDED_BY(&mutex_);
     int last_initialized_frame_height_ RTC_GUARDED_BY(&mutex_);
   };
@@ -2202,7 +2202,7 @@ TEST_F(VideoSendStreamTest, CanReconfigureToUseStartBitrateAbovePreviousMax) {
 
    private:
     mutable Mutex mutex_;
-    rtc::Event start_bitrate_changed_;
+    Event start_bitrate_changed_;
     int start_bitrate_kbps_ RTC_GUARDED_BY(mutex_);
   };
 
@@ -2232,7 +2232,7 @@ TEST_F(VideoSendStreamTest, CanReconfigureToUseStartBitrateAbovePreviousMax) {
   // the test code context is interpreted as the worker thread and we assume
   // progress on it. The test should probably be ported to use simulated time
   // instead (ported to a scenario test perhaps?).
-  rtc::Thread::Current()->ProcessMessages(5000);
+  Thread::Current()->ProcessMessages(5000);
 
   EXPECT_TRUE(encoder.WaitForStartBitrate());
   EXPECT_EQ(GetVideoEncoderConfig()->max_bitrate_bps / 1000,
@@ -2246,7 +2246,7 @@ TEST_F(VideoSendStreamTest, CanReconfigureToUseStartBitrateAbovePreviousMax) {
   // the test code context is interpreted as the worker thread and we assume
   // progress on it. The test should probably be ported to use simulated time
   // instead (ported to a scenario test perhaps?).
-  rtc::Thread::Current()->ProcessMessages(5000);
+  Thread::Current()->ProcessMessages(5000);
 
   // New bitrate should be reconfigured above the previous max. As there's no
   // network connection this shouldn't be flaky, as no bitrate should've been
@@ -2468,7 +2468,7 @@ class VideoCodecConfigObserver : public test::SendTest,
 
   T encoder_settings_;
   const VideoCodecType video_codec_type_;
-  rtc::Event init_encode_event_;
+  Event init_encode_event_;
   VideoSendStream* stream_;
   test::VideoEncoderProxyFactory encoder_factory_;
   VideoEncoderConfig encoder_config_;
@@ -2815,7 +2815,7 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
       // more than one update pending, in which case we keep waiting
       // until the correct value has been observed.
       // The target_bitrate_ is reduced by the calculated packet overhead.
-      const int64_t start_time = rtc::TimeMillis();
+      const int64_t start_time = TimeMillis();
       do {
         MutexLock lock(&mutex_);
 
@@ -2827,7 +2827,7 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
       } while (bitrate_changed_event_.Wait(
           std::max(TimeDelta::Millis(1),
                    test::VideoTestConstants::kDefaultTimeout -
-                       TimeDelta::Millis(rtc::TimeMillis() - start_time))));
+                       TimeDelta::Millis(TimeMillis() - start_time))));
       MutexLock lock(&mutex_);
       EXPECT_NEAR(target_bitrate_, expected_bitrate, abs_error)
           << "Timed out while waiting encoder rate to be set.";
@@ -2910,9 +2910,9 @@ TEST_F(VideoSendStreamTest, ReconfigureBitratesSetsEncoderBitratesCorrectly) {
     }
 
     TaskQueueBase* const task_queue_;
-    rtc::Event create_rate_allocator_event_;
-    rtc::Event init_encode_event_;
-    rtc::Event bitrate_changed_event_;
+    Event create_rate_allocator_event_;
+    Event init_encode_event_;
+    Event bitrate_changed_event_;
     Mutex mutex_;
     uint32_t target_bitrate_ RTC_GUARDED_BY(&mutex_);
 
@@ -3096,7 +3096,7 @@ class Vp9HeaderObserver : public test::SendTest {
       EXPECT_EQ(VideoCodecType::kVideoCodecVP9, video_header.codec);
       // Verify common fields for all configurations.
       const auto& vp9_header =
-          absl::get<RTPVideoHeaderVP9>(video_header.video_type_header);
+          std::get<RTPVideoHeaderVP9>(video_header.video_type_header);
       VerifyCommonHeader(vp9_header);
       CompareConsecutiveFrames(rtp_packet, video_header);
       // Verify configuration specific settings.
@@ -3335,7 +3335,7 @@ class Vp9HeaderObserver : public test::SendTest {
   void CompareConsecutiveFrames(const RtpPacket& rtp_packet,
                                 const RTPVideoHeader& video) const {
     const auto& vp9_header =
-        absl::get<RTPVideoHeaderVP9>(video.video_type_header);
+        std::get<RTPVideoHeaderVP9>(video.video_type_header);
 
     const bool new_temporal_unit =
         !last_packet_timestamp_.has_value() ||
@@ -3822,7 +3822,7 @@ TEST_F(VideoSendStreamTest, RemoveOverheadFromBandwidth) {
     Mutex mutex_;
     uint32_t max_bitrate_bps_ RTC_GUARDED_BY(&mutex_);
     bool first_packet_sent_ RTC_GUARDED_BY(&mutex_);
-    rtc::Event bitrate_changed_event_;
+    Event bitrate_changed_event_;
   } test(env(), task_queue());
   RunBaseTest(&test);
 }
@@ -4040,7 +4040,7 @@ class ContentSwitchTest : public test::SendTest {
   }
 
   Mutex mutex_;
-  rtc::Event content_switch_event_;
+  Event content_switch_event_;
   Call* call_;
   bool done_ RTC_GUARDED_BY(mutex_) = false;
   StreamState state_ RTC_GUARDED_BY(mutex_);
@@ -4174,10 +4174,10 @@ void VideoSendStreamTest::TestTemporalLayers(
           depacketizer_->Parse(rtp_packet.PayloadBuffer());
       EXPECT_TRUE(parsed_payload);
 
-      if (const auto* vp8_header = absl::get_if<RTPVideoHeaderVP8>(
+      if (const auto* vp8_header = std::get_if<RTPVideoHeaderVP8>(
               &parsed_payload->video_header.video_type_header)) {
         parsed.temporal_idx = vp8_header->temporalIdx;
-      } else if (const auto* vp9_header = absl::get_if<RTPVideoHeaderVP9>(
+      } else if (const auto* vp9_header = std::get_if<RTPVideoHeaderVP9>(
                      &parsed_payload->video_header.video_type_header)) {
         parsed.temporal_idx = vp9_header->temporal_idx;
       } else {

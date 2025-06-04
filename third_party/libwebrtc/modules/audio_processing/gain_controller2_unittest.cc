@@ -541,13 +541,16 @@ TEST(GainController2,
                            /*input_volume_changed=*/false,
                            &audio_buffer_reference);
     // Check the output buffers.
-    for (int i = 0; i < kStereo; ++i) {
-      for (int j = 0; j < static_cast<int>(audio_buffer.num_frames()); ++j) {
+    for (int channel = 0; channel < kStereo; ++channel) {
+      for (int frame_num = 0;
+           frame_num < static_cast<int>(audio_buffer.num_frames());
+           ++frame_num) {
         all_samples_zero &=
-            fabs(audio_buffer.channels_const()[i][j]) < kEpsilon;
+            fabs(audio_buffer.channels_const()[channel][frame_num]) < kEpsilon;
         all_samples_equal &=
-            fabs(audio_buffer.channels_const()[i][j] -
-                 audio_buffer_reference.channels_const()[i][j]) < kEpsilon;
+            fabs(audio_buffer.channels_const()[channel][frame_num] -
+                 audio_buffer_reference.channels_const()[channel][frame_num]) <
+            kEpsilon;
       }
     }
   }
@@ -611,10 +614,13 @@ TEST(GainController2,
     agc2.Process(speech_probability, /*input_volume_changed=*/false,
                  &audio_buffer);
     // Check the output buffer.
-    for (int i = 0; i < kStereo; ++i) {
-      for (int j = 0; j < static_cast<int>(audio_buffer.num_frames()); ++j) {
-        EXPECT_FLOAT_EQ(audio_buffer.channels_const()[i][j],
-                        audio_buffer_reference.channels_const()[i][j]);
+    for (int channel = 0; channel < kStereo; ++channel) {
+      for (int frame_num = 0;
+           frame_num < static_cast<int>(audio_buffer.num_frames());
+           ++frame_num) {
+        EXPECT_FLOAT_EQ(
+            audio_buffer.channels_const()[channel][frame_num],
+            audio_buffer_reference.channels_const()[channel][frame_num]);
       }
     }
   }

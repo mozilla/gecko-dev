@@ -137,7 +137,7 @@ const char* inet_ntop_v6(const void* src, char* dst, socklen_t size) {
     for (int i = 0; i < run_array_size; ++i) {
       if (runpos[i] == -1) {
         cursor += snprintf(cursor, INET6_ADDRSTRLEN - (cursor - dst), "%x",
-                           NetworkToHost16(as_shorts[i]));
+                           webrtc::NetworkToHost16(as_shorts[i]));
         if (i != 7 && runpos[i + 1] != 1) {
           *cursor++ = ':';
         }
@@ -292,7 +292,7 @@ int inet_pton_v6(const char* src, void* dst) {
       if (sscanf(readcursor, "%4hx%n", &word, &bytesread) != 1) {
         return 0;
       } else {
-        *addr_cursor = HostToNetwork16(word);
+        *addr_cursor = webrtc::HostToNetwork16(word);
         ++addr_cursor;
         readcursor += bytesread;
         if (*readcursor != ':' && *readcursor != '\0') {

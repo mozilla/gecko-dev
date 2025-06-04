@@ -23,7 +23,6 @@ const NSString *const kRTCFlexfecCodecName = @(cricket::kFlexfecCodecName);
 const NSString *const kRTCOpusCodecName = @(cricket::kOpusCodecName);
 const NSString *const kRTCL16CodecName = @(cricket::kL16CodecName);
 const NSString *const kRTCG722CodecName = @(cricket::kG722CodecName);
-const NSString *const kRTCIlbcCodecName = @(cricket::kIlbcCodecName);
 const NSString *const kRTCPcmuCodecName = @(cricket::kPcmuCodecName);
 const NSString *const kRTCPcmaCodecName = @(cricket::kPcmaCodecName);
 const NSString *const kRTCDtmfCodecName = @(cricket::kDtmfCodecName);
@@ -54,16 +53,13 @@ const NSString *const kRTCH264CodecName = @(cricket::kH264CodecName);
     _payloadType = nativeParameters.payload_type;
     _name = [NSString stringForStdString:nativeParameters.name];
     switch (nativeParameters.kind) {
-      case cricket::MEDIA_TYPE_AUDIO:
+      case webrtc::MediaType::AUDIO:
         _kind = kRTCMediaStreamTrackKindAudio;
         break;
-      case cricket::MEDIA_TYPE_VIDEO:
+      case webrtc::MediaType::VIDEO:
         _kind = kRTCMediaStreamTrackKindVideo;
         break;
-      case cricket::MEDIA_TYPE_DATA:
-        RTC_DCHECK_NOTREACHED();
-        break;
-      case cricket::MEDIA_TYPE_UNSUPPORTED:
+      default:
         RTC_DCHECK_NOTREACHED();
         break;
     }
@@ -90,9 +86,9 @@ const NSString *const kRTCH264CodecName = @(cricket::kH264CodecName);
   // NSString pointer comparison is safe here since "kind" is readonly and only
   // populated above.
   if (_kind == kRTCMediaStreamTrackKindAudio) {
-    parameters.kind = cricket::MEDIA_TYPE_AUDIO;
+    parameters.kind = webrtc::MediaType::AUDIO;
   } else if (_kind == kRTCMediaStreamTrackKindVideo) {
-    parameters.kind = cricket::MEDIA_TYPE_VIDEO;
+    parameters.kind = webrtc::MediaType::VIDEO;
   } else {
     RTC_DCHECK_NOTREACHED();
   }

@@ -12,6 +12,7 @@
 #define PC_TEST_PEER_CONNECTION_TEST_WRAPPER_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -22,6 +23,7 @@
 #include "api/field_trials_view.h"
 #include "api/jsep.h"
 #include "api/media_stream_interface.h"
+#include "api/media_types.h"
 #include "api/peer_connection_interface.h"
 #include "api/rtc_error.h"
 #include "api/rtp_parameters.h"
@@ -35,6 +37,7 @@
 #include "pc/test/fake_periodic_video_source.h"
 #include "pc/test/fake_periodic_video_track_source.h"
 #include "pc/test/fake_video_track_renderer.h"
+#include "rtc_base/socket_server.h"
 #include "rtc_base/third_party/sigslot/sigslot.h"
 #include "rtc_base/thread.h"
 
@@ -47,9 +50,9 @@ class PeerConnectionTestWrapper
                       PeerConnectionTestWrapper* callee);
 
   PeerConnectionTestWrapper(const std::string& name,
-                            rtc::SocketServer* socket_server,
-                            rtc::Thread* network_thread,
-                            rtc::Thread* worker_thread);
+                            webrtc::SocketServer* socket_server,
+                            webrtc::Thread* network_thread,
+                            webrtc::Thread* worker_thread);
   virtual ~PeerConnectionTestWrapper();
 
   bool CreatePc(
@@ -76,7 +79,7 @@ class PeerConnectionTestWrapper
       const webrtc::DataChannelInit& init);
 
   std::optional<webrtc::RtpCodecCapability> FindFirstSendCodecWithName(
-      cricket::MediaType media_type,
+      webrtc::MediaType media_type,
       const std::string& name) const;
 
   void WaitForNegotiation();
@@ -141,9 +144,9 @@ class PeerConnectionTestWrapper
   bool CheckForVideo();
 
   std::string name_;
-  rtc::SocketServer* const socket_server_;
-  rtc::Thread* const network_thread_;
-  rtc::Thread* const worker_thread_;
+  webrtc::SocketServer* const socket_server_;
+  webrtc::Thread* const network_thread_;
+  webrtc::Thread* const worker_thread_;
   webrtc::SequenceChecker pc_thread_checker_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>

@@ -53,11 +53,10 @@ using ::testing::NiceMock;
 static const char kUsagePatternMetric[] = "WebRTC.PeerConnection.UsagePattern";
 static constexpr webrtc::TimeDelta kDefaultTimeout =
     webrtc::TimeDelta::Millis(10000);
-static const rtc::SocketAddress kLocalAddrs[2] = {
-    rtc::SocketAddress("1.1.1.1", 0), rtc::SocketAddress("2.2.2.2", 0)};
-static const rtc::SocketAddress kPrivateLocalAddress("10.1.1.1", 0);
-static const rtc::SocketAddress kPrivateIpv6LocalAddress("fd12:3456:789a:1::1",
-                                                         0);
+static const SocketAddress kLocalAddrs[2] = {SocketAddress("1.1.1.1", 0),
+                                             SocketAddress("2.2.2.2", 0)};
+static const SocketAddress kPrivateLocalAddress("10.1.1.1", 0);
+static const SocketAddress kPrivateIpv6LocalAddress("fd12:3456:789a:1::1", 0);
 
 int MakeUsageFingerprint(std::set<UsageEvent> events) {
   int signature = 0;
@@ -229,9 +228,9 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
     deps.async_dns_resolver_factory =
         std::make_unique<NiceMock<MockAsyncDnsResolverFactory>>();
 
-    auto fake_network = std::make_unique<rtc::FakeNetworkManager>();
+    auto fake_network = std::make_unique<FakeNetworkManager>();
     fake_network->set_mdns_responder(
-        std::make_unique<FakeMdnsResponder>(rtc::Thread::Current()));
+        std::make_unique<FakeMdnsResponder>(Thread::Current()));
     fake_network->AddInterface(NextLocalAddress());
 
     return CreatePeerConnection(config,
@@ -247,7 +246,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
   }
 
   WrapperPtr CreatePeerConnectionWithPrivateLocalAddresses() {
-    auto fake_network = std::make_unique<rtc::FakeNetworkManager>();
+    auto fake_network = std::make_unique<FakeNetworkManager>();
     fake_network->AddInterface(NextLocalAddress());
     fake_network->AddInterface(kPrivateLocalAddress);
 
@@ -259,7 +258,7 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
   }
 
   WrapperPtr CreatePeerConnectionWithPrivateIpv6LocalAddresses() {
-    auto fake_network = std::make_unique<rtc::FakeNetworkManager>();
+    auto fake_network = std::make_unique<FakeNetworkManager>();
     fake_network->AddInterface(NextLocalAddress());
     fake_network->AddInterface(kPrivateIpv6LocalAddress);
 
@@ -276,16 +275,16 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
       PeerConnectionDependencies deps,
       std::unique_ptr<rtc::NetworkManager> network_manager) {
     PeerConnectionFactoryDependencies pcf_deps;
-    pcf_deps.network_thread = rtc::Thread::Current();
-    pcf_deps.worker_thread = rtc::Thread::Current();
-    pcf_deps.signaling_thread = rtc::Thread::Current();
+    pcf_deps.network_thread = Thread::Current();
+    pcf_deps.worker_thread = Thread::Current();
+    pcf_deps.signaling_thread = Thread::Current();
     pcf_deps.socket_factory = &vss_;
     if (network_manager != nullptr) {
       pcf_deps.network_manager = std::move(network_manager);
     } else {
       // If no network manager is provided, one will be created that uses the
       // host network. This doesn't work on all trybots.
-      auto fake_network = std::make_unique<rtc::FakeNetworkManager>();
+      auto fake_network = std::make_unique<FakeNetworkManager>();
       fake_network->AddInterface(NextLocalAddress());
       pcf_deps.network_manager = std::move(fake_network);
     }
@@ -316,14 +315,14 @@ class PeerConnectionUsageHistogramTest : public ::testing::Test {
     return metrics::MinSample(kUsagePatternMetric);
   }
 
-  rtc::SocketAddress NextLocalAddress() {
+  SocketAddress NextLocalAddress() {
     RTC_DCHECK(next_local_address_ < (int)arraysize(kLocalAddrs));
     return kLocalAddrs[next_local_address_++];
   }
 
   int next_local_address_ = 0;
-  rtc::VirtualSocketServer vss_;
-  rtc::AutoSocketServerThread main_;
+  VirtualSocketServer vss_;
+  AutoSocketServerThread main_;
 };
 
 TEST_F(PeerConnectionUsageHistogramTest, UsageFingerprintHistogramFromTimeout) {

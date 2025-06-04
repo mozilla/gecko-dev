@@ -105,7 +105,7 @@ class RtcEventLogEncoderTest
         encoder = std::make_unique<RtcEventLogEncoderV3>();
         break;
     }
-    encoded_ = encoder->EncodeLogStart(rtc::TimeMillis(), rtc::TimeUTCMillis());
+    encoded_ = encoder->EncodeLogStart(TimeMillis(), TimeUTCMillis());
     return encoder;
   }
 
@@ -972,7 +972,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpReceiverReport) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -981,7 +981,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpReceiverReport) {
     std::vector<rtcp::ReceiverReport> events(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events[i] = gen_.NewReceiverReport();
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1012,7 +1012,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpSenderReport) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1021,7 +1021,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpSenderReport) {
     std::vector<rtcp::SenderReport> events(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events[i] = gen_.NewSenderReport();
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1052,7 +1052,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpExtendedReports) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1061,7 +1061,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpExtendedReports) {
     std::vector<rtcp::ExtendedReports> events(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events[i] = gen_.NewExtendedReports();
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1092,7 +1092,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpFir) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1101,7 +1101,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpFir) {
     std::vector<rtcp::Fir> events(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events[i] = gen_.NewFir();
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1131,7 +1131,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpPli) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1140,7 +1140,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpPli) {
     std::vector<rtcp::Pli> events(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events[i] = gen_.NewPli();
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1170,7 +1170,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpBye) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1179,7 +1179,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpBye) {
     std::vector<rtcp::Bye> events(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events[i] = gen_.NewBye();
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1209,7 +1209,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpNack) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1218,7 +1218,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpNack) {
     std::vector<rtcp::Nack> events(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events[i] = gen_.NewNack();
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1248,7 +1248,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpRemb) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1257,7 +1257,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpRemb) {
     std::vector<rtcp::Remb> events(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events[i] = gen_.NewRemb();
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1287,7 +1287,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpTransportFeedback) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1297,7 +1297,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpTransportFeedback) {
     events.reserve(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events.emplace_back(gen_.NewTransportFeedback());
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1329,7 +1329,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpLossNotification) {
     return;
   }
 
-  rtc::ScopedFakeClock fake_clock;
+  ScopedFakeClock fake_clock;
   fake_clock.SetTime(Timestamp::Millis(prng_.Rand<uint32_t>()));
 
   std::unique_ptr<RtcEventLogEncoder> encoder = CreateEncoder();
@@ -1339,7 +1339,7 @@ TEST_P(RtcEventLogEncoderTest, RtcEventRtcpLossNotification) {
     events.reserve(event_count_);
     std::vector<int64_t> timestamps_ms(event_count_);
     for (size_t i = 0; i < event_count_; ++i) {
-      timestamps_ms[i] = rtc::TimeMillis();
+      timestamps_ms[i] = TimeMillis();
       events.emplace_back(gen_.NewLossNotification());
       rtc::Buffer buffer = events[i].Build();
       if (direction == kIncomingPacket) {
@@ -1453,8 +1453,7 @@ class RtcEventLogEncoderSimpleTest
         encoder_ = std::make_unique<RtcEventLogEncoderV3>();
         break;
     }
-    encoded_ =
-        encoder_->EncodeLogStart(rtc::TimeMillis(), rtc::TimeUTCMillis());
+    encoded_ = encoder_->EncodeLogStart(TimeMillis(), TimeUTCMillis());
   }
   ~RtcEventLogEncoderSimpleTest() override = default;
 

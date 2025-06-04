@@ -35,21 +35,21 @@
 namespace webrtc {
 namespace {
 
-rtc::ThreadPriority TaskQueuePriorityToThreadPriority(
+ThreadPriority TaskQueuePriorityToThreadPriority(
     TaskQueueFactory::Priority priority) {
   switch (priority) {
     case TaskQueueFactory::Priority::HIGH:
-      return rtc::ThreadPriority::kRealtime;
+      return ThreadPriority::kRealtime;
     case TaskQueueFactory::Priority::LOW:
-      return rtc::ThreadPriority::kLow;
+      return ThreadPriority::kLow;
     case TaskQueueFactory::Priority::NORMAL:
-      return rtc::ThreadPriority::kNormal;
+      return ThreadPriority::kNormal;
   }
 }
 
 class TaskQueueStdlib final : public TaskQueueBase {
  public:
-  TaskQueueStdlib(absl::string_view queue_name, rtc::ThreadPriority priority);
+  TaskQueueStdlib(absl::string_view queue_name, ThreadPriority priority);
   ~TaskQueueStdlib() override = default;
 
   void Delete() override;
@@ -83,9 +83,9 @@ class TaskQueueStdlib final : public TaskQueueBase {
     TimeDelta sleep_time = rtc::Event::kForever;
   };
 
-  static rtc::PlatformThread InitializeThread(TaskQueueStdlib* me,
-                                              absl::string_view queue_name,
-                                              rtc::ThreadPriority priority);
+  static PlatformThread InitializeThread(TaskQueueStdlib* me,
+                                         absl::string_view queue_name,
+                                         ThreadPriority priority);
 
   NextTask GetNextTask();
 
@@ -94,7 +94,7 @@ class TaskQueueStdlib final : public TaskQueueBase {
   void NotifyWake();
 
   // Signaled whenever a new task is pending.
-  rtc::Event flag_notify_;
+  Event flag_notify_;
 
   Mutex pending_lock_;
 
@@ -123,28 +123,27 @@ class TaskQueueStdlib final : public TaskQueueBase {
   // tasks (including delayed tasks).
   // Placing this last ensures the thread doesn't touch uninitialized attributes
   // throughout it's lifetime.
-  rtc::PlatformThread thread_;
+  PlatformThread thread_;
 };
 
 TaskQueueStdlib::TaskQueueStdlib(absl::string_view queue_name,
-                                 rtc::ThreadPriority priority)
+                                 ThreadPriority priority)
     : flag_notify_(/*manual_reset=*/false, /*initially_signaled=*/false),
       thread_(InitializeThread(this, queue_name, priority)) {}
 
 // static
-rtc::PlatformThread TaskQueueStdlib::InitializeThread(
-    TaskQueueStdlib* me,
-    absl::string_view queue_name,
-    rtc::ThreadPriority priority) {
-  rtc::Event started;
-  auto thread = rtc::PlatformThread::SpawnJoinable(
+PlatformThread TaskQueueStdlib::InitializeThread(TaskQueueStdlib* me,
+                                                 absl::string_view queue_name,
+                                                 ThreadPriority priority) {
+  Event started;
+  auto thread = PlatformThread::SpawnJoinable(
       [&started, me] {
         CurrentTaskQueueSetter set_current(me);
         started.Set();
         me->ProcessTasks();
       },
-      queue_name, rtc::ThreadAttributes().SetPriority(priority));
-  started.Wait(rtc::Event::kForever);
+      queue_name, ThreadAttributes().SetPriority(priority));
+  started.Wait(Event::kForever);
   return thread;
 }
 
@@ -178,7 +177,7 @@ void TaskQueueStdlib::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
                                           const PostDelayedTaskTraits& traits,
                                           const Location& location) {
   DelayedEntryTimeout delayed_entry;
-  delayed_entry.next_fire_at_us = rtc::TimeMicros() + delay.us();
+  delayed_entry.next_fire_at_us = TimeMicros() + delay.us();
 
   {
     MutexLock lock(&pending_lock_);
@@ -192,7 +191,7 @@ void TaskQueueStdlib::PostDelayedTaskImpl(absl::AnyInvocable<void() &&> task,
 TaskQueueStdlib::NextTask TaskQueueStdlib::GetNextTask() {
   NextTask result;
 
-  const int64_t tick_us = rtc::TimeMicros();
+  const int64_t tick_us = TimeMicros();
 
   MutexLock lock(&pending_lock_);
 

@@ -22,7 +22,6 @@ RTC_EXTERN const NSString *const kRTCOpusCodecName;
 RTC_EXTERN const NSString *const kRTCIsacCodecName;
 RTC_EXTERN const NSString *const kRTCL16CodecName;
 RTC_EXTERN const NSString *const kRTCG722CodecName;
-RTC_EXTERN const NSString *const kRTCIlbcCodecName;
 RTC_EXTERN const NSString *const kRTCPcmuCodecName;
 RTC_EXTERN const NSString *const kRTCPcmaCodecName;
 RTC_EXTERN const NSString *const kRTCDtmfCodecName;

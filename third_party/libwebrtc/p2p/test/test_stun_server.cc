@@ -10,41 +10,49 @@
 
 #include "p2p/test/test_stun_server.h"
 
+#include <functional>
 #include <memory>
 
+#include "api/sequence_checker.h"
+#include "api/transport/stun.h"
+#include "p2p/test/stun_server.h"
+#include "rtc_base/async_udp_socket.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/socket_server.h"
 
-namespace cricket {
+namespace webrtc {
 
-std::unique_ptr<TestStunServer, std::function<void(TestStunServer*)>>
-TestStunServer::Create(rtc::SocketServer* ss,
-                       const rtc::SocketAddress& addr,
-                       rtc::Thread& network_thread) {
-  rtc::Socket* socket = ss->CreateSocket(addr.family(), SOCK_DGRAM);
+std::unique_ptr<TestStunServer, std::function<void(webrtc::TestStunServer*)>>
+TestStunServer::Create(SocketServer* ss,
+                       const SocketAddress& addr,
+                       Thread& network_thread) {
+  Socket* socket = ss->CreateSocket(addr.family(), SOCK_DGRAM);
   RTC_CHECK(socket != nullptr) << "Failed to create socket";
-  rtc::AsyncUDPSocket* udp_socket = rtc::AsyncUDPSocket::Create(socket, addr);
+  AsyncUDPSocket* udp_socket = AsyncUDPSocket::Create(socket, addr);
   RTC_CHECK(udp_socket != nullptr) << "Failed to create AsyncUDPSocket";
   TestStunServer* server = nullptr;
   network_thread.BlockingCall(
       [&]() { server = new TestStunServer(udp_socket, network_thread); });
-  std::unique_ptr<TestStunServer, std::function<void(TestStunServer*)>> result(
-      server, [&](TestStunServer* server) {
+  std::unique_ptr<TestStunServer, std::function<void(webrtc::TestStunServer*)>>
+      result(server, [&](TestStunServer* server) {
         network_thread.BlockingCall([server]() { delete server; });
       });
   return result;
 }
 
-void TestStunServer::OnBindingRequest(StunMessage* msg,
-                                      const rtc::SocketAddress& remote_addr) {
+void TestStunServer::OnBindingRequest(cricket::StunMessage* msg,
+                                      const SocketAddress& remote_addr) {
   RTC_DCHECK_RUN_ON(&network_thread_);
   if (fake_stun_addr_.IsNil()) {
     StunServer::OnBindingRequest(msg, remote_addr);
   } else {
-    StunMessage response(STUN_BINDING_RESPONSE, msg->transaction_id());
+    cricket::StunMessage response(cricket::STUN_BINDING_RESPONSE,
+                                  msg->transaction_id());
     GetStunBindResponse(msg, fake_stun_addr_, &response);
     SendResponse(response, remote_addr);
   }
 }
 
-}  // namespace cricket
+}  // namespace webrtc

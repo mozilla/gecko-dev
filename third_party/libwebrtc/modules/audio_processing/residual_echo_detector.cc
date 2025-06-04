@@ -11,9 +11,13 @@
 #include "modules/audio_processing/residual_echo_detector.h"
 
 #include <algorithm>
+#include <atomic>
+#include <cstddef>
 #include <numeric>
 #include <optional>
 
+#include "api/array_view.h"
+#include "api/audio/audio_processing.h"
 #include "modules/audio_processing/logging/apm_data_dumper.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
@@ -135,25 +139,25 @@ void ResidualEchoDetector::AnalyzeCaptureAudio(
   if (echo_likelihood_ > 1.1f) {
     // Make sure we don't spam the log.
     if (log_counter_ < 5 && best_delay != -1) {
-      size_t read_index = kLookbackFrames + next_insertion_index_ - best_delay;
-      if (read_index >= kLookbackFrames) {
-        read_index -= kLookbackFrames;
+      size_t read_index_high_echo =
+          kLookbackFrames + next_insertion_index_ - best_delay;
+      if (read_index_high_echo >= kLookbackFrames) {
+        read_index_high_echo -= kLookbackFrames;
       }
-      RTC_DCHECK_LT(read_index, render_power_.size());
-      RTC_LOG_F(LS_ERROR) << "Echo detector internal state: {"
-                             "Echo likelihood: "
-                          << echo_likelihood_ << ", Best Delay: " << best_delay
-                          << ", Covariance: "
-                          << covariances_[best_delay].covariance()
-                          << ", Last capture power: " << capture_power
-                          << ", Capture mean: " << capture_mean
-                          << ", Capture_standard deviation: "
-                          << capture_std_deviation << ", Last render power: "
-                          << render_power_[read_index]
-                          << ", Render mean: " << render_power_mean_[read_index]
-                          << ", Render standard deviation: "
-                          << render_power_std_dev_[read_index]
-                          << ", Reliability: " << reliability_ << "}";
+      RTC_DCHECK_LT(read_index_high_echo, render_power_.size());
+      RTC_LOG_F(LS_ERROR)
+          << "Echo detector internal state: {"
+             "Echo likelihood: "
+          << echo_likelihood_ << ", Best Delay: " << best_delay
+          << ", Covariance: " << covariances_[best_delay].covariance()
+          << ", Last capture power: " << capture_power
+          << ", Capture mean: " << capture_mean
+          << ", Capture_standard deviation: " << capture_std_deviation
+          << ", Last render power: " << render_power_[read_index_high_echo]
+          << ", Render mean: " << render_power_mean_[read_index_high_echo]
+          << ", Render standard deviation: "
+          << render_power_std_dev_[read_index_high_echo]
+          << ", Reliability: " << reliability_ << "}";
       log_counter_++;
     }
   }

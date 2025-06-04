@@ -49,7 +49,7 @@ bool IsFirstPacketOfFragment(const RTPVideoHeaderH264& h264_header) {
 
 bool BeginningOfIdr(const H26xPacketBuffer::Packet& packet) {
   const auto& h264_header =
-      absl::get<RTPVideoHeaderH264>(packet.video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(packet.video_header.video_type_header);
   const bool contains_idr_nalu =
       absl::c_any_of(h264_header.nalus, [](const auto& nalu_info) {
         return nalu_info.type == H264::NaluType::kIdr;
@@ -67,7 +67,7 @@ bool BeginningOfIdr(const H26xPacketBuffer::Packet& packet) {
 
 bool HasSps(const H26xPacketBuffer::Packet& packet) {
   auto& h264_header =
-      absl::get<RTPVideoHeaderH264>(packet.video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(packet.video_header.video_type_header);
   return absl::c_any_of(h264_header.nalus, [](const auto& nalu_info) {
     return nalu_info.type == H264::NaluType::kSps;
   });
@@ -207,12 +207,6 @@ H26xPacketBuffer::InsertResult H26xPacketBuffer::FindFrames(
         auto& prev_packet = GetPacket(seq_num_start - 1);
 
         if (prev_packet == nullptr || prev_packet->timestamp != rtp_timestamp) {
-          const auto& current_packet = GetPacket(seq_num_start);
-          if (!current_packet->video_header.is_first_packet_in_frame) {
-            // First packet of the frame is missing.
-            return result;
-          }
-
           if (MaybeAssembleFrame(seq_num_start, seq_num, result)) {
             // Frame was assembled, continue to look for more frames.
             break;
@@ -253,7 +247,7 @@ bool H26xPacketBuffer::MaybeAssembleFrame(int64_t start_seq_num_unwrapped,
     const auto& packet = GetPacket(seq_num);
     if (packet->codec() == kVideoCodecH264) {
       const auto& h264_header =
-          absl::get<RTPVideoHeaderH264>(packet->video_header.video_type_header);
+          std::get<RTPVideoHeaderH264>(packet->video_header.video_type_header);
       for (const auto& nalu : h264_header.nalus) {
         has_idr |= nalu.type == H264::NaluType::kIdr;
         has_sps |= nalu.type == H264::NaluType::kSps;
@@ -408,7 +402,7 @@ bool H26xPacketBuffer::FixH264Packet(Packet& packet) {
 
   RTPVideoHeader& video_header = packet.video_header;
   RTPVideoHeaderH264& h264_header =
-      absl::get<RTPVideoHeaderH264>(video_header.video_type_header);
+      std::get<RTPVideoHeaderH264>(video_header.video_type_header);
 
   rtc::CopyOnWriteBuffer result;
 

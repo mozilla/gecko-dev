@@ -37,9 +37,9 @@
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 
-using cricket::FakeDtlsTransport;
 using cricket::FakeIceTransport;
 using webrtc::DtlsSrtpTransport;
+using ::webrtc::FakeDtlsTransport;
 using webrtc::RtpTransport;
 using webrtc::SrtpTransport;
 
@@ -109,10 +109,10 @@ class DtlsSrtpTransportTest : public ::testing::Test,
 
   void CompleteDtlsHandshake(FakeDtlsTransport* fake_dtls1,
                              FakeDtlsTransport* fake_dtls2) {
-    auto cert1 = rtc::RTCCertificate::Create(
+    auto cert1 = webrtc::RTCCertificate::Create(
         rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
     fake_dtls1->SetLocalCertificate(cert1);
-    auto cert2 = rtc::RTCCertificate::Create(
+    auto cert2 = webrtc::RTCCertificate::Create(
         rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
     fake_dtls2->SetLocalCertificate(cert2);
     fake_dtls1->SetDestination(fake_dtls2);
@@ -131,8 +131,8 @@ class DtlsSrtpTransportTest : public ::testing::Test,
     memcpy(rtp_packet_data, kPcmuFrame, rtp_len);
     // In order to be able to run this test function multiple times we can not
     // use the same sequence number twice. Increase the sequence number by one.
-    rtc::SetBE16(reinterpret_cast<uint8_t*>(rtp_packet_data) + 2,
-                 ++sequence_number_);
+    webrtc::SetBE16(reinterpret_cast<uint8_t*>(rtp_packet_data) + 2,
+                    ++sequence_number_);
     rtc::CopyOnWriteBuffer rtp_packet1to2(rtp_packet_data, rtp_len,
                                           packet_size);
     rtc::CopyOnWriteBuffer rtp_packet2to1(rtp_packet_data, rtp_len,
@@ -203,8 +203,8 @@ class DtlsSrtpTransportTest : public ::testing::Test,
     memcpy(rtp_packet_data, kPcmuFrameWithExtensions, rtp_len);
     // In order to be able to run this test function multiple times we can not
     // use the same sequence number twice. Increase the sequence number by one.
-    rtc::SetBE16(reinterpret_cast<uint8_t*>(rtp_packet_data) + 2,
-                 ++sequence_number_);
+    webrtc::SetBE16(reinterpret_cast<uint8_t*>(rtp_packet_data) + 2,
+                    ++sequence_number_);
     rtc::CopyOnWriteBuffer rtp_packet1to2(rtp_packet_data, rtp_len,
                                           packet_size);
     rtc::CopyOnWriteBuffer rtp_packet2to1(rtp_packet_data, rtp_len,
@@ -261,7 +261,7 @@ class DtlsSrtpTransportTest : public ::testing::Test,
     SendRecvRtcpPackets();
   }
 
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   std::unique_ptr<DtlsSrtpTransport> dtls_srtp_transport1_;
   std::unique_ptr<DtlsSrtpTransport> dtls_srtp_transport2_;
   webrtc::TransportObserver transport_observer1_;

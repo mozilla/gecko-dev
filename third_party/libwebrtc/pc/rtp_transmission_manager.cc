@@ -10,16 +10,38 @@
 
 #include "pc/rtp_transmission_manager.h"
 
+#include <cstdint>
+#include <functional>
 #include <optional>
-#include <type_traits>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "api/environment/environment.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
 #include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_receiver_interface.h"
+#include "api/rtp_sender_interface.h"
 #include "api/rtp_transceiver_direction.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "media/base/media_channel.h"
+#include "media/base/media_engine.h"
 #include "pc/audio_rtp_receiver.h"
 #include "pc/channel_interface.h"
+#include "pc/codec_vendor.h"
+#include "pc/connection_context.h"
 #include "pc/legacy_stats_collector_interface.h"
+#include "pc/rtp_receiver.h"
+#include "pc/rtp_receiver_proxy.h"
+#include "pc/rtp_sender.h"
+#include "pc/rtp_sender_proxy.h"
+#include "pc/rtp_transceiver.h"
+#include "pc/usage_pattern.h"
 #include "pc/video_rtp_receiver.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/crypto_random.h"
@@ -38,6 +60,7 @@ RtpTransmissionManager::RtpTransmissionManager(
     const Environment& env,
     bool is_unified_plan,
     ConnectionContext* context,
+    cricket::CodecLookupHelper* codec_lookup_helper,
     UsagePattern* usage_pattern,
     PeerConnectionObserver* observer,
     LegacyStatsCollectorInterface* legacy_stats,
@@ -45,6 +68,7 @@ RtpTransmissionManager::RtpTransmissionManager(
     : env_(env),
       is_unified_plan_(is_unified_plan),
       context_(context),
+      codec_lookup_helper_(codec_lookup_helper),
       usage_pattern_(usage_pattern),
       observer_(observer),
       legacy_stats_(legacy_stats),
@@ -147,12 +171,12 @@ RtpTransmissionManager::AddTrackPlanB(
   }
   std::vector<std::string> adjusted_stream_ids = stream_ids;
   if (adjusted_stream_ids.empty()) {
-    adjusted_stream_ids.push_back(rtc::CreateRandomUuid());
+    adjusted_stream_ids.push_back(CreateRandomUuid());
   }
-  cricket::MediaType media_type =
+  webrtc::MediaType media_type =
       (track->kind() == MediaStreamTrackInterface::kAudioKind
-           ? cricket::MEDIA_TYPE_AUDIO
-           : cricket::MEDIA_TYPE_VIDEO);
+           ? webrtc::MediaType::AUDIO
+           : webrtc::MediaType::VIDEO);
   auto new_sender = CreateSender(
       media_type, track->id(), track, adjusted_stream_ids,
       init_send_encodings
@@ -190,7 +214,7 @@ RtpTransmissionManager::AddTrackUnifiedPlan(
       FindFirstTransceiverForAddedTrack(track, init_send_encodings);
   if (transceiver) {
     RTC_LOG(LS_INFO) << "Reusing an existing "
-                     << cricket::MediaTypeToString(transceiver->media_type())
+                     << webrtc::MediaTypeToString(transceiver->media_type())
                      << " transceiver for AddTrack.";
     if (transceiver->stopping()) {
       LOG_AND_RETURN_ERROR(RTCErrorType::INVALID_PARAMETER,
@@ -208,25 +232,25 @@ RtpTransmissionManager::AddTrackUnifiedPlan(
     transceiver->internal()->sender_internal()->set_stream_ids(stream_ids);
     transceiver->internal()->set_reused_for_addtrack(true);
   } else {
-    cricket::MediaType media_type =
+    webrtc::MediaType media_type =
         (track->kind() == MediaStreamTrackInterface::kAudioKind
-             ? cricket::MEDIA_TYPE_AUDIO
-             : cricket::MEDIA_TYPE_VIDEO);
-    RTC_LOG(LS_INFO) << "Adding " << cricket::MediaTypeToString(media_type)
+             ? webrtc::MediaType::AUDIO
+             : webrtc::MediaType::VIDEO);
+    RTC_LOG(LS_INFO) << "Adding " << webrtc::MediaTypeToString(media_type)
                      << " transceiver in response to a call to AddTrack.";
     std::string sender_id = track->id();
     // Avoid creating a sender with an existing ID by generating a random ID.
     // This can happen if this is the second time AddTrack has created a sender
     // for this track.
     if (FindSenderById(sender_id)) {
-      sender_id = rtc::CreateRandomUuid();
+      sender_id = CreateRandomUuid();
     }
     auto sender = CreateSender(
         media_type, sender_id, track, stream_ids,
         init_send_encodings
             ? *init_send_encodings
             : std::vector<RtpEncodingParameters>(1, RtpEncodingParameters{}));
-    auto receiver = CreateReceiver(media_type, rtc::CreateRandomUuid());
+    auto receiver = CreateReceiver(media_type, CreateRandomUuid());
     transceiver = CreateAndAddTransceiver(sender, receiver);
     transceiver->internal()->set_created_by_addtrack(true);
     transceiver->internal()->set_direction(RtpTransceiverDirection::kSendRecv);
@@ -236,14 +260,14 @@ RtpTransmissionManager::AddTrackUnifiedPlan(
 
 rtc::scoped_refptr<RtpSenderProxyWithInternal<RtpSenderInternal>>
 RtpTransmissionManager::CreateSender(
-    cricket::MediaType media_type,
+    webrtc::MediaType media_type,
     const std::string& id,
     rtc::scoped_refptr<MediaStreamTrackInterface> track,
     const std::vector<std::string>& stream_ids,
     const std::vector<RtpEncodingParameters>& send_encodings) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   rtc::scoped_refptr<RtpSenderProxyWithInternal<RtpSenderInternal>> sender;
-  if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+  if (media_type == webrtc::MediaType::AUDIO) {
     RTC_DCHECK(!track ||
                (track->kind() == MediaStreamTrackInterface::kAudioKind));
     sender = RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
@@ -251,7 +275,7 @@ RtpTransmissionManager::CreateSender(
         AudioRtpSender::Create(env_, worker_thread(), id, legacy_stats_, this));
     NoteUsageEvent(UsageEvent::AUDIO_ADDED);
   } else {
-    RTC_DCHECK_EQ(media_type, cricket::MEDIA_TYPE_VIDEO);
+    RTC_DCHECK_EQ(media_type, webrtc::MediaType::VIDEO);
     RTC_DCHECK(!track ||
                (track->kind() == MediaStreamTrackInterface::kVideoKind));
     sender = RtpSenderProxyWithInternal<RtpSenderInternal>::Create(
@@ -267,12 +291,12 @@ RtpTransmissionManager::CreateSender(
 }
 
 rtc::scoped_refptr<RtpReceiverProxyWithInternal<RtpReceiverInternal>>
-RtpTransmissionManager::CreateReceiver(cricket::MediaType media_type,
+RtpTransmissionManager::CreateReceiver(webrtc::MediaType media_type,
                                        const std::string& receiver_id) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   rtc::scoped_refptr<RtpReceiverProxyWithInternal<RtpReceiverInternal>>
       receiver;
-  if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+  if (media_type == webrtc::MediaType::AUDIO) {
     receiver = RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
         signaling_thread(), worker_thread(),
         rtc::make_ref_counted<AudioRtpReceiver>(worker_thread(), receiver_id,
@@ -280,7 +304,7 @@ RtpTransmissionManager::CreateReceiver(cricket::MediaType media_type,
                                                 IsUnifiedPlan()));
     NoteUsageEvent(UsageEvent::AUDIO_ADDED);
   } else {
-    RTC_DCHECK_EQ(media_type, cricket::MEDIA_TYPE_VIDEO);
+    RTC_DCHECK_EQ(media_type, webrtc::MediaType::VIDEO);
     receiver = RtpReceiverProxyWithInternal<RtpReceiverInternal>::Create(
         signaling_thread(), worker_thread(),
         rtc::make_ref_counted<VideoRtpReceiver>(worker_thread(), receiver_id,
@@ -304,8 +328,8 @@ RtpTransmissionManager::CreateAndAddTransceiver(
   auto transceiver = RtpTransceiverProxyWithInternal<RtpTransceiver>::Create(
       signaling_thread(),
       rtc::make_ref_counted<RtpTransceiver>(
-          sender, receiver, context_,
-          sender->media_type() == cricket::MEDIA_TYPE_AUDIO
+          sender, receiver, context_, codec_lookup_helper_,
+          sender->media_type() == webrtc::MediaType::AUDIO
               ? media_engine()->voice().GetRtpHeaderExtensions()
               : media_engine()->video().GetRtpHeaderExtensions(),
           [this_weak_ptr = weak_ptr_factory_.GetWeakPtr()]() {
@@ -328,8 +352,7 @@ RtpTransmissionManager::FindFirstTransceiverForAddedTrack(
   }
   for (auto transceiver : transceivers()->List()) {
     if (!transceiver->sender()->track() &&
-        cricket::MediaTypeToString(transceiver->media_type()) ==
-            track->kind() &&
+        webrtc::MediaTypeToString(transceiver->media_type()) == track->kind() &&
         !transceiver->internal()->has_ever_been_used_to_send() &&
         !transceiver->stopped()) {
       return transceiver;
@@ -378,7 +401,7 @@ RtpTransmissionManager::GetAudioTransceiver() const {
   // audio/video transceiver.
   RTC_DCHECK(!IsUnifiedPlan());
   for (auto transceiver : transceivers_.List()) {
-    if (transceiver->media_type() == cricket::MEDIA_TYPE_AUDIO) {
+    if (transceiver->media_type() == webrtc::MediaType::AUDIO) {
       return transceiver;
     }
   }
@@ -393,7 +416,7 @@ RtpTransmissionManager::GetVideoTransceiver() const {
   // audio/video transceiver.
   RTC_DCHECK(!IsUnifiedPlan());
   for (auto transceiver : transceivers_.List()) {
-    if (transceiver->media_type() == cricket::MEDIA_TYPE_VIDEO) {
+    if (transceiver->media_type() == webrtc::MediaType::VIDEO) {
       return transceiver;
     }
   }
@@ -415,7 +438,7 @@ void RtpTransmissionManager::AddAudioTrack(AudioTrackInterface* track,
   }
 
   // Normal case; we've never seen this track before.
-  auto new_sender = CreateSender(cricket::MEDIA_TYPE_AUDIO, track->id(),
+  auto new_sender = CreateSender(webrtc::MediaType::AUDIO, track->id(),
                                  rtc::scoped_refptr<AudioTrackInterface>(track),
                                  {stream->id()}, {{}});
   new_sender->internal()->SetMediaChannel(voice_media_send_channel());
@@ -462,7 +485,7 @@ void RtpTransmissionManager::AddVideoTrack(VideoTrackInterface* track,
   }
 
   // Normal case; we've never seen this track before.
-  auto new_sender = CreateSender(cricket::MEDIA_TYPE_VIDEO, track->id(),
+  auto new_sender = CreateSender(webrtc::MediaType::VIDEO, track->id(),
                                  rtc::scoped_refptr<VideoTrackInterface>(track),
                                  {stream->id()}, {{}});
   new_sender->internal()->SetMediaChannel(video_media_send_channel());
@@ -546,7 +569,7 @@ RtpTransmissionManager::RemoveAndStopReceiver(
                         << remote_sender_info.sender_id << " doesn't exist.";
     return nullptr;
   }
-  if (receiver->media_type() == cricket::MEDIA_TYPE_AUDIO) {
+  if (receiver->media_type() == webrtc::MediaType::AUDIO) {
     GetAudioTransceiver()->internal()->RemoveReceiver(receiver.get());
   } else {
     GetVideoTransceiver()->internal()->RemoveReceiver(receiver.get());
@@ -557,15 +580,15 @@ RtpTransmissionManager::RemoveAndStopReceiver(
 void RtpTransmissionManager::OnRemoteSenderAdded(
     const RtpSenderInfo& sender_info,
     MediaStreamInterface* stream,
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   RTC_DCHECK_RUN_ON(signaling_thread());
-  RTC_LOG(LS_INFO) << "Creating " << cricket::MediaTypeToString(media_type)
+  RTC_LOG(LS_INFO) << "Creating " << webrtc::MediaTypeToString(media_type)
                    << " receiver for track_id=" << sender_info.sender_id
                    << " and stream_id=" << sender_info.stream_id;
 
-  if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+  if (media_type == webrtc::MediaType::AUDIO) {
     CreateAudioReceiver(stream, sender_info);
-  } else if (media_type == cricket::MEDIA_TYPE_VIDEO) {
+  } else if (media_type == webrtc::MediaType::VIDEO) {
     CreateVideoReceiver(stream, sender_info);
   } else {
     RTC_DCHECK_NOTREACHED() << "Invalid media type";
@@ -575,14 +598,14 @@ void RtpTransmissionManager::OnRemoteSenderAdded(
 void RtpTransmissionManager::OnRemoteSenderRemoved(
     const RtpSenderInfo& sender_info,
     MediaStreamInterface* stream,
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   RTC_DCHECK_RUN_ON(signaling_thread());
-  RTC_LOG(LS_INFO) << "Removing " << cricket::MediaTypeToString(media_type)
+  RTC_LOG(LS_INFO) << "Removing " << webrtc::MediaTypeToString(media_type)
                    << " receiver for track_id=" << sender_info.sender_id
                    << " and stream_id=" << sender_info.stream_id;
 
   rtc::scoped_refptr<RtpReceiverInterface> receiver;
-  if (media_type == cricket::MEDIA_TYPE_AUDIO) {
+  if (media_type == webrtc::MediaType::AUDIO) {
     // When the MediaEngine audio channel is destroyed, the RemoteAudioSource
     // will be notified which will end the AudioRtpReceiver::track().
     receiver = RemoveAndStopReceiver(sender_info);
@@ -591,7 +614,7 @@ void RtpTransmissionManager::OnRemoteSenderRemoved(
     if (audio_track) {
       stream->RemoveTrack(audio_track);
     }
-  } else if (media_type == cricket::MEDIA_TYPE_VIDEO) {
+  } else if (media_type == webrtc::MediaType::VIDEO) {
     // Stopping or destroying a VideoRtpReceiver will end the
     // VideoRtpReceiver::track().
     receiver = RemoveAndStopReceiver(sender_info);
@@ -613,7 +636,7 @@ void RtpTransmissionManager::OnRemoteSenderRemoved(
 
 void RtpTransmissionManager::OnLocalSenderAdded(
     const RtpSenderInfo& sender_info,
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   RTC_DCHECK(!IsUnifiedPlan());
   auto sender = FindSenderById(sender_info.sender_id);
@@ -636,7 +659,7 @@ void RtpTransmissionManager::OnLocalSenderAdded(
 
 void RtpTransmissionManager::OnLocalSenderRemoved(
     const RtpSenderInfo& sender_info,
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   RTC_DCHECK_RUN_ON(signaling_thread());
   auto sender = FindSenderById(sender_info.sender_id);
   if (!sender) {
@@ -658,20 +681,19 @@ void RtpTransmissionManager::OnLocalSenderRemoved(
 }
 
 std::vector<RtpSenderInfo>* RtpTransmissionManager::GetRemoteSenderInfos(
-    cricket::MediaType media_type) {
-  RTC_DCHECK(media_type == cricket::MEDIA_TYPE_AUDIO ||
-             media_type == cricket::MEDIA_TYPE_VIDEO);
-  return (media_type == cricket::MEDIA_TYPE_AUDIO)
-             ? &remote_audio_sender_infos_
-             : &remote_video_sender_infos_;
+    webrtc::MediaType media_type) {
+  RTC_DCHECK(media_type == webrtc::MediaType::AUDIO ||
+             media_type == webrtc::MediaType::VIDEO);
+  return (media_type == webrtc::MediaType::AUDIO) ? &remote_audio_sender_infos_
+                                                  : &remote_video_sender_infos_;
 }
 
 std::vector<RtpSenderInfo>* RtpTransmissionManager::GetLocalSenderInfos(
-    cricket::MediaType media_type) {
-  RTC_DCHECK(media_type == cricket::MEDIA_TYPE_AUDIO ||
-             media_type == cricket::MEDIA_TYPE_VIDEO);
-  return (media_type == cricket::MEDIA_TYPE_AUDIO) ? &local_audio_sender_infos_
-                                                   : &local_video_sender_infos_;
+    webrtc::MediaType media_type) {
+  RTC_DCHECK(media_type == webrtc::MediaType::AUDIO ||
+             media_type == webrtc::MediaType::VIDEO);
+  return (media_type == webrtc::MediaType::AUDIO) ? &local_audio_sender_infos_
+                                                  : &local_video_sender_infos_;
 }
 
 const RtpSenderInfo* RtpTransmissionManager::FindSenderInfo(

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/strings/match.h"
 #include "absl/strings/string_view.h"
 #include "api/rtp_parameters.h"
 #include "api/test/create_frame_generator.h"
@@ -103,7 +104,7 @@ class LogObserver {
     Mutex mutex_;
     Strings received_log_lines_ RTC_GUARDED_BY(mutex_);
     Strings expected_log_lines_ RTC_GUARDED_BY(mutex_);
-    rtc::Event done_;
+    Event done_;
   };
 
   Callback callback_;

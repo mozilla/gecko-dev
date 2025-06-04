@@ -154,8 +154,10 @@ rtc_library("frame_generator_capturer") {
     "frame_generator_capturer.h",
   ]
   deps = [
+    ":frame_utils",
     ":test_video_capturer",
     "../api:frame_generator_api",
+    "../api:scoped_refptr",
     "../api/task_queue",
     "../api/units:time_delta",
     "../api/video:video_frame",
@@ -1462,6 +1464,5 @@ rtc_library("wait_until") {
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/functional:overload",
     "//third_party/abseil-cpp/absl/strings:string_view",
-    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }

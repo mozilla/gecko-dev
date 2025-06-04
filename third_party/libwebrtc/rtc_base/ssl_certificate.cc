@@ -75,7 +75,8 @@ std::unique_ptr<SSLCertificateStats> SSLCertificate::GetStats() const {
   Buffer der_buffer;
   ToDER(&der_buffer);
   std::string der_base64;
-  Base64::EncodeFromArray(der_buffer.data(), der_buffer.size(), &der_base64);
+  webrtc::Base64::EncodeFromArray(der_buffer.data(), der_buffer.size(),
+                                  &der_base64);
 
   return std::make_unique<SSLCertificateStats>(std::move(fingerprint),
                                                std::move(digest_algorithm),

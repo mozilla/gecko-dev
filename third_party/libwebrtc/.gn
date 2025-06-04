@@ -89,4 +89,9 @@ default_args = {
   # TODO(b/42223878): use_fuzztest_wrapper adds a dependency to //base so
   # let's temporarly disable it.
   use_fuzztest_wrapper = false
+
+  # Enable Rust in WebRTC
+  enable_rust = true
+  enable_rust_cxx = true
+  enable_chromium_prelude = true
 }

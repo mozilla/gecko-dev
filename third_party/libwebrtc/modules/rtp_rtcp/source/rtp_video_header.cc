@@ -49,15 +49,15 @@ VideoFrameMetadata RTPVideoHeader::GetAsMetadata() const {
   switch (codec) {
     case VideoCodecType::kVideoCodecVP8:
       metadata.SetRTPVideoHeaderCodecSpecifics(
-          absl::get<RTPVideoHeaderVP8>(video_type_header));
+          std::get<RTPVideoHeaderVP8>(video_type_header));
       break;
     case VideoCodecType::kVideoCodecVP9:
       metadata.SetRTPVideoHeaderCodecSpecifics(
-          absl::get<RTPVideoHeaderVP9>(video_type_header));
+          std::get<RTPVideoHeaderVP9>(video_type_header));
       break;
     case VideoCodecType::kVideoCodecH264:
       metadata.SetRTPVideoHeaderCodecSpecifics(
-          absl::get<RTPVideoHeaderH264>(video_type_header));
+          std::get<RTPVideoHeaderH264>(video_type_header));
       break;
     // These codec types do not have codec-specifics.
     case VideoCodecType::kVideoCodecH265:
@@ -92,15 +92,15 @@ void RTPVideoHeader::SetFromMetadata(const VideoFrameMetadata& metadata) {
   codec = metadata.GetCodec();
   switch (codec) {
     case VideoCodecType::kVideoCodecVP8:
-      video_type_header = absl::get<RTPVideoHeaderVP8>(
+      video_type_header = std::get<RTPVideoHeaderVP8>(
           metadata.GetRTPVideoHeaderCodecSpecifics());
       break;
     case VideoCodecType::kVideoCodecVP9:
-      video_type_header = absl::get<RTPVideoHeaderVP9>(
+      video_type_header = std::get<RTPVideoHeaderVP9>(
           metadata.GetRTPVideoHeaderCodecSpecifics());
       break;
     case VideoCodecType::kVideoCodecH264:
-      video_type_header = absl::get<RTPVideoHeaderH264>(
+      video_type_header = std::get<RTPVideoHeaderH264>(
           metadata.GetRTPVideoHeaderCodecSpecifics());
       break;
     default:

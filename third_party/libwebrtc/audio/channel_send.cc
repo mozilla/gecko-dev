@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "api/array_view.h"
 #include "api/audio_codecs/audio_encoder.h"
@@ -169,9 +170,9 @@ class ChannelSend : public ChannelSendInterface,
   void SetEncoder(int payload_type,
                   const SdpAudioFormat& encoder_format,
                   std::unique_ptr<AudioEncoder> encoder) override;
-  void ModifyEncoder(rtc::FunctionView<void(std::unique_ptr<AudioEncoder>*)>
-                         modifier) override;
-  void CallEncoder(rtc::FunctionView<void(AudioEncoder*)> modifier) override;
+  void ModifyEncoder(
+      FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) override;
+  void CallEncoder(FunctionView<void(AudioEncoder*)> modifier) override;
 
   // API methods
   void StartSend() override;
@@ -275,6 +276,9 @@ class ChannelSend : public ChannelSendInterface,
   void InitFrameTransformerDelegate(
       rtc::scoped_refptr<webrtc::FrameTransformerInterface> frame_transformer);
 
+  // Calls the encoder on the encoder queue (instead of blocking).
+  void CallEncoderAsync(absl::AnyInvocable<void(AudioEncoder*)> modifier);
+
   const Environment env_;
 
   // Thread checkers document and lock usage of some methods on voe::Channel to
@@ -286,7 +290,7 @@ class ChannelSend : public ChannelSendInterface,
   // only access. We don't necessarily own and control these threads, so thread
   // checkers cannot be used. E.g. Chromium may transfer "ownership" from one
   // audio thread to another, but access is still sequential.
-  rtc::RaceChecker audio_thread_race_checker_;
+  RaceChecker audio_thread_race_checker_;
 
   mutable Mutex volume_settings_mutex_;
 
@@ -412,7 +416,7 @@ int32_t ChannelSend::SendData(AudioFrameType frameType,
     // is transformed, the delegate will call SendRtpAudio to send it.
     char buf[1024];
     SimpleStringBuilder mime_type(buf);
-    mime_type << MediaTypeToString(cricket::MEDIA_TYPE_AUDIO) << "/"
+    mime_type << webrtc::MediaTypeToString(webrtc::MediaType::AUDIO) << "/"
               << encoder_format_.name;
     frame_transformer_delegate_->Transform(
         frameType, payloadType, rtp_timestamp + rtp_rtcp_->StartTimestamp(),
@@ -444,15 +448,15 @@ int32_t ChannelSend::SendRtpAudio(AudioFrameType frameType,
       // TODO(benwright@webrtc.org) - Allocate enough to always encrypt inline.
       // Allocate a buffer to hold the maximum possible encrypted payload.
       size_t max_ciphertext_size = frame_encryptor_->GetMaxCiphertextByteSize(
-          cricket::MEDIA_TYPE_AUDIO, payload.size());
+          webrtc::MediaType::AUDIO, payload.size());
       encrypted_audio_payload.SetSize(max_ciphertext_size);
 
       // Encrypt the audio payload into the buffer.
       size_t bytes_written = 0;
-      int encrypt_status = frame_encryptor_->Encrypt(
-          cricket::MEDIA_TYPE_AUDIO, rtp_rtcp_->SSRC(),
-          /*additional_data=*/nullptr, payload, encrypted_audio_payload,
-          &bytes_written);
+      int encrypt_status =
+          frame_encryptor_->Encrypt(webrtc::MediaType::AUDIO, rtp_rtcp_->SSRC(),
+                                    /*additional_data=*/nullptr, payload,
+                                    encrypted_audio_payload, &bytes_written);
       if (encrypt_status != 0) {
         RTC_DLOG(LS_ERROR)
             << "Channel::SendData() failed encrypt audio payload: "
@@ -608,13 +612,13 @@ void ChannelSend::StopSend() {
 
   // Wait until all pending encode tasks are executed and clear any remaining
   // buffers in the encoder.
-  rtc::Event flush;
+  Event flush;
   encoder_queue_->PostTask([this, &flush]() {
     RTC_DCHECK_RUN_ON(&encoder_queue_checker_);
     audio_coding_->Reset();
     flush.Set();
   });
-  flush.Wait(rtc::Event::kForever);
+  flush.Wait(Event::kForever);
 
   // Reset sending SSRC and sequence number and triggers direct transmission
   // of RTCP BYE
@@ -648,14 +652,14 @@ void ChannelSend::SetEncoder(int payload_type,
 }
 
 void ChannelSend::ModifyEncoder(
-    rtc::FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) {
+    FunctionView<void(std::unique_ptr<AudioEncoder>*)> modifier) {
   // This method can be called on the worker thread, module process thread
   // or network thread. Audio coding is thread safe, so we do not need to
   // enforce the calling thread.
   audio_coding_->ModifyEncoder(modifier);
 }
 
-void ChannelSend::CallEncoder(rtc::FunctionView<void(AudioEncoder*)> modifier) {
+void ChannelSend::CallEncoder(FunctionView<void(AudioEncoder*)> modifier) {
   ModifyEncoder([modifier](std::unique_ptr<AudioEncoder>* encoder_ptr) {
     if (*encoder_ptr) {
       modifier(encoder_ptr->get());
@@ -665,14 +669,15 @@ void ChannelSend::CallEncoder(rtc::FunctionView<void(AudioEncoder*)> modifier) {
   });
 }
 
+void ChannelSend::CallEncoderAsync(
+    absl::AnyInvocable<void(AudioEncoder*)> modifier) {
+  encoder_queue_->PostTask([this, modifier = std::move(modifier)]() mutable {
+    CallEncoder(modifier);
+  });
+}
+
 void ChannelSend::OnBitrateAllocation(BitrateAllocationUpdate update) {
-  // This method can be called on the worker thread, module process thread
-  // or on a TaskQueue via VideoSendStreamImpl::OnEncoderConfigurationChanged.
-  // TODO(solenberg): Figure out a good way to check this or enforce calling
-  // rules.
-  // RTC_DCHECK(worker_thread_checker_.IsCurrent() ||
-  //            module_process_thread_checker_.IsCurrent());
-  CallEncoder([&](AudioEncoder* encoder) {
+  CallEncoderAsync([update](AudioEncoder* encoder) {
     encoder->OnReceivedUplinkAllocation(update);
   });
   retransmission_rate_limiter_->SetMaxRate(update.target_bitrate.bps());
@@ -684,7 +689,7 @@ int ChannelSend::GetTargetBitrate() const {
 
 void ChannelSend::OnReportBlockDataUpdated(ReportBlockData report_block) {
   float packet_loss_rate = report_block.fraction_lost();
-  CallEncoder([&](AudioEncoder* encoder) {
+  CallEncoderAsync([packet_loss_rate](AudioEncoder* encoder) {
     encoder->OnReceivedUplinkPacketLossFraction(packet_loss_rate);
   });
 }
@@ -956,8 +961,7 @@ void ChannelSend::SetEncoderToPacketizerFrameTransformer(
 }
 
 void ChannelSend::OnReceivedRtt(int64_t rtt_ms) {
-  // Invoke audio encoders OnReceivedRtt().
-  CallEncoder(
+  CallEncoderAsync(
       [rtt_ms](AudioEncoder* encoder) { encoder->OnReceivedRtt(rtt_ms); });
 }
 

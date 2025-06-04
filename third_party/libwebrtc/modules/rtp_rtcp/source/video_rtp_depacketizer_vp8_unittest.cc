@@ -60,7 +60,7 @@ TEST(VideoRtpDepacketizerVp8Test, BasicHeader) {
   EXPECT_EQ(video_header.frame_type, VideoFrameType::kVideoFrameDelta);
   EXPECT_EQ(video_header.codec, kVideoCodecVP8);
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(video_header.video_type_header);
+      std::get<RTPVideoHeaderVP8>(video_header.video_type_header);
   EXPECT_FALSE(vp8_header.nonReference);
   EXPECT_TRUE(vp8_header.beginningOfPartition);
   EXPECT_EQ(vp8_header.partitionId, 4);
@@ -82,7 +82,7 @@ TEST(VideoRtpDepacketizerVp8Test, OneBytePictureID) {
 
   EXPECT_EQ(offset, 3);
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(video_header.video_type_header);
+      std::get<RTPVideoHeaderVP8>(video_header.video_type_header);
   EXPECT_EQ(vp8_header.pictureId, kPictureId);
 }
 
@@ -99,7 +99,7 @@ TEST(VideoRtpDepacketizerVp8Test, TwoBytePictureID) {
 
   EXPECT_EQ(offset, 4);
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(video_header.video_type_header);
+      std::get<RTPVideoHeaderVP8>(video_header.video_type_header);
   EXPECT_EQ(vp8_header.pictureId, kPictureId);
 }
 
@@ -115,7 +115,7 @@ TEST(VideoRtpDepacketizerVp8Test, Tl0PicIdx) {
 
   EXPECT_EQ(offset, 3);
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(video_header.video_type_header);
+      std::get<RTPVideoHeaderVP8>(video_header.video_type_header);
   EXPECT_EQ(vp8_header.tl0PicIdx, kTl0PicIdx);
 }
 
@@ -130,7 +130,7 @@ TEST(VideoRtpDepacketizerVp8Test, TIDAndLayerSync) {
 
   EXPECT_EQ(offset, 3);
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(video_header.video_type_header);
+      std::get<RTPVideoHeaderVP8>(video_header.video_type_header);
   EXPECT_EQ(vp8_header.temporalIdx, 2);
   EXPECT_FALSE(vp8_header.layerSync);
 }
@@ -147,7 +147,7 @@ TEST(VideoRtpDepacketizerVp8Test, KeyIdx) {
 
   EXPECT_EQ(offset, 3);
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(video_header.video_type_header);
+      std::get<RTPVideoHeaderVP8>(video_header.video_type_header);
   EXPECT_EQ(vp8_header.keyIdx, kKeyIdx);
 }
 
@@ -165,7 +165,7 @@ TEST(VideoRtpDepacketizerVp8Test, MultipleExtensions) {
 
   EXPECT_EQ(offset, 6);
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(video_header.video_type_header);
+      std::get<RTPVideoHeaderVP8>(video_header.video_type_header);
   EXPECT_TRUE(vp8_header.nonReference);
   EXPECT_EQ(vp8_header.partitionId, 0b0110);
   EXPECT_EQ(vp8_header.pictureId, 0x1234);
@@ -207,7 +207,7 @@ TEST(VideoRtpDepacketizerVp8Test, WithPacketizer) {
 
   EXPECT_EQ(parsed->video_header.codec, kVideoCodecVP8);
   const auto& vp8_header =
-      absl::get<RTPVideoHeaderVP8>(parsed->video_header.video_type_header);
+      std::get<RTPVideoHeaderVP8>(parsed->video_header.video_type_header);
   EXPECT_EQ(vp8_header.nonReference, input_header.nonReference);
   EXPECT_EQ(vp8_header.pictureId, input_header.pictureId);
   EXPECT_EQ(vp8_header.tl0PicIdx, input_header.tl0PicIdx);

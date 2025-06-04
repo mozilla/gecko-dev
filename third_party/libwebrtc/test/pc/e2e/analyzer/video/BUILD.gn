@@ -263,6 +263,7 @@ rtc_library("video_quality_metrics_reporter") {
     "../..:metric_metadata_keys",
     "../../../../../api:peer_connection_quality_test_fixture_api",
     "../../../../../api:rtc_stats_api",
+    "../../../../../api:scoped_refptr",
     "../../../../../api:track_id_stream_info_map",
     "../../../../../api/numerics",
     "../../../../../api/test/metrics:metric",
@@ -272,7 +273,11 @@ rtc_library("video_quality_metrics_reporter") {
     "../../../../../api/units:time_delta",
     "../../../../../api/units:timestamp",
     "../../../../../rtc_base:checks",
+    "../../../../../rtc_base:logging",
+    "../../../../../rtc_base:macromagic",
     "../../../../../rtc_base/synchronization:mutex",
+    "../../../../../rtc_base/synchronization:mutex",
+    "../../../../../system_wrappers",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }

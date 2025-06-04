@@ -21,7 +21,7 @@
 
 namespace webrtc {
 
-void BundleManager::Update(const cricket::SessionDescription* description,
+void BundleManager::Update(const SessionDescription* description,
                            SdpType type) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   // Rollbacks should call Rollback, not Update.
@@ -40,7 +40,7 @@ void BundleManager::Update(const cricket::SessionDescription* description,
     for (const cricket::ContentGroup* new_bundle_group :
          description->GetGroupsByName(cricket::GROUP_TYPE_BUNDLE)) {
       bundle_groups_.push_back(
-          std::make_unique<cricket::ContentGroup>(*new_bundle_group));
+          std::make_unique<ContentGroup>(*new_bundle_group));
       RTC_DLOG(LS_VERBOSE) << "Establishing bundle group "
                            << new_bundle_group->ToString();
     }
@@ -71,7 +71,7 @@ void BundleManager::Update(const cricket::SessionDescription* description,
   }
 }
 
-const cricket::ContentGroup* BundleManager::LookupGroupByMid(
+const ContentGroup* BundleManager::LookupGroupByMid(
     const std::string& mid) const {
   auto it = established_bundle_groups_by_mid_.find(mid);
   return it != established_bundle_groups_by_mid_.end() ? it->second : nullptr;
@@ -84,12 +84,12 @@ bool BundleManager::IsFirstMidInGroup(const std::string& mid) const {
   return mid == *(group->FirstContentName());
 }
 
-cricket::ContentGroup* BundleManager::LookupGroupByMid(const std::string& mid) {
+ContentGroup* BundleManager::LookupGroupByMid(const std::string& mid) {
   auto it = established_bundle_groups_by_mid_.find(mid);
   return it != established_bundle_groups_by_mid_.end() ? it->second : nullptr;
 }
 
-void BundleManager::DeleteMid(const cricket::ContentGroup* bundle_group,
+void BundleManager::DeleteMid(const ContentGroup* bundle_group,
                               const std::string& mid) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   RTC_LOG(LS_VERBOSE) << "Deleting mid " << mid << " from bundle group "
@@ -108,7 +108,7 @@ void BundleManager::DeleteMid(const cricket::ContentGroup* bundle_group,
       established_bundle_groups_by_mid_.find(mid));
 }
 
-void BundleManager::DeleteGroup(const cricket::ContentGroup* bundle_group) {
+void BundleManager::DeleteGroup(const ContentGroup* bundle_group) {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   RTC_DLOG(LS_VERBOSE) << "Deleting bundle group " << bundle_group->ToString();
 
@@ -129,8 +129,7 @@ void BundleManager::Rollback() {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   bundle_groups_.clear();
   for (const auto& bundle_group : stable_bundle_groups_) {
-    bundle_groups_.push_back(
-        std::make_unique<cricket::ContentGroup>(*bundle_group));
+    bundle_groups_.push_back(std::make_unique<ContentGroup>(*bundle_group));
   }
   RefreshEstablishedBundleGroupsByMid();
 }
@@ -140,7 +139,7 @@ void BundleManager::Commit() {
   stable_bundle_groups_.clear();
   for (const auto& bundle_group : bundle_groups_) {
     stable_bundle_groups_.push_back(
-        std::make_unique<cricket::ContentGroup>(*bundle_group));
+        std::make_unique<ContentGroup>(*bundle_group));
   }
 }
 

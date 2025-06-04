@@ -10,10 +10,12 @@
 
 #include "media/engine/webrtc_media_engine.h"
 
-#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/strings/string_view.h"
+#include "api/rtp_parameters.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
 

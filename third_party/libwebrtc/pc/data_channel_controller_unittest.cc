@@ -84,11 +84,10 @@ class DataChannelControllerForTest : public DataChannelController {
 class DataChannelControllerTest : public ::testing::Test {
  protected:
   DataChannelControllerTest()
-      : network_thread_(std::make_unique<rtc::NullSocketServer>()) {
+      : network_thread_(std::make_unique<NullSocketServer>()) {
     network_thread_.Start();
     pc_ = rtc::make_ref_counted<NiceMock<MockPeerConnectionInternal>>();
-    ON_CALL(*pc_, signaling_thread)
-        .WillByDefault(Return(rtc::Thread::Current()));
+    ON_CALL(*pc_, signaling_thread).WillByDefault(Return(Thread::Current()));
     ON_CALL(*pc_, network_thread).WillByDefault(Return(&network_thread_));
   }
 
@@ -98,7 +97,7 @@ class DataChannelControllerTest : public ::testing::Test {
   }
 
   test::RunLoop run_loop_;
-  rtc::Thread network_thread_;
+  Thread network_thread_;
   rtc::scoped_refptr<NiceMock<MockPeerConnectionInternal>> pc_;
 };
 
@@ -159,8 +158,7 @@ TEST_F(DataChannelControllerTest, MaxChannels) {
   int channel_id = 0;
 
   ON_CALL(*pc_, GetSctpSslRole_n).WillByDefault([&]() {
-    return std::optional<rtc::SSLRole>((channel_id & 1) ? rtc::SSL_SERVER
-                                                        : rtc::SSL_CLIENT);
+    return std::optional<SSLRole>((channel_id & 1) ? SSL_SERVER : SSL_CLIENT);
   });
 
   DataChannelControllerForTest dcc(pc_.get(), &transport);
@@ -183,9 +181,7 @@ TEST_F(DataChannelControllerTest, MaxChannels) {
 TEST_F(DataChannelControllerTest, BufferedAmountIncludesFromTransport) {
   NiceMock<MockDataChannelTransport> transport;
   EXPECT_CALL(transport, buffered_amount(0)).WillOnce(Return(4711));
-  ON_CALL(*pc_, GetSctpSslRole_n).WillByDefault([&]() {
-    return rtc::SSL_CLIENT;
-  });
+  ON_CALL(*pc_, GetSctpSslRole_n).WillByDefault([&]() { return SSL_CLIENT; });
 
   DataChannelControllerForTest dcc(pc_.get(), &transport);
   auto dc = dcc.InternalCreateDataChannelWithProxy(
@@ -198,9 +194,7 @@ TEST_F(DataChannelControllerTest, BufferedAmountIncludesFromTransport) {
 // not get re-used for new channels. Only once the state reaches `kClosed`
 // should a StreamId be available again for allocation.
 TEST_F(DataChannelControllerTest, NoStreamIdReuseWhileClosing) {
-  ON_CALL(*pc_, GetSctpSslRole_n).WillByDefault([&]() {
-    return rtc::SSL_CLIENT;
-  });
+  ON_CALL(*pc_, GetSctpSslRole_n).WillByDefault([&]() { return SSL_CLIENT; });
 
   NiceMock<MockDataChannelTransport> transport;  // Wider scope than `dcc`.
   DataChannelControllerForTest dcc(pc_.get(), &transport);

@@ -128,16 +128,16 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
     auto ice_internal = std::make_unique<FakeIceTransport>(
         kTransportName, ICE_CANDIDATE_COMPONENT_RTP);
     auto rtp_dtls_transport =
-        std::make_unique<FakeDtlsTransport>(ice_internal.get());
+        std::make_unique<webrtc::FakeDtlsTransport>(ice_internal.get());
     auto ice = CreateIceTransport(std::move(ice_internal));
 
     std::unique_ptr<FakeIceTransport> rtcp_ice_internal;
-    std::unique_ptr<FakeDtlsTransport> rtcp_dtls_transport;
+    std::unique_ptr<webrtc::FakeDtlsTransport> rtcp_dtls_transport;
     if (!rtcp_mux_enabled) {
       rtcp_ice_internal = std::make_unique<FakeIceTransport>(
           kTransportName, ICE_CANDIDATE_COMPONENT_RTCP);
       rtcp_dtls_transport =
-          std::make_unique<FakeDtlsTransport>(rtcp_ice_internal.get());
+          std::make_unique<webrtc::FakeDtlsTransport>(rtcp_ice_internal.get());
     }
     auto rtcp_ice = CreateIceTransport(std::move(rtcp_ice_internal));
 
@@ -164,7 +164,7 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
       bool rtcp_mux_enabled,
       const char* ufrag,
       const char* pwd,
-      const rtc::scoped_refptr<rtc::RTCCertificate>& cert,
+      const rtc::scoped_refptr<webrtc::RTCCertificate>& cert,
       ConnectionRole role = CONNECTIONROLE_NONE) {
     JsepTransportDescription jsep_description;
     jsep_description.rtcp_mux_enabled = rtcp_mux_enabled;
@@ -179,9 +179,9 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
     return jsep_description;
   }
 
-  Candidate CreateCandidate(int component) {
-    Candidate c;
-    c.set_address(rtc::SocketAddress("192.168.1.1", 8000));
+  webrtc::Candidate CreateCandidate(int component) {
+    webrtc::Candidate c;
+    c.set_address(webrtc::SocketAddress("192.168.1.1", 8000));
     c.set_component(component);
     c.set_protocol(UDP_PROTOCOL_NAME);
     c.set_priority(1);
@@ -190,7 +190,7 @@ class JsepTransport2Test : public ::testing::Test, public sigslot::has_slots<> {
 
   void OnRtcpMuxActive() { signal_rtcp_mux_active_received_ = true; }
 
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   std::unique_ptr<JsepTransport> jsep_transport_;
   bool signal_rtcp_mux_active_received_ = false;
   // The SrtpTransport is owned by `jsep_transport_`. Keep a raw pointer here
@@ -258,11 +258,11 @@ TEST_P(JsepTransport2WithRtcpMux, SetDtlsParameters) {
   jsep_transport_ = CreateJsepTransport2(rtcp_mux_enabled);
 
   // Create certificates.
-  rtc::scoped_refptr<rtc::RTCCertificate> local_cert =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> local_cert =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("local", rtc::KT_DEFAULT));
-  rtc::scoped_refptr<rtc::RTCCertificate> remote_cert =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> remote_cert =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("remote", rtc::KT_DEFAULT));
   jsep_transport_->SetLocalCertificate(local_cert);
 
@@ -287,15 +287,16 @@ TEST_P(JsepTransport2WithRtcpMux, SetDtlsParameters) {
   // transport descriptions.
   auto role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_SERVER, role);  // Because remote description was "active".
-  auto fake_dtls =
-      static_cast<FakeDtlsTransport*>(jsep_transport_->rtp_dtls_transport());
+  EXPECT_EQ(webrtc::SSL_SERVER,
+            role);  // Because remote description was "active".
+  auto fake_dtls = static_cast<webrtc::FakeDtlsTransport*>(
+      jsep_transport_->rtp_dtls_transport());
   EXPECT_EQ(remote_description.transport_desc.identity_fingerprint->ToString(),
             fake_dtls->dtls_fingerprint().ToString());
 
   if (!rtcp_mux_enabled) {
-    auto fake_rtcp_dtls =
-        static_cast<FakeDtlsTransport*>(jsep_transport_->rtcp_dtls_transport());
+    auto fake_rtcp_dtls = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport_->rtcp_dtls_transport());
     EXPECT_EQ(
         remote_description.transport_desc.identity_fingerprint->ToString(),
         fake_rtcp_dtls->dtls_fingerprint().ToString());
@@ -309,11 +310,11 @@ TEST_P(JsepTransport2WithRtcpMux, SetDtlsParametersWithPassiveAnswer) {
   jsep_transport_ = CreateJsepTransport2(rtcp_mux_enabled);
 
   // Create certificates.
-  rtc::scoped_refptr<rtc::RTCCertificate> local_cert =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> local_cert =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("local", rtc::KT_DEFAULT));
-  rtc::scoped_refptr<rtc::RTCCertificate> remote_cert =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> remote_cert =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("remote", rtc::KT_DEFAULT));
   jsep_transport_->SetLocalCertificate(local_cert);
 
@@ -338,16 +339,16 @@ TEST_P(JsepTransport2WithRtcpMux, SetDtlsParametersWithPassiveAnswer) {
   // transport descriptions.
   auto role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT,
+  EXPECT_EQ(webrtc::SSL_CLIENT,
             role);  // Because remote description was "passive".
-  auto fake_dtls =
-      static_cast<FakeDtlsTransport*>(jsep_transport_->rtp_dtls_transport());
+  auto fake_dtls = static_cast<webrtc::FakeDtlsTransport*>(
+      jsep_transport_->rtp_dtls_transport());
   EXPECT_EQ(remote_description.transport_desc.identity_fingerprint->ToString(),
             fake_dtls->dtls_fingerprint().ToString());
 
   if (!rtcp_mux_enabled) {
-    auto fake_rtcp_dtls =
-        static_cast<FakeDtlsTransport*>(jsep_transport_->rtcp_dtls_transport());
+    auto fake_rtcp_dtls = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport_->rtcp_dtls_transport());
     EXPECT_EQ(
         remote_description.transport_desc.identity_fingerprint->ToString(),
         fake_rtcp_dtls->dtls_fingerprint().ToString());
@@ -426,8 +427,8 @@ TEST_P(JsepTransport2WithRtcpMux, VerifyCertificateFingerprint) {
   rtc::KeyType key_types[] = {rtc::KT_RSA, rtc::KT_ECDSA};
 
   for (auto& key_type : key_types) {
-    rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-        rtc::RTCCertificate::Create(
+    rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+        webrtc::RTCCertificate::Create(
             rtc::SSLIdentity::Create("testing", key_type));
     ASSERT_NE(nullptr, certificate);
 
@@ -466,8 +467,8 @@ TEST_P(JsepTransport2WithRtcpMux, ValidDtlsRoleNegotiation) {
   bool rtcp_mux_enabled = GetParam();
   // Just use the same certificate for both sides; doesn't really matter in a
   // non end-to-end test.
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing", rtc::KT_ECDSA));
 
   JsepTransportDescription local_description = MakeJsepTransportDescription(
@@ -519,7 +520,7 @@ TEST_P(JsepTransport2WithRtcpMux, ValidDtlsRoleNegotiation) {
                                                          param.local_type)
                       .ok());
     }
-    EXPECT_EQ(rtc::SSL_CLIENT, *jsep_transport_->GetDtlsRole());
+    EXPECT_EQ(webrtc::SSL_CLIENT, *jsep_transport_->GetDtlsRole());
   }
 
   // Parameters which set the SSL role to SSL_SERVER.
@@ -564,7 +565,7 @@ TEST_P(JsepTransport2WithRtcpMux, ValidDtlsRoleNegotiation) {
                                                          param.local_type)
                       .ok());
     }
-    EXPECT_EQ(rtc::SSL_SERVER, *jsep_transport_->GetDtlsRole());
+    EXPECT_EQ(webrtc::SSL_SERVER, *jsep_transport_->GetDtlsRole());
   }
 }
 
@@ -573,8 +574,8 @@ TEST_P(JsepTransport2WithRtcpMux, InvalidDtlsRoleNegotiation) {
   bool rtcp_mux_enabled = GetParam();
   // Just use the same certificate for both sides; doesn't really matter in a
   // non end-to-end test.
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing", rtc::KT_ECDSA));
 
   JsepTransportDescription local_description = MakeJsepTransportDescription(
@@ -701,8 +702,8 @@ INSTANTIATE_TEST_SUITE_P(JsepTransport2Test,
 TEST_F(JsepTransport2Test, ValidDtlsReofferFromAnswerer) {
   // Just use the same certificate for both sides; doesn't really matter in a
   // non end-to-end test.
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing", rtc::KT_ECDSA));
   bool rtcp_mux_enabled = true;
   jsep_transport_ = CreateJsepTransport2(rtcp_mux_enabled);
@@ -748,8 +749,8 @@ TEST_F(JsepTransport2Test, ValidDtlsReofferFromAnswerer) {
 TEST_F(JsepTransport2Test, InvalidDtlsReofferFromAnswerer) {
   // Just use the same certificate for both sides; doesn't really matter in a
   // non end-to-end test.
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing", rtc::KT_ECDSA));
   bool rtcp_mux_enabled = true;
   jsep_transport_ = CreateJsepTransport2(rtcp_mux_enabled);
@@ -794,8 +795,8 @@ TEST_F(JsepTransport2Test, InvalidDtlsReofferFromAnswerer) {
 // This is allowed by dtls-sdp, though we'll never generate such an offer,
 // since JSEP requires generating "actpass".
 TEST_F(JsepTransport2Test, RemoteOfferWithCurrentNegotiatedDtlsRole) {
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing", rtc::KT_ECDSA));
   bool rtcp_mux_enabled = true;
   jsep_transport_ = CreateJsepTransport2(rtcp_mux_enabled);
@@ -820,9 +821,9 @@ TEST_F(JsepTransport2Test, RemoteOfferWithCurrentNegotiatedDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<webrtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT, *role);
+  EXPECT_EQ(webrtc::SSL_CLIENT, *role);
 
   // Subsequent offer with current negotiated role of "passive".
   remote_desc.transport_desc.connection_role = CONNECTIONROLE_PASSIVE;
@@ -839,8 +840,8 @@ TEST_F(JsepTransport2Test, RemoteOfferWithCurrentNegotiatedDtlsRole) {
 // Test that a remote offer with the inverse of the current negotiated DTLS
 // role is rejected.
 TEST_F(JsepTransport2Test, RemoteOfferThatChangesNegotiatedDtlsRole) {
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing", rtc::KT_ECDSA));
   bool rtcp_mux_enabled = true;
   jsep_transport_ = CreateJsepTransport2(rtcp_mux_enabled);
@@ -865,9 +866,9 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesNegotiatedDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<webrtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT, *role);
+  EXPECT_EQ(webrtc::SSL_CLIENT, *role);
 
   // Subsequent offer with current negotiated role of "passive".
   remote_desc.transport_desc.connection_role = CONNECTIONROLE_ACTIVE;
@@ -883,11 +884,11 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesNegotiatedDtlsRole) {
 
 // Test that a remote offer which changes both fingerprint and role is accepted.
 TEST_F(JsepTransport2Test, RemoteOfferThatChangesFingerprintAndDtlsRole) {
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing1", rtc::KT_ECDSA));
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate2 =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate2 =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing2", rtc::KT_ECDSA));
   bool rtcp_mux_enabled = true;
   jsep_transport_ = CreateJsepTransport2(rtcp_mux_enabled);
@@ -916,9 +917,9 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesFingerprintAndDtlsRole) {
           .ok());
 
   // Sanity check that role was actually negotiated.
-  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<webrtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_CLIENT, *role);
+  EXPECT_EQ(webrtc::SSL_CLIENT, *role);
 
   // Subsequent exchange with new remote fingerprint and different role.
   local_desc.transport_desc.connection_role = CONNECTIONROLE_PASSIVE;
@@ -933,14 +934,14 @@ TEST_F(JsepTransport2Test, RemoteOfferThatChangesFingerprintAndDtlsRole) {
 
   role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
-  EXPECT_EQ(rtc::SSL_SERVER, *role);
+  EXPECT_EQ(webrtc::SSL_SERVER, *role);
 }
 
 // Testing that a legacy client that doesn't use the setup attribute will be
 // interpreted as having an active role.
 TEST_F(JsepTransport2Test, DtlsSetupWithLegacyAsAnswerer) {
-  rtc::scoped_refptr<rtc::RTCCertificate> certificate =
-      rtc::RTCCertificate::Create(
+  rtc::scoped_refptr<webrtc::RTCCertificate> certificate =
+      webrtc::RTCCertificate::Create(
           rtc::SSLIdentity::Create("testing", rtc::KT_ECDSA));
   bool rtcp_mux_enabled = true;
   jsep_transport_ = CreateJsepTransport2(rtcp_mux_enabled);
@@ -965,11 +966,11 @@ TEST_F(JsepTransport2Test, DtlsSetupWithLegacyAsAnswerer) {
           ->SetRemoteJsepTransportDescription(remote_desc, SdpType::kAnswer)
           .ok());
 
-  std::optional<rtc::SSLRole> role = jsep_transport_->GetDtlsRole();
+  std::optional<webrtc::SSLRole> role = jsep_transport_->GetDtlsRole();
   ASSERT_TRUE(role);
   // Since legacy answer omitted setup atribute, and we offered actpass, we
   // should act as passive (server).
-  EXPECT_EQ(rtc::SSL_SERVER, *role);
+  EXPECT_EQ(webrtc::SSL_SERVER, *role);
 }
 
 // Tests that when the RTCP mux is successfully negotiated, the RTCP transport
@@ -1055,10 +1056,10 @@ class JsepTransport2HeaderExtensionTest
     jsep_transport1_ = CreateJsepTransport2(/*rtcp_mux_enabled=*/true);
     jsep_transport2_ = CreateJsepTransport2(/*rtcp_mux_enabled=*/true);
 
-    auto fake_dtls1 =
-        static_cast<FakeDtlsTransport*>(jsep_transport1_->rtp_dtls_transport());
-    auto fake_dtls2 =
-        static_cast<FakeDtlsTransport*>(jsep_transport2_->rtp_dtls_transport());
+    auto fake_dtls1 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport1_->rtp_dtls_transport());
+    auto fake_dtls2 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport2_->rtp_dtls_transport());
 
     fake_dtls1->fake_ice_transport()->RegisterReceivedPacketCallback(
         this, [&](rtc::PacketTransportInternal* transport,
@@ -1071,10 +1072,10 @@ class JsepTransport2HeaderExtensionTest
           OnReadPacket2(transport, packet);
         });
 
-    auto cert1 = rtc::RTCCertificate::Create(
+    auto cert1 = webrtc::RTCCertificate::Create(
         rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
     jsep_transport1_->rtp_dtls_transport()->SetLocalCertificate(cert1);
-    auto cert2 = rtc::RTCCertificate::Create(
+    auto cert2 = webrtc::RTCCertificate::Create(
         rtc::SSLIdentity::Create("session1", rtc::KT_DEFAULT));
     jsep_transport2_->rtp_dtls_transport()->SetLocalCertificate(cert2);
   }
@@ -1102,10 +1103,10 @@ class JsepTransport2HeaderExtensionTest
   }
 
   void ConnectTransport() {
-    auto rtp_dtls_transport1 =
-        static_cast<FakeDtlsTransport*>(jsep_transport1_->rtp_dtls_transport());
-    auto rtp_dtls_transport2 =
-        static_cast<FakeDtlsTransport*>(jsep_transport2_->rtp_dtls_transport());
+    auto rtp_dtls_transport1 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport1_->rtp_dtls_transport());
+    auto rtp_dtls_transport2 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport2_->rtp_dtls_transport());
     rtp_dtls_transport1->SetDestination(rtp_dtls_transport2);
   }
 
@@ -1133,8 +1134,8 @@ class JsepTransport2HeaderExtensionTest
     memcpy(rtp_packet_data, kPcmuFrameWithExtensions, rtp_len);
     // In order to be able to run this test function multiple times we can not
     // use the same sequence number twice. Increase the sequence number by one.
-    rtc::SetBE16(reinterpret_cast<uint8_t*>(rtp_packet_data) + 2,
-                 ++sequence_number_);
+    webrtc::SetBE16(reinterpret_cast<uint8_t*>(rtp_packet_data) + 2,
+                    ++sequence_number_);
     rtc::CopyOnWriteBuffer rtp_packet(rtp_packet_data, rtp_len, packet_size);
 
     int packet_count_before = received_packet_count_;
@@ -1164,13 +1165,13 @@ TEST_P(JsepTransport2HeaderExtensionTest, EncryptedHeaderExtensionNegotiation) {
   recv_encrypted_headers2_.push_back(kHeaderExtensionIDs[1]);
 
   if (use_gcm) {
-    auto fake_dtls1 =
-        static_cast<FakeDtlsTransport*>(jsep_transport1_->rtp_dtls_transport());
-    auto fake_dtls2 =
-        static_cast<FakeDtlsTransport*>(jsep_transport2_->rtp_dtls_transport());
+    auto fake_dtls1 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport1_->rtp_dtls_transport());
+    auto fake_dtls2 = static_cast<webrtc::FakeDtlsTransport*>(
+        jsep_transport2_->rtp_dtls_transport());
 
-    fake_dtls1->SetSrtpCryptoSuite(rtc::kSrtpAeadAes256Gcm);
-    fake_dtls2->SetSrtpCryptoSuite(rtc::kSrtpAeadAes256Gcm);
+    fake_dtls1->SetSrtpCryptoSuite(webrtc::kSrtpAeadAes256Gcm);
+    fake_dtls2->SetSrtpCryptoSuite(webrtc::kSrtpAeadAes256Gcm);
   }
 
   if (scenario == Scenario::kDtlsBeforeCallerSendOffer) {

@@ -10,7 +10,13 @@
 
 #include "media/base/codec_list.h"
 
+#include <vector>
+
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
 #include "api/video_codecs/sdp_video_format.h"
+#include "media/base/codec.h"
+#include "rtc_base/checks.h"
 #include "test/gtest.h"
 
 namespace cricket {
@@ -33,6 +39,7 @@ TEST(CodecList, RejectIllegalConstructorArguments) {
   std::vector<Codec> apt_without_number{
       CreateVideoCodec({webrtc::SdpVideoFormat{
           "rtx", webrtc::CodecParameterMap{{"apt", "not-a-number"}}}})};
+  apt_without_number[0].id = 96;
   RTCErrorOr<CodecList> checked_codec_list =
       CodecList::Create(apt_without_number);
   EXPECT_FALSE(checked_codec_list.ok());
@@ -51,6 +58,7 @@ TEST(CodecList, CrashOnIllegalConstructorArguments) {
   std::vector<Codec> apt_without_number{
       CreateVideoCodec({webrtc::SdpVideoFormat{
           "rtx", webrtc::CodecParameterMap{{"apt", "not-a-number"}}}})};
+  apt_without_number[0].id = 96;
 #if RTC_DCHECK_IS_ON
   EXPECT_DEATH(
       CodecList bad = CodecList::CreateFromTrustedData(apt_without_number),

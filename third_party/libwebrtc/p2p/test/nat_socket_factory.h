@@ -19,16 +19,16 @@
 #include <set>
 
 #include "api/array_view.h"
+#include "api/units/time_delta.h"
 #include "p2p/test/nat_server.h"
 #include "p2p/test/nat_types.h"
-#include "rtc_base/buffer.h"
 #include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/socket_factory.h"
 #include "rtc_base/socket_server.h"
 #include "rtc_base/thread.h"
 
-namespace rtc {
+namespace webrtc {
 
 const size_t kNATEncodedIPv4AddressSize = 8U;
 const size_t kNATEncodedIPv6AddressSize = 20U;
@@ -156,7 +156,7 @@ class NATSocketServer : public SocketServer, public NATInternalSocketFactory {
   Socket* CreateSocket(int family, int type) override;
 
   void SetMessageQueue(Thread* queue) override;
-  bool Wait(webrtc::TimeDelta max_wait_duration, bool process_io) override;
+  bool Wait(TimeDelta max_wait_duration, bool process_io) override;
   void WakeUp() override;
 
   // NATInternalSocketFactory implementation
@@ -177,6 +177,18 @@ size_t PackAddressForNAT(char* buf,
                          const SocketAddress& remote_addr);
 size_t UnpackAddressFromNAT(rtc::ArrayView<const uint8_t> buf,
                             SocketAddress* remote_addr);
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::kNATEncodedIPv4AddressSize;
+using ::webrtc::kNATEncodedIPv6AddressSize;
+using ::webrtc::NATInternalSocketFactory;
+using ::webrtc::NATSocketFactory;
+using ::webrtc::NATSocketServer;
+using ::webrtc::PackAddressForNAT;
+using ::webrtc::UnpackAddressFromNAT;
 }  // namespace rtc
 
 #endif  // P2P_TEST_NAT_SOCKET_FACTORY_H_

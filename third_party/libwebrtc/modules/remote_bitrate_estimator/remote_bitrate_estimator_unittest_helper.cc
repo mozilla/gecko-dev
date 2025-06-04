@@ -10,13 +10,19 @@
 #include "modules/remote_bitrate_estimator/remote_bitrate_estimator_unittest_helper.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <utility>
+#include <vector>
 
+#include "api/units/data_rate.h"
+#include "api/units/timestamp.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "rtc_base/checks.h"
+#include "test/gtest.h"
 
 namespace webrtc {
 

@@ -217,9 +217,9 @@ TEST(FrameCadenceAdapterTest, ForwardsFramesDelayed) {
                              const VideoFrame& frame) {
           EXPECT_EQ(post_time, time_controller.GetClock()->CurrentTime());
           EXPECT_EQ(frame.timestamp_us(),
-                    original_timestamp_us + index * rtc::kNumMicrosecsPerSec);
-          EXPECT_EQ(frame.ntp_time_ms(), original_ntp_time.ToMs() +
-                                             index * rtc::kNumMillisecsPerSec);
+                    original_timestamp_us + index * kNumMicrosecsPerSec);
+          EXPECT_EQ(frame.ntp_time_ms(),
+                    original_ntp_time.ToMs() + index * kNumMillisecsPerSec);
         }));
     time_controller.AdvanceTime(TimeDelta::Seconds(1));
     frame = CreateFrameWithTimestamps(&time_controller);
@@ -305,9 +305,9 @@ TEST(FrameCadenceAdapterTest, RepeatsFramesDelayed) {
       .WillOnce(Invoke([&](Timestamp post_time, bool, const VideoFrame& frame) {
         EXPECT_EQ(post_time, time_controller.GetClock()->CurrentTime());
         EXPECT_EQ(frame.timestamp_us(),
-                  original_timestamp_us + rtc::kNumMicrosecsPerSec);
+                  original_timestamp_us + kNumMicrosecsPerSec);
         EXPECT_EQ(frame.ntp_time_ms(),
-                  original_ntp_time.ToMs() + rtc::kNumMillisecsPerSec);
+                  original_ntp_time.ToMs() + kNumMillisecsPerSec);
       }));
   time_controller.AdvanceTime(TimeDelta::Seconds(1));
   Mock::VerifyAndClearExpectations(&callback);
@@ -316,9 +316,9 @@ TEST(FrameCadenceAdapterTest, RepeatsFramesDelayed) {
       .WillOnce(Invoke([&](Timestamp post_time, bool, const VideoFrame& frame) {
         EXPECT_EQ(post_time, time_controller.GetClock()->CurrentTime());
         EXPECT_EQ(frame.timestamp_us(),
-                  original_timestamp_us + 2 * rtc::kNumMicrosecsPerSec);
+                  original_timestamp_us + 2 * kNumMicrosecsPerSec);
         EXPECT_EQ(frame.ntp_time_ms(),
-                  original_ntp_time.ToMs() + 2 * rtc::kNumMillisecsPerSec);
+                  original_ntp_time.ToMs() + 2 * kNumMillisecsPerSec);
       }));
   time_controller.AdvanceTime(TimeDelta::Seconds(1));
 }
@@ -384,9 +384,9 @@ TEST(FrameCadenceAdapterTest, StopsRepeatingFramesDelayed) {
   adapter->OnFrame(CreateFrameWithTimestamps(&time_controller));
   EXPECT_CALL(callback, OnFrame)
       .WillOnce(Invoke([&](Timestamp, bool, const VideoFrame& frame) {
-        EXPECT_EQ(frame.timestamp_us(), 5 * rtc::kNumMicrosecsPerSec / 2);
+        EXPECT_EQ(frame.timestamp_us(), 5 * kNumMicrosecsPerSec / 2);
         EXPECT_EQ(frame.ntp_time_ms(),
-                  original_ntp_time.ToMs() + 5u * rtc::kNumMillisecsPerSec / 2);
+                  original_ntp_time.ToMs() + 5u * kNumMillisecsPerSec / 2);
       }));
   time_controller.AdvanceTime(TimeDelta::Seconds(1));
 }
@@ -639,12 +639,12 @@ TEST(FrameCadenceAdapterTest, EncodeFramesAreAlignedWithMetronomeTick) {
   time_controller.AdvanceTime(TimeDelta::Millis(1));
   Mock::VerifyAndClearExpectations(&callback);
 
-  rtc::Event finalized;
+  Event finalized;
   queue->PostTask([&] {
     adapter = nullptr;
     finalized.Set();
   });
-  finalized.Wait(rtc::Event::kForever);
+  finalized.Wait(Event::kForever);
 }
 
 TEST(FrameCadenceAdapterTest, ShutdownUnderMetronome) {
@@ -1056,7 +1056,7 @@ TEST(FrameCadenceAdapterRealTimeTest, TimestampsDoNotDrift) {
   int frame_counter = 0;
   int64_t original_ntp_time_ms;
   int64_t original_timestamp_us;
-  rtc::Event event;
+  Event event;
   test::ScopedKeyValueConfig no_field_trials;
   queue->PostTask([&] {
     adapter = CreateAdapter(no_field_trials, clock);
@@ -1069,7 +1069,7 @@ TEST(FrameCadenceAdapterRealTimeTest, TimestampsDoNotDrift) {
     frame.set_ntp_time_ms(original_ntp_time_ms);
     original_timestamp_us = clock->CurrentTime().us();
     frame.set_timestamp_us(original_timestamp_us);
-    constexpr int kSleepMs = rtc::kNumMillisecsPerSec / 2;
+    constexpr int kSleepMs = kNumMillisecsPerSec / 2;
     EXPECT_CALL(callback, OnFrame)
         .WillRepeatedly(
             Invoke([&](Timestamp, bool, const VideoFrame& incoming_frame) {
@@ -1087,13 +1087,13 @@ TEST(FrameCadenceAdapterRealTimeTest, TimestampsDoNotDrift) {
             }));
     adapter->OnFrame(frame);
   });
-  event.Wait(rtc::Event::kForever);
-  rtc::Event finalized;
+  event.Wait(Event::kForever);
+  Event finalized;
   queue->PostTask([&] {
     adapter = nullptr;
     finalized.Set();
   });
-  finalized.Wait(rtc::Event::kForever);
+  finalized.Wait(Event::kForever);
 }
 
 TEST(FrameCadenceAdapterRealTimeTest, ScheduledRepeatAllowsForSlowEncode) {
@@ -1110,7 +1110,7 @@ TEST(FrameCadenceAdapterRealTimeTest, ScheduledRepeatAllowsForSlowEncode) {
   Clock* clock = Clock::GetRealTimeClock();
   std::unique_ptr<FrameCadenceAdapterInterface> adapter;
   int frame_counter = 0;
-  rtc::Event event;
+  Event event;
   std::optional<Timestamp> start_time;
   test::ScopedKeyValueConfig no_field_trials;
   queue->PostTask([&] {
@@ -1140,13 +1140,13 @@ TEST(FrameCadenceAdapterRealTimeTest, ScheduledRepeatAllowsForSlowEncode) {
         }));
     adapter->OnFrame(frame);
   });
-  event.Wait(rtc::Event::kForever);
-  rtc::Event finalized;
+  event.Wait(Event::kForever);
+  Event finalized;
   queue->PostTask([&] {
     adapter = nullptr;
     finalized.Set();
   });
-  finalized.Wait(rtc::Event::kForever);
+  finalized.Wait(Event::kForever);
 }
 
 class ZeroHertzQueueOverloadTest : public ::testing::Test {

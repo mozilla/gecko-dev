@@ -89,7 +89,7 @@ index a2ea218a8b..23a8f4f3f3 100644
  #include <new>
  #include <string>
 diff --git a/rtc_base/byte_order.h b/rtc_base/byte_order.h
-index 0b70e0e129..767b462e09 100644
+index 0d7a54f6d5..05879338fd 100644
 --- a/rtc_base/byte_order.h
 +++ b/rtc_base/byte_order.h
 @@ -90,6 +90,8 @@
@@ -102,7 +102,7 @@ index 0b70e0e129..767b462e09 100644
  #include <endian.h>
  #else
 diff --git a/rtc_base/physical_socket_server.cc b/rtc_base/physical_socket_server.cc
-index 2b4ff128de..2ec8936f4f 100644
+index fe18813064..244d6cdde4 100644
 --- a/rtc_base/physical_socket_server.cc
 +++ b/rtc_base/physical_socket_server.cc
 @@ -75,7 +75,10 @@ typedef void* SockOptArg;
@@ -117,7 +117,7 @@ index 2b4ff128de..2ec8936f4f 100644
  
  int64_t GetSocketRecvTimestamp(int socket) {
    struct timeval tv_ioctl;
-@@ -699,7 +702,7 @@ int PhysicalSocket::TranslateOption(Option opt, int* slevel, int* sopt) {
+@@ -698,7 +701,7 @@ int PhysicalSocket::TranslateOption(Option opt, int* slevel, int* sopt) {
        *slevel = IPPROTO_IP;
        *sopt = IP_DONTFRAGMENT;
        break;
@@ -127,10 +127,10 @@ index 2b4ff128de..2ec8936f4f 100644
        return -1;
  #elif defined(WEBRTC_POSIX)
 diff --git a/system_wrappers/source/cpu_info.cc b/system_wrappers/source/cpu_info.cc
-index 7e53eb78fa..b47a9b4022 100644
+index 8f72653269..498cc176a9 100644
 --- a/system_wrappers/source/cpu_info.cc
 +++ b/system_wrappers/source/cpu_info.cc
-@@ -12,7 +12,7 @@
+@@ -14,7 +14,7 @@
  
  #if defined(WEBRTC_WIN)
  #include <windows.h>
@@ -139,7 +139,7 @@ index 7e53eb78fa..b47a9b4022 100644
  #include <unistd.h>
  #elif defined(WEBRTC_MAC)
  #include <sys/sysctl.h>
-@@ -30,7 +30,7 @@ static int DetectNumberOfCores() {
+@@ -33,7 +33,7 @@ static int DetectNumberOfCores() {
    SYSTEM_INFO si;
    GetNativeSystemInfo(&si);
    number_of_cores = static_cast<int>(si.dwNumberOfProcessors);

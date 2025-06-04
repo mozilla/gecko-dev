@@ -16,8 +16,8 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <variant>
 
-#include "absl/types/variant.h"
 #include "api/field_trials_view.h"
 #include "api/sequence_checker.h"
 #include "api/video/encoded_frame.h"
@@ -53,7 +53,7 @@ struct FrameInfo {
   // ColorSpace is not stored here, as it might be modified by decoders.
   VideoFrameType frame_type;
   std::optional<
-      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
       frame_instrumentation_data;
 };
 
@@ -131,8 +131,8 @@ class VCMGenericDecoder {
   int32_t Decode(const EncodedImage& frame,
                  Timestamp now,
                  int64_t render_time_ms,
-                 const std::optional<absl::variant<FrameInstrumentationSyncData,
-                                                   FrameInstrumentationData>>&
+                 const std::optional<std::variant<FrameInstrumentationSyncData,
+                                                  FrameInstrumentationData>>&
                      frame_instrumentation_data);
   VCMDecodedFrameCallback* _callback = nullptr;
   VideoDecoder* const decoder_;

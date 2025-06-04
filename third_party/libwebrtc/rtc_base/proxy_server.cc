@@ -21,10 +21,10 @@
 namespace rtc {
 
 // ProxyServer
-ProxyServer::ProxyServer(SocketFactory* int_factory,
-                         const SocketAddress& int_addr,
-                         SocketFactory* ext_factory,
-                         const SocketAddress& ext_ip)
+ProxyServer::ProxyServer(webrtc::SocketFactory* int_factory,
+                         const webrtc::SocketAddress& int_addr,
+                         webrtc::SocketFactory* ext_factory,
+                         const webrtc::SocketAddress& ext_ip)
     : ext_factory_(ext_factory),
       ext_ip_(ext_ip.ipaddr(), 0),  // strip off port
       server_socket_(
@@ -38,16 +38,16 @@ ProxyServer::ProxyServer(SocketFactory* int_factory,
 
 ProxyServer::~ProxyServer() = default;
 
-SocketAddress ProxyServer::GetServerAddress() {
+webrtc::SocketAddress ProxyServer::GetServerAddress() {
   return server_socket_->GetLocalAddress();
 }
 
-void ProxyServer::OnAcceptEvent(Socket* socket) {
+void ProxyServer::OnAcceptEvent(webrtc::Socket* socket) {
   RTC_DCHECK(socket);
   RTC_DCHECK_EQ(socket, server_socket_.get());
-  Socket* int_socket = socket->Accept(nullptr);
-  AsyncProxyServerSocket* wrapped_socket = WrapSocket(int_socket);
-  Socket* ext_socket =
+  webrtc::Socket* int_socket = socket->Accept(nullptr);
+  webrtc::AsyncProxyServerSocket* wrapped_socket = WrapSocket(int_socket);
+  webrtc::Socket* ext_socket =
       ext_factory_->CreateSocket(ext_ip_.family(), SOCK_STREAM);
   if (ext_socket) {
     ext_socket->Bind(ext_ip_);
@@ -60,8 +60,8 @@ void ProxyServer::OnAcceptEvent(Socket* socket) {
 }
 
 // ProxyBinding
-ProxyBinding::ProxyBinding(AsyncProxyServerSocket* int_socket,
-                           Socket* ext_socket)
+ProxyBinding::ProxyBinding(webrtc::AsyncProxyServerSocket* int_socket,
+                           webrtc::Socket* ext_socket)
     : int_socket_(int_socket),
       ext_socket_(ext_socket),
       connected_(false),
@@ -81,50 +81,50 @@ ProxyBinding::ProxyBinding(AsyncProxyServerSocket* int_socket,
 
 ProxyBinding::~ProxyBinding() = default;
 
-void ProxyBinding::OnConnectRequest(AsyncProxyServerSocket* socket,
-                                    const SocketAddress& addr) {
+void ProxyBinding::OnConnectRequest(webrtc::AsyncProxyServerSocket* socket,
+                                    const webrtc::SocketAddress& addr) {
   RTC_DCHECK(!connected_);
   RTC_DCHECK(ext_socket_);
   ext_socket_->Connect(addr);
   // TODO: handle errors here
 }
 
-void ProxyBinding::OnInternalRead(Socket* socket) {
+void ProxyBinding::OnInternalRead(webrtc::Socket* socket) {
   Read(int_socket_.get(), &out_buffer_);
   Write(ext_socket_.get(), &out_buffer_);
 }
 
-void ProxyBinding::OnInternalWrite(Socket* socket) {
+void ProxyBinding::OnInternalWrite(webrtc::Socket* socket) {
   Write(int_socket_.get(), &in_buffer_);
 }
 
-void ProxyBinding::OnInternalClose(Socket* socket, int err) {
+void ProxyBinding::OnInternalClose(webrtc::Socket* socket, int err) {
   Destroy();
 }
 
-void ProxyBinding::OnExternalConnect(Socket* socket) {
+void ProxyBinding::OnExternalConnect(webrtc::Socket* socket) {
   RTC_DCHECK(socket != nullptr);
   connected_ = true;
   int_socket_->SendConnectResult(0, socket->GetRemoteAddress());
 }
 
-void ProxyBinding::OnExternalRead(Socket* socket) {
+void ProxyBinding::OnExternalRead(webrtc::Socket* socket) {
   Read(ext_socket_.get(), &in_buffer_);
   Write(int_socket_.get(), &in_buffer_);
 }
 
-void ProxyBinding::OnExternalWrite(Socket* socket) {
+void ProxyBinding::OnExternalWrite(webrtc::Socket* socket) {
   Write(ext_socket_.get(), &out_buffer_);
 }
 
-void ProxyBinding::OnExternalClose(Socket* socket, int err) {
+void ProxyBinding::OnExternalClose(webrtc::Socket* socket, int err) {
   if (!connected_) {
-    int_socket_->SendConnectResult(err, SocketAddress());
+    int_socket_->SendConnectResult(err, webrtc::SocketAddress());
   }
   Destroy();
 }
 
-void ProxyBinding::Read(Socket* socket, FifoBuffer* buffer) {
+void ProxyBinding::Read(webrtc::Socket* socket, FifoBuffer* buffer) {
   // Only read if the buffer is empty.
   RTC_DCHECK(socket != nullptr);
   size_t size;
@@ -136,7 +136,7 @@ void ProxyBinding::Read(Socket* socket, FifoBuffer* buffer) {
   }
 }
 
-void ProxyBinding::Write(Socket* socket, FifoBuffer* buffer) {
+void ProxyBinding::Write(webrtc::Socket* socket, FifoBuffer* buffer) {
   RTC_DCHECK(socket != nullptr);
   size_t size;
   int written;

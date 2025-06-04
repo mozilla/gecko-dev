@@ -48,7 +48,7 @@ class OpenSSLAdapter final : public SSLAdapter {
   // SSLCertificateVerifier which can override any existing trusted roots to
   // validate a peer certificate. The cache and verifier are effectively
   // immutable after the the SSL connection starts.
-  explicit OpenSSLAdapter(Socket* socket,
+  explicit OpenSSLAdapter(webrtc::Socket* socket,
                           OpenSSLSessionCache* ssl_session_cache = nullptr,
                           SSLCertificateVerifier* ssl_cert_verifier = nullptr);
   ~OpenSSLAdapter() override;
@@ -56,17 +56,19 @@ class OpenSSLAdapter final : public SSLAdapter {
   void SetIgnoreBadCert(bool ignore) override;
   void SetAlpnProtocols(const std::vector<std::string>& protos) override;
   void SetEllipticCurves(const std::vector<std::string>& curves) override;
-  [[deprecated]] void SetMode(SSLMode mode) override;
+  [[deprecated]] void SetMode(webrtc::SSLMode mode) override;
   void SetCertVerifier(SSLCertificateVerifier* ssl_cert_verifier) override;
   void SetIdentity(std::unique_ptr<SSLIdentity> identity) override;
-  void SetRole(SSLRole role) override;
+  void SetRole(webrtc::SSLRole role) override;
   int StartSSL(absl::string_view hostname) override;
   int Send(const void* pv, size_t cb) override;
-  int SendTo(const void* pv, size_t cb, const SocketAddress& addr) override;
+  int SendTo(const void* pv,
+             size_t cb,
+             const webrtc::SocketAddress& addr) override;
   int Recv(void* pv, size_t cb, int64_t* timestamp) override;
   int RecvFrom(void* pv,
                size_t cb,
-               SocketAddress* paddr,
+               webrtc::SocketAddress* paddr,
                int64_t* timestamp) override;
   int Close() override;
   // Note that the socket returns ST_CONNECTING while SSL is being negotiated.
@@ -78,13 +80,13 @@ class OpenSSLAdapter final : public SSLAdapter {
   // OpenSSLAdapterFactory will call this method to create its own internal
   // SSL_CTX, and OpenSSLAdapter will also call this when used without a
   // factory.
-  static SSL_CTX* CreateContext(SSLMode mode, bool enable_cache);
+  static SSL_CTX* CreateContext(webrtc::SSLMode mode, bool enable_cache);
 
  protected:
-  void OnConnectEvent(Socket* socket) override;
-  void OnReadEvent(Socket* socket) override;
-  void OnWriteEvent(Socket* socket) override;
-  void OnCloseEvent(Socket* socket, int err) override;
+  void OnConnectEvent(webrtc::Socket* socket) override;
+  void OnReadEvent(webrtc::Socket* socket) override;
+  void OnWriteEvent(webrtc::Socket* socket) override;
+  void OnCloseEvent(webrtc::Socket* socket, int err) override;
 
  private:
   class EarlyExitCatcher {
@@ -150,7 +152,7 @@ class OpenSSLAdapter final : public SSLAdapter {
   std::unique_ptr<OpenSSLIdentity> identity_;
 #endif
   // Indicates whethere this is a client or a server.
-  SSLRole role_;
+  webrtc::SSLRole role_;
   bool ssl_read_needs_write_;
   bool ssl_write_needs_read_;
   // This buffer is used if SSL_write fails with SSL_ERROR_WANT_WRITE, which
@@ -163,7 +165,7 @@ class OpenSSLAdapter final : public SSLAdapter {
   // Hostname of server that is being connected, used for SNI.
   std::string ssl_host_name_;
   // Set the adapter to DTLS or TLS mode before creating the context.
-  SSLMode ssl_mode_;
+  webrtc::SSLMode ssl_mode_;
   // If true, the server certificate need not match the configured hostname.
   bool ignore_bad_cert_;
   // List of protocols to be used in the TLS ALPN extension.
@@ -187,7 +189,7 @@ class OpenSSLAdapterFactory : public SSLAdapterFactory {
   // Set the SSL Mode to use with this factory. This should only be set before
   // the first adapter is created with the factory. If it is called after it
   // will DCHECK.
-  void SetMode(SSLMode mode) override;
+  void SetMode(webrtc::SSLMode mode) override;
 
   // Set a custom certificate verifier to be passed down to each instance
   // created with this factory. This should only ever be set before the first
@@ -197,7 +199,7 @@ class OpenSSLAdapterFactory : public SSLAdapterFactory {
   void SetIdentity(std::unique_ptr<SSLIdentity> identity) override;
 
   // Choose whether the socket acts as a server socket or client socket.
-  void SetRole(SSLRole role) override;
+  void SetRole(webrtc::SSLRole role) override;
 
   // Methods that control server certificate verification, used in unit tests.
   // Do not call these methods in production code.
@@ -206,12 +208,12 @@ class OpenSSLAdapterFactory : public SSLAdapterFactory {
   // Constructs a new socket using the shared OpenSSLSessionCache. This means
   // existing SSLSessions already in the cache will be reused instead of
   // re-created for improved performance.
-  OpenSSLAdapter* CreateAdapter(Socket* socket) override;
+  OpenSSLAdapter* CreateAdapter(webrtc::Socket* socket) override;
 
  private:
   // Holds the SSLMode (DTLS,TLS) that will be used to set the session cache.
-  SSLMode ssl_mode_ = SSL_MODE_TLS;
-  SSLRole ssl_role_ = SSL_CLIENT;
+  webrtc::SSLMode ssl_mode_ = webrtc::SSL_MODE_TLS;
+  webrtc::SSLRole ssl_role_ = webrtc::SSL_CLIENT;
   bool ignore_bad_cert_ = false;
 
   std::unique_ptr<SSLIdentity> identity_;

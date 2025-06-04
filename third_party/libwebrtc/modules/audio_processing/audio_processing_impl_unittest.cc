@@ -171,9 +171,10 @@ TEST(AudioProcessingImplTest, AudioParameterChangeTriggersInit) {
   EXPECT_CALL(mock, InitializeLocked).Times(1);
   mock.Initialize();
 
-  constexpr size_t kMaxSampleRateHz = 32000;
-  constexpr size_t kMaxNumChannels = 2;
-  std::array<int16_t, kMaxNumChannels * kMaxSampleRateHz / 100> frame;
+  constexpr size_t kMaxTestedSampleRateHz = 32000;
+  constexpr size_t kMaxTestedNumChannels = 2;
+  std::array<int16_t, kMaxTestedNumChannels * kMaxTestedSampleRateHz / 100>
+      frame;
   frame.fill(0);
   StreamConfig config(16000, 1);
   // Call with the default parameters; there should be an init.

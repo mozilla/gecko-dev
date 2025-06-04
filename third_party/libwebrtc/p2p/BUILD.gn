@@ -8,10 +8,6 @@
 
 import("../webrtc.gni")
 
-group("p2p") {
-  deps = [ ":libstunprober" ]
-}
-
 rtc_source_set("active_ice_controller_factory_interface") {
   sources = [ "base/active_ice_controller_factory_interface.h" ]
   deps = [
@@ -41,6 +37,8 @@ rtc_library("basic_async_resolver_factory") {
     "../api:async_dns_resolver",
     "../rtc_base:async_dns_resolver",
     "../rtc_base:logging",
+    "../rtc_base:socket_address",
+    "//third_party/abseil-cpp/absl/functional:any_invocable",
     "//third_party/abseil-cpp/absl/memory",
   ]
 }
@@ -72,8 +70,25 @@ rtc_library("basic_ice_controller") {
     "base/basic_ice_controller.h",
   ]
   deps = [
+    ":connection",
+    ":connection_info",
     ":ice_controller_factory_interface",
     ":ice_controller_interface",
+    ":ice_switch_reason",
+    ":ice_transport_internal",
+    ":p2p_constants",
+    ":transport_description",
+    "../api:array_view",
+    "../api:candidate",
+    "../api/transport:enums",
+    "../rtc_base:checks",
+    "../rtc_base:ip_address",
+    "../rtc_base:logging",
+    "../rtc_base:net_helper",
+    "../rtc_base:network",
+    "../rtc_base:network_constants",
+    "../rtc_base:timeutils",
+    "//third_party/abseil-cpp/absl/algorithm:container",
   ]
 }
 
@@ -109,35 +124,44 @@ rtc_library("basic_port_allocator") {
     "client/basic_port_allocator.h",
   ]
   deps = [
-    ":basic_packet_socket_factory",
     ":port",
     ":port_allocator",
+    ":port_interface",
     ":relay_port_factory_interface",
     ":stun_port",
     ":tcp_port",
     ":turn_port",
     ":turn_port_factory",
-    ":udp_port",
+    "../api:candidate",
     "../api:field_trials_view",
+    "../api:packet_socket_factory",
+    "../api:sequence_checker",
     "../api:turn_customizer",
+    "../api/environment",
     "../api/task_queue:pending_task_safety_flag",
+    "../api/transport:enums",
     "../api/transport:field_trial_based_config",
     "../api/units:time_delta",
+    "../rtc_base:async_packet_socket",
     "../rtc_base:checks",
     "../rtc_base:crypto_random",
     "../rtc_base:event_tracer",
+    "../rtc_base:ip_address",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
+    "../rtc_base:net_helper",
+    "../rtc_base:net_helpers",
     "../rtc_base:network",
     "../rtc_base:network_constants",
+    "../rtc_base:socket_address",
     "../rtc_base:stringutils",
     "../rtc_base:threading",
-    "../rtc_base/experiments:field_trial_parser",
     "../rtc_base/memory:always_valid_pointer",
     "../rtc_base/network:received_packet",
     "../rtc_base/system:rtc_export",
-    "../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/algorithm:container",
+    "//third_party/abseil-cpp/absl/base:core_headers",
+    "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
@@ -156,6 +180,7 @@ rtc_library("connection") {
   deps = [
     ":candidate_pair_interface",
     ":connection_info",
+    ":dtls_stun_piggyback_controller",
     ":ice_credentials_iterator",
     ":p2p_constants",
     ":p2p_transport_channel_ice_field_trials",
@@ -233,9 +258,13 @@ rtc_library("default_ice_transport_factory") {
   deps = [
     ":basic_ice_controller",
     ":ice_controller_factory_interface",
+    ":ice_controller_interface",
     ":p2p_transport_channel",
     "../api:ice_transport_interface",
     "../api:make_ref_counted",
+    "../api:scoped_refptr",
+    "../api:sequence_checker",
+    "../rtc_base:macromagic",
     "../rtc_base:threading",
   ]
 }
@@ -258,7 +287,9 @@ rtc_library("dtls_transport") {
     "../api:sequence_checker",
     "../api/crypto:options",
     "../api/rtc_event_log",
+    "../api/task_queue:pending_task_safety_flag",
     "../api/transport:stun_types",
+    "../api/units:time_delta",
     "../api/units:timestamp",
     "../logging:ice_log",
     "../rtc_base:async_packet_socket",
@@ -322,6 +353,7 @@ rtc_source_set("ice_agent_interface") {
   deps = [
     ":connection",
     ":ice_switch_reason",
+    ":transport_description",
     "../api:array_view",
   ]
 }
@@ -335,6 +367,8 @@ rtc_library("ice_controller_interface") {
     ":connection",
     ":ice_switch_reason",
     ":ice_transport_internal",
+    ":transport_description",
+    "../api:array_view",
     "../rtc_base:checks",
     "../rtc_base/system:rtc_export",
   ]
@@ -343,8 +377,10 @@ rtc_library("ice_controller_interface") {
 rtc_source_set("ice_controller_factory_interface") {
   sources = [ "base/ice_controller_factory_interface.h" ]
   deps = [
+    ":connection",
     ":ice_controller_interface",
     ":ice_transport_internal",
+    ":transport_description",
   ]
 }
 
@@ -377,6 +413,7 @@ rtc_library("ice_transport_internal") {
     ":candidate_pair_interface",
     ":connection",
     ":connection_info",
+    ":dtls_stun_piggyback_controller",
     ":p2p_constants",
     ":packet_transport_internal",
     ":port",
@@ -391,6 +428,7 @@ rtc_library("ice_transport_internal") {
     "../api/transport:stun_types",
     "../rtc_base:callback_list",
     "../rtc_base:checks",
+    "../rtc_base:net_helper",
     "../rtc_base:network_constants",
     "../rtc_base:timeutils",
     "../rtc_base/network:received_packet",
@@ -421,6 +459,7 @@ rtc_library("p2p_transport_channel") {
     ":candidate_pair_interface",
     ":connection",
     ":connection_info",
+    ":dtls_stun_piggyback_controller",
     ":ice_agent_interface",
     ":ice_controller_factory_interface",
     ":ice_controller_interface",
@@ -494,6 +533,8 @@ rtc_library("packet_transport_internal") {
     "../api:sequence_checker",
     "../rtc_base:async_packet_socket",
     "../rtc_base:callback_list",
+    "../rtc_base:checks",
+    "../rtc_base:macromagic",
     "../rtc_base:network_route",
     "../rtc_base:socket",
     "../rtc_base/network:received_packet",
@@ -539,6 +580,7 @@ rtc_library("port") {
     "../rtc_base:macromagic",
     "../rtc_base:mdns_responder_interface",
     "../rtc_base:net_helper",
+    "../rtc_base:net_helpers",
     "../rtc_base:network",
     "../rtc_base:rate_tracker",
     "../rtc_base:socket_address",
@@ -596,7 +638,11 @@ rtc_library("port_interface") {
     "../api/task_queue:task_queue",
     "../rtc_base:async_packet_socket",
     "../rtc_base:callback_list",
+    "../rtc_base:dscp",
+    "../rtc_base:socket",
     "../rtc_base:socket_address",
+    "../rtc_base/network:sent_packet",
+    "../rtc_base/third_party/sigslot",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 }
@@ -607,10 +653,12 @@ rtc_library("pseudo_tcp") {
     "base/pseudo_tcp.h",
   ]
   deps = [
+    "../api:array_view",
     "../rtc_base:byte_buffer",
     "../rtc_base:byte_order",
     "../rtc_base:checks",
     "../rtc_base:logging",
+    "../rtc_base:macromagic",
     "../rtc_base:safe_minmax",
     "../rtc_base:socket",
     "../rtc_base:timeutils",
@@ -627,10 +675,16 @@ rtc_library("regathering_controller") {
   deps = [
     ":connection",
     ":ice_transport_internal",
+    ":p2p_constants",
+    ":packet_transport_internal",
     ":port_allocator",
+    "../api:sequence_checker",
     "../api/task_queue:pending_task_safety_flag",
     "../api/units:time_delta",
+    "../rtc_base:checks",
+    "../rtc_base:network_route",
     "../rtc_base:threading",
+    "../rtc_base/third_party/sigslot",
   ]
 }
 
@@ -642,6 +696,7 @@ rtc_library("stun_dictionary") {
   deps = [
     "../api:rtc_error",
     "../api/transport:stun_types",
+    "../rtc_base:byte_buffer",
     "../rtc_base:logging",
   ]
 }
@@ -660,6 +715,7 @@ rtc_library("dtls_utils") {
 
 rtc_library("dtls_stun_piggyback_controller") {
   sources = [
+    "dtls/dtls_stun_piggyback_callbacks.h",
     "dtls/dtls_stun_piggyback_controller.cc",
     "dtls/dtls_stun_piggyback_controller.h",
   ]
@@ -692,18 +748,31 @@ rtc_library("stun_port") {
     ":p2p_constants",
     ":port",
     ":port_allocator",
+    ":port_interface",
     ":stun_request",
+    "../api:async_dns_resolver",
+    "../api:candidate",
+    "../api:field_trials_view",
+    "../api:packet_socket_factory",
+    "../api/task_queue",
     "../api/task_queue:pending_task_safety_flag",
     "../api/transport:stun_types",
     "../rtc_base:async_packet_socket",
     "../rtc_base:checks",
     "../rtc_base:crypto_random",
+    "../rtc_base:dscp",
     "../rtc_base:ip_address",
     "../rtc_base:logging",
+    "../rtc_base:net_helper",
+    "../rtc_base:network",
+    "../rtc_base:network_constants",
+    "../rtc_base:socket",
+    "../rtc_base:socket_address",
     "../rtc_base:stringutils",
     "../rtc_base:timeutils",
     "../rtc_base/experiments:field_trial_parser",
     "../rtc_base/network:received_packet",
+    "../rtc_base/network:sent_packet",
     "../rtc_base/system:rtc_export",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
@@ -716,13 +785,17 @@ rtc_library("stun_request") {
     "base/stun_request.h",
   ]
   deps = [
+    "../api:array_view",
+    "../api:sequence_checker",
     "../api/task_queue",
     "../api/task_queue:pending_task_safety_flag",
     "../api/transport:stun_types",
     "../api/units:time_delta",
+    "../rtc_base:byte_buffer",
     "../rtc_base:checks",
     "../rtc_base:crypto_random",
     "../rtc_base:logging",
+    "../rtc_base:macromagic",
     "../rtc_base:stringutils",
     "../rtc_base:timeutils",
     "//third_party/abseil-cpp/absl/memory",
@@ -736,20 +809,35 @@ rtc_library("tcp_port") {
   ]
   deps = [
     ":connection",
+    ":connection_info",
     ":p2p_constants",
     ":port",
+    ":port_interface",
+    ":stun_request",
+    "../api:candidate",
+    "../api:field_trials_view",
+    "../api:packet_socket_factory",
+    "../api:sequence_checker",
+    "../api/task_queue",
     "../api/task_queue:pending_task_safety_flag",
+    "../api/transport:stun_types",
     "../api/units:time_delta",
     "../rtc_base:async_packet_socket",
     "../rtc_base:checks",
     "../rtc_base:ip_address",
     "../rtc_base:logging",
     "../rtc_base:net_helper",
+    "../rtc_base:network",
     "../rtc_base:rate_tracker",
+    "../rtc_base:socket",
+    "../rtc_base:socket_address",
     "../rtc_base:threading",
     "../rtc_base:timeutils",
+    "../rtc_base:weak_ptr",
     "../rtc_base/containers:flat_map",
     "../rtc_base/network:received_packet",
+    "../rtc_base/network:sent_packet",
+    "../rtc_base/third_party/sigslot",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
@@ -784,6 +872,8 @@ rtc_library("transport_description_factory") {
     ":ice_credentials_iterator",
     ":transport_description",
     "../api:field_trials_view",
+    "../api:scoped_refptr",
+    "../rtc_base:checks",
     "../rtc_base:logging",
     "../rtc_base:ssl",
   ]
@@ -799,11 +889,6 @@ rtc_source_set("transport_info") {
   ]
 }
 
-rtc_source_set("udp_port") {
-  sources = [ "base/udp_port.h" ]
-  deps = [ ":stun_port" ]
-}
-
 rtc_library("turn_port") {
   sources = [
     "base/turn_port.cc",
@@ -814,22 +899,39 @@ rtc_library("turn_port") {
     ":p2p_constants",
     ":port",
     ":port_allocator",
+    ":port_interface",
     ":relay_port_factory_interface",
+    ":stun_request",
+    "../api:array_view",
     "../api:async_dns_resolver",
+    "../api:candidate",
+    "../api:field_trials_view",
+    "../api:packet_socket_factory",
+    "../api:scoped_refptr",
     "../api:turn_customizer",
     "../api/task_queue",
     "../api/task_queue:pending_task_safety_flag",
     "../api/transport:stun_types",
+    "../api/units:time_delta",
     "../rtc_base:async_packet_socket",
+    "../rtc_base:byte_buffer",
     "../rtc_base:byte_order",
+    "../rtc_base:callback_list",
     "../rtc_base:checks",
+    "../rtc_base:dscp",
+    "../rtc_base:ip_address",
     "../rtc_base:logging",
+    "../rtc_base:net_helper",
     "../rtc_base:net_helpers",
+    "../rtc_base:network",
+    "../rtc_base:socket",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",
     "../rtc_base:stringutils",
     "../rtc_base/experiments:field_trial_parser",
     "../rtc_base/network:received_packet",
+    "../rtc_base/network:sent_packet",
+    "../rtc_base/third_party/sigslot",
     "//third_party/abseil-cpp/absl/algorithm:container",
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings",
@@ -854,8 +956,12 @@ rtc_library("turn_port_factory") {
 rtc_source_set("relay_port_factory_interface") {
   sources = [ "client/relay_port_factory_interface.h" ]
   deps = [
+    ":port_allocator",
     ":port_interface",
+    "../api:packet_socket_factory",
+    "../rtc_base:async_packet_socket",
     "../rtc_base:refcount",
+    "../rtc_base:threading",
   ]
 }
 
@@ -877,6 +983,7 @@ rtc_library("wrapping_active_ice_controller") {
     "../api:sequence_checker",
     "../api/task_queue:pending_task_safety_flag",
     "../api/units:time_delta",
+    "../rtc_base:checks",
     "../rtc_base:logging",
     "../rtc_base:macromagic",
     "../rtc_base:threading",
@@ -896,17 +1003,21 @@ if (rtc_include_tests) {
       ":candidate_pair_interface",
       ":connection",
       ":connection_info",
+      ":dtls_stun_piggyback_controller",
       ":ice_transport_internal",
       ":port",
       ":transport_description",
+      "../api:array_view",
       "../api:candidate",
       "../api:ice_transport_interface",
       "../api:libjingle_peerconnection_api",
       "../api:sequence_checker",
       "../api/task_queue:pending_task_safety_flag",
       "../api/transport:enums",
+      "../api/transport:stun_types",
       "../api/units:time_delta",
       "../rtc_base:async_packet_socket",
+      "../rtc_base:byte_buffer",
       "../rtc_base:checks",
       "../rtc_base:copy_on_write_buffer",
       "../rtc_base:logging",
@@ -918,7 +1029,9 @@ if (rtc_include_tests) {
       "../rtc_base:timeutils",
       "../rtc_base/network:received_packet",
       "../rtc_base/network:sent_packet",
+      "../test:explicit_key_value_config",
       "//third_party/abseil-cpp/absl/algorithm:container",
+      "//third_party/abseil-cpp/absl/functional:any_invocable",
       "//third_party/abseil-cpp/absl/strings:string_view",
     ]
   }
@@ -932,14 +1045,22 @@ if (rtc_include_tests) {
     ]
     deps = [
       ":basic_packet_socket_factory",
-      ":connection",
+      ":port",
       ":port_allocator",
-      ":udp_port",
-      "../rtc_base:net_helpers",
+      ":port_interface",
+      ":stun_port",
+      "../api:candidate",
+      "../api:packet_socket_factory",
+      "../api/environment",
+      "../api/task_queue",
+      "../rtc_base:async_packet_socket",
+      "../rtc_base:checks",
+      "../rtc_base:ip_address",
       "../rtc_base:net_test_helpers",
+      "../rtc_base:network",
+      "../rtc_base:socket_factory",
       "../rtc_base:task_queue_for_test",
-      "../rtc_base:threading",
-      "../rtc_base/memory:always_valid_pointer",
+      "//third_party/abseil-cpp/absl/base:nullability",
       "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings:string_view",
     ]
@@ -973,6 +1094,7 @@ if (rtc_include_tests) {
       ":active_ice_controller_factory_interface",
       ":active_ice_controller_interface",
       ":basic_packet_socket_factory",
+      ":candidate_pair_interface",
       ":connection",
       ":dtls_transport_internal",
       ":fake_ice_transport",
@@ -984,8 +1106,11 @@ if (rtc_include_tests) {
       ":ice_transport_internal",
       ":p2p_server_utils",
       ":packet_transport_internal",
+      ":port_interface",
       ":transport_description",
       "../api:array_view",
+      "../api:async_dns_resolver",
+      "../api:candidate",
       "../api:dtls_transport_interface",
       "../api:libjingle_peerconnection_api",
       "../api:mock_async_dns_resolver",
@@ -995,17 +1120,23 @@ if (rtc_include_tests) {
       "../api:sequence_checker",
       "../api:turn_customizer",
       "../api/crypto:options",
+      "../api/transport:ecn_marking",
+      "../api/transport:enums",
       "../api/transport:stun_types",
+      "../api/units:time_delta",
       "../api/units:timestamp",
       "../rtc_base:async_packet_socket",
       "../rtc_base:async_udp_socket",
       "../rtc_base:async_udp_socket",
       "../rtc_base:buffer",
+      "../rtc_base:byte_order",
       "../rtc_base:checks",
       "../rtc_base:copy_on_write_buffer",
       "../rtc_base:gunit_helpers",
+      "../rtc_base:ip_address",
       "../rtc_base:logging",
       "../rtc_base:macromagic",
+      "../rtc_base:net_helpers",
       "../rtc_base:network_route",
       "../rtc_base:rtc_base_tests_utils",
       "../rtc_base:socket",
@@ -1097,24 +1228,28 @@ if (rtc_include_tests) {
       "../api:array_view",
       "../api:async_dns_resolver",
       "../api:candidate",
+      "../api:create_network_emulation_manager",
       "../api:dtls_transport_interface",
       "../api:field_trials",
       "../api:field_trials_view",
       "../api:ice_transport_interface",
       "../api:mock_async_dns_resolver",
+      "../api:network_emulation_manager_api",
       "../api:packet_socket_factory",
       "../api:rtc_error",
       "../api:rtc_error_matchers",
       "../api:scoped_refptr",
+      "../api:simulated_network_api",
       "../api/crypto:options",
       "../api/environment",
       "../api/environment:environment_factory",
       "../api/task_queue",
       "../api/task_queue:pending_task_safety_flag",
+      "../api/test/network_emulation",
       "../api/transport:enums",
       "../api/transport:stun_types",
+      "../api/units:data_rate",
       "../api/units:time_delta",
-      "../rtc_base:async_packet_socket",
       "../rtc_base:async_packet_socket",
       "../rtc_base:async_tcp_socket",
       "../rtc_base:async_udp_socket",
@@ -1137,6 +1272,7 @@ if (rtc_include_tests) {
       "../rtc_base:network_constants",
       "../rtc_base:network_route",
       "../rtc_base:rtc_base_tests_utils",
+      "../rtc_base:rtc_event",
       "../rtc_base:socket",
       "../rtc_base:socket_adapters",
       "../rtc_base:socket_address",
@@ -1148,15 +1284,16 @@ if (rtc_include_tests) {
       "../rtc_base:testclient",
       "../rtc_base:threading",
       "../rtc_base:timeutils",
+      "../rtc_base/network:ecn_marking",
       "../rtc_base/network:received_packet",
       "../rtc_base/network:sent_packet",
       "../rtc_base/third_party/sigslot",
       "../system_wrappers:metrics",
+      "../test:explicit_key_value_config",
       "../test:scoped_key_value_config",
       "../test:test_support",
       "../test:wait_until",
       "//third_party/abseil-cpp/absl/algorithm:container",
-      "//third_party/abseil-cpp/absl/base:nullability",
       "//third_party/abseil-cpp/absl/functional:any_invocable",
       "//third_party/abseil-cpp/absl/memory",
       "//third_party/abseil-cpp/absl/strings",
@@ -1186,11 +1323,15 @@ rtc_library("p2p_server_utils") {
     "../rtc_base:async_packet_socket",
     "../rtc_base:async_udp_socket",
     "../rtc_base:byte_buffer",
+    "../rtc_base:byte_order",
     "../rtc_base:checks",
     "../rtc_base:crypto_random",
     "../rtc_base:digest",
+    "../rtc_base:ip_address",
     "../rtc_base:logging",
+    "../rtc_base:macromagic",
     "../rtc_base:rtc_base_tests_utils",
+    "../rtc_base:socket",
     "../rtc_base:socket_adapters",
     "../rtc_base:socket_address",
     "../rtc_base:ssl",
@@ -1203,54 +1344,4 @@ rtc_library("p2p_server_utils") {
     "//third_party/abseil-cpp/absl/memory",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]
-}
-
-rtc_library("libstunprober") {
-  visibility = [ "*" ]
-  sources = [
-    "stunprober/stun_prober.cc",
-    "stunprober/stun_prober.h",
-  ]
-
-  deps = [
-    "../api:array_view",
-    "../api:async_dns_resolver",
-    "../api:packet_socket_factory",
-    "../api:sequence_checker",
-    "../api/task_queue:pending_task_safety_flag",
-    "../api/transport:stun_types",
-    "../api/units:time_delta",
-    "../rtc_base:async_packet_socket",
-    "../rtc_base:byte_buffer",
-    "../rtc_base:checks",
-    "../rtc_base:ip_address",
-    "../rtc_base:logging",
-    "../rtc_base:network",
-    "../rtc_base:socket_address",
-    "../rtc_base:ssl",
-    "../rtc_base:threading",
-    "../rtc_base:timeutils",
-    "../rtc_base/network:received_packet",
-    "../rtc_base/system:rtc_export",
-  ]
-}
-
-if (rtc_include_tests) {
-  rtc_library("libstunprober_unittests") {
-    testonly = true
-
-    sources = [ "stunprober/stun_prober_unittest.cc" ]
-    deps = [
-      ":basic_packet_socket_factory",
-      ":libstunprober",
-      ":p2p_test_utils",
-      "../rtc_base:checks",
-      "../rtc_base:gunit_helpers",
-      "../rtc_base:ip_address",
-      "../rtc_base:rtc_base_tests_utils",
-      "../rtc_base:ssl_adapter",
-      "../test:test_support",
-      "//testing/gtest",
-    ]
-  }
 }

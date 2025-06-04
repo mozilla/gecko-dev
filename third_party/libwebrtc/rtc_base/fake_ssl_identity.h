@@ -18,9 +18,9 @@
 #include "rtc_base/ssl_certificate.h"
 #include "rtc_base/ssl_identity.h"
 
-namespace rtc {
+namespace webrtc {
 
-class FakeSSLCertificate : public SSLCertificate {
+class FakeSSLCertificate : public rtc::SSLCertificate {
  public:
   // SHA-1 is the default digest algorithm because it is available in all build
   // configurations used for unit testing.
@@ -30,7 +30,7 @@ class FakeSSLCertificate : public SSLCertificate {
   ~FakeSSLCertificate() override;
 
   // SSLCertificate implementation.
-  std::unique_ptr<SSLCertificate> Clone() const override;
+  std::unique_ptr<rtc::SSLCertificate> Clone() const override;
   std::string ToPEMString() const override;
   void ToDER(Buffer* der_buffer) const override;
   int64_t CertificateExpirationTime() const override;
@@ -51,7 +51,7 @@ class FakeSSLCertificate : public SSLCertificate {
   int64_t expiration_time_;
 };
 
-class FakeSSLIdentity : public SSLIdentity {
+class FakeSSLIdentity : public rtc::SSLIdentity {
  public:
   explicit FakeSSLIdentity(absl::string_view pem_string);
   // For a certificate chain.
@@ -63,21 +63,28 @@ class FakeSSLIdentity : public SSLIdentity {
   ~FakeSSLIdentity() override;
 
   // SSLIdentity implementation.
-  const SSLCertificate& certificate() const override;
-  const SSLCertChain& cert_chain() const override;
+  const rtc::SSLCertificate& certificate() const override;
+  const rtc::SSLCertChain& cert_chain() const override;
   // Not implemented.
   std::string PrivateKeyToPEMString() const override;
   // Not implemented.
   std::string PublicKeyToPEMString() const override;
   // Not implemented.
-  virtual bool operator==(const SSLIdentity& other) const;
+  virtual bool operator==(const rtc::SSLIdentity& other) const;
 
  private:
-  std::unique_ptr<SSLIdentity> CloneInternal() const override;
+  std::unique_ptr<rtc::SSLIdentity> CloneInternal() const override;
 
-  std::unique_ptr<SSLCertChain> cert_chain_;
+  std::unique_ptr<rtc::SSLCertChain> cert_chain_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::FakeSSLCertificate;
+using ::webrtc::FakeSSLIdentity;
 }  // namespace rtc
 
 #endif  // RTC_BASE_FAKE_SSL_IDENTITY_H_

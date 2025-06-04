@@ -75,7 +75,7 @@
 #define closesocket(s) close(s)
 #endif  // WEBRTC_POSIX
 
-namespace rtc {
+namespace webrtc {
 
 inline bool IsBlockingError(int e) {
   return (e == EWOULDBLOCK) || (e == EAGAIN) || (e == EINPROGRESS);
@@ -88,7 +88,7 @@ class RTC_EXPORT Socket {
   struct ReceiveBuffer {
     ReceiveBuffer(Buffer& payload) : payload(payload) {}
 
-    std::optional<webrtc::Timestamp> arrival_time;
+    std::optional<Timestamp> arrival_time;
     SocketAddress source_address;
     EcnMarking ecn = EcnMarking::kNotEct;
     Buffer& payload;
@@ -170,6 +170,13 @@ class RTC_EXPORT Socket {
   Socket() {}
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::IsBlockingError;
+using ::webrtc::Socket;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SOCKET_H_

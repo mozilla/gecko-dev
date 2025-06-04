@@ -31,7 +31,7 @@
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/strings/string_builder.h"
 
-namespace rtc {
+namespace webrtc {
 
 SocketAddress::SocketAddress() {
   Clear();
@@ -65,11 +65,11 @@ void SocketAddress::Clear() {
 }
 
 bool SocketAddress::IsNil() const {
-  return hostname_.empty() && IPIsUnspec(ip_) && 0 == port_;
+  return hostname_.empty() && webrtc::IPIsUnspec(ip_) && 0 == port_;
 }
 
 bool SocketAddress::IsComplete() const {
-  return (!IPIsAny(ip_)) && (0 != port_);
+  return (!webrtc::IPIsAny(ip_)) && (0 != port_);
 }
 
 SocketAddress& SocketAddress::operator=(const SocketAddress& addr) {
@@ -97,7 +97,7 @@ void SocketAddress::SetIP(const IPAddress& ip) {
 
 void SocketAddress::SetIP(absl::string_view hostname) {
   hostname_ = std::string(hostname);
-  literal_ = IPFromString(hostname, &ip_);
+  literal_ = webrtc::IPFromString(hostname, &ip_);
   if (!literal_) {
     ip_ = IPAddress();
   }
@@ -160,14 +160,14 @@ std::string SocketAddress::PortAsString() const {
 
 std::string SocketAddress::ToString() const {
   char buf[1024];
-  webrtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << HostAsURIString() << ":" << port();
   return sb.str();
 }
 
 std::string SocketAddress::ToSensitiveString() const {
   char buf[1024];
-  webrtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << HostAsSensitiveURIString() << ":" << port();
   return sb.str();
 }
@@ -177,7 +177,7 @@ std::string SocketAddress::ToSensitiveNameAndAddressString() const {
     return ToSensitiveString();
   }
   char buf[1024];
-  webrtc::SimpleStringBuilder sb(buf);
+  SimpleStringBuilder sb(buf);
   sb << HostAsSensitiveURIString() << ":" << port();
   sb << " (";
   if (ip_.family() == AF_INET6) {
@@ -214,20 +214,20 @@ bool SocketAddress::FromString(absl::string_view str) {
 }
 
 bool SocketAddress::IsAnyIP() const {
-  return IPIsAny(ip_);
+  return webrtc::IPIsAny(ip_);
 }
 
 bool SocketAddress::IsLoopbackIP() const {
-  return IPIsLoopback(ip_) ||
-         (IPIsAny(ip_) && 0 == strcmp(hostname_.c_str(), "localhost"));
+  return webrtc::IPIsLoopback(ip_) ||
+         (webrtc::IPIsAny(ip_) && 0 == strcmp(hostname_.c_str(), "localhost"));
 }
 
 bool SocketAddress::IsPrivateIP() const {
-  return IPIsPrivate(ip_);
+  return webrtc::IPIsPrivate(ip_);
 }
 
 bool SocketAddress::IsUnresolvedIP() const {
-  return IPIsUnspec(ip_) && !literal_ && !hostname_.empty();
+  return webrtc::IPIsUnspec(ip_) && !literal_ && !hostname_.empty();
 }
 
 bool SocketAddress::operator==(const SocketAddress& addr) const {
@@ -240,7 +240,8 @@ bool SocketAddress::operator<(const SocketAddress& addr) const {
 
   // We only check hostnames if both IPs are ANY or unspecified.  This matches
   // EqualIPs().
-  if ((IPIsAny(ip_) || IPIsUnspec(ip_)) && hostname_ != addr.hostname_)
+  if ((webrtc::IPIsAny(ip_) || webrtc::IPIsUnspec(ip_)) &&
+      hostname_ != addr.hostname_)
     return hostname_ < addr.hostname_;
 
   return port_ < addr.port_;
@@ -248,7 +249,8 @@ bool SocketAddress::operator<(const SocketAddress& addr) const {
 
 bool SocketAddress::EqualIPs(const SocketAddress& addr) const {
   return (ip_ == addr.ip_) &&
-         ((!IPIsAny(ip_) && !IPIsUnspec(ip_)) || (hostname_ == addr.hostname_));
+         ((!webrtc::IPIsAny(ip_) && !webrtc::IPIsUnspec(ip_)) ||
+          (hostname_ == addr.hostname_));
 }
 
 bool SocketAddress::EqualPorts(const SocketAddress& addr) const {
@@ -257,7 +259,7 @@ bool SocketAddress::EqualPorts(const SocketAddress& addr) const {
 
 size_t SocketAddress::Hash() const {
   size_t h = 0;
-  h ^= HashIP(ip_);
+  h ^= webrtc::HashIP(ip_);
   h ^= port_ | (port_ << 16);
   return h;
 }
@@ -269,8 +271,8 @@ void SocketAddress::ToSockAddr(sockaddr_in* saddr) const {
     return;
   }
   saddr->sin_family = AF_INET;
-  saddr->sin_port = HostToNetwork16(port_);
-  if (IPIsAny(ip_)) {
+  saddr->sin_port = webrtc::HostToNetwork16(port_);
+  if (webrtc::IPIsAny(ip_)) {
     saddr->sin_addr.s_addr = INADDR_ANY;
   } else {
     saddr->sin_addr = ip_.ipv4_address();
@@ -280,8 +282,8 @@ void SocketAddress::ToSockAddr(sockaddr_in* saddr) const {
 bool SocketAddress::FromSockAddr(const sockaddr_in& saddr) {
   if (saddr.sin_family != AF_INET)
     return false;
-  SetIP(NetworkToHost32(saddr.sin_addr.s_addr));
-  SetPort(NetworkToHost16(saddr.sin_port));
+  SetIP(webrtc::NetworkToHost32(saddr.sin_addr.s_addr));
+  SetPort(webrtc::NetworkToHost16(saddr.sin_port));
   literal_ = false;
   return true;
 }
@@ -295,13 +297,13 @@ static size_t ToSockAddrStorageHelper(sockaddr_storage* addr,
   if (addr->ss_family == AF_INET6) {
     sockaddr_in6* saddr = reinterpret_cast<sockaddr_in6*>(addr);
     saddr->sin6_addr = ip.ipv6_address();
-    saddr->sin6_port = HostToNetwork16(port);
+    saddr->sin6_port = webrtc::HostToNetwork16(port);
     saddr->sin6_scope_id = scope_id;
     return sizeof(sockaddr_in6);
   } else if (addr->ss_family == AF_INET) {
     sockaddr_in* saddr = reinterpret_cast<sockaddr_in*>(addr);
     saddr->sin_addr = ip.ipv4_address();
-    saddr->sin_port = HostToNetwork16(port);
+    saddr->sin_port = webrtc::HostToNetwork16(port);
     return sizeof(sockaddr_in);
   }
   return 0;
@@ -323,12 +325,12 @@ bool SocketAddressFromSockAddrStorage(const sockaddr_storage& addr,
   if (addr.ss_family == AF_INET) {
     const sockaddr_in* saddr = reinterpret_cast<const sockaddr_in*>(&addr);
     *out = SocketAddress(IPAddress(saddr->sin_addr),
-                         NetworkToHost16(saddr->sin_port));
+                         webrtc::NetworkToHost16(saddr->sin_port));
     return true;
   } else if (addr.ss_family == AF_INET6) {
     const sockaddr_in6* saddr = reinterpret_cast<const sockaddr_in6*>(&addr);
     *out = SocketAddress(IPAddress(saddr->sin6_addr),
-                         NetworkToHost16(saddr->sin6_port));
+                         webrtc::NetworkToHost16(saddr->sin6_port));
     out->SetScopeID(saddr->sin6_scope_id);
     return true;
   }
@@ -344,4 +346,4 @@ SocketAddress EmptySocketAddressWithFamily(int family) {
   return SocketAddress();
 }
 
-}  // namespace rtc
+}  // namespace webrtc

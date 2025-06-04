@@ -11,18 +11,32 @@
 #ifndef P2P_BASE_STUN_PORT_H_
 #define P2P_BASE_STUN_PORT_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
-#include <string>
+#include <optional>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
-#include "api/task_queue/pending_task_safety_flag.h"
+#include "api/async_dns_resolver.h"
+#include "api/candidate.h"
+#include "api/field_trials_view.h"
+#include "api/packet_socket_factory.h"
+#include "api/task_queue/task_queue_base.h"
+#include "p2p/base/connection.h"
 #include "p2p/base/port.h"
+#include "p2p/base/port_interface.h"
 #include "p2p/base/stun_request.h"
 #include "rtc_base/async_packet_socket.h"
+#include "rtc_base/dscp.h"
+#include "rtc_base/network.h"
 #include "rtc_base/network/received_packet.h"
+#include "rtc_base/network/sent_packet.h"
+#include "rtc_base/network_constants.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/system/rtc_export.h"
 
 namespace cricket {
@@ -37,7 +51,7 @@ class RTC_EXPORT UDPPort : public Port {
  public:
   static std::unique_ptr<UDPPort> Create(
       const PortParametersRef& args,
-      rtc::AsyncPacketSocket* socket,
+      webrtc::AsyncPacketSocket* socket,
       bool emit_local_for_anyaddress,
       std::optional<int> stun_keepalive_interval) {
     // Using `new` to access a non-public constructor.
@@ -53,9 +67,9 @@ class RTC_EXPORT UDPPort : public Port {
   [[deprecated("Pass arguments using PortParametersRef")]] static std::
       unique_ptr<UDPPort>
       Create(webrtc::TaskQueueBase* thread,
-             rtc::PacketSocketFactory* factory,
+             webrtc::PacketSocketFactory* factory,
              const rtc::Network* network,
-             rtc::AsyncPacketSocket* socket,
+             webrtc::AsyncPacketSocket* socket,
              absl::string_view username,
              absl::string_view password,
              bool emit_local_for_anyaddress,
@@ -89,7 +103,7 @@ class RTC_EXPORT UDPPort : public Port {
   [[deprecated("Pass arguments using PortParametersRef")]] static std::
       unique_ptr<UDPPort>
       Create(webrtc::TaskQueueBase* thread,
-             rtc::PacketSocketFactory* factory,
+             webrtc::PacketSocketFactory* factory,
              const rtc::Network* network,
              uint16_t min_port,
              uint16_t max_port,
@@ -110,7 +124,7 @@ class RTC_EXPORT UDPPort : public Port {
 
   ~UDPPort() override;
 
-  rtc::SocketAddress GetLocalAddress() const {
+  webrtc::SocketAddress GetLocalAddress() const {
     return socket_->GetLocalAddress();
   }
 
@@ -121,17 +135,17 @@ class RTC_EXPORT UDPPort : public Port {
 
   void PrepareAddress() override;
 
-  Connection* CreateConnection(const Candidate& address,
+  Connection* CreateConnection(const webrtc::Candidate& address,
                                CandidateOrigin origin) override;
-  int SetOption(rtc::Socket::Option opt, int value) override;
-  int GetOption(rtc::Socket::Option opt, int* value) override;
+  int SetOption(webrtc::Socket::Option opt, int value) override;
+  int GetOption(webrtc::Socket::Option opt, int* value) override;
   int GetError() override;
 
-  bool HandleIncomingPacket(rtc::AsyncPacketSocket* socket,
+  bool HandleIncomingPacket(webrtc::AsyncPacketSocket* socket,
                             const rtc::ReceivedPacket& packet) override;
 
   bool SupportsProtocol(absl::string_view protocol) const override;
-  ProtocolType GetProtocol() const override;
+  webrtc::ProtocolType GetProtocol() const override;
 
   void GetStunStats(std::optional<StunStats>* stats) override;
 
@@ -149,7 +163,7 @@ class RTC_EXPORT UDPPort : public Port {
  protected:
   UDPPort(const PortParametersRef& args,
           webrtc::IceCandidateType type,
-          rtc::AsyncPacketSocket* socket,
+          webrtc::AsyncPacketSocket* socket,
           bool emit_local_for_anyaddress);
   UDPPort(const PortParametersRef& args,
           webrtc::IceCandidateType type,
@@ -160,7 +174,7 @@ class RTC_EXPORT UDPPort : public Port {
 
   int SendTo(const void* data,
              size_t size,
-             const rtc::SocketAddress& addr,
+             const webrtc::SocketAddress& addr,
              const rtc::PacketOptions& options,
              bool payload) override;
 
@@ -168,18 +182,18 @@ class RTC_EXPORT UDPPort : public Port {
 
   rtc::DiffServCodePoint StunDscpValue() const override;
 
-  void OnLocalAddressReady(rtc::AsyncPacketSocket* socket,
-                           const rtc::SocketAddress& address);
+  void OnLocalAddressReady(webrtc::AsyncPacketSocket* socket,
+                           const webrtc::SocketAddress& address);
 
   void PostAddAddress(bool is_final) override;
 
-  void OnReadPacket(rtc::AsyncPacketSocket* socket,
+  void OnReadPacket(webrtc::AsyncPacketSocket* socket,
                     const rtc::ReceivedPacket& packet);
 
-  void OnSentPacket(rtc::AsyncPacketSocket* socket,
+  void OnSentPacket(webrtc::AsyncPacketSocket* socket,
                     const rtc::SentPacket& sent_packet) override;
 
-  void OnReadyToSend(rtc::AsyncPacketSocket* socket);
+  void OnReadyToSend(webrtc::AsyncPacketSocket* socket);
 
   // This method will send STUN binding request if STUN server address is set.
   void MaybePrepareStunCandidate();
@@ -190,7 +204,7 @@ class RTC_EXPORT UDPPort : public Port {
   // `addr` is the "any" address and `emit_local_for_anyaddress_` is true. When
   // returning false, it indicates that the operation has failed and the
   // address shouldn't be used by any candidate.
-  bool MaybeSetDefaultLocalAddress(rtc::SocketAddress* addr) const;
+  bool MaybeSetDefaultLocalAddress(webrtc::SocketAddress* addr) const;
 
  private:
   // A helper class which can be called repeatedly to resolve multiple
@@ -199,47 +213,47 @@ class RTC_EXPORT UDPPort : public Port {
   class AddressResolver {
    public:
     explicit AddressResolver(
-        rtc::PacketSocketFactory* factory,
-        std::function<void(const rtc::SocketAddress&, int)> done_callback);
+        webrtc::PacketSocketFactory* factory,
+        std::function<void(const webrtc::SocketAddress&, int)> done_callback);
 
-    void Resolve(const rtc::SocketAddress& address,
+    void Resolve(const webrtc::SocketAddress& address,
                  int family,
                  const webrtc::FieldTrialsView& field_trials);
-    bool GetResolvedAddress(const rtc::SocketAddress& input,
+    bool GetResolvedAddress(const webrtc::SocketAddress& input,
                             int family,
-                            rtc::SocketAddress* output) const;
+                            webrtc::SocketAddress* output) const;
 
    private:
-    typedef std::map<rtc::SocketAddress,
+    typedef std::map<webrtc::SocketAddress,
                      std::unique_ptr<webrtc::AsyncDnsResolverInterface>>
         ResolverMap;
 
-    rtc::PacketSocketFactory* socket_factory_;
+    webrtc::PacketSocketFactory* socket_factory_;
     // The function is called when resolving the specified address is finished.
     // The first argument is the input address, the second argument is the error
     // or 0 if it succeeded.
-    std::function<void(const rtc::SocketAddress&, int)> done_;
+    std::function<void(const webrtc::SocketAddress&, int)> done_;
     // Resolver may fire callbacks that refer to done_, so ensure
     // that all resolvers are destroyed first.
     ResolverMap resolvers_;
   };
 
   // DNS resolution of the STUN server.
-  void ResolveStunAddress(const rtc::SocketAddress& stun_addr);
-  void OnResolveResult(const rtc::SocketAddress& input, int error);
+  void ResolveStunAddress(const webrtc::SocketAddress& stun_addr);
+  void OnResolveResult(const webrtc::SocketAddress& input, int error);
 
   // Send a STUN binding request to the given address. Calling this method may
   // cause the set of known server addresses to be modified, eg. by replacing an
   // unresolved server address with a resolved address.
-  void SendStunBindingRequest(const rtc::SocketAddress& stun_addr);
+  void SendStunBindingRequest(const webrtc::SocketAddress& stun_addr);
 
   // Below methods handles binding request responses.
   void OnStunBindingRequestSucceeded(
       int rtt_ms,
-      const rtc::SocketAddress& stun_server_addr,
-      const rtc::SocketAddress& stun_reflected_addr);
+      const webrtc::SocketAddress& stun_server_addr,
+      const webrtc::SocketAddress& stun_reflected_addr);
   void OnStunBindingOrResolveRequestFailed(
-      const rtc::SocketAddress& stun_server_addr,
+      const webrtc::SocketAddress& stun_server_addr,
       int error_code,
       absl::string_view reason);
 
@@ -250,13 +264,13 @@ class RTC_EXPORT UDPPort : public Port {
   // changed to SignalPortReady.
   void MaybeSetPortCompleteOrError();
 
-  bool HasStunCandidateWithAddress(const rtc::SocketAddress& addr) const;
+  bool HasStunCandidateWithAddress(const webrtc::SocketAddress& addr) const;
 
   // If this is a low-cost network, it will keep on sending STUN binding
   // requests indefinitely to keep the NAT binding alive. Otherwise, stop
   // sending STUN binding requests after HIGH_COST_PORT_KEEPALIVE_LIFETIME.
   int GetStunKeepaliveLifetime() {
-    return (network_cost() >= rtc::kNetworkCostHigh)
+    return (network_cost() >= webrtc::kNetworkCostHigh)
                ? HIGH_COST_PORT_KEEPALIVE_LIFETIME
                : INFINITE_LIFETIME;
   }
@@ -265,7 +279,7 @@ class RTC_EXPORT UDPPort : public Port {
   ServerAddresses bind_request_succeeded_servers_;
   ServerAddresses bind_request_failed_servers_;
   StunRequestManager request_manager_;
-  rtc::AsyncPacketSocket* socket_;
+  webrtc::AsyncPacketSocket* socket_;
   int error_;
   int send_error_count_ = 0;
   std::unique_ptr<AddressResolver> resolver_;
@@ -294,7 +308,7 @@ class StunPort : public UDPPort {
   [[deprecated("Pass arguments using PortParametersRef")]] static std::
       unique_ptr<StunPort>
       Create(webrtc::TaskQueueBase* thread,
-             rtc::PacketSocketFactory* factory,
+             webrtc::PacketSocketFactory* factory,
              const rtc::Network* network,
              uint16_t min_port,
              uint16_t max_port,

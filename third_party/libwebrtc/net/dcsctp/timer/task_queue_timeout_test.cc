@@ -43,7 +43,7 @@ class TaskQueueTimeoutTest : public testing::Test {
   MockFunction<void(TimeoutID)> on_expired_;
   webrtc::GlobalSimulatedTimeController time_controller_;
 
-  rtc::Thread* task_queue_;
+  webrtc::Thread* task_queue_;
   TaskQueueTimeoutFactory factory_;
 };
 

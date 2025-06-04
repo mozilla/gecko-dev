@@ -149,7 +149,7 @@ VideoAnalyzer::VideoAnalyzer(test::LayerFilteringTransport* transport,
   }
 
   for (uint32_t i = 0; i < num_cores; ++i) {
-    comparison_thread_pool_.push_back(rtc::PlatformThread::SpawnJoinable(
+    comparison_thread_pool_.push_back(PlatformThread::SpawnJoinable(
         [this] {
           while (CompareFrames()) {
           }
@@ -441,7 +441,7 @@ bool VideoAnalyzer::IsInSelectedSpatialAndTemporalLayer(
   if (rtp_packet.PayloadType() == test::VideoTestConstants::kPayloadTypeVP8) {
     auto parsed_payload = vp8_depacketizer_->Parse(rtp_packet.PayloadBuffer());
     RTC_DCHECK(parsed_payload);
-    const auto& vp8_header = absl::get<RTPVideoHeaderVP8>(
+    const auto& vp8_header = std::get<RTPVideoHeaderVP8>(
         parsed_payload->video_header.video_type_header);
     int temporal_idx = vp8_header.temporalIdx;
     return selected_tl_ < 0 || temporal_idx == kNoTemporalIdx ||
@@ -451,7 +451,7 @@ bool VideoAnalyzer::IsInSelectedSpatialAndTemporalLayer(
   if (rtp_packet.PayloadType() == test::VideoTestConstants::kPayloadTypeVP9) {
     auto parsed_payload = vp9_depacketizer_->Parse(rtp_packet.PayloadBuffer());
     RTC_DCHECK(parsed_payload);
-    const auto& vp9_header = absl::get<RTPVideoHeaderVP9>(
+    const auto& vp9_header = std::get<RTPVideoHeaderVP9>(
         parsed_payload->video_header.video_type_header);
     int temporal_idx = vp9_header.temporal_idx;
     int spatial_idx = vp9_header.spatial_idx;
@@ -669,7 +669,7 @@ void VideoAnalyzer::PrintResults() {
   const double total_freezes_duration_ms_double =
       static_cast<double>(total_freezes_duration_ms_);
   const double total_frames_duration_ms_double =
-      total_inter_frame_delay_ * rtc::kNumMillisecsPerSec;
+      total_inter_frame_delay_ * kNumMillisecsPerSec;
 
   if (total_frames_duration_ms_double > 0) {
     GetGlobalMetricsLogger()->LogSingleValueMetric(

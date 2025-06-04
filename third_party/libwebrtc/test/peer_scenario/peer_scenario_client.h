@@ -56,7 +56,7 @@ class PeerScenarioClient {
                                    int,
                                    const std::string&)>>
         on_ice_candidate_error;
-    std::vector<std::function<void(const std::vector<cricket::Candidate>&)>>
+    std::vector<std::function<void(const std::vector<webrtc::Candidate>&)>>
         on_ice_candidates_removed;
     std::vector<std::function<void(
         rtc::scoped_refptr<RtpReceiverInterface>,
@@ -114,7 +114,7 @@ class PeerScenarioClient {
 
   PeerScenarioClient(
       NetworkEmulationManager* net,
-      rtc::Thread* signaling_thread,
+      Thread* signaling_thread,
       std::unique_ptr<LogWriterFactoryInterface> log_writer_factory,
       Config config);
 
@@ -123,7 +123,7 @@ class PeerScenarioClient {
     RTC_DCHECK_RUN_ON(signaling_thread_);
     return peer_connection_.get();
   }
-  rtc::Thread* thread() { return signaling_thread_; }
+  Thread* thread() { return signaling_thread_; }
   Clock* clock() { return Clock::GetRealTimeClock(); }
 
   // Returns the endpoint created from the EmulatedEndpointConfig with the same
@@ -160,9 +160,9 @@ class PeerScenarioClient {
  private:
   const std::map<int, EmulatedEndpoint*> endpoints_;
   TaskQueueFactory* const task_queue_factory_;
-  rtc::Thread* const signaling_thread_;
+  Thread* const signaling_thread_;
   const std::unique_ptr<LogWriterFactoryInterface> log_writer_factory_;
-  const std::unique_ptr<rtc::Thread> worker_thread_;
+  const std::unique_ptr<Thread> worker_thread_;
   CallbackHandlers handlers_ RTC_GUARDED_BY(signaling_thread_);
   const std::unique_ptr<PeerConnectionObserver> observer_;
   std::map<std::string, std::vector<rtc::VideoSinkInterface<VideoFrame>*>>

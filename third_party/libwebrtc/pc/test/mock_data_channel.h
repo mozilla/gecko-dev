@@ -11,10 +11,13 @@
 #ifndef PC_TEST_MOCK_DATA_CHANNEL_H_
 #define PC_TEST_MOCK_DATA_CHANNEL_H_
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
 #include "pc/sctp_data_channel.h"
+#include "rtc_base/thread.h"
+#include "rtc_base/weak_ptr.h"
 #include "test/gmock.h"
 
 namespace webrtc {
@@ -44,8 +47,8 @@ class MockSctpDataChannel : public SctpDataChannel {
       uint32_t messages_received,
       uint64_t bytes_received,
       const InternalDataChannelInit& config = InternalDataChannelInit(),
-      rtc::Thread* signaling_thread = rtc::Thread::Current(),
-      rtc::Thread* network_thread = rtc::Thread::Current())
+      Thread* signaling_thread = Thread::Current(),
+      Thread* network_thread = Thread::Current())
       : SctpDataChannel(config,
                         std::move(controller),
                         label,

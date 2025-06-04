@@ -252,12 +252,12 @@ std::vector<RtpPacketizerAv1::Packet> RtpPacketizerAv1::PacketizeInternal(
          obu_offset + limits.max_payload_len < obu.size;
          obu_offset += limits.max_payload_len) {
       packets.emplace_back(/*first_obu_index=*/obu_index);
-      Packet& packet = packets.back();
-      packet.num_obu_elements = 1;
-      packet.first_obu_offset = obu_offset;
+      Packet& middle_packet = packets.back();
+      middle_packet.num_obu_elements = 1;
+      middle_packet.first_obu_offset = obu_offset;
       int middle_fragment_size = limits.max_payload_len;
-      packet.last_obu_size = middle_fragment_size;
-      packet.packet_size = middle_fragment_size;
+      middle_packet.last_obu_size = middle_fragment_size;
+      middle_packet.packet_size = middle_fragment_size;
     }
 
     // Add the last fragment of the obu.
@@ -282,11 +282,11 @@ std::vector<RtpPacketizerAv1::Packet> RtpPacketizerAv1::PacketizeInternal(
       last_fragment_size -= semi_last_fragment_size;
 
       packets.emplace_back(/*first_obu_index=*/obu_index);
-      Packet& packet = packets.back();
-      packet.num_obu_elements = 1;
-      packet.first_obu_offset = obu_offset;
-      packet.last_obu_size = semi_last_fragment_size;
-      packet.packet_size = semi_last_fragment_size;
+      Packet& second_last_packet = packets.back();
+      second_last_packet.num_obu_elements = 1;
+      second_last_packet.first_obu_offset = obu_offset;
+      second_last_packet.last_obu_size = semi_last_fragment_size;
+      second_last_packet.packet_size = semi_last_fragment_size;
       obu_offset += semi_last_fragment_size;
     }
     packets.emplace_back(/*first_obu_index=*/obu_index);

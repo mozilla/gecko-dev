@@ -92,11 +92,11 @@ class SignalingInterceptor {
   // modified offer/answer and ice candidates exchange.
   struct SimulcastSectionInfo {
     SimulcastSectionInfo(const std::string& mid,
-                         cricket::MediaProtocolType media_protocol_type,
+                         MediaProtocolType media_protocol_type,
                          const std::vector<cricket::RidDescription>& rids_desc);
 
     const std::string mid;
-    const cricket::MediaProtocolType media_protocol_type;
+    const MediaProtocolType media_protocol_type;
     std::vector<std::string> rids;
     cricket::SimulcastDescription simulcast_description;
     webrtc::RtpExtension mid_extension;
@@ -133,8 +133,8 @@ class SignalingInterceptor {
       std::unique_ptr<SessionDescriptionInterface> answer);
 
   void FillSimulcastContext(SessionDescriptionInterface* offer);
-  std::unique_ptr<cricket::SessionDescription> RestoreMediaSectionsOrder(
-      std::unique_ptr<cricket::SessionDescription> source);
+  std::unique_ptr<SessionDescription> RestoreMediaSectionsOrder(
+      std::unique_ptr<SessionDescription> source);
 
   PatchingParams params_;
   SignalingContext context_;

@@ -347,7 +347,7 @@ class PeerConnectionIntegrationTest : public PeerConnectionIntegrationBaseTest {
       const SessionDescriptionInterface& desc_interface) {
     std::vector<std::string> results;
     int media_section_counter = 0;
-    const cricket::SessionDescription* desc = desc_interface.description();
+    const SessionDescription* desc = desc_interface.description();
     for (auto& content : desc->contents()) {
       ++media_section_counter;
       const auto* media_description = content.media_description();

@@ -90,10 +90,10 @@ index ec4bae0aed..70b6e3aa16 100644
  
  class SimulatedClock : public Clock {
 diff --git a/system_wrappers/source/clock.cc b/system_wrappers/source/clock.cc
-index 88c99d6a68..f7460b831c 100644
+index 0fe5abc71d..8efb1ce789 100644
 --- a/system_wrappers/source/clock.cc
 +++ b/system_wrappers/source/clock.cc
-@@ -57,7 +57,7 @@ class RealTimeClock : public Clock {
+@@ -55,7 +55,7 @@ class RealTimeClock : public Clock {
    }
  };
  

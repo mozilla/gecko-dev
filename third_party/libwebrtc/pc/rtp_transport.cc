@@ -35,11 +35,11 @@ const std::string& RtpTransport::transport_name() const {
   return rtp_packet_transport_->transport_name();
 }
 
-int RtpTransport::SetRtpOption(rtc::Socket::Option opt, int value) {
+int RtpTransport::SetRtpOption(Socket::Option opt, int value) {
   return rtp_packet_transport_->SetOption(opt, value);
 }
 
-int RtpTransport::SetRtcpOption(rtc::Socket::Option opt, int value) {
+int RtpTransport::SetRtcpOption(Socket::Option opt, int value) {
   if (rtcp_packet_transport_) {
     return rtcp_packet_transport_->SetOption(opt, value);
   }

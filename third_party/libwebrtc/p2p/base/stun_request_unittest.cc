@@ -50,7 +50,7 @@ int TotalDelay(int sends) {
 class StunRequestTest : public ::testing::Test {
  public:
   StunRequestTest()
-      : manager_(rtc::Thread::Current(),
+      : manager_(webrtc::Thread::Current(),
                  [this](const void* data, size_t size, StunRequest* request) {
                    OnSendPacket(data, size, request);
                  }),
@@ -75,7 +75,7 @@ class StunRequestTest : public ::testing::Test {
   virtual void OnTimeout() { timeout_ = true; }
 
  protected:
-  rtc::AutoThread main_thread_;
+  webrtc::AutoThread main_thread_;
   StunRequestManager manager_;
   int request_count_;
   StunMessage* response_;
@@ -151,12 +151,12 @@ TEST_F(StunRequestTest, TestUnexpected) {
 
 // Test that requests are sent at the right times.
 TEST_F(StunRequestTest, TestBackoff) {
-  rtc::ScopedFakeClock fake_clock;
+  webrtc::ScopedFakeClock fake_clock;
   auto* request = new StunRequestThunker(manager_, this);
   std::unique_ptr<StunMessage> res =
       request->CreateResponseMessage(STUN_BINDING_RESPONSE);
 
-  int64_t start = rtc::TimeMillis();
+  int64_t start = webrtc::TimeMillis();
   manager_.Send(request);
   for (int i = 0; i < 9; ++i) {
     EXPECT_THAT(webrtc::WaitUntil(
@@ -164,7 +164,7 @@ TEST_F(StunRequestTest, TestBackoff) {
                     {.timeout = webrtc::TimeDelta::Millis(STUN_TOTAL_TIMEOUT),
                      .clock = &fake_clock}),
                 webrtc::IsRtcOk());
-    int64_t elapsed = rtc::TimeMillis() - start;
+    int64_t elapsed = webrtc::TimeMillis() - start;
     RTC_DLOG(LS_INFO) << "STUN request #" << (i + 1) << " sent at " << elapsed
                       << " ms";
     EXPECT_EQ(TotalDelay(i), elapsed);
@@ -179,7 +179,7 @@ TEST_F(StunRequestTest, TestBackoff) {
 
 // Test that we timeout properly if no response is received.
 TEST_F(StunRequestTest, TestTimeout) {
-  rtc::ScopedFakeClock fake_clock;
+  webrtc::ScopedFakeClock fake_clock;
   auto* request = new StunRequestThunker(manager_, this);
   std::unique_ptr<StunMessage> res =
       request->CreateResponseMessage(STUN_BINDING_RESPONSE);

@@ -12,23 +12,41 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
+#include "absl/strings/string_view.h"
+#include "api/audio_options.h"
 #include "api/environment/environment.h"
 #include "api/environment/environment_factory.h"
 #include "api/ice_transport_interface.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
+#include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtp_parameters.h"
+#include "api/scoped_refptr.h"
 #include "api/sequence_checker.h"
 #include "api/transport/bitrate_settings.h"
+#include "api/transport/network_control.h"
 #include "api/units/data_rate.h"
+#include "call/call_config.h"
 #include "call/rtp_transport_controller_send_factory.h"
+#include "media/base/codec.h"
 #include "media/base/media_engine.h"
 #include "p2p/base/basic_async_resolver_factory.h"
 #include "p2p/base/default_ice_transport_factory.h"
+#include "p2p/base/ice_transport_internal.h"
+#include "p2p/base/port.h"
 #include "p2p/base/port_allocator.h"
 #include "p2p/client/basic_port_allocator.h"
 #include "pc/audio_track.h"
+#include "pc/codec_vendor.h"
+#include "pc/connection_context.h"
 #include "pc/ice_server_parsing.h"
 #include "pc/local_audio_source.h"
 #include "pc/media_factory.h"
@@ -89,6 +107,10 @@ PeerConnectionFactory::PeerConnectionFactory(
     rtc::scoped_refptr<ConnectionContext> context,
     PeerConnectionFactoryDependencies* dependencies)
     : context_(context),
+      codec_vendor_(context_->media_engine(),
+                    context_->use_rtx(),
+                    context_->env().field_trials()),
+
       event_log_factory_(std::move(dependencies->event_log_factory)),
       fec_controller_factory_(std::move(dependencies->fec_controller_factory)),
       network_state_predictor_factory_(
@@ -127,26 +149,24 @@ void PeerConnectionFactory::SetOptions(const Options& options) {
 }
 
 RtpCapabilities PeerConnectionFactory::GetRtpSenderCapabilities(
-    cricket::MediaType kind) const {
+    webrtc::MediaType kind) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
   switch (kind) {
-    case cricket::MEDIA_TYPE_AUDIO: {
+    case webrtc::MediaType::AUDIO: {
       cricket::Codecs cricket_codecs;
-      cricket_codecs = media_engine()->voice().send_codecs();
+      cricket_codecs = codec_vendor_.audio_send_codecs().codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->voice());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
-    case cricket::MEDIA_TYPE_VIDEO: {
+    case webrtc::MediaType::VIDEO: {
       cricket::Codecs cricket_codecs;
-      cricket_codecs = media_engine()->video().send_codecs(context_->use_rtx());
+      cricket_codecs = codec_vendor_.video_send_codecs().codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->video());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
-    case cricket::MEDIA_TYPE_DATA:
-      return RtpCapabilities();
-    case cricket::MEDIA_TYPE_UNSUPPORTED:
+    default:
       return RtpCapabilities();
   }
   RTC_DLOG(LS_ERROR) << "Got unexpected MediaType " << kind;
@@ -154,26 +174,24 @@ RtpCapabilities PeerConnectionFactory::GetRtpSenderCapabilities(
 }
 
 RtpCapabilities PeerConnectionFactory::GetRtpReceiverCapabilities(
-    cricket::MediaType kind) const {
+    webrtc::MediaType kind) const {
   RTC_DCHECK_RUN_ON(signaling_thread());
   switch (kind) {
-    case cricket::MEDIA_TYPE_AUDIO: {
+    case webrtc::MediaType::AUDIO: {
       cricket::Codecs cricket_codecs;
-      cricket_codecs = media_engine()->voice().recv_codecs();
+      cricket_codecs = codec_vendor_.audio_recv_codecs().codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->voice());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
-    case cricket::MEDIA_TYPE_VIDEO: {
+    case webrtc::MediaType::VIDEO: {
       cricket::Codecs cricket_codecs =
-          media_engine()->video().recv_codecs(context_->use_rtx());
+          codec_vendor_.video_recv_codecs().codecs();
       auto extensions =
           GetDefaultEnabledRtpHeaderExtensions(media_engine()->video());
       return ToRtpCapabilities(cricket_codecs, extensions);
     }
-    case cricket::MEDIA_TYPE_DATA:
-      return RtpCapabilities();
-    case cricket::MEDIA_TYPE_UNSUPPORTED:
+    default:
       return RtpCapabilities();
   }
   RTC_DLOG(LS_ERROR) << "Got unexpected MediaType " << kind;
@@ -216,14 +234,14 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
         << "PeerConnection constructed with legacy SDP semantics!";
   }
 
-  RTCError err = cricket::IceConfig(configuration).IsValid();
+  RTCError err = IceConfig(configuration).IsValid();
   if (!err.ok()) {
     RTC_LOG(LS_ERROR) << "Invalid ICE configuration: " << err.message();
     return err;
   }
 
   cricket::ServerAddresses stun_servers;
-  std::vector<cricket::RelayServerConfig> turn_servers;
+  std::vector<RelayServerConfig> turn_servers;
   err = ParseAndValidateIceServersFromConfiguration(configuration, stun_servers,
                                                     turn_servers);
   if (!err.ok()) {
@@ -256,9 +274,8 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
 
   // Set internal defaults if optional dependencies are not set.
   if (!dependencies.cert_generator) {
-    dependencies.cert_generator =
-        std::make_unique<rtc::RTCCertificateGenerator>(signaling_thread(),
-                                                       network_thread());
+    dependencies.cert_generator = std::make_unique<RTCCertificateGenerator>(
+        signaling_thread(), network_thread());
   }
 
   if (!dependencies.async_dns_resolver_factory) {
@@ -268,9 +285,8 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
 
   if (!dependencies.allocator) {
     dependencies.allocator = std::make_unique<cricket::BasicPortAllocator>(
-        context_->default_network_manager(), context_->default_socket_factory(),
-        configuration.turn_customizer, /*relay_port_factory=*/nullptr,
-        &env.field_trials());
+        env, context_->default_network_manager(),
+        context_->default_socket_factory(), configuration.turn_customizer);
     dependencies.allocator->SetPortRange(
         configuration.port_allocator_config.min_port,
         configuration.port_allocator_config.max_port);

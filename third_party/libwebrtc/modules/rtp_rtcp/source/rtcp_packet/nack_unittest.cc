@@ -29,12 +29,11 @@ using ::webrtc::rtcp::Nack;
 constexpr uint32_t kSenderSsrc = 0x12345678;
 constexpr uint32_t kRemoteSsrc = 0x23456789;
 
+constexpr uint8_t kRtpVersionBits = 2 << 6;
 constexpr uint16_t kList[] = {0, 1, 3, 8, 16};
-constexpr size_t kListLength = sizeof(kList) / sizeof(kList[0]);
-constexpr uint8_t kVersionBits = 2 << 6;
 // clang-format off
 constexpr uint8_t kPacket[] = {
-    kVersionBits | Nack::kFeedbackMessageType, Nack::kPacketType, 0, 3,
+    kRtpVersionBits | Nack::kFeedbackMessageType, Nack::kPacketType, 0, 3,
     0x12, 0x34, 0x56, 0x78,
     0x23, 0x45, 0x67, 0x89,
     0x00, 0x00, 0x80, 0x85};
@@ -43,7 +42,7 @@ constexpr uint16_t kWrapList[] = {0xffdc, 0xffec, 0xfffe, 0xffff, 0x0000,
                                   0x0001, 0x0003, 0x0014, 0x0064};
 constexpr size_t kWrapListLength = sizeof(kWrapList) / sizeof(kWrapList[0]);
 constexpr uint8_t kWrapPacket[] = {
-    kVersionBits | Nack::kFeedbackMessageType, Nack::kPacketType, 0, 6,
+    kRtpVersionBits | Nack::kFeedbackMessageType, Nack::kPacketType, 0, 6,
     0x12, 0x34, 0x56, 0x78,
     0x23, 0x45, 0x67, 0x89,
     0xff, 0xdc, 0x80, 0x00,
@@ -51,7 +50,7 @@ constexpr uint8_t kWrapPacket[] = {
     0x00, 0x14, 0x00, 0x00,
     0x00, 0x64, 0x00, 0x00};
 constexpr uint8_t kTooSmallPacket[] = {
-    kVersionBits | Nack::kFeedbackMessageType, Nack::kPacketType, 0, 2,
+    kRtpVersionBits | Nack::kFeedbackMessageType, Nack::kPacketType, 0, 2,
     0x12, 0x34, 0x56, 0x78,
     0x23, 0x45, 0x67, 0x89};
 // clang-format on
@@ -61,7 +60,7 @@ TEST(RtcpPacketNackTest, Create) {
   Nack nack;
   nack.SetSenderSsrc(kSenderSsrc);
   nack.SetMediaSsrc(kRemoteSsrc);
-  nack.SetPacketIds(kList, kListLength);
+  nack.SetPacketIds(kList, std::size(kList));
 
   rtc::Buffer packet = nack.Build();
 
@@ -122,11 +121,10 @@ TEST(RtcpPacketNackTest, BadOrder) {
 
 TEST(RtcpPacketNackTest, CreateFragmented) {
   Nack nack;
-  const uint16_t kList[] = {1, 100, 200, 300, 400};
-  const uint16_t kListLength = sizeof(kList) / sizeof(kList[0]);
+  const uint16_t kFragmentedList[] = {1, 100, 200, 300, 400};
   nack.SetSenderSsrc(kSenderSsrc);
   nack.SetMediaSsrc(kRemoteSsrc);
-  nack.SetPacketIds(kList, kListLength);
+  nack.SetPacketIds(kFragmentedList, std::size(kFragmentedList));
 
   const size_t kBufferSize = 12 + (3 * 4);  // Fits common header + 3 nack items
 
@@ -151,12 +149,12 @@ TEST(RtcpPacketNackTest, CreateFragmented) {
 }
 
 TEST(RtcpPacketNackTest, CreateFailsWithTooSmallBuffer) {
-  const uint16_t kList[] = {1};
+  const uint16_t kSmallList[] = {1};
   const size_t kMinNackBlockSize = 16;
   Nack nack;
   nack.SetSenderSsrc(kSenderSsrc);
   nack.SetMediaSsrc(kRemoteSsrc);
-  nack.SetPacketIds(kList, 1);
+  nack.SetPacketIds(kSmallList, std::size(kSmallList));
 
   MockFunction<void(rtc::ArrayView<const uint8_t>)> callback;
   EXPECT_CALL(callback, Call(_)).Times(0);

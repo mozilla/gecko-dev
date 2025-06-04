@@ -88,11 +88,11 @@ class MockPeerConnectionInterface : public webrtc::PeerConnectionInterface {
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType),
+              (webrtc::MediaType),
               (override));
   MOCK_METHOD(RTCErrorOr<rtc::scoped_refptr<RtpTransceiverInterface>>,
               AddTransceiver,
-              (cricket::MediaType, const RtpTransceiverInit&),
+              (webrtc::MediaType, const RtpTransceiverInit&),
               (override));
   MOCK_METHOD(rtc::scoped_refptr<RtpSenderInterface>,
               CreateSender,
@@ -198,7 +198,7 @@ class MockPeerConnectionInterface : public webrtc::PeerConnectionInterface {
               (override));
   MOCK_METHOD(bool,
               RemoveIceCandidates,
-              (const std::vector<cricket::Candidate>&),
+              (const std::vector<webrtc::Candidate>&),
               (override));
   MOCK_METHOD(RTCError, SetBitrate, (const BitrateSettings&), (override));
   MOCK_METHOD(void,
@@ -234,7 +234,7 @@ class MockPeerConnectionInterface : public webrtc::PeerConnectionInterface {
               (override));
   MOCK_METHOD(void, StopRtcEventLog, (), (override));
   MOCK_METHOD(void, Close, (), (override));
-  MOCK_METHOD(rtc::Thread*, signaling_thread, (), (const, override));
+  MOCK_METHOD(Thread*, signaling_thread, (), (const, override));
   MOCK_METHOD(NetworkControllerInterface*,
               GetNetworkController,
               (),

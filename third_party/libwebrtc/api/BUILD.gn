@@ -208,7 +208,10 @@ rtc_library("candidate") {
 rtc_source_set("turn_customizer") {
   visibility = [ "*" ]
   sources = [ "turn_customizer.h" ]
-  deps = [ "transport:stun_types" ]
+  deps = [
+    "../p2p:port_interface",
+    "transport:stun_types",
+  ]
 }
 
 rtc_source_set("ice_transport_interface") {
@@ -391,7 +394,7 @@ if (!build_with_mozilla) {
     "crypto:options",
     "metronome",
     "neteq:neteq_api",
-    "rtc_event_log",
+    "rtc_event_log:rtc_event_log_factory_interface",
     "task_queue",
     "transport:bandwidth_estimation_settings",
     "transport:bitrate_settings",
@@ -575,6 +578,7 @@ rtc_library("rtp_parameters") {
     "../rtc_base/system:rtc_export",
     "video:resolution",
     "video_codecs:scalability_mode",
+    "//third_party/abseil-cpp/absl/base:core_headers",
     "//third_party/abseil-cpp/absl/container:inlined_vector",
     "//third_party/abseil-cpp/absl/strings:str_format",
     "//third_party/abseil-cpp/absl/strings:string_view",
@@ -619,9 +623,10 @@ rtc_source_set("peer_network_dependencies") {
   visibility = [ "*" ]
   sources = [ "test/peer_network_dependencies.h" ]
   deps = [
-    ":packet_socket_factory",
     "../rtc_base:network",
+    "../rtc_base:socket_factory",
     "../rtc_base:threading",
+    "//third_party/abseil-cpp/absl/base:nullability",
   ]
 }
 
@@ -641,7 +646,6 @@ if (!build_with_mozilla) {
     ":media_stream_interface",
     ":network_state_predictor_api",
     ":packet_socket_factory",
-    ":peer_network_dependencies",
     ":rtp_parameters",
     ":simulated_network_api",
     ":stats_observer_interface",
@@ -858,7 +862,6 @@ rtc_source_set("rtc_stats_api") {
     "../rtc_base:refcount",
     "../rtc_base/system:rtc_export",
     "units:timestamp",
-    "//third_party/abseil-cpp/absl/types:variant",
   ]
 }
 
@@ -925,18 +928,14 @@ rtc_source_set("network_emulation_manager_api") {
     ":peer_network_dependencies",
     ":simulated_network_api",
     ":time_controller",
-    "..//test/network:simulated_network",
     "../rtc_base:checks",
     "../rtc_base:ip_address",
     "../rtc_base:network",
     "../rtc_base:network_constants",
     "../rtc_base:socket_address",
-    "../rtc_base:socket_factory",
-    "../rtc_base:threading",
+    "../test/network:simulated_network",
     "test/network_emulation",
     "units:data_rate",
-    "units:data_size",
-    "units:timestamp",
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings:string_view",
   ]

@@ -53,9 +53,9 @@ SimulatedTimeControllerImpl::CreateTaskQueue(
   return task_queue;
 }
 
-std::unique_ptr<rtc::Thread> SimulatedTimeControllerImpl::CreateThread(
+std::unique_ptr<Thread> SimulatedTimeControllerImpl::CreateThread(
     const std::string& name,
-    std::unique_ptr<rtc::SocketServer> socket_server) {
+    std::unique_ptr<SocketServer> socket_server) {
   auto thread =
       std::make_unique<SimulatedThread>(this, name, std::move(socket_server));
   Register(thread.get());
@@ -182,13 +182,13 @@ TaskQueueFactory* GlobalSimulatedTimeController::GetTaskQueueFactory() {
   return &impl_;
 }
 
-std::unique_ptr<rtc::Thread> GlobalSimulatedTimeController::CreateThread(
+std::unique_ptr<Thread> GlobalSimulatedTimeController::CreateThread(
     const std::string& name,
-    std::unique_ptr<rtc::SocketServer> socket_server) {
+    std::unique_ptr<SocketServer> socket_server) {
   return impl_.CreateThread(name, std::move(socket_server));
 }
 
-rtc::Thread* GlobalSimulatedTimeController::GetMainThread() {
+Thread* GlobalSimulatedTimeController::GetMainThread() {
   return main_thread_.get();
 }
 
@@ -196,7 +196,7 @@ void GlobalSimulatedTimeController::AdvanceTime(TimeDelta duration) {
   ScopedYieldPolicy yield_policy(&impl_);
   Timestamp current_time = impl_.CurrentTime();
   Timestamp target_time = current_time + duration;
-  RTC_DCHECK_EQ(current_time.us(), rtc::TimeMicros());
+  RTC_DCHECK_EQ(current_time.us(), TimeMicros());
   while (current_time < target_time) {
     impl_.RunReadyRunners();
     Timestamp next_time = std::min(impl_.NextRunTime(), target_time);

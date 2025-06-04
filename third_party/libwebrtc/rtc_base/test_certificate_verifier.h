@@ -13,14 +13,14 @@
 
 #include "rtc_base/ssl_certificate.h"
 
-namespace rtc {
+namespace webrtc {
 
-class TestCertificateVerifier : public SSLCertificateVerifier {
+class TestCertificateVerifier : public rtc::SSLCertificateVerifier {
  public:
   TestCertificateVerifier() = default;
   ~TestCertificateVerifier() override = default;
 
-  bool Verify(const SSLCertificate& certificate) override {
+  bool Verify(const rtc::SSLCertificate& certificate) override {
     call_count_++;
     return verify_certificate_;
   }
@@ -29,6 +29,12 @@ class TestCertificateVerifier : public SSLCertificateVerifier {
   bool verify_certificate_ = true;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::TestCertificateVerifier;
 }  // namespace rtc
 
 #endif  // RTC_BASE_TEST_CERTIFICATE_VERIFIER_H_

@@ -57,7 +57,7 @@ class MockMediaReceiverRtcpObserver : public webrtc::MediaReceiverRtcpObserver {
 constexpr webrtc::TimeDelta kTimeout = webrtc::TimeDelta::Seconds(1);
 
 void WaitPostedTasks(TaskQueueForTest* queue) {
-  rtc::Event done;
+  webrtc::Event done;
   queue->PostTask([&done] { done.Set(); });
   ASSERT_TRUE(done.Wait(kTimeout));
 }
@@ -128,8 +128,8 @@ TEST(RtcpTransceiverTest, CanBeDestroyedWithoutBlocking) {
   auto* rtcp_transceiver = new RtcpTransceiver(config);
   rtcp_transceiver->SendCompoundPacket();
 
-  rtc::Event done;
-  rtc::Event heavy_task;
+  webrtc::Event done;
+  webrtc::Event heavy_task;
   queue.PostTask([&] {
     EXPECT_TRUE(heavy_task.Wait(kTimeout));
     done.Set();
@@ -151,7 +151,7 @@ TEST(RtcpTransceiverTest, MaySendPacketsAfterDestructor) {  // i.e. Be careful!
   config.task_queue = queue.Get();
   auto* rtcp_transceiver = new RtcpTransceiver(config);
 
-  rtc::Event heavy_task;
+  webrtc::Event heavy_task;
   queue.PostTask([&] { EXPECT_TRUE(heavy_task.Wait(kTimeout)); });
   rtcp_transceiver->SendCompoundPacket();
   delete rtcp_transceiver;
@@ -181,7 +181,7 @@ TEST(RtcpTransceiverTest, DoesntPostToRtcpObserverAfterCallToRemove) {
   config.clock = &clock;
   config.task_queue = queue.Get();
   RtcpTransceiver rtcp_transceiver(config);
-  rtc::Event observer_deleted;
+  webrtc::Event observer_deleted;
 
   auto observer = std::make_unique<MockMediaReceiverRtcpObserver>();
   EXPECT_CALL(*observer, OnSenderReport(kRemoteSsrc, _, 1));
@@ -211,8 +211,8 @@ TEST(RtcpTransceiverTest, RemoveMediaReceiverRtcpObserverIsNonBlocking) {
   auto observer = std::make_unique<MockMediaReceiverRtcpObserver>();
   rtcp_transceiver.AddMediaReceiverRtcpObserver(kRemoteSsrc, observer.get());
 
-  rtc::Event queue_blocker;
-  rtc::Event observer_deleted;
+  webrtc::Event queue_blocker;
+  webrtc::Event observer_deleted;
   queue.PostTask([&] { EXPECT_TRUE(queue_blocker.Wait(kTimeout)); });
   rtcp_transceiver.RemoveMediaReceiverRtcpObserver(kRemoteSsrc, observer.get(),
                                                    /*on_removed=*/[&] {
@@ -268,7 +268,7 @@ TEST(RtcpTransceiverTest, DoesntSendPacketsAfterStopCallback) {
   config.schedule_periodic_compound_packets = true;
 
   auto rtcp_transceiver = std::make_unique<RtcpTransceiver>(config);
-  rtc::Event done;
+  webrtc::Event done;
   rtcp_transceiver->SendCompoundPacket();
   rtcp_transceiver->Stop([&] {
     EXPECT_CALL(outgoing_transport, Call).Times(0);

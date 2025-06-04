@@ -11,11 +11,15 @@
 #ifndef PC_TEST_RTP_TRANSPORT_TEST_UTIL_H_
 #define PC_TEST_RTP_TRANSPORT_TEST_UTIL_H_
 
+#include <cstdint>
 #include <utility>
 
+#include "absl/functional/any_invocable.h"
 #include "call/rtp_packet_sink_interface.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
 #include "pc/rtp_transport_internal.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include "rtc_base/network/sent_packet.h"
 
 namespace webrtc {
 

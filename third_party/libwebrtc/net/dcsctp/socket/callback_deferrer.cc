@@ -64,7 +64,7 @@ void CallbackDeferrer::OnMessageReceived(DcSctpMessage message) {
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
       +[](CallbackData data, DcSctpSocketCallbacks& cb) {
-        return cb.OnMessageReceived(absl::get<DcSctpMessage>(std::move(data)));
+        return cb.OnMessageReceived(std::get<DcSctpMessage>(std::move(data)));
       },
       std::move(message));
 }
@@ -73,7 +73,7 @@ void CallbackDeferrer::OnError(ErrorKind error, absl::string_view message) {
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
       +[](CallbackData data, DcSctpSocketCallbacks& cb) {
-        Error error = absl::get<Error>(std::move(data));
+        Error error = std::get<Error>(std::move(data));
         return cb.OnError(error.error, error.message);
       },
       Error{error, std::string(message)});
@@ -83,7 +83,7 @@ void CallbackDeferrer::OnAborted(ErrorKind error, absl::string_view message) {
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
       +[](CallbackData data, DcSctpSocketCallbacks& cb) {
-        Error error = absl::get<Error>(std::move(data));
+        Error error = std::get<Error>(std::move(data));
         return cb.OnAborted(error.error, error.message);
       },
       Error{error, std::string(message)});
@@ -95,7 +95,7 @@ void CallbackDeferrer::OnConnected() {
       +[](CallbackData /* data */, DcSctpSocketCallbacks& cb) {
         return cb.OnConnected();
       },
-      absl::monostate{});
+      std::monostate{});
 }
 
 void CallbackDeferrer::OnClosed() {
@@ -104,7 +104,7 @@ void CallbackDeferrer::OnClosed() {
       +[](CallbackData /* data */, DcSctpSocketCallbacks& cb) {
         return cb.OnClosed();
       },
-      absl::monostate{});
+      std::monostate{});
 }
 
 void CallbackDeferrer::OnConnectionRestarted() {
@@ -113,7 +113,7 @@ void CallbackDeferrer::OnConnectionRestarted() {
       +[](CallbackData /* data */, DcSctpSocketCallbacks& cb) {
         return cb.OnConnectionRestarted();
       },
-      absl::monostate{});
+      std::monostate{});
 }
 
 void CallbackDeferrer::OnStreamsResetFailed(
@@ -122,7 +122,7 @@ void CallbackDeferrer::OnStreamsResetFailed(
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
       +[](CallbackData data, DcSctpSocketCallbacks& cb) {
-        StreamReset stream_reset = absl::get<StreamReset>(std::move(data));
+        StreamReset stream_reset = std::get<StreamReset>(std::move(data));
         return cb.OnStreamsResetFailed(stream_reset.streams,
                                        stream_reset.message);
       },
@@ -135,7 +135,7 @@ void CallbackDeferrer::OnStreamsResetPerformed(
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
       +[](CallbackData data, DcSctpSocketCallbacks& cb) {
-        StreamReset stream_reset = absl::get<StreamReset>(std::move(data));
+        StreamReset stream_reset = std::get<StreamReset>(std::move(data));
         return cb.OnStreamsResetPerformed(stream_reset.streams);
       },
       StreamReset{{outgoing_streams.begin(), outgoing_streams.end()}});
@@ -146,7 +146,7 @@ void CallbackDeferrer::OnIncomingStreamsReset(
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
       +[](CallbackData data, DcSctpSocketCallbacks& cb) {
-        StreamReset stream_reset = absl::get<StreamReset>(std::move(data));
+        StreamReset stream_reset = std::get<StreamReset>(std::move(data));
         return cb.OnIncomingStreamsReset(stream_reset.streams);
       },
       StreamReset{{incoming_streams.begin(), incoming_streams.end()}});
@@ -156,7 +156,7 @@ void CallbackDeferrer::OnBufferedAmountLow(StreamID stream_id) {
   RTC_DCHECK(prepared_);
   deferred_.emplace_back(
       +[](CallbackData data, DcSctpSocketCallbacks& cb) {
-        return cb.OnBufferedAmountLow(absl::get<StreamID>(std::move(data)));
+        return cb.OnBufferedAmountLow(std::get<StreamID>(std::move(data)));
       },
       stream_id);
 }
@@ -167,7 +167,7 @@ void CallbackDeferrer::OnTotalBufferedAmountLow() {
       +[](CallbackData /* data */, DcSctpSocketCallbacks& cb) {
         return cb.OnTotalBufferedAmountLow();
       },
-      absl::monostate{});
+      std::monostate{});
 }
 
 void CallbackDeferrer::OnLifecycleMessageExpired(LifecycleId lifecycle_id,

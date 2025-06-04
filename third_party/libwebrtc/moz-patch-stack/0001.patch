@@ -415,7 +415,7 @@ index dd5744218f..ced44047aa 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 09cd9eb676..7e13144381 100644
+index 6fc35e6c0f..7e7d8e720b 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -437,10 +437,10 @@ index 09cd9eb676..7e13144381 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/video_receive_stream.h b/call/video_receive_stream.h
-index f13a006e1e..25bf070cb7 100644
+index 1508d3951f..d66cf060ce 100644
 --- a/call/video_receive_stream.h
 +++ b/call/video_receive_stream.h
-@@ -235,6 +235,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
+@@ -236,6 +236,8 @@ class VideoReceiveStreamInterface : public MediaReceiveStreamInterface {
        // disabled.
        KeyFrameReqMethod keyframe_method = KeyFrameReqMethod::kPliRtcp;
  
@@ -523,7 +523,7 @@ index d9c7635c1d..d4b85af6bd 100644
      x_display_->AddEventHandler(xfixes_event_base_ + XFixesCursorNotify, this);
  
 diff --git a/modules/desktop_capture/linux/x11/screen_capturer_x11.cc b/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
-index d5dcd7af86..fa6334e8ba 100644
+index 0702c755a1..fb2b63adb7 100644
 --- a/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
 +++ b/modules/desktop_capture/linux/x11/screen_capturer_x11.cc
 @@ -302,7 +302,7 @@ bool ScreenCapturerX11::GetSourceList(SourceList* sources) {
@@ -849,7 +849,7 @@ index bf8d5e46ae..2277fb95d7 100644
    }
  }
 diff --git a/modules/rtp_rtcp/source/rtp_packet_unittest.cc b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
-index 689a5fc2e7..2cb8370f99 100644
+index ace1a236f2..162fc27388 100644
 --- a/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 +++ b/modules/rtp_rtcp/source/rtp_packet_unittest.cc
 @@ -123,6 +123,18 @@ constexpr uint8_t kPacketWithMid[] = {
@@ -932,10 +932,10 @@ index 61dd81530b..1988c61d19 100644
    RTC_CHECK_NOTREACHED();
  }
 diff --git a/modules/video_capture/device_info_impl.cc b/modules/video_capture/device_info_impl.cc
-index d55ea6dcce..82f8a2db81 100644
+index dc49d8abb9..ba69a46334 100644
 --- a/modules/video_capture/device_info_impl.cc
 +++ b/modules/video_capture/device_info_impl.cc
-@@ -65,7 +65,7 @@ int32_t DeviceInfoImpl::GetCapability(const char* deviceUniqueIdUTF8,
+@@ -72,7 +72,7 @@ int32_t DeviceInfoImpl::GetCapability(const char* deviceUniqueIdUTF8,
  
    // Make sure the number is valid
    if (deviceCapabilityNumber >= (unsigned int)_captureCapabilities.size()) {
@@ -1318,16 +1318,16 @@ index e4afdb4164..127bb06a2e 100644
  
  VideoCaptureModule::DeviceInfo* VideoCaptureFactory::CreateDeviceInfo(
 diff --git a/modules/video_capture/video_capture_impl.cc b/modules/video_capture/video_capture_impl.cc
-index 5588fae161..51282183f5 100644
+index 3ff972f16e..34c6df46b4 100644
 --- a/modules/video_capture/video_capture_impl.cc
 +++ b/modules/video_capture/video_capture_impl.cc
 @@ -77,7 +77,6 @@ VideoCaptureImpl::VideoCaptureImpl()
        _requestedCapability(),
-       _lastProcessTimeNanos(rtc::TimeNanos()),
-       _lastFrameRateCallbackTimeNanos(rtc::TimeNanos()),
+       _lastProcessTimeNanos(TimeNanos()),
+       _lastFrameRateCallbackTimeNanos(TimeNanos()),
 -      _dataCallBack(NULL),
        _rawDataCallBack(NULL),
-       _lastProcessFrameTimeNanos(rtc::TimeNanos()),
+       _lastProcessFrameTimeNanos(TimeNanos()),
        _rotateFrame(kVideoRotation_0),
 @@ -91,7 +90,6 @@ VideoCaptureImpl::VideoCaptureImpl()
  
@@ -1400,7 +1400,7 @@ index 5588fae161..51282183f5 100644
  
    return 0;
 diff --git a/modules/video_capture/video_capture_impl.h b/modules/video_capture/video_capture_impl.h
-index 5ec1fd4a83..e46e050609 100644
+index 3511867725..962aa29f86 100644
 --- a/modules/video_capture/video_capture_impl.h
 +++ b/modules/video_capture/video_capture_impl.h
 @@ -64,8 +64,10 @@ class RTC_EXPORT VideoCaptureImpl : public VideoCaptureModule {
@@ -1531,10 +1531,10 @@ index 752caa0d0d..7bf00ae0e1 100644
    const bool enable_svc_for_simulcast_;
    std::optional<SimulcastToSvcConverter> simulcast_to_svc_converter_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index c1641f7db6..19d5c60e1c 100644
+index 344962feb8..286ed159eb 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -442,6 +442,12 @@ rtc_library("logging") {
+@@ -441,6 +441,12 @@ rtc_library("logging") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  
@@ -1548,7 +1548,7 @@ index c1641f7db6..19d5c60e1c 100644
      # Dependency on chromium's logging (in //base).
      deps += [ "//base" ]
 diff --git a/rtc_base/logging.cc b/rtc_base/logging.cc
-index 83dd1bc99f..f8ff475e5d 100644
+index 9ed652be0b..c0239c8d44 100644
 --- a/rtc_base/logging.cc
 +++ b/rtc_base/logging.cc
 @@ -44,6 +44,7 @@ static const int kMaxLogLineSize = 1024 - 60;
@@ -1562,7 +1562,7 @@ index 83dd1bc99f..f8ff475e5d 100644
 @@ -54,6 +55,24 @@ static const int kMaxLogLineSize = 1024 - 60;
  #include "rtc_base/time_utils.h"
  
- namespace rtc {
+ namespace webrtc {
 +
 +bool LogMessage::aec_debug_ = false;
 +std::string LogMessage::aec_filename_base_;
@@ -1594,10 +1594,10 @@ index 83dd1bc99f..f8ff475e5d 100644
  // The list of logging streams currently configured.
  // Note: we explicitly do not clean this up, because of the uncertain ordering
 diff --git a/rtc_base/logging.h b/rtc_base/logging.h
-index 5f3f200899..ebf3fabfce 100644
+index 2fa7b2edc3..a2329a999a 100644
 --- a/rtc_base/logging.h
 +++ b/rtc_base/logging.h
-@@ -556,6 +556,12 @@ class LogMessage {
+@@ -555,6 +555,12 @@ class LogMessage {
    }
  #endif  // RTC_LOG_ENABLED()
  
@@ -1610,10 +1610,10 @@ index 5f3f200899..ebf3fabfce 100644
   private:
    friend class LogMessageForTesting;
  
-@@ -611,6 +617,9 @@ class LogMessage {
+@@ -610,6 +616,9 @@ class LogMessage {
  
    // The stringbuilder that buffers the formatted message before output
-   webrtc::StringBuilder print_stream_;
+   StringBuilder print_stream_;
 +
 +  static bool aec_debug_;
 +  static std::string aec_filename_base_;

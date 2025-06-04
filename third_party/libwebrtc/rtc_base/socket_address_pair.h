@@ -15,7 +15,7 @@
 
 #include "rtc_base/socket_address.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Records a pair (source,destination) of socket addresses.  The two addresses
 // identify a connection between two machines.  (For UDP, this "connection" is
@@ -38,6 +38,12 @@ class SocketAddressPair {
   SocketAddress dest_;
 };
 
+}  //  namespace webrtc
+
+// Re-export symbols from the webrtc namespace for backwards compatibility.
+// TODO(bugs.webrtc.org/4222596): Remove once all references are updated.
+namespace rtc {
+using ::webrtc::SocketAddressPair;
 }  // namespace rtc
 
 #endif  // RTC_BASE_SOCKET_ADDRESS_PAIR_H_

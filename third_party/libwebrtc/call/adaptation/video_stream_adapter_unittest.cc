@@ -10,27 +10,26 @@
 
 #include "call/adaptation/video_stream_adapter.h"
 
+#include <cstddef>
 #include <optional>
 #include <string>
-#include <utility>
 
+#include "api/adaptation/resource.h"
+#include "api/rtp_parameters.h"
 #include "api/scoped_refptr.h"
-#include "api/video/video_adaptation_reason.h"
-#include "api/video_codecs/video_codec.h"
+#include "api/video/video_adaptation_counters.h"
 #include "api/video_codecs/video_encoder.h"
 #include "call/adaptation/adaptation_constraint.h"
-#include "call/adaptation/encoder_settings.h"
 #include "call/adaptation/test/fake_frame_rate_provider.h"
 #include "call/adaptation/test/fake_resource.h"
 #include "call/adaptation/test/fake_video_stream_input_state_provider.h"
 #include "call/adaptation/video_source_restrictions.h"
 #include "call/adaptation/video_stream_input_state.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/string_encode.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/scoped_key_value_config.h"
-#include "test/testsupport/rtc_expect_death.h"
-#include "video/config/video_encoder_config.h"
 
 namespace webrtc {
 

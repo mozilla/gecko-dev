@@ -38,7 +38,7 @@ int ResolveHostname(absl::string_view hostname,
 #else   // notdef(__native_client__)
 int ResolveHostname(absl::string_view hostname,
                     int family,
-                    std::vector<rtc::IPAddress>& addresses) {
+                    std::vector<IPAddress>& addresses) {
   addresses.clear();
   struct addrinfo* result = nullptr;
   struct addrinfo hints = {0};
@@ -69,7 +69,7 @@ int ResolveHostname(absl::string_view hostname,
   struct addrinfo* cursor = result;
   for (; cursor; cursor = cursor->ai_next) {
     if (family == AF_UNSPEC || cursor->ai_family == family) {
-      rtc::IPAddress ip;
+      IPAddress ip;
       if (IPFromAddrInfo(cursor, &ip)) {
         addresses.push_back(ip);
       }
@@ -135,13 +135,13 @@ AsyncDnsResolver::~AsyncDnsResolver() {
   state_->Kill();
 }
 
-void AsyncDnsResolver::Start(const rtc::SocketAddress& addr,
+void AsyncDnsResolver::Start(const SocketAddress& addr,
                              absl::AnyInvocable<void()> callback) {
   Start(addr, addr.family(), std::move(callback));
 }
 
 // Start address resolution of the hostname in `addr` matching `family`.
-void AsyncDnsResolver::Start(const rtc::SocketAddress& addr,
+void AsyncDnsResolver::Start(const SocketAddress& addr,
                              int family,
                              absl::AnyInvocable<void()> callback) {
   RTC_DCHECK_RUN_ON(&result_.sequence_checker_);
@@ -150,7 +150,7 @@ void AsyncDnsResolver::Start(const rtc::SocketAddress& addr,
   auto thread_function = [this, addr, family, flag = safety_.flag(),
                           caller_task_queue = webrtc::TaskQueueBase::Current(),
                           state = state_] {
-    std::vector<rtc::IPAddress> addresses;
+    std::vector<IPAddress> addresses;
     int error = ResolveHostname(addr.hostname(), family, addresses);
     // We assume that the caller task queue is still around if the
     // AsyncDnsResolver has not been destroyed.
@@ -169,8 +169,7 @@ void AsyncDnsResolver::Start(const rtc::SocketAddress& addr,
   PostTaskToGlobalQueue(
       std::make_unique<absl::AnyInvocable<void() &&>>(thread_function));
 #else
-  rtc::PlatformThread::SpawnDetached(std::move(thread_function),
-                                     "AsyncResolver");
+  PlatformThread::SpawnDetached(std::move(thread_function), "AsyncResolver");
 #endif
 }
 
@@ -178,9 +177,8 @@ const AsyncDnsResolverResult& AsyncDnsResolver::result() const {
   return result_;
 }
 
-bool AsyncDnsResolverResultImpl::GetResolvedAddress(
-    int family,
-    rtc::SocketAddress* addr) const {
+bool AsyncDnsResolverResultImpl::GetResolvedAddress(int family,
+                                                    SocketAddress* addr) const {
   RTC_DCHECK_RUN_ON(&sequence_checker_);
   RTC_DCHECK(addr);
   if (error_ != 0 || addresses_.empty())

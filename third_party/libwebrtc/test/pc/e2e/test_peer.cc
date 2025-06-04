@@ -147,7 +147,7 @@ TestPeer::TestPeer(
     Params params,
     ConfigurableParams configurable_params,
     std::vector<PeerConfigurer::VideoSource> video_sources,
-    std::unique_ptr<rtc::Thread> worker_thread)
+    std::unique_ptr<Thread> worker_thread)
     : params_(std::move(params)),
       configurable_params_(std::move(configurable_params)),
       worker_thread_(std::move(worker_thread)),

@@ -12,9 +12,9 @@
 #define MODULES_VIDEO_CODING_INCLUDE_VIDEO_CODEC_INTERFACE_H_
 
 #include <optional>
+#include <variant>
 #include <vector>
 
-#include "absl/types/variant.h"
 #include "api/video/video_frame.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/video_decoder.h"
@@ -124,7 +124,7 @@ struct RTC_EXPORT CodecSpecificInfo {
 
   // Required for automatic corruption detection.
   std::optional<
-      absl::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
+      std::variant<FrameInstrumentationSyncData, FrameInstrumentationData>>
       frame_instrumentation_data;
 };
 

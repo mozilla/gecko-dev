@@ -93,7 +93,7 @@ TEST_F(CallOperationEndToEndTest, RendersSingleDelayedFrame) {
       return event_.Wait(test::VideoTestConstants::kDefaultTimeout);
     }
 
-    rtc::Event event_;
+    Event event_;
   } renderer;
 
   test::FrameForwarder frame_forwarder;
@@ -149,7 +149,7 @@ TEST_F(CallOperationEndToEndTest, TransmitsFirstFrame) {
       return event_.Wait(test::VideoTestConstants::kDefaultTimeout);
     }
 
-    rtc::Event event_;
+    Event event_;
   } renderer;
 
   std::unique_ptr<test::FrameGeneratorInterface> frame_generator;

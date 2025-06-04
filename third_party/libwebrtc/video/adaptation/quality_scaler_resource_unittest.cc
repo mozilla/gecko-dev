@@ -53,7 +53,7 @@ class QualityScalerResourceTest : public ::testing::Test {
   }
 
  protected:
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   StrictMock<MockResourceListener> fake_resource_listener_;
   FakeDegradationPreferenceProvider degradation_preference_provider_;
   rtc::scoped_refptr<QualityScalerResource> quality_scaler_resource_;

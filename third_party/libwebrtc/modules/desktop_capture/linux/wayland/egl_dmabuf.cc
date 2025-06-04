@@ -10,6 +10,7 @@
 
 #include "modules/desktop_capture/linux/wayland/egl_dmabuf.h"
 
+#include <EGL/eglext.h>
 #include <asm/ioctl.h>
 #include <dlfcn.h>
 #include <fcntl.h>

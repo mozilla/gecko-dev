@@ -11,9 +11,7 @@
 #ifndef P2P_BASE_ACTIVE_ICE_CONTROLLER_INTERFACE_H_
 #define P2P_BASE_ACTIVE_ICE_CONTROLLER_INTERFACE_H_
 
-#include <optional>
 
-#include "api/array_view.h"
 #include "p2p/base/connection.h"
 #include "p2p/base/ice_switch_reason.h"
 #include "p2p/base/ice_transport_internal.h"
@@ -36,7 +34,7 @@ class ActiveIceControllerInterface {
   virtual ~ActiveIceControllerInterface() = default;
 
   // Sets the current ICE configuration.
-  virtual void SetIceConfig(const IceConfig& config) = 0;
+  virtual void SetIceConfig(const webrtc::IceConfig& config) = 0;
 
   // Called when a new connection is added to the ICE transport.
   virtual void OnConnectionAdded(const Connection* connection) = 0;
@@ -61,7 +59,7 @@ class ActiveIceControllerInterface {
 
   // Compute "STUN_ATTR_USE_CANDIDATE" for a STUN ping on the given connection.
   virtual bool GetUseCandidateAttribute(const Connection* connection,
-                                        NominationMode mode,
+                                        webrtc::NominationMode mode,
                                         IceMode remote_ice_mode) const = 0;
 
   // Called to enque a request to pick and switch to the best available

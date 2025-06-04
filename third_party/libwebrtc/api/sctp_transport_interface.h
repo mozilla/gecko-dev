@@ -88,6 +88,26 @@ class SctpTransportInterface : public webrtc::RefCountInterface {
   virtual void UnregisterObserver() = 0;
 };
 
+// The size of the SCTP association send buffer. 256kB, the usrsctp default.
+constexpr int kSctpSendBufferSize = 256 * 1024;
+
+// SCTP options negotiated in the SDP.
+struct SctpOptions {
+  // https://www.rfc-editor.org/rfc/rfc8841.html#name-sctp-port
+  // `local_port` and `remote_port` are passed along the wire and the
+  // listener and connector must be using the same port. They are not related
+  // to the ports at the IP level. If set to -1 we default to
+  // kSctpDefaultPort.
+  // TODO(bugs.webrtc.org/402429107): make these optional<uint16_t>.
+  int local_port = -1;
+  int remote_port = -1;
+
+  // https://www.rfc-editor.org/rfc/rfc8841.html#name-max-message-size
+  // `max_message_size` sets the maxium message size on the connection.
+  // It must be smaller than or equal to kSctpSendBufferSize.
+  int max_message_size = kSctpSendBufferSize;
+};
+
 }  // namespace webrtc
 
 #endif  // API_SCTP_TRANSPORT_INTERFACE_H_

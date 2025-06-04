@@ -76,8 +76,8 @@ class TestVideoCaptureCallback
     EXPECT_EQ(rotate_frame_, videoFrame.rotation());
 #endif
     // RenderTimstamp should be the time now.
-    EXPECT_TRUE(videoFrame.render_time_ms() >= rtc::TimeMillis() - 30 &&
-                videoFrame.render_time_ms() <= rtc::TimeMillis());
+    EXPECT_TRUE(videoFrame.render_time_ms() >= webrtc::TimeMillis() - 30 &&
+                videoFrame.render_time_ms() <= webrtc::TimeMillis());
 
     if ((videoFrame.render_time_ms() >
              last_render_time_ms_ + (1000 * 1.1) / capability_.maxFPS &&
@@ -189,7 +189,7 @@ class VideoCaptureTest : public ::testing::Test {
 #endif
 TEST_F(VideoCaptureTest, MAYBE_CreateDelete) {
   for (int i = 0; i < 5; ++i) {
-    int64_t start_time = rtc::TimeMillis();
+    int64_t start_time = webrtc::TimeMillis();
     TestVideoCaptureCallback capture_observer;
     rtc::scoped_refptr<VideoCaptureModule> module(
         OpenVideoCaptureDevice(0, &capture_observer));
@@ -208,7 +208,7 @@ TEST_F(VideoCaptureTest, MAYBE_CreateDelete) {
     ASSERT_NO_FATAL_FAILURE(StartCapture(module.get(), capability));
 
     // Less than 4s to start the camera.
-    EXPECT_LE(rtc::TimeMillis() - start_time, 4000);
+    EXPECT_LE(webrtc::TimeMillis() - start_time, 4000);
 
     // Make sure 5 frames are captured.
     EXPECT_THAT(webrtc::WaitUntil(
@@ -216,12 +216,12 @@ TEST_F(VideoCaptureTest, MAYBE_CreateDelete) {
                     {.timeout = webrtc::TimeDelta::Millis(kTimeOut)}),
                 webrtc::IsRtcOk());
 
-    int64_t stop_time = rtc::TimeMillis();
+    int64_t stop_time = webrtc::TimeMillis();
     EXPECT_EQ(0, module->StopCapture());
     EXPECT_FALSE(module->CaptureStarted());
 
     // Less than 3s to stop the camera.
-    EXPECT_LE(rtc::TimeMillis() - stop_time, 3000);
+    EXPECT_LE(webrtc::TimeMillis() - stop_time, 3000);
   }
 }
 

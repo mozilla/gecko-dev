@@ -28,7 +28,7 @@ RtpReceiverDelegateAdapter::RtpReceiverDelegateAdapter(
 }
 
 void RtpReceiverDelegateAdapter::OnFirstPacketReceived(
-    cricket::MediaType media_type) {
+    webrtc::MediaType media_type) {
   RTCRtpMediaType packet_media_type =
       [RTC_OBJC_TYPE(RTCRtpReceiver) mediaTypeForNativeMediaType:media_type];
   RTC_OBJC_TYPE(RTCRtpReceiver) *receiver = receiver_;
@@ -140,29 +140,33 @@ void RtpReceiverDelegateAdapter::OnFirstPacketReceived(
 }
 
 + (RTCRtpMediaType)mediaTypeForNativeMediaType:
-    (cricket::MediaType)nativeMediaType {
+    (webrtc::MediaType)nativeMediaType {
   switch (nativeMediaType) {
-    case cricket::MEDIA_TYPE_AUDIO:
+    case webrtc::MediaType::AUDIO:
       return RTCRtpMediaTypeAudio;
-    case cricket::MEDIA_TYPE_VIDEO:
+    case webrtc::MediaType::VIDEO:
       return RTCRtpMediaTypeVideo;
-    case cricket::MEDIA_TYPE_DATA:
+    case webrtc::MediaType::DATA:
       return RTCRtpMediaTypeData;
-    case cricket::MEDIA_TYPE_UNSUPPORTED:
+    case webrtc::MediaType::UNSUPPORTED:
       return RTCRtpMediaTypeUnsupported;
+    case webrtc::MediaType::ANY:
+      return RTCRtpMediaTypeAny;
   }
 }
 
-+ (cricket::MediaType)nativeMediaTypeForMediaType:(RTCRtpMediaType)mediaType {
++ (webrtc::MediaType)nativeMediaTypeForMediaType:(RTCRtpMediaType)mediaType {
   switch (mediaType) {
     case RTCRtpMediaTypeAudio:
-      return cricket::MEDIA_TYPE_AUDIO;
+      return webrtc::MediaType::AUDIO;
     case RTCRtpMediaTypeVideo:
-      return cricket::MEDIA_TYPE_VIDEO;
+      return webrtc::MediaType::VIDEO;
     case RTCRtpMediaTypeData:
-      return cricket::MEDIA_TYPE_DATA;
+      return webrtc::MediaType::DATA;
     case RTCRtpMediaTypeUnsupported:
-      return cricket::MEDIA_TYPE_UNSUPPORTED;
+      return webrtc::MediaType::UNSUPPORTED;
+    case RTCRtpMediaTypeAny:
+      return webrtc::MediaType::ANY;
   }
 }
 
@@ -176,6 +180,8 @@ void RtpReceiverDelegateAdapter::OnFirstPacketReceived(
       return @"DATA";
     case RTCRtpMediaTypeUnsupported:
       return @"UNSUPPORTED";
+    case RTCRtpMediaTypeAny:
+      return @"ANY";
   }
 }
 

@@ -67,7 +67,7 @@ class VideoFrameBufferPool {
   rtc::scoped_refptr<VideoFrameBuffer>
   GetExistingBuffer(int width, int height, VideoFrameBuffer::Type type);
 
-  rtc::RaceChecker race_checker_;
+  RaceChecker race_checker_;
   std::list<rtc::scoped_refptr<VideoFrameBuffer>> buffers_;
   // If true, newly allocated buffers are zero-initialized. Note that recycled
   // buffers are not zero'd before reuse. This is required of buffers used by

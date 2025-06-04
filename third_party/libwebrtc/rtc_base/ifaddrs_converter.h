@@ -29,8 +29,8 @@ class IfAddrsConverter {
   IfAddrsConverter();
   virtual ~IfAddrsConverter();
   virtual bool ConvertIfAddrsToIPAddress(const struct ifaddrs* interface,
-                                         InterfaceAddress* ipaddress,
-                                         IPAddress* mask);
+                                         webrtc::InterfaceAddress* ipaddress,
+                                         webrtc::IPAddress* mask);
 
  protected:
   virtual bool ConvertNativeAttributesToIPAttributes(

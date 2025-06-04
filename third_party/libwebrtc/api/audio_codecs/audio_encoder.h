@@ -80,7 +80,6 @@ class AudioEncoder {
     kPcmA = 3,
     kPcmU = 4,
     kG722 = 5,
-    kIlbc = 6,
 
     // Number of histogram bins in the UMA logging of codec types. The
     // total number of different codecs that are logged cannot exceed this

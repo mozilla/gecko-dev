@@ -337,11 +337,11 @@ TEST(RtpPacketTest, TryToCreateWithEmptyMid) {
 
 TEST(RtpPacketTest, TryToCreateWithLongMid) {
   RtpPacketToSend::ExtensionManager extensions;
-  constexpr char kLongMid[] = "LoooooooooonogMid";
-  ASSERT_EQ(strlen(kLongMid), 17u);
+  constexpr char kOtherLongMid[] = "LoooooooooonogMid";
+  ASSERT_EQ(strlen(kOtherLongMid), 17u);
   extensions.Register<RtpMid>(kRtpMidExtensionId);
   RtpPacketToSend packet(&extensions);
-  EXPECT_FALSE(packet.SetExtension<RtpMid>(kLongMid));
+  EXPECT_FALSE(packet.SetExtension<RtpMid>(kOtherLongMid));
 }
 
 TEST(RtpPacketTest, TryToCreateTwoByteHeaderNotSupported) {

@@ -199,7 +199,7 @@ Channel::Channel(int16_t chID)
       _lastFrameSizeSample(0),
       _packetLoss(0),
       _useFECTestWithPacketLoss(false),
-      _beginTime(rtc::TimeMillis()),
+      _beginTime(TimeMillis()),
       _totalBytes(0),
       external_send_timestamp_(-1),
       external_sequence_number_(-1),
@@ -250,7 +250,7 @@ void Channel::ResetStats() {
       _payloadStats[n].frameSizeStats[k].totalEncodedSamples = 0;
     }
   }
-  _beginTime = rtc::TimeMillis();
+  _beginTime = TimeMillis();
   _totalBytes = 0;
   _channelCritSect.Unlock();
 }
@@ -265,7 +265,7 @@ uint32_t Channel::LastInTimestamp() {
 
 double Channel::BitRate() {
   double rate;
-  uint64_t currTime = rtc::TimeMillis();
+  uint64_t currTime = TimeMillis();
   _channelCritSect.Lock();
   rate = ((double)_totalBytes * 8.0) / (double)(currTime - _beginTime);
   _channelCritSect.Unlock();

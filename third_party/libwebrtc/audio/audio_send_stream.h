@@ -154,7 +154,7 @@ class AudioSendStream final : public webrtc::AudioSendStream,
   const Environment env_;
 
   SequenceChecker worker_thread_checker_;
-  rtc::RaceChecker audio_capture_race_checker_;
+  RaceChecker audio_capture_race_checker_;
 
   const bool allocate_audio_without_feedback_;
   const bool force_no_audio_feedback_ = allocate_audio_without_feedback_;

@@ -223,7 +223,7 @@ class RtpRtcpRtxNackTest : public ::testing::Test {
     media_stream_.sequence_numbers_.sort();
   }
 
-  rtc::AutoThread main_thread_;
+  AutoThread main_thread_;
   SimulatedClock fake_clock_;
   const Environment env_;
   std::unique_ptr<ReceiveStatistics> receive_statistics_;

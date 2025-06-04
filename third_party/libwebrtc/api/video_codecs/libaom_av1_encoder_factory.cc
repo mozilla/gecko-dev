@@ -19,11 +19,11 @@
 #include <optional>
 #include <string>
 #include <type_traits>
+#include <variant>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/cleanup/cleanup.h"
-#include "absl/types/variant.h"
 #include "api/array_view.h"
 #include "api/scoped_refptr.h"
 #include "api/units/data_rate.h"
@@ -165,7 +165,7 @@ bool LibaomAv1Encoder::InitEncode(
   cfg_.rc_undershoot_pct = 50;
   cfg_.rc_overshoot_pct = 50;
   auto* cbr =
-      absl::get_if<VideoEncoderFactoryInterface::StaticEncoderSettings::Cbr>(
+      std::get_if<VideoEncoderFactoryInterface::StaticEncoderSettings::Cbr>(
           &settings.rc_mode);
   cfg_.rc_buf_initial_sz = cbr ? cbr->target_buffer_size.ms() : 600;
   cfg_.rc_buf_optimal_sz = cbr ? cbr->target_buffer_size.ms() : 600;
@@ -384,9 +384,9 @@ bool ValidateEncodeParams(
     }
 
     if ((rc_mode == AOM_CBR &&
-         absl::holds_alternative<Cqp>(settings.rate_options)) ||
+         std::holds_alternative<Cqp>(settings.rate_options)) ||
         (rc_mode == AOM_Q &&
-         absl::holds_alternative<Cbr>(settings.rate_options))) {
+         std::holds_alternative<Cbr>(settings.rate_options))) {
       RTC_LOG(LS_ERROR) << "Invalid rate options, encoder configured with "
                         << (rc_mode == AOM_CBR ? "AOM_CBR" : "AOM_Q");
       return false;
@@ -578,7 +578,7 @@ aom_svc_params_t GetSvcParams(
                         << " den="
                         << svc_params.scaling_factor_den[settings.spatial_id];
 
-    absl::visit(
+    std::visit(
         [&](auto&& arg) {
           using T = std::decay_t<decltype(arg)>;
           if constexpr (std::is_same_v<T, Cbr>) {
@@ -668,7 +668,7 @@ void LibaomAv1Encoder::Encode(
   if (cfg_.rc_end_usage == AOM_CBR) {
     DataRate accum_rate = DataRate::Zero();
     for (const FrameEncodeSettings& settings : frame_settings) {
-      accum_rate += absl::get<Cbr>(settings.rate_options).target_bitrate;
+      accum_rate += std::get<Cbr>(settings.rate_options).target_bitrate;
     }
     cfg_.rc_target_bitrate = accum_rate.kbps();
     RTC_LOG(LS_WARNING) << __FUNCTION__
@@ -733,7 +733,7 @@ void LibaomAv1Encoder::Encode(
     // not being encoded?
     TimeDelta duration = TimeDelta::Millis(1);
     if (layer_enabled) {
-      if (const Cbr* cbr = absl::get_if<Cbr>(&settings.rate_options)) {
+      if (const Cbr* cbr = std::get_if<Cbr>(&settings.rate_options)) {
         duration = cbr->duration;
       } else {
         // TD: What should duration be when Cqp is used?

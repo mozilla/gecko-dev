@@ -22,8 +22,8 @@
 namespace {
 
 bool DecodeAndConvert(const std::string& base64, std::vector<uint8_t>* binary) {
-  return rtc::Base64::DecodeFromArray(base64.data(), base64.size(),
-                                      rtc::Base64::DO_STRICT, binary, nullptr);
+  return webrtc::Base64::DecodeFromArray(
+      base64.data(), base64.size(), webrtc::Base64::DO_STRICT, binary, nullptr);
 }
 }  // namespace
 

@@ -78,7 +78,7 @@ struct InternalDataChannelInit : public DataChannelInit {
   // stream ids in situations where we cannot determine the SSL role from the
   // transport for purposes of generating a stream ID.
   // See: https://www.rfc-editor.org/rfc/rfc8832.html#name-protocol-overview
-  std::optional<rtc::SSLRole> fallback_ssl_role;
+  std::optional<SSLRole> fallback_ssl_role;
 };
 
 // Helper class to allocate unique IDs for SCTP DataChannels.
@@ -89,7 +89,7 @@ class SctpSidAllocator {
   // SSL_CLIENT, the allocated id starts from 0 and takes even numbers;
   // otherwise, the id starts from 1 and takes odd numbers.
   // If a `StreamId` cannot be allocated, `std::nullopt` is returned.
-  std::optional<StreamId> AllocateSid(rtc::SSLRole role);
+  std::optional<StreamId> AllocateSid(SSLRole role);
 
   // Attempts to reserve a specific sid. Returns false if it's unavailable.
   bool ReserveSid(StreamId sid);
@@ -134,8 +134,8 @@ class SctpDataChannel : public DataChannelInterface {
       const std::string& label,
       bool connected_to_transport,
       const InternalDataChannelInit& config,
-      rtc::Thread* signaling_thread,
-      rtc::Thread* network_thread);
+      Thread* signaling_thread,
+      Thread* network_thread);
 
   // Instantiates an API proxy for a SctpDataChannel instance that will be
   // handed out to external callers.
@@ -154,10 +154,6 @@ class SctpDataChannel : public DataChannelInterface {
   std::string label() const override;
   bool reliable() const override;
   bool ordered() const override;
-
-  // Backwards compatible accessors
-  uint16_t maxRetransmitTime() const override;
-  uint16_t maxRetransmits() const override;
 
   std::optional<int> maxPacketLifeTime() const override;
   std::optional<int> maxRetransmitsOpt() const override;
@@ -235,8 +231,8 @@ class SctpDataChannel : public DataChannelInterface {
                   WeakPtr<SctpDataChannelControllerInterface> controller,
                   const std::string& label,
                   bool connected_to_transport,
-                  rtc::Thread* signaling_thread,
-                  rtc::Thread* network_thread);
+                  Thread* signaling_thread,
+                  Thread* network_thread);
   ~SctpDataChannel() override;
 
  private:
@@ -268,8 +264,8 @@ class SctpDataChannel : public DataChannelInterface {
   }
   void MaybeSendOnBufferedAmountChanged() RTC_RUN_ON(network_thread_);
 
-  rtc::Thread* const signaling_thread_;
-  rtc::Thread* const network_thread_;
+  Thread* const signaling_thread_;
+  Thread* const network_thread_;
   std::optional<StreamId> id_n_ RTC_GUARDED_BY(network_thread_) = std::nullopt;
   const int internal_id_;
   const std::string label_;

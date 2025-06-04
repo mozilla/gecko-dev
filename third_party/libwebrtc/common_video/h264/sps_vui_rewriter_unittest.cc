@@ -195,7 +195,7 @@ static const webrtc::ColorSpace kColorSpaceBt709LimitedRange(
 // level_idc, to make sure the parser doesn't eat all 0x3 bytes.
 void GenerateFakeSps(const VuiHeader& vui, rtc::Buffer* out_buffer) {
   uint8_t rbsp[kSpsBufferMaxSize] = {0};
-  rtc::BitBufferWriter writer(rbsp, kSpsBufferMaxSize);
+  BitBufferWriter writer(rbsp, kSpsBufferMaxSize);
   // Profile byte.
   writer.WriteUInt8(0);
   // Constraint sets and reserved zero bits.
@@ -303,8 +303,8 @@ void GenerateFakeSps(const VuiHeader& vui, rtc::Buffer* out_buffer) {
 void TestSps(const VuiHeader& vui,
              const ColorSpace* color_space,
              SpsVuiRewriter::ParseResult expected_parse_result) {
-  rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
-  rtc::Buffer original_sps;
+  LogMessage::LogToDebug(rtc::LS_VERBOSE);
+  Buffer original_sps;
   GenerateFakeSps(vui, &original_sps);
 
   std::optional<SpsParser::SpsState> sps;
@@ -391,7 +391,7 @@ INSTANTIATE_TEST_SUITE_P(
                         SpsVuiRewriter::ParseResult::kVuiRewritten)));
 
 TEST(SpsVuiRewriterOutgoingVuiTest, ParseOutgoingBitstreamOptimalVui) {
-  rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
+  LogMessage::LogToDebug(rtc::LS_VERBOSE);
 
   rtc::Buffer optimal_sps;
   GenerateFakeSps(kVuiNoFrameBuffering, &optimal_sps);
@@ -407,7 +407,7 @@ TEST(SpsVuiRewriterOutgoingVuiTest, ParseOutgoingBitstreamOptimalVui) {
 }
 
 TEST(SpsVuiRewriterOutgoingVuiTest, ParseOutgoingBitstreamNoVui) {
-  rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
+  LogMessage::LogToDebug(rtc::LS_VERBOSE);
 
   rtc::Buffer sps;
   GenerateFakeSps(kVuiNotPresent, &sps);
@@ -438,7 +438,7 @@ TEST(SpsVuiRewriterOutgoingVuiTest, ParseOutgoingBitstreamNoVui) {
 }
 
 TEST(SpsVuiRewriterOutgoingAudTest, ParseOutgoingBitstreamWithAud) {
-  rtc::LogMessage::LogToDebug(rtc::LS_VERBOSE);
+  LogMessage::LogToDebug(rtc::LS_VERBOSE);
 
   rtc::Buffer optimal_sps;
   GenerateFakeSps(kVuiNoFrameBuffering, &optimal_sps);

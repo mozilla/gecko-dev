@@ -1,5 +1,5 @@
 <!-- go/cmark -->
-<!--* freshness: {owner: 'danilchap' reviewed: '2024-09-02'} *-->
+<!--* freshness: {owner: 'danilchap' reviewed: '2025-03-13'} *-->
 
 # Using Abseil in WebRTC
 
@@ -35,13 +35,8 @@ on a monolithic Abseil build target that will generate a shared library.
 * The functions in `absl/strings/ascii.h`, `absl/strings/match.h`,
   and `absl/strings/str_replace.h`.
 * The functions in `absl/strings/escaping.h`.
-* `absl::is_trivially_copy_constructible`,
-  `absl::is_trivially_copy_assignable`, and
-  `absl::is_trivially_destructible` from `absl/meta/type_traits.h`.
-* `absl::variant` and related stuff from `absl/types/variant.h`.
 * The functions in `absl/algorithm/algorithm.h` and
   `absl/algorithm/container.h`.
-* `absl/base/const_init.h` for mutex initialization.
 * The macros in `absl/base/attributes.h`, `absl/base/config.h` and
   `absl/base/macros.h`.
 * `absl/numeric/bits.h`
@@ -61,9 +56,9 @@ on a monolithic Abseil build target that will generate a shared library.
 
 *Use `webrtc::Mutex` instead.*
 
-### `absl::optional`
+### `absl::optional` and `absl::variant`
 
-*Use `std::optional` instead.*
+*Use `std::optional` and `std::variant` directly.*
 
 ### `absl::Span`
 

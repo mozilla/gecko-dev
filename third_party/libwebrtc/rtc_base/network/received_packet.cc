@@ -18,7 +18,7 @@
 namespace rtc {
 
 ReceivedPacket::ReceivedPacket(rtc::ArrayView<const uint8_t> payload,
-                               const SocketAddress& source_address,
+                               const webrtc::SocketAddress& source_address,
                                std::optional<webrtc::Timestamp> arrival_time,
                                EcnMarking ecn,
                                DecryptionInfo decryption)
@@ -39,7 +39,7 @@ ReceivedPacket ReceivedPacket::CreateFromLegacy(
     const uint8_t* data,
     size_t size,
     int64_t packet_time_us,
-    const rtc::SocketAddress& source_address) {
+    const webrtc::SocketAddress& source_address) {
   RTC_DCHECK(packet_time_us == -1 || packet_time_us >= 0);
   return ReceivedPacket(rtc::MakeArrayView(data, size), source_address,
                         (packet_time_us >= 0)

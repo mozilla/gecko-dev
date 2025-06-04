@@ -1,25 +1,22 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 19 Nov 2024 16:05:00 -0600
-Subject: Bug 1928110 - (fix-b9c4c242d4) handle upstream last_arrival_timestamp
- to last_arrival_ntp_timestamp
+Date: Fri, 7 Feb 2025 16:26:00 -0600
+Subject: Bug 1942428 - (fix-e500d46600) upstream removed p2p:rtc_p2p
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6918cf2d9126fa3e3676386349f6e383c298d8ab
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0155a8718d5d7f23b8391a1d04b1196e30127dad
 ---
- modules/rtp_rtcp/source/rtcp_receiver.cc | 4 ++--
- 1 file changed, 2 insertions(+), 2 deletions(-)
+ BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/rtp_rtcp/source/rtcp_receiver.cc b/modules/rtp_rtcp/source/rtcp_receiver.cc
-index e740d786fb..62743cfe95 100644
---- a/modules/rtp_rtcp/source/rtcp_receiver.cc
-+++ b/modules/rtp_rtcp/source/rtcp_receiver.cc
-@@ -393,8 +393,8 @@ void RTCPReceiver::RemoteRTCPSenderInfo(uint32_t* packet_count,
-   MutexLock lock(&rtcp_receiver_lock_);
-   *packet_count = remote_sender_.packets_sent;
-   *octet_count = remote_sender_.bytes_sent;
--  *ntp_timestamp_ms = remote_sender_.last_arrival_timestamp.ToMs();
--  *remote_ntp_timestamp_ms = remote_sender_.last_remote_timestamp.ToMs();
-+  *ntp_timestamp_ms = remote_sender_.last_arrival_ntp_timestamp.ToMs();
-+  *remote_ntp_timestamp_ms = remote_sender_.last_remote_ntp_timestamp.ToMs();
- }
- 
- std::vector<ReportBlockData> RTCPReceiver::GetLatestReportBlockData() const {
+diff --git a/BUILD.gn b/BUILD.gn
+index 5e49b71beb..3add82de2d 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -599,7 +599,7 @@ if (!build_with_chromium) {
+         "api/video_codecs:video_encoder_factory_template_libvpx_vp9_adapter",
+         "api/video_codecs:video_encoder_factory_template_open_h264_adapter",
+         "logging:rtc_event_log_api",
+-        "p2p:rtc_p2p",
++#        "p2p:rtc_p2p",
+         "pc:libjingle_peerconnection",
+         "pc:rtc_pc",
+         "sdk",

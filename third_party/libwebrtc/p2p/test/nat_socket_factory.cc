@@ -10,15 +10,33 @@
 
 #include "p2p/test/nat_socket_factory.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <set>
+
+#include "api/array_view.h"
+#include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
 #include "p2p/test/nat_server.h"
+#include "p2p/test/nat_types.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/buffer.h"
+#include "rtc_base/byte_order.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/net_helpers.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/socket_factory.h"
+#include "rtc_base/socket_server.h"
+#include "rtc_base/third_party/sigslot/sigslot.h"
+#include "rtc_base/thread.h"
 #include "rtc_base/virtual_socket_server.h"
 
-namespace rtc {
+namespace webrtc {
 
 // Packs the given socketaddress into the buffer in buf, in the quasi-STUN
 // format that the natserver uses.
@@ -31,7 +49,8 @@ size_t PackAddressForNAT(char* buf,
   buf[0] = 0;
   buf[1] = family;
   // Writes the port.
-  *(reinterpret_cast<uint16_t*>(&buf[2])) = HostToNetwork16(remote_addr.port());
+  *(reinterpret_cast<uint16_t*>(&buf[2])) =
+      webrtc::HostToNetwork16(remote_addr.port());
   if (family == AF_INET) {
     RTC_DCHECK(buf_size >= kNATEncodedIPv4AddressSize);
     in_addr v4addr = ip.ipv4_address();
@@ -54,8 +73,8 @@ size_t UnpackAddressFromNAT(rtc::ArrayView<const uint8_t> buf,
   RTC_CHECK(buf.size() >= 8);
   RTC_DCHECK(buf.data()[0] == 0);
   int family = buf[1];
-  uint16_t port =
-      NetworkToHost16(*(reinterpret_cast<const uint16_t*>(&buf.data()[2])));
+  uint16_t port = webrtc::NetworkToHost16(
+      *(reinterpret_cast<const uint16_t*>(&buf.data()[2])));
   if (family == AF_INET) {
     const in_addr* v4addr = reinterpret_cast<const in_addr*>(&buf.data()[4]);
     *remote_addr = SocketAddress(IPAddress(*v4addr), port);
@@ -102,7 +121,7 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
     // If we're not already bound (meaning `socket_` is null), bind to ANY
     // address.
     if (!socket_) {
-      result = BindInternal(SocketAddress(GetAnyIP(family_), 0));
+      result = BindInternal(SocketAddress(webrtc::GetAnyIP(family_), 0));
       if (result < 0) {
         return result;
       }
@@ -169,8 +188,7 @@ class NATSocket : public Socket, public sigslot::has_slots<> {
     if (result >= 0) {
       RTC_DCHECK(receive_buffer.source_address == server_addr_);
       *timestamp =
-          receive_buffer.arrival_time.value_or(webrtc::Timestamp::Micros(0))
-              .us();
+          receive_buffer.arrival_time.value_or(Timestamp::Micros(0)).us();
 
       // Decode the wire packet into the actual results.
       SocketAddress real_remote_addr;
@@ -369,8 +387,7 @@ void NATSocketServer::SetMessageQueue(Thread* queue) {
   server_->SetMessageQueue(queue);
 }
 
-bool NATSocketServer::Wait(webrtc::TimeDelta max_wait_duration,
-                           bool process_io) {
+bool NATSocketServer::Wait(TimeDelta max_wait_duration, bool process_io) {
   return server_->Wait(max_wait_duration, process_io);
 }
 
@@ -499,4 +516,4 @@ NATSocketServer::Translator* NATSocketServer::TranslatorMap::FindClient(
   return nat;
 }
 
-}  // namespace rtc
+}  // namespace webrtc

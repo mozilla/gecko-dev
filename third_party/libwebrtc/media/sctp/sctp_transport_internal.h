@@ -14,24 +14,21 @@
 // TODO(deadbeef): Move SCTP code out of media/, and make it not depend on
 // anything in media/.
 
-#include <memory>
-#include <string>
-#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <optional>
 
 #include "api/priority.h"
 #include "api/rtc_error.h"
+#include "api/sctp_transport_interface.h"
 #include "api/transport/data_channel_transport_interface.h"
-#include "media/base/media_channel.h"
-#include "p2p/base/packet_transport_internal.h"
 #include "p2p/dtls/dtls_transport_internal.h"
 #include "rtc_base/copy_on_write_buffer.h"
-#include "rtc_base/thread.h"
 
 namespace cricket {
 
 // Constants that are important to API users
-// The size of the SCTP association send buffer. 256kB, the usrsctp default.
-constexpr int kSctpSendBufferSize = 256 * 1024;
 
 // The number of outgoing streams that we'll negotiate. Since stream IDs (SIDs)
 // are 0-based, the highest usable SID is 1023.
@@ -91,20 +88,20 @@ class SctpTransportInternal {
   // completes. This method can be called multiple times, though not if either
   // of the ports are changed.
   //
-  // `local_sctp_port` and `remote_sctp_port` are passed along the wire and the
-  // listener and connector must be using the same port. They are not related
-  // to the ports at the IP level. If set to -1, we default to
-  // kSctpDefaultPort.
-  // `max_message_size_` sets the max message size on the connection.
-  // It must be smaller than or equal to kSctpSendBufferSize.
-  // It can be changed by a secons Start() call.
-  //
+  virtual bool Start(const webrtc::SctpOptions& options) = 0;
   // TODO(deadbeef): Support calling Start with different local/remote ports
   // and create a new association? Not clear if this is something we need to
   // support though. See: https://github.com/w3c/webrtc-pc/issues/979
+  [[deprecated("Call with SctpOptions")]]
   virtual bool Start(int local_sctp_port,
                      int remote_sctp_port,
-                     int max_message_size) = 0;
+                     int max_message_size) {
+    return Start({
+        .local_port = local_sctp_port,
+        .remote_port = remote_sctp_port,
+        .max_message_size = max_message_size,
+    });
+  }
 
   // NOTE: Initially there was a "Stop" method here, but it was never used, so
   // it was removed.
