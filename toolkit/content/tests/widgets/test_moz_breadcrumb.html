@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>moz-breadcrumb Tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-breadcrumb-group.mjs"
+    ></script>
+    <script src="lit-test-helpers.js"></script>
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+  </head>
+
+  <body>
+    <p id="display"></p>
+    <div id="content"></div>
+    <script class="testbody" type="application/javascript">
+      let html;
+
+      let testHelpers = new LitTestHelpers();
+
+      add_setup(async function setup() {
+        ({ html } = await testHelpers.setupLit());
+        let templateFn = () => html`
+          <moz-breadcrumb href="#about:page" label="The page"></moz-breadcrumb>
+        `;
+        testHelpers.setupTests({ templateFn });
+      });
+
+      add_task(async function testBreadcrumb() {
+        const renderedElement = await testHelpers.renderTemplate();
+        const { firstElementChild: breadcrumb } = renderedElement;
+
+        ok(breadcrumb, "renders");
+        let linkElement = breadcrumb.shadowRoot.querySelector("a");
+        is(
+          linkElement.textContent.trim(),
+          "The page",
+          "Renders label text in anchor"
+        );
+        is(
+          linkElement.getAttribute("href"),
+          "#about:page",
+          "Sets correct href in anchor"
+        );
+      });
+
+      add_task(async function testBreadcrumbLabelSlot() {
+        const testLabel = "The label";
+        const templateFn = () => html`
+          <moz-breadcrumb href="#about:page">${testLabel}</moz-breadcrumb>
+        `;
+        const renderedElement = await testHelpers.renderTemplate(templateFn());
+        const { firstElementChild: breadcrumb } = renderedElement;
+        is(
+          breadcrumb.textContent.trim(),
+          testLabel,
+          "Renders label text as default slot"
+        );
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,138 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>moz-breadcrumb-group Tests</title>
+    <script src="chrome://mochikit/content/tests/SimpleTest/SimpleTest.js"></script>
+    <script
+      type="module"
+      src="chrome://global/content/elements/moz-breadcrumb-group.mjs"
+    ></script>
+    <script src="lit-test-helpers.js"></script>
+    <link rel="localization" href="toolkit/global/mozBreadcrumbGroup.ftl" />
+
+    <link
+      rel="stylesheet"
+      href="chrome://mochikit/content/tests/SimpleTest/test.css"
+    />
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+  </head>
+
+  <body>
+    <script class="testbody" type="application/javascript">
+      let html;
+
+      let testHelpers = new LitTestHelpers();
+
+      add_setup(async function setup() {
+        ({ html } = await testHelpers.setupLit());
+        let templateFn = () => html`
+          <moz-breadcrumb-group>
+            <moz-breadcrumb
+              href="about#firstpage"
+              label="First page"
+            ></moz-breadcrumb>
+            <moz-breadcrumb
+              href="about#prevpage"
+              label="Previous page"
+            ></moz-breadcrumb>
+            <moz-breadcrumb
+              href="about#currentpage"
+              label="Current page"
+            ></moz-breadcrumb>
+          </moz-breadcrumb-group>
+        `;
+        testHelpers.setupTests({ templateFn });
+      });
+
+      add_task(async function testBreadcrumbs() {
+        const renderedElement = await testHelpers.renderTemplate();
+
+        const { firstElementChild: group } = renderedElement;
+
+        ok(group, "moz-breadcrumb-group is rendered");
+
+        const nav = group.shadowRoot.querySelector("nav");
+        ok(nav, "renders a nav element");
+        is(
+          nav.getAttribute("data-l10n-id"),
+          "moz-breadcrumb-group-nav",
+          "nav element data-l10n-id set to proper ID"
+        );
+
+        const ol = nav.querySelector("ol");
+        ok(ol, "renders an ordered list under the nav");
+
+        const liItems = ol.querySelectorAll("li");
+        is(liItems.length, 3, "renders li elements under ol");
+
+        const slots = ol.querySelectorAll("li slot");
+        is(slots.length, 3, "renders slots under the li elements");
+        const [firstSlot, secondSlot, thirdSlot] = slots;
+
+        const firstBreadcrumb = firstSlot.assignedElements().at(0);
+        is(
+          firstBreadcrumb.localName,
+          "moz-breadcrumb",
+          "renders first moz-breadcrumb under first slot"
+        );
+        ok(
+          !firstBreadcrumb.hasAttribute("aria-current"),
+          "first moz-breadcrumb does NOT have aria-current attribute"
+        );
+
+        const secondBreadcrumb = secondSlot.assignedElements().at(0);
+        is(
+          secondBreadcrumb.localName,
+          "moz-breadcrumb",
+          "renders second moz-breadcrumb under second slot"
+        );
+        ok(
+          !secondBreadcrumb.hasAttribute("aria-current"),
+          "second moz-breadcrumb does NOT have aria-current attribute"
+        );
+
+        const lastBreadcrumb = thirdSlot.assignedElements().at(0);
+        is(
+          lastBreadcrumb.localName,
+          "moz-breadcrumb",
+          "renders third moz-breadcrumb under third slot"
+        );
+        is(
+          lastBreadcrumb.getAttribute("aria-current"),
+          "page",
+          "renders aria-current=page on last moz-breadcrumb"
+        );
+        ok(
+          !lastBreadcrumb.shadowRoot.querySelector("a"),
+          "does not render as an anchor element"
+        );
+
+        is(
+          lastBreadcrumb.shadowRoot.textContent.trim(),
+          "Current page",
+          "still renders current page label in shadow root"
+        );
+
+        /**
+         * Remove last element to test that current
+         * page is switched to previous breadcrumb
+         */
+        lastBreadcrumb.remove();
+
+        await renderedElement.updateComplete;
+        await group.updateComplete;
+
+        is(
+          secondBreadcrumb.getAttribute("aria-current"),
+          "page",
+          "second moz-breadcrumb has aria-current attribute after removal of last"
+        );
+        ok(
+          !firstBreadcrumb.hasAttribute("aria-current"),
+          "first moz-breadcrumb still does NOT have aria-current attribute"
+        );
+      });
+    </script>
+  </body>
+</html>

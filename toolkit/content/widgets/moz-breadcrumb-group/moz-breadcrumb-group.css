@@ -1,0 +1,38 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:host {
+  --breadcrumb-icon-size: calc(var(--icon-size-small) - 4px);
+  --breadcrumb-gap: var(--space-small);
+
+  display: flex;
+}
+
+ol {
+  list-style: none;
+  padding-inline-start: initial;
+  margin-block: initial;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--breadcrumb-gap);
+}
+
+li {
+  display: flex;
+  align-items: center;
+  gap: var(--breadcrumb-gap);
+
+  &:not(:last-child)::after {
+    content: url("chrome://global/skin/icons/arrow-right-12.svg");
+    display: inline-flex;
+    width: auto;
+    height: var(--breadcrumb-icon-size);
+    -moz-context-properties: fill;
+    fill: currentColor;
+  }
+
+  &:dir(rtl):not(:last-child)::after {
+    content: url("chrome://global/skin/icons/arrow-left-12.svg");
+  }
+}
