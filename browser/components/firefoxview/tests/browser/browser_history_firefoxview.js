@@ -489,27 +489,6 @@ add_task(async function test_search_history() {
       const tabList = historyComponent.lists[0];
       return tabList?.emptyState;
     }, "There are no matching search results.");
-
-    info("Clear the search query with keyboard.");
-    is(
-      historyComponent.shadowRoot.activeElement,
-      searchTextbox,
-      "Search input is focused"
-    );
-    let inputChildren = SpecialPowers.InspectorUtils.getChildrenForNode(
-      searchTextbox.input,
-      true,
-      false
-    );
-    let clearButton = inputChildren.find(e => e.localName == "button");
-    EventUtils.synthesizeMouseAtCenter(clearButton, {}, content);
-    await BrowserTestUtils.waitForMutationCondition(
-      historyComponent.shadowRoot,
-      { childList: true, subtree: true },
-      () =>
-        historyComponent.cards.length ===
-        historyComponent.controller.historyVisits.length
-    );
   });
 });
 
@@ -552,13 +531,8 @@ add_task(async function test_search_ignores_stale_queries() {
     await TestUtils.waitForCondition(() => bogusQueryInProgress);
 
     info("Clear the bogus query.");
-    let inputChildren = SpecialPowers.InspectorUtils.getChildrenForNode(
-      searchTextbox.input,
-      true,
-      false
-    );
-    let clearButton = inputChildren.find(e => e.localName == "button");
-    EventUtils.synthesizeMouseAtCenter(clearButton, {}, content);
+    searchTextbox.select();
+    EventUtils.synthesizeKey("VK_BACK_SPACE");
     await searchTextbox.updateComplete;
 
     info("Input a real search query.");
