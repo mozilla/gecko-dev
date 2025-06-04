@@ -8,6 +8,7 @@
 using mozilla::net::NetAddr from "mozilla/net/DNS.h";
 using mozilla::net::IPCTypeRecord from "mozilla/net/DNSByTypeRecord.h";
 using nsIRequest::TRRMode from "nsIRequest.h";
+using class mozilla::TimeStamp from "mozilla/TimeStamp.h";
 
 namespace mozilla {
 namespace net {
@@ -25,6 +26,7 @@ struct DNSRecord
   bool isTRR;
   TRRMode effectiveTRRMode;
   uint32_t ttl;
+  TimeStamp lastUpdate;
 };
 
 union DNSRequestResponse

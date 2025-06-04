@@ -425,6 +425,9 @@ already_AddRefed<nsHostRecord> nsHostResolver::InitLoopbackRecord(
                          StaticPrefs::network_dnsCacheExpiration(),
                          StaticPrefs::network_dnsCacheExpirationGracePeriod());
   addrRec->negative = false;
+  // Use the oldest possible timestamp, since the contents of this record never
+  // change.
+  addrRec->mLastUpdate = TimeStamp::ProcessCreation();
 
   *aRv = NS_OK;
   return rec.forget();
@@ -1587,6 +1590,7 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupLocked(
       old_addr_info = addrRec->addr_info;
       addrRec->addr_info = std::move(newRRSet);
       addrRec->addr_info_gencnt++;
+      addrRec->mLastUpdate = TimeStamp::NowLoRes();
     } else {
       if (addrRec->addr_info && newRRSet) {
         auto builder = addrRec->addr_info->Build();

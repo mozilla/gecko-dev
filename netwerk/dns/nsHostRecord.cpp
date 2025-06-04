@@ -447,6 +447,12 @@ nsresult AddrHostRecord::GetTtl(uint32_t* aResult) {
   return NS_OK;
 }
 
+nsresult AddrHostRecord::GetLastUpdate(mozilla::TimeStamp* aLastUpdate) {
+  addr_info_lock.AssertCurrentThreadOwns();
+  *aLastUpdate = mLastUpdate;
+  return NS_OK;
+}
+
 //----------------------------------------------------------------------------
 // TypeHostRecord
 //----------------------------------------------------------------------------
