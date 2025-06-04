@@ -770,7 +770,7 @@ features:
     variables:
       bannedPortList:
         description: A comma-separated list of ports that Firefox will refuse to connect to. These ports will be appended to nsIOService gBadPortList
-        type: Text
+        type: String
         default: ""
 
   pki:
