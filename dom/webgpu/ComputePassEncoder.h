@@ -47,6 +47,7 @@ class ComputePassEncoder final : public ObjectBase,
       mPass;
   // keep all the used objects alive while the pass is recorded
   nsTArray<RefPtr<const BindGroup>> mUsedBindGroups;
+  nsTArray<RefPtr<const Buffer>> mUsedBuffers;
   nsTArray<RefPtr<const ComputePipeline>> mUsedPipelines;
 
   // programmable pass encoder

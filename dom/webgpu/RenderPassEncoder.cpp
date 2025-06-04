@@ -352,6 +352,7 @@ void RenderPassEncoder::DrawIndirect(const Buffer& aIndirectBuffer,
   if (!mValid) {
     return;
   }
+  mUsedBuffers.AppendElement(&aIndirectBuffer);
   ffi::wgpu_recorded_render_pass_draw_indirect(mPass.get(), aIndirectBuffer.mId,
                                                aIndirectOffset);
 }
@@ -361,6 +362,7 @@ void RenderPassEncoder::DrawIndexedIndirect(const Buffer& aIndirectBuffer,
   if (!mValid) {
     return;
   }
+  mUsedBuffers.AppendElement(&aIndirectBuffer);
   ffi::wgpu_recorded_render_pass_draw_indexed_indirect(
       mPass.get(), aIndirectBuffer.mId, aIndirectOffset);
 }

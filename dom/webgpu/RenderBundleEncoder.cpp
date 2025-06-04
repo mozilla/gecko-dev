@@ -188,6 +188,7 @@ void RenderBundleEncoder::DrawIndirect(const Buffer& aIndirectBuffer,
   if (!mValid) {
     return;
   }
+  mUsedBuffers.AppendElement(&aIndirectBuffer);
   ffi::wgpu_render_bundle_draw_indirect(mEncoder.get(), aIndirectBuffer.mId,
                                         aIndirectOffset);
 }
@@ -197,6 +198,7 @@ void RenderBundleEncoder::DrawIndexedIndirect(const Buffer& aIndirectBuffer,
   if (!mValid) {
     return;
   }
+  mUsedBuffers.AppendElement(&aIndirectBuffer);
   ffi::wgpu_render_bundle_draw_indexed_indirect(
       mEncoder.get(), aIndirectBuffer.mId, aIndirectOffset);
 }
