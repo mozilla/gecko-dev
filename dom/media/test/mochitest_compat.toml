@@ -850,6 +850,8 @@ scheme = "https"
 
 ["test_load_candidates.html"]
 
+["test_load_no_preload.html"]
+
 ["test_load_same_resource.html"]
 
 ["test_load_source.html"]

@@ -1,0 +1,47 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Test load on no preload element</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  <script type="text/javascript" src="manifest.js"></script>
+</head>
+<body>
+<script class="testbody" type="text/javascript">
+
+// This test checks the scenario where the `canplaythrough` event is fired
+// after calling load() on an element that does not have a preload attribute.
+//
+// The spec does not define how much data should be loaded in this case —
+// the behavior is left to the user agent.
+//
+// This behavior can be reconsidered once bug 1969224 is resolved.
+
+add_task(async function testLoadOnNoPreloadElement() {
+  for (let test of gSmallTests) {
+    let tag;
+    if (test.type.startsWith("audio/")) {
+      tag = "audio";
+    } else if (test.type.startsWith("video/")) {
+      tag = "video";
+    } else {
+      tag = "unknown";
+    }
+    info(`run ${test.name}, type=${test.type}, tag=${tag}`);
+    let ele = document.createElement(tag);
+    if (typeof ele.canPlayType != "function" || !ele.canPlayType(test.type)) {
+      // Skip unsupported files.
+      continue;
+    }
+    ele.src = test.name;
+    ele.load();
+    info(`load an element without preload attribute should fire a canplaythrough`);
+    await once(ele, "canplaythrough");
+    ok(true, `${test.name} fired 'canplaythrough' event`);
+    removeNodeAndSource(ele);
+  }
+});
+
+</script>
+</body>
+</html>
