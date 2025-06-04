@@ -2562,6 +2562,18 @@ var gPrivacyPane = {
   },
 
   clearSiteData() {
+    // Ask for confirmation first
+    let confirmed = Services.prompt.confirmEx(
+        window,
+        "Confirm Data Deletion",
+        "Are you sure you want to delete cookies and site data? This may sign you out of websites.",
+        Services.prompt.STD_YES_NO_BUTTONS,
+        null, null, null, null, {}
+    );
+
+    if (confirmed !== 0) {
+        return;
+    }
     // We have to use the full path name to avoid getting errors in
     // browser/base/content/test/static/browser_all_files_referenced.js
     let dialogFile = useOldClearHistoryDialog
