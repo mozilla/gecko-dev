@@ -505,7 +505,19 @@ class JujutsuRepository(Repository):
                     )
 
                 print("Checking if watchman is enabled...")
-                subprocess.run([self._tool, "debug", "watchman", "status"])
+                output = self._run_read_only("debug", "watchman", "status")
+
+                pattern = re.compile(
+                    r"^Background snapshotting is (disabled|currently inactive)"
+                )
+
+                for line in output.splitlines():
+                    # Filter out any 'Background snapshotting is' disabled/inactive messages.
+                    # Snapshotting is disabled on purpose, and these lines could mislead users
+                    # into thinking watchman isn't functioning. We only need to verify watchman status
+                    # without potentially misleading users into enabling snapshotting and causing issues.
+                    if not pattern.match(line):
+                        print(line)
             else:
                 print(
                     "Watchman could not be found on the PATH. It is recommended to "
