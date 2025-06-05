@@ -530,9 +530,9 @@ mozilla-repo-urls==0.1.1 \
     # via
     #   mozilla-third-party-python-vendor-dir
     #   taskcluster-taskgraph
-mozilla-taskgraph==3.1.2 \
-    --hash=sha256:3c615b41a76e382ff7d7f8fd57bf5a946a2d97d24a95310378042078c39dd75d \
-    --hash=sha256:87dda027079085014b88c46f6244bee3f7c525adacb014c6bfb4bbaddf1fb1ee
+mozilla-taskgraph==3.3.0 \
+    --hash=sha256:30a7729053e35ab7746d1ab891a5d0f479e74d688c5d939554f5f6c08c8801ee \
+    --hash=sha256:6a3db4a2d65fb519119fdadb32d5e72caf5a5ac939a9fa3eb25f41162f7a85ce
     # via mozilla-third-party-python-vendor-dir
 mozilla-version==4.1.0 \
     --hash=sha256:816b0cd03456105f49ad8661e47934e66118f84ddae38c4193082f297396a7ed \
