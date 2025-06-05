@@ -7,7 +7,6 @@ task-defaults:
     run:
         using: gradlew
         gradlew: ['ktlint']
-        use-caches: false
     attributes:
         code-review: true
     always-target: true

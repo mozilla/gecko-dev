@@ -7,7 +7,6 @@ task-defaults:
     run:
         using: gradlew
         gradlew: ['lint']
-        use-caches: false
     worker:
         max-run-time: 2700
         docker-image: {in-tree: lint}

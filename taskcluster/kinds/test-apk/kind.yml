@@ -30,7 +30,6 @@ task-defaults:
             - target.maven.tar.xz
     run:
         using: gradlew
-        use-caches: false
     treeherder:
         kind: test
     worker-type: b-linux-medium-gcp

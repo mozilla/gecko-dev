@@ -39,7 +39,6 @@ task-defaults:
         kind: test
         tier: 2
     run:
-        use-caches: false
         using: run-commands
         dummy-secrets:
             - content: "faketoken"

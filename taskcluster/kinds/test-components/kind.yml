@@ -40,7 +40,6 @@ task-defaults:
               path: mobile/android/test_infra/.firebase_token.json
               json: true
         using: gradlew
-        use-caches: false
     treeherder:
         kind: test
         platform: 'AC-ui-test/opt'
