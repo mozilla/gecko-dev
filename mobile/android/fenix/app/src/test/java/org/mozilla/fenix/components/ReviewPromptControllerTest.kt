@@ -151,11 +151,9 @@ class ReviewPromptControllerTest {
         )
 
         assertFalse(controller.reviewPromptIsReady)
-        assertEquals(4, settings.numberOfAppLaunches)
 
         controller.trackApplicationLaunch()
 
-        assertEquals(5, settings.numberOfAppLaunches)
         assertTrue(controller.reviewPromptIsReady)
     }
 

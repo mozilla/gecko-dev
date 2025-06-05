@@ -77,7 +77,6 @@ class ReviewPromptController(
     }
 
     fun trackApplicationLaunch() {
-        reviewSettings.numberOfAppLaunches = reviewSettings.numberOfAppLaunches + 1
         // We only want to show the the prompt after we've finished "launching" the application.
         reviewPromptIsReady = true
     }
