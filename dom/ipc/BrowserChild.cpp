@@ -142,6 +142,16 @@ using namespace mozilla::layout;
 using namespace mozilla::widget;
 using mozilla::layers::GeckoContentController;
 
+extern mozilla::LazyLogModule sWidgetDragServiceLog;
+#define __DRAGSERVICE_LOG__(logLevel, ...) \
+  MOZ_LOG(sWidgetDragServiceLog, logLevel, __VA_ARGS__)
+#define DRAGSERVICE_LOGD(...) \
+  __DRAGSERVICE_LOG__(mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define DRAGSERVICE_LOGI(...) \
+  __DRAGSERVICE_LOG__(mozilla::LogLevel::Info, (__VA_ARGS__))
+#define DRAGSERVICE_LOGE(...) \
+  __DRAGSERVICE_LOG__(mozilla::LogLevel::Error, (__VA_ARGS__))
+
 static const char BEFORE_FIRST_PAINT[] = "before-first-paint";
 
 static uint32_t sConsecutiveTouchMoveCount = 0;
@@ -2121,6 +2131,12 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealDragEvent(
   localEvent.mWidget = mPuppetWidget;
 
   nsCOMPtr<nsIDragSession> dragSession = GetDragSession();
+  DRAGSERVICE_LOGD(
+      "[%p] %s | aEvent.mMessage: %s | aDragAction: %u | aDropEffect: %u | "
+      "dragSession: %p",
+      this, __FUNCTION__,
+      NS_ConvertUTF16toUTF8(dom::Event::GetEventName(aEvent.mMessage)).get(),
+      aDragAction, aDropEffect, dragSession.get());
   if (dragSession) {
     dragSession->SetDragAction(aDragAction);
     dragSession->SetTriggeringPrincipal(aPrincipal);
@@ -2135,6 +2151,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvRealDragEvent(
     bool canDrop = true;
     if (!dragSession || NS_FAILED(dragSession->GetCanDrop(&canDrop)) ||
         !canDrop) {
+      DRAGSERVICE_LOGD("[%p] %s | changed drop to dragexit", this,
+                       __FUNCTION__);
       localEvent.mMessage = eDragExit;
     }
   } else if (aEvent.mMessage == eDragOver) {
@@ -2215,6 +2233,11 @@ mozilla::ipc::IPCResult BrowserChild::RecvInvokeChildDragSession(
       RefPtr<DataTransfer> dataTransfer = ConvertToDataTransfer(
           aPrincipal, std::move(aTransferables), eDragStart);
       session->SetDataTransfer(dataTransfer);
+      DRAGSERVICE_LOGD("[%p] %s | Successfully started dragSession: %p", this,
+                       __FUNCTION__, session.get());
+    } else {
+      DRAGSERVICE_LOGE("[%p] %s | Failed to start dragSession", this,
+                       __FUNCTION__);
     }
   }
   return IPC_OK();
@@ -2227,6 +2250,11 @@ mozilla::ipc::IPCResult BrowserChild::RecvUpdateDragSession(
     nsCOMPtr<DataTransfer> dataTransfer = ConvertToDataTransfer(
         aPrincipal, std::move(aTransferables), aEventMessage);
     session->SetDataTransfer(dataTransfer);
+    DRAGSERVICE_LOGD(
+        "[%p] %s | session: %p | aEventMessage: %s | Updated dragSession "
+        "dataTransfer",
+        this, __FUNCTION__, session.get(),
+        NS_ConvertUTF16toUTF8(dom::Event::GetEventName(aEventMessage)).get());
   }
   return IPC_OK();
 }
@@ -2237,6 +2265,13 @@ mozilla::ipc::IPCResult BrowserChild::RecvEndDragSession(
     const uint32_t& aDropEffect) {
   RefPtr<nsIDragSession> dragSession = GetDragSession();
   if (dragSession) {
+    DRAGSERVICE_LOGD(
+        "[%p] %s | dragSession: %p | aDoneDrag: %s | aUserCancelled: %s | "
+        "aDragEndPoint: (%d, %d) | aKeyModifiers: %u | aDropEffect: %u",
+        this, __FUNCTION__, dragSession.get(), GetBoolName(aDoneDrag),
+        GetBoolName(aUserCancelled), static_cast<int>(aDragEndPoint.x),
+        static_cast<int>(aDragEndPoint.y), aKeyModifiers, aDropEffect);
+
     if (aUserCancelled) {
       dragSession->UserCancelled();
     }
@@ -2257,6 +2292,11 @@ mozilla::ipc::IPCResult BrowserChild::RecvStoreDropTargetAndDelayEndDragSession(
   // cf. RecvRealDragEvent
   nsCOMPtr<nsIDragSession> dragSession = GetDragSession();
   MOZ_ASSERT(dragSession);
+  DRAGSERVICE_LOGD(
+      "[%p] %s | dragSession: %p aPt: (%d, %d) | aDropEffect: %u | "
+      "aDragAction: %u",
+      this, __FUNCTION__, dragSession.get(), static_cast<int>(aPt.x),
+      static_cast<int>(aPt.y), aDropEffect, aDragAction);
   dragSession->SetDragAction(aDragAction);
   dragSession->SetTriggeringPrincipal(aPrincipal);
   dragSession->SetCsp(aCsp);
@@ -2293,6 +2333,8 @@ mozilla::ipc::IPCResult BrowserChild::RecvStoreDropTargetAndDelayEndDragSession(
 mozilla::ipc::IPCResult
 BrowserChild::RecvDispatchToDropTargetAndResumeEndDragSession(
     bool aShouldDrop, nsTHashSet<nsString>&& aAllowedFilesPaths) {
+  DRAGSERVICE_LOGD("[%p] %s | aShouldDrop: %s", this, __FUNCTION__,
+                   GetBoolName(aShouldDrop));
   nsCOMPtr<nsIDragSession> dragSession = GetDragSession();
   MOZ_ASSERT(dragSession);
   RefPtr<nsIWidget> widget = mPuppetWidget;
