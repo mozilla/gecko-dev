@@ -1866,7 +1866,7 @@ bool WarpBuilder::build_EndIter(BytecodeLocation loc) {
 
 bool WarpBuilder::build_CloseIter(BytecodeLocation loc) {
   MDefinition* iter = current->pop();
-  iter = unboxObjectInfallible(iter, IsMovable::Yes);
+  iter = unboxObjectInfallible(iter, IsMovable::No);
   return buildIC(loc, CacheKind::CloseIter, {iter});
 }
 
