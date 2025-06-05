@@ -354,3 +354,25 @@ add_task(async function test_save_failure_handler() {
     "Handler was passed Error"
   );
 });
+
+add_task(async function test_compute_hex_digest() {
+  let storeForSave = new JSONFile({
+    path: getTempFile(TEST_STORE_FILE_NAME).path,
+  });
+  await storeForSave.load();
+  Object.assign(storeForSave.data, TEST_DATA);
+  await new Promise(resolve => {
+    let save = storeForSave._save.bind(storeForSave);
+    storeForSave._save = () => {
+      save();
+      resolve();
+    };
+    storeForSave.saveSoon();
+  });
+  let sha256sum = await storeForSave.computeHexDigest("sha256");
+
+  Assert.equal(
+    sha256sum,
+    "43ba7370fba1bb04e45517049554927eb3653af53f3563cdcb7bfcb6b3cd8a72"
+  );
+});
