@@ -15,6 +15,7 @@ import datetime
 import logging
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from typing import Dict, Set
 
 from slugid import nice as slugid
 
@@ -365,11 +366,11 @@ def replace_tasks(
 
 
 def get_subgraph(
-    target_task_graph,
-    removed_tasks,
-    replaced_tasks,
-    label_to_taskid,
-    decision_task_id,
+    target_task_graph: TaskGraph,
+    removed_tasks: Set[str],
+    replaced_tasks: Set[str],
+    label_to_taskid: Dict[str, str],
+    decision_task_id: str,
 ):
     """
     Return the subgraph of target_task_graph consisting only of
@@ -399,7 +400,9 @@ def get_subgraph(
     for label in sorted(
         target_task_graph.graph.nodes - removed_tasks - set(label_to_taskid)
     ):
-        label_to_taskid[label] = slugid()
+        task_id = slugid()
+        assert isinstance(task_id, str)
+        label_to_taskid[label] = task_id
 
     # resolve labels to taskIds and populate task['dependencies']
     tasks_by_taskid = {}
@@ -424,6 +427,7 @@ def get_subgraph(
                 }
             )
 
+        assert task.task_id
         task.task = resolve_task_references(
             task.label,
             task.task,
@@ -431,7 +435,7 @@ def get_subgraph(
             decision_task_id=decision_task_id,
             dependencies=named_task_dependencies,
         )
-        deps = task.task.setdefault("dependencies", [])  # type: ignore
+        deps = task.task.setdefault("dependencies", [])
         deps.extend(sorted(named_task_dependencies.values()))
         tasks_by_taskid[task.task_id] = task
 

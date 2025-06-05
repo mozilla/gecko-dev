@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: taskcluster-taskgraph
-Version: 14.4.0
+Version: 14.4.1
 Summary: Build taskcluster taskgraphs
 Project-URL: Repository, https://github.com/taskcluster/taskgraph
 Project-URL: Issues, https://github.com/taskcluster/taskgraph/issues

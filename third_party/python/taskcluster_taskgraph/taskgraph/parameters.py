@@ -253,8 +253,8 @@ class Parameters(ReadOnlyDict):
         :return str: The URL displaying the given path.
         """
         if self["repository_type"] == "hg":
-            if path.startswith("comm/"):
-                path = path[len("comm/") :]
+            if "comm/" in path:
+                path = path.split("comm/")[1]
                 repo = self["comm_head_repository"]
                 rev = self["comm_head_rev"]
             else:
