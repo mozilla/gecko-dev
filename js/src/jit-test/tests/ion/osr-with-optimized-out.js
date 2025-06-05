@@ -1,4 +1,4 @@
-// |jit-test| --ion-offthread-compile=off; --ion-warmup-threshold=30
+// |jit-test| --ion-offthread-compile=off; --ion-warmup-threshold=30; --baseline-offthread-compile=off
 
 // We disable any off-main thread compilation, and set a definite trigger for
 // Ion compilation, such that we can garantee that we would OSR into the inner
