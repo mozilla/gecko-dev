@@ -145,6 +145,22 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
   }
 }
 
+void AutoStubFrame::pushInlinedICScript(MacroAssembler& masm,
+                                        Address icScriptAddr) {
+  // The baseline prologue expects the inlined ICScript to
+  // be at a fixed offset from the stub frame pointer.
+  MOZ_ASSERT(compiler.localTracingSlots_ == 0);
+  masm.Push(icScriptAddr);
+
+#ifndef JS_64BIT
+  // We expect the stack to be Value-aligned when we start pushing arguments.
+  // We are already aligned when we enter the stub frame. Pushing a 32-bit
+  // ICScript requires an additional adjustment to maintain alignment.
+  static_assert(sizeof(Value) == 2 * sizeof(uintptr_t));
+  masm.subFromStackPtr(Imm32(sizeof(uintptr_t)));
+#endif
+}
+
 void AutoStubFrame::storeTracedValue(MacroAssembler& masm, ValueOperand value) {
   MOZ_ASSERT(compiler.localTracingSlots_ < 255);
   MOZ_ASSERT(masm.framePushed() - framePushedAtEnterStubFrame_ ==
@@ -576,6 +592,10 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
     masm.switchToObjectRealm(callee, scratch);
   }
 
+  if (isInlined) {
+    stubFrame.pushInlinedICScript(masm, stubAddress(*icScriptOffset));
+  }
+
   // Align the stack such that the JitFrameLayout is aligned on
   // JitStackAlignment.
   masm.alignJitStackBasedOnNArgs(0, /*countIncludesThis = */ false);
@@ -585,15 +605,9 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
   // properly on ARM.
   masm.Push(receiver);
 
-  if (isInlined) {
-    // Store icScript in the context.
-    Address icScriptAddr(stubAddress(*icScriptOffset));
-    masm.loadPtr(icScriptAddr, scratch);
-    masm.storeICScriptInJSContext(scratch);
-  }
-
   masm.Push(callee);
-  masm.Push(FrameDescriptor(FrameType::BaselineStub, /* argc = */ 0));
+  masm.Push(
+      FrameDescriptor(FrameType::BaselineStub, /* argc = */ 0, isInlined));
 
   // Handle arguments underflow.
   Label noUnderflow;
@@ -1690,6 +1704,10 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
     masm.switchToObjectRealm(callee, scratch);
   }
 
+  if (isInlined) {
+    stubFrame.pushInlinedICScript(masm, stubAddress(*icScriptOffset));
+  }
+
   // Align the stack such that the JitFrameLayout is aligned on
   // JitStackAlignment.
   masm.alignJitStackBasedOnNArgs(1, /*countIncludesThis = */ false);
@@ -1703,14 +1721,8 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
   masm.Push(callee);
 
   // Push frame descriptor.
-  masm.Push(FrameDescriptor(FrameType::BaselineStub, /* argc = */ 1));
-
-  if (isInlined) {
-    // Store icScript in the context.
-    Address icScriptAddr(stubAddress(*icScriptOffset));
-    masm.loadPtr(icScriptAddr, scratch);
-    masm.storeICScriptInJSContext(scratch);
-  }
+  masm.Push(
+      FrameDescriptor(FrameType::BaselineStub, /* argc = */ 1, isInlined));
 
   // Load the jitcode pointer.
   if (isInlined) {
@@ -3843,6 +3855,8 @@ bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
     masm.switchToObjectRealm(calleeReg, scratch);
   }
 
+  stubFrame.pushInlinedICScript(masm, stubAddress(icScriptOffset));
+
   Label baselineScriptDiscarded;
   if (isConstructing) {
     createThis(argcReg, calleeReg, scratch, flags,
@@ -3854,11 +3868,6 @@ bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
     // normal non-inlined call.
     masm.loadBaselineJitCodeRaw(calleeReg, codeReg, &baselineScriptDiscarded);
   }
-
-  // Store icScript in the context.
-  Address icScriptAddr(stubAddress(icScriptOffset));
-  masm.loadPtr(icScriptAddr, scratch);
-  masm.storeICScriptInJSContext(scratch);
 
   if (isConstructing) {
     Label skip;
@@ -3874,7 +3883,8 @@ bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
   // Note that we use Push, not push, so that callJit will align the stack
   // properly on ARM.
   masm.PushCalleeToken(calleeReg, isConstructing);
-  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, argcReg, scratch);
+  masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, argcReg, scratch,
+                                     /* hasInlineICScript = */ true);
 
   // Handle arguments underflow.
   Label noUnderflow;

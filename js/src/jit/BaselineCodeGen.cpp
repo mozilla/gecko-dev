@@ -1290,16 +1290,16 @@ void BaselineCompilerCodeGen::emitInitFrameFields(Register nonFunctionEnv) {
     masm.storePtr(nonFunctionEnv, frame.addressOfEnvironmentChain());
   }
 
-  // If cx->inlinedICScript contains an inlined ICScript (passed from
-  // the caller), take that ICScript and store it in the frame, then
-  // overwrite cx->inlinedICScript with nullptr.
+  // If the HasInlinedICScript flag is set in the frame descriptor, then load
+  // the inlined ICScript from our caller's frame and store it in our own frame.
   Label notInlined, done;
-  masm.movePtr(ImmPtr(runtime->addressOfInlinedICScript()), scratch);
-  Address inlinedAddr(scratch, 0);
-  masm.branchPtr(Assembler::Equal, inlinedAddr, ImmWord(0), &notInlined);
-  masm.loadPtr(inlinedAddr, scratch2);
-  masm.storePtr(scratch2, frame.addressOfICScript());
-  masm.storePtr(ImmPtr(nullptr), inlinedAddr);
+  masm.branchTest32(Assembler::Zero, frame.addressOfDescriptor(),
+                    Imm32(FrameDescriptor::HasInlinedICScript), &notInlined);
+  masm.loadPtr(Address(FramePointer, 0), scratch);
+  masm.loadPtr(
+      Address(scratch, BaselineStubFrameLayout::InlinedICScriptOffsetFromFP),
+      scratch);
+  masm.storePtr(scratch, frame.addressOfICScript());
   masm.jump(&done);
 
   // Otherwise, store this script's default ICSCript in the frame.
