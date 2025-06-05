@@ -490,7 +490,7 @@ class JujutsuRepository(Repository):
                 jj_fix_patterns_value = ["glob:**/*"]
                 self.set_config_key_value(jj_fix_patterns_key, jj_fix_patterns_value)
 
-            # This enables watchman, if it's installed.
+            # This enables watchman if it's installed.
             if which("watchman"):
                 jj_watchman_key = "core.fsmonitor"
                 if self.config_key_list_value_missing(jj_watchman_key):
@@ -504,5 +504,10 @@ class JujutsuRepository(Repository):
                         jj_watchman_snapshot_key, jj_watchman_snapshot_value
                     )
 
-        print("Checking if watchman is enabled...")
-        subprocess.run([self._tool, "debug", "watchman", "status"])
+                print("Checking if watchman is enabled...")
+                subprocess.run([self._tool, "debug", "watchman", "status"])
+            else:
+                print(
+                    "Watchman could not be found on the PATH. It is recommended to "
+                    "install watchman to improve performance for jj operations"
+                )
