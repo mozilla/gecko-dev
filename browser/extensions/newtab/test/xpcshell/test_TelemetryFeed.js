@@ -2236,11 +2236,11 @@ add_task(
 
     const SESSION_ID = "decafc0ffee";
     sandbox.stub(instance.sessions, "get").returns({ session_id: SESSION_ID });
+    sandbox.spy(instance.newtabContentPing, "recordEvent");
 
     instance.handleDiscoveryStreamUserEvent(action);
 
     let clicks = Glean.pocket.click.testGetValue();
-    let privateClicks = Glean.newtabContent.click.testGetValue();
 
     Assert.equal(clicks.length, 1, "Recorded 1 content click");
     Assert.equal(clicks.length, 1, "Recorded 1 private click");
@@ -2253,12 +2253,20 @@ add_task(
       tile_id: 314623757745896,
     });
 
-    Assert.deepEqual(privateClicks[0].extra, {
-      is_sponsored: String(false),
-      corpus_item_id: "decaf-beef",
-      scheduled_corpus_item_id: "dead-beef",
-      position: String(ACTION_POSITION),
-    });
+    Assert.ok(
+      instance.newtabContentPing.recordEvent.calledWith(
+        "click",
+        sinon.match({
+          newtab_visit_id: SESSION_ID,
+          is_sponsored: false,
+          position: ACTION_POSITION,
+          tile_id: 314623757745896,
+          corpus_item_id: "decaf-beef",
+          scheduled_corpus_item_id: "dead-beef",
+        })
+      ),
+      "NewTabContentPing passed the expected arguments."
+    );
 
     Assert.ok(
       !Glean.pocket.shim.testGetValue(),
@@ -2298,11 +2306,11 @@ add_task(
 
     const SESSION_ID = "decafc0ffee";
     sandbox.stub(instance.sessions, "get").returns({ session_id: SESSION_ID });
+    sandbox.spy(instance.newtabContentPing, "recordEvent");
 
     instance.handleDiscoveryStreamUserEvent(action);
 
     let clicks = Glean.pocket.click.testGetValue();
-    let privateClicks = Glean.newtabContent.click.testGetValue();
 
     Assert.equal(clicks.length, 1, "Recorded 1 content click");
     Assert.equal(clicks.length, 1, "Recorded 1 private click");
@@ -2312,12 +2320,17 @@ add_task(
       position: String(ACTION_POSITION),
     });
 
-    Assert.deepEqual(privateClicks[0].extra, {
-      is_sponsored: String(false),
-      corpus_item_id: "decaf-beef",
-      scheduled_corpus_item_id: "dead-beef",
-      position: String(ACTION_POSITION),
-    });
+    Assert.ok(
+      instance.newtabContentPing.recordEvent.calledWith(
+        "click",
+        sinon.match({
+          newtab_visit_id: SESSION_ID,
+          is_sponsored: false,
+          position: ACTION_POSITION,
+        })
+      ),
+      "NewTabContentPing passed the expected arguments."
+    );
 
     Assert.ok(
       !Glean.pocket.shim.testGetValue(),

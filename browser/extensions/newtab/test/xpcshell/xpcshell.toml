@@ -17,6 +17,8 @@ support-files = ["topstories.json"]
 
 ["test_InferredFeatureModel.js"]
 
+["test_NewTabContentPing.js"]
+
 ["test_NewTabGleanUtils.js"]
 
 ["test_NewTabMessaging.js"]
