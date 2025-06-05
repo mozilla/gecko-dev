@@ -19,10 +19,13 @@ def handle_keyed_by(config, tasks):
         "worker.push",
         "worker.bump-files",
         "worker-type",
+        "worker.actions[].tag.hg-repo-url",
+        "worker.actions[].version-bump.bump-files",
     ]
     for task in tasks:
         fields = default_fields[:]
         for additional_field in (
+            "actions",
             "l10n-bump-info",
             "source-repo",
             "lando-repo",
@@ -42,4 +45,5 @@ def handle_keyed_by(config, tasks):
                     "release-type": config.params["release_type"],
                 },
             )
+
         yield task
