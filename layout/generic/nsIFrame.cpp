@@ -2773,11 +2773,11 @@ Maybe<nsRect> nsIFrame::GetClipPropClipRect(const nsStyleDisplay* aDisp,
 // style check.
 bool nsIFrame::ForcesStackingContextForViewTransition() const {
   auto* style = Style();
-  return (style->StyleUIReset()->HasViewTransitionName() ||
+  return !style->IsRootElementStyle() &&
+         (style->StyleUIReset()->HasViewTransitionName() ||
           HasAnyStateBits(NS_FRAME_CAPTURED_IN_VIEW_TRANSITION) ||
           style->StyleDisplay()->mWillChange.bits &
-              mozilla::StyleWillChangeBits::VIEW_TRANSITION_NAME) &&
-         !style->IsRootElementStyle();
+              mozilla::StyleWillChangeBits::VIEW_TRANSITION_NAME);
 }
 
 /**
