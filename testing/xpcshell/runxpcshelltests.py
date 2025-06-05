@@ -1962,7 +1962,11 @@ class XPCShellTests:
                 break
 
         if installNPM:
-            command = "npm ci"
+            npm = "npm"
+            nodePath = os.environ.get("MOZ_NODE_PATH", "")
+            if nodePath:
+                npm = f"PATH=$PATH:{'/'.join(nodePath.split('/')[:-1])} {'/'.join(nodePath.split('/')[:-1])}/npm"
+            command = f"{npm} ci"
             working_directory = os.path.join(SCRIPT_DIR, "moz-http2")
             result = subprocess.run(
                 command,

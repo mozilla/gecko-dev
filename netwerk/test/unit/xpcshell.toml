@@ -977,8 +977,6 @@ skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"
 ["test_node_execute_npm.js"]
 usesNPM = true
 skip-if = [
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968696
-  "os == 'android'", # Bug 1968696
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'",
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'",
