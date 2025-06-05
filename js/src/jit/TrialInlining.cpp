@@ -335,6 +335,15 @@ Maybe<InlinableGetterData> FindInlinableGetterData(ICCacheIRStub* stub) {
         }
         break;
       }
+      case CacheOp::GuardFunctionScript: {
+        MOZ_ASSERT(data.isNothing());
+        maybeCalleeOperand = reader.objOperandId();
+        uint32_t targetOffset = reader.stubOffset();
+        uintptr_t rawScript = stubInfo->getStubRawWord(stubData, targetOffset);
+        targetScript = reinterpret_cast<JSScript*>(rawScript);
+        (void)reader.stubOffset();  // nargsAndFlags
+        break;
+      }
       case CacheOp::CallScriptedGetterResult: {
         ValOperandId receiverOperand = reader.valOperandId();
         ObjOperandId calleeOperand = reader.objOperandId();
@@ -416,6 +425,15 @@ Maybe<InlinableSetterData> FindInlinableSetterData(ICCacheIRStub* stub) {
           maybeCalleeOperand = resultOperand;
           targetScript = object->as<JSFunction>().nonLazyScript();
         }
+        break;
+      }
+      case CacheOp::GuardFunctionScript: {
+        MOZ_ASSERT(data.isNothing());
+        maybeCalleeOperand = reader.objOperandId();
+        uint32_t targetOffset = reader.stubOffset();
+        uintptr_t rawScript = stubInfo->getStubRawWord(stubData, targetOffset);
+        targetScript = reinterpret_cast<JSScript*>(rawScript);
+        (void)reader.stubOffset();  // nargsAndFlags
         break;
       }
       case CacheOp::CallScriptedSetter: {
