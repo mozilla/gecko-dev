@@ -845,6 +845,10 @@
             "chrome://global/content/elements/moz-five-star.mjs",
           ],
           [
+            "moz-input-color",
+            "chrome://global/content/elements/moz-input-color.mjs",
+          ],
+          [
             "moz-input-folder",
             "chrome://global/content/elements/moz-input-folder.mjs",
           ],
