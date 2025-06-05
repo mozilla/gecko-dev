@@ -228,8 +228,12 @@ void gfxPlatformGtk::InitDmabufConfig() {
       feature.ForceDisable(FeatureStatus::Failed, "Failed to configure",
                            failureId);
     }
-    // Make sure we have DMABuf formats available.
-    Unused << GetGlobalDMABufFormats();
+    MOZ_DIAGNOSTIC_ASSERT(
+        GlobalDMABufFormats::GetDRMFormat(GBM_FORMAT_XRGB8888),
+        "Missing RGB DRM format!");
+    MOZ_DIAGNOSTIC_ASSERT(
+        GlobalDMABufFormats::GetDRMFormat(GBM_FORMAT_ARGB8888),
+        "Missing RGBA DRM format!");
   }
 }
 

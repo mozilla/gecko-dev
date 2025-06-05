@@ -437,7 +437,7 @@ void GlobalDMABufFormats::GetModifiersFromGfxVars() {
   mFormatNV12 = new DRMFormat(GBM_FORMAT_NV12, gfxVars::DMABufModifiersNV12());
 }
 
-DRMFormat* GlobalDMABufFormats::GetDRMFormat(int32_t aFOURCCFormat) {
+DRMFormat* GlobalDMABufFormats::GetFormat(int32_t aFOURCCFormat) {
   switch (aFOURCCFormat) {
     case GBM_FORMAT_XRGB8888:
       MOZ_DIAGNOSTIC_ASSERT(mFormatRGBX, "Missing RGBX dmabuf format!");
@@ -456,31 +456,22 @@ DRMFormat* GlobalDMABufFormats::GetDRMFormat(int32_t aFOURCCFormat) {
   }
 }
 
-void GlobalDMABufFormats::LoadFormatModifiers() {
+GlobalDMABufFormats* GlobalDMABufFormats::sGlobalDMABufFormats = nullptr;
+
+DRMFormat* GlobalDMABufFormats::GetDRMFormat(int32_t aFOURCCFormat) {
+  static std::once_flag onceFlag;
+  std::call_once(onceFlag,
+                 [] { sGlobalDMABufFormats = new GlobalDMABufFormats(); });
+  return sGlobalDMABufFormats->GetFormat(aFOURCCFormat);
+}
+
+GlobalDMABufFormats::GlobalDMABufFormats() {
   if (XRE_IsParentProcess()) {
     MOZ_ASSERT(NS_IsMainThread());
     SetModifiersToGfxVars();
   } else {
     GetModifiersFromGfxVars();
   }
-}
-
-GlobalDMABufFormats::GlobalDMABufFormats() { LoadFormatModifiers(); }
-
-GlobalDMABufFormats* GetGlobalDMABufFormats() {
-  static StaticAutoPtr<GlobalDMABufFormats> sGlobalDMABufFormats;
-  static std::once_flag onceFlag;
-  std::call_once(onceFlag, [] {
-    sGlobalDMABufFormats = new GlobalDMABufFormats();
-    if (NS_IsMainThread()) {
-      ClearOnShutdown(&sGlobalDMABufFormats);
-    } else {
-      NS_DispatchToMainThread(NS_NewRunnableFunction(
-          "ClearGlobalDMABufFormats",
-          [] { ClearOnShutdown(&sGlobalDMABufFormats); }));
-    }
-  });
-  return sGlobalDMABufFormats.get();
 }
 
 }  // namespace mozilla::widget
