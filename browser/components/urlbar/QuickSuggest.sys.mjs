@@ -22,27 +22,41 @@ const SETTINGS_UI = Object.freeze({
   OFFLINE_ONLY: 2,
 });
 
-// This defines the home regions and locales where Suggest will be enabled.
-// Suggest will remain disabled for regions and locales not defined here. More
-// generally it defines important Suggest prefs that require special handling.
-// Each entry in this object defines a pref name and information about that
-// pref. Pref names are relative to `browser.urlbar.` The value in each entry is
-// an object with the following properties:
-//
-// {object} defaultValues
-//   This controls the home regions and locales where Suggest and each of its
-//   subfeatures will be enabled. If the pref should be initialized on the
-//   default branch depending on the user's home region and locale, then this
-//   should be set to an object where each entry maps a region name to a tuple
-//   `[localPrefixes, prefValue]`. `localePrefixes` is an array of strings and
-//   `prefValue` is the value that should be set when the region and locale
-//   prefixes match the user's region and locale. If the user's region and
-//   locale do not match any of the entries in `defaultValues`, then the pref
-//   will retain its default value as defined in `firefox.js`.
-// {string} nimbusVariableIfExposedInUi
-//   If the pref is exposed in the settings UI and it's a fallback for a Nimbus
-//   variable, then this should be set to the variable's name. See point 3 in
-//   the comment in `#initDefaultPrefs()` for more.
+/**
+ * @typedef {[string[], boolean|number]} RegionLocaleDefault
+ *   The first element is an array of locale prefixes (e.g. "en"), the second is
+ *   the value of the preference.
+ */
+
+/**
+ * @typedef {object} SuggestPrefsRecord
+ * @property {Record<string, RegionLocaleDefault>} [defaultValues]
+ *   This controls the home regions and locales where Suggest and each of its
+ *   subfeatures will be enabled. If the pref should be initialized on the
+ *   default branch depending on the user's home region and locale, then this
+ *   should be set to an object where each entry maps a region name to a tuple
+ *   `[localePrefixes, prefValue]`. `localePrefixes` is an array of strings and
+ *   `prefValue` is the value that should be set when the region and locale
+ *   prefixes match the user's region and locale. If the user's region and
+ *   locale do not match any of the entries in `defaultValues`, then the pref
+ *   will retain its default value as defined in `firefox.js`.
+ * @property {string} [nimbusVariableIfExposedInUi]
+ *   If the pref is exposed in the settings UI and it's a fallback for a Nimbus
+ *   variable, then this should be set to the variable's name. See point 3 in
+ *   the comment in `#initDefaultPrefs()` for more.
+ */
+
+/**
+ * This defines the home regions and locales where Suggest will be enabled.
+ * Suggest will remain disabled for regions and locales not defined here. More
+ * generally it defines important Suggest prefs that require special handling.
+ * Each entry in this object defines a pref name and information about that
+ * pref. Pref names are relative to `browser.urlbar.` The value in each entry is
+ * an object with the following properties:
+ *
+ * @type {{[key: string]: SuggestPrefsRecord}}
+ * {object} defaultValues
+ */
 const SUGGEST_PREFS = Object.freeze({
   // Prefs related to Suggest overall
   "quicksuggest.dataCollection.enabled": {
@@ -125,9 +139,21 @@ const FEATURES = {
 };
 
 /**
+ * @import {SuggestBackendRust} from "resource:///modules/urlbar/private/SuggestBackendRust.sys.mjs"
+ * @import {SuggestFeature} from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs"
+ * @import {SuggestProvider} from "resource:///modules/urlbar/private/SuggestFeature.sys.mjs"
+ * @import {ImpressionCaps} from "resource:///modules/urlbar/private/ImpressionCaps.sys.mjs"
+ */
+
+/**
  * This class manages Firefox Suggest and has related helpers.
  */
 class _QuickSuggest {
+  /**
+   * Test-only variable to skip telemetry environment initialisation.
+   */
+  _testSkipTelemetryEnvironmentInit = false;
+
   /**
    * @returns {string}
    *   The help URL for Suggest.
@@ -419,7 +445,7 @@ class _QuickSuggest {
    *
    * @param {UrlbarResult} result
    *   The result to check.
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Whether the result has been dismissed.
    */
   async isResultDismissed(result) {
@@ -490,7 +516,7 @@ class _QuickSuggest {
    * Whether there are any dismissed suggestions that can be cleared, including
    * individually dismissed suggestions and dismissed suggestion types.
    *
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    *   Whether dismissals can be cleared.
    */
   async canClearDismissedSuggestions() {

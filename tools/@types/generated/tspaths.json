@@ -1505,8 +1505,14 @@
       "resource:///modules/urlbar/private/GeolocationUtils.sys.mjs": [
         "browser/components/urlbar/private/GeolocationUtils.sys.mjs"
       ],
+      "resource:///modules/urlbar/private/ImpressionCaps.sys.mjs": [
+        "browser/components/urlbar/private/ImpressionCaps.sys.mjs"
+      ],
       "resource:///modules/urlbar/private/MLSuggest.sys.mjs": [
         "browser/components/urlbar/private/MLSuggest.sys.mjs"
+      ],
+      "resource:///modules/urlbar/private/SuggestBackendRust.sys.mjs": [
+        "browser/components/urlbar/private/SuggestBackendRust.sys.mjs"
       ],
       "resource:///modules/urlbar/private/SuggestFeature.sys.mjs": [
         "browser/components/urlbar/private/SuggestFeature.sys.mjs"

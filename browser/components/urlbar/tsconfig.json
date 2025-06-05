@@ -3,7 +3,6 @@
   "exclude": [
     "ActionsProviderQuickActions.sys.mjs",
     "MerinoClient.sys.mjs",
-    "QuickSuggest.sys.mjs",
     "SearchModeSwitcher.sys.mjs",
     "UrlbarController.sys.mjs",
     "UrlbarEventBufferer.sys.mjs",
