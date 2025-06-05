@@ -708,8 +708,12 @@ bool UsingEmitter::prepareForDisposableScopeBody(BlockKind blockKind) {
   // handling for the same.
   // See ForOfLoopControl::emitEndCodeNeedingIteratorClose.
   if (blockKind != BlockKind::ForOf) {
-    tryEmitter_.emplace(bce_, TryEmitter::Kind::TryFinally,
-                        TryEmitter::ControlKind::Disposal);
+    tryEmitter_ = bce_->fc->getAllocator()->make_unique<TryEmitter>(
+        bce_, TryEmitter::Kind::TryFinally, TryEmitter::ControlKind::Disposal);
+    if (!tryEmitter_) {
+      return false;
+    }
+
     if (!tryEmitter_->emitTry()) {
       return false;
     }
@@ -1086,7 +1090,7 @@ bool UsingEmitter::emitEnd() {
   MOZ_ASSERT(state_ == State::DisposableScopeBody);
   EmitterScope* es = bce_->innermostEmitterScopeNoCheck();
   MOZ_ASSERT(es->hasDisposables());
-  MOZ_ASSERT(tryEmitter_.isSome());
+  MOZ_ASSERT(tryEmitter_.get() != nullptr);
 
   if (!tryEmitter_->emitFinally()) {
     // [stack] EXC-OR-RESUME STACK THROWING RVAL?
@@ -1227,8 +1231,11 @@ bool NonLocalIteratorCloseUsingEmitter::prepareForIteratorClose(
     return false;
   }
 
-  tryClosingIterator_.emplace(bce_, TryEmitter::Kind::TryCatch,
-                              TryEmitter::ControlKind::NonSyntactic);
+  tryClosingIterator_ = bce_->fc->getAllocator()->make_unique<TryEmitter>(
+      bce_, TryEmitter::Kind::TryCatch, TryEmitter::ControlKind::NonSyntactic);
+  if (!tryClosingIterator_) {
+    return false;
+  }
 
   if (!tryClosingIterator_->emitTry()) {
     // [stack] EXC-DISPOSE DISPOSE-THROWING ITER
@@ -1276,7 +1283,7 @@ bool NonLocalIteratorCloseUsingEmitter::emitEnd() {
   //
   MOZ_ASSERT(state_ == State::IteratorClose);
 
-  if (!tryClosingIterator_.isSome()) {
+  if (!tryClosingIterator_) {
 #ifdef DEBUG
     state_ = State::End;
 #endif

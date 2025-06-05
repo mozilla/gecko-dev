@@ -6,9 +6,9 @@
 #define frontend_UsingEmitter_h
 
 #include "mozilla/Attributes.h"
-#include "mozilla/Maybe.h"
 
 #include "frontend/TryEmitter.h"
+#include "js/UniquePtr.h"
 #include "vm/UsingHint.h"
 
 namespace js::frontend {
@@ -99,7 +99,7 @@ class MOZ_STACK_CLASS DisposalEmitter {
 //    ue.emitEnd();
 class MOZ_STACK_CLASS UsingEmitter {
  private:
-  mozilla::Maybe<TryEmitter> tryEmitter_;
+  js::UniquePtr<TryEmitter> tryEmitter_;
 
   bool hasAwaitUsing_ = false;
 
@@ -227,7 +227,7 @@ class MOZ_STACK_CLASS ForOfDisposalEmitter : protected UsingEmitter {
 class MOZ_STACK_CLASS NonLocalIteratorCloseUsingEmitter
     : protected UsingEmitter {
  private:
-  mozilla::Maybe<TryEmitter> tryClosingIterator_;
+  js::UniquePtr<TryEmitter> tryClosingIterator_;
 
 #ifdef DEBUG
   // The state of this emitter.
