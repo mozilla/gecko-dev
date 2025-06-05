@@ -214,6 +214,8 @@ void GfxInfo::EnsureInitialized() {
   mOSVersionInteger = (uint32_t(na) << 24) | (uint32_t(nb) << 16) |
                       (uint32_t(nc) << 8) | uint32_t(nd);
 
+  mOSVersionEx.Parse(mOSVersion);
+
   mAdapterDescription.AppendPrintf(
       ", OpenGL: %s -- %s -- %s", mGLStrings->Vendor().get(),
       mGLStrings->Renderer().get(), mGLStrings->Version().get());
@@ -833,6 +835,13 @@ NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion) {
   return NS_OK;
 }
 
+NS_IMETHODIMP GfxInfo::SpoofOSVersionEx(uint32_t aMajor, uint32_t aMinor,
+                                        uint32_t aBuild, uint32_t aRevision) {
+  EnsureInitialized();
+  mOSVersionEx = GfxVersionEx(aMajor, aMinor, aBuild, aRevision);
+  return NS_OK;
+}
+
 #endif
 
 nsString GfxInfo::Model() {
@@ -858,6 +867,11 @@ nsString GfxInfo::Manufacturer() {
 uint32_t GfxInfo::OperatingSystemVersion() {
   EnsureInitialized();
   return mOSVersionInteger;
+}
+
+GfxVersionEx GfxInfo::OperatingSystemVersionEx() {
+  EnsureInitialized();
+  return mOSVersionEx;
 }
 
 }  // namespace widget

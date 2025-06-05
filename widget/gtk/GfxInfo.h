@@ -60,6 +60,8 @@ class GfxInfo final : public GfxInfoBase {
 #ifdef DEBUG
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIGFXINFODEBUG
+
+  GfxVersionEx OperatingSystemVersionEx() override { return mOSVersionEx; }
 #endif
 
  protected:
@@ -124,6 +126,10 @@ class GfxInfo final : public GfxInfoBase {
 
   static int sGLXTestPipe;
   static pid_t sGLXTestPID;
+
+#ifdef DEBUG
+  GfxVersionEx mOSVersionEx;
+#endif
 
   void GetDataVAAPI();
   void GetDataV4L2();

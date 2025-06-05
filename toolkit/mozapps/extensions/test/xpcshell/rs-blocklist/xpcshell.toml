@@ -97,6 +97,8 @@ skip-if = ["os == 'android' && verify"] # times out in chaos mode on Android bec
 
 ["test_gfxBlocklist_OSVersion_mismatch_OSVersion.js"]
 
+["test_gfxBlocklist_OSVersionEx_match.js"]
+
 ["test_gfxBlocklist_Vendor.js"]
 
 ["test_gfxBlocklist_Version.js"]

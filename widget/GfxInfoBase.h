@@ -114,7 +114,7 @@ class GfxInfoBase : public nsIGfxInfo,
   virtual nsString Product() { return u""_ns; }
   virtual nsString Manufacturer() { return u""_ns; }
   virtual uint32_t OperatingSystemVersion() { return 0; }
-  virtual uint32_t OperatingSystemBuild() { return 0; }
+  virtual GfxVersionEx OperatingSystemVersionEx() { return GfxVersionEx(); }
 
   // Convenience to get the application version
   static const nsCString& GetApplicationVersion();
