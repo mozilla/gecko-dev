@@ -677,7 +677,6 @@ void WlCompositorCrashHandler() {
 nsWaylandDisplay::nsWaylandDisplay(wl_display* aDisplay)
     : mThreadId(PR_GetCurrentThread()), mDisplay(aDisplay) {
   MOZ_DIAGNOSTIC_ASSERT(XRE_IsParentProcess());
-  MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
 
   // GTK sets the log handler on display creation, thus we overwrite it here
   // in a similar fashion

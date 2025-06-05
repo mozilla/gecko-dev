@@ -109,12 +109,12 @@ RefPtr<DMABufFormats> CreateDMABufFeedbackFormats(
 
 class GlobalDMABufFormats final {
  public:
-  static DRMFormat* GetDRMFormat(int32_t aFOURCCFormat);
+  DRMFormat* GetDRMFormat(int32_t aFOURCCFormat);
+
   GlobalDMABufFormats();
 
  private:
-  DRMFormat* GetFormat(int32_t aFOURCCFormat);
-
+  void LoadFormatModifiers();
   void SetModifiersToGfxVars();
   void GetModifiersFromGfxVars();
 
@@ -125,9 +125,9 @@ class GlobalDMABufFormats final {
   RefPtr<DRMFormat> mFormatRGBX;
   RefPtr<DRMFormat> mFormatP010;
   RefPtr<DRMFormat> mFormatNV12;
-
-  static GlobalDMABufFormats* sGlobalDMABufFormats;
 };
+
+GlobalDMABufFormats* GetGlobalDMABufFormats();
 
 }  // namespace mozilla::widget
 

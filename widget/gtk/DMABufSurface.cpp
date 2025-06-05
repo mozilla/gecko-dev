@@ -716,7 +716,7 @@ bool DMABufSurfaceRGBA::Create(mozilla::gl::GLContext* aGLContext, int aWidth,
   if (!aFormat) {
     mFOURCCFormat = aDMABufSurfaceFlags & DMABUF_ALPHA ? GBM_FORMAT_ARGB8888
                                                        : GBM_FORMAT_XRGB8888;
-    aFormat = GlobalDMABufFormats::GetDRMFormat(mFOURCCFormat);
+    aFormat = GetGlobalDMABufFormats()->GetDRMFormat(mFOURCCFormat);
     if (!aFormat) {
       LOGDMABUF("DMABufSurfaceRGBA::Create(): Missing drm format 0x%x!",
                 mFOURCCFormat);
@@ -1776,7 +1776,7 @@ bool DMABufSurfaceYUV::UpdateYUVData(
       return false;
   }
 
-  auto format = GlobalDMABufFormats::GetDRMFormat(mFOURCCFormat);
+  auto format = GetGlobalDMABufFormats()->GetDRMFormat(mFOURCCFormat);
   for (int i = 0; i < mBufferPlaneCount; i++) {
     if (!CreateYUVPlane(context, i, format)) {
       return false;
