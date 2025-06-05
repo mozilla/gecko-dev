@@ -2314,6 +2314,8 @@
   <string name="etp_cookies_description_2">زفت وابیڌن کامل ری و ری کۊکیا، کۊکیا ن من وبگه یلی ک منسووݩ هڌین، سوا اکونه، پ رڌجۊرایی جۊر شبکه یل تبلیقاتی نترن سی و دین کردن ایسا منجا وبگه یل و کار سووݩ گرن.</string>
   <!-- Category of trackers (cryptominers) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_cryptominers_title">ودر کونا رزم ٱرزا</string>
+  <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
+  <string name="etp_cryptominers_description">ز دسرسی اسکریپتا خراوکار سی دسرسی و دسگا ایسا و ارز دیجیتال جلاوگری اکونه.</string>
   <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_known_fingerprinters_description">جم کردن داده یل قابل دیاری کردن زبار دسگا ایسا ک تره سی رڌجۊری و کار روه، واڌاشته ابۊ.</string>
   <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
@@ -2344,8 +2346,15 @@
   <string name="etp_redirect_trackers_description">کۊکیا سامووݩ وابیڌه و دست آلشت تور و وبگه یل رڌجۊری اشناخته بیڌه ن پاک اکونه.</string>
   <!-- Preference for fingerprinting protection for the custom protection settings -->
   <string name="etp_suspected_fingerprinters_title">جا کلکا مشکۊک</string>
+  <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+  <string name="etp_suspected_fingerprinters_description">فعال کردن زفت وابیڌن جا کلک سی واڌاشتن جا کلکا مشکۊک.</string>
   <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
   <string name="etp_known_fingerprinters_title">جا کلکا اشناخته وابیڌه</string>
+  <!--
+    Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
+    as we use it on the UI to indicate which trackers have been partially unblocked.
+  -->
+  <string name="preference_etp_smartblock_description">ی قرد ز رڌجۊرایی ک ای لم نشووه دار وابینه تا ی هندایی من ای بلگه رفع مسدۊدیت وابینه چیناکه ایسا واسووݩ تعامول داشتین *.</string>
   <!-- Text displayed that links to website about enhanced tracking protection SmartBlock -->
   <string name="preference_etp_smartblock_learn_more">قلوه دووسته بۊین</string>
   <!--
@@ -2359,6 +2368,8 @@
     Preference title for DNS over HTTPS settings
   -->
   <string name="preference_doh_title">DNS ری HTTPS</string>
+  <!-- Description of the preference to enable "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_summary">سامانه نوم دامنه یا (DNS) ری HTTPS درخاستا ایسا سی ی نوم دامنه ن ز بارت ی ارتبات رزم ناهاڌه بیڌه افشنه ک ای کار ایمنی DNS ن قلوه اکونه وو نؽله ک دیرووݩ ترسته بۊن بفهمن چ وبگهی ن اخۊین بنیرین، چیناکه ای کار سیسووݩ سخت تر ابۊ. %1$s</string>
   <!-- Used as text for the link in `preference_doh_title`, points to documentation about "DNS over HTTPS" -->
   <string name="preference_doh_learn_more">قلوه دووسته بۊین</string>
   <!-- Content description for the "Exceptions" button -->
@@ -2369,12 +2380,18 @@
   <string name="preference_doh_add_site_description">ٱووردن وبگه</string>
   <!-- Title displayed for "Default Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection">زفت وابیڌن پؽش فرز</string>
+  <!-- Summary displayed for "Default Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_default_protection_summary">%1$s سلا دستسه ک چ مجالی DNS ٱمن ن سی زفت وابیڌن هریم سیخومی ایسا و کار بره.</string>
   <!-- Bullet point 1 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_1">و کار گرؽڌن جۊر کوݩ پسند بیڌه ایسا</string>
   <!-- Bullet point 2 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_2">ٱر موشکلی وا جۊر کوݩ DNS ٱمن هڌه، DNS پؽش فرز خوتووݩ ن و کار بگیرین</string>
   <!-- Bullet point 3 for "Default Protection" information page under "DNS over HTTPS". %1$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
   <string name="preference_doh_default_protection_info_3">و کار گرؽڌن جۊر کوݩ مهلی ٱر ک بۊ. %1$s</string>
+  <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_default_protection_info_4">کۊر من مجالی ک وی پی ان، کونتورول والدین یا سیاستا سازمۊوی فعال بۊن</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">هر سا شبکه ای اگو %1$s نوا ی DNS ٱمن ن و کار بره، کۊر بۊوه. %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">زفت وابیڌن قلوه</string>
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
@@ -2385,8 +2402,14 @@
   <string name="preference_doh_increased_protection_info_2">تینا ٱر موشکلی وا جۊر کوݩ DNS ٱمن هڌه، DNS پؽش فرز خوتووݩ ن و کار بگیرین</string>
   <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection">هدکسر زفت وابیڌن</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s هی و عونوان DNS ٱمن و کار روه. پؽش ز یوکه DNS سیستوم و کار روه، و ایسا ی هوشتار اختار ٱمنیتی داڌه ابۊ.</string>
   <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_max_protection_info_1">تینا و کار گرؽڌن جۊر کوݩ پسند بیڌه</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">ٱر DNS ٱمن من دسرس نبی، هی اختار بڌه</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">ٱر DNS ٱمن من دسرس نبۊ، وبگه یل بار ونی نؽبۊن وو یا و خۊوی کار نؽکونن</string>
   <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
   <string name="preference_doh_off">کۊر</string>
   <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
@@ -2467,6 +2490,8 @@
   <string name="add_to_homescreen_continue">رئڌن وا پؽش و ای وبگه اینترنتی</string>
   <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
   <string name="add_to_homescreen_text_placeholder">نوم ر نهنگ</string>
+  <!-- Describes the add to homescreen functionality -->
+  <string name="add_to_homescreen_description_2">و آسۊوی ترین ای وبگه ن و بلگه هووه تیلیفووݩ خوتووݩ یارین تا هر سا دلتووݩ خاست وس دسرسی داشته بۊین وو کار وا ی برنومه گشت گر زیتری ن سیتووݩ داره.</string>
   <!-- Preference for managing the settings for logins and passwords in Fenix -->
   <string name="preferences_passwords_logins_and_passwords_2">رزما</string>
   <!-- Preference for managing the saving of logins and passwords in Fenix -->
@@ -2477,8 +2502,12 @@
   <string name="preferences_passwords_save_logins_never_save">هرگشت زفت مکوݩ</string>
   <!-- Preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
   <string name="preferences_passwords_autofill2">پور کوننده خوتکار من %1$s</string>
+  <!-- Description for the preference for autofilling saved logins in Firefox (in web content), %1$s will be replaced with the app name -->
+  <string name="preferences_passwords_autofill_description">مجال و کار گرؽڌن %1$s، نوم منتوریا وو رزما ن من وبگه یل پور وو زفت کۊنین.</string>
   <!-- Preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
   <string name="preferences_android_autofill">پور کردن خوتکار من برنومه یل دی</string>
+  <!-- Description for the preference for autofilling logins from Fenix in other apps (e.g. autofilling the Twitter app) -->
+  <string name="preferences_android_autofill_description">نوم منتوریا وو رزما ن من پوی برنومه یل دی ری دسگاتووݩ پور اکونه.</string>
   <!-- Preference option for adding a password -->
   <string name="preferences_logins_add_login_2">ٱووردن رزم</string>
   <!-- Preference for syncing saved passwords in Fenix -->
@@ -2487,6 +2516,8 @@
   <string name="preferences_passwords_sync_logins_across_devices_2">هوم گوم کردن رزما منجا دسگا یل</string>
   <!-- Preference to access list of saved passwords -->
   <string name="preferences_passwords_saved_logins_2">رزما زفت وابیڌه</string>
+  <!-- Description of empty list of saved passwords. %s is the name of the app (for example "Firefox"). -->
+  <string name="preferences_passwords_saved_logins_description_empty_text_2">رزمایی ک من %s زفت یا هوم گوم اکۊنین، ایچونا نومگه وار دیارن. پوی رزمایی ک زفت اکۊنین، رزم ناهاده ابۊن.</string>
   <!-- Clickable text for opening an external link for more information about Sync. -->
   <string name="preferences_passwords_saved_logins_description_empty_learn_more_link_2">زبار هوم گوم کردن قلوه دووسته بۊین</string>
   <!-- Preference to access list of login exceptions that we never save logins for -->

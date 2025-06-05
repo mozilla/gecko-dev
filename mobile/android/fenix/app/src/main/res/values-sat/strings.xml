@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">ᱮᱠᱮᱴᱮᱱᱮᱚᱱ ᱠᱚ ᱢᱮᱱᱟᱡᱽ ᱢᱮ</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">ᱰᱷᱮᱨ</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">ᱠᱟ.ᱡ</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">ᱵᱟᱛᱟᱣ ᱠᱟᱱ ᱯᱟᱥᱱᱟᱣᱨᱠᱚ</string>
   <!--
@@ -239,6 +243,8 @@
   <string name="browser_menu_extensions_disabled_description">ᱠᱟᱹᱡ ᱚᱠᱛᱚ ᱞᱟᱹᱜᱤᱫ ᱵᱚᱸᱫ ᱠᱟᱱᱟ</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">ᱮᱠᱥᱴᱮᱱᱥᱚᱱ ᱮᱢ ᱵᱟᱭ ᱦᱩᱭ ᱠᱟᱱᱟ</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">ᱵᱟᱛᱟᱣ ᱠᱟᱱ ᱯᱟᱥᱱᱟᱣ ᱧᱮᱞ ᱵᱤᱲᱟᱹᱣ ᱢᱮ</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">ᱠᱷᱟᱛᱟ ᱵᱤᱵᱨᱚᱬ</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -366,6 +372,8 @@
   <string name="browser_menu_save_description">ᱵᱩᱠᱢᱟᱨᱠ, ᱠᱷᱟᱴᱚᱢᱟᱪᱷᱟ, ᱚᱲᱟᱜ, ᱛᱩᱢᱟᱹᱞ, PDF ᱥᱮᱞᱮᱫ ᱢᱮ</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">ᱱᱚᱶᱟ ᱥᱟᱦᱴᱟ ᱵᱩᱩᱠᱢᱟᱨᱠ ᱢᱮ</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">ᱥᱟᱦᱴᱟ ᱯᱩᱛᱷᱤᱪᱤᱱᱦᱟᱹᱭ ᱢᱮ</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">ᱵᱩᱠᱢᱟᱨᱠ ᱥᱟᱯᱲᱟᱣ ᱢᱮ</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -385,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">%1$s ᱛᱮ ᱛᱚᱨᱡᱚᱢᱟ ᱠᱟᱱᱟ</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">ᱛᱚᱨᱡᱚᱢᱟ ᱟᱠᱟᱱᱟ</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">ᱪᱷᱟᱯᱟ…</string>
   <!--
@@ -620,6 +630,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">ᱩᱥᱟᱹᱨᱟ ᱟᱨ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱣᱮᱵᱽ ᱵᱽᱨᱟᱣᱩᱡᱤᱝ</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">ᱨᱮᱵᱮᱱ ᱢᱮ ᱟᱨ ᱞᱟᱦᱟᱜ ᱢᱮ</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">ᱞᱮᱛᱟᱲ</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">ᱞᱟᱦᱟᱜ ᱠᱟᱛᱮ, ᱟᱢ %1$s ᱨᱮᱢ ᱦᱮᱸᱥᱮᱨᱤᱭᱟᱹ ᱮᱫᱟ ᱾</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -764,6 +776,8 @@
   <string name="preferences_pbm_lock_screen_title">ᱯᱨᱟᱭᱣᱮᱴ ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱨᱮ ᱴᱮᱵᱽ ᱩᱠᱩ ᱞᱟᱹᱜᱤᱫ ᱥᱠᱨᱤᱱ ᱞᱚᱠ ᱵᱮᱵᱷᱟᱨ ᱢᱮ</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
   <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">ᱠᱟᱹᱴᱩᱵ ᱪᱤᱛᱟᱹᱨ, ᱪᱮᱦᱨᱟ ᱠᱟᱹᱴᱷᱤ, ᱵᱟᱝᱠᱷᱟᱱ PIN ᱥᱟᱶ ᱴᱮᱵᱽ ᱧᱮᱞ ᱢᱮ ᱾</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">ᱟᱢᱟᱜ ᱠᱟᱹᱴᱩᱵ ᱪᱤᱛᱟᱹᱨ, ᱯᱤᱱ, ᱵᱟᱝᱠᱷᱟᱱ ᱪᱮᱦᱨᱟ ᱚᱱᱞᱚᱠ ᱥᱟᱶ ᱴᱮᱵᱽ ᱧᱮᱞ ᱢᱮ ᱾</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">ᱠᱩᱠᱤ ᱵᱮᱱᱚᱨ ᱟᱠᱚᱴᱤᱭᱟᱹ</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -858,12 +872,18 @@
   <string name="preferences_show_voice_search">ᱨᱚᱲ ᱥᱮᱸᱫᱽᱨᱟ ᱩᱫᱩᱜ</string>
   <!-- Preference title for switch preference to show search suggestions also in private mode -->
   <string name="preferences_show_search_suggestions_in_private">ᱱᱤᱡᱮᱨᱟᱜ ᱚᱠᱛᱚ ᱨᱮ ᱩᱫᱩᱜ ᱢᱮ</string>
+  <!-- Preference title for switch preference to show trending search suggestions -->
+  <string name="preferences_show_trending_search_suggestions">ᱴᱨᱮᱱᱰᱤᱝ ᱥᱚᱞᱦᱟ ᱩᱫᱩᱜᱽ ᱢᱮ</string>
+  <!-- Preference title for switch preference to show recent search suggestions -->
+  <string name="preferences_show_recent_search_suggestions">ᱱᱮᱛᱟᱨ ᱨᱮᱱᱟᱜ ᱥᱮᱸᱫᱽᱨᱟ ᱩᱫᱩᱜ ᱢᱮ</string>
   <!-- Preference title for switch preference to show a clipboard suggestion when searching -->
   <string name="preferences_show_clipboard_suggestions">ᱨᱮᱴᱚᱯᱵᱚᱰ ᱦᱩᱫᱤᱥ ᱠᱚ ᱩᱫᱩᱜ</string>
   <!-- Preference title for switch preference to suggest browsing history when searching -->
   <string name="preferences_search_browsing_history">ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱦᱤᱛᱟᱹᱞ ᱥᱮᱸᱫᱽᱨᱟᱭ ᱢᱮ</string>
   <!-- Preference title for switch preference to suggest bookmarks when searching -->
   <string name="preferences_search_bookmarks">ᱵᱩᱠᱢᱟᱨᱠ ᱠᱚ ᱥᱮᱸᱫᱽᱨᱟᱭ ᱢᱮ</string>
+  <!-- Preference title for switch preference to show shortcuts when searching -->
+  <string name="preferences_show_shortcuts">ᱠᱷᱟᱴᱚᱢᱟᱪᱷᱟᱠᱚ ᱫᱮᱠᱷᱟᱣᱢᱮ</string>
   <!-- Preference title for switch preference to suggest synced tabs when searching -->
   <string name="preferences_search_synced_tabs">ᱥᱭᱝᱠ ᱟᱠᱟᱱ ᱴᱮᱵᱽ ᱠᱚ ᱥᱮᱸᱫᱽᱨᱟᱭ ᱢᱮ</string>
   <!-- Preference for account settings -->
@@ -884,6 +904,16 @@
   <string name="preferences_show_nonsponsored_suggestions">%1$s ᱠᱷᱚᱱ ᱵᱟᱛᱟᱣᱟᱜ</string>
   <!-- Summary for preference to show Firefox Suggest search suggestions for web content -->
   <string name="preferences_show_nonsponsored_suggestions_summary">ᱣᱮᱵᱽ ᱠᱷᱚᱱ ᱟᱢᱟᱜ ᱥᱮᱸᱫᱽᱨᱟ ᱵᱟᱵᱚᱛ ᱵᱟᱛᱟᱣᱠᱚ ᱧᱟᱢ ᱢᱮ</string>
+  <!-- Preference for link sharing -->
+  <string name="preferences_link_sharing">ᱞᱤᱝᱠ ᱦᱟᱹᱴᱤᱧ</string>
+  <!-- Title for the link sharing toggle. %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_title">%1$s ᱰᱟᱣᱩᱱᱞᱳᱰ ᱞᱤᱝᱠ ᱫᱚ WhatsApp ᱦᱟᱹᱴᱤᱧ ᱠᱚ ᱨᱮ ᱥᱮᱞᱮᱫ ᱢᱮ</string>
+  <!-- Body for the link sharing toggle.  %1$s is replaced by the brand name (e.g. Firefox). -->
+  <string name="link_sharing_toggle_body">ᱟᱢ ᱨᱮᱱ ᱜᱟᱛᱮ ᱠᱚ ᱱᱮᱣᱛᱟ ᱠᱚᱢ ᱞᱚᱜᱚᱱ, ᱨᱚᱯᱟ ᱛᱮ ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱞᱟᱹᱜᱤᱫ %1$s ᱥᱟᱶ ᱡᱟᱦᱟᱸ ᱛᱤᱱ ᱨᱮ ᱟᱢ WhatsApp ᱨᱮ ᱞᱤᱝᱠ ᱮᱢ ᱦᱟᱹᱴᱤᱧᱟ ᱾</string>
+  <!-- Snackbar message shown when user shares a link -->
+  <string name="link_shared_snackbar_message">ᱞᱤᱝᱠ ᱦᱟᱹᱴᱤᱧ ᱟᱠᱟᱱᱟ</string>
+  <!-- Snackbar action label shown when user shares a link -->
+  <string name="link_shared_snackbar_action">ᱥᱟᱡᱟᱣ ᱠᱚ ᱢᱮᱱᱮᱡᱽ ᱢᱮ</string>
   <!-- Preference for open links in third party apps -->
   <string name="preferences_open_links_in_apps">ᱞᱤᱝᱠ ᱠᱚ ᱮᱯ ᱨᱮ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
   <!-- Preference for open links in third party apps always open in apps option -->
@@ -953,6 +983,8 @@
   <string name="customize_toggle_recently_visited">ᱱᱤᱛᱚᱜᱟᱜ ᱦᱤᱨᱤᱭᱟᱜ</string>
   <!-- Title for the customize home screen section with Pocket. -->
   <string name="customize_toggle_pocket_2" tools:ignore="UnusedResources" moz:removedIn="140">ᱢᱚᱱᱮᱼᱜᱷᱟᱱᱴᱟ ᱠᱟᱹᱦᱱᱤᱠᱚ</string>
+  <!-- Title for the customize home screen section with Pocket. -->
+  <string name="customize_toggle_pocket_3">ᱠᱟᱹᱦᱱᱤᱠᱚ</string>
   <!-- Summary for the customize home screen section with Pocket. %s is "Pocket". -->
   <string name="customize_toggle_pocket_summary" tools:ignore="UnusedResources" moz:removedIn="140">%s ᱫᱟᱨᱟᱭ ᱛᱮ ᱫᱟᱲᱮ ᱮᱢ ᱠᱟᱱ ᱚᱱᱚᱞᱠᱚ</string>
   <!-- Title for the customize home screen section with sponsored Pocket stories. -->
@@ -993,6 +1025,56 @@
   <string name="wallpapers_onboarding_dialog_body_text">ᱟᱢᱟᱜ ᱠᱩᱥᱤᱭᱟᱜ ᱠᱟᱱᱛᱷᱪᱤᱛᱟᱹᱨ ᱵᱟᱪᱷᱟᱣ ᱢᱮ ᱾</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">ᱰᱷᱮᱨ ᱠᱟᱱᱛᱷᱪᱤᱛᱟᱹᱨ ᱠᱚ ᱥᱮᱸᱫᱽᱨᱟᱭ ᱢᱮ</string>
+  <!--
+    Icon picker
+
+    Title for the "Default" alternative app icon variant in the icon picker screen.
+  -->
+  <string name="alternative_app_icon_option_default">ᱢᱩᱞ</string>
+  <!-- Title for the "Light" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_light">ᱢᱟᱨᱥᱟᱞ</string>
+  <!-- Title for the "Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_dark">ᱧᱩᱛ</string>
+  <!-- Title for the "Red" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_red">ᱟᱨᱟᱜ</string>
+  <!-- Title for the "Green" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_green">ᱦᱟᱹᱨᱤᱭᱟᱹᱲ</string>
+  <!-- Title for the "Blue" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_blue">ᱞᱤᱞ</string>
+  <!-- Title for the "Purple" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple">ᱱᱟᱥᱮ ᱵᱮᱝᱜᱩᱱ</string>
+  <!-- Title for the "Purple Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple_dark">ᱧᱩᱛ ᱵᱮᱝᱜᱩᱱᱤ</string>
+  <!-- Title for the "Sunrise" gradient alternative app icon variant in the icon picker screen. The app icon features a soft yellow-to-blue gradient background, resembling the colors of early morning light. -->
+  <string name="alternative_app_icon_option_gradient_sunrise">ᱵᱮᱲᱟ ᱨᱟᱠᱟᱵ</string>
+  <!-- Title for the "Golden Hour" gradient alternative app icon variant in the icon picker screen. The app icon features a warm golden-to-pink gradient background, resembling the colors of the sunlight shortly before sunset. -->
+  <string name="alternative_app_icon_option_gradient_golden_hour">ᱥᱚᱱᱟ ᱚᱠᱛᱚ</string>
+  <!-- Title for the "Sunset" gradient alternative app icon variant in the icon picker screen. The app icon has a rich red-to-purple gradient background, resembling the tones of a sunset sky. -->
+  <string name="alternative_app_icon_option_gradient_sunset">ᱵᱮᱲᱟ ᱦᱟᱹᱥᱩᱨ</string>
+  <!-- Title for the "Blue Hour" gradient alternative app icon variant in the icon picker screen. The app icon has a cool blue gradient background, resembling the sky color around the time just after sunset or before sunrise. -->
+  <string name="alternative_app_icon_option_gradient_blue_hour">ᱞᱤᱞ ᱴᱟᱲᱟᱝ</string>
+  <!-- Title for the "Twilight" gradient alternative app icon variant in the icon picker screen. The app icon has a purple-toned gradient background, resembling the sky color during twilight. -->
+  <string name="alternative_app_icon_option_gradient_twilight">ᱴᱣᱟᱭᱞᱟᱭᱤᱴ</string>
+  <!-- Title for the "Midnight" gradient alternative app icon variant in the icon picker screen. The app icon features a dark gradient background, resembling the deep tones of the night sky. -->
+  <string name="alternative_app_icon_option_gradient_midnight">ᱟᱫᱷᱟ ᱧᱤᱫᱟᱹ</string>
+  <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
+  <string name="alternative_app_icon_option_gradient_northern_lights">ᱩᱛᱟᱹᱨ ᱱᱟᱠᱷᱟ ᱨᱮᱭᱟᱜ ᱢᱟᱨᱥᱟᱞ</string>
+  <!-- Title for the "Retro 2004" themed alternative app icon variant in the icon picker screen. This app icon uses the classic Firefox logo from 2004. -->
+  <string name="alternative_app_icon_option_retro_2004">Retro 2004</string>
+  <!-- Title for the "Retro 2017" themed alternative app icon variant in the icon picker screen. This app icon uses the Firefox logo from 2017, with a more modernized design. -->
+  <string name="alternative_app_icon_option_retro_2017">Retro 2017</string>
+  <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
+  <string name="alternative_app_icon_option_pixelated">Pixelated</string>
+  <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
+  <string name="alternative_app_icon_option_minimal">ᱠᱚᱢ ᱥᱮ ᱠᱚᱢ</string>
+  <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
+  <string name="alternative_app_icon_option_pride">ᱜᱚᱨᱚᱵ</string>
+  <!-- Title for the "Cute" themed alternative app icon variant in the icon picker screen. The app icon features a playful design with an adorable aesthetic. -->
+  <string name="alternative_app_icon_option_cute">ᱪᱮᱦᱨᱟ</string>
+  <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo">Momo</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">\u0040heyheymomodraws ᱦᱚᱛᱮᱛᱮ ᱵᱮᱱᱟᱣ ᱟᱠᱟᱱᱟ</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1099,8 +1181,29 @@
   <string name="exceptions_empty_message_description">ᱵᱟᱪᱷᱟᱣᱟᱠᱟᱱ ᱫᱟᱭᱤᱴ ᱠᱚᱨᱮ ᱟᱢ ᱤᱪᱷᱟᱹ ᱚᱱᱩᱥᱟᱨ ᱜᱷᱮᱨ ᱮᱥᱮᱫ ᱵᱚᱸᱫᱚ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾</string>
   <!-- Text displayed when there are no exceptions, with learn more link that brings users to a tracking protection SUMO page -->
   <string name="exceptions_empty_message_learn_more_link">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
+  <!-- Preference switch for usage and technical data collection -->
+  <string name="preference_usage_data_2">ᱴᱮᱠᱱᱤᱠᱟᱞ ᱟᱨ ᱤᱱᱴᱟᱨᱮᱠᱥᱚᱱ ᱰᱟᱴᱟ ᱵᱷᱮᱡᱟᱭ ᱢᱮ</string>
   <!-- Preference switch for usage and technical learn more link -->
   <string name="preference_usage_data_learn_more">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
+  <!-- Preference description for marketing data collection. Note: The words "Firefox" should NOT be translated -->
+  <string name="preferences_usage_data_description_1" tools:ignore="BrandUsage">ᱟᱢᱟᱜ ᱥᱟᱫᱷᱚᱱ, ᱦᱟᱨᱰᱣᱮᱭᱟᱨ ᱥᱟᱡᱟᱣ ᱟᱨ ᱵᱮᱵᱷᱟᱨ ᱵᱟᱵᱚᱛ ᱰᱟᱴᱟ ᱟᱞᱮ Firefox ᱨᱮᱭᱟᱜ ᱜᱩᱱᱠᱚ, ᱠᱟᱹᱢᱤᱦᱚᱨᱟ ᱟᱨ ᱥᱴᱮᱵᱤᱞᱤᱴᱤ ᱥᱩᱫᱷᱟᱹᱨ ᱞᱟᱹᱜᱤᱫ ᱜᱚᱲᱚ ᱞᱮ ᱮᱢᱟᱭᱟ ᱾</string>
+  <!-- Preference switch for campaign measurement data (marketing data) collection -->
+  <string name="preferences_marketing_data_2">ᱠᱮᱢᱯᱮᱭᱱ ᱡᱚᱠᱷᱟ ᱰᱟᱴᱟ</string>
+  <!--
+    Preference description for marketing data collection.
+    Note: The words "Firefox" and "Mozilla" should NOT be translated. “That you use it” is to mean that the user is opting in to sharing that they are continuing to use Firefox after installing it; not that Firefox is tracking their “usage” or what they’re using it for.
+  -->
+  <string name="preferences_marketing_data_description_4" tools:ignore="BrandUsage">ᱟᱢ ᱪᱮᱫ ᱞᱮᱠᱟ Firefox \u0020ᱮᱢ ᱧᱟᱢ ᱠᱮᱫᱟ ᱟᱨ ᱚᱱᱟ Mozilla ᱨᱮᱱ ᱢᱟᱨᱠᱮᱴᱤᱝ ᱴᱮᱠᱱᱚᱞᱚᱡᱤ ᱵᱷᱟᱜᱫᱟᱨ ᱠᱚ ᱥᱟᱶ ᱮᱢ ᱵᱮᱵᱷᱟᱨ ᱮᱫᱟ ᱚᱱᱟ ᱞᱟᱹᱭ ᱢᱮ ᱾</string>
+  <!-- Learn more link for marketing data preference -->
+  <string name="preferences_marketing_data_learn_more">ᱢᱟᱨᱠᱮᱴᱤᱝ ᱰᱟᱴᱟ ᱵᱟᱵᱚᱛ ᱵᱟᱹᱲᱛᱤ ᱵᱟᱲᱟᱭ ᱢᱮ</string>
+  <!-- Preference switch for daily usage ping data collection -->
+  <string name="preferences_daily_usage_ping_title">ᱫᱤᱱᱟᱹᱢ ᱵᱮᱵᱷᱟᱨ ping</string>
+  <string name="preferences_daily_usage_ping_description">ᱱᱚᱣᱟ ᱫᱚ Mozilla ᱮᱠᱴᱤᱵᱷ ᱵᱮᱵᱷᱟᱨᱤᱭᱟᱹ ᱠᱚ ᱟᱱᱩᱢᱟᱱ ᱞᱟᱹᱜᱤᱫ ᱜᱚᱲᱚ ᱮᱢᱟ ᱠᱚᱣᱟᱭ ᱾</string>
+  <string name="preferences_daily_usage_ping_learn_more">ᱫᱤᱱᱟᱹᱢ ᱵᱮᱵᱷᱟᱨ ping ᱵᱟᱵᱚᱛ ᱵᱟᱹᱲᱛᱤ ᱵᱟᱲᱟᱭ ᱢᱮ</string>
+  <!-- Preference switch title for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_title">ᱟᱡ ᱛᱮ ᱰᱤᱜᱟᱹᱣ ᱠᱷᱚᱵᱚᱨ ᱵᱷᱮᱡᱟᱭᱟ</string>
+  <!-- Preference switch description for automatically submitting crash reports -->
+  <string name="preferences_automatically_send_crashes_description">ᱱᱚᱣᱟ ᱟᱞᱮ ᱵᱽᱨᱟᱣᱩᱡᱟᱨ ᱨᱮᱱᱟᱜ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱧᱮᱞ ᱟᱨ ᱥᱟᱹᱛ ᱞᱟᱹᱜᱤᱫ ᱜᱚᱲᱚ ᱮᱢᱟ ᱞᱮᱭᱟ ᱾ ᱨᱤᱯᱳᱨᱴ ᱨᱮ ᱯᱚᱨᱥᱚᱱᱟᱞ ᱵᱟᱝᱠᱷᱟᱱ ᱥᱮᱱᱥᱮᱴᱤᱵᱷ ᱰᱟᱴᱟ ᱥᱮᱞᱮᱫ ᱛᱟᱦᱮᱸ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾</string>
   <!-- Learn more link for crash reporting preference -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more">ᱠᱨᱟᱥ ᱨᱤᱯᱚᱨᱴ ᱵᱟᱵᱚᱛ ᱵᱟᱹᱲᱛᱤ ᱵᱟᱲᱟᱭ ᱢᱮ</string>
   <!-- Title for studies preferences -->
@@ -1289,6 +1392,18 @@
   <string name="studies_active">ᱩᱥᱨᱟᱹᱣ</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
+  <!--
+    Sessions
+
+    Title for the list of tabs in the current private session used by a11y services
+    The %1$s will be replaced by the number of opened private tabs
+  -->
+  <string name="tabs_header_private_tabs_counter_title">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱠᱚ ᱡᱷᱤᱡᱽ ᱢᱮ: %1$s᱾ ᱴᱮᱵᱽ ᱵᱚᱫᱚᱞ ᱞᱟᱹᱜᱤᱫ ᱴᱤᱯᱟᱹᱣ ᱢᱮ ᱾</string>
+  <!--
+    Title for the list of tabs in the synced tabs used by a11y services
+    The %1$s will be replaced by the number of opened synced tabs
+  -->
+  <string name="tabs_header_synced_tabs_counter_title">ᱥᱤᱱᱥᱰ ᱴᱮᱵᱽ ᱠᱚ ᱡᱷᱤᱡᱽ ᱢᱮ: %1$s ᱾ ᱴᱮᱵᱽ ᱵᱚᱫᱚᱞ ᱞᱟᱹᱜᱤᱫ ᱴᱤᱯᱟᱹᱣ ᱢᱮ ᱾</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
   <string name="add_tab">ᱴᱮᱵᱽ ᱥᱮᱞᱮᱫᱽ ᱢᱮ</string>
   <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
@@ -2191,6 +2306,62 @@
   <string name="preference_doh_default_protection_info_3">ᱡᱩᱫᱤ ᱦᱩᱭ ᱫᱟᱲᱮᱭᱟᱜ ᱠᱷᱟᱱ, ᱢᱤᱫᱴᱟᱝ ᱥᱩᱨ ᱯᱨᱚᱵᱷᱟᱭᱰᱚᱨ ᱵᱮᱵᱷᱟᱨ ᱢᱮ ᱾ %1$s</string>
   <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_4">VPN, ᱜᱷᱟᱨᱚᱧᱡᱽ ᱠᱚᱵᱽᱡᱟ, ᱟᱨᱵᱟᱝ ᱮᱱᱴᱚᱨᱯᱨᱟᱭᱡᱽ ᱱᱤᱛᱤ ᱛᱟᱦᱮᱱ ᱠᱷᱟᱱ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
+  <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection">ᱨᱩᱠᱷᱤᱭᱟᱹ ᱵᱚᱰᱷᱟᱣᱮᱱᱟ</string>
+  <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_summary">ᱟᱢ ᱫᱚ ᱟᱢᱟᱜ DNS ᱵᱮᱵᱷᱟᱨ ᱟᱨ ᱟᱢᱟᱜ ᱯᱨᱚᱵᱷᱟᱭᱰᱚᱨ ᱵᱟᱪᱷᱟᱣ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾</string>
+  <!-- Bullet point 1 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_1">ᱟᱢ ᱵᱟᱪᱷᱟᱣ ᱟᱠᱟᱱ ᱯᱨᱚᱵᱷᱟᱭᱰᱚᱨ ᱵᱮᱵᱷᱟᱨ ᱢᱮ</string>
+  <!-- Bullet point 2 for "Increased Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_increased_protection_info_2">ᱡᱩᱫᱤ ᱨᱩᱠᱷᱤᱭᱟᱹ DNS ᱨᱮ ᱡᱟᱦᱟᱱ ᱢᱩᱥᱠᱤᱞ ᱢᱮᱱᱟᱜᱼᱟ ᱮᱱᱠᱷᱟᱱ ᱟᱢᱟᱜ ᱢᱩᱞ DNS ᱨᱤᱥᱚᱞᱣᱚᱨ ᱵᱮᱵᱷᱟᱨ ᱢᱮ</string>
+  <!-- Title displayed for "Max Protection" option under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection">Max ᱨᱩᱠᱷᱤᱭᱟᱹ</string>
+  <!-- Summary displayed for "Max Protection" option under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). -->
+  <string name="preference_doh_max_protection_summary">%1$s ᱫᱚ ᱨᱩᱠᱷᱤᱭᱟᱹ DNS ᱜᱮ ᱵᱮᱵᱷᱟᱨᱟᱭ ᱾ ᱟᱢᱟᱜ ᱥᱤᱥᱴᱚᱢ DNS ᱵᱮᱵᱷᱟᱨ ᱢᱟᱬᱟᱝ ᱨᱮ ᱟᱢ ᱫᱚ ᱢᱤᱫᱴᱟᱝ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱨᱤᱥᱠᱮᱢ ᱧᱮᱞ ᱟ ᱾</string>
+  <!-- Bullet point 1 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_1">ᱟᱢ ᱵᱟᱪᱷᱟᱣ ᱠᱟᱫ ᱯᱨᱚᱵᱷᱟᱭᱰᱚᱨ ᱜᱮ ᱵᱮᱵᱷᱟᱨ ᱢᱮ</string>
+  <!-- Bullet point 2 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_2">ᱡᱩᱫᱤ ᱨᱩᱠᱷᱤᱭᱟᱹ DNS ᱵᱟᱭ ᱧᱟᱢᱚᱜ ᱠᱟᱱᱟ ᱦᱩᱥᱤᱭᱟᱹᱨ ᱪᱷᱚᱭ ᱢᱮ</string>
+  <!-- Bullet point 3 for "Max Protection" information page under "DNS over HTTPS" -->
+  <string name="preference_doh_max_protection_info_3">ᱡᱩᱫᱤ ᱨᱩᱠᱷᱤᱭᱟᱹ DNS ᱵᱟᱭ ᱧᱟᱢᱚᱜ ᱠᱟᱱᱟ ᱥᱟᱭᱤᱴᱠᱚ ᱞᱚᱰ ᱵᱟᱝ ᱦᱩᱭᱩᱜᱼᱟ ᱟᱨᱵᱟᱝ ᱱᱟᱯᱟᱭ ᱛᱮ ᱠᱟᱹᱢᱤ ᱵᱟᱝ ᱦᱩᱭᱩᱜᱼᱟ</string>
+  <!-- Title displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off">ᱵᱚᱸᱫᱚ</string>
+  <!-- Summary displayed for "Off" option under "DNS over HTTPS" -->
+  <string name="preference_doh_off_summary">ᱟᱢᱟᱜ ᱢᱩᱞ DNS ᱨᱤᱡᱚᱞᱵᱷᱚᱨ ᱵᱮᱵᱷᱟᱨ ᱛᱟᱢ</string>
+  <!-- Text displayed above provider dropdown under "DNS over HTTPS" -->
+  <string name="preference_doh_choose_provider">ᱯᱨᱚᱣᱟᱭᱰᱟᱹᱨ ᱵᱟᱪᱷᱟᱣ ᱢᱮ</string>
+  <!-- Text displayed for "Default provider" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_default">(ᱰᱤᱯᱷᱚᱞᱴ)</string>
+  <!-- Text displayed for "Custom" under "DNS over HTTPS" providers -->
+  <string name="preference_doh_provider_custom">ᱠᱩᱥᱤᱭᱟᱜ</string>
+  <!-- Text displayed for "Custom provider" dialog under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_title">ᱠᱟᱥᱴᱚᱢ ᱯᱨᱚᱣᱟᱭᱤᱰᱟᱨ</string>
+  <!-- Text displayed above provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_textfield">ᱮᱢᱤᱡ</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL does not start with "https://" or its scheme is not "https" -->
+  <string name="preference_doh_provider_custom_dialog_error_https">URL ᱫᱚ “https://” ᱠᱷᱚᱱ ᱮᱦᱚᱵᱚᱜ ᱞᱟᱹᱠᱛᱤᱭᱟ</string>
+  <!-- Error text displayed for provider textfield under "DNS over HTTPS" if the URL is invalid -->
+  <string name="preference_doh_provider_custom_dialog_error_invalid">ᱵᱟᱝ ᱵᱟᱛᱟᱣ URL</string>
+  <!-- Cancel button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_cancel">ᱵᱟᱹᱰᱨᱟᱹ</string>
+  <!-- Add button text for provider textfield under "DNS over HTTPS" -->
+  <string name="preference_doh_provider_custom_dialog_add">ᱥᱮᱞᱮᱫᱽ ᱢᱮ</string>
+  <!-- Preference to access list of login exceptions that we don't use DNS over HTTPS -->
+  <string name="preference_doh_exceptions">ᱪᱷᱟᱰᱟ ᱠᱚ</string>
+  <!-- Description of "exceptions" for "DNS over HTTPS". %1$s is the name of the app (for example "Firefox"). -->
+  <string name="preference_doh_exceptions_summary">%1$s ᱫᱚ ᱨᱩᱠᱷᱤᱭᱟᱹ DNS ᱚᱱᱟ ᱥᱟᱭᱤᱴ ᱨᱮ ᱟᱨ ᱟᱠᱚᱣᱟᱜ ᱥᱚᱵᱽᱰᱚᱢᱮᱱ ᱨᱮ ᱵᱟᱭ ᱵᱮᱵᱷᱟᱨ ᱟᱭ ᱾</string>
+  <!-- Text displayed that links to adding website domain for "DNS over HTTPS" exceptions. -->
+  <string name="preference_doh_exceptions_add">ᱥᱟᱭᱤᱴ ᱥᱮᱞᱮᱫ ᱢᱮ</string>
+  <!-- Text displayed above the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_site">ᱥᱟᱭᱤᱴ</string>
+  <!-- Placeholder URL displayed in the input field when adding exceptions for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_placeholder">example.com</string>
+  <!-- Error displayed in the input field when adding invalid URLs for "DNS over HTTPS". -->
+  <string name="preference_doh_exceptions_add_error">ᱢᱤᱫ ᱢᱟᱱᱭᱚ ᱰᱚᱢᱮᱱ ᱦᱩᱭᱩᱜ ᱞᱟᱹᱠᱛᱤᱭᱟ</string>
+  <!-- Text displayed on the button within the input field for adding exceptions to "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_add_save">ᱥᱟᱺᱪᱟᱣ ᱢᱮ</string>
+  <!-- Text displayed for removing all exceptions in "DNS over HTTPS" -->
+  <string name="preference_doh_exceptions_remove_all_exceptions">ᱥᱟᱱᱟᱢ ᱮᱠᱥᱮᱯᱥᱚᱱ ᱚᱪᱚᱜᱽ ᱢᱮ</string>
   <!-- About page link text to open support link -->
   <string name="about_support">ᱜᱚᱲᱚ</string>
   <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
@@ -2273,6 +2444,8 @@
   <string name="preferences_passwords_exceptions_remove_all">ᱡᱷᱚᱛᱚ ᱪᱷᱟᱰᱟᱠᱚ ᱢᱮᱴᱟᱣ ᱢᱮ</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">ᱫᱟᱱᱟᱝ ᱥᱟᱵᱟᱫᱽ ᱠᱚ ᱫᱮᱠᱷᱟᱣ ᱢᱮ</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">ᱛᱟᱭᱚᱢ</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">ᱥᱟᱭᱤᱴ</string>
   <!-- The header for the username for a login -->
@@ -2495,6 +2668,8 @@
   <string name="quick_settings_sheet_secure_connection_2">ᱡᱩᱲᱟᱹᱣ ᱫᱚ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱜᱮᱭᱟ</string>
   <!-- Label that indicates a site is using a insecure connection -->
   <string name="quick_settings_sheet_insecure_connection_2">ᱡᱩᱲᱟᱹᱣ ᱫᱚ ᱵᱟᱭ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱜᱮᱭᱟ</string>
+  <!-- Label that indicates a site is displaying a local document -->
+  <string name="quick_settings_sheet_local_page">ᱱᱚᱶᱟ ᱥᱟᱦᱴᱟ ᱫᱚ ᱟᱢᱟᱜ ᱥᱟᱫᱷᱚᱱ ᱨᱮ ᱫᱚᱦᱚ ᱠᱟᱱᱟ ᱾</string>
   <!-- Label to clear site data -->
   <string name="clear_site_data">ᱠᱩᱠᱤᱡᱽ ᱠᱚ ᱟᱨ ᱥᱟᱭᱤᱴ ᱰᱟᱴᱟ ᱠᱚ ᱯᱷᱟᱨᱪᱟᱭ ᱢᱮ</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
@@ -2650,10 +2825,17 @@
     Search suggestions title for Firefox Suggest.
   -->
   <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox ᱵᱟᱛᱟᱣ</string>
+  <!--
+    Search suggestions title for trending search suggestions.
+    %s is a placeholder for the name of the search engine providing the trending search suggestions.
+  -->
+  <string name="trending_searches_header_2">%s ᱨᱮ ᱴᱨᱮᱱᱰᱤᱝ ᱠᱟᱱᱟ</string>
   <!-- Title for search suggestions when Google is the default search suggestion engine. -->
   <string name="google_search_engine_suggestion_header">Google ᱥᱮᱱᱫᱽᱨᱟ</string>
   <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. %s is default search engine name. -->
   <string name="other_default_search_engine_suggestion_header">%s ᱥᱮᱸᱫᱽᱨᱟᱭ ᱢᱮ</string>
+  <!-- Title for recent search suggestions. -->
+  <string name="recent_searches_header">ᱱᱤᱛᱚᱜᱟᱜ ᱥᱮᱸᱫᱽᱨᱟ ᱠᱚ</string>
   <!--
     Default browser experiment
 
@@ -2676,6 +2858,8 @@
     Header text for a section on the home screen.
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">ᱢᱚᱱᱮᱼᱜᱷᱟᱱᱴᱟ ᱠᱟᱹᱦᱱᱤ ᱠᱚ</string>
+  <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">ᱠᱟᱹᱦᱱᱤᱠᱚ</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">ᱦᱟᱛᱟᱢ ᱞᱮᱠᱟᱛᱮ ᱠᱟᱹᱦᱱᱤ ᱠᱚ</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
@@ -2966,6 +3150,63 @@
   <string name="download_language_file_dialog_positive_button_text_all_languages">ᱰᱟᱣᱱᱞᱳᱰ ᱟᱨ ᱛᱚᱨᱡᱚᱢᱟ</string>
   <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to cancel the action and not perform a download of the language file. -->
   <string name="download_language_file_dialog_negative_button_text">ᱵᱟᱹᱰᱨᱟᱹ</string>
+  <!--
+    Unified Trust Panel
+
+    Text for the protection panel header when the site is secure.
+  -->
+  <string name="protection_panel_header_secure">ᱨᱩᱠᱷᱤᱭᱟᱹ</string>
+  <!-- Text for the protection panel header when the site is not secure. -->
+  <string name="protection_panel_header_not_secure">ᱵᱟᱝ ᱨᱩᱠᱷᱤᱭᱟᱹ</string>
+  <!-- Title text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_title">ᱱᱟᱶᱟ ᱥᱟᱭᱤᱴ ᱨᱮ ᱥᱟᱵᱫᱷᱟᱱ ᱛᱟᱦᱮᱸᱱ ᱢᱮ ᱾</string>
+  <!-- Description text for the protection panel banner when the site is not secure. -->
+  <string name="protection_panel_banner_not_secure_description">ᱟᱢᱟᱜ ᱡᱩᱲᱟᱣ ᱫᱚ ᱵᱟᱝ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱜᱮᱭᱟ ᱾</string>
+  <!-- Title text for the protection panel banner when tracking protection is disabled. -->
+  <string name="protection_panel_banner_not_protected_title">ᱟᱢ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱠᱚ ᱵᱚᱱᱫᱚ ᱠᱮᱫᱟᱢ</string>
+  <!--
+    Description text for the protection panel banner when tracking protection is disabled.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="protection_panel_banner_not_protected_description">%s ᱫᱚ ᱵᱟᱭ ᱠᱟᱹᱢᱤ ᱠᱟᱱᱟᱭ ᱾ \u0020ᱟᱞᱮ ᱫᱚ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱠᱚ ᱫᱚᱦᱲᱟ ᱪᱟᱹᱞᱩ ᱞᱟᱹᱜᱤᱫ ᱞᱮ ᱥᱚᱞᱦᱟ ᱮᱫᱟ᱾</string>
+  <!--
+    Title text for the protection panel banner when tracking protection is enabled.
+    %s is the name of the app (for example "Firefox").
+  -->
+  <string name="protection_panel_banner_protected_title">%s ᱨᱩᱠᱷᱤᱭᱟᱹ ᱨᱮ ᱢᱮᱱᱟᱜ ᱠᱟᱹᱫᱮᱭᱟ</string>
+  <!-- Description text for the protection panel banner when tracking protection is enabled. -->
+  <string name="protection_panel_banner_protected_description">ᱟᱢ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱜᱮᱭᱟᱢ ᱾ \u0020ᱡᱩᱫᱤ ᱟᱞᱮ ᱡᱟᱦᱟᱱᱟᱜ ᱞᱮ ᱧᱮᱞ ᱧᱟᱢ ᱠᱮᱫᱟ, ᱟᱞᱮ ᱟᱢ ᱞᱮ ᱵᱟᱰᱟᱭ ᱚᱪᱚ ᱢᱮᱭᱟ ᱾</string>
+  <!-- Label text for the Enhanced Tracking Protection toggle. -->
+  <string name="protection_panel_etp_toggle_label">ᱵᱟᱲᱦᱟᱣᱟᱠᱟᱱ ᱯᱟᱸᱡᱟ ᱨᱚᱯᱷᱟ</string>
+  <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is enabled. -->
+  <string name="protection_panel_etp_toggle_enabled_description">ᱡᱩᱫᱤ ᱱᱚᱶᱟ ᱥᱟᱭᱤᱴ ᱨᱮ ᱡᱟᱦᱟᱱᱟᱜ ᱨᱟᱹᱯᱩᱫ ᱧᱮᱞᱚᱜ ᱠᱟᱱᱟ, ᱮᱱᱠᱷᱟᱱ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱠᱚ ᱵᱚᱱᱫᱚ ᱨᱮᱭᱟᱜ ᱠᱩᱨᱩᱢᱩᱴᱩᱭ ᱢᱮ ᱾</string>
+  <!-- Description text for the Enhanced Tracking Protection toggle when tracking protection is disabled. -->
+  <string name="protection_panel_etp_toggle_disabled_description">ᱨᱩᱠᱷᱤᱭᱟᱹ ᱫᱚ ᱵᱚᱱᱫᱚ ᱜᱮᱭᱟ ᱾ \u0020ᱟᱞᱮ ᱩᱱᱠᱩ ᱫᱚᱦᱲᱟ ᱪᱟᱹᱞᱩ ᱞᱟᱹᱜᱤᱫ ᱥᱚᱞᱦᱟ ᱞᱮ ᱮᱢᱟᱫ ᱠᱚᱣᱟ ᱾</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the protection panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="protection_panel_num_trackers_blocked">ᱴᱨᱮᱠᱟᱨ ᱠᱚ ᱵᱞᱚᱠ ᱮᱱᱟ: %d</string>
+  <!-- Text for when no trackers have been blocked. -->
+  <string name="protection_panel_no_trackers_blocked">ᱯᱟᱧᱡᱟᱠᱩᱜ ᱵᱟᱠᱚ ᱧᱟᱢ ᱞᱮᱱᱟ</string>
+  <!-- Link text to navigate to privacy and security settings from the protection panel. -->
+  <string name="protection_panel_privacy_and_security_settings">ᱯᱨᱟᱭᱣᱮᱥᱤ ᱟᱨ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱥᱟᱡᱟᱣᱠᱚ</string>
+  <!--
+    Text for displaying the total number of trackers blocked in the trackers blocked panel.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_total_num_trackers_blocked">ᱴᱨᱮᱠᱟᱨ ᱠᱚ ᱵᱞᱚᱠ ᱮᱱᱟ: %d</string>
+  <!--
+    Text for displaying the number of trackers blocked for a specific tracker category in the trackers blocked panel.
+    %s is a placeholder for the name of the tracker category.
+    %d is a placeholder for the number of trackers blocked.
+  -->
+  <string name="trackers_blocked_panel_categorical_num_trackers_blocked">%s: %d</string>
+  <!--
+    Description text for a dialog confirming whether the user wants to delete all data for current site.
+    %s is a placeholder for the base domain of website.
+  -->
+  <string name="clear_site_data_dialog_description"><![CDATA[ᱠᱩᱠᱤᱡᱽ ᱚᱪᱚᱜ ᱟᱨ ᱥᱟᱭᱤᱴ ᱰᱟᱴᱟ <b>%s</b> ᱞᱟᱹᱜᱤᱫ ᱟᱢ ᱣᱮᱵᱽᱥᱟᱭᱤᱴ ᱠᱷᱚᱱ ᱵᱟᱦᱨᱮ ᱚᱰᱚᱠ ᱟᱨ ᱥᱚᱯᱤᱝ ᱠᱟᱨᱴ ᱥᱟᱯᱷᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾]]></string>
   <!-- Text for the connection security panel when the site is secure. -->
   <string name="connection_security_panel_secure">ᱡᱟᱹᱯᱛᱤ ᱡᱚᱱᱚᱲᱟᱣ</string>
   <!-- Text for the connection security panel when the site is not secure. -->
@@ -3155,4 +3396,52 @@
   <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">ᱟᱢᱟᱜ Firefox ᱵᱽᱨᱟᱣᱡᱚᱨ ᱦᱟᱹᱞᱤᱭᱟᱹᱠ ᱛᱟᱢ</string>
   <!-- Homepage card message about old Firefox version -->
   <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">ᱢᱤᱫ ᱨᱩᱴ ᱥᱮᱨᱴᱤᱯᱷᱤᱠᱮᱴ ᱢᱩᱪᱟᱹᱫᱚᱜᱼᱟ, ᱚᱱᱟ ᱠᱷᱟᱹᱛᱤᱨ ᱛᱮ ᱛᱤᱱᱟᱹᱜ ᱜᱟᱱ ᱯᱷᱤᱪᱟᱨ ᱠᱚ ᱑᱔ ᱢᱟᱨᱪ ᱦᱤᱞᱚᱜ ᱠᱟᱹᱢᱤ ᱵᱚᱱᱫᱚᱭᱟᱭ ᱾</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fourth_step">ᱟᱢ ᱔ ᱛᱟᱲᱟᱢ ᱵᱷᱤᱛᱨᱤ ᱨᱮ ᱢᱮᱱᱟᱢᱟ ᱾ ᱥᱩᱢᱩᱝ ᱵᱟᱨ ᱜᱚᱴᱟᱝ ᱪᱟᱞᱟᱜ ᱞᱟᱹᱜᱤᱫ!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_fifth_step">ᱯᱨᱟᱭ ᱚᱱᱰᱮ ᱜᱮ! ᱟᱢ ᱫᱚ ᱢᱩᱪᱟᱹᱫ ᱞᱟᱭᱤᱱ ᱠᱷᱚᱱ ᱑ ᱛᱟᱲᱟᱢ ᱥᱟᱦᱟᱨ ᱨᱮ ᱢᱮᱱᱟᱢᱟ ᱾</string>
+  <!-- Subtitle for a setup checklist with 6 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_6_steps_completed_state">ᱟᱢ ᱥᱟᱱᱟᱢ 6 ᱥᱮᱴᱟᱯ ᱥᱴᱮᱯ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾ %1$s ᱨᱮᱭᱟᱜ ᱥᱯᱤᱰ, ᱯᱨᱟᱭᱣᱮᱥᱤ ᱟᱨ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱨᱮᱭᱟᱜ ᱨᱟᱹᱥᱠᱟᱹᱡᱚᱝ ᱢᱮ ᱾</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 5 steps (Large screen devices don't support toolbar placement) =====
+
+    Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_5_steps_initial_state">ᱥᱚᱨᱮᱥ ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱟᱹᱱᱟᱹᱭᱠᱟᱹᱣ ᱞᱟᱹᱜᱤᱫ %1$s ᱥᱮᱴ ᱟᱯ ᱞᱟᱹᱜᱤᱫ ᱥᱟᱱᱟᱢ 5 ᱫᱷᱟᱯ ᱯᱩᱨᱟᱹᱣ ᱢᱮ᱾</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_first_step">ᱟᱹᱰᱤ ᱱᱟᱯᱟᱭ ᱮᱦᱚᱵ! ᱟᱢ 5 ᱠᱷᱚᱱ 1 ᱥᱴᱮᱯ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_second_step">ᱟᱢ 5 ᱠᱷᱚᱱ 2 ᱥᱴᱮᱯ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾ ᱟᱹᱰᱤ ᱞᱟᱦᱟᱱᱛᱤ!</string>
+  <!-- Subtitle for a setup checklist with 5 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_5_steps_third_step">ᱟᱢ ᱚᱱᱰᱮ ᱟᱫᱷᱟ ᱦᱚᱨ ᱨᱮ ᱢᱮᱱᱟᱢᱟ! ᱯᱮ ᱛᱟᱲᱟᱢ ᱪᱟᱵᱟ ᱮᱱᱟ ᱟᱨ 2 ᱪᱟᱞᱟᱜ ᱞᱟᱹᱜᱤᱫ ᱾</string>
+  <!-- Subtitle for a setup checklist with 5 steps when the fifth task is completed. -->
+  <string name="setup_checklist_subtitle_5_steps_fourth_step">ᱯᱨᱟᱭ ᱚᱱᱰᱮ ᱜᱮ! ᱟᱢ ᱫᱚ ᱢᱩᱪᱟᱹᱫ ᱞᱟᱭᱤᱱ ᱠᱷᱚᱱ 1 ᱛᱟᱲᱟᱢ ᱥᱟᱦᱟᱨ ᱨᱮ ᱢᱮᱱᱟᱢᱟ ᱾</string>
+  <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_5_steps_completed_state">ᱟᱢ ᱥᱟᱱᱟᱢ 6 ᱥᱮᱴᱟᱯ ᱥᱴᱮᱯ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾ %1$s ᱨᱮᱭᱟᱜ ᱥᱯᱤᱰ, ᱯᱨᱟᱭᱣᱮᱥᱤ ᱟᱨ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱨᱮᱭᱟᱜ ᱨᱟᱹᱥᱠᱟᱹᱡᱚᱝ ᱢᱮ ᱾</string>
+  <!--
+    ===== Setup checklist feature: Button =====
+
+    Text for the 'remove' button for the setup checklist
+  -->
+  <string name="setup_checklist_button_remove">ᱪᱮᱠᱞᱤᱥᱴ ᱚᱪᱚᱜᱽ ᱢᱮ</string>
+  <!--
+    ===== Setup checklist feature: Accessibility =====
+
+    Accessibility description for a check mark on a completed task
+  -->
+  <string name="a11y_completed_task_description">ᱯᱩᱨᱟᱹᱣ ᱠᱟᱱ ᱠᱟᱹᱢᱤ</string>
+  <!-- Accessibility description for the task icon -->
+  <string name="a11y_task_icon_description">ᱠᱟᱹᱢᱤ ᱪᱤᱱᱦᱟᱹ</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱥᱠᱨᱤᱱ ᱞᱚᱠ ᱪᱟᱹᱞᱩᱭ ᱢᱮ</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱥᱠᱨᱤᱱ ᱞᱚᱠ ᱵᱚᱸᱫ ᱪᱷᱚᱭ ᱢᱮ</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">ᱴᱮᱵᱽ ᱩᱠᱩ ᱞᱟᱹᱜᱤᱫ ᱥᱠᱨᱤᱱ ᱞᱚᱠ ᱥᱮᱴ ᱟᱯ ᱢᱮ</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱩᱠᱩ ᱞᱟᱹᱜᱤᱫ ᱥᱠᱨᱤᱱ ᱞᱚᱠ ᱵᱮᱵᱷᱟᱨ ᱢᱮ?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">ᱵᱟᱝᱟ ᱥᱟᱨᱦᱟᱣ</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">ᱴᱮᱵᱽ ᱠᱚ ᱠᱩᱞᱩᱯ ᱢᱮ</string>
 </resources>

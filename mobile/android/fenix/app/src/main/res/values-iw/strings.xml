@@ -1337,7 +1337,7 @@
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">סגירת לשוניות</string>
   <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
-  <string name="close_tabs_manually">באופן ידני</string>
+  <string name="close_tabs_manually">לעולם לא</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">אחרי יום אחד</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
@@ -3658,4 +3658,22 @@
   <string name="private_tab_cfr_negative">לא תודה</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">נעילת לשוניות</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">מה דעתך על %1$s?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">נתקלתי בבעיות</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">זה מעולה!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">שמחים שאהבת את %1$s. יש לך שנייה להפיץ את האהבה הזו ולדרג אותנו?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">מתן דירוג %1$s בחנות Play</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">מצטערים שנתקלת בבעיות. נשמע לשמוע כיצד נוכל לשפר את %1$s.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">השארת משוב</string>
 </resources>

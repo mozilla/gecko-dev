@@ -2,4 +2,12 @@
 <resources>
   <!-- Content description for the clear URL text button. -->
   <string name="mozac_clear_button_description">ᱯᱷᱟᱨᱪᱟ</string>
+  <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
+  <string name="mozac_browser_toolbar_search_hint">ᱴᱷᱤᱠᱬᱟᱹ ᱯᱟᱱᱛᱮ ᱟᱨ ᱵᱟᱝ ᱥᱮᱸᱫᱽᱨᱟ</string>
+  <!-- Contextual menu option for long pressing on the toolbar URL. Clicking it will copy the current URL -->
+  <string name="mozac_browser_toolbar_long_press_popup_copy">ᱱᱚᱠᱚᱞ</string>
+  <!-- Contextual menu option for long pressing on the toolbar URL. Clicking it will paste the text from clipboard and allow user to edit it -->
+  <string name="mozac_browser_toolbar_long_press_popup_paste">ᱞᱟᱴᱷᱟ</string>
+  <!-- Contextual menu option for long pressing on the toolbar URL. Clicking it will paste the text from clipboard and search for or load it as an URL. '&amp;' is replaced with the ampersand symbol: & -->
+  <string name="mozac_browser_toolbar_long_press_popup_paste_and_go">ᱞᱟᱴᱷᱟᱭ ᱢᱮ ᱟᱨ ᱪᱟᱞᱟᱜ ᱢᱮ</string>
 </resources>

@@ -1649,14 +1649,28 @@
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">ไซต์ช้าหรือไม่ทำงาน</string>
   <!-- Broken site reason text for site doesn’t load -->
   <string name="webcompat_reporter_reason_load">หน้าเว็บไม่โหลด</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">ไม่สามารถชำระเงิน ดำเนินการต่อ หรือซื้อสินค้าได้</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">รูปภาพหรือวิดีโอ</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">ปุ่ม ลิงก์ และเนื้อหาอื่นๆ</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">ลงชื่อเข้าใช้หรือออกจากระบบ</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">เว็บไซต์ช้า</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">วิดีโอไม่เล่นหรือไม่โหลด</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">ไม่พบเนื้อหา</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">ไม่สามารถลงชื่อเข้าใช้หรือลงทะเบียนได้</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">ตัวปิดกั้นโฆษณา</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">เว็บไซต์ขอความร่วมมือปิดตัวปิดกั้นโฆษณา</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">เบราว์เซอร์ไม่เข้ากันหรือถูกปิดกั้น</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">อื่น ๆ</string>
   <!--
@@ -1887,6 +1901,10 @@
   <string name="studies_on">เปิด</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">ปิด</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">เปิด</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">ปิด</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">การอนุญาต</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -2512,6 +2530,8 @@
   <string name="preferences_passwords_exceptions_remove_all">ลบข้อยกเว้นทั้งหมด</string>
   <!-- Hint for search box in passwords list -->
   <string name="preferences_passwords_saved_logins_search_2">ค้นหารหัสผ่าน</string>
+  <!-- Content description for the logins navigation bar back button -->
+  <string name="logins_navigate_back_button_content_description">ย้อนกลับ</string>
   <!-- The header for the site that a login is for -->
   <string name="preferences_passwords_saved_logins_site">ไซต์</string>
   <!-- The header for the username for a login -->
@@ -2924,6 +2944,8 @@
     Header text for a section on the home screen.
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">เรื่องราวที่จุดประกายความคิด</string>
+  <!-- Header text for a section on the home screen. -->
+  <string name="pocket_stories_header_2">เรื่องราว</string>
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_categories_header">เรื่องตามหัวข้อ</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->

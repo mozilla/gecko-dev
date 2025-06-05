@@ -1339,7 +1339,7 @@
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">Luk faneblade</string>
   <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
-  <string name="close_tabs_manually">Manuelt</string>
+  <string name="close_tabs_manually">Aldrig</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">Efter en dag</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
