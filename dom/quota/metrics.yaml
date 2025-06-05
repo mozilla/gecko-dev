@@ -89,7 +89,7 @@ quotamanager:
     notification_emails:
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
-    expires: 142
+    expires: never
 quotamanager.initialize.repository:
   number_of_iterations:
     type: labeled_custom_distribution
