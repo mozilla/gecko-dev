@@ -118,17 +118,17 @@ pref(layout.disable-pixel-alignment,true) == snapped-scrolled-content-1.html?tex
 pref(layout.disable-pixel-alignment,true) == snapped-scrolled-content-1.html?text=1&top=0.4 snapped-scrolled-content-ref.html?text=1
 pref(layout.disable-pixel-alignment,true) == snapped-scrolled-content-1.html?text=1&scrollTop=4 snapped-scrolled-content-ref.html?text=1&offset=4
 pref(layout.disable-pixel-alignment,true) == snapped-scrolled-content-1.html?text=1&scrollTop=999 snapped-scrolled-content-ref.html?text=1&offset=48
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&scrollTop=999&innerBottom=240.3 snapped-scrolled-content-ref.html?text=1&offset=48
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&top=-0.4&scrollTop=999&innerBottom=240.3 snapped-scrolled-content-ref.html?text=1&offset=48
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&top=-0.4&scrollTop=999&innerBottom=239.6 snapped-scrolled-content-ref.html?text=1&offset=48
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&scrollTop=999&innerBottom=240.3 snapped-scrolled-content-ref.html?text=1&offset=48
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&top=-0.4&scrollTop=999&innerBottom=240.3 snapped-scrolled-content-ref.html?text=1&offset=48
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&top=-0.4&scrollTop=999&innerBottom=239.6 snapped-scrolled-content-ref.html?text=1&offset=48
 pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1 snapped-scrolled-content-ref.html?text=1
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=4.1667 snapped-scrolled-content-ref.html?text=1&offset=5
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=4 snapped-scrolled-content-ref.html?text=1&offset=5
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=3 snapped-scrolled-content-ref.html?text=1&offset=4
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=2 snapped-scrolled-content-ref.html?text=1&offset=2
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=4.1667 snapped-scrolled-content-ref.html?text=1&offset=5
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=4 snapped-scrolled-content-ref.html?text=1&offset=5
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=3 snapped-scrolled-content-ref.html?text=1&offset=4
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=2 snapped-scrolled-content-ref.html?text=1&offset=2
 pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-2.html?text=1&scrollTop=1 snapped-scrolled-content-ref.html?text=1&offset=1
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&top=0&scrollIntoViewPos=4.4 snapped-scrolled-content-ref.html?text=1&offset=4
-fails pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&top=0&scrollIntoViewPos=3.7 snapped-scrolled-content-ref.html?text=1&offset=4
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&top=0&scrollIntoViewPos=4.4 snapped-scrolled-content-ref.html?text=1&offset=4
+pref(layout.disable-pixel-alignment,true) fails-if(useDrawSnapshot) == snapped-scrolled-content-1.html?text=1&top=0&scrollIntoViewPos=3.7 snapped-scrolled-content-ref.html?text=1&offset=4
 
 # Tests for "overflow" styles that may be propagated to the viewport:
 == propagated-overflow-style-1a.html propagated-overflow-style-1-ref.html
