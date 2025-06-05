@@ -466,6 +466,126 @@ release-promotion:
             target-tasks-method: ship_android
 
 
+merge-automation:
+    behaviors:
+        main-to-beta:
+            fetch-version-from: "browser/config/version.txt"
+            version-files:
+                - filename: "config/milestone.txt"
+                  new-suffix: ''
+                - filename: "browser/config/version.txt"
+                  new-suffix: ''
+                - filename: "browser/config/version_display.txt"
+                  new-suffix: 'b1'
+                - filename: "mobile/android/version.txt"
+                  new-suffix: 'b1'
+            replacements:
+                - - browser/config/mozconfigs/linux32/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/linux64/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/win32/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/win64/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/win64-aarch64/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - browser/config/mozconfigs/macosx64/l10n-mozconfig
+                  - ac_add_options --with-branding=browser/branding/nightly
+                  - ac_add_options --enable-official-branding
+                - - .arcconfig
+                  - FIREFOXAUTOLAND
+                  - FIREFOXBETA
+            merge-old-head: true
+            base-tag: 'FIREFOX_BETA_{major_version}_BASE'
+            end-tag: 'FIREFOX_BETA_{major_version}_END'
+            from-branch: 'main'
+            to-branch: 'beta'
+        early-to-late-beta:
+            fetch-version-from: "browser/config/version.txt"
+            version-files: []
+            replacements:
+                - - build/defines.sh
+                  - EARLY_BETA_OR_EARLIER=1
+                  - EARLY_BETA_OR_EARLIER=
+            merge-old-head: false
+            to-branch: 'beta'
+        beta-to-release:
+            fetch-version-from: "browser/config/version.txt"
+            version-files:
+                - filename: "browser/config/version_display.txt"
+                  new-suffix: ''
+                - filename: "mobile/android/version.txt"
+                  new-suffix: ''
+            replacements:
+                - - .arcconfig
+                  - FIREFOXBETA
+                  - FIREFOXRELEASE
+            merge-old-head: true
+            base-tag: 'FIREFOX_RELEASE_{major_version}_BASE'
+            end-tag: 'FIREFOX_RELEASE_{major_version}_END'
+            from-branch: 'beta'
+            to-branch: 'release'
+        release-to-esr:
+            fetch-version-from: "browser/config/version.txt"
+            version-files:
+                - filename: "browser/config/version_display.txt"
+                  new-suffix: 'esr'
+            replacements:
+                - - .arcconfig
+                  - FIREFOXRELEASE
+                  - FIREFOXESRONEFOURZERO
+            merge-old-head: false
+            end-tag: "FIREFOX_ESR_{major_version}_BASE"
+            to-branch: 'esr140'
+        bump-main:
+            fetch-version-from: "browser/config/version.txt"
+            version-files:
+                - filename: "config/milestone.txt"
+                  version-bump: "major"
+                  new-suffix: 'a1'
+                - filename: "browser/config/version.txt"
+                  version-bump: "major"
+                  new-suffix: 'a1'
+                - filename: "browser/config/version_display.txt"
+                  version-bump: "major"
+                  new-suffix: 'a1'
+                - filename: "mobile/android/version.txt"
+                  version-bump: "major"
+                  new-suffix: 'a1'
+            replacements:
+                - - "services/sync/modules/constants.sys.mjs"
+                  - 'WEAVE_VERSION = "1.{current_weave_version}.0"'
+                  - 'WEAVE_VERSION = "1.{next_weave_version}.0"'
+            regex-replacements:
+                - - "browser/extensions/webcompat/manifest.json"
+                  - '"version": "[0-9]+.[0-9]+.0"'
+                  - '"version": "{next_major_version}.0.0"'
+                - - "browser/extensions/newtab/manifest.json"
+                  - '"version": "[0-9]+.[0-9]+.0"'
+                  - '"version": "{next_major_version}.0.0"'
+            merge-old-head: false
+            end-tag: 'FIREFOX_NIGHTLY_{major_version}_END'
+            to-branch: 'main'
+        bump-esr140:
+            fetch-version-from: "browser/config/version.txt"
+            version-files:
+                - filename: "config/milestone.txt"
+                  version-bump: "minor"
+                - filename: "browser/config/version.txt"
+                  version-bump: "minor"
+                - filename: "browser/config/version_display.txt"
+                  version-bump: "minor"
+                  new-suffix: "esr"
+            replacements: []
+            merge-old-head: false
+            to-branch: 'esr140'
+
 scriptworker:
     # See additional configuration in taskcluster/gecko_taskgraph/util/scriptworker.py
     scope-prefix: 'project:releng'

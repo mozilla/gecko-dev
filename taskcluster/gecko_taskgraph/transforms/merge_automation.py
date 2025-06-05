@@ -24,8 +24,6 @@ def handle_keyed_by(config, tasks):
         "worker-type",
         "worker.l10n-bump-info",
         "worker.lando-repo",
-        "worker.matrix-rooms",
-        "worker.actions",
     ]
     for task in tasks:
         for field in fields:
@@ -40,7 +38,6 @@ def handle_keyed_by(config, tasks):
                     "level": config.params["level"],
                 }
             )
-
         yield task
 
 
@@ -62,9 +59,12 @@ def add_payload_config(config, tasks):
             break
         merge_config = config.params["merge_config"]
         worker = task["worker"]
+        worker["merge-info"] = config.graph_config["merge-automation"]["behaviors"][
+            merge_config["behavior"]
+        ]
 
-        assert len(worker["actions"][0].keys()) == 1
-        action_name = list(worker["actions"][0].keys())[0]
+        if "l10n-bump-info" in worker and worker["l10n-bump-info"] is None:
+            del worker["l10n-bump-info"]
 
         # Override defaults, useful for testing.
         for field in [
@@ -76,7 +76,7 @@ def add_payload_config(config, tasks):
             "lando-repo",
         ]:
             if merge_config.get(field):
-                worker["actions"][0][action_name][field] = merge_config[field]
+                worker["merge-info"][field] = merge_config[field]
 
         worker["force-dry-run"] = merge_config["force-dry-run"]
         if merge_config.get("push"):

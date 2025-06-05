@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: mozilla-taskgraph
-Version: 3.2.0
+Version: 3.1.2
 Summary: Mozilla specific transforms and utilities for Taskgraph
 Project-URL: Repository, https://github.com/mozilla-releng/mozilla-taskgraph
 Project-URL: Issues, https://github.com/mozilla-releng/mozilla-taskgraph/issues

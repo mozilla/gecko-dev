@@ -1,4 +1,4 @@
-# This Source Code Form is suject to the terms of the Mozilla Public
+# This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
@@ -19,15 +19,11 @@ tasks:
             kind: build
             platform: firefox-release/opt
         description: Merge repositories for release management.
+        scopes:
+            - "queue:route:notify.matrix-room.*"
         worker-type: lando
         worker:
-            implementation: scriptworker-lando
-            matrix-rooms:
-                by-level:
-                    '3':
-                        - "!tBWwNyfeKqGvkNpdDL:mozilla.org"
-                    default:
-                        - "!wGgsWXnVncJLSBYmuf:mozilla.org"
+            implementation: landoscript
             # lando-repo is the _destination_ repository; not the one
             # the task runs on. For this reason it is keyed on behavior
             # instead of project.
@@ -50,182 +46,77 @@ tasks:
                             bump-main: firefox-main
                             bump-esr140: firefox-esr140
             dontbuild: false
-            actions:
+            l10n-bump-info:
                 by-behavior:
-                    # this list of behaviours should be kept in sync with
-                    # the enum in the merge_automation action.
-                    bump-main:
-                        - main-bump:
-                              fetch-version-from: "browser/config/version.txt"
-                              version-files:
-                                  - filename: "config/milestone.txt"
-                                    version-bump: "major"
-                                    new-suffix: 'a1'
-                                  - filename: "browser/config/version.txt"
-                                    version-bump: "major"
-                                    new-suffix: 'a1'
-                                  - filename: "browser/config/version_display.txt"
-                                    version-bump: "major"
-                                    new-suffix: 'a1'
-                                  - filename: "mobile/android/version.txt"
-                                    version-bump: "major"
-                                    new-suffix: 'a1'
-                              replacements:
-                                  - - "services/sync/modules/constants.sys.mjs"
-                                    - 'WEAVE_VERSION = "1.{current_weave_version}.0"'
-                                    - 'WEAVE_VERSION = "1.{next_weave_version}.0"'
-                              regex-replacements:
-                                  - - "browser/extensions/webcompat/manifest.json"
-                                    - '"version": "[0-9]+.[0-9]+.0"'
-                                    - '"version": "{next_major_version}.0.0"'
-                                  - - "browser/extensions/newtab/manifest.json"
-                                    - '"version": "[0-9]+.[0-9]+.0"'
-                                    - '"version": "{next_major_version}.0.0"'
-                              end-tag: 'FIREFOX_NIGHTLY_{major_version}_END'
-                              to-branch: 'main'
-                    bump-esr140:
-                        - esr-bump:
-                              fetch-version-from: "browser/config/version.txt"
-                              version-files:
-                                  - filename: "config/milestone.txt"
-                                    version-bump: "minor"
-                                  - filename: "browser/config/version.txt"
-                                    version-bump: "minor"
-                                  - filename: "browser/config/version_display.txt"
-                                    version-bump: "minor"
-                                    new-suffix: "esr"
-                              to-branch: 'esr140'
-                    early-to-late-beta:
-                        - early-to-late-beta:
-                              replacements:
-                                  - - build/defines.sh
-                                    - EARLY_BETA_OR_EARLIER=1
-                                    - EARLY_BETA_OR_EARLIER=
-                              to-branch: 'beta'
                     main-to-beta:
-                        - uplift:
-                              fetch-version-from: "browser/config/version.txt"
-                              version-files:
-                                  - filename: "config/milestone.txt"
-                                    new-suffix: ''
-                                  - filename: "browser/config/version.txt"
-                                    new-suffix: ''
-                                  - filename: "browser/config/version_display.txt"
-                                    new-suffix: 'b1'
-                                  - filename: "mobile/android/version.txt"
-                                    new-suffix: 'b1'
-                              replacements:
-                                  - - browser/config/mozconfigs/linux32/l10n-mozconfig
-                                    - ac_add_options --with-branding=browser/branding/nightly
-                                    - ac_add_options --enable-official-branding
-                                  - - browser/config/mozconfigs/linux64/l10n-mozconfig
-                                    - ac_add_options --with-branding=browser/branding/nightly
-                                    - ac_add_options --enable-official-branding
-                                  - - browser/config/mozconfigs/win32/l10n-mozconfig
-                                    - ac_add_options --with-branding=browser/branding/nightly
-                                    - ac_add_options --enable-official-branding
-                                  - - browser/config/mozconfigs/win64/l10n-mozconfig
-                                    - ac_add_options --with-branding=browser/branding/nightly
-                                    - ac_add_options --enable-official-branding
-                                  - - browser/config/mozconfigs/win64-aarch64/l10n-mozconfig
-                                    - ac_add_options --with-branding=browser/branding/nightly
-                                    - ac_add_options --enable-official-branding
-                                  - - browser/config/mozconfigs/macosx64/l10n-mozconfig
-                                    - ac_add_options --with-branding=browser/branding/nightly
-                                    - ac_add_options --enable-official-branding
-                                  - - .arcconfig
-                                    - FIREFOXAUTOLAND
-                                    - FIREFOXBETA
-                              base-tag: 'FIREFOX_BETA_{major_version}_BASE'
-                              end-tag: 'FIREFOX_BETA_{major_version}_END'
-                              from-branch: 'main'
-                              to-branch: 'beta'
-                              l10n-bump-info:
-                                  - name: Firefox l10n changesets
-                                    path: browser/locales/l10n-changesets.json
-                                    l10n-repo-url: https://github.com/mozilla-l10n/firefox-l10n
-                                    l10n-repo-target-branch: main
-                                    ignore-config:
-                                        ja:
-                                            - macosx64
-                                            - macosx64-devedition
-                                        ja-JP-mac:
-                                            - linux
-                                            - linux-devedition
-                                            - linux64
-                                            - linux64-aarch64
-                                            - linux64-devedition
-                                            - linux64-aarch64-devedition
-                                            - win32
-                                            - win32-devedition
-                                            - win64
-                                            - win64-devedition
-                                            - win64-aarch64
-                                            - win64-aarch64-devedition
-                                    platform-configs: [{
-                                        "platforms": [
-                                            "linux",
-                                            "linux-devedition",
-                                            "linux64",
-                                            "linux64-aarch64",
-                                            "linux64-devedition",
-                                            "linux64-aarch64-devedition",
-                                            "macosx64",
-                                            "macosx64-devedition",
-                                            "win32",
-                                            "win32-devedition",
-                                            "win64",
-                                            "win64-devedition",
-                                            "win64-aarch64",
-                                            "win64-aarch64-devedition",
-                                        ],
-                                        "path": "browser/locales/shipped-locales",
-                                    }]
-                                  - name: mobile l10n changesets
-                                    path: mobile/locales/l10n-changesets.json
-                                    l10n-repo-url: https://github.com/mozilla-l10n/firefox-l10n
-                                    l10n-repo-target-branch: main
-                                    platform-configs: [
-                                        {
-                                            "platforms":
-                                                [
-                                                    "android",
-                                                    "android-arm",
-                                                    "android-multilocale",
-                                                ],
-                                            "path": "mobile/android/locales/all-locales",
-                                        },
-                                    ]
-                    beta-to-release:
-                        - uplift:
-                              fetch-version-from: "browser/config/version.txt"
-                              version-files:
-                                  - filename: "browser/config/version_display.txt"
-                                    new-suffix: ''
-                                  - filename: "mobile/android/version.txt"
-                                    new-suffix: ''
-                              replacements:
-                                  - - .arcconfig
-                                    - FIREFOXBETA
-                                    - FIREFOXRELEASE
-                              base-tag: 'FIREFOX_RELEASE_{major_version}_BASE'
-                              end-tag: 'FIREFOX_RELEASE_{major_version}_END'
-                              from-branch: 'beta'
-                              to-branch: 'release'
-                    release-to-esr:
-                        - uplift:
-                              fetch-version-from: "browser/config/version.txt"
-                              version-files:
-                                  - filename: "browser/config/version_display.txt"
-                                    new-suffix: 'esr'
-                              replacements:
-                                  - - .arcconfig
-                                    - FIREFOXRELEASE
-                                    - FIREFOXESRONEFOURZERO
-                              end-tag: "FIREFOX_ESR_{major_version}_BASE"
-                              to-branch: 'esr140'
+                        - name: Firefox l10n changesets
+                          path: browser/locales/l10n-changesets.json
+                          l10n-repo-url: https://github.com/mozilla-l10n/firefox-l10n
+                          l10n-repo-target-branch: main
+                          ignore-config:
+                              ja:
+                                  - macosx64
+                                  - macosx64-devedition
+                              ja-JP-mac:
+                                  - linux
+                                  - linux-devedition
+                                  - linux64
+                                  - linux64-aarch64
+                                  - linux64-devedition
+                                  - linux64-aarch64-devedition
+                                  - win32
+                                  - win32-devedition
+                                  - win64
+                                  - win64-devedition
+                                  - win64-aarch64
+                                  - win64-aarch64-devedition
+                          platform-configs: [{
+                              "platforms": [
+                                  "linux",
+                                  "linux-devedition",
+                                  "linux64",
+                                  "linux64-aarch64",
+                                  "linux64-devedition",
+                                  "linux64-aarch64-devedition",
+                                  "macosx64",
+                                  "macosx64-devedition",
+                                  "win32",
+                                  "win32-devedition",
+                                  "win64",
+                                  "win64-devedition",
+                                  "win64-aarch64",
+                                  "win64-aarch64-devedition",
+                              ],
+                              "path": "browser/locales/shipped-locales",
+                          }]
+                        - name: mobile l10n changesets
+                          path: mobile/locales/l10n-changesets.json
+                          l10n-repo-url: https://github.com/mozilla-l10n/firefox-l10n
+                          l10n-repo-target-branch: main
+                          platform-configs: [
+                              {
+                                  "platforms":
+                                      [
+                                          "android",
+                                          "android-arm",
+                                          "android-multilocale",
+                                      ],
+                                  "path": "mobile/android/locales/all-locales",
+                              },
+                          ]
+                    default: null
         run-on-projects: []
         expiration-policy: long
+        routes:
+            by-level:
+                '3':
+                    # #releaseduty
+                    - "notify.matrix-room.!tBWwNyfeKqGvkNpdDL:mozilla.org.on-pending"
+                    - "notify.matrix-room.!tBWwNyfeKqGvkNpdDL:mozilla.org.on-resolved"
+                default:
+                    # #releaseduty-dev
+                    - "notify.matrix-room.!wGgsWXnVncJLSBYmuf:mozilla.org.on-pending"
+                    - "notify.matrix-room.!wGgsWXnVncJLSBYmuf:mozilla.org.on-resolved"
         extra:
             notify:
                 matrixBody:
