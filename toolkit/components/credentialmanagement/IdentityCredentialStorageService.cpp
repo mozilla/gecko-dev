@@ -322,8 +322,8 @@ nsresult IdentityCredentialStorageService::EnsureTable(
   tableExists = false;
   aDatabase->TableExists("lightweight_identity"_ns, &tableExists);
   if (tableExists) {
-    // We no longer use this table, since lightweight is being rolled into the heavyweight
-    // version. So, let's clean up the profile!
+    // We no longer use this table, since lightweight is being rolled into the
+    // heavyweight version. So, let's clean up the profile!
     nsresult rv =
         aDatabase->ExecuteSimpleSQL("DROP TABLE lightweight_identity"_ns);
     NS_ENSURE_SUCCESS(rv, rv);
