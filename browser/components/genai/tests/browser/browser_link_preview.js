@@ -185,6 +185,10 @@ add_task(async function test_link_preview_with_long_press() {
 
   is(LinkPreview.cancelLongPress, null, "long press ignore non-primary button");
 
+  window.dispatchEvent(new MouseEvent("mousedown", { ctrlKey: true }));
+
+  is(LinkPreview.cancelLongPress, null, "long press ignore modifier keys");
+
   window.dispatchEvent(new MouseEvent("mousedown"));
 
   ok(LinkPreview.cancelLongPress, "long press timer started");
@@ -256,6 +260,17 @@ add_task(async function test_link_preview_with_typing() {
   );
 
   is(stub.callCount, 1, "preview shown without typing delay");
+
+  window.dispatchEvent(
+    new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "Tab",
+      shiftKey: true,
+    })
+  );
+
+  ok(LinkPreview.recentTyping, "recent typing set for shift-tab");
 
   stub.restore();
   LinkPreview.recentTyping = 0;

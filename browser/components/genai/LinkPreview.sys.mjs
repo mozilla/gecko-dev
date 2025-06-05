@@ -418,7 +418,7 @@ export const LinkPreview = {
     const win = event.currentTarget;
 
     // Track regular typing to suppress keyboard previews.
-    if (event.key.length == 1) {
+    if (event.key.length == 1 || ["Enter", "Tab"].includes(event.key)) {
       this.recentTyping = Date.now();
     }
 
@@ -610,10 +610,18 @@ export const LinkPreview = {
       return;
     }
 
-    // Check for the start of a long primary button press on a link.
+    // Check for the start of a long unmodified primary button press on a link.
     const win = event.currentTarget;
     const stateObject = this._windowStates.get(win);
-    if (event.type == "mousedown" && !event.button && stateObject.overLink) {
+    if (
+      event.type == "mousedown" &&
+      !event.button &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      stateObject.overLink
+    ) {
       // Detect events to cancel the long press.
       win.addEventListener("dragstart", this, true);
       win.addEventListener("mouseup", this, true);
