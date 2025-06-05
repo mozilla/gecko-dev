@@ -22,7 +22,7 @@ sealed class Action {
      *
      * @property icon The icon resource to be displayed for the action button.
      * @property contentDescription The content description for the action button.
-     * @property isActive Whether or not to show this button as a currently active feature.
+     * @property state the current [State] of the action button.
      * @property highlighted Whether or not to highlight this button.
      * @property onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
      * @property onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button
@@ -31,11 +31,19 @@ sealed class Action {
     data class ActionButton(
         @DrawableRes val icon: Int,
         @StringRes val contentDescription: Int,
-        val isActive: Boolean = false,
+        val state: State = State.DEFAULT,
         val highlighted: Boolean = false,
         val onClick: BrowserToolbarInteraction,
         val onLongClick: BrowserToolbarInteraction? = null,
-    ) : Action()
+    ) : Action() {
+
+        /**
+         * An enum class defining the current state of the [ActionButton].
+         */
+        enum class State {
+            DEFAULT, DISABLED, ACTIVE,
+        }
+    }
 
     /**
      * An action button styled as a dropdown button to be added to the toolbar.

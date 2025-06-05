@@ -25,6 +25,7 @@ import mozilla.components.compose.base.button.LongPressIconButton
 import mozilla.components.compose.base.menu.CustomPlacementPopup
 import mozilla.components.compose.base.menu.CustomPlacementPopupVerticalContent
 import mozilla.components.compose.base.theme.AcornTheme
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton.State
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarEvent
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarInteraction.BrowserToolbarMenu
@@ -39,20 +40,20 @@ import mozilla.components.ui.icons.R
  *
  * @param icon Drawable resource for this button.
  * @param contentDescription Text used by accessibility services to describe what this button does.
- * @param isActive Whether or not to show this button as a currently active feature.
+ * @param state The current [State] of the action button.
  * @param highlighted Whether or not to highlight this button.
  * @param onClick [BrowserToolbarInteraction] describing how to handle this button being clicked.
  * @param onLongClick Optional [BrowserToolbarInteraction] describing how to handle this button being long clicked.
  * @param onInteraction Callback for handling [BrowserToolbarEvent]s on user interactions.
  */
 @Composable
-@Suppress("LongMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 fun ActionButton(
     @DrawableRes icon: Int,
     @StringRes contentDescription: Int,
-    isActive: Boolean = false,
+    state: State = State.DEFAULT,
     highlighted: Boolean = false,
-    onClick: BrowserToolbarInteraction,
+    onClick: BrowserToolbarInteraction? = null,
     onLongClick: BrowserToolbarInteraction? = null,
     onInteraction: (BrowserToolbarEvent) -> Unit,
 ) {
@@ -61,10 +62,18 @@ fun ActionButton(
     }
     var currentMenuState by remember { mutableStateOf(None) }
     val colors = AcornTheme.colors
-    val tint = remember(isActive, colors) {
-        when (isActive) {
-            true -> colors.iconAccentViolet
-            false -> colors.iconPrimary
+    val tint = remember(state, colors) {
+        when (state) {
+            State.ACTIVE -> colors.iconAccentViolet
+            State.DISABLED -> colors.iconDisabled
+            State.DEFAULT -> colors.iconPrimary
+        }
+    }
+
+    val isEnabled = remember(state) {
+        when (state) {
+            State.DISABLED -> false
+            else -> true
         }
     }
 
@@ -89,12 +98,17 @@ fun ActionButton(
 
     when (shouldReactToLongClicks) {
         true -> LongPressIconButton(
-            onClick = { handleInteraction(onClick) },
+            onClick = {
+                if (onClick != null) {
+                    handleInteraction(onClick)
+                }
+            },
             onLongClick = {
                 if (onLongClick != null) {
                     handleInteraction(onLongClick)
                 }
             },
+            enabled = isEnabled,
             contentDescription = stringResource(contentDescription),
         ) {
             Box {
@@ -116,7 +130,12 @@ fun ActionButton(
         }
 
         false -> IconButton(
-            onClick = { handleInteraction(onClick) },
+            onClick = {
+                if (onClick != null) {
+                    handleInteraction(onClick)
+                }
+            },
+            enabled = isEnabled,
             contentDescription = stringResource(contentDescription),
         ) {
             Box {

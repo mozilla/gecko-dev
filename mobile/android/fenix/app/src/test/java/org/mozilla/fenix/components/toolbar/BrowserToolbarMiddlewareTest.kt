@@ -1186,7 +1186,7 @@ class BrowserToolbarMiddlewareTest {
         )
         translateButton = toolbarStore.state.displayState.pageActionsEnd[0]
         assertEquals(
-            expectedTranslateButton.copy(isActive = true),
+            expectedTranslateButton.copy(state = ActionButton.State.ACTIVE),
             translateButton,
         )
     }
@@ -1280,7 +1280,10 @@ class BrowserToolbarMiddlewareTest {
             true -> R.string.browser_menu_read_close
             false -> R.string.browser_menu_read
         },
-        isActive = isActive,
+        state = when (isActive) {
+            true -> ActionButton.State.ACTIVE
+            false -> ActionButton.State.DEFAULT
+        },
         onClick = ReaderModeClicked(isActive),
     )
 

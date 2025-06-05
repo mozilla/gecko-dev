@@ -40,7 +40,7 @@ fun ActionContainer(
                     ActionButtonComposable(
                         icon = action.icon,
                         contentDescription = action.contentDescription,
-                        isActive = action.isActive,
+                        state = action.state,
                         onClick = action.onClick,
                         highlighted = action.highlighted,
                         onLongClick = action.onLongClick,

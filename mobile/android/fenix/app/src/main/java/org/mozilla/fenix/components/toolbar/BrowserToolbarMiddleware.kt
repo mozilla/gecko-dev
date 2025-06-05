@@ -344,7 +344,11 @@ class BrowserToolbarMiddleware(
                         true -> R.string.browser_menu_read_close
                         false -> R.string.browser_menu_read
                     },
-                    isActive = readerModeStatus.isActive,
+                    state = if (readerModeStatus.isActive) {
+                        ActionButton.State.ACTIVE
+                    } else {
+                        ActionButton.State.DEFAULT
+                    },
                     onClick = ReaderModeClicked(readerModeStatus.isActive),
                 ),
             )
@@ -356,7 +360,11 @@ class BrowserToolbarMiddleware(
                 ActionButton(
                     icon = R.drawable.mozac_ic_translate_24,
                     contentDescription = R.string.browser_toolbar_translate,
-                    isActive = translationStatus.isTranslated,
+                    state = if (translationStatus.isTranslated) {
+                        ActionButton.State.ACTIVE
+                    } else {
+                        ActionButton.State.DEFAULT
+                    },
                     onClick = TranslateClicked,
                 ),
             )
