@@ -8,7 +8,6 @@
 body {
   margin: 0;
   padding: 60px;
-  font-size: 24px;
 }
 
 #scrollArea {
@@ -95,7 +94,6 @@ const params = getFloatQueryParams({
   innerBottom: 240,
   scrollIntoViewPos: null,
   scrollTop: null,
-  text: null,
 });
 
 const scrollArea = document.getElementById("scrollArea");
@@ -112,19 +110,13 @@ scrollArea.scrollTop = 1;
 scrollArea.scrollTop = 2;
 scrollArea.scrollTop = 0;
 
-if (params.text)  {
-  box1.innerText = "text";
-  box2.innerText = "text";
-  box3.innerText = "text";
-}
-
 function performScroll() {
   if (params.scrollIntoViewPos !== null) {
     // Scroll using `scrollIntoView`.
     // At the time this test was written (2024-09-05), this way of calling scrollIntoView
     // causes a ScrollTo call which doesn't allow any adjustment of the target scroll
     // position for pixel alignment. This exercises "unsnapped" scrolling even if
-    // layout.disable-pixel-alignment is false. It also lets you scroll to
+    // layout.scroll.disable-pixel-alignment is false. It also lets you scroll to
     // fractional CSS positions, unlike scrollTop or scrollTo().
     const scrollIntoViewTarget = document.getElementById("scrollIntoViewTarget");
     scrollIntoViewTarget.style.top = params.scrollIntoViewPos + "px";

@@ -12,7 +12,6 @@
 body {
   margin: 0;
   padding: 50px;
-  font-size: 20px;
 }
 
 #scrollArea {
@@ -99,7 +98,6 @@ const params = getFloatQueryParams({
   innerBottom: 200,
   scrollIntoViewPos: null,
   scrollTop: null,
-  text: null,
 });
 
 const scrollArea = document.getElementById("scrollArea");
@@ -116,12 +114,6 @@ scrolledContent.style.height =  (params.innerBottom - params.top) + "px";
 scrollArea.scrollTop = 1;
 scrollArea.scrollTop = 2;
 scrollArea.scrollTop = 0;
-
-if (params.text)  {
-  box1.innerText = "text";
-  box2.innerText = "text";
-  box3.innerText = "text";
-}
 
 function performScroll() {
   if (params.scrollIntoViewPos !== null) {
@@ -140,7 +132,7 @@ function performScroll() {
     // At the time this test was written (2024-09-05), this property only accepts integers in Firefox.
     // Since this test runs with a 1.2x zoom applied, the integer CSS pixel scroll
     // position will cause a scrollTop * 1.2 device pixel offset of the contents.
-    // At the time this test was written, if layout.disable-pixel-alignment
+    // At the time this test was written, if layout.scroll.disable-pixel-alignment
     // is false, Gecko will try to make it so that this device pixel offset is an
     // integer number.
     // For example, when setting scrollTop to 4, which would correspond to a device

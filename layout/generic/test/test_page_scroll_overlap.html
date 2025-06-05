@@ -102,7 +102,7 @@ async function testPrefVals(pctVal, linesVal, expectedOverlapInPx, useEpsilon) {
 async function doTests() {
   // Toggle a pref to avoid uninteresting off-by-1 test-failures on Android:
   await SpecialPowers.pushPrefEnv({
-    "set": [["layout.disable-pixel-alignment", true]]
+    "set": [["layout.scroll.disable-pixel-alignment", true]]
   });
 
   // Load a tall scrollable document in an iframe:
