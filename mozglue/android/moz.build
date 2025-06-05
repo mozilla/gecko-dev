@@ -39,6 +39,9 @@ LOCAL_INCLUDES += [
 
 DEFINES["XPCOM_GLUE"] = True
 
+# for ASharedMemory_*
+OS_LIBS += ["android"]
+
 USE_LIBS += [
     "xpcomglue",
 ]
