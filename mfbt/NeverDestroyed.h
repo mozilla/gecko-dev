@@ -47,7 +47,7 @@ MOZ_INHERIT_TYPE_ANNOTATIONS_FROM_TEMPLATE_ARGS NeverDestroyed {
   const T* operator->() const { return get(); }
   T* operator->() { return get(); }
 
-  const T* get() const { return reinterpret_cast<T*>(mStorage); }
+  const T* get() const { return reinterpret_cast<const T*>(mStorage); }
   T* get() { return reinterpret_cast<T*>(mStorage); }
 
   // Block copy & move constructor, as the type is not safe to copy.
