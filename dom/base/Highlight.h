@@ -117,7 +117,7 @@ class Highlight final : public nsISupports, public nsWrapperCache {
    *
    * Priority is used to stack overlapping highlights.
    */
-  void SetPriority(int32_t aPriority) { mPriority = aPriority; }
+  void SetPriority(int32_t aPriority);
 
   /**
    * @brief The HighlightType of this Highlight (Highlight, Spelling Error,
@@ -128,9 +128,7 @@ class Highlight final : public nsISupports, public nsWrapperCache {
   /**
    * @brief Sets the HighlightType (Highlight, Spelling Error, Grammar Error)
    */
-  void SetType(HighlightType aHighlightType) {
-    mHighlightType = aHighlightType;
-  }
+  void SetType(HighlightType aHighlightType);
 
   /**
    * @brief This mirrors the `size` property in JS world (_not_ exposed via
@@ -171,6 +169,8 @@ class Highlight final : public nsISupports, public nsWrapperCache {
   MOZ_CAN_RUN_SCRIPT bool Delete(AbstractRange& aRange, ErrorResult& aRv);
 
  private:
+  void Repaint();
+
   RefPtr<nsPIDOMWindowInner> mWindow;
 
   /**

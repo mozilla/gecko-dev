@@ -116,6 +116,21 @@ void HighlightRegistry::RemoveHighlightSelection(Highlight& aHighlight) {
   }
 }
 
+void HighlightRegistry::RepaintHighlightSelection(Highlight& aHighlight) {
+  RefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
+  if (!frameSelection) {
+    return;
+  }
+  for (auto const& iter : mHighlightsOrdered) {
+    if (iter.second() != &aHighlight) {
+      continue;
+    }
+
+    const RefPtr<nsAtom> highlightName = iter.first();
+    frameSelection->RepaintHighlightSelection(highlightName);
+  }
+}
+
 void HighlightRegistry::AddHighlightSelectionsToFrameSelection() {
   if (mHighlightsOrdered.IsEmpty()) {
     return;
