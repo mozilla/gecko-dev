@@ -132,6 +132,23 @@ UrlClassifierBlockedChannel::GetTables(nsACString& aTables) {
 }
 
 NS_IMETHODIMP
+UrlClassifierBlockedChannel::GetBrowserId(uint64_t* aBrowserId) {
+  NS_ENSURE_ARG_POINTER(aBrowserId);
+  nsCOMPtr<nsILoadInfo> loadInfo = mChannel->LoadInfo();
+  MOZ_ASSERT(loadInfo);
+
+  RefPtr<dom::BrowsingContext> browsingContext;
+  nsresult rv =
+      loadInfo->GetTargetBrowsingContext(getter_AddRefs(browsingContext));
+  if (NS_WARN_IF(NS_FAILED(rv)) || !browsingContext) {
+    return NS_ERROR_FAILURE;
+  }
+  *aBrowserId = browsingContext->BrowserId();
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 UrlClassifierBlockedChannel::GetIsPrivateBrowsing(bool* aIsPrivateBrowsing) {
   NS_ENSURE_ARG_POINTER(aIsPrivateBrowsing);
 
