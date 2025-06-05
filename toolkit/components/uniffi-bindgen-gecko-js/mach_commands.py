@@ -48,9 +48,18 @@ def build_gkrust_uniffi_library(command_context, source_library):
     print()
 
     out_dir = os.path.join(command_context.topsrcdir, "target", "release")
-    lib_basename = "lib{}".format(source_library.value.replace("-", "_"))
-    for ext in [".a", ".so", ".dll", ".dylib"]:
-        candidate = os.path.join(out_dir, lib_basename + ext)
+    basename = format(source_library.value.replace("-", "_"))
+    filename_candidates = [
+        # Linux / Darwin
+        f"lib{basename}.a",
+        # Windows
+        f"{basename}.lib",
+        # Some other combinations, just in case
+        f"{basename}.a",
+        f"lib{basename}.lib",
+    ]
+    for filename in filename_candidates:
+        candidate = os.path.join(out_dir, filename)
         if os.path.exists(candidate):
             return candidate
     raise Exception(f"Can't find gkrust_uniffi library in {out_dir}")
