@@ -40,14 +40,14 @@ bool DeclarationKindIsParameter(DeclarationKind kind);
  * parsed. When the parser encounters a function definition, it creates a new
  * ParseContext, makes it the new current context.
  */
-class ParseContext : public Nestable<ParseContext> {
+class MOZ_STACK_CLASS ParseContext : public Nestable<ParseContext> {
  public:
   // The intra-function statement stack.
   //
   // Used for early error checking that depend on the nesting structure of
   // statements, such as continue/break targets, labels, and unbraced
   // lexical declarations.
-  class Statement : public Nestable<Statement> {
+  class MOZ_STACK_CLASS Statement : public Nestable<Statement> {
     StatementKind kind_;
 
    public:
@@ -92,7 +92,7 @@ class ParseContext : public Nestable<ParseContext> {
   // The intra-function scope stack.
   //
   // Tracks declared and used names within a scope.
-  class Scope : public Nestable<Scope> {
+  class MOZ_STACK_CLASS Scope : public Nestable<Scope> {
     // Names declared in this scope. Corresponds to the union of
     // VarDeclaredNames and LexicallyDeclaredNames in the ES spec.
     //

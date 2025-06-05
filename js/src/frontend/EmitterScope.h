@@ -7,6 +7,7 @@
 #ifndef frontend_EmitterScope_h
 #define frontend_EmitterScope_h
 
+#include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 
 #include <stdint.h>
@@ -33,7 +34,7 @@ class ModuleSharedContext;
 class TaggedParserAtomIndex;
 
 // A scope that introduces bindings.
-class EmitterScope : public Nestable<EmitterScope> {
+class MOZ_STACK_CLASS EmitterScope : public Nestable<EmitterScope> {
   // The cache of bound names that may be looked up in the
   // scope. Initially populated as the set of names this scope binds. As
   // names are looked up in enclosing scopes, they are cached on the

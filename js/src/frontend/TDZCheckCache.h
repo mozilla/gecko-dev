@@ -38,7 +38,7 @@ using CheckTDZMap = RecyclableNameMap<MaybeCheckTDZ>;
 // evaluating a lexical variable declaration initializes it (after any
 // initializer is evaluated), evaluating a lexical declaration marks its entry
 // as DontCheckTDZ.
-class TDZCheckCache : public Nestable<TDZCheckCache> {
+class MOZ_STACK_CLASS TDZCheckCache : public Nestable<TDZCheckCache> {
   PooledMapPtr<CheckTDZMap> cache_;
 
   [[nodiscard]] bool ensureCache(BytecodeEmitter* bce);
