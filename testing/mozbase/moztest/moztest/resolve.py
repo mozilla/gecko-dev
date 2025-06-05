@@ -463,7 +463,7 @@ _test_flavors = {
 _test_subsuites = {
     ("browser-chrome", "a11y"): "mochitest-browser-a11y",
     ("browser-chrome", "devtools"): "mochitest-devtools-chrome",
-    ("browser-chrome", "media"): "mochitest-browser-media",
+    ("browser-chrome", "media-bc"): "mochitest-browser-media",
     ("browser-chrome", "remote"): "mochitest-remote",
     ("browser-chrome", "screenshots"): "mochitest-browser-screenshots",
     ("browser-chrome", "translations"): "mochitest-browser-translations",
