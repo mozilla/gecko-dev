@@ -17,16 +17,13 @@ import org.mozilla.fenix.theme.FirefoxTheme
 /**
  * Search bar.
  *
- * @param modifier [Modifier] for the content.
  * @param onClick Invoked when the user clicks on the search bar text.
  */
 @Composable
 internal fun SearchBar(
-    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     HomepageDisplayToolbar(
-        modifier = modifier,
         url = stringResource(R.string.search_hint),
         onUrlClicked = onClick,
     )
