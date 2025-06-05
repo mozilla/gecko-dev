@@ -2785,7 +2785,7 @@ static nscoord ClampAndAlignWithPixels(nscoord aDesired, nscoord aBoundLower,
   nscoord destUpper = std::clamp(aDestUpper, aBoundLower, aBoundUpper);
 
   nscoord desired = std::clamp(aDesired, destLower, destUpper);
-  if (StaticPrefs::layout_scroll_disable_pixel_alignment()) {
+  if (StaticPrefs::layout_disable_pixel_alignment()) {
     return desired;
   }
 
@@ -4989,7 +4989,7 @@ void ScrollContainerFrame::ScrollByCSSPixelsInternal(
   // the current position in CSS pixels differs from the given position, the
   // cases should be fixed in bug 1556685.
   CSSPoint currentCSSPixels;
-  if (StaticPrefs::layout_scroll_disable_pixel_alignment()) {
+  if (StaticPrefs::layout_disable_pixel_alignment()) {
     currentCSSPixels = GetScrollPositionCSSPixels();
   } else {
     currentCSSPixels = GetRoundedScrollPositionCSSPixels();
@@ -6799,7 +6799,7 @@ bool ScrollContainerFrame::GetBorderRadii(const nsSize& aFrameSize,
 
 static nscoord SnapCoord(nscoord aCoord, double aRes,
                          nscoord aAppUnitsPerPixel) {
-  if (StaticPrefs::layout_scroll_disable_pixel_alignment()) {
+  if (StaticPrefs::layout_disable_pixel_alignment()) {
     return aCoord;
   }
   double snappedToLayerPixels = NS_round((aRes * aCoord) / aAppUnitsPerPixel);
