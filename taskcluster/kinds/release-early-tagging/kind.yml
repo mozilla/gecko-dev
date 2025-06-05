@@ -15,8 +15,7 @@ task-defaults:
     shipping-phase: promote
     worker-type: lando
     worker:
-        implementation: landoscript
-        tags: ['buildN']
+        implementation: scriptworker-lando
         lando-repo:
             by-project:
                 mozilla-beta: firefox-beta
@@ -34,16 +33,19 @@ task-defaults:
                         esr140: staging-firefox-esr140
                         default: ""
                 default: ""
-        # used to map hg revisions to the git revisions that landoscript needs
-        hg-repo-url:
-            by-project:
-                mozilla-beta: https://hg.mozilla.org/releases/mozilla-beta
-                mozilla-release: https://hg.mozilla.org/releases/mozilla-release
-                mozilla-esr115: https://hg.mozilla.org/releases/mozilla-esr115
-                mozilla-esr128: https://hg.mozilla.org/releases/mozilla-esr128
-                mozilla-esr140: https://hg.mozilla.org/releases/mozilla-esr140
-                try: https://hg.mozilla.org/try
-                default: ""
+        actions:
+            - tag:
+                  types: ["buildN"]
+                  # used to map hg revisions to the git revisions that landoscript needs
+                  hg-repo-url:
+                      by-project:
+                          mozilla-beta: https://hg.mozilla.org/releases/mozilla-beta
+                          mozilla-release: https://hg.mozilla.org/releases/mozilla-release
+                          mozilla-esr115: https://hg.mozilla.org/releases/mozilla-esr115
+                          mozilla-esr128: https://hg.mozilla.org/releases/mozilla-esr128
+                          mozilla-esr140: https://hg.mozilla.org/releases/mozilla-esr140
+                          try: https://hg.mozilla.org/try
+                          default: ""
 
 tasks:
     firefox:

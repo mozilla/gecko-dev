@@ -20,8 +20,7 @@ task-defaults:
     shipping-phase: ship
     worker-type: lando
     worker:
-        implementation: landoscript
-        tags: ['release']
+        implementation: scriptworker-lando
         lando-repo:
             by-project:
                 mozilla-beta: firefox-beta
@@ -39,32 +38,36 @@ task-defaults:
                         esr140: staging-firefox-esr140
                         default: ""
                 default: ""
-        # used to map hg revisions to the git revisions that landoscript needs
-        hg-repo-url:
-            by-project:
-                mozilla-beta: https://hg.mozilla.org/releases/mozilla-beta
-                mozilla-release: https://hg.mozilla.org/releases/mozilla-release
-                mozilla-esr115: https://hg.mozilla.org/releases/mozilla-esr115
-                mozilla-esr128: https://hg.mozilla.org/releases/mozilla-esr128
-                mozilla-esr140: https://hg.mozilla.org/releases/mozilla-esr140
-                try: https://hg.mozilla.org/try
-                default: ""
-        # We're bumping both desktop and mobile version regardless of which product is getting
-        # released, to avoid confusion from them getting out of sync.
-        bump-files:
-            by-release-type:
-                default:
-                    - "browser/config/version_display.txt"
-                    - "mobile/android/version.txt"
-                release:
-                    - "browser/config/version.txt"
-                    - "browser/config/version_display.txt"
-                    - "config/milestone.txt"
-                    - "mobile/android/version.txt"
-                esr.*:
-                    - "browser/config/version.txt"
-                    - "browser/config/version_display.txt"
-                    - "config/milestone.txt"
+        actions:
+            - tag:
+                  types: ["release"]
+                  # used to map hg revisions to the git revisions that landoscript needs
+                  hg-repo-url:
+                      by-project:
+                          mozilla-beta: https://hg.mozilla.org/releases/mozilla-beta
+                          mozilla-release: https://hg.mozilla.org/releases/mozilla-release
+                          mozilla-esr115: https://hg.mozilla.org/releases/mozilla-esr115
+                          mozilla-esr128: https://hg.mozilla.org/releases/mozilla-esr128
+                          mozilla-esr140: https://hg.mozilla.org/releases/mozilla-esr140
+                          try: https://hg.mozilla.org/try
+                          default: ""
+            - version-bump:
+                  # We're bumping both desktop and mobile version regardless of which product is getting
+                  # released, to avoid confusion from them getting out of sync.
+                  bump-files:
+                      by-release-type:
+                          default:
+                              - "browser/config/version_display.txt"
+                              - "mobile/android/version.txt"
+                          release:
+                              - "browser/config/version.txt"
+                              - "browser/config/version_display.txt"
+                              - "config/milestone.txt"
+                              - "mobile/android/version.txt"
+                          esr.*:
+                              - "browser/config/version.txt"
+                              - "browser/config/version_display.txt"
+                              - "config/milestone.txt"
 
 tasks:
     firefox:

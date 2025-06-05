@@ -16,7 +16,7 @@ task-defaults:
         tier: 1
     worker-type: lando
     worker:
-        implementation: landoscript
+        implementation: scriptworker-lando
 
 tasks:
     import:
@@ -29,15 +29,16 @@ tasks:
                 by-project:
                     try: staging-firefox-autoland
                     default: firefox-autoland
-            android-l10n-import-info:
-                from-repo-url: https://github.com/mozilla-l10n/android-l10n
-                toml-info:
-                    - toml-path: mozilla-mobile/fenix/l10n.toml
-                      dest-path: mobile/android/fenix
-                    - toml-path: mozilla-mobile/focus-android/l10n.toml
-                      dest-path: mobile/android/focus-android
-                    - toml-path: mozilla-mobile/android-components/l10n.toml
-                      dest-path: mobile/android/android-components
+            actions:
+                - android-l10n-import:
+                      from-repo-url: https://github.com/mozilla-l10n/android-l10n
+                      toml-info:
+                          - toml-path: mozilla-mobile/fenix/l10n.toml
+                            dest-path: mobile/android/fenix
+                          - toml-path: mozilla-mobile/focus-android/l10n.toml
+                            dest-path: mobile/android/focus-android
+                          - toml-path: mozilla-mobile/android-components/l10n.toml
+                            dest-path: mobile/android/android-components
 
     sync:
         name: android_l10n_sync
@@ -50,9 +51,10 @@ tasks:
                     try: staging-firefox-beta
                     default: firefox-beta
             ignore-closed-tree: true
-            android-l10n-sync-info:
-                from-branch: main
-                toml-info:
-                    - toml-path: mobile/android/fenix/l10n.toml
-                    - toml-path: mobile/android/focus-android/l10n.toml
-                    - toml-path: mobile/android/android-components/l10n.toml
+            actions:
+                - android-l10n-sync:
+                      from-branch: main
+                      toml-info:
+                          - toml-path: mobile/android/fenix/l10n.toml
+                          - toml-path: mobile/android/focus-android/l10n.toml
+                          - toml-path: mobile/android/android-components/l10n.toml
