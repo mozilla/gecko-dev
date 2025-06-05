@@ -21,6 +21,7 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.setMain
+import mozilla.components.browser.state.action.ContentAction.UpdateLoadingStateAction
 import mozilla.components.browser.state.action.ContentAction.UpdateProgressAction
 import mozilla.components.browser.state.action.TabListAction.AddTabAction
 import mozilla.components.browser.state.action.TabListAction.RemoveTabAction
@@ -31,6 +32,7 @@ import mozilla.components.browser.state.state.createTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.browser.thumbnails.BrowserThumbnails
 import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton
+import mozilla.components.compose.browser.toolbar.concept.Action.ActionButton.State
 import mozilla.components.compose.browser.toolbar.concept.Action.TabCounterAction
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin
 import mozilla.components.compose.browser.toolbar.concept.PageOrigin.Companion.ContextualMenuOption
@@ -47,6 +49,8 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Bottom
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity.Top
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.support.test.ext.joinBlocking
 import mozilla.components.support.test.robolectric.testContext
@@ -92,6 +96,8 @@ import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateSessionLongClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.RefreshClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.StopRefreshClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.ReaderModeClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
@@ -1376,6 +1382,156 @@ class BrowserToolbarMiddlewareTest {
         }
     }
 
+    @Test
+    fun `GIVEN a top toolbar WHEN a website is loaded THEN show refresh button`() = runTestOnMain {
+        Dispatchers.setMain(StandardTestDispatcher())
+        mockkStatic(Context::isLargeWindow) {
+            val browsingModeManager = SimpleBrowsingModeManager(Private)
+            val currentNavDestination: NavDestination = mockk {
+                every { id } returns R.id.browserFragment
+            }
+            val navController: NavController = mockk(relaxed = true) {
+                every { currentDestination } returns currentNavDestination
+            }
+
+            every { any<Context>().isLargeWindow() } returns true
+            every { settings.shouldUseBottomToolbar } returns true
+            val currentTab = createTab("test.com", private = false)
+            val browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(currentTab),
+                    selectedTabId = currentTab.id,
+                ),
+            )
+            val reloadUseCases: SessionUseCases.ReloadUrlUseCase = mockk(relaxed = true)
+            val stopUseCases: SessionUseCases.StopLoadingUseCase = mockk(relaxed = true)
+            val sessionUseCases: SessionUseCases = mockk {
+                every { reload } returns reloadUseCases
+                every { stopLoading } returns stopUseCases
+            }
+            val browserScreenStore = BrowserScreenStore()
+            val browserUseCases: FenixBrowserUseCases = mockk(relaxed = true)
+            val useCases: UseCases = mockk {
+                every { fenixBrowserUseCases } returns browserUseCases
+            }
+            val middleware = BrowserToolbarMiddleware(
+                appStore = appStore,
+                browserScreenStore = browserScreenStore,
+                browserStore = browserStore,
+                useCases = useCases,
+                clipboard = mockk(),
+                settings = settings,
+                sessionUseCases = sessionUseCases,
+            ).apply {
+                updateLifecycleDependencies(
+                    LifecycleDependencies(
+                        testContext, lifecycleOwner, navController, browsingModeManager, mockk(), mockk(),
+                        readerModeController = mockk(),
+                    ),
+                )
+            }
+            val toolbarStore = BrowserToolbarStore(
+                middleware = listOf(middleware),
+            ).also {
+                it.dispatch(BrowserToolbarAction.Init())
+            }
+            testScheduler.advanceUntilIdle()
+            val loadUrlFlagsUsed = mutableListOf<LoadUrlFlags>()
+
+            val pageLoadButton = toolbarStore.state.displayState.browserActionsStart.last() as ActionButton
+            assertEquals(expectedRefreshButton, pageLoadButton)
+            toolbarStore.dispatch(pageLoadButton.onClick as BrowserToolbarEvent)
+            testScheduler.advanceUntilIdle()
+            verify { reloadUseCases(currentTab.id, capture(loadUrlFlagsUsed)) }
+            assertEquals(LoadUrlFlags.none().value, loadUrlFlagsUsed.first().value)
+            toolbarStore.dispatch(pageLoadButton.onLongClick as BrowserToolbarEvent)
+            testScheduler.advanceUntilIdle()
+            verify { reloadUseCases(currentTab.id, capture(loadUrlFlagsUsed)) }
+            assertEquals(LoadUrlFlags.BYPASS_CACHE, loadUrlFlagsUsed.last().value)
+        }
+    }
+
+    @Test
+    fun `GIVEN a loaded tab WHEN the refresh button is pressed THEN show stop refresh button`() = runTestOnMain {
+        Dispatchers.setMain(StandardTestDispatcher())
+        mockkStatic(Context::isLargeWindow) {
+            val browsingModeManager = SimpleBrowsingModeManager(Private)
+            val currentNavDestination: NavDestination = mockk {
+                every { id } returns R.id.browserFragment
+            }
+            val navController: NavController = mockk(relaxed = true) {
+                every { currentDestination } returns currentNavDestination
+            }
+            every { any<Context>().isLargeWindow() } returns true
+            every { settings.shouldUseBottomToolbar } returns false
+            val currentTab = createTab("test.com", private = false)
+            val browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(currentTab),
+                    selectedTabId = currentTab.id,
+                ),
+            )
+            val reloadUseCases: SessionUseCases.ReloadUrlUseCase = mockk(relaxed = true)
+            val stopUseCases: SessionUseCases.StopLoadingUseCase = mockk(relaxed = true)
+            val sessionUseCases: SessionUseCases = mockk {
+                every { reload } returns reloadUseCases
+                every { stopLoading } returns stopUseCases
+            }
+            val browserScreenStore = BrowserScreenStore()
+            val browserUseCases: FenixBrowserUseCases = mockk(relaxed = true)
+            val useCases: UseCases = mockk {
+                every { fenixBrowserUseCases } returns browserUseCases
+            }
+            val middleware = BrowserToolbarMiddleware(
+                appStore = appStore,
+                browserScreenStore = browserScreenStore,
+                browserStore = browserStore,
+                useCases = useCases,
+                clipboard = mockk(),
+                settings = settings,
+                sessionUseCases = sessionUseCases,
+            ).apply {
+                updateLifecycleDependencies(
+                    LifecycleDependencies(
+                        testContext, lifecycleOwner, navController, browsingModeManager,
+                        mockk(), mockk(), readerModeController = mockk(),
+                    ),
+                )
+            }
+            val toolbarStore = BrowserToolbarStore(
+                middleware = listOf(middleware),
+            ).also {
+                it.dispatch(BrowserToolbarAction.Init())
+            }
+            testScheduler.advanceUntilIdle()
+            val loadUrlFlagsUsed = mutableListOf<LoadUrlFlags>()
+
+            var pageLoadButton = toolbarStore.state.displayState.browserActionsStart.last() as ActionButton
+            assertEquals(expectedRefreshButton, pageLoadButton)
+            toolbarStore.dispatch(pageLoadButton.onClick as BrowserToolbarEvent)
+            testScheduler.advanceUntilIdle()
+            verify { reloadUseCases(currentTab.id, capture(loadUrlFlagsUsed)) }
+            assertEquals(LoadUrlFlags.none().value, loadUrlFlagsUsed.first().value)
+            toolbarStore.dispatch(pageLoadButton.onLongClick as BrowserToolbarEvent)
+            testScheduler.advanceUntilIdle()
+            verify { reloadUseCases(currentTab.id, capture(loadUrlFlagsUsed)) }
+            assertEquals(LoadUrlFlags.BYPASS_CACHE, loadUrlFlagsUsed.last().value)
+
+            browserStore.dispatch(UpdateLoadingStateAction(currentTab.id, true)).joinBlocking()
+            testScheduler.advanceUntilIdle()
+            pageLoadButton = toolbarStore.state.displayState.browserActionsStart.last() as ActionButton
+            assertEquals(expectedStopButton, pageLoadButton)
+            toolbarStore.dispatch(pageLoadButton.onClick as BrowserToolbarEvent)
+            testScheduler.advanceUntilIdle()
+            verify { stopUseCases(currentTab.id) }
+
+            browserStore.dispatch(UpdateLoadingStateAction(currentTab.id, false)).joinBlocking()
+            testScheduler.advanceUntilIdle()
+            pageLoadButton = toolbarStore.state.displayState.browserActionsStart.last() as ActionButton
+            assertEquals(expectedRefreshButton, pageLoadButton)
+        }
+    }
+
     private fun assertEqualsTabCounterButton(expected: TabCounterAction, actual: TabCounterAction) {
         assertEquals(expected.count, actual.count)
         assertEquals(expected.contentDescription, actual.contentDescription)
@@ -1400,6 +1556,21 @@ class BrowserToolbarMiddlewareTest {
             }
         }
     }
+
+    private val expectedRefreshButton = ActionButton(
+        icon = R.drawable.mozac_ic_arrow_clockwise_24,
+        contentDescription = R.string.browser_menu_refresh,
+        state = State.DEFAULT,
+        onClick = RefreshClicked(bypassCache = false),
+        onLongClick = RefreshClicked(bypassCache = true),
+    )
+
+    private val expectedStopButton = ActionButton(
+        icon = R.drawable.mozac_ic_cross_24,
+        contentDescription = R.string.browser_menu_stop,
+        state = State.DEFAULT,
+        onClick = StopRefreshClicked,
+    )
 
     private fun expectedReaderModeButton(isActive: Boolean = false) = ActionButton(
         icon = R.drawable.ic_readermode,

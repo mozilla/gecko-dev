@@ -47,6 +47,8 @@ import mozilla.components.compose.browser.toolbar.store.BrowserToolbarState
 import mozilla.components.compose.browser.toolbar.store.BrowserToolbarStore
 import mozilla.components.compose.browser.toolbar.store.ProgressBarConfig
 import mozilla.components.compose.browser.toolbar.store.ProgressBarGravity
+import mozilla.components.concept.engine.EngineSession.LoadUrlFlags
+import mozilla.components.feature.session.SessionUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.State
@@ -78,6 +80,8 @@ import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateSessionLongClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.RefreshClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.StopRefreshClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.ReaderModeClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
@@ -101,6 +105,10 @@ internal sealed class DisplayActions : BrowserToolbarEvent {
     data object NavigateBackClicked : DisplayActions()
     data object NavigateForwardClicked : DisplayActions()
     data object NavigateSessionLongClicked : DisplayActions()
+    data class RefreshClicked(
+        val bypassCache: Boolean,
+    ) : DisplayActions()
+    data object StopRefreshClicked : DisplayActions()
 }
 
 @VisibleForTesting
@@ -136,6 +144,7 @@ internal sealed class PageEndActionsInteractions : BrowserToolbarEvent {
  * @param useCases [UseCases] helping this integrate with other features of the applications.
  * @param clipboard [ClipboardHandler] to use for reading from device's clipboard.
  * @param settings [Settings] for accessing user preferences.
+ * @param sessionUseCases [SessionUseCases] for interacting with the current session.
  */
 class BrowserToolbarMiddleware(
     private val appStore: AppStore,
@@ -144,6 +153,7 @@ class BrowserToolbarMiddleware(
     private val useCases: UseCases,
     private val clipboard: ClipboardHandler,
     private val settings: Settings,
+    private val sessionUseCases: SessionUseCases = SessionUseCases(browserStore),
 ) : Middleware<BrowserToolbarState, BrowserToolbarAction>, ViewModel() {
     private lateinit var dependencies: LifecycleDependencies
     private var store: BrowserToolbarStore? = null
@@ -164,6 +174,7 @@ class BrowserToolbarMiddleware(
         observePageOriginUpdates()
         observeReaderModeUpdates()
         observePageTranslationsUpdates()
+        observePageRefreshUpdates()
     }
 
     @Suppress("LongMethod")
@@ -326,6 +337,23 @@ class BrowserToolbarMiddleware(
                 )
             }
 
+            is RefreshClicked -> {
+                val tabId = browserStore.state.selectedTabId
+                if (action.bypassCache) {
+                    sessionUseCases.reload.invoke(
+                        tabId,
+                        flags = LoadUrlFlags.select(
+                            LoadUrlFlags.BYPASS_CACHE,
+                        ),
+                    )
+                } else {
+                    sessionUseCases.reload(tabId)
+                }
+            }
+            is StopRefreshClicked -> {
+                val tabId = browserStore.state.selectedTabId
+                sessionUseCases.stopLoading(tabId)
+            }
             else -> next(action)
         }
     }
@@ -358,6 +386,7 @@ class BrowserToolbarMiddleware(
         if (dependencies.context.isLargeWindow()) {
             val canGoForward = browserStore.state.selectedTab?.content?.canGoForward == true
             val canGoBack = browserStore.state.selectedTab?.content?.canGoBack == true
+            val isCurrentTabRefreshing = browserStore.state.selectedTab?.content?.loading == true
             add(
                 ActionButton(
                     icon = R.drawable.mozac_ic_back_24,
@@ -384,6 +413,25 @@ class BrowserToolbarMiddleware(
                     onLongClick = NavigateSessionLongClicked,
                 ),
             )
+            when (isCurrentTabRefreshing) {
+                true -> add(
+                    ActionButton(
+                        icon = R.drawable.mozac_ic_cross_24,
+                        contentDescription = R.string.browser_menu_stop,
+                        state = ActionButton.State.DEFAULT,
+                        onClick = StopRefreshClicked,
+                    ),
+                )
+                false -> add(
+                    ActionButton(
+                        icon = R.drawable.mozac_ic_arrow_clockwise_24,
+                        contentDescription = R.string.browser_menu_refresh,
+                        state = ActionButton.State.DEFAULT,
+                        onClick = RefreshClicked(false),
+                        onLongClick = RefreshClicked(true),
+                    ),
+                )
+            }
         }
     }
 
@@ -600,6 +648,22 @@ class BrowserToolbarMiddleware(
                                 it.selectedTab?.content?.canGoBack,
                                 it.selectedTab?.content?.canGoForward,
                             )
+                        }
+                        .collect {
+                            updateStartBrowserActions()
+                        }
+                }
+            }
+        }
+    }
+
+    private fun observePageRefreshUpdates() {
+        with(dependencies.lifecycleOwner) {
+            this.lifecycleScope.launch {
+                repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.RESUMED) {
+                    browserStore.flow()
+                        .distinctUntilChangedBy {
+                            it.selectedTab?.content?.loading == true
                         }
                         .collect {
                             updateStartBrowserActions()
