@@ -897,6 +897,19 @@ export let ProfileDataUpgrader = {
       }
     }
 
+    if (existingDataVersion < 156) {
+      const customBlockListEnabled = Services.prefs.getBoolPref(
+        "browser.contentblocking.customBlockList.preferences.ui.enabled",
+        false
+      );
+      if (customBlockListEnabled) {
+        Services.prefs.clearUserPref(
+          "browser.contentblocking.customBlockList.preferences.ui.enabled"
+        );
+        Services.prefs.clearUserPref("urlclassifier.trackingTable");
+      }
+    }
+
     // Update the migration version.
     Services.prefs.setIntPref("browser.migration.version", newVersion);
   },
