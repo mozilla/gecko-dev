@@ -1101,9 +1101,6 @@ Barrier.prototype = Object.freeze({
 
 // Parent process only
 if (!isContent) {
-  // TODO: No mapping to ShutdownPhase, this barrier should go away.
-  AsyncShutdown.quitApplicationGranted = getPhase("quit-application-granted");
-
   // ShutdownPhase::AppShutdownConfirmed
   AsyncShutdown.appShutdownConfirmed = getPhase("quit-application");
 

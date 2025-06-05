@@ -208,13 +208,6 @@ interface nsIAsyncShutdownService: nsISupports {
   readonly attribute nsIAsyncShutdownClient appShutdownConfirmed;
 
   /**
-   * Barrier for notification quit-application-granted.
-   *
-   * Deprecated, does not map to any phase in ShutdownPhase.
-   */
-  readonly attribute nsIAsyncShutdownClient quitApplicationGranted;
-
-  /**
    * Barrier for notification profile-before-change-telemetry.
    *
    * Maps to ShutdownPhase::AppShutdownTelemetry.
