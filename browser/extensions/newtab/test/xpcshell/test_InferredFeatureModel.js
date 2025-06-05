@@ -439,3 +439,59 @@ add_task(function test_computeMultipleVectorsNoPrivate() {
     "Original inferred interest is returned"
   );
 });
+
+add_task(function test_computeCTRInterestVectorsNoNoise() {
+  const model = new FeatureModel({
+    modelId: "test-ctr-model",
+    interestVectorModel: {},
+    modelType: "ctr",
+    noiseScale: 0.0,
+    dayTimeWeighting: null,
+    tileImportance: null,
+    rescale: true,
+    logScale: false,
+  });
+
+  const clicks = { sports: 1, news: 2 };
+  const impressions = { sports: 4, news: 4 };
+
+  const result = model.computeCTRInterestVectors(
+    clicks,
+    impressions,
+    "test-ctr-model"
+  );
+  Assert.equal(result.model_id, "test-ctr-model", "Model id is CTR");
+  Assert.ok(
+    Math.abs(result.sports - 0.25) <= 1e-4,
+    "CTR model result is as expected"
+  );
+  Assert.ok(
+    Math.abs(result.news - 0.5) <= 1e-4,
+    "CTR model result is as expected"
+  );
+});
+
+add_task(function test_computCTRInterestVectorsWithNoise() {
+  const model = new FeatureModel({
+    modelId: "test-ctr-model",
+    interestVectorModel: {},
+    modelType: "ctr",
+    noiseScale: 1.0,
+    laplaceNoiseFn: () => 0.42, // deterministically inject noise
+  });
+
+  const clicks = { sports: 1, news: 2, science: 10 };
+  const impressions = { sports: 4, news: 4, science: 11 };
+
+  const result = model.computeCTRInterestVectors(
+    clicks,
+    impressions,
+    "test-ctr-model"
+  );
+
+  // Assert the stubbed noise is added
+  Assert.equal(result.sports, 1 / 4 + 0.42, "sports CTR + noise");
+  Assert.equal(result.news, 2 / 4 + 0.42, "news CTR + noise");
+  Assert.equal(result.science, 10 / 11 + 0.42, "science CTR + noise");
+  Assert.equal(result.model_id, "test-ctr-model", "model ID is correct");
+});

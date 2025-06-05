@@ -17,6 +17,39 @@ export const DAYS_TO_MS = 60 * 60 * 24 * 1000;
 const MAX_INT_32 = 2 ** 32;
 
 /**
+ * Divides numerator fields by the denominator. Value is set to 0 if denominator is missing or 0.
+ * @param {Object.<string, number>} numerator
+ * @param {Object.<string, number>} denominator
+ * returns {Object.<string, number>}
+ */
+function divideDict(numerator, denominator) {
+  const result = {};
+  Object.keys(numerator).forEach(k => {
+    result[k] = denominator[k] ? numerator[k] / denominator[k] : 0;
+  });
+  return result;
+}
+
+/**
+ * Returns a secure random value between 0 and 1
+ */
+function secureRandomNumber() {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return array[0] / MAX_INT_32;
+}
+
+/**
+ * Applies laplace noise at a given scale
+ * @param {number} scale value
+ * @returns noisy value
+ */
+function laplaceNoise(scale) {
+  const u = secureRandomNumber() - 0.5;
+  return -scale * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+}
+
+/**
  * Unary encoding with randomized response for differential privacy.
  * The output must be decoded to back to an integer when aggregating a historgram on a server
  * @param {number} x - Integer input (0 <= x < N)
@@ -227,6 +260,8 @@ export class FeatureModel {
     modelType,
     rescale = true,
     logScale = false,
+    noiseScale = 0,
+    laplaceNoiseFn = laplaceNoise,
   }) {
     this.modelId = modelId;
     this.tileImportance = tileImportance;
@@ -235,6 +270,8 @@ export class FeatureModel {
     this.rescale = rescale;
     this.logScale = logScale;
     this.modelType = modelType;
+    this.noiseScale = noiseScale;
+    this.laplaceNoiseFn = laplaceNoiseFn;
   }
 
   static fromJSON(json) {
@@ -255,6 +292,7 @@ export class FeatureModel {
       logScale: json.log_scale,
       clickScale: json.clickScale,
       modelType: json.model_type,
+      noiseScale: json.noise_scale,
     });
   }
 
@@ -391,6 +429,39 @@ export class FeatureModel {
     return totalResults;
   }
 
+  /**
+   * Given pre-computed inferredInterests for clicks and impressions, returns a ctr result with
+   * @param {Object} clickDict clicks dictionary
+   * @param {Object} impressionDict impression dictionary
+   * @param {String} model_id Model ID
+   * @returns model
+   */
+  computeCTRInterestVectors(clickDict, impressionDict, model_id) {
+    const inferredInterests = divideDict(clickDict, impressionDict);
+    this.applyLaplaceNoise(inferredInterests);
+    return { ...inferredInterests, model_id };
+  }
+
+  /**
+   * Applies laplace noise to values in a dictionary if specified in the model
+   * @param {Object} inputDict
+   * @returns
+   */
+  applyLaplaceNoise(inputDict) {
+    if (!this.noiseScale) {
+      return;
+    }
+    for (const key in inputDict) {
+      if (typeof inputDict[key] === "number") {
+        const noise = this.laplaceNoiseFn(this.noiseScale);
+        inputDict[key] += noise;
+      }
+    }
+  }
+
+  /**
+   * Computes the interest vector for data intervals, as well as the coarse and privatized (with randomess)
+   */
   computeInterestVectors({
     dataForIntervals,
     indexSchema,
@@ -406,7 +477,9 @@ export class FeatureModel {
       dataForIntervals,
       indexSchema,
     });
-    result.inferredInterests = { ...inferredInterests, model_id };
+    const updatedFuzzyInterests = { ...inferredInterests };
+    this.applyLaplaceNoise(updatedFuzzyInterests);
+    result.inferredInterests = { ...updatedFuzzyInterests, model_id };
 
     if (this.supportsCoarseInterests()) {
       coarseInferredInterests = this.computeInterestVector({
@@ -432,7 +505,8 @@ export class FeatureModel {
       if (coarsePrivateInferredInterests) {
         if (condensePrivateValues) {
           result.coarsePrivateInferredInterests = {
-            values: Object.values(coarsePrivateInferredInterests), // Key order presrved in Gecko
+            // Key order preserved in Gecko
+            values: Object.values(coarsePrivateInferredInterests),
             model_id,
           };
         } else {
