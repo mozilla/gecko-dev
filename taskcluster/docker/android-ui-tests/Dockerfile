@@ -4,6 +4,9 @@ FROM $DOCKER_IMAGE_PARENT
 LABEL authors="Richard Pappalardo <rpappalax@gmail.com>, Aaron Train <atrain@mozilla.com>"
 LABEL maintainer="Richard Pappalardo <rpappalax@gmail.com>"
 
+VOLUME /builds/worker/checkouts
+VOLUME /builds/worker/workspace
+
 ENV CURL='curl --location --retry 5' \
     GRADLE_OPTS='-Xmx4096m -Dorg.gradle.daemon=false -Dorg.gradle.parallel=false' \
     LANG='en_US.UTF-8' \
