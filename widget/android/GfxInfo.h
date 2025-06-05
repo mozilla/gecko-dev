@@ -69,17 +69,10 @@ class GfxInfo : public GfxInfoBase {
 
 #ifdef DEBUG
   NS_DECL_ISUPPORTS_INHERITED
-
-  NS_IMETHOD SpoofVendorID(const nsAString& aVendorID) override;
-  NS_IMETHOD SpoofDeviceID(const nsAString& aDeviceID) override;
-  NS_IMETHOD SpoofDriverVersion(const nsAString& aDriverVersion) override;
-  NS_IMETHOD SpoofOSVersion(uint32_t aVersion) override;
-  NS_IMETHOD SpoofOSVersionEx(uint32_t aMajor, uint32_t aMinor, uint32_t aBuild,
-                              uint32_t aRevision) override;
+  NS_DECL_NSIGFXINFODEBUG
 #endif
 
   virtual uint32_t OperatingSystemVersion() override;
-  GfxVersionEx OperatingSystemVersionEx() override;
 
  protected:
   OperatingSystem GetOperatingSystem() override {
@@ -87,9 +80,9 @@ class GfxInfo : public GfxInfoBase {
   }
   virtual nsresult GetFeatureStatusImpl(
       int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
-      const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo,
-      nsACString& aFailureId, OperatingSystem* aOS = nullptr) override;
-  virtual const nsTArray<RefPtr<GfxDriverInfo>>& GetGfxDriverInfo() override;
+      const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
+      OperatingSystem* aOS = nullptr) override;
+  virtual const nsTArray<GfxDriverInfo>& GetGfxDriverInfo() override;
 
  private:
   void AddCrashReportAnnotations();
@@ -106,7 +99,6 @@ class GfxInfo : public GfxInfoBase {
 
   nsString mModel, mHardware, mManufacturer, mProduct;
   nsCString mOSVersion;
-  GfxVersionEx mOSVersionEx;
   uint32_t mOSVersionInteger;
   int32_t mSDKVersion;
 };

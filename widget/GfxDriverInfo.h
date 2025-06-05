@@ -17,13 +17,14 @@
 #define APPEND_TO_DRIVER_BLOCKLIST_EXT(                                       \
     os, screen, battery, windowProtocol, driverVendor, devices, feature,      \
     featureStatus, driverComparator, driverVersion, ruleId, suggestedVersion) \
-  sDriverInfo->AppendElement(MakeAndAddRef<GfxDriverInfo>(                    \
+  sDriverInfo->AppendElement(GfxDriverInfo(                                   \
       os, screen, battery,                                                    \
       (nsAString&)GfxDriverInfo::GetWindowProtocol(windowProtocol),           \
       (nsAString&)GfxDriverInfo::GetDeviceVendor(devices),                    \
       (nsAString&)GfxDriverInfo::GetDriverVendor(driverVendor),               \
-      GfxDriverInfo::GetDeviceFamily(devices), feature, featureStatus,        \
-      driverComparator, driverVersion, ruleId, suggestedVersion))
+      (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(devices), feature,     \
+      featureStatus, driverComparator, driverVersion, ruleId,                 \
+      suggestedVersion))
 
 #define APPEND_TO_DRIVER_BLOCKLIST(os, devices, feature, featureStatus,     \
                                    driverComparator, driverVersion, ruleId, \
@@ -33,16 +34,16 @@
       DriverVendor::All, devices, feature, featureStatus, driverComparator, \
       driverVersion, ruleId, suggestedVersion)
 
-#define APPEND_TO_DRIVER_BLOCKLIST2_EXT(                                 \
-    os, screen, battery, windowProtocol, driverVendor, devices, feature, \
-    featureStatus, driverComparator, driverVersion, ruleId)              \
-  sDriverInfo->AppendElement(MakeAndAddRef<GfxDriverInfo>(               \
-      os, screen, battery,                                               \
-      (nsAString&)GfxDriverInfo::GetWindowProtocol(windowProtocol),      \
-      (nsAString&)GfxDriverInfo::GetDeviceVendor(devices),               \
-      (nsAString&)GfxDriverInfo::GetDriverVendor(driverVendor),          \
-      GfxDriverInfo::GetDeviceFamily(devices), feature, featureStatus,   \
-      driverComparator, driverVersion, ruleId))
+#define APPEND_TO_DRIVER_BLOCKLIST2_EXT(                                  \
+    os, screen, battery, windowProtocol, driverVendor, devices, feature,  \
+    featureStatus, driverComparator, driverVersion, ruleId)               \
+  sDriverInfo->AppendElement(GfxDriverInfo(                               \
+      os, screen, battery,                                                \
+      (nsAString&)GfxDriverInfo::GetWindowProtocol(windowProtocol),       \
+      (nsAString&)GfxDriverInfo::GetDeviceVendor(devices),                \
+      (nsAString&)GfxDriverInfo::GetDriverVendor(driverVendor),           \
+      (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(devices), feature, \
+      featureStatus, driverComparator, driverVersion, ruleId))
 
 #define APPEND_TO_DRIVER_BLOCKLIST2(os, devices, feature, featureStatus,     \
                                     driverComparator, driverVersion, ruleId) \
@@ -50,17 +51,6 @@
       os, ScreenSizeStatus::All, BatteryStatus::All, WindowProtocol::All,    \
       DriverVendor::All, devices, feature, featureStatus, driverComparator,  \
       driverVersion, ruleId)
-
-#define APPEND_TO_DRIVER_BLOCKLIST_REFRESH_RATE(                           \
-    os, devices, feature, featureStatus, refreshRateStatus,                \
-    minRefreshRateComparator, minRefreshRate, minRefreshRateMax,           \
-    maxRefreshRateComparator, maxRefreshRate, maxRefreshRateMax, ruleId,   \
-    suggestedVersion)                                                      \
-  sDriverInfo->AppendElement(MakeAndAddRef<GfxDriverInfo>(                 \
-      os, GfxDriverInfo::GetDeviceFamily(devices), feature, featureStatus, \
-      refreshRateStatus, maxRefreshRateComparator, maxRefreshRate,         \
-      maxRefreshRateMax, maxRefreshRateComparator, maxRefreshRate,         \
-      maxRefreshRateMax, ruleId, suggestedVersion))
 
 #define APPEND_TO_DRIVER_BLOCKLIST_RANGE_EXT(                                 \
     os, screen, battery, windowProtocol, driverVendor, devices, feature,      \
@@ -70,15 +60,16 @@
     MOZ_ASSERT((driverComparator) == DRIVER_BETWEEN_EXCLUSIVE ||              \
                (driverComparator) == DRIVER_BETWEEN_INCLUSIVE ||              \
                (driverComparator) == DRIVER_BETWEEN_INCLUSIVE_START);         \
-    auto info = MakeRefPtr<GfxDriverInfo>(                                    \
+    GfxDriverInfo info(                                                       \
         os, screen, battery,                                                  \
         (nsAString&)GfxDriverInfo::GetWindowProtocol(windowProtocol),         \
         (nsAString&)GfxDriverInfo::GetDeviceVendor(devices),                  \
         (nsAString&)GfxDriverInfo::GetDriverVendor(driverVendor),             \
-        GfxDriverInfo::GetDeviceFamily(devices), feature, featureStatus,      \
-        driverComparator, driverVersion, ruleId, suggestedVersion);           \
-    info->mDriverVersionMax = driverVersionMax;                               \
-    sDriverInfo->AppendElement(info.forget());                                \
+        (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(devices), feature,   \
+        featureStatus, driverComparator, driverVersion, ruleId,               \
+        suggestedVersion);                                                    \
+    info.mDriverVersionMax = driverVersionMax;                                \
+    sDriverInfo->AppendElement(info);                                         \
   } while (false)
 
 #define APPEND_TO_DRIVER_BLOCKLIST_RANGE(                                   \
@@ -97,16 +88,16 @@
     MOZ_ASSERT((driverComparator) == DRIVER_BETWEEN_EXCLUSIVE ||              \
                (driverComparator) == DRIVER_BETWEEN_INCLUSIVE ||              \
                (driverComparator) == DRIVER_BETWEEN_INCLUSIVE_START);         \
-    auto info = MakeRefPtr<GfxDriverInfo>(                                    \
+    GfxDriverInfo info(                                                       \
         os, screen, battery,                                                  \
         (nsAString&)GfxDriverInfo::GetWindowProtocol(windowProtocol),         \
         (nsAString&)GfxDriverInfo::GetDeviceVendor(devices),                  \
         (nsAString&)GfxDriverInfo::GetDriverVendor(driverVendor),             \
-        GfxDriverInfo::GetDeviceFamily(devices), feature, featureStatus,      \
-        driverComparator, driverVersion, ruleId, suggestedVersion, false,     \
-        true);                                                                \
-    info->mDriverVersionMax = driverVersionMax;                               \
-    sDriverInfo->AppendElement(info.forget());                                \
+        (GfxDeviceFamily*)GfxDriverInfo::GetDeviceFamily(devices), feature,   \
+        featureStatus, driverComparator, driverVersion, ruleId,               \
+        suggestedVersion, false, true);                                       \
+    info.mDriverVersionMax = driverVersionMax;                                \
+    sDriverInfo->AppendElement(info);                                         \
   } while (false)
 
 #define APPEND_TO_DRIVER_BLOCKLIST_RANGE_GPU2(                              \
@@ -204,14 +195,6 @@ enum class WindowProtocol : uint8_t {
   Max
 };
 
-enum class RefreshRateStatus {
-#define GFXINFO_REFRESH_RATE_STATUS(id, name) id,
-#include "mozilla/widget/GfxInfoRefreshRateStatusDefs.h"
-#undef GFXINFO_REFRESH_RATE_STATUS
-  Unknown,
-  Count
-};
-
 enum class BatteryStatus : uint8_t { All, Present, None };
 
 enum class ScreenSizeStatus : uint8_t {
@@ -223,98 +206,9 @@ enum class ScreenSizeStatus : uint8_t {
   Large            // > 3440x1440
 };
 
-class GfxVersionEx final {
-  static constexpr size_t MAX_PARTS = 4;
-
- public:
-  GfxVersionEx() = default;
-  GfxVersionEx(const GfxVersionEx& aOther) = default;
-  GfxVersionEx(GfxVersionEx&& aOther) = default;
-  GfxVersionEx& operator=(const GfxVersionEx& aOther) = default;
-  GfxVersionEx& operator=(GfxVersionEx&& aOther) = default;
-
-  GfxVersionEx(uint32_t aMajor, uint32_t aMinor, uint32_t aBuild)
-      : mParts{aMajor, aMinor, aBuild} {}
-
-  GfxVersionEx(uint32_t aMajor, uint32_t aMinor, uint32_t aBuild,
-               uint32_t aRevision)
-      : mParts{aMajor, aMinor, aBuild, aRevision} {}
-
-  bool Parse(const nsACString& aVersion) {
-    size_t i = 0;
-    for (const auto& part : aVersion.Split('.')) {
-      nsresult rv;
-      mParts[i] = part.ToUnsignedInteger(&rv);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return false;
-      }
-
-      if (++i == MAX_PARTS) {
-        break;
-      }
-    }
-
-    while (i < MAX_PARTS) {
-      mParts[i++] = 0;
-    }
-
-    return true;
-  }
-
-  int32_t Compare(const GfxVersionEx& aOther) const {
-    for (size_t i = 0; i < MAX_PARTS; ++i) {
-      if (mParts[i] < aOther.mParts[i]) {
-        return -1;
-      }
-      if (mParts[i] > aOther.mParts[i]) {
-        return 1;
-      }
-    }
-    return 0;
-  }
-
-  bool Compare(const GfxVersionEx& aOther, const GfxVersionEx& aOtherMax,
-               VersionComparisonOp aCmp) const {
-    if (aCmp == DRIVER_COMPARISON_IGNORED) {
-      return true;
-    }
-
-    switch (aCmp) {
-      case DRIVER_LESS_THAN:
-        return Compare(aOther) < 0;
-      case DRIVER_LESS_THAN_OR_EQUAL:
-        return Compare(aOther) <= 0;
-      case DRIVER_GREATER_THAN:
-        return Compare(aOther) > 0;
-      case DRIVER_GREATER_THAN_OR_EQUAL:
-        return Compare(aOther) >= 0;
-      case DRIVER_EQUAL:
-        return Compare(aOther) == 0;
-      case DRIVER_NOT_EQUAL:
-        return Compare(aOther) != 0;
-      case DRIVER_BETWEEN_EXCLUSIVE:
-        return Compare(aOther) > 0 && Compare(aOtherMax) < 0;
-      case DRIVER_BETWEEN_INCLUSIVE:
-        return Compare(aOther) >= 0 && Compare(aOtherMax) <= 0;
-      case DRIVER_BETWEEN_INCLUSIVE_START:
-        return Compare(aOther) >= 0 && Compare(aOtherMax) < 0;
-      default:
-        NS_WARNING("Unsupported op in GfxDriverInfo");
-        break;
-    }
-
-    return false;
-  }
-
- private:
-  uint32_t mParts[MAX_PARTS]{};
-};
-
 /* Array of devices to match, or an empty array for all devices */
 class GfxDeviceFamily final {
  public:
-  NS_INLINE_DECL_REFCOUNTING(GfxDeviceFamily);
-
   GfxDeviceFamily() = default;
 
   void Append(const nsAString& aDeviceId);
@@ -325,95 +219,68 @@ class GfxDeviceFamily final {
   nsresult Contains(nsAString& aDeviceId) const;
 
  private:
-  ~GfxDeviceFamily() = default;
-
   struct DeviceRange {
     int32_t mBegin;
     int32_t mEnd;
   };
 
-  nsTArray<nsString> mIds;
-  nsTArray<DeviceRange> mRanges;
+  CopyableTArray<nsString> mIds;
+  CopyableTArray<DeviceRange> mRanges;
 };
 
-class GfxDriverInfo final {
- public:
-  NS_INLINE_DECL_REFCOUNTING(GfxDriverInfo);
-
+struct GfxDriverInfo {
   // If |ownDevices| is true, you are transferring ownership of the devices
   // array, and it will be deleted when this GfxDriverInfo is destroyed.
   GfxDriverInfo(OperatingSystem os, ScreenSizeStatus aScreen,
                 BatteryStatus aBattery, const nsAString& windowProtocol,
                 const nsAString& vendor, const nsAString& driverVendor,
-                already_AddRefed<const GfxDeviceFamily> devices,
-                int32_t feature, int32_t featureStatus, VersionComparisonOp op,
+                GfxDeviceFamily* devices, int32_t feature,
+                int32_t featureStatus, VersionComparisonOp op,
                 uint64_t driverVersion, const char* ruleId,
                 const char* suggestedVersion = nullptr, bool ownDevices = false,
                 bool gpu2 = false);
 
-  // For blocking on refresh rates rather than driver versions.
-  GfxDriverInfo(OperatingSystem os,
-                already_AddRefed<const GfxDeviceFamily> devices,
-                int32_t feature, int32_t featureStatus,
-                RefreshRateStatus refreshRateStatus,
-                VersionComparisonOp minRefreshRateOp, uint32_t minRefreshRate,
-                uint32_t minRefreshRateMax,
-                VersionComparisonOp maxRefreshRateOp, uint32_t maxRefreshRate,
-                uint32_t maxRefreshRateMax, const char* ruleId,
-                const char* suggestedVersion = nullptr);
-
   GfxDriverInfo();
+  GfxDriverInfo(const GfxDriverInfo&);
+  ~GfxDriverInfo();
 
-  OperatingSystem mOperatingSystem = OperatingSystem::Unknown;
-  uint32_t mOperatingSystemVersion = 0;
-
-  GfxVersionEx mOperatingSystemVersionEx;
-  GfxVersionEx mOperatingSystemVersionExMax;
-  VersionComparisonOp mOperatingSystemVersionExComparisonOp =
-      DRIVER_COMPARISON_IGNORED;
-
-  uint32_t mMinRefreshRate = 0;
-  uint32_t mMinRefreshRateMax = 0;
-  VersionComparisonOp mMinRefreshRateComparisonOp = DRIVER_COMPARISON_IGNORED;
-
-  uint32_t mMaxRefreshRate = 0;
-  uint32_t mMaxRefreshRateMax = 0;
-  VersionComparisonOp mMaxRefreshRateComparisonOp = DRIVER_COMPARISON_IGNORED;
-
-  RefreshRateStatus mRefreshRateStatus = RefreshRateStatus::Any;
-
-  ScreenSizeStatus mScreen = ScreenSizeStatus::All;
-  BatteryStatus mBattery = BatteryStatus::All;
+  OperatingSystem mOperatingSystem;
+  uint32_t mOperatingSystemVersion;
+  ScreenSizeStatus mScreen;
+  BatteryStatus mBattery;
   nsString mWindowProtocol;
 
   nsString mAdapterVendor;
   nsString mDriverVendor;
 
-  RefPtr<const GfxDeviceFamily> mDevices;
+  const GfxDeviceFamily* mDevices;
 
+  // Whether the mDevices array should be deleted when this structure is
+  // deallocated. False by default.
+  bool mDeleteDevices;
+
+  /* A feature from nsIGfxInfo, or a wildcard set of features */
+  int32_t mFeature;
   /* Block all features */
   static constexpr int32_t allFeatures = -1;
   /* Block all features not permitted by OnlyAllowFeatureOnKnownConfig */
   static constexpr int32_t optionalFeatures = -2;
-  /* A feature from nsIGfxInfo, or a wildcard set of features */
-  int32_t mFeature = optionalFeatures;
 
   /* A feature status from nsIGfxInfo */
   int32_t mFeatureStatus;
 
-  VersionComparisonOp mComparisonOp = DRIVER_COMPARISON_IGNORED;
+  VersionComparisonOp mComparisonOp;
 
   /* versions are assumed to be A.B.C.D packed as 0xAAAABBBBCCCCDDDD */
-  uint64_t mDriverVersion = 0;
-  uint64_t mDriverVersionMax = 0;
+  uint64_t mDriverVersion;
+  uint64_t mDriverVersionMax;
   static constexpr uint64_t allDriverVersions = ~(uint64_t(0));
 
-  const char* mSuggestedVersion = nullptr;
+  const char* mSuggestedVersion;
   nsCString mRuleId;
 
-  static already_AddRefed<const GfxDeviceFamily> GetDeviceFamily(
-      DeviceFamily id);
-  static RefPtr<GfxDeviceFamily>
+  static const GfxDeviceFamily* GetDeviceFamily(DeviceFamily id);
+  static GfxDeviceFamily*
       sDeviceFamilies[static_cast<size_t>(DeviceFamily::Max)];
 
   static const nsAString& GetWindowProtocol(WindowProtocol id);
@@ -428,10 +295,7 @@ class GfxDriverInfo final {
 
   nsString mModel, mHardware, mProduct, mManufacturer;
 
-  bool mGpu2 = false;
-
- private:
-  ~GfxDriverInfo() = default;
+  bool mGpu2;
 };
 
 inline uint64_t DriverVersion(uint32_t a, uint32_t b, uint32_t c, uint32_t d) {

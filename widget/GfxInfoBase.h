@@ -84,11 +84,6 @@ class GfxInfoBase : public nsIGfxInfo,
   NS_IMETHOD GetTargetFrameRate(uint32_t* aTargetFrameRate) override;
   NS_IMETHOD GetCodecSupportInfo(nsACString& aCodecSupportInfo) override;
 
-#ifdef DEBUG
-  NS_IMETHOD SpoofMonitorInfo(uint32_t aScreenCount, int32_t aMinRefreshRate,
-                              int32_t aMaxRefreshRate) override;
-#endif
-
   // Non-XPCOM method to get IPC data:
   nsTArray<mozilla::gfx::GfxInfoFeatureStatus> GetAllFeatures();
 
@@ -108,7 +103,7 @@ class GfxInfoBase : public nsIGfxInfo,
   static void AddCollector(GfxInfoCollectorBase* collector);
   static void RemoveCollector(GfxInfoCollectorBase* collector);
 
-  static StaticAutoPtr<nsTArray<RefPtr<GfxDriverInfo>>> sDriverInfo;
+  static nsTArray<GfxDriverInfo>* sDriverInfo;
   static StaticAutoPtr<nsTArray<mozilla::gfx::GfxInfoFeatureStatus>>
       sFeatureStatus;
   static bool sDriverInfoObserverInitialized;
@@ -119,7 +114,7 @@ class GfxInfoBase : public nsIGfxInfo,
   virtual nsString Product() { return u""_ns; }
   virtual nsString Manufacturer() { return u""_ns; }
   virtual uint32_t OperatingSystemVersion() { return 0; }
-  virtual GfxVersionEx OperatingSystemVersionEx() { return GfxVersionEx(); }
+  virtual uint32_t OperatingSystemBuild() { return 0; }
 
   // Convenience to get the application version
   static const nsCString& GetApplicationVersion();
@@ -131,12 +126,6 @@ class GfxInfoBase : public nsIGfxInfo,
 
   static bool OnlyAllowFeatureOnKnownConfig(int32_t aFeature);
 
-  static bool MatchingRefreshRateStatus(RefreshRateStatus aSytemStatus,
-                                        RefreshRateStatus aBlockedStatus);
-  static bool MatchingRefreshRates(int32_t aSystem, int32_t aBlocked,
-                                   int32_t aBlockedMax,
-                                   VersionComparisonOp aCmp);
-
  protected:
   virtual ~GfxInfoBase();
 
@@ -144,12 +133,12 @@ class GfxInfoBase : public nsIGfxInfo,
 
   virtual nsresult GetFeatureStatusImpl(
       int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
-      const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo,
-      nsACString& aFailureId, OperatingSystem* aOS = nullptr);
+      const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
+      OperatingSystem* aOS = nullptr);
 
   // Gets the driver info table. Used by GfxInfoBase to check for general cases
   // (while subclasses check for more specific ones).
-  virtual const nsTArray<RefPtr<GfxDriverInfo>>& GetGfxDriverInfo() = 0;
+  virtual const nsTArray<GfxDriverInfo>& GetGfxDriverInfo() = 0;
 
   virtual void DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> obj);
 
@@ -175,23 +164,19 @@ class GfxInfoBase : public nsIGfxInfo,
 
   // Total number of pixels for all detected screens at startup.
   int64_t mScreenPixels;
-  size_t mScreenCount = 0;
-  int32_t mMinRefreshRate = 0;
-  int32_t mMaxRefreshRate = 0;
 
  private:
   virtual int32_t FindBlocklistedDeviceInList(
-      const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo,
-      nsAString& aSuggestedVersion, int32_t aFeature, nsACString& aFailureId,
-      OperatingSystem os, bool aForAllowing);
+      const nsTArray<GfxDriverInfo>& aDriverInfo, nsAString& aSuggestedVersion,
+      int32_t aFeature, nsACString& aFailureId, OperatingSystem os,
+      bool aForAllowing);
 
   std::pair<nsIGfxInfo::FontVisibilityDeviceDetermination, nsString>*
   GetFontVisibilityDeterminationPair();
 
   bool IsFeatureAllowlisted(int32_t aFeature) const;
 
-  void EvaluateDownloadedBlocklist(
-      nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo);
+  void EvaluateDownloadedBlocklist(nsTArray<GfxDriverInfo>& aDriverInfo);
 
   bool BuildFeatureStateLog(JSContext* aCx, const gfx::FeatureState& aFeature,
                             JS::MutableHandle<JS::Value> aOut);
