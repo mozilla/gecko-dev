@@ -195,7 +195,6 @@ interface RemoteSettingsClient {
   on: Function;
   get: Function;
   attachments: any;
-  sync: Function;
 }
 
 /**

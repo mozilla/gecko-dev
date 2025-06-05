@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 function loadBergamot(Module) {
-  var BERGAMOT_VERSION_FULL = "v0.6.0+1de4a085d";
+  var BERGAMOT_VERSION_FULL = "v0.5.0+b475d25";
   null;
 
   var Module = typeof Module != "undefined" ? Module : {};
@@ -693,7 +693,7 @@ function loadBergamot(Module) {
   var tempI64;
 
   var ASM_CONSTS = {
-    1427332($0, $1, $2, $3, $4) {
+    1429732($0, $1, $2, $3, $4) {
       if (!Module.getOrCreateSentenceSegmenter) {
         Module.getOrCreateSentenceSegmenter = (function () {
           let segmenters = new Map();

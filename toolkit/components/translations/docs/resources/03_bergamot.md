@@ -64,13 +64,6 @@ If the Bergamot Translator has a breaking change, then the `BERGAMOT_MAJOR_VERSI
     - Restart Nightly.
     - Verify that it is working in Nightly by trigging different translations.
 
-1. Update CI by updating `taskcluster/kinds/fetch/translations-fetch.yml` with the new artifact information. e.g. [D230447](https://phabricator.services.mozilla.com/D230447)
-    - Find the record in Remote Settings' [translations-wasm](https://remote-settings.mozilla.org/v1/admin/#/buckets/main-workspace/collections/translations-wasm/records) view.
-    - At this point the record could still be in Preview, as the attachment won't change once it's approved.
-    - Double click the newest record.
-    - Update the `url`, `sha256`, `size`, and `description` fields for `translations.inference.fetch` in `translations-fetch.yml`.
-    - The `size` can be found via `curl -sL --head $url` and the `content-length`.
-
 1. Publish to Nightly
     - Notify release drivers (<release-drivers@mozilla.org>) that a new translation engine release is hitting Nightly (see example emails below). This is optional for a major release, since it will ride the trains.
     - Have another team member approve the release from Remote Settings.
