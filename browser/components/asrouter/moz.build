@@ -48,6 +48,7 @@ MOCHITEST_CHROME_MANIFESTS += ["tests/chrome/chrome.toml"]
 
 BROWSER_CHROME_MANIFESTS += [
     "tests/browser/browser.toml",
+    "tests/browser/messages/browser.toml",
 ]
 
 XPCSHELL_TESTS_MANIFESTS += [
