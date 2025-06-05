@@ -9,24 +9,18 @@ add_setup(async function setup() {
 });
 
 add_task(async function open_settings() {
-  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
-  let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
+  await UrlbarTestUtils.openSearchModeSwitcher(window);
 
-  info("Open the urlbar and open the switcher via Enter key");
-  await focusSwitcher();
-  EventUtils.synthesizeKey("KEY_Enter");
-  await promiseMenuOpen;
-
-  let pageLoaded = BrowserTestUtils.browserLoaded(window);
+  let settingsLoaded = BrowserTestUtils.browserLoaded(
+    window,
+    false,
+    "about:preferences#search"
+  );
   EventUtils.synthesizeKey("KEY_ArrowUp");
   EventUtils.synthesizeKey("KEY_Enter");
-  await pageLoaded;
+  await settingsLoaded;
 
-  Assert.equal(
-    window.gBrowser.selectedBrowser.currentURI.spec,
-    "about:preferences#search",
-    "Opened settings page"
-  );
+  Assert.ok(true, "Opened settings page");
 
   // Clean up.
   let onLoaded = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
@@ -47,13 +41,7 @@ add_task(async function open_settings_with_there_is_already_opened_settings() {
 
   info("Open new window");
   let newWin = await BrowserTestUtils.openNewBrowserWindow();
-  let popup = UrlbarTestUtils.searchModeSwitcherPopup(newWin);
-  let promiseMenuOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
-
-  info("Open the urlbar and open the switcher via keyboard in the new window");
-  await focusSwitcher(newWin);
-  EventUtils.synthesizeKey("KEY_Enter", {}, newWin);
-  await promiseMenuOpen;
+  await UrlbarTestUtils.openSearchModeSwitcher(newWin);
 
   info(
     "Choose open settings item and wait until the window having perference page will get focus"
@@ -163,6 +151,43 @@ add_task(async function privileged_chicklet() {
   );
 
   BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function select_with_single_click() {
+  info("Open the urlbar and searchmode switcher popup");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
+
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
+  let button = document.getElementById("urlbar-searchmode-switcher");
+
+  let popupShown = BrowserTestUtils.waitForPopupEvent(popup, "shown");
+  let rebuildPromise = BrowserTestUtils.waitForEvent(popup, "rebuild");
+  EventUtils.synthesizeMouseAtCenter(button, { type: "mousedown" });
+  await Promise.all([popupShown, rebuildPromise]);
+
+  // There seems to be a delay of ~150ms before menu items
+  // can be selected by mouseup.
+  // eslint-disable-next-line mozilla/no-arbitrary-setTimeout
+  await new Promise(r => setTimeout(r, 500));
+
+  let target = popup.querySelector("menuitem[label=Bing]");
+  EventUtils.synthesizeMouseAtCenter(target, { type: "mousemove" });
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  EventUtils.synthesizeMouseAtCenter(target, { type: "mouseup" });
+  await popupHidden;
+
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "Bing",
+    entry: "searchbutton",
+    source: 3,
+  });
+
+  info("Press the close button and escape search mode");
+  window.document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.assertSearchMode(window, null);
 });
 
 function updateEngine(fun) {
@@ -580,7 +605,7 @@ add_task(async function test_open_state() {
     info(`Open search mode switcher popup by clicking on [${target}]`);
     let popupOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
     let button = document.getElementById(target);
-    button.click();
+    EventUtils.synthesizeMouseAtCenter(button, {}, window);
     await popupOpen;
     Assert.equal(
       switcher.getAttribute("open"),
