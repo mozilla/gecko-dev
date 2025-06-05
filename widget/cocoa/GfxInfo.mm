@@ -438,7 +438,7 @@ void GfxInfo::AddCrashReportAnnotations() {
                              DRIVER_COMPARISON_IGNORED, V(0, 0, 0, 0), ruleId, \
                              "")
 
-const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
+const nsTArray<RefPtr<GfxDriverInfo>>& GfxInfo::GetGfxDriverInfo() {
   if (!sDriverInfo->Length()) {
     IMPLEMENT_MAC_DRIVER_BLOCKLIST(
         OperatingSystem::OSX, DeviceFamily::RadeonX1000,
@@ -480,7 +480,7 @@ OperatingSystem GfxInfo::GetOperatingSystem() {
 
 nsresult GfxInfo::GetFeatureStatusImpl(
     int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
-    const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
+    const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo, nsACString& aFailureId,
     OperatingSystem* aOS /* = nullptr */) {
   NS_ENSURE_ARG_POINTER(aStatus);
   aSuggestedDriverVersion.SetIsVoid(true);

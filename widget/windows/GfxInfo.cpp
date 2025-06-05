@@ -1198,7 +1198,7 @@ static inline bool DetectBrokenAVX() {
 }
 #endif
 
-const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
+const nsTArray<RefPtr<GfxDriverInfo>>& GfxInfo::GetGfxDriverInfo() {
   if (!sDriverInfo->Length()) {
     /*
      * It should be noted here that more specialized rules on certain features
@@ -1917,7 +1917,7 @@ OperatingSystem GfxInfo::GetOperatingSystem() {
 
 nsresult GfxInfo::GetFeatureStatusImpl(
     int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
-    const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
+    const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo, nsACString& aFailureId,
     OperatingSystem* aOS /* = nullptr */) {
   AssertNotWin32kLockdown();
 

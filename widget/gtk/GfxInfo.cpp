@@ -851,7 +851,7 @@ void GfxInfo::V4L2ProbeDevice(nsCString& dev) {
   }
 }
 
-const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
+const nsTArray<RefPtr<GfxDriverInfo>>& GfxInfo::GetGfxDriverInfo() {
   if (!sDriverInfo->Length()) {
     // Mesa 10.0 provides the GLX_MESA_query_renderer extension, which allows us
     // to query device IDs backing a GL context for blocklisting.
@@ -1240,7 +1240,7 @@ bool GfxInfo::DoesDriverVendorMatch(const nsAString& aBlocklistVendor,
 
 nsresult GfxInfo::GetFeatureStatusImpl(
     int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
-    const nsTArray<GfxDriverInfo>& aDriverInfo, nsACString& aFailureId,
+    const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo, nsACString& aFailureId,
     OperatingSystem* aOS /* = nullptr */)
 
 {
