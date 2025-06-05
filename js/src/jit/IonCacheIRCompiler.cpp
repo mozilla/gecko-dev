@@ -267,7 +267,7 @@ void IonCacheIRCompiler::enterStubFrame(MacroAssembler& masm,
                                         const AutoSaveLiveRegisters&) {
   MOZ_ASSERT(!enteredStubFrame_);
   pushStubCodePointer();
-  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.Push(FrameDescriptor(FrameType::IonJS));
   masm.Push(ImmPtr(GetReturnAddressToIonCode(cx_)));
 
   masm.Push(FramePointer);
@@ -965,7 +965,7 @@ bool IonCacheIRCompiler::emitCallScriptedGetterResult(
   masm.movePtr(ImmGCPtr(target), scratch);
 
   masm.Push(scratch);
-  masm.PushFrameDescriptorForJitCall(FrameType::IonICCall, /* argc = */ 0);
+  masm.Push(FrameDescriptor(FrameType::IonICCall, /* argc = */ 0));
 
   // Check stack alignment. Add 2 * sizeof(uintptr_t) for the return address and
   // frame pointer pushed by the call/callee.
@@ -1059,7 +1059,7 @@ bool IonCacheIRCompiler::emitCallScriptedProxyGetShared(
   masm.Push(scratchVal);
 
   masm.Push(callee);
-  masm.PushFrameDescriptorForJitCall(FrameType::IonICCall, /* argc = */ 3);
+  masm.Push(FrameDescriptor(FrameType::IonICCall, /* argc = */ 3));
 
   // Check stack alignment. Add 2 * sizeof(uintptr_t) for the return address and
   // frame pointer pushed by the call/callee.
@@ -1720,7 +1720,7 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
   masm.movePtr(ImmGCPtr(target), scratch);
 
   masm.Push(scratch);
-  masm.PushFrameDescriptorForJitCall(FrameType::IonICCall, /* argc = */ 1);
+  masm.Push(FrameDescriptor(FrameType::IonICCall, /* argc = */ 1));
 
   // Check stack alignment. Add 2 * sizeof(uintptr_t) for the return address and
   // frame pointer pushed by the call/callee.
@@ -2103,7 +2103,7 @@ bool IonCacheIRCompiler::emitCloseIterScriptedResult(ObjOperandId iterId,
   masm.Push(TypedOrValueRegister(MIRType::Object, AnyRegister(iter)));
 
   masm.Push(callee);
-  masm.PushFrameDescriptorForJitCall(FrameType::IonICCall, /* argc = */ 0);
+  masm.Push(FrameDescriptor(FrameType::IonICCall, /* argc = */ 0));
 
   masm.loadJitCodeRaw(callee, callee);
   masm.callJit(callee);
