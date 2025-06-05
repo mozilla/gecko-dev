@@ -84,6 +84,11 @@ class GfxInfoBase : public nsIGfxInfo,
   NS_IMETHOD GetTargetFrameRate(uint32_t* aTargetFrameRate) override;
   NS_IMETHOD GetCodecSupportInfo(nsACString& aCodecSupportInfo) override;
 
+#ifdef DEBUG
+  NS_IMETHOD SpoofMonitorInfo(uint32_t aScreenCount, int32_t aMinRefreshRate,
+                              int32_t aMaxRefreshRate) override;
+#endif
+
   // Non-XPCOM method to get IPC data:
   nsTArray<mozilla::gfx::GfxInfoFeatureStatus> GetAllFeatures();
 
@@ -126,6 +131,12 @@ class GfxInfoBase : public nsIGfxInfo,
 
   static bool OnlyAllowFeatureOnKnownConfig(int32_t aFeature);
 
+  static bool MatchingRefreshRateStatus(RefreshRateStatus aSytemStatus,
+                                        RefreshRateStatus aBlockedStatus);
+  static bool MatchingRefreshRates(int32_t aSystem, int32_t aBlocked,
+                                   int32_t aBlockedMax,
+                                   VersionComparisonOp aCmp);
+
  protected:
   virtual ~GfxInfoBase();
 
@@ -164,6 +175,9 @@ class GfxInfoBase : public nsIGfxInfo,
 
   // Total number of pixels for all detected screens at startup.
   int64_t mScreenPixels;
+  size_t mScreenCount = 0;
+  int32_t mMinRefreshRate = 0;
+  int32_t mMaxRefreshRate = 0;
 
  private:
   virtual int32_t FindBlocklistedDeviceInList(

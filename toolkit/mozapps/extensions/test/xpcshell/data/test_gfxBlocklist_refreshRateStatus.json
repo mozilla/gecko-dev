@@ -1,0 +1,50 @@
+[
+  {
+    "os": "All",
+    "feature": " WEBRENDER ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "refreshRateStatus": " MIXED "
+  },
+  {
+    "os": "Darwin",
+    "feature": " WEBRENDER ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "refreshRateStatus": " MULTIPLE_SAME "
+  },
+  {
+    "os": "Linux",
+    "feature": " WEBRENDER ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "refreshRateStatus": " ANY_SAME "
+  },
+  {
+    "os": "Android",
+    "feature": " WEBRENDER ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "refreshRateStatus": " SINGLE "
+  },
+  {
+    "os": "All",
+    "feature": " WEBRENDER_PARTIAL_PRESENT ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "refreshRateStatus": " MULTIPLE_SAME "
+  },
+  {
+    "os": "Darwin",
+    "feature": " WEBRENDER_PARTIAL_PRESENT ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "refreshRateStatus": " SINGLE "
+  },
+  {
+    "os": "Linux",
+    "feature": " WEBRENDER_PARTIAL_PRESENT ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "refreshRateStatus": " MIXED "
+  },
+  {
+    "os": "Android",
+    "feature": " WEBRENDER_PARTIAL_PRESENT ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "refreshRateStatus": " MULTIPLE_SAME "
+  }
+]

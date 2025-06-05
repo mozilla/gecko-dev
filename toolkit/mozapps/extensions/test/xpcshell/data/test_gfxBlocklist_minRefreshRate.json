@@ -1,0 +1,61 @@
+[
+  {
+    "os": "All",
+    "feature": " WEBRENDER ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "minRefreshRate": " 60 ",
+    "minRefreshRateComparator": " GREATER_THAN "
+  },
+  {
+    "os": "Darwin",
+    "feature": " WEBRENDER ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "minRefreshRate": " 30 ",
+    "minRefreshRateComparator": " EQUAL "
+  },
+  {
+    "os": "Linux",
+    "feature": " WEBRENDER ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "minRefreshRate": " 20 ",
+    "minRefreshRateMax": " 40 ",
+    "minRefreshRateComparator": " BETWEEN_INCLUSIVE "
+  },
+  {
+    "os": "Android",
+    "feature": " WEBRENDER ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "minRefreshRate": " 50 ",
+    "minRefreshRateMax": " 100 ",
+    "minRefreshRateComparator": " BETWEEN_EXCLUSIVE "
+  },
+  {
+    "os": "All",
+    "feature": " WEBRENDER_PARTIAL_PRESENT ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "minRefreshRate": " 70 ",
+    "minRefreshRateComparator": " LESS_THAN "
+  },
+  {
+    "os": "Darwin",
+    "feature": " WEBRENDER_PARTIAL_PRESENT ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "minRefreshRate": " 31 ",
+    "minRefreshRateComparator": " EQUAL "
+  },
+  {
+    "os": "Linux",
+    "feature": " WEBRENDER_PARTIAL_PRESENT ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "minRefreshRate": " 20 ",
+    "minRefreshRateMax": " 40 ",
+    "minRefreshRateComparator": " BETWEEN_INCLUSIVE_START "
+  },
+  {
+    "os": "Android",
+    "feature": " WEBRENDER_PARTIAL_PRESENT ",
+    "featureStatus": " BLOCKED_DEVICE ",
+    "minRefreshRate": " 101 ",
+    "minRefreshRateComparator": " GREATER_THAN_OR_EQUAL "
+  }
+]
