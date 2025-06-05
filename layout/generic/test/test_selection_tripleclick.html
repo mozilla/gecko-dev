@@ -63,7 +63,7 @@ line <span>by</span> line</pre>
         testTripleClick(spans[i], expectations[i]);
     }
 
-    testTripleClick(document.getElementById("e"), "Some "); // TODO: Maybe should get the whole paragraph.
+    testTripleClick(document.getElementById("e"), "Some text in a caption with more text");
     testTripleClick(document.querySelector("#e span"), "text in a caption");
 
     SimpleTest.finish();
