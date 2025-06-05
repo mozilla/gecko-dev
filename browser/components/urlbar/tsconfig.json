@@ -26,7 +26,6 @@
     "UrlbarProvidersManager.sys.mjs",
     "UrlbarProviderTopSites.sys.mjs",
     "UrlbarSearchOneOffs.sys.mjs",
-    "UrlbarSearchTermsPersistence.sys.mjs",
     "UrlbarSearchUtils.sys.mjs",
     "UrlbarTokenizer.sys.mjs",
     "UrlbarValueFormatter.sys.mjs",

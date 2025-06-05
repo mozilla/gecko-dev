@@ -10,6 +10,18 @@ ChromeUtils.defineESModuleGetters(lazy, {
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
 });
 
+/**
+ * @import {RemoteSettingsClient} from "resource://services-settings/RemoteSettingsClient.sys.mjs"
+ */
+
+/**
+ * @typedef {object} PersistedTermsProviderInfo
+ * @property {string} providerId
+ * @property {RegExp} [searchPageRegexp]
+ * @property {{key: string, values: string[], canBeMissing: boolean}[]} includeParams
+ * @property {{key: string, values: string[]}[]} excludeParams
+ */
+
 ChromeUtils.defineLazyGetter(lazy, "logger", () =>
   UrlbarUtils.getLogger({ prefix: "UrlbarSearchTermsPersistence" })
 );
@@ -30,10 +42,16 @@ class _UrlbarSearchTermsPersistence {
   // The original provider information, mainly used for tests.
   #originalProviderInfo = [];
 
-  // The current search provider info.
+  /**
+   * @type {PersistedTermsProviderInfo[]}
+   *  The current search provider info.
+   */
   #searchProviderInfo = [];
 
-  // An instance of remote settings that is used to access the provider info.
+  /**
+   * @type {RemoteSettingsClient}
+   * An instance of remote settings that is used to access the provider info.
+   */
   #urlbarSearchTermsPersistenceSettings;
 
   // Callback used when syncing Urlbar Search Terms Persistence config settings.
@@ -323,6 +341,11 @@ class _UrlbarSearchTermsPersistence {
     Services.obs.notifyObservers(null, "urlbar-persisted-search-terms-synced");
   }
 
+  /**
+   * Gets the search mode for a URL, if it matches an engine.
+   *
+   * @param {string} url
+   */
   #searchModeForUrl(url) {
     // If there's no default engine, no engines are available.
     if (!Services.search.defaultEngine) {
@@ -359,9 +382,10 @@ class _UrlbarSearchTermsPersistence {
   /**
    * Searches for provider information for a given url.
    *
-   * @param {string} url The url to match for a provider.
-   * @returns {Array | null} Returns an array of provider name and the provider
-   *   information.
+   * @param {string} url
+   *   The url to match for a provider.
+   * @returns {PersistedTermsProviderInfo|null}
+   *   Returns the provider information.
    */
   #getProviderInfoForURL(url) {
     return this.#searchProviderInfo.find(info =>
@@ -375,11 +399,10 @@ class _UrlbarSearchTermsPersistence {
    *
    * @param {nsIURI} currentURI
    *   The current URI
-   * @param {Array} provider
+   * @param {PersistedTermsProviderInfo} provider
    *   An array of provider information
-   * @returns {string | null} Returns null if there is no provider match, an
-   *   empty string if search terms should not be persisted, or the value of the
-   *   first matched query parameter to be persisted.
+   * @returns {boolean}
+   *   Returns true if the parameteres match, null otherwise.
    */
   isDefaultPage(currentURI, provider) {
     let { searchParams } = URL.fromURI(currentURI);
