@@ -620,10 +620,9 @@ static StyleLockedDeclarationBlock* EnsureRule(
   return aRule.get();
 }
 
-// TODO: backdrop-filter support.
 static nsTArray<Keyframe> BuildGroupKeyframes(
     Document* aDoc, const CSSToCSSMatrix4x4Flagged& aTransform,
-    const nsSize& aSize) {
+    const nsSize& aSize, const StyleOwnedSlice<StyleFilter>& aBackdropFilters) {
   nsTArray<Keyframe> result;
   auto& firstKeyframe = *result.AppendElement();
   firstKeyframe.mOffset = Some(0.0);
@@ -646,9 +645,16 @@ static nsTArray<Keyframe> BuildGroupKeyframes(
   };
   SetProp(height.mServoDeclarationBlock, aDoc, eCSSProperty_height,
           cssSize.height, eCSSUnit_Pixel);
+  PropertyValuePair backdropFilters{
+      AnimatedPropertyID(eCSSProperty_backdrop_filter),
+      Servo_DeclarationBlock_CreateEmpty().Consume(),
+  };
+  SetProp(backdropFilters.mServoDeclarationBlock, aDoc,
+          eCSSProperty_backdrop_filter, aBackdropFilters);
   firstKeyframe.mPropertyValues.AppendElement(std::move(transform));
   firstKeyframe.mPropertyValues.AppendElement(std::move(width));
   firstKeyframe.mPropertyValues.AppendElement(std::move(height));
+  firstKeyframe.mPropertyValues.AppendElement(std::move(backdropFilters));
 
   auto& lastKeyframe = *result.AppendElement();
   lastKeyframe.mOffset = Some(1.0);
@@ -658,6 +664,8 @@ static nsTArray<Keyframe> BuildGroupKeyframes(
       PropertyValuePair{AnimatedPropertyID(eCSSProperty_width)});
   lastKeyframe.mPropertyValues.AppendElement(
       PropertyValuePair{AnimatedPropertyID(eCSSProperty_height)});
+  lastKeyframe.mPropertyValues.AppendElement(
+      PropertyValuePair{AnimatedPropertyID(eCSSProperty_backdrop_filter)});
   return result;
 }
 
@@ -809,8 +817,8 @@ void ViewTransition::SetupTransitionPseudoElements() {
 
       capturedElement.mGroupKeyframes =
           BuildGroupKeyframes(mDocument, capturedElement.mOldState.mTransform,
-                              capturedElement.mOldState.mSize);
-
+                              capturedElement.mOldState.mSize,
+                              capturedElement.mOldState.mBackdropFilters);
       // Set capturedElement's group animation name rule to ...
       SetProp(EnsureRule(capturedElement.mGroupRule), mDocument,
               eCSSProperty_animation_name, dynamicAnimationName);
