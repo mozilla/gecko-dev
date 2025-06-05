@@ -330,8 +330,12 @@ class TextLeafRange final {
    * kRemoveAllExistingSelectedRanges, this will be set as the only range in the
    * selection; i.e. all existing ranges (if any) will be removed from the
    * selection first.
+   * If aSetFocus is true, the element containing the start point will be
+   * focused if appropriate. If aSetFocus is false, the focused element will
+   * be left as is.
    */
-  MOZ_CAN_RUN_SCRIPT bool SetSelection(int32_t aSelectionNum) const;
+  MOZ_CAN_RUN_SCRIPT bool SetSelection(int32_t aSelectionNum,
+                                       bool aSetFocus = true) const;
 
   MOZ_CAN_RUN_SCRIPT void ScrollIntoView(uint32_t aScrollType) const;
 

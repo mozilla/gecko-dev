@@ -2338,7 +2338,7 @@ addUiaTask(
  */
 addUiaTask(
   `
-<p id="p">ab</p>
+<p id="p">ab<a id="link" href="/">c</a></p>
 <input id="input" type="text" value="ab">
 <div id="contenteditable" contenteditable role="textbox">ab</div>
   `,
@@ -2351,17 +2351,54 @@ addUiaTask(
       doc = getDocUia()
       p = findUiaByDomId(doc, "p")
       textChild = getUiaPattern(p, "TextChild")
-      global range
-      range = textChild.TextRange
+      global pbRange
+      pbRange = textChild.TextRange
       # Encompass "b".
-      range.Move(TextUnit_Character, 1)
+      pbRange.Move(TextUnit_Character, 1)
       # Collapse.
-      range.MoveEndpointByRange(TextPatternRangeEndpoint_End, range, TextPatternRangeEndpoint_Start)
-      range.Select()
+      pbRange.MoveEndpointByRange(TextPatternRangeEndpoint_End, pbRange, TextPatternRangeEndpoint_Start)
+      pbRange.Select()
     `);
     await moved;
     testTextSelectionCount(p, 0);
     is(p.caretOffset, 1, "caret at 1");
+    // When using the IA2 -> UIA proxy, the focus changes when moving the caret,
+    // but this isn't what UIA clients want.
+    if (gIsUiaEnabled) {
+      info("Moving caret to c in link");
+      const link = findAccessibleChildByID(docAcc, "link", [nsIAccessibleText]);
+      moved = waitForEvents({
+        expected: [[EVENT_TEXT_CARET_MOVED, link]],
+        unexpected: [[EVENT_FOCUS, link]],
+      });
+      await runPython(`
+        link = findUiaByDomId(doc, "link")
+        textChild = getUiaPattern(link, "TextChild")
+        range = textChild.TextRange
+        # Collapse to "a".
+        range.MoveEndpointByRange(TextPatternRangeEndpoint_End, range, TextPatternRangeEndpoint_Start)
+        range.Select()
+      `);
+      await moved;
+      testTextSelectionCount(link, 0);
+      is(p.caretOffset, 2, "p caret at 2");
+      is(link.caretOffset, 0, "link caret at 0");
+      info("Focusing link");
+      moved = waitForEvent(EVENT_FOCUS, link);
+      link.takeFocus();
+      await moved;
+      info("Moving caret back to b in p");
+      moved = waitForEvents({
+        expected: [[EVENT_TEXT_CARET_MOVED, p]],
+        unexpected: [[EVENT_FOCUS, docAcc]],
+      });
+      await runPython(`
+        pbRange.Select()
+      `);
+      await moved;
+      testTextSelectionCount(p, 0);
+      is(p.caretOffset, 1, "p caret at 1");
+    }
 
     // <input> and contentEditable should behave the same.
     for (const id of ["input", "contenteditable"]) {

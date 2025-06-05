@@ -159,7 +159,7 @@ child:
 
   async SetTextSelection(uint64_t aStartID, int32_t aStartOffset,
                      uint64_t aEndID, int32_t aEndOffset,
-                     int32_t aSelectionNum);
+                     int32_t aSelectionNum, bool aSetFocus);
   async RemoveTextSelection(uint64_t aID, int32_t aSelectionNum);
 
   async ScrollTextLeafRangeIntoView(uint64_t aStartID, int32_t aStartOffset,
