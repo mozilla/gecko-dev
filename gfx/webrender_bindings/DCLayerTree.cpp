@@ -1380,8 +1380,10 @@ void DCSurface::SetClip(wr::DeviceIntRect aClipRect,
     mClip->SetBottomRightRadiusX(aClipRadius.bottom_right);
     mClip->SetBottomRightRadiusY(aClipRadius.bottom_right);
 
+    mRootVisual->SetBorderMode(DCOMPOSITION_BORDER_MODE_SOFT);
     mRootVisual->SetClip(mClip);
   } else {
+    mRootVisual->SetBorderMode(DCOMPOSITION_BORDER_MODE_INHERIT);
     mRootVisual->SetClip(nullptr);
   }
 }
