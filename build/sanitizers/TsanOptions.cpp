@@ -168,6 +168,8 @@ extern "C" MOZ_EXPORT const char* __tsan_default_suppressions() {
          // Bug 1825171
          "race:libffi.so\n"
          "race:mozilla::widget::WaylandBuffer::BufferReleaseCallbackHandler\n"
+          // Bug 1953677
+         "race:i965_dri.so\n"
 
 
 
