@@ -22,6 +22,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=422132
 <pre id="test">
 <script class="testbody" type="text/javascript">
 const is = window.opener.is;
+const info = window.opener.info;
 const SimpleTest = window.opener.SimpleTest;
 const original_finish = window.opener.SimpleTest.finish;
 
@@ -108,7 +109,12 @@ function runTests()
         test.check();
       }
       if (!tests.length) {
-        SimpleTest.finish();
+        // There could be pending wheel events. Therefore, we should ensure no
+        // pending events before finishing this test for the following test.
+        // This issue should be fixed in bug 1970528 in lower layer.
+        info("Waiting for mouseup event to flush all pending events");
+        addEventListener("mouseup", SimpleTest.finish, {once: true, capture: true});
+        synthesizeMouseAtCenter(target, {});
         return;
       }
 
