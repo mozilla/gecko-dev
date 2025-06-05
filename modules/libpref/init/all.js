@@ -1214,11 +1214,7 @@ pref("network.http.network-changed.timeout", 5);
 
 // The maximum number of current global half open sockets allowable
 // when starting a new speculative connection.
-#ifdef ANDROID
-  pref("network.http.speculative-parallel-limit", 6);
-#else
-  pref("network.http.speculative-parallel-limit", 20);
-#endif
+pref("network.http.speculative-parallel-limit", 20);
 
 // Whether or not to block requests for non head js/css items (e.g. media)
 // while those elements load.
