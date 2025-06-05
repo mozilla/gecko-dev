@@ -908,7 +908,13 @@ this.tabs = class extends ExtensionAPIPersistent {
         },
 
         async discard(tabIds) {
-          for (let nativeTab of getNativeTabsFromIDArray(tabIds)) {
+          let nativeTabs = getNativeTabsFromIDArray(tabIds);
+          await Promise.all(
+            nativeTabs.map(nativeTab =>
+              nativeTab.ownerGlobal.gBrowser.prepareDiscardBrowser(nativeTab)
+            )
+          );
+          for (let nativeTab of nativeTabs) {
             nativeTab.ownerGlobal.gBrowser.discardBrowser(nativeTab);
           }
         },
