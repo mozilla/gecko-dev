@@ -1,0 +1,67 @@
+android_perftest_backstop: true
+app_version: '140.0'
+backstop: true
+base_ref: default
+base_repository: https://hg.mozilla.org/mozilla-unified
+base_rev: bacc5586f7583b316676683218d5f635c1c1440a
+build_date: 1748571482
+build_number: 1
+do_not_optimize: []
+enable_always_target:
+- docker-image
+existing_tasks: {}
+files_changed:
+- mobile/android/android-components/components/browser/errorpages/src/main/res/values-bqi/strings.xml
+- mobile/android/android-components/components/browser/menu/src/main/res/values-bqi/strings.xml
+- mobile/android/android-components/components/browser/menu2/src/main/res/values-bqi/strings.xml
+- mobile/android/android-components/components/feature/addons/src/main/res/values-bqi/strings.xml
+- mobile/android/android-components/components/feature/autofill/src/main/res/values-bqi/strings.xml
+- mobile/android/android-components/components/feature/downloads/src/main/res/values-bqi/strings.xml
+- mobile/android/android-components/components/feature/privatemode/src/main/res/values-bqi/strings.xml
+- mobile/android/android-components/components/feature/prompts/src/main/res/values-bqi/strings.xml
+- mobile/android/android-components/components/ui/tabcounter/src/main/res/values-bqi/strings.xml
+- mobile/android/fenix/app/src/main/res/values-bqi/strings.xml
+- mobile/android/fenix/app/src/main/res/values-ka/strings.xml
+- mobile/android/fenix/app/src/main/res/values-sl/strings.xml
+filters:
+- target_tasks_method
+head_git_rev: 40f2f8fddda522544b91b7d57f9ee80d8db1fbeb
+head_ref: 9d0d2ada249fc5e3c685b695ffb7187c4e3704f3
+head_repository: https://hg.mozilla.org/releases/mozilla-beta
+head_rev: 9d0d2ada249fc5e3c685b695ffb7187c4e3704f3
+head_tag: ''
+hg_branch: default
+level: '3'
+merge_config:
+  behavior: beta-to-release
+  force-dry-run: true
+message: ''
+moz_build_date: '20250530021802'
+next_version: null
+optimize_strategies: null
+optimize_target_tasks: true
+owner: bhearsum@mozilla.com
+phabricator_diff: null
+project: mozilla-beta
+pushdate: 1748571482
+pushlog_id: '22098'
+release_enable_emefree: false
+release_enable_partner_attribution: false
+release_enable_partner_repack: false
+release_eta: ''
+release_history: {}
+release_partner_build_number: 1
+release_partner_config: {}
+release_partners: []
+release_product: null
+release_type: beta
+repository_type: hg
+required_signoffs: []
+signoff_urls: {}
+target_tasks_method: merge_automation
+tasks_for: action
+test_manifest_loader: default
+try_mode: null
+try_options: null
+try_task_config: {}
+version: 140.0b3

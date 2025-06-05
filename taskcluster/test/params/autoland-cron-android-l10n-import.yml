@@ -1,0 +1,69 @@
+android_perftest_backstop: false
+app_version: 141.0a1
+backstop: false
+base_ref: default
+base_repository: https://hg.mozilla.org/mozilla-unified
+base_rev: b0ddf05b46762d8b4ae3bbad2b615c46d14b6570
+build_date: 1748905274
+build_number: 1
+do_not_optimize: []
+enable_always_target:
+  - docker-image
+existing_tasks: {}
+files_changed:
+  - dom/media/webrtc/jsapi/DefaultCodecPreferences.cpp
+  - dom/media/webrtc/jsapi/DefaultCodecPreferences.h
+  - dom/media/webrtc/jsapi/PeerConnectionCtx.cpp
+  - dom/media/webrtc/jsapi/PeerConnectionCtx.h
+  - dom/media/webrtc/jsapi/PeerConnectionImpl.cpp
+  - dom/media/webrtc/jsapi/RTCRtpReceiver.cpp
+  - dom/media/webrtc/jsapi/RTCRtpSender.cpp
+  - dom/media/webrtc/jsep/JsepCodecDescription.h
+  - dom/media/webrtc/sdp/SdpEnum.h
+  - dom/media/webrtc/tests/mochitests/test_peerConnection_getParameters.html
+  - media/webrtc/signaling/gtest/MockJsepCodecPreferences.h
+  - media/webrtc/signaling/gtest/jsep_session_unittest.cpp
+  - media/webrtc/signaling/gtest/jsep_track_unittest.cpp
+  - media/webrtc/signaling/gtest/moz.build
+  - testing/web-platform/meta/webrtc/protocol/codecs-filtered-by-direction.https.html.ini
+  - testing/web-platform/meta/webrtc/protocol/h264-unidirectional-codec-offer.https.html.ini
+  - testing/web-platform/tests/webrtc/protocol/h264-unidirectional-codec-offer.https.html
+filters:
+  - target_tasks_method
+head_git_rev: b55a8f9566f4ecfdba1440257c81684833598b4b
+head_ref: 940df9f637e9e936b14e2618013bdb60c6698c9c
+head_repository: https://hg.mozilla.org/integration/autoland
+head_rev: 940df9f637e9e936b14e2618013bdb60c6698c9c
+head_tag: ''
+hg_branch: default
+level: '3'
+message: ''
+moz_build_date: '20250602230114'
+next_version: null
+optimize_strategies: gecko_taskgraph.optimize:project.autoland
+optimize_target_tasks: true
+owner: user@example.com
+phabricator_diff: null
+project: autoland
+pushdate: 1748905274
+pushlog_id: '232990'
+release_enable_emefree: false
+release_enable_partner_attribution: false
+release_enable_partner_repack: false
+release_eta: ''
+release_history: {}
+release_partner_build_number: 1
+release_partner_config: {}
+release_partners: []
+release_product: null
+release_type: ''
+repository_type: hg
+required_signoffs: []
+signoff_urls: {}
+target_tasks_method: android-l10n-import
+tasks_for: cron
+test_manifest_loader: bugbug
+try_mode: null
+try_options: null
+try_task_config: {}
+version: 141.0a1

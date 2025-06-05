@@ -1,0 +1,57 @@
+android_perftest_backstop: true
+app_version: '139.0'
+backstop: true
+base_ref: default
+base_repository: https://hg.mozilla.org/mozilla-unified
+base_rev: 08368b7a5e02f41ac02fe24f8060e2ab88ad0a7a
+build_date: 1746798666
+build_number: 1
+do_not_optimize: []
+enable_always_target:
+- docker-image
+existing_tasks: {}
+files_changed:
+- browser/config/version_display.txt
+- mobile/android/version.txt
+filters:
+- target_tasks_method
+head_git_rev: c2291dca6c47535741661c416b017b7c124a8f14
+head_ref: e59503b99f8cf05286151f36d1cd87e88ecb50b4
+head_repository: https://hg.mozilla.org/releases/mozilla-beta
+head_rev: e59503b99f8cf05286151f36d1cd87e88ecb50b4
+head_tag: ''
+hg_branch: default
+level: '3'
+merge_config:
+  behavior: early-to-late-beta
+  force-dry-run: false
+message: ''
+moz_build_date: '20250509135106'
+next_version: null
+optimize_strategies: null
+optimize_target_tasks: true
+owner: bhearsum@mozilla.com
+phabricator_diff: null
+project: mozilla-beta
+pushdate: 1746798666
+pushlog_id: '21911'
+release_enable_emefree: false
+release_enable_partner_attribution: false
+release_enable_partner_repack: false
+release_eta: ''
+release_history: {}
+release_partner_build_number: 1
+release_partner_config: {}
+release_partners: []
+release_product: null
+release_type: beta
+repository_type: hg
+required_signoffs: []
+signoff_urls: {}
+target_tasks_method: merge_automation
+tasks_for: action
+test_manifest_loader: default
+try_mode: null
+try_options: null
+try_task_config: {}
+version: 139.0b7
