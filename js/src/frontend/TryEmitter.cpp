@@ -31,19 +31,22 @@ TryEmitter::TryEmitter(BytecodeEmitter* bce, Kind kind, ControlKind controlKind)
 {
   MOZ_ASSERT_IF(controlKind_ == ControlKind::Disposal,
                 kind_ == Kind::TryFinally);
-
-  if (requiresControlInfo()) {
-    controlInfo_.emplace(
-        bce_, hasFinally() ? StatementKind::Finally : StatementKind::Try);
-  }
 }
 
 #ifdef DEBUG
-bool TryEmitter::hasControlInfo() { return controlInfo_.isSome(); }
+bool TryEmitter::hasControlInfo() { return controlInfo_.get() != nullptr; }
 #endif
 
 bool TryEmitter::emitTry() {
   MOZ_ASSERT(state_ == State::Start);
+
+  if (requiresControlInfo()) {
+    controlInfo_ = bce_->fc->getAllocator()->make_unique<TryFinallyControl>(
+        bce_, hasFinally() ? StatementKind::Finally : StatementKind::Try);
+    if (!controlInfo_) {
+      return false;
+    }
+  }
 
   // Since an exception can be thrown at any place inside the try block,
   // we need to restore the stack and the scope chain before we transfer

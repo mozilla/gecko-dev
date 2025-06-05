@@ -7,7 +7,6 @@
 #ifndef frontend_TryEmitter_h
 #define frontend_TryEmitter_h
 
-#include "mozilla/Attributes.h"  // MOZ_STACK_CLASS
 #include "mozilla/Maybe.h"       // mozilla::Maybe, mozilla::Nothing
 
 #include <stdint.h>  // uint32_t
@@ -15,6 +14,7 @@
 #include "frontend/BytecodeControlStructures.h"  // TryFinallyControl
 #include "frontend/BytecodeOffset.h"             // BytecodeOffset
 #include "frontend/JumpList.h"                   // JumpList, JumpTarget
+#include "js/UniquePtr.h"                        // js::UniquePtr
 
 namespace js {
 namespace frontend {
@@ -55,7 +55,7 @@ struct BytecodeEmitter;
 //     emit(finally_block);
 //     tryCatch.emitEnd();
 //
-class MOZ_STACK_CLASS TryEmitter {
+class TryEmitter {
  public:
   enum class Kind { TryCatch, TryCatchFinally, TryFinally };
 
@@ -142,7 +142,7 @@ class MOZ_STACK_CLASS TryEmitter {
   // Additionally, a finally block may be emitted for non-syntactic
   // try-catch-finally, even if the kind is TryCatch, because JSOp::Goto is
   // not emitted.
-  mozilla::Maybe<TryFinallyControl> controlInfo_;
+  js::UniquePtr<TryFinallyControl> controlInfo_;
 
   // The stack depth before emitting JSOp::Try.
   int depth_;
