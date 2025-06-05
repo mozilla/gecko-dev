@@ -67,7 +67,6 @@ export var UrlbarUtils = {
     HEURISTIC_SEARCH_TIP: "heuristicSearchTip",
     HEURISTIC_TEST: "heuristicTest",
     HEURISTIC_TOKEN_ALIAS_ENGINE: "heuristicTokenAliasEngine",
-    HISTORY_SEMANTIC: "historySemantic",
     INPUT_HISTORY: "inputHistory",
     OMNIBOX: "extension",
     RECENT_SEARCH: "recentSearch",
@@ -574,8 +573,6 @@ export var UrlbarUtils = {
         return this.RESULT_GROUP.ABOUT_PAGES;
       case "InputHistory":
         return this.RESULT_GROUP.INPUT_HISTORY;
-      case "SemanticHistorySearch":
-        return this.RESULT_GROUP.HISTORY_SEMANTIC;
       case "UrlbarProviderQuickSuggest":
         return this.RESULT_GROUP.GENERAL_PARENT;
       default:
@@ -1821,6 +1818,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       displayUrl: {
         type: "string",
       },
+      frecency: {
+        type: "number",
+      },
       icon: {
         type: "string",
       },
@@ -1946,6 +1946,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       },
       fallbackTitle: {
         type: "string",
+      },
+      frecency: {
+        type: "number",
       },
       helpL10n: L10N_SCHEMA,
       helpUrl: {

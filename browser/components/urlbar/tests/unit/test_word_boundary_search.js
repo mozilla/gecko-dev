@@ -64,17 +64,17 @@ add_task(async function test_escape() {
         title: "title1",
         tags: ["matchme2"],
       }),
+      makeBookmarkResult(context, {
+        uri: "http://tag/2",
+        title: "title1",
+        tags: ["dontmatchme3"],
+      }),
       makeVisitResult(context, {
         uri: "http://camel/pleaseMatchMe/",
         title: "title1",
       }),
       makeVisitResult(context, { uri: "http://title/1", title: "matchme2" }),
       makeVisitResult(context, { uri: "http://matchme/", title: "title1" }),
-      makeBookmarkResult(context, {
-        uri: "http://tag/2",
-        title: "title1",
-        tags: ["dontmatchme3"],
-      }),
       makeVisitResult(context, {
         uri: "http://title/2",
         title: "dontmatchme3",

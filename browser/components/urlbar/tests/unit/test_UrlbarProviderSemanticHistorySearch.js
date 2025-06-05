@@ -65,6 +65,7 @@ add_task(async function test_startQuery_adds_results() {
         id: 1,
         title: "Test Page",
         url,
+        frecency: 100,
       },
     ],
   });
@@ -83,6 +84,7 @@ add_task(async function test_startQuery_adds_results() {
     "Correct icon should be used"
   );
   Assert.ok(added[0].payload.isBlockable, "Result should be blockable");
+  Assert.equal(added[0].payload.frecency, 100, "Frecency is returned");
 
   let controller = UrlbarTestUtils.newMockController();
   let stub = sinon.stub(controller, "removeResult");

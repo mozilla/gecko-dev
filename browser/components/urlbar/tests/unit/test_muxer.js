@@ -729,3 +729,49 @@ add_task(async function roomForHeuristic_maxRichResultsZero_suggestedIndex() {
 
   UrlbarPrefs.clear("maxRichResults");
 });
+
+add_task(async function test_orderBy() {
+  // The GENERAL groups has an orderBy property, so let's just add to history.
+  let results1 = [
+    Object.assign(
+      new UrlbarResult(
+        UrlbarUtils.RESULT_TYPE.URL,
+        UrlbarUtils.RESULT_SOURCE.HISTORY,
+        { url: "http://example.com/test1" }
+      ),
+      { payload: { frecency: 10 } }
+    ),
+    Object.assign(
+      new UrlbarResult(
+        UrlbarUtils.RESULT_TYPE.URL,
+        UrlbarUtils.RESULT_SOURCE.HISTORY,
+        { url: "http://example.com/test2" }
+      ),
+      { payload: { frecency: 1000 } }
+    ),
+  ];
+  let provider1 = registerBasicTestProvider(results1);
+  let results2 = [
+    Object.assign(
+      new UrlbarResult(
+        UrlbarUtils.RESULT_TYPE.URL,
+        UrlbarUtils.RESULT_SOURCE.HISTORY,
+        { url: "http://example.com/test3" }
+      ),
+      { payload: { frecency: 100 } }
+    ),
+  ];
+  let provider2 = registerBasicTestProvider(results2);
+
+  let context = createContext(undefined, {
+    providers: [provider1.name, provider2.name],
+  });
+  await check_results({
+    context,
+    matches: [
+      results1[1], // 1000
+      results2[0], // 100
+      results1[0], // 10
+    ],
+  });
+});

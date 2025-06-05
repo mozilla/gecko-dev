@@ -1056,6 +1056,7 @@ async function check_results({
   // optional:
   //   Ignore the property if it's not in the expected result.
   let conditionalPayloadProperties = {
+    frecency: { optional: true },
     lastVisit: { optional: true },
     // `suggestionObject` is only used for dismissing Suggest Rust results, and
     // important properties in this object are reflected in the top-level

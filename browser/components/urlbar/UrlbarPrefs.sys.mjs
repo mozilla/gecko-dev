@@ -648,6 +648,8 @@ const PREF_TYPES = new Map([
  *     discussion of flex.
  *   {array} [children]
  *     An array of child group objects.
+ *   {string} [orderBy]
+ *     Results should be ordered descending by this payload property.
  * }
  *
  * @param {boolean} showSearchSuggestionsFirst
@@ -725,10 +727,6 @@ function makeResultGroups({ showSearchSuggestionsFirst }) {
             group: lazy.UrlbarUtils.RESULT_GROUP.INPUT_HISTORY,
           },
           {
-            availableSpan: 2,
-            group: lazy.UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC,
-          },
-          {
             flexChildren: true,
             children: [
               {
@@ -738,6 +736,7 @@ function makeResultGroups({ showSearchSuggestionsFirst }) {
               {
                 flex: 2,
                 group: lazy.UrlbarUtils.RESULT_GROUP.GENERAL,
+                orderBy: "frecency",
               },
               {
                 // We show relatively many about-page results because they're

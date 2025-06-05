@@ -663,7 +663,9 @@ class PlacesSemanticHistoryManager {
         SELECT p.id,
                p.title,
                p.url,
-               vec_res.cosine_distance as distance
+               vec_res.cosine_distance as distance,
+               p.frecency,
+               p.last_visit_date
         FROM (
           SELECT url_hash, cosine_distance
           FROM (
@@ -694,6 +696,8 @@ class PlacesSemanticHistoryManager {
         title: row.getResultByName("title"),
         url: row.getResultByName("url"),
         distance: row.getResultByName("distance"),
+        frecency: row.getResultByName("frecency"),
+        lastVisit: row.getResultByName("last_visit_date"),
       });
     }
 

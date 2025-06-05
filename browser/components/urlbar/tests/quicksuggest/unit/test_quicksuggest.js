@@ -1080,11 +1080,11 @@ add_task(async function dedupeAgainstURL_timestamps() {
     "Found the expected number of results"
   );
 
-  function getPayload(result, keysToIgnore = []) {
-    keysToIgnore.push("suggestionObject");
+  function getPayload(result, { ignore = [] } = {}) {
+    ignore.push("suggestionObject");
     let payload = {};
     for (let [key, value] of Object.entries(result.payload)) {
-      if (value !== undefined && !keysToIgnore.includes(key)) {
+      if (value !== undefined && !ignore.includes(key)) {
         payload[key] = value;
       }
     }
@@ -1121,8 +1121,8 @@ add_task(async function dedupeAgainstURL_timestamps() {
     // Check payloads except for the quick suggest.
     if (i != QUICK_SUGGEST_INDEX) {
       Assert.deepEqual(
-        getPayload(context.results[i], ["lastVisit"]),
-        getPayload(expectedResults[i], ["lastVisit"]),
+        getPayload(context.results[i], { ignore: ["frecency", "lastVisit"] }),
+        getPayload(expectedResults[i], { ignore: ["frecency", "lastVisit"] }),
         "Payload at index " + i
       );
     }
@@ -1131,15 +1131,10 @@ add_task(async function dedupeAgainstURL_timestamps() {
   // Check the quick suggest's payload excluding the timestamp-related
   // properties.
   let actualQuickSuggest = context.results[QUICK_SUGGEST_INDEX];
-  let timestampKeys = [
-    "displayUrl",
-    "sponsoredClickUrl",
-    "url",
-    "urlTimestampIndex",
-  ];
+  let ignore = ["displayUrl", "sponsoredClickUrl", "url", "urlTimestampIndex"];
   Assert.deepEqual(
-    getPayload(actualQuickSuggest, timestampKeys),
-    getPayload(expectedQuickSuggest, timestampKeys),
+    getPayload(actualQuickSuggest, { ignore }),
+    getPayload(expectedQuickSuggest, { ignore }),
     "Quick suggest payload excluding timestamp-related keys"
   );
 

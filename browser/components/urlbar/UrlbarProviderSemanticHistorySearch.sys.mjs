@@ -147,9 +147,9 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
           helpUrl:
             Services.urlFormatter.formatURLPref("app.support.baseURL") +
             "awesome-bar-result-menu",
+          frecency: res.frecency,
         })
       );
-      result.resultGroup = UrlbarUtils.RESULT_GROUP.HISTORY_SEMANTIC;
       addCallback(this, result);
     }
   }

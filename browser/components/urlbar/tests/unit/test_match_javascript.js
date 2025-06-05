@@ -121,13 +121,13 @@ add_task(async function test_javascript_match() {
         source: UrlbarUtils.RESULT_SOURCE.OTHER_LOCAL,
         heuristic: true,
       }),
-      makeVisitResult(context, {
-        uri: uri1.spec,
-        title: "Title with javascript:",
-      }),
       makeBookmarkResult(context, {
         uri: uri2.spec,
         iconUri: "chrome://global/skin/icons/defaultFavicon.svg",
+        title: "Title with javascript:",
+      }),
+      makeVisitResult(context, {
+        uri: uri1.spec,
         title: "Title with javascript:",
       }),
     ],

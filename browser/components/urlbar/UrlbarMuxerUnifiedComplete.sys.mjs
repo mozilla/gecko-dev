@@ -117,6 +117,46 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       // When you add state, update _copyState() as necessary.
     };
 
+    // Show Top Sites above trending results.
+    let showSearchSuggestionsFirst =
+      context.searchString ||
+      (!lazy.UrlbarPrefs.get("suggest.trending") &&
+        !lazy.UrlbarPrefs.get("suggest.recentsearches"));
+
+    // Determine the result groups to use for this sort.  In search mode with
+    // an engine, show search suggestions first.
+    let rootGroup =
+      context.searchMode?.engineName || !showSearchSuggestionsFirst
+        ? lazy.UrlbarPrefs.makeResultGroups({ showSearchSuggestionsFirst })
+        : lazy.UrlbarPrefs.resultGroups;
+    lazy.logger.debug("Root groups", rootGroup);
+
+    // We must do a first pass over the result to reorder some groups.
+    // TODO (Bug 1970591): It would be better to sort while we insert results,
+    // but we cannot because the order matters to `_updateStatePreAdd`.
+    // This maps groups to { sortingField, start, length } objects.
+    let indicesToSort = new Map();
+    for (let i = 0; i < unsortedResults.length; ++i) {
+      let group = UrlbarUtils.getResultGroup(unsortedResults[i]);
+      let groupObj = this.#getGroupAsObject(rootGroup, group);
+      let sortingField = groupObj?.orderBy;
+      if (sortingField) {
+        let indices = indicesToSort.get(group);
+        if (!indices) {
+          indices = { sortingField, start: i, length: 1 };
+          indicesToSort.set(group, indices);
+        } else {
+          indices.length++;
+        }
+      }
+    }
+    for (let { sortingField, start, length } of indicesToSort.values()) {
+      let toSort = unsortedResults.slice(start, start + length);
+      // We assume sorting is always descending.
+      toSort.sort((a, b) => b.payload[sortingField] - a.payload[sortingField]);
+      unsortedResults.splice(start, length, ...toSort);
+    }
+
     // Do the first pass over all results to build some state.
     for (let result of unsortedResults) {
       // Add each result to the appropriate `resultsByGroup` map.
@@ -167,20 +207,6 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
       }
     }
 
-    // Show Top Sites above trending results.
-    let showSearchSuggestionsFirst =
-      context.searchString ||
-      (!lazy.UrlbarPrefs.get("suggest.trending") &&
-        !lazy.UrlbarPrefs.get("suggest.recentsearches"));
-
-    // Determine the result groups to use for this sort.  In search mode with
-    // an engine, show search suggestions first.
-    let rootGroup =
-      context.searchMode?.engineName || !showSearchSuggestionsFirst
-        ? lazy.UrlbarPrefs.makeResultGroups({ showSearchSuggestionsFirst })
-        : lazy.UrlbarPrefs.resultGroups;
-    lazy.logger.debug("Root groups", rootGroup);
-
     // Fill the root group.
     let [sortedResults] = this._fillGroup(
       rootGroup,
@@ -205,6 +231,31 @@ class MuxerUnifiedComplete extends UrlbarMuxer {
     }
 
     context.results = sortedResults;
+  }
+
+  /**
+   * Search for group in rootGroup and return it.
+   *
+   * @param {object} rootGroup Root group definition.
+   * @param {UrlbarUtils.RESULT_GROUP} group The group to search for.
+   * @returns {object|null} Group object from the root group. The
+   *   SUGGESTED_INDEX group is not included in the rootGroup, so this
+   *   will return null for it.
+   */
+  #getGroupAsObject(rootGroup, group) {
+    if ("children" in rootGroup) {
+      for (let child of rootGroup.children) {
+        if ("children" in child) {
+          let groupObj = this.#getGroupAsObject(child, group);
+          if (groupObj) {
+            return groupObj;
+          }
+        } else if (child.group == group) {
+          return child;
+        }
+      }
+    }
+    return null;
   }
 
   /**

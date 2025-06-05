@@ -11,37 +11,18 @@
  */
 // Constants
 
-// AutoComplete query type constants.
-// Describes the various types of queries that we can process rows for.
-const QUERYTYPE_FILTERED = 0;
-
 // The default frecency value used when inserting matches with unknown frecency.
 const FRECENCY_DEFAULT = 1000;
 
 // The result is notified on a delay, to avoid rebuilding the panel at every match.
 const NOTIFYRESULT_DELAY_MS = 16;
 
-// Sqlite result row index constants.
-const QUERYINDEX_QUERYTYPE = 0;
-const QUERYINDEX_URL = 1;
-const QUERYINDEX_TITLE = 2;
-const QUERYINDEX_BOOKMARKED = 3;
-const QUERYINDEX_BOOKMARKTITLE = 4;
-const QUERYINDEX_TAGS = 5;
-//    QUERYINDEX_VISITCOUNT    = 6;
-//    QUERYINDEX_TYPED         = 7;
-const QUERYINDEX_PLACEID = 8;
-const QUERYINDEX_SWITCHTAB = 9;
-const QUERYINDEX_FRECENCY = 10;
-const QUERYINDEX_USERCONTEXTID = 11;
-const QUERYINDEX_LASTVIST = 12;
-const QUERYINDEX_TABGROUP = 13;
-
 // This SQL query fragment provides the following:
 //   - whether the entry is bookmarked (QUERYINDEX_BOOKMARKED)
 //   - the bookmark title, if it is a bookmark (QUERYINDEX_BOOKMARKTITLE)
 //   - the tags associated with a bookmarked entry (QUERYINDEX_TAGS)
-const SQL_BOOKMARK_TAGS_FRAGMENT = `EXISTS(SELECT 1 FROM moz_bookmarks WHERE fk = h.id) AS bookmarked,
+const SQL_BOOKMARK_TAGS_FRAGMENT = `
+   EXISTS(SELECT 1 FROM moz_bookmarks WHERE fk = h.id) AS bookmarked,
    ( SELECT title FROM moz_bookmarks WHERE fk = h.id AND title NOTNULL
      ORDER BY lastModified DESC LIMIT 1
    ) AS btitle,
@@ -56,8 +37,10 @@ const SQL_BOOKMARK_TAGS_FRAGMENT = `EXISTS(SELECT 1 FROM moz_bookmarks WHERE fk 
 // NB: as a slight performance optimization, we only evaluate the "bookmarked"
 // condition once, and avoid evaluating "btitle" and "tags" when it is false.
 function defaultQuery(conditions = "") {
-  let query = `SELECT :query_type, h.url, h.title, ${SQL_BOOKMARK_TAGS_FRAGMENT},
-            h.visit_count, h.typed, h.id, t.open_count, ${lazy.PAGES_FRECENCY_FIELD}, t.userContextId, h.last_visit_date, t.groupId
+  let query = `
+     SELECT h.url, h.title, ${SQL_BOOKMARK_TAGS_FRAGMENT}, h.id, t.open_count,
+            ${lazy.PAGES_FRECENCY_FIELD} AS frecency, t.userContextId,
+            h.last_visit_date, t.groupId
      FROM moz_places h
      LEFT JOIN moz_openpages_temp t
             ON t.url = h.url
@@ -86,8 +69,10 @@ function defaultQuery(conditions = "") {
   return query;
 }
 
-const SQL_SWITCHTAB_QUERY = `SELECT :query_type, t.url, t.url, NULL, NULL, NULL, NULL, NULL, NULL,
-          t.open_count, NULL, t.userContextId, NULL, t.groupId
+const SQL_SWITCHTAB_QUERY = `
+    SELECT t.url, t.url AS title, 0 AS bookmarked, NULL AS btitle,
+           NULL AS tags, NULL AS id, t.open_count, NULL AS frecency,
+           t.userContextId, NULL AS last_visit_date, t.groupId
    FROM moz_openpages_temp t
    LEFT JOIN moz_places h ON h.url_hash = hash(t.url) AND h.url = t.url
    WHERE h.id IS NULL
@@ -163,7 +148,7 @@ ChromeUtils.defineLazyGetter(lazy, "sourceToBehaviorMap", () => {
  *
  * @param   {string} url
  *          The url to use
- * @param   {UrlbarResult} match
+ * @param   {object} match
  *          The match object with the (optional) userContextId
  * @returns {string} map key
  */
@@ -187,7 +172,7 @@ function makeMapKeyForResult(url, match) {
  *
  * @param   {object} match
  *          The match object.
- * @returns {value} Some opaque key object.  Use ObjectUtils.deepEqual() to
+ * @returns {object} Some opaque key object.  Use ObjectUtils.deepEqual() to
  *          compare keys.
  */
 function makeKeyForMatch(match) {
@@ -265,7 +250,7 @@ function makeActionUrl(type, params) {
  *
  * @param {UrlbarQueryContext} context the query context.
  * @param {Array} matches The match objects.
- * @param {set} urls a Set containing all the found urls, userContextId tuple
+ * @param {Set} urls a Set containing all the found urls, userContextId tuple
  *        strings used to discard already added results.
  * @returns {Array} converted results
  */
@@ -292,7 +277,7 @@ function convertLegacyMatches(context, matches, urls) {
       firstToken: context.tokens[0],
       userContextId: match.userContextId,
       lastVisit: match.lastVisit,
-      tabGroup: match.tabGroup,
+      frecency: match.frecency,
     });
     // Should not happen, but better safe than sorry.
     if (!result) {
@@ -342,7 +327,7 @@ function makeUrlbarResult(tokens, info) {
           icon: info.icon,
           userContextId: info.userContextId,
           lastVisit: info.lastVisit,
-          tabGroup: info.tabGroup,
+          frecency: info.frecency,
         });
         if (lazy.UrlbarPrefs.get("secondaryActions.switchToTab")) {
           payload[0].action = UrlbarUtils.createTabSwitchSecondaryAction(
@@ -415,6 +400,7 @@ function makeUrlbarResult(tokens, info) {
       blockL10n,
       helpUrl,
       lastVisit: info.lastVisit,
+      frecency: info.frecency,
     })
   );
 }
@@ -433,7 +419,7 @@ const MATCH_TYPE = {
  *   The query context.
  * @param {Function} listener
  *   Called as: `listener(matches, searchOngoing)`
- * @param {PlacesProvider} provider
+ * @param {UrlbarProviderPlaces} provider
  *   The singleton that contains Places information
  */
 function Search(queryContext, listener, provider) {
@@ -773,12 +759,8 @@ Search.prototype = {
   },
 
   _onResultRow(row, cancel) {
-    let queryType = row.getResultByIndex(QUERYINDEX_QUERYTYPE);
-    switch (queryType) {
-      case QUERYTYPE_FILTERED:
-        this._addFilteredQueryMatch(row);
-        break;
-    }
+    this._addFilteredQueryMatch(row);
+
     // If the search has been canceled by the user or by _addMatch, or we
     // fetched enough results, we can stop the underlying Sqlite query.
     let count = this._counts[MATCH_TYPE.GENERAL];
@@ -1118,22 +1100,20 @@ Search.prototype = {
   },
 
   _addFilteredQueryMatch(row) {
-    let placeId = row.getResultByIndex(QUERYINDEX_PLACEID);
-    let url = row.getResultByIndex(QUERYINDEX_URL);
-    let openPageCount = row.getResultByIndex(QUERYINDEX_SWITCHTAB) || 0;
-    let historyTitle = row.getResultByIndex(QUERYINDEX_TITLE) || "";
-    let bookmarked = row.getResultByIndex(QUERYINDEX_BOOKMARKED);
-    let bookmarkTitle = bookmarked
-      ? row.getResultByIndex(QUERYINDEX_BOOKMARKTITLE)
-      : null;
-    let tags = row.getResultByIndex(QUERYINDEX_TAGS) || "";
-    let frecency = row.getResultByIndex(QUERYINDEX_FRECENCY);
-    let userContextId = row.getResultByIndex(QUERYINDEX_USERCONTEXTID);
-    let lastVisitPRTime = row.getResultByIndex(QUERYINDEX_LASTVIST);
+    let placeId = row.getResultByName("id");
+    let url = row.getResultByName("url");
+    let openPageCount = row.getResultByName("open_count") || 0;
+    let historyTitle = row.getResultByName("title") || "";
+    let bookmarked = row.getResultByName("bookmarked");
+    let bookmarkTitle = bookmarked ? row.getResultByName("btitle") : null;
+    let tags = row.getResultByName("tags") || "";
+    let frecency = row.getResultByName("frecency");
+    let userContextId = row.getResultByName("userContextId");
+    let lastVisitPRTime = row.getResultByName("last_visit_date");
     let lastVisit = lastVisitPRTime
       ? lazy.PlacesUtils.toDate(lastVisitPRTime).getTime()
       : undefined;
-    let tabGroup = row.getResultByIndex(QUERYINDEX_TABGROUP);
+    let tabGroup = row.getResultByName("groupId");
 
     let match = {
       placeId,
@@ -1295,7 +1275,6 @@ Search.prototype = {
   get _searchQuery() {
     let params = {
       parent: lazy.PlacesUtils.tagsFolderId,
-      query_type: QUERYTYPE_FILTERED,
       matchBehavior: this._matchBehavior,
       searchBehavior: this._behavior,
       // We only want to search the tokens that we are left with - not the
@@ -1332,7 +1311,6 @@ Search.prototype = {
     return [
       SQL_SWITCHTAB_QUERY,
       {
-        query_type: QUERYTYPE_FILTERED,
         matchBehavior: this._matchBehavior,
         searchBehavior: this._behavior,
         // We only want to search the tokens that we are left with - not the
