@@ -57,9 +57,6 @@ const EXPIRY_TIME_IN_MS = 5 * 60 * 1000; // 5 minutes
 let gCachedWASMModulePromise = null;
 let gCachedWASMModuleExpiryTimer = 0;
 
-// Keep active workers alive (see bug 1592227).
-const gActiveWorkers = new Set();
-
 function clearCachedWASMModule() {
   gCachedWASMModulePromise = null;
   gCachedWASMModuleExpiryTimer = 0;
@@ -102,11 +99,9 @@ function getWASMProfilerGetSymbolsModule() {
 async function getResultFromWorker(workerURL, initialMessageToWorker) {
   return new Promise((resolve, reject) => {
     const worker = new ChromeWorker(workerURL);
-    gActiveWorkers.add(worker);
 
     /** @param {MessageEvent<SymbolicationWorkerReplyData<R>>} msg */
     worker.onmessage = msg => {
-      gActiveWorkers.delete(worker);
       if ("error" in msg.data) {
         const error = msg.data.error;
         if (error.name) {
@@ -133,7 +128,6 @@ async function getResultFromWorker(workerURL, initialMessageToWorker) {
     // rejections. Without this handler, mistakes during development such as
     // syntax errors can be hard to track down.
     worker.onerror = errorEvent => {
-      gActiveWorkers.delete(worker);
       worker.terminate();
       if (ErrorEvent.isInstance(errorEvent)) {
         const { message, filename, lineno } = errorEvent;
@@ -149,7 +143,6 @@ async function getResultFromWorker(workerURL, initialMessageToWorker) {
     // how to get into such a state, but having this handler seems like a good
     // idea.
     worker.onmessageerror = () => {
-      gActiveWorkers.delete(worker);
       worker.terminate();
       reject(new Error("Error in worker"));
     };
