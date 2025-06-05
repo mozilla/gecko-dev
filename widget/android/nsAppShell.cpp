@@ -579,6 +579,7 @@ nsAppShell::Observe(nsISupports* aSubject, const char* aTopic,
     nsCOMPtr<dom::Document> doc = do_QueryInterface(aSubject);
     MOZ_ASSERT(doc);
     if (const RefPtr<nsWindow> window = nsWindow::From(doc->GetWindow())) {
+      PROFILER_MARKER_TEXT("Applink Startup", OTHER, {}, "GeckoViewReady"_ns);
       window->OnGeckoViewReady();
     }
   } else if (!strcmp(aTopic, "quit-application")) {

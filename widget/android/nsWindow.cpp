@@ -1807,6 +1807,9 @@ void GeckoViewSupport::Open(
     jni::String::Param aChromeURI, bool aPrivateMode) {
   MOZ_ASSERT(NS_IsMainThread());
 
+  PROFILER_MARKER_TEXT("Applink Startup", OTHER, {},
+                       "GeckoViewSupport::Open"_ns);
+
   AUTO_PROFILER_LABEL("mozilla::widget::GeckoViewSupport::Open", OTHER);
 
   // We'll need gfxPlatform to be initialized to create a compositor later.
