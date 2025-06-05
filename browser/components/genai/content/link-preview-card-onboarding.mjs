@@ -16,6 +16,17 @@ window.MozXULElement.insertFTLIfNeeded("preview/linkPreview.ftl");
  * @augments MozLitElement
  */
 class LinkPreviewCardOnboarding extends MozLitElement {
+  static get properties() {
+    return {
+      onboardingType: { type: String },
+    };
+  }
+
+  constructor() {
+    super();
+    this.onboardingType = "shiftKey";
+  }
+
   /**
    * Handles click on the "Try it now" button.
    *
@@ -40,6 +51,20 @@ class LinkPreviewCardOnboarding extends MozLitElement {
    * @returns {import('lit').TemplateResult} The rendered HTML template.
    */
   render() {
+    const titleL10nId =
+      this.onboardingType === "longPress"
+        ? "link-preview-onboarding-title-long-press"
+        : "link-preview-onboarding-title-shift";
+    const descriptionL10nId =
+      this.onboardingType === "longPress"
+        ? "link-preview-onboarding-description-long-press"
+        : "link-preview-onboarding-description-shift";
+
+    const imageSrc =
+      this.onboardingType === "longPress"
+        ? "chrome://browser/content/genai/assets/onboarding-link-preview-image-longpress.svg"
+        : "chrome://browser/content/genai/assets/onboarding-link-preview-image-shift.svg";
+
     return html`
       <link
         rel="stylesheet"
@@ -51,19 +76,9 @@ class LinkPreviewCardOnboarding extends MozLitElement {
       />
       <div class="og-card onboarding">
         <div class="og-card-content">
-          <img
-            class="og-card-img"
-            src="chrome://browser/content/genai/assets/onboarding-link-preview-image.svg"
-            alt=""
-          />
-          <h2
-            class="og-card-title"
-            data-l10n-id="link-preview-onboarding-title"
-          ></h2>
-          <p
-            class="og-card-description"
-            data-l10n-id="link-preview-onboarding-description"
-          ></p>
+          <img class="og-card-img" src=${imageSrc} alt="" />
+          <h2 class="og-card-title" data-l10n-id=${titleL10nId}></h2>
+          <p class="og-card-description" data-l10n-id=${descriptionL10nId}></p>
           <div class="reading-time-settings-container">
             <moz-button-group class="onboarding-button-group">
               <moz-button

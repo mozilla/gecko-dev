@@ -422,3 +422,111 @@ add_task(async function test_try_it_now_button_telemetry() {
   // Cleanup
   panel.remove();
 });
+
+/**
+ * Tests that telemetry is recorded with the correct type when onboarding is triggered by long press.
+ */
+add_task(async function test_onboarding_long_press_type_telemetry() {
+  Services.fog.testResetFOG();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.linkPreview.enabled", true],
+      ["browser.ml.linkPreview.onboardingTimes", ""],
+      ["browser.ml.linkPreview.longPress", true],
+    ],
+  });
+
+  Assert.equal(
+    Glean.genaiLinkpreview.onboardingCard.testGetValue(),
+    null,
+    "No onboardingCard events initially"
+  );
+
+  XULBrowserWindow.setOverLink(TEST_LINK_URL_EN);
+
+  const panel = await waitForPanelOpen("wait for onboarding panel");
+  ok(panel, "Panel created for onboarding");
+
+  const onboarding_card = panel.querySelector("link-preview-card-onboarding");
+  ok(onboarding_card, "onboarding element is present");
+
+  let events = Glean.genaiLinkpreview.onboardingCard.testGetValue();
+  Assert.equal(events.length, 1, "One onboardingCard event recorded");
+  Assert.equal(events[0].extra.action, "view", "View action recorded");
+  Assert.equal(
+    events[0].extra.type,
+    "longPress",
+    "longPress type recorded for view"
+  );
+
+  const closeButton = onboarding_card.shadowRoot.querySelector(
+    "#onboarding-close-button"
+  );
+  ok(closeButton, "close button is present");
+  closeButton.click();
+
+  events = Glean.genaiLinkpreview.onboardingCard.testGetValue();
+  Assert.equal(events.length, 2, "Two onboardingCard events recorded");
+  Assert.equal(events[1].extra.action, "close", "Close action recorded");
+  Assert.equal(
+    events[1].extra.type,
+    "longPress",
+    "longPress type recorded for close"
+  );
+
+  panel.remove();
+});
+
+/**
+ * Tests that telemetry is recorded with the correct type (shift) when longPress is disabled.
+ */
+add_task(async function test_onboarding_shift_type_telemetry() {
+  Services.fog.testResetFOG();
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["browser.ml.linkPreview.enabled", true],
+      ["browser.ml.linkPreview.onboardingTimes", ""],
+      ["browser.ml.linkPreview.longPress", false],
+    ],
+  });
+
+  Assert.equal(
+    Glean.genaiLinkpreview.onboardingCard.testGetValue(),
+    null,
+    "No onboardingCard events initially"
+  );
+
+  XULBrowserWindow.setOverLink(TEST_LINK_URL_EN);
+
+  const panel = await waitForPanelOpen("wait for onboarding panel");
+  ok(panel, "Panel created for onboarding");
+
+  const onboarding_card = panel.querySelector("link-preview-card-onboarding");
+  ok(onboarding_card, "onboarding element is present");
+
+  let events = Glean.genaiLinkpreview.onboardingCard.testGetValue();
+  Assert.equal(events.length, 1, "One onboardingCard event recorded");
+  Assert.equal(events[0].extra.action, "view", "View action recorded");
+  Assert.equal(
+    events[0].extra.type,
+    "shiftKey",
+    "shiftKey type recorded for view"
+  );
+
+  const closeButton = onboarding_card.shadowRoot.querySelector(
+    "#onboarding-close-button"
+  );
+  ok(closeButton, "close button is present");
+  closeButton.click();
+
+  events = Glean.genaiLinkpreview.onboardingCard.testGetValue();
+  Assert.equal(events.length, 2, "Two onboardingCard events recorded");
+  Assert.equal(events[1].extra.action, "close", "Close action recorded");
+  Assert.equal(
+    events[1].extra.type,
+    "shiftKey",
+    "shiftKey type recorded for close"
+  );
+
+  panel.remove();
+});
