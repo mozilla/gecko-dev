@@ -302,7 +302,7 @@ class MOZ_RAII WarpCacheIRTranspiler : public WarpBuilderShared {
 
   [[nodiscard]] bool emitCallGetterResult(CallKind kind,
                                           ValOperandId receiverId,
-                                          uint32_t getterOffset, bool sameRealm,
+                                          MDefinition* getter, bool sameRealm,
                                           uint32_t nargsAndFlagsOffset);
   [[nodiscard]] bool emitCallSetter(CallKind kind, ObjOperandId receiverId,
                                     uint32_t setterOffset, ValOperandId rhsId,
@@ -6618,11 +6618,10 @@ bool WarpCacheIRTranspiler::emitGuardWasmArg(ValOperandId argId,
 
 bool WarpCacheIRTranspiler::emitCallGetterResult(CallKind kind,
                                                  ValOperandId receiverId,
-                                                 uint32_t getterOffset,
+                                                 MDefinition* getter,
                                                  bool sameRealm,
                                                  uint32_t nargsAndFlagsOffset) {
   MDefinition* receiver = getOperand(receiverId);
-  MDefinition* getter = objectStubField(getterOffset);
   if (kind == CallKind::Scripted && callInfo_ && callInfo_->isInlined()) {
     // We are transpiling to generate the correct guards. We also update the
     // CallInfo to use the correct arguments. Code for the inlined getter
@@ -6664,23 +6663,26 @@ bool WarpCacheIRTranspiler::emitCallGetterResult(CallKind kind,
 }
 
 bool WarpCacheIRTranspiler::emitCallScriptedGetterResult(
-    ValOperandId receiverId, uint32_t getterOffset, bool sameRealm,
+    ValOperandId receiverId, ObjOperandId calleeId, bool sameRealm,
     uint32_t nargsAndFlagsOffset) {
-  return emitCallGetterResult(CallKind::Scripted, receiverId, getterOffset,
+  MDefinition* getter = getOperand(calleeId);
+  return emitCallGetterResult(CallKind::Scripted, receiverId, getter,
                               sameRealm, nargsAndFlagsOffset);
 }
 
 bool WarpCacheIRTranspiler::emitCallInlinedGetterResult(
-    ValOperandId receiverId, uint32_t getterOffset, uint32_t icScriptOffset,
+    ValOperandId receiverId, ObjOperandId calleeId, uint32_t icScriptOffset,
     bool sameRealm, uint32_t nargsAndFlagsOffset) {
-  return emitCallGetterResult(CallKind::Scripted, receiverId, getterOffset,
+  MDefinition* getter = getOperand(calleeId);
+  return emitCallGetterResult(CallKind::Scripted, receiverId, getter,
                               sameRealm, nargsAndFlagsOffset);
 }
 
 bool WarpCacheIRTranspiler::emitCallNativeGetterResult(
     ValOperandId receiverId, uint32_t getterOffset, bool sameRealm,
     uint32_t nargsAndFlagsOffset) {
-  return emitCallGetterResult(CallKind::Native, receiverId, getterOffset,
+  MDefinition* getter = objectStubField(getterOffset);
+  return emitCallGetterResult(CallKind::Native, receiverId, getter,
                               sameRealm, nargsAndFlagsOffset);
 }
 

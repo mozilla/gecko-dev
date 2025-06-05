@@ -618,19 +618,27 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
     callClassHook_(calleeId, argc, flags, argcFixed, target);
   }
 
+ private:
+  ObjOperandId getterSetterCalleeOperand(JSFunction* target) {
+    return loadObject(target);
+  }
+ public:
+
   void callScriptedGetterResult(ValOperandId receiver, JSFunction* getter,
                                 bool sameRealm) {
     MOZ_ASSERT(getter->hasJitEntry());
     uint32_t nargsAndFlags = getter->flagsAndArgCountRaw();
-    callScriptedGetterResult_(receiver, getter, sameRealm, nargsAndFlags);
+    ObjOperandId callee = getterSetterCalleeOperand(getter);
+    callScriptedGetterResult_(receiver, callee, sameRealm, nargsAndFlags);
     trialInliningState_ = TrialInliningState::Candidate;
   }
 
-  void callInlinedGetterResult(ValOperandId receiver, JSFunction* getter,
-                               ICScript* icScript, bool sameRealm) {
+  void callInlinedGetterResult(ValOperandId receiver, ObjOperandId callee,
+                               JSFunction* getter, ICScript* icScript,
+                               bool sameRealm) {
     MOZ_ASSERT(getter->hasJitEntry());
     uint32_t nargsAndFlags = getter->flagsAndArgCountRaw();
-    callInlinedGetterResult_(receiver, getter, icScript, sameRealm,
+    callInlinedGetterResult_(receiver, callee, icScript, sameRealm,
                              nargsAndFlags);
     trialInliningState_ = TrialInliningState::Inlined;
   }
