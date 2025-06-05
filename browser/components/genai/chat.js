@@ -162,13 +162,12 @@ function request(url = lazy.providerPref) {
 
 function renderChat() {
   const browser = document.createXULElement("browser");
-  const browserContainer = document.getElementById("browser-container");
   browser.setAttribute("disableglobalhistory", "true");
   browser.setAttribute("maychangeremoteness", "true");
   browser.setAttribute("nodefaultsrc", "true");
   browser.setAttribute("remote", "true");
   browser.setAttribute("type", "content");
-  return browserContainer.appendChild(browser);
+  return document.body.appendChild(browser);
 }
 
 async function renderProviders() {

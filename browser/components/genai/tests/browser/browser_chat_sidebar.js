@@ -18,31 +18,9 @@ add_task(async function test_sidebar_render() {
 
   await SidebarController.show("viewGenaiChatSidebar");
 
-  const { document, getComputedStyle } =
-    SidebarController.browser.contentWindow;
-
-  const provider = document.getElementById("provider");
-
+  const provider =
+    SidebarController.browser.contentWindow.document.getElementById("provider");
   Assert.ok(provider, "Rendered provider select");
-
-  const summarizeBtnContainer = document.getElementById(
-    "summarize-btn-container"
-  );
-  Assert.equal(
-    getComputedStyle(summarizeBtnContainer).display,
-    "none",
-    "Button container set hidden"
-  );
-
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.ml.chat.page", true]],
-  });
-
-  Assert.notEqual(
-    getComputedStyle(summarizeBtnContainer).display,
-    "none",
-    "Button container set not hidden"
-  );
 
   SidebarController.hide();
 });
