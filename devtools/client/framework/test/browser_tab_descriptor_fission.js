@@ -34,7 +34,15 @@ add_task(async function () {
     "The toolbox target is also the target associated with the tab descriptor"
   );
 
+  const waitForDevToolsReload = await watchForDevToolsReload(
+    gBrowser.selectedBrowser,
+    {
+      isErrorPage: false,
+      waitForLoad: true,
+    }
+  );
   await tabDescriptor.navigateTo(EXAMPLE_ORG_URI, true);
+  await waitForDevToolsReload();
 
   info("Call list tabs again to update the tab descriptor forms");
   await client.mainRoot.listTabs();
