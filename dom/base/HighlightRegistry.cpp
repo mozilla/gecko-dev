@@ -146,18 +146,18 @@ void HighlightRegistry::AddHighlightSelectionsToFrameSelection() {
   }
 }
 
-void HighlightRegistry::Set(const nsAString& aKey, Highlight& aValue,
-                            ErrorResult& aRv) {
+HighlightRegistry* HighlightRegistry::Set(const nsAString& aKey,
+                                          Highlight& aValue, ErrorResult& aRv) {
   // manually check if the highlight `aKey` is already registered to be able to
   // provide a fast path later that avoids calling `std::find_if()`.
   const bool highlightAlreadyPresent =
       HighlightRegistry_Binding::MaplikeHelpers::Has(this, aKey, aRv);
   if (aRv.Failed()) {
-    return;
+    return this;
   }
   HighlightRegistry_Binding::MaplikeHelpers::Set(this, aKey, aValue, aRv);
   if (aRv.Failed()) {
-    return;
+    return this;
   }
   RefPtr<nsFrameSelection> frameSelection = GetFrameSelection();
   RefPtr<nsAtom> highlightNameAtom = NS_AtomizeMainThread(aKey);
@@ -184,6 +184,7 @@ void HighlightRegistry::Set(const nsAString& aKey, Highlight& aValue,
   if (frameSelection) {
     frameSelection->AddHighlightSelection(highlightNameAtom, aValue);
   }
+  return this;
 }
 
 void HighlightRegistry::Clear(ErrorResult& aRv) {
