@@ -235,6 +235,17 @@ static OperatingSystem BlocklistOSToOperatingSystem(const nsAString& os) {
   return OperatingSystem::Unknown;
 }
 
+static RefreshRateStatus BlocklistToRefreshRateStatus(
+    const nsAString& refreshRateStatus) {
+#define GFXINFO_REFRESH_RATE_STATUS(id, name)   \
+  if (refreshRateStatus.Equals(u##name##_ns)) { \
+    return RefreshRateStatus::id;               \
+  }
+#include "mozilla/widget/GfxInfoRefreshRateStatusDefs.h"
+#undef GFXINFO_OS
+  return RefreshRateStatus::Unknown;
+}
+
 static already_AddRefed<const GfxDeviceFamily> BlocklistDevicesToDeviceFamily(
     nsTArray<nsCString>& devices) {
   if (devices.Length() == 0) return nullptr;
@@ -363,6 +374,22 @@ static bool BlocklistEntryToDriverInfo(const nsACString& aBlocklistEntry,
     } else if (key.EqualsLiteral("osVersionExComparator")) {
       aDriverInfo->mOperatingSystemVersionExComparisonOp =
           BlocklistComparatorToComparisonOp(dataValue);
+    } else if (key.EqualsLiteral("refreshRateStatus")) {
+      aDriverInfo->mRefreshRateStatus = BlocklistToRefreshRateStatus(dataValue);
+    } else if (key.EqualsLiteral("minRefreshRate")) {
+      aDriverInfo->mMinRefreshRate = strtoul(value.get(), nullptr, 10);
+    } else if (key.EqualsLiteral("minRefreshRateMax")) {
+      aDriverInfo->mMinRefreshRateMax = strtoul(value.get(), nullptr, 10);
+    } else if (key.EqualsLiteral("minRefreshRateComparator")) {
+      aDriverInfo->mMinRefreshRateComparisonOp =
+          BlocklistComparatorToComparisonOp(dataValue);
+    } else if (key.EqualsLiteral("maxRefreshRate")) {
+      aDriverInfo->mMaxRefreshRate = strtoul(value.get(), nullptr, 10);
+    } else if (key.EqualsLiteral("maxRefreshRateMax")) {
+      aDriverInfo->mMaxRefreshRateMax = strtoul(value.get(), nullptr, 10);
+    } else if (key.EqualsLiteral("maxRefreshRateComparator")) {
+      aDriverInfo->mMaxRefreshRateComparisonOp =
+          BlocklistComparatorToComparisonOp(dataValue);
     } else if (key.EqualsLiteral("windowProtocol")) {
       aDriverInfo->mWindowProtocol = dataValue;
     } else if (key.EqualsLiteral("vendor")) {
@@ -475,8 +502,34 @@ void GfxInfoBase::GetData() {
     return;
   }
 
-  ScreenManager::GetSingleton().GetTotalScreenPixels(&mScreenPixels);
+  auto& screenManager = ScreenManager::GetSingleton();
+  screenManager.GetTotalScreenPixels(&mScreenPixels);
+
+  if (mScreenCount == 0) {
+    const auto& screenList = screenManager.CurrentScreenList();
+    mScreenCount = screenList.Length();
+
+    mMinRefreshRate = std::numeric_limits<int32_t>::max();
+    mMaxRefreshRate = std::numeric_limits<int32_t>::min();
+    for (auto& screen : ScreenManager::GetSingleton().CurrentScreenList()) {
+      int32_t refreshRate = screen->GetRefreshRate();
+      mMinRefreshRate = std::min(mMinRefreshRate, refreshRate);
+      mMaxRefreshRate = std::max(mMaxRefreshRate, refreshRate);
+    }
+  }
 }
+
+#ifdef DEBUG
+NS_IMETHODIMP
+GfxInfoBase::SpoofMonitorInfo(uint32_t aScreenCount, int32_t aMinRefreshRate,
+                              int32_t aMaxRefreshRate) {
+  MOZ_ASSERT(aScreenCount > 0);
+  mScreenCount = aScreenCount;
+  mMinRefreshRate = aMinRefreshRate;
+  mMaxRefreshRate = aMaxRefreshRate;
+  return NS_OK;
+}
+#endif
 
 NS_IMETHODIMP
 GfxInfoBase::GetFeatureStatus(int32_t aFeature, nsACString& aFailureId,
@@ -623,6 +676,53 @@ inline bool MatchingOperatingSystems(OperatingSystem aBlockedOS,
   return aSystemOS == aBlockedOS;
 }
 
+/* static */
+bool GfxInfoBase::MatchingRefreshRateStatus(RefreshRateStatus aSystemStatus,
+                                            RefreshRateStatus aBlockedStatus) {
+  switch (aBlockedStatus) {
+    case RefreshRateStatus::Any:
+      return true;
+    case RefreshRateStatus::AnySame:
+      return aSystemStatus == RefreshRateStatus::Single ||
+             aSystemStatus == RefreshRateStatus::MultipleSame;
+    default:
+      break;
+  }
+  return aSystemStatus == aBlockedStatus;
+}
+
+/* static */ bool GfxInfoBase::MatchingRefreshRates(int32_t aSystem,
+                                                    int32_t aBlocked,
+                                                    int32_t aBlockedMax,
+                                                    VersionComparisonOp aCmp) {
+  switch (aCmp) {
+    case DRIVER_COMPARISON_IGNORED:
+      return true;
+    case DRIVER_LESS_THAN:
+      return aSystem < aBlocked;
+    case DRIVER_LESS_THAN_OR_EQUAL:
+      return aSystem <= aBlocked;
+    case DRIVER_GREATER_THAN:
+      return aSystem > aBlocked;
+    case DRIVER_GREATER_THAN_OR_EQUAL:
+      return aSystem >= aBlocked;
+    case DRIVER_EQUAL:
+      return aSystem == aBlocked;
+    case DRIVER_NOT_EQUAL:
+      return aSystem != aBlocked;
+    case DRIVER_BETWEEN_EXCLUSIVE:
+      return aSystem > aBlocked && aSystem < aBlockedMax;
+    case DRIVER_BETWEEN_INCLUSIVE:
+      return aSystem >= aBlocked && aSystem <= aBlockedMax;
+    case DRIVER_BETWEEN_INCLUSIVE_START:
+      return aSystem >= aBlocked && aSystem < aBlockedMax;
+    default:
+      NS_WARNING("Unhandled op in GfxDriverInfo");
+      break;
+  }
+  return false;
+}
+
 inline bool MatchingBattery(BatteryStatus aBatteryStatus, bool aHasBattery) {
   switch (aBatteryStatus) {
     case BatteryStatus::All:
@@ -673,6 +773,15 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
   nsresult rv = GetWindowProtocol(windowProtocol);
   if (NS_FAILED(rv) && rv != NS_ERROR_NOT_IMPLEMENTED) {
     return 0;
+  }
+
+  RefreshRateStatus refreshRateStatus;
+  if (mScreenCount <= 1) {
+    refreshRateStatus = RefreshRateStatus::Single;
+  } else if (mMinRefreshRate == mMaxRefreshRate) {
+    refreshRateStatus = RefreshRateStatus::MultipleSame;
+  } else {
+    refreshRateStatus = RefreshRateStatus::Mixed;
   }
 
   bool hasBattery = false;
@@ -748,6 +857,25 @@ int32_t GfxInfoBase::FindBlocklistedDeviceInList(
     if (!osVersionEx.Compare(info[i]->mOperatingSystemVersionEx,
                              info[i]->mOperatingSystemVersionExMax,
                              info[i]->mOperatingSystemVersionExComparisonOp)) {
+      continue;
+    }
+
+    if (!MatchingRefreshRateStatus(refreshRateStatus,
+                                   info[i]->mRefreshRateStatus)) {
+      continue;
+    }
+
+    if (mScreenCount > 0 &&
+        !MatchingRefreshRates(mMinRefreshRate, info[i]->mMinRefreshRate,
+                              info[i]->mMinRefreshRateMax,
+                              info[i]->mMinRefreshRateComparisonOp)) {
+      continue;
+    }
+
+    if (mScreenCount > 0 &&
+        !MatchingRefreshRates(mMaxRefreshRate, info[i]->mMaxRefreshRate,
+                              info[i]->mMaxRefreshRateMax,
+                              info[i]->mMaxRefreshRateComparisonOp)) {
       continue;
     }
 

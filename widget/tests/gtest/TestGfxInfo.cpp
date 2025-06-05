@@ -252,3 +252,107 @@ TEST(GfxInfo, GfxVersionEx)
   EXPECT_FALSE(badParts.Parse("10.5.abc.25"_ns));
   EXPECT_EQ(badParts.Compare(GfxVersionEx(10, 5, 0, 0)), 0);
 }
+
+TEST(GfxInfo, MatchingRefreshRateStatus)
+{
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRateStatus(RefreshRateStatus::Single,
+                                                     RefreshRateStatus::Any));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::MultipleSame, RefreshRateStatus::Any));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRateStatus(RefreshRateStatus::Mixed,
+                                                     RefreshRateStatus::Any));
+
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::Single, RefreshRateStatus::AnySame));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::MultipleSame, RefreshRateStatus::AnySame));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::Mixed, RefreshRateStatus::AnySame));
+
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::Single, RefreshRateStatus::Single));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::MultipleSame, RefreshRateStatus::Single));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::Mixed, RefreshRateStatus::Single));
+
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::Single, RefreshRateStatus::MultipleSame));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::MultipleSame, RefreshRateStatus::MultipleSame));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::Mixed, RefreshRateStatus::MultipleSame));
+
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::Single, RefreshRateStatus::Mixed));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRateStatus(
+      RefreshRateStatus::MultipleSame, RefreshRateStatus::Mixed));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRateStatus(RefreshRateStatus::Mixed,
+                                                     RefreshRateStatus::Mixed));
+}
+
+TEST(GfxInfo, MatchingRefreshRates)
+{
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(60, 60, 0, DRIVER_LESS_THAN));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(59, 60, 0, DRIVER_LESS_THAN));
+
+  EXPECT_FALSE(
+      GfxInfoBase::MatchingRefreshRates(61, 60, 0, DRIVER_LESS_THAN_OR_EQUAL));
+  EXPECT_TRUE(
+      GfxInfoBase::MatchingRefreshRates(60, 60, 0, DRIVER_LESS_THAN_OR_EQUAL));
+  EXPECT_TRUE(
+      GfxInfoBase::MatchingRefreshRates(59, 60, 0, DRIVER_LESS_THAN_OR_EQUAL));
+
+  EXPECT_FALSE(
+      GfxInfoBase::MatchingRefreshRates(60, 60, 0, DRIVER_GREATER_THAN));
+  EXPECT_TRUE(
+      GfxInfoBase::MatchingRefreshRates(61, 60, 0, DRIVER_GREATER_THAN));
+
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(59, 60, 0,
+                                                 DRIVER_GREATER_THAN_OR_EQUAL));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(60, 60, 0,
+                                                DRIVER_GREATER_THAN_OR_EQUAL));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(61, 60, 0,
+                                                DRIVER_GREATER_THAN_OR_EQUAL));
+
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(59, 60, 0, DRIVER_EQUAL));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(60, 60, 0, DRIVER_EQUAL));
+
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(60, 60, 0, DRIVER_NOT_EQUAL));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(59, 60, 0, DRIVER_NOT_EQUAL));
+
+  EXPECT_FALSE(
+      GfxInfoBase::MatchingRefreshRates(60, 60, 120, DRIVER_BETWEEN_EXCLUSIVE));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(120, 60, 120,
+                                                 DRIVER_BETWEEN_EXCLUSIVE));
+  EXPECT_TRUE(
+      GfxInfoBase::MatchingRefreshRates(61, 60, 120, DRIVER_BETWEEN_EXCLUSIVE));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(119, 60, 120,
+                                                DRIVER_BETWEEN_EXCLUSIVE));
+
+  EXPECT_FALSE(
+      GfxInfoBase::MatchingRefreshRates(59, 60, 120, DRIVER_BETWEEN_INCLUSIVE));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(121, 60, 120,
+                                                 DRIVER_BETWEEN_INCLUSIVE));
+  EXPECT_TRUE(
+      GfxInfoBase::MatchingRefreshRates(60, 60, 120, DRIVER_BETWEEN_INCLUSIVE));
+  EXPECT_TRUE(
+      GfxInfoBase::MatchingRefreshRates(61, 60, 120, DRIVER_BETWEEN_INCLUSIVE));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(119, 60, 120,
+                                                DRIVER_BETWEEN_INCLUSIVE));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(120, 60, 120,
+                                                DRIVER_BETWEEN_INCLUSIVE));
+
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(
+      59, 60, 120, DRIVER_BETWEEN_INCLUSIVE_START));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(
+      120, 60, 120, DRIVER_BETWEEN_INCLUSIVE_START));
+  EXPECT_FALSE(GfxInfoBase::MatchingRefreshRates(
+      121, 60, 120, DRIVER_BETWEEN_INCLUSIVE_START));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(
+      60, 60, 120, DRIVER_BETWEEN_INCLUSIVE_START));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(
+      61, 60, 120, DRIVER_BETWEEN_INCLUSIVE_START));
+  EXPECT_TRUE(GfxInfoBase::MatchingRefreshRates(
+      119, 60, 120, DRIVER_BETWEEN_INCLUSIVE_START));
+}

@@ -21,4 +21,8 @@ interface nsIGfxInfoDebug : nsISupports
                         in unsigned long aMinor,
                         in unsigned long aBuild,
                         in unsigned long aRevision);
+
+  void spoofMonitorInfo(in unsigned long aScreenCount,
+                        in long aMinRefreshRate,
+                        in long aMaxRefreshRate);
 };

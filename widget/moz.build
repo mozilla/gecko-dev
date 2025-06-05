@@ -211,6 +211,7 @@ EXPORTS.mozilla.widget += [
     "GfxInfoFeatureDefs.h",
     "GfxInfoFeatureStatusDefs.h",
     "GfxInfoOperatingSystemDefs.h",
+    "GfxInfoRefreshRateStatusDefs.h",
     "GfxInfoWindowProtocolDefs.h",
     "IconLoader.h",
     "IMEData.h",

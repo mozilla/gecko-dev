@@ -85,6 +85,10 @@ skip-if = ["os == 'android' && verify"] # times out in chaos mode on Android bec
 
 ["test_gfxBlocklist_GTE_OK.js"]
 
+["test_gfxBlocklist_maxRefreshRate_match.js"]
+
+["test_gfxBlocklist_minRefreshRate_match.js"]
+
 ["test_gfxBlocklist_No_Comparison.js"]
 
 ["test_gfxBlocklist_OK.js"]
@@ -98,6 +102,8 @@ skip-if = ["os == 'android' && verify"] # times out in chaos mode on Android bec
 ["test_gfxBlocklist_OSVersion_mismatch_OSVersion.js"]
 
 ["test_gfxBlocklist_OSVersionEx_match.js"]
+
+["test_gfxBlocklist_refreshRateStatus_match.js"]
 
 ["test_gfxBlocklist_Vendor.js"]
 
