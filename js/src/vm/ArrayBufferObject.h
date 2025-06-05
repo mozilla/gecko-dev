@@ -231,7 +231,7 @@ class ArrayBufferObject : public ArrayBufferObjectMaybeShared {
   static constexpr size_t ByteLengthLimitForSmallBuffer = INT32_MAX;
 #ifdef JS_64BIT
   static constexpr size_t ByteLengthLimit =
-      size_t(8) * 1024 * 1024 * 1024;  // 8 GB.
+      size_t(16) * 1024 * 1024 * 1024;  // 16 GB.
 #else
   static constexpr size_t ByteLengthLimit = ByteLengthLimitForSmallBuffer;
 #endif

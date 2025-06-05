@@ -197,8 +197,8 @@ function testArrayBufferSlice() {
 testArrayBufferSlice();
 
 function testFromObjectTooLargeLength() {
-    assertThrowsInstanceOf(() => new Uint8Array({length: 9 * gb}), RangeError);
-    assertThrowsInstanceOf(() => ta.set({length: 9 * gb}), RangeError);
+    assertThrowsInstanceOf(() => new Uint8Array({length: 17 * gb}), RangeError);
+    assertThrowsInstanceOf(() => ta.set({length: 17 * gb}), RangeError);
 }
 testFromObjectTooLargeLength();
 

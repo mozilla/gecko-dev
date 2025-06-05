@@ -1,6 +1,6 @@
 load(libdir + "asserts.js");
 
-const maxByteLength = 8 * 1024 * 1024 * 1024;
+const maxByteLength = 16 * 1024 * 1024 * 1024;
 
 // Test only the smallest and largest element type, because allocating a lot of
 // large buffers can be pretty slow.
