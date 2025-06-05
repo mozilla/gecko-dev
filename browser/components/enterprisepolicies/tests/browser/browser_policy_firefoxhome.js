@@ -11,7 +11,7 @@ add_setup(async function () {
   });
 });
 
-add_task(async function test_firefox_home_without_policy_without_pocket() {
+add_task(async function test_firefox_home_without_policy() {
   let tab = await BrowserTestUtils.openNewForegroundTab({
     gBrowser,
     opening: "about:home",
@@ -93,8 +93,6 @@ add_task(async function test_firefoxhome_preferences_set() {
         TopSites: false,
         SponsoredTopSites: false,
         Highlights: false,
-        Pocket: false,
-        SponsoredPocket: false,
         Locked: true,
       },
     },
@@ -107,8 +105,6 @@ add_task(async function test_firefoxhome_preferences_set() {
       SponsoredTopSites:
         "browser.newtabpage.activity-stream.showSponsoredTopSites",
       Highlights: "browser.newtabpage.activity-stream.feeds.section.highlights",
-      Pocket: "browser.newtabpage.activity-stream.feeds.section.topstories",
-      SponsoredPocket: "browser.newtabpage.activity-stream.showSponsored",
     };
     for (let [section, preference] of Object.entries(data)) {
       is(

@@ -178,6 +178,13 @@ EnterprisePoliciesManager.prototype = {
 
       let policyImpl = lazy.Policies[policyName];
 
+      if (!policyImpl) {
+        // This means there is an entry in the schema, but no implementaton.
+        // We only do this when we deprecate policies.
+        lazy.log.info(`${policyName} has been deprecated.`);
+        continue;
+      }
+
       if (policyImpl.validate && !policyImpl.validate(parsedParameters)) {
         lazy.log.error(
           `Parameters for ${policyName} did not validate successfully.`

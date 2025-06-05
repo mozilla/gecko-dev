@@ -288,7 +288,6 @@ function generateDocumentation() {
     Certificates: "CertificatesDescription",
     DisableFirefoxAccounts: "DisableFirefoxAccounts1",
     DisableMasterPasswordCreation: "DisablePrimaryPasswordCreation",
-    DisablePocket: "DisablePocket2",
     DisableSetDesktopBackground: "DisableSetAsDesktopBackground",
     FirefoxHome: "FirefoxHome2",
     Permissions: "Permissions2",
@@ -297,8 +296,12 @@ function generateDocumentation() {
     SkipTermsOfUse: "SkipTermsOfUse2",
     WindowsSSO: "Windows10SSO",
   };
+  let deprecated_policies = ["DisablePocket"];
 
   for (let policyName in schema.properties) {
+    if (deprecated_policies.includes(policyName)) {
+      continue;
+    }
     let main_tbody = document.createElement("tbody");
     main_tbody.classList.add("collapsible");
     main_tbody.addEventListener("click", function () {

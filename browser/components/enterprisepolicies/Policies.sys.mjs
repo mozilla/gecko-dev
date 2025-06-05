@@ -977,14 +977,6 @@ export var Policies = {
     },
   },
 
-  DisablePocket: {
-    onBeforeAddons(manager, param) {
-      if (param) {
-        setAndLockPref("extensions.pocket.enabled", false);
-      }
-    },
-  },
-
   DisablePrivateBrowsing: {
     onBeforeAddons(manager, param) {
       if (param) {
@@ -1473,25 +1465,6 @@ export var Policies = {
         PoliciesUtils.setDefaultPref(
           "browser.newtabpage.activity-stream.feeds.section.highlights",
           param.Highlights,
-          param.Locked
-        );
-      }
-      if ("Pocket" in param) {
-        PoliciesUtils.setDefaultPref(
-          "browser.newtabpage.activity-stream.feeds.system.topstories",
-          param.Pocket,
-          param.Locked
-        );
-        PoliciesUtils.setDefaultPref(
-          "browser.newtabpage.activity-stream.feeds.section.topstories",
-          param.Pocket,
-          param.Locked
-        );
-      }
-      if ("SponsoredPocket" in param) {
-        PoliciesUtils.setDefaultPref(
-          "browser.newtabpage.activity-stream.showSponsored",
-          param.SponsoredPocket,
           param.Locked
         );
       }
