@@ -326,6 +326,7 @@ support-files = ["file_new_tab_page.html"]
 tags = "vertical-tabs"
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1648512
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && socketprocess_networking", # Bug 1648512
 ]
 
 ["browser_openURI_background.js"]
@@ -497,8 +498,10 @@ tags = "vertical-tabs"
 
 ["browser_tab_groups.js"]
 support-files = ["file_new_tab_page.html"]
+tags = "vertical-tabs"
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1920294
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1920294
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1929417 (secondary)
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1928146
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
@@ -506,7 +509,6 @@ skip-if = [
   "win11_2009 && debug", # Bug 1928146 - frequent leaked window
   "os == 'win' && os_version == '11.26100' && debug", # Bug 1928146
 ]
-tags = "vertical-tabs"
 
 ["browser_tab_groups_a11y.js"]
 tags = "vertical-tabs"
@@ -517,6 +519,9 @@ tags = "vertical-tabs"
 ["browser_tab_groups_tab_interactions_telemetry.js"]
 
 ["browser_tab_groups_telemetry.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1961033
+]
 
 ["browser_tab_label_during_reload.js"]
 tags = "vertical-tabs"
@@ -563,6 +568,7 @@ skip-if = [
 ["browser_tab_tooltips.js"]
 tags = "vertical-tabs"
 skip-if = [
+  "os == 'linux'&& os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan", # Bug 1775653
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && vertical_tab", # Bug 1928146
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && vertical_tab", # Bug 1928146
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && vertical_tab", # Bug 1928146

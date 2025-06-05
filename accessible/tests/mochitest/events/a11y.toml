@@ -45,8 +45,9 @@ support-files = [
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
   "os == 'linux' && os_version == '22.04' && processor == 'x86_64'",
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
   "os == 'win' && os_version == '11.26100' && processor == 'x86'",
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64'",
 ]
 
 ["test_focus_canvas.html"]

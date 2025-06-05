@@ -114,7 +114,10 @@ https_first_disabled = true
 ["browser_ext_browsingData_history.js"]
 
 ["browser_ext_canOpenModalPicker.js"]
-skip-if = ["os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt"] # Bug 1949651
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1949651
+  "os == 'mac' && os_version == '15.30' && arch == 'aarch64' && opt", # Bug 1949651
+]
 
 ["browser_ext_chrome_settings_overrides_home.js"]
 
@@ -648,17 +651,23 @@ https_first_disabled = true
 ["browser_ext_themes_validation.js"]
 
 ["browser_ext_topSites.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl", # Bug 1775583
+]
 
 ["browser_ext_url_overrides_newtab.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04'", # Bug 1651261
-  "win11_2009 && asan", # Bug 1797751
-  "win11_2009 && debug", # Bug 1797751
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && asan && swgl", # Bug 1651261
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && tsan && swgl", # Bug 1651261
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1651261
+  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
   "os == 'win' && os_version == '11.26100' && processor == 'x86' && debug", # Bug 1797751
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && asan", # Bug 1797751
-  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1797751
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && ccov", # Bug 1797751
-  "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
+  "os == 'win' && os_version == '11.26100' && processor == 'x86_64' && debug", # Bug 1797751
+  "win11_2009 && asan", # Bug 1797751
+  "win11_2009 && debug", # Bug 1797751
 ]
 
 ["browser_ext_user_events.js"]
@@ -734,10 +743,11 @@ skip-if = [
 ["browser_ext_windows_update.js"]
 tags = "fullscreen"
 skip-if = [
+  "os == 'linux' && os_version == '18.04'", # Bug 1533982 for linux1804
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1533982
+  "os == 'mac' && os_version == '10.15' && debug", # Bug 1780998
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify",
   "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && verify",
-  "os == 'mac' && os_version == '10.15' && debug", # Bug 1780998
-  "os == 'linux' && os_version == '18.04'", # Bug 1533982 for linux1804
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869793
 ]
 

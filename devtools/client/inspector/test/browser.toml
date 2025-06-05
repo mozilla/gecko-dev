@@ -312,7 +312,10 @@ run-if = ["os != 'mac'"] # Full keyboard navigation on OSX only works if Full Ke
 ["browser_inspector_menu-06-other.js"]
 
 ["browser_inspector_navigate_to_errors.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_inspector_navigation.js"]
 
@@ -420,6 +423,9 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_inspector_switch-to-inspector-on-pick.js"]
 
 ["browser_inspector_textbox-menu.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1968688
+]
 
 ["browser_inspector_textbox-menu_reopen_toolbox.js"]
 

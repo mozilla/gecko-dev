@@ -89,12 +89,14 @@ skip-if = [
 ["test_bug304188.xhtml"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1957808
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug", # Bug 1957808
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1957808
 ]
 
 ["test_bug331215.xhtml"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug", # Bug 1339326 #Bug 1582327
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1582327
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64' && opt", # Bug 1339326 #Bug 1582327
 ]
 
@@ -103,6 +105,7 @@ skip-if = [
 ["test_bug360437.xhtml"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1784826
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1784826
 ]
 
 ["test_bug365773.xhtml"]
@@ -135,6 +138,7 @@ support-files = ["bug451540_window.xhtml"]
 ["test_bug624329.xhtml"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1600194
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1600194
 ]
 
 ["test_bug792324.xhtml"]
@@ -199,11 +203,17 @@ support-files = [
   "window_maximized_persist.xhtml",
   "file_maximized_persist.js",
 ]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1968560
+]
 
 ["test_maximized_persist_with_no_titlebar.xhtml"]
 support-files = [
   "window_maximized_persist_with_no_titlebar.xhtml",
   "file_maximized_persist.js",
+]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1968560
 ]
 
 ["test_menu.xhtml"]

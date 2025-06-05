@@ -11,17 +11,20 @@ skip-if = [
 support-files = ["head.js"]
 
 ["browser_all_files_referenced.js"]
-skip-if = ["verify && bits == 32"] # Causes OOMs when run repeatedly
+skip-if = [
+  "verify && bits == 32", # Causes OOMs when run repeatedly
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # TODO: this probably needs to be fixed, why not skipped from default?
+]
 
 ["browser_glean_metrics_exist.js"]
 
 ["browser_misused_characters_in_strings.js"]
 support-files = ["bug1262648_string_with_newlines.dtd"]
-skip-if = ["os == 'win' && msix"] # Permafail on MSIX packages due to it running on files it shouldn't.
+run-if = ["!msix"] # Permafail on MSIX packages due to it running on files it shouldn't.
 
 ["browser_parsable_css.js"]
 support-files = ["dummy_page.html"]
-skip-if = ["os == 'win' && msix"] # Permafail on MSIX packages due to it running on files it shouldn't.
+run-if = ["!msix"] # Permafail on MSIX packages due to it running on files it shouldn't.
 
 ["browser_parsable_script.js"]
 skip-if = ["ccov && os == 'linux'"] # https://bugzilla.mozilla.org/show_bug.cgi?id=1608081

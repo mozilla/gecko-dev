@@ -9,6 +9,9 @@ prefs = [
 ["browser_adopt_sidebar_from_opener.js"]
 
 ["browser_customize_sidebar.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968564
+]
 
 ["browser_domfullscreen_sidebar.js"]
 
@@ -36,6 +39,9 @@ skip-if = [
 run-if = ["os == 'mac'"] # Mac only feature
 
 ["browser_sidebar_max_width.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && socketprocess_networking", # Bug 1935442
+]
 
 ["browser_sidebar_menubar_item_commands.js"]
 
@@ -60,6 +66,9 @@ run-if = ["os == 'mac'"] # Mac only feature
 ["browser_verticalTabs_widget_placements.js"]
 
 ["browser_vertical_tabs.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1968564
+]
 
 ["browser_vertical_tabs_cui_reset.js"]
 

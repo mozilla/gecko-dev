@@ -53,6 +53,7 @@ run-if = ["os != 'win'"] # Due to chmod the test only makes sense on Unix-like.
 support-files = ["cookies-json.sjs"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && socketprocess_networking", # Bug 1929561
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && socketprocess_networking", # Bug 1929561
 ]
 
 ["browser_downloads_keynav.js"]

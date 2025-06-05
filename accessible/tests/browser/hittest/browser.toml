@@ -21,6 +21,9 @@ skip-if = [
 ["browser_test_scroll_hittest.js"]
 
 ["browser_test_shadowroot.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968558
+]
 
 ["browser_test_text.js"]
 

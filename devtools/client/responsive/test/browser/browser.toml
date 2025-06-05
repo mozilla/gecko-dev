@@ -41,6 +41,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_device_custom.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
 ]
 
 ["browser_device_custom_edit.js"]
@@ -49,6 +50,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_device_custom_remove.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1849028, 1858041 to investigate intermittent a11y_checks results (fails on Try, passes on Autoland)
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Try, passes on Autoland)
 ]
 
 ["browser_device_modal_exit.js"]
@@ -58,6 +60,7 @@ skip-if = [
 ["browser_device_modal_submit.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Autoland, passes on Try)
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks", # Bug 1858041 and 1849028 intermittent a11y_checks results (fails on Autoland, passes on Try)
 ]
 
 ["browser_device_pixel_ratio_change.js"]
@@ -107,7 +110,10 @@ https_first_disabled = true
 
 ["browser_permission_doorhanger.js"]
 tags = "devtools geolocation"
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3"] # Bug 1829298
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && http3", # Bug 1829298
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && debug && http3", # Bug 1829298
+]
 
 ["browser_picker_link.js"]
 

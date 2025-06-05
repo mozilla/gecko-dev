@@ -10,11 +10,12 @@ prefs = [
 ["browser_aaa_eventTelemetry_run_first.js"]
 skip-if = [
   "asan",
-  "tsan",
   "ccov",
   "debug",
-  "os == 'win' && !debug", # bug 1605494 is more prevalent on linux, Bug 1627419
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1648862
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1648862
+  "os == 'win' && !debug", # bug 1605494 is more prevalent on linux, Bug 1627419
+  "tsan",
 ]
 
 ["browser_alertDismissedAfterChangingPassword.js"]
@@ -68,11 +69,15 @@ skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # 
 ["browser_osAuthDialog.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # bug 1527745
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1527745
   "os == 'win' && os_version == '11.26100' && bits == 64 && asan", # Bug 1836545
 ]
 
 ["browser_primaryPassword.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # bug 1569789
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # bug 1569789
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1569789
+]
 
 ["browser_removeAllDialog.js"]
 

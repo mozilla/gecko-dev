@@ -22,6 +22,9 @@ support-files = [
 ]
 
 ["browser_UrlbarInput_formatValue.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968567
+]
 
 ["browser_UrlbarInput_formatValue_detachedTab.js"]
 
@@ -31,6 +34,9 @@ support-files = ["mixed_active.html"]
 ["browser_UrlbarInput_hiddenFocus.js"]
 
 ["browser_UrlbarInput_overflow.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1968567
+]
 
 ["browser_UrlbarInput_overflow_resize.js"]
 
@@ -723,8 +729,9 @@ tags = "search-telemetry"
 ["browser_urlbar_telemetry_persisted.js"]
 tags = "search-telemetry"
 skip-if = [
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'",
-] # bug 1934362
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # bug 1934362
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt && a11y_checks && swgl", # Bug 1934362
+]
 
 ["browser_urlbar_telemetry_places.js"]
 https_first_disabled = true

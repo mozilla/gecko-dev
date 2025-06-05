@@ -307,6 +307,9 @@ skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && soc
 
 ["browser_menuButtonFitts.js"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968565
+]
 
 ["browser_middleMouse_noJSPaste.js"]
 https_first_disabled = true

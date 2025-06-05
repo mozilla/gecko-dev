@@ -11,6 +11,9 @@ support-files = [
 ["browser_test_scrollTo.js"]
 
 ["browser_test_scroll_bounds.js"]
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968558
+]
 
 ["browser_test_scroll_substring.js"]
 

@@ -26,8 +26,9 @@ skip-if = [
 skip-if = [
   "debug", # bug 1369731
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # Bug 1775940
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11' && opt", # Bug 1775940
   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #  platform migration
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #   bug 1707735
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1869787
   "os == 'mac' && os_version == '15.30' && arch == 'aarch64'", #   bug 1707735
 ]

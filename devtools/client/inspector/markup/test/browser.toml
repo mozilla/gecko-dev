@@ -147,6 +147,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_markup_events-overflow.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1177550
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1177550
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1177550
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1177550
 ]
@@ -286,6 +287,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_markup_load_01.js"]
 skip-if = [
   "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1706833, times out waiting for context menu to open
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1706833, times out waiting for context menu to open
   "os == 'mac' && os_version == '14.70' && processor == 'x86_64'", # Bug 1706833, times out waiting for context menu to open
   "os == 'win' && os_version == '11.26100' && processor == 'x86_64'", # Bug 1706833, times out waiting for context menu to open
 ]

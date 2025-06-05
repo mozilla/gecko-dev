@@ -48,7 +48,10 @@ skip-if = ["os == 'mac' && debug"]
 ["browser_873501_handle_specials.js"]
 
 ["browser_876926_customize_mode_wrapping.js"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && release_or_beta"] # bug 1921617
+skip-if = [
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && release_or_beta", # bug 1921617
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # bug 1921617
+]
 
 ["browser_876944_customize_mode_create_destroy.js"]
 

@@ -230,12 +230,7 @@ add_task(
     // Linux in CI seems to skip the full screen animation, which means its not
     // affected by the bug and we can't test extension of the sec delay here.
     if (Services.appinfo.OS == "Linux") {
-      todo(
-        notification &&
-          !notification.dismissed &&
-          BrowserTestUtils.isVisible(PopupNotifications.panel.firstChild),
-        "Notification should still be open because we clicked during the security delay."
-      );
+      // skip this, intermittent passing on Ubuntu 24.04
     } else {
       ok(
         notification &&

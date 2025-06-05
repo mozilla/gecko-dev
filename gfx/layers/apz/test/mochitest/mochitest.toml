@@ -76,10 +76,11 @@ skip-if = [
 ["test_group_hittest-3.html"]
 run-if = ["os != 'android'"]  # mouse events not supported on mobile
 skip-if = [
-  "win11_2009 && bits == 32",
-  "win11_2009 && asan",
-  "http3",
   "http2",
+  "http3",
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'",
+  "win11_2009 && asan",
+  "win11_2009 && bits == 32",
 ]
 
 ["test_group_hittest-overscroll.html"]
@@ -116,6 +117,7 @@ skip-if = [
 skip-if = [
   "os == 'android'",  # wheel events not supported on mobile
   "display == 'wayland' && os_version == '22.04'",  # Bug 1857059
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1966348
   "http3",
   "http2",
 ]

@@ -199,12 +199,7 @@ support-files = ["bug1080361_inner.html"]
 support-files = ["bug1093686_inner.html"]
 
 ["test_bug1120705.html"]
-skip-if = [
-  "os == 'android'", # android does not have clickable scrollbars
-  "os == 'mac'", # mac does not have scrollbar down and up buttons
-  "os == 'linux' && os_version == '18.04'", # linux may or may not have scrollbar buttons depending on theme
-  "os == 'linux' && os_version == '22.04'", # linux may or may not have scrollbar buttons depending on theme
-]
+run-if = ["os == 'mac'"] # android/linux/mac does not have clickable scrollbars (depending on theme)
 
 ["test_bug1153130.html"]
 support-files = ["bug1153130_inner.html"]
@@ -226,6 +221,7 @@ support-files = ["bug1226904.html"]
 
 ["test_bug1448730.html"]
 support-files = ["bug1448730.html"]
+skip-if = ["os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'"] # Bug 1781401
 
 ["test_bug1515822.html"]
 
@@ -253,7 +249,10 @@ support-files = ["file_dynamic_toolbar_max_height.html"]
 
 ["test_event_target_radius.html"]
 support-files = ["helper_bug1733509.html"]
-skip-if = ["xorigin"] # JavaScript error: resource://specialpowers/SpecialPowersChild.sys.mjs, line 73: SecurityError: Permission denied to access property "windowUtils" on cross-origin object
+skip-if = [
+  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968682
+  "xorigin", # JavaScript error: resource://specialpowers/SpecialPowersChild.sys.mjs, line 73: SecurityError: Permission denied to access property "windowUtils" on cross-origin object
+]
 
 ["test_frame_reconstruction_body_table.html"]
 
