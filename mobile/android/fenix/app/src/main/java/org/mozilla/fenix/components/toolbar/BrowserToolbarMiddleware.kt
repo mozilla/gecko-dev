@@ -17,6 +17,7 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
+import mozilla.components.browser.state.action.EngineAction
 import mozilla.components.browser.state.selector.getNormalOrPrivateTabs
 import mozilla.components.browser.state.selector.normalTabs
 import mozilla.components.browser.state.selector.privateTabs
@@ -74,6 +75,9 @@ import org.mozilla.fenix.components.appstate.AppAction.URLCopiedToClipboard
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateSessionLongClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.ReaderModeClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
@@ -81,6 +85,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivate
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.TabCounterClicked
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.tabstray.Page
@@ -93,6 +98,9 @@ import mozilla.components.ui.icons.R as iconsR
 internal sealed class DisplayActions : BrowserToolbarEvent {
     data object HomeClicked : DisplayActions()
     data object MenuClicked : DisplayActions()
+    data object NavigateBackClicked : DisplayActions()
+    data object NavigateForwardClicked : DisplayActions()
+    data object NavigateSessionLongClicked : DisplayActions()
 }
 
 @VisibleForTesting
@@ -152,6 +160,7 @@ class BrowserToolbarMiddleware(
         updateToolbarActionsBasedOnOrientation()
         observeTabsCountUpdates()
         observeAcceptingCancellingPrivateDownloads()
+        observePageNavigationStatus()
         observePageOriginUpdates()
         observeReaderModeUpdates()
         observePageTranslationsUpdates()
@@ -284,6 +293,24 @@ class BrowserToolbarMiddleware(
                     Logger("BrowserOriginContextMenu").error("Clipboard contains URL but unable to read text")
                 }
             }
+            is NavigateSessionLongClicked -> {
+                dependencies.navController.nav(
+                    R.id.browserFragment,
+                    BrowserFragmentDirections.actionGlobalTabHistoryDialogFragment(
+                        activeSessionId = null,
+                    ),
+                )
+            }
+            is NavigateBackClicked -> {
+                browserStore.state.selectedTab?.let {
+                    browserStore.dispatch(EngineAction.GoBackAction(it.id))
+                }
+            }
+            is NavigateForwardClicked -> {
+                browserStore.state.selectedTab?.let {
+                    browserStore.dispatch(EngineAction.GoForwardAction(it.id))
+                }
+            }
 
             is ReaderModeClicked -> when (action.isActive) {
                 true -> dependencies.readerModeController.hideReaderView()
@@ -320,13 +347,45 @@ class BrowserToolbarMiddleware(
         ),
     )
 
-    private fun buildStartBrowserActions(): List<Action> = listOf(
-        ActionButton(
-            icon = R.drawable.mozac_ic_home_24,
-            contentDescription = R.string.browser_toolbar_home,
-            onClick = HomeClicked,
-        ),
-    )
+    private fun buildStartBrowserActions(): List<Action> = buildList {
+        add(
+            ActionButton(
+                icon = R.drawable.mozac_ic_home_24,
+                contentDescription = R.string.browser_toolbar_home,
+                onClick = HomeClicked,
+            ),
+        )
+        if (dependencies.context.isLargeWindow()) {
+            val canGoForward = browserStore.state.selectedTab?.content?.canGoForward == true
+            val canGoBack = browserStore.state.selectedTab?.content?.canGoBack == true
+            add(
+                ActionButton(
+                    icon = R.drawable.mozac_ic_back_24,
+                    contentDescription = R.string.browser_menu_back,
+                    state = if (canGoBack) {
+                        ActionButton.State.DEFAULT
+                    } else {
+                        ActionButton.State.DISABLED
+                    },
+                    onClick = NavigateBackClicked,
+                    onLongClick = NavigateSessionLongClicked,
+                ),
+            )
+            add(
+                ActionButton(
+                    icon = R.drawable.mozac_ic_forward_24,
+                    contentDescription = R.string.browser_menu_forward,
+                    state = if (canGoForward) {
+                        ActionButton.State.DEFAULT
+                    } else {
+                        ActionButton.State.DISABLED
+                    },
+                    onClick = NavigateForwardClicked,
+                    onLongClick = NavigateSessionLongClicked,
+                ),
+            )
+        }
+    }
 
     private fun updateEndPageActions() = store?.dispatch(
         PageActionsEndUpdated(
@@ -526,6 +585,25 @@ class BrowserToolbarMiddleware(
             lifecycleScope.launch {
                 repeatOnLifecycle(RESUMED) {
                     store.flow().observe()
+                }
+            }
+        }
+    }
+
+    private fun observePageNavigationStatus() {
+        with(dependencies.lifecycleOwner) {
+            this.lifecycleScope.launch {
+                repeatOnLifecycle(RESUMED) {
+                    browserStore.flow()
+                        .distinctUntilChangedBy {
+                            arrayOf(
+                                it.selectedTab?.content?.canGoBack,
+                                it.selectedTab?.content?.canGoForward,
+                            )
+                        }
+                        .collect {
+                            updateStartBrowserActions()
+                        }
                 }
             }
         }

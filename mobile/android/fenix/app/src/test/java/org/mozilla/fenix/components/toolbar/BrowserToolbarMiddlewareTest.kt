@@ -89,6 +89,9 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.BrowserToolbarMiddleware.LifecycleDependencies
 import org.mozilla.fenix.components.toolbar.DisplayActions.HomeClicked
 import org.mozilla.fenix.components.toolbar.DisplayActions.MenuClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateBackClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateForwardClicked
+import org.mozilla.fenix.components.toolbar.DisplayActions.NavigateSessionLongClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.ReaderModeClicked
 import org.mozilla.fenix.components.toolbar.PageEndActionsInteractions.TranslateClicked
 import org.mozilla.fenix.components.toolbar.PageOriginInteractions.OriginClicked
@@ -96,6 +99,7 @@ import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewPrivate
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.AddNewTab
 import org.mozilla.fenix.components.toolbar.TabCounterInteractions.CloseCurrentTab
 import org.mozilla.fenix.components.usecases.FenixBrowserUseCases
+import org.mozilla.fenix.ext.isLargeWindow
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.tabstray.Page
@@ -1249,6 +1253,129 @@ class BrowserToolbarMiddlewareTest {
         verify { navController.navigate(BrowserFragmentDirections.actionBrowserFragmentToTranslationsDialogFragment()) }
     }
 
+    @Test
+    fun `GIVEN device has large window WHEN a website is loaded THEN show navigation buttons`() = runTestOnMain {
+        Dispatchers.setMain(StandardTestDispatcher())
+        mockkStatic(Context::isLargeWindow) {
+            val browsingModeManager = SimpleBrowsingModeManager(Private)
+            val currentNavDestination: NavDestination = mockk {
+                every { id } returns R.id.browserFragment
+            }
+            val navController: NavController = mockk(relaxed = true) {
+                every { currentDestination } returns currentNavDestination
+            }
+            every { any<Context>().isLargeWindow() } returns true
+            every { settings.shouldUseBottomToolbar } returns false
+            val currentTab = createTab("test.com", private = false)
+            val browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(currentTab),
+                    selectedTabId = currentTab.id,
+                ),
+            )
+            val browserScreenStore = BrowserScreenStore()
+            val middleware = BrowserToolbarMiddleware(
+                appStore = appStore,
+                browserScreenStore = browserScreenStore,
+                browserStore = browserStore,
+                useCases = useCases,
+                clipboard = mockk(),
+                settings = settings,
+            ).apply {
+                updateLifecycleDependencies(
+                    LifecycleDependencies(
+                        context = testContext,
+                        lifecycleOwner = lifecycleOwner,
+                        navController = navController,
+                        browsingModeManager = browsingModeManager,
+                        browserAnimator = mockk(),
+                        thumbnailsFeature = mockk(),
+                        readerModeController = mockk(),
+                    ),
+                )
+            }
+            val toolbarStore = BrowserToolbarStore(
+                middleware = listOf(middleware),
+            ).also {
+                it.dispatch(BrowserToolbarAction.Init())
+            }
+            testScheduler.advanceUntilIdle()
+
+            val displayGoBackButton = toolbarStore.state.displayState.browserActionsStart[1] as ActionButton
+            assertEquals(displayGoBackButton, expectedGoBackButton.copy(state = ActionButton.State.DISABLED))
+            val displayGoForwardButton = toolbarStore.state.displayState.browserActionsStart[2] as ActionButton
+            assertEquals(displayGoForwardButton, expectedGoForwardButton.copy(state = ActionButton.State.DISABLED))
+        }
+    }
+
+    @Test
+    fun `GIVEN nav buttons on toolbar are shown WHEN device is rotated THEN nav buttons still shown`() = runTestOnMain {
+        Dispatchers.setMain(StandardTestDispatcher())
+        mockkStatic(Context::isLargeWindow) {
+            val browsingModeManager = SimpleBrowsingModeManager(Private)
+            val currentNavDestination: NavDestination = mockk {
+                every { id } returns R.id.browserFragment
+            }
+            val navController: NavController = mockk(relaxed = true) {
+                every { currentDestination } returns currentNavDestination
+            }
+            every { any<Context>().isLargeWindow() } returns true
+            every { settings.shouldUseBottomToolbar } returns false
+            val currentTab = createTab("test.com", private = false)
+            val browserStore = BrowserStore(
+                BrowserState(
+                    tabs = listOf(currentTab),
+                    selectedTabId = currentTab.id,
+                ),
+            )
+            val appStore = AppStore(
+                initialState = AppState(
+                    orientation = Portrait,
+                ),
+            )
+            val browserScreenStore = BrowserScreenStore()
+            val middleware = BrowserToolbarMiddleware(
+                appStore = appStore,
+                browserScreenStore = browserScreenStore,
+                browserStore = browserStore,
+                useCases = useCases,
+                clipboard = mockk(),
+                settings = settings,
+            ).apply {
+                updateLifecycleDependencies(
+                    LifecycleDependencies(
+                        context = testContext,
+                        lifecycleOwner = lifecycleOwner,
+                        navController = navController,
+                        browsingModeManager = browsingModeManager,
+                        browserAnimator = mockk(),
+                        thumbnailsFeature = mockk(),
+                        readerModeController = mockk(),
+                    ),
+                )
+            }
+            val toolbarStore = BrowserToolbarStore(
+                middleware = listOf(middleware),
+            ).also {
+                it.dispatch(BrowserToolbarAction.Init())
+            }
+            testScheduler.advanceUntilIdle()
+
+            var displayGoBackButton = toolbarStore.state.displayState.browserActionsStart[1] as ActionButton
+            assertEquals(displayGoBackButton, expectedGoBackButton.copy(state = ActionButton.State.DISABLED))
+            var displayGoForwardButton = toolbarStore.state.displayState.browserActionsStart[2] as ActionButton
+            assertEquals(displayGoForwardButton, expectedGoForwardButton.copy(state = ActionButton.State.DISABLED))
+
+            appStore.dispatch(AppAction.OrientationChange(Landscape)).joinBlocking()
+            testScheduler.advanceUntilIdle()
+
+            displayGoBackButton = toolbarStore.state.displayState.browserActionsStart[1] as ActionButton
+            assertEquals(displayGoBackButton, expectedGoBackButton.copy(state = ActionButton.State.DISABLED))
+            displayGoForwardButton = toolbarStore.state.displayState.browserActionsStart[2] as ActionButton
+            assertEquals(displayGoForwardButton, expectedGoForwardButton.copy(state = ActionButton.State.DISABLED))
+        }
+    }
+
     private fun assertEqualsTabCounterButton(expected: TabCounterAction, actual: TabCounterAction) {
         assertEquals(expected.count, actual.count)
         assertEquals(expected.contentDescription, actual.contentDescription)
@@ -1285,6 +1412,22 @@ class BrowserToolbarMiddlewareTest {
             false -> ActionButton.State.DEFAULT
         },
         onClick = ReaderModeClicked(isActive),
+    )
+
+    private val expectedGoForwardButton = ActionButton(
+        icon = R.drawable.mozac_ic_forward_24,
+        contentDescription = R.string.browser_menu_forward,
+        state = ActionButton.State.ACTIVE,
+        onClick = NavigateForwardClicked,
+        onLongClick = NavigateSessionLongClicked,
+    )
+
+    private val expectedGoBackButton = ActionButton(
+        icon = R.drawable.mozac_ic_back_24,
+        contentDescription = R.string.browser_menu_back,
+        state = ActionButton.State.ACTIVE,
+        onClick = NavigateBackClicked,
+        onLongClick = NavigateSessionLongClicked,
     )
 
     private val expectedTranslateButton = ActionButton(
