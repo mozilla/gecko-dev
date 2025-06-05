@@ -23,6 +23,12 @@ export class NotificationStorage {
   constructor() {
     Services.obs.addObserver(this, "xpcom-shutdown");
 
+    ChromeUtils.importESModule(
+      "resource://gre/modules/MemoryNotificationDB.sys.mjs"
+    );
+
+    ChromeUtils.importESModule("resource://gre/modules/NotificationDB.sys.mjs");
+
     // Register for message listeners.
     this.registerListeners();
   }

@@ -272,14 +272,6 @@ export class GeckoViewStartup {
           ged: ["GeckoView:WebExtension:DownloadChanged"],
         });
 
-        ChromeUtils.importESModule(
-          "resource://gre/modules/MemoryNotificationDB.sys.mjs"
-        );
-
-        ChromeUtils.importESModule(
-          "resource://gre/modules/NotificationDB.sys.mjs"
-        );
-
         // Listen for global EventDispatcher messages
         lazy.EventDispatcher.instance.registerListener(this, [
           "GeckoView:ResetUserPrefs",
