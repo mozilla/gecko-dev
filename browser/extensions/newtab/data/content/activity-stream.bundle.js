@@ -3508,7 +3508,7 @@ const DSSource = ({
   refinedCardsLayout
 }) => {
   // refinedCard styles will have a larger favicon size
-  const faviconSize = refinedCardsLayout ? 24 : 16;
+  const faviconSize = refinedCardsLayout ? 20 : 16;
 
   // First try to display sponsored label or time to read here.
   if (newSponsoredLabel) {
