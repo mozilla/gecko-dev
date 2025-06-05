@@ -15,15 +15,9 @@ function reportSuccess() {
   SimpleTest.finish();
 }
 
-var smoothScrollPref = "general.smoothScroll";
 function prepareTest() {
-  if (!SpecialPowers.getBoolPref("layout.reflow.synthMouseMove")) {
-  	ok(true, "layout.reflow.synthMouseMove is false, we can't run this test");
-    SimpleTest.finish();
-  	return;
-  }
   window.requestAnimationFrame(function() {
-    SpecialPowers.pushPrefEnv({"set":[[smoothScrollPref, false]]}, runTest);
+    SpecialPowers.pushPrefEnv({"set":[["general.smoothScroll", false]]}, runTest);
   });
 }
 

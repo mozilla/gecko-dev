@@ -37,6 +37,12 @@ addEventListener("DOMContentLoaded", () => {
 }, {once: true});
 
 async function test() {
+  while (document.documentElement.scrollY == 0) {
+    // the scrollframe is not yet marked as APZ-scrollable. Mark it so
+    // before continuing.
+    document.documentElement.scrollTo(0, 1);
+    await promiseApzFlushedRepaints();
+  }
   const height = window.innerHeight;
   const divToBeSwiped = document.body.querySelector(`div:nth-child(${
     Math.floor(height / document.body.firstElementChild.getBoundingClientRect().height)

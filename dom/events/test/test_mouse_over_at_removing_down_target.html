@@ -23,7 +23,6 @@ div#child {
 
 SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(async () => {
-  await SpecialPowers.pushPrefEnv({ set: [["layout.reflow.synthMouseMove", true]] });
   const winUtils = SpecialPowers.wrap(window).windowUtils;
   try {
     winUtils.disableNonTestMouseEvents(true);

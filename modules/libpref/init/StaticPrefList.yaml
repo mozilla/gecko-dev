@@ -10456,12 +10456,11 @@
   value: true
   mirror: always
 
-# On Android, don't synth mouse move events after scrolling, as they cause
-# unexpected user-visible behaviour. Can remove this after bug 1633450 is
-# satisfactorily resolved.
+# Whether synthesize eMouseMove for dispatching mouse boundary events after
+# a layout change or a scroll.
 - name: layout.reflow.synthMouseMove
   type: bool
-  value: @IS_NOT_MOBILE@
+  value: true
   mirror: always
 
 # This pref determines which side vertical scrollbars should be on.

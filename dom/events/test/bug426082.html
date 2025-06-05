@@ -4,6 +4,8 @@
 https://bugzilla.mozilla.org/show_bug.cgi?id=426082
 -->
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Test for Bug 426082</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <script src="/tests/SimpleTest/EventUtils.js"></script>
@@ -32,7 +34,12 @@ function oneTick() {
   return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 }
 
+function stringifyOpenTag(aElement) {
+  return aElement.cloneNode(false).outerHTML;
+}
+
 function sendMouseEvent(t, elem) {
+  info(`Synthesizing ${t} on ${stringifyOpenTag(elem)}`);
   let r = elem.getBoundingClientRect();
   synthesizeMouse(elem, r.width / 2, r.height / 2, {type: t});
 }
@@ -44,6 +51,15 @@ async function tests() {
 
   let is = window.opener.is;
   let ok = window.opener.ok;
+
+  function logMouseEvent(aEvent) {
+    info(`${aEvent.type} (${aEvent.clientX}, ${aEvent.clientY}) on ${
+      stringifyOpenTag(event.target)
+    } (scrollTop=${document.documentElement.scrollTop})`);
+  }
+  addEventListener("mouseover", logMouseEvent, {capture: true});
+  addEventListener("mousedown", logMouseEvent, {capture: true});
+  addEventListener("mousemove", logMouseEvent, {capture: true});
 
   // Press the label.
   sendMouseEvent("mousemove", label);
