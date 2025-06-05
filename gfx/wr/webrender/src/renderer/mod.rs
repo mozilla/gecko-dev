@@ -1155,6 +1155,39 @@ impl Renderer {
 
                     self.device.end_frame();
                 }
+                ResultMsg::RenderDocumentOffscreen(document_id, mut offscreen_doc, resources) => {
+                    // Flush pending operations if needed (See comment in the match arm for
+                    // PublishPipelineInfo).
+
+                    // Borrow-ck dance.
+                    let prev_doc = self.active_documents.remove(&document_id);
+                    if let Some(mut prev_doc) = prev_doc {
+                        if prev_doc.frame.must_be_drawn() {
+                            prev_doc.render_reasons |= RenderReasons::TEXTURE_CACHE_FLUSH;
+                            self.render_impl(
+                                document_id,
+                                &mut prev_doc,
+                                None,
+                                0,
+                            ).ok();
+                        }
+
+                        self.active_documents.insert(document_id, prev_doc);
+                    }
+
+                    // Now update resources and render the offscreen frame.
+
+                    self.pending_texture_cache_updates |= !resources.texture_updates.updates.is_empty();
+                    self.pending_texture_updates.push(resources.texture_updates);
+                    self.pending_native_surface_updates.extend(resources.native_surface_updates);
+
+                    self.render_impl(
+                        document_id,
+                        &mut offscreen_doc,
+                        None,
+                        0,
+                    ).unwrap();
+                }
                 ResultMsg::AppendNotificationRequests(mut notifications) => {
                     // We need to know specifically if there are any pending
                     // TextureCacheUpdate updates in any of the entries in

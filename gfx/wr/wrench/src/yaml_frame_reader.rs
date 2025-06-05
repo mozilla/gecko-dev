@@ -480,9 +480,10 @@ impl YamlFrameReader {
         send_transaction: bool,
         yaml: &Yaml
     ) {
+        let offscreen = yaml["offscreen"].as_bool().unwrap_or(false);
         // By default, present if send_transaction is set to true. Can be overridden
         // by a field in the pipeline's root.
-        let present = yaml["present"].as_bool().unwrap_or(send_transaction);
+        let present = !offscreen && yaml["present"].as_bool().unwrap_or(send_transaction);
 
         // Don't allow referencing clips between pipelines for now.
         self.user_clip_id_map.clear();
@@ -505,6 +506,7 @@ impl YamlFrameReader {
             payload,
             present,
             send_transaction,
+            render_offscreen: offscreen,
         });
 
         assert_eq!(self.spatial_id_stack.len(), 1);

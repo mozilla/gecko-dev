@@ -32,6 +32,9 @@ pub struct DisplayList {
     pub present: bool,
     /// If set to true, send the transaction after adding this display list to it.
     pub send_transaction: bool,
+    /// If set to true, the pipeline will be rendered off-screen. Only snapshotted
+    /// stacking contexts will be kept.
+    pub render_offscreen: bool,
 }
 
 // TODO(gw): This descriptor matches what we currently support for fonts
@@ -574,6 +577,10 @@ impl Wrench {
                 Epoch(*frame_number),
                 (display_list.pipeline, display_list.payload),
             );
+
+            if display_list.render_offscreen {
+                txn.render_offscreen(display_list.pipeline);
+            }
 
             if display_list.send_transaction {
                 for (id, offsets) in scroll_offsets {
