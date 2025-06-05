@@ -4,10 +4,7 @@
 
 package org.mozilla.fenix.home.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -109,8 +107,7 @@ internal fun Homepage(
                 testTagsAsResourceId = true
                 testTag = HOMEPAGE
             }
-            .verticalScroll(scrollState)
-            .animateContentSize(),
+            .verticalScroll(scrollState),
     ) {
         HomepageHeader(
             showPrivateBrowsingButton = state.showPrivateBrowsingButton,
@@ -163,13 +160,14 @@ internal fun Homepage(
                                 onMiddleSearchBarVisibilityChanged(atTopOfList)
                             }
 
-                            AnimatedVisibility(
-                                visible = showSearchBar && atTopOfList,
-                                enter = fadeIn(),
-                                exit = fadeOut(),
-                            ) {
-                                SearchBar(onClick = interactor::onNavigateSearch)
-                            }
+                            val alpha by animateFloatAsState(
+                                targetValue = if (showSearchBar && atTopOfList) 1f else 0f,
+                            )
+
+                            SearchBar(
+                                modifier = Modifier.graphicsLayer { this.alpha = alpha },
+                                onClick = interactor::onNavigateSearch,
+                            )
                         }
 
                         MaybeAddSetupChecklist(setupChecklistState, interactor)
