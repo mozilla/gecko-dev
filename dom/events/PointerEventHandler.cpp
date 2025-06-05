@@ -45,7 +45,8 @@ static nsTHashMap<nsUint32HashKey, BrowserParent*>*
 
 // Keep the capturing element at dispatching the last pointer up event to
 // consider the following click, auxclick or contextmenu event target.
-MOZ_RUNINIT nsWeakPtr sPointerCapturingElementAtLastPointerUpEvent;
+static StaticRefPtr<nsIWeakReference>
+    sPointerCapturingElementAtLastPointerUpEvent;
 
 /* static */
 void PointerEventHandler::InitializeStatics() {
@@ -668,6 +669,13 @@ void PointerEventHandler::ReleasePointerCapturingElementAtLastPointerUp() {
 }
 
 /* static */
+void PointerEventHandler::SetPointerCapturingElementAtLastPointerUp(
+    nsWeakPtr&& aPointerCapturingElement) {
+  sPointerCapturingElementAtLastPointerUpEvent =
+      aPointerCapturingElement.forget();
+}
+
+/* static */
 void PointerEventHandler::ReleaseIfCaptureByDescendant(nsIContent* aContent) {
   MOZ_ASSERT(aContent);
   // We should check that aChild does not contain pointer capturing elements.
@@ -1040,8 +1048,8 @@ void PointerEventHandler::DispatchPointerFromMouseOrTouch(
   // contextmenu event target later.
   if (!aShell->IsDestroying() && pointerMessage == ePointerUp &&
       pointerCapturingElementWeak) {
-    sPointerCapturingElementAtLastPointerUpEvent =
-        std::move(pointerCapturingElementWeak);
+    SetPointerCapturingElementAtLastPointerUp(
+        std::move(pointerCapturingElementWeak));
   }
 }
 

@@ -349,6 +349,12 @@ class PointerEventHandler final {
   // that pointer id for fingerprinting resistance.
   static void MaybeCacheSpoofedPointerID(uint16_t aInputSource,
                                          uint32_t aPointerId);
+
+  /**
+   * Store the pointer capturing element.
+   */
+  static void SetPointerCapturingElementAtLastPointerUp(
+      nsWeakPtr&& aPointerCapturingElement);
 };
 
 }  // namespace mozilla
