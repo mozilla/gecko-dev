@@ -280,6 +280,17 @@ export const InfoBar = {
     }
     if (!universalInNewWin) {
       this._activeInfobar = { message, dispatch };
+      // If the window closes before the user interacts with the active infobar,
+      // clear it
+      win.addEventListener(
+        "unload",
+        () => {
+          if (InfoBar._activeInfobar?.message === message) {
+            InfoBar._activeInfobar = null;
+          }
+        },
+        { once: true }
+      );
     }
 
     return notification;
