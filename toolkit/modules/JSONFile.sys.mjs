@@ -514,15 +514,4 @@ JSONFile.prototype = {
     await this._finalizeInternal();
     this._finalizeAt.removeBlocker(this._finalizeInternalBound);
   },
-
-  /**
-   * Compute the hash of the json file as a hex digest.
-   *
-   * @param method The hashing method to use. Can be one of "sha256", "sha384" or "sha512".
-   *
-   * @return A promise that resolves to the hex digest of the file's hash in lowercase.
-   */
-  computeHexDigest(method) {
-    return IOUtils.computeHexDigest(this.path, "sha256");
-  },
 };
