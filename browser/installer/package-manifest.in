@@ -169,31 +169,13 @@
 
 ; JavaScript components
 @RESPATH@/browser/components/*.manifest
-@RESPATH@/components/extensions.manifest
-#ifdef MOZ_UPDATER
-@RESPATH@/components/nsUpdateService.manifest
-#endif
-@RESPATH@/components/ProcessSingleton.manifest
-@RESPATH@/components/SyncComponents.manifest
-@RESPATH@/components/servicesComponents.manifest
-@RESPATH@/components/servicesSettings.manifest
-@RESPATH@/components/cryptoComponents.manifest
-@RESPATH@/components/TelemetryStartup.manifest
-
-@RESPATH@/components/Push.manifest
-
-@RESPATH@/components/antitracking.manifest
-
-@RESPATH@/components/l10n-registry.manifest
+@RESPATH@/components/*.manifest
 
 ; WebDriver (Marionette, Remote Agent) remote protocols
 #ifdef ENABLE_WEBDRIVER
 @RESPATH@/chrome/remote@JAREXT@
 @RESPATH@/chrome/remote.manifest
 #endif
-
-; [Extensions]
-@RESPATH@/components/extensions-toolkit.manifest
 
 ; Modules
 @RESPATH@/browser/modules/*
@@ -411,9 +393,6 @@ bin/libfreebl_64int_3.so
 #if defined(MOZ_NOTIFICATION_SERVER)
 @BINPATH@/@DLL_PREFIX@notificationserver@DLL_SUFFIX@
 #endif
-
-; Shutdown Terminator
-@RESPATH@/components/terminator.manifest
 
 #ifdef LLVM_SYMBOLIZER
 @BINPATH@/@LLVM_SYMBOLIZER@
