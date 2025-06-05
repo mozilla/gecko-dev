@@ -117,6 +117,7 @@ pwmgr:
       - https://bugzil.la/1714252
       - https://bugzil.la/1754637
       - https://bugzil.la/1850872
+      - https://bugzil.la/1969169
     data_reviews: &pwmgr_doorhanger_submitted_data_reviews
       - https://bugzil.la/1650929
       - https://bugzil.la/1650941
@@ -126,7 +127,7 @@ pwmgr:
       - https://bugzil.la/1850872
     notification_emails: &pwmgr_doorhanger_submitted_emails
       - passwords-dev@mozilla.org
-    expires: 142
+    expires: 148
     extra_keys: &pwmgr_doorhanger_submitted_extra
       did_edit_un:
         description: >
@@ -167,7 +168,7 @@ pwmgr:
     bugs: *pwmgr_doorhanger_submitted_bugs
     data_reviews: *pwmgr_doorhanger_submitted_data_reviews
     notification_emails: *pwmgr_doorhanger_submitted_emails
-    expires: 142
+    expires: 148
     extra_keys: *pwmgr_doorhanger_submitted_extra
     telemetry_mirror: Pwmgr_DoorhangerSubmitted_Update
 
