@@ -353,3 +353,9 @@ export function createLocalSymbolicationService(
   }
   return service;
 }
+
+// This file also exports a named object containing other exports to play well
+// with defineESModuleGetters.
+export const Symbolication = {
+  createLocalSymbolicationService,
+};

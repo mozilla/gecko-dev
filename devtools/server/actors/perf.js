@@ -16,6 +16,8 @@ ChromeUtils.defineESModuleGetters(
   {
     RecordingUtils:
       "resource://devtools/shared/performance-new/recording-utils.sys.mjs",
+    Symbolication:
+      "resource://devtools/shared/performance-new/symbolication.sys.mjs",
   },
   { global: "contextual" }
 );
@@ -119,8 +121,23 @@ exports.PerfActor = class PerfActor extends Actor {
    * @returns {Promise<[number[], number[], number[]]>}
    */
   async getSymbolTable(debugPath, breakpadId) {
-    const [addr, index, buffer] = await Services.profiler.getSymbolTable(
-      debugPath,
+    const libraries = Services.profiler.sharedLibraries;
+    const symbolicationService = Symbolication.createLocalSymbolicationService(
+      libraries,
+      []
+    );
+    const debugName = libraries.find(
+      lib => lib.path === debugPath && lib.breakpadId === breakpadId
+    )?.debugName;
+
+    if (debugName === undefined) {
+      throw new Error(
+        `Couldn't find the library with path ${debugPath} and breakpadId ${breakpadId}`
+      );
+    }
+
+    const [addr, index, buffer] = await symbolicationService.getSymbolTable(
+      debugName,
       breakpadId
     );
     // The protocol does not support the transfer of typed arrays, so we convert
