@@ -14,7 +14,10 @@ use tls::{CertificateMessage, CompressedCertEntry, UncompressedCertEntry};
 
 #[no_mangle]
 pub extern "C" fn certs_are_available() -> bool {
-    match cert_storage::has_all_certs_by_hash(builtins::get_needed_hashes()) {
+    let Some(hashes) = builtins::get_needed_hashes() else {
+        return false;
+    };
+    match cert_storage::has_all_certs_by_hash(hashes) {
         Ok(result) => {
             log::debug!("certs_are_available {}", result);
             return result;
