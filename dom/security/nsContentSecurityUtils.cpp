@@ -621,7 +621,7 @@ bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
       // The profiler's symbolication code uses a wasm module to extract symbols
       // from the binary files result of local builds.
       // See bug 1777479
-      "resource://devtools/client/performance-new/shared/symbolication.sys.mjs"_ns,
+      "resource://devtools/shared/performance-new/symbolication.sys.mjs"_ns,
 
       // The Browser Toolbox/Console
       "debugger"_ns,

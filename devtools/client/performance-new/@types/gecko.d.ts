@@ -29,8 +29,8 @@ declare namespace MockedExports {
     "resource://devtools/shared/performance-new/errors.sys.mjs": typeof import("resource://devtools/shared/performance-new/errors.sys.mjs");
     "resource://devtools/shared/performance-new/prefs-presets.sys.mjs": typeof import("resource://devtools/shared/performance-new/prefs-presets.sys.mjs");
     "resource://devtools/shared/performance-new/recording-utils.sys.mjs": typeof import("resource://devtools/shared/performance-new/recording-utils.sys.mjs");
+    "resource://devtools/shared/performance-new/symbolication.sys.mjs": typeof import("resource://devtools/shared/performance-new/symbolication.sys.mjs");
     "resource://devtools/client/performance-new/shared/background.sys.mjs": typeof import("resource://devtools/client/performance-new/shared/background.sys.mjs");
-    "resource://devtools/client/performance-new/shared/symbolication.sys.mjs": typeof import("resource://devtools/client/performance-new/shared/symbolication.sys.mjs");
     "resource://devtools/shared/loader/browser-loader.sys.mjs": any;
     "resource://devtools/client/performance-new/popup/menu-button.sys.mjs": typeof import("resource://devtools/client/performance-new/popup/menu-button.sys.mjs");
     "resource://devtools/client/performance-new/shared/typescript-lazy-load.sys.mjs": typeof import("resource://devtools/client/performance-new/shared/typescript-lazy-load.sys.mjs");
@@ -360,8 +360,8 @@ declare module "resource://devtools/client/performance-new/shared/background.sys
   export = Background;
 }
 
-declare module "resource://devtools/client/performance-new/shared/symbolication.sys.mjs" {
-  import * as PerfSymbolication from "devtools/client/performance-new/shared/symbolication.sys.mjs";
+declare module "resource://devtools/shared/performance-new/symbolication.sys.mjs" {
+  import * as PerfSymbolication from "devtools/shared/performance-new/symbolication.sys.mjs";
   export = PerfSymbolication;
 }
 

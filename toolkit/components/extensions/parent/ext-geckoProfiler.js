@@ -17,7 +17,7 @@ var { ExtensionError } = ExtensionUtils;
 
 ChromeUtils.defineLazyGetter(this, "symbolicationService", () => {
   let { createLocalSymbolicationService } = ChromeUtils.importESModule(
-    "resource://devtools/client/performance-new/shared/symbolication.sys.mjs"
+    "resource://devtools/shared/performance-new/symbolication.sys.mjs"
   );
   return createLocalSymbolicationService(Services.profiler.sharedLibraries, []);
 });

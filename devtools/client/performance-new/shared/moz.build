@@ -6,9 +6,6 @@
 DevToolsModules(
     "background.sys.mjs",
     "browser.js",
-    "profiler_get_symbols.js",
-    "symbolication.sys.mjs",
-    "symbolication.worker.js",
     "typescript-lazy-load.sys.mjs",
     "utils.js",
 )

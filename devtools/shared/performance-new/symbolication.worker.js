@@ -12,7 +12,7 @@
 
 /* import-globals-from profiler_get_symbols.js */
 importScripts(
-  "resource://devtools/client/performance-new/shared/profiler_get_symbols.js"
+  "resource://devtools/shared/performance-new/profiler_get_symbols.js"
 );
 
 /**

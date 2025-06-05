@@ -7,7 +7,10 @@
 DevToolsModules(
     "errors.sys.mjs",
     "prefs-presets.sys.mjs",
+    "profiler_get_symbols.js",
     "recording-utils.sys.mjs",
+    "symbolication.sys.mjs",
+    "symbolication.worker.js",
 )
 
 with Files("**"):

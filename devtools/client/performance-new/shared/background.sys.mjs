@@ -75,7 +75,7 @@ const lazy = createLazyLoaders({
     ChromeUtils.importESModule("resource:///modules/CustomizableUI.sys.mjs"),
   PerfSymbolication: () =>
     ChromeUtils.importESModule(
-      "resource://devtools/client/performance-new/shared/symbolication.sys.mjs"
+      "resource://devtools/shared/performance-new/symbolication.sys.mjs"
     ),
   ProfilerMenuButton: () =>
     ChromeUtils.importESModule(

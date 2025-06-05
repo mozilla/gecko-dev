@@ -68,7 +68,7 @@ const {
   openProfilerTab,
 } = require("resource://devtools/client/performance-new/shared/browser.js");
 const { createLocalSymbolicationService } = ChromeUtils.importESModule(
-  "resource://devtools/client/performance-new/shared/symbolication.sys.mjs"
+  "resource://devtools/shared/performance-new/symbolication.sys.mjs"
 );
 const { registerProfileCaptureForBrowser } = ChromeUtils.importESModule(
   "resource://devtools/client/performance-new/shared/background.sys.mjs"

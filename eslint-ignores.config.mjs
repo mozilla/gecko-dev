@@ -124,7 +124,7 @@ export default [
   "devtools/server/tests/xpcshell/sourcemapped.js",
 
   // Ignore generated code from wasm-bindgen
-  "devtools/client/performance-new/shared/profiler_get_symbols.js",
+  "devtools/shared/performance-new/profiler_get_symbols.js",
 
   // Testing syntax error
   "devtools/client/aboutdebugging/test/browser/resources/bad-extensions/invalid-json/manifest.json",

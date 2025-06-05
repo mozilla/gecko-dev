@@ -7,16 +7,16 @@
 const lazy = {};
 
 /**
- * @typedef {import("../@types/perf").Library} Library
- * @typedef {import("../@types/perf").PerfFront} PerfFront
- * @typedef {import("../@types/perf").SymbolTableAsTuple} SymbolTableAsTuple
- * @typedef {import("../@types/perf").SymbolicationService} SymbolicationService
- * @typedef {import("../@types/perf").SymbolicationWorkerInitialMessage} SymbolicationWorkerInitialMessage
+ * @typedef {import("perf").Library} Library
+ * @typedef {import("perf").PerfFront} PerfFront
+ * @typedef {import("perf").SymbolTableAsTuple} SymbolTableAsTuple
+ * @typedef {import("perf").SymbolicationService} SymbolicationService
+ * @typedef {import("perf").SymbolicationWorkerInitialMessage} SymbolicationWorkerInitialMessage
  */
 
 /**
  * @template R
- * @typedef {import("../@types/perf").SymbolicationWorkerReplyData<R>} SymbolicationWorkerReplyData<R>
+ * @typedef {import("perf").SymbolicationWorkerReplyData<R>} SymbolicationWorkerReplyData<R>
  */
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -135,7 +135,7 @@ async function getResultFromWorker(workerURL, initialMessageToWorker) {
         error.name = "WorkerError";
         reject(error);
       } else {
-        reject(new Error("Error in worker"));
+        reject(new Error("Error in worker " + String(errorEvent)));
       }
     };
 
@@ -226,7 +226,7 @@ class LocalSymbolicationService {
       module,
     };
     return getResultFromWorker(
-      "resource://devtools/client/performance-new/shared/symbolication.worker.js",
+      "resource://devtools/shared/performance-new/symbolication.worker.js",
       initialMessage
     );
   }
@@ -250,7 +250,7 @@ class LocalSymbolicationService {
       module,
     };
     return getResultFromWorker(
-      "resource://devtools/client/performance-new/shared/symbolication.worker.js",
+      "resource://devtools/shared/performance-new/symbolication.worker.js",
       initialMessage
     );
   }
