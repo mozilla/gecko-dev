@@ -83,9 +83,15 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
         val deviceCapable = biometricManager.isHardwareAvailable()
         val userHasEnabledCapability = biometricManager.isAuthenticatorAvailable()
 
+        // Show divider only if user does not have a device lock set
+        requirePreference<PreferenceCategory>(R.string.pref_key_pbm_lock_category_divider).apply {
+            isVisible =
+                deviceCapable && !userHasEnabledCapability && FxNimbus.features.privateBrowsingLock.value().enabled
+        }
+
         requirePreference<SwitchPreference>(R.string.pref_key_private_browsing_locked_enabled).apply {
             isChecked = context.settings().privateBrowsingLockedEnabled &&
-                biometricManager.isAuthenticatorAvailable()
+                    biometricManager.isAuthenticatorAvailable()
             isVisible = deviceCapable && FxNimbus.features.privateBrowsingLock.value().enabled
             isEnabled = userHasEnabledCapability
 
@@ -127,11 +133,6 @@ class PrivateBrowsingFragment : PreferenceFragmentCompat() {
                 context.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
                 true
             }
-        }
-
-        // Show bottom divider only if user does not have a device lock set
-        requirePreference<PreferenceCategory>(R.string.pbm_lock_category_bottom_divider).apply {
-            isVisible = !userHasEnabledCapability
         }
     }
 

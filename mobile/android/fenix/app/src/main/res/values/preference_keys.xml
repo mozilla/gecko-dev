@@ -259,7 +259,7 @@
     <string name="pref_key_private_browsing_locked_enabled" translatable="false">pref_key_private_browsing_locked_enabled</string>
     <string name="pref_key_private_browsing_lock_device_feature_enabled" translatable="false">pref_key_private_browsing_lock_device_feature_enabled</string>
     <string name="pref_key_privacy_enable_global_privacy_control" translatable="false">pref_key_privacy_enable_global_privacy_control</string>
-    <string name="pbm_lock_category_bottom_divider" translatable="false">pbm_lock_category_bottom_divider</string>
+    <string name="pref_key_pbm_lock_category_divider" translatable="false">pref_key_pbm_lock_category_divider</string>
 
     <string name="pref_key_adjust_campaign" translatable="false">pref_key_adjust_campaign</string>
     <string name="pref_key_adjust_network" translatable="false">pref_key_adjust_network</string>
