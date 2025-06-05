@@ -1339,7 +1339,7 @@
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">Пӯшидани варақаҳо</string>
   <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
-  <string name="close_tabs_manually">Ба таври дастӣ</string>
+  <string name="close_tabs_manually">Ҳеҷ гоҳ</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">Пас аз як рӯз</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
@@ -1561,7 +1561,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">Бекор кардан</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">Дар ҳоли иҷро мебошад</string>
+  <string name="download_header_in_progress">Дар ҳоли иҷро мебошад</string>
   <!--
     Time period headers for downloads
 
@@ -1582,11 +1582,11 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s боқӣ мондааст</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s боқӣ мондааст</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">таваққуф карда шуд</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">таваққуф карда шуд</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">дар ҳоли мунтазир</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">дар ҳоли мунтазир</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Боргирӣ иҷро нашуд</string>
   <!-- Text for the snackbar action button to view failed download details. -->
@@ -3666,4 +3666,22 @@
   <string name="private_tab_cfr_negative">Не, ташаккур</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">Қулф кардани варақаҳо</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Шумо дар бораи «%1$s» чӣ фикр доред?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Ман мушкилӣ мекашам</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">Ин зӯр аст!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Ташаккур барои дӯст доштани «%1$s». Як сония вақт доред, ки муҳаббати худро бо баҳодиҳӣ изҳор намоед?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Ба «%1$s» дар «Play Store» баҳо диҳед</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Афсӯс, ки шумо мушкилӣ мекашед. Ба мо маълумот диҳед, ки чӣ тавр мо метавонем «%1$s»-ро беҳтар кунем.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Назари худро изҳор кунед</string>
 </resources>

@@ -923,7 +923,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">Loobu</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">Pooleli</string>
+  <string name="download_header_in_progress">Pooleli</string>
   <!--
     Time period headers for downloads
 
@@ -2171,4 +2171,22 @@
   <string name="protection_panel_permissions_title">Õigused</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
   <string name="clear_site_data_dialog_negative_button_text">Loobu</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Mida sa %1$sist arvad?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Mul on probleeme</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">See on suurepärane!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Täname, et armastad %1$s\'i. Kas sul on hetk aega, et jagada armastust hinnanguga?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Hinda %1$si Play poes</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Meil on kahju, et sul on probleeme. Anna meile teada, kuidas saaksime %1$si paremaks muuta.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Anna tagasisidet</string>
 </resources>

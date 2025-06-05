@@ -1561,7 +1561,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">Ακύρωση</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">Σε εξέλιξη</string>
+  <string name="download_header_in_progress">Σε εξέλιξη</string>
   <!--
     Time period headers for downloads
 
@@ -1582,11 +1582,11 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • Απομένουν %3$s</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • Απομένουν %3$s</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">σε παύση</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">σε παύση</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">εκκρεμεί</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">εκκρεμεί</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Η λήψη απέτυχε</string>
   <!-- Text for the snackbar action button to view failed download details. -->
@@ -2757,7 +2757,7 @@
   <!-- Label that indicates a site is displaying a local document -->
   <string name="quick_settings_sheet_local_page">Αυτή η σελίδα είναι αποθηκευμένη στη συσκευή σας.</string>
   <!-- Label to clear site data -->
-  <string name="clear_site_data">Απαλοιφή cookie και δεδομένων ιστοτόπων</string>
+  <string name="clear_site_data">Απαλοιφή cookie και δεδομένων ιστοτόπου</string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all data for current site. %s is the domain of the site. -->
   <string name="confirm_clear_site_data"><![CDATA[Θέλετε σίγουρα να διαγράψετε όλα τα cookie και τα δεδομένα για τον ιστότοπο <b>%s</b>;]]></string>
   <!-- Confirmation message for a dialog confirming if the user wants to delete all the permissions for all sites -->
@@ -3666,4 +3666,22 @@
   <string name="private_tab_cfr_negative">Όχι, ευχαριστώ</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">Κλείδωμα καρτελών</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Τι γνώμη έχετε για το %1$s;</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Αντιμετωπίζω προβλήματα</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">Είναι τέλειο!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Ευχαριστούμε που αγαπάτε το %1$s. Έχετε λίγο χρόνο για να μοιραστείτε την αγάπη σας με μια αξιολόγηση;</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Αξιολόγηση του %1$s στο Play Store</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Λυπούμαστε που αντιμετωπίζετε προβλήματα. Πείτε μας πώς μπορούμε να βελτιώσουμε το %1$s.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Υποβολή σχολίων</string>
 </resources>

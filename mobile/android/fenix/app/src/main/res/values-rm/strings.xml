@@ -1474,7 +1474,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">Interrumper</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">En elavuraziun</string>
+  <string name="download_header_in_progress">En elavuraziun</string>
   <!--
     Time period headers for downloads
 
@@ -1495,11 +1495,11 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • anc %3$s</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • anc %3$s</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">pussà</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">pussà</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">pendent</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">pendent</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Telechargiada betg reussida</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->

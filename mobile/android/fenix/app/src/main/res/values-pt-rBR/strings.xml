@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Saiba mais</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Gerenciar extensões</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Mais</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Menos</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Extensões recomendadas</string>
   <!--
@@ -239,6 +243,8 @@
   <string name="browser_menu_extensions_disabled_description">Desativado temporariamente</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Nenhuma extensão ativada</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Experimente uma extensão recomendada</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Informações da conta</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -366,6 +372,8 @@
   <string name="browser_menu_save_description">Adicionar favorito, atalho, tela inicial, coleção, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Adicionar aos favoritos</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Adicionar aos favoritos</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Editar favorito</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -385,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Traduzido para %1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Traduzido</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Imprimir…</string>
   <!--
@@ -581,7 +591,7 @@
   <!-- Privacy Badger description for the onboarding add-ons card, used by Nimbus experiments. -->
   <string name="onboarding_add_on_privacy_badger_description" moz:removedIn="140" tools:ignore="UnusedResources">Uma preciosidade contra rastreamento. Bloqueia elementos de rastreamento invisíveis e anúncios que espionam você.</string>
   <!-- Search by Image name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Search by Image" is a brand name should NOT be translated -->
-  <string name="onboarding_add_on_search_by_image_name" moz:removedIn="140" tools:ignore="UnusedResources">Search by Image</string>
+  <string name="onboarding_add_on_search_by_image_name" moz:removedIn="140" tools:ignore="UnusedResources">Pesquisar por imagem</string>
   <!-- Search by Image description for the onboarding add-ons card, used by Nimbus experiments. -->
   <string name="onboarding_add_on_search_by_image_description" moz:removedIn="140" tools:ignore="UnusedResources">Encontrou uma foto ou imagem interessante? Saiba mais sobre ela.</string>
   <!-- Dark Reader name for the onboarding add-ons card, used by Nimbus experiments. Note: The word "Dark Reader" is a brand name should NOT be translated -->
@@ -1551,7 +1561,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">Cancelar</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">Em andamento</string>
+  <string name="download_header_in_progress">Em andamento</string>
   <!--
     Time period headers for downloads
 
@@ -1572,13 +1582,15 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • falta %3$s</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • falta %3$s</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">pausado</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">pausado</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">pendente</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">pendente</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Falha ao baixar arquivo</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Detalhes</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Pesquisar nos arquivos baixados</string>
   <!-- Text to indicate that no downloads match the search query. -->
