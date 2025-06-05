@@ -12,6 +12,7 @@
 body {
   margin: 0;
   padding: 50px;
+  font-size: 20px;
 }
 
 #scrollArea {
@@ -98,6 +99,7 @@ const params = getFloatQueryParams({
   innerBottom: 200,
   scrollIntoViewPos: null,
   scrollTop: null,
+  text: null,
 });
 
 const scrollArea = document.getElementById("scrollArea");
@@ -114,6 +116,12 @@ scrolledContent.style.height =  (params.innerBottom - params.top) + "px";
 scrollArea.scrollTop = 1;
 scrollArea.scrollTop = 2;
 scrollArea.scrollTop = 0;
+
+if (params.text)  {
+  box1.innerText = "text";
+  box2.innerText = "text";
+  box3.innerText = "text";
+}
 
 function performScroll() {
   if (params.scrollIntoViewPos !== null) {
