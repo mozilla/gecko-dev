@@ -181,6 +181,9 @@ extern "C" MOZ_EXPORT const char* __lsan_default_suppressions() {
          "leak:libX11.so\n"
          "leak:pthread_setspecific_internal\n"
          "leak:swrast_dri.so\n"
+         "leak:i965_drv_video.so\n"
+         "leak:i965_dri.so\n"
+         "leak:libdrm_intel.so\n"
 
          "leak:js::frontend::BytecodeEmitter:\n"
          "leak:js::frontend::GeneralParser\n"
