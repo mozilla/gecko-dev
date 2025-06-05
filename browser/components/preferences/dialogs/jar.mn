@@ -5,8 +5,6 @@
 browser.jar:
    content/browser/preferences/dialogs/applicationManager.xhtml
    content/browser/preferences/dialogs/applicationManager.js
-   content/browser/preferences/dialogs/blocklists.xhtml
-   content/browser/preferences/dialogs/blocklists.js
    content/browser/preferences/dialogs/browserLanguages.xhtml
    content/browser/preferences/dialogs/browserLanguages.js
    content/browser/preferences/dialogs/clearSiteData.css

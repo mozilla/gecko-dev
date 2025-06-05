@@ -11,7 +11,6 @@ fn get_paths() -> Vec<ResourceId> {
     let paths: Vec<&'static str> = vec![
         "branding/brand.ftl",
         "browser/sanitize.ftl",
-        "browser/preferences/blocklists.ftl",
         "browser/preferences/colors.ftl",
         "browser/preferences/selectBookmark.ftl",
         "browser/preferences/connection.ftl",
