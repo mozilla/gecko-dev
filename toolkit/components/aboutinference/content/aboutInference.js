@@ -567,130 +567,39 @@ async function updateProcInfo() {
 
 async function updateModels() {
   const hub = getModelHub();
-  const models = await hub.listModels();
-  let modelFilesDiv = document.getElementById("modelFiles");
+  const modelsList = await hub.listModels();
 
-  // Use DocumentFragment to avoid reflows
-  let fragment = document.createDocumentFragment();
+  const models = await Promise.all(
+    modelsList.map(async ({ name, revision }) => {
+      const icon = await hub.getOwnerIcon(name);
+      const { files, metadata } = await hub.listFiles({
+        model: name,
+        revision,
+      });
+      return { name, revision, icon, files, metadata };
+    })
+  );
 
-  for (const { name: model, revision } of models) {
-    const icon = await hub.getOwnerIcon(model);
+  const modelFilesView = document.querySelector("model-files-view");
+  modelFilesView.models = models;
+  modelFilesView.addEventListener("MlModelDelete", async e => {
+    let [title, msg] = await document.l10n.formatValues([
+      { id: "about-inference-prompt-title" },
+      {
+        id: "about-inference-prompt-message",
+      },
+    ]);
 
-    let { files } = await hub.listFiles({ model, revision });
+    const confirmed = Services.prompt.confirm(window, title, msg);
 
-    // Create a new table for the current model
-    let table = document.createElement("table");
-
-    // caption block
-    let caption = document.createElement("caption");
-    let modelInfo = document.createElement("div");
-    modelInfo.textContent = `${model} (${revision})`;
-    if (icon) {
-      let iconImage = document.createElement("img");
-      iconImage.src = icon;
-      iconImage.width = 16;
-      iconImage.height = 16;
-      modelInfo.appendChild(iconImage);
-    }
-    let deleteButton = document.createElement("button");
-    document.l10n.setAttributes(deleteButton, "about-inference-delete-button");
-    deleteButton.onclick = async () => {
-      await hub.deleteModels({ model, revision, deletedBy: "about:inference" });
-      modelFilesDiv.removeChild(table); // Remove the table from the DOM
-    };
-
-    modelInfo.appendChild(deleteButton);
-    caption.appendChild(modelInfo);
-    table.appendChild(caption);
-
-    // Create table headers
-    let thead = document.createElement("thead");
-    let headerRow = document.createElement("tr");
-    let thFile = document.createElement("th");
-    document.l10n.setAttributes(thFile, "about-inference-file");
-    headerRow.appendChild(thFile);
-
-    thFile = document.createElement("th");
-    document.l10n.setAttributes(thFile, "about-inference-size");
-    headerRow.appendChild(thFile);
-    thFile = document.createElement("th");
-    document.l10n.setAttributes(thFile, "about-inference-last-used");
-    headerRow.appendChild(thFile);
-    thFile = document.createElement("th");
-    document.l10n.setAttributes(thFile, "about-inference-last-updated");
-    headerRow.appendChild(thFile);
-
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    var lastUsed = 0;
-    var lastUpdated = 0;
-
-    // Create table body
-    let tbody = document.createElement("tbody");
-    let totalSize = 0;
-
-    for (const file of files) {
-      let row = document.createElement("tr");
-      let tdFile = document.createElement("td");
-      tdFile.textContent = file.path;
-      row.appendChild(tdFile);
-      const fileSize = parseInt(
-        file.headers.fileSize || file.headers["Content-Length"] || 0
-      );
-
-      if ("lastUsed" in file.headers && file.headers.lastUsed > lastUsed) {
-        lastUsed = file.headers.lastUsed;
-      }
-      if (
-        "lastUpdated" in file.headers &&
-        file.headers.lastUpdated > lastUpdated
-      ) {
-        lastUpdated = file.headers.lastUpdated;
-      }
-
-      tdFile = document.createElement("td");
-      tdFile.textContent = formatBytes(fileSize);
-      row.appendChild(tdFile);
-
-      tdFile = document.createElement("td");
-      tdFile.textContent = ts2str(file.headers.lastUsed);
-      row.appendChild(tdFile);
-
-      tdFile = document.createElement("td");
-      tdFile.textContent = ts2str(file.headers.lastUpdated);
-
-      row.appendChild(tdFile);
-
-      tbody.appendChild(row);
-      totalSize += fileSize;
+    if (!confirmed) {
+      return;
     }
 
-    // Append the total line
-    let totalRow = document.createElement("tr");
-    let tdTotalLabel = document.createElement("td");
-    document.l10n.setAttributes(tdTotalLabel, "about-inference-total");
-    totalRow.appendChild(tdTotalLabel);
-
-    let tdTotalValue = document.createElement("td");
-    tdTotalValue.textContent = formatBytes(totalSize);
-    totalRow.appendChild(tdTotalValue);
-
-    let tdTotalLastUsed = document.createElement("td");
-    tdTotalLastUsed.textContent = ts2str(lastUsed);
-    totalRow.appendChild(tdTotalLastUsed);
-
-    let tdTotalLastUpdated = document.createElement("td");
-    tdTotalLastUpdated.textContent = ts2str(lastUpdated);
-    totalRow.appendChild(tdTotalLastUpdated);
-
-    tbody.appendChild(totalRow);
-    table.appendChild(tbody);
-    fragment.appendChild(table);
-  }
-
-  modelFilesDiv.innerHTML = "";
-  modelFilesDiv.appendChild(fragment);
+    modelFilesView.removeModel(e.detail);
+    const { model, revision } = e.detail;
+    await hub.deleteModels({ model, revision });
+  });
 }
 
 async function refreshPage() {

@@ -1,0 +1,104 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+* License, v. 2.0. If a copy of the MPL was not distributed with this
+* file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:host {
+  --color-background-table-light: var(--color-white);
+  --color-background-table-dark: var(--color-black);
+  --color-background-light-accent: var(--color-violet-0);
+  --color-background-dark-accent: #33323e;
+  --color-background-table-header: var(--color-violet-80);
+  --color-background-table-header-text: var(--color-white);
+}
+
+.description {
+  display: flex;
+  gap: var(--space-xxsmall);
+  margin-bottom: var(--space-xxlarge);
+
+  p {
+    margin: 0;
+  }
+}
+
+.info-icon {
+  width: 16px;
+  height: 16px;
+  margin-inline-end: var(--space-small);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block-end: var(--space-large);
+  border-spacing: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+thead {
+  background-color: var(--color-background-table-header);
+  color: var(--color-white);
+}
+
+th,
+td {
+  padding: 8px;
+}
+
+@media (prefers-color-scheme: light) {
+  tbody tr:nth-child(even) {
+    background-color: var(--color-background-light-accent);
+  }
+
+  tbody tr:nth-child(odd) {
+    background-color: var(--color-background-table-light);
+  }
+}
+
+.total-row {
+  font-weight: var(--font-weight-bold);
+}
+
+@media (prefers-color-scheme: dark) {
+  tbody tr:nth-child(even) {
+    background-color: var(--color-background-dark-accent);
+  }
+
+  tbody tr:nth-child(odd) {
+    background-color: var(--color-background-table-dark);
+  }
+}
+
+.model-icon {
+  width: 40px;
+  height: 40px;
+  margin-inline-end: var(--space-large);
+  border-radius: 4px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-block-end: var(--space-large);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-end: var(--space-large);
+}
+
+hr {
+  border: var(--color-background-light-accent) 1px solid;
+
+  @media (prefers-color-scheme: dark) {
+    border: var(--color-background-dark-accent) 1px solid;
+  }
+}
