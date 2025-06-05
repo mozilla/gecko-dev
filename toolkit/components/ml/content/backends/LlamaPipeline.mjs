@@ -14,7 +14,6 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 import {
   createFileUrl,
   Progress,
-  generateUUID,
 } from "chrome://global/content/ml/Utils.sys.mjs";
 
 import { OPFS } from "chrome://global/content/ml/OPFS.sys.mjs";
@@ -119,8 +118,7 @@ export class LlamaPipeline {
           file: modelFile,
           urlTemplate: modelHubUrlTemplate,
           rootUrl: modelHubRootUrl,
-        }),
-        generateUUID()
+        })
       )
     ).ok[2];
 

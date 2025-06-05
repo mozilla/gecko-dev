@@ -1345,6 +1345,13 @@ export const TestIndexedDBCache = IndexedDBCache;
 
 export class ModelHub {
   /**
+   * Tracks whether the last download of a session was successful.
+   *
+   * @type {Map<string, boolean>}
+   */
+  #lastDownloadOk = new Map();
+
+  /**
    * Create an instance of ModelHub.
    *
    * @param {object} config
@@ -1748,6 +1755,46 @@ export class ModelHub {
   }
 
   /**
+   * Notify that a model download is complete.
+   *
+   * @param {object} config
+   * @param {string} config.engineId - The engine id.
+   * @param {string} config.model - The model name (organization/name).
+   * @param {string} config.revision - The model revision.
+   * @param {string} config.featureId - The engine id.
+   * @param {string} config.sessionId - Shared across the same model download session.
+   * @returns {Promise<[string, object]>} The file local path and headers
+   */
+  async notifyModelDownloadComplete({
+    engineId,
+    model,
+    revision,
+    featureId,
+    sessionId,
+  }) {
+    // Allows multiple calls to notifyModelDownloadComplete to work as expected
+    // Also, we don't want to signal model download end if there was no start
+    if (!this.#lastDownloadOk.has(sessionId)) {
+      return;
+    }
+    const isSuccess = this.#lastDownloadOk.get(sessionId);
+    const step = isSuccess ? "end_download_success" : "end_download_failed";
+    this.#lastDownloadOk.delete(sessionId);
+    Glean.firefoxAiRuntime.modelDownload.record({
+      modelDownloadId: sessionId,
+      featureId,
+      engineId,
+      modelId: model,
+      step,
+      duration: 0,
+      modelRevision: revision,
+      error: isSuccess
+        ? ""
+        : "Unable to retrieve all files needed for the model to work",
+    });
+  }
+
+  /**
    * Given an organization, model, and version, fetch a model file in the hub
    * while supporting status callback.
    *
@@ -1761,9 +1808,8 @@ export class ModelHub {
    * @param {string} config.modelHubUrlTemplate - url template of the model hub
    * @param {?function(ProgressAndStatusCallbackParams):void} config.progressCallback A function to call to indicate progress status.
    * @param {string} config.featureId - feature id for the model
-   * @param {string} config.modelId - model id str
-   * @param {string} config.modelRevision - revision for the model
    * @param {string} config.sessionId - shared across the same session
+   * @param {object} config.telemetryData - Additional telemetry data.
    * @returns {Promise<[string, headers]>} The local path to the file content and headers.
    */
   async getModelDataAsFile({
@@ -1776,9 +1822,8 @@ export class ModelHub {
     modelHubUrlTemplate,
     progressCallback,
     featureId,
-    modelId,
-    modelRevision,
     sessionId,
+    telemetryData = {},
   }) {
     // Make sure inputs are clean. We don't sanitize them but throw an exception
     let checkError = this.#checkInput(model, revision, file);
@@ -1909,16 +1954,32 @@ export class ModelHub {
       })
     );
 
+    if (!this.#lastDownloadOk.has(sessionId)) {
+      Glean.firefoxAiRuntime.modelDownload.record({
+        modelDownloadId: sessionId,
+        featureId,
+        engineId,
+        modelId: model,
+        step: "start_download",
+        duration: 0,
+        modelRevision: revision,
+        error: "",
+        ...telemetryData,
+      });
+    }
+    this.#lastDownloadOk.set(sessionId, false);
+
     const start = Date.now();
     Glean.firefoxAiRuntime.modelDownload.record({
       modelDownloadId: sessionId,
       featureId,
       engineId,
-      modelId,
-      step: "start",
+      modelId: model,
+      step: "start_file_download",
       duration: 0,
-      modelRevision,
+      modelRevision: revision,
       error: "",
+      ...telemetryData,
     });
 
     lazy.console.debug(`Fetching ${url}`);
@@ -1956,17 +2017,19 @@ export class ModelHub {
         }
       );
 
+      this.#lastDownloadOk.set(sessionId, true);
       const end = Date.now();
       const duration = Math.floor(end - start);
       Glean.firefoxAiRuntime.modelDownload.record({
         modelDownloadId: sessionId,
         featureId,
         engineId,
-        modelId,
-        step: "complete",
+        modelId: model,
+        step: "end_file_download_success",
         duration,
-        modelRevision,
+        modelRevision: revision,
         error: "",
+        ...telemetryData,
       });
 
       const headers = this.extractHeaders(response);
@@ -2000,11 +2063,12 @@ export class ModelHub {
         modelDownloadId: sessionId,
         featureId,
         engineId,
-        modelId,
-        step: "error",
+        modelId: model,
+        step: "end_file_download_failed",
         duration,
-        modelRevision,
+        modelRevision: revision,
         error: error.constructor.name,
+        ...telemetryData,
       });
 
       lazy.console.error(`Failed to fetch ${url}:`, error);
