@@ -225,7 +225,8 @@ Maybe<InlinableCallData> FindInlinableCallData(ICCacheIRStub* stub) {
         ObjOperandId maybeCalleeGuardOperand = reader.objOperandId();
         uint32_t targetOffset = reader.stubOffset();
         (void)reader.stubOffset();  // nargsAndFlags
-        uintptr_t rawFunction = stubInfo->getStubRawWord(stubData, targetOffset);
+        uintptr_t rawFunction =
+            stubInfo->getStubRawWord(stubData, targetOffset);
         JSFunction* function = reinterpret_cast<JSFunction*>(rawFunction);
         if (function->hasBytecode()) {
           calleeGuardOperand = maybeCalleeGuardOperand;
@@ -329,7 +330,8 @@ Maybe<InlinableGetterData> FindInlinableGetterData(ICCacheIRStub* stub) {
         uint32_t objOffset = reader.stubOffset();
         uintptr_t rawObject = stubInfo->getStubRawWord(stubData, objOffset);
         JSObject* object = reinterpret_cast<JSObject*>(rawObject);
-        if (object->is<JSFunction>() && object->as<JSFunction>().hasBytecode()) {
+        if (object->is<JSFunction>() &&
+            object->as<JSFunction>().hasBytecode()) {
           maybeCalleeOperand = resultOperand;
           targetScript = object->as<JSFunction>().nonLazyScript();
         }
@@ -421,7 +423,8 @@ Maybe<InlinableSetterData> FindInlinableSetterData(ICCacheIRStub* stub) {
         uint32_t objOffset = reader.stubOffset();
         uintptr_t rawObject = stubInfo->getStubRawWord(stubData, objOffset);
         JSObject* object = reinterpret_cast<JSObject*>(rawObject);
-        if (object->is<JSFunction>() && object->as<JSFunction>().hasBytecode()) {
+        if (object->is<JSFunction>() &&
+            object->as<JSFunction>().hasBytecode()) {
           maybeCalleeOperand = resultOperand;
           targetScript = object->as<JSFunction>().nonLazyScript();
         }
@@ -672,10 +675,8 @@ TrialInliningDecision TrialInliner::getInliningDecision(JSScript* targetScript,
             "Inlining candidate JSOp::%s (offset=%u): callee script '%s' "
             "(%s:%u:%u)",
             CodeName(loc.getOp()), loc.bytecodeToOffset(script_),
-            funName ? funName.get() : "<unnamed>",
-            targetScript->filename(),
-            targetScript->lineno(),
-            targetScript->column().oneOriginValue());
+            funName ? funName.get() : "<unnamed>", targetScript->filename(),
+            targetScript->lineno(), targetScript->column().oneOriginValue());
     JitSpewIndent spewIndent(JitSpew_WarpTrialInlining);
   }
 #endif

@@ -924,8 +924,8 @@ bool IonCacheIRCompiler::emitLoadDynamicSlotResult(ObjOperandId objId,
 }
 
 bool IonCacheIRCompiler::emitCallScriptedGetterResult(
-    ValOperandId receiverId, ObjOperandId calleeId,
-    bool sameRealm, uint32_t nargsAndFlagsOffset) {
+    ValOperandId receiverId, ObjOperandId calleeId, bool sameRealm,
+    uint32_t nargsAndFlagsOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   AutoSaveLiveRegisters save(*this);
   AutoOutputRegister output(*this);

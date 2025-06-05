@@ -7466,7 +7466,8 @@ void LIRGenerator::visitLoadWrapperTarget(MLoadWrapperTarget* ins) {
   define(lir, ins);
 }
 
-void LIRGenerator::visitLoadGetterSetterFunction(MLoadGetterSetterFunction* ins) {
+void LIRGenerator::visitLoadGetterSetterFunction(
+    MLoadGetterSetterFunction* ins) {
   MDefinition* getterSetter = ins->getterSetter();
 
   auto* lir = new (alloc())

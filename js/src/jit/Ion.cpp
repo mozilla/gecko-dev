@@ -1778,9 +1778,9 @@ static AbortReason IonCompile(JSContext* cx, HandleScript script,
     return AbortReason::Alloc;
   }
 
-  CompileInfo* info = alloc->new_<CompileInfo>(
-      CompileRuntime::get(cx->runtime()), script, osrPc,
-      script->needsArgsObj(), inlineScriptTree);
+  CompileInfo* info =
+      alloc->new_<CompileInfo>(CompileRuntime::get(cx->runtime()), script,
+                               osrPc, script->needsArgsObj(), inlineScriptTree);
   if (!info) {
     return AbortReason::Alloc;
   }

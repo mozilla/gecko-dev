@@ -636,8 +636,8 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
     }
     return loadObject(target);
   }
- public:
 
+ public:
   void callScriptedGetterResult(ValOperandId receiver, JSFunction* getter,
                                 bool sameRealm) {
     MOZ_ASSERT(getter->hasJitEntry());

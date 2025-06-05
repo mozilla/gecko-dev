@@ -21109,7 +21109,8 @@ void CodeGenerator::visitLoadWrapperTarget(LLoadWrapperTarget* lir) {
   }
 }
 
-void CodeGenerator::visitLoadGetterSetterFunction(LLoadGetterSetterFunction* lir) {
+void CodeGenerator::visitLoadGetterSetterFunction(
+    LLoadGetterSetterFunction* lir) {
   ValueOperand getterSetter = ToValue(lir->getterSetter());
   Register output = ToRegister(lir->output());
   Register temp = ToRegister(lir->temp0());

@@ -9328,7 +9328,8 @@ bool CacheIRCompiler::emitLoadGetterSetterFunction(ValOperandId getterSetterId,
 
   masm.unboxNonDouble(getterSetter, output, JSVAL_TYPE_PRIVATE_GCTHING);
 
-  size_t offset = isGetter ? GetterSetter::offsetOfGetter() : GetterSetter::offsetOfSetter();
+  size_t offset = isGetter ? GetterSetter::offsetOfGetter()
+                           : GetterSetter::offsetOfSetter();
   masm.loadPtr(Address(output, offset), output);
 
   masm.branchTestPtr(Assembler::Zero, output, output, failure->label());
@@ -9336,7 +9337,6 @@ bool CacheIRCompiler::emitLoadGetterSetterFunction(ValOperandId getterSetterId,
                                failure->label());
   return true;
 }
-
 
 bool CacheIRCompiler::emitGuardHasGetterSetter(ObjOperandId objId,
                                                uint32_t idOffset,

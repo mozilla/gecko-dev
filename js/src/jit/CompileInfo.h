@@ -66,9 +66,8 @@ inline unsigned CountArgSlots(JSScript* script, bool hasFun,
 // Contains information about the compilation source for IR being generated.
 class CompileInfo {
  public:
-  CompileInfo(CompileRuntime* runtime, JSScript* script,
-              jsbytecode* osrPc, bool scriptNeedsArgsObj,
-              InlineScriptTree* inlineScriptTree)
+  CompileInfo(CompileRuntime* runtime, JSScript* script, jsbytecode* osrPc,
+              bool scriptNeedsArgsObj, InlineScriptTree* inlineScriptTree)
       : script_(script),
         fun_(script->function()),
         osrPc_(osrPc),
