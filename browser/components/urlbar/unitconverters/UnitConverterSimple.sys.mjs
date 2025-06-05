@@ -5,6 +5,9 @@
 // NOTE: This units table need to be localized upon supporting multi locales
 //       since it supports en-US only.
 //       e.g. Should support plugada or funty as well for pound.
+/**
+ * @type {{[key: string]: any}[]}
+ */
 const UNITS_GROUPS = [
   {
     // Angle
@@ -216,7 +219,6 @@ export class UnitConverterSimple {
  *    A set of units to convert, mapped to the `inputUnit` value on the return
  * @param {string} outputUnit
  *    A set of units to convert, mapped to the `outputUnit` value on the return
- * @returns {{ inputUnit: string, outputUnit: string }} The suitable units.
  */
 function findUnitGroup(inputUnit, outputUnit) {
   inputUnit = toSuitableUnit(inputUnit);
@@ -238,6 +240,11 @@ function findUnitGroup(inputUnit, outputUnit) {
   };
 }
 
+/**
+ * Converts the unit value to an appropriate case if necessary.
+ *
+ * @param {string} unit
+ */
 function toSuitableUnit(unit) {
   return CASE_SENSITIVE_UNITS.includes(unit) ? unit : unit.toLowerCase();
 }

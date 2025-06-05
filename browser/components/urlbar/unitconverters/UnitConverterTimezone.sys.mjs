@@ -121,7 +121,7 @@ export class UnitConverterTimezone {
     if (outputTimezone === KEYWORD_HERE) {
       outputOffset = -inputDate.getTimezoneOffset();
       const sign = -inputDate.getTimezoneOffset() > 0 ? "+" : "-";
-      const hours = parseInt(Math.abs(outputOffset) / 60);
+      const hours = Math.floor(Math.abs(outputOffset) / 60);
       const minutes = formatMinutes((outputOffset % 60) * 60);
       outputTimezone = `UTC${sign}${hours}${minutes}`;
     } else {
