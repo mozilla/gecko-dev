@@ -605,6 +605,12 @@ inline bool MatchingOperatingSystems(OperatingSystem aBlockedOS,
     // We do want even "unknown" aSystemOS to fall under "all windows"
     return true;
   }
+
+  if (aBlockedOS == OperatingSystem::Windows10or11 &&
+      (aSystemOS == OperatingSystem::Windows10 ||
+       aSystemOS == OperatingSystem::Windows11)) {
+    return true;
+  }
 #endif
 
 #if defined(XP_MACOSX)
