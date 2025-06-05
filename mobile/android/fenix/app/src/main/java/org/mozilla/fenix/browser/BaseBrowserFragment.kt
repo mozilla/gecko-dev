@@ -229,8 +229,6 @@ import org.mozilla.fenix.utils.allowUndo
 import org.mozilla.fenix.wifi.SitePermissionsWifiIntegration
 import java.lang.ref.WeakReference
 import kotlin.coroutines.cancellation.CancellationException
-import mozilla.components.ui.widgets.behavior.EngineViewClippingBehavior as OldEngineViewClippingBehavior
-import mozilla.components.ui.widgets.behavior.ToolbarPosition as OldToolbarPosition
 import org.mozilla.fenix.GleanMetrics.TabStrip as TabStripMetrics
 
 /**
@@ -1519,34 +1517,14 @@ abstract class BaseBrowserFragment :
         if (isToolbarDynamic(context) && webAppToolbarShouldBeVisible) {
             getEngineView().setDynamicToolbarMaxHeight(topToolbarHeight + bottomToolbarHeight)
 
-            if (shouldShowMicrosurveyPrompt(context)) {
-                (getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams).behavior =
-                    EngineViewClippingBehavior2(
-                        context = context,
-                        attrs = null,
-                        engineViewParent = getSwipeRefreshLayout(),
-                        topToolbarHeight = topToolbarHeight,
-                        bottomToolbarHeight = bottomToolbarHeight,
-                    )
-            } else {
-                val toolbarPosition = when (context.settings().toolbarPosition) {
-                    ToolbarPosition.BOTTOM -> OldToolbarPosition.BOTTOM
-                    ToolbarPosition.TOP -> OldToolbarPosition.TOP
-                }
-
-                val toolbarHeight = when (toolbarPosition) {
-                    OldToolbarPosition.BOTTOM -> bottomToolbarHeight
-                    OldToolbarPosition.TOP -> topToolbarHeight
-                }
-                (getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams).behavior =
-                    OldEngineViewClippingBehavior(
-                        context,
-                        null,
-                        getSwipeRefreshLayout(),
-                        toolbarHeight,
-                        toolbarPosition,
-                    )
-            }
+            (getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams).behavior =
+                EngineViewClippingBehavior2(
+                    context = context,
+                    attrs = null,
+                    engineViewParent = getSwipeRefreshLayout(),
+                    topToolbarHeight = topToolbarHeight,
+                    bottomToolbarHeight = bottomToolbarHeight,
+                )
         } else {
             // Ensure webpage's bottom elements are aligned to the very bottom of the engineView.
             getEngineView().setDynamicToolbarMaxHeight(0)
