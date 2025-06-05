@@ -4,8 +4,11 @@
 prefs = ["dom.security.skip_remote_script_assertion_in_system_priv_context=true"]
 
 # nsIWidget::SynthesizeNativeKeyEvent() required (Bug 1410525 for headless)
-run-if = ["!headless"]
-skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
+# only supported on windows and mac.  we only run headless on linux, i.e. not applicable
+run-if = [
+  "os == 'mac'",
+  "os == 'win'",
+]
 
 ["test_browser.xhtml"]
 support-files = ["browsertest.html"]
