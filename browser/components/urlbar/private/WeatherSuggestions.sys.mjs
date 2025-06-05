@@ -137,8 +137,8 @@ const WEATHER_VIEW_TEMPLATE = {
  * A feature that periodically fetches weather suggestions from Merino.
  */
 export class WeatherSuggestions extends SuggestProvider {
-  constructor(...args) {
-    super(...args);
+  constructor() {
+    super();
     lazy.UrlbarResult.addDynamicResultType(WEATHER_DYNAMIC_TYPE);
     lazy.UrlbarView.addDynamicViewTemplate(
       WEATHER_DYNAMIC_TYPE,
@@ -412,6 +412,7 @@ export class WeatherSuggestions extends SuggestProvider {
   }
 
   getResultCommands() {
+    /** @type {{name: Values<RESULT_MENU_COMMAND>, l10n?: {id: string}}[]} */
     let commands = [
       {
         name: RESULT_MENU_COMMAND.INACCURATE_LOCATION,

@@ -33,7 +33,7 @@ class _GeolocationUtils {
    * responses for a brief period of time so that fetches during a urlbar
    * session don't ping Merino over and over.
    *
-   * @returns {object}
+   * @returns {Promise<object>}
    *   An object with the following properties (see Merino source for latest):
    *
    *   {string} country
@@ -74,6 +74,23 @@ class _GeolocationUtils {
   }
 
   /**
+   * @typedef {object} GeoLocationItem
+   * @property {string|number} [latitude]
+   *   The location's latitude in decimal coordinates as either a string or float.
+   * @property {string|number} [longitude]
+   *   The location's longitude in decimal coordinates as either a string or float.
+   * @property {string} [country]
+   *   The location's two-digit ISO country code. Case doesn't matter.
+   * @property {string} [region]
+   *   The location's region, e.g., a U.S. state. This is compared to the
+   *   `region_code` in the Merino geolocation response (case insensitive) so
+   *   it should be the same format: the region ISO code, e.g., the two-letter
+   *   abbreviation for U.S. states.
+   * @property {number} [population]
+   *   The location's population.
+   */
+
+  /**
    * Returns the item from an array of candidate items that best matches the
    * client's geolocation. For urlbar, typically the items are suggestions, but
    * they can be anything.
@@ -94,27 +111,11 @@ class _GeolocationUtils {
    *
    * @param {Array} items
    *   Array of items, which can be anything.
-   * @param {Function} locationFromItem
+   * @param {(item: any) => GeoLocationItem} locationFromItem
    *   A function that maps an item to its location. It will be called as
    *   `locationFromItem(item)` and it should return an object with the
-   *   following properties, all optional:
-   *
-   *   {String|number} latitude
-   *     The location's latitude in decimal coordinates as either a string or
-   *     float.
-   *   {String|number} longitude
-   *     The location's longitude in decimal coordinates as either a string or
-   *     float.
-   *   {string} country
-   *     The location's two-digit ISO country code. Case doesn't matter.
-   *   {string} region
-   *     The location's region, e.g., a U.S. state. This is compared to the
-   *     `region_code` in the Merino geolocation response (case insensitive) so
-   *     it should be the same format: the region ISO code, e.g., the two-letter
-   *     abbreviation for U.S. states.
-   *   {number} population
-   *     The location's population.
-   * @returns {object|null}
+   *   defined properties, all optional.
+   * @returns {Promise<object|null>}
    *   The best item as described above, or null if `items` is empty.
    */
   async best(items, locationFromItem = i => i) {
@@ -152,7 +153,7 @@ class _GeolocationUtils {
    *   ```
    * @param {Array} items
    *   Array of items as described in the doc for `best()`.
-   * @param {Function} locationFromItem
+   * @param {(item: any) => GeoLocationItem} locationFromItem
    *   Mapping function as described in the doc for `best()`.
    * @returns {object|null}
    *   The nearest item as described above. If there are multiple nearest items
@@ -180,8 +181,14 @@ class _GeolocationUtils {
         continue;
       }
 
-      let locationLat = parseFloat(location.latitude);
-      let locationLong = parseFloat(location.longitude);
+      let locationLat =
+        typeof location.latitude == "number"
+          ? location.latitude
+          : parseFloat(location.latitude);
+      let locationLong =
+        typeof location.longitude == "number"
+          ? location.longitude
+          : parseFloat(location.longitude);
       if (isNaN(locationLat) || isNaN(locationLong)) {
         continue;
       }
@@ -231,7 +238,7 @@ class _GeolocationUtils {
    *   ```
    * @param {Array} items
    *   Array of items as described in the doc for `best()`.
-   * @param {Function} locationFromItem
+   * @param {(item: any) => GeoLocationItem} locationFromItem
    *   Mapping function as described in the doc for `best()`.
    * @returns {object|null}
    *   The item as described above or null.

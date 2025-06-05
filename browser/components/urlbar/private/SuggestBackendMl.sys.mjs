@@ -42,7 +42,7 @@ export class SuggestBackendMl extends SuggestBackend {
    *   Options object.
    * @param {UrlbarQueryContext} options.queryContext
    *   The query context.
-   * @returns {Array}
+   * @returns {Promise<Array>}
    *   An array of matching suggestions. `MLSuggest` returns at most one
    *   suggestion.
    */

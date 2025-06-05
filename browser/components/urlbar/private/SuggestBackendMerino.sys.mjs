@@ -12,6 +12,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 /**
+ * @import {MerinoClient} from "resource:///modules/MerinoClient.sys.mjs"
+ */
+
+/**
  * The Suggest Merino backend. This backend is enabled when the user opts in to
  * Merino, also called "online" Suggest.
  */

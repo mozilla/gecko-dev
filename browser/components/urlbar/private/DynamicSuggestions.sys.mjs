@@ -122,7 +122,7 @@ export class DynamicSuggestions extends SuggestProvider {
       case "manage":
         // "manage" is handled by UrlbarInput, no need to do anything here.
         break;
-      case "dismiss":
+      case "dismiss": {
         let { result } = details;
         lazy.QuickSuggest.dismissResult(result);
         result.acknowledgeDismissalL10n = {
@@ -130,6 +130,7 @@ export class DynamicSuggestions extends SuggestProvider {
         };
         controller.removeResult(result);
         break;
+      }
     }
   }
 

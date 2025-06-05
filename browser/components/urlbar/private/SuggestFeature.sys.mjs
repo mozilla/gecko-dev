@@ -107,7 +107,7 @@ export class SuggestFeature {
   }
 
   /**
-   * @returns {Logger}
+   * @returns {ConsoleInstance}
    *   The feature's logger.
    */
   get logger() {
@@ -272,7 +272,7 @@ export class SuggestProvider extends SuggestFeature {
    *
    * @param {Array} suggestions
    *   All the feature's suggestions that matched a query.
-   * @returns {Array}
+   * @returns {Promise<Array>}
    *   The subset of `suggestions` that should be shown (typically all).
    */
   async filterSuggestions(suggestions) {
@@ -292,7 +292,7 @@ export class SuggestProvider extends SuggestFeature {
    *   The search string that was used to fetch the suggestion. It may be
    *   different from `queryContext.searchString` due to trimming, lower-casing,
    *   etc. This is included as a param in case it's useful.
-   * @returns {UrlbarResult|null}
+   * @returns {Promise<UrlbarResult|null>}
    *   A new result for the suggestion or null if a result should not be shown.
    */
   async makeResult(queryContext, suggestion, searchString) {
@@ -388,11 +388,18 @@ export class SuggestBackend extends SuggestFeature {
    *   Options object.
    * @param {UrlbarQueryContext} options.queryContext
    *   The query context.
-   * @returns {Array}
+   * @param {Array} options.types
+   *   This is only intended to be used in special circumstances and normally
+   *   should not be specified. Array of suggestion types to query. By default
+   *   all enabled suggestion types are queried.
+   * @returns {Promise<Array>}
    *   Array of matching suggestions. An empty array should be returned if no
    *   suggestions matched or suggestions can't be fetched for any reason.
+   * @abstract
    */
-  async query(searchString, { queryContext }) {}
+  async query(searchString, { queryContext, types }) {
+    throw new Error("Trying to access the base class, must be overridden");
+  }
 
   /**
    * The subclass should override this method if anything needs to be stopped or

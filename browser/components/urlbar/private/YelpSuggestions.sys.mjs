@@ -19,6 +19,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs",
 });
 
+/**
+ * @import {GeonameMatch} from "moz-src:///toolkit/components/uniffi-bindgen-gecko-js/components/generated/RustSuggest.sys.mjs"
+ */
+
 const RESULT_MENU_COMMAND = {
   INACCURATE_LOCATION: "inaccurate_location",
   MANAGE: "manage",
@@ -231,7 +235,14 @@ export class YelpSuggestions extends SuggestProvider {
     );
   }
 
+  /**
+   * @typedef {object} L10nItem
+   * @property {Values<RESULT_MENU_COMMAND>} [name]
+   * @property {{id: string}} [l10n]
+   */
+
   getResultCommands() {
+    /** @type {(L10nItem& { children?: L10nItem[]})[]} */
     let commands = [
       {
         name: RESULT_MENU_COMMAND.INACCURATE_LOCATION,
@@ -410,9 +421,6 @@ export class YelpSuggestions extends SuggestProvider {
    * `#metadataCache`. If the known Yelp suggestion is absent for some reason,
    * we fall back to hardcoded values. This is a tad hacky and we should come up
    * with something better.
-   *
-   * @returns {object}
-   *   The metadata cache.
    */
   async #makeMetadataCache() {
     let cache;
@@ -465,20 +473,20 @@ export class YelpSuggestions extends SuggestProvider {
    *
    * @param {string|null} city
    *   The candidate city name or null if you're only matching regions.
-   * @param {region|null} region
+   * @param {string|null} region
    *   The candidate region name or abbreviation, or null if you're only
    *   matching cities.
-   * @returns {object|null}
+   * @returns {Promise<{city: string|null, region: string|null}|null>}
    *   If a city was passed in and it didn't match a city in the DB, or if a
    *   region was passed in and it didn't match a region in the DB, null is
    *   returned. Null is also returned if both were passed but they aren't a
    *   valid city-region combination. Otherwise, an object `{ city, region }` is
    *   returned:
    *
-   *   {string|null} city
+   *   city
    *     The best matching city's name, or if the passed-in city was null and a
    *     region was matched, this will be null.
-   *   {string} region
+   *   region
    *     The best matching region. If a city was matched, it will be the ISO
    *     code of the city's region (e.g., the usual two-letter abbreviation for
    *     U.S. states). If a city wasn't passed in, this will be the best
