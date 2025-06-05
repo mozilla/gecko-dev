@@ -559,7 +559,6 @@ pub struct SceneBuilder<'a> {
 impl<'a> SceneBuilder<'a> {
     pub fn build(
         scene: &Scene,
-        root_pipeline: Option<PipelineId>,
         fonts: SharedFontResources,
         view: &SceneView,
         frame_builder_config: &FrameBuilderConfig,
@@ -572,7 +571,7 @@ impl<'a> SceneBuilder<'a> {
         profile_scope!("build_scene");
 
         // We checked that the root pipeline is available on the render backend.
-        let root_pipeline_id = root_pipeline.or(scene.root_pipeline_id).unwrap();
+        let root_pipeline_id = scene.root_pipeline_id.unwrap();
         let root_pipeline = scene.pipelines.get(&root_pipeline_id).unwrap();
         let root_reference_frame_index = spatial_tree.root_reference_frame_index();
 
