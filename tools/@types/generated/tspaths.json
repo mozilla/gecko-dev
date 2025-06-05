@@ -50,9 +50,6 @@
       "chrome://browser/content/firefoxview/fxview-empty-state.mjs": [
         "browser/components/firefoxview/fxview-empty-state.mjs"
       ],
-      "chrome://browser/content/firefoxview/fxview-search-textbox.mjs": [
-        "browser/components/firefoxview/fxview-search-textbox.mjs"
-      ],
       "chrome://browser/content/firefoxview/fxview-tab-list.mjs": [
         "browser/components/firefoxview/fxview-tab-list.mjs"
       ],
@@ -67,6 +64,9 @@
       ],
       "chrome://browser/content/firefoxview/syncedtabs-tab-list.mjs": [
         "browser/components/firefoxview/syncedtabs-tab-list.mjs"
+      ],
+      "chrome://browser/content/genai/content/link-preview-card-onboarding.mjs": [
+        "browser/components/genai/content/link-preview-card-onboarding.mjs"
       ],
       "chrome://browser/content/genai/content/link-preview-card.mjs": [
         "browser/components/genai/content/link-preview-card.mjs"
@@ -94,6 +94,9 @@
       ],
       "chrome://browser/content/profiles/edit-profile-card.mjs": [
         "browser/components/profiles/content/edit-profile-card.mjs"
+      ],
+      "chrome://browser/content/profiles/profile-avatar-selector.mjs": [
+        "browser/components/profiles/content/profile-avatar-selector.mjs"
       ],
       "chrome://browser/content/profiles/profile-card.mjs": [
         "browser/components/profiles/content/profile-card.mjs"
@@ -410,138 +413,6 @@
       "chrome://pocket/content/pktTelemetry.sys.mjs": [
         "browser/components/pocket/content/pktTelemetry.sys.mjs"
       ],
-      "chrome://remote/content/cdp/CDP.sys.mjs": [
-        "remote/cdp/CDP.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/CDPConnection.sys.mjs": [
-        "remote/cdp/CDPConnection.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/Error.sys.mjs": [
-        "remote/cdp/Error.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/JSONHandler.sys.mjs": [
-        "remote/cdp/JSONHandler.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/Protocol.sys.mjs": [
-        "remote/cdp/Protocol.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/StreamRegistry.sys.mjs": [
-        "remote/cdp/StreamRegistry.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/ContentProcessDomain.sys.mjs": [
-        "remote/cdp/domains/ContentProcessDomain.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/ContentProcessDomains.sys.mjs": [
-        "remote/cdp/domains/ContentProcessDomains.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/Domain.sys.mjs": [
-        "remote/cdp/domains/Domain.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/DomainCache.sys.mjs": [
-        "remote/cdp/domains/DomainCache.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/ParentProcessDomains.sys.mjs": [
-        "remote/cdp/domains/ParentProcessDomains.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/DOM.sys.mjs": [
-        "remote/cdp/domains/content/DOM.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/Emulation.sys.mjs": [
-        "remote/cdp/domains/content/Emulation.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/Input.sys.mjs": [
-        "remote/cdp/domains/content/Input.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/Log.sys.mjs": [
-        "remote/cdp/domains/content/Log.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/Network.sys.mjs": [
-        "remote/cdp/domains/content/Network.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/Page.sys.mjs": [
-        "remote/cdp/domains/content/Page.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/Performance.sys.mjs": [
-        "remote/cdp/domains/content/Performance.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/Runtime.sys.mjs": [
-        "remote/cdp/domains/content/Runtime.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/Security.sys.mjs": [
-        "remote/cdp/domains/content/Security.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/content/runtime/ExecutionContext.sys.mjs": [
-        "remote/cdp/domains/content/runtime/ExecutionContext.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/Browser.sys.mjs": [
-        "remote/cdp/domains/parent/Browser.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/Emulation.sys.mjs": [
-        "remote/cdp/domains/parent/Emulation.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/Fetch.sys.mjs": [
-        "remote/cdp/domains/parent/Fetch.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/IO.sys.mjs": [
-        "remote/cdp/domains/parent/IO.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/Input.sys.mjs": [
-        "remote/cdp/domains/parent/Input.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/Network.sys.mjs": [
-        "remote/cdp/domains/parent/Network.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/Page.sys.mjs": [
-        "remote/cdp/domains/parent/Page.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/Security.sys.mjs": [
-        "remote/cdp/domains/parent/Security.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/SystemInfo.sys.mjs": [
-        "remote/cdp/domains/parent/SystemInfo.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/Target.sys.mjs": [
-        "remote/cdp/domains/parent/Target.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/domains/parent/page/DialogHandler.sys.mjs": [
-        "remote/cdp/domains/parent/page/DialogHandler.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/observers/ChannelEventSink.sys.mjs": [
-        "remote/cdp/observers/ChannelEventSink.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/observers/ContextObserver.sys.mjs": [
-        "remote/cdp/observers/ContextObserver.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/observers/NetworkObserver.sys.mjs": [
-        "remote/cdp/observers/NetworkObserver.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/observers/TargetObserver.sys.mjs": [
-        "remote/cdp/observers/TargetObserver.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/sessions/ContentProcessSession.sys.mjs": [
-        "remote/cdp/sessions/ContentProcessSession.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/sessions/MainProcessSession.sys.mjs": [
-        "remote/cdp/sessions/MainProcessSession.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/sessions/Session.sys.mjs": [
-        "remote/cdp/sessions/Session.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/sessions/TabSession.sys.mjs": [
-        "remote/cdp/sessions/TabSession.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/targets/MainProcessTarget.sys.mjs": [
-        "remote/cdp/targets/MainProcessTarget.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/targets/TabTarget.sys.mjs": [
-        "remote/cdp/targets/TabTarget.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/targets/Target.sys.mjs": [
-        "remote/cdp/targets/Target.sys.mjs"
-      ],
-      "chrome://remote/content/cdp/targets/TargetList.sys.mjs": [
-        "remote/cdp/targets/TargetList.sys.mjs"
-      ],
       "chrome://remote/content/components/Marionette.sys.mjs": [
         "remote/components/Marionette.sys.mjs"
       ],
@@ -707,6 +578,9 @@
       "chrome://remote/content/shared/WindowManager.sys.mjs": [
         "remote/shared/WindowManager.sys.mjs"
       ],
+      "chrome://remote/content/shared/js-process-actors/WebDriverDocumentInsertedActor.sys.mjs": [
+        "remote/shared/js-process-actors/WebDriverDocumentInsertedActor.sys.mjs"
+      ],
       "chrome://remote/content/shared/js-window-actors/WebProgressListenerActor.sys.mjs": [
         "remote/shared/js-window-actors/WebProgressListenerActor.sys.mjs"
       ],
@@ -836,6 +710,9 @@
       "chrome://remote/content/webdriver-bidi/NewSessionHandler.sys.mjs": [
         "remote/webdriver-bidi/NewSessionHandler.sys.mjs"
       ],
+      "chrome://remote/content/webdriver-bidi/ProxyPerUserContextManager.sys.mjs": [
+        "remote/webdriver-bidi/ProxyPerUserContextManager.sys.mjs"
+      ],
       "chrome://remote/content/webdriver-bidi/RemoteValue.sys.mjs": [
         "remote/webdriver-bidi/RemoteValue.sys.mjs"
       ],
@@ -952,6 +829,9 @@
       ],
       "resource:///actors/LinkHandlerParent.sys.mjs": [
         "browser/actors/LinkHandlerParent.sys.mjs"
+      ],
+      "resource:///actors/LinkPreviewChild.sys.mjs": [
+        "browser/components/genai/LinkPreviewChild.sys.mjs"
       ],
       "resource:///actors/PluginParent.sys.mjs": [
         "browser/actors/PluginParent.sys.mjs"
@@ -1813,6 +1693,9 @@
       ],
       "resource://devtools/client/aboutdebugging/src/middleware/process-component-data.js": [
         "devtools/client/aboutdebugging/src/middleware/process-component-data.js"
+      ],
+      "resource://devtools/client/aboutdebugging/src/middleware/simple-console-logger.js": [
+        "devtools/client/aboutdebugging/src/middleware/simple-console-logger.js"
       ],
       "resource://devtools/client/aboutdebugging/src/middleware/tab-component-data.js": [
         "devtools/client/aboutdebugging/src/middleware/tab-component-data.js"
@@ -6251,38 +6134,8 @@
       "resource://gre/modules/ResetProfile.sys.mjs": [
         "toolkit/modules/ResetProfile.sys.mjs"
       ],
-      "resource://gre/modules/RustArithmetic.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustArithmetic.sys.mjs"
-      ],
-      "resource://gre/modules/RustCustomTypes.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustCustomTypes.sys.mjs"
-      ],
-      "resource://gre/modules/RustExternalTypes.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustExternalTypes.sys.mjs"
-      ],
-      "resource://gre/modules/RustFixtureCallbacks.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustFixtureCallbacks.sys.mjs"
-      ],
-      "resource://gre/modules/RustFutures.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustFutures.sys.mjs"
-      ],
-      "resource://gre/modules/RustGeometry.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustGeometry.sys.mjs"
-      ],
-      "resource://gre/modules/RustRefcounts.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustRefcounts.sys.mjs"
-      ],
-      "resource://gre/modules/RustRondpoint.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustRondpoint.sys.mjs"
-      ],
-      "resource://gre/modules/RustSprites.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustSprites.sys.mjs"
-      ],
-      "resource://gre/modules/RustTodolist.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustTodolist.sys.mjs"
-      ],
-      "resource://gre/modules/RustUniffiTraitInterfaces.sys.mjs": [
-        "toolkit/components/uniffi-bindgen-gecko-js/fixtures/generated/RustUniffiTraitInterfaces.sys.mjs"
+      "resource://gre/modules/RustSharedRemoteSettingsService.sys.mjs": [
+        "toolkit/modules/RustSharedRemoteSettingsService.sys.mjs"
       ],
       "resource://gre/modules/SafeBrowsing.sys.mjs": [
         "toolkit/components/url-classifier/SafeBrowsing.sys.mjs"
@@ -6382,9 +6235,6 @@
       ],
       "resource://gre/modules/Troubleshoot.sys.mjs": [
         "toolkit/modules/Troubleshoot.sys.mjs"
-      ],
-      "resource://gre/modules/UniFFI.sys.mjs": [
-        "toolkit/components/uniffi-js/js/UniFFI.sys.mjs"
       ],
       "resource://gre/modules/UninstallPing.sys.mjs": [
         "toolkit/components/telemetry/pings/UninstallPing.sys.mjs"
@@ -6776,6 +6626,9 @@
       "resource://newtab/lib/InferredPersonalizationFeed.sys.mjs": [
         "browser/extensions/newtab/lib/InferredPersonalizationFeed.sys.mjs"
       ],
+      "resource://newtab/lib/NewTabContentPing.sys.mjs": [
+        "browser/extensions/newtab/lib/NewTabContentPing.sys.mjs"
+      ],
       "resource://newtab/lib/NewTabGleanUtils.sys.mjs": [
         "browser/extensions/newtab/lib/NewTabGleanUtils.sys.mjs"
       ],
@@ -6841,6 +6694,9 @@
       ],
       "resource://newtab/lib/TopStoriesFeed.sys.mjs": [
         "browser/extensions/newtab/lib/TopStoriesFeed.sys.mjs"
+      ],
+      "resource://newtab/lib/TrendingSearchFeed.sys.mjs": [
+        "browser/extensions/newtab/lib/TrendingSearchFeed.sys.mjs"
       ],
       "resource://newtab/lib/UTEventReporting.sys.mjs": [
         "browser/extensions/newtab/lib/UTEventReporting.sys.mjs"
