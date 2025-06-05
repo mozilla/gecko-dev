@@ -49,6 +49,8 @@
 class JS_PUBLIC_API JSTracer;
 struct JS_PUBLIC_API JSContext;
 
+class JSFunction;
+
 namespace JS {
 class Zone;
 }
@@ -110,7 +112,7 @@ class InliningRoot {
 
 class InlinableOpData {
  public:
-  JSScript* target = nullptr;
+  JSFunction* target = nullptr;
   ICScript* icScript = nullptr;
   const uint8_t* endOfSharedPrefix = nullptr;
 };
@@ -124,14 +126,12 @@ class InlinableCallData : public InlinableOpData {
 class InlinableGetterData : public InlinableOpData {
  public:
   ValOperandId receiverOperand;
-  ObjOperandId calleeOperand;
   bool sameRealm = false;
 };
 
 class InlinableSetterData : public InlinableOpData {
  public:
   ObjOperandId receiverOperand;
-  ObjOperandId calleeOperand;
   ValOperandId rhsOperand;
   bool sameRealm = false;
 };
@@ -166,7 +166,7 @@ class MOZ_RAII TrialInliner {
   [[nodiscard]] bool maybeInlineSetter(ICEntry& entry, ICFallbackStub* fallback,
                                        BytecodeLocation loc, CacheKind kind);
 
-  static bool canInline(JSScript* target, HandleScript caller,
+  static bool canInline(JSFunction* target, HandleScript caller,
                         BytecodeLocation loc);
 
   static bool IsValidInliningOp(JSOp op);
@@ -175,11 +175,11 @@ class MOZ_RAII TrialInliner {
   ICCacheIRStub* maybeSingleStub(const ICEntry& entry);
   void cloneSharedPrefix(ICCacheIRStub* stub, const uint8_t* endOfPrefix,
                          CacheIRWriter& writer);
-  ICScript* createInlinedICScript(JSScript* target, BytecodeLocation loc);
+  ICScript* createInlinedICScript(JSFunction* target, BytecodeLocation loc);
   [[nodiscard]] bool replaceICStub(ICEntry& entry, ICFallbackStub* fallback,
                                    CacheIRWriter& writer, CacheKind kind);
 
-  TrialInliningDecision getInliningDecision(JSScript* target,
+  TrialInliningDecision getInliningDecision(JSFunction* target,
                                             ICCacheIRStub* stub,
                                             BytecodeLocation loc);
 

@@ -616,17 +616,6 @@
     boolean: BooleanId
     result: NumberId
 
-# Load the getter or setter out of a GetterSetter.
-# Fails if it is null.
-- name: LoadGetterSetterFunction
-  shared: true
-  transpile: true
-  cost_estimate: 1
-  args:
-    getterSetter: ValId
-    isGetter: BoolImm
-    result: ObjId
-
 - name: GuardHasGetterSetter
   shared: true
   transpile: true
@@ -1932,7 +1921,7 @@
   custom_writer: true
   args:
     receiver: ObjId
-    callee: ObjId
+    setter: ObjectField
     rhs: ValId
     sameRealm: BoolImm
     nargsAndFlags: RawInt32Field
@@ -1944,7 +1933,7 @@
   custom_writer: true
   args:
     receiver: ObjId
-    callee: ObjId
+    setter: ObjectField
     rhs: ValId
     icScript: RawPointerField
     sameRealm: BoolImm
@@ -2561,7 +2550,7 @@
   custom_writer: true
   args:
     receiver: ValId
-    callee: ObjId
+    getter: ObjectField
     sameRealm: BoolImm
     nargsAndFlags: RawInt32Field
 
@@ -2572,7 +2561,7 @@
   custom_writer: true
   args:
     receiver: ValId
-    callee: ObjId
+    getter: ObjectField
     icScript: RawPointerField
     sameRealm: BoolImm
     nargsAndFlags: RawInt32Field

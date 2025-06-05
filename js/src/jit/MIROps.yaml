@@ -3285,16 +3285,6 @@
   alias_set: custom
   generate_lir: true
 
-- name: LoadGetterSetterFunction
-  operands:
-    getterSetter: Value
-  arguments:
-    isGetter: bool
-  result_type: Object
-  generate_lir: true
-  lir_temps: 1
-  alias_set: none
-
 # Guard the accessor shape is present on the object or its prototype chain.
 - name: GuardHasGetterSetter
   operands:
