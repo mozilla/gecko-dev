@@ -209,6 +209,11 @@ NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion) {
   return NS_ERROR_FAILURE;
 }
 
+NS_IMETHODIMP GfxInfo::SpoofOSVersionEx(uint32_t aMajor, uint32_t aMinor,
+                                        uint32_t aBuild, uint32_t aRevision) {
+  return NS_ERROR_FAILURE;
+}
+
 #endif
 
 }  // namespace widget

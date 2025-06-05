@@ -73,6 +73,7 @@ class GfxInfo : public GfxInfoBase {
 #endif
 
   virtual uint32_t OperatingSystemVersion() override;
+  GfxVersionEx OperatingSystemVersionEx() override;
 
  protected:
   OperatingSystem GetOperatingSystem() override {
@@ -99,6 +100,7 @@ class GfxInfo : public GfxInfoBase {
 
   nsString mModel, mHardware, mManufacturer, mProduct;
   nsCString mOSVersion;
+  GfxVersionEx mOSVersionEx;
   uint32_t mOSVersionInteger;
   int32_t mSDKVersion;
 };

@@ -218,6 +218,10 @@ nsresult GfxInfo::Init() {
   AddCrashReportAnnotations();
 
   mOSXVersion = nsCocoaFeatures::macOSVersion();
+  mOSXVersionEx =
+      GfxVersionEx(nsCocoaFeatures::ExtractMajorVersion(mOSXVersion),
+                   nsCocoaFeatures::ExtractMinorVersion(mOSXVersion),
+                   nsCocoaFeatures::ExtractBugFixVersion(mOSXVersion));
 
   return rv;
 }
@@ -478,6 +482,8 @@ OperatingSystem GfxInfo::GetOperatingSystem() {
   return OSXVersionToOperatingSystem(mOSXVersion);
 }
 
+GfxVersionEx GfxInfo::OperatingSystemVersionEx() { return mOSXVersionEx; }
+
 nsresult GfxInfo::GetFeatureStatusImpl(
     int32_t aFeature, int32_t* aStatus, nsAString& aSuggestedDriverVersion,
     const nsTArray<RefPtr<GfxDriverInfo>>& aDriverInfo, nsACString& aFailureId,
@@ -546,6 +552,12 @@ NS_IMETHODIMP GfxInfo::SpoofDriverVersion(const nsAString& aDriverVersion) {
 /* void spoofOSVersion (in unsigned long aVersion); */
 NS_IMETHODIMP GfxInfo::SpoofOSVersion(uint32_t aVersion) {
   mOSXVersion = aVersion;
+  return NS_OK;
+}
+
+NS_IMETHODIMP GfxInfo::SpoofOSVersionEx(uint32_t aMajor, uint32_t aMinor,
+                                        uint32_t aBuild, uint32_t aRevision) {
+  mOSXVersionEx = GfxVersionEx(aMajor, aMinor, aBuild, aRevision);
   return NS_OK;
 }
 
