@@ -11,7 +11,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/net/SFVService.h"
-#include "mozilla/dom/WindowGlobalChild.h"
+#include "mozilla/dom/WebIdentityHandler.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIGlobalObject.h"
 #include "nsIPermissionManager.h"
@@ -57,54 +57,30 @@ JSObject* NavigatorLogin::WrapObject(JSContext* aCx,
   return NavigatorLogin_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-NavigatorLogin::NavigatorLogin(nsIGlobalObject* aGlobal) : mOwner(aGlobal) {
+NavigatorLogin::NavigatorLogin(nsPIDOMWindowInner* aGlobal) : mOwner(aGlobal) {
   MOZ_ASSERT(mOwner);
 };
 
 already_AddRefed<mozilla::dom::Promise> NavigatorLogin::SetStatus(
     LoginStatus aStatus, mozilla::ErrorResult& aRv) {
-  RefPtr<Promise> promise = Promise::Create(mOwner, aRv);
+  RefPtr<Promise> promise = Promise::Create(mOwner->AsGlobal(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
 
-  nsPIDOMWindowInner* window = mOwner->GetAsInnerWindow();
-  if (!window) {
-    promise->MaybeRejectWithUnknownError(
-        "navigator.login.setStatus called on unavailable window"_ns);
-    return promise.forget();
-  }
-
-  if (!CredentialsContainer::IsSameOriginWithAncestors(window)) {
+  if (!CredentialsContainer::IsSameOriginWithAncestors(mOwner)) {
     promise->MaybeRejectWithSecurityError(
         "navigator.login.setStatus must be called in a frame that is same-origin with its ancestors"_ns);
     return promise.forget();
   }
 
-  WindowGlobalChild* wgc = window->GetWindowGlobalChild();
-  if (!wgc) {
-    promise->MaybeRejectWithUnknownError(
-        "navigator.login.setStatus called while window already destroyed"_ns);
+  WebIdentityHandler* identityHandler = mOwner->GetOrCreateWebIdentityHandler();
+  if (!identityHandler) {
+    promise->MaybeRejectWithOperationError("");
     return promise.forget();
   }
 
-  wgc->SendSetLoginStatus(aStatus)->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [promise](
-          const WindowGlobalChild::SetLoginStatusPromise::ResolveValueType&
-              aResult) {
-        if (NS_SUCCEEDED(aResult)) {
-          promise->MaybeResolveWithUndefined();
-        } else {
-          promise->MaybeRejectWithUnknownError(
-              "navigator.login.setStatus had an unexpected internal error");
-        }
-      },
-      [promise](const WindowGlobalChild::SetLoginStatusPromise::RejectValueType&
-                    aResult) {
-        promise->MaybeRejectWithUnknownError(
-            "navigator.login.setStatus had an unexpected internal error");
-      });
+  identityHandler->SetLoginStatus(aStatus, promise);
   return promise.forget();
 }
 
