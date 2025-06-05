@@ -16153,6 +16153,12 @@
   value: true
   mirror: always
 
+# Controls whether or not the dFPI partition key includes non-standard ports
+- name: privacy.dynamic_firstparty.use_site.include_port
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 - name: privacy.partition.network_state
   type: RelaxedAtomicBool
   value: true

@@ -77,7 +77,7 @@ const TEST_CASES = [
   },
   {
     url: "http://127.0.0.1:8080/",
-    partitionKeySite: "(http,127.0.0.1,8080)",
+    partitionKeySite: "(http,127.0.0.1)",
     partitionKeyWithoutSite: "127.0.0.1",
   },
   {
@@ -87,7 +87,7 @@ const TEST_CASES = [
   },
   {
     url: "http://[2001:db8::ff00:42:8329]:8080",
-    partitionKeySite: "(http,[2001:db8::ff00:42:8329],8080)",
+    partitionKeySite: "(http,[2001:db8::ff00:42:8329])",
     partitionKeyWithoutSite: "[2001:db8::ff00:42:8329]",
   },
   // Tests for moz-extension
@@ -109,7 +109,7 @@ const TEST_CASES = [
   },
   {
     url: "http://com:8080",
-    partitionKeySite: "(http,com,8080)",
+    partitionKeySite: "(http,com)",
     partitionKeyWithoutSite: "com",
   },
 ];
