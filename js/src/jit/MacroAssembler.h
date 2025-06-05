@@ -1515,10 +1515,20 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branch16(Condition cond, const Address& lhs, Imm32 rhs,
                        Label* label) PER_SHARED_ARCH;
 
-  inline void branch32(Condition cond, Register lhs, Register rhs,
-                       Label* label) PER_SHARED_ARCH;
-  inline void branch32(Condition cond, Register lhs, Imm32 rhs,
-                       Label* label) PER_SHARED_ARCH;
+  // On some platforms, it is possible to do a 32-bit comparison against
+  // the low 32 bits of a 64-bit register, ignoring the high bits. On
+  // other architectures (eg RISC-V), this may not be possible. Passing
+  // LhsHighBitsAreClean::No implies that the architecture-specific code
+  // must zero/sign-extend the low bits of the Lhs if it can't ignore
+  // the high bits.
+  enum class LhsHighBitsAreClean { Yes, No };
+
+  inline void branch32(Condition cond, Register lhs, Register rhs, Label* label,
+                       LhsHighBitsAreClean clean = LhsHighBitsAreClean::Yes)
+      PER_SHARED_ARCH;
+  inline void branch32(Condition cond, Register lhs, Imm32 rhs, Label* label,
+                       LhsHighBitsAreClean clean = LhsHighBitsAreClean::Yes)
+      PER_SHARED_ARCH;
 
   inline void branch32(Condition cond, Register lhs, const Address& rhs,
                        Label* label) DEFINED_ON(arm64);
