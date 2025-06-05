@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.components.toolbar
+package mozilla.components.ui.widgets.behavior
 
+import android.content.Context
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.concept.toolbar.ScrollableToolbar
 import mozilla.components.support.test.fakes.engine.FakeEngineView
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.robolectric.testContext
@@ -24,16 +25,15 @@ import org.junit.runner.RunWith
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
-import org.mozilla.fenix.components.toolbar.navbar.EngineViewClippingBehavior
 
 @RunWith(AndroidJUnit4::class)
-class EngineViewClippingBehaviorTest {
+class EngineViewClippingBehavior2Test {
 
     private lateinit var coordinatorLayout: CoordinatorLayout
     private lateinit var engineView: EngineView
     private lateinit var engineParentView: View
-    private lateinit var toolbar: BrowserToolbar
-    private lateinit var toolbarContainerView: ToolbarContainerView
+    private lateinit var toolbar: View
+    private lateinit var toolbarContainerView: View
 
     @Before
     fun setup() {
@@ -53,7 +53,7 @@ class EngineViewClippingBehaviorTest {
 
         assertEquals(0f, engineParentView.translationY)
 
-        buildEngineViewClippingBehavior(
+        buildEngineViewClipping2Behavior(
             bottomToolbarHeight = TOOLBAR_HEIGHT.toInt(),
         ).applyUpdatesDependentViewChanged(coordinatorLayout, toolbar)
 
@@ -77,7 +77,7 @@ class EngineViewClippingBehaviorTest {
 
         assertEquals(0f, engineParentView.translationY)
 
-        buildEngineViewClippingBehavior(
+        buildEngineViewClipping2Behavior(
             bottomToolbarHeight = TOOLBAR_HEIGHT.toInt(),
         ).applyUpdatesDependentViewChanged(coordinatorLayout, toolbar)
 
@@ -102,7 +102,7 @@ class EngineViewClippingBehaviorTest {
 
         assertEquals(0f, engineParentView.translationY)
 
-        buildEngineViewClippingBehavior(
+        buildEngineViewClipping2Behavior(
             topToolbarHeight = TOOLBAR_HEIGHT.toInt(),
         ).applyUpdatesDependentViewChanged(coordinatorLayout, toolbar)
 
@@ -125,7 +125,7 @@ class EngineViewClippingBehaviorTest {
         doReturn(Y_UP_TRANSITION).`when`(toolbar).translationY
         doReturn(Y_DOWN_TRANSITION).`when`(toolbarContainerView).translationY
 
-        buildEngineViewClippingBehavior(
+        buildEngineViewClipping2Behavior(
             topToolbarHeight = TOOLBAR_HEIGHT.toInt(),
             bottomToolbarHeight = TOOLBAR_HEIGHT.toInt(),
         ).run {
@@ -145,7 +145,7 @@ class EngineViewClippingBehaviorTest {
         doReturn(Y_UP_TRANSITION).`when`(toolbar).translationY
         doReturn(Y_DOWN_TRANSITION).`when`(toolbarContainerView).translationY
 
-        buildEngineViewClippingBehavior(
+        buildEngineViewClipping2Behavior(
             topToolbarHeight = TOOLBAR_HEIGHT.toInt(),
             bottomToolbarHeight = TOOLBAR_HEIGHT.toInt(),
         ).run {
@@ -171,7 +171,7 @@ class EngineViewClippingBehaviorTest {
         doReturn(TOOLBAR_TOP_WHEN_POSITIONED_AT_TOP).`when`(toolbar).top
         doReturn(largeYUpTransition).`when`(toolbar).translationY
 
-        buildEngineViewClippingBehavior(
+        buildEngineViewClipping2Behavior(
             topToolbarHeight = largeTopToolbarHeight,
             bottomToolbarHeight = TOOLBAR_HEIGHT.toInt(),
         ).run {
@@ -194,7 +194,7 @@ class EngineViewClippingBehaviorTest {
         doReturn(largeBottomToolbarTop).`when`(toolbarContainerView).top
         doReturn(largeYBottomTransition).`when`(toolbarContainerView).translationY
 
-        buildEngineViewClippingBehavior(
+        buildEngineViewClipping2Behavior(
             topToolbarHeight = TOOLBAR_HEIGHT.toInt(),
             bottomToolbarHeight = largeBottomToolbarTop,
         ).run {
@@ -219,7 +219,7 @@ class EngineViewClippingBehaviorTest {
         val topToolbarHeight = 15
         val bottomToolbarHeight = 10
 
-        buildEngineViewClippingBehavior(
+        buildEngineViewClipping2Behavior(
             topToolbarHeight = topToolbarHeight,
             bottomToolbarHeight = bottomToolbarHeight,
         ).run {
@@ -241,7 +241,7 @@ class EngineViewClippingBehaviorTest {
         doReturn(100).`when`(toolbar).height
         doReturn(Float.NaN).`when`(toolbar).translationY
 
-        buildEngineViewClippingBehavior().applyUpdatesDependentViewChanged(coordinatorLayout, toolbar)
+        buildEngineViewClipping2Behavior().applyUpdatesDependentViewChanged(coordinatorLayout, toolbar)
 
         assertEquals(0f, engineView.asView().translationY)
     }
@@ -249,7 +249,7 @@ class EngineViewClippingBehaviorTest {
     // General tests
     @Test
     fun `WHEN layoutDependsOn receives a class that isn't a ScrollableToolbar THEN it ignores it`() {
-        val behavior = buildEngineViewClippingBehavior()
+        val behavior = buildEngineViewClipping2Behavior()
 
         assertFalse(behavior.layoutDependsOn(mock(), mock(), TextView(testContext)))
         assertFalse(behavior.layoutDependsOn(mock(), mock(), EditText(testContext)))
@@ -258,26 +258,33 @@ class EngineViewClippingBehaviorTest {
 
     @Test
     fun `WHEN layoutDependsOn receives a class that is a ScrollableToolbar THEN it recognizes it as a dependency`() {
-        val behavior = buildEngineViewClippingBehavior()
+        val behavior = buildEngineViewClipping2Behavior()
 
-        assertTrue(behavior.layoutDependsOn(mock(), mock(), BrowserToolbar(testContext)))
-        assertTrue(behavior.layoutDependsOn(mock(), mock(), ToolbarContainerView(testContext)))
+        assertFalse(behavior.layoutDependsOn(mock(), mock(), View(testContext)))
+        assertTrue(behavior.layoutDependsOn(mock(), mock(), TestToolbar(testContext)))
     }
 
-    private fun buildEngineViewClippingBehavior(
+    private fun buildEngineViewClipping2Behavior(
         topToolbarHeight: Int = 0,
         bottomToolbarHeight: Int = 0,
-    ): EngineViewClippingBehavior {
-        return EngineViewClippingBehavior(
+    ): EngineViewClippingBehavior2 {
+        return EngineViewClippingBehavior2(
             context = mock(),
             attrs = null,
             engineViewParent = engineParentView,
             topToolbarHeight = topToolbarHeight,
             bottomToolbarHeight = bottomToolbarHeight,
         ).apply {
-            engineView = this@EngineViewClippingBehaviorTest.engineView
+            engineView = this@EngineViewClippingBehavior2Test.engineView
         }
     }
+}
+
+private class TestToolbar(context: Context) : TextView(context), ScrollableToolbar {
+    override fun enableScrolling() {}
+    override fun disableScrolling() {}
+    override fun expand() {}
+    override fun collapse() {}
 }
 
 private const val TOOLBAR_PARENT_HEIGHT = 2200

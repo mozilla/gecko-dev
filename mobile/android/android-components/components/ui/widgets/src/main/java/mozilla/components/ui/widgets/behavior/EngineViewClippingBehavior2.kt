@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-package org.mozilla.fenix.components.toolbar.navbar
+package mozilla.components.ui.widgets.behavior
 
 import android.content.Context
 import android.util.AttributeSet
@@ -32,7 +32,7 @@ import kotlin.math.roundToInt
  * @param bottomToolbarHeight The height of a [ScrollableToolbar] placed below the [EngineView].
  */
 
-class EngineViewClippingBehavior(
+class EngineViewClippingBehavior2(
     context: Context,
     attrs: AttributeSet?,
     private val engineViewParent: View,

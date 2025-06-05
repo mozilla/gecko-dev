@@ -135,6 +135,7 @@ import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.kotlin.getOrigin
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.components.support.locale.ActivityContextWrapper
+import mozilla.components.ui.widgets.behavior.EngineViewClippingBehavior2
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BuildConfig
@@ -182,7 +183,6 @@ import org.mozilla.fenix.components.toolbar.ToolbarIntegration
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.interactor.DefaultBrowserToolbarInteractor
-import org.mozilla.fenix.components.toolbar.navbar.EngineViewClippingBehavior
 import org.mozilla.fenix.compose.core.Action
 import org.mozilla.fenix.compose.snackbar.Snackbar
 import org.mozilla.fenix.compose.snackbar.SnackbarState
@@ -1521,7 +1521,7 @@ abstract class BaseBrowserFragment :
 
             if (shouldShowMicrosurveyPrompt(context)) {
                 (getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams).behavior =
-                    EngineViewClippingBehavior(
+                    EngineViewClippingBehavior2(
                         context = context,
                         attrs = null,
                         engineViewParent = getSwipeRefreshLayout(),
