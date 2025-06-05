@@ -4743,7 +4743,8 @@ void GetUserMediaWindowListener::StopSharing() {
     MediaSourceEnum source = l->GetDevice()->GetMediaSource();
     if (source == MediaSourceEnum::Screen ||
         source == MediaSourceEnum::Window ||
-        source == MediaSourceEnum::AudioCapture) {
+        source == MediaSourceEnum::AudioCapture ||
+        source == MediaSourceEnum::Browser) {
       l->Stop();
     }
   }

@@ -12234,7 +12234,7 @@
 # Enable tab sharing
 - name: media.getusermedia.browser.enabled
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 # The getDisplayMedia method is always SecureContext regardless of the above two

@@ -100,22 +100,24 @@ input[type="checkbox"] {
 }
 
 /**
- * For display sharing, if we happen to be sharing both
- * a window and a screen, we want to show the UI for sharing
- * the screen, since that's the more privacy-sensitive one.
+ * For display sharing, if we happen to be sharing a window, a **tab**,
+ * and a screen, we want to show the UI for sharing the screen, since
+ * that's the more privacy-sensitive one.
+ * A shared browser tab (`sharingtab`) can be set with or *without*
+ * `sharingwindow`; treat it the same as the old “browser-window” case.
  */
-:root[sharingwindow]:not([sharingscreen]) > body > #display-share > #screen-share-info,
-:root[sharingwindow]:not([sharingbrowserwindow]) > body > #display-share > #browser-window-share-info,
-:root[sharingwindow][sharingbrowserwindow] > body > #display-share > #window-share-info,
+:root:is([sharingwindow],[sharingtab]):not([sharingscreen]) > body > #display-share > #screen-share-info,
+:root[sharingwindow]:not([sharingtab]) > body > #display-share > #browser-window-share-info,
+:root[sharingtab] > body > #display-share > #window-share-info,
 :root[sharingscreen] > body > #display-share > #window-share-info,
 :root[sharingscreen] > body > #display-share > #browser-window-share-info,
 
 /**
- * If we're not sharing either the screen or the window, we can
+ * If we're not sharing the screen, a window, or a tab, we can
  * hide the entire display sharing section.
  */
-:root:not([sharingscreen],[sharingwindow]) > body > #display-share,
-:root:not([sharingscreen],[sharingwindow]) > body > #display-share + .separator,
+:root:not([sharingscreen],[sharingwindow],[sharingtab]) > body > #display-share,
+:root:not([sharingscreen],[sharingwindow],[sharingtab]) > body > #display-share + .separator,
 :root:not([sharingvideo]) > body > #device-share > #camera-mute-toggle,
 :root:not([sharingaudio]) > body > #device-share > #microphone-mute-toggle,
 :root:not([sharingvideo],[sharingaudio]) > body > #device-share,

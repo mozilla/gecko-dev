@@ -148,13 +148,14 @@ const WebRTCIndicator = {
     let sharingScreen = showScreenSharingIndicator.startsWith("Screen");
     this.updateWindowAttr("sharingscreen", sharingScreen);
 
-    // We don't currently support the browser-tab sharing case, so we don't
-    // check if the screen sharing indicator starts with "Browser".
+    let sharingTab = showScreenSharingIndicator.startsWith("Browser");
 
     // We special-case sharing a window, because we want to have a slightly
     // different UI if we're sharing a browser window.
     let sharingWindow = showScreenSharingIndicator.startsWith("Window");
     this.updateWindowAttr("sharingwindow", sharingWindow);
+
+    let sharingBrowserWindow = false;
 
     if (sharingWindow) {
       // Get the active window streams and see if any of them are "scary".
@@ -163,27 +164,22 @@ const WebRTCIndicator = {
         false /* camera */,
         false /* microphone */,
         false /* screen */,
+        false /* tab */,
         true /* window */
       );
-      let hasBrowserWindow = activeStreams.some(stream => {
-        return stream.devices.some(device => device.scary);
-      });
-
-      this.updateWindowAttr("sharingbrowserwindow", hasBrowserWindow);
-      this.sharingBrowserWindow = hasBrowserWindow;
-    } else {
-      this.updateWindowAttr("sharingbrowserwindow");
-      this.sharingBrowserWindow = false;
+      sharingBrowserWindow = activeStreams.some(({ devices }) =>
+        devices.some(({ scary }) => scary)
+      );
     }
+    this.updateWindowAttr("sharingtab", sharingTab || sharingBrowserWindow);
 
     // The label that's displayed when sharing a display followed a priority.
     // The more "risky" we deem the display is for sharing, the higher priority.
     // This gives us the following priorities, from highest to lowest.
     //
     // 1. Screen
-    // 2. Browser window
+    // 2. Browser window or tab
     // 3. Other application window
-    // 4. Browser tab (unimplemented)
     //
     // The CSS for the indicator does the work of showing or hiding these labels
     // for us, but we need to update the aria-labelledby attribute on the container
@@ -193,7 +189,8 @@ const WebRTCIndicator = {
     let labelledBy;
     if (sharingScreen) {
       labelledBy = "screen-share-info";
-    } else if (this.sharingBrowserWindow) {
+    } else if (sharingBrowserWindow || sharingTab) {
+      // TODO: Need to decide if we need different label for tab
       labelledBy = "browser-window-share-info";
     } else if (sharingWindow) {
       labelledBy = "window-share-info";
@@ -254,6 +251,7 @@ const WebRTCIndicator = {
       true /* camera */,
       true /* microphone */,
       true /* screen */,
+      true /* tab */,
       true /* window */
     );
 
@@ -406,6 +404,7 @@ const WebRTCIndicator = {
         this.showGlobalMuteToggles /* camera */,
         this.showGlobalMuteToggles /* microphone */,
         true /* screen */,
+        true /* tab */,
         true /* window */
       );
       webrtcUI.stopSharingStreams(
@@ -437,6 +436,7 @@ const WebRTCIndicator = {
           false /* camera */,
           false /* microphone */,
           true /* screen */,
+          true /* tab */,
           true /* window */
         );
 
