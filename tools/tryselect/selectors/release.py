@@ -125,10 +125,16 @@ def run(
         }
     )
 
-    with open(os.path.join(vcs.path, "taskcluster/config.yml")) as f:
+    with open(
+        os.path.join(vcs.path, "taskcluster/kinds/merge-automation/kind.yml")
+    ) as f:
         migration_configs = yaml.safe_load(f)
     for migration in migrations:
-        migration_config = migration_configs["merge-automation"]["behaviors"][migration]
+        # pull out the behaviour-specific configuration
+        actions = migration_configs["tasks"]["merge-automation"]["worker"]["actions"]
+        behaviour_config = actions["by-behavior"][migration][0]
+        # there is always one action in the behaviour config
+        migration_config = list(behaviour_config.values())[0]
         for path, from_, to in migration_config["replacements"]:
             if path in files_to_change:
                 contents = files_to_change[path]
