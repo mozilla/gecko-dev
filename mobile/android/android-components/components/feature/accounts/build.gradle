@@ -36,19 +36,19 @@ dependencies {
     implementation libs.kotlin.coroutines
     implementation libs.androidx.work.runtime
 
-    implementation project(':concept-engine')
-    implementation project(":browser-state")
-    implementation project(':feature-tabs')
-    implementation project(':service-firefox-accounts')
-    implementation project(':support-ktx')
-    implementation project(':support-webextensions')
+    implementation project(':components:concept-engine')
+    implementation project(":components:browser-state")
+    implementation project(':components:feature-tabs')
+    implementation project(':components:service-firefox-accounts')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-webextensions')
 
     testImplementation libs.androidx.test.junit
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_libsForTests
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.coroutines
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 }
 
 apply from: '../../../android-lint.gradle'

@@ -61,11 +61,11 @@ android {
 ext.allowMetricsFromAAR = true
 
 dependencies {
-    implementation project(':concept-engine')
-    implementation project(':concept-fetch')
-    implementation project(':support-ktx')
-    implementation project(':support-utils')
-    implementation(project(':service-nimbus')) {
+    implementation project(':components:concept-engine')
+    implementation project(':components:concept-fetch')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-utils')
+    implementation(project(':components:service-nimbus')) {
         exclude group: 'org.mozilla.telemetry', module: 'glean-native'
     }
     implementation libs.kotlin.coroutines
@@ -86,8 +86,8 @@ dependencies {
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.coroutines
     testImplementation libs.testing.mockwebserver
-    testImplementation project(':support-test')
-    testImplementation project(':tooling-fetch-tests')
+    testImplementation project(':components:support-test')
+    testImplementation project(':components:tooling-fetch-tests')
 
     // We only compile against Glean. It's up to the app to add those dependencies
     // if it wants to collect GeckoView telemetry through the Glean SDK.
@@ -98,7 +98,7 @@ dependencies {
     androidTestImplementation libs.androidx.test.core
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.test.rules
-    androidTestImplementation project(':tooling-fetch-tests')
+    androidTestImplementation project(':components:tooling-fetch-tests')
 }
 
 ext {

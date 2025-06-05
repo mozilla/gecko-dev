@@ -33,12 +33,12 @@ android {
 
 
 dependencies {
-    implementation project(':lib-crash')
-    implementation project(':lib-fetch-httpurlconnection')
+    implementation project(':components:lib-crash')
+    implementation project(':components:lib-fetch-httpurlconnection')
     implementation libs.mozilla.glean
-    implementation project(':service-glean')
-    implementation project(':support-base')
-    implementation project(':support-utils')
+    implementation project(':components:service-glean')
+    implementation project(':components:support-base')
+    implementation project(':components:support-utils')
 
     implementation libs.kotlin.coroutines
 

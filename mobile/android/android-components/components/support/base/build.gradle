@@ -60,13 +60,13 @@ dependencies {
     implementation libs.androidx.core.ktx
     implementation libs.androidx.lifecycle.viewmodel
 
-    implementation project(':concept-fetch')
+    implementation project(':components:concept-fetch')
 
-    api project(":concept-base")
+    api project(":components:concept-base")
     // We expose the app-compat as API so that consumers get access to the Lifecycle classes automatically
     api libs.androidx.appcompat
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.testing.coroutines
     testImplementation libs.androidx.test.core
@@ -103,7 +103,7 @@ tasks.register("generateComponentEnum") {
         file << buildConfigCache.projects.findAll { project ->
             project.value.publish
         }.collect { project ->
-            "    " + project.key.replace("-", "_").toUpperCase(Locale.US)
+            "    " + project.key.replaceFirst(/^components:/, "").replace("-", "_").toUpperCase(Locale.US)
         }.join(", \n")
 
         file << "\n"

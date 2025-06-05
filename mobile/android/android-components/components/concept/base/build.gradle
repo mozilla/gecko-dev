@@ -38,7 +38,7 @@ dependencies {
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.mockwebserver
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 }
 
 apply from: '../../../android-lint.gradle'

@@ -40,9 +40,9 @@ android {
 }
 
 dependencies {
-    implementation project(':browser-state')
-    implementation project(':support-ktx')
-    implementation project(':support-base')
+    implementation project(':components:browser-state')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-base')
 
     implementation libs.kotlin.coroutines
 
@@ -52,7 +52,7 @@ dependencies {
     implementation libs.androidx.room.runtime
     ksp libs.androidx.room.compiler
 
-    androidTestImplementation project(':support-android-test')
+    androidTestImplementation project(':components:support-android-test')
 
     androidTestImplementation libs.androidx.room.testing
     androidTestImplementation libs.androidx.arch.core.testing
@@ -61,8 +61,8 @@ dependencies {
     androidTestImplementation libs.androidx.test.rules
     androidTestImplementation libs.testing.coroutines
 
-    testImplementation project(':support-test')
-    testImplementation project(':support-test-libstate')
+    testImplementation project(':components:support-test')
+    testImplementation project(':components:support-test-libstate')
 
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.coroutines

@@ -23,14 +23,14 @@ android {
 }
 
 dependencies {
-    api project(':concept-tabstray')
+    api project(':components:concept-tabstray')
 
-    implementation project(':ui-icons')
-    implementation project(':ui-colors')
-    implementation project(':concept-base')
-    implementation project(':browser-state')
-    implementation project(':support-images')
-    implementation project(':support-ktx')
+    implementation project(':components:ui-icons')
+    implementation project(':components:ui-colors')
+    implementation project(':components:concept-base')
+    implementation project(':components:browser-state')
+    implementation project(':components:support-images')
+    implementation project(':components:support-ktx')
 
     implementation libs.androidx.appcompat
     implementation libs.androidx.cardview
@@ -38,7 +38,7 @@ dependencies {
 
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

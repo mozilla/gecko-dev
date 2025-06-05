@@ -44,21 +44,21 @@ android {
 dependencies {
     api ComponentsDependencies.mozilla_remote_settings
 
-    implementation project(':browser-state')
-    implementation project(':concept-awesomebar')
-    implementation project(':concept-engine')
-    implementation project(':feature-session')
-    implementation project(':service-nimbus')
-    implementation project(':support-base')
-    implementation project(':support-remotesettings')
-    implementation project(':support-ktx')
+    implementation project(':components:browser-state')
+    implementation project(':components:concept-awesomebar')
+    implementation project(':components:concept-engine')
+    implementation project(':components:feature-session')
+    implementation project(':components:service-nimbus')
+    implementation project(':components:support-base')
+    implementation project(':components:support-remotesettings')
+    implementation project(':components:support-ktx')
 
     implementation libs.androidx.work.runtime
     implementation libs.kotlin.coroutines
 
     implementation ComponentsDependencies.mozilla_appservices_suggest
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.concurrent
     testImplementation libs.androidx.test.core

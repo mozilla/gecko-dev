@@ -37,11 +37,11 @@ android {
 }
 
 dependencies {
-    implementation project(':service-firefox-accounts')
-    implementation project(':feature-qr')
-    implementation project(':support-appservices')
-    implementation project(':support-base')
-    implementation project(':lib-fetch-httpurlconnection')
+    implementation project(':components:service-firefox-accounts')
+    implementation project(':components:feature-qr')
+    implementation project(':components:support-base')
+    implementation project(':components:support-appservices')
+    implementation project(':components:lib-fetch-httpurlconnection')
 
     implementation libs.androidx.constraintlayout
     implementation libs.androidx.core.ktx

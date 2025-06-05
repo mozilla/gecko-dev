@@ -33,8 +33,8 @@ android {
 
 dependencies {
     implementation platform(libs.androidx.compose.bom)
-    implementation project(':support-ktx')
-    implementation project(':ui-icons')
+    implementation project(':components:support-ktx')
+    implementation project(':components:ui-icons')
 
     implementation libs.androidx.compose.ui
     implementation libs.androidx.compose.ui.tooling.preview
@@ -47,7 +47,7 @@ dependencies {
 
     debugImplementation libs.androidx.compose.ui.tooling
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
     testImplementation libs.testing.coroutines
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

@@ -29,10 +29,10 @@ dependencies {
     // Included via 'api' because this module is unusable without coroutines.
     api libs.kotlin.coroutines
 
-    implementation project(':support-ktx')
+    implementation project(':components:support-ktx')
     implementation libs.androidx.annotation
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
     testImplementation libs.junit.vintage
 }
 

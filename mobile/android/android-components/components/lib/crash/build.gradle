@@ -72,9 +72,9 @@ dependencies {
     implementation libs.androidx.core.ktx
     implementation libs.androidx.recyclerview
 
-    implementation project(':support-base')
-    implementation project(':support-ktx')
-    implementation project(':support-utils')
+    implementation project(':components:support-base')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-utils')
 
     implementation libs.androidx.room.runtime
     ksp libs.androidx.room.compiler
@@ -85,7 +85,7 @@ dependencies {
     testImplementation libs.mozilla.glean
     testImplementation libs.androidx.work.testing
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric

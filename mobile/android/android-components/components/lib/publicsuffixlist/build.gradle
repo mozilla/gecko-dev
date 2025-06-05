@@ -37,7 +37,7 @@ dependencies {
     implementation libs.kotlin.coroutines
     implementation libs.androidx.annotation
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
