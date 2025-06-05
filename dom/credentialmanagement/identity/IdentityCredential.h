@@ -67,10 +67,6 @@ class IdentityCredential final : public Credential {
  protected:
   ~IdentityCredential() override;
 
-  // This needs to be constructed in the context of a window
-  // This is called in the context of Create and Constructor. aParent is the
-  // identity provider
-  explicit IdentityCredential(nsPIDOMWindowInner* aParent);
   // This is called in the context of Discover and Collect. the identity
   // provider is in aOther
   explicit IdentityCredential(nsPIDOMWindowInner* aParent,
@@ -89,10 +85,6 @@ class IdentityCredential final : public Credential {
   // This is the inverse of CopyValuesFrom. Included for completeness.
   IPCIdentityCredential MakeIPCIdentityCredential() const;
 
-  static already_AddRefed<IdentityCredential> Constructor(
-      const GlobalObject& aGlobal, const IdentityCredentialInit& aInit,
-      ErrorResult& aRv);
-
   static already_AddRefed<Promise> Disconnect(
       const GlobalObject& aGlobal,
       const IdentityCredentialDisconnectOptions& aOptions, ErrorResult& aRv);
@@ -104,9 +96,6 @@ class IdentityCredential final : public Credential {
   // Getter and setter for the token member of this class
   void GetToken(nsAString& aToken) const;
   void SetToken(const nsAString& aToken);
-
-  // Get the Origin of this credential's identity provider
-  void GetOrigin(nsACString& aOrigin, ErrorResult& aError) const;
 
   static nsresult ShowCredentialChooser(
       const RefPtr<CanonicalBrowsingContext>& aContext,
@@ -137,26 +126,6 @@ class IdentityCredential final : public Credential {
       const Sequence<IdentityProviderRequestOptions>& aProviders,
       const Sequence<GetManifestPromise::ResolveOrRejectValue>& aManifests);
 
-  static RefPtr<GenericPromise> AllowedToCollectCredential(
-      nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
-      const IdentityCredentialRequestOptions& aOptions,
-      IPCIdentityCredential aCredential);
-
-  static RefPtr<GetIPCIdentityCredentialsPromise>
-  CollectFromCredentialStoreInMainProcess(
-      nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
-      const IdentityCredentialRequestOptions& aOptions);
-
-  static RefPtr<GenericPromise> Store(nsPIDOMWindowInner* aParent,
-                                      const IdentityCredential* aCredential,
-                                      bool aSameOriginWithAncestors);
-
-  static RefPtr<GenericPromise> StoreInMainProcess(
-      nsIPrincipal* aPrincipal, const IPCIdentityCredential& aCredential);
-
-  static RefPtr<GetIdentityCredentialPromise> Create(
-      nsPIDOMWindowInner* aParent, const CredentialCreationOptions& aOptions,
-      bool aSameOriginWithAncestors);
 
   // Start the FedCM flow. This will start the timeout timer, fire initial
   // network requests, prompt the user, and call into CreateCredential.
@@ -178,11 +147,6 @@ class IdentityCredential final : public Credential {
       const IdentityCredentialRequestOptions& aOptions,
       const CredentialMediationRequirement& aMediationRequirement);
 
-  static RefPtr<GetIPCIdentityCredentialPromise>
-  DiscoverLightweightFromExternalSourceInMainProcess(
-      nsIPrincipal* aPrincipal, CanonicalBrowsingContext* aBrowsingContext,
-      const IdentityCredentialRequestOptions& aOptions);
-
   // Create an IPC credential that can be passed back to the content process.
   // This calls a lot of helpers to do the logic of going from a single provider
   // to a bearer token for an account at that provider.
@@ -200,7 +164,7 @@ class IdentityCredential final : public Credential {
   //    Will send network requests to the IDP. The details of which are in the
   //    other static methods here.
   static RefPtr<GetIPCIdentityCredentialPromise>
-  CreateHeavyweightCredentialDuringDiscovery(
+  CreateCredentialDuringDiscovery(
       nsIPrincipal* aPrincipal, BrowsingContext* aBrowsingContext,
       const IdentityProviderRequestOptions& aProvider,
       const IdentityProviderAPIConfig& aManifest,
@@ -369,17 +333,8 @@ class IdentityCredential final : public Credential {
   static void CloseUserInterface(BrowsingContext* aBrowsingContext);
 
  private:
-  nsAutoString mToken;  // only used by heavyweight-created credentials
-  nsCOMPtr<nsIPrincipal> mIdentityProvider;
-  Maybe<IdentityCredentialInit> mCreationOptions;
-
-  // Identity credential requests can either be heavyweight or lighweight in
-  // their browser UI. The heavyweight ones are "traditional" FedCM
-  enum RequestType { INVALID, LIGHTWEIGHT, HEAVYWEIGHT, NONE };
-  static RequestType DetermineRequestDiscoveryType(
-      const IdentityCredentialRequestOptions& aOptions);
+  nsAutoString mToken;
 };
-
 }  // namespace mozilla::dom
 
 #endif  // mozilla_dom_IdentityCredential_h

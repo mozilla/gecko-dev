@@ -322,9 +322,6 @@ class WindowGlobalParent final : public WindowContext,
       IdentityCredentialRequestOptions&& aOptions,
       const CredentialMediationRequirement& aMediationRequirement,
       bool aHasUserActivation, const GetIdentityCredentialResolver& aResolver);
-  mozilla::ipc::IPCResult RecvStoreIdentityCredential(
-      const IPCIdentityCredential& aCredential,
-      const StoreIdentityCredentialResolver& aResolver);
   mozilla::ipc::IPCResult RecvDisconnectIdentityCredential(
       const IdentityCredentialDisconnectOptions& aOptions,
       const DisconnectIdentityCredentialResolver& aResolver);

@@ -14,10 +14,6 @@ interface IdentityCredential : Credential {
  [Throws]
  static Promise<undefined> disconnect(optional IdentityCredentialDisconnectOptions options = {});
  readonly attribute USVString? token;
- [Throws, Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
- readonly attribute UTF8String origin;
- [Throws, Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
- constructor(IdentityCredentialInit init);
 };
 
 enum IdentityCredentialRequestOptionsMode {
@@ -30,23 +26,11 @@ dictionary IdentityCredentialRequestOptions {
  IdentityCredentialRequestOptionsMode mode = "passive";
 };
 
-enum IdentityLoginTargetType { "redirect", "popup" };
-
 // https://w3c-fedid.github.io/FedCM/#dictdef-identityproviderconfig
 [GenerateConversionToJS]
 dictionary IdentityProviderConfig {
- UTF8String configURL;
- UTF8String clientId;
- [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
- UTF8String origin;
- [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
- UTF8String loginURL;
- [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
- IdentityLoginTargetType loginTarget;
- [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
- UTF8String effectiveQueryURL;
- [Pref="dom.security.credentialmanagement.identity.lightweight.enabled"]
- UTF8String effectiveType;
+ required UTF8String configURL;
+ required UTF8String clientId;
 };
 
 // https://w3c-fedid.github.io/FedCM/#dictdef-identityproviderrequestoptions
@@ -61,25 +45,6 @@ dictionary IdentityProviderRequestOptions : IdentityProviderConfig {
 dictionary IdentityCredentialDisconnectOptions : IdentityProviderConfig  {
   required UTF8String accountHint;
 };
-
-// Lightweight only
-
-dictionary IdentityCredentialUserData {
-  required UTF8String name;
-  required UTF8String iconURL;
-  unsigned long long expiresAfter;
-};
-
-dictionary IdentityCredentialInit {
-  required DOMString id;
-  UTF8String token;
-  sequence<UTF8String> effectiveOrigins;
-  UTF8String effectiveQueryURL;
-  UTF8String effectiveType;
-  IdentityCredentialUserData uiHint;
-};
-
-// Heavyweight only
 
 // https://w3c-fedid.github.io/FedCM/#dictdef-identityproviderwellknown
 [GenerateInit]
