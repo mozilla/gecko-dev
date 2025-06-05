@@ -27,3 +27,4 @@ skip-if = [
 
 ["test_loadLocalFont.html"]
 skip-if = ["os == 'android'"] # Font does not exist on Android
+support-files = ["!/dom/base/test/Ahem.ttf"]
