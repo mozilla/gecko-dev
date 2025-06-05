@@ -2,15 +2,28 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this,
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import json
+import re
 import string
 import subprocess
+import sys
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import mozpack.path as mozpath
+from mozfile import which
 from mozpack.files import FileListFinder
+from packaging.version import Version
+
+MINIMUM_SUPPORTED_JJ_VERSION = Version("0.28")
+USING_JJ_DETECTED = 'Using JujutsuRepository because a ".jj/" directory was detected!'
+USING_JJ_WARNING = """\
+
+Warning: jj support is currently experimental, and may be disabled by setting the
+environment variable MOZ_AVOID_JJ_VCS=1. (This warning may be suppressed by
+setting MOZ_AVOID_JJ_VCS=0.)"""
 
 from mozversioncontrol.errors import (
     CannotDeleteFromRootOfRepositoryException,
@@ -19,6 +32,12 @@ from mozversioncontrol.errors import (
 )
 from mozversioncontrol.repo.base import Repository
 from mozversioncontrol.repo.git import GitRepository
+
+
+class JjVersionError(Exception):
+    """Raised when the installed jj version is too old."""
+
+    pass
 
 
 class JujutsuRepository(Repository):
@@ -386,3 +405,110 @@ class JujutsuRepository(Repository):
             '"%s"' % str(path).replace("\\", "\\\\"),
         ).rstrip()
         return datetime.strptime(date, "%Y-%m-%d %H:%M:%S.%f %z")
+
+    def config_key_list_value_missing(self, key: str):
+        output = self._run_read_only("config", "list", key, stderr=subprocess.STDOUT)
+        warning_prefix = "Warning: No matching config key"
+        if output.startswith(warning_prefix):
+            return True
+
+        if output.startswith(key):
+            return False
+
+        raise ValueError(f"Unexpected output: {output}")
+
+    def set_config_key_value(self, key: str, value: Any):
+        value_str = json.dumps(value)
+        print(f'Set jj config: "{key} = {value_str}"')
+        self._run("config", "set", "--repo", key, value_str)
+
+    def configure(self, state_dir: Path, update_only: bool = False):
+        """Run the Jujutsu configuration steps."""
+        print(USING_JJ_WARNING, file=sys.stderr)
+        print(
+            "\nOur jj support currently relies on Git; checks will run for both jj and Git.\n"
+        )
+
+        self._git.configure(state_dir, update_only)
+
+        topsrcdir = Path(self.path)
+        if not update_only:
+            print("\nConfiguring jj...")
+
+            version_str = self._run_read_only("--version")
+            if match := re.search(r"(\d+\.\d+\.\d+)", version_str):
+                jj_version = Version(match.group(1))
+            else:
+                raise Exception("Could not find jj version")
+
+            if jj_version < MINIMUM_SUPPORTED_JJ_VERSION:
+                raise JjVersionError(
+                    f"Your version of jj ({jj_version}) is too old. "
+                    f"Please upgrade to at least version '{MINIMUM_SUPPORTED_JJ_VERSION}' to ensure "
+                    "full compatibility and performance."
+                )
+
+            print(f"Detected jj version `{jj_version}`, which is sufficiently modern.")
+
+            jj_dir = topsrcdir / ".jj"
+            if not jj_dir.exists():
+                print("Initializing a git colocated jj repository...")
+                subprocess.run([self._tool, "git", "init", "--colocate"])
+                pass
+
+            # Only set these values if they haven't been set yet so that we
+            # don't overwrite existing user preferences.
+
+            # Copy over the user.name and user.email if they've been set there by not for jj
+            username_key = "user.name"
+            username = self._git.get_config_key_value(username_key)
+            if username and self.config_key_list_value_missing(username_key):
+                self.set_config_key_value(username_key, username)
+
+            email_key = "user.email"
+            email = self._git.get_config_key_value(email_key)
+            if email and self.config_key_list_value_missing(email_key):
+                self.set_config_key_value(email_key, email)
+
+            jj_revset_immutable_heads_key = 'revset-aliases."immutable_heads()"'
+            if self.config_key_list_value_missing(jj_revset_immutable_heads_key):
+                jj_revset_immutable_heads_value = (
+                    "builtin_immutable_heads() | remote_bookmarks(glob:'*', 'origin')"
+                )
+                self.set_config_key_value(
+                    jj_revset_immutable_heads_key, jj_revset_immutable_heads_value
+                )
+
+            # This enables `jj fix` which does `./mach lint --fix` on every commit in parallel
+            jj_fix_command_key = "fix.tools.mozlint.command"
+            if self.config_key_list_value_missing(jj_fix_command_key):
+                jj_fix_command_value = [
+                    f"{topsrcdir.as_posix()}/tools/lint/pipelint",
+                    "$path",
+                ]
+                if sys.platform.startswith("win"):
+                    # On Windows pipelint must be invoked via Python explicitly
+                    jj_fix_command_value.insert(0, "python3")
+                self.set_config_key_value(jj_fix_command_key, jj_fix_command_value)
+
+            jj_fix_patterns_key = "fix.tools.mozlint.patterns"
+            if self.config_key_list_value_missing(jj_fix_patterns_key):
+                jj_fix_patterns_value = ["glob:**/*"]
+                self.set_config_key_value(jj_fix_patterns_key, jj_fix_patterns_value)
+
+            # This enables watchman, if it's installed.
+            if which("watchman"):
+                jj_watchman_key = "core.fsmonitor"
+                if self.config_key_list_value_missing(jj_watchman_key):
+                    jj_watchman_value = "watchman"
+                    self.set_config_key_value(jj_watchman_key, jj_watchman_value)
+
+                jj_watchman_snapshot_key = "core.watchman.register-snapshot-trigger"
+                if self.config_key_list_value_missing(jj_watchman_snapshot_key):
+                    jj_watchman_snapshot_value = False
+                    self.set_config_key_value(
+                        jj_watchman_snapshot_key, jj_watchman_snapshot_value
+                    )
+
+        print("Checking if watchman is enabled...")
+        subprocess.run([self._tool, "debug", "watchman", "status"])

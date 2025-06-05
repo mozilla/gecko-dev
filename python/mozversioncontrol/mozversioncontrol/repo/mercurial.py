@@ -407,3 +407,60 @@ class HgRepository(Repository):
         )
 
         return datetime.strptime(out.strip(), "%Y-%m-%d %H:%M:%S %z")
+
+    def _update_mercurial_repo(self, url, dest: Path, revision):
+        """Perform a clone/pull + update of a Mercurial repository."""
+        # Disable common extensions whose older versions may cause `hg`
+        # invocations to abort.
+        pull_args = [self._tool]
+        if dest.exists():
+            pull_args.extend(["pull", url])
+            cwd = dest
+        else:
+            pull_args.extend(["clone", "--noupdate", url, str(dest)])
+            cwd = "/"
+
+        update_args = [self._tool, "update", "-r", revision]
+
+        print("=" * 80)
+        print(f"Ensuring {url} is up to date at {dest}")
+
+        env = os.environ.copy()
+        env.update(
+            {
+                "HGPLAIN": "1",
+                "HGRCPATH": "!",
+            }
+        )
+
+        try:
+            subprocess.check_call(pull_args, cwd=str(cwd), env=env)
+            subprocess.check_call(update_args, cwd=str(dest), env=env)
+        finally:
+            print("=" * 80)
+
+    def _update_vct(self, root_state_dir: Path):
+        """Ensure version-control-tools in the state directory is up to date."""
+        vct_dir = root_state_dir / "version-control-tools"
+
+        # Ensure the latest revision of version-control-tools is present.
+        self._update_mercurial_repo(
+            "https://hg.mozilla.org/hgcustom/version-control-tools", vct_dir, "@"
+        )
+
+        return vct_dir
+
+    def configure(self, state_dir: Path, update_only: bool = False):
+        """Run the Mercurial configuration wizard."""
+        vct_dir = self._update_vct(state_dir)
+
+        # Run the config wizard from v-c-t.
+        args = [
+            self._tool,
+            "--config",
+            f"extensions.configwizard={vct_dir}/hgext/configwizard",
+            "configwizard",
+        ]
+        if update_only:
+            args += ["--config", "configwizard.steps="]
+        subprocess.call(args)

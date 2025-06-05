@@ -85,12 +85,14 @@ class Repository(abc.ABC):
             return "src"
 
         (cmd, return_codes, env) = self._process_run_args(*args, **runargs)
+        stderr = runargs.get("stderr", None)
         try:
             return subprocess.check_output(
                 cmd,
                 cwd=self.path,
                 encoding=encoding,
                 env=env,
+                stderr=stderr,
             )
         except subprocess.CalledProcessError as e:
             if e.returncode in return_codes:
@@ -385,4 +387,9 @@ class Repository(abc.ABC):
     @abc.abstractmethod
     def get_last_modified_time_for_file(self, path: Path):
         """Return last modified in VCS time for the specified file."""
+        pass
+
+    @abc.abstractmethod
+    def configure(self, state_dir: Path, update_only: bool = False):
+        """Perform initial VCS setup, applying sensible defaults for configuration."""
         pass

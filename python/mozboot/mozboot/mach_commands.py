@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this,
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import errno
-import sys
 from pathlib import Path
 
 from mach.decorators import Command, CommandArgument
@@ -78,50 +76,18 @@ def vcs_setup(command_context, update_only=False, vcs=None):
     and this command only ensures that remote repositories providing
     VCS extensions are up-to-date.
     """
-    import mozversioncontrol
-    from mach.util import to_optional_path
-    from mozfile import which
-
-    import mozboot.bootstrap as bootstrap
+    from mozversioncontrol.factory import (
+        get_repository_object,
+        get_specific_repository_object,
+    )
 
     topsrcdir = Path(command_context._mach_context.topdir)
     state_dir = Path(command_context._mach_context.state_dir)
 
-    repo = mozversioncontrol.get_repository_object(topsrcdir)
-
-    if not vcs:
-        vcs = repo.name
-        print(f"Automatically detected a {vcs} repository.")
-
-    tool = "hg"
-    if repo.name == "git" or repo.name == "jj":
-        tool = "git"
-
-    # "hg" is an executable script with a shebang, which will be found by
-    # which. We need to pass a win32 executable to the function because we
-    # spawn a process from it.
-    if sys.platform in ("win32", "msys"):
-        tool += ".exe"
-
-    vcs_exe = to_optional_path(which(tool))
-    if not vcs_exe:
-        raise OSError(errno.ENOENT, f"Could not find {tool} on $PATH")
-
-    if vcs == "git":
-        bootstrap.configure_git(vcs_exe, state_dir, topsrcdir, update_only=update_only)
-    elif vcs == "hg":
-        bootstrap.configure_mercurial(vcs_exe, state_dir, update_only=update_only)
-    elif vcs == "jj":
-        from mozversioncontrol.factory import USING_JJ_WARNING
-
-        print(USING_JJ_WARNING, file=sys.stderr)
-        print(
-            "\nOur jj support currently relies on Git; checks will run for both jj and Git.\n"
-        )
-        jj_exe = to_optional_path(which("jj"))
-        if not jj_exe:
-            raise OSError(errno.ENOENT, f"Could not find {jj_exe} on $PATH")
-        bootstrap.configure_git(vcs_exe, state_dir, topsrcdir, update_only=update_only)
-        bootstrap.configure_jujutsu(jj_exe, topsrcdir, update_only=update_only)
+    if vcs:
+        repo = get_specific_repository_object(topsrcdir, vcs)
     else:
-        raise ValueError(f"Unsupported VCS: {repo.name}")
+        repo = get_repository_object(topsrcdir)
+        print(f"Automatically detected a {repo.name} repository.")
+
+    repo.configure(state_dir, update_only=update_only)

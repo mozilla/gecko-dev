@@ -163,3 +163,6 @@ class SrcRepository(Repository):
     def get_last_modified_time_for_file(self, path: Path):
         """Return last modified in VCS time for the specified file."""
         raise MissingVCSTool
+
+    def configure(self, state_dir: Path, update_only: bool = False):
+        pass

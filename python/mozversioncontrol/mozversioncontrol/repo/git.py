@@ -2,20 +2,53 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this,
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import os
+import platform
+import re
+import shutil
+import stat
 import subprocess
+import sys
 import uuid
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterator, List, Optional, Union
 
+from mach.util import (
+    to_optional_path,
+    win_to_msys_path,
+)
+from mozfile import which
 from mozpack.files import FileListFinder
+from packaging.version import Version
 
 from mozversioncontrol.errors import (
     CannotDeleteFromRootOfRepositoryException,
     MissingVCSExtension,
 )
 from mozversioncontrol.repo.base import Repository
+
+# The built-in fsmonitor Windows/macOS for git 2.37+ is better than using the watchman hook.
+# Linux users will still need watchman and to enable the hook.
+MINIMUM_GIT_VERSION = Version("2.37")
+
+
+ADD_GIT_CINNABAR_PATH = """
+To add git-cinnabar to the PATH, edit your shell initialization script, which
+may be called {prefix}/.bash_profile or {prefix}/.profile, and add the following
+lines:
+
+    export PATH="{cinnabar_dir}:$PATH"
+
+Then restart your shell.
+"""
+
+
+class GitVersionError(Exception):
+    """Raised when the installed git version is too old."""
+
+    pass
 
 
 class GitRepository(Repository):
@@ -412,3 +445,223 @@ class GitRepository(Repository):
         out = self._run("log", "-1", "--format=%ad", "--date=iso", path)
 
         return datetime.strptime(out.strip(), "%Y-%m-%d %H:%M:%S %z")
+
+    def get_config_key_value(self, key: str):
+        try:
+            value = subprocess.check_output(
+                [self._tool, "config", "--get", key],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            ).strip()
+            return value or None
+        except subprocess.CalledProcessError:
+            return None
+
+    def set_config_key_value(self, key: str, value: str):
+        """
+        Set a git config value in the given repo and print
+        logging output indicating what was done.
+        """
+        subprocess.check_call(
+            [self._tool, "config", key, value],
+            cwd=str(self.path),
+        )
+        print(f'Set git config: "{key} = {value}"')
+
+    def configure(self, state_dir: Path, update_only: bool = False):
+        """Run the Git configuration steps."""
+        if not update_only:
+            print("Configuring git...")
+
+            match = re.search(
+                r"(\d+\.\d+\.\d+)",
+                subprocess.check_output(
+                    [self._tool, "--version"], universal_newlines=True
+                ),
+            )
+            if not match:
+                raise Exception("Could not find git version")
+            git_version = Version(match.group(1))
+
+            moz_automation = os.environ.get("MOZ_AUTOMATION")
+            # This hard error is to force users to upgrade for performance benefits. If a CI worker on an old
+            # distro gets here, but can't upgrade to a newer git version, that's not a blocker, so we skip
+            # this check in CI to avoid that scenario.
+            if not moz_automation:
+                if git_version < MINIMUM_GIT_VERSION:
+                    raise GitVersionError(
+                        f"Your version of git ({git_version}) is too old. "
+                        f"Please upgrade to at least version '{MINIMUM_GIT_VERSION}' to ensure "
+                        "full compatibility and performance."
+                    )
+
+            system = platform.system()
+
+            # https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreuntrackedCache
+            self.set_config_key_value(key="core.untrackedCache", value="true")
+
+            # https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
+            if system == "Windows":
+                # On Windows we enable the built-in fsmonitor which is superior to Watchman.
+                self.set_config_key_value(key="core.fscache", value="true")
+                # https://github.com/git-for-windows/git/blob/eaeb5b51c389866f207c52f1546389a336914e07/Documentation/config/core.adoc?plain=1#L688-L692
+                # We can also enable fscache (only supported on git-for-windows).
+                self.set_config_key_value(key="core.fsmonitor", value="true")
+            elif system == "Darwin":
+                # On macOS (Darwin) we enable the built-in fsmonitor which is superior to Watchman.
+                self.set_config_key_value(key="core.fsmonitor", value="true")
+            elif system == "Linux":
+                # On Linux the built-in fsmonitor isn’t available, so we unset it and attempt to set up
+                # Watchman to achieve similar fsmonitor-style speedups.
+                subprocess.run(
+                    [self._tool, "config", "--unset-all", "core.fsmonitor"],
+                    cwd=str(self.path),
+                    check=False,
+                )
+                print("Unset git config: `core.fsmonitor`")
+
+                self._ensure_watchman()
+
+        # Only do cinnabar checks if we're a git cinnabar repo
+        if self.is_cinnabar_repo():
+            cinnabar_dir = str(self._update_git_cinnabar(state_dir))
+            cinnabar = to_optional_path(which("git-cinnabar"))
+            if not cinnabar:
+                if "MOZILLABUILD" in os.environ:
+                    # Slightly modify the path on Windows to be correct
+                    # for the copy/paste into the .bash_profile
+                    cinnabar_dir = win_to_msys_path(cinnabar_dir)
+
+                    print(
+                        ADD_GIT_CINNABAR_PATH.format(
+                            prefix="%USERPROFILE%", cinnabar_dir=cinnabar_dir
+                        )
+                    )
+                else:
+                    print(
+                        ADD_GIT_CINNABAR_PATH.format(
+                            prefix="~", cinnabar_dir=cinnabar_dir
+                        )
+                    )
+
+    def _update_git_cinnabar(self, root_state_dir: Path):
+        """Update git tools, hooks and extensions"""
+        # Ensure git-cinnabar is up-to-date.
+        cinnabar_dir = root_state_dir / "git-cinnabar"
+        cinnabar_exe = cinnabar_dir / "git-cinnabar"
+
+        if sys.platform.startswith(("win32", "msys")):
+            cinnabar_exe = cinnabar_exe.with_suffix(".exe")
+
+        # Older versions of git-cinnabar can't do self-update. So if we start
+        # from such a version, we remove it and start over.
+        # The first version that supported self-update is also the first version
+        # that wasn't a python script, so we can just look for a hash-bang.
+        # Or, on Windows, the .exe didn't exist.
+        start_over = cinnabar_dir.exists() and not cinnabar_exe.exists()
+        if cinnabar_exe.exists():
+            try:
+                with cinnabar_exe.open("rb") as fh:
+                    start_over = fh.read(2) == b"#!"
+            except Exception:
+                # If we couldn't read the binary, let's just try to start over.
+                start_over = True
+
+        if start_over:
+            # git sets pack files read-only, which causes problems removing
+            # them on Windows. To work around that, we use an error handler
+            # on rmtree that retries to remove the file after chmod'ing it.
+            def onerror(func, path, exc):
+                if func == os.unlink:
+                    os.chmod(path, stat.S_IRWXU)
+                    func(path)
+                else:
+                    raise exc
+
+            shutil.rmtree(str(cinnabar_dir), onerror=onerror)
+
+        # If we already have an executable, ask it to update itself.
+        exists = cinnabar_exe.exists()
+        if exists:
+            try:
+                print("\nUpdating git-cinnabar...")
+                subprocess.check_call([str(cinnabar_exe), "self-update"])
+            except subprocess.CalledProcessError as e:
+                print(e)
+
+        # git-cinnabar 0.6.0rc1 self-update had a bug that could leave an empty
+        # file. If that happens, install from scratch.
+        if not exists or cinnabar_exe.stat().st_size == 0:
+            import ssl
+            from urllib.request import urlopen
+
+            import certifi
+
+            if not cinnabar_dir.exists():
+                cinnabar_dir.mkdir()
+
+            cinnabar_url = "https://github.com/glandium/git-cinnabar/"
+            download_py = cinnabar_dir / "download.py"
+            with open(download_py, "wb") as fh:
+                context = ssl.create_default_context(cafile=certifi.where())
+                shutil.copyfileobj(
+                    urlopen(f"{cinnabar_url}/raw/master/download.py", context=context),
+                    fh,
+                )
+
+            try:
+                subprocess.check_call(
+                    [sys.executable, str(download_py)], cwd=str(cinnabar_dir)
+                )
+            except subprocess.CalledProcessError as e:
+                print(e)
+            finally:
+                download_py.unlink()
+
+        return cinnabar_dir
+
+    def _ensure_watchman(self):
+        watchman = which("watchman")
+
+        if not watchman:
+            print(
+                "watchman is not installed. Please install `watchman` and "
+                "re-run `./mach vcs-setup` to enable faster git commands."
+            )
+
+        print("Ensuring watchman is properly configured...")
+
+        hooks = Path(
+            subprocess.check_output(
+                [
+                    self._tool,
+                    "rev-parse",
+                    "--path-format=absolute",
+                    "--git-path",
+                    "hooks",
+                ],
+                cwd=str(self.path),
+                universal_newlines=True,
+            ).strip()
+        )
+
+        watchman_config = hooks / "query-watchman"
+        watchman_sample = hooks / "fsmonitor-watchman.sample"
+
+        if not watchman_sample.exists():
+            print(
+                "watchman is installed but the sample hook (expected here: "
+                f"{watchman_sample}) was not found. Please acquire it and copy"
+                f" it into `.git/hooks/` and re-run `./mach vcs-setup`."
+            )
+            return
+
+        if not watchman_config.exists():
+            copy_cmd = [
+                "cp",
+                watchman_sample,
+                watchman_config,
+            ]
+            print(f"Copying {watchman_sample} to {watchman_config}")
+            subprocess.check_call(copy_cmd, cwd=str(self.path))
+        self.set_config_key_value(key="core.fsmonitor", value=str(watchman_config))
