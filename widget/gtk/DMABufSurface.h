@@ -228,16 +228,10 @@ class DMABufSurface {
   static bool UseDmaBufGL(mozilla::gl::GLContext* aGLContext);
   static bool UseDmaBufExportExtension(mozilla::gl::GLContext* aGLContext);
 
-  static void ReleaseSnapshotGLContext();
-
   DMABufSurface(SurfaceType aSurfaceType);
 
  protected:
   virtual bool Create(const mozilla::layers::SurfaceDescriptor& aDesc) = 0;
-
-  static RefPtr<mozilla::gl::GLContext> ClaimSnapshotGLContext();
-  static void ReturnSnapshotGLContext(
-      RefPtr<mozilla::gl::GLContext> aGLContext);
 
   // Import global ref count object from IPC by file descriptor.
   // This adds global ref count reference to the surface.

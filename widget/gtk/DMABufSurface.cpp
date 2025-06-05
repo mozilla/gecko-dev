@@ -143,7 +143,7 @@ static Atomic<int> gNewSurfaceUID(1);
 // We should release all resources allocated by SnapshotGLContext before
 // ReturnSnapshotGLContext() call. Otherwise DMABufSurface references
 // SnapshotGLContext and may colide with other SnapshotGLContext operations.
-RefPtr<GLContext> DMABufSurface::ClaimSnapshotGLContext() {
+RefPtr<GLContext> ClaimSnapshotGLContext() {
   if (!sSnapshotContext) {
     nsCString discardFailureId;
     sSnapshotContext = GLContextProvider::CreateHeadless({}, &discardFailureId);
@@ -161,7 +161,7 @@ RefPtr<GLContext> DMABufSurface::ClaimSnapshotGLContext() {
   return sSnapshotContext;
 }
 
-void DMABufSurface::ReturnSnapshotGLContext(RefPtr<GLContext> aGLContext) {
+void ReturnSnapshotGLContext(RefPtr<GLContext> aGLContext) {
   // direct eglMakeCurrent() call breaks current context caching so make sure
   // it's not used.
   MOZ_ASSERT(!aGLContext->mUseTLSIsCurrent);
@@ -172,14 +172,6 @@ void DMABufSurface::ReturnSnapshotGLContext(RefPtr<GLContext> aGLContext) {
   const auto& gle = gl::GLContextEGL::Cast(aGLContext);
   const auto& egl = gle->mEgl;
   egl->fMakeCurrent(EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-}
-
-void DMABufSurface::ReleaseSnapshotGLContext() {
-  {
-    StaticMutexAutoLock lock(sSnapshotContextMutex);
-    sSnapshotContext = nullptr;
-  }
-  gl::GLContextProvider::Shutdown();
 }
 
 bool DMABufSurface::UseDmaBufGL(GLContext* aGLContext) {
