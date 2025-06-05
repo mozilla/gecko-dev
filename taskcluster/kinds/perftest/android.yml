@@ -471,7 +471,7 @@ hw-a55-aarch64-shippable-startup-fenix-tab-restore-shopify:
         tier: 2
     platform: android-hw-a55-14-0-aarch64-shippable/opt
     attributes:
-        cron: true
+        cron: false
     run-on-projects: [trunk-only]
     fetches:
         build:
