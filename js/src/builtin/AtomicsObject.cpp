@@ -952,11 +952,11 @@ FutexWaiterListHead::~FutexWaiterListHead() {
         RemoveAsyncWaiter(iter->toWaiter()->asAsync(), lock);
     iter = iter->next();
 
-    if (removedWaiter->hasTimeout()) {
-      // If a timeout task exists, assert that the timeout task can still access
-      // it. This will allow it to clean it up when it runs.  See the comment in
-      // WaitAsyncTimeoutTask::run() or the the SMDOC in this file.
-      MOZ_ASSERT(removedWaiter->timeoutTask()->cleared(lock));
+    if (removedWaiter->hasTimeout() &&
+        !removedWaiter->timeoutTask()->cleared(lock)) {
+      // If a timeout task exists,  allow it to clean up the notify task when it
+      // runs. See the comment in WaitAsyncTimeoutTask::run() or the the SMDOC
+      // in this file.
       continue;
     }
     // In the case that a timeout task does not exist, the two live raw
@@ -1045,6 +1045,7 @@ void WaitAsyncTimeoutTask::transferToRuntime() {
 void AsyncFutexWaiter::maybeClearTimeout(AutoLockFutexAPI& lock) {
   if (timeoutTask_) {
     timeoutTask_->clear(lock);
+    timeoutTask_ = nullptr;
   }
 }
 

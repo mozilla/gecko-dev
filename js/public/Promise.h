@@ -563,7 +563,15 @@ extern JS_PUBLIC_API JSObject* GetWaitForAllPromise(
  * on a JSContext thread when requested via DispatchToEventLoopCallback.
  */
 class JS_PUBLIC_API Dispatchable {
+ protected:
+  // The registered_ flag indicates that this task is counted as part of
+  // numRegistered_ of OffThreadPromiseRuntimeState, which will wait until
+  // all registered tasks have been run or destroyed.
+  bool registered_ = false;
+
  public:
+  bool registered() const { return registered_; }
+
   // Destruction of Dispatchables is public in order to be used with
   // UniquePtrs. Their destruction by SpiderMonkey is enforced by
   // ReleaseFailedTask.
