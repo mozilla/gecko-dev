@@ -138,7 +138,6 @@ async function test_open_switcher(openKey) {
   await focusSwitcher();
   EventUtils.synthesizeKey(openKey);
   await promiseMenuOpen;
-  Assert.ok(true, "Search mode switcher was opened");
 
   EventUtils.synthesizeKey("KEY_Escape");
 }
@@ -155,7 +154,7 @@ async function test_dont_open_switcher(dontOpenKey) {
   let opened = () => {
     popupOpened = true;
   };
-  info(`Pressing key that should not open the switcher (${dontOpenKey})`);
+  info("Pressing key that should not open the switcher");
   popup.addEventListener("popupshown", opened);
   await focusSwitcher();
   EventUtils.synthesizeKey(dontOpenKey);
@@ -223,10 +222,11 @@ let bingSearchMode = {
 
 add_task(async function test_keyboard_nav() {
   await test_open_switcher("KEY_Enter");
-  await test_open_switcher(" ");
   await test_open_switcher("KEY_ArrowDown");
+  await test_open_switcher(" ");
 
   await test_dont_open_switcher("a");
+  await test_dont_open_switcher("KEY_ArrowUp");
   await test_dont_open_switcher("x");
 
   await test_navigate_switcher("KEY_ArrowDown", 1, googleSearchMode);
