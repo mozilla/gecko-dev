@@ -100,8 +100,12 @@ bool OffThreadPromiseTask::InitCancellable(
 }
 
 void OffThreadPromiseTask::unregister(OffThreadPromiseRuntimeState& state) {
-  MOZ_ASSERT(registered_);
   AutoLockHelperThreadState lock;
+  unregister(state, lock);
+}
+void OffThreadPromiseTask::unregister(OffThreadPromiseRuntimeState& state,
+                                      const AutoLockHelperThreadState& lock) {
+  MOZ_ASSERT(registered_);
   if (cancellable_) {
     cancellable_ = false;
     state.cancellable().remove(this);
@@ -152,12 +156,17 @@ void OffThreadPromiseTask::transferToRuntime() {
 }
 
 /* static */
-void OffThreadPromiseTask::DestroyUndispatchedTask(OffThreadPromiseTask* task) {
+void OffThreadPromiseTask::DestroyUndispatchedTask(
+    OffThreadPromiseTask* task, OffThreadPromiseRuntimeState& state,
+    const AutoLockHelperThreadState& lock) {
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(task->runtime_));
   MOZ_ASSERT(task->registered_);
   MOZ_ASSERT(task->cancellable_);
   // Cleanup Steps from 4. in SMDOC for Atomics.waitAsync
   task->prepareForCancel();
+  // unregister with the passed lock. Necessary so that
+  // there is no conflict in js_delete with shutdown code.
+  task->unregister(state, lock);
   js_delete(task);
 }
 
@@ -439,11 +448,7 @@ void OffThreadPromiseRuntimeState::shutdown(JSContext* cx) {
     MOZ_ASSERT(task->cancellable_);
     iter.remove();
 
-    // Don't call DestroyUndispatchedTask() with lock held to avoid deadlock.
-    {
-      AutoUnlockHelperThreadState unlock(lock);
-      OffThreadPromiseTask::DestroyUndispatchedTask(task);
-    }
+    OffThreadPromiseTask::DestroyUndispatchedTask(task, *this, lock);
   }
   MOZ_ASSERT(cancellable().empty());
 
