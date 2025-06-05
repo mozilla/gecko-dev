@@ -22,3 +22,15 @@ export {% if func.callable.is_js_async %}async {% endif %}function {{ func.name 
 }
 {% endfor %}
 {% include "Types.sys.mjs" %}
+
+{%- if fixture %}
+// Wrapper to skip type checking for function arguments
+//
+// This is only defined and used on test fixtures.  The goal is to skip the JS type checking so that
+// we can test the lower-level C++ type checking.
+export class UniffiSkipJsTypeCheck {
+    constructor(value) {
+        this.value = value;
+    }
+}
+{%- endif %}

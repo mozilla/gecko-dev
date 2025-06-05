@@ -1,5 +1,13 @@
 {%- for arg in callable.arguments %}
+{%- if !fixture %}
 {{ arg|check_type_fn }}({{ arg.name }});
+{%- else %}
+if ({{ arg.name }} instanceof UniffiSkipJsTypeCheck) {
+    {{ arg.name }} = {{ arg.name }}.value;
+} else {
+    {{ arg|check_type_fn }}({{ arg.name }});
+}
+{%- endif %}
 {%- endfor %}
 const result = {% if callable.is_js_async %}await {% endif %}{{ callable.uniffi_scaffolding_method }}(
     {{ callable.id }}, // {{ callable.ffi_func.0 }}

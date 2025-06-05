@@ -29,6 +29,9 @@ pub fn pass(root: &mut Root) -> Result<()> {
                 items.push(CppCallbackInterface {
                     id: cbi.id,
                     name: cbi.name.clone(),
+                    ffi_value_class: format!(
+                        "FfiValueCallbackInterface{module_name}_{interface_name}"
+                    ),
                     handler_var: format!(
                         "gUniffiCallbackHandler{}",
                         cbi.name.to_upper_camel_case()

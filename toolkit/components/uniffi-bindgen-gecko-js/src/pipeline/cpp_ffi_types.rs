@@ -78,7 +78,12 @@ pub fn ffi_value_class(node: &FfiTypeNode) -> Result<String> {
             format!("FfiValueFloat<{}>", node.type_name)
         }
         FfiType::RustBuffer(_) => "FfiValueRustBuffer".to_owned(),
-        FfiType::Handle(HandleKind::CallbackInterface { .. }) => "FfiValueInt<uint64_t>".to_owned(),
+        FfiType::Handle(HandleKind::CallbackInterface {
+            module_name,
+            interface_name,
+        }) => {
+            format!("FfiValueCallbackInterface{module_name}_{interface_name}")
+        }
         ty => bail!("No FfiValue class for: {ty:?}"),
     })
 }

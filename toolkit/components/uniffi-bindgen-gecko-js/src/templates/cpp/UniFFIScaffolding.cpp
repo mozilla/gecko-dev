@@ -36,6 +36,7 @@ using dom::UniFFIScaffoldingCallResult;
 
 {% include "cpp/FfiDefinitions.cpp" %}
 {% include "cpp/PointerTypes.cpp" %}
+{% include "cpp/CallbackInterfaceFfiValueTypes.cpp" %}
 {% include "cpp/ScaffoldingCalls.cpp" %}
 {% include "cpp/CallbackInterfaces.cpp" %}
 

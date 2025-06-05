@@ -74,6 +74,11 @@ pub struct PointerType {
 pub struct CppCallbackInterface {
     pub id: u64,
     pub name: String,
+    /// C++ class that handles:
+    ///   - Lowering the JS value, storing it, then passing the value to Rust
+    ///   - Storing values from Rust, then lifting them to JS
+    ///   - Cleaning up the stored value when we fail to lower/lift other values.
+    pub ffi_value_class: String,
     /// Name of the C++ variable that stores the UniFFICallbackHandler instance
     pub handler_var: String,
     // Name of the C++ static variable for the VTable
