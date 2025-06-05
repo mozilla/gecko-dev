@@ -654,15 +654,17 @@ class MOZ_RAII CacheIRWriter : public JS::CustomAutoRooter {
                           ValOperandId rhs, bool sameRealm) {
     MOZ_ASSERT(setter->hasJitEntry());
     uint32_t nargsAndFlags = setter->flagsAndArgCountRaw();
-    callScriptedSetter_(receiver, setter, rhs, sameRealm, nargsAndFlags);
+    ObjOperandId callee = getterSetterCalleeOperand(setter);
+    callScriptedSetter_(receiver, callee, rhs, sameRealm, nargsAndFlags);
     trialInliningState_ = TrialInliningState::Candidate;
   }
 
-  void callInlinedSetter(ObjOperandId receiver, JSFunction* setter,
-                         ValOperandId rhs, ICScript* icScript, bool sameRealm) {
+  void callInlinedSetter(ObjOperandId receiver, ObjOperandId callee,
+                         JSFunction* setter, ValOperandId rhs,
+                         ICScript* icScript, bool sameRealm) {
     MOZ_ASSERT(setter->hasJitEntry());
     uint32_t nargsAndFlags = setter->flagsAndArgCountRaw();
-    callInlinedSetter_(receiver, setter, rhs, icScript, sameRealm,
+    callInlinedSetter_(receiver, callee, rhs, icScript, sameRealm,
                        nargsAndFlags);
     trialInliningState_ = TrialInliningState::Inlined;
   }

@@ -133,6 +133,7 @@ class InlinableGetterData : public InlinableOpData {
 class InlinableSetterData : public InlinableOpData {
  public:
   ObjOperandId receiverOperand;
+  ObjOperandId calleeOperand;
   ValOperandId rhsOperand;
   bool sameRealm = false;
 };
