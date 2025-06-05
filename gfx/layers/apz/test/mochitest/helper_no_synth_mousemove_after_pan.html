@@ -1,0 +1,139 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width; initial-scale=1.0,minimum-scale=1.0">
+<title>Test for no synthetic eMouseMove after swipe to scroll</title>
+<script type="application/javascript" src="apz_test_native_event_utils.js"></script>
+<script type="application/javascript" src="apz_test_utils.js"></script>
+<script src="/tests/SimpleTest/paint_listener.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<style>
+body {
+  margin: 0;
+}
+div {
+  margin: 0;
+  height: 2lh;
+}
+div:hover {
+  background-color: limegreen;
+}
+</style>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  document.body.innerHTML = "";
+  for (let i = 0; i < 100; i++) {
+    const div = document.createElement("div");
+    div.id = `div${i}`;
+    document.body.appendChild(div);
+  }
+  document.documentElement.getBoundingClientRect();
+  waitUntilApzStable()
+    .then(test)
+    .then(subtestDone, subtestFailed);
+}, {once: true});
+
+async function test() {
+  const height = window.innerHeight;
+  const divToBeSwiped = document.body.querySelector(`div:nth-child(${
+    Math.floor(height / document.body.firstElementChild.getBoundingClientRect().height)
+  })`);
+  const divToBeSwipedRect = divToBeSwiped.getBoundingClientRect();
+  ok(
+    height > divToBeSwipedRect.height * 5,
+    `The viewport should be able to show at least 5 <div> elements, expected taller than ${
+      divToBeSwipedRect.height * 5
+    }, but ${height}`
+  );
+  // Wait for synthesized mousemove is flushed in the next animation frame
+  // before doing some since it'll fix the `:hover` state and mouse/pointer
+  // boundary event state with the latest layout.
+  function flushPendingSynthesizedMouseMove(aCallback) {
+    requestAnimationFrame(
+      () => requestAnimationFrame(aCallback)
+    );
+  }
+  function promiseFlushPendingSynthesizedMouseMove() {
+    return new Promise(resolve => {
+      flushPendingSynthesizedMouseMove(resolve);
+    });
+  }
+
+  // First, make PresShell forgets the last mouse location which may be set accidentally.
+  synthesizeMouseAtCenter(divToBeSwiped, {type: "mousecancel"}, {once: true});
+  // Hopefully, synthesize a tap first.  That may cause PresShell storing the
+  // tap point as the last mouse location since that should cause a set of
+  // compatibility mouse events.
+  info("Synthesizing a tap...");
+  const waitForClick = new Promise(resolve => {
+    addEventListener("click", event => {
+      is(
+        event.target,
+        divToBeSwiped,
+        "`click` should be fired on the bottom <div>"
+      );
+      const clickPosition = { x: event.clientX, y: event.clientY };
+      flushPendingSynthesizedMouseMove(() => resolve(clickPosition));
+    }, {once: true});
+  });
+  await promiseNativePointerTap(
+    divToBeSwiped,
+    "touch",
+    divToBeSwipedRect.width / 2,
+    divToBeSwipedRect.height / 2
+  );
+  info("Waiting for the click...");
+  const clickPosition = await waitForClick;
+  // Then, swipe from the bottom <div> to above to scroll down.
+  info("Synthesizing a swipe...");
+  const scrollTopBefore = document.documentElement.scrollTop;
+  const waitForPointerCancel = new Promise(resolve => {
+    addEventListener("pointercancel", resolve, {once: true});
+  });
+  const transformEndPromise = promiseTransformEnd();
+  await promiseNativePointerDrag(
+    divToBeSwiped,
+    "touch",
+    divToBeSwipedRect.width / 2,
+    divToBeSwipedRect.height / 2,
+    0, // deltaX
+    divToBeSwipedRect.height * -3 // deltaY
+  );
+  info("Waiting for pointercancel which should be caused by the swipe...");
+  await waitForPointerCancel;
+  info("Waiting for transformEndPromise...");
+  await transformEndPromise;
+  info("Waiting for promiseApzFlushedRepaints()...");
+  await promiseApzFlushedRepaints();
+  await promiseFlushPendingSynthesizedMouseMove();
+  const scrollTopAfter = document.documentElement.scrollTop;
+  ok(
+    scrollTopBefore + divToBeSwipedRect.height < scrollTopAfter,
+    `The swipe should cause scrolling down, expected greater than ${
+      scrollTopBefore + divToBeSwipedRect.height
+    } (scrollTopBefore: ${scrollTopBefore}), but got ${scrollTopAfter}`
+  );
+  // Finally, the scroll down causes the element underneath the start position
+  // of the swipe is a following <div> of the original <div> element.  However,
+  // user must not want the <div> to have the :hover state since they have not
+  // touched the <div>.
+  const hoveredDiv = document.querySelector("div:hover");
+  const elementAtClickedPosition = document.elementFromPoint(clickPosition.x, clickPosition.y);
+  ok(
+    !hoveredDiv || hoveredDiv != elementAtClickedPosition,
+    `The div element at the previously clicked position should not have :hover state, got ${
+      hoveredDiv ? hoveredDiv.outerHTML : "null"
+    }${
+      elementAtClickedPosition
+        ? ` which should never be ${elementAtClickedPosition.outerHTML}`
+        : ""
+    }`
+  );
+}
+</script>
+</head>
+<body></body>
+</html>

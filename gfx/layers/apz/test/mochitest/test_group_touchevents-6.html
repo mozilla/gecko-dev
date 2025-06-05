@@ -17,6 +17,11 @@ var subtests = [
              ["apz.fling_stopped_threshold", "0"],
              ["apz.velocity_relevance_time_ms", "1000"],
              ["apz.fling_min_velocity_threshold", "0.0"]]},
+  {"file": "helper_no_synth_mousemove_after_pan.html",
+   "prefs": [["layout.reflow.synthMouseMove", true],
+             // Avoid to the pan gesture is treated as  on-touch-pinch-zoom gesture on Android.
+             ["apz.max_tap_time", 0],
+             ...getPrefs("TOUCH_EVENTS:PAN")]},
 
   // Add new subtests here. If this starts timing out because it's taking too
   // long, create a test_group_touchevents-7.html file. Refer to 1423011#c57
