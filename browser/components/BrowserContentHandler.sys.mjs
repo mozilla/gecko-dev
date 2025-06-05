@@ -673,7 +673,7 @@ nsBrowserContentHandler.prototype = {
       "  --browser          Open a browser window.\n" +
       "  --new-window <url> Open <url> in a new window.\n" +
       "  --new-tab <url>    Open <url> in a new tab.\n" +
-      "  --private-window <url> Open <url> in a new private window.\n";
+      "  --private-window [<url>] Open <url> in a new private window.\n";
     if (AppConstants.platform == "win") {
       info += "  --preferences      Open Options dialog.\n";
     } else {
