@@ -169,8 +169,6 @@ class ModelOwner {
         "chrome://global/content/ml/mozilla-logo.webp",
       ];
     }
-
-    lazy.console.debug("Fetching icon", filePath, possibleUrls);
     const opfsFile = new lazy.OPFS.File({
       urls: possibleUrls,
       localPath: filePath,
@@ -1153,6 +1151,14 @@ class IndexedDBCache {
       ...this.#getFileQuery({ taskName, model, revision }),
     });
 
+    if (!tasks.length) {
+      lazy.console.debug("No models to delete found in task store", {
+        taskName,
+        model,
+        revision,
+      });
+    }
+
     let deletePromises = [];
     const filesToMaybeDelete = new Set();
     for (const task of tasks) {
@@ -1170,6 +1176,7 @@ class IndexedDBCache {
       filesToMaybeDelete.add(
         JSON.stringify([task.model, task.revision, task.file])
       );
+
       deletePromises.push(
         this.#deleteData(this.taskStoreName, [
           task.taskName,
@@ -1206,8 +1213,12 @@ class IndexedDBCache {
         })
       );
     }
-
     await Promise.all(deletePromises);
+    if (deletePromises.length) {
+      lazy.console.debug(
+        `Deleted model ${model} (${deletePromises.length} files.)`
+      );
+    }
   }
 
   /**
@@ -1402,7 +1413,7 @@ export class ModelHub {
    *
    * @param {string} url - The full URL to the model, including protocol and domain - or the relative path.
    * @returns {object} An object containing the parsed components of the URL. The
-   *                   object has properties `model`, and `file`,
+   *                   object has properties `model`, `modelWithHostname` and `file`,
    *                   and optionally `revision` if the URL includes a version.
    * @throws {Error} Throws an error if the URL does not start with `this.rootUrl` or
    *                 if the URL format does not match the expected structure.
@@ -1410,29 +1421,32 @@ export class ModelHub {
    * @example
    * // For a URL
    * parseModelUrl("https://example.com/org1/model1/v1/file/path");
-   * // returns { model: "org1/model1", revision: "v1", file: "file/path" }
+   * // returns { model: "org1/model1", modelWithHostname: "example.com/org1/model1", revision: "v1", file: "file/path" }
    *
    * @example
    * // For a relative URL
    * parseModelUrl("/org1/model1/revision/file/path");
-   * // returns { model: "org1/model1", revision: "v1", file: "file/path" }
+   * // returns { model: "org1/model1", modelWithHostname: "example.com/org1/model1", revision: "v1", file: "file/path" }
    */
   parseUrl(url, options = {}) {
     let parts;
     const rootUrl = options.rootUrl || this.rootUrl;
     const urlTemplate =
       options.urlTemplate || this.urlTemplate || lazy.DEFAULT_URL_TEMPLATE;
+    let hostname;
 
     // Check if the URL is relative or absolute
     if (url.startsWith("/")) {
       // relative URL
       parts = url.slice(1); // Remove leading slash
+      hostname = new URL(rootUrl).hostname;
     } else {
       // absolute URL
       if (!url.startsWith(rootUrl)) {
         throw new Error(`Invalid domain for model URL: ${url}`);
       }
       const urlObject = new URL(url);
+      hostname = urlObject.hostname;
       const rootUrlObject = new URL(rootUrl);
 
       // Remove the root URL's pathname from the full URL's pathname
@@ -1462,10 +1476,12 @@ export class ModelHub {
       throw new Error(`Invalid model URL: ${url}`);
     }
 
+    const modelWithHostname = `${hostname}/${model}`;
     return {
       model,
       revision,
       file,
+      modelWithHostname,
     };
   }
 
@@ -1544,15 +1560,21 @@ export class ModelHub {
    *
    * @param {object} config - Configuration object.
    * @param {string} config.taskName - The name of the inference task.
-   * @param {string} config.model - The model name (organization/name).
+   * @param {string} config.modelWithHostname - The model name (hostname/organization/name).
    * @param {string} config.targetRevision - The revision to keep.
    *
    * @returns {Promise<void>}
    */
-  async deleteNonMatchingModelRevisions({ taskName, model, targetRevision }) {
+  async deleteNonMatchingModelRevisions({
+    taskName,
+    modelWithHostname,
+    targetRevision,
+  }) {
     // Ensure all required parameters are provided
-    if (!taskName || !model || !targetRevision) {
-      throw new Error("taskName, model, and targetRevision are required.");
+    if (!taskName || !modelWithHostname || !targetRevision) {
+      throw new Error(
+        "taskName, modelWithHostname, and targetRevision are required."
+      );
     }
 
     await this.#initCache();
@@ -1560,7 +1582,7 @@ export class ModelHub {
     // Delete models with revisions that do not match the targetRevision
     return this.cache.deleteModels({
       taskName,
-      model,
+      model: modelWithHostname,
       filterFn: record => record.revision !== targetRevision,
     });
   }

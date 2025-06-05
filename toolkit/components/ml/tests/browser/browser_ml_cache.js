@@ -993,11 +993,12 @@ add_task(async function test_deleteNonMatchingModelRevisions() {
   const taskName = "task";
 
   const file = "file.txt";
+  const hostname = new URL(FAKE_HUB).hostname;
 
   await Promise.all([
     cache.put({
       taskName,
-      model: "org/model",
+      model: `${hostname}/org/model`,
       revision: "v1",
       file,
       data: testData,
@@ -1007,7 +1008,7 @@ add_task(async function test_deleteNonMatchingModelRevisions() {
     }),
     cache.put({
       taskName,
-      model: "org/model2",
+      model: `${hostname}/org/model2`,
       revision: "v1",
       file,
       data: createRandomBlob(),
@@ -1018,7 +1019,7 @@ add_task(async function test_deleteNonMatchingModelRevisions() {
 
     cache.put({
       taskName,
-      model: "org/model2",
+      model: `${hostname}/org/model2`,
       revision: "v2",
       file,
       data: createRandomBlob(),
@@ -1029,7 +1030,7 @@ add_task(async function test_deleteNonMatchingModelRevisions() {
 
     cache.put({
       taskName,
-      model: "org/model2",
+      model: `${hostname}/org/model2`,
       revision: "v3",
       file,
       data: testData2,
@@ -1041,12 +1042,12 @@ add_task(async function test_deleteNonMatchingModelRevisions() {
 
   await hub.deleteNonMatchingModelRevisions({
     taskName,
-    model: "org/model2",
+    modelWithHostname: `${hostname}/org/model2`,
     targetRevision: "v3",
   });
 
   const [retrievedData, headers] = await cache.getFile({
-    model: "org/model",
+    model: `${hostname}/org/model`,
     revision: "v1",
     file,
   });
@@ -1062,21 +1063,21 @@ add_task(async function test_deleteNonMatchingModelRevisions() {
   );
 
   const dataAfterDelete = await cache.getFile({
-    model: "org/model2",
+    model: `${hostname}/org/model2`,
     revision: "v1",
     file,
   });
   Assert.equal(dataAfterDelete, null, "The data for v1 should not exist.");
 
   const dataAfterDelete2 = await cache.getFile({
-    model: "org/model2",
+    model: `${hostname}/org/model2`,
     revision: "v2",
     file,
   });
   Assert.equal(dataAfterDelete2, null, "The data for v2 should not exist.");
 
   const [retrievedData2, headers2] = await cache.getFile({
-    model: "org/model2",
+    model: `${hostname}/org/model2`,
     revision: "v3",
     file,
   });
