@@ -856,6 +856,9 @@
 
       let tabOffset = clientPos(tab) - clientPos(this);
 
+      let movingTabs = tab.multiselected ? gBrowser.selectedTabs : [tab];
+      let movingTabsSet = new Set(movingTabs);
+
       tab._dragData = {
         offsetX: this.verticalMode
           ? event.screenX - window.screenX
@@ -869,7 +872,8 @@
             : this.arrowScrollbox.scrollPosition,
         screenX: event.screenX,
         screenY: event.screenY,
-        movingTabs: tab.multiselected ? gBrowser.selectedTabs : [tab],
+        movingTabs,
+        movingTabsSet,
         fromTabList,
         tabGroupCreationColor: gBrowser.tabGroupMenu.nextUnusedColor,
         expandGroupOnDrop,
@@ -1181,13 +1185,13 @@
                 dropIndex++;
               }
             }
-          } else if (dropBefore) {
+          } else if (dropElement && dropBefore) {
             gBrowser.moveTabsBefore(
               movingTabs,
               dropElement,
               dropMetricsContext
             );
-          } else {
+          } else if (dropElement && dropBefore != undefined) {
             gBrowser.moveTabsAfter(movingTabs, dropElement, dropMetricsContext);
           }
           this.#expandGroupOnDrop(draggedTab);
@@ -1244,7 +1248,7 @@
               color: draggedTab._dragData.tabGroupCreationColor,
               telemetryUserCreateSource: "drag",
             });
-          } else if (dropIndex !== undefined || dropElement) {
+          } else {
             moveTabs();
           }
         }
@@ -2285,6 +2289,7 @@
       let draggedTab = event.dataTransfer.mozGetDataAt(TAB_DROP_TYPE, 0);
       let dragData = draggedTab._dragData;
       let movingTabs = dragData.movingTabs;
+      let movingTabsSet = dragData.movingTabsSet;
 
       dragData.animLastScreenPos ??= this.verticalMode
         ? dragData.screenY
@@ -2360,7 +2365,7 @@
 
       dragData.translatePos = translate;
 
-      tabs = tabs.filter(t => !movingTabs.includes(t) || t == draggedTab);
+      tabs = tabs.filter(t => !movingTabsSet.has(t) || t == draggedTab);
 
       /**
        * When the `draggedTab` is just starting to move, the `draggedTab` is in
@@ -2511,12 +2516,58 @@
       };
 
       let dropElement = getOverlappedElement();
-      if (!dropElement) {
-        dropElement = this.ariaFocusableItems[oldDropElementIndex];
+
+      let newDropElementIndex;
+      if (dropElement) {
+        newDropElementIndex = dropElement.elementIndex;
+      } else {
+        // When the dragged element(s) moves past a tab strip item, the dragged
+        // element's leading edge starts dragging over empty space, resulting in
+        // no overlapping `dropElement`. In these cases, try to fall back to the
+        // previous animation drop element index to avoid unstable animations
+        // (tab strip items snapping back and forth to shift out of the way of
+        // the dragged element(s)).
+        newDropElementIndex = oldDropElementIndex;
+
+        // We always want to have a `dropElement` so that we can determine where to
+        // logically drop the dragged element(s).
+        //
+        // It's tempting to set `dropElement` to
+        // `this.ariaFocusableItems.at(oldDropElementIndex)`, and that is correct
+        // for most cases, but there are edge cases:
+        //
+        // 1) the drop element index range needs to be one larger than the number of
+        //    items that can move in the tab strip. The simplest example is when all
+        //    tabs are ungrouped and unpinned: for 5 tabs, the drop element index needs
+        //    to be able to go from 0 (become the first tab) to 5 (become the last tab).
+        //    `this.ariaFocusableItems.at(5)` would be `undefined` when dragging to the
+        //    end of the tab strip. In this specific case, it works to fall back to
+        //    setting the drop element to the last tab.
+        //
+        // 2) the `elementIndex` values of the tab strip items do not change during
+        //    the drag operation. When dragging the last tab or multiple tabs at the end
+        //    of the tab strip, having `dropElement` fall back to the last tab makes the
+        //    drop element one of the moving tabs. This can have some unexpected behavior
+        //    if not careful. Falling back to the last tab that's not moving (instead of
+        //    just the last tab) helps ensure that `dropElement` is always a stable target
+        //    to drop next to.
+        //
+        // 3) all of the elements in the tab strip are moving, in which case there can't
+        //    be a drop element and it should stay `undefined`
+        let lastPossibleDropElement = this.#rtlMode
+          ? tabs.find(t => t != draggedTab)
+          : tabs.findLast(t => t != draggedTab);
+        let maxElementIndexForDropElement =
+          lastPossibleDropElement?.elementIndex;
+        if (Number.isInteger(maxElementIndexForDropElement)) {
+          let index = Math.min(
+            oldDropElementIndex,
+            maxElementIndexForDropElement
+          );
+          dropElement = this.ariaFocusableItems.at(index);
+        }
       }
-      let newDropElementIndex = dropElement
-        ? dropElement.elementIndex
-        : oldDropElementIndex;
+
       let moveOverThreshold;
       let overlapPercent;
       let shouldCreateGroupOnDrop;
@@ -2590,7 +2641,6 @@
         // When dragging tab(s) over an ungrouped tab, signal to the user
         // that dropping the tab(s) will create a new tab group.
         shouldCreateGroupOnDrop =
-          dropElement != draggedTab &&
           isTab(dropElement) &&
           !dropElement?.group &&
           overlapPercent > dragOverGroupingThreshold;
@@ -2613,10 +2663,13 @@
           let dropElementGroup = dropElement?.group;
           let colorCode = dropElementGroup?.color;
 
+          let lastUnmovingTabInGroup = dropElementGroup?.tabs.findLast(
+            t => !movingTabsSet.has(t)
+          );
           if (
             isTab(dropElement) &&
             dropElementGroup &&
-            dropElement == dropElementGroup.tabs.at(-1) &&
+            dropElement == lastUnmovingTabInGroup &&
             !dropBefore &&
             overlapPercent < dragOverGroupingThreshold
           ) {
