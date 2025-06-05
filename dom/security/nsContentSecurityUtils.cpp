@@ -2204,8 +2204,7 @@ void nsContentSecurityUtils::LogMessageToConsole(nsIHttpChannel* aChannel,
 }
 
 /* static */
-long nsContentSecurityUtils::ClassifyDownload(
-    nsIChannel* aChannel, const nsAutoCString& aMimeTypeGuess) {
+long nsContentSecurityUtils::ClassifyDownload(nsIChannel* aChannel) {
   MOZ_ASSERT(aChannel, "IsDownloadAllowed without channel?");
 
   nsCOMPtr<nsILoadInfo> loadInfo = aChannel->LoadInfo();

@@ -16,6 +16,8 @@
 #include "nsIWebProgressListener.h"
 #include "nsIX509Cert.h"
 #include "nsPrintfCString.h"
+#include "nsContentSecurityUtils.h"
+#include "nsITransfer.h"
 
 #include "nsNetUtil.h"
 
@@ -83,6 +85,16 @@ GeckoViewStreamListener::OnStartRequest(nsIRequest* aRequest) {
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
     CompleteWithError(status, channel);
     return NS_OK;
+  }
+
+  nsCOMPtr<nsIChannel> channel = do_QueryInterface(aRequest);
+  if (channel) {
+    int32_t classification = nsContentSecurityUtils::ClassifyDownload(channel);
+    if (classification == nsITransfer::DOWNLOAD_FORBIDDEN) {
+      channel->Cancel(NS_ERROR_ABORT);
+      CompleteWithError(NS_ERROR_ABORT, channel);
+      return NS_OK;
+    }
   }
 
   // We're expecting data later via OnDataAvailable, so create the stream now.
