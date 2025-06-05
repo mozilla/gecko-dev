@@ -100,7 +100,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860844
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
     @Test
     fun verifySwitchToDesktopSiteIsDisabledOnPDFsTest() {
@@ -108,6 +107,7 @@ class MainMenuTestCompose : TestSetup() {
 
         navigationToolbar {
         }.enterURLAndEnterToBrowser(pdfPage.url) {
+            waitForPageToLoad()
             verifyPageContent(pdfPage.content)
         }.openThreeDotMenu(composeTestRule) {
             verifySwitchToDesktopSiteButtonIsEnabled(isEnabled = false)
@@ -286,7 +286,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860771
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @SmokeTest
     @Test
     fun verifyRecommendedExtensionsListTest() {
@@ -548,7 +547,6 @@ class MainMenuTestCompose : TestSetup() {
         }
         browserScreen {
         }.openThreeDotMenu(composeTestRule) {
-            openToolsMenu()
             verifyCustomizeReaderViewButtonIsDisplayed(isDisplayed = true)
         }.clickCustomizeReaderViewButton {
             verifyAppearanceFontGroup(true)
@@ -998,7 +996,6 @@ class MainMenuTestCompose : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2860785
-    @Ignore("Failing, see https://bugzilla.mozilla.org/show_bug.cgi?id=1968653")
     @Test
     fun verifyTheDiscoverMoreExtensionSubMenuItemTest() {
         val genericURL = getGenericAsset(mockWebServer, 1)

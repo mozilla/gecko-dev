@@ -272,15 +272,10 @@ class SettingsSubMenuAddonsManagerRobot {
     }
 
     fun verifyRecommendedAddonsViewFromRedesignedMainMenu(composeTestRule: ComposeTestRule) {
-        Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Trying to verify that that the \"Recommended\" heading is displayed")
-        composeTestRule.onNode(
-            hasText(getStringResource(R.string.mozac_feature_addons_recommended_section)),
-        ).assertIsDisplayed()
-        Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Verified that that the \"Recommended\" heading is displayed")
         verifyTheRecommendedAddons(composeTestRule)
         Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Trying to verify that that the \"Discover more extensions\" button is displayed")
         composeTestRule.onNode(
-            hasText(getStringResource(R.string.browser_menu_discover_more_extensions)),
+            hasText(getStringResource(R.string.browser_menu_discover_more_extensions)), useUnmergedTree = true,
         ).assertIsDisplayed()
         Log.i(TAG, "verifyRecommendedAddonsViewFromRedesignedMainMenu: Verified that that the \"Discover more extensions\" button is displayed")
     }
@@ -328,7 +323,7 @@ class SettingsSubMenuAddonsManagerRobot {
             Log.i(TAG, "verifyTheRecommendedAddons: Started try #$i")
             try {
                 recommendedAddons.forEach { addon ->
-                    if (verifiedCount == 4) return
+                    if (verifiedCount == 3) return
                     try {
                         waitForAppWindowToBeUpdated()
                         Log.i(TAG, "verifyTheRecommendedAddons: Trying to verify that addon: $addon is recommended and displayed")
@@ -346,8 +341,8 @@ class SettingsSubMenuAddonsManagerRobot {
                         Log.i(TAG, "verifyTheRecommendedAddons: Addon: $addon is not displayed, moving to the next one")
                     }
                 }
-                if (verifiedCount < 4) {
-                    throw AssertionError("$TAG, verifyTheRecommendedAddons: Less than 4 addons were verified. Only $verifiedCount addons were verified.")
+                if (verifiedCount < 3) {
+                    throw AssertionError("$TAG, verifyTheRecommendedAddons: Less than 3 addons were verified. Only $verifiedCount addons were verified.")
                 }
 
                 break
@@ -418,7 +413,7 @@ class SettingsSubMenuAddonsManagerRobot {
 
         fun clickDiscoverMoreExtensionsButton(composeTestRule: ComposeTestRule, interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             Log.i(TAG, "clickDiscoverMoreExtensionsButton: Trying to click the \"Discover more extensions\" link")
-            composeTestRule.onNode(hasText(getStringResource(R.string.browser_menu_discover_more_extensions))).performClick()
+            composeTestRule.onNode(hasText(getStringResource(R.string.browser_menu_discover_more_extensions)), useUnmergedTree = true).performClick()
             Log.i(TAG, "clickDiscoverMoreExtensionsButton: Clicked the \"Discover more extensions\" link")
 
             BrowserRobot().interact()

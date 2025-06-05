@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -145,9 +146,11 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
         Log.i(TAG, "clickPrintContentButton: Clicked the \"Print…\" button.")
     }
 
-    fun verifySwitchToDesktopSiteButtonIsEnabled(
-        isEnabled: Boolean,
-    ) {
+    @OptIn(ExperimentalTestApi::class)
+    fun verifySwitchToDesktopSiteButtonIsEnabled(isEnabled: Boolean) {
+        Log.i(TAG, "verifySuggestedUserName: Waiting for the \"Desktop site\" button to exist")
+        composeTestRule.waitUntilAtLeastOneExists(hasContentDescription(getStringResource(R.string.browser_menu_desktop_site)))
+        Log.i(TAG, "verifySuggestedUserName: Waited for the \"Desktop site\" button to exist")
         Log.i(TAG, "verifySwitchToDesktopSiteButtonIsEnabled: Trying to verify the Switch to Desktop Site button from the new main menu design is enabled.")
         if (isEnabled) {
             composeTestRule.desktopSiteButton().assertIsEnabled()
@@ -220,16 +223,10 @@ class ThreeDotMenuMainRobotCompose(private val composeTestRule: ComposeTestRule)
     }
 
     fun verifyCustomizeReaderViewButtonIsDisplayed(isDisplayed: Boolean) {
-        Log.i(
-            TAG,
-            "verifyCustomizeReaderViewButton: Trying to verify the Customize Reader View button from the new main menu design is displayed $isDisplayed.",
-        )
+        Log.i(TAG, "verifyCustomizeReaderViewButton: Trying to verify the Customize Reader View button from the new main menu design is displayed $isDisplayed.")
         composeTestRule.customizeReaderViewButton().apply {
             if (isDisplayed) assertIsDisplayed() else assertIsNotDisplayed()
-            Log.i(
-                TAG,
-                "verifyCustomizeReaderViewButton: Verified the Customize Reader View button from the new main menu design is displayed = $isDisplayed.",
-            )
+            Log.i(TAG, "verifyCustomizeReaderViewButton: Verified the Customize Reader View button from the new main menu design is displayed = $isDisplayed.")
         }
     }
 
