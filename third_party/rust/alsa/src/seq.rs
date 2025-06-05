@@ -6,7 +6,7 @@ use crate::alsa;
 use super::{Direction, poll};
 use std::{ptr, fmt, mem, slice, time, cell};
 use std::str::{FromStr, Split};
-use std::ffi::{CStr};
+use std::ffi::CStr;
 use std::borrow::Cow;
 
 // Workaround for improper alignment of snd_seq_ev_ext_t in alsa-sys
@@ -1318,7 +1318,7 @@ impl RemoveEvents {
     pub fn set_queue(&self, value: i32) { unsafe { alsa::snd_seq_remove_events_set_queue(self.0, value as c_int) } }
     pub fn set_time(&self, value: time::Duration) { unsafe {
         let mut d: alsa::snd_seq_timestamp_t = mem::zeroed();
-        let mut t = &mut d.time;
+        let t = &mut d.time;
 
         t.tv_sec = value.as_secs() as c_uint;
         t.tv_nsec = value.subsec_nanos() as c_uint;

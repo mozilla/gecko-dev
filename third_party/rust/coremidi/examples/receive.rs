@@ -1,22 +1,26 @@
-extern crate coremidi;
-
+use coremidi::{Client, EventList, Protocol, Source, Sources};
 use std::env;
 
 fn main() {
     let source_index = get_source_index();
     println!("Source index: {}", source_index);
 
-    let source = coremidi::Source::from_index(source_index).unwrap();
+    let source = Source::from_index(source_index).unwrap();
+    let source_id = source.unique_id().unwrap_or(0);
     println!("Source display name: {}", source.display_name().unwrap());
+    println!("Source unique id: {:08x}", source_id);
 
-    let client = coremidi::Client::new("Example Client").unwrap();
+    let client = Client::new("Example Client").unwrap();
 
-    let callback = |packet_list: &coremidi::PacketList| {
-        println!("{}", packet_list);
+    let callback = |event_list: &EventList, context: &mut u32| {
+        print!("{:08x}: {:?}", *context, event_list);
     };
 
-    let input_port = client.input_port("Example Port", callback).unwrap();
-    input_port.connect_source(&source).unwrap();
+    let mut input_port = client
+        .input_port_with_protocol("Example Port", Protocol::Midi10, callback)
+        .unwrap();
+
+    input_port.connect_source(&source, source_id).unwrap();
 
     let mut input_line = String::new();
     println!("Press Enter to Finish");
@@ -41,7 +45,7 @@ fn get_source_index() -> usize {
     match args_iter.next() {
         Some(arg) => match arg.parse::<usize>() {
             Ok(index) => {
-                if index >= coremidi::Sources::count() {
+                if index >= Sources::count() {
                     println!("Source index out of range: {}", index);
                     std::process::exit(-1);
                 }
@@ -63,7 +67,7 @@ fn get_source_index() -> usize {
 }
 
 fn print_sources() {
-    for (i, source) in coremidi::Sources.into_iter().enumerate() {
+    for (i, source) in Sources.into_iter().enumerate() {
         if let Some(display_name) = source.display_name() {
             println!("[{}] {}", i, display_name)
         }

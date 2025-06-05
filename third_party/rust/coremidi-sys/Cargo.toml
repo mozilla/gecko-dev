@@ -11,14 +11,38 @@
 
 [package]
 name = "coremidi-sys"
-version = "3.1.0"
-authors = ["Jonas Klesy", "Patrick Reisert"]
+version = "3.2.0"
+authors = [
+    "Jonas Klesy",
+    "Patrick Reisert",
+    "Renaud Denis <mail@renauddenis.com>",
+]
+build = "build.rs"
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Low-level FFI bindings for the CoreMIDI framework"
 documentation = "https://docs.rs/coremidi-sys"
-categories = ["external-ffi-bindings", "multimedia::audio"]
+readme = "README.md"
+categories = [
+    "external-ffi-bindings",
+    "multimedia::audio",
+]
 license = "MIT"
 repository = "https://github.com/jonas-k/coremidi-sys"
+
 [package.metadata.docs.rs]
 default-target = "x86_64-apple-darwin"
-[target."cfg(any(target_os = \"macos\", target_os = \"ios\"))".dependencies.core-foundation-sys]
-version = "0.8.3"
+
+[lib]
+name = "coremidi_sys"
+path = "src/lib.rs"
+
+[[example]]
+name = "print_midi_device_count"
+path = "examples/print_midi_device_count.rs"
+
+[target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies.core-foundation-sys]
+version = "0.8.7"

@@ -54,8 +54,7 @@ impl SyncPtrStatus {
 			s: mem::zeroed()
 		};
 
-        sndrv_pcm_ioctl_sync_ptr(fd, &mut data).map_err(|_|
-            Error::new("SNDRV_PCM_IOCTL_SYNC_PTR", nix::errno::Errno::last() as i32))?;
+        sndrv_pcm_ioctl_sync_ptr(fd, &mut data)?;
 
         let i = data.s.status.state;
         if (i >= (pcm::State::Open as snd_pcm_state_t)) && (i <= (pcm::State::Disconnected as snd_pcm_state_t)) {
@@ -218,7 +217,7 @@ impl<S> DriverMemory<S> {
         let flags = if writable { libc::PROT_WRITE | libc::PROT_READ } else { libc::PROT_READ };
         let p = unsafe { libc::mmap(ptr::null_mut(), total, flags, libc::MAP_FILE | libc::MAP_SHARED, fd, offs) };
         if p.is_null() || p == libc::MAP_FAILED {
-            Err(Error::new("mmap (of driver memory)", nix::errno::Errno::last() as i32))
+            Err(Error::last("mmap (of driver memory)"))
         } else {
             Ok(DriverMemory { ptr: p as *mut S, size: total })
         }
@@ -253,8 +252,7 @@ impl<S> SampleData<S> {
         let fd = pcm_to_fd(p)?;
         let info = unsafe {
             let mut info: snd_pcm_channel_info = mem::zeroed();
-            sndrv_pcm_ioctl_channel_info(fd, &mut info).map_err(|_|
-                Error::new("SNDRV_PCM_IOCTL_CHANNEL_INFO", nix::errno::Errno::last() as i32))?;
+            sndrv_pcm_ioctl_channel_info(fd, &mut info)?;
             info
         };
         // println!("{:?}", info);

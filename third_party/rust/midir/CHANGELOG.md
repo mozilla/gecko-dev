@@ -2,9 +2,29 @@
 
 All major changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.10.1] 2024-11-20
+- Add `id()` and `find_port_by_id()` to `MidiInputPort` and `MidiOutputPort` ([#157](https://github.com/Boddlnagg/midir/pull/157) - thanks @oscartbeaumont)
 
-- ...
+## [0.10.0] 2024-04-21
+- Upgrade to 2021 edition
+- Upgrade `alsa`, `coremidi` and `windows` dependencies
+- [winmm] Fix hanging when closing MIDI input ([#151](https://github.com/Boddlnagg/midir/pull/151) - thanks, @j-n-f)
+
+## [0.9.1] - 2023-01-27
+- Fix Jack build on ARM and bump jack-sys version ([#127](https://github.com/Boddlnagg/midir/pull/127))
+
+## [0.9.0] - 2023-01-08
+
+- Upgrade `alsa` and `windows` dependencies (the latter now requires `rustc 1.64`)
+- [winrt] Fix received data buffer size ([#116](https://github.com/Boddlnagg/midir/pull/116))
+- [alsa] Fix port listing ([#117](https://github.com/Boddlnagg/midir/pull/117))
+- [alsa] Send messages without buffering ([#125](https://github.com/Boddlnagg/midir/pull/125))
+
+## [0.8.0] - 2022-05-13
+
+- Migrate Windows backends to Microsoft's `windows` crate
+- Upgrade `coremidi` and `alsa` dependencies
+- Implement `PartialEq` for ports
 
 ## [0.7.0] - 2020-09-05
 

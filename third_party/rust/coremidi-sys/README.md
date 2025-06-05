@@ -2,14 +2,14 @@
 
 Low level Rust bindings for CoreMIDI
 
-`generated.rs` is generated with [bindgen](https://github.com/rust-lang/rust-bindgen) 0.59.2 using the following commands:
+`generated.rs` is generated with [bindgen](https://github.com/rust-lang/rust-bindgen) 0.69.4 using the following commands:
 
 ```
 export FRAMEWORKS_DIR=$(xcrun --sdk macosx --show-sdk-path)/System/Library/Frameworks
 
 bindgen ${FRAMEWORKS_DIR}/CoreMIDI.framework/Headers/MIDIServices.h \
-    --whitelist-type "MIDI.*" --whitelist-function "MIDI.*"  --whitelist-var "kMIDI.*" \
-    --blacklist-type "(__)?CF.*" \
+    --allowlist-type "MIDI.*" --allowlist-function "MIDI.*"  --allowlist-var "kMIDI.*" \
+    --blocklist-type "(__)?CF.*" \
     --constified-enum ".*" --no-prepend-enum-name \
     --no-debug "MIDI(Event)?Packet.*" \
     --no-copy "MIDI(Event)?Packet.*" \

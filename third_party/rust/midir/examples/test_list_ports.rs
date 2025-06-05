@@ -1,14 +1,12 @@
-extern crate midir;
-
-use std::io::{stdin, stdout, Write};
 use std::error::Error;
+use std::io::{stdin, stdout, Write};
 
-use midir::{MidiInput, MidiOutput, Ignore};
+use midir::{Ignore, MidiInput, MidiOutput};
 
 fn main() {
     match run() {
         Ok(_) => (),
-        Err(err) => println!("Error: {}", err)
+        Err(err) => println!("Error: {}", err),
     }
 }
 
@@ -24,7 +22,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         for (i, p) in midi_in.ports().iter().enumerate() {
             println!("{}: {}", i, midi_in.port_name(p)?);
         }
-        
+
         println!("\nAvailable output ports:");
         for (i, p) in midi_out.ports().iter().enumerate() {
             println!("{}: {}", i, midi_out.port_name(p)?);
@@ -33,7 +31,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         // run in endless loop if "--loop" parameter is specified
         match ::std::env::args().nth(1) {
             Some(ref arg) if arg == "--loop" => {}
-            _ => break
+            _ => break,
         }
         print!("\nPress <enter> to retry ...");
         stdout().flush()?;
@@ -41,6 +39,6 @@ fn run() -> Result<(), Box<dyn Error>> {
         stdin().read_line(&mut input)?;
         println!("\n");
     }
-    
+
     Ok(())
 }

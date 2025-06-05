@@ -1,14 +1,14 @@
-extern crate coremidi;
+use coremidi::{Client, EventList, Protocol};
 
 fn main() {
-    let client = coremidi::Client::new("Example Client").unwrap();
+    let client = Client::new("Example Client").unwrap();
 
-    let callback = |packet_list: &coremidi::PacketList| {
-        println!("{}", packet_list);
+    let callback = |event_list: &EventList| {
+        print!("{:?}", event_list);
     };
 
     let _destination = client
-        .virtual_destination("Example Destination", callback)
+        .virtual_destination_with_protocol("Example Destination", Protocol::Midi10, callback)
         .unwrap();
 
     let mut input_line = String::new();

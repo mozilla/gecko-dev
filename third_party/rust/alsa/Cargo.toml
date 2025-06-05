@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "alsa"
-version = "0.8.1"
+version = "0.9.1"
 authors = ["David Henningsson <coding@diwic.se>"]
 include = [
     "README.md",
@@ -41,13 +41,11 @@ version = "0.3.1"
 [dependencies.bitflags]
 version = "2.4.0"
 
+[dependencies.cfg-if]
+version = "1.0"
+
 [dependencies.libc]
 version = "0.2"
-
-[dependencies.nix]
-version = "^0.26"
-features = ["ioctl"]
-default-features = false
 
 [badges.is-it-maintained-issue-resolution]
 repository = "diwic/alsa-rs"

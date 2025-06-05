@@ -53,7 +53,7 @@ Quickstart guide / API design:
 
  * Enumeration of cards, devices etc is done through structs implementing `Iterator`.
 
- * Many structs implement `poll::Descriptors`, to combine with poll or mio.
+ * Many structs implement `poll::Descriptors`, to combine with your favorite async framework.
    Or just use `wait` if you don't need non-blocking functionality.
    
 Notes:

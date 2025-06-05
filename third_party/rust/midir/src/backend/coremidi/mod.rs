@@ -1,12 +1,9 @@
-extern crate coremidi;
-
 use std::sync::{Arc, Mutex};
 
-use ::errors::*;
-use ::Ignore;
-use ::MidiMessage;
+use crate::errors::*;
+use crate::{Ignore, MidiMessage};
 
-use self::coremidi::*;
+use coremidi::*;
 
 mod external {
     #[link(name = "CoreAudio", kind = "framework")]
@@ -18,12 +15,22 @@ mod external {
 
 pub struct MidiInput {
     client: Client,
-    ignore_flags: Ignore
+    ignore_flags: Ignore,
 }
 
 #[derive(Clone)]
 pub struct MidiInputPort {
-    source: Arc<Source>
+    source: Arc<Source>,
+}
+
+impl MidiInputPort {
+    pub fn id(&self) -> String {
+        self.source
+            .unique_id()
+            // According to macos docs "The system assigns unique IDs to all objects.", so I think we can ignore this case
+            .unwrap_or(0)
+            .to_string()
+    }
 }
 
 impl PartialEq for MidiInputPort {
@@ -31,7 +38,7 @@ impl PartialEq for MidiInputPort {
         if let (Some(id1), Some(id2)) = (self.source.unique_id(), other.source.unique_id()) {
             id1 == id2
         } else {
-            // Acording to macos docs "The system assigns unique IDs to all objects.", so I think we can ignore this case
+            // According to macos docs "The system assigns unique IDs to all objects.", so I think we can ignore this case
             false
         }
     }
@@ -40,48 +47,60 @@ impl PartialEq for MidiInputPort {
 impl MidiInput {
     pub fn new(client_name: &str) -> Result<Self, InitError> {
         match Client::new(client_name) {
-            Ok(cl) => Ok(MidiInput { client: cl, ignore_flags: Ignore::None }),
-            Err(_) => Err(InitError)
+            Ok(cl) => Ok(MidiInput {
+                client: cl,
+                ignore_flags: Ignore::None,
+            }),
+            Err(_) => Err(InitError),
         }
     }
 
-    pub(crate) fn ports_internal(&self) -> Vec<::common::MidiInputPort> {
-        Sources.into_iter().map(|s| ::common::MidiInputPort {
-            imp: MidiInputPort { source: Arc::new(s) }
-        }).collect()
+    pub(crate) fn ports_internal(&self) -> Vec<crate::common::MidiInputPort> {
+        Sources
+            .into_iter()
+            .map(|s| crate::common::MidiInputPort {
+                imp: MidiInputPort {
+                    source: Arc::new(s),
+                },
+            })
+            .collect()
     }
 
     pub fn ignore(&mut self, flags: Ignore) {
         self.ignore_flags = flags;
     }
-    
+
     pub fn port_count(&self) -> usize {
         Sources::count()
     }
-    
+
     pub fn port_name(&self, port: &MidiInputPort) -> Result<String, PortInfoError> {
         match port.source.display_name() {
             Some(name) => Ok(name),
-            None => Err(PortInfoError::CannotRetrievePortName)
+            None => Err(PortInfoError::CannotRetrievePortName),
         }
     }
 
     fn handle_input<T>(packets: &PacketList, handler_data: &mut HandlerData<T>) {
-        let continue_sysex =  &mut handler_data.continue_sysex;
+        let continue_sysex = &mut handler_data.continue_sysex;
         let ignore = handler_data.ignore_flags;
         let message = &mut handler_data.message;
         let data = &mut handler_data.user_data.as_mut().unwrap();
         for p in packets.iter() {
             let pdata = p.data();
-            if pdata.len() == 0 { continue; }
+            if pdata.len() == 0 {
+                continue;
+            }
 
             let mut timestamp = p.timestamp();
-            if timestamp == 0 { // this might happen for asnychronous sysex messages (?)
+            if timestamp == 0 {
+                // this might happen for asnychronous sysex messages (?)
                 timestamp = unsafe { external::AudioGetCurrentHostTime() };
             }
 
             if !*continue_sysex {
-                message.timestamp = unsafe { external::AudioConvertHostTimeToNanos(timestamp) } as u64 / 1000;
+                message.timestamp =
+                    unsafe { external::AudioConvertHostTimeToNanos(timestamp) } as u64 / 1000;
             }
 
             let mut cur_byte = 0;
@@ -102,13 +121,18 @@ impl MidiInput {
                 while cur_byte < pdata.len() {
                     // We are expecting that the next byte in the packet is a status byte.
                     let status = pdata[cur_byte];
-                    if status & 0x80 == 0 { break; }
+                    if status & 0x80 == 0 {
+                        break;
+                    }
                     // Determine the number of bytes in the MIDI message.
                     let size;
-                    if status < 0xC0 { size = 3; }
-                    else if status < 0xE0 { size = 2; }
-                    else if status < 0xF0 { size = 3; }
-                    else if status == 0xF0 {
+                    if status < 0xC0 {
+                        size = 3;
+                    } else if status < 0xE0 {
+                        size = 2;
+                    } else if status < 0xF0 {
+                        size = 3;
+                    } else if status == 0xF0 {
                         // A MIDI sysex
                         if ignore.contains(Ignore::Sysex) {
                             size = 0;
@@ -117,8 +141,7 @@ impl MidiInput {
                             size = pdata.len() - cur_byte;
                         }
                         *continue_sysex = pdata[pdata.len() - 1] != 0xF7;
-                    }
-                    else if status == 0xF1 {
+                    } else if status == 0xF1 {
                         // A MIDI time code message
                         if ignore.contains(Ignore::Time) {
                             size = 0;
@@ -126,20 +149,21 @@ impl MidiInput {
                         } else {
                             size = 2;
                         }
-                    }
-                    else if status == 0xF2 { size = 3; }
-                    else if status == 0xF3 { size = 2; }
-                    else if status == 0xF8 && ignore.contains(Ignore::Time) {
+                    } else if status == 0xF2 {
+                        size = 3;
+                    } else if status == 0xF3 {
+                        size = 2;
+                    } else if status == 0xF8 && ignore.contains(Ignore::Time) {
                         // A MIDI timing tick message and we're ignoring it.
                         size = 0;
                         cur_byte += 1;
-                    }
-                    else if status == 0xFE && ignore.contains(Ignore::ActiveSense) {
+                    } else if status == 0xFE && ignore.contains(Ignore::ActiveSense) {
                         // A MIDI active sensing message and we're ignoring it.
                         size = 0;
                         cur_byte += 1;
+                    } else {
+                        size = 1;
                     }
-                    else { size = 1; }
 
                     // Copy the MIDI data to our vector.
                     if size > 0 {
@@ -158,65 +182,78 @@ impl MidiInput {
             }
         }
     }
-    
+
     pub fn connect<F, T: Send + 'static>(
-        self, port: &MidiInputPort, port_name: &str, callback: F, data: T
+        self,
+        port: &MidiInputPort,
+        port_name: &str,
+        callback: F,
+        data: T,
     ) -> Result<MidiInputConnection<T>, ConnectError<MidiInput>>
-        where F: FnMut(u64, &[u8], &mut T) + Send + 'static {
+    where
+        F: FnMut(u64, &[u8], &mut T) + Send + 'static,
+    {
         let handler_data = Arc::new(Mutex::new(HandlerData {
             message: MidiMessage::new(),
             ignore_flags: self.ignore_flags,
             continue_sysex: false,
             callback: Box::new(callback),
-            user_data: Some(data)
+            user_data: Some(data),
         }));
         let handler_data2 = handler_data.clone();
         let iport = match self.client.input_port(port_name, move |packets| {
             MidiInput::handle_input(packets, &mut *handler_data2.lock().unwrap())
         }) {
             Ok(p) => p,
-            Err(_) => return Err(ConnectError::other("error creating MIDI input port", self))
+            Err(_) => return Err(ConnectError::other("error creating MIDI input port", self)),
         };
         if let Err(_) = iport.connect_source(&port.source) {
-            return Err(ConnectError::other("error connecting MIDI input port", self));
+            return Err(ConnectError::other(
+                "error connecting MIDI input port",
+                self,
+            ));
         }
         Ok(MidiInputConnection {
             client: self.client,
             details: InputConnectionDetails::Explicit(iport),
-            handler_data: handler_data
+            handler_data: handler_data,
         })
     }
 
     pub fn create_virtual<F, T: Send + 'static>(
-        self, port_name: &str, callback: F, data: T
+        self,
+        port_name: &str,
+        callback: F,
+        data: T,
     ) -> Result<MidiInputConnection<T>, ConnectError<MidiInput>>
-    where F: FnMut(u64, &[u8], &mut T) + Send + 'static {
-
+    where
+        F: FnMut(u64, &[u8], &mut T) + Send + 'static,
+    {
         let handler_data = Arc::new(Mutex::new(HandlerData {
             message: MidiMessage::new(),
             ignore_flags: self.ignore_flags,
             continue_sysex: false,
             callback: Box::new(callback),
-            user_data: Some(data)
+            user_data: Some(data),
         }));
         let handler_data2 = handler_data.clone();
         let vrt = match self.client.virtual_destination(port_name, move |packets| {
             MidiInput::handle_input(packets, &mut *handler_data2.lock().unwrap())
         }) {
             Ok(p) => p,
-            Err(_) => return Err(ConnectError::other("error creating MIDI input port", self))
+            Err(_) => return Err(ConnectError::other("error creating MIDI input port", self)),
         };
         Ok(MidiInputConnection {
             client: self.client,
             details: InputConnectionDetails::Virtual(vrt),
-            handler_data: handler_data
+            handler_data: handler_data,
         })
     }
 }
 
 enum InputConnectionDetails {
     Explicit(InputPort),
-    Virtual(VirtualDestination)
+    Virtual(VirtualDestination),
 }
 
 pub struct MidiInputConnection<T> {
@@ -227,16 +264,19 @@ pub struct MidiInputConnection<T> {
     //       synchronization is required because the borrow checker does not
     //       know that the callback we're in here is never called concurrently
     //       (always in sequence)
-    handler_data: Arc<Mutex<HandlerData<T>>>
+    handler_data: Arc<Mutex<HandlerData<T>>>,
 }
 
 impl<T> MidiInputConnection<T> {
     pub fn close(self) -> (MidiInput, T) {
         let mut handler_data_locked = self.handler_data.lock().unwrap();
-        (MidiInput {
-            client: self.client,
-            ignore_flags: handler_data_locked.ignore_flags
-        }, handler_data_locked.user_data.take().unwrap())
+        (
+            MidiInput {
+                client: self.client,
+                ignore_flags: handler_data_locked.ignore_flags,
+            },
+            handler_data_locked.user_data.take().unwrap(),
+        )
     }
 }
 
@@ -250,16 +290,26 @@ struct HandlerData<T> {
     ignore_flags: Ignore,
     continue_sysex: bool,
     callback: Box<dyn FnMut(u64, &[u8], &mut T) + Send>,
-    user_data: Option<T>
+    user_data: Option<T>,
 }
 
 pub struct MidiOutput {
-    client: Client
+    client: Client,
 }
 
 #[derive(Clone)]
 pub struct MidiOutputPort {
-    dest: Arc<Destination>
+    dest: Arc<Destination>,
+}
+
+impl MidiOutputPort {
+    pub fn id(&self) -> String {
+        self.dest
+            .unique_id()
+            // According to macos docs "The system assigns unique IDs to all objects.", so I think we can ignore this case
+            .unwrap_or(0)
+            .to_string()
+    }
 }
 
 impl PartialEq for MidiOutputPort {
@@ -277,75 +327,96 @@ impl MidiOutput {
     pub fn new(client_name: &str) -> Result<Self, InitError> {
         match Client::new(client_name) {
             Ok(cl) => Ok(MidiOutput { client: cl }),
-            Err(_) => Err(InitError)
+            Err(_) => Err(InitError),
         }
     }
 
-    pub(crate) fn ports_internal(&self) -> Vec<::common::MidiOutputPort> {
-        Destinations.into_iter().map(|d| ::common::MidiOutputPort {
-            imp: MidiOutputPort { dest: Arc::new(d) }
-        }).collect()
+    pub(crate) fn ports_internal(&self) -> Vec<crate::common::MidiOutputPort> {
+        Destinations
+            .into_iter()
+            .map(|d| crate::common::MidiOutputPort {
+                imp: MidiOutputPort { dest: Arc::new(d) },
+            })
+            .collect()
     }
-    
+
     pub fn port_count(&self) -> usize {
         Destinations::count()
     }
-    
+
     pub fn port_name(&self, port: &MidiOutputPort) -> Result<String, PortInfoError> {
         match port.dest.display_name() {
             Some(name) => Ok(name),
-            None => Err(PortInfoError::CannotRetrievePortName)
+            None => Err(PortInfoError::CannotRetrievePortName),
         }
     }
-    
-    pub fn connect(self, port: &MidiOutputPort, port_name: &str) -> Result<MidiOutputConnection, ConnectError<MidiOutput>> {
+
+    pub fn connect(
+        self,
+        port: &MidiOutputPort,
+        port_name: &str,
+    ) -> Result<MidiOutputConnection, ConnectError<MidiOutput>> {
         let oport = match self.client.output_port(port_name) {
             Ok(p) => p,
-            Err(_) => return Err(ConnectError::other("error creating MIDI output port", self))
+            Err(_) => return Err(ConnectError::other("error creating MIDI output port", self)),
         };
         Ok(MidiOutputConnection {
             client: self.client,
-            details: OutputConnectionDetails::Explicit(oport, port.dest.clone())
+            details: OutputConnectionDetails::Explicit(oport, port.dest.clone()),
         })
     }
 
-    pub fn create_virtual(self, port_name: &str) -> Result<MidiOutputConnection, ConnectError<MidiOutput>> {
+    pub fn create_virtual(
+        self,
+        port_name: &str,
+    ) -> Result<MidiOutputConnection, ConnectError<MidiOutput>> {
         let vrt = match self.client.virtual_source(port_name) {
             Ok(p) => p,
-            Err(_) => return Err(ConnectError::other("error creating virtual MIDI source", self))
+            Err(_) => {
+                return Err(ConnectError::other(
+                    "error creating virtual MIDI source",
+                    self,
+                ))
+            }
         };
         Ok(MidiOutputConnection {
             client: self.client,
-            details: OutputConnectionDetails::Virtual(vrt)
+            details: OutputConnectionDetails::Virtual(vrt),
         })
     }
 }
 
 enum OutputConnectionDetails {
     Explicit(OutputPort, Arc<Destination>),
-    Virtual(VirtualSource)
+    Virtual(VirtualSource),
 }
 
 pub struct MidiOutputConnection {
     client: Client,
-    details: OutputConnectionDetails
+    details: OutputConnectionDetails,
 }
 
 impl MidiOutputConnection {
     pub fn close(self) -> MidiOutput {
-        MidiOutput { client: self.client }
-    }
-    
-    pub fn send(&mut self, message: &[u8]) -> Result<(), SendError> {
-        let packets = PacketBuffer::new(0, message);
-        match self.details {
-            OutputConnectionDetails::Explicit(ref port, ref dest) => {
-                port.send(&dest, &packets).map_err(|_| SendError::Other("error sending MIDI message to port"))
-            },
-            OutputConnectionDetails::Virtual(ref vrt) => {
-                vrt.received(&packets).map_err(|_| SendError::Other("error sending MIDI to virtual destinations"))
-            }
+        MidiOutput {
+            client: self.client,
         }
-        
+    }
+
+    pub fn send(&mut self, message: &[u8]) -> Result<(), SendError> {
+        let send_time = if cfg!(feature = "coremidi_send_timestamped") {
+            unsafe { external::AudioGetCurrentHostTime() }
+        } else {
+            0
+        };
+        let packets = PacketBuffer::new(send_time, message);
+        match self.details {
+            OutputConnectionDetails::Explicit(ref port, ref dest) => port
+                .send(&dest, &packets)
+                .map_err(|_| SendError::Other("error sending MIDI message to port")),
+            OutputConnectionDetails::Virtual(ref vrt) => vrt
+                .received(&packets)
+                .map_err(|_| SendError::Other("error sending MIDI to virtual destinations")),
+        }
     }
 }

@@ -30,11 +30,6 @@ git = "https://github.com/beurdouche/nss-gk-api"
 rev = "e48a946811ffd64abc78de3ee284957d8d1c0d63"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/chris-zen/coremidi.git?rev=fc68464b5445caf111e41f643a2e69ccce0b4f83"]
-git = "https://github.com/chris-zen/coremidi.git"
-rev = "fc68464b5445caf111e41f643a2e69ccce0b4f83"
-replace-with = "vendored-sources"
-
 [source."git+https://github.com/franziskuskiefer/cose-rust?rev=43c22248d136c8b38fe42ea709d08da6355cf04b"]
 git = "https://github.com/franziskuskiefer/cose-rust"
 rev = "43c22248d136c8b38fe42ea709d08da6355cf04b"
@@ -90,9 +85,9 @@ git = "https://github.com/mozilla/cubeb-pulse-rs"
 rev = "8678dcab1c287de79c4c184ccc2e065bc62b70e2"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/mozilla/midir.git?rev=85156e360a37d851734118104619f86bd18e94c6"]
+[source."git+https://github.com/mozilla/midir.git?rev=37ad39de3382c2aad0758dab49ba545331a2257d"]
 git = "https://github.com/mozilla/midir.git"
-rev = "85156e360a37d851734118104619f86bd18e94c6"
+rev = "37ad39de3382c2aad0758dab49ba545331a2257d"
 replace-with = "vendored-sources"
 
 [source."git+https://github.com/mozilla/mp4parse-rust?rev=d3e4d255bd149d341c7e90f5e9fc84e743a8e179"]

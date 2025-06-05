@@ -20,8 +20,6 @@ extern crate alsa_sys as alsa;
 extern crate libc;
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate nix as nix_the_crate;
 
 macro_rules! alsa_enum {
  ($(#[$attr:meta])+ $name:ident, $static_name:ident [$count:expr], $( $a:ident = $b:ident),* ,) =>
@@ -133,13 +131,3 @@ pub use crate::io::Output;
 mod chmap;
 
 pub mod direct;
-
-/// Re-exports from the nix crate.
-///
-/// Use these re-exports instead of also depending on the nix crate. There
-/// is no guarantee that these will match a specific nix version, it may
-/// change between minor updates of the library.
-pub mod nix {
-    pub use nix_the_crate::Error;
-    pub use nix_the_crate::errno;
-}

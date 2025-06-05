@@ -10,63 +10,26 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 name = "coremidi"
-version = "0.6.0"
+version = "0.8.0"
 authors = ["Christian Perez-Llamas"]
-build = false
-autolib = false
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
 description = "CoreMIDI library for Rust"
 homepage = "https://github.com/chris-zen/coremidi"
 documentation = "https://chris-zen.github.io/coremidi/coremidi/"
 readme = "README.md"
-keywords = [
-    "CoreMIDI",
-    "MIDI",
-    "OSX",
-    "macOS",
-    "music",
-]
+keywords = ["CoreMIDI", "MIDI", "OSX", "macOS", "music"]
 license = "MIT"
 repository = "https://github.com/chris-zen/coremidi"
+resolver = "2"
+[dependencies.block]
+version = "0.1.6"
 
-[lib]
-name = "coremidi"
-path = "src/lib.rs"
+[dependencies.core-foundation]
+version = "0.9.3"
 
-[[example]]
-name = "endpoints"
-path = "examples/endpoints.rs"
+[dependencies.core-foundation-sys]
+version = "0.8.4"
 
-[[example]]
-name = "notifications"
-path = "examples/notifications.rs"
-
-[[example]]
-name = "properties"
-path = "examples/properties.rs"
-
-[[example]]
-name = "receive"
-path = "examples/receive.rs"
-
-[[example]]
-name = "send"
-path = "examples/send.rs"
-
-[[example]]
-name = "virtual-destination"
-path = "examples/virtual-destination.rs"
-
-[[example]]
-name = "virtual-source"
-path = "examples/virtual-source.rs"
-
-[dependencies]
-core-foundation = "0.9.1"
-core-foundation-sys = "0.8.2"
-coremidi-sys = "3.0.1"
+[dependencies.coremidi-sys]
+version = "3.1.0"

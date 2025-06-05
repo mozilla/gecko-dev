@@ -1,14 +1,14 @@
-use coremidi_sys::{
-    ItemCount, MIDIEndpointDispose, MIDIGetDestination, MIDIGetNumberOfDestinations,
-};
-
 use std::ops::Deref;
 
-use crate::{callback::BoxedCallback, object::Object, packets::PacketList};
+use coremidi_sys::{
+    ItemCount, MIDIEndpointDispose, MIDIEndpointRef, MIDIGetDestination,
+    MIDIGetNumberOfDestinations,
+};
 
-use super::Endpoint;
+use crate::endpoints::endpoint::Endpoint;
+use crate::Object;
 
-/// A [MIDI source](https://developer.apple.com/reference/coremidi/midiendpointref) owned by an entity.
+/// A [MIDI source](https://developer.apple.com/documentation/coremidi/midiendpointref) owned by an entity.
 ///
 /// A source can be created from an index like this:
 ///
@@ -17,25 +17,45 @@ use super::Endpoint;
 /// println!("The source at index 0 has display name '{}'", source.display_name().unwrap());
 /// ```
 ///
-#[derive(Debug)]
+#[derive(Debug, Hash, Eq, PartialEq)]
 pub struct Destination {
     pub(crate) endpoint: Endpoint,
 }
 
 impl Destination {
+    pub(crate) fn new(endpoint_ref: MIDIEndpointRef) -> Self {
+        Self {
+            endpoint: Endpoint::new(endpoint_ref),
+        }
+    }
+
     /// Create a destination endpoint from its index.
-    /// See [MIDIGetDestination](https://developer.apple.com/reference/coremidi/1495108-midigetdestination)
+    /// See [MIDIGetDestination](https://developer.apple.com/documentation/coremidi/1495108-midigetdestination)
     ///
     pub fn from_index(index: usize) -> Option<Destination> {
         let endpoint_ref = unsafe { MIDIGetDestination(index as ItemCount) };
         match endpoint_ref {
             0 => None,
-            _ => Some(Destination {
-                endpoint: Endpoint {
-                    object: Object(endpoint_ref),
-                },
-            }),
+            _ => Some(Self::new(endpoint_ref)),
         }
+    }
+}
+
+impl Clone for Destination {
+    fn clone(&self) -> Self {
+        Self::new(self.endpoint.object.0)
+    }
+}
+
+impl AsRef<Object> for Destination {
+    fn as_ref(&self) -> &Object {
+        &self.endpoint.object
+    }
+}
+
+impl AsRef<Endpoint> for Destination {
+    fn as_ref(&self) -> &Endpoint {
+        &self.endpoint
     }
 }
 
@@ -67,7 +87,7 @@ pub struct Destinations;
 
 impl Destinations {
     /// Get the number of destinations available in the system for sending MIDI messages.
-    /// See [MIDIGetNumberOfDestinations](https://developer.apple.com/reference/coremidi/1495309-midigetnumberofdestinations).
+    /// See [MIDIGetNumberOfDestinations](https://developer.apple.com/documentation/coremidi/1495309-midigetnumberofdestinations).
     ///
     pub fn count() -> usize {
         unsafe { MIDIGetNumberOfDestinations() as usize }
@@ -105,29 +125,40 @@ impl Iterator for DestinationsIterator {
     }
 }
 
-/// A [MIDI virtual destination](https://developer.apple.com/reference/coremidi/1495347-mididestinationcreate) owned by a client.
+/// A [MIDI virtual destination](https://developer.apple.com/documentation/coremidi/3566476-mididestinationcreatewithprotoco) owned by a client.
 ///
 /// A virtual destination can be created like:
 ///
 /// ```rust,no_run
+/// use coremidi::Protocol;
 /// let client = coremidi::Client::new("example-client").unwrap();
-/// client.virtual_destination("example-destination", |packet_list| println!("{}", packet_list)).unwrap();
+/// client.virtual_destination_with_protocol("example-destination", Protocol::Midi10, |event_list| println!("{:?}", event_list)).unwrap();
 /// ```
 ///
-#[derive(Debug)]
+#[derive(Debug, Hash, Eq, PartialEq)]
 pub struct VirtualDestination {
-    // Note: the order is important here, endpoint needs to be dropped first
     pub(crate) endpoint: Endpoint,
-    pub(crate) callback: BoxedCallback<PacketList>,
 }
 
-impl VirtualDestination {}
+impl VirtualDestination {
+    pub(crate) fn new(endpoint_ref: MIDIEndpointRef) -> Self {
+        Self {
+            endpoint: Endpoint::new(endpoint_ref),
+        }
+    }
+}
 
 impl Deref for VirtualDestination {
     type Target = Endpoint;
 
     fn deref(&self) -> &Endpoint {
         &self.endpoint
+    }
+}
+
+impl From<Object> for VirtualDestination {
+    fn from(object: Object) -> Self {
+        Self::new(object.0)
     }
 }
 

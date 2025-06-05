@@ -1,15 +1,13 @@
 #![deny(missing_docs)]
 
-use ::errors::*;
-use ::backend::{
-    MidiInputPort as MidiInputPortImpl,
-    MidiInput as MidiInputImpl, 
-    MidiInputConnection as MidiInputConnectionImpl,
-    MidiOutputPort as MidiOutputPortImpl,
-    MidiOutput as MidiOutputImpl,
-    MidiOutputConnection as MidiOutputConnectionImpl
+use backend::{
+    MidiInput as MidiInputImpl, MidiInputConnection as MidiInputConnectionImpl,
+    MidiInputPort as MidiInputPortImpl, MidiOutput as MidiOutputImpl,
+    MidiOutputConnection as MidiOutputConnectionImpl, MidiOutputPort as MidiOutputPortImpl,
 };
-use ::Ignore;
+use errors::*;
+
+use crate::{backend, errors, Ignore, InitError};
 
 /// Trait that abstracts over input and output ports.
 pub trait MidiIO {
@@ -20,10 +18,10 @@ pub trait MidiIO {
     /// The resulting vector contains one object per port, which you can use to
     /// query metadata about the port or connect to it.
     fn ports(&self) -> Vec<Self::Port>;
-    
+
     /// Get the number of available MIDI input or output ports.
     fn port_count(&self) -> usize;
-    
+
     /// Get the name of a specified MIDI input or output port.
     ///
     /// An error will be returned when the port is no longer valid
@@ -40,7 +38,15 @@ pub trait MidiIO {
 /// available ports.
 #[derive(Clone, PartialEq)]
 pub struct MidiInputPort {
-    pub(crate) imp: MidiInputPortImpl
+    pub(crate) imp: MidiInputPortImpl,
+}
+
+impl MidiInputPort {
+    /// Get a unique stable identifier for this port.
+    /// This identifier must be treated as an opaque string.
+    pub fn id(&self) -> String {
+        self.imp.id()
+    }
 }
 
 /// A collection of input ports.
@@ -50,19 +56,19 @@ pub type MidiInputPorts = Vec<MidiInputPort>;
 /// Create one with `MidiInput::new`.
 pub struct MidiInput {
     //ignore_flags: Ignore
-    imp: MidiInputImpl
+    imp: MidiInputImpl,
 }
 
 impl MidiInput {
     /// Creates a new `MidiInput` object that is required for any MIDI input functionality.
     pub fn new(client_name: &str) -> Result<Self, InitError> {
-        MidiInputImpl::new(client_name).map(|imp| MidiInput { imp: imp })
+        MidiInputImpl::new(client_name).map(|imp| MidiInput { imp })
     }
-    
+
     /// Set flags to decide what kind of messages should be ignored (i.e., filtered out)
     /// by this `MidiInput`. By default, no messages are ignored.
     pub fn ignore(&mut self, flags: Ignore) {
-       self.imp.ignore(flags);
+        self.imp.ignore(flags);
     }
 
     /// Get a collection of all MIDI input ports that *midir* can connect to.
@@ -72,12 +78,12 @@ impl MidiInput {
     pub fn ports(&self) -> MidiInputPorts {
         self.imp.ports_internal()
     }
-    
+
     /// Get the number of available MIDI input ports that *midir* can connect to.
     pub fn port_count(&self) -> usize {
         self.imp.port_count()
     }
-    
+
     /// Get the name of a specified MIDI input port.
     ///
     /// An error will be returned when the port is no longer valid
@@ -85,7 +91,12 @@ impl MidiInput {
     pub fn port_name(&self, port: &MidiInputPort) -> Result<String, PortInfoError> {
         self.imp.port_name(&port.imp)
     }
-    
+
+    /// Get a MIDI input port by its unique identifier.
+    pub fn find_port_by_id(&self, id: String) -> Option<MidiInputPort> {
+        self.ports().into_iter().find(|port| port.id() == id)
+    }
+
     /// Connect to a specified MIDI input port in order to receive messages.
     /// For each incoming MIDI message, the provided `callback` function will
     /// be called. The first parameter of the callback function is a timestamp
@@ -107,15 +118,26 @@ impl MidiInput {
     /// An error will be returned when the port is no longer valid
     /// (e.g. the respective device has been disconnected).
     pub fn connect<F, T: Send>(
-        self, port: &MidiInputPort, port_name: &str, callback: F, data: T
+        self,
+        port: &MidiInputPort,
+        port_name: &str,
+        callback: F,
+        data: T,
     ) -> Result<MidiInputConnection<T>, ConnectError<MidiInput>>
-        where F: FnMut(u64, &[u8], &mut T) + Send + 'static {
+    where
+        F: FnMut(u64, &[u8], &mut T) + Send + 'static,
+    {
         match self.imp.connect(&port.imp, port_name, callback, data) {
-            Ok(imp) => Ok(MidiInputConnection { imp: imp }),
+            Ok(imp) => Ok(MidiInputConnection { imp }),
             Err(imp) => {
                 let kind = imp.kind();
-                Err(ConnectError::new(kind, MidiInput { imp: imp.into_inner() }))
-            } 
+                Err(ConnectError::new(
+                    kind,
+                    MidiInput {
+                        imp: imp.into_inner(),
+                    },
+                ))
+            }
         }
     }
 }
@@ -137,24 +159,34 @@ impl MidiIO for MidiInput {
 }
 
 #[cfg(unix)]
-impl<T: Send> ::os::unix::VirtualInput<T> for MidiInput {
+impl<T: Send> crate::os::unix::VirtualInput<T> for MidiInput {
     fn create_virtual<F>(
-        self, port_name: &str, callback: F, data: T
+        self,
+        port_name: &str,
+        callback: F,
+        data: T,
     ) -> Result<MidiInputConnection<T>, ConnectError<Self>>
-    where F: FnMut(u64, &[u8], &mut T) + Send + 'static {
+    where
+        F: FnMut(u64, &[u8], &mut T) + Send + 'static,
+    {
         match self.imp.create_virtual(port_name, callback, data) {
-            Ok(imp) => Ok(MidiInputConnection { imp: imp }),
+            Ok(imp) => Ok(MidiInputConnection { imp }),
             Err(imp) => {
                 let kind = imp.kind();
-                Err(ConnectError::new(kind, MidiInput { imp: imp.into_inner() }))
-            } 
+                Err(ConnectError::new(
+                    kind,
+                    MidiInput {
+                        imp: imp.into_inner(),
+                    },
+                ))
+            }
         }
     }
 }
 
 /// Represents an open connection to a MIDI input port.
 pub struct MidiInputConnection<T: 'static> {
-    imp: MidiInputConnectionImpl<T>
+    imp: MidiInputConnectionImpl<T>,
 }
 
 impl<T> MidiInputConnection<T> {
@@ -164,7 +196,7 @@ impl<T> MidiInputConnection<T> {
     /// but they can be safely ignored.
     pub fn close(self) -> (MidiInput, T) {
         let (imp, data) = self.imp.close();
-        (MidiInput { imp: imp }, data)
+        (MidiInput { imp }, data)
     }
 }
 
@@ -177,7 +209,15 @@ impl<T> MidiInputConnection<T> {
 /// available ports.
 #[derive(Clone, PartialEq)]
 pub struct MidiOutputPort {
-    pub(crate) imp: MidiOutputPortImpl
+    pub(crate) imp: MidiOutputPortImpl,
+}
+
+impl MidiOutputPort {
+    /// Get a unique stable identifier for this port.
+    /// This identifier must be treated as an opaque string.
+    pub fn id(&self) -> String {
+        self.imp.id()
+    }
 }
 
 /// A collection of output ports.
@@ -186,13 +226,13 @@ pub type MidiOutputPorts = Vec<MidiOutputPort>;
 /// An instance of `MidiOutput` is required for anything related to MIDI output.
 /// Create one with `MidiOutput::new`.
 pub struct MidiOutput {
-    imp: MidiOutputImpl
+    imp: MidiOutputImpl,
 }
 
 impl MidiOutput {
     /// Creates a new `MidiOutput` object that is required for any MIDI output functionality.
     pub fn new(client_name: &str) -> Result<Self, InitError> {
-        MidiOutputImpl::new(client_name).map(|imp| MidiOutput { imp: imp })
+        MidiOutputImpl::new(client_name).map(|imp| MidiOutput { imp })
     }
 
     /// Get a collection of all MIDI output ports that *midir* can connect to.
@@ -202,12 +242,12 @@ impl MidiOutput {
     pub fn ports(&self) -> MidiOutputPorts {
         self.imp.ports_internal()
     }
-    
+
     /// Get the number of available MIDI output ports that *midir* can connect to.
     pub fn port_count(&self) -> usize {
         self.imp.port_count()
     }
-    
+
     /// Get the name of a specified MIDI output port.
     ///
     /// An error will be returned when the port is no longer valid
@@ -215,7 +255,12 @@ impl MidiOutput {
     pub fn port_name(&self, port: &MidiOutputPort) -> Result<String, PortInfoError> {
         self.imp.port_name(&port.imp)
     }
-    
+
+    /// Get a MIDI output port by its unique identifier.
+    pub fn find_port_by_id(&self, id: String) -> Option<MidiOutputPort> {
+        self.ports().into_iter().find(|port| port.id() == id)
+    }
+
     /// Connect to a specified MIDI output port in order to send messages.
     /// The connection will be kept open as long as the returned
     /// `MidiOutputConnection` is kept alive.
@@ -225,13 +270,22 @@ impl MidiOutput {
     ///
     /// An error will be returned when the port is no longer valid
     /// (e.g. the respective device has been disconnected).
-    pub fn connect(self, port: &MidiOutputPort, port_name: &str) -> Result<MidiOutputConnection, ConnectError<MidiOutput>> {
+    pub fn connect(
+        self,
+        port: &MidiOutputPort,
+        port_name: &str,
+    ) -> Result<MidiOutputConnection, ConnectError<MidiOutput>> {
         match self.imp.connect(&port.imp, port_name) {
-            Ok(imp) => Ok(MidiOutputConnection { imp: imp }),
+            Ok(imp) => Ok(MidiOutputConnection { imp }),
             Err(imp) => {
                 let kind = imp.kind();
-                Err(ConnectError::new(kind, MidiOutput { imp: imp.into_inner() }))
-            } 
+                Err(ConnectError::new(
+                    kind,
+                    MidiOutput {
+                        imp: imp.into_inner(),
+                    },
+                ))
+            }
         }
     }
 }
@@ -253,30 +307,40 @@ impl MidiIO for MidiOutput {
 }
 
 #[cfg(unix)]
-impl ::os::unix::VirtualOutput for MidiOutput {
-    fn create_virtual(self, port_name: &str) -> Result<MidiOutputConnection, ConnectError<MidiOutput>> {
+impl crate::os::unix::VirtualOutput for MidiOutput {
+    fn create_virtual(
+        self,
+        port_name: &str,
+    ) -> Result<MidiOutputConnection, ConnectError<MidiOutput>> {
         match self.imp.create_virtual(port_name) {
-            Ok(imp) => Ok(MidiOutputConnection { imp: imp }),
+            Ok(imp) => Ok(MidiOutputConnection { imp }),
             Err(imp) => {
                 let kind = imp.kind();
-                Err(ConnectError::new(kind, MidiOutput { imp: imp.into_inner() }))
-            } 
+                Err(ConnectError::new(
+                    kind,
+                    MidiOutput {
+                        imp: imp.into_inner(),
+                    },
+                ))
+            }
         }
     }
 }
 
 /// Represents an open connection to a MIDI output port.
 pub struct MidiOutputConnection {
-   imp: MidiOutputConnectionImpl
+    imp: MidiOutputConnectionImpl,
 }
 
 impl MidiOutputConnection {
     /// Closes the connection. The returned value allows you to
     /// reuse the `MidiOutput` object, but it can be safely ignored.
     pub fn close(self) -> MidiOutput {
-        MidiOutput { imp: self.imp.close() }
+        MidiOutput {
+            imp: self.imp.close(),
+        }
     }
-    
+
     /// Send a message to the port that this output connection is connected to.
     /// The message must be a valid MIDI message (see https://www.midi.org/specifications-old/item/table-1-summary-of-midi-message).
     pub fn send(&mut self, message: &[u8]) -> Result<(), SendError> {
@@ -294,7 +358,8 @@ mod tests {
         fn is_send<T: Send>() {}
         is_send::<MidiInput>();
         is_send::<MidiOutput>();
-        #[cfg(not(target_arch = "wasm32"))] {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
             // The story around threading and `Send` on WASM is not clear yet
             // Tracking issue:      https://github.com/Boddlnagg/midir/issues/49
             // Prev. discussion:    https://github.com/Boddlnagg/midir/pull/47

@@ -8,7 +8,7 @@ license = "MPL-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-midir = "0.7.0"
+midir = "0.10.1"
 nsstring = { path = "../../../xpcom/rust/nsstring/" }
 uuid = { version = "1.0", features = ["v4"] }
 thin-vec = { version = "0.2.1", features = ["gecko-ffi"] }

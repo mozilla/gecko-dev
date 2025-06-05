@@ -1,14 +1,12 @@
-extern crate midir;
-
-use std::io::{stdin, stdout, Write};
 use std::error::Error;
+use std::io::{stdin, stdout, Write};
 
-use midir::{MidiInput, MidiOutput, MidiIO, Ignore};
+use midir::{Ignore, MidiIO, MidiInput, MidiOutput};
 
 fn main() {
     match run() {
         Ok(_) => (),
-        Err(err) => println!("Error: {}", err)
+        Err(err) => println!("Error: {}", err),
     }
 }
 
@@ -29,12 +27,22 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut conn_out = midi_out.connect(&out_port, "midir-forward")?;
 
     // _conn_in needs to be a named parameter, because it needs to be kept alive until the end of the scope
-    let _conn_in = midi_in.connect(&in_port, "midir-forward", move |stamp, message, _| {
-        conn_out.send(message).unwrap_or_else(|_| println!("Error when forwarding message ..."));
-        println!("{}: {:?} (len = {})", stamp, message, message.len());
-    }, ())?;
+    let _conn_in = midi_in.connect(
+        &in_port,
+        "midir-forward",
+        move |stamp, message, _| {
+            conn_out
+                .send(message)
+                .unwrap_or_else(|_| println!("Error when forwarding message ..."));
+            println!("{}: {:?} (len = {})", stamp, message, message.len());
+        },
+        (),
+    )?;
 
-    println!("Connections open, forwarding from '{}' to '{}' (press enter to exit) ...", in_port_name, out_port_name);
+    println!(
+        "Connections open, forwarding from '{}' to '{}' (press enter to exit) ...",
+        in_port_name, out_port_name
+    );
 
     let mut input = String::new();
     stdin().read_line(&mut input)?; // wait for next enter key press
@@ -53,8 +61,9 @@ fn select_port<T: MidiIO>(midi_io: &T, descr: &str) -> Result<T::Port, Box<dyn E
     stdout().flush()?;
     let mut input = String::new();
     stdin().read_line(&mut input)?;
-    let port = midi_ports.get(input.trim().parse::<usize>()?)
-                         .ok_or("Invalid port number")?;
+    let port = midi_ports
+        .get(input.trim().parse::<usize>()?)
+        .ok_or("Invalid port number")?;
     Ok(port.clone())
 }
 

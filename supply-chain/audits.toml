@@ -662,6 +662,12 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.7.0 -> 0.8.1"
 
+[[audits.alsa]]
+who = "Gabriele Svelto <gsvelto@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.8.1 -> 0.9.1"
+notes = "Most changes are safe and related to error handling, new unsafe blocks and ioctl() calls appear sound."
+
 [[audits.android-tzdata]]
 who = "Mark Hammond <mhammond@skippinet.com.au>"
 criteria = "safe-to-deploy"
@@ -1400,6 +1406,17 @@ delta = "0.2.12 -> 0.2.13"
 who = "Andreas Pehrson <apehrson@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.2.13 -> 0.2.14"
+
+[[audits.coremidi]]
+who = "Gabriele Svelto <gsvelto@mozilla.com>"
+criteria = "safe-to-deploy"
+version = "0.8.0"
+
+[[audits.coremidi-sys]]
+who = "Gabriele Svelto <gsvelto@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "3.1.0 -> 3.2.0"
+notes = "Machine generated bindings, no unsafe or dangerous changes"
 
 [[audits.cose]]
 who = "Mathew Hodson <mathew.hodson@gmail.com>"
@@ -3483,10 +3500,17 @@ criteria = "safe-to-deploy"
 delta = "0.7.0 -> 0.7.0@git:519e651241e867af3391db08f9ae6400bc023e18"
 
 [[audits.midir]]
-who = "Mike Hommey <mh+mozilla@glandium.org>"
+who = "Gabriele Svelto <gsvelto@mozilla.com>"
 criteria = "safe-to-deploy"
-delta = "0.7.0 -> 0.7.0@git:85156e360a37d851734118104619f86bd18e94c6"
+delta = "0.7.0 -> 0.10.1"
+notes = "Large formatting changes and some safe additions, the very few modified unsafe blocks deal with explicit memory management and appear to be sound."
+
+[[audits.midir]]
+who = "Gabriele Svelto <gsvelto@mozilla.com>"
+criteria = "safe-to-deploy"
+delta = "0.10.1 -> 0.10.1@git:37ad39de3382c2aad0758dab49ba545331a2257d"
 importable = false
+notes = "Minimal changes to enable vendoring the crate"
 
 [[audits.minidump-common]]
 who = "Gabriele Svelto <gsvelto@mozilla.com>"

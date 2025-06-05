@@ -1,11 +1,28 @@
-use std::mem::MaybeUninit;
-
 use core_foundation::{
     base::{CFGetRetainCount, CFIndex, CFTypeRef, OSStatus, TCFType},
     string::{CFString, CFStringRef},
 };
+use std::mem::MaybeUninit;
 
-use coremidi_sys::*;
+use coremidi_sys::{
+    kMIDIPropertyAdvanceScheduleTimeMuSec, kMIDIPropertyCanRoute, kMIDIPropertyConnectionUniqueID,
+    kMIDIPropertyDeviceID, kMIDIPropertyDisplayName, kMIDIPropertyDriverDeviceEditorApp,
+    kMIDIPropertyDriverOwner, kMIDIPropertyDriverVersion, kMIDIPropertyIsBroadcast,
+    kMIDIPropertyIsDrumMachine, kMIDIPropertyIsEffectUnit, kMIDIPropertyIsEmbeddedEntity,
+    kMIDIPropertyIsMixer, kMIDIPropertyIsSampler, kMIDIPropertyManufacturer,
+    kMIDIPropertyMaxReceiveChannels, kMIDIPropertyMaxSysExSpeed, kMIDIPropertyMaxTransmitChannels,
+    kMIDIPropertyModel, kMIDIPropertyName, kMIDIPropertyOffline, kMIDIPropertyPanDisruptsStereo,
+    kMIDIPropertyPrivate, kMIDIPropertyProtocolID, kMIDIPropertyReceiveChannels,
+    kMIDIPropertyReceivesBankSelectLSB, kMIDIPropertyReceivesBankSelectMSB,
+    kMIDIPropertyReceivesClock, kMIDIPropertyReceivesMTC, kMIDIPropertyReceivesNotes,
+    kMIDIPropertyReceivesProgramChanges, kMIDIPropertySingleRealtimeEntity,
+    kMIDIPropertySupportsGeneralMIDI, kMIDIPropertySupportsMMC, kMIDIPropertySupportsShowControl,
+    kMIDIPropertyTransmitChannels, kMIDIPropertyTransmitsBankSelectLSB,
+    kMIDIPropertyTransmitsBankSelectMSB, kMIDIPropertyTransmitsClock, kMIDIPropertyTransmitsMTC,
+    kMIDIPropertyTransmitsNotes, kMIDIPropertyTransmitsProgramChanges, kMIDIPropertyUniqueID,
+    MIDIObjectGetIntegerProperty, MIDIObjectGetStringProperty, MIDIObjectSetIntegerProperty,
+    MIDIObjectSetStringProperty, SInt32,
+};
 
 use crate::{object::Object, result_from_status, unit_result_from_status};
 
@@ -181,220 +198,225 @@ where
 pub struct Properties;
 
 impl Properties {
-    /// See [kMIDIPropertyName](https://developer.apple.com/reference/coremidi/kmidipropertyname)
+    /// See [kMIDIPropertyName](https://developer.apple.com/documentation/coremidi/kmidipropertyname)
     pub fn name() -> StringProperty {
         StringProperty::from_constant_string_ref(unsafe { kMIDIPropertyName })
     }
 
-    /// See [kMIDIPropertyManufacturer](https://developer.apple.com/reference/coremidi/kmidipropertymanufacturer)
+    /// See [kMIDIPropertyManufacturer](https://developer.apple.com/documentation/coremidi/kmidipropertymanufacturer)
     pub fn manufacturer() -> StringProperty {
         StringProperty::from_constant_string_ref(unsafe { kMIDIPropertyManufacturer })
     }
 
-    /// See [kMIDIPropertyModel](https://developer.apple.com/reference/coremidi/kmidipropertymodel)
+    /// See [kMIDIPropertyModel](https://developer.apple.com/documentation/coremidi/kmidipropertymodel)
     pub fn model() -> StringProperty {
         StringProperty::from_constant_string_ref(unsafe { kMIDIPropertyModel })
     }
 
-    /// See [kMIDIPropertyUniqueID](https://developer.apple.com/reference/coremidi/kmidipropertyuniqueid)
+    /// See [kMIDIPropertyUniqueID](https://developer.apple.com/documentation/coremidi/kmidipropertyuniqueid)
     pub fn unique_id() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyUniqueID })
     }
 
-    /// See [kMIDIPropertyDeviceID](https://developer.apple.com/reference/coremidi/kmidipropertydeviceid)
+    /// See [kMIDIPropertyDeviceID](https://developer.apple.com/documentation/coremidi/kmidipropertydeviceid)
     pub fn device_id() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyDeviceID })
     }
 
-    /// See [kMIDIPropertyReceiveChannels](https://developer.apple.com/reference/coremidi/kmidipropertyreceivechannels)
+    /// See [kMIDIPropertyReceiveChannels](https://developer.apple.com/documentation/coremidi/kmidipropertyreceivechannels)
     pub fn receive_channels() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyReceiveChannels })
     }
 
-    /// See [kMIDIPropertyTransmitChannels](https://developer.apple.com/reference/coremidi/kmidipropertytransmitchannels)
+    /// See [kMIDIPropertyTransmitChannels](https://developer.apple.com/documentation/coremidi/kmidipropertytransmitchannels)
     pub fn transmit_channels() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitChannels })
     }
 
-    /// See [kMIDIPropertyMaxSysExSpeed](https://developer.apple.com/reference/coremidi/kmidipropertymaxsysexspeed)
+    /// See [kMIDIPropertyMaxSysExSpeed](https://developer.apple.com/documentation/coremidi/kmidipropertymaxsysexspeed)
     pub fn max_sysex_speed() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyMaxSysExSpeed })
     }
 
-    /// See [kMIDIPropertyAdvanceScheduleTimeMuSec](https://developer.apple.com/reference/coremidi/kMIDIPropertyAdvanceScheduleTimeMuSec)
+    /// See [kMIDIPropertyAdvanceScheduleTimeMuSec](https://developer.apple.com/documentation/coremidi/kMIDIPropertyAdvanceScheduleTimeMuSec)
     pub fn advance_schedule_time_musec() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyAdvanceScheduleTimeMuSec })
     }
 
-    /// See [kMIDIPropertyIsEmbeddedEntity](https://developer.apple.com/reference/coremidi/kMIDIPropertyIsEmbeddedEntity)
+    /// See [kMIDIPropertyIsEmbeddedEntity](https://developer.apple.com/documentation/coremidi/kMIDIPropertyIsEmbeddedEntity)
     pub fn is_embedded_entity() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyIsEmbeddedEntity })
     }
 
-    /// See [kMIDIPropertyIsBroadcast](https://developer.apple.com/reference/coremidi/kMIDIPropertyIsBroadcast)
+    /// See [kMIDIPropertyIsBroadcast](https://developer.apple.com/documentation/coremidi/kMIDIPropertyIsBroadcast)
     pub fn is_broadcast() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyIsBroadcast })
     }
 
-    /// See [kMIDIPropertySingleRealtimeEntity](https://developer.apple.com/reference/coremidi/kMIDIPropertySingleRealtimeEntity)
+    /// See [kMIDIPropertySingleRealtimeEntity](https://developer.apple.com/documentation/coremidi/kMIDIPropertySingleRealtimeEntity)
     pub fn single_realtime_entity() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertySingleRealtimeEntity })
     }
 
-    /// See [kMIDIPropertyConnectionUniqueID](https://developer.apple.com/reference/coremidi/kMIDIPropertyConnectionUniqueID)
+    /// See [kMIDIPropertyConnectionUniqueID](https://developer.apple.com/documentation/coremidi/kMIDIPropertyConnectionUniqueID)
     pub fn connection_unique_id() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyConnectionUniqueID })
     }
 
-    /// See [kMIDIPropertyOffline](https://developer.apple.com/reference/coremidi/kMIDIPropertyOffline)
+    /// See [kMIDIPropertyOffline](https://developer.apple.com/documentation/coremidi/kMIDIPropertyOffline)
     pub fn offline() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyOffline })
     }
 
-    /// See [kMIDIPropertyPrivate](https://developer.apple.com/reference/coremidi/kMIDIPropertyPrivate)
+    /// See [kMIDIPropertyPrivate](https://developer.apple.com/documentation/coremidi/kMIDIPropertyPrivate)
     pub fn private() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyPrivate })
     }
 
-    /// See [kMIDIPropertyDriverOwner](https://developer.apple.com/reference/coremidi/kMIDIPropertyDriverOwner)
+    /// See [kMIDIPropertyDriverOwner](https://developer.apple.com/documentation/coremidi/kMIDIPropertyDriverOwner)
     pub fn driver_owner() -> StringProperty {
         StringProperty::from_constant_string_ref(unsafe { kMIDIPropertyDriverOwner })
     }
 
-    // /// See [kMIDIPropertyNameConfiguration](https://developer.apple.com/reference/coremidi/kMIDIPropertyNameConfiguration)
+    // /// See [kMIDIPropertyNameConfiguration](https://developer.apple.com/documentation/coremidi/kMIDIPropertyNameConfiguration)
     // pub fn name_configuration() -> Property { unsafe { Property(kMIDIPropertyNameConfiguration) } }
 
-    // /// See [kMIDIPropertyImage](https://developer.apple.com/reference/coremidi/kMIDIPropertyImage)
+    // /// See [kMIDIPropertyImage](https://developer.apple.com/documentation/coremidi/kMIDIPropertyImage)
     // pub fn image() -> Property { unsafe { Property(kMIDIPropertyImage) } }
 
-    /// See [kMIDIPropertyDriverVersion](https://developer.apple.com/reference/coremidi/kMIDIPropertyDriverVersion)
+    /// See [kMIDIPropertyDriverVersion](https://developer.apple.com/documentation/coremidi/kMIDIPropertyDriverVersion)
     pub fn driver_version() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyDriverVersion })
     }
 
-    /// See [kMIDIPropertySupportsGeneralMIDI](https://developer.apple.com/reference/coremidi/kMIDIPropertySupportsGeneralMIDI)
+    /// See [kMIDIPropertySupportsGeneralMIDI](https://developer.apple.com/documentation/coremidi/kMIDIPropertySupportsGeneralMIDI)
     pub fn supports_general_midi() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertySupportsGeneralMIDI })
     }
 
-    /// See [kMIDIPropertySupportsMMC](https://developer.apple.com/reference/coremidi/kMIDIPropertySupportsMMC)
+    /// See [kMIDIPropertySupportsMMC](https://developer.apple.com/documentation/coremidi/kMIDIPropertySupportsMMC)
     pub fn supports_mmc() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertySupportsMMC })
     }
 
-    /// See [kMIDIPropertyCanRoute](https://developer.apple.com/reference/coremidi/kMIDIPropertyCanRoute)
+    /// See [kMIDIPropertyCanRoute](https://developer.apple.com/documentation/coremidi/kMIDIPropertyCanRoute)
     pub fn can_route() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyCanRoute })
     }
 
-    /// See [kMIDIPropertyReceivesClock](https://developer.apple.com/reference/coremidi/kMIDIPropertyReceivesClock)
+    /// See [kMIDIPropertyReceivesClock](https://developer.apple.com/documentation/coremidi/kMIDIPropertyReceivesClock)
     pub fn receives_clock() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyReceivesClock })
     }
 
-    /// See [kMIDIPropertyReceivesMTC](https://developer.apple.com/reference/coremidi/kMIDIPropertyReceivesMTC)
+    /// See [kMIDIPropertyReceivesMTC](https://developer.apple.com/documentation/coremidi/kMIDIPropertyReceivesMTC)
     pub fn receives_mtc() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyReceivesMTC })
     }
 
-    /// See [kMIDIPropertyReceivesNotes](https://developer.apple.com/reference/coremidi/kMIDIPropertyReceivesNotes)
+    /// See [kMIDIPropertyReceivesNotes](https://developer.apple.com/documentation/coremidi/kMIDIPropertyReceivesNotes)
     pub fn receives_notes() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyReceivesNotes })
     }
 
-    /// See [kMIDIPropertyReceivesProgramChanges](https://developer.apple.com/reference/coremidi/kMIDIPropertyReceivesProgramChanges)
+    /// See [kMIDIPropertyReceivesProgramChanges](https://developer.apple.com/documentation/coremidi/kMIDIPropertyReceivesProgramChanges)
     pub fn receives_program_changes() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyReceivesProgramChanges })
     }
 
-    /// See [kMIDIPropertyReceivesBankSelectMSB](https://developer.apple.com/reference/coremidi/kMIDIPropertyReceivesBankSelectMSB)
+    /// See [kMIDIPropertyReceivesBankSelectMSB](https://developer.apple.com/documentation/coremidi/kMIDIPropertyReceivesBankSelectMSB)
     pub fn receives_bank_select_msb() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyReceivesBankSelectMSB })
     }
 
-    /// See [kMIDIPropertyReceivesBankSelectLSB](https://developer.apple.com/reference/coremidi/kMIDIPropertyReceivesBankSelectLSB)
+    /// See [kMIDIPropertyReceivesBankSelectLSB](https://developer.apple.com/documentation/coremidi/kMIDIPropertyReceivesBankSelectLSB)
     pub fn receives_bank_select_lsb() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyReceivesBankSelectLSB })
     }
 
-    /// See [kMIDIPropertyTransmitsBankSelectMSB](https://developer.apple.com/reference/coremidi/kMIDIPropertyTransmitsBankSelectMSB)
-    pub fn transmits_bank_select_msb() -> BooleanProperty {
-        BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitsBankSelectMSB })
-    }
-
-    /// See [kMIDIPropertyTransmitsBankSelectLSB](https://developer.apple.com/reference/coremidi/kMIDIPropertyTransmitsBankSelectLSB)
-    pub fn transmits_bank_select_lsb() -> BooleanProperty {
-        BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitsBankSelectLSB })
-    }
-
-    /// See [kMIDIPropertyTransmitsClock](https://developer.apple.com/reference/coremidi/kMIDIPropertyTransmitsClock)
+    /// See [kMIDIPropertyTransmitsClock](https://developer.apple.com/documentation/coremidi/kMIDIPropertyTransmitsClock)
     pub fn transmits_clock() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitsClock })
     }
 
-    /// See [kMIDIPropertyTransmitsMTC](https://developer.apple.com/reference/coremidi/kMIDIPropertyTransmitsMTC)
+    /// See [kMIDIPropertyTransmitsMTC](https://developer.apple.com/documentation/coremidi/kMIDIPropertyTransmitsMTC)
     pub fn transmits_mtc() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitsMTC })
     }
 
-    /// See [kMIDIPropertyTransmitsNotes](https://developer.apple.com/reference/coremidi/kMIDIPropertyTransmitsNotes)
+    /// See [kMIDIPropertyTransmitsNotes](https://developer.apple.com/documentation/coremidi/kMIDIPropertyTransmitsNotes)
     pub fn transmits_notes() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitsNotes })
     }
 
-    /// See [kMIDIPropertyTransmitsProgramChanges](https://developer.apple.com/reference/coremidi/kMIDIPropertyTransmitsProgramChanges)
+    /// See [kMIDIPropertyTransmitsProgramChanges](https://developer.apple.com/documentation/coremidi/kMIDIPropertyTransmitsProgramChanges)
     pub fn transmits_program_changes() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitsProgramChanges })
     }
 
-    /// See [kMIDIPropertyPanDisruptsStereo](https://developer.apple.com/reference/coremidi/kMIDIPropertyPanDisruptsStereo)
+    /// See [kMIDIPropertyTransmitsBankSelectMSB](https://developer.apple.com/documentation/coremidi/kMIDIPropertyTransmitsBankSelectMSB)
+    pub fn transmits_bank_select_msb() -> BooleanProperty {
+        BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitsBankSelectMSB })
+    }
+
+    /// See [kMIDIPropertyTransmitsBankSelectLSB](https://developer.apple.com/documentation/coremidi/kMIDIPropertyTransmitsBankSelectLSB)
+    pub fn transmits_bank_select_lsb() -> BooleanProperty {
+        BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyTransmitsBankSelectLSB })
+    }
+
+    /// See [kMIDIPropertyPanDisruptsStereo](https://developer.apple.com/documentation/coremidi/kMIDIPropertyPanDisruptsStereo)
     pub fn pan_disrupts_stereo() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyPanDisruptsStereo })
     }
 
-    /// See [kMIDIPropertyIsSampler](https://developer.apple.com/reference/coremidi/kMIDIPropertyIsSampler)
+    /// See [kMIDIPropertyIsSampler](https://developer.apple.com/documentation/coremidi/kMIDIPropertyIsSampler)
     pub fn is_sampler() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyIsSampler })
     }
 
-    /// See [kMIDIPropertyIsDrumMachine](https://developer.apple.com/reference/coremidi/kMIDIPropertyIsDrumMachine)
+    /// See [kMIDIPropertyIsDrumMachine](https://developer.apple.com/documentation/coremidi/kMIDIPropertyIsDrumMachine)
     pub fn is_drum_machine() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyIsDrumMachine })
     }
 
-    /// See [kMIDIPropertyIsMixer](https://developer.apple.com/reference/coremidi/kMIDIPropertyIsMixer)
+    /// See [kMIDIPropertyIsMixer](https://developer.apple.com/documentation/coremidi/kMIDIPropertyIsMixer)
     pub fn is_mixer() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyIsMixer })
     }
 
-    /// See [kMIDIPropertyIsEffectUnit](https://developer.apple.com/reference/coremidi/kMIDIPropertyIsEffectUnit)
+    /// See [kMIDIPropertyIsEffectUnit](https://developer.apple.com/documentation/coremidi/kMIDIPropertyIsEffectUnit)
     pub fn is_effect_unit() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertyIsEffectUnit })
     }
 
-    /// See [kMIDIPropertyMaxReceiveChannels](https://developer.apple.com/reference/coremidi/kMIDIPropertyMaxReceiveChannels)
+    /// See [kMIDIPropertyMaxReceiveChannels](https://developer.apple.com/documentation/coremidi/kMIDIPropertyMaxReceiveChannels)
     pub fn max_receive_channels() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyMaxReceiveChannels })
     }
 
-    /// See [kMIDIPropertyMaxTransmitChannels](https://developer.apple.com/reference/coremidi/kMIDIPropertyMaxTransmitChannels)
+    /// See [kMIDIPropertyMaxTransmitChannels](https://developer.apple.com/documentation/coremidi/kMIDIPropertyMaxTransmitChannels)
     pub fn max_transmit_channels() -> IntegerProperty {
         IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyMaxTransmitChannels })
     }
 
-    /// See [kMIDIPropertyDriverDeviceEditorApp](https://developer.apple.com/reference/coremidi/kMIDIPropertyDriverDeviceEditorApp)
+    /// See [kMIDIPropertyDriverDeviceEditorApp](https://developer.apple.com/documentation/coremidi/kMIDIPropertyDriverDeviceEditorApp)
     pub fn driver_device_editor_app() -> StringProperty {
         StringProperty::from_constant_string_ref(unsafe { kMIDIPropertyDriverDeviceEditorApp })
     }
 
-    /// See [kMIDIPropertySupportsShowControl](https://developer.apple.com/reference/coremidi/kMIDIPropertySupportsShowControl)
+    /// See [kMIDIPropertySupportsShowControl](https://developer.apple.com/documentation/coremidi/kMIDIPropertySupportsShowControl)
     pub fn supports_show_control() -> BooleanProperty {
         BooleanProperty::from_constant_string_ref(unsafe { kMIDIPropertySupportsShowControl })
     }
 
-    /// See [kMIDIPropertyDisplayName](https://developer.apple.com/reference/coremidi/kMIDIPropertyDisplayName)
+    /// See [kMIDIPropertyDisplayName](https://developer.apple.com/documentation/coremidi/kMIDIPropertyDisplayName)
     pub fn display_name() -> StringProperty {
         StringProperty::from_constant_string_ref(unsafe { kMIDIPropertyDisplayName })
+    }
+
+    /// See [kMIDIPropertyProtocolID](https://developer.apple.com/documentation/coremidi/kmidipropertyprotocolid)
+    pub fn protocol_id() -> IntegerProperty {
+        IntegerProperty::from_constant_string_ref(unsafe { kMIDIPropertyProtocolID })
     }
 }
 
@@ -402,13 +424,15 @@ impl Properties {
 mod tests {
     use super::*;
 
-    use crate::{endpoints::destinations::VirtualDestination, Client};
+    use crate::{endpoints::destinations::VirtualDestination, Client, Protocol};
 
     const NAME_ORIG: &str = "A";
 
     fn setup() -> (Client, VirtualDestination) {
         let client = Client::new("Test Client").unwrap();
-        let dest = client.virtual_destination(NAME_ORIG, |_| ()).unwrap();
+        let dest = client
+            .virtual_destination_with_protocol(NAME_ORIG, Protocol::Midi10, |_| ())
+            .unwrap();
         (client, dest)
     }
 
@@ -502,7 +526,7 @@ mod tests {
             property.set_value(&dest, true).unwrap();
             let value: bool = property.value_from(&dest).unwrap();
 
-            assert_eq!(value, true);
+            assert!(value);
         }
     }
 }

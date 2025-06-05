@@ -1,25 +1,51 @@
-extern crate coremidi;
-
-use coremidi::{Client, PacketList, Properties, PropertyGetter, PropertySetter};
+use coremidi::{Client, EventList, Properties, Protocol};
 
 fn main() {
     let client = Client::new("Example Client").unwrap();
 
-    let callback = |packet_list: &PacketList| {
-        println!("{}", packet_list);
+    let callback = |event_list: &EventList| {
+        println!("{:?}", event_list);
     };
 
     // Creates a virtual destination, then gets its properties
     let destination = client
-        .virtual_destination("Example Destination", callback)
+        .virtual_destination_with_protocol("Example Destination", Protocol::Midi20, callback)
         .unwrap();
 
-    println!("Created Virtual Destination...");
+    // All coremidi structs dereference to an Object, so you can directly
+    // ask for some of the supported properties invoking a method like:
 
-    // How to get a property
-    let name: String = Properties::name().value_from(&destination).unwrap();
-    println!("With Name: {}", name);
+    println!("Created Virtual Destination:");
+    println!("  Display Name: {}", destination.display_name().unwrap());
 
-    // How to set a property
-    Properties::private().set_value(&destination, true).unwrap();
+    // The rest of the supported properties can be accessed like:
+
+    println!(
+        "  Protocol ID: {}",
+        destination
+            .get_property::<i32>(&Properties::protocol_id())
+            .unwrap()
+    );
+
+    destination
+        .set_property(&Properties::private(), true)
+        .unwrap();
+    println!(
+        "  Private: {}",
+        destination
+            .get_property::<bool>(&Properties::private())
+            .unwrap()
+    );
+
+    // You can also set/get your own properties like:
+
+    destination
+        .set_property_string("my-own-string-property", "my-value")
+        .unwrap();
+    println!(
+        "  My own string property: {}",
+        destination
+            .get_property_string("my-own-string-property")
+            .unwrap()
+    )
 }

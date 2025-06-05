@@ -5,47 +5,64 @@ jobs:
   strategy:
     matrix:
       stable:
-        rustup_toolchain: stable-${{ parameters.target }}
+        rustup_toolchain: stable-${{ parameters.toolchain }}
+        rustup_target: ${{ parameters.target }}
         features: ""
       ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
         beta:
-          rustup_toolchain: beta-${{ parameters.target }}
+          rustup_toolchain: beta-${{ parameters.toolchain }}
+          rustup_target: ${{ parameters.target }}
           features: ""
         nightly:
-          rustup_toolchain: nightly-${{ parameters.target }}
+          rustup_toolchain: nightly-${{ parameters.toolchain }}
+          rustup_target: ${{ parameters.target }}
           features: ""
       ${{ if startsWith(parameters.name, 'Windows') }}:
         stable-winrt:
-          rustup_toolchain: stable-${{ parameters.target }}
+          rustup_toolchain: stable-${{ parameters.toolchain }}
+          rustup_target: ${{ parameters.target }}
           features: "winrt"
         ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
           beta-winrt:
-            rustup_toolchain: beta-${{ parameters.target }}
+            rustup_toolchain: beta-${{ parameters.toolchain }}
+            rustup_target: ${{ parameters.target }}
             features: "winrt"
           nightly-winrt:
-            rustup_toolchain: nightly-${{ parameters.target }}
+            rustup_toolchain: nightly-${{ parameters.toolchain }}
+            rustup_target: ${{ parameters.target }}
             features: "winrt"
-      ${{ if and(not(startsWith(parameters.name, 'Windows')), not(endsWith(parameters.name, 'WASM'))) }}:
+      ${{ if and(not(startsWith(parameters.name, 'Windows')), not(endsWith(parameters.name, 'WASM')), not(startsWith(parameters.name, 'iOS'))) }}:
         stable-jack:
-          rustup_toolchain: stable-${{ parameters.target }}
+          rustup_toolchain: stable-${{ parameters.toolchain }}
+          rustup_target: ${{ parameters.target }}
           features: "jack"
         ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/master') }}:
           beta-jack:
-            rustup_toolchain: beta-${{ parameters.target }}
+            rustup_toolchain: beta-${{ parameters.toolchain }}
+            rustup_target: ${{ parameters.target }}
             features: "jack"
           nightly-jack:
-            rustup_toolchain: nightly-${{ parameters.target }}
+            rustup_toolchain: nightly-${{ parameters.toolchain }}
+            rustup_target: ${{ parameters.target }}
             features: "jack"
   steps:
   - ${{ if not(startsWith(parameters.name, 'Windows')) }}:
-    # Linux and macOS
+    # Install Rust (non-Windows)
     - script: |
         curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUSTUP_TOOLCHAIN
         export PATH="$HOME/.cargo/bin:$PATH"
         echo "##vso[task.setvariable variable=PATH;]$PATH"
       displayName: Install Rust
-  - ${{ if and(startsWith(parameters.name, 'Linux'), not(endsWith(parameters.name, 'WASM'))) }}:
-    # Linux only
+  - ${{ if startsWith(parameters.name, 'Windows') }}:
+    # Install Rust (Windows)
+    - script: |
+        curl -sSf -o rustup-init.exe https://win.rustup.rs
+        rustup-init.exe -y --default-toolchain %RUSTUP_TOOLCHAIN%
+        set PATH=%PATH%;%USERPROFILE%\.cargo\bin
+        echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
+      displayName: Install Rust (Windows)
+  - ${{ if and(startsWith(parameters.name, 'Linux'), not(endsWith(parameters.name, 'WASM')), not(endsWith(parameters.name, 'ARM'))) }}:
+    # Linux on x86_64 only
     - script: |
         sudo apt-get update && sudo apt-get install -y libasound2-dev libjack-jackd2-dev
       displayName: Install ALSA and Jack dependencies
@@ -56,19 +73,27 @@ jobs:
           curl -LOS https://github.com/jackaudio/jackaudio.github.com/releases/download/1.9.11/JackOSX.0.92_b3.zip && unzip JackOSX.0.92_b3.zip && sudo installer -pkg JackOSX.0.92_b3.pkg -target /
         fi
       displayName: Install Jack dependencies
-  - ${{ if endsWith(parameters.name, 'WASM') }}:
-    # WASM only
+  # Install target (might be a no-op)
+  # Use bash for cross-platform env variable syntax
+  - bash: rustup target add "$RUSTUP_TARGET"
+    displayName: Add rustup target
+  - ${{ if endsWith(parameters.name, 'ARM') }}:
+    # Linux on ARM only
     - script: |
-        rustup target add wasm32-unknown-unknown
-      displayName: Add wasm32-unknown-unknown target
-  - ${{ if startsWith(parameters.name, 'Windows') }}:
-    # Windows
+        grep "^deb http://azure.archive" /etc/apt/sources.list | sed 's/deb\ http:\/\/azure.archive.ubuntu.com\/ubuntu/deb\ [arch=arm64]\ http:\/\/ports.ubuntu.com\/ubuntu-ports/' > $HOME/arm-sources.list	
+        sudo sed -i 's/deb\ /deb\ \[arch=amd64\]\ /' /etc/apt/sources.list
+        sudo sh -c "cat $HOME/arm-sources.list >> /etc/apt/sources.list"
+        rm $HOME/arm-sources.list
+        sudo dpkg --add-architecture arm64
+        sudo apt-get update
+        sudo apt-get install -y libc6-arm64-cross libc6-dev-arm64-cross gcc-aarch64-linux-gnu
+      displayName: Set up ARM cross-compilation environment
     - script: |
-        curl -sSf -o rustup-init.exe https://win.rustup.rs
-        rustup-init.exe -y --default-toolchain %RUSTUP_TOOLCHAIN%
-        set PATH=%PATH%;%USERPROFILE%\.cargo\bin
-        echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
-      displayName: Install Rust (Windows)
+        echo -e "[build]\ntarget = \"aarch64-unknown-linux-gnu\"\n[target.aarch64-unknown-linux-gnu]\nlinker = \"aarch64-linux-gnu-gcc\"\n[env]\nPKG_CONFIG_PATH=\"/usr/lib/aarch64-linux-gnu/pkgconfig\"\nPKG_CONFIG_ALLOW_CROSS=\"true\"">$HOME/.cargo/config
+      displayName: Add aarch64-unknown-linux-gnu target
+    - script: |
+        sudo apt-get install -y libasound2-dev:arm64 libjack-jackd2-dev:arm64
+      displayName: Install ALSA and Jack dependencies
   # All platforms
   - script: |
         rustc -Vv
@@ -76,20 +101,20 @@ jobs:
     displayName: Query installed versions
   - ${{ if not(endsWith(parameters.name, 'WASM')) }}:
     # Use bash for cross-platform env variable syntax
-    - bash: cargo build --verbose --features "$FEATURES"
+    - bash: cargo build --verbose --target "$RUSTUP_TARGET" --features "$FEATURES"
       displayName: Build
-    - bash: cargo build --features "$FEATURES" --example test_list_ports
+    - bash: cargo build --target "$RUSTUP_TARGET" --features "$FEATURES" --example test_list_ports
       displayName: Build example program
-    - ${{ if not(startsWith(parameters.name, 'Linux')) }}:
-      # Tests cannot run on Linux (missing ALSA driver) or with Jack (Jack not running)
+    - ${{ if and(not(startsWith(parameters.name, 'Linux')), not(startsWith(parameters.name, 'iOS'))) }}:
+      # Tests cannot run on Linux (missing ALSA driver), or with Jack (Jack not running), or for cross-platform ARM build
       - bash: |
           if [[ "$FEATURES" != *"jack"* ]]; then
-            cargo test --verbose --features "$FEATURES"
+            cargo test --verbose --target "$RUSTUP_TARGET" --features "$FEATURES"
           fi
         displayName: Run unit tests
       - bash: |
           if [[ "$FEATURES" != *"jack"* ]]; then
-            cargo run --features "$FEATURES" --example test_list_ports
+            cargo run --target "$RUSTUP_TARGET" --features "$FEATURES" --example test_list_ports
           fi
         displayName: Run example program
   - ${{ if endsWith(parameters.name, 'WASM') }}:
