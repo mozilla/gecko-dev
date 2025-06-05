@@ -208,6 +208,8 @@ class TransactionBuilder final {
 
   void UpdateQualitySettings(bool aForceSubpixelAAWherePossible);
 
+  void RenderOffscreen(wr::WrPipelineId aPipelineId);
+
   void Notify(wr::Checkpoint aWhen, UniquePtr<NotificationHandler> aHandler);
 
   void Clear();

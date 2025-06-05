@@ -154,6 +154,10 @@ void gfx_wr_clear_crash_annotation(mozilla::wr::CrashAnnotation aAnnotation) {
 }
 }
 
+namespace mozilla::gfx {
+    wr::PipelineId GetTemporaryWebRenderPipelineId(wr::PipelineId aMainPipeline);
+}
+
 namespace mozilla::layers {
 
 using namespace mozilla::gfx;
@@ -1152,7 +1156,8 @@ bool WebRenderBridgeParent::SetDisplayList(
     const nsTArray<OpUpdateResource>& aResourceUpdates,
     const nsTArray<RefCountedShmem>& aSmallShmems,
     const nsTArray<ipc::Shmem>& aLargeShmems, const TimeStamp& aTxnStartTime,
-    wr::TransactionBuilder& aTxn, wr::Epoch aWrEpoch) {
+    wr::TransactionBuilder& aTxn, wr::Epoch aWrEpoch,
+    const VsyncId& aVsyncId, bool aRenderOffscreen) {
   bool success =
       UpdateResources(aResourceUpdates, aSmallShmems, aLargeShmems, aTxn);
 
@@ -1166,8 +1171,20 @@ bool WebRenderBridgeParent::SetDisplayList(
         LayoutDeviceIntRect(LayoutDeviceIntPoint(), widgetSize);
     aTxn.SetDocumentView(rect);
   }
-  aTxn.SetDisplayList(aWrEpoch, mPipelineId, aDLDesc, dlItems, dlCache,
+
+  wr::PipelineId pipelineId = mPipelineId;
+  if (aRenderOffscreen) {
+    pipelineId = gfx::GetTemporaryWebRenderPipelineId(pipelineId);
+  }
+
+  aTxn.SetDisplayList(aWrEpoch, pipelineId, aDLDesc, dlItems, dlCache,
                       dlSpatialTreeData);
+
+
+  if (aRenderOffscreen) {
+    aTxn.RenderOffscreen(pipelineId);
+    aTxn.RemovePipeline(pipelineId);
+  }
 
   MaybeNotifyOfLayers(aTxn, true);
 
@@ -1215,13 +1232,6 @@ bool WebRenderBridgeParent::ProcessDisplayListData(
     UpdateAPZScrollData(aWrEpoch, std::move(aDisplayList.mScrollData.ref()));
   }
 
-  if (aRenderOffscreen) {
-    TimeStamp start = TimeStamp::Now();
-    txn.GenerateFrame(aVsyncId, false, wr::RenderReasons::SNAPSHOT);
-    wr::RenderThread::Get()->IncPendingFrameCount(mApi->GetId(), aVsyncId,
-                                                  start);
-  }
-
   txn.SetLowPriority(!IsRootWebRenderBridgeParent());
   sender.emplace(mApi, &txn);
   bool success = true;
@@ -1237,9 +1247,11 @@ bool WebRenderBridgeParent::ProcessDisplayListData(
             std::move(aDisplayList.mDLCache.ref()),
             std::move(aDisplayList.mDLSpatialTree.ref()), aDisplayList.mDLDesc,
             aDisplayList.mResourceUpdates, aDisplayList.mSmallShmems,
-            aDisplayList.mLargeShmems, aTxnStartTime, txn, aWrEpoch) &&
+            aDisplayList.mLargeShmems, aTxnStartTime, txn, aWrEpoch,
+            aVsyncId, aRenderOffscreen) &&
         success;
   }
+
   return success;
 }
 
