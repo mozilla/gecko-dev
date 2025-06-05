@@ -8,13 +8,19 @@
 #define ds_Nestable_h
 
 #include "mozilla/Assertions.h"
-#include "mozilla/Attributes.h"
 
 namespace js {
 
 // A base class for nestable structures.
+//
+// This subclasses of this class must follow a LIFO destruction order, The
+// easiest way to ensure that is adding MOZ_STACK_CLASS to the subclasses.
+// This class doesn't have the MOZ_STACK_CLASS annotation in order to allow
+// specific cases where the subclasses can be allocated on heap for reduced
+// stack usage and other implementation specific reasons, but even in such
+// cases the subclasses must follow a LIFO destruction order.
 template <typename Concrete>
-class MOZ_STACK_CLASS Nestable {
+class Nestable {
   Concrete** stack_;
   Concrete* enclosing_;
 
