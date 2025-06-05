@@ -943,7 +943,7 @@ FutexWaiterListHead::~FutexWaiterListHead() {
   AutoLockFutexAPI lock;
 
   FutexWaiterListNode* iter = next();
-  while (iter != this) {
+  while (iter && iter != this) {
     // All remaining FutexWaiters must be async. A sync waiter can only exist if
     // a thread is waiting, and that thread must have a reference to the shared
     // array buffer it's waiting on, so that buffer can't be freed.
