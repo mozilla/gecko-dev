@@ -4890,7 +4890,7 @@
 
 - name: dom.text_fragments.create_text_fragment.enabled
   type: bool
-  value: false
+  value: @IS_NIGHTLY_BUILD@
   mirror: always
 
 - name: dom.text_fragments.create_text_fragment.timeout_seconds
