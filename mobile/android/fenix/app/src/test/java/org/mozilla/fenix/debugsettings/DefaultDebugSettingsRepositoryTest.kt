@@ -6,11 +6,14 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.debugsettings.data.DefaultDebugSettingsRepository
@@ -27,6 +30,7 @@ class DefaultDebugSettingsRepositoryTest {
             context = testContext,
             dataStore = dataStore,
             writeScope = this,
+            appIsDebugBuild = false,
         )
         val expected = listOf(false, false, true) // First emit is from initialization
         val expectedEmitCount = expected.size
@@ -47,6 +51,7 @@ class DefaultDebugSettingsRepositoryTest {
             context = testContext,
             dataStore = dataStore,
             writeScope = this,
+            appIsDebugBuild = false,
         )
         val expected = listOf(false, true, false) // First emit is from initialization
         val expectedEmitCount = expected.size
@@ -58,5 +63,31 @@ class DefaultDebugSettingsRepositoryTest {
         assertEquals(expected, defaultDebugSettingsRepository.debugDrawerEnabled.take(expectedEmitCount).toList())
 
         dataStore.edit { it.clear() }
+    }
+
+    @Test
+    fun `GIVEN enabled state has not been read and app is debug build WHEN enabled state is read THEN it should default to true`() = runTest {
+        val dataStore = testContext.testDataStore
+        val defaultDebugSettingsRepository = DefaultDebugSettingsRepository(
+            context = testContext,
+            dataStore = dataStore,
+            writeScope = this,
+            appIsDebugBuild = true,
+        )
+
+        assertTrue(defaultDebugSettingsRepository.debugDrawerEnabled.first())
+    }
+
+    @Test
+    fun `GIVEN enabled state has not been read and app is not debug build WHEN enabled state is read THEN it should default to false`() = runTest {
+        val dataStore = testContext.testDataStore
+        val defaultDebugSettingsRepository = DefaultDebugSettingsRepository(
+            context = testContext,
+            dataStore = dataStore,
+            writeScope = this,
+            appIsDebugBuild = false,
+        )
+
+        assertFalse(defaultDebugSettingsRepository.debugDrawerEnabled.first())
     }
 }
