@@ -422,6 +422,26 @@ class JujutsuRepository(Repository):
         print(f'Set jj config: "{key} = {value_str}"')
         self._run("config", "set", "--repo", key, value_str)
 
+    def _set_default_if_missing(self, config_key: str, default_value):
+        """
+        If `config_key` is missing in jj, set it to `default_value`.
+        """
+        if self.config_key_list_value_missing(config_key):
+            self.set_config_key_value(config_key, default_value)
+        else:
+            print(f'jj config: "{config_key}" already set; skipping')
+
+    def _copy_from_git_if_missing(self, config_key: str) -> bool:
+        """
+        If `config_key` exists in Git and is missing in jj, copy it into jj
+        Returns True if a value was copied (i.e. jj was updated).
+        """
+        git_value = self._git.get_config_key_value(config_key)
+        if git_value and self.config_key_list_value_missing(config_key):
+            self.set_config_key_value(config_key, git_value)
+            return True
+        return False
+
     def configure(self, state_dir: Path, update_only: bool = False):
         """Run the Jujutsu configuration steps."""
         print(USING_JJ_WARNING, file=sys.stderr)
@@ -455,63 +475,32 @@ class JujutsuRepository(Repository):
 
             updated_author = False
 
-            # Copy over the user.name and user.email if they've been set in git but not in jj
-            username_key = "user.name"
-            git_username = self._git.get_config_key_value(username_key)
-            jj_username_missing = self.config_key_list_value_missing(username_key)
-            if git_username and jj_username_missing:
-                self.set_config_key_value(username_key, git_username)
-                updated_author = True
-
-            email_key = "user.email"
-            git_email = self._git.get_config_key_value(email_key)
-            jj_email_missing = self.config_key_list_value_missing(email_key)
-            if git_email and jj_email_missing:
-                self.set_config_key_value(email_key, git_email)
-                updated_author = True
+            # Copy over the user.name and user.email if they've been set there by not for jj
+            for key in ("user.name", "user.email"):
+                if self._copy_from_git_if_missing(key):
+                    updated_author = True
 
             if updated_author:
                 self._run("describe", "--reset-author", "--no-edit")
 
-            jj_revset_immutable_heads_key = 'revset-aliases."immutable_heads()"'
-            if self.config_key_list_value_missing(jj_revset_immutable_heads_key):
-                jj_revset_immutable_heads_value = (
-                    "builtin_immutable_heads() | remote_bookmarks(glob:'*', 'origin')"
-                )
-                self.set_config_key_value(
-                    jj_revset_immutable_heads_key, jj_revset_immutable_heads_value
-                )
+            self._set_default_if_missing(
+                'revset-aliases."immutable_heads()"',
+                "builtin_immutable_heads() | remote_bookmarks(glob:'*', 'origin')",
+            )
 
             # This enables `jj fix` which does `./mach lint --fix` on every commit in parallel
-            jj_fix_command_key = "fix.tools.mozlint.command"
-            if self.config_key_list_value_missing(jj_fix_command_key):
-                jj_fix_command_value = [
-                    f"{topsrcdir.as_posix()}/tools/lint/pipelint",
-                    "$path",
-                ]
-                if sys.platform.startswith("win"):
-                    # On Windows pipelint must be invoked via Python explicitly
-                    jj_fix_command_value.insert(0, "python3")
-                self.set_config_key_value(jj_fix_command_key, jj_fix_command_value)
-
-            jj_fix_patterns_key = "fix.tools.mozlint.patterns"
-            if self.config_key_list_value_missing(jj_fix_patterns_key):
-                jj_fix_patterns_value = ["glob:**/*"]
-                self.set_config_key_value(jj_fix_patterns_key, jj_fix_patterns_value)
+            fix_cmd = [f"{topsrcdir.as_posix()}/tools/lint/pipelint", "$path"]
+            if sys.platform.startswith("win"):
+                fix_cmd.insert(0, "python3")
+            self._set_default_if_missing("fix.tools.mozlint.command", fix_cmd)
+            self._set_default_if_missing("fix.tools.mozlint.patterns", ["glob:**/*"])
 
             # This enables watchman if it's installed.
             if which("watchman"):
-                jj_watchman_key = "core.fsmonitor"
-                if self.config_key_list_value_missing(jj_watchman_key):
-                    jj_watchman_value = "watchman"
-                    self.set_config_key_value(jj_watchman_key, jj_watchman_value)
-
-                jj_watchman_snapshot_key = "core.watchman.register-snapshot-trigger"
-                if self.config_key_list_value_missing(jj_watchman_snapshot_key):
-                    jj_watchman_snapshot_value = False
-                    self.set_config_key_value(
-                        jj_watchman_snapshot_key, jj_watchman_snapshot_value
-                    )
+                self._set_default_if_missing("core.fsmonitor", "watchman")
+                self._set_default_if_missing(
+                    "core.watchman.register-snapshot-trigger", False
+                )
 
                 print("Checking if watchman is enabled...")
                 output = self._run_read_only("debug", "watchman", "status")
