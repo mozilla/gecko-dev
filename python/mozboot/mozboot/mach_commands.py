@@ -84,6 +84,17 @@ def vcs_setup(command_context, update_only=False, vcs=None):
     topsrcdir = Path(command_context._mach_context.topdir)
     state_dir = Path(command_context._mach_context.state_dir)
 
+    no_jj_dir = not (topsrcdir / ".jj").exists()
+
+    if vcs == "jj" and no_jj_dir:
+        import subprocess
+
+        from mozversioncontrol.factory import get_tool_path
+
+        print("Initializing a git colocated jj repository...")
+        jj_bin = get_tool_path("jj")
+        subprocess.run([jj_bin, "git", "init", "--colocate"])
+
     if vcs:
         repo = get_specific_repository_object(topsrcdir, vcs)
     else:
