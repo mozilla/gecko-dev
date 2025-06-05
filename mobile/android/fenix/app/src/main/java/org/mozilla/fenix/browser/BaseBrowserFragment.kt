@@ -135,7 +135,7 @@ import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.kotlin.getOrigin
 import mozilla.components.support.ktx.kotlinx.coroutines.flow.ifAnyChanged
 import mozilla.components.support.locale.ActivityContextWrapper
-import mozilla.components.ui.widgets.behavior.EngineViewClippingBehavior2
+import mozilla.components.ui.widgets.behavior.EngineViewClippingBehavior
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BuildConfig
@@ -1518,7 +1518,7 @@ abstract class BaseBrowserFragment :
             getEngineView().setDynamicToolbarMaxHeight(topToolbarHeight + bottomToolbarHeight)
 
             (getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams).behavior =
-                EngineViewClippingBehavior2(
+                EngineViewClippingBehavior(
                     context = context,
                     attrs = null,
                     engineViewParent = getSwipeRefreshLayout(),

@@ -27,7 +27,7 @@ import org.mockito.Mockito.spy
 import org.mockito.Mockito.verify
 
 @RunWith(AndroidJUnit4::class)
-class EngineViewClippingBehavior2Test {
+class EngineViewClippingBehaviorTest {
 
     private lateinit var coordinatorLayout: CoordinatorLayout
     private lateinit var engineView: EngineView
@@ -267,15 +267,15 @@ class EngineViewClippingBehavior2Test {
     private fun buildEngineViewClipping2Behavior(
         topToolbarHeight: Int = 0,
         bottomToolbarHeight: Int = 0,
-    ): EngineViewClippingBehavior2 {
-        return EngineViewClippingBehavior2(
+    ): EngineViewClippingBehavior {
+        return EngineViewClippingBehavior(
             context = mock(),
             attrs = null,
             engineViewParent = engineParentView,
             topToolbarHeight = topToolbarHeight,
             bottomToolbarHeight = bottomToolbarHeight,
         ).apply {
-            engineView = this@EngineViewClippingBehavior2Test.engineView
+            engineView = this@EngineViewClippingBehaviorTest.engineView
         }
     }
 }

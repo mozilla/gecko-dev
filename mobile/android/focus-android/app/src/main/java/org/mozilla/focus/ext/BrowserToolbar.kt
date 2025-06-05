@@ -9,9 +9,9 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.isVisible
 import mozilla.components.browser.toolbar.BrowserToolbar
 import mozilla.components.concept.engine.EngineView
+import mozilla.components.ui.widgets.behavior.EngineViewClippingBehavior
 import mozilla.components.ui.widgets.behavior.EngineViewScrollingBehavior
 import org.mozilla.focus.R
-import mozilla.components.ui.widgets.behavior.EngineViewClippingBehavior2 as EngineViewClippingBehavior
 import mozilla.components.ui.widgets.behavior.ViewPosition as browserToolbarPosition
 
 private const val BOTTOM_TOOLBAR_HEIGHT = 0

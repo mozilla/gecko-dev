@@ -32,7 +32,7 @@ import kotlin.math.roundToInt
  * @param bottomToolbarHeight The height of a [ScrollableToolbar] placed below the [EngineView].
  */
 
-class EngineViewClippingBehavior2(
+class EngineViewClippingBehavior(
     context: Context,
     attrs: AttributeSet?,
     private val engineViewParent: View,
