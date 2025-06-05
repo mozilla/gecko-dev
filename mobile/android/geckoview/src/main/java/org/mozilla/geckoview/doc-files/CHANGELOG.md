@@ -20,11 +20,13 @@ exclude: true
 - Added [`getLowMemoryDetection()`][139.2] on `GeckoRuntimeSettings` and [`lowMemoryDetection(boolean)`][139.3] on `GeckoRuntimeSettings.Builder` to control the low-memory detection machinery.
 - Added `setEnhancedTrackingProtectionCategory` to [`ContentBlocking.Settings`][139.4].
   ([bug 1956620]({{bugzilla}}1956620))
+- Added support for controlling `network.security.ports.banned` via [`GeckoRuntimeSettings.setBannedPorts`][139.5]
 
 [139.1]: {{javadoc_uri}}/CompositorController.html#onPipModeChanged
 [139.2]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getLowMemoryDetection
 [139.3]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#lowMemoryDetection
 [139.4]: {{javadoc_uri}}/ContentBlocking.html
+[139.5]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBannedPorts
 
 ## v138
 - Added [`GeckoSession.Loader.originalInput`][138.1] option, which allows passing through the original user address bar input
@@ -1712,4 +1714,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: bba475b7cb5de5ca051e20dad99084d132ebc9d3
+[api-version]: 47d39d0f323bc1ce72dc72ffb33a0bdc219831fd

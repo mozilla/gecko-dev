@@ -741,6 +741,14 @@ features:
         type: Boolean
         default: true
 
+  networkingBannedPorts:
+    description: "Networking (Necko) Banned Ports"
+    variables:
+      bannedPortList:
+        description: A comma-separated list of ports that Firefox will refuse to connect to. These ports will be appended to nsIOService gBadPortList
+        type: String
+        default: ""
+
   pki:
     description: Certificate verification configuration
     variables:

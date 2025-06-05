@@ -1478,6 +1478,10 @@ class GeckoEngine(
         override var postQuantumKeyExchangeEnabled: Boolean
             get() = runtime.settings.postQuantumKeyExchangeEnabled
             set(value) { runtime.settings.setPostQuantumKeyExchangeEnabled(value) }
+
+        override var bannedPorts: String
+            get() = runtime.settings.bannedPorts
+            set(value) { runtime.settings.setBannedPorts(value) }
     }.apply {
         defaultSettings?.let {
             this.javascriptEnabled = it.javascriptEnabled
@@ -1520,6 +1524,7 @@ class GeckoEngine(
             this.cookieBehaviorOptInPartitioningPBM = it.cookieBehaviorOptInPartitioningPBM
             this.certificateTransparencyMode = it.certificateTransparencyMode
             this.postQuantumKeyExchangeEnabled = it.postQuantumKeyExchangeEnabled
+            this.bannedPorts = it.bannedPorts
         }
     }
 

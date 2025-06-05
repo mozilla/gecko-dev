@@ -717,6 +717,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
   /* package */ final Pref<Boolean> mPostQuantumKeyExchangeHttp3Enabled =
       new Pref<Boolean>("network.http.http3.enable_kyber", false);
 
+  /* package */ final Pref<String> mBannedPorts =
+      new Pref<String>("network.security.ports.banned", "");
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
   /* package */ boolean mForceEnableAccessibility;
@@ -2062,6 +2064,26 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public @NonNull boolean getPostQuantumKeyExchangeEnabled() {
     return mPostQuantumKeyExchangeTLSEnabled.get() && mPostQuantumKeyExchangeHttp3Enabled.get();
+  }
+
+  /**
+   * Set the preference that controls which destination ports Firefox should refuse to connect to.
+   *
+   * @param portList Comma separated list of ports
+   * @return This GeckoRuntimeSettings instance
+   */
+  public @NonNull GeckoRuntimeSettings setBannedPorts(final @NonNull String portList) {
+    mBannedPorts.commit(portList);
+    return this;
+  }
+
+  /**
+   * Get the list of banned ports as a comma separated string
+   *
+   * @return a String containing the list of banned ports
+   */
+  public @NonNull String getBannedPorts() {
+    return mBannedPorts.get();
   }
 
   // For internal use only

@@ -807,4 +807,32 @@ class RuntimeSettingsTest : BaseSessionTest() {
             equalTo(true),
         )
     }
+
+    @Test
+    fun bannedPorts() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        assertThat(
+            "Banned ports is empty",
+            geckoRuntimeSettings.bannedPorts,
+            equalTo(""),
+        )
+
+        geckoRuntimeSettings.setBannedPorts("12345,23456")
+
+        assertThat(
+            "Banned ports should match string",
+            geckoRuntimeSettings.bannedPorts,
+            equalTo("12345,23456"),
+        )
+
+        val ports =
+            (sessionRule.getPrefs("network.security.ports.banned").get(0)) as String
+
+        assertThat(
+            "Pref value should match setting",
+            ports,
+            equalTo("12345,23456"),
+        )
+    }
 }
