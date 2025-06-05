@@ -2556,20 +2556,38 @@ export class TranslationsParent extends JSWindowActorParent {
         // Load the wasm binary from remote settings, if it hasn't been already.
         lazy.console.log(`Getting remote bergamot-translator wasm records.`);
 
-        /** @type {WasmRecord[]} */
-        const wasmRecords =
-          await TranslationsParent.getMaxSupportedVersionRecords(client, {
+        const getWasmRecords = () =>
+          TranslationsParent.getMaxSupportedVersionRecords(client, {
             filters: { name: "bergamot-translator" },
             minSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
             maxSupportedMajorVersion: TranslationsParent.BERGAMOT_MAJOR_VERSION,
           });
 
+        /** @type {WasmRecord[]} */
+        let wasmRecords = await getWasmRecords();
+
         if (wasmRecords.length === 0) {
-          // The remote settings client provides an empty list of records when there is
-          // an error.
-          throw new Error(
-            "Unable to get the bergamot translator from Remote Settings."
-          );
+          // No matching client was found, we need to sync to get the latest one.
+          lazy.console.log("No wasm records found, syncing the wasm client.");
+          const wasmClient =
+            await TranslationsParent.#getTranslationsWasmRemoteClient();
+          await wasmClient.sync();
+
+          lazy.console.log("Syncing the models as well.");
+          const modelsClient =
+            await TranslationsParent.#getTranslationModelsRemoteClient();
+          await modelsClient.sync();
+
+          wasmRecords = await getWasmRecords();
+
+          if (wasmRecords.length === 0) {
+            // The remote settings client provides an empty list of records when there is
+            // an error.
+            throw new Error(
+              "No bergamot-translators were found that matched the major version: " +
+                TranslationsParent.BERGAMOT_MAJOR_VERSION
+            );
+          }
         }
 
         if (wasmRecords.length > 1) {
