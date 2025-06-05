@@ -3750,6 +3750,11 @@ impl Renderer {
             partial_present_mode
         };
 
+        // Reverse the layers - we're now working in front-to-back order for tiles handling
+        assert_eq!(swapchain_layers.len(), input_layers.len());
+        input_layers.reverse();
+        swapchain_layers.reverse();
+
         // Recalculate dirty rect if external composite is used with layer compositor
         if let Some(ref _compositor) = self.compositor_config.layer_compositor() {
             if partial_present_mode.is_some() && use_external_composite {
@@ -3768,6 +3773,14 @@ impl Renderer {
                     match layer.usage {
                         CompositorSurfaceUsage::Content | CompositorSurfaceUsage::DebugOverlay => {}
                         CompositorSurfaceUsage::External { .. } => {
+                            match tile.surface {
+                                CompositeTileSurface::ExternalSurface { .. } => {}
+                                CompositeTileSurface::Texture { .. }  |
+                                CompositeTileSurface::Color { .. } |
+                                CompositeTileSurface::Clear => {
+                                    unreachable!();
+                                },
+                            }
                             continue;
                         }
                     }
@@ -3793,11 +3806,6 @@ impl Renderer {
                 });
             }
         }
-
-        // Reverse the layers - we're now working in front-to-back order for tiles handling
-        assert_eq!(swapchain_layers.len(), input_layers.len());
-        input_layers.reverse();
-        swapchain_layers.reverse();
 
         // Check tiles handling with partial_present_mode
 
