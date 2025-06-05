@@ -7,7 +7,7 @@
 #ifndef frontend_TryEmitter_h
 #define frontend_TryEmitter_h
 
-#include "mozilla/Maybe.h"       // mozilla::Maybe, mozilla::Nothing
+#include "mozilla/Maybe.h"  // mozilla::Maybe, mozilla::Nothing
 
 #include <stdint.h>  // uint32_t
 
