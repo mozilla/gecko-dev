@@ -24,45 +24,24 @@ pub fn pass(root: &mut Root) -> Result<()> {
                 .collect();
 
             module.try_visit_mut(|cbi: &mut CallbackInterface| {
-                let interface_name = cbi.name.clone();
-                cbi.id = ids.new_id();
-                items.push(CppCallbackInterface {
-                    id: cbi.id,
-                    name: cbi.name.clone(),
-                    ffi_value_class: format!(
-                        "FfiValueCallbackInterface{module_name}_{interface_name}"
-                    ),
-                    handler_var: format!(
-                        "gUniffiCallbackHandler{}",
-                        cbi.name.to_upper_camel_case()
-                    ),
-                    vtable_var: format!("kUniffiVtable{}", cbi.name.to_upper_camel_case()),
-                    vtable_struct_type: cbi.vtable.struct_type.clone(),
-                    init_fn: cbi.vtable.init_fn.clone(),
-                    free_fn: format!(
-                        "callback_free_{}_{}",
-                        module_name.to_snake_case(),
-                        interface_name.to_snake_case()
-                    ),
-                    methods: cbi
-                        .vtable
-                        .methods
-                        .iter()
-                        .enumerate()
-                        .map(|(i, vtable_meth)| {
-                            let ffi_func = ffi_func_map
-                                .get(&format!("CallbackInterface{interface_name}Method{i}"))
-                                .cloned()
-                                .ok_or_else(|| {
-                                    anyhow!(
-                                        "Callback interface method not found: {}",
-                                        vtable_meth.callable.name
-                                    )
-                                })?;
-                            map_method(vtable_meth, ffi_func, &module_name, &interface_name)
-                        })
-                        .collect::<Result<Vec<_>>>()?,
-                });
+                cbi.vtable.callback_interface_id = ids.new_id();
+                items.push(generate_cpp_callback_interface(
+                    &module_name,
+                    &cbi.vtable,
+                    &ffi_func_map,
+                )?);
+                Ok(())
+            })?;
+
+            module.try_visit_mut(|int: &mut Interface| {
+                if let Some(vtable) = &mut int.vtable {
+                    vtable.callback_interface_id = ids.new_id();
+                    items.push(generate_cpp_callback_interface(
+                        &module_name,
+                        vtable,
+                        &ffi_func_map,
+                    )?);
+                }
                 Ok(())
             })?;
             Ok(())
@@ -192,5 +171,51 @@ fn async_callback_method_handler_base_class(callable: &Callable) -> Result<Strin
             FfiType::RustBuffer(_) => "AsyncCallbackMethodHandlerBaseRustBuffer".to_string(),
             ty => bail!("Async return type not supported: {ty:?}"),
         },
+    })
+}
+
+fn generate_cpp_callback_interface(
+    module_name: &str,
+    vtable: &VTable,
+    ffi_func_map: &HashMap<String, FfiFunctionType>,
+) -> Result<CppCallbackInterface> {
+    let interface_name = &vtable.interface_name;
+    Ok(CppCallbackInterface {
+        id: vtable.callback_interface_id,
+        name: interface_name.to_string(),
+        // Only generate FFI value class for callback interfaces.  For trait
+        // interfaces, we're going to generate one `PointerTypes.cpp` instead.
+        ffi_value_class: vtable
+            .callback_interface
+            .then(|| format!("FfiValueCallbackInterface{module_name}_{interface_name}")),
+        handler_var: format!(
+            "gUniffiCallbackHandler{}",
+            interface_name.to_upper_camel_case()
+        ),
+        vtable_var: format!("kUniffiVtable{}", interface_name.to_upper_camel_case()),
+        vtable_struct_type: vtable.struct_type.clone(),
+        init_fn: vtable.init_fn.clone(),
+        free_fn: format!(
+            "callback_free_{}_{}",
+            module_name.to_snake_case(),
+            interface_name.to_snake_case()
+        ),
+        methods: vtable
+            .methods
+            .iter()
+            .enumerate()
+            .map(|(i, vtable_meth)| {
+                let ffi_func = ffi_func_map
+                    .get(&format!("CallbackInterface{interface_name}Method{i}"))
+                    .cloned()
+                    .ok_or_else(|| {
+                        anyhow!(
+                            "Callback interface method not found: {}",
+                            vtable_meth.callable.name
+                        )
+                    })?;
+                map_method(vtable_meth, ffi_func, &module_name, interface_name)
+            })
+            .collect::<Result<Vec<_>>>()?,
     })
 }

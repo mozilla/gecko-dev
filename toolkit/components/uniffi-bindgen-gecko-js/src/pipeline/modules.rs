@@ -50,6 +50,9 @@ pub fn pass(mut config_map: HashMap<String, Config>) -> impl FnMut(&mut Module) 
         imports_vec.sort(); // For deterministic output
         module.imports = imports_vec;
 
+        let mut saw_callback_interface = false;
+        module.visit(|_: &VTable| saw_callback_interface = true);
+        module.has_callback_interface = saw_callback_interface;
         Ok(())
     }
 }

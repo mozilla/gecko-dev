@@ -80,12 +80,17 @@ enable = true
 enable = true
 main_thread = [
     "clone_interface",
+    "create_test_trait_interface",
     "func_with_default",
     "func_with_error",
     "func_with_flat_error",
     "func_roundtrip_custom_type",
     "swap_test_interfaces",
     "invoke_test_callback_interface_method",
+    "invoke_test_trait_interface_noop",
+    "invoke_test_trait_interface_get_value",
+    "invoke_test_trait_interface_set_value",
+    "invoke_test_trait_interface_throw_if_equal",
     "roundtrip_u8",
     "roundtrip_i8",
     "roundtrip_u16",
@@ -102,6 +107,7 @@ main_thread = [
     "sum_with_many_types",
     "test_func",
     "func_with_multi_word_arg",
+    "get_trait_interface_value_call_count",
     "roundtrip_option",
     "roundtrip_vec",
     "roundtrip_hash_map",
@@ -117,6 +123,10 @@ main_thread = [
     "TestInterface.new",
     "TestInterface.get_value",
     "TestInterface.ref_count",
+    "TestTraitInterface.noop",
+    "TestTraitInterface.get_value",
+    "TestTraitInterface.set_value",
+    "TestTraitInterface.throw_if_equal",
 ]
 
 [uniffi_bindings_tests.custom_types.Url]

@@ -2622,7 +2622,7 @@ export class SearchEngineSelector {
        
         const result = UniFFIScaffolding.callSync(
             33, // uniffi_search_fn_method_searchengineselector_clear_search_config
-            FfiConverterTypeSearchEngineSelector.lower(this),
+            FfiConverterTypeSearchEngineSelector.lowerReceiver(this),
         )
         return handleRustResult(
             result,
@@ -2644,7 +2644,7 @@ export class SearchEngineSelector {
         FfiConverterTypeSearchUserEnvironment.checkType(userEnvironment);
         const result = UniFFIScaffolding.callSync(
             34, // uniffi_search_fn_method_searchengineselector_filter_engine_configuration
-            FfiConverterTypeSearchEngineSelector.lower(this),
+            FfiConverterTypeSearchEngineSelector.lowerReceiver(this),
             FfiConverterTypeSearchUserEnvironment.lower(userEnvironment),
         )
         return handleRustResult(
@@ -2664,7 +2664,7 @@ export class SearchEngineSelector {
         FfiConverterString.checkType(overrides);
         const result = UniFFIScaffolding.callSync(
             35, // uniffi_search_fn_method_searchengineselector_set_config_overrides
-            FfiConverterTypeSearchEngineSelector.lower(this),
+            FfiConverterTypeSearchEngineSelector.lowerReceiver(this),
             FfiConverterString.lower(overrides),
         )
         return handleRustResult(
@@ -2688,7 +2688,7 @@ export class SearchEngineSelector {
         FfiConverterString.checkType(configuration);
         const result = UniFFIScaffolding.callSync(
             36, // uniffi_search_fn_method_searchengineselector_set_search_config
-            FfiConverterTypeSearchEngineSelector.lower(this),
+            FfiConverterTypeSearchEngineSelector.lowerReceiver(this),
             FfiConverterString.lower(configuration),
         )
         return handleRustResult(
@@ -2720,7 +2720,7 @@ export class SearchEngineSelector {
         FfiConverterBoolean.checkType(applyEngineOverrides);
         const result = await UniFFIScaffolding.callAsyncWrapper(
             37, // uniffi_search_fn_method_searchengineselector_use_remote_settings_server
-            FfiConverterTypeSearchEngineSelector.lower(this),
+            FfiConverterTypeSearchEngineSelector.lowerReceiver(this),
             FfiConverterTypeRemoteSettingsService.lower(service),
             FfiConverterBoolean.lower(applyEngineOverrides),
         )
@@ -2749,6 +2749,11 @@ export class FfiConverterTypeSearchEngineSelector extends FfiConverter {
         return ptr;
     }
 
+    static lowerReceiver(value) {
+        // This works exactly the same as lower for non-trait interfaces
+        return this.lower(value);
+    }
+
     static read(dataStream) {
         return this.lift(dataStream.readPointer(6));
     }
@@ -2761,6 +2766,7 @@ export class FfiConverterTypeSearchEngineSelector extends FfiConverter {
         return 8;
     }
 }
+
 // Export the FFIConverter object to make external types work.
 export class FfiConverterUInt64 extends FfiConverter {
     static checkType(value) {

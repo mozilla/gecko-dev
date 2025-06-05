@@ -23,3 +23,5 @@
 ["test_records.js"]
 
 ["test_simple_fns.js"]
+
+["test_trait_interfaces.js"]

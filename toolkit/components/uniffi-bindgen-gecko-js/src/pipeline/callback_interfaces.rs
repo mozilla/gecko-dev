@@ -7,11 +7,16 @@ use heck::ToUpperCamelCase;
 use super::*;
 
 pub fn pass(module: &mut Module) -> Result<()> {
-    let mut saw_callback_interface = false;
     module.visit_mut(|cbi: &mut CallbackInterface| {
-        cbi.js_handler_var = format!("uniffiCallbackHandler{}", cbi.name.to_upper_camel_case());
-        saw_callback_interface = true;
+        cbi.vtable.interface_name = cbi.name.clone();
+        cbi.vtable.callback_interface = true;
     });
-    module.has_callback_interface = saw_callback_interface;
+    // Set the js_handler_var for both callback interfaces and trait interfaces
+    module.visit_mut(|vtable: &mut VTable| {
+        vtable.js_handler_var = format!(
+            "uniffiCallbackHandler{}",
+            vtable.interface_name.to_upper_camel_case()
+        );
+    });
     Ok(())
 }

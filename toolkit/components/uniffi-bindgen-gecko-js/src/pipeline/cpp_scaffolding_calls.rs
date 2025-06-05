@@ -37,6 +37,7 @@ pub fn pass(root: &mut Root) -> Result<()> {
                         },
                         ..FfiTypeNode::default()
                     },
+                    receiver: true,
                     ..FfiValueArgument::default()
                 }],
                 _ => vec![],
@@ -44,6 +45,7 @@ pub fn pass(root: &mut Root) -> Result<()> {
             arguments.extend(callable.arguments.iter().map(|a| FfiValueArgument {
                 name: a.name.clone(),
                 ty: a.ty.ffi_type.clone(),
+                receiver: false,
                 ..FfiValueArgument::default()
             }));
 

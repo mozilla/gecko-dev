@@ -227,6 +227,10 @@ class UniFFICallbackMethodHandler {
             data: this.#errorConverter(error),
         };
     }
+
+    toString() {
+      return `CallbackMethodHandler(${this.#name})`
+    }
 }
 
 /**
@@ -632,9 +636,7 @@ export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
     static computeSize(callbackObj) {
         return 8;
     }
-}
-
-const uniffiCallbackHandlerApplicationErrorReporter = new UniFFICallbackHandler(
+}const uniffiCallbackHandlerApplicationErrorReporter = new UniFFICallbackHandler(
     "ApplicationErrorReporter",
     2,
     [

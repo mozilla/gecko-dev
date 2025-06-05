@@ -24,8 +24,8 @@ pub trait TestCallbackInterface {
 
 #[derive(uniffi::Record)]
 pub struct CallbackInterfaceNumbers {
-    a: u32,
-    b: u32,
+    pub a: u32,
+    pub b: u32,
 }
 
 #[uniffi::export]

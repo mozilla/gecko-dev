@@ -296,7 +296,7 @@ if (custom instanceof UniffiSkipJsTypeCheck) {
     FfiConverterTypeHandle.checkType(custom);
 }
 const result = UniFFIScaffolding.callSync(
-    177, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_custom_type
+    195, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_custom_type
     FfiConverterTypeHandle.lower(custom),
 )
 return handleRustResult(
@@ -320,7 +320,7 @@ if (en instanceof UniffiSkipJsTypeCheck) {
     FfiConverterTypeEnumWithData.checkType(en);
 }
 const result = UniFFIScaffolding.callSync(
-    178, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_enum
+    196, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_enum
     FfiConverterTypeEnumWithData.lower(en),
 )
 return handleRustResult(
@@ -344,7 +344,7 @@ if (int instanceof UniffiSkipJsTypeCheck) {
     FfiConverterTypeTestInterface.checkType(int);
 }
 const result = UniFFIScaffolding.callSync(
-    179, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_interface
+    197, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_interface
     FfiConverterTypeTestInterface.lower(int),
 )
 return handleRustResult(
@@ -368,7 +368,7 @@ if (rec instanceof UniffiSkipJsTypeCheck) {
     FfiConverterTypeSimpleRec.checkType(rec);
 }
 const result = UniFFIScaffolding.callSync(
-    180, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_record
+    198, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_record
     FfiConverterTypeSimpleRec.lower(rec),
 )
 return handleRustResult(

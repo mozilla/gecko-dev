@@ -221,6 +221,10 @@ class UniFFICallbackMethodHandler {
             data: this.#errorConverter(error),
         };
     }
+
+    toString() {
+      return `CallbackMethodHandler(${this.#name})`
+    }
 }
 
 /**

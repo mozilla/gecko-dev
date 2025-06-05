@@ -5,7 +5,7 @@
 //! Generate the `ScaffoldingCall` lists
 
 use super::*;
-use heck::ToUpperCamelCase;
+use heck::{ToSnakeCase, ToUpperCamelCase};
 
 pub fn pass(root: &mut Root) -> Result<()> {
     root.visit_mut(|int: &mut Interface| {
@@ -24,6 +24,9 @@ pub fn pass(root: &mut Root) -> Result<()> {
                 })
             }
         });
+        if let Some(vtable) = &mut int.vtable {
+            vtable.interface_name = int.name.clone();
+        }
     });
 
     // Generate [CppScaffolding::pointer_types]
@@ -46,6 +49,13 @@ pub fn pass(root: &mut Root) -> Result<()> {
                 label: format!("{}::{}", module_name, int.name),
                 ffi_func_clone: int.ffi_func_clone.clone(),
                 ffi_func_free: int.ffi_func_free.clone(),
+                trait_interface_info: int.vtable.is_some().then(|| PointerTypeTraitInterfaceInfo {
+                    free_fn: format!(
+                        "callback_free_{}_{}",
+                        module_name.to_snake_case(),
+                        int.name.to_snake_case(),
+                    ),
+                }),
             })
         });
     });

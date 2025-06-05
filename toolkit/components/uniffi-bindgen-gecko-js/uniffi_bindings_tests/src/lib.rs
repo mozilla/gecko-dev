@@ -36,3 +36,6 @@ pub mod records;
 
 #[cfg(feature = "simple_fns")]
 pub mod simple_fns;
+
+#[cfg(feature = "trait_interfaces")]
+pub mod trait_interfaces;

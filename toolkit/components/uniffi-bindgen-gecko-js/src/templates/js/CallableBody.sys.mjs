@@ -12,7 +12,7 @@ if ({{ arg.name }} instanceof UniffiSkipJsTypeCheck) {
 const result = {% if callable.is_js_async %}await {% endif %}{{ callable.uniffi_scaffolding_method }}(
     {{ callable.id }}, // {{ callable.ffi_func.0 }}
     {%- if let CallableKind::Method { ffi_converter, .. } = callable.kind %}
-    {{ ffi_converter }}.lower(this),
+    {{ ffi_converter }}.lowerReceiver(this),
     {%- endif %}
     {%- for arg in callable.arguments %}
     {{ arg|lower_fn }}({{ arg.name }}),
