@@ -45,29 +45,6 @@ graph_config_schema = Schema(
             },
             Optional("rebuild-kinds"): [str],
         },
-        Required("merge-automation"): {
-            Required("behaviors"): {
-                str: {
-                    Optional("from-branch"): str,
-                    Required("to-branch"): str,
-                    Optional("from-repo"): str,
-                    Optional("to-repo"): str,
-                    Required("version-files"): [
-                        {
-                            Required("filename"): str,
-                            Optional("new-suffix"): str,
-                            Optional("version-bump"): Any("major", "minor"),
-                        }
-                    ],
-                    Required("replacements"): [[str]],
-                    Required("merge-old-head"): bool,
-                    Optional("regex-replacements"): [[str]],
-                    Optional("base-tag"): str,
-                    Optional("end-tag"): str,
-                    Optional("fetch-version-from"): str,
-                }
-            },
-        },
         Required("scriptworker"): {
             # Prefix to add to scopes controlling scriptworkers
             Required("scope-prefix"): str,
