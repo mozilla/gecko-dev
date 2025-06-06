@@ -155,7 +155,12 @@ function formatTokens({ mediaQuery, surface, args }) {
   dictionary.allTokens.forEach(token => {
     let originalVal = getOriginalTokenValue(token, prop, surface);
     if (originalVal != undefined) {
-      let formattedToken = transformTokenValue(token, originalVal, dictionary);
+      let formattedToken = transformToken(
+        token,
+        originalVal,
+        dictionary,
+        surface
+      );
       tokens.push(formattedToken);
     }
   });
@@ -220,23 +225,27 @@ function getOriginalTokenValue(token, prop, surface) {
 
 /**
  * Updates a token's value to the relevant original value after resolving
- * variable references.
+ * variable references. Also checks for surface specific comments.
  *
  * @param {object} token - Token object parsed from JSON by style-dictionary.
  * @param {string} originalVal
  *  Original value of the token for the combination of surface and media query.
  * @param {object} dictionary
  *  Object of transformed tokens and helper fns provided by style-dictionary.
+ * @param {string} surface
+ *  The desktop surface we're generating CSS for, either "brand", "platform",
+ *  or "shared".
  * @returns {object} Token object with an updated value.
  */
-function transformTokenValue(token, originalVal, dictionary) {
+function transformToken(token, originalVal, dictionary, surface) {
   let value = originalVal;
   if (dictionary.usesReference(value)) {
     dictionary.getReferences(value).forEach(ref => {
       value = value.replace(`{${ref.path.join(".")}}`, `var(--${ref.name})`);
     });
   }
-  return { ...token, value };
+  let surfaceComment = token.original?.value[surface]?.comment;
+  return { ...token, value, comment: surfaceComment ?? token.comment };
 }
 
 /**

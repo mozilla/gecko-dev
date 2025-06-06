@@ -403,19 +403,31 @@ export const storybookTables = {
       name: "--font-size-root",
     },
     {
-      value: { brand: { default: "0.867rem" }, platform: { default: "unset" } },
+      value: {
+        brand: { default: "0.867rem", comment: "13px" },
+        platform: { default: "unset" },
+      },
       name: "--font-size-small",
     },
     {
-      value: { brand: { default: "1.133rem" }, platform: { default: "unset" } },
+      value: {
+        brand: { default: "1.133rem", comment: "17px" },
+        platform: { default: "unset" },
+      },
       name: "--font-size-large",
     },
     {
-      value: { brand: { default: "1.467rem" }, platform: { default: "unset" } },
+      value: {
+        brand: { default: "1.467rem", comment: "22px" },
+        platform: { default: "unset" },
+      },
       name: "--font-size-xlarge",
     },
     {
-      value: { brand: { default: "1.6rem" }, platform: { default: "unset" } },
+      value: {
+        brand: { default: "1.6rem", comment: "24px" },
+        platform: { default: "unset" },
+      },
       name: "--font-size-xxlarge",
     },
   ],
@@ -1452,19 +1464,19 @@ export const variableLookupTable = {
     platform: { default: "unset" },
   },
   "font-size-small": {
-    brand: { default: "0.867rem" },
+    brand: { default: "0.867rem", comment: "13px" },
     platform: { default: "unset" },
   },
   "font-size-large": {
-    brand: { default: "1.133rem" },
+    brand: { default: "1.133rem", comment: "17px" },
     platform: { default: "unset" },
   },
   "font-size-xlarge": {
-    brand: { default: "1.467rem" },
+    brand: { default: "1.467rem", comment: "22px" },
     platform: { default: "unset" },
   },
   "font-size-xxlarge": {
-    brand: { default: "1.6rem" },
+    brand: { default: "1.6rem", comment: "24px" },
     platform: { default: "unset" },
   },
   "font-weight": "normal",
