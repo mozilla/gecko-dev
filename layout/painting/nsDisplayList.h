@@ -2378,8 +2378,8 @@ class nsDisplayItem {
                    "mItemBuffer should have been cleared");
     }
 
-    // Handling transform items for preserve 3D frames.
-    bool mInPreserves3D = false;
+    // Gathering all leaf items of a preserve3d context.
+    bool mGatheringPreserves3DLeaves = false;
     // When hit-testing for visibility, we may hit an fully opaque item in a
     // nested display list. We want to stop at that point, without looking
     // further on other items.

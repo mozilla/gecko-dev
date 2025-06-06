@@ -2381,7 +2381,7 @@ void nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                             nsTArray<nsIFrame*>* aOutFrames) const {
   nsDisplayItem* item;
 
-  if (aState->mInPreserves3D) {
+  if (aState->mGatheringPreserves3DLeaves) {
     // Collect leaves of the current 3D rendering context.
     for (nsDisplayItem* item : *this) {
       auto itemType = item->GetType();
@@ -2427,9 +2427,9 @@ void nsDisplayList::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
       // Start gathering leaves of the 3D rendering context, and
       // append leaves at the end of mItemBuffer.  Leaves are
       // processed at following iterations.
-      aState->mInPreserves3D = true;
+      aState->mGatheringPreserves3DLeaves = true;
       item->HitTest(aBuilder, aRect, aState, &neverUsed);
-      aState->mInPreserves3D = false;
+      aState->mGatheringPreserves3DLeaves = false;
       i = aState->mItemBuffer.Length();
       continue;
     }
@@ -7115,7 +7115,7 @@ void nsDisplayTransform::UpdateUntransformedBounds(
 void nsDisplayTransform::HitTest(nsDisplayListBuilder* aBuilder,
                                  const nsRect& aRect, HitTestState* aState,
                                  nsTArray<nsIFrame*>* aOutFrames) {
-  if (aState->mInPreserves3D) {
+  if (aState->mGatheringPreserves3DLeaves) {
     GetChildren()->HitTest(aBuilder, aRect, aState, aOutFrames);
     return;
   }
