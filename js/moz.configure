@@ -136,13 +136,13 @@ set_define("ENABLE_DECORATORS", enable_decorators)
 # Enable explicit resource management
 # ===================================================
 option(
-    "--enable-explicit-resource-management",
-    default=milestone.is_nightly,
+    "--disable-explicit-resource-management",
+    default=True,
     help="{Enable|Disable} explicit resource management",
 )
 
 
-@depends("--enable-explicit-resource-management")
+@depends("--disable-explicit-resource-management")
 def enable_explicit_resource_management(value):
     if value:
         return True
