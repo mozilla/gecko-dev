@@ -158,6 +158,7 @@ class TabsTrayFragmentTest {
         )
         every { fragment.requireContext().settings().privateBrowsingLockedEnabled } returns true
         every { fragment.tabsTrayStore.state.selectedPage } returns Page.NormalTabs
+        every { fragment.verificationResultLauncher } returns mockk()
 
         val biometricAuthenticationNeededInfo = BiometricAuthenticationNeededInfo()
         val biometricUtils = mockk<BiometricUtils>(relaxed = true)
