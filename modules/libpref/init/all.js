@@ -3895,7 +3895,7 @@ pref("services.common.log.logger.tokenserverclient", "Debug");
   pref("remote.retry-on-abort", true);
 
   // Enable the NavigationManager using parent process WebProgress listeners
-  pref("remote.experimental-parent-navigation.enabled", false);
+  pref("remote.parent-navigation.enabled", false);
 #endif
 
 // Enable the JSON View tool (an inspector for application/json documents).

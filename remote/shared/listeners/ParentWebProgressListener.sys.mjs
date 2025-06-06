@@ -36,8 +36,8 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
  * navigations for the NavigationManager entirely from the parent process.
  *
  * The NavigationManager will either use the WebProgressListener JSWindow actors
- * or this listener, depending on the value of the hidden preference
- * remote.experimental-parent-navigation.enabled.
+ * or this listener, depending on the value of the preference
+ * remote.parent-navigation.enabled.
  *
  * This listener does not implement the same interface as our other listeners
  * and is designed to be instantiated only once from the NavigationRegistry

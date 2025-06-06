@@ -33,7 +33,7 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () => lazy.Log.get());
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
   "useParentWebProgressListener",
-  "remote.experimental-parent-navigation.enabled",
+  "remote.parent-navigation.enabled",
   false
 );
 
