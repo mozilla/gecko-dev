@@ -769,6 +769,7 @@ export const LinkPreview = {
 
     ogCard.optin = lazy.optin;
     ogCard.collapsed = lazy.collapsed;
+    ogCard.regionSupported = this._isRegionSupported();
 
     // Reflect the shared download progress to this preview.
     const updateProgress = () => {
