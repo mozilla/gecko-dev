@@ -737,14 +737,13 @@ class NodeWebSocketServer extends BaseNodeServer {
 // This code is inspired by
 // https://github.com/szmarczak/http2-wrapper/blob/master/examples/ws/server.js
 class NodeWebSocketHttp2ServerCode extends BaseNodeHTTPServerCode {
-  static async startServer(port, fallbackToH1) {
+  static async startServer(port) {
     const fs = require("fs");
     const options = {
       key: fs.readFileSync(__dirname + "/http2-cert.key"),
       cert: fs.readFileSync(__dirname + "/http2-cert.pem"),
       settings: {
-        enableConnectProtocol: !fallbackToH1,
-        allowHTTP1: fallbackToH1,
+        enableConnectProtocol: true,
       },
     };
     const http2 = require("http2");
@@ -785,14 +784,14 @@ class NodeWebSocketHttp2Server extends BaseNodeServer {
   /// Starts the server
   /// @port - default 0
   ///    when provided, will attempt to listen on that port.
-  async start(port = 0, fallbackToH1 = false) {
+  async start(port = 0) {
     this.processId = await NodeServer.fork();
 
     await this.execute(BaseNodeHTTPServerCode);
     await this.execute(NodeWebSocketHttp2ServerCode);
     await this.execute(ADB);
     this._port = await this.execute(
-      `NodeWebSocketHttp2ServerCode.startServer(${port}, ${fallbackToH1})`
+      `NodeWebSocketHttp2ServerCode.startServer(${port})`
     );
     await this.execute(`global.path_handlers = {};`);
     await this.execute(`global.wsInputHandler = null;`);
