@@ -824,8 +824,8 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 /* Firefox Account Toolbar Panel */
 
 #fxa-avatar-image {
-  width: 16px;
-  height: 16px;
+  width: var(--icon-size-default);
+  height: var(--icon-size-default);
 }
 
 :root {
@@ -876,25 +876,25 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
    * point, I'm hoping we can shift to something less gross (bug 1938106).
    */
   &[fxastatus="not_configured"][fxa-avatar-icon-variant$="-circle"] #fxa-toolbar-menu-button:not([showing-callout]) {
-    #fxa-avatar-image:-moz-locale-dir(rtl) {
-      transform: scaleX(-1);
+    .avatar-container {
+      position: relative;
+
+      &:-moz-locale-dir(rtl) {
+        transform: scaleX(-1);
+      }
     }
 
-    .toolbarbutton-badge {
-      background-color: transparent;
-      border: 0;
-      box-shadow: none;
-      position: relative;
-      display: block;
+    .avatar-container::after {
+      content: "";
+      position: absolute;
+      top: calc(var(--icon-size-default) - 6px);
+      /* Avatar icon size minus its circle width minus half of the little circle icon size */
+      left: calc(var(--icon-size-default) - 1px - 6px / 2);
       height: 6px;
       width: 6px;
       background-image: url(chrome://browser/skin/fxa/circle.svg);
       background-repeat: no-repeat;
       background-position: center;
-      top: 15px;
-      inset-inline-start: 2px;
-      fill: var(--toolbarbutton-icon-fill);
-      color: unset;
       opacity: 0.43;
 
       @media (prefers-color-scheme: dark) {
@@ -935,7 +935,8 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 }
 
 #fxa-avatar-label {
-  margin-inline: 6px 0;
+  margin: 0;
+  margin-inline-start: var(--space-small);
 }
 
 .PanelUI-fxa-service-description-label,
