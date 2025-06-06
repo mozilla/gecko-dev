@@ -45,12 +45,16 @@ function httpChannelOpenPromise(chan, flags) {
 
 async function channelOpenPromise(url, msg) {
   let conn = new WebSocketConnection();
-  await conn.open(url);
+  let statusObj = await Promise.race([conn.open(url), conn.finished()]);
+  if (statusObj && statusObj.status != Cr.NS_OK) {
+    return [statusObj.status, ""];
+  }
+  let finalStatusPromise = conn.finished();
   conn.send(msg);
   let res = await conn.receiveMessages();
   conn.close();
-  let { status } = await conn.finished();
-  return [status, res];
+  let finalStatus = await finalStatusPromise;
+  return [finalStatus.status, res];
 }
 
 // h1.1 direct
@@ -306,6 +310,104 @@ async function test_bug_1848013() {
   await proxy.stop();
 }
 
+function ActivityObserver() {}
+
+ActivityObserver.prototype = {
+  activites: [],
+  observeConnectionActivity(
+    aHost,
+    aPort,
+    aSSL,
+    aHasECH,
+    aIsHttp3,
+    aActivityType,
+    aActivitySubtype,
+    aTimestamp,
+    aExtraStringData
+  ) {
+    info(
+      "*** Connection Activity 0x" +
+        aActivityType.toString(16) +
+        " 0x" +
+        aActivitySubtype.toString(16) +
+        " " +
+        aExtraStringData +
+        "\n"
+    );
+    this.activites.push({
+      host: aHost,
+      subType: aActivitySubtype,
+      connInfo: aExtraStringData,
+    });
+  },
+};
+
+function checkConnectionActivities(activites, host, port) {
+  let connections = [];
+  for (let activity of activites) {
+    if (
+      activity.host != host ||
+      activity.subType !=
+        Ci.nsIHttpActivityDistributor.ACTIVITY_SUBTYPE_CONNECTION_CREATED
+    ) {
+      continue;
+    }
+    connections.push(activity.connInfo);
+  }
+
+  function parseConnInfoHash(str) {
+    if (str.length < 6) {
+      throw new Error("Invalid input string");
+    }
+    // Extract the 6th character (index 5)
+    const h2Flag = str[5];
+    // Regular expression to extract hostname and port
+    const regex = /\[.*?\](.*?):(\d+)/;
+    const match = str.match(regex);
+    if (!match) {
+      throw new Error("Can not extract hostname and port");
+    }
+    return {
+      h2Flag,
+      host: match[1],
+      port: match[2],
+    };
+  }
+
+  Assert.equal(connections.length, 2);
+
+  const firstConn = parseConnInfoHash(connections[0]);
+  Assert.equal(firstConn.h2Flag, ".");
+  Assert.equal(firstConn.host, host);
+  Assert.equal(firstConn.port, port);
+  const fallbackConn = parseConnInfoHash(connections[1]);
+  Assert.equal(fallbackConn.h2Flag, "X");
+  Assert.equal(fallbackConn.host, host);
+  Assert.equal(fallbackConn.port, port);
+}
+
+async function test_websocket_fallback() {
+  let observerService = Cc[
+    "@mozilla.org/network/http-activity-distributor;1"
+  ].getService(Ci.nsIHttpActivityDistributor);
+  let observer = new ActivityObserver();
+  observerService.addObserver(observer);
+  observerService.observeConnection = true;
+
+  Services.prefs.setBoolPref("network.http.http2.websockets", true);
+  let wss = new NodeWebSocketHttp2Server();
+  await wss.start(0, true);
+  registerCleanupFunction(async () => wss.stop());
+
+  Assert.notEqual(wss.port(), null);
+  await wss.registerMessageHandler((data, ws) => {
+    ws.send(data);
+  });
+  let url = `wss://localhost:${wss.port()}`;
+  await channelOpenPromise(url, "");
+  checkConnectionActivities(observer.activites, "localhost", wss.port());
+}
+
 add_task(test_h1_websocket_direct);
 add_task(test_h2_websocket_direct);
 add_task(test_h1_ws_with_secure_h1_proxy);
@@ -315,3 +417,4 @@ add_task(test_h2_ws_with_h1_insecure_proxy);
 add_task(test_h2_ws_with_h1_secure_proxy);
 add_task(test_h2_ws_with_h2_proxy);
 add_task(test_bug_1848013);
+add_task(test_websocket_fallback);
