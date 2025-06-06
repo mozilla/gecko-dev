@@ -2233,7 +2233,7 @@ static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
                                     Register temp1, Register temp2,
                                     Register temp3,
                                     gc::Heap initialStringHeap, Label* notFound,
-                                    Label* failure) {
+                                    Label* failure, JitZone::StubKind kind) {
   JitSpew(JitSpew_Codegen, "# Emitting PrepareAndExecuteRegExp");
 
   using irregexp::InputOutputData;
@@ -2389,13 +2389,21 @@ static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
   }
   masm.bind(&notAtom);
 
-  // Don't handle regexps with too many capture pairs.
-  masm.load32(Address(regexpReg, RegExpShared::offsetOfPairCount()), temp2);
-  masm.branch32(Assembler::Above, temp2, Imm32(RegExpObject::MaxPairCount),
-                failure);
+  // If we don't need to look at the capture groups, we can leave pairCount at 1
+  // (set above). The regexp code is special-cased to skip copying capture groups
+  // if the pair count is 1, which also lets us avoid having to allocate memory
+  // to store them.
+  bool skipMatchPairs = kind == JitZone::StubKind::RegExpSearcher ||
+      kind == JitZone::StubKind::RegExpExecTest;
+  if (!skipMatchPairs) {
+    // Don't handle regexps with too many capture pairs.
+    masm.load32(Address(regexpReg, RegExpShared::offsetOfPairCount()), temp2);
+    masm.branch32(Assembler::Above, temp2, Imm32(RegExpObject::MaxPairCount),
+                  failure);
 
-  // Fill in the pair count in the MatchPairs on the stack.
-  masm.store32(temp2, pairCountAddress);
+    // Fill in the pair count in the MatchPairs on the stack.
+    masm.store32(temp2, pairCountAddress);
+  }
 
   // Load code pointer and length of input (in bytes).
   // Store the input start in the InputOutputData.
@@ -2794,7 +2802,10 @@ void CreateDependentString::generateFallback(MacroAssembler& masm) {
 // regular expressions.
 static JitCode* GenerateRegExpMatchStubShared(JSContext* cx,
                                               gc::Heap initialStringHeap,
-                                              bool isExecMatch) {
+                                              JitZone::StubKind kind) {
+  bool isExecMatch = kind == JitZone::StubKind::RegExpExecMatch;
+  MOZ_ASSERT_IF(!isExecMatch, kind == JitZone::StubKind::RegExpMatcher);
+
   if (isExecMatch) {
     JitSpew(JitSpew_Codegen, "# Emitting RegExpExecMatch stub");
   } else {
@@ -2851,7 +2862,8 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx,
 
   Label notFound, oolEntry;
   if (!PrepareAndExecuteRegExp(masm, regexp, input, lastIndex, temp1, temp2,
-                               temp3, initialStringHeap, &notFound, &oolEntry)) {
+                               temp3, initialStringHeap, &notFound, &oolEntry,
+                               kind)) {
     return nullptr;
   }
 
@@ -3133,12 +3145,12 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx,
 
 JitCode* JitZone::generateRegExpMatcherStub(JSContext* cx) {
   return GenerateRegExpMatchStubShared(cx, initialStringHeap,
-                                       /* isExecMatch = */ false);
+                                       JitZone::StubKind::RegExpMatcher);
 }
 
 JitCode* JitZone::generateRegExpExecMatchStub(JSContext* cx) {
   return GenerateRegExpMatchStubShared(cx, initialStringHeap,
-                                       /* isExecMatch = */ true);
+                                       JitZone::StubKind::RegExpExecMatch);
 }
 
 void CodeGenerator::visitRegExpMatcher(LRegExpMatcher* lir) {
@@ -3293,7 +3305,8 @@ JitCode* JitZone::generateRegExpSearcherStub(JSContext* cx) {
 
   Label notFound, oolEntry;
   if (!PrepareAndExecuteRegExp(masm, regexp, input, lastIndex, temp1, temp2,
-                               temp3, initialStringHeap, &notFound, &oolEntry)) {
+                               temp3, initialStringHeap, &notFound, &oolEntry,
+                               JitZone::StubKind::RegExpSearcher)) {
     return nullptr;
   }
 
@@ -3436,7 +3449,8 @@ JitCode* JitZone::generateRegExpExecTestStub(JSContext* cx) {
 
   Label notFound, oolEntry;
   if (!PrepareAndExecuteRegExp(masm, regexp, input, lastIndex, temp1, temp2,
-                               temp3, initialStringHeap, &notFound, &oolEntry)) {
+                               temp3, initialStringHeap, &notFound, &oolEntry,
+                               JitZone::StubKind::RegExpExecTest)) {
     return nullptr;
   }
 
