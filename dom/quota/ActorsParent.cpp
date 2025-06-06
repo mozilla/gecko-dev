@@ -1963,6 +1963,10 @@ void QuotaManager::RegisterDirectoryLock(DirectoryLockImpl& aLock) {
 
   mDirectoryLocks.AppendElement(WrapNotNullUnchecked(&aLock));
 
+  if (aLock.mExclusive) {
+    mExclusiveDirectoryLocks.AppendElement(WrapNotNull(&aLock));
+  }
+
   if (aLock.ShouldUpdateLockIdTable()) {
     MutexAutoLock lock(mQuotaMutex);
 
@@ -1978,6 +1982,10 @@ void QuotaManager::UnregisterDirectoryLock(DirectoryLockImpl& aLock) {
   AssertIsOnOwningThread();
 
   MOZ_ALWAYS_TRUE(mDirectoryLocks.RemoveElement(&aLock));
+
+  if (aLock.mExclusive) {
+    MOZ_ALWAYS_TRUE(mExclusiveDirectoryLocks.RemoveElement(&aLock));
+  }
 
   if (aLock.ShouldUpdateLockIdTable()) {
     MutexAutoLock lock(mQuotaMutex);

@@ -1034,6 +1034,12 @@ class QuotaManager final : public BackgroundThreadObject {
   // accessed on the owning (PBackground) thread only.
   nsTArray<NotNull<DirectoryLockImpl*>> mDirectoryLocks;
 
+  // Maintains a list of directory locks that are exclusive. This is a subset
+  // of mDirectoryLocks and is used to optimize lock acquisition by allowing
+  // shared locks to skip unnecessary comparisons. It is accessed only on the
+  // owning (PBackground) thread.
+  nsTArray<NotNull<DirectoryLockImpl*>> mExclusiveDirectoryLocks;
+
   // Only modifed on the owning thread, but read on multiple threads. Therefore
   // all modifications (including those on the owning thread) and all reads off
   // the owning thread must be protected by mQuotaMutex. In other words, only

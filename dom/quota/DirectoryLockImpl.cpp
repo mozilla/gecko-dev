@@ -68,8 +68,16 @@ bool DirectoryLockImpl::MustWait() const {
   AssertIsOnOwningThread();
   MOZ_ASSERT(!mRegistered);
 
-  for (const DirectoryLockImpl* const existingLock :
-       mQuotaManager->mDirectoryLocks) {
+  // Shared locks never block other shared locks, so when acquiring a shared
+  // lock, we only need to consider existing exclusive locks. This reduces the
+  // cost of traversal when many locks are active. Exclusive locks must still
+  // consider all existing locks (both shared and exclusive). See also
+  // DirectoryLockImpl::MustWaitFor.
+  const auto& existingLocks = mExclusive
+                                  ? mQuotaManager->mDirectoryLocks
+                                  : mQuotaManager->mExclusiveDirectoryLocks;
+
+  for (const DirectoryLockImpl* const existingLock : existingLocks) {
     if (MustWaitFor(*existingLock)) {
       return true;
     }
@@ -268,6 +276,9 @@ bool DirectoryLockImpl::MustWaitFor(const DirectoryLockImpl& aLock) const {
   AssertIsOnOwningThread();
 
   // Waiting is never required if the ops in comparison represent shared locks.
+  // Note that this condition is also used to optimize traversal in MustWait
+  // and LocksMustWaitForInternal. If this logic changes, that optimization
+  // must be revisited to ensure correctness.
   if (!aLock.mExclusive && !mExclusive) {
     return false;
   }
@@ -312,9 +323,17 @@ nsTArray<T> DirectoryLockImpl::LocksMustWaitForInternal() const {
 
   nsTArray<T> locks;
 
+  // Shared locks never block other shared locks, so when acquiring a shared
+  // lock, we only need to consider existing exclusive locks. This reduces the
+  // cost of traversal when many locks are active. Exclusive locks must still
+  // consider all existing locks (both shared and exclusive). See also
+  // DirectoryLockImpl::MustWaitFor.
+  const auto& existingLocks = mExclusive
+                                  ? mQuotaManager->mDirectoryLocks
+                                  : mQuotaManager->mExclusiveDirectoryLocks;
+
   // XXX It is probably unnecessary to iterate this in reverse order.
-  for (DirectoryLockImpl* const existingLock :
-       Reversed(mQuotaManager->mDirectoryLocks)) {
+  for (DirectoryLockImpl* const existingLock : Reversed(existingLocks)) {
     if (MustWaitFor(*existingLock)) {
       if constexpr (std::is_same_v<T, NotNull<DirectoryLockImpl*>>) {
         locks.AppendElement(WrapNotNull(existingLock));
