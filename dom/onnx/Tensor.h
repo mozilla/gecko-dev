@@ -11,10 +11,10 @@
 #include "mozilla/dom/ONNXBinding.h"
 #include "js/TypeDecls.h"
 #include "mozilla/ErrorResult.h"
+#include "mozilla/dom/onnxruntime_c_api.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 #include "nsIGlobalObject.h"
-#include "OnxRunTimeIncludeWrapper.h"
 
 namespace mozilla::dom {
 class Promise;
