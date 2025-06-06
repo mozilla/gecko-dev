@@ -21,17 +21,18 @@ exclude: true
 - Added options on [`GeckoPreferenceController`][140.1] to [`register multiple prefs`][141.3] and [`deregister multiple prefs`][141.4]
 - Added [`GeckoRuntime.notifyTelemetryPrefChanged`][141.5] to notify Gecko about telemetry preference changes.
 - Added [`GeckoRuntimeSettings.getBaselineFingerprintingProtection`][141.6], [`GeckoRuntimeSettings.getBaselineFingerprintingProtectionOverrides`][141.7], [`GeckoRuntimeSettings.setBaselineFingerprintingProtection`][141.8], and [`GeckoRuntimeSettings.setBaselineFingerprintingProtectionOverrides`][141.9] to control the baseline fingerprinting protection settings via Nimbus.
+- Added data collection permissions to [`WebExtension.MetaData`][141.10] ([bug 1960551]({{bugzilla}}1960551))
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
-
-[141.3]: {{javadoc_URI}}/GeckoPreferenceController.Observer.html#registerPreferences(java.util.List)
-[141.4]: {{javadoc_URI}}/GeckoPreferenceController.Observer.html#unregisterPreferences(java.util.List)
-[141.5]: {{javadoc_URI}}/GeckoRuntime.html#notifyTelemetryPrefChanged(boolean)
+[141.3]: {{javadoc_uri}}/GeckoPreferenceController.Observer.html#registerPreferences(java.util.List)
+[141.4]: {{javadoc_uri}}/GeckoPreferenceController.Observer.html#unregisterPreferences(java.util.List)
+[141.5]: {{javadoc_uri}}/GeckoRuntime.html#notifyTelemetryPrefChanged(boolean)
 [141.6]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getBaselineFingerprintingProtection
 [141.7]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getBaselineFingerprintingProtectionOverrides
 [141.8]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBaselineFingerprintingProtection
 [141.9]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBaselineFingerprintingProtectionOverrides
+[141.10]: {{javadoc_uri}}/WebExtension.MetaData.html
 
 ## v140
 - Added a [`GeckoPreferenceController`][140.1] class to manage Gecko preferences.
@@ -47,9 +48,9 @@ exclude: true
 [140.1]: {{javadoc_uri}}/GeckoPreferenceController.html
 [140.2]: {{javadoc_uri}}/GeckoPreferenceController.Observer.Delegate.html
 [140.3]: {{javadoc_uri}}/GeckoPreferenceController.Observer.html
-[140.4]: {{javadoc_URI}}/GeckoPreferenceController.html#getGeckoPref(java.lang.String,int)
-[140.5]: {{javadoc_URI}}/GeckoPreferenceController.html#setGeckoPref(java.lang.String,java.lang.String,int)
-[140.6]: {{javadoc_URI}}/GeckoPreferenceController.html#clearGeckoUserPref(java.lang.String)
+[140.4]: {{javadoc_uri}}/GeckoPreferenceController.html#getGeckoPref(java.lang.String,int)
+[140.5]: {{javadoc_uri}}/GeckoPreferenceController.html#setGeckoPref(java.lang.String,java.lang.String,int)
+[140.6]: {{javadoc_uri}}/GeckoPreferenceController.html#clearGeckoUserPref(java.lang.String)
 [140.7]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#setSameDocumentNavigationOverridesLoadType(boolean)
 [140.8]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#setSameDocumentNavigationOverridesLoadTypeForceDisable(java.lang.String)
 [140.9]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getSameDocumentNavigationOverridesLoadType()
@@ -1764,4 +1765,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 4e54a9f6716139292642eb12928dc85187b79c31
+[api-version]: eee2993ef953a8c97baf59b0155bc5404d5116c8
