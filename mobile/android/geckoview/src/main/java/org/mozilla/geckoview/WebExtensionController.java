@@ -252,37 +252,11 @@ public class WebExtensionController {
      * Called whenever a new extension is being installed. This is intended as an opportunity for
      * the app to prompt the user for the permissions required by this extension.
      *
-     * @deprecated Use onInstallPromptRequest(WebExtension, String[], String[], String[]) to account
-     *     for data collection permissions.
      * @param extension The {@link WebExtension} that is about to be installed. You can use {@link
      *     WebExtension#metaData} to gather information about this extension when building the user
      *     prompt dialog.
      * @param permissions The list of permissions that are granted during installation.
      * @param origins The list of origins that are granted during installation.
-     * @return A {@link GeckoResult} that completes with a {@link
-     *     WebExtension.PermissionPromptResponse} containing all the details from the user response.
-     */
-    @Nullable
-    @Deprecated
-    @DeprecationSchedule(id = "web-extension-on-install-prompt-request", version = 143)
-    default GeckoResult<WebExtension.PermissionPromptResponse> onInstallPromptRequest(
-        @NonNull final WebExtension extension,
-        @NonNull final String[] permissions,
-        @NonNull final String[] origins) {
-      return null;
-    }
-
-    /**
-     * Called whenever a new extension is being installed. This is intended as an opportunity for
-     * the app to prompt the user for the permissions required by this extension.
-     *
-     * @param extension The {@link WebExtension} that is about to be installed. You can use {@link
-     *     WebExtension#metaData} to gather information about this extension when building the user
-     *     prompt dialog.
-     * @param permissions The list of permissions that are granted during installation.
-     * @param origins The list of origins that are granted during installation.
-     * @param dataCollectionPermissions The list of data collection permissions that are requested
-     *     during installation.
      * @return A {@link GeckoResult} that completes with a {@link
      *     WebExtension.PermissionPromptResponse} containing all the details from the user response.
      */
@@ -290,8 +264,7 @@ public class WebExtensionController {
     default GeckoResult<WebExtension.PermissionPromptResponse> onInstallPromptRequest(
         @NonNull final WebExtension extension,
         @NonNull final String[] permissions,
-        @NonNull final String[] origins,
-        @NonNull final String[] dataCollectionPermissions) {
+        @NonNull final String[] origins) {
       return null;
     }
 
@@ -655,7 +628,7 @@ public class WebExtensionController {
    *     exceptionally with a {@link WebExtension.InstallException InstallException} that will
    *     contain the relevant error code in {@link WebExtension.InstallException#code
    *     InstallException#code}.
-   * @see PromptDelegate#onInstallPromptRequest(WebExtension, String[], String[], String[])
+   * @see PromptDelegate#onInstallPromptRequest(WebExtension, String[], String[])
    * @see WebExtension.InstallException.ErrorCodes
    * @see WebExtension#metaData
    */
@@ -1203,26 +1176,12 @@ public class WebExtensionController {
       return;
     }
 
-    // TODO - Bug 1970214: remove the first call when we remove the deprecated
-    // `onInstallPromptRequest` method since this has been done to preserve
-    // backward compatibility.
-    GeckoResult<WebExtension.PermissionPromptResponse> promptResponse =
+    final GeckoResult<WebExtension.PermissionPromptResponse> promptResponse =
         mPromptDelegate.onInstallPromptRequest(
             extension, message.getStringArray("permissions"), message.getStringArray("origins"));
-
-    if (promptResponse == null) {
-      promptResponse =
-          mPromptDelegate.onInstallPromptRequest(
-              extension,
-              message.getStringArray("permissions"),
-              message.getStringArray("origins"),
-              message.getStringArray("dataCollectionPermissions"));
-    }
-
     if (promptResponse == null) {
       return;
     }
-
     callback.resolveTo(
         promptResponse.map(
             userResponse -> {
