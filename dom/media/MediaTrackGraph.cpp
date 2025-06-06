@@ -4349,7 +4349,19 @@ void MediaTrackGraphImpl::SetNewNativeInput() {
 NS_IMETHODIMP
 MediaTrackGraphImpl::OnDispatchedEvent() {
   MonitorAutoLock lock(mMonitor);
-  EnsureNextIteration();
+  GraphDriver* driver = CurrentDriver();
+  if (!driver) {
+    // The ipc::BackgroundChild started by `UniqueMessagePortId()` destruction
+    // can queue messages on the thread used for the graph after graph
+    // shutdown.  See bug 1955768.
+    //
+    // Other threads may have already taken a reference to this graph as the
+    // observer, so clearing the thread's observer (on the graph thread) would
+    // not be effective to prevent this callback from being invoked.
+    // https://searchfox.org/mozilla-central/rev/8b52ebe3cddf0e63bb42e8b51618bc3ab8dcb12d/xpcom/threads/ThreadEventQueue.cpp#113,135,139
+    return NS_OK;
+  }
+  driver->EnsureNextIteration();
   return NS_OK;
 }
 
