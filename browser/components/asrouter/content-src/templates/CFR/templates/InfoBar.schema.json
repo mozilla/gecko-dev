@@ -78,6 +78,10 @@
               "action": {
                 "type": "object",
                 "properties": {
+                  "dismiss": {
+                    "type": "boolean",
+                    "description": "Should the infobar be dismissed when the action is dispatched, defaults to true"
+                  },
                   "type": {
                     "type": "string",
                     "description": "Action dispatched by the button."

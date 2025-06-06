@@ -393,3 +393,136 @@ add_task(async function test_showInfoBarMessage_skipsPrivateWindow() {
   // Cleanup
   sinon.restore();
 });
+
+add_task(async function test_non_dismissable_button_action() {
+  let baseMessage = (await CFRMessageProvider.getMessages()).find(
+    m => m.id === "INFOBAR_ACTION_86"
+  );
+  Assert.ok(baseMessage, "Found the base message");
+
+  let message = {
+    ...baseMessage,
+    content: {
+      ...baseMessage.content,
+      type: "global",
+      dismissable: true,
+      buttons: [
+        {
+          label: "Secondary button",
+          action: {
+            type: "OPEN_URL",
+            data: { args: "https://example.com/foo", where: "tab" },
+            dismiss: false,
+          },
+        },
+      ],
+    },
+  };
+
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  let button = infobar.notification.querySelector(".notification-button");
+  Assert.ok(button, "Found the button");
+  Assert.ok(
+    dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match({
+          event: "IMPRESSION",
+          message_id: message.id,
+        }),
+      })
+    ),
+    "Dispatched telemetry IMPRESSION ping"
+  );
+
+  button.click();
+
+  Assert.ok(
+    infobar.notification,
+    "Infobar was not dismissed after clicking the button"
+  );
+  Assert.ok(
+    dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match.has("event", "CLICK_SECONDARY_BUTTON"),
+      })
+    ),
+    "Dispatched telemetry CLICK_SECONDARY_BUTTON"
+  );
+
+  // Clean up
+  infobar.notification.closeButton.click();
+  await BrowserTestUtils.waitForCondition(() => !InfoBar._activeInfobar);
+});
+
+// Default experience
+add_task(async function test_dismissable_button_action() {
+  let baseMessage = (await CFRMessageProvider.getMessages()).find(
+    m => m.id === "INFOBAR_ACTION_86"
+  );
+  Assert.ok(baseMessage, "Found the base message");
+
+  let message = {
+    ...baseMessage,
+    content: {
+      ...baseMessage.content,
+      type: "global",
+      dismissable: true,
+      buttons: [
+        {
+          label: "Secondary button",
+          action: {
+            type: "OPEN_URL",
+            data: { args: "https://example.com/bar", where: "tab" },
+            // dismiss is omitted here to test default case
+          },
+        },
+      ],
+    },
+  };
+
+  let dispatchStub = sinon.stub();
+  let infobar = await InfoBar.showInfoBarMessage(
+    BrowserWindowTracker.getTopWindow().gBrowser.selectedBrowser,
+    message,
+    dispatchStub
+  );
+
+  let button = infobar.notification.querySelector(".notification-button");
+  Assert.ok(button, "Found the button");
+  Assert.ok(
+    dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match({
+          event: "IMPRESSION",
+          message_id: message.id,
+        }),
+      })
+    ),
+    "Dispatched telemetry IMPRESSION ping"
+  );
+
+  button.click();
+  Assert.ok(
+    dispatchStub.calledWith(
+      sinon.match({
+        type: "INFOBAR_TELEMETRY",
+        data: sinon.match.has("event", "CLICK_SECONDARY_BUTTON"),
+      })
+    ),
+    "Dispatched telemetry CLICK_SECONDARY_BUTTON"
+  );
+
+  // Wait for the notification to be removed
+  await BrowserTestUtils.waitForCondition(() => !infobar.notification);
+
+  Assert.ok(!infobar.notification, "Infobar was dismissed after button click");
+});
