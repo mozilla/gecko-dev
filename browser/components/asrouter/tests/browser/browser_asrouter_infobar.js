@@ -526,3 +526,28 @@ add_task(async function test_dismissable_button_action() {
 
   Assert.ok(!infobar.notification, "Infobar was dismissed after button click");
 });
+
+add_task(async function clear_activeInfobar_on_window_close() {
+  let message = (await CFRMessageProvider.getMessages()).find(
+    m => m.id === "INFOBAR_ACTION_86"
+  );
+  Assert.ok(message.id, "Found the message");
+
+  let dispatchStub = sinon.stub();
+  let testWin = await BrowserTestUtils.openNewBrowserWindow();
+  let testBrowser = testWin.gBrowser.selectedBrowser;
+
+  await InfoBar.showInfoBarMessage(testBrowser, message, dispatchStub);
+  Assert.ok(
+    InfoBar._activeInfobar,
+    "InfoBar._activeInfobar should be set after showing infobar"
+  );
+
+  await BrowserTestUtils.closeWindow(testWin);
+  await BrowserTestUtils.waitForCondition(
+    () => !InfoBar._activeInfobar,
+    "InfoBar._activeInfobar should be cleared when the window unloads"
+  );
+  testWin.close();
+  sinon.restore();
+});
