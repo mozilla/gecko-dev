@@ -2131,6 +2131,28 @@ void CodeGenerator::visitRegExp(LRegExp* lir) {
   masm.bind(ool->rejoin());
 }
 
+/*
+ * [SMDOC] RegExp stubs
+ *
+ * The RegExp stubs are a set of lazily generated per-zone stubs
+ * providing fast paths for regexp execution in baseline and Ion.
+ * In general, they are invoked from self-hosted code.
+ *
+ * There are four stubs:
+ * - RegExpMatcher: Given a regular expression, an input string,
+ *     and the current lastIndex, return the match result object.
+ * - RegExpExecMatch: The same as RegExpMatcher, but lastIndex is
+ *     not an argument. Instead, for sticky/global regexps, it is
+ *     loaded from the regexp, and the new value is stored back to
+ *     the regexp after execution. Otherwise, it is hardcoded to 0.
+ * - RegExpSearcher: Given a regular expression, an input string,
+ *     and the current lastIndex, return the index of the next match.
+ * - RegExpExecTest: Given a regular expression and an input string,
+ *     return a boolean indicating whether a match was found. This
+ *     stub has the same behaviour as RegExpExecMatch with respect to
+ *     lastIndex.
+ */
+
 static constexpr int32_t RegExpPairsVectorStartOffset(
     int32_t inputOutputDataStartOffset) {
   return inputOutputDataStartOffset + int32_t(InputOutputDataSize) +
