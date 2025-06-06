@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
+<resources xmlns:tools="http://schemas.android.com/tools" xmlns:moz="http://mozac.org/tools">
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
   <string name="app_name_private_5">Cuuriɗum %s</string>
   <!-- App name for private browsing mode. %s is the name of the app (for example "Firefox"). -->
@@ -152,7 +152,7 @@
   <!-- Search engine suggestion description text -->
   <string name="search_engine_suggestions_description">Yiylo beƴ e palal ñiiɓirɗe ngal</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Ɓamtu ɗo dartino-ɗaa e tabbe iwɗe e kaɓirɗi goɗɗi gonɗi jooni e jaɓɓorgo maa.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Ɓamtu ɗo dartino-ɗaa e tabbe iwɗe e kaɓirɗi goɗɗi gonɗi jooni e jaɓɓorgo maa.</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">Tabbe maa ko canngoɗinaaɗe! Fuɗɗo ɗoon ɗo darnunu-ɗaa e kaɓirgol maa goɗngol.</string>
   <!--

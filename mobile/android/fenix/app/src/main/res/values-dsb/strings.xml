@@ -487,19 +487,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">Witajśo k wěcej wósobinskemu internetoju</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">Witajśo k wěcej wósobinskemu internetoju</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">Wěcej barwow. Lěpša priwatnosć. Samska angažěrowanosć za luźi njeźiwajucy na wudobytki.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">Wěcej barwow. Lěpša priwatnosć. Samska angažěrowanosć za luźi njeźiwajucy na wudobytki.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">Pśešaltowanje mjazy wobrazowkami jo lažke ako do togo</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">Pśešaltowanje mjazy wobrazowkami jo lažke ako do togo</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Pókšacujśo, źož sćo pśestał – něnto z rejtarikami drugich rědow na swójom startowem boku.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Pókšacujśo, źož sćo pśestał – něnto z rejtarikami drugich rědow na swójom startowem boku.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">Prědne kšace</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Prědne kšace</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">Pśizjawiś</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Pśizjawiś</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">Pśeskócyś</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Pśeskócyś</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">Waše rejtariki se synchronizěruju! Pókšačujśo, źož sćo pśestał na drugem rěźe.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -1576,6 +1576,8 @@
   <string name="download_time_period_last_30_days">Zachadne 30 dnjow</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Starše</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">Ześěgnjenje se pśigótujo…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1583,6 +1585,13 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s wušej</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • w %3$s.</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">zastajony</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2947,9 +2956,9 @@
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_header_2">Tšojenja</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">Tšojeńka pó temje</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Tšojeńka pó temje</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">Wěcej wuslěźiś</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Wěcej wuslěźiś</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Spěchowany wót %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->

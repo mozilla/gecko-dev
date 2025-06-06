@@ -220,15 +220,15 @@
   <!-- Menu option in the search selector menu to open the search settings -->
   <string name="search_settings_menu_item">Àwọn ètò ìwádìí</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">Ọ̀pọ̀ àwọn àwọ̀. Ìkọ̀kọ̀ tó dára. Irúfẹ́ ìfarafún bẹ̀ẹ́ sí àwọn ènìyàn lóri àwọn èrè.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">Ọ̀pọ̀ àwọn àwọ̀. Ìkọ̀kọ̀ tó dára. Irúfẹ́ ìfarafún bẹ̀ẹ́ sí àwọn ènìyàn lóri àwọn èrè.</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Lọ mú níbi tí o ti kúrò pẹ̀lú àwọn táàbù láti inú àwọn ẹ̀rọ tí ó kù tí ó wà lóri ojúùwé àkọ́ọ́kàn rẹ lọ́wọ́lọ́wọ́.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Lọ mú níbi tí o ti kúrò pẹ̀lú àwọn táàbù láti inú àwọn ẹ̀rọ tí ó kù tí ó wà lóri ojúùwé àkọ́ọ́kàn rẹ lọ́wọ́lọ́wọ́.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">Bẹ̀rẹ̀</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Bẹ̀rẹ̀</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">Wọlé</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Wọlé</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">Fò</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Fò</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">Àwọn táàbù rẹ ti ń ṣiṣẹ́ pọ̀! Mú u sókè níbi tí o ti kúrò lóri ẹ̀rọ rẹ mìíràn.</string>
   <!--
@@ -1557,9 +1557,9 @@
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Àwọn ìtàn tó ń mú ni ronú</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">Àwọn ìtàn nípasẹ̀ kókó-ọ̀rọ̀</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Àwọn ìtàn nípasẹ̀ kókó-ọ̀rọ̀</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">Ṣàwárí si</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Ṣàwárí si</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
   <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">Ara ìdílé Firefox. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->

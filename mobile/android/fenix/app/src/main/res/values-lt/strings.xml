@@ -1395,9 +1395,9 @@
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Susimąstyti verčiančios istorijos</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">Straipsniai pagal temas</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Straipsniai pagal temas</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">Atrasti daugiau</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Atrasti daugiau</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
   <string name="pocket_stories_feature_caption" moz:removedIn="140" tools:ignore="BrandUsage,UnusedResources">„Firefox“ šeimos dalis. %s</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->

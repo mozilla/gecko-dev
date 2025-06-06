@@ -483,19 +483,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">താങ്ങളുടെ സ്വന്തം ഗോളാന്തരവലയിലേക്കു സ്വാഗതം</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">താങ്ങളുടെ സ്വന്തം ഗോളാന്തരവലയിലേക്കു സ്വാഗതം</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">ഇനിയും നിറങ്ങൾ. മെച്ചപ്പെട്ട സ്വകാര്യത. ലാഭത്തേക്കാൾ ജനങ്ങളോടുള്ള അതേ പ്രതിബദ്ധത.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">ഇനിയും നിറങ്ങൾ. മെച്ചപ്പെട്ട സ്വകാര്യത. ലാഭത്തേക്കാൾ ജനങ്ങളോടുള്ള അതേ പ്രതിബദ്ധത.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">ദൃശ്യപ്രതലങ്ങൾ മാറുകാൻ വളരെ എളുപ്പമാണു്</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">ദൃശ്യപ്രതലങ്ങൾ മാറുകാൻ വളരെ എളുപ്പമാണു്</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">താങ്ങളുടെ ആമുഖതാളിലെ മറ്റ് ഉപകരണങ്ങളിൽ നിന്നുള്ള ടാബുകൾ ഉപയോഗിച്ച് താങ്ങൾ നിർത്തിയിടത്ത് നിന്ന് ആരംഭിക്കുക.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">താങ്ങളുടെ ആമുഖതാളിലെ മറ്റ് ഉപകരണങ്ങളിൽ നിന്നുള്ള ടാബുകൾ ഉപയോഗിച്ച് താങ്ങൾ നിർത്തിയിടത്ത് നിന്ന് ആരംഭിക്കുക.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">ഉപയോഗിക്കാൻ തുടങ്ങുക</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">ഉപയോഗിക്കാൻ തുടങ്ങുക</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">പ്രവേശിക്കുക</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">പ്രവേശിക്കുക</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">ഒഴിവാക്കുക</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">ഒഴിവാക്കുക</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">താങ്ങളുടെ ടാബുകൾ സമന്വയിപ്പിക്കുന്നു! താങ്ങളുടെ മറ്റു് ഉപകരണത്തിൽ നിർത്തിയിടത്തു് നിന്നു് വീണ്ടും തുടങ്ങുക.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -2816,9 +2816,9 @@
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_header_2">കഥകൾ</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">ലേഖനങ്ങൾ വിഷയാനുസൃതമായി</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">ലേഖനങ്ങൾ വിഷയാനുസൃതമായി</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">കൂടുതലായി കണ്ടെത്തൂ</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">കൂടുതലായി കണ്ടെത്തൂ</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">അവതരിപ്പിക്കുന്നത്: %s</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->

@@ -242,19 +242,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">Witej we prywatniyjszym internecie</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">Witej we prywatniyjszym internecie</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">Wiyncyj farbōw. Lepszo prywatnoś. Te same stowianie ludzi nad profitym.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">Wiyncyj farbōw. Lepszo prywatnoś. Te same stowianie ludzi nad profitym.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">Przełōnczanie ekranōw jeszcze żodyn roz niy było take leke</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">Przełōnczanie ekranōw jeszcze żodyn roz niy było take leke</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Na swojij dōmowyj strōnie rōb dalij na kartach, co mosz ôtwarte na inkszych maszinach.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Na swojij dōmowyj strōnie rōb dalij na kartach, co mosz ôtwarte na inkszych maszinach.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">Zaczynōmy</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Zaczynōmy</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">Wloguj sie</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Wloguj sie</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">Przeskocz</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Przeskocz</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">Twoje karty sie synchrōnizujōm! Rōb dalij na kartach, co mosz ôtwarte na inkszyj maszinie.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->

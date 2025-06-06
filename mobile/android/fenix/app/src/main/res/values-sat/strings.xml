@@ -487,19 +487,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">ᱱᱤᱡᱚᱨᱟᱜ ᱞᱮᱠᱷᱟ ᱤᱱᱴᱚᱨᱱᱮᱴ ᱨᱮ ᱟᱢᱟᱜ ᱥᱟᱹᱜᱩᱱ ᱫᱟᱨᱟᱢ</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">ᱱᱤᱡᱚᱨᱟᱜ ᱞᱮᱠᱷᱟ ᱤᱱᱴᱚᱨᱱᱮᱴ ᱨᱮ ᱟᱢᱟᱜ ᱥᱟᱹᱜᱩᱱ ᱫᱟᱨᱟᱢ</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">ᱰᱷᱮᱨ ᱨᱚᱝ ᱠᱚ ᱾ ᱵᱮᱥ ᱱᱤᱥᱚᱱ ᱾ ᱞᱟᱵᱷ ᱨᱮ ᱚᱱᱟ ᱥᱚᱯᱚᱛᱷ ᱜᱮ ᱡᱷᱚᱛᱚ ᱦᱚᱲ ᱾</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">ᱰᱷᱮᱨ ᱨᱚᱝ ᱠᱚ ᱾ ᱵᱮᱥ ᱱᱤᱥᱚᱱ ᱾ ᱞᱟᱵᱷ ᱨᱮ ᱚᱱᱟ ᱥᱚᱯᱚᱛᱷ ᱜᱮ ᱡᱷᱚᱛᱚ ᱦᱚᱲ ᱾</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">ᱯᱚᱨᱫᱟ ᱵᱚᱫᱚᱞ ᱫᱚ ᱱᱤᱛᱚᱜ ᱟᱹᱰᱤ ᱤᱫᱤᱜ ᱠᱟᱱᱟ</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">ᱯᱚᱨᱫᱟ ᱵᱚᱫᱚᱞ ᱫᱚ ᱱᱤᱛᱚᱜ ᱟᱹᱰᱤ ᱤᱫᱤᱜ ᱠᱟᱱᱟ</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">ᱚᱲᱟᱜ ᱥᱟᱦᱴᱟ ᱨᱮ ᱱᱤᱛᱚᱜ ᱡᱟᱦᱟᱸ ᱠᱷᱚᱱ ᱮᱢ ᱟᱲᱟᱜ ᱞᱮᱜᱼᱟ ᱮᱴᱟᱜ ᱥᱟᱫᱷᱚᱱ ᱨᱮᱭᱟᱜ ᱴᱮᱵᱽ ᱠᱷᱚᱱ ᱯᱟᱧᱡᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">ᱚᱲᱟᱜ ᱥᱟᱦᱴᱟ ᱨᱮ ᱱᱤᱛᱚᱜ ᱡᱟᱦᱟᱸ ᱠᱷᱚᱱ ᱮᱢ ᱟᱲᱟᱜ ᱞᱮᱜᱼᱟ ᱮᱴᱟᱜ ᱥᱟᱫᱷᱚᱱ ᱨᱮᱭᱟᱜ ᱴᱮᱵᱽ ᱠᱷᱚᱱ ᱯᱟᱧᱡᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">ᱫᱮᱞᱟ ᱮᱛᱦᱚᱵ ᱞᱮᱜᱮ ᱵᱚᱱ</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">ᱫᱮᱞᱟ ᱮᱛᱦᱚᱵ ᱞᱮᱜᱮ ᱵᱚᱱ</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">ᱵᱚᱞᱚᱱ ᱥᱩᱦᱤ</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">ᱵᱚᱞᱚᱱ ᱥᱩᱦᱤ</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">ᱟᱲᱟᱜ</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">ᱟᱲᱟᱜ</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">ᱟᱢᱟᱜ ᱴᱮᱵᱽ ᱫᱚ ᱟᱹᱭᱩᱨ ᱢᱤᱫᱚᱜ ᱠᱟᱱᱟ! ᱮᱴᱟᱜ ᱥᱟᱫᱷᱚᱱ ᱨᱮᱭᱟᱜ ᱴᱮᱵᱽ ᱠᱷᱚᱱ ᱯᱟᱧᱡᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -1390,6 +1390,10 @@
   <string name="studies_remove">ᱚᱪᱚᱜ ᱢᱮ</string>
   <!-- Title of the active section on the studies list -->
   <string name="studies_active">ᱩᱥᱨᱟᱹᱣ</string>
+  <!-- Description for studies -->
+  <string name="studies_description_3">ᱡᱷᱚᱛᱚ ᱦᱚᱲ ᱞᱟᱹᱜᱤᱫ ᱨᱤᱞᱤᱡᱽ ᱞᱟᱦᱟᱨᱮ ᱯᱷᱤᱪᱟᱨ ᱠᱚ ᱟᱨ ᱟᱭᱰᱤᱭᱟᱥ ᱠᱚ ᱧᱮᱞ ᱵᱤᱰᱟᱹᱣ ᱢᱮ ᱾</string>
+  <!-- Title of the Studies data preference -->
+  <string name="studies_title">ᱯᱟᱲᱦᱟᱣ ᱠᱚ ᱵᱚᱦᱟᱞ ᱢᱮ ᱟᱨ ᱪᱟᱹᱞᱩᱭ ᱢᱮ</string>
   <!-- Learn more link for studies, links to an article for more information about studies. -->
   <string name="studies_learn_more">ᱰᱷᱮᱨ ᱥᱮᱬᱟᱭ ᱢᱮ</string>
   <!--
@@ -1432,6 +1436,8 @@
   <string name="tab_tray_multiselect_share_content_description">ᱵᱟᱪᱷᱟᱣ ᱟᱠᱟᱱ ᱴᱮᱵᱽ ᱠᱚ ᱦᱟᱹᱴᱤᱧ ᱢᱮ</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">ᱵᱟᱪᱷᱟᱣ ᱟᱠᱟᱱ ᱴᱮᱵᱽ ᱢᱮᱱᱭᱩ ᱠᱚ</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">ᱚᱲᱟᱜ ᱥᱟᱦᱴᱟ</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">ᱴᱮᱵᱽ ᱛᱩᱢᱟᱹᱞ ᱠᱷᱚᱱ ᱚᱪᱚᱜ ᱢᱮ</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1489,6 +1495,17 @@
   <string name="history_older">ᱢᱟᱨᱮᱭᱟᱜ</string>
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">ᱱᱚᱰᱮ ᱱᱟᱜᱟᱢ ᱵᱚᱱᱩᱜ-ᱟ</string>
+  <!--
+    Downloads
+
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">ᱡᱤᱱᱤᱥ ᱠᱚ ᱢᱮᱴᱟᱣ ᱮᱱᱟ: %1$d</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">“%1$s” ᱢᱮᱴᱟᱣᱮᱱᱟ</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar">ᱰᱟᱣᱱᱞᱚᱰ ᱪᱟᱹᱞᱩ ᱠᱟᱱᱟ …</string>
   <!-- Text for the snackbar action button to view in progress download details. -->
   <string name="download_in_progress_snackbar_action_details">ᱵᱤᱵᱨᱚᱬ ᱠᱚ</string>
   <!-- Text for the snackbar to confirm that a download has completed. -->
@@ -1506,8 +1523,33 @@
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">%1$d ᱵᱟᱪᱷᱟᱣᱮᱱᱟ</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">ᱰᱷᱮᱨ ᱡᱟᱭᱜᱟ ᱵᱟᱹᱱᱩᱜᱼᱟ</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[ᱱᱚᱣᱟ ᱥᱟᱫᱷᱚᱱ ᱨᱮ <b>%s</b> ᱰᱟᱣᱱᱞᱳᱰ ᱞᱟᱹᱜᱤᱫ ᱱᱩᱠᱩ ᱴᱷᱟᱶ ᱵᱟᱹᱱᱩᱜᱼᱟ ᱾]]></string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">ᱨᱮᱫᱽ ᱢᱮᱱᱮᱡᱽ ᱢᱮ</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">ᱵᱟᱹᱰᱨᱟᱹ</string>
   <!-- Text for the button to delete a single downloaded file item -->
   <string name="download_delete_item">ᱢᱮᱴᱟᱣ ᱢᱮ</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">ᱯᱟᱹᱪᱷᱞᱟᱹᱥᱮᱱ ᱪᱟᱞᱟᱜ ᱢᱮ</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">ᱪᱮᱛᱟᱱ ᱥᱮᱱ ᱱᱮᱣᱤᱜᱮᱴ ᱢᱮ</string>
+  <!-- Content description for the toolbar back button while searching the downloads -->
+  <string name="download_close_search_description">ᱨᱩᱣᱟᱹᱲ ᱟᱨ ᱥᱮᱸᱫᱽᱨᱟ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
+  <!-- Content description for the search bar clear text button on the downloads screen -->
+  <string name="download_clear_search_description">ᱯᱷᱟᱨᱪᱟ</string>
   <!-- Text for the button to share the download URL -->
   <string name="download_share_url">URL ᱦᱟᱹᱴᱤᱧ ᱢᱮ</string>
   <!-- Text for the button to share the download file -->
@@ -1520,6 +1562,12 @@
   <string name="download_delete_multi_select_dialog_cancel">ᱵᱟᱹᱰᱨᱟᱹ</string>
   <!-- Text for the header of in progress downloads -->
   <string name="download_header_in_progress">ᱨᱮ ᱞᱟᱦᱟᱜ ᱠᱟᱱᱟ</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">ᱛᱮᱦᱮᱸᱧ</string>
   <!-- Text for the header that groups the downloads for yesterday -->
   <string name="download_time_period_yesterday">ᱦᱚᱞᱟ</string>
   <!-- Text for the header that groups the downloads the past 7 days -->
@@ -1528,6 +1576,8 @@
   <string name="download_time_period_last_30_days">30 ᱫᱤᱱ ᱢᱟᱲᱟᱝ</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">ᱢᱟᱨᱮᱭᱟᱜ</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">ᱰᱟᱣᱱᱞᱚᱰ ᱛᱮᱭᱟᱨᱚᱜ ᱠᱟᱱᱟ …</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1535,16 +1585,39 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ᱥᱟᱨᱮᱡ ᱠᱟᱱᱟ</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • ᱨᱮ %3$s ᱾</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • ᱛᱟᱺᱜᱤ ᱨᱮ</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • ᱛᱷᱩᱢ</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">ᱛᱷᱩᱢ</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
   <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">ᱛᱟᱹᱝᱜᱤᱨᱮ</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">ᱰᱟᱣᱱᱞᱚᱰ ᱰᱤᱜᱟᱹᱣᱮᱱᱟ</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">ᱵᱤᱵᱨᱚᱬ ᱠᱚ</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">ᱰᱟᱩᱱᱞᱚᱰ ᱯᱟᱱᱛᱮ ᱢᱮ</string>
   <!-- Text to indicate that no downloads match the search query. -->
   <string name="download_search_no_results_found">ᱪᱮᱫ ᱛᱮᱞᱟ ᱵᱟᱭ ᱧᱟᱢ ᱞᱮᱱᱟ</string>
+  <!-- Text for the "Select all" button, which selects all downloaded items in the downloads list. -->
+  <string name="download_select_all_items">ᱡᱷᱚᱛᱚ ᱵᱟᱪᱷᱟᱣ</string>
   <!--
     Downloads Content Type Filters
 
@@ -1571,8 +1644,12 @@
   <string name="webcompat_reporter_label_url">URL</string>
   <!-- The error message of the URL text field when an invalid URL has been entered. -->
   <string name="webcompat_reporter_url_error_invalid">ᱫᱟᱭᱟ ᱠᱟᱛᱮ ᱢᱤᱫ ᱢᱟᱱᱭᱟ URL ᱮᱢ ᱢᱮ</string>
+  <!-- The label/title of a field in the Web Compat Reporter feature for explaining a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_label_whats_broken_2">ᱪᱮᱫ ᱨᱟᱹᱯᱩᱫ ᱮᱱᱟ ?</string>
   <!-- The placeholder text for the dropdown where a user selects a high-level reason why the site is broken. -->
   <string name="webcompat_reporter_choose_reason">ᱠᱟᱨᱚᱬ ᱵᱟᱛᱟᱣ ᱢᱮ</string>
+  <!-- The error message of the dropdown, prompting the user to select a high-level reason why the site is broken. -->
+  <string name="webcompat_reporter_choose_reason_error">ᱫᱟᱭᱟ ᱠᱟᱛᱮ ᱢᱤᱫ ᱠᱟᱨᱚᱱ ᱵᱟᱪᱷᱟᱣ ᱢᱮ</string>
   <!-- The label/title of an optional field in the Web Compat Reporter feature for adding additional information. -->
   <string name="webcompat_reporter_label_description">ᱮᱴᱠᱮᱴᱚᱬᱮ ᱵᱟᱛᱟᱣ ᱢᱮ (ᱩᱱᱟᱹᱜ ᱵᱟᱝ ᱞᱟᱹᱠᱛᱤ)</string>
   <!-- The button text for navigating away from the feature to provide more information on the broken site's bug report. -->
@@ -1581,20 +1658,40 @@
   <string name="webcompat_reporter_cancel">ᱵᱟᱹᱰᱨᱟᱹ</string>
   <!-- The button text for the send button to submit the provided form data. -->
   <string name="webcompat_reporter_send">ᱠᱩᱞ ᱢᱮ</string>
+  <!-- Text for a snackbar to confirm the successful submission of a WebCompat report. -->
+  <string name="webcompat_reporter_success_snackbar_text">ᱟᱢᱟᱜ ᱨᱤᱯᱚᱨᱴ ᱠᱩᱞ ᱮᱱᱟ</string>
+  <!-- Button text for closing or dismissing the snackbar shown after successfully submitting a WebCompat report. -->
+  <string name="webcompat_reporter_dismiss_success_snackbar_text">ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
   <!--
     These reason strings are dropdown options on a WebCompat reporter form, indicating what is broken on the site.
 
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">ᱥᱟᱭᱤᱴ ᱫᱚ ᱵᱟᱭ ᱥᱮ ᱵᱟᱭ ᱠᱟᱹᱢᱤ ᱠᱟᱱᱟ</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">ᱥᱟᱭᱤᱴ ᱵᱟᱝ ᱞᱳᱰᱚᱜ ᱠᱟᱱᱟ</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">ᱯᱩᱭᱥᱟᱹ ᱵᱟᱝ ᱮᱢ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ, ᱪᱮᱠ ᱟᱣᱩᱴ ᱥᱮ ᱵᱟᱝ ᱠᱤᱨᱤᱧ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">ᱪᱤᱛᱟᱹᱨ ᱥᱮ ᱣᱤᱰᱳᱭᱳᱠᱚ</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">ᱵᱩᱛᱟᱢ, ᱞᱤᱝᱠ, ᱟᱨ ᱮᱴᱟᱜ ᱡᱤᱱᱤᱥ</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">ᱥᱩᱦᱤ ᱮᱢ ᱢᱮ ᱥᱮ ᱧᱩᱛᱩᱢ ᱚᱞ ᱦᱚᱪᱚᱭ ᱢᱮ</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">ᱥᱟᱭᱤᱴ ᱫᱚ ᱵᱟᱹᱭ ᱵᱟᱹᱭ ᱜᱮᱭᱟ</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">ᱵᱷᱤᱰᱤᱭᱳ ᱵᱟᱝ ᱪᱟᱹᱞᱩᱜ ᱠᱟᱱᱟ ᱟᱨ ᱵᱟᱝ ᱞᱳᱰ ᱦᱩᱭᱩᱜ ᱠᱟᱱᱟ</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">ᱟᱫ ᱟᱠᱟᱱ ᱡᱤᱱᱤᱥ</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">ᱥᱩᱦᱤᱮᱢ ᱥᱮ ᱨᱮᱡᱤᱥᱴᱚᱨ ᱵᱟᱝ ᱦᱩᱭ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">ᱪᱷᱟᱶᱨᱟ ᱟᱠᱚᱴ</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">ᱥᱟᱭᱤᱴ ᱫᱚ ᱮᱰ ᱵᱞᱚᱠᱟᱨ ᱵᱚᱱᱫᱚ ᱞᱟᱹᱜᱤᱫ ᱠᱚ ᱢᱮᱛᱟᱫ ᱠᱚᱣᱟ</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">ᱵᱽᱨᱟᱣᱩᱡᱟᱨ ᱵᱟᱝ ᱥᱟᱯᱚᱨᱴ ᱟᱠᱟᱱᱟ ᱟᱨ ᱵᱟᱝ ᱵᱞᱚᱠ ᱟᱠᱟᱱᱟ</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">ᱡᱟᱦᱱᱟᱜ ᱮᱴᱟᱜ ᱡᱤᱱᱤᱥ</string>
   <!--
@@ -1643,6 +1740,8 @@
   <string name="bookmark_menu_copy_button">ᱱᱚᱠᱚᱞ ᱢᱮ</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">ᱦᱟᱹᱴᱤᱧ ᱢᱮ</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">ᱡᱷᱚᱛᱚ ᱵᱟᱪᱷᱟᱣ</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">ᱱᱟᱶᱟ ᱴᱮᱵᱽ ᱨᱮ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1655,6 +1754,8 @@
   <string name="bookmark_menu_delete_button">ᱢᱮᱴᱟᱣ ᱢᱮ</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">ᱥᱟᱺᱪᱟᱣ ᱢᱮ</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">ᱠᱟᱥᱴᱚᱢ ᱚᱰᱟᱨ ᱞᱮᱠᱟᱛᱮ ᱵᱟᱪᱷᱟᱣ ᱢᱮ</string>
   <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
   <string name="bookmark_sort_menu_newest">ᱱᱟᱣᱟ ᱞᱮᱠᱟᱛᱮ ᱥᱮᱴ ᱢᱮ</string>
   <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
@@ -1821,6 +1922,10 @@
   <string name="studies_on">ᱪᱟᱹᱞᱩ</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">ᱵᱚᱸᱫᱚ</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">ᱪᱟᱹᱞᱩ</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">ᱵᱚᱸᱫᱚ</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">ᱪᱷᱟᱹᱰ ᱠᱚ</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -2306,6 +2411,8 @@
   <string name="preference_doh_default_protection_info_3">ᱡᱩᱫᱤ ᱦᱩᱭ ᱫᱟᱲᱮᱭᱟᱜ ᱠᱷᱟᱱ, ᱢᱤᱫᱴᱟᱝ ᱥᱩᱨ ᱯᱨᱚᱵᱷᱟᱭᱰᱚᱨ ᱵᱮᱵᱷᱟᱨ ᱢᱮ ᱾ %1$s</string>
   <!-- Bullet point 4 for "Default Protection" information page under "DNS over HTTPS" -->
   <string name="preference_doh_default_protection_info_4">VPN, ᱜᱷᱟᱨᱚᱧᱡᱽ ᱠᱚᱵᱽᱡᱟ, ᱟᱨᱵᱟᱝ ᱮᱱᱴᱚᱨᱯᱨᱟᱭᱡᱽ ᱱᱤᱛᱤ ᱛᱟᱦᱮᱱ ᱠᱷᱟᱱ ᱵᱚᱸᱫᱚᱭ ᱢᱮ</string>
+  <!-- Bullet point 5 for "Default Protection" information page under "DNS over HTTPS". %1$s is the name of the application (e.g. Fenix). %2$s is replaced by a link using `preference_doh_learn_more` at text ("Learn More"). -->
+  <string name="preference_doh_default_protection_info_5">ᱵᱚᱱᱫᱚ ᱢᱮ ᱡᱚᱠᱷᱚᱱ ᱢᱤᱫ ᱱᱮᱴᱣᱟᱨᱠ ᱢᱮᱛᱟᱭᱟ %1$s ᱱᱚᱣᱟ ᱨᱩᱠᱷᱤᱭᱟᱹ DNS ᱵᱟᱝ ᱵᱮᱵᱷᱟᱨ ᱞᱟᱹᱠᱛᱤᱭᱟ ᱾ %2$s</string>
   <!-- Title displayed for "Increased Protection" option under "DNS over HTTPS" -->
   <string name="preference_doh_increased_protection">ᱨᱩᱠᱷᱤᱭᱟᱹ ᱵᱚᱰᱷᱟᱣᱮᱱᱟ</string>
   <!-- Summary displayed for "Increased Protection" option under "DNS over HTTPS" -->
@@ -2861,9 +2968,9 @@
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_header_2">ᱠᱟᱹᱦᱱᱤᱠᱚ</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">ᱦᱟᱛᱟᱢ ᱞᱮᱠᱟᱛᱮ ᱠᱟᱹᱦᱱᱤ ᱠᱚ</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">ᱦᱟᱛᱟᱢ ᱞᱮᱠᱟᱛᱮ ᱠᱟᱹᱦᱱᱤ ᱠᱚ</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">ᱟᱨᱦᱚᱸ ᱯᱟᱱᱛᱮ ᱧᱟᱢ ᱢᱮ</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">ᱟᱨᱦᱚᱸ ᱯᱟᱱᱛᱮ ᱧᱟᱢ ᱢᱮ</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">%1$s ᱫᱟᱨᱟᱭ ᱛᱮ ᱫᱟᱲᱮ ᱮᱢ ᱾</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
@@ -3191,6 +3298,8 @@
   <string name="protection_panel_no_trackers_blocked">ᱯᱟᱧᱡᱟᱠᱩᱜ ᱵᱟᱠᱚ ᱧᱟᱢ ᱞᱮᱱᱟ</string>
   <!-- Link text to navigate to privacy and security settings from the protection panel. -->
   <string name="protection_panel_privacy_and_security_settings">ᱯᱨᱟᱭᱣᱮᱥᱤ ᱟᱨ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱥᱟᱡᱟᱣᱠᱚ</string>
+  <!-- Title text for the protection panel permissions section. -->
+  <string name="protection_panel_permissions_title">ᱪᱷᱟᱹᱰ ᱠᱚ</string>
   <!--
     Text for displaying the total number of trackers blocked in the trackers blocked panel.
     %d is a placeholder for the number of trackers blocked.
@@ -3207,6 +3316,12 @@
     %s is a placeholder for the base domain of website.
   -->
   <string name="clear_site_data_dialog_description"><![CDATA[ᱠᱩᱠᱤᱡᱽ ᱚᱪᱚᱜ ᱟᱨ ᱥᱟᱭᱤᱴ ᱰᱟᱴᱟ <b>%s</b> ᱞᱟᱹᱜᱤᱫ ᱟᱢ ᱣᱮᱵᱽᱥᱟᱭᱤᱴ ᱠᱷᱚᱱ ᱵᱟᱦᱨᱮ ᱚᱰᱚᱠ ᱟᱨ ᱥᱚᱯᱤᱝ ᱠᱟᱨᱴ ᱥᱟᱯᱷᱟ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾]]></string>
+  <!-- Button text on the clear site data dialog to allow users to confirm they wish to clear the site data. -->
+  <string name="clear_site_data_dialog_positive_button_text">ᱯᱷᱟᱨᱪᱟ</string>
+  <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
+  <string name="clear_site_data_dialog_negative_button_text">ᱵᱟᱹᱰᱨᱟᱹ</string>
+  <!-- Snackbar title shown when the site data has been cleared. -->
+  <string name="clear_site_data_snackbar">ᱠᱩᱠᱤᱡᱽ ᱟᱨ ᱥᱟᱭᱤᱴ ᱰᱟᱴᱟ ᱚᱪᱚᱜ ᱮᱱᱟ</string>
   <!-- Text for the connection security panel when the site is secure. -->
   <string name="connection_security_panel_secure">ᱡᱟᱹᱯᱛᱤ ᱡᱚᱱᱚᱲᱟᱣ</string>
   <!-- Text for the connection security panel when the site is not secure. -->
@@ -3350,6 +3465,12 @@
   <string name="debug_drawer_addresses_title">ᱴᱷᱤᱠᱬᱟᱹᱠᱚ</string>
   <!-- The title of the section header for the list of debug locales that can be enabled and disabled. -->
   <string name="debug_drawer_addresses_debug_locales_header">ᱮᱢᱪᱷᱚ ᱞᱟᱹᱜᱤᱫ ᱞᱚᱠᱟᱞ ᱰᱮᱵᱩᱜ ᱢᱮ</string>
+  <!-- The title of the header for the section for managing addresses. -->
+  <string name="debug_drawer_addresses_management_header">ᱴᱷᱤᱠᱬᱟᱹᱤᱭᱟᱹ ᱡᱚᱛᱚᱱ ᱮᱢ</string>
+  <!-- The title of the button in the debug drawer for adding a new address. -->
+  <string name="debug_drawer_add_new_address">ᱵᱟᱪᱷᱟᱣ ᱟᱠᱟᱱ ᱴᱷᱟᱶ ᱞᱟᱹᱜᱤᱫ ᱱᱟᱶᱟ ᱴᱷᱤᱠᱬᱟ. ᱥᱮᱞᱮᱫ ᱢᱮ</string>
+  <!-- The title of the button for deleting in the debug drawer all addresses. -->
+  <string name="debug_drawer_delete_all_addresses">ᱡᱷᱚᱛᱚ ᱴᱷᱤᱠᱬᱟᱹ ᱢᱮᱴᱟᱣ ᱢᱮ</string>
   <!--
     Debug drawer "contextual feature recommendation" (CFR) tools
 
@@ -3364,6 +3485,28 @@
     The title of the glean debugging feature
   -->
   <string name="glean_debug_tools_title">Glean ᱰᱮᱵᱩᱜᱽ ᱦᱟᱹᱛᱤᱭᱟᱨ</string>
+  <!--
+    Debug drawer region tools
+
+    Title of the Region tools in the Debug Drawer.
+    This tool allows temporarily overriding the home region (user's default locale)
+    and the current region (device's detected location) for testing purposes.
+  -->
+  <string name="debug_drawer_region_tools_title">ᱴᱚᱴᱷᱟ ᱦᱟᱹᱛᱤᱭᱟᱨ ᱠᱚ</string>
+  <!-- The description of the Region tools in the Debug Drawer -->
+  <string name="debug_drawer_regin_tools_description">ᱯᱚᱨᱠᱷᱤᱭᱟᱹ ᱞᱟᱹᱜᱤᱫ ᱚᱠᱟ ᱚᱠᱛᱚ ᱞᱟᱹᱜᱤᱫ ᱚᱲᱟᱜ ᱟᱨ ᱱᱟᱦᱟᱜ ᱴᱚᱴᱷᱟ ᱨᱮᱭᱟᱜ ᱜᱚᱱᱚᱝ ᱠᱚ ᱚᱵᱷᱟᱨᱟᱭᱤᱰ ᱢᱮ ᱾</string>
+  <!-- The text label for displaying home region. -->
+  <string name="debug_drawer_home_region_label">ᱚᱲᱟᱜ ᱴᱚᱴᱷᱟ</string>
+  <!-- The text label for displaying current region. -->
+  <string name="debug_drawer_current_region_label">ᱱᱤᱛᱚᱜ ᱴᱚᱴᱷᱟ</string>
+  <!-- The text field label for overriding home region. -->
+  <string name="debug_drawer_override_home_region_label">ᱚᱲᱟᱜ ᱴᱚᱴᱷᱟ ᱚᱵᱷᱟᱨᱟᱭᱤᱰ ᱢᱮ</string>
+  <!-- The text field label for overriding current region. -->
+  <string name="debug_drawer_override_current_region_label">ᱱᱤᱛᱚᱜ ᱴᱚᱴᱷᱟ ᱚᱵᱷᱟᱨᱟᱭᱤᱰ ᱢᱮ</string>
+  <!-- The title of the button for overriding home and current region. -->
+  <string name="debug_drawer_override_region">ᱚᱲᱟᱜ ᱟᱨ ᱱᱤᱛᱚᱜ ᱴᱚᱴᱷᱟ ᱚᱵᱷᱟᱨᱟᱭᱤᱰ ᱢᱮ</string>
+  <!-- The title of the button for overriding home region permanently. -->
+  <string name="debug_drawer_override_home_region_permanently">ᱚᱲᱟᱜ ᱴᱚᱴᱷᱟ ᱥᱮᱢᱟᱭ ᱞᱟᱹᱜᱤᱫ ᱚᱵᱷᱟᱨᱟᱭᱤᱰ ᱢᱮ</string>
   <!--
     Messages explaining how to exit fullscreen mode
 
@@ -3396,6 +3539,70 @@
   <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">ᱟᱢᱟᱜ Firefox ᱵᱽᱨᱟᱣᱡᱚᱨ ᱦᱟᱹᱞᱤᱭᱟᱹᱠ ᱛᱟᱢ</string>
   <!-- Homepage card message about old Firefox version -->
   <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">ᱢᱤᱫ ᱨᱩᱴ ᱥᱮᱨᱴᱤᱯᱷᱤᱠᱮᱴ ᱢᱩᱪᱟᱹᱫᱚᱜᱼᱟ, ᱚᱱᱟ ᱠᱷᱟᱹᱛᱤᱨ ᱛᱮ ᱛᱤᱱᱟᱹᱜ ᱜᱟᱱ ᱯᱷᱤᱪᱟᱨ ᱠᱚ ᱑᱔ ᱢᱟᱨᱪ ᱦᱤᱞᱚᱜ ᱠᱟᱹᱢᱤ ᱵᱚᱱᱫᱚᱭᱟᱭ ᱾</string>
+  <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">14 ᱢᱟᱨᱪ ᱢᱟᱲᱟᱝ ᱨᱮ ᱦᱟᱹᱞᱤᱭᱟᱹᱠ ᱢᱮ</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">ᱢᱤᱫ ᱨᱩᱴ ᱥᱮᱨᱴᱤᱯᱷᱤᱠᱮᱴ ᱢᱩᱪᱟᱹᱫᱚᱜᱼᱟ, ᱚᱱᱟ ᱠᱷᱟᱹᱛᱤᱨ ᱟᱢᱟᱜ Firefox ᱨᱮᱭᱟᱜ ᱵᱷᱟᱨᱥᱚᱱ ᱵᱮᱥ ᱞᱮᱠᱟ ᱠᱟᱹᱢᱤ ᱵᱚᱱᱫᱚᱭᱟ ᱾</string>
+  <!-- Homepage card title about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">ᱟᱯᱰᱮᱴ ᱞᱟᱹᱜᱤᱫ 7 ᱠᱷᱚᱱ ᱠᱚᱢ ᱢᱟᱦᱟᱸ ᱵᱟᱠᱤ ᱢᱮᱱᱟᱜᱼᱟ</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw2_message" tools:ignore="BrandUsage,UnusedResources">14 ᱢᱟᱨᱪ ᱦᱤᱞᱚᱜ, ᱮᱰ-ᱚᱱ ᱟᱨ ᱮᱴᱟᱜ Firefox ᱨᱮᱭᱟᱜ ᱜᱩᱱ ᱠᱚ ᱠᱟᱹᱢᱤ ᱵᱚᱱᱫᱚᱭᱟ ᱪᱮᱫᱟᱜ ᱥᱮ ᱢᱤᱫ ᱨᱩᱴ ᱥᱮᱨᱴᱤᱯᱷᱤᱠᱮᱴ ᱨᱮᱭᱟᱜ ᱚᱠᱛᱚ ᱢᱩᱪᱟᱹᱫᱚᱜ ᱠᱟᱱᱟ ᱾</string>
+  <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_title" tools:ignore="BrandUsage,UnusedResources">ᱟᱢᱟᱜ Firefox ᱫᱚᱦᱚ ᱞᱟᱹᱜᱤᱫ ᱢᱩᱪᱟᱹᱫ ᱫᱟᱣ</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcw3_message" tools:ignore="BrandUsage,UnusedResources">ᱟᱢᱟᱜ Firefox ᱨᱮᱭᱟᱜ ᱵᱷᱟᱨᱥᱚᱱ 14 ᱢᱟᱨᱪ ᱦᱤᱞᱚᱜ ᱵᱮᱥ ᱞᱮᱠᱟ ᱠᱟᱹᱢᱤ ᱵᱚᱱᱫᱚᱭᱟ ᱪᱮᱫᱟᱜ ᱥᱮ ᱢᱤᱫ ᱨᱩᱴ ᱥᱮᱨᱴᱤᱯᱷᱤᱠᱮᱴ ᱨᱮᱭᱟᱜ ᱚᱠᱛᱚ ᱢᱩᱪᱟᱹᱫᱚᱜ ᱠᱟᱱᱟ ᱾</string>
+  <!-- Push notification title about old Firefox version. "Update" is a noun. -->
+  <string name="certificate_warning_push_notification_update_recommended_title" tools:ignore="UnusedResources">ᱟᱯᱰᱮᱴ ᱞᱟᱹᱜᱤᱫ ᱥᱚᱞᱦᱟ ᱦᱩᱭ ᱟᱠᱟᱱᱟ</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnr1_message" tools:ignore="UnusedResources">ᱮᱰ-ᱚᱱᱥ ᱟᱨ ᱠᱤᱪᱷᱩ ᱯᱷᱤᱪᱟᱨ ᱠᱚ 14 ᱢᱟᱨᱪ ᱦᱤᱞᱚᱜ ᱠᱟᱹᱢᱤ ᱵᱚᱸᱫᱚᱜᱼᱟ ᱾</string>
+  <!-- Push notification title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_push_notification_pnw2_title" tools:ignore="BrandUsage,UnusedResources">ᱟᱢ ᱫᱚ Firefox ᱨᱮᱭᱟᱜ ᱢᱟᱨᱮ ᱵᱷᱟᱨᱥᱚᱱ ᱨᱮ ᱢᱮᱱᱟᱢᱟ</string>
+  <!-- Push notification message about old Firefox version. "Update" is a verb. -->
+  <string name="certificate_warning_push_notification_pnw2_message" tools:ignore="UnusedResources">ᱮᱰ-ᱚᱱᱥ ᱟᱨ ᱮᱴᱟᱜ ᱯᱷᱤᱪᱟᱨ ᱠᱚ ᱵᱮᱵᱷᱟᱨ ᱞᱟᱹᱜᱤᱫ 14 ᱢᱟᱨᱪ ᱢᱟᱲᱟᱝ ᱨᱮ ᱟᱯᱰᱮᱴ ᱢᱮ ᱾</string>
+  <!-- Push notification message about old Firefox version -->
+  <string name="certificate_warning_push_notification_pnw3_message" tools:ignore="UnusedResources">ᱛᱤᱱᱟᱹᱜ ᱜᱟᱱ ᱯᱷᱤᱪᱟᱨ ᱠᱚ ᱜᱟᱯᱟ ᱠᱟᱹᱢᱤ ᱵᱚᱱᱫᱚᱭᱟ ᱾</string>
+  <!--
+    TextField Design System Component
+
+    The default content description for the eye trailing icon button in TextField
+  -->
+  <string name="text_field_eye_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ᱩᱠᱩ ᱟᱠᱟᱱ ᱚᱞ ᱩᱫᱩᱜᱽ ᱢᱮ</string>
+  <!-- The default content description for the cross trailing icon button in TextField -->
+  <string name="text_field_cross_trailing_icon_default_content_description" moz:removedIn="139" tools:ignore="UnusedResources">ᱚᱞ ᱯᱷᱟᱨᱪᱟᱭ ᱢᱮ</string>
+  <!--
+    Setup checklist feature
+
+    ===== Setup checklist feature: Title =====
+
+    Title for the setup checklist feature when the state is 'incomplete'. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_title_state_incomplete">ᱥᱮᱴᱤᱝ ᱪᱟᱵᱟᱭ ᱢᱮ %1$s</string>
+  <!-- Title for the setup checklist feature when the state is 'completed' -->
+  <string name="setup_checklist_title_state_completed">ᱥᱟᱨᱦᱟᱣ!</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 3 steps =====
+
+    Subtitle for a setup checklist with 3 steps initial step. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_3_steps_initial_state">ᱥᱚᱨᱮᱥ ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱟᱹᱱᱟᱹᱭᱠᱟᱹᱣ ᱞᱟᱹᱜᱤᱫ %1$s ᱥᱮᱴ ᱟᱯ ᱞᱟᱹᱜᱤᱫ ᱥᱟᱱᱟᱢ 3 ᱯᱟᱹᱣᱰᱤ ᱯᱩᱨᱟᱹᱣ ᱢᱮ ᱾</string>
+  <!-- Subtitle for a setup checklist with 3 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_3_steps_first_step">ᱟᱹᱰᱤ ᱱᱟᱯᱟᱭ ᱮᱦᱚᱵ! ᱟᱢ 3 ᱠᱷᱚᱱ 1 ᱯᱟᱹᱣᱰᱤ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾</string>
+  <!-- Subtitle for a setup checklist with 3 steps when two of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_3_steps_second_step">ᱯᱨᱟᱭ ᱚᱱᱰᱮ ᱜᱮ! ᱵᱟᱨ ᱛᱟᱲᱟᱢ ᱪᱟᱵᱟ ᱮᱱᱟ ᱟᱨ 1 ᱪᱟᱞᱟᱜ ᱞᱟᱹᱜᱤᱫ ᱾</string>
+  <!-- Subtitle for a setup checklist with 3 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_subtitle_3_steps_completed_state">ᱟᱢ ᱥᱟᱱᱟᱢ 3 ᱯᱟᱹᱣᱰᱤ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾ %1$s ᱨᱮᱭᱟᱜ ᱥᱯᱤᱰ, ᱯᱨᱟᱭᱣᱮᱥᱤ ᱟᱨ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱨᱮᱭᱟᱜ ᱨᱟᱹᱥᱠᱟᱹᱡᱚᱝ ᱢᱮ ᱾</string>
+  <!--
+    ===== Setup checklist feature: Subtitles for 6 steps =====
+
+    Subtitle for a setup checklist with 6 steps initial state. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_subtitle_6_steps_initial_state">ᱥᱚᱨᱮᱥ ᱵᱽᱨᱟᱣᱩᱡᱤᱝ ᱟᱹᱱᱟᱹᱭᱠᱟᱹᱣ ᱞᱟᱹᱜᱤᱫ %1$s ᱥᱮᱴ ᱟᱯ ᱞᱟᱹᱜᱤᱫ ᱥᱟᱱᱟᱢ 6 ᱯᱟᱣᱰᱤ ᱯᱩᱨᱟᱹᱣ ᱢᱮ᱾</string>
+  <!-- Subtitle for a setup checklist with 6 steps when the first task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_first_step">ᱟᱹᱰᱤ ᱱᱟᱯᱟᱭ ᱮᱦᱚᱵ! ᱟᱢ 6 ᱠᱷᱚᱱ 1 ᱯᱟᱣᱰᱤ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾</string>
+  <!-- Subtitle for the setup checklist when the second task is completed. -->
+  <string name="setup_checklist_subtitle_6_steps_second_step">ᱟᱢ 6 ᱠᱷᱚᱱ 2 ᱯᱟᱣᱰᱤ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾ ᱟᱹᱰᱤ ᱞᱟᱦᱟᱱᱛᱤ!</string>
+  <!-- Subtitle for a setup checklist with 6 steps when three of the tasks are completed. -->
+  <string name="setup_checklist_subtitle_6_steps_third_step">ᱟᱢ ᱚᱱᱰᱮ ᱟᱫᱷᱟ ᱦᱚᱨ ᱨᱮ ᱢᱮᱱᱟᱢᱟ! ᱯᱮ ᱛᱟᱲᱟᱢ ᱪᱟᱵᱟ ᱮᱱᱟ ᱟᱨ 3 ᱯᱟᱣᱰᱤ ᱞᱟᱹᱜᱤᱫ ᱾</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fourth task is completed. -->
   <string name="setup_checklist_subtitle_6_steps_fourth_step">ᱟᱢ ᱔ ᱛᱟᱲᱟᱢ ᱵᱷᱤᱛᱨᱤ ᱨᱮ ᱢᱮᱱᱟᱢᱟ ᱾ ᱥᱩᱢᱩᱝ ᱵᱟᱨ ᱜᱚᱴᱟᱝ ᱪᱟᱞᱟᱜ ᱞᱟᱹᱜᱤᱫ!</string>
   <!-- Subtitle for a setup checklist with 6 steps when the fifth task is completed. -->
@@ -3419,6 +3626,32 @@
   <!-- Subtitle for a setup checklist with 5 steps completed state. %1$s is the name of the app (for example "Firefox"). -->
   <string name="setup_checklist_subtitle_5_steps_completed_state">ᱟᱢ ᱥᱟᱱᱟᱢ 6 ᱥᱮᱴᱟᱯ ᱥᱴᱮᱯ ᱮᱢ ᱯᱩᱨᱟᱹᱣ ᱠᱮᱫᱟ ᱾ %1$s ᱨᱮᱭᱟᱜ ᱥᱯᱤᱰ, ᱯᱨᱟᱭᱣᱮᱥᱤ ᱟᱨ ᱨᱩᱠᱷᱤᱭᱟᱹ ᱨᱮᱭᱟᱜ ᱨᱟᱹᱥᱠᱟᱹᱡᱚᱝ ᱢᱮ ᱾</string>
   <!--
+    ===== Setup checklist feature: Task titles =====
+
+    The title of the default browser task for the setup checklist
+  -->
+  <string name="setup_checklist_task_default_browser">ᱢᱩᱞ ᱵᱽᱨᱟᱣᱩᱡᱟᱹᱨ ᱞᱮᱠᱷᱟ ᱥᱟᱡᱟᱣ ᱢᱮ</string>
+  <!-- The title of the sign-in task for the setup checklist -->
+  <string name="setup_checklist_task_account_sync">ᱟᱢᱟᱜ ᱠᱷᱚᱛᱟ ᱨᱮ ᱥᱩᱦᱤ ᱮᱢ ᱢᱮ</string>
+  <!-- The title of the theme selection task for the setup checklist -->
+  <string name="setup_checklist_task_theme_selection">ᱢᱤᱫ ᱛᱷᱤᱢ ᱵᱟᱪᱷᱟᱣ ᱢᱮ</string>
+  <!-- The title of the toolbar selection task for the setup checklist -->
+  <string name="setup_checklist_task_toolbar_selection">ᱦᱟᱹᱛᱤᱭᱟᱹᱨᱵᱟᱨ ᱯᱞᱮᱥᱢᱮᱱᱴ ᱵᱟᱪᱷᱟᱣ ᱢᱮ</string>
+  <!-- The title of the explore extensions task for the setup checklist -->
+  <string name="setup_checklist_task_explore_extensions">ᱮᱠᱥᱴᱮᱱᱥᱚᱱᱠᱚ ᱯᱟᱧᱡᱟᱭ ᱢᱮ</string>
+  <!-- The title of the search widget task for the setup checklist -->
+  <string name="setup_checklist_task_search_widget">ᱥᱮᱸᱫᱽᱨᱟ ᱣᱤᱡᱮᱴ ᱵᱚᱦᱟᱞ ᱢᱮ</string>
+  <!--
+    ===== Setup checklist feature: Group titles =====
+
+    The title of the 'essentials' group in the setup checklist. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="setup_checklist_group_essentials">%1$s ᱞᱟᱹᱠᱛᱤᱭᱟᱱ</string>
+  <!-- The title of the 'customize' group in the setup checklist. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="setup_checklist_group_customize">ᱟᱢᱟᱜ %1$s ᱠᱟᱥᱴᱚᱢᱟᱭᱤᱡᱽ ᱢᱮ</string>
+  <!-- The title of the 'helpful tools' group in the setup checklist -->
+  <string name="setup_checklist_group_helpful_tools">ᱜᱚᱲᱚ ᱥᱟᱯᱟᱵ ᱠᱚ</string>
+  <!--
     ===== Setup checklist feature: Button =====
 
     Text for the 'remove' button for the setup checklist
@@ -3432,6 +3665,16 @@
   <string name="a11y_completed_task_description">ᱯᱩᱨᱟᱹᱣ ᱠᱟᱱ ᱠᱟᱹᱢᱤ</string>
   <!-- Accessibility description for the task icon -->
   <string name="a11y_task_icon_description">ᱠᱟᱹᱢᱤ ᱪᱤᱱᱦᱟᱹ</string>
+  <!--
+    Private browsing mode authentication screen
+
+    Label for the secondary action to exit private browsing mode
+  -->
+  <string name="pbm_authentication_leave_private_tabs">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱟᱲᱟᱜᱽ ᱢᱮ</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">ᱡᱷᱤᱡᱽ</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱠᱚ ᱡᱷᱤᱡᱽ ᱢᱮ</string>
   <!-- Authentication prompt title to enable the private tabs mode -->
   <string name="pbm_authentication_enable_lock">ᱯᱨᱟᱭᱣᱮᱴ ᱴᱮᱵᱽ ᱥᱠᱨᱤᱱ ᱞᱚᱠ ᱪᱟᱹᱞᱩᱭ ᱢᱮ</string>
   <!-- Authentication prompt title to disable the private tabs mode -->
@@ -3444,4 +3687,22 @@
   <string name="private_tab_cfr_negative">ᱵᱟᱝᱟ ᱥᱟᱨᱦᱟᱣ</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">ᱴᱮᱵᱽ ᱠᱚ ᱠᱩᱞᱩᱯ ᱢᱮ</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">ᱟᱢ %1$s ᱵᱟᱨᱮᱛᱮ ᱪᱮᱫ ᱮᱢ ᱢᱚᱱᱮᱭᱮᱫᱟ?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">ᱤᱧ ᱴᱷᱮᱱ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱠᱚ ᱢᱮᱱᱟᱜᱼᱟ</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">ᱱᱚᱣᱟ ᱫᱚ ᱟᱹᱰᱤ ᱱᱟᱯᱟᱭᱟ!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">%1$s ᱫᱩᱞᱟᱹᱲ ᱞᱟᱹᱜᱤᱫ ᱥᱟᱨᱦᱟᱣ ᱾ ᱨᱮᱴᱤᱝ ᱥᱟᱶ ᱫᱩᱞᱟᱹᱲ ᱯᱟᱥᱱᱟᱣ ᱞᱟᱹᱜᱤᱫ ᱢᱤᱫ ᱴᱤᱯᱤᱡ ᱧᱟᱢ ᱮᱱᱟ ᱥᱮ?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Play Store ᱨᱮ %1$s ᱫᱚᱨ ᱢᱮ</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">ᱟᱞᱮ ᱤᱠᱟᱹ ᱞᱮ ᱠᱷᱚᱡᱚᱜ ᱠᱟᱱᱟ ᱟᱢ ᱴᱷᱮᱱ ᱮᱴᱠᱮᱴᱚᱬᱮ ᱢᱮᱱᱟᱜᱼᱟ ᱾ ᱟᱞᱮ ᱵᱟᱲᱟᱭ ᱚᱪᱚ ᱞᱮᱢ ᱪᱮᱫ ᱞᱮᱠᱟ ᱟᱞᱮ %1$s ᱞᱮ ᱥᱩᱫᱷᱨᱟᱹᱣ ᱫᱟᱲᱮᱭᱟᱜᱼᱟ ᱾</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">ᱟᱢᱟᱜ ᱦᱩᱫᱤᱥ</string>
 </resources>

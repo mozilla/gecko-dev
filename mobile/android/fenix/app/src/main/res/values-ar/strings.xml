@@ -426,19 +426,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">مرحبا بك في إنترنت شخصي أكثر</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">مرحبا بك في إنترنت شخصي أكثر</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">مزيد من الألوان. خصوصية أفضل. نفس الالتزام تجاه الناس قبل الأرباح.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">مزيد من الألوان. خصوصية أفضل. نفس الالتزام تجاه الناس قبل الأرباح.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">تبديل الشاشات أسهل من أي وقت مضى</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">تبديل الشاشات أسهل من أي وقت مضى</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">تابع من حيث توقفت مع ألسنة من الأجهزة الأخرى على صفحتك الرئيسية الآن.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">تابع من حيث توقفت مع ألسنة من الأجهزة الأخرى على صفحتك الرئيسية الآن.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">ابدأ</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">ابدأ</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">لِج</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">لِج</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">تخطَّ</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">تخطَّ</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">الألسنة تزامن الآن! تابع عملك في جهازك الآخر.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -2218,9 +2218,9 @@
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">قصص تدعو للتأمل</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">قصص حسب الموضوع</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">قصص حسب الموضوع</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">اكتشف المزيد</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">اكتشف المزيد</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">يدعمه %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->

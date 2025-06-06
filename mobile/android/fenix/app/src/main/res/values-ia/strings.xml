@@ -487,19 +487,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">Benvenite in un internet plus personal</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">Benvenite in un internet plus personal</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">Plus de colores. Melior confidentialitate. Mesme dedication al personas super le profitos.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">Plus de colores. Melior confidentialitate. Mesme dedication al personas super le profitos.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">Cambiar le paginas es plus facile que mais</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">Cambiar le paginas es plus facile que mais</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Reprende de ubi tu exiva con le schedas de altere apparatos ora sur tu pagina principal.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Reprende de ubi tu exiva con le schedas de altere apparatos ora sur tu pagina principal.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">Comenciar</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Comenciar</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">Aperir session</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Aperir session</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">Saltar</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Saltar</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">Tu schedas es synchronisate! Reprende de ubi tu exiva sur un tu altere apparato.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -1576,6 +1576,8 @@
   <string name="download_time_period_last_30_days">Ultime 30 dies</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Plus ancian</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">Preparante discargamento…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1583,6 +1585,25 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s restante</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • in %3$s.</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • pendente</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • pausate</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">pausate</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2947,9 +2968,9 @@
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_header_2">Historias</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">Historia per argumento</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Historia per argumento</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">Discoperi plus</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Discoperi plus</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Potentiate per %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
@@ -3676,8 +3697,12 @@
   <string name="review_prompt_negative_button">Io ha problemas</string>
   <!-- Label for a button positively rating the user's experience with the app -->
   <string name="review_prompt_positive_button">Meraviliose!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Gratias pro amar %1$s. Concede tu un secunda pro diffunder le amor con un valutation?</string>
   <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_rate_button">Valuta %1$s sur Play Store</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Nos regretta que tu ha problemas. Face saper nos como meliorar %1$s.</string>
   <!-- Label for a button opening a feedback forum -->
   <string name="review_prompt_feedback_button">Lassar commentario</string>
 </resources>

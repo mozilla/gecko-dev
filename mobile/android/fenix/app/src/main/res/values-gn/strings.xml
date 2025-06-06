@@ -487,19 +487,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">Eg̃uahẽporãite ñanduti mba’eguáva</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">Eg̃uahẽporãite ñanduti mba’eguáva</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">Sa’yve. Tekorosãve. Roykekove tapichakuérape roma’ẽ’ỹre virúre.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">Sa’yve. Tekorosãve. Roykekove tapichakuérape roma’ẽ’ỹre virúre.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">Mba’erechaha ñemoambue ndahasyiete</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">Mba’erechaha ñemoambue ndahasyiete</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Eku’ejey eheja haguégui tendayke ambue mba’e’oka ndive nde kuatiarogue ñepyrũme.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Eku’ejey eheja haguégui tendayke ambue mba’e’oka ndive nde kuatiarogue ñepyrũme.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">Eñepyrũ</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Eñepyrũ</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">Eñemboheraguapy</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Eñemboheraguapy</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">Jepo</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Jepo</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">¡Tendayke oñembojuehehína! Eku’ejey eheja haguégui ambue mba’e’okápe.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -656,6 +656,8 @@
   <string name="onboarding_marketing_positive_button" tools:ignore="UnusedResources">Emoneĩ ha eikundaháma</string>
   <!-- Marketing onboarding page title variant. “One last thing” refers to the final step or action in the onboarding process that we’re asking users to take before they can start using the browser. -->
   <string name="onboarding_marketing_title_1" tools:ignore="UnusedResources">Peteĩ mba’eve</string>
+  <!-- Marketing onboarding page body variant. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_body_1" tools:ignore="BrandUsage,UnusedResources">Emombe’u marketing Mozilla-guápe mba’éichapa eikuaáraka’e Firefox ha ijeporu. Ko’ã mba’ekuaarã araka’eve noñevendéi.</string>
   <!-- Marketing onboarding page button label variant. Button to confirm choice and start browsing. -->
   <string name="onboarding_marketing_positive_button_1" tools:ignore="UnusedResources">Emoneĩ ha eikundaháma</string>
   <!-- Onboarding header for the toolbar selection card, used by Nimbus experiments. -->
@@ -668,6 +670,8 @@
   <string name="onboarding_customize_toolbar_top_option">Yvategua</string>
   <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_toolbar_bottom_option">Michĩvéva</string>
+  <!-- Onboarding toolbar selection card content description for the main image. -->
+  <string name="onboarding_customize_toolbar_main_image_content_description">Myakãha ra’ãnga tuicháva poravoha rechaha tembiporu rupagua ohechaukáva tembiporu rupa ha’ãngáva.</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Ta’ãnga rembiporu rupa michĩvéva</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Ta’ãnga rembiporu rupa tuichavéva</string>
@@ -685,6 +689,8 @@
   <string name="onboarding_customize_theme_light_option">Tesakã</string>
   <!-- Onboarding theme selection card label for 'System auto' option, used by Nimbus experiments. -->
   <string name="onboarding_customize_theme_system_option">Ijeheguíva apopyvusu rehegua</string>
+  <!-- Onboarding theme selection card content description for the main image. -->
+  <string name="onboarding_customize_theme_main_image_content_description">Myakãha ra’ãnga tuicháva tembiporu poravoha rechaha ohechaukáva artista ha tembiporu rupa ha’ãngáva.</string>
   <!-- Onboarding theme selection card content description for the theme selection image. %1$s is placeholder for either 'system', 'light' or 'dark'. -->
   <string name="onboarding_customize_theme_content_description">Téma ra’ãnga %1$s</string>
   <!-- Action label for options that can be selected. Talkback will append this to say "Double tap to select". -->
@@ -770,6 +776,8 @@
   <string name="preferences_pbm_lock_screen_title">Eiporu mba’erechaha jokoha eñomi hag̃ua tendayke ñeikundaha ñemiguápe</string>
   <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
   <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Ehecha tendayke kuã hũ ndive, tovara’ãnga joko’oha térã PIN.</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">Ehecha tendayke ne kuã hũ ndive, PIN térã tovara’ãnga joko’oha.</string>
   <!-- Label for cookie banner section in quick settings panel. -->
   <string name="cookie_banner_blocker">Ejoko Banner kookie rehegua</string>
   <!-- Preference for removing cookie/consent banners from sites automatically in private mode. See reduce_cookie_banner_summary for additional context. -->
@@ -1568,6 +1576,8 @@
   <string name="download_time_period_last_30_days">30 ára ohasaramóva</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Itujavéva</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">Emongu’e mboguejy…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1575,6 +1585,25 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s asu</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • %3$s-pe.</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • ne’írãva</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • jokopyre</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">pytapyre</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -2939,9 +2968,9 @@
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_header_2">Tembiasakue</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">Tembiasakue téma rehegua</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Tembiasakue téma rehegua</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">Ejuhukuaave</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Ejuhukuaave</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Omboguatáva %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
@@ -3508,8 +3537,12 @@
   <string name="certificate_warning_homepage_card_update_now_button" tools:ignore="UnusedResources">Embohekopyahu ko’ág̃a</string>
   <!-- Homepage card title about old Firefox version. "Update" is a verb. Note: The word "Firefox" should NOT be translated. -->
   <string name="certificate_warning_homepage_card_hca1_title" tools:ignore="BrandUsage,UnusedResources">Embohekopyahu nde Firefox kundaha</string>
+  <!-- Homepage card message about old Firefox version -->
+  <string name="certificate_warning_homepage_card_hca1_message" tools:ignore="UnusedResources">Peteĩ certificado rapo hu’ãta, ikatúva ndahetái tembiapoite ndoikovéi 14 jasyapy guive.</string>
   <!-- Homepage card title about old Firefox version. "Update" is a verb. -->
   <string name="certificate_warning_homepage_card_hcr1_title" tools:ignore="UnusedResources">Embohekopyahu 14 jasyapy mboyve</string>
+  <!-- Homepage card message about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
+  <string name="certificate_warning_homepage_card_hcr1_message" tools:ignore="BrandUsage,UnusedResources">Peteĩ certificado rapo hu’ãta, ikatúva peteĩva Firefox apopyre ndoikoporãvéi.</string>
   <!-- Homepage card title about old Firefox version -->
   <string name="certificate_warning_homepage_card_hcw2_title" tools:ignore="UnusedResources">Opyta 7 ára embohekopyahu hag̃ua</string>
   <!-- Homepage card title about old Firefox version. Note: The word "Firefox" should NOT be translated. -->
@@ -3650,4 +3683,18 @@
   <string name="private_tab_cfr_negative">Nahániri, aguyje</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">Ejoko tendayke</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">¿Mba’e eikuaa %1$s rehegua?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Cheapañuai’aína</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">¡Oĩ porã!</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Embokyta %1$s Play Store-pe</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Ehai ne remiandu</string>
 </resources>

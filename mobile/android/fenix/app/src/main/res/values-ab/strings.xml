@@ -437,19 +437,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">Бзиала шәаабеит еиҳа ахатә интернет ахь</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">Бзиала шәаабеит еиҳа ахатә интернет ахь</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">Еиҳаны аԥштәқәа. Еиӷьу амаӡара. Ахашәалахәы ашьҭашәарыцара акәымкәа, ауаа рзы аҽадцалара.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">Еиҳаны аԥштәқәа. Еиӷьу амаӡара. Ахашәалахәы ашьҭашәарыцара акәымкәа, ауаа рзы аҽадцалара.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">Аекранқәа реиҭныԥсахлара еиҳа имариоуп</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">Аекранқәа реиҭныԥсахлара еиҳа имариоуп</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Уааныжьны уца, даҽа ҳәагақәак рҟынтәи аҭаӡҩырақәа уажәы ухатә даҟьаҿы.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Уааныжьны уца, даҽа ҳәагақәак рҟынтәи аҭаӡҩырақәа уажәы ухатә даҟьаҿы.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">Алагара</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Алагара</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">Аҭалара</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Аҭалара</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">Абжьажьра</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Абжьажьра</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">Уара уҭаӡҩырақәа асинхронизациа ҟаҵоуп! Даҽа ҳәагак аҿы иахьаанужьыз иацҵа.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -2389,9 +2389,9 @@
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Узырхәыцша ажәабжьқәа</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">Ажәабжьқәа темала</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Ажәабжьқәа темала</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">Еиҳаны аилкаара</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Еиҳаны аилкаара</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">%s адгылара аманы.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->

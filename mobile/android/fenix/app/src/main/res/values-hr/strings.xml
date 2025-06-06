@@ -216,6 +216,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Saznaj više</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Upravljanje dodacima</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Više</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Manje</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Preporučena proširenja</string>
   <!--
@@ -229,6 +233,8 @@
   <string name="browser_menu_extensions_disabled_description">Privremeno deaktivirano</string>
   <!-- The description of the browser menu appears when the user hasn't installed any extensions. -->
   <string name="browser_menu_no_extensions_installed_description">Nijedno proširenje nije aktivirano</string>
+  <!-- The description of the browser menu appears when the user hasn't installed any extensions and there are recommended extensions. -->
+  <string name="browser_menu_try_a_recommended_extension_description">Isprobaj jedno preporučeno proširenje</string>
   <!-- Browser menu button that opens account settings -->
   <string name="browser_menu_account_settings">Informacije o računu</string>
   <!-- Browser menu button that sends a user to help articles -->
@@ -338,6 +344,8 @@
   <string name="browser_menu_save_description">Dodaj zabilješku, prečac, početna stranica, zbirka, PDF</string>
   <!-- Browser menu label that bookmarks the currently visited page -->
   <string name="browser_menu_bookmark_this_page" moz:removedIn="141" tools:ignore="UnusedResources">Zabilježi ovu stranicu</string>
+  <!-- Browser menu label that bookmarks the currently visited page -->
+  <string name="browser_menu_bookmark_this_page_2">Zabilježi stranicu</string>
   <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
   <string name="browser_menu_edit_bookmark">Uredi zabilješku</string>
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
@@ -346,6 +354,8 @@
   <string name="browser_menu_turn_on_reader_view">Uključi prikaz čitača</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
   <string name="browser_menu_turn_off_reader_view">Isključi prikaz čitača</string>
+  <!-- Browser menu button that reopens a private tab as a regular tab -->
+  <string name="browser_menu_open_in_normal_tab">Prijeđi na karticu koja nije privatna</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->
   <string name="browser_menu_translate_page">Prevedi stranicu…</string>
   <!-- Browser menu label for navigating to the Web Compat Reporter feature, which provides users the ability to send bug reports for broken sites. -->
@@ -355,6 +365,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Prevedeno na %1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Prevedeno</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Ispis…</string>
   <!--
@@ -437,23 +449,29 @@
   -->
   <string name="search_engine_icon_content_description_1">Tražilica: %s</string>
   <!--
+    Content description (not visible, for screen readers etc.) of the search engine selector from the search toolbar.
+    %s is the search engine name (for example: DuckDuckGo).
+    The colon character (in "%s:") is intended to have the screen reader make a small pause between the search engine name and the description of the button.
+  -->
+  <string name="search_engine_selector_content_description">%s: birač tražilice</string>
+  <!--
     Home onboarding
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">Dobrodošli na osobniji Internet</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">Dobrodošli na osobniji Internet</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">Više boja. Bolja privatnost. Ista predanost ljudima umjesto profita.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">Više boja. Bolja privatnost. Ista predanost ljudima umjesto profita.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">Mijenjanje zaslona lakše je nego ikad</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">Mijenjanje zaslona lakše je nego ikad</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Nastavite gdje ste stali uz kartice s drugih uređaja sada na vašoj početnoj stranici.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Nastavite gdje ste stali uz kartice s drugih uređaja sada na vašoj početnoj stranici.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">Započni</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Započni</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">Prijavi se</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Prijavi se</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">Preskoči</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Preskoči</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">Vaše kartice se sinkroniziraju! Nastavite gdje ste stali na drugom uređaju.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -560,6 +578,8 @@
   <string name="onboarding_preferences_dialog_crash_reporting_description">Izvještaji o prekidu programa nam pomažu dijagnosticirati i riješiti probleme s preglednikom. Izvještaji mogu uključivati osobne ili osjetljive podatke.</string>
   <!-- Learn more link for the crash reporting option in the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_crash_reporting_learn_more_2">Saznaj više</string>
+  <!-- Title for the usage data option in the privacy preferences dialog shown during onboarding. Note: The word "Mozilla" should NOT be translated. -->
+  <string name="onboarding_preferences_dialog_usage_data_title">Šalji tehničke podatke i podatke o interakciji Mozilli</string>
   <string name="onboarding_preferences_dialog_usage_data_learn_more_2">Saznaj više</string>
   <!-- Positive button label for the privacy preferences dialog shown during onboarding. -->
   <string name="onboarding_preferences_dialog_positive_button">Gotovo</string>
@@ -569,6 +589,8 @@
   <string name="onboarding_terms_of_service_sub_header_2">Brzo i privatno pregledavanje weba</string>
   <!-- Terms of service onboarding page continue button label. -->
   <string name="onboarding_term_of_service_agree_and_continue_button_label" moz:removedIn="140" tools:ignore="UnusedResources">Prihvati i nastavi</string>
+  <!-- Terms of service onboarding page continue button label. -->
+  <string name="onboarding_term_of_service_agree_and_continue_button_label_2">Nastavi</string>
   <!-- Line one of the terms of service onboarding page. %1$s is replaced by an active link, using onboarding_term_of_service_line_one_link_text_2 as text (“Firefox Terms of Use”). -->
   <string name="onboarding_term_of_service_line_one_2">Nastavljanjem prihvaćaš %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_one_2. -->
@@ -577,8 +599,12 @@
   <string name="onboarding_term_of_service_line_two_2" tools:ignore="BrandUsage">Firefox brine o tvojoj privatnosti. Saznaj više na stranici %1$s.</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_two. -->
   <string name="onboarding_term_of_service_line_two_link_text">Napomena o privatnosti</string>
+  <!-- Line three of the terms of service onboarding page. 'Firefox' and 'Mozilla' are intentionally hardcoded. %1$s is replaced by an active link using onboarding_term_of_service_line_three_link_text as text (“Manage”). -->
+  <string name="onboarding_term_of_service_line_three" tools:ignore="BrandUsage">Kako bi poboljšao preglednik, Firefox šalje dijagnostičke podatke i podatke o interakciji Mozilli. %1$s</string>
   <!-- Used as text for the link in onboarding_term_of_service_line_three. -->
   <string name="onboarding_term_of_service_line_three_link_text">Upravljaj</string>
+  <!-- Marketing onboarding page title. 'Firefox' is intentionally hardcoded. -->
+  <string name="onboarding_marketing_title" tools:ignore="BrandUsage,UnusedResources">Pomogni nam da Firefox raste</string>
   <!-- Marketing onboarding page clickable link text to "learn more" on how data is used. -->
   <string name="onboarding_marketing_learn_more" tools:ignore="UnusedResources">Kako koristimo podatke</string>
   <!-- Marketing onboarding page button label. Button to confirm choice and start browsing. -->
@@ -593,6 +619,10 @@
   <string name="onboarding_customize_toolbar_description" tools:ignore="UnusedResources">Zadrži pretrage nadohvat ruke.</string>
   <!-- Onboarding label for 'Save and continue' button, used by Nimbus experiments. -->
   <string name="onboarding_save_and_continue_button">Spremi i nastavi</string>
+  <!-- Onboarding toolbar selection card label for 'top' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_top_option">Gore</string>
+  <!-- Onboarding toolbar selection card label for 'bottom' option, used by Nimbus experiments. -->
+  <string name="onboarding_customize_toolbar_bottom_option">Dolje</string>
   <!-- Onboarding toolbar selection card content description for the toolbar placement image. -->
   <string name="onboarding_customize_toolbar_placement_bottom_content_description">Slika donje trake alata</string>
   <string name="onboarding_customize_toolbar_placement_top_content_description">Slika gornje trake alata</string>
@@ -916,6 +946,50 @@
   <string name="wallpapers_onboarding_dialog_body_text">Odaberite pozadinu koja govori o vama.</string>
   <!-- Wallpaper onboarding dialog learn more button text. The button navigates to the wallpaper settings screen. -->
   <string name="wallpapers_onboarding_dialog_explore_more_button_text">Istražite više pozadina</string>
+  <!-- Title for the "Light" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_light">Svijetla</string>
+  <!-- Title for the "Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_dark">Tamna</string>
+  <!-- Title for the "Red" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_red">Crvena</string>
+  <!-- Title for the "Green" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_green">Zelena</string>
+  <!-- Title for the "Blue" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_blue">Plava</string>
+  <!-- Title for the "Purple" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple">Ljubičasta</string>
+  <!-- Title for the "Purple Dark" alternative app icon variant in the icon picker screen. -->
+  <string name="alternative_app_icon_option_purple_dark">Tamnoljubičasta</string>
+  <!-- Title for the "Sunrise" gradient alternative app icon variant in the icon picker screen. The app icon features a soft yellow-to-blue gradient background, resembling the colors of early morning light. -->
+  <string name="alternative_app_icon_option_gradient_sunrise">Izlazak sunca</string>
+  <!-- Title for the "Golden Hour" gradient alternative app icon variant in the icon picker screen. The app icon features a warm golden-to-pink gradient background, resembling the colors of the sunlight shortly before sunset. -->
+  <string name="alternative_app_icon_option_gradient_golden_hour">Zlatni sat</string>
+  <!-- Title for the "Sunset" gradient alternative app icon variant in the icon picker screen. The app icon has a rich red-to-purple gradient background, resembling the tones of a sunset sky. -->
+  <string name="alternative_app_icon_option_gradient_sunset">Zalazak sunca</string>
+  <!-- Title for the "Blue Hour" gradient alternative app icon variant in the icon picker screen. The app icon has a cool blue gradient background, resembling the sky color around the time just after sunset or before sunrise. -->
+  <string name="alternative_app_icon_option_gradient_blue_hour">Plavi sat</string>
+  <!-- Title for the "Twilight" gradient alternative app icon variant in the icon picker screen. The app icon has a purple-toned gradient background, resembling the sky color during twilight. -->
+  <string name="alternative_app_icon_option_gradient_twilight">Sumrak</string>
+  <!-- Title for the "Midnight" gradient alternative app icon variant in the icon picker screen. The app icon features a dark gradient background, resembling the deep tones of the night sky. -->
+  <string name="alternative_app_icon_option_gradient_midnight">Ponoć</string>
+  <!-- Title for the "Northern Lights" gradient alternative app icon variant in the icon picker screen. The app icon has a dynamic green, blue, and purple gradient background, resembling the aurora borealis. -->
+  <string name="alternative_app_icon_option_gradient_northern_lights">Polarna svjetlost</string>
+  <!-- Title for the "Retro 2004" themed alternative app icon variant in the icon picker screen. This app icon uses the classic Firefox logo from 2004. -->
+  <string name="alternative_app_icon_option_retro_2004">Retro 2004.</string>
+  <!-- Title for the "Retro 2017" themed alternative app icon variant in the icon picker screen. This app icon uses the Firefox logo from 2017, with a more modernized design. -->
+  <string name="alternative_app_icon_option_retro_2017">Retro 2017.</string>
+  <!-- Title for the "Pixelated" themed alternative app icon variant in the icon picker screen. This app icon features a pixel-art style, resembling retro 8-bit graphics. -->
+  <string name="alternative_app_icon_option_pixelated">Pikselasta</string>
+  <!-- Title for the "Minimal" themed alternative app icon variant in the icon picker screen. The app icon presents a simplified, flat and monochrome version of the Firefox logo. -->
+  <string name="alternative_app_icon_option_minimal">Minimalna</string>
+  <!-- Title for the "Pride" themed alternative app icon variant in the icon picker screen. The app icon incorporates a rainbow color scheme in support of the LGBTQ+ community. -->
+  <string name="alternative_app_icon_option_pride">Ponos</string>
+  <!-- Title for the "Cute" themed alternative app icon variant in the icon picker screen. The app icon features a playful design with an adorable aesthetic. -->
+  <string name="alternative_app_icon_option_cute">Ljupka</string>
+  <!-- Title for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo">Momo</string>
+  <!-- Subtitle for the "Momo" themed alternative app icon variant in the icon picker screen. The app icon was created by artist @heyheymomodraws and features a unique hand-drawn style with a friendly fox. -->
+  <string name="alternative_app_icon_option_momo_subtitle">Autor: @heyheymomodraws</string>
   <!--
     Add-ons general availability nimbus message
 
@@ -1234,6 +1308,8 @@
   <string name="tab_tray_multiselect_share_content_description">Podijeli odabrane kartice</string>
   <!-- Content description for tabs tray multiselect menu -->
   <string name="tab_tray_multiselect_menu_content_description">Izbornik odabranih kartica</string>
+  <!-- Title text displayed for a homepage tab in the tabs tray. -->
+  <string name="tab_tray_homepage_tab">Početna stranica</string>
   <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
   <string name="remove_tab_from_collection">Ukloni karticu iz zbirke</string>
   <!-- Text for button to enter multiselect mode in tabs tray -->
@@ -1292,10 +1368,81 @@
   <!-- Text shown when no history exists -->
   <string name="history_empty_message">Nema povijesti</string>
   <!--
+    Downloads
+
+    Text for the snackbar to confirm that a multiple download items have been removed. %1$s is the number of removed download items.
+    %1$d is the number of items deleted.
+  -->
+  <string name="download_delete_multiple_items_snackbar_2">Izbrisane stavke: %1$d</string>
+  <!-- Text for the snackbar to confirm that a single download item has been removed. %1$s is the name of the download item. -->
+  <string name="download_delete_single_item_snackbar_2">“%1$s” izbrisano</string>
+  <!-- Text for the snackbar to confirm that downloads are in progress. -->
+  <string name="download_in_progress_snackbar">Preuzimanje u tijeku …</string>
+  <!-- Text for the snackbar action button to view in progress download details. -->
+  <string name="download_in_progress_snackbar_action_details">Detalji</string>
+  <!--
     History multi select title in app bar
     %1$d is the number of downloads selected
   -->
   <string name="download_multi_select_title">Odabrano: %1$d</string>
+  <!-- Title for the dialog that is shown when there is not enough storage space to download a file. -->
+  <string name="download_file_has_not_enough_storage_dialog_title">Nema dovoljno memorije</string>
+  <!--
+    Message for the dialog that is shown when there is not enough storage space to download a file.
+    %s is the name of the file to download.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_message"><![CDATA[Ovaj uređaj nema dovoljno memorije za preuzimanje datoteke <b>%s</b>.]]></string>
+  <!--
+    Text for the confirm button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will navigate the user to the device's storage management settings.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_confirm_button_text">Upravljaj datotekama</string>
+  <!--
+    Text for the cancel button in the dialog that is shown when there is not enough storage space to download a file.
+    This button will dismiss the dialog.
+  -->
+  <string name="download_file_has_not_enough_storage_dialog_cancel_button_text">Odustani</string>
+  <!-- Content description for the toolbar "Navigate back" button -->
+  <string name="download_navigate_back_description">Navigiraj nazad</string>
+  <!-- Content description for the toolbar "Navigate up" button -->
+  <string name="download_navigate_up_description" moz:removedIn="139" tools:ignore="UnusedResources">Navigiraj prema gore</string>
+  <!--
+    Time period headers for downloads
+
+    Text for the header that groups the downloads for today
+  -->
+  <string name="download_time_period_today">Danas</string>
+  <!-- Text for the header that groups the downloads for yesterday -->
+  <string name="download_time_period_yesterday">Jučer</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">Pripremanje preuzimanja …</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • za %3$s.</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • na čekanju</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • pauzirano</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Detalji</string>
+  <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
+  <string name="download_search_placeholder">Pretraži preuzimanja</string>
+  <!-- Text to indicate that no downloads match the search query. -->
+  <string name="download_search_no_results_found">Nema rezultata</string>
+  <!-- Text for the filter button to show all other file types in the downloads list -->
+  <string name="download_content_type_filter_other_1">Ostalo</string>
   <!--
     WebCompat Reporter
 
@@ -1330,14 +1477,30 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Stranica je spora ili ne radi</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">Stranica se ne učitava</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">Nije moguće platiti, obaviti kupnju ili pregledati proizvode</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Slike ili videa</string>
   <!-- Broken site reason text for buttons, links, and other content -->
   <string name="webcompat_reporter_reason_content" moz:removedIn="140" tools:ignore="UnusedResources">Gumbi, poveznice i drugi sadržaj</string>
   <!-- Broken site reason text for sign in or sign out -->
   <string name="webcompat_reporter_reason_account" moz:removedIn="140" tools:ignore="UnusedResources">Prijava ili odjava</string>
+  <!-- Broken site reason text for site is slow -->
+  <string name="webcompat_reporter_reason_slow2">Stranica je spora</string>
+  <!-- Broken site reason text for video isn’t playing or loading -->
+  <string name="webcompat_reporter_reason_media2">Video se ne reproducira ili ne učitava</string>
+  <!-- Broken site reason text for missing content -->
+  <string name="webcompat_reporter_reason_content2">Nedostaje sadržaj</string>
+  <!-- Broken site reason text for can’t sign in or register -->
+  <string name="webcompat_reporter_reason_account2">Nije moguće se prijaviti ili registrirati</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Blokator oglasa</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Stranica je zatražila da se isključi blokator oglasa</string>
+  <!-- Broken site reason text for browser isn’t supported or blocked -->
+  <string name="webcompat_reporter_reason_notsupported">Preglednik nije podržan ili je blokiran</string>
   <!-- Broken site reason text for something else -->
   <string name="webcompat_reporter_reason_other">Nešto drugo</string>
   <!--
@@ -1386,6 +1549,8 @@
   <string name="bookmark_menu_copy_button">Kopiraj</string>
   <!-- Bookmark overflow menu share button -->
   <string name="bookmark_menu_share_button">Dijeli</string>
+  <!-- Bookmark overflow menu select all bookmarks -->
+  <string name="bookmark_menu_select_all_bookmarks">Odaberi sve</string>
   <!-- Bookmark overflow menu open in new tab button -->
   <string name="bookmark_menu_open_in_new_tab_button">Otvori u novoj kartici</string>
   <!-- Bookmark overflow menu open in private tab button -->
@@ -1398,6 +1563,16 @@
   <string name="bookmark_menu_delete_button">Izbriši</string>
   <!-- Bookmark overflow menu save button -->
   <string name="bookmark_menu_save_button">Spremi</string>
+  <!-- Label for button to sort bookmarks by user-defined sort order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_custom">Razvrstaj po prilagođenom redoslijedu</string>
+  <!-- Label for button to sort bookmarks by newest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_newest">Razvrstaj po najnovijim</string>
+  <!-- Label for button to sort bookmarks by oldest in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_oldest">Razvrstaj po najstarijim</string>
+  <!-- Label for button to sort bookmarks in alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_a_to_z">Poredaj od A do Ž</string>
+  <!-- Label for button to sort bookmarks in reverse alphabetical order in the bookmark sorting overflow menu. -->
+  <string name="bookmark_sort_menu_z_to_a">Poredaj od Ž do A</string>
   <!--
     Bookmark multi select title in app bar
     %1$d is the number of bookmarks selected
@@ -1556,6 +1731,10 @@
   <string name="studies_on">Uključeno</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Isključeno</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">Uključeno</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">Isključeno</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Dozvole</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -1671,6 +1850,10 @@
   <string name="sync_add_new_device_learn_button">Saznaj više o slanju kartica …</string>
   <!-- Text for the button to connect another device -->
   <string name="sync_add_new_device_connect_button">Poveži jedan drugi uređaj …</string>
+  <!-- A message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template" tools:ignore="UnusedResources">%1$s\n\nPoslano od aplikacije %2$s 🦊 Isprobaj mobilni preglednik: %3$s</string>
+  <!-- A short message template for the shared link with a footer. %1$s is the shared link, %2$s is the app name (e.g. Firefox) and %3$s is a download link for the app. -->
+  <string name="sent_from_firefox_template_short" tools:ignore="UnusedResources">%1$s\n\nPoslano od aplikacije %2$s 🦊 %3$s</string>
   <!--
     Notifications
 
@@ -2545,9 +2728,9 @@
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">Priče koje potiču na razmišljanje</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">Priče po temama</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Priče po temama</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">Otkrij više</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Otkrij više</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Pokreće %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
@@ -3089,4 +3272,6 @@
     Subtitle for a setup checklist with 5 steps initial state. %1$s is the name of the app (for example "Firefox").
   -->
   <string name="setup_checklist_subtitle_5_steps_initial_state">Dovrši ovih 5 koraka za postavljanje %1$sa za najbolje iskustvo pregledavanja.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Pošalji povratne informacije</string>
 </resources>
