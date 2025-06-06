@@ -28,6 +28,7 @@ avoid-blacklist-and-whitelist:
         - yml
         - java
         - kt
+        - rs
     exclude:
         - eslint-rollouts.config.mjs
         - eslint-file-globals.config.mjs
@@ -287,6 +288,9 @@ avoid-blacklist-and-whitelist:
         - widget/windows/WinUtils.h
         - xpcom/io/FilePreferences.cpp
         - xpcom/tests/gtest/TestFilePreferencesUnix.cpp
+        - gfx/webrender_bindings/src/moz2d_renderer.rs
+        - gfx/webrender_bindings/src/program_cache.rs
+        - servo/components/style/values/computed/font.rs
 
 # ---
 # Disable for now. Needs some dev to handle this

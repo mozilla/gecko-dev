@@ -84,6 +84,7 @@ rejected-words:
             - '**/*.ftl'
             - '**/*.java'
             - '**/*.kt'
+            - '**/*.rs'
             - 'tools/lint/rejected-words.yml'
 
 eslint:
