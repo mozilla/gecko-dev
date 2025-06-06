@@ -397,14 +397,13 @@ async function focusSwitcher(win = window) {
     value: "",
     fireInputEvent: true,
   });
-  Assert.ok(win.gURLBar.hasAttribute("focused"), "Urlbar was focused");
+  Assert.ok(win.gURLBar.hasAttribute("focused"));
 
   EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, win);
   let switcher = win.document.getElementById("urlbar-searchmode-switcher");
   await BrowserTestUtils.waitForCondition(
     () => win.document.activeElement == switcher
   );
-  Assert.ok(true, "Search mode switcher was focused");
 }
 
 /**

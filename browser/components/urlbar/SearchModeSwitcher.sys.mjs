@@ -7,6 +7,7 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   OpenSearchManager:
     "moz-src:///browser/components/search/OpenSearchManager.sys.mjs",
+  PanelMultiView: "resource:///modules/PanelMultiView.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
@@ -56,14 +57,57 @@ export class SearchModeSwitcher {
     }
   }
 
-  async #onPopupShowing() {
-    await this.#buildSearchModeList();
+  /**
+   * Open the SearchSwitcher popup.
+   *
+   * @param {Event} event
+   *        The event that triggered the opening of the popup.
+   */
+  async openPanel(event) {
+    if (
+      (event.type == "click" && event.button != 0) ||
+      (event.type == "keypress" &&
+        event.keyCode != KeyEvent.DOM_VK_RETURN &&
+        event.keyCode != KeyEvent.DOM_VK_DOWN)
+    ) {
+      return; // Left click, down arrow or enter only
+    }
+
+    let anchor = event.target.closest("#urlbar-searchmode-switcher");
+    event.preventDefault();
+
+    if (this.#input.document.documentElement.hasAttribute("customizing")) {
+      return;
+    }
+
+    await this.#buildSearchModeList(this.#input.window);
 
     this.#input.view.close({ showFocusBorder: false });
 
-    // This moves the focus to the urlbar when the popup is closed.
-    this.#input.document.commandDispatcher.focusedElement =
-      this.#input.inputField;
+    this.#popup.addEventListener(
+      "popuphidden",
+      () => {
+        anchor.removeAttribute("open");
+        anchor.setAttribute("aria-expanded", false);
+      },
+      { once: true }
+    );
+    anchor.setAttribute("open", true);
+    anchor.setAttribute("aria-expanded", true);
+
+    if (event.type == "keypress") {
+      // If open the panel by key, set urlbar input filed as focusedElement to
+      // move the focus to the input field it when popup will be closed.
+      // Please see _prevFocus element in toolkit/content/widgets/panel.js about
+      // the implementation.
+      this.#input.document.commandDispatcher.focusedElement =
+        this.#input.inputField;
+    }
+
+    lazy.PanelMultiView.openPopup(this.#popup, anchor, {
+      position: "bottomleft topleft",
+      triggerEvent: event,
+    }).catch(console.error);
 
     Glean.urlbarUnifiedsearchbutton.opened.add(1);
   }
@@ -132,52 +176,37 @@ export class SearchModeSwitcher {
       this.#input.setUnifiedSearchButtonAvailability(true);
       return;
     }
-    if (event.type == "popupshowing") {
-      this.#toolbarbutton.setAttribute("aria-expanded", true);
-      this.#onPopupShowing();
-      return;
-    }
-    if (event.type == "popuphiding") {
-      this.#toolbarbutton.setAttribute("aria-expanded", false);
-      return;
-    }
-    if (event.type == "keydown") {
-      if (this.#input.view.isOpen) {
-        // The urlbar view is open, which means the unified search button got
-        // focus by tab key from urlbar.
-        switch (event.keyCode) {
-          case KeyEvent.DOM_VK_TAB: {
-            // Move the focus to urlbar view to make cyclable.
-            this.#input.focus();
-            this.#input.view.selectBy(1, {
-              reverse: event.shiftKey,
-              userPressedTab: true,
-            });
-            event.preventDefault();
-            return;
-          }
-          case KeyEvent.DOM_VK_ESCAPE: {
-            this.#input.view.close();
-            this.#input.focus();
-            event.preventDefault();
-            return;
-          }
+
+    if (this.#input.view.isOpen) {
+      // The urlbar view is opening, which means the unified search button got
+      // focus by tab key from urlbar.
+      switch (event.keyCode) {
+        case KeyEvent.DOM_VK_TAB: {
+          // Move the focus to urlbar view to make cyclable.
+          this.#input.focus();
+          this.#input.view.selectBy(1, {
+            reverse: event.shiftKey,
+            userPressedTab: true,
+          });
+          event.preventDefault();
+          return;
+        }
+        case KeyEvent.DOM_VK_ESCAPE: {
+          this.#input.view.close();
+          this.#input.focus();
+          event.preventDefault();
+          return;
         }
       }
-
-      // Manually open the popup on down.
-      if (event.keyCode == KeyEvent.DOM_VK_DOWN) {
-        this.#popup.openPopup(null, {
-          triggerEvent: event,
-        });
-      }
-
-      return;
     }
 
     let action = event.currentTarget.dataset.action ?? event.type;
 
     switch (action) {
+      case "openpopup": {
+        this.openPanel(event);
+        break;
+      }
       case "exitsearchmode": {
         this.exitSearchMode(event);
         break;
@@ -329,9 +358,6 @@ export class SearchModeSwitcher {
     };
   }
 
-  /**
-   * Builds the popup and dispatches a rebuild event on the popup when finished.
-   */
   async #buildSearchModeList() {
     // Remove all menuitems added.
     for (let item of this.#popup.querySelectorAll(
@@ -411,8 +437,6 @@ export class SearchModeSwitcher {
       menuitem.restrict = restrict;
       this.#popup.insertBefore(menuitem, separator);
     }
-
-    this.#popup.dispatchEvent(new Event("rebuild"));
   }
 
   search({ engine = null, restrict = null, openEngineHomePage = false } = {}) {
@@ -464,15 +488,14 @@ export class SearchModeSwitcher {
     Services.obs.addObserver(this, "browser-search-engine-modified", true);
 
     this.#toolbarbutton.addEventListener("focus", this);
-    this.#toolbarbutton.addEventListener("keydown", this);
-
-    this.#popup.addEventListener("popupshowing", this);
-    this.#popup.addEventListener("popuphiding", this);
+    this.#toolbarbutton.addEventListener("command", this);
+    this.#toolbarbutton.addEventListener("keypress", this);
 
     let closebutton = this.#input.document.querySelector(
       "#searchmode-switcher-close"
     );
     closebutton.addEventListener("command", this);
+    closebutton.addEventListener("keypress", this);
 
     let prefsbutton = this.#input.document.querySelector(
       "#searchmode-switcher-popup-search-settings-button"
@@ -484,15 +507,14 @@ export class SearchModeSwitcher {
     Services.obs.removeObserver(this, "browser-search-engine-modified");
 
     this.#toolbarbutton.removeEventListener("focus", this);
-    this.#toolbarbutton.removeEventListener("keydown", this);
-
-    this.#popup.removeEventListener("popupshowing", this);
-    this.#popup.removeEventListener("popuphiding", this);
+    this.#toolbarbutton.removeEventListener("command", this);
+    this.#toolbarbutton.removeEventListener("keypress", this);
 
     let closebutton = this.#input.document.querySelector(
       "#searchmode-switcher-close"
     );
     closebutton.removeEventListener("command", this);
+    closebutton.removeEventListener("keypress", this);
 
     let prefsbutton = this.#input.document.querySelector(
       "#searchmode-switcher-popup-search-settings-button"
