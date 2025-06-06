@@ -10,9 +10,21 @@ body {
   position: absolute;
 }
 
+browser {
+  flex: 1;
+}
+
+#browser-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 #header {
   align-items: center;
   background-color: var(--sidebar-background-color);
+  border-bottom: 1px solid var(--in-content-border-color);
   display: flex;
   flex-direction: row;
   padding-inline: var(--space-large);
@@ -69,10 +81,6 @@ body {
   @media not -moz-pref("sidebar.revamp") {
     display: none;
   }
-}
-
-browser {
-  flex: 1;
 }
 
 #multi-stage-message-root {
@@ -275,5 +283,31 @@ browser {
     > img {
       visibility: hidden;
     }
+  }
+}
+
+#summarize-btn-container {
+  border-top: 1px solid var(--in-content-border-color);
+  padding: var(--space-large);
+  position: relative;
+
+  .badge {
+    --badge-background-color-new: var(--color-green-40);
+
+    background: var(--badge-background-color-new);
+    border-radius: var(--border-radius-small);
+    color: var(--button-text-color-primary-hover);
+    font-size: var(--font-size-small);
+    left: 10px;
+    padding: var(--space-xxsmall) var(--space-small);
+    position: absolute;
+    text-align: center;
+    top: 4px;
+    z-index: 1;
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (not -moz-pref("browser.ml.chat.page")) or -moz-pref("browser.ml.chat.provider", "") {
+    display: none;
   }
 }
