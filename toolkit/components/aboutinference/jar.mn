@@ -6,5 +6,3 @@ toolkit.jar:
   content/global/aboutInference.html                (content/aboutInference.html)
   content/global/aboutInference.js                  (content/aboutInference.js)
   content/global/aboutInference.css                 (content/aboutInference.css)
-  content/global/model-files-view.mjs               (content/model-files-view.mjs)
-  content/global/model-files-view.css               (content/model-files-view.css)

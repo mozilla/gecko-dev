@@ -32,5 +32,3 @@ about-inference-benchmark-title = Running Benchmark
 about-inference-benchmark-description = Performs a full benchmark on the local inference platform. This will take a while.
 about-inference-benchmark-button =
   .value = Run Benchmark
-about-inference-prompt-title = Confirm
-about-inference-prompt-message = Are you sure you want to delete this model?
