@@ -54,6 +54,7 @@ button {
 
   &[size="small"] {
     min-height: var(--button-min-height-small);
+    padding-block: var(--space-xxsmall);
     font-size: var(--button-font-size-small);
   }
 
