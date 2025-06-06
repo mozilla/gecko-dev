@@ -5,4 +5,3 @@
 browser.jar:
 % content pocket %content/pocket/ contentaccessible=yes
   content/pocket/pktApi.sys.mjs (content/pktApi.sys.mjs)
-  content/pocket/pktTelemetry.sys.mjs (content/pktTelemetry.sys.mjs)
