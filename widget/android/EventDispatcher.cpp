@@ -20,10 +20,8 @@
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/java/EventCallbackWrappers.h"
 #include "mozilla/jni/GeckoBundleUtils.h"
-#include "mozilla/ProfilerMarkers.h"
 
-namespace mozilla {
-namespace widget {
+namespace mozilla::widget {
 
 namespace detail {
 
@@ -338,8 +336,6 @@ class NativeCallbackDelegateSupport final
   using Base = CallbackDelegate::Natives<NativeCallbackDelegateSupport>;
 
   const nsCOMPtr<nsIGeckoViewEventCallback> mCallback;
-  const nsCOMPtr<nsIGeckoViewEventFinalizer> mFinalizer;
-  const nsCOMPtr<nsIGlobalObject> mGlobalObject;
 
   void Call(jni::Object::Param aData,
             nsresult (nsIGeckoViewEventCallback::*aCall)(JS::Handle<JS::Value>,
@@ -349,7 +345,7 @@ class NativeCallbackDelegateSupport final
     // Use either the attached window's realm or a default realm.
 
     dom::AutoJSAPI jsapi;
-    NS_ENSURE_TRUE_VOID(jsapi.Init(mGlobalObject));
+    NS_ENSURE_TRUE_VOID(jsapi.Init(xpc::PrivilegedJunkScope()));
 
     JS::Rooted<JS::Value> data(jsapi.cx());
     nsresult rv = UnboxData(u"callback"_ns, jsapi.cx(), aData, &data,
@@ -370,25 +366,15 @@ class NativeCallbackDelegateSupport final
       return aCall();
     }
     NS_DispatchToMainThread(
-        NS_NewRunnableFunction("OnNativeCall", std::move(aCall)));
+        NS_NewRunnableFunction("OnNativeCall", std::forward<Functor>(aCall)));
   }
 
   static void Finalize(const CallbackDelegate::LocalRef& aInstance) {
     DisposeNative(aInstance);
   }
 
-  NativeCallbackDelegateSupport(nsIGeckoViewEventCallback* callback,
-                                nsIGeckoViewEventFinalizer* finalizer,
-                                nsIGlobalObject* globalObject)
-      : mCallback(callback),
-        mFinalizer(finalizer),
-        mGlobalObject(globalObject) {}
-
-  ~NativeCallbackDelegateSupport() {
-    if (mFinalizer) {
-      mFinalizer->OnFinalize();
-    }
-  }
+  explicit NativeCallbackDelegateSupport(nsIGeckoViewEventCallback* callback)
+      : mCallback(callback) {}
 
   void SendSuccess(jni::Object::Param aData) {
     Call(aData, &nsIGeckoViewEventCallback::OnSuccess);
@@ -399,292 +385,75 @@ class NativeCallbackDelegateSupport final
   }
 };
 
-class FinalizingCallbackDelegate final : public nsIGeckoViewEventCallback {
-  const nsCOMPtr<nsIGeckoViewEventCallback> mCallback;
-  const nsCOMPtr<nsIGeckoViewEventFinalizer> mFinalizer;
-
-  virtual ~FinalizingCallbackDelegate() {
-    if (mFinalizer) {
-      mFinalizer->OnFinalize();
-    }
-  }
-
- public:
-  FinalizingCallbackDelegate(nsIGeckoViewEventCallback* aCallback,
-                             nsIGeckoViewEventFinalizer* aFinalizer)
-      : mCallback(aCallback), mFinalizer(aFinalizer) {}
-
-  NS_DECL_ISUPPORTS
-  NS_FORWARD_NSIGECKOVIEWEVENTCALLBACK(mCallback->);
-};
-
-NS_IMPL_ISUPPORTS(FinalizingCallbackDelegate, nsIGeckoViewEventCallback)
-
 }  // namespace detail
 
 using namespace detail;
 
-NS_IMPL_ISUPPORTS(EventDispatcher, nsIGeckoViewEventDispatcher)
+void EventDispatcher::DispatchToGecko(jni::String::Param aEvent,
+                                      jni::Object::Param aData,
+                                      jni::Object::Param aCallback) {
+  AssertIsOnMainThread();
 
-nsIGlobalObject* EventDispatcher::GetGlobalObject() {
-  if (mDOMWindow) {
-    return nsGlobalWindowInner::Cast(mDOMWindow->GetCurrentInnerWindow());
-  }
-  return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
-}
-
-nsresult EventDispatcher::DispatchOnGecko(
-    ListenersList* list, const nsAString& aEvent, JS::Handle<JS::Value> aData,
-    nsIGeckoViewEventCallback* aCallback) {
-  MOZ_ASSERT(NS_IsMainThread());
-  dom::AutoNoJSAPI nojsapi;
-
-  AUTO_PROFILER_MARKER_TEXT("DispatchOnGecko", OTHER, {}, aEvent);
-  list->lockCount++;
-
-  auto iteratingScope = MakeScopeExit([list] {
-    list->lockCount--;
-    if (list->lockCount || !list->unregistering) {
-      return;
-    }
-
-    list->unregistering = false;
-    for (ssize_t i = list->listeners.Count() - 1; i >= 0; i--) {
-      if (list->listeners[i]) {
-        continue;
-      }
-      list->listeners.RemoveObjectAt(i);
-    }
-  });
-
-  const size_t count = list->listeners.Count();
-  for (size_t i = 0; i < count; i++) {
-    if (!list->listeners[i]) {
-      // Unregistered.
-      continue;
-    }
-    const nsresult rv = list->listeners[i]->OnEvent(aEvent, aData, aCallback);
-    Unused << NS_WARN_IF(NS_FAILED(rv));
-  }
-  return NS_OK;
-}
-
-java::EventDispatcher::NativeCallbackDelegate::LocalRef
-EventDispatcher::WrapCallback(nsIGeckoViewEventCallback* aCallback,
-                              nsIGeckoViewEventFinalizer* aFinalizer) {
-  if (!aCallback) {
-    return java::EventDispatcher::NativeCallbackDelegate::LocalRef(
-        jni::GetGeckoThreadEnv());
+  nsCOMPtr<nsIGeckoViewEventCallback> callback;
+  if (aCallback) {
+    callback =
+        new JavaCallbackDelegate(java::EventCallback::Ref::From(aCallback));
   }
 
-  java::EventDispatcher::NativeCallbackDelegate::LocalRef callback =
-      java::EventDispatcher::NativeCallbackDelegate::New();
-  NativeCallbackDelegateSupport::AttachNative(
-      callback, MakeUnique<NativeCallbackDelegateSupport>(aCallback, aFinalizer,
-                                                          GetGlobalObject()));
-  return callback;
+  dom::AutoJSAPI jsapi;
+  NS_ENSURE_TRUE_VOID(jsapi.Init(xpc::PrivilegedJunkScope()));
+
+  JS::Rooted<JS::Value> data(jsapi.cx());
+  nsresult rv =
+      UnboxData(aEvent, jsapi.cx(), aData, &data, /* BundleOnly */ true);
+  NS_ENSURE_SUCCESS_VOID(rv);
+
+  DispatchToGecko(jsapi.cx(), aEvent->ToString(), data, callback);
 }
 
-bool EventDispatcher::HasListener(const char16_t* aEvent) {
+bool EventDispatcher::HasEmbedderListener(const nsAString& aEvent) {
   java::EventDispatcher::LocalRef dispatcher(mDispatcher);
   if (!dispatcher) {
     return false;
   }
 
-  nsDependentString event(aEvent);
-  return dispatcher->HasListener(event);
+  return dispatcher->HasListener(aEvent);
 }
 
-NS_IMETHODIMP
-EventDispatcher::Dispatch(JS::Handle<JS::Value> aEvent,
-                          JS::Handle<JS::Value> aData,
-                          nsIGeckoViewEventCallback* aCallback,
-                          nsIGeckoViewEventFinalizer* aFinalizer,
-                          JSContext* aCx) {
-  MOZ_ASSERT(NS_IsMainThread());
+nsresult EventDispatcher::DispatchToEmbedder(
+    JSContext* aCx, const nsAString& aEvent, JS::Handle<JS::Value> aData,
+    nsIGeckoViewEventCallback* aCallback) {
+  JNIEnv* env = jni::GetGeckoThreadEnv();
 
-  if (!aEvent.isString()) {
-    NS_WARNING("Invalid event name");
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  nsAutoJSString event;
-  NS_ENSURE_TRUE(CheckJS(aCx, event.init(aCx, aEvent.toString())),
-                 NS_ERROR_OUT_OF_MEMORY);
-
-  // Don't need to lock here because we're on the main thread, and we can't
-  // race against Register/UnregisterListener.
-
-  ListenersList* list = mListenersMap.Get(event);
-  if (list) {
-    if (!aCallback || !aFinalizer) {
-      return DispatchOnGecko(list, event, aData, aCallback);
-    }
-    nsCOMPtr<nsIGeckoViewEventCallback> callback(
-        new FinalizingCallbackDelegate(aCallback, aFinalizer));
-    return DispatchOnGecko(list, event, aData, callback);
-  }
-
-  java::EventDispatcher::LocalRef dispatcher(mDispatcher);
+  java::EventDispatcher::LocalRef dispatcher(env, mDispatcher);
   if (!dispatcher) {
     return NS_OK;
   }
 
-  jni::Object::LocalRef data(jni::GetGeckoThreadEnv());
-  nsresult rv = BoxData(event, aCx, aData, data, /* ObjectOnly */ true);
-  // Keep XPConnect from overriding the JSContext exception with one
-  // based on the nsresult.
-  //
-  // XXXbz Does xpconnect still do that?  Needs to be checked/tested.
-  NS_ENSURE_SUCCESS(rv, JS_IsExceptionPending(aCx) ? NS_OK : rv);
+  jni::Object::LocalRef data(env);
+  nsresult rv = BoxData(aEvent, aCx, aData, data, /* ObjectOnly */ true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  java::EventDispatcher::NativeCallbackDelegate::LocalRef callback(env);
+  if (aCallback) {
+    callback = java::EventDispatcher::NativeCallbackDelegate::New();
+    NativeCallbackDelegateSupport::AttachNative(
+        callback, MakeUnique<NativeCallbackDelegateSupport>(aCallback));
+  }
 
   dom::AutoNoJSAPI nojsapi;
-  dispatcher->DispatchToThreads(event, data,
-                                WrapCallback(aCallback, aFinalizer));
+  dispatcher->DispatchToThreads(aEvent, data, callback);
   return NS_OK;
 }
 
-nsresult EventDispatcher::Dispatch(const char16_t* aEvent,
-                                   java::GeckoBundle::Param aData,
-                                   nsIGeckoViewEventCallback* aCallback) {
-  nsDependentString event(aEvent);
-
-  ListenersList* list = mListenersMap.Get(event);
-  if (list) {
-    dom::AutoJSAPI jsapi;
-    NS_ENSURE_TRUE(jsapi.Init(GetGlobalObject()), NS_ERROR_FAILURE);
-    JS::Rooted<JS::Value> data(jsapi.cx());
-    nsresult rv = UnboxData(/* Event */ nullptr, jsapi.cx(), aData, &data,
-                            /* BundleOnly */ true);
-    NS_ENSURE_SUCCESS(rv, rv);
-    return DispatchOnGecko(list, event, data, aCallback);
-  }
-
-  java::EventDispatcher::LocalRef dispatcher(mDispatcher);
-  if (!dispatcher) {
-    return NS_OK;
-  }
-
-  dispatcher->DispatchToThreads(event, aData, WrapCallback(aCallback));
-  return NS_OK;
-}
-
-nsresult EventDispatcher::IterateEvents(JSContext* aCx,
-                                        JS::Handle<JS::Value> aEvents,
-                                        IterateEventsCallback aCallback,
-                                        nsIGeckoViewEventListener* aListener) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  MutexAutoLock lock(mLock);
-
-  auto processEvent = [this, aCx, aCallback,
-                       aListener](JS::Handle<JS::Value> event) -> nsresult {
-    nsAutoJSString str;
-    NS_ENSURE_TRUE(CheckJS(aCx, str.init(aCx, event.toString())),
-                   NS_ERROR_OUT_OF_MEMORY);
-    return (this->*aCallback)(str, aListener);
-  };
-
-  if (aEvents.isString()) {
-    return processEvent(aEvents);
-  }
-
-  bool isArray = false;
-  NS_ENSURE_TRUE(aEvents.isObject(), NS_ERROR_INVALID_ARG);
-  NS_ENSURE_TRUE(CheckJS(aCx, JS::IsArrayObject(aCx, aEvents, &isArray)),
-                 NS_ERROR_INVALID_ARG);
-  NS_ENSURE_TRUE(isArray, NS_ERROR_INVALID_ARG);
-
-  JS::Rooted<JSObject*> events(aCx, &aEvents.toObject());
-  uint32_t length = 0;
-  NS_ENSURE_TRUE(CheckJS(aCx, JS::GetArrayLength(aCx, events, &length)),
-                 NS_ERROR_INVALID_ARG);
-  NS_ENSURE_TRUE(length, NS_ERROR_INVALID_ARG);
-
-  for (size_t i = 0; i < length; i++) {
-    JS::Rooted<JS::Value> event(aCx);
-    NS_ENSURE_TRUE(CheckJS(aCx, JS_GetElement(aCx, events, i, &event)),
-                   NS_ERROR_INVALID_ARG);
-    NS_ENSURE_TRUE(event.isString(), NS_ERROR_INVALID_ARG);
-
-    const nsresult rv = processEvent(event);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-  return NS_OK;
-}
-
-nsresult EventDispatcher::RegisterEventLocked(
-    const nsAString& aEvent, nsIGeckoViewEventListener* aListener) {
-  ListenersList* list = mListenersMap.GetOrInsertNew(aEvent);
-
-#ifdef DEBUG
-  for (ssize_t i = 0; i < list->listeners.Count(); i++) {
-    NS_ENSURE_TRUE(list->listeners[i] != aListener,
-                   NS_ERROR_ALREADY_INITIALIZED);
-  }
-#endif
-
-  list->listeners.AppendObject(aListener);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-EventDispatcher::RegisterListener(nsIGeckoViewEventListener* aListener,
-                                  JS::Handle<JS::Value> aEvents,
-                                  JSContext* aCx) {
-  return IterateEvents(aCx, aEvents, &EventDispatcher::RegisterEventLocked,
-                       aListener);
-}
-
-nsresult EventDispatcher::UnregisterEventLocked(
-    const nsAString& aEvent, nsIGeckoViewEventListener* aListener) {
-  ListenersList* list = mListenersMap.Get(aEvent);
-#ifdef DEBUG
-  NS_ENSURE_TRUE(list, NS_ERROR_NOT_INITIALIZED);
-#else
-  NS_ENSURE_TRUE(list, NS_OK);
-#endif
-
-  DebugOnly<bool> found = false;
-  for (ssize_t i = list->listeners.Count() - 1; i >= 0; i--) {
-    if (list->listeners[i] != aListener) {
-      continue;
-    }
-    if (list->lockCount) {
-      // Only mark for removal when list is locked.
-      list->listeners.ReplaceObjectAt(nullptr, i);
-      list->unregistering = true;
-    } else {
-      list->listeners.RemoveObjectAt(i);
-    }
-    found = true;
-  }
-#ifdef DEBUG
-  return found ? NS_OK : NS_ERROR_NOT_INITIALIZED;
-#else
-  return NS_OK;
-#endif
-}
-
-NS_IMETHODIMP
-EventDispatcher::UnregisterListener(nsIGeckoViewEventListener* aListener,
-                                    JS::Handle<JS::Value> aEvents,
-                                    JSContext* aCx) {
-  return IterateEvents(aCx, aEvents, &EventDispatcher::UnregisterEventLocked,
-                       aListener);
-}
-
-void EventDispatcher::Attach(java::EventDispatcher::Param aDispatcher,
-                             nsPIDOMWindowOuter* aDOMWindow) {
-  MOZ_ASSERT(NS_IsMainThread());
+void EventDispatcher::Attach(java::EventDispatcher::Param aDispatcher) {
+  AssertIsOnMainThread();
   MOZ_ASSERT(aDispatcher);
 
   java::EventDispatcher::LocalRef dispatcher(mDispatcher);
 
   if (dispatcher) {
     if (dispatcher == aDispatcher) {
-      // Only need to update the window.
-      mDOMWindow = aDOMWindow;
       return;
     }
     dispatcher->SetAttachedToGecko(java::EventDispatcher::REATTACHING);
@@ -693,18 +462,18 @@ void EventDispatcher::Attach(java::EventDispatcher::Param aDispatcher,
   dispatcher = java::EventDispatcher::LocalRef(aDispatcher);
   NativesBase::AttachNative(dispatcher, this);
   mDispatcher = dispatcher;
-  mDOMWindow = aDOMWindow;
 
   dispatcher->SetAttachedToGecko(java::EventDispatcher::ATTACHED);
 }
 
 void EventDispatcher::Shutdown() {
+  AssertIsOnMainThread();
   mDispatcher = nullptr;
-  mDOMWindow = nullptr;
+  EventDispatcherBase::Shutdown();
 }
 
 void EventDispatcher::Detach() {
-  MOZ_ASSERT(NS_IsMainThread());
+  AssertIsOnMainThread();
   MOZ_ASSERT(mDispatcher);
 
   java::EventDispatcher::GlobalRef dispatcher(mDispatcher);
@@ -718,50 +487,10 @@ void EventDispatcher::Detach() {
   Shutdown();
 }
 
-bool EventDispatcher::HasGeckoListener(jni::String::Param aEvent) {
-  // Can be called from any thread.
-  MutexAutoLock lock(mLock);
-  return !!mListenersMap.Get(aEvent->ToString());
-}
-
-void EventDispatcher::DispatchToGecko(jni::String::Param aEvent,
-                                      jni::Object::Param aData,
-                                      jni::Object::Param aCallback) {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  // Don't need to lock here because we're on the main thread, and we can't
-  // race against Register/UnregisterListener.
-
-  nsString event = aEvent->ToString();
-  ListenersList* list = mListenersMap.Get(event);
-  if (!list || list->listeners.IsEmpty()) {
-    return;
-  }
-
-  // Use the same compartment as the attached window if possible, otherwise
-  // use a default compartment.
-  dom::AutoJSAPI jsapi;
-  NS_ENSURE_TRUE_VOID(jsapi.Init(GetGlobalObject()));
-
-  JS::Rooted<JS::Value> data(jsapi.cx());
-  nsresult rv = UnboxData(aEvent, jsapi.cx(), aData, &data,
-                          /* BundleOnly */ true);
-  NS_ENSURE_SUCCESS_VOID(rv);
-
-  nsCOMPtr<nsIGeckoViewEventCallback> callback;
-  if (aCallback) {
-    callback =
-        new JavaCallbackDelegate(java::EventCallback::Ref::From(aCallback));
-  }
-
-  DispatchOnGecko(list, event, data, callback);
-}
-
 /* static */
 nsresult EventDispatcher::UnboxBundle(JSContext* aCx, jni::Object::Param aData,
                                       JS::MutableHandle<JS::Value> aOut) {
   return detail::UnboxBundle(aCx, aData, aOut);
 }
 
-}  // namespace widget
-}  // namespace mozilla
+}  // namespace mozilla::widget
