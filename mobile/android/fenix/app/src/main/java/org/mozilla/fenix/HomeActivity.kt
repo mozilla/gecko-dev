@@ -515,10 +515,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
 
         startupTelemetryOnCreateCalled(intent.toSafeIntent())
         startupPathProvider.attachOnActivityOnCreate(lifecycle, intent)
-        startupTypeTelemetry = StartupTypeTelemetry(
-            startupPathProvider = startupPathProvider,
-            startupStateDetector = components.performance.startupStateDetector,
-        ).apply {
+        startupTypeTelemetry = StartupTypeTelemetry(components.startupStateProvider, startupPathProvider).apply {
             attachOnHomeActivityOnCreate(lifecycle)
         }
 
@@ -641,7 +638,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         // PWAs) so we don't include more unpredictable code paths in the results.
         components.performance.coldStartupDurationTelemetry.onHomeActivityOnCreate(
             components.performance.visualCompletenessQueue,
-            components.performance.startupStateDetector,
+            components.startupStateProvider,
             safeIntent,
             binding.rootContainer,
         )
