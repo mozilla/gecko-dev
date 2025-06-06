@@ -38,10 +38,6 @@ add_task(async function setup() {
     .returns({ slug: "test-slug", branch: "control" });
   getEnrollmentStub.withArgs(lazy.EnrollmentType.ROLLOUT).returns(null);
   sinon.stub(lazy.NimbusFeatures.urlbar, "recordExposureEvent");
-});
-
-add_task(async function test_startQuery_adds_results() {
-  const provider = UrlbarProviderSemanticHistorySearch;
 
   // Set required prefs
   Services.prefs.setBoolPref("browser.ml.enable", true);
@@ -50,6 +46,10 @@ add_task(async function test_startQuery_adds_results() {
   Services.prefs
     .getDefaultBranch("")
     .setIntPref("browser.urlbar.suggest.semanticHistory.minLength", 5);
+});
+
+add_task(async function test_startQuery_adds_results() {
+  const provider = UrlbarProviderSemanticHistorySearch;
 
   const queryContext = { searchString: "test page" };
 
@@ -59,7 +59,7 @@ add_task(async function test_startQuery_adds_results() {
   // Stub and simulate inference
   sinon.stub(semanticManager.embedder, "ensureEngine").callsFake(() => {});
   let url = "https://example.com";
-  sinon.stub(semanticManager, "infer").resolves({
+  let inferStub = sinon.stub(semanticManager, "infer").resolves({
     results: [
       {
         id: 1,
@@ -97,6 +97,7 @@ add_task(async function test_startQuery_adds_results() {
   await promiseRemoved;
   let visited = await PlacesUtils.history.hasVisits(url);
   Assert.ok(!visited, "URL should have been removed from history");
+  inferStub.restore();
 });
 
 add_task(async function test_isActive_conditions() {
@@ -104,13 +105,6 @@ add_task(async function test_isActive_conditions() {
 
   // Stub canUseSemanticSearch to control the return value
   const canUseStub = sinon.stub(semanticManager, "canUseSemanticSearch");
-
-  // Default settings
-  Services.prefs.setBoolPref("browser.urlbar.suggest.history", true);
-  Services.prefs.setIntPref(
-    "browser.urlbar.suggest.semanticHistory.minLength",
-    5
-  );
 
   const shortQuery = { searchString: "hi" };
   const validQuery = { searchString: "hello world" };
@@ -163,4 +157,152 @@ add_task(async function test_isActive_conditions() {
     await provider.isActive(historySearchMode),
     "Should be active when in history search mode"
   );
+});
+
+add_task(async function test_switchTab() {
+  const userContextId1 = 2;
+  const userContextId2 = 3;
+  const privateContextId = -1;
+  const url1 = "http://foo.mozilla.org/";
+  const url2 = "http://foo2.mozilla.org/";
+  await UrlbarProviderOpenTabs.registerOpenTab(
+    url1,
+    userContextId1,
+    null,
+    false
+  );
+  await UrlbarProviderOpenTabs.registerOpenTab(
+    url2,
+    userContextId1,
+    null,
+    false
+  );
+  await UrlbarProviderOpenTabs.registerOpenTab(
+    url1,
+    userContextId2,
+    null,
+    false
+  );
+  await UrlbarProviderOpenTabs.registerOpenTab(
+    url1,
+    privateContextId,
+    null,
+    false
+  );
+  await PlacesTestUtils.addVisits([url1, url2]);
+  const provider = UrlbarProviderSemanticHistorySearch;
+
+  // Trigger isActive() to initialize the semantic manager
+  const queryContext = createContext("firefox", { isPrivate: false });
+  Assert.ok(await provider.isActive(queryContext), "Provider should be active");
+  let inferStub = sinon.stub(semanticManager, "infer").resolves({
+    results: [
+      {
+        id: 1,
+        title: "Test Page 1",
+        url: url1,
+      },
+      {
+        id: 2,
+        title: "Test Page 2",
+        url: url2,
+      },
+    ],
+  });
+
+  function AssertSwitchToTabResult(result, url, userContextId, groupId = null) {
+    Assert.equal(
+      result.type,
+      UrlbarUtils.RESULT_TYPE.TAB_SWITCH,
+      "Check result type"
+    );
+    Assert.equal(result.payload.url, url, "Check result URL");
+    Assert.equal(
+      result.payload.userContextId,
+      userContextId,
+      "Check user context"
+    );
+    Assert.equal(result.payload.tabGroup, groupId, "Check tab group");
+    Assert.equal(
+      result.payload.icon,
+      UrlbarUtils.getIconForUrl(url),
+      "Check icon"
+    );
+  }
+  function isUrlResult(result, url) {
+    return (
+      result.type === UrlbarUtils.RESULT_TYPE.URL && result.payload.url === url
+    );
+  }
+
+  let added = [];
+  await provider.startQuery(queryContext, (_provider, result) => {
+    added.push(result);
+  });
+  Assert.equal(added.length, 3, "Threee result should be added");
+  AssertSwitchToTabResult(added[0], url1, userContextId1);
+  AssertSwitchToTabResult(added[1], url1, userContextId2);
+  AssertSwitchToTabResult(added[2], url2, userContextId1);
+
+  info("Test private browsing context.");
+  const privateContext = createContext("firefox");
+  added.length = 0;
+  await provider.startQuery(privateContext, (_provider, result) => {
+    added.push(result);
+  });
+  Assert.equal(added.length, 2, "Two results should be added");
+  AssertSwitchToTabResult(added[0], url1, privateContextId);
+  Assert.ok(isUrlResult(added[1], url2), "Second result should be URL");
+
+  info("Test single container mode.");
+  Services.prefs.setBoolPref(
+    "browser.urlbar.switchTabs.searchAllContainers",
+    false
+  );
+  const singleContext = createContext("firefox", {
+    isPrivate: false,
+    userContextId: userContextId1,
+  });
+  added.length = 0;
+  await provider.startQuery(singleContext, (_provider, result) => {
+    added.push(result);
+  });
+  Assert.equal(added.length, 2, "Two results should be added");
+  AssertSwitchToTabResult(added[0], url1, userContextId1);
+  AssertSwitchToTabResult(added[1], url2, userContextId1);
+  Services.prefs.clearUserPref("browser.urlbar.switchTabs.searchAllContainers");
+
+  info("Test tab groups and current page.");
+  let tabGroudId1 = "group1";
+  let tabGroudId2 = "group2";
+  await UrlbarProviderOpenTabs.registerOpenTab(
+    url1,
+    userContextId1,
+    tabGroudId1,
+    false
+  );
+  await UrlbarProviderOpenTabs.registerOpenTab(
+    url2,
+    userContextId2,
+    tabGroudId2,
+    false
+  );
+  const groupContext = createContext("firefox", {
+    isPrivate: false,
+    currentPage: url1,
+    userContextId: userContextId1,
+    tabGroup: tabGroudId1,
+  });
+
+  added.length = 0;
+  await provider.startQuery(groupContext, (_provider, result) => {
+    added.push(result);
+  });
+  Assert.equal(added.length, 4, "Three results should be added");
+  AssertSwitchToTabResult(added[0], url1, userContextId1);
+  AssertSwitchToTabResult(added[1], url1, userContextId2);
+  AssertSwitchToTabResult(added[2], url2, userContextId1);
+  AssertSwitchToTabResult(added[3], url2, userContextId2, tabGroudId2);
+
+  inferStub.restore();
 });

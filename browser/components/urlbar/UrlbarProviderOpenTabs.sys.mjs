@@ -89,7 +89,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
     // It's fairly common to retrieve the value from an HTML attribute, that
     // means we're getting sometimes a string, sometimes an integer. As we're
     // using this as key of a Map, we must treat it consistently.
-    userContextId = parseInt(userContextId);
+    userContextId = parseInt(`${userContextId}`);
     userContextId = UrlbarProviderOpenTabs.getUserContextIdForOpenPagesTable(
       userContextId,
       isInPrivateWindow
@@ -113,7 +113,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
    * Return unique urls that are open, along with their user context id and group id.
    *
    * @param {boolean} [isInPrivateWindow] Whether it's for a private browsing window
-   * @returns {Map} { url => Set({userContextId, groupId}) }
+   * @returns {Map} { url => Set([userContextId, groupId]) }
    */
   static getOpenTabUrls(isInPrivateWindow = false) {
     let uniqueUrls = new Map();
@@ -229,7 +229,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
     // It's fairly common to retrieve the value from an HTML attribute, that
     // means we're getting sometimes a string, sometimes an integer. As we're
     // using this as key of a Map, we must treat it consistently.
-    userContextId = parseInt(userContextId);
+    userContextId = parseInt(`${userContextId}`);
     groupId = groupId ?? null;
     if (!Number.isInteger(userContextId)) {
       lazy.logger.error("Invalid userContextId while registering openTab: ", {
@@ -283,7 +283,7 @@ export class UrlbarProviderOpenTabs extends UrlbarProvider {
     // It's fairly common to retrieve the value from an HTML attribute, that
     // means we're getting sometimes a string, sometimes an integer. As we're
     // using this as key of a Map, we must treat it consistently.
-    userContextId = parseInt(userContextId);
+    userContextId = parseInt(`${userContextId}`);
     groupId = groupId ?? null;
     lazy.logger.info("Unregistering openTab: ", {
       url,
