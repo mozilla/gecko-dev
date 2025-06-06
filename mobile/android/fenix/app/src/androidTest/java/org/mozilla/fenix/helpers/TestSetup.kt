@@ -75,8 +75,6 @@ open class TestSetup {
             AppAndSystemHelper.deleteHistoryStorage()
             // Clear permissions left after a failed test, before a retry.
             AppAndSystemHelper.deletePermissionsStorage()
-            // Make sure the debug drawer is hidden, to not interfere with UI elements
-            AppAndSystemHelper.disableDebugDrawer()
             // Get the network connection details, before a retry.
             runWithCondition(BuildConfig.DEBUG) {
                 getNetworkDetails()
