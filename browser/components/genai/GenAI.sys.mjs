@@ -374,11 +374,12 @@ export const GenAI = {
 
     // Add items that pass along context for handling
     (await this.getContextualPrompts(context)).forEach(promptObj =>
-      itemAdder(promptObj).addEventListener("command", () => {
+      itemAdder(promptObj, context)?.addEventListener("command", () => {
         this.handleAskChat(promptObj, context);
         cleanup?.();
       })
     );
+
     return context;
   },
 
@@ -752,10 +753,11 @@ export const GenAI = {
             {
               id: prefixObj.l10nId,
               args: {
-                tabTitle: "%tabTitle%",
                 selection: `%selection|${this.estimateSelectionLimit(
                   this.chatProviders.get(lazy.chatProvider)?.maxLength
                 )}%`,
+                tabTitle: "%tabTitle%",
+                url: "%url%",
               },
             },
           ])
@@ -798,6 +800,7 @@ export const GenAI = {
    * @param {object} context of how the prompt should be handled
    */
   async handleAskChat(promptObj, context) {
+    // TODO: Glean.genaiChatbot record - will have to create for summarization button
     Glean.genaiChatbot[
       context.entry == "menu"
         ? "contextmenuPromptClick"

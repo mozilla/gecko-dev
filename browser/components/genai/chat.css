@@ -304,6 +304,11 @@ browser {
     text-align: center;
     top: 4px;
     z-index: 1;
+
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media not -moz-pref("browser.ml.chat.page.footerBadge") {
+      display: none;
+    }
   }
 
   /* stylelint-disable-next-line media-query-no-invalid */

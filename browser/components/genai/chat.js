@@ -347,6 +347,17 @@ var browserPromise = new Promise((resolve, reject) => {
           provider: lazy.GenAI.getProviderId(),
         });
       });
+      document
+        .getElementById("summarize-button")
+        .addEventListener("click", async () => {
+          const badgeKey = "browser.ml.chat.page.footerBadge";
+          const newBadgePref = Services.prefs.getBoolPref(badgeKey);
+
+          if (newBadgePref) {
+            Services.prefs.setBoolPref(badgeKey, false);
+          }
+          await summarizeCurrentPage();
+        });
     } catch (ex) {
       console.error("Failed to render on load", ex);
       reject(ex);
@@ -577,4 +588,29 @@ function showOnboarding(length) {
       }
     },
   });
+}
+
+async function summarizeCurrentPage() {
+  Services.prefs.setCharPref(
+    "browser.ml.chat.prompt.prefix",
+    'I\'m on page "%tabTitle%" from "%url%". Use this "%selection|8000%" as my selection.'
+  );
+
+  let browser = topChromeWindow.gBrowser.selectedBrowser;
+  let actor = browser.browsingContext.currentWindowContext.getActor("GenAI");
+  let articleTextContent = await actor.sendQuery("GetReadableText");
+
+  await lazy.GenAI.addAskChatItems(
+    browser,
+    { selection: articleTextContent },
+    (promptObj, context) => {
+      if (promptObj.id === "summarize") {
+        lazy.GenAI.handleAskChat(promptObj, context);
+      }
+    },
+    "page"
+  );
+
+  // reset prefix to default
+  Services.prefs.clearUserPref("browser.ml.chat.prompt.prefix");
 }

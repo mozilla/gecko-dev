@@ -11,6 +11,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "browser.ml.chat.shortcuts.longPress"
 );
 
+ChromeUtils.defineESModuleGetters(lazy, {
+  ReaderMode: "moz-src:///toolkit/components/reader/ReaderMode.sys.mjs",
+});
+
 // Events to register after shortcuts are shown
 const HIDE_EVENTS = ["pagehide", "resize", "scroll"];
 
@@ -136,5 +140,35 @@ export class GenAIChild extends JSWindowActorChild {
       };
     }
     return { inputType: "", selection: "" };
+  }
+
+  /**
+   * Handles incoming messages from the browser.
+   *
+   * @param {object} message - The message object containing name
+   * @param {string} message.name - The name of the message.
+   */
+  async receiveMessage({ name }) {
+    if (name === "GetReadableText") {
+      try {
+        return await this.getContentText();
+      } catch (e) {
+        return e.message;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Get readable article text or whole innerText from the content side.
+   *
+   * @returns {string} text from the page
+   */
+  async getContentText() {
+    const win = this.browsingContext?.window;
+    const doc = win?.document;
+    const article = await lazy.ReaderMode.parseDocument(doc);
+
+    return article?.textContent || doc.body.innerText || null;
   }
 }
