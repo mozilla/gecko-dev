@@ -286,7 +286,7 @@ async function runTests() {
     // With native context menus, we do not observe accessibility events and we
     // cannot send synthetic key events to the menu.
     info("Opening and closing context native context menu");
-    let contextMenu = gURLBar.querySelector("menupopup");
+    let contextMenu = gURLBar.querySelector(".textbox-contextmenu");
     let popupshown = BrowserTestUtils.waitForEvent(contextMenu, "popupshown");
     EventUtils.synthesizeMouseAtCenter(gURLBar.querySelector("moz-input-box"), {
       type: "contextmenu",

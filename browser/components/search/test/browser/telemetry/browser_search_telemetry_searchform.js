@@ -75,6 +75,7 @@ add_setup(async function () {
 });
 
 add_task(async function test_appProvidedSearchbar() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await openSearchbarPopup("");
   let oneOff = findOneOff("Second Engine");
   EventUtils.synthesizeMouseAtCenter(oneOff, { shiftKey: true });
@@ -84,10 +85,13 @@ add_task(async function test_appProvidedSearchbar() {
   Assert.equal(events.length, 1, "Event was recorded.");
   Assert.equal(events[0].extra.source, "searchbar", "Source is correct");
   Assert.equal(events[0].extra.provider_id, "second_engine", "Id is correct");
+
   resetTelemetry();
+  BrowserTestUtils.removeTab(tab);
 });
 
 add_task(async function test_extensionSearchbar() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await openSearchbarPopup("");
   let oneOff = findOneOff(TEST_ENGINE_NAME);
   EventUtils.synthesizeMouseAtCenter(oneOff, { shiftKey: true });
@@ -97,10 +101,14 @@ add_task(async function test_extensionSearchbar() {
   Assert.equal(events.length, 1, "Event was recorded");
   Assert.equal(events[0].extra.source, "searchbar", "Source is correct");
   Assert.equal(events[0].extra.provider_id, "other", "Id is correct");
+
   resetTelemetry();
+  BrowserTestUtils.removeTab(tab);
 });
 
 add_task(async function test_actualSearchSearchbar() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+
   // Enter something in the searchbar to start an actual search.
   await openSearchbarPopup("foo");
   let oneOff = findOneOff("Second Engine");
@@ -111,10 +119,13 @@ add_task(async function test_actualSearchSearchbar() {
   // Since we used the one off button to search (not to open the search form),
   // no event should be recorded in `sap.searchFormCounts`.
   Assert.equal(events, null, "No search form event is recorded for searches");
+
   resetTelemetry();
+  BrowserTestUtils.removeTab(tab);
 });
 
 add_task(async function test_appProvidedUrlbar() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
   info("Choose Second Engine in the unified search button popup.");
   let item = popup.querySelector('menuitem[label="Second Engine"]');
@@ -127,10 +138,13 @@ add_task(async function test_appProvidedUrlbar() {
   Assert.equal(events.length, 1, "Event was recorded");
   Assert.equal(events[0].extra.source, "urlbar", "Source is correct");
   Assert.equal(events[0].extra.provider_id, "second_engine", "Id is correct");
+
   resetTelemetry();
+  BrowserTestUtils.removeTab(tab);
 });
 
 add_task(async function test_extensionUrlbar() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
   info("Choose extension engine in the unified search button popup.");
   let item = popup.querySelector(`menuitem[label="${TEST_ENGINE_NAME}"]`);
@@ -143,10 +157,13 @@ add_task(async function test_extensionUrlbar() {
   Assert.equal(events.length, 1, "Event was recorded");
   Assert.equal(events[0].extra.source, "urlbar", "Source is correct");
   Assert.equal(events[0].extra.provider_id, "other");
+
   resetTelemetry();
+  BrowserTestUtils.removeTab(tab);
 });
 
 add_task(async function test_actualSearchUrlbar() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "foo",
@@ -163,5 +180,7 @@ add_task(async function test_actualSearchUrlbar() {
   // Since we used the unified search button to search (not to open the search
   // form), no event should be recorded in `sap.searchFormCounts`.
   Assert.equal(events, null, "No search form event was recorded");
+
   resetTelemetry();
+  BrowserTestUtils.removeTab(tab);
 });
