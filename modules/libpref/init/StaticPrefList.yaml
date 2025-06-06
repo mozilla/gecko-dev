@@ -10836,8 +10836,8 @@
   value: false
   mirror: always
 
-# Whether to disable layer pixel alignment in scroll related stuff.
-- name: layout.scroll.disable-pixel-alignment
+# Whether to disable layer pixel alignment in layout stuff.
+- name: layout.disable-pixel-alignment
   type: RelaxedAtomicBool
   value: false
   mirror: always
