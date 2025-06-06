@@ -563,6 +563,7 @@ web-platform-tests-wdspec:
         - geckoview-no-fission-no-ship
         - headless
         - async-event-dispatching
+        - content-navigation-manager
     run-on-projects:
         by-variant:
             headless:
@@ -587,6 +588,11 @@ web-platform-tests-wdspec:
             async-event-dispatching:
                 by-test-platform:
                     .*/opt: []  # try only for now
+                    default: []
+            content-navigation-manager:
+                by-test-platform:
+                    linux1804-64(-qr)?/.*: ['mozilla-central']
+                    linux2404-64/.*: ['mozilla-central']
                     default: []
             default: built-projects
     tier:
