@@ -782,7 +782,10 @@ class PlacesSemanticHistoryManager {
   }
 }
 
-// internal holder for the singleton
+/**
+ * @type {PlacesSemanticHistoryManager}
+ *   Internal holder for the singleton.
+ */
 let gSingleton = null;
 
 /**

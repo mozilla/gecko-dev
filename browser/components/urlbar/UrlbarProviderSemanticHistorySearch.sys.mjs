@@ -12,7 +12,6 @@ import {
   UrlbarProvider,
   UrlbarUtils,
 } from "resource:///modules/UrlbarUtils.sys.mjs";
-import { getPlacesSemanticHistoryManager as PlacesSemanticHistoryManager } from "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs";
 
 const lazy = {};
 
@@ -22,11 +21,17 @@ ChromeUtils.defineESModuleGetters(lazy, {
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
+  getPlacesSemanticHistoryManager:
+    "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs",
 });
 
 ChromeUtils.defineLazyGetter(lazy, "logger", function () {
   return UrlbarUtils.getLogger({ prefix: "SemanticHistorySearch" });
 });
+
+/**
+ * @typedef {ReturnType<import("resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs").getPlacesSemanticHistoryManager>} PlacesSemanticHistoryManager
+ */
 
 /**
  * Class representing the Semantic History Search provider for the URL bar.
@@ -39,7 +44,9 @@ ChromeUtils.defineLazyGetter(lazy, "logger", function () {
  * @class
  */
 class ProviderSemanticHistorySearch extends UrlbarProvider {
+  /** @type {PlacesSemanticHistoryManager} */
   #semanticManager;
+  /** @type {boolean} */
   #exposureRecorded;
 
   /**
@@ -64,7 +71,7 @@ class ProviderSemanticHistorySearch extends UrlbarProvider {
         "places.semanticHistory.distanceThreshold",
         0.75
       );
-      this.#semanticManager = PlacesSemanticHistoryManager({
+      this.#semanticManager = lazy.getPlacesSemanticHistoryManager({
         embeddingSize: 384,
         rowLimit: 10000,
         samplingAttrib: "frecency",
