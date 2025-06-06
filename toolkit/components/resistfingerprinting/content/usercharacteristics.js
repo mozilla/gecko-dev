@@ -1028,7 +1028,7 @@ function getCanvasSources() {
 /* Pick any local font, we just don't want to needlessly increase binary size */
 const LocalFiraSans = new FontFace(
   "LocalFiraSans",
-  "url('chrome://pocket/content/panels/fonts/FiraSans-Regular.woff') format('woff')"
+  "url('chrome://global/content/usercharacteristics/usercharacteristics.woff') format('woff')"
 );
 
 if (document.readyState === "loading") {
