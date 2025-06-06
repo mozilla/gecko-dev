@@ -110,7 +110,6 @@ class Device final : public DOMEventTargetHelper, public SupportsWeakPtr {
 
   void CleanupUnregisteredInParent();
 
-  void GenerateValidationError(const nsCString& aMessage);
   void TrackBuffer(Buffer* aBuffer);
   void UntrackBuffer(Buffer* aBuffer);
 

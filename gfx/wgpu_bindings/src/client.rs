@@ -865,7 +865,7 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_render_pass(
         occlusion_query_set,
     } = desc;
 
-    let label = wgpu_string(label);
+    let label = wgpu_string(label).map(|l| l.to_string());
 
     let timestamp_writes = timestamp_writes.map(|tsw| {
         let &PassTimestampWrites {
@@ -882,20 +882,18 @@ pub unsafe extern "C" fn wgpu_command_encoder_begin_render_pass(
         }
     });
 
-    let timestamp_writes = timestamp_writes.as_ref();
-
     let color_attachments: Vec<_> = make_slice(color_attachments, color_attachments_length)
         .iter()
         .map(|format| Some(format.clone().to_wgpu()))
         .collect();
     let depth_stencil_attachment = depth_stencil_attachment.cloned().map(|dsa| dsa.to_wgpu());
-    let pass = crate::command::RecordedRenderPass::new(&wgc::command::RenderPassDescriptor {
+    let pass = crate::command::RecordedRenderPass::new(
         label,
-        color_attachments: Cow::Owned(color_attachments),
-        depth_stencil_attachment: depth_stencil_attachment.as_ref(),
+        color_attachments,
+        depth_stencil_attachment,
         timestamp_writes,
         occlusion_query_set,
-    });
+    );
     Box::into_raw(Box::new(pass))
 }
 

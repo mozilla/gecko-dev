@@ -94,10 +94,6 @@ parent:
   async DevicePushErrorScope(RawId selfId, GPUErrorFilter aFilter);
   async DevicePopErrorScope(RawId selfId) returns (PopErrorScopeResult result);
 
-  // Generate an error on the Device timeline for `deviceId`.
-  // The `message` parameter is interpreted as UTF-8.
-  async GenerateError(RawId? deviceId, GPUErrorFilter type, nsCString message);
-
 child:
   async UncapturedError(RawId? aDeviceId, nsCString message);
   async DeviceLost(RawId aDeviceId, uint8_t? reason, nsCString message);

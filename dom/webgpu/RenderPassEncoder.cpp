@@ -162,20 +162,11 @@ ffi::WGPURecordedRenderPass* BeginRenderPass(
     desc.depth_stencil_attachment = &dsDesc;
   }
 
-  if (aDesc.mColorAttachments.Length() > WGPUMAX_COLOR_ATTACHMENTS) {
-    aParent->GetDevice()->GenerateValidationError(nsLiteralCString(
-        "Too many color attachments in GPURenderPassDescriptor"));
-    return nullptr;
-  }
+  AutoTArray<ffi::WGPUFfiRenderPassColorAttachment, WGPUMAX_COLOR_ATTACHMENTS>
+      colorDescs;
 
-  std::array<ffi::WGPUFfiRenderPassColorAttachment, WGPUMAX_COLOR_ATTACHMENTS>
-      colorDescs = {};
-  desc.color_attachments = colorDescs.data();
-  desc.color_attachments_length = aDesc.mColorAttachments.Length();
-
-  for (size_t i = 0; i < aDesc.mColorAttachments.Length(); ++i) {
-    const auto& ca = aDesc.mColorAttachments[i];
-    ffi::WGPUFfiRenderPassColorAttachment& cd = colorDescs[i];
+  for (const auto& ca : aDesc.mColorAttachments) {
+    ffi::WGPUFfiRenderPassColorAttachment cd = {};
     cd.view = ca.mView->mId;
     cd.store_op = ConvertStoreOp(ca.mStoreOp);
 
@@ -202,7 +193,11 @@ ffi::WGPURecordedRenderPass* BeginRenderPass(
         }
         break;
     }
+    colorDescs.AppendElement(cd);
   }
+
+  desc.color_attachments = colorDescs.Elements();
+  desc.color_attachments_length = colorDescs.Length();
 
   if (aDesc.mOcclusionQuerySet.WasPassed()) {
     desc.occlusion_query_set = aDesc.mOcclusionQuerySet.Value().mId;

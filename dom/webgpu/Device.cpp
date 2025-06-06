@@ -100,17 +100,6 @@ bool Device::IsLost() const {
 
 bool Device::IsBridgeAlive() const { return mBridge && mBridge->CanSend(); }
 
-// Generate an error on the Device timeline for this device.
-//
-// aMessage is interpreted as UTF-8.
-void Device::GenerateValidationError(const nsCString& aMessage) {
-  if (!IsBridgeAlive()) {
-    return;  // Just drop it?
-  }
-  mBridge->SendGenerateError(Some(mId), dom::GPUErrorFilter::Validation,
-                             aMessage);
-}
-
 void Device::TrackBuffer(Buffer* aBuffer) { mTrackedBuffers.Insert(aBuffer); }
 
 void Device::UntrackBuffer(Buffer* aBuffer) { mTrackedBuffers.Remove(aBuffer); }
