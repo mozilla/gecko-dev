@@ -2231,9 +2231,9 @@ static void UpdateRegExpStatics(MacroAssembler& masm, Register regexp,
 static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
                                     Register input, Register lastIndex,
                                     Register temp1, Register temp2,
-                                    Register temp3,
-                                    gc::Heap initialStringHeap, Label* notFound,
-                                    Label* failure, JitZone::StubKind kind) {
+                                    Register temp3, gc::Heap initialStringHeap,
+                                    Label* notFound, Label* failure,
+                                    JitZone::StubKind kind) {
   JitSpew(JitSpew_Codegen, "# Emitting PrepareAndExecuteRegExp");
 
   using irregexp::InputOutputData;
@@ -2390,11 +2390,11 @@ static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
   masm.bind(&notAtom);
 
   // If we don't need to look at the capture groups, we can leave pairCount at 1
-  // (set above). The regexp code is special-cased to skip copying capture groups
-  // if the pair count is 1, which also lets us avoid having to allocate memory
-  // to store them.
+  // (set above). The regexp code is special-cased to skip copying capture
+  // groups if the pair count is 1, which also lets us avoid having to allocate
+  // memory to store them.
   bool skipMatchPairs = kind == JitZone::StubKind::RegExpSearcher ||
-      kind == JitZone::StubKind::RegExpExecTest;
+                        kind == JitZone::StubKind::RegExpExecTest;
   if (!skipMatchPairs) {
     // Don't handle regexps with too many capture pairs.
     masm.load32(Address(regexpReg, RegExpShared::offsetOfPairCount()), temp2);
@@ -2452,8 +2452,7 @@ static bool PrepareAndExecuteRegExp(MacroAssembler& masm, Register regexp,
   masm.storePtr(lastIndex, startIndexAddress);
 
   // Execute the RegExp.
-  masm.computeEffectiveAddress(
-      Address(FramePointer, ioOffset), temp2);
+  masm.computeEffectiveAddress(Address(FramePointer, ioOffset), temp2);
   masm.PushRegsInMask(volatileRegs);
   masm.setupUnalignedABICall(temp3);
   masm.passABIArg(temp2);

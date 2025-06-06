@@ -1154,10 +1154,10 @@ void SMRegExpMacroAssembler::initFrameAndRegs() {
   // Bounds-check numMatches. Note that callers that won't look at the captures
   // can always pass numMatches == 1.
   js::jit::Label enoughRegisters;
-   masm_.branchPtr(Assembler::Equal, extraTemp, ImmWord(1), &enoughRegisters);
+  masm_.branchPtr(Assembler::Equal, extraTemp, ImmWord(1), &enoughRegisters);
   masm_.branchPtr(Assembler::GreaterThanOrEqual, extraTemp,
                   ImmWord(num_capture_registers_ / 2), &enoughRegisters);
- masm_.assumeUnreachable("Not enough output pairs for RegExp");
+  masm_.assumeUnreachable("Not enough output pairs for RegExp");
   masm_.bind(&enoughRegisters);
 #endif
 
@@ -1280,7 +1280,6 @@ void SMRegExpMacroAssembler::successHandler() {
 
     masm_.bind(&earlyExitForTest);
   }
-
 
   masm_.movePtr(ImmWord(int32_t(js::RegExpRunStatus::Success)), temp0_);
   // This falls through to the exit handler.
