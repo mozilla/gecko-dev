@@ -68,6 +68,8 @@ using namespace widget;
  */
 LazyLogModule sISMLog("IMEStateManager");
 
+static const char* GetBoolName(bool aBool) { return aBool ? "true" : "false"; }
+
 StaticRefPtr<Element> IMEStateManager::sFocusedElement;
 StaticRefPtr<nsPresContext> IMEStateManager::sFocusedPresContext;
 nsIWidget* IMEStateManager::sTextInputHandlingWidget = nullptr;

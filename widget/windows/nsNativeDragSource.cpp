@@ -12,14 +12,6 @@
 #include "nsIDragService.h"
 #include "nsServiceManagerUtils.h"
 #include "mozilla/dom/DataTransfer.h"
-#include "mozilla/Logging.h"
-
-extern mozilla::LazyLogModule sWidgetDragServiceLog;
-#define __DRAGSERVICE_LOG__(logLevel, ...) \
-  MOZ_LOG(sWidgetDragServiceLog, logLevel, __VA_ARGS__)
-#define LOGD(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Debug, (__VA_ARGS__))
-#define LOGI(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Info, (__VA_ARGS__))
-#define LOGE(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Error, (__VA_ARGS__))
 
 /*
  * class nsNativeDragSource
@@ -27,13 +19,10 @@ extern mozilla::LazyLogModule sWidgetDragServiceLog;
 nsNativeDragSource::nsNativeDragSource(
     mozilla::dom::DataTransfer* aDataTransfer)
     : m_cRef(0), m_hCursor(nullptr), mUserCancelled(false) {
-  LOGD("[%p] %s", this, __FUNCTION__);
   mDataTransfer = aDataTransfer;
 }
 
-nsNativeDragSource::~nsNativeDragSource() {
-  LOGD("[%p] %s", this, __FUNCTION__);
-}
+nsNativeDragSource::~nsNativeDragSource() {}
 
 STDMETHODIMP
 nsNativeDragSource::QueryInterface(REFIID riid, void** ppv) {
@@ -68,9 +57,6 @@ nsNativeDragSource::Release(void) {
 
 STDMETHODIMP
 nsNativeDragSource::QueryContinueDrag(BOOL fEsc, DWORD grfKeyState) {
-  LOGD("%s | fEsc: %s | grfKeyState: %lu | grfKeyState has button: %s",
-       __FUNCTION__, GetBoolName(fEsc), grfKeyState,
-       GetBoolName((grfKeyState & MK_LBUTTON) || (grfKeyState & MK_RBUTTON)));
   nsCOMPtr<nsIDragService> dragService =
       do_GetService("@mozilla.org/widget/dragservice;1");
   if (dragService) {
@@ -106,7 +92,6 @@ nsNativeDragSource::GiveFeedback(DWORD dwEffect) {
     }
   }
 
-  LOGD("%s | next m_hCursor: %p", __FUNCTION__, m_hCursor);
   if (m_hCursor) {
     ::SetCursor(m_hCursor);
     return S_OK;

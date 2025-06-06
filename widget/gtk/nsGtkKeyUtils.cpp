@@ -69,6 +69,8 @@ KeymapWrapper::RepeatState KeymapWrapper::sRepeatState =
 uint32_t KeymapWrapper::sLastRepeatableSerial = 0;
 #endif
 
+static const char* GetBoolName(bool aBool) { return aBool ? "TRUE" : "FALSE"; }
+
 static const char* GetStatusName(nsEventStatus aStatus) {
   switch (aStatus) {
     case nsEventStatus_eConsumeDoDefault:

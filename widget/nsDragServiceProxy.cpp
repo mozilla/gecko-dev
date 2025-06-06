@@ -24,28 +24,9 @@ using mozilla::gfx::SourceSurface;
 using mozilla::gfx::SurfaceFormat;
 using mozilla::ipc::Shmem;
 
-extern mozilla::LazyLogModule sWidgetDragServiceLog;
-#define __DRAGSERVICE_LOG__(logLevel, ...) \
-  MOZ_LOG(sWidgetDragServiceLog, logLevel, __VA_ARGS__)
-#define LOGD(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Debug, (__VA_ARGS__))
-#define LOGI(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Info, (__VA_ARGS__))
-#define LOGE(...) __DRAGSERVICE_LOG__(mozilla::LogLevel::Error, (__VA_ARGS__))
+nsDragServiceProxy::~nsDragServiceProxy() = default;
 
-nsDragServiceProxy::nsDragServiceProxy() {
-  LOGD("[%p] %s", this, __FUNCTION__);
-}
-
-nsDragSessionProxy::nsDragSessionProxy() {
-  LOGD("[%p] %s", this, __FUNCTION__);
-}
-
-nsDragServiceProxy::~nsDragServiceProxy() {
-  LOGD("[%p] %s", this, __FUNCTION__);
-}
-
-nsDragSessionProxy::~nsDragSessionProxy() {
-  LOGD("[%p] %s", this, __FUNCTION__);
-}
+nsDragSessionProxy::~nsDragSessionProxy() = default;
 
 already_AddRefed<nsIDragSession> nsDragServiceProxy::CreateDragSession() {
   RefPtr<nsIDragSession> session = new nsDragSessionProxy();
@@ -58,9 +39,6 @@ nsresult nsDragSessionProxy::InvokeDragSession(
     nsIArray* aTransferableArray, uint32_t aActionType,
     nsContentPolicyType aContentPolicyType) {
   BrowserChild* sourceBrowser = aWidget->GetOwningBrowserChild();
-  LOGI("[%p] %s | aWidget: %p | sourceBrowser: %p | sourceSession: %p", this,
-       __FUNCTION__, aWidget, sourceBrowser,
-       sourceBrowser ? RefPtr(sourceBrowser->GetDragSession()).get() : nullptr);
   NS_ENSURE_TRUE(sourceBrowser, NS_ERROR_INVALID_ARG);
   [[maybe_unused]] RefPtr<nsIDragSession> sourceSession =
       sourceBrowser->GetDragSession();
@@ -77,8 +55,6 @@ nsresult nsDragSessionProxy::InvokeDragSession(
 nsresult nsDragSessionProxy::InvokeDragSessionImpl(
     nsIWidget* aWidget, nsIArray* aArrayTransferables,
     const Maybe<CSSIntRegion>& aRegion, uint32_t aActionType) {
-  LOGD("[%p] %s | aWidget: %p | aActionType: %u", this, __FUNCTION__, aWidget,
-       aActionType);
   NS_ENSURE_STATE(mSourceDocument->GetDocShell());
   BrowserChild* child = BrowserChild::GetFrom(mSourceDocument->GetDocShell());
   NS_ENSURE_STATE(child);
@@ -125,8 +101,6 @@ nsresult nsDragSessionProxy::InvokeDragSessionImpl(
           return NS_ERROR_FAILURE;
         }
 
-        LOGI("[%p] %s | sending PBrowser::InvokeDragSession with image data",
-             this, __FUNCTION__);
         mozilla::Unused << child->SendInvokeDragSession(
             std::move(transferables), aActionType, std::move(surfaceData),
             stride, dataSurface->GetFormat(), dragRect, principal, csp, csArgs,
@@ -136,8 +110,6 @@ nsresult nsDragSessionProxy::InvokeDragSessionImpl(
     }
   }
 
-  LOGI("[%p] %s | sending PBrowser::InvokeDragSession without image data", this,
-       __FUNCTION__);
   mozilla::Unused << child->SendInvokeDragSession(
       std::move(transferables), aActionType, Nothing(), 0,
       static_cast<SurfaceFormat>(0), dragRect, principal, csp, csArgs,
@@ -161,10 +133,6 @@ nsIDragSession* nsDragServiceProxy::StartDragSession(
   MOZ_ASSERT(session);
   static_cast<nsDragSessionProxy*>(session.get())->SetDragTarget(targetBrowser);
   targetBrowser->SetDragSession(session);
-  LOGI(
-      "[%p] %s | widget: %p | targetBrowser: %p | session: %p | Created drag "
-      "session",
-      this, __FUNCTION__, widget, targetBrowser, session.get());
   return session;
 }
 

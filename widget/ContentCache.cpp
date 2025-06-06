@@ -29,6 +29,8 @@ namespace mozilla {
 using namespace dom;
 using namespace widget;
 
+static const char* GetBoolName(bool aBool) { return aBool ? "true" : "false"; }
+
 static const char* GetNotificationName(const IMENotification* aNotification) {
   if (!aNotification) {
     return "Not notification";

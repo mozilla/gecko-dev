@@ -32,6 +32,8 @@ namespace widget {
 
 LazyLogModule gMouseScrollLog("MouseScrollHandlerWidgets");
 
+static const char* GetBoolName(bool aBool) { return aBool ? "TRUE" : "FALSE"; }
+
 MouseScrollHandler* MouseScrollHandler::sInstance = nullptr;
 
 bool MouseScrollHandler::Device::sFakeScrollableWindowNeeded = false;
