@@ -140,9 +140,7 @@ export class BaseContent extends React.PureComponent {
       colorMode: "",
       fixedNavStyle: {},
       wallpaperTheme: "",
-      showDownloadHighlight: this.shouldShowOMCHighlight(
-        "DownloadMobilePromoHighlight"
-      ),
+      showDownloadHighlightOverride: null,
     };
   }
 
@@ -512,36 +510,38 @@ export class BaseContent extends React.PureComponent {
 
   shouldShowOMCHighlight(componentId) {
     const messageData = this.props.Messages?.messageData;
-
     if (!messageData || Object.keys(messageData).length === 0) {
       return false;
     }
-
     return messageData?.content?.messageType === componentId;
   }
 
   toggleDownloadHighlight() {
-    this.setState(
-      prevState => ({
-        showDownloadHighlight: !prevState.showDownloadHighlight,
-      }),
-      () => {
-        if (this.state.showDownloadHighlight) {
-          // Emit an open event manually, as the QR modal is toggled outside the OMC-managed flow.
-          this.props.dispatch(
-            ac.DiscoveryStreamUserEvent({
-              event: "FEATURE_HIGHLIGHT_OPEN",
-              source: "FEATURE_HIGHLIGHT",
-              value: "FEATURE_DOWNLOAD_MOBILE_PROMO",
-            })
-          );
-        }
+    this.setState(prevState => {
+      const override = !(
+        prevState.showDownloadHighlightOverride ??
+        this.shouldShowOMCHighlight("DownloadMobilePromoHighlight")
+      );
+
+      if (override) {
+        // Emit an open event manually since OMC isn't handling it
+        this.props.dispatch(
+          ac.DiscoveryStreamUserEvent({
+            event: "FEATURE_HIGHLIGHT_OPEN",
+            source: "FEATURE_HIGHLIGHT",
+            value: "FEATURE_DOWNLOAD_MOBILE_PROMO",
+          })
+        );
       }
-    );
+
+      return {
+        showDownloadHighlightOverride: override,
+      };
+    });
   }
 
   handleDismissDownloadHighlight() {
-    this.setState({ showDownloadHighlight: false });
+    this.setState({ showDownloadHighlightOverride: false });
   }
 
   getRGBColors(input) {
@@ -745,6 +745,12 @@ export class BaseContent extends React.PureComponent {
       }
     }
 
+    // If state.showDownloadHighlightOverride has value, let it override the logic
+    // Otherwise, defer to OMC message display logic
+    const shouldShowDownloadHighlight =
+      this.state.showDownloadHighlightOverride ??
+      this.shouldShowOMCHighlight("DownloadMobilePromoHighlight");
+
     return (
       <div className={featureClassName}>
         {/* Floating menu for customize menu toggle */}
@@ -788,12 +794,12 @@ export class BaseContent extends React.PureComponent {
           {mobileDownloadPromoEnabled && mobileDownloadPromoVariantABorC && (
             <ErrorBoundary>
               <DownloadModalToggle
-                isActive={this.state.showDownloadHighlight}
+                isActive={shouldShowDownloadHighlight}
                 onClick={this.toggleDownloadHighlight}
               />
-              {this.state.showDownloadHighlight && (
+              {shouldShowDownloadHighlight && (
                 <MessageWrapper
-                  hiddenOverride={this.state.showDownloadHighlight}
+                  hiddenOverride={shouldShowDownloadHighlight}
                   onDismiss={this.handleDismissDownloadHighlight}
                   dispatch={this.props.dispatch}
                 >
