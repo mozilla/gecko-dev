@@ -2269,7 +2269,7 @@ dom::LockManager* Navigator::Locks() {
 
 NavigatorLogin* Navigator::Login() {
   if (!mLogin) {
-    mLogin = new NavigatorLogin(GetWindow());
+    mLogin = new NavigatorLogin(GetWindow()->AsGlobal());
   }
   return mLogin;
 }
