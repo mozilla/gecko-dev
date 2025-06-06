@@ -202,11 +202,11 @@ function load_tmvs_lsx
     st.d           s8,      sp,       64
 
     vld           vr16,     a0,       16
-    vld           vr0,      a0,       52    // rf->mfmv_ref
-    ld.w          s8,       a0,       152   // [0] - rf->n_mfmvs
-    vld           vr17,     a0,       168   // [0] - rp_ref| [1]- rp_proj
-    ld.d          t1,       a0,       184   // stride
-    ld.w          t0,       a0,       200
+    vld           vr0,      a0,       48    // rf->mfmv_ref, rf->mfmv_ref2cur
+    ld.w          s8,       a0,       80    // [0] - rf->n_mfmvs
+    vld           vr17,     a0,       96    // [0] - rp_ref| [1]- rp_proj
+    ld.d          t1,       a0,       112   // stride
+    ld.w          t0,       a0,       128
     addi.w        t0,       t0,       -1
     bnez          t0,       1f
     addi.w        a1,       zero,     0
@@ -248,8 +248,7 @@ function load_tmvs_lsx
     mul.w         t6,       a4,       t2
     addi.d        s7,       zero,     40
     vpickve2gr.w  t1,       vr1,      0      // col_end8i
-    vbsrl.v       vr2,      vr0,      4      // rf->mfmv_ref2cur
-    addi.d        t5,       a0,       64     // rf->mfmv_ref2ref
+    addi.d        t5,       a0,       58     // rf->mfmv_ref2ref - 1
     la.local      t8,       la_div_mult
     vld           vr6,      t8,       0
     vld           vr7,      t8,       16
@@ -265,17 +264,11 @@ function load_tmvs_lsx
     vpickod.b     vr15,     vr9,      vr8
     vpickve2gr.d  s6,       vr17,     0       // rf->rp_ref
 5:
-    vld           vr10,     t5,       0
-    vld           vr11,     t5,       16
-    vpickev.h     vr10,     vr11,     vr10
-    vpickev.b     vr10,     vr11,     vr10    // [1...7]
-
+    vld           vr10,     t5,       0       // ref2ref [1...7]
+    vpickve2gr.b  t8,       vr0,      8       // ref2cur
     vbsrl.v       vr0,      vr0,      1
-    vpickve2gr.wu t8,       vr2,      0       // ref2cur
-    vbsrl.v       vr2,      vr2,      4
-    srli.d        t4,       t8,       24
-    xori          t4,       t4,       0x80
-    beqz          t4,       8f
+    addi.w        t4,       t8,       32
+    beqz          t4,       8f                // INVALID_REF2CUR
 
     vreplgr2vr.h  vr23,     t8
     vshuf.b       vr6,      vr14,     vr12,    vr10
@@ -284,7 +277,7 @@ function load_tmvs_lsx
     vmulwev.w.h   vr6,      vr8,      vr23
     vmulwod.w.h   vr7,      vr8,      vr23
 
-    vpickve2gr.b  s0,       vr0,      0       // ref
+    vpickve2gr.b  s0,       vr0,      4       // ref
     slli.d        t8,       s0,       3
     ldx.d         s1,       s6,       t8      // rf->rp_ref[ref]
     addi.d        s0,       s0,       -4      // ref_sign
@@ -460,7 +453,7 @@ function load_tmvs_lsx
     blt           s2,       a5,       6b
 8:
     addi.d        a6,       a6,       1       // n + 1
-    addi.d        t5,       t5,       28      // mfmv_ref2ref(offset) + 28
+    addi.d        t5,       t5,       7       // mfmv_ref2ref(offset) + 7
     blt           a6,       s8,       5b
 
 .end_load:

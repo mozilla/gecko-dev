@@ -104,8 +104,8 @@ struc rf
     .mfmv_sign:       resb 7
     .pocdiff:         resb 7
     .mfmv_ref:        resb 3
-    .mfmv_ref2cur:    resd 3
-    .mfmv_ref2ref:    resd 3*7
+    .mfmv_ref2cur:    resb 3
+    .mfmv_ref2ref:    resb 3*7
     .n_mfmvs:         resd 1
     .n_blocks:        resd 1
     .rp:              resq 1
@@ -432,7 +432,7 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
     mov     [rsp+0x38], yendd
     mov     [rsp+0x20], xstartid
     xor             nd, nd
-    xor            n7d, n7d
+    lea            n7q, [rfq+rf.mfmv_ref2ref-1]
     imul            r9, strideq     ; ystart * stride
     mov     [rsp+0x48], rfq
     mov     [rsp+0x18], stride5q
@@ -443,8 +443,8 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
  DEFINE_ARGS y, off, xstart, xend, ystart, rf, n7, refsign, \
              ref, rp_ref, xendi, xstarti, _, _, n
     mov            rfq, [rsp+0x48]
-    mov           refd, [rfq+rf.mfmv_ref2cur+nq*4]
-    cmp           refd, 0x80000000
+    movsx         refd, byte [rfq+rf.mfmv_ref2cur+nq]
+    cmp           refd, -32                 ; INVALID_REF2CUR
     je .next_n
     mov     [rsp+0x40], refd
     mov           offq, [rsp+0x00]          ; ystart * stride * 5
@@ -473,12 +473,10 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
 .xloop:
     lea            rbd, [xq*5]
     add            rbq, srcq
-    movsx         refd, byte [rbq+4]
+    movzx         refd, byte [rbq+4]
     test          refd, refd
     jz .next_x_bad_ref
-    mov            rfq, [rsp+0x48]
-    lea       ref2refd, [(rf.mfmv_ref2ref/4)+n7q+refq-1]
-    mov       ref2refd, [rfq+ref2refq*4]    ; rf->mfmv_ref2ref[n][b_ref-1]
+    movzx     ref2refd, byte [n7q+refq]     ; rf->mfmv_ref2ref[n][b_ref-1]
     test      ref2refd, ref2refd
     jz .next_x_bad_ref
     lea          fracq, [mv_proj]
@@ -554,7 +552,7 @@ cglobal load_tmvs, 6, 15, 4, -0x50, rf, tridx, xstart, xend, ystart, yend, \
     mov             nd, [rsp+0x14]
     mov        ystartd, [rsp+0x24]
 .next_n:
-    add            n7d, 7
+    add            n7q, 7
     inc             nd
     cmp             nd, [rsp+0x0c] ; n_mfmvs
     jne .nloop

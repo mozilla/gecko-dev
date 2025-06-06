@@ -386,20 +386,20 @@ function load_tmvs_neon, export=1
         movrel          x1, div_mult_tbl
 
 10:     // nloop
-        ldr             w16, [x29, x10, lsl #2] // ref2cur = rf->mfmv_ref2cur[n]
-        cmp             w16, #-32               // instead of INT_MIN, we can use smaller constants
-        b.lt            9f                      // if (ref2cur == INT_MIN) continue
+        ldrsb           w16, [x29, x10]         // ref2cur = rf->mfmv_ref2cur[n]
+        cmp             w16, #-32
+        b.eq            9f                      // if (ref2cur == INVALID_REF2CUR) continue
 
         add             x17, x10, #(RMVSF_MFMV_REF - RMVSF_MFMV_REF2CUR)    // n - (&rf->mfmv_ref - &rf->mfmv_ref2cur)
         mov             x20, #4
         ldrb            w17, [x29, x17]         // ref = rf->mfmv_ref[n]
         ldr             x13, [x29, #(RMVSF_RP_REF - RMVSF_MFMV_REF2CUR)]
-        mov             w28, #28                // 7 * sizeof(int)
+        sub             x21, x10, x10, lsl #3   // -(n * 7)
         smaddl          x20, row_start8, wstride5, x20  // row_start8 * stride * sizeof(refmvs_temporal_block) + 4
         mov             w12, row_start8         // y = row_start8
-        add             x21, x29, #(RMVSF_MFMV_REF2REF - RMVSF_MFMV_REF2CUR - 4)    // &rf->mfmv_ref2ref - 1
+        add             x28, x29, #(RMVSF_MFMV_REF2REF - RMVSF_MFMV_REF2CUR - 1)    // &rf->mfmv_ref2ref - 1
         ldr             x13, [x13, x17, lsl #3] // rf->rp_ref[ref]
-        smaddl          x28, w28, w10, x21      // rf->mfmv_ref2ref[n] - 1
+        sub             x28, x28, x21           // rf->mfmv_ref2ref[n] - 1
         sub             w17, w17, #4            // ref_sign = ref - 4
         add             x13, x13, x20           // r = &rf->rp_ref[ref][row_start8 * stride].ref
         dup             v0.2s, w17              // ref_sign
@@ -418,7 +418,7 @@ function load_tmvs_neon, export=1
         ldrb            w22, [x23, x11]         // b_ref = rb->ref
         cbz             w22, 6f                 // if (!b_ref) continue
 
-        ldr             w24, [x28, x22, lsl #2] // ref2ref = rf->mfmv_ref2ref[n][b_ref - 1]
+        ldrb            w24, [x28, x22]         // ref2ref = rf->mfmv_ref2ref[n][b_ref - 1]
         cbz             w24, 6f                 // if (!ref2ref) continue
 
         ldrh            w20, [x1, x24, lsl #1]  // div_mult[ref2ref]

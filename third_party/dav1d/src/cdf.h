@@ -105,7 +105,7 @@ typedef struct CdfCoefContext {
     ALIGN(uint16_t eob_base_tok[N_TX_SIZES][2][4][4], 8);
     ALIGN(uint16_t base_tok[N_TX_SIZES][2][41][4], 8);
     ALIGN(uint16_t br_tok[4 /*5*/][2][21][4], 8);
-    ALIGN(uint16_t eob_hi_bit[N_TX_SIZES][2][11 /*22*/][2], 4);
+    ALIGN(uint16_t eob_hi_bit[N_TX_SIZES][2][9][2], 4);
     ALIGN(uint16_t skip[N_TX_SIZES][13][2], 4);
     ALIGN(uint16_t dc_sign[2][3][2], 4);
 } CdfCoefContext;

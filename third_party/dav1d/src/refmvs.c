@@ -710,7 +710,7 @@ static void load_tmvs_c(const refmvs_frame *const rf, int tile_row_idx,
     rp_proj = &rf->rp_proj[16 * stride * tile_row_idx];
     for (int n = 0; n < rf->n_mfmvs; n++) {
         const int ref2cur = rf->mfmv_ref2cur[n];
-        if (ref2cur == INT_MIN) continue;
+        if (ref2cur == INVALID_REF2CUR) continue;
 
         const int ref = rf->mfmv_ref[n];
         const int ref_sign = ref - 4;
@@ -799,9 +799,9 @@ static void save_tmvs_c(refmvs_temporal_block *rp, const ptrdiff_t stride,
 int dav1d_refmvs_init_frame(refmvs_frame *const rf,
                             const Dav1dSequenceHeader *const seq_hdr,
                             const Dav1dFrameHeader *const frm_hdr,
-                            const unsigned ref_poc[7],
+                            const uint8_t ref_poc[7],
                             refmvs_temporal_block *const rp,
-                            const unsigned ref_ref_poc[7][7],
+                            const uint8_t ref_ref_poc[7][7],
                             /*const*/ refmvs_temporal_block *const rp_ref[7],
                             const int n_tile_threads, const int n_frame_threads)
 {
@@ -836,7 +836,7 @@ int dav1d_refmvs_init_frame(refmvs_frame *const rf,
         rf->n_blocks = n_blocks;
     }
 
-    const unsigned poc = frm_hdr->frame_offset;
+    const int poc = frm_hdr->frame_offset;
     for (int i = 0; i < 7; i++) {
         const int poc_diff = get_poc_diff(seq_hdr->order_hint_n_bits,
                                           ref_poc[i], poc);
@@ -875,15 +875,15 @@ int dav1d_refmvs_init_frame(refmvs_frame *const rf,
             rf->mfmv_ref[rf->n_mfmvs++] = 1; // last2
 
         for (int n = 0; n < rf->n_mfmvs; n++) {
-            const unsigned rpoc = ref_poc[rf->mfmv_ref[n]];
+            const int rpoc = ref_poc[rf->mfmv_ref[n]];
             const int diff1 = get_poc_diff(seq_hdr->order_hint_n_bits,
                                            rpoc, frm_hdr->frame_offset);
             if (abs(diff1) > 31) {
-                rf->mfmv_ref2cur[n] = INT_MIN;
+                rf->mfmv_ref2cur[n] = INVALID_REF2CUR;
             } else {
                 rf->mfmv_ref2cur[n] = rf->mfmv_ref[n] < 4 ? -diff1 : diff1;
                 for (int m = 0; m < 7; m++) {
-                    const unsigned rrpoc = ref_ref_poc[rf->mfmv_ref[n]][m];
+                    const int rrpoc = ref_ref_poc[rf->mfmv_ref[n]][m];
                     const int diff2 = get_poc_diff(seq_hdr->order_hint_n_bits,
                                                    rpoc, rrpoc);
                     // unsigned comparison also catches the < 0 case

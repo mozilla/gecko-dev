@@ -169,7 +169,7 @@ struct Dav1dContext {
         Dav1dThreadPicture p;
         Dav1dRef *segmap;
         Dav1dRef *refmvs;
-        unsigned refpoc[7];
+        uint8_t refpoc[7];
     } refs[8];
     Dav1dMemPool *cdf_pool;
     CdfThreadContext cdf[8];
@@ -226,7 +226,7 @@ struct Dav1dFrameContext {
     Dav1dRef *cur_segmap_ref, *prev_segmap_ref;
     uint8_t *cur_segmap;
     const uint8_t *prev_segmap;
-    unsigned refpoc[7], refrefpoc[7][7];
+    uint8_t refpoc[7], refrefpoc[7][7];
     uint8_t gmv_warp_allowed[7];
     CdfThreadContext in_cdf, out_cdf;
     struct Dav1dTileGroup *tile;
