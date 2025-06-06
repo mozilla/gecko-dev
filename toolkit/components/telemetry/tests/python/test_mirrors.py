@@ -54,7 +54,6 @@ WEAKER_EVENT_COMPATIBILITY_PROBES = [
 # Only included here are those with combinations of method+object that are unused.
 UNMIRRORED_EVENT_ALLOWLIST = [
     "intl.ui.browserLanguage#action",
-    "messaging_experiments#reach",
     "pwmgr#mgmt_interaction",
     "pwmgr#open_management",
 ]
