@@ -305,6 +305,12 @@ export class MLEngineParent extends JSProcessActorParent {
       case "MLEngine:GetModelFile":
         return this.getModelFile(message.data);
 
+      case "MLEngine:NotifyModelDownloadComplete":
+        return this.notifyModelDownloadComplete(message.data);
+
+      case "MLEngine:GetWorkerConfig":
+        return MLEngineParent.getWorkerConfig();
+
       case "MLEngine:DestroyEngineProcess":
         if (this.processKeepAlive) {
           ChromeUtils.addProfilerMarker(
@@ -376,8 +382,6 @@ export class MLEngineParent extends JSProcessActorParent {
    * @param {string} config.urlTemplate - The URL of the model file to fetch. Can be a path relative to
    * the model hub root or an absolute URL.
    * @param {string} config.featureId - The engine id.
-   * @param {string} config.modelRevision - The model revision.
-   * @param {string} config.modelId - The model id
    * @param {string} config.sessionId - Shared across the same model download session.
    * @returns {Promise<[string, object]>} The file local path and headers
    */
@@ -388,8 +392,6 @@ export class MLEngineParent extends JSProcessActorParent {
     rootUrl,
     urlTemplate,
     featureId,
-    modelRevision,
-    modelId,
     sessionId,
   }) {
     // Create the model hub instance if needed
@@ -424,8 +426,6 @@ export class MLEngineParent extends JSProcessActorParent {
       modelHubUrlTemplate: urlTemplate,
       progressCallback: this.notificationsCallback?.bind(this),
       featureId,
-      modelRevision,
-      modelId,
       sessionId,
     });
 
@@ -442,6 +442,33 @@ export class MLEngineParent extends JSProcessActorParent {
     );
 
     return [data, headers];
+  }
+
+  /**
+   * Notify that a model download is complete.
+   *
+   * @param {object} config
+   * @param {string} config.engineId - The engine id.
+   * @param {string} config.model - The model name (organization/name).
+   * @param {string} config.revision - The model revision.
+   * @param {string} config.featureId - The engine id.
+   * @param {string} config.sessionId - Shared across the same model download session.
+   * @returns {Promise<[string, object]>} The file local path and headers
+   */
+  async notifyModelDownloadComplete({
+    engineId,
+    model,
+    revision,
+    featureId,
+    sessionId,
+  }) {
+    return this.modelHub.notifyModelDownloadComplete({
+      engineId,
+      sessionId,
+      featureId,
+      model,
+      revision,
+    });
   }
 
   /** Gets the wasm file from remote settings.
@@ -486,6 +513,18 @@ export class MLEngineParent extends JSProcessActorParent {
       record
     );
     return record;
+  }
+
+  /**
+   * Gets the configuration of the worker
+   *
+   * @returns {Promise<object>}
+   */
+  static getWorkerConfig() {
+    return {
+      url: "chrome://global/content/ml/MLEngine.worker.mjs",
+      options: { type: "module" },
+    };
   }
 
   /**
