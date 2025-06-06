@@ -4,22 +4,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "mozilla/Components.h"
-#include "mozilla/CredentialChosenCallback.h"
 #include "mozilla/dom/Credential.h"
 #include "mozilla/dom/CredentialsContainer.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
-#include "mozilla/dom/IdentityCredential.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/Promise-inl.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_security.h"
+#include "mozilla/dom/WebIdentityHandler.h"
 #include "mozilla/dom/WebAuthnHandler.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/WindowContext.h"
 #include "nsContentUtils.h"
-#include "nsFocusManager.h"
-#include "nsICredentialChooserService.h"
 #include "nsIDocShell.h"
 
 namespace mozilla::dom {
@@ -130,7 +125,7 @@ bool CredentialsContainer::IsSameOriginWithAncestors(
 }
 
 CredentialsContainer::CredentialsContainer(nsPIDOMWindowInner* aParent)
-    : mParent(aParent), mActiveIdentityRequest(false) {
+    : mParent(aParent) {
   MOZ_ASSERT(aParent);
 }
 
@@ -213,29 +208,18 @@ already_AddRefed<Promise> CredentialsContainer::Get(
       return promise.forget();
     }
 
-    if (mActiveIdentityRequest) {
-      promise->MaybeRejectWithInvalidStateError(
-          "Concurrent 'identity' credentials.get requests are not supported."_ns);
+    WebIdentityHandler* identityHandler =
+        mParent->GetOrCreateWebIdentityHandler();
+    if (!identityHandler) {
+      promise->MaybeRejectWithOperationError("");
       return promise.forget();
     }
-    mActiveIdentityRequest = true;
+    if (aOptions.mSignal.WasPassed()) {
+      identityHandler->Follow(&aOptions.mSignal.Value());
+    }
+    identityHandler->GetCredential(aOptions, IsSameOriginWithAncestors(mParent),
+                                   promise);
 
-    RefPtr<CredentialsContainer> self = this;
-
-    promise->AddCallbacksWithCycleCollectedArgs(
-        [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
-           const RefPtr<CredentialsContainer>& aContainer) {
-          aContainer->mActiveIdentityRequest = false;
-        },
-        [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
-           const RefPtr<CredentialsContainer>& aContainer) {
-          aContainer->mActiveIdentityRequest = false;
-        },
-        self);
-
-    IdentityCredentialRequestOptions options(aOptions.mIdentity.Value());
-    IdentityCredential::GetCredential(
-        mParent, aOptions, IsSameOriginWithAncestors(mParent), promise);
     return promise.forget();
   }
 
@@ -307,12 +291,14 @@ already_AddRefed<Promise> CredentialsContainer::PreventSilentAccess(
     return nullptr;
   }
 
-  RefPtr<WindowGlobalChild> wgc = mParent->GetWindowGlobalChild();
-  MOZ_ASSERT(wgc);
+  WebIdentityHandler* identityHandler =
+      mParent->GetOrCreateWebIdentityHandler();
+  if (!identityHandler) {
+    promise->MaybeRejectWithOperationError("");
+    return promise.forget();
+  }
 
-  wgc->SendPreventSilentAccess()->Then(
-      GetCurrentSerialEventTarget(), __func__,
-      [promise] { promise->MaybeResolveWithUndefined(); });
+  identityHandler->PreventSilentAccess(promise);
   return promise.forget();
 }
 

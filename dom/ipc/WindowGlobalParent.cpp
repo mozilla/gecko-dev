@@ -28,6 +28,7 @@
 #include "mozilla/dom/MediaController.h"
 #include "mozilla/dom/NavigatorLogin.h"
 #include "mozilla/dom/WebAuthnTransactionParent.h"
+#include "mozilla/dom/WebIdentityParent.h"
 #include "mozilla/dom/WindowGlobalChild.h"
 #include "mozilla/dom/ChromeUtils.h"
 #include "mozilla/dom/UseCounterMetrics.h"
@@ -1447,65 +1448,6 @@ mozilla::ipc::IPCResult WindowGlobalParent::RecvReloadWithHttpsOnlyException() {
   return IPC_OK();
 }
 
-IPCResult WindowGlobalParent::RecvGetIdentityCredential(
-    IdentityCredentialRequestOptions&& aOptions,
-    const CredentialMediationRequirement& aMediationRequirement,
-    bool aHasUserActivation, const GetIdentityCredentialResolver& aResolver) {
-  IdentityCredential::GetCredentialInMainProcess(
-      DocumentPrincipal(), this->BrowsingContext(), std::move(aOptions),
-      aMediationRequirement, aHasUserActivation)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aResolver](const IPCIdentityCredential& aResult) {
-            return aResolver({Some(aResult), NS_OK});
-          },
-          [aResolver](nsresult aErr) {
-            aResolver({Maybe<IPCIdentityCredential>(Nothing()), aErr});
-          });
-  return IPC_OK();
-}
-
-IPCResult WindowGlobalParent::RecvDisconnectIdentityCredential(
-    const IdentityCredentialDisconnectOptions& aOptions,
-    const DisconnectIdentityCredentialResolver& aResolver) {
-  IdentityCredential::DisconnectInMainProcess(DocumentPrincipal(), aOptions)
-      ->Then(
-          GetCurrentSerialEventTarget(), __func__,
-          [aResolver](const bool& aResult) { aResolver(NS_OK); },
-          [aResolver](nsresult aErr) { aResolver(aErr); });
-  return IPC_OK();
-}
-
-IPCResult WindowGlobalParent::RecvPreventSilentAccess(
-    const PreventSilentAccessResolver& aResolver) {
-  nsIPrincipal* principal = DocumentPrincipal();
-  if (principal) {
-    nsCOMPtr<nsIPermissionManager> permissionManager =
-        components::PermissionManager::Service();
-    if (permissionManager) {
-      permissionManager->RemoveFromPrincipal(
-          principal, "credential-allow-silent-access"_ns);
-      aResolver(NS_OK);
-      return IPC_OK();
-    }
-  }
-
-  aResolver(NS_ERROR_NOT_AVAILABLE);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult WindowGlobalParent::RecvSetLoginStatus(
-    LoginStatus aStatus, const SetLoginStatusResolver& aResolver) {
-  nsIPrincipal* principal = DocumentPrincipal();
-  if (!principal) {
-    aResolver(NS_ERROR_DOM_NOT_ALLOWED_ERR);
-    return IPC_OK();
-  }
-  nsresult rv = NavigatorLogin::SetLoginStatus(principal, aStatus);
-  aResolver(rv);
-  return IPC_OK();
-}
-
 IPCResult WindowGlobalParent::RecvGetStorageAccessPermission(
     bool aIncludeIdentityCredential,
     GetStorageAccessPermissionResolver&& aResolve) {
@@ -1529,8 +1471,7 @@ IPCResult WindowGlobalParent::RecvGetStorageAccessPermission(
 
   if (aIncludeIdentityCredential) {
     bool canCollect;
-    rv = IdentityCredential::CanSilentlyCollect(topPrincipal, principal,
-                                                &canCollect);
+    rv = identity::CanSilentlyCollect(topPrincipal, principal, &canCollect);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       aResolve(nsIPermissionManager::UNKNOWN_ACTION);
       return IPC_OK();
@@ -1811,6 +1752,11 @@ IPCResult WindowGlobalParent::RecvRecordUserActivationForBTP() {
 already_AddRefed<PWebAuthnTransactionParent>
 WindowGlobalParent::AllocPWebAuthnTransactionParent() {
   return MakeAndAddRef<WebAuthnTransactionParent>();
+}
+
+already_AddRefed<PWebIdentityParent>
+WindowGlobalParent::AllocPWebIdentityParent() {
+  return MakeAndAddRef<WebIdentityParent>();
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(WindowGlobalParent)
