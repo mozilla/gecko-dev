@@ -4634,8 +4634,11 @@ bool BaselineCacheIRCompiler::emitRegExpBuiltinExecTestResult(
 
   SetRegExpStubInputRegisters(masm, &regexp, RegExpExecTestRegExpReg, &input,
                               RegExpExecTestStringReg, nullptr, InvalidReg);
+
   // Ensure `scratch` doesn't conflict with the stub's input registers.
   scratch = ReturnReg;
+
+  masm.reserveStack(RegExpReservedStack);
 
   Label done, vmCall;
   CallRegExpStub(masm, JitZone::offsetOfRegExpExecTestStub(), scratch, &vmCall);
