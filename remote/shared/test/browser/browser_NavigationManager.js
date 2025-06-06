@@ -160,19 +160,6 @@ add_task(async function test_loadTwoTabsSimultaneously() {
 });
 
 add_task(async function test_loadPageWithIframes() {
-  if (
-    Services.prefs.getBoolPref(
-      "remote.experimental-parent-navigation.enabled",
-      false
-    )
-  ) {
-    todo(
-      false,
-      "The ParentWebProgressListener misses events from same process iframes"
-    );
-    return;
-  }
-
   const events = [];
   const onEvent = (name, data) => events.push({ name, data });
 
@@ -229,19 +216,6 @@ add_task(async function test_loadPageWithIframes() {
 });
 
 add_task(async function test_loadPageWithCoop() {
-  if (
-    Services.prefs.getBoolPref(
-      "remote.experimental-parent-navigation.enabled",
-      false
-    )
-  ) {
-    todo(
-      false,
-      "The ParentWebProgressListener misses navigation stopped for coop navigation"
-    );
-    return;
-  }
-
   const tab = addTab(gBrowser, FIRST_COOP_URL);
   const browser = tab.linkedBrowser;
   await BrowserTestUtils.browserLoaded(browser, false, FIRST_COOP_URL);
