@@ -6,14 +6,14 @@ import copy
 import logging
 import os
 from dataclasses import dataclass
-from typing import Dict
+from typing import Callable, Dict, Optional, Union
 
 from . import filter_tasks
 from .config import GraphConfig, load_graph_config
 from .graph import Graph
 from .morph import morph
 from .optimize.base import optimize_task_graph
-from .parameters import parameters_loader
+from .parameters import Parameters, parameters_loader
 from .task import Task
 from .taskgraph import TaskGraph
 from .transforms.base import TransformConfig, TransformSequence
@@ -119,10 +119,10 @@ class TaskGraphGenerator:
 
     def __init__(
         self,
-        root_dir,
-        parameters,
-        decision_task_id="DECISION-TASK",
-        write_artifacts=False,
+        root_dir: Optional[str],
+        parameters: Union[Parameters, Callable[[GraphConfig], Parameters]],
+        decision_task_id: str = "DECISION-TASK",
+        write_artifacts: bool = False,
     ):
         """
         @param root_dir: root directory containing the Taskgraph config.yml file

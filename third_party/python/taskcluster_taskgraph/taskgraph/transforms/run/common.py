@@ -7,11 +7,10 @@ worker implementation they operate on, and take the same three parameters, for
 consistency.
 """
 
-import json
 from typing import Any, Dict, List, Union
 
 from taskgraph.transforms.base import TransformConfig
-from taskgraph.util import path
+from taskgraph.util import json, path
 from taskgraph.util.caches import CACHES, get_checkout_dir
 from taskgraph.util.taskcluster import get_artifact_prefix
 
@@ -171,11 +170,8 @@ def support_caches(
     if use_caches is None:
         # Use project default values for filtering caches, default to
         # checkout cache if no selection is specified.
-        use_caches = (
-            config.graph_config.get("taskgraph", {})
-            .get("run", {})
-            .get("use-caches", ["checkout"])
-        )
+        taskgraph_config = config.graph_config.get("taskgraph") or {}
+        use_caches = taskgraph_config.get("run", {}).get("use-caches", ["checkout"])
 
     for name, cache_cfg in CACHES.items():
         if not should_use_cache(name, use_caches, run["checkout"]):

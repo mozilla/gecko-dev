@@ -4,7 +4,6 @@
 
 import argparse
 import atexit
-import json
 import logging
 import os
 import re
@@ -56,9 +55,9 @@ def format_taskgraph_labels(taskgraph):
 
 
 def format_taskgraph_json(taskgraph):
-    return json.dumps(
-        taskgraph.to_json(), sort_keys=True, indent=2, separators=(",", ": ")
-    )
+    from taskgraph.util import json
+
+    return json.dumps(taskgraph.to_json(), sort_keys=True, indent=2)
 
 
 def format_taskgraph_yaml(taskgraph):
@@ -618,10 +617,10 @@ def load_image(args):
     validate_docker()
     try:
         if args["task_id"]:
-            ok = load_image_by_task_id(args["task_id"], args.get("tag"))
+            tag = load_image_by_task_id(args["task_id"], args.get("tag"))
         else:
-            ok = load_image_by_name(args["image_name"], args.get("tag"))
-        if not ok:
+            tag = load_image_by_name(args["image_name"], args.get("tag"))
+        if not tag:
             sys.exit(1)
     except Exception:
         traceback.print_exc()
@@ -650,6 +649,29 @@ def image_digest(args):
     except Exception:
         traceback.print_exc()
         sys.exit(1)
+
+
+@command(
+    "load-task",
+    help="Loads a pre-built Docker image and drops you into a container with "
+    "the same environment variables and run-task setup as the specified task. "
+    "The task's payload.command will be replaced with 'bash'. You need to have "
+    "docker installed and running for this to work.",
+)
+@argument("task_id", help="The task id to load into a docker container.")
+@argument(
+    "--keep",
+    dest="remove",
+    action="store_false",
+    default=True,
+    help="Keep the docker container after exiting.",
+)
+@argument("--user", default=None, help="Container user to start shell with.")
+def load_task(args):
+    from taskgraph.docker import load_task
+
+    validate_docker()
+    return load_task(args["task_id"], remove=args["remove"], user=args["user"])
 
 
 @command("decision", help="Run the decision task")
@@ -734,6 +756,7 @@ def actions(args):
     from taskgraph.actions import render_actions_json
     from taskgraph.generator import TaskGraphGenerator
     from taskgraph.parameters import parameters_loader
+    from taskgraph.util import json
 
     if args.pop("verbose", False):
         logging.root.setLevel(logging.DEBUG)
@@ -743,7 +766,7 @@ def actions(args):
         tgg = TaskGraphGenerator(root_dir=args.get("root"), parameters=parameters)
 
         actions = render_actions_json(tgg.parameters, tgg.graph_config, "DECISION-TASK")
-        print(json.dumps(actions, sort_keys=True, indent=2, separators=(",", ": ")))
+        print(json.dumps(actions, sort_keys=True, indent=2))
     except Exception:
         traceback.print_exc()
         sys.exit(1)
@@ -761,6 +784,7 @@ def actions(args):
 def action_callback(options):
     from taskgraph.actions import trigger_action_callback
     from taskgraph.actions.util import get_parameters
+    from taskgraph.util import json
 
     try:
         # the target task for this action (or null if it's a group action)
@@ -810,7 +834,7 @@ def test_action_callback(options):
     import taskgraph.actions
     import taskgraph.parameters
     from taskgraph.config import load_graph_config
-    from taskgraph.util import yaml
+    from taskgraph.util import json, yaml
 
     def load_data(filename):
         with open(filename) as f:
