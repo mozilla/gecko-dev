@@ -25,6 +25,8 @@
 
 #include <gbm.h>
 
+using GdkMonitor = struct _GdkMonitor;
+
 namespace mozilla::widget {
 
 constexpr const int sColorTransfersNum =
@@ -33,8 +35,6 @@ constexpr const int sColorPrimariesNum =
     WP_COLOR_MANAGER_V1_PRIMARIES_ADOBE_RGB + 1;
 
 class DMABufFormats;
-
-using GdkMonitor = struct _GdkMonitor;
 
 // Our general connection to Wayland display server,
 // holds our display connection and runs event loop.
