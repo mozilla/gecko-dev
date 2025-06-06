@@ -58,6 +58,10 @@
 #  include "VideoUtils.h"
 #endif
 
+#if defined(MOZ_WIDGET_GTK)
+#  include "mozilla/widget/DMABufSurface.h"
+#endif
+
 namespace TelemetryScalar {
 void Set(mozilla::Telemetry::ScalarID aId, uint32_t aValue);
 }
@@ -330,6 +334,12 @@ void RDDParent::ActorDestroy(ActorDestroyReason aWhy) {
         }
 
         RemoteDecoderManagerParent::ShutdownVideoBridge();
+
+#if defined(MOZ_WIDGET_GTK)
+        // Linux runs VA-API decode on RDD process so we need to
+        // shutdown GL here.
+        DMABufSurface::ReleaseSnapshotGLContext();
+#endif
 
 #ifdef XP_WIN
         DeviceManagerDx::Shutdown();
