@@ -70,7 +70,6 @@ import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
-import org.mozilla.fenix.helpers.TestHelper.scrollToElementByText
 import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.home.topsites.TopSitesTestTag
@@ -378,9 +377,9 @@ class HomeScreenRobot {
     }
 
     fun verifyJumpBackInSectionIsDisplayed() {
-        scrollToElementByText(getStringResource(R.string.recent_tabs_header))
         assertUIObjectExists(itemContainingText(getStringResource(R.string.recent_tabs_header)))
     }
+
     fun verifyJumpBackInSectionIsNotDisplayed(composeTestRule: ComposeTestRule) =
         composeTestRule.onNodeWithText(getStringResource(R.string.recent_tabs_header)).assertIsNotDisplayed()
 
