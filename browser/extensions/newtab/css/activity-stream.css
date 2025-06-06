@@ -353,7 +353,7 @@ body {
 
 h1,
 h2 {
-  font-weight: normal;
+  font-weight: var(--font-weight);
 }
 
 .inner-border {
@@ -1555,7 +1555,7 @@ main section {
   font-weight: var(--font-weight-bold);
 }
 .top-stories-bottom-container a.more-recommendations {
-  font-weight: normal;
+  font-weight: var(--font-weight);
   font-size: var(--font-size-small);
 }
 @media (max-width: 865px) {
@@ -4482,7 +4482,7 @@ main section {
   margin: var(--space-small) 0;
 }
 .ds-header .ds-context {
-  font-weight: normal;
+  font-weight: var(--font-weight);
 }
 
 .ds-header,
@@ -6536,7 +6536,7 @@ main section {
 }
 .ds-collection-card-grid .ds-header .ds-context {
   color: var(--newtab-text-secondary-color);
-  font-weight: normal;
+  font-weight: var(--font-weight);
   font-size: var(--font-size-small);
 }
 
@@ -6755,7 +6755,7 @@ main section {
 .ds-section-title .title {
   color: var(--newtab-text-primary-color);
   font-size: var(--font-size-xxlarge);
-  font-weight: normal;
+  font-weight: var(--font-weight);
 }
 .ds-section-title .subtitle {
   font-size: inherit;
@@ -7323,7 +7323,7 @@ main section {
 .ds-section-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle .meta .title {
   text-transform: uppercase;
   font-size: var(--font-size-small);
-  font-weight: normal;
+  font-weight: var(--font-weight);
   color: var(--newtab-contextual-text-secondary-color);
 }
 .lightWallpaper .ds-card-grid .ds-card.ds-spoc-rectangle.ds-spoc-rectangle .meta .title,
@@ -8180,7 +8180,7 @@ main section {
 }
 .feature-highlight .feature-highlight-modal p {
   font-size: var(--font-size-small);
-  font-weight: normal;
+  font-weight: var(--font-weight);
   margin: var(--space-large) 0;
   flex-grow: 1;
 }

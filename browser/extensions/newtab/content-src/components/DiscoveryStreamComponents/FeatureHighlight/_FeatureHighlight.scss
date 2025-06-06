@@ -87,7 +87,7 @@
 
     p {
       font-size: var(--font-size-small);
-      font-weight: normal;
+      font-weight: var(--font-weight);
       margin: var(--space-large) 0;
       flex-grow: 1;
     }

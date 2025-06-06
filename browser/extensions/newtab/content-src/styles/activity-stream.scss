@@ -47,7 +47,7 @@ body {
 
 h1,
 h2 {
-  font-weight: normal;
+  font-weight: var(--font-weight);
 }
 
 .inner-border {

@@ -525,7 +525,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
 
         text-transform: uppercase;
         font-size: var(--font-size-small);
-        font-weight: normal;
+        font-weight: var(--font-weight);
         color: var(--newtab-contextual-text-secondary-color);
       }
 

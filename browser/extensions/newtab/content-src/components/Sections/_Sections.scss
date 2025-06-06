@@ -67,7 +67,7 @@
     font-weight: var(--font-weight-bold);
 
     &.more-recommendations {
-      font-weight: normal;
+      font-weight: var(--font-weight);
       font-size: var(--font-size-small);
     }
   }

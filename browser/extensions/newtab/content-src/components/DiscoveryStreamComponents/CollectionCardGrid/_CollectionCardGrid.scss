@@ -30,7 +30,7 @@
 
     .ds-context {
       color: var(--newtab-text-secondary-color);
-      font-weight: normal;
+      font-weight: var(--font-weight);
       font-size: var(--font-size-small);
     }
   }
