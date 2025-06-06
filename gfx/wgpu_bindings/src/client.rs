@@ -4,7 +4,7 @@
 
 use crate::{
     cow_label, error::HasErrorBufferType, wgpu_string, AdapterInformation, ByteBuf,
-    CommandEncoderAction, DeviceAction, DropAction, ImplicitLayout, QueueWriteAction, RawString,
+    CommandEncoderAction, DeviceAction, ImplicitLayout, QueueWriteAction, RawString,
     TexelCopyBufferLayout, TextureAction,
 };
 
@@ -353,30 +353,6 @@ pub struct Client {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn wgpu_client_drop_action(client: &mut Client, byte_buf: &ByteBuf) {
-    let mut cursor = std::io::Cursor::new(byte_buf.as_slice());
-    let identities = client.identities.lock();
-    while let Ok(action) = bincode::deserialize_from(&mut cursor) {
-        match action {
-            DropAction::Adapter(id) => identities.adapters.free(id),
-            DropAction::Device(id) => identities.devices.free(id),
-            DropAction::ShaderModule(id) => identities.shader_modules.free(id),
-            DropAction::PipelineLayout(id) => identities.pipeline_layouts.free(id),
-            DropAction::BindGroupLayout(id) => identities.bind_group_layouts.free(id),
-            DropAction::BindGroup(id) => identities.bind_groups.free(id),
-            DropAction::CommandBuffer(id) => identities.command_buffers.free(id),
-            DropAction::RenderBundle(id) => identities.render_bundles.free(id),
-            DropAction::RenderPipeline(id) => identities.render_pipelines.free(id),
-            DropAction::ComputePipeline(id) => identities.compute_pipelines.free(id),
-            DropAction::Buffer(id) => identities.buffers.free(id),
-            DropAction::Texture(id) => identities.textures.free(id),
-            DropAction::TextureView(id) => identities.texture_views.free(id),
-            DropAction::Sampler(id) => identities.samplers.free(id),
-        }
-    }
-}
-
-#[no_mangle]
 pub extern "C" fn wgpu_client_kill_device_id(client: &Client, id: id::DeviceId) {
     client.identities.lock().devices.free(id)
 }
@@ -414,6 +390,11 @@ pub unsafe extern "C" fn wgpu_client_delete(client: *mut Client) {
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_make_adapter_id(client: &Client) -> id::AdapterId {
     client.identities.lock().adapters.process()
+}
+
+#[no_mangle]
+pub extern "C" fn wgpu_client_free_adapter_id(client: &Client, id: id::AdapterId) {
+    client.identities.lock().adapters.free(id)
 }
 
 #[no_mangle]

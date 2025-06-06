@@ -11,6 +11,7 @@
 #include "ObjectModel.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/webrender/WebRenderAPI.h"
+#include "mozilla/webgpu/WebGPUTypes.h"
 
 namespace mozilla {
 namespace dom {
@@ -111,6 +112,7 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
 
   Maybe<layers::RemoteTextureId> mLastRemoteTextureId;
   Maybe<layers::RemoteTextureOwnerId> mRemoteTextureOwnerId;
+  nsTArray<RawId> mBufferIds;
   RefPtr<layers::FwdTransactionTracker> mFwdTransactionTracker;
   bool mUseExternalTextureInSwapChain = false;
   bool mNewTextureRequested = false;

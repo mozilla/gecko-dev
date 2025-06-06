@@ -154,8 +154,16 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig,
     mUseExternalTextureInSwapChain = false;
   }
 #endif
+
+  // buffer count doesn't matter much, will be created on demand
+  const size_t maxBufferCount = 10;
+  for (size_t i = 0; i < maxBufferCount; ++i) {
+    mBufferIds.AppendElement(ffi::wgpu_client_make_buffer_id(
+        aConfig.mDevice->GetBridge()->GetClient()));
+  }
+
   mCurrentTexture = aConfig.mDevice->InitSwapChain(
-      mConfiguration.get(), mRemoteTextureOwnerId.ref(),
+      mConfiguration.get(), mRemoteTextureOwnerId.ref(), mBufferIds,
       mUseExternalTextureInSwapChain, mGfxFormat, mCanvasSize);
   if (!mCurrentTexture) {
     Unconfigure();
@@ -177,7 +185,11 @@ void CanvasContext::Unconfigure() {
         *mRemoteTextureOwnerId,
         layers::ToRemoteTextureTxnType(mFwdTransactionTracker),
         layers::ToRemoteTextureTxnId(mFwdTransactionTracker));
+    for (auto& id : mBufferIds) {
+      ffi::wgpu_client_free_buffer_id(mBridge->GetClient(), id);
+    }
   }
+  mBufferIds.Clear();
   mRemoteTextureOwnerId = Nothing();
   mFwdTransactionTracker = nullptr;
   mBridge = nullptr;

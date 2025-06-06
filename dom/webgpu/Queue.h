@@ -62,12 +62,13 @@ class Queue final : public ObjectBase, public ChildOf<Device> {
       const dom::GPUCopyExternalImageDestInfo& aDestination,
       const dom::GPUExtent3D& aCopySize, ErrorResult& aRv);
 
+  const RawId mId;
+
  private:
   virtual ~Queue();
   void Cleanup() {}
 
   RefPtr<WebGPUChild> mBridge;
-  const RawId mId;
 
  public:
 };

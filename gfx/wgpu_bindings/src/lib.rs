@@ -183,34 +183,6 @@ enum TextureAction<'a> {
 }
 
 #[repr(C)]
-#[derive(serde::Serialize, serde::Deserialize)]
-enum DropAction {
-    Adapter(id::AdapterId),
-    Device(id::DeviceId),
-    ShaderModule(id::ShaderModuleId),
-    PipelineLayout(id::PipelineLayoutId),
-    BindGroupLayout(id::BindGroupLayoutId),
-    BindGroup(id::BindGroupId),
-    CommandBuffer(id::CommandBufferId),
-    RenderBundle(id::RenderBundleId),
-    RenderPipeline(id::RenderPipelineId),
-    ComputePipeline(id::ComputePipelineId),
-    Buffer(id::BufferId),
-    Texture(id::TextureId),
-    TextureView(id::TextureViewId),
-    Sampler(id::SamplerId),
-}
-
-impl DropAction {
-    // helper function to construct byte bufs
-    fn to_byte_buf(&self) -> ByteBuf {
-        let mut data = Vec::new();
-        bincode::serialize_into(&mut data, self).unwrap();
-        ByteBuf::from_vec(data)
-    }
-}
-
-#[repr(C)]
 pub struct TexelCopyBufferLayout<'a> {
     pub offset: wgt::BufferAddress,
     pub bytes_per_row: Option<&'a u32>,

@@ -426,14 +426,6 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
   resolver(std::move(infoByteBuf));
   ForwardError(0, error);
 
-  // free the unused IDs
-  ipc::ByteBuf dropByteBuf;
-  if (!success) {
-    wgpu_server_adapter_free(aAdapterId, ToFFI(&dropByteBuf));
-  }
-  if (dropByteBuf.mData && !SendDropAction(std::move(dropByteBuf))) {
-    NS_ERROR("Unable to free free unused adapter IDs");
-  }
   return IPC_OK();
 }
 
@@ -1635,13 +1627,6 @@ ipc::IPCResult WebGPUParent::RecvSwapChainDrop(
 
   mPresentationDataMap.erase(lookup);
 
-  ipc::ByteBuf dropByteBuf;
-  for (const auto bid : data->mUnassignedBufferIds) {
-    wgpu_server_buffer_free(bid, ToFFI(&dropByteBuf));
-  }
-  if (dropByteBuf.mData && !SendDropAction(std::move(dropByteBuf))) {
-    NS_WARNING("Unable to free an ID for non-assigned buffer");
-  }
   for (const auto bid : data->mAvailableBufferIds) {
     ffi::wgpu_server_buffer_drop(mContext.get(), bid);
   }
