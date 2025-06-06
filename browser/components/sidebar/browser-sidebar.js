@@ -348,6 +348,7 @@ var SidebarController = {
     this._switcherPanel = document.getElementById("sidebarMenu-popup");
     this._switcherTarget = document.getElementById("sidebar-switcher-target");
     this._switcherArrow = document.getElementById("sidebar-switcher-arrow");
+    this._openPopupsCount = 0;
     if (
       Services.prefs.getBoolPref(
         "browser.tabs.allow_transparent_browser",
@@ -2076,19 +2077,27 @@ var SidebarController = {
       case "popupshown":
         /* Temporarily remove MousePosTracker listener when a context menu is open */
         if (e.composedTarget.id !== "tab-preview-panel") {
+          this._openPopupsCount++;
           MousePosTracker.removeListener(this);
         }
         break;
       case "popuphidden":
         if (e.composedTarget.id !== "tab-preview-panel") {
-          if (this._state.launcherExpanded) {
-            if (this._animationEnabled && !window.gReduceMotion) {
-              this._animateSidebarMain();
+          if (this._openPopupsCount < 2) {
+            // Collapse sidebar after context menu if needed
+            if (
+              this._state.launcherExpanded &&
+              !this.sidebarContainer.matches(":hover")
+            ) {
+              if (this._animationEnabled && !window.gReduceMotion) {
+                this._animateSidebarMain();
+              }
+              this._state.launcherExpanded = false;
+              await this.waitUntilStable();
             }
-            this._state.launcherExpanded = false;
+            MousePosTracker.addListener(this);
           }
-          await this.waitUntilStable();
-          MousePosTracker.addListener(this);
+          this._openPopupsCount--;
         }
         break;
       default:
