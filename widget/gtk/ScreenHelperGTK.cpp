@@ -287,7 +287,7 @@ static const struct wp_image_description_info_v1_listener
                                     image_description_info_target_max_cll,
                                     image_description_info_target_max_fall};
 
-static bool IsMonitorHDR(gint aMonitorNum) {
+bool IsMonitorHDR(gint aMonitorNum) {
   if (!WaylandDisplayGet() || !WaylandDisplayGet()->GetColorManager()) {
     return false;
   }
@@ -519,7 +519,7 @@ static already_AddRefed<Screen> MakeScreenGtk(GdkScreen* aScreen,
   bool isHDR = false;
 #ifdef MOZ_WAYLAND
   if (GdkIsWaylandDisplay()) {
-    isHDR = IsMonitorHDR(aMonitorNum);
+    isHDR = WaylandDisplayGet()->IsHDREnabled();
   }
 #endif
 
