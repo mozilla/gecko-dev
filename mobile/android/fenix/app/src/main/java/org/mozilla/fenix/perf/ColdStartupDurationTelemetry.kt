@@ -11,7 +11,6 @@ import androidx.core.view.doOnPreDraw
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.support.utils.SafeIntent
 import org.mozilla.fenix.GleanMetrics.PerfStartup
-import org.mozilla.fenix.HomeActivity
 import java.util.concurrent.TimeUnit
 
 private val logger = Logger("ColdStartupDuration")
@@ -21,31 +20,33 @@ private val logger = Logger("ColdStartupDuration")
  * AppStartupTelemetry class by being simple-to-implement and
  * simple-to-analyze (i.e. works in GLAM) rather than being a "perfect" and comprehensive measurement.
  *
- * This class relies on external state providers like [StartupStateProvider] that are tricky to
+ * This class relies on external state providers like [StartupStateDetector] that are tricky to
  * implement correctly so take the results with a grain of salt.
  */
 class ColdStartupDurationTelemetry {
 
+    /**
+     * Records cold start up when [org.mozilla.fenix.HomeActivity.onCreate] function has
+     * been called
+     */
     fun onHomeActivityOnCreate(
         visualCompletenessQueue: VisualCompletenessQueue,
-        startupStateProvider: StartupStateProvider,
+        startupStateDetector: StartupStateDetector,
         safeIntent: SafeIntent,
         rootContainer: View,
     ) {
         // Optimization: it might be expensive to post runnables so we can short-circuit
         // with a subset of the later logic.
-        if (startupStateProvider.shouldShortCircuitColdStart()) {
+        val startupState = startupStateDetector.getStartupState()
+        if (startupState != StartupState.COLD) {
             logger.debug("Not measuring: is not cold start (short-circuit)")
             return
         }
 
         rootContainer.doOnPreDraw {
-            // This block takes 0ms on a Moto G5: it doesn't seem long enough to optimize.
             val firstFrameNanos = SystemClock.elapsedRealtimeNanos()
-            if (startupStateProvider.isColdStartForStartedActivity(HomeActivity::class.java)) {
-                visualCompletenessQueue.queue.runIfReadyOrQueue {
-                    recordColdStartupTelemetry(safeIntent, firstFrameNanos)
-                }
+            visualCompletenessQueue.queue.runIfReadyOrQueue {
+                recordColdStartupTelemetry(safeIntent, firstFrameNanos)
             }
         }
     }

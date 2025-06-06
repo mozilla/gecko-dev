@@ -6,6 +6,8 @@ package org.mozilla.fenix.components
 
 import mozilla.components.support.utils.RunWhenReadyQueue
 import org.mozilla.fenix.perf.ColdStartupDurationTelemetry
+import org.mozilla.fenix.perf.DefaultStartupStateDetector
+import org.mozilla.fenix.perf.StartupStateDetector
 import org.mozilla.fenix.perf.VisualCompletenessQueue
 import org.mozilla.fenix.perf.lazyMonitored
 
@@ -15,4 +17,6 @@ import org.mozilla.fenix.perf.lazyMonitored
 class PerformanceComponent {
     val visualCompletenessQueue by lazyMonitored { VisualCompletenessQueue(RunWhenReadyQueue()) }
     val coldStartupDurationTelemetry by lazyMonitored { ColdStartupDurationTelemetry() }
+
+    val startupStateDetector: StartupStateDetector by lazyMonitored { DefaultStartupStateDetector() }
 }
