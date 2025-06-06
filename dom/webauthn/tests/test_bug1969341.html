@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<head>
+  <title>Test for Bug 1969341</title>
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="text/javascript" src="u2futil.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+
+  <h1>Test for Bug 1969341</h1>
+  <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1969341">Mozilla Bug 1969341</a>
+
+  <script class="testbody" type="text/javascript">
+    "use strict";
+
+    function arrivingHereIsBad(aResult) {
+      ok(false, "Bad result! Received a: " + aResult);
+      return Promise.resolve();
+    }
+
+    add_task(async () => {
+      await addVirtualAuthenticator();
+    });
+
+    add_task(async function test_bug1969341() {
+      // Bug 1969341 was an assertion crash due to a race condition. To hit the
+      // assertion you had to rapidly initiate a new WebAuthn transaction
+      // before the previous transaction state was fully torn down. The reproducer
+      // attached to bug 1969341 kicked off a WebAuthn transaction in the getter
+      // for PublicKeyCredential.then, which caused uncontrolled recursion.
+      // This test case limits the recursion depth. In manual tests, 10 levels
+      // was sufficient to hit the crash with high probability.
+      const maxRecursionDepth = 10
+      let currentRecursionDepth = 0;
+
+      var triggerDone;
+      var done = new Promise((resolve) => {
+        triggerDone = resolve;
+      });
+
+      // Set up a PublicKeyCredential prior to making PublicKeyCredential thenable,
+      // this lets us control when the recursion starts.
+      let credential = await navigator.credentials
+        .create({
+          publicKey: {
+            rp: { id: document.domain, name: "none" },
+            user: { id: crypto.getRandomValues(new Uint8Array(16)), displayName: "A", name: "A" },
+            challenge: crypto.getRandomValues(new Uint8Array(16)),
+            pubKeyCredParams: [
+              { type: "public-key", alg: cose_alg_ECDSA_w_SHA256 },
+            ],
+          },
+        })
+
+      ok(credential instanceof PublicKeyCredential, "expected PublicKeyCredential");
+
+      Object.defineProperty(PublicKeyCredential.prototype, "then", {
+        async get() {
+          if (++currentRecursionDepth < maxRecursionDepth) {
+            await navigator.credentials
+              .get({
+                publicKey: {
+                  challenge: crypto.getRandomValues(new Uint8Array(16)),
+                  allowCredentials: [
+                    { type: "public-key", id: credential.rawId },
+                  ],
+                },
+              })
+          } else {
+            triggerDone();
+          }
+          return undefined;
+        },
+      });
+
+      ok(
+        currentRecursionDepth == 0,
+        "the 'PublicKeyCredential.then' getter should not have been evaluated"
+      );
+
+      // This will invoke the PublicKeyCredential.then getter.
+      await credential;
+
+      // Wait until we've reached maxRecursionDepth.
+      await done;
+
+      ok(
+        currentRecursionDepth == maxRecursionDepth,
+        "the 'PublicKeyCredential.then' getter should been called recursively"
+      );
+    });
+  </script>
+</body>
+</html>
