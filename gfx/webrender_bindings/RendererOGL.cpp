@@ -178,6 +178,7 @@ RenderedFrameId RendererOGL::UpdateAndRender(
   auto bufferAge = 0;
   bool fullRender = false;
 
+  bool needPostRenderCall = false;
   bool beginFrame = !mThread->IsHandlingDeviceReset();
 
   if (beginFrame && present) {
@@ -186,6 +187,8 @@ RenderedFrameId RendererOGL::UpdateAndRender(
       // not handled. It needs to be addressed.
       return RenderedFrameId();
     }
+    needPostRenderCall = true;
+
     // XXX set clear color if MOZ_WIDGET_ANDROID is defined.
 
     if (!mCompositor->BeginFrame()) {
@@ -207,6 +210,9 @@ RenderedFrameId RendererOGL::UpdateAndRender(
   if (!beginFrame) {
     CheckGraphicsResetStatus(gfx::DeviceResetDetectPlace::WR_BEGIN_FRAME,
                              /* aForce */ true);
+    if (needPostRenderCall) {
+      mCompositor->GetWidget()->PostRender(&widgetContext);
+    }
     return RenderedFrameId();
   }
 
@@ -223,6 +229,8 @@ RenderedFrameId RendererOGL::UpdateAndRender(
   if (!rendered) {
     if (present) {
       mCompositor->CancelFrame();
+    }
+    if (needPostRenderCall) {
       mCompositor->GetWidget()->PostRender(&widgetContext);
     }
     RenderThread::Get()->HandleWebRenderError(WebRenderError::RENDER);
@@ -259,6 +267,7 @@ RenderedFrameId RendererOGL::UpdateAndRender(
     // might invalidate it.
     MaybeRecordFrame(mLastPipelineInfo);
     frameId = mCompositor->EndFrame(dirtyRects);
+    MOZ_ASSERT(needPostRenderCall);
     mCompositor->GetWidget()->PostRender(&widgetContext);
   }
 
