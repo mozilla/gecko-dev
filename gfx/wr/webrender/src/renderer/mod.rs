@@ -3545,6 +3545,23 @@ impl Renderer {
 
         // Calculate layers with full device rect
 
+        // Add a debug overlay request if enabled
+        if self.debug_overlay_state.is_enabled {
+            // update debug_overlay_state.layer_index later
+
+            input_layers.push(CompositorInputLayer {
+                usage: CompositorSurfaceUsage::DebugOverlay,
+                is_opaque: false,
+                offset: DeviceIntPoint::zero(),
+                clip_rect: device_size.into(),
+            });
+
+            swapchain_layers.push(SwapChainLayer {
+                clear_tiles: Vec::new(),
+                occlusion: occlusion::FrontToBackBuilder::with_capacity(cap, cap),
+            });
+        }
+
         // NOTE: Tiles here are being iterated in front-to-back order by
         //       z-id, due to the sort in composite_state.end_frame()
         for (idx, tile) in composite_state.tiles.iter().enumerate() {
@@ -3627,9 +3644,11 @@ impl Renderer {
                                 }
                             }
                         }
-
-                        // Should not encounter debug layers here
-                        (CompositorSurfaceUsage::DebugOverlay, _) | (_, CompositorSurfaceUsage::DebugOverlay) => {
+                        (CompositorSurfaceUsage::DebugOverlay, _) => {
+                            Some(usage)
+                        }
+                        // Should not encounter debug layers as new layer
+                        (_, CompositorSurfaceUsage::DebugOverlay) => {
                             unreachable!();
                         }
                     }
@@ -3715,21 +3734,10 @@ impl Renderer {
             }
         }
 
-        // Add a debug overlay request if enabled
+        // Update debug_overlay_state.layer_index after all layers are added.
         if self.debug_overlay_state.is_enabled {
-            self.debug_overlay_state.layer_index = input_layers.len();
-
-            input_layers.push(CompositorInputLayer {
-                usage: CompositorSurfaceUsage::DebugOverlay,
-                is_opaque: false,
-                offset: DeviceIntPoint::zero(),
-                clip_rect: device_size.into(),
-            });
-
-            swapchain_layers.push(SwapChainLayer {
-                clear_tiles: Vec::new(),
-                occlusion: occlusion::FrontToBackBuilder::with_capacity(cap, cap),
-            });
+            assert!(!input_layers.is_empty());
+            self.debug_overlay_state.layer_index = input_layers.len() - 1;
         }
 
         let mut full_render = false;
