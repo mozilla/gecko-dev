@@ -1384,15 +1384,18 @@ export var UrlbarTestUtils = {
 
   async openSearchModeSwitcher(win) {
     let popup = this.searchModeSwitcherPopup(win);
+    let button = win.document.getElementById("urlbar-searchmode-switcher");
+    this.Assert.ok(lazy.BrowserTestUtils.isVisible(button));
+    await this.EventUtils.promiseElementReadyForUserInput(button, win);
+
     let promiseMenuOpen = lazy.BrowserTestUtils.waitForPopupEvent(
       popup,
       "shown"
     );
-    let button = win.document.getElementById("urlbar-searchmode-switcher");
-    this.Assert.ok(lazy.BrowserTestUtils.isVisible(button));
-    await this.EventUtils.promiseElementReadyForUserInput(button, win);
+    let rebuildPromise = lazy.BrowserTestUtils.waitForEvent(popup, "rebuild");
     this.EventUtils.synthesizeMouseAtCenter(button, {}, win);
-    await promiseMenuOpen;
+    await Promise.all([promiseMenuOpen, rebuildPromise]);
+
     return popup;
   },
 

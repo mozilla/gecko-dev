@@ -183,17 +183,30 @@
             <box id="urlbar-search-button"
                  class="chromeclass-toolbar-additional"/>
             <toolbarbutton id="urlbar-searchmode-switcher"
-                            data-action="openpopup"
                             align="center"
-                            role="button"
-                            aria-haspopup="menu"
                             aria-expanded="false"
+                            aria-haspopup="menu"
                             tooltip="dynamic-shortcut-tooltip"
-                            class="chromeclass-toolbar-additional">
-              <image id="searchmode-switcher-icon" />
+                            class="chromeclass-toolbar-additional"
+                            type="menu">
+              <image id="searchmode-switcher-icon" class="toolbarbutton-icon"/>
               <image id="searchmode-switcher-dropmarker"
                       data-l10n-id="urlbar-searchmode-dropmarker"
                       class="toolbarbutton-icon toolbarbutton-combined-buttons-dropmarker" />
+              <menupopup id="searchmode-switcher-popup"
+                        class="toolbar-menupopup"
+                        consumeoutsideclicks="false">
+                <label id="searchmode-switcher-popup-description"
+                      data-l10n-id="urlbar-searchmode-popup-description"
+                      role="heading" />
+                <menuseparator/>
+                <menuseparator id="searchmode-switcher-popup-footer-separator"/>
+                <menuitem id="searchmode-switcher-popup-search-settings-button"
+                          class="menuitem-iconic"
+                          data-action="openpreferences"
+                          image="chrome://global/skin/icons/settings.svg"
+                          data-l10n-id="urlbar-searchmode-popup-search-settings-menuitem"/>
+              </menupopup>
             </toolbarbutton>
             <box id="searchmode-switcher-chicklet">
               <label id="searchmode-switcher-title" />
