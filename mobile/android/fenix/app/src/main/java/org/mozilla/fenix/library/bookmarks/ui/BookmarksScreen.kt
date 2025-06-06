@@ -1281,7 +1281,7 @@ private fun FolderInfo(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(
-            text = "Save In",
+            text = stringResource(R.string.bookmark_save_in_label),
             color = FirefoxTheme.colors.textPrimary,
             style = FirefoxTheme.typography.body2,
         )
