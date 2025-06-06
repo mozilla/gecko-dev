@@ -7,6 +7,8 @@ import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  getPlacesSemanticHistoryManager:
+    "resource://gre/modules/PlacesSemanticHistoryManager.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
   UrlbarTokenizer: "resource:///modules/UrlbarTokenizer.sys.mjs",
@@ -995,7 +997,6 @@ class TelemetryEvent {
       numWords,
       numChars,
       provider,
-      reason,
       searchWords,
       searchSource,
       searchMode,
@@ -1038,6 +1039,7 @@ class TelemetryEvent {
       .map((r, i) => lazy.UrlbarUtils.searchEngagementTelemetryAction(r, i))
       .filter(v => v)
       .join(",");
+    let available_semantic_sources = this.#getAvailableSemanticSources().join();
     const search_engine_default_id = Services.search.defaultEngine.telemetryId;
 
     let eventInfo;
@@ -1077,6 +1079,7 @@ class TelemetryEvent {
         groups,
         results,
         actions,
+        available_semantic_sources,
       };
     } else if (method === "abandonment") {
       eventInfo = {
@@ -1091,20 +1094,7 @@ class TelemetryEvent {
         groups,
         results,
         actions,
-      };
-    } else if (method === "impression") {
-      eventInfo = {
-        reason,
-        sap,
-        interaction,
-        search_mode,
-        n_chars: numChars,
-        n_words: numWords,
-        n_results: numResults,
-        search_engine_default_id,
-        groups,
-        results,
-        actions,
+        available_semantic_sources,
       };
     } else if (method == "disable") {
       const previousEvent =
@@ -1138,6 +1128,23 @@ class TelemetryEvent {
     this._controller.logger.info(`${method} event:`, eventInfo);
 
     Glean.urlbar[method].record(eventInfo);
+  }
+
+  /**
+   * Retrieves available semantic search sources.
+   *
+   * @returns {Array<string>} Array of found sources, will contain just "none"
+   *   if no sources were found.
+   */
+  #getAvailableSemanticSources() {
+    let sources = [];
+    if (lazy.getPlacesSemanticHistoryManager().canUseSemanticSearch) {
+      sources.push("history");
+    }
+    if (!sources.length) {
+      sources.push("none");
+    }
+    return sources;
   }
 
   #recordExposures(queryContext) {

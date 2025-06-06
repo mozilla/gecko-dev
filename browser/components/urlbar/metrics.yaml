@@ -158,6 +158,13 @@ urlbar:
           `themes`, `update`, `viewsource`.
           If there is no action shown in a position that is denoted with `none`.
         type: string
+      available_semantic_sources:
+        description: >
+          Comma separated list of semantic sources that were available to search.
+          This indicates general availability of the source, not whether it was
+          queried.
+          The possible values are: `history`, `none`.
+        type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1800414
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1805717
@@ -515,6 +522,13 @@ urlbar:
           `refresh`, `restart`, `savepdf`, `screenshot`, `settings`, `tabswitch`,
           `themes`, `update`, `viewsource`.
           If there is no action shown in a position that is denoted with `none`.
+        type: string
+      available_semantic_sources:
+        description: >
+          Comma separated list of semantic sources that were available to search.
+          This indicates general availability of the source, not whether it was
+          queried.
+          The possible values are: `history`, `none`.
         type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1797265

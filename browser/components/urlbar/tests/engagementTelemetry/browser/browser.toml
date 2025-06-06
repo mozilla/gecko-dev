@@ -16,6 +16,8 @@ support-files = [
 ]
 prefs = ["browser.bookmarks.testing.skipDefaultBookmarksImport=true"]
 
+["browser_glean_telemetry_abandonment_available_semantic.js"]
+
 ["browser_glean_telemetry_abandonment_groups.js"]
 
 ["browser_glean_telemetry_abandonment_interaction.js"]
@@ -37,6 +39,8 @@ prefs = ["browser.bookmarks.testing.skipDefaultBookmarksImport=true"]
 ["browser_glean_telemetry_abandonment_type.js"]
 
 ["browser_glean_telemetry_disable.js"]
+
+["browser_glean_telemetry_engagement_available_semantic.js"]
 
 ["browser_glean_telemetry_engagement_edge_cases.js"]
 
