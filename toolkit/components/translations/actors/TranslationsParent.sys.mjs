@@ -356,8 +356,13 @@ export class TranslationsParent extends JSWindowActorParent {
    *
    *     Notes: The 2.x WASM binary introduces segmentation changes that are necessary
    *            to translate CJK languages.
+   *
+   * 3.x Wasm Major Versions
+   *
+   *   - This update introduces memory savings that required a new bergamot-translator.js
+   *     file due to ASM offsets, but makes no other changes.
    */
-  static BERGAMOT_MAJOR_VERSION = 2;
+  static BERGAMOT_MAJOR_VERSION = 3;
 
   /**
    * The BERGAMOT_MAJOR_VERSION defined above has only a single value, because there will
