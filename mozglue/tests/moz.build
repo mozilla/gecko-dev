@@ -48,6 +48,10 @@ if CONFIG["OS_TARGET"] == "WINNT" and CONFIG["CC_TYPE"] in ("gcc", "clang"):
         "-municode",
     ]
 
+if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
+    # for ASharedMemory_*
+    OS_LIBS += ["android"]
+
 TEST_DIRS += [
     "gtest",
 ]

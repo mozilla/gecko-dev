@@ -61,6 +61,10 @@ def CppUnitTests(names, ext=".cpp"):
     CPP_UNIT_TESTS += names
     SOURCES += ["%s%s" % (name, ext) for name in names]
 
+    # for weak symbols defined in libandroid.so
+    if CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":
+        OS_LIBS += ["android"]
+
     Binary()
 
 
