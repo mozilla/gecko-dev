@@ -13,10 +13,12 @@ import org.mozilla.fenix.utils.isLargeScreenSize
  * Returns true if the tab strip is enabled.
  */
 fun Context.isTabStripEnabled(): Boolean =
-    isTabStripEligible() && tabStripExperimentEnabled()
+    tabStripExperimentForceEnabled() || (isTabStripEligible() && tabStripExperimentEnabled())
 
-private fun tabStripExperimentEnabled(): Boolean =
-    FxNimbus.features.tabStrip.value().enabled
+private fun tabStripExperimentEnabled(): Boolean = FxNimbus.features.tabStrip.value().enabled
+
+private fun tabStripExperimentForceEnabled(): Boolean =
+    FxNimbus.features.tabStrip.value().forceEnabled
 
 /**
  * Returns true if the the device has the prerequisites to enable the tab strip.
