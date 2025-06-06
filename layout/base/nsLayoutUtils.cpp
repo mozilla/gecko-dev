@@ -5286,11 +5286,16 @@ nscolor nsLayoutUtils::DarkenColorIfNeeded(nsIFrame* aFrame, nscolor aColor) {
   return ShouldDarkenColors(aFrame) ? DarkenColor(aColor) : aColor;
 }
 
-gfxFloat nsLayoutUtils::GetSnappedBaselineY(nsIFrame* aFrame,
-                                            gfxContext* aContext, nscoord aY,
-                                            nscoord aAscent) {
-  gfxFloat appUnitsPerDevUnit = aFrame->PresContext()->AppUnitsPerDevPixel();
+gfxFloat nsLayoutUtils::GetMaybeSnappedBaselineY(nsIFrame* aFrame,
+                                                 gfxContext* aContext,
+                                                 nscoord aY, nscoord aAscent) {
   gfxFloat baseline = gfxFloat(aY) + aAscent;
+  // TODO: Remove this funciton when this pref is being removed.
+  if (StaticPrefs::layout_disable_pixel_alignment()) {
+    return baseline;
+  }
+
+  gfxFloat appUnitsPerDevUnit = aFrame->PresContext()->AppUnitsPerDevPixel();
   gfxRect putativeRect(0, baseline / appUnitsPerDevUnit, 1, 1);
   if (!aContext->UserToDevicePixelSnapped(
           putativeRect, gfxContext::SnapOption::IgnoreScale)) {
@@ -5299,11 +5304,16 @@ gfxFloat nsLayoutUtils::GetSnappedBaselineY(nsIFrame* aFrame,
   return aContext->DeviceToUser(putativeRect.TopLeft()).y * appUnitsPerDevUnit;
 }
 
-gfxFloat nsLayoutUtils::GetSnappedBaselineX(nsIFrame* aFrame,
-                                            gfxContext* aContext, nscoord aX,
-                                            nscoord aAscent) {
-  gfxFloat appUnitsPerDevUnit = aFrame->PresContext()->AppUnitsPerDevPixel();
+gfxFloat nsLayoutUtils::GetMaybeSnappedBaselineX(nsIFrame* aFrame,
+                                                 gfxContext* aContext,
+                                                 nscoord aX, nscoord aAscent) {
   gfxFloat baseline = gfxFloat(aX) + aAscent;
+  // TODO: Remove this funciton when this pref is being removed.
+  if (StaticPrefs::layout_disable_pixel_alignment()) {
+    return baseline;
+  }
+
+  gfxFloat appUnitsPerDevUnit = aFrame->PresContext()->AppUnitsPerDevPixel();
   gfxRect putativeRect(baseline / appUnitsPerDevUnit, 0, 1, 1);
   if (!aContext->UserToDevicePixelSnapped(
           putativeRect, gfxContext::SnapOption::IgnoreScale)) {

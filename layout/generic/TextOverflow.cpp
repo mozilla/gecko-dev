@@ -224,14 +224,14 @@ void nsDisplayTextOverflowMarker::PaintTextToContext(gfxContext* aCtx,
   if (wm.IsVertical()) {
     if (wm.IsVerticalLR()) {
       pt.x = NSToCoordFloor(
-          nsLayoutUtils::GetSnappedBaselineX(mFrame, aCtx, pt.x, mAscent));
+          nsLayoutUtils::GetMaybeSnappedBaselineX(mFrame, aCtx, pt.x, mAscent));
     } else {
-      pt.x = NSToCoordFloor(nsLayoutUtils::GetSnappedBaselineX(
+      pt.x = NSToCoordFloor(nsLayoutUtils::GetMaybeSnappedBaselineX(
           mFrame, aCtx, pt.x + mRect.width, -mAscent));
     }
   } else {
     pt.y = NSToCoordFloor(
-        nsLayoutUtils::GetSnappedBaselineY(mFrame, aCtx, pt.y, mAscent));
+        nsLayoutUtils::GetMaybeSnappedBaselineY(mFrame, aCtx, pt.y, mAscent));
   }
   pt += aOffsetFromRect;
 
