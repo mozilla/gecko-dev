@@ -83,7 +83,7 @@ class InputModule extends WindowGlobalBiDiModule {
           );
           break;
         case "synthesizeWheelAtPoint":
-          lazy.event.synthesizeWheelAtPoint(
+          await lazy.event.synthesizeWheelAtPoint(
             details.x,
             details.y,
             details.eventData,

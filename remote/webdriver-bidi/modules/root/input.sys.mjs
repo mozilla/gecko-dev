@@ -77,7 +77,7 @@ class InputModule extends RootBiDiModule {
    * @returns {Promise}
    *     Promise that resolves once the event is dispatched.
    */
-  #dispatchEvent(eventName, context, details) {
+  async #dispatchEvent(eventName, context, details) {
     if (
       eventName === "synthesizeWheelAtPoint" &&
       lazy.actions.useAsyncWheelEvents
@@ -90,7 +90,7 @@ class InputModule extends RootBiDiModule {
     if (details.eventData.asyncEnabled) {
       switch (eventName) {
         case "synthesizeWheelAtPoint":
-          lazy.event.synthesizeWheelAtPoint(
+          await lazy.event.synthesizeWheelAtPoint(
             details.x,
             details.y,
             details.eventData,
@@ -102,14 +102,12 @@ class InputModule extends RootBiDiModule {
             `${eventName} is not a supported type for dispatching`
           );
       }
-
-      return Promise.resolve();
+    } else {
+      await this._forwardToWindowGlobal("_dispatchEvent", context.id, {
+        eventName,
+        details,
+      });
     }
-
-    return this._forwardToWindowGlobal("_dispatchEvent", context.id, {
-      eventName,
-      details,
-    });
   }
 
   /**
