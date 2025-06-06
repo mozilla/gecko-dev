@@ -211,8 +211,15 @@ class Components(private val context: Context) {
 
     val reviewPromptController by lazyMonitored {
         ReviewPromptController(
-            manager = ReviewManagerFactory.create(context),
+            playStoreReviewPromptController = playStoreReviewPromptController,
             reviewSettings = FenixReviewSettings(settings),
+        )
+    }
+
+    val playStoreReviewPromptController by lazyMonitored {
+        PlayStoreReviewPromptController(
+            manager = ReviewManagerFactory.create(context),
+            numberOfAppLaunches = { settings.numberOfAppLaunches },
         )
     }
 
