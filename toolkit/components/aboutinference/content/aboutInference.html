@@ -12,6 +12,10 @@
     <title data-l10n-id="about-inference-title"></title>
     <link rel="stylesheet" href="chrome://global/content/aboutInference.css" />
     <link rel="localization" href="preview/aboutInference.ftl" />
+    <script
+      type="module"
+      src="chrome://global/content/model-files-view.mjs"
+    ></script>
     <script src="chrome://global/content/aboutInference.js"></script>
   </head>
   <body id="body">
@@ -265,13 +269,7 @@
 
         <!-- model tab -->
         <div id="models-storage" class="tab" hidden="true">
-          <div class="fieldset-container">
-            <fieldset class="large">
-              <legend data-l10n-id="about-inference-models-title"></legend>
-              <p data-l10n-id="about-inference-downloads-description"></p>
-              <div id="modelFiles"></div>
-            </fieldset>
-          </div>
+          <model-files-view></model-files-view>
         </div>
 
         <!-- benchmark -->
