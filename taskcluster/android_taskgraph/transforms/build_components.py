@@ -60,12 +60,6 @@ def handle_coverage(config, tasks):
         yield task
 
 
-def get_component_name(component):
-    prefix, _, name = component.partition(":")
-    assert prefix == "components"
-    return name
-
-
 @transforms.add
 def interpolate_missing_values(config, tasks):
     timestamp = _get_timestamp(config)
@@ -75,14 +69,13 @@ def interpolate_missing_values(config, tasks):
     for task in tasks:
         for field in ("description", "run.gradlew", "treeherder.symbol"):
             component = task["attributes"]["component"]
-            group = get_component_name(component)
             _deep_format(
                 task,
                 field,
                 component=component,
                 nightlyVersion=nightly_version,
                 timestamp=timestamp,
-                treeherder_group=group[:25],
+                treeherder_group=component[:25],
             )
 
         yield task
@@ -169,7 +162,7 @@ def add_artifacts(config, tasks):
             all_extensions = get_extensions(component)
             artifact_file_names_per_extension = {
                 extension: "{component}-{version}{timestamp}{extension}".format(
-                    component=get_component_name(component),
+                    component=component,
                     version=version,
                     timestamp="",
                     extension=extension,
@@ -198,7 +191,7 @@ def add_artifacts(config, tasks):
                         "name": artifact_full_name,
                         "path": artifact_template["path"].format(
                             component_path=get_path(component),
-                            component=get_component_name(component),
+                            component=component,
                             version=craft_path_version(
                                 version,
                                 task["attributes"]["build-type"],

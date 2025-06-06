@@ -36,7 +36,7 @@ dependencies {
     testImplementation libs.testing.mockwebserver
     testImplementation libs.testing.coroutines
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 }
 
 apply from: '../../../android-lint.gradle'

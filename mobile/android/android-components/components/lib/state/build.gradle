@@ -48,12 +48,12 @@ dependencies {
     implementation libs.androidx.lifecycle.compose
     implementation libs.androidx.lifecycle.process
 
-    implementation project(':components:support-base')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-utils')
+    implementation project(':support-base')
+    implementation project(':support-ktx')
+    implementation project(':support-utils')
 
     testImplementation platform(libs.androidx.compose.bom)
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

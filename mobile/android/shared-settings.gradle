@@ -72,7 +72,7 @@ def setupProject(name, path, description) {
     gradle.beforeProject { project ->
         // However, the "afterProject" listener iterates over every project and gives us the actual project
         // So, once we filter for the project we care about, we can set whatever we want
-        if (project.path == ":$name") {
+        if (project.name == name) {
             project.ext.description = description
         }
     }

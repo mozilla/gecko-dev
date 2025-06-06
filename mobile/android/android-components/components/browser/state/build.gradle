@@ -38,25 +38,25 @@ android {
 }
 
 dependencies {
-    api project(':components:lib-state')
+    api project(':lib-state')
 
     implementation platform(libs.androidx.compose.bom)
-    implementation project(':components:concept-awesomebar')
-    implementation project(':components:concept-engine')
-    implementation project(':components:concept-storage')
-    implementation project(':components:support-utils')
-    implementation project(':components:support-ktx')
+    implementation project(':concept-awesomebar')
+    implementation project(':concept-engine')
+    implementation project(':concept-storage')
+    implementation project(':support-utils')
+    implementation project(':support-ktx')
 
     // We expose this as API because we are using Response in our public API and do not want every
     // consumer to have to manually import "concept-fetch".
-    api project(':components:concept-fetch')
+    api project(':concept-fetch')
 
     implementation libs.androidx.browser
     implementation libs.androidx.compose.ui
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':components:support-test')
-    testImplementation project(':components:support-test-libstate')
+    testImplementation project(':support-test')
+    testImplementation project(':support-test-libstate')
     testImplementation libs.androidx.test.junit
     testImplementation libs.junit.vintage
     testImplementation libs.testing.robolectric

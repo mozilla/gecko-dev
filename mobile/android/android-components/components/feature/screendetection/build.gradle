@@ -24,9 +24,9 @@ android {
 }
 
 dependencies {
-    implementation project(':components:support-base')
+    implementation project(':support-base')
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.junit
 }

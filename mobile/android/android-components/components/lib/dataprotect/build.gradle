@@ -25,11 +25,11 @@ android {
 }
 
 dependencies {
-    implementation project(':components:support-base')
+    implementation project(':support-base')
 
     implementation libs.androidx.annotation
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
 }

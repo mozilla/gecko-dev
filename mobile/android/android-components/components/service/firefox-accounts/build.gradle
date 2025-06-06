@@ -25,27 +25,27 @@ android {
 
 dependencies {
     // Types defined in concept-sync are part of the public API of this module.
-    api project(':components:concept-sync')
-    api project(':components:concept-storage')
+    api project(':concept-sync')
+    api project(':concept-storage')
 
     // Parts of this dependency are typealiase'd or are otherwise part of this module's public API.
     api ComponentsDependencies.mozilla_appservices_fxaclient
     implementation ComponentsDependencies.mozilla_appservices_syncmanager
 
     // Observable is part of public API of the FxaAccountManager.
-    api project(':components:support-base')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-utils')
-    implementation project(':components:lib-dataprotect')
-    implementation project(':components:lib-state')
+    api project(':support-base')
+    implementation project(':support-ktx')
+    implementation project(':support-utils')
+    implementation project(':lib-dataprotect')
+    implementation project(':lib-state')
 
     implementation libs.kotlin.coroutines
 
     implementation libs.androidx.work.runtime
     implementation libs.androidx.lifecycle.process
 
-    testImplementation project(':components:support-test')
-    testImplementation project(':components:support-test-libstate')
+    testImplementation project(':support-test')
+    testImplementation project(':support-test-libstate')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.androidx.work.testing

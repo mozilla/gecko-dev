@@ -26,15 +26,15 @@ android {
 }
 
 dependencies {
-    implementation project(':components:support-base')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-utils')
-    implementation project(':components:lib-crash')
+    implementation project(':support-base')
+    implementation project(':support-ktx')
+    implementation project(':support-utils')
+    implementation project(':lib-crash')
 
     implementation libs.thirdparty.sentry
     testImplementation libs.thirdparty.sentry
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
