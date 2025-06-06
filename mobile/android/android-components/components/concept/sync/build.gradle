@@ -29,7 +29,7 @@ dependencies {
     api libs.kotlin.coroutines
 
     // Observables are part of the public API of this module.
-    api project(':components:support-base')
+    api project(':support-base')
 }
 
 apply from: '../../../android-lint.gradle'

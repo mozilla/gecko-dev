@@ -27,10 +27,10 @@ android {
 dependencies {
     implementation libs.androidx.appcompat
 
-    implementation project(":components:support-base")
-    implementation project(":components:support-utils")
+    implementation project(":support-base")
+    implementation project(":support-utils")
 
-    testImplementation project(":components:support-test")
+    testImplementation project(":support-test")
 
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric

@@ -276,63 +276,63 @@ dependencies {
 
     implementation libs.thirdparty.sentry
 
-    implementation project(':components:browser-engine-gecko')
-    implementation project(':components:browser-domains')
-    implementation project(':components:browser-errorpages')
-    implementation project(':components:browser-icons')
-    implementation project(':components:browser-menu')
-    implementation project(':components:browser-state')
-    implementation project(':components:browser-toolbar')
+    implementation project(':browser-engine-gecko')
+    implementation project(':browser-domains')
+    implementation project(':browser-errorpages')
+    implementation project(':browser-icons')
+    implementation project(':browser-menu')
+    implementation project(':browser-state')
+    implementation project(':browser-toolbar')
 
-    implementation project(':components:concept-awesomebar')
-    implementation project(':components:concept-engine')
-    implementation project(':components:concept-fetch')
-    implementation project(':components:concept-menu')
+    implementation project(':concept-awesomebar')
+    implementation project(':concept-engine')
+    implementation project(':concept-fetch')
+    implementation project(':concept-menu')
 
-    implementation project(':components:compose-awesomebar')
+    implementation project(':compose-awesomebar')
 
-    implementation project(':components:feature-awesomebar')
-    implementation project(':components:feature-app-links')
-    implementation project(':components:feature-customtabs')
-    implementation project(':components:feature-contextmenu')
-    implementation project(':components:feature-downloads')
-    implementation project(':components:feature-findinpage')
-    implementation project(':components:feature-intent')
-    implementation project(':components:feature-prompts')
-    implementation project(':components:feature-session')
-    implementation project(':components:feature-search')
-    implementation project(':components:feature-tabs')
-    implementation project(':components:feature-toolbar')
-    implementation project(':components:feature-top-sites')
-    implementation project(':components:feature-sitepermissions')
-    implementation project(':components:lib-crash')
-    implementation project(':components:lib-crash-sentry')
-    implementation project(':components:lib-state')
-    implementation project(':components:feature-media')
-    implementation project(':components:lib-auth')
-    implementation project(':components:lib-publicsuffixlist')
+    implementation project(':feature-awesomebar')
+    implementation project(':feature-app-links')
+    implementation project(':feature-customtabs')
+    implementation project(':feature-contextmenu')
+    implementation project(':feature-downloads')
+    implementation project(':feature-findinpage')
+    implementation project(':feature-intent')
+    implementation project(':feature-prompts')
+    implementation project(':feature-session')
+    implementation project(':feature-search')
+    implementation project(':feature-tabs')
+    implementation project(':feature-toolbar')
+    implementation project(':feature-top-sites')
+    implementation project(':feature-sitepermissions')
+    implementation project(':lib-crash')
+    implementation project(':lib-crash-sentry')
+    implementation project(':lib-state')
+    implementation project(':feature-media')
+    implementation project(':lib-auth')
+    implementation project(':lib-publicsuffixlist')
 
-    implementation project(':components:service-location')
-    implementation project(':components:service-nimbus')
+    implementation project(':service-location')
+    implementation project(':service-nimbus')
 
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-utils')
-    implementation project(':components:support-remotesettings')
-    implementation project(':components:support-appservices')
-    implementation project(':components:support-license')
+    implementation project(':support-ktx')
+    implementation project(':support-utils')
+    implementation project(':support-remotesettings')
+    implementation project(':support-appservices')
+    implementation project(':support-license')
 
-    implementation project(':components:ui-autocomplete')
-    implementation project(':components:ui-colors')
-    implementation project(':components:ui-icons')
-    implementation project(':components:ui-tabcounter')
-    implementation project(':components:ui-widgets')
-    implementation project(':components:feature-webcompat')
-    implementation project(':components:feature-webcompat-reporter')
-    implementation project(':components:support-webextensions')
-    implementation project(':components:support-locale')
-    implementation project(':components:compose-cfr')
+    implementation project(':ui-autocomplete')
+    implementation project(':ui-colors')
+    implementation project(':ui-icons')
+    implementation project(':ui-tabcounter')
+    implementation project(':ui-widgets')
+    implementation project(':feature-webcompat')
+    implementation project(':feature-webcompat-reporter')
+    implementation project(':support-webextensions')
+    implementation project(':support-locale')
+    implementation project(':compose-cfr')
 
-    implementation project(":components:service-glean")
+    implementation project(":service-glean")
     implementation libs.mozilla.glean, {
         exclude group: 'org.mozilla.telemetry', module: 'glean-native'
     }
@@ -351,12 +351,12 @@ dependencies {
     testImplementation libs.testing.coroutines
     testImplementation libs.androidx.work.testing
     testImplementation libs.androidx.arch.core.testing
-    testImplementation project(':components:support-test')
-    testImplementation project(':components:support-test-libstate')
+    testImplementation project(':support-test')
+    testImplementation project(':support-test-libstate')
 
     androidTestImplementation libs.testing.mockwebserver
     testImplementation libs.testing.mockwebserver
-    testImplementation project(':components:lib-fetch-okhttp')
+    testImplementation project(':lib-fetch-okhttp')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.runner
@@ -373,7 +373,7 @@ dependencies {
     androidTestImplementation libs.androidx.test.uiautomator
     androidTestUtil libs.androidx.test.orchestrator
 
-    lintChecks project(':components:tooling-lint')
+    lintChecks project(':tooling-lint')
 }
 // -------------------------------------------------------------------------------------------------
 //  Dynamically set versionCode (See tools/build/versionCode.gradle

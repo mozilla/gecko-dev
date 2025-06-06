@@ -45,10 +45,10 @@ dependencies {
     implementation libs.kotlin.json
     implementation libs.androidx.work.runtime
 
-    implementation project(':components:concept-fetch')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-base')
-    implementation project(':components:feature-top-sites')
+    implementation project(':concept-fetch')
+    implementation project(':support-ktx')
+    implementation project(':support-base')
+    implementation project(':feature-top-sites')
 
     testImplementation libs.androidx.concurrent
     testImplementation libs.androidx.test.core
@@ -57,7 +57,7 @@ dependencies {
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.coroutines
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 }
 
 apply from: '../../../android-lint.gradle'

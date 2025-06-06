@@ -23,9 +23,9 @@ android {
 }
 
 dependencies {
-    api project(':components:concept-engine')
+    api project(':concept-engine')
 
-    implementation project(':components:support-base')
+    implementation project(':support-base')
 }
 
 apply from: '../../../android-lint.gradle'

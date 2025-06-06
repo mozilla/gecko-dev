@@ -29,11 +29,11 @@ android {
 }
 
 dependencies {
-    api project(':components:browser-state')
+    api project(':browser-state')
 
-    implementation project(':components:concept-engine')
-    implementation project(':components:support-utils')
-    implementation project(':components:support-ktx')
+    implementation project(':concept-engine')
+    implementation project(':support-utils')
+    implementation project(':support-ktx')
 
     implementation libs.androidx.core.ktx
     implementation libs.kotlin.coroutines
@@ -43,18 +43,18 @@ dependencies {
     implementation libs.androidx.lifecycle.runtime
     implementation libs.androidx.lifecycle.process
 
-    testImplementation project(':components:support-test')
-    testImplementation project(':components:support-test-fakes')
-    testImplementation project(':components:support-test-libstate')
-    testImplementation project(':components:feature-tabs')
+    testImplementation project(':support-test')
+    testImplementation project(':support-test-fakes')
+    testImplementation project(':support-test-libstate')
+    testImplementation project(':feature-tabs')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
     testImplementation libs.testing.coroutines
 
-    androidTestImplementation project(':components:browser-engine-gecko')
-    androidTestImplementation project(':components:support-android-test')
-    androidTestImplementation project(':components:feature-tabs')
+    androidTestImplementation project(':browser-engine-gecko')
+    androidTestImplementation project(':support-android-test')
+    androidTestImplementation project(':feature-tabs')
     androidTestImplementation libs.androidx.test.core
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.test.rules

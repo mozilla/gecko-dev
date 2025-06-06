@@ -19,7 +19,7 @@ task-defaults:
     attributes:
         build_platform: android
         build-type: regular
-        component: components:samples-browser
+        component: samples-browser
     dependencies:
         build-fat-aar: build-fat-aar-android-geckoview-fat-aar/opt
     description: Execute Gradle tasks for component "{component}"
@@ -52,12 +52,12 @@ tasks:
     gecko:
         run:
             gradlew:
-                - ':components:samples-browser:assembleGecko'
-                - ':components:samples-browser:testGeckoDebugUnitTest'
-                - ':components:samples-browser:lintGeckoDebug'
+                - ':samples-browser:assembleGecko'
+                - ':samples-browser:testGeckoDebugUnitTest'
+                - ':samples-browser:lintGeckoDebug'
 
     system:
         run:
-            gradlew: [':components:samples-browser:assembleSystem']
+            gradlew: [':samples-browser:assembleSystem']
         treeherder:
             symbol: 'samples-browser-system(B)'

@@ -40,11 +40,11 @@ android {
 }
 
 dependencies {
-    implementation project(':components:browser-storage-sync')
-    implementation project(':components:concept-toolbar')
-    implementation project(':components:support-ktx')
-    implementation project(':components:support-base')
-    implementation project(':components:support-utils')
+    implementation project(':browser-storage-sync')
+    implementation project(':concept-toolbar')
+    implementation project(':support-ktx')
+    implementation project(':support-base')
+    implementation project(':support-utils')
 
     implementation libs.kotlin.coroutines
 
@@ -54,7 +54,7 @@ dependencies {
     implementation libs.androidx.room.runtime
     ksp libs.androidx.room.compiler
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
@@ -63,7 +63,7 @@ dependencies {
     testImplementation libs.testing.robolectric
     testImplementation libs.kotlin.coroutines
 
-    androidTestImplementation project(':components:support-android-test')
+    androidTestImplementation project(':support-android-test')
 
     androidTestImplementation libs.androidx.room.testing
     androidTestImplementation libs.androidx.arch.core.testing

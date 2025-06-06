@@ -33,17 +33,17 @@ tasks.withType(KotlinCompile).configureEach {
 }
 
 dependencies {
-    implementation project(':components:support-base')
-    implementation project(':components:support-utils')
-    implementation project(':components:lib-publicsuffixlist')
+    implementation project(':support-base')
+    implementation project(':support-utils')
+    implementation project(':lib-publicsuffixlist')
 
     implementation libs.androidx.core
     implementation libs.androidx.core.ktx
 
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':components:support-test')
-    testImplementation project(':components:support-test-fakes')
+    testImplementation project(':support-test')
+    testImplementation project(':support-test-fakes')
     
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
@@ -51,7 +51,7 @@ dependencies {
     testImplementation libs.testing.coroutines
     testImplementation libs.testing.robolectric
 
-    androidTestImplementation project(':components:support-android-test')
+    androidTestImplementation project(':support-android-test')
     androidTestImplementation libs.androidx.test.core
     androidTestImplementation libs.androidx.test.runner
     androidTestImplementation libs.androidx.test.rules

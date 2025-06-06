@@ -31,13 +31,13 @@ android {
 }
 
 dependencies {
-    implementation project(":components:concept-tabstray")
+    implementation project(":concept-tabstray")
 
-    implementation project(":components:browser-state")
+    implementation project(":browser-state")
 
-    implementation project(":components:ui-icons")
+    implementation project(":ui-icons")
 
-    implementation project(":components:feature-tabs")
+    implementation project(":feature-tabs")
 
     implementation libs.androidx.compose.ui
     implementation libs.androidx.compose.ui.tooling.preview
@@ -46,7 +46,7 @@ dependencies {
 
     debugImplementation libs.androidx.compose.ui.tooling
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
     testImplementation libs.androidx.compose.ui.test
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

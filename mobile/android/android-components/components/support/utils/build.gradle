@@ -25,7 +25,7 @@ android {
 
 dependencies {
     implementation platform(libs.androidx.compose.bom)
-    implementation project(':components:support-base')
+    implementation project(':support-base')
 
     implementation libs.kotlin.coroutines
     implementation libs.androidx.activity
@@ -37,7 +37,7 @@ dependencies {
     // We expose the app-compat as API so that consumers get access to the Lifecycle classes automatically
     api libs.androidx.appcompat
 
-    testImplementation project(":components:support-test")
+    testImplementation project(":support-test")
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

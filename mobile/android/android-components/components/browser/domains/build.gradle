@@ -25,10 +25,10 @@ android {
 }
 
 dependencies {
-    implementation project(':components:concept-toolbar')
+    implementation project(':concept-toolbar')
     implementation libs.kotlin.coroutines
 
-    testImplementation project(':components:support-test')
+    testImplementation project(':support-test')
 
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
