@@ -1147,7 +1147,13 @@ class nsDocShell final : public nsDocLoader,
 
  private:
   MOZ_CAN_RUN_SCRIPT
-  void InformNavigationAPIAboutAbortingNavigation(JSContext* aCx);
+  void InformNavigationAPIAboutAbortingNavigation();
+
+  enum class OngoingNavigation : uint8_t { NavigationID, Traversal };
+
+  MOZ_CAN_RUN_SCRIPT
+  void SetOngoingNavigation(
+      const mozilla::Maybe<OngoingNavigation>& aOngoingNavigation);
 
   void SetCurrentURIInternal(nsIURI* aURI);
 
@@ -1219,6 +1225,12 @@ class nsDocShell final : public nsDocLoader,
   // parent has loaded does. (This isn't the only purpose of mLSHE.)
   // Only used when SHIP is disabled.
   nsCOMPtr<nsISHEntry> mLSHE;
+
+  // The ongoing navigation should really be a UUID, "traverse" or null, but
+  // until we actually start using the UUID we'll only store an enum value.
+  // Nothing here is interpreted as null.
+  // https://html.spec.whatwg.org/#ongoing-navigation
+  mozilla::Maybe<OngoingNavigation> mOngoingNavigation;
 
   // These are only set when fission.sessionHistoryInParent is set.
   mozilla::UniquePtr<mozilla::dom::SessionHistoryInfo> mActiveEntry;

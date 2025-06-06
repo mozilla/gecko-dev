@@ -130,6 +130,7 @@ class Navigation final : public DOMEventTargetHelper {
 
   bool HasOngoingNavigateEvent() const;
 
+  MOZ_CAN_RUN_SCRIPT
   void AbortOngoingNavigation(
       JSContext* aCx, JS::Handle<JS::Value> aError = JS::UndefinedHandleValue);
 
@@ -148,8 +149,10 @@ class Navigation final : public DOMEventTargetHelper {
       const RefPtr<NavigationHistoryEntry>& aPreviousEntry,
       nsTArray<RefPtr<NavigationHistoryEntry>>&& aDisposedEntries);
 
+  MOZ_CAN_RUN_SCRIPT
   nsresult FireEvent(const nsAString& aName);
 
+  MOZ_CAN_RUN_SCRIPT
   nsresult FireErrorEvent(const nsAString& aName,
                           const ErrorEventInit& aEventInitDict);
 

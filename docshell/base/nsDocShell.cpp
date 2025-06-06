@@ -4196,8 +4196,14 @@ nsresult nsDocShell::ReloadDocument(nsDocShell* aDocShell, Document* aDocument,
   return aDocShell->InternalLoad(loadState);
 }
 
-NS_IMETHODIMP
+// TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
+MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP
 nsDocShell::Stop(uint32_t aStopFlags) {
+  RefPtr kungFuDeathGrip = this;
+  if (RefPtr<Document> doc = GetDocument(); doc && !doc->ShouldIgnoreOpens()) {
+    SetOngoingNavigation(Nothing());
+  }
+
   // Revoke any pending event related to content viewer restoration
   mRestorePresentationEvent.Revoke();
 
@@ -9581,7 +9587,13 @@ nsresult nsDocShell::InternalLoad(nsDocShellLoadState* aLoadState,
   }
 
   // The following steps are from https://html.spec.whatwg.org/#navigate
-  // Step 20
+  // Step 19, and here we actually also perform step 2 from
+  // #navigate-to-a-javascript:-url (step 20) where the ongoing navigation is
+  // set to null.
+  SetOngoingNavigation(isJavaScript ? Nothing()
+                                    : Some(OngoingNavigation::NavigationID));
+
+  // Step 21
   if (RefPtr<Document> document = GetDocument();
       document &&
       aLoadState->UserNavigationInvolvement() !=
@@ -14163,7 +14175,7 @@ nsPIDOMWindowInner* nsDocShell::GetActiveWindow() {
 }
 
 // https://html.spec.whatwg.org/#inform-the-navigation-api-about-aborting-navigation
-void nsDocShell::InformNavigationAPIAboutAbortingNavigation(JSContext* aCx) {
+void nsDocShell::InformNavigationAPIAboutAbortingNavigation() {
   // Step 1
   // This becomes an assert since we have a common event loop.
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
@@ -14185,6 +14197,41 @@ void nsDocShell::InformNavigationAPIAboutAbortingNavigation(JSContext* aCx) {
     return;
   }
 
+  AutoJSAPI jsapi;
+  if (!jsapi.Init(navigation->GetOwnerGlobal())) {
+    return;
+  }
+
   // Step 4
-  navigation->AbortOngoingNavigation(aCx);
+  navigation->AbortOngoingNavigation(jsapi.cx());
+}
+
+// https://html.spec.whatwg.org/#set-the-ongoing-navigation
+void nsDocShell::SetOngoingNavigation(
+    const Maybe<OngoingNavigation>& aOngoingNavigation) {
+  // We currently only use #set-the-ongoing-navigation to call,
+  // #inform-the-navigation-api-about-aborting-navigation, but really it should
+  // be used for more. The spec keeps a piece of state on the navigable:
+  // https://html.spec.whatwg.org/#ongoing-navigation. Spec uses it for several
+  // things, for example right here in #set-the-ongoing-navigation to make sure
+  // that we don't call #inform-the-navigation-api-about-aborting-navigation if
+  // we're setting it to the same value. We currently only care about aborting
+  // the currently firing navigate event. Also, in reality, this is very much
+  // related to nsDocShell::GetIsAttemptingToNavigate() which is what we
+  // currently use to determine if we need to stop an ongoing navigation in
+  // Document::Open, whereas the spec checks if the ongoing navigation is a
+  // NavigationID.
+
+  // Step 1, with the exception that we assume setting the ongoing navigation to
+  // an id always means a fresh id.
+  if (aOngoingNavigation == mOngoingNavigation &&
+      aOngoingNavigation != Some(OngoingNavigation::NavigationID)) {
+    return;
+  }
+
+  // Step 2
+  InformNavigationAPIAboutAbortingNavigation();
+
+  // Step 3
+  mOngoingNavigation = aOngoingNavigation;
 }
