@@ -217,6 +217,7 @@ impl ToComputedValue for specified::Image {
             Self::Gradient(g) => Image::Gradient(g.to_computed_value(context)),
             #[cfg(feature = "gecko")]
             Self::Element(e) => Image::Element(e.to_computed_value(context)),
+            Self::MozSymbolicIcon(e) => Image::MozSymbolicIcon(e.to_computed_value(context)),
             #[cfg(feature = "servo")]
             Self::PaintWorklet(w) => Image::PaintWorklet(w.to_computed_value(context)),
             Self::CrossFade(f) => Image::CrossFade(f.to_computed_value(context)),
@@ -232,6 +233,7 @@ impl ToComputedValue for specified::Image {
             Image::Gradient(g) => Self::Gradient(ToComputedValue::from_computed_value(g)),
             #[cfg(feature = "gecko")]
             Image::Element(e) => Self::Element(ToComputedValue::from_computed_value(e)),
+            Image::MozSymbolicIcon(e) => Self::MozSymbolicIcon(ToComputedValue::from_computed_value(e)),
             #[cfg(feature = "servo")]
             Image::PaintWorklet(w) => Self::PaintWorklet(ToComputedValue::from_computed_value(w)),
             Image::CrossFade(f) => Self::CrossFade(ToComputedValue::from_computed_value(f)),
