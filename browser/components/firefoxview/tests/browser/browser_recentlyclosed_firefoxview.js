@@ -561,8 +561,13 @@ add_task(async function test_search() {
     );
 
     info("Clear the search query.");
-    searchTextbox.select();
-    EventUtils.synthesizeKey("VK_BACK_SPACE");
+    let inputChildren = SpecialPowers.InspectorUtils.getChildrenForNode(
+      searchTextbox.inputEl,
+      true,
+      false
+    );
+    let clearButton = inputChildren.find(e => e.localName == "button");
+    EventUtils.synthesizeMouseAtCenter(clearButton, {}, content);
     await TestUtils.waitForCondition(
       () => listElem.rowEls.length === expectedURLs.length,
       "The original list is restored."
@@ -575,6 +580,19 @@ add_task(async function test_search() {
     await TestUtils.waitForCondition(
       () => tabList.shadowRoot.querySelector("fxview-empty-state"),
       "There are no matching search results."
+    );
+
+    info("Clear the search query.");
+    inputChildren = SpecialPowers.InspectorUtils.getChildrenForNode(
+      searchTextbox.inputEl,
+      true,
+      false
+    );
+    clearButton = inputChildren.find(e => e.localName == "button");
+    EventUtils.synthesizeMouseAtCenter(clearButton, {}, content);
+    await TestUtils.waitForCondition(
+      () => listElem.rowEls.length === expectedURLs.length,
+      "The original list is restored."
     );
   });
   await cleanup();
