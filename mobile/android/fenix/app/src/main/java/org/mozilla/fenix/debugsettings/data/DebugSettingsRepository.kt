@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import org.mozilla.fenix.Config
 
 /**
  * [DataStore] for accessing debugging settings.
@@ -46,16 +47,19 @@ interface DebugSettingsRepository {
  * @param context Android context used to obtain the underlying [DataStore].
  * @param dataStore [DataStore] for accessing debugging settings.
  * @param writeScope [CoroutineScope] used for writing settings changes to disk.
+ * @param appIsDebugBuild Whether the app was built as a debug build.
  */
 class DefaultDebugSettingsRepository(
     context: Context,
     private val dataStore: DataStore<Preferences> = context.debugSettings,
     private val writeScope: CoroutineScope,
+    private val appIsDebugBuild: Boolean = Config.channel.isDebug,
 ) : DebugSettingsRepository {
 
     override val debugDrawerEnabled: Flow<Boolean> =
         dataStore.data.map { preferences ->
-            preferences[debugDrawerEnabledKey] ?: false
+            // On first lookup, when value does not exist yet, we default to true in debug mode
+            preferences[debugDrawerEnabledKey] ?: appIsDebugBuild
         }
 
     override fun setDebugDrawerEnabled(enabled: Boolean) {

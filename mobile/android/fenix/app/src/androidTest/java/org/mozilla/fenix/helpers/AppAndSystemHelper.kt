@@ -34,7 +34,9 @@ import androidx.test.uiautomator.UiObject
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import junit.framework.AssertionFailedError
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
@@ -45,6 +47,7 @@ import org.junit.Assert.assertEquals
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.PermissionStorage
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
+import org.mozilla.fenix.debugsettings.data.DefaultDebugSettingsRepository
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.Constants.PackageName.PIXEL_LAUNCHER
 import org.mozilla.fenix.helpers.Constants.PackageName.YOUTUBE_APP
@@ -770,5 +773,9 @@ object AppAndSystemHelper {
 
         Log.i(TAG, "isNetworkConnected: Checking if network is connected: $isConnected")
         return isConnected
+    }
+
+    suspend fun disableDebugDrawer() = withContext(Dispatchers.IO) {
+        DefaultDebugSettingsRepository(context = appContext, writeScope = this).setDebugDrawerEnabled(false)
     }
 }
