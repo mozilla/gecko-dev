@@ -15,8 +15,6 @@ add_task(async function check_for_simplified_pbm_ui() {
     private: true,
   });
 
-  let pocketButton = pbmWindow.document.getElementById("save-to-pocket-button");
-  ok(!pocketButton, "Pocket button is removed from PBM window");
   let bookmarksBar = pbmWindow.document.getElementById("PersonalToolbar");
   ok(
     bookmarksBar.getAttribute("collapsed"),

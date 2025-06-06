@@ -13,13 +13,6 @@ export var TaskbarTabUI = {
     // Ensure tab strip is hidden
     window.TabBarVisibility.update();
 
-    // Hide pocket button
-    const saveToPocketButton = document.getElementById("save-to-pocket-button");
-    if (saveToPocketButton) {
-      saveToPocketButton.remove();
-      document.documentElement.setAttribute("pocketdisabled", "true");
-    }
-
     // Hide bookmark star
     document.getElementById("star-button-box").style.display = "none";
 

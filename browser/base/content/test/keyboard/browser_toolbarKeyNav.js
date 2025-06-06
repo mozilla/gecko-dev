@@ -18,7 +18,7 @@ let gCUITestUtils = new CustomizableUITestUtils(window);
 
 const PERMISSIONS_PAGE =
   "https://example.com/browser/browser/base/content/test/permissions/permissions.html";
-const afterUrlBarButton = "save-to-pocket-button";
+const afterUrlBarButton = "fxa-toolbar-menu-button";
 const sidebarRevampEnabled = Services.prefs.getBoolPref(
   "sidebar.revamp",
   false
@@ -347,14 +347,13 @@ add_task(async function testArrowsToolbarbuttons() {
   AddOldMenuSideButtons();
   await BrowserTestUtils.withNewTab("about:blank", async function () {
     startFromUrlBar();
-    await expectFocusAfterKey("Tab", afterUrlBarButton);
+    await expectFocusAfterKey("Tab", "library-button");
     EventUtils.synthesizeKey("KEY_ArrowLeft");
     is(
       document.activeElement.id,
-      afterUrlBarButton,
+      "library-button",
       "ArrowLeft at end of button group does nothing"
     );
-    await expectFocusAfterKey("ArrowRight", "library-button");
     if (!sidebarRevampEnabled) {
       await expectFocusAfterKey("ArrowRight", "sidebar-button");
     }
@@ -453,8 +452,7 @@ add_task(async function testArrowsOverflowButton() {
       CustomizableUI.AREA_FIXED_OVERFLOW_PANEL
     );
     startFromUrlBar();
-    await expectFocusAfterKey("Tab", afterUrlBarButton);
-    await expectFocusAfterKey("ArrowRight", "library-button");
+    await expectFocusAfterKey("Tab", "library-button");
     if (!sidebarRevampEnabled) {
       await expectFocusAfterKey("ArrowRight", "sidebar-button");
     }
@@ -503,17 +501,12 @@ add_task(async function testArrowsRtl() {
   AddOldMenuSideButtons();
   await BrowserTestUtils.enableRtlLocale();
   startFromUrlBar(window);
-  await expectFocusAfterKey("Tab", afterUrlBarButton);
+  await expectFocusAfterKey("Tab", "library-button");
   EventUtils.synthesizeKey("KEY_ArrowRight", {});
-  is(
-    document.activeElement.id,
-    afterUrlBarButton,
-    "ArrowRight at end of button group does nothing"
-  );
-  await expectFocusAfterKey("ArrowLeft", "library-button");
   if (!sidebarRevampEnabled) {
     await expectFocusAfterKey("ArrowLeft", "sidebar-button");
   }
+  await expectFocusAfterKey("ArrowLeft", "unified-extensions-button");
   await BrowserTestUtils.disableRtlLocale();
   RemoveOldMenuSideButtons();
 });
@@ -558,8 +551,7 @@ add_task(async function testPanelCloseRestoresFocus() {
     // We can't use forceFocus because that removes focusability immediately.
     // Instead, we must let ToolbarKeyboardNavigator handle this properly.
     startFromUrlBar();
-    await expectFocusAfterKey("Tab", afterUrlBarButton);
-    await expectFocusAfterKey("ArrowRight", "library-button");
+    await expectFocusAfterKey("Tab", "library-button");
     let view = document.getElementById("appMenu-libraryView");
     let shown = BrowserTestUtils.waitForEvent(view, "ViewShown");
     EventUtils.synthesizeKey(" ");
@@ -621,16 +613,7 @@ add_task(async function testCharacterNavigation() {
     // Escape should reset the search.
     EventUtils.synthesizeKey("KEY_Escape");
     if (!sidebarRevampEnabled) {
-      // Now that the search is reset, pressing s should focus Save to Pocket.
-      await expectFocusAfterKey("s", "save-to-pocket-button");
-      // Pressing i makes the search "si", so it should focus Sidebars.
-      await expectFocusAfterKey("i", "sidebar-button");
-    }
-    // Reset the search.
-    EventUtils.synthesizeKey("KEY_Escape");
-    if (!sidebarRevampEnabled) {
-      await expectFocusAfterKey("s", "save-to-pocket-button");
-      // Pressing s again should find the next button starting with s: Sidebars.
+      // Pressing s should find the button starting with s: Sidebars.
       await expectFocusAfterKey("s", "sidebar-button");
     }
   });
@@ -667,9 +650,7 @@ add_task(async function testTabStopsAfterSearchBarAdded() {
   await withNewBlankTab(async function () {
     startFromUrlBar();
     await expectFocusAfterKey("Tab", "searchbar", true);
-    await expectFocusAfterKey("Tab", afterUrlBarButton);
-    await expectFocusAfterKey("ArrowRight", "library-button");
-    await expectFocusAfterKey("ArrowLeft", afterUrlBarButton);
+    await expectFocusAfterKey("Tab", "library-button");
     await expectFocusAfterKey("Shift+Tab", "searchbar", true);
     await expectFocusAfterKey("Shift+Tab", gURLBar.inputField);
   });

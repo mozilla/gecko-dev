@@ -66,7 +66,7 @@ const kSubviewEvents = ["ViewShowing", "ViewHiding"];
  * The current version. We can use this to auto-add new default widgets as necessary.
  * (would be const but isn't because of testing purposes)
  */
-var kVersion = 22;
+var kVersion = 23;
 
 /**
  * Buttons removed from built-ins by version they were removed. kVersion must be
@@ -338,7 +338,6 @@ var CustomizableUIInternal = {
       "vertical-spacer",
       "urlbar-container",
       "spring",
-      "save-to-pocket-button",
       "downloads-button",
       AppConstants.MOZ_DEV_EDITION ? "developer-button" : null,
       "fxa-toolbar-menu-button",
@@ -738,32 +737,6 @@ var CustomizableUIInternal = {
       }
     }
 
-    // Add the save to Pocket button left of downloads button.
-    if (currentVersion < 17) {
-      let navbarPlacements = gSavedState.placements[CustomizableUI.AREA_NAVBAR];
-      let persistedPageActionsPref = Services.prefs.getCharPref(
-        "browser.pageActions.persistedActions",
-        ""
-      );
-      let pocketPreviouslyInUrl = true;
-      try {
-        let persistedPageActionsData = JSON.parse(persistedPageActionsPref);
-        // If Pocket was previously not in the url bar, let's not put it in the toolbar.
-        // It'll still be an option to add from the customization page.
-        pocketPreviouslyInUrl =
-          persistedPageActionsData.idsInUrlbar.includes("pocket");
-      } catch (e) {}
-      if (navbarPlacements && pocketPreviouslyInUrl) {
-        // Pocket's new home is next to the downloads button, or the next best spot.
-        let newPosition =
-          navbarPlacements.indexOf("downloads-button") ??
-          navbarPlacements.indexOf("fxa-toolbar-menu-button") ??
-          navbarPlacements.length;
-
-        navbarPlacements.splice(newPosition, 0, "save-to-pocket-button");
-      }
-    }
-
     // Add firefox-view if not present
     if (currentVersion < 18) {
       let tabstripPlacements =
@@ -850,6 +823,16 @@ var CustomizableUIInternal = {
           navbarPlacements.shift();
           navbarPlacements.push("sidebar-button");
         }
+      }
+    }
+
+    if (currentVersion < 23) {
+      const navbarPlacements =
+        gSavedState.placements[CustomizableUI.AREA_NAVBAR];
+
+      let buttonIndex = navbarPlacements.indexOf("save-to-pocket-button");
+      if (buttonIndex != -1) {
+        navbarPlacements.splice(buttonIndex, 1);
       }
     }
   },
@@ -3196,9 +3179,7 @@ var CustomizableUIInternal = {
    *   Returns true if the widget ID belongs to a widget that is registered or
    *   is a "special" widget (see isSpecialWidget). This will return false for
    *   widget IDs belonging to widgets we have seen in the past, but are no
-   *   longer registered. There is also a special case for treating
-   *   the "save-to-pocket-button" as a non-existant widget. All other IDs are
-   *   presumed to belong to XUL widgets, and presumed to exist.
+   *   longer registered.
    */
   widgetExists(aWidgetId) {
     if (gPalette.has(aWidgetId) || this.isSpecialWidget(aWidgetId)) {
@@ -3206,9 +3187,8 @@ var CustomizableUIInternal = {
     }
 
     // Destroyed API widgets are in gSeenWidgets, but not in gPalette:
-    // The Pocket button is a default API widget that acts like a custom widget.
     // If it's not in gPalette, it doesn't exist.
-    if (gSeenWidgets.has(aWidgetId) || aWidgetId === "save-to-pocket-button") {
+    if (gSeenWidgets.has(aWidgetId)) {
       return false;
     }
 
