@@ -2757,31 +2757,3 @@ pub extern "C" fn wgpu_server_sampler_drop(global: &Global, self_id: id::Sampler
 pub extern "C" fn wgpu_server_query_set_drop(global: &Global, self_id: id::QuerySetId) {
     global.query_set_drop(self_id);
 }
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_compute_pipeline_get_bind_group_layout(
-    global: &Global,
-    self_id: id::ComputePipelineId,
-    index: u32,
-    assign_id: id::BindGroupLayoutId,
-    mut error_buf: ErrorBuffer,
-) {
-    let (_, error) = global.compute_pipeline_get_bind_group_layout(self_id, index, Some(assign_id));
-    if let Some(err) = error {
-        error_buf.init(err);
-    }
-}
-
-#[no_mangle]
-pub extern "C" fn wgpu_server_render_pipeline_get_bind_group_layout(
-    global: &Global,
-    self_id: id::RenderPipelineId,
-    index: u32,
-    assign_id: id::BindGroupLayoutId,
-    mut error_buf: ErrorBuffer,
-) {
-    let (_, error) = global.render_pipeline_get_bind_group_layout(self_id, index, Some(assign_id));
-    if let Some(err) = error {
-        error_buf.init(err);
-    }
-}

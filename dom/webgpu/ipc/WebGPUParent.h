@@ -122,10 +122,6 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
                                 const ipc::ByteBuf& aByteBuf);
   ipc::IPCResult RecvComputePass(RawId aEncoderId, RawId aDeviceId,
                                  const ipc::ByteBuf& aByteBuf);
-  ipc::IPCResult RecvBumpImplicitBindGroupLayout(RawId aPipelineId,
-                                                 bool aIsCompute,
-                                                 uint32_t aIndex,
-                                                 RawId aAssignId);
 
   ipc::IPCResult RecvDevicePushErrorScope(RawId aDeviceId, dom::GPUErrorFilter);
   ipc::IPCResult RecvDevicePopErrorScope(

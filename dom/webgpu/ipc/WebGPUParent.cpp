@@ -1704,23 +1704,6 @@ ipc::IPCResult WebGPUParent::RecvComputePass(RawId aEncoderId, RawId aDeviceId,
   return IPC_OK();
 }
 
-ipc::IPCResult WebGPUParent::RecvBumpImplicitBindGroupLayout(RawId aPipelineId,
-                                                             bool aIsCompute,
-                                                             uint32_t aIndex,
-                                                             RawId aAssignId) {
-  ErrorBuffer error;
-  if (aIsCompute) {
-    ffi::wgpu_server_compute_pipeline_get_bind_group_layout(
-        mContext.get(), aPipelineId, aIndex, aAssignId, error.ToFFI());
-  } else {
-    ffi::wgpu_server_render_pipeline_get_bind_group_layout(
-        mContext.get(), aPipelineId, aIndex, aAssignId, error.ToFFI());
-  }
-
-  ForwardError(0, error);
-  return IPC_OK();
-}
-
 ipc::IPCResult WebGPUParent::RecvDevicePushErrorScope(
     RawId aDeviceId, const dom::GPUErrorFilter aFilter) {
   const auto& itr = mErrorScopeStackByDevice.find(aDeviceId);
