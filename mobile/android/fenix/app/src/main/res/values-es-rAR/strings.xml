@@ -1561,7 +1561,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">Cancelar</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">En proceso</string>
+  <string name="download_header_in_progress">En proceso</string>
   <!--
     Time period headers for downloads
 
@@ -1576,17 +1576,38 @@
   <string name="download_time_period_last_30_days">Últimos 30 días</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">Más antiguo</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">Preparando descarga…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s restantes</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s restantes</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • en %3$s.</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • pendiente</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • pausada</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">pausado</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">pausado</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">pendiente</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">pendiente</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Falló la descarga</string>
   <!-- Text for the snackbar action button to view failed download details. -->
@@ -3671,7 +3692,7 @@
 
     Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
   -->
-  <string name="review_prompt_pre_prompt_header">¿Qué opinas sobre %1$s?</string>
+  <string name="review_prompt_pre_prompt_header">¿Qué pensás sobre %1$s?</string>
   <!-- Label for a button negatively rating the user's experience with the app -->
   <string name="review_prompt_negative_button">Estoy teniendo problemas</string>
   <!-- Label for a button positively rating the user's experience with the app -->
@@ -3681,7 +3702,7 @@
   <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_rate_button">Calificá a %1$s en Play Store</string>
   <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
-  <string name="review_prompt_feedback_header">Lamentamos que estés teniendo problemas. Háganos saber cómo podemos mejorar %1$s.</string>
+  <string name="review_prompt_feedback_header">Lamentamos que estés teniendo problemas. Hacenos saber cómo podemos mejorar %1$s.</string>
   <!-- Label for a button opening a feedback forum -->
   <string name="review_prompt_feedback_button">Dejar opinión</string>
 </resources>

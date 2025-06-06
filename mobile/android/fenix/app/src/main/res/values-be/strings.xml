@@ -1262,7 +1262,7 @@
   <!-- Content description for the search bar clear text button on the downloads screen -->
   <string name="download_clear_search_description">Ачысціць</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">У працэсе</string>
+  <string name="download_header_in_progress">У працэсе</string>
   <!--
     Time period headers for downloads
 

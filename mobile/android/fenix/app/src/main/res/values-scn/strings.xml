@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">Cchiù nfurmazzioni</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">Manija stinneri</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">Cchiù assai</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">Cchiù picca</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">Stinneri raccumannati</string>
   <!--
@@ -389,6 +393,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">Traduciuta nni %1$s</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">Traduciuta</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">Stampa…</string>
   <!--
@@ -1555,7 +1561,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">Sfai</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">\'N cursu</string>
+  <string name="download_header_in_progress">\'N cursu</string>
   <!--
     Time period headers for downloads
 
@@ -1576,11 +1582,11 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • nn\'arrèstanu %3$s</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • nn\'arrèstanu %3$s</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">\'n pausa</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">\'n pausa</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">suspinnutu</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">suspinnutu</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Scarricamentu sfallutu</string>
   <!-- Text for the snackbar action button to view failed download details. -->
@@ -1895,6 +1901,10 @@
   <string name="studies_on">Attivu</string>
   <!-- Summary of studies data on quit preference if it is set to off -->
   <string name="studies_off">Sdisattivu</string>
+  <!-- Toggle if desktop site is turned on -->
+  <string name="browser_feature_desktop_site_on">Attiva</string>
+  <!-- Toggle if desktop site is turned off -->
+  <string name="browser_feature_desktop_site_off">Sdisattiva</string>
   <!-- Category header of a preference that allows a user to alter settings related to web permissions. -->
   <string name="preferences_category_permissions">Pirmissi</string>
   <!-- Category header of a preference that allows a user to alter settings related to web content. -->
@@ -3656,4 +3666,22 @@
   <string name="private_tab_cfr_negative">No, grazzi</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">Ferma i schedi</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Chi nni penzi di %1$s?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Staju avennu prubblemi</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">Na maravigghia!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">Grazzi chi ti nzitasti %1$s. Ài un minutu pi dàrini na valutazzioni?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Vàluta %1$s nne Play Store</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Ni dispiaci chi stai avennu mpidugghi. Fanni sapiri comu putemu ammigghiurari %1$s.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Lassa un cummentu</string>
 </resources>

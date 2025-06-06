@@ -1559,7 +1559,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">ביטול</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">בתהליך</string>
+  <string name="download_header_in_progress">בתהליך</string>
   <!--
     Time period headers for downloads
 
@@ -1580,11 +1580,11 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">‏%1$s מתוך %2$s • נותרו %3$s</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">‏%1$s מתוך %2$s • נותרו %3$s</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">מושהה</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">מושהה</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">בהמתנה</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">בהמתנה</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">ההורדה נכשלה</string>
   <!-- Text for the snackbar action button to view failed download details. -->

@@ -1339,7 +1339,7 @@
   <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
   <string name="preferences_close_tabs">بستن بلگه یل</string>
   <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
-  <string name="close_tabs_manually">دستی</string>
+  <string name="close_tabs_manually">هرگشت</string>
   <!-- Option for auto closing tabs that will auto close tabs after one day -->
   <string name="close_tabs_after_one_day">بئڌ ی رۊز</string>
   <!-- Option for auto closing tabs that will auto close tabs after one week -->
@@ -1561,7 +1561,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">لقو</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">هونی پؽش اروه</string>
+  <string name="download_header_in_progress">هونی پؽش اروه</string>
   <!--
     Time period headers for downloads
 
@@ -1582,11 +1582,11 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s ز %2$s • %3$s باقی منده</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s ز %2$s • %3$s باقی منده</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">واڌاشتن</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">واڌاشتن</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">هونی واجۊری بۊ</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">هونی واجۊری بۊ</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">دانلود شکست خرد</string>
   <!-- Text for the snackbar action button to view failed download details. -->
@@ -3666,4 +3666,22 @@
   <string name="private_tab_cfr_negative">ن ممنووݩ</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">چفت کردن بلگه یل</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">منشڌ ایسا زبار %1$s چنه؟</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">مو موشکل داروم</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">هرف نڌاره!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">ممنووݩ ز موهبت %1$s. مجال هڌ وا نومره داڌن و ایما موهبتتووݩ ن نشووݩ دین؟</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">و %1$s من فۊرۊشگا پلی نومره بڌین</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">وابخشین ک و موشکل خردین. و ایما بۊگۊین ک چتاور تریم %1$s ن بؽڌر کۊنیم.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">منشڌی بنین</string>
 </resources>

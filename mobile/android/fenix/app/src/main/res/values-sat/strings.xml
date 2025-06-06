@@ -1519,7 +1519,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">ᱵᱟᱹᱰᱨᱟᱹ</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">ᱨᱮ ᱞᱟᱦᱟᱜ ᱠᱟᱱᱟ</string>
+  <string name="download_header_in_progress">ᱨᱮ ᱞᱟᱦᱟᱜ ᱠᱟᱱᱟ</string>
   <!-- Text for the header that groups the downloads for yesterday -->
   <string name="download_time_period_yesterday">ᱦᱚᱞᱟ</string>
   <!-- Text for the header that groups the downloads the past 7 days -->
@@ -1534,11 +1534,11 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ᱥᱟᱨᱮᱡ ᱠᱟᱱᱟ</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ᱥᱟᱨᱮᱡ ᱠᱟᱱᱟ</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">ᱛᱷᱩᱢ</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">ᱛᱷᱩᱢ</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">ᱛᱟᱹᱝᱜᱤᱨᱮ</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">ᱛᱟᱹᱝᱜᱤᱨᱮ</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">ᱰᱟᱣᱱᱞᱚᱰ ᱰᱤᱜᱟᱹᱣᱮᱱᱟ</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->

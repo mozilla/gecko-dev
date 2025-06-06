@@ -226,6 +226,10 @@
   <string name="browser_menu_extensions_banner_learn_more">കൂടുതലറിയുക</string>
   <!-- Browser menu button that opens the extensions manager -->
   <string name="browser_menu_manage_extensions">വിപുലീകരണങ്ങൾ കൈകാര്യം ചെയ്യുക</string>
+  <!-- Browser menu group that contains additional settings in collapsed state -->
+  <string name="browser_menu_more_settings">കൂടുതല്‍</string>
+  <!-- Browser menu group that contains additional settings in expanded state -->
+  <string name="browser_menu_less_settings">കുറച്ചു്</string>
   <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions. -->
   <string name="browser_menu_recommended_section_content_description">ശുപാർശപെട്ട വിപുലീകരണങ്ങൾ</string>
   <!--
@@ -385,6 +389,8 @@
     %1$s is the name of the language that page was translated to (e.g. English).
   -->
   <string name="browser_menu_translated_to">%1$s -ലേക്കു് വിവർത്തനം ചെയ്തു</string>
+  <!-- Browser menu label that is displayed when the current page has been translated by the translation feature. -->
+  <string name="browser_menu_translated">വിവൎത്തിക്കപ്പെട്ട</string>
   <!-- Browser menu label for the print feature -->
   <string name="browser_menu_print">അച്ചടിപ്പിക്കുക…</string>
   <!--
@@ -1482,7 +1488,7 @@
   <!-- Alert dialog confirmation before deleting multiple download items, this is the negative action. -->
   <string name="download_delete_multi_select_dialog_cancel">റദ്ദാക്കുക</string>
   <!-- Text for the header of in progress downloads -->
-  <string name="download_header_in_progress" tools:ignore="UnusedResources">നടപ്പിലാണു്</string>
+  <string name="download_header_in_progress">നടപ്പിലാണു്</string>
   <!--
     Time period headers for downloads
 
@@ -1503,11 +1509,11 @@
     %2$s is the total size of the downloaded file.
     %3$s is the amount of time remaining to complete the download.
   -->
-  <string name="download_item_in_progress_description" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ഒഴിഞ്ഞിരിപ്പുണ്ടു്</string>
+  <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s ഒഴിഞ്ഞിരിപ്പുണ്ടു്</string>
   <!-- Text to indicate that an in progress download is paused. -->
-  <string name="download_item_status_paused" tools:ignore="UnusedResources">താല്ക്കാലം നിറുത്തി</string>
+  <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">താല്ക്കാലം നിറുത്തി</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
-  <string name="download_item_download_speed_pending" tools:ignore="UnusedResources">ഒഴിഞ്ഞിരിക്കുന്നതു്</string>
+  <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">ഒഴിഞ്ഞിരിക്കുന്നതു്</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">ഇറക്കിവയ്ക്കൽ തോറ്റു</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
