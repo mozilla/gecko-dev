@@ -385,17 +385,6 @@ const RefPtr<SupportedFeatures>& Adapter::Features() const { return mFeatures; }
 const RefPtr<SupportedLimits>& Adapter::Limits() const { return mLimits; }
 const RefPtr<AdapterInfo>& Adapter::Info() const { return mInfo; }
 
-bool Adapter::IsFallbackAdapter() const {
-  if (GetParentObject()->ShouldResistFingerprinting(
-          RFPTarget::WebGPUIsFallbackAdapter)) {
-    // Always report hardware support for WebGPU.
-    // This behaviour matches with media capabilities API.
-    return false;
-  }
-
-  return mInfoInner->device_type == ffi::WGPUDeviceType::WGPUDeviceType_Cpu;
-}
-
 bool Adapter::SupportExternalTextureInSwapChain() const {
   return mInfoInner->support_use_external_texture_in_swap_chain;
 }
