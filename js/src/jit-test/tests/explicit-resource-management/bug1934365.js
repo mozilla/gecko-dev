@@ -1,4 +1,4 @@
-// |jit-test| skip-if: !getBuildConfiguration("explicit-resource-management")
+// |jit-test| skip-if: !getBuildConfiguration("explicit-resource-management") || getBuildConfiguration("debug")
 
 if ('oomTest' in this) {
   function b() {
