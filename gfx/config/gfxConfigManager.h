@@ -48,8 +48,7 @@ class gfxConfigManager {
         mDisableHwCompositingNoWr(false),
         mIsNightly(false),
         mIsEarlyBetaOrEarlier(false),
-        mSafeMode(false),
-        mIsWin11OrLater(false) {}
+        mSafeMode(false) {}
 
   void Init();
 
@@ -109,7 +108,6 @@ class gfxConfigManager {
   bool mIsNightly;
   bool mIsEarlyBetaOrEarlier;
   bool mSafeMode;
-  bool mIsWin11OrLater;
 };
 
 }  // namespace gfx

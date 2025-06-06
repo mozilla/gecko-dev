@@ -102,7 +102,6 @@ class GfxInfoBase : public nsIGfxInfo,
   virtual nsresult Init();
 
   NS_IMETHOD_(void) GetData() override;
-  NS_IMETHOD_(int32_t) GetMaxRefreshRate(bool* aMixed) override;
   NS_IMETHOD GetTextScaleFactor(float* aOutValue) override;
 
   static void AddCollector(GfxInfoCollectorBase* collector);

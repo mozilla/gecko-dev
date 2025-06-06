@@ -58,8 +58,8 @@
     suggestedVersion)                                                      \
   sDriverInfo->AppendElement(MakeAndAddRef<GfxDriverInfo>(                 \
       os, GfxDriverInfo::GetDeviceFamily(devices), feature, featureStatus, \
-      refreshRateStatus, maxRefreshRateComparator, maxRefreshRate,         \
-      maxRefreshRateMax, maxRefreshRateComparator, maxRefreshRate,         \
+      refreshRateStatus, minRefreshRateComparator, minRefreshRate,         \
+      minRefreshRateMax, maxRefreshRateComparator, maxRefreshRate,         \
       maxRefreshRateMax, ruleId, suggestedVersion))
 
 #define APPEND_TO_DRIVER_BLOCKLIST_RANGE_EXT(                                 \

@@ -511,7 +511,7 @@ void GfxInfoBase::GetData() {
 
     mMinRefreshRate = std::numeric_limits<int32_t>::max();
     mMaxRefreshRate = std::numeric_limits<int32_t>::min();
-    for (auto& screen : ScreenManager::GetSingleton().CurrentScreenList()) {
+    for (auto& screen : screenList) {
       int32_t refreshRate = screen->GetRefreshRate();
       mMinRefreshRate = std::min(mMinRefreshRate, refreshRate);
       mMaxRefreshRate = std::max(mMaxRefreshRate, refreshRate);
@@ -1985,24 +1985,6 @@ NS_IMETHODIMP
 GfxInfoBase::GetUsingAcceleratedCanvas(bool* aOutValue) {
   *aOutValue = gfx::gfxVars::UseAcceleratedCanvas2D();
   return NS_OK;
-}
-
-NS_IMETHODIMP_(int32_t)
-GfxInfoBase::GetMaxRefreshRate(bool* aMixed) {
-  if (aMixed) {
-    *aMixed = false;
-  }
-
-  int32_t maxRefreshRate = 0;
-  for (auto& screen : ScreenManager::GetSingleton().CurrentScreenList()) {
-    int32_t refreshRate = screen->GetRefreshRate();
-    if (aMixed && maxRefreshRate > 0 && maxRefreshRate != refreshRate) {
-      *aMixed = true;
-    }
-    maxRefreshRate = std::max(maxRefreshRate, refreshRate);
-  }
-
-  return maxRefreshRate > 0 ? maxRefreshRate : -1;
 }
 
 NS_IMETHODIMP

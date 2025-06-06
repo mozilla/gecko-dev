@@ -64,7 +64,6 @@ void gfxConfigManager::Init() {
 #ifdef XP_WIN
   DeviceManagerDx::Get()->CheckHardwareStretchingSupport(mHwStretchingSupport);
   mScaledResolution = HasScaledResolution();
-  mIsWin11OrLater = IsWin11OrLater();
   mWrCompositorDCompRequired = true;
 #else
   ++mHwStretchingSupport.mBoth;
@@ -260,30 +259,17 @@ void gfxConfigManager::ConfigureWebRender() {
   }
 
   mFeatureWrDComp->EnableByDefault();
+
   if (!mWrDCompWinEnabled) {
     mFeatureWrDComp->UserDisable("User disabled via pref",
                                  "FEATURE_FAILURE_DCOMP_PREF_DISABLED"_ns);
   }
 
+  ConfigureFromBlocklist(nsIGfxInfo::FEATURE_WEBRENDER_DCOMP, mFeatureWrDComp);
+
   if (!mFeatureGPUProcess->IsEnabled()) {
     mFeatureWrDComp->Disable(FeatureStatus::Unavailable, "Requires GPU process",
                              "FEATURE_FAILURE_NO_GPU_PROCESS"_ns);
-  }
-
-  if (!mIsWin11OrLater) {
-    // Disable DirectComposition for NVIDIA users on Windows 10 with high/mixed
-    // refresh rate monitors due to rendering artifacts. (See bug 1638709.)
-    nsAutoString adapterVendorID;
-    mGfxInfo->GetAdapterVendorID(adapterVendorID);
-    if (adapterVendorID == u"0x10de") {
-      bool mixed = false;
-      int32_t maxRefreshRate = mGfxInfo->GetMaxRefreshRate(&mixed);
-      if (maxRefreshRate > 60 && mixed) {
-        mFeatureWrDComp->Disable(FeatureStatus::Blocked,
-                                 "Monitor refresh rate too high/mixed",
-                                 "NVIDIA_REFRESH_RATE_MIXED"_ns);
-      }
-    }
   }
 
   mFeatureWrDComp->MaybeSetFailed(

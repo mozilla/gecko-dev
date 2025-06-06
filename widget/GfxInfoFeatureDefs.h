@@ -115,3 +115,5 @@ GFXINFO_FEATURE(OVERLAY_VP_AUTO_HDR, "FEATURE_OVERLAY_VP_AUTO_HDR", "overlay-vp-
 GFXINFO_FEATURE(OVERLAY_VP_SUPER_RESOLUTION, "FEATURE_OVERLAY_VP_SUPER_RESOLUTION", "overlay-vp-super-resolution")
 /* Whether DMABUF is supported when using WebGL, starting in 88. */
 GFXINFO_FEATURE(DMABUF_WEBGL, "DMABUF_WEBGL", "dmabuf-webgl")
+/* Whether DirectComposition is supported for compositing, starting in 141. */
+GFXINFO_FEATURE(WEBRENDER_DCOMP, "WEBRENDER_DCOMP", "webrender.dcomp")

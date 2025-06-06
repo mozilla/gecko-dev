@@ -1912,6 +1912,16 @@ const nsTArray<RefPtr<GfxDriverInfo>>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_BLOCKED_DEVICE, DRIVER_COMPARISON_IGNORED,
         V(0, 0, 0, 0), "FEATURE_FAILURE_BUG_1923697");
 
+    /* Disable DirectComposition for NVIDIA devices with a maximum mixed refresh
+     * rate over 60 due to rendering artifacts. See bug 1638709. */
+    APPEND_TO_DRIVER_BLOCKLIST_REFRESH_RATE(
+        OperatingSystem::Windows10, DeviceFamily::NvidiaAll,
+        nsIGfxInfo::FEATURE_WEBRENDER_DCOMP, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
+        RefreshRateStatus::Mixed,
+        /* minRefreshRate */ DRIVER_COMPARISON_IGNORED, 0, 0,
+        /* maxRefreshRate */ DRIVER_GREATER_THAN, 60, 0,
+        "NVIDIA_REFRESH_RATE_MIXED", "Monitor refresh rate too high/mixed");
+
     // WebRender is unable to use scissored clears in some cases
     APPEND_TO_DRIVER_BLOCKLIST2(
         OperatingSystem::Windows, DeviceFamily::IntelAll,
