@@ -105,7 +105,7 @@ impl TimespanMetric {
             TimespanMetric::Parent {
                 id,
                 inner: glean::private::TimespanMetric::new(meta, time_unit),
-                time_unit: time_unit,
+                time_unit,
             }
         }
     }
