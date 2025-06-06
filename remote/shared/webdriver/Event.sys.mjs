@@ -112,8 +112,6 @@ event.synthesizeTouchAtPoint = function (left, top, opts, win) {
  * @param {module:EventUtils~WheelEventData} event - Details of the wheel event
  *     to dispatch.
  * @param {DOMWindow} win - DOM window used to dispatch the event.
- *
- * @returns {Promise} - Promise that resolves once the event has been dispatched.
  */
 event.synthesizeWheelAtPoint = function (left, top, event, win) {
   const dpr = win.devicePixelRatio;
@@ -131,9 +129,7 @@ event.synthesizeWheelAtPoint = function (left, top, event, win) {
     event.deltaZ *= dpr;
   }
 
-  return new Promise(resolve =>
-    _getEventUtils(win).synthesizeWheelAtPoint(left, top, event, win, resolve)
-  );
+  return _getEventUtils(win).synthesizeWheelAtPoint(left, top, event, win);
 };
 
 event.synthesizeMultiTouch = function (opts, win) {
