@@ -19,18 +19,38 @@
 #  define MOZ_END_EXTERN_C
 #endif
 
-#import <Foundation/NSObject.h>
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import <xpc/xpc.h>
+
+@protocol SwiftEventDispatcher;
 
 @protocol SwiftGeckoViewRuntime <NSObject>
+- (id<SwiftEventDispatcher>)runtimeDispatcher;
+- (id<SwiftEventDispatcher>)dispatcherByName:(const char*)name;
 @end
+
 @protocol GeckoProcessExtension <NSObject>
 @end
 
+@protocol EventCallback <NSObject>
+- (void)sendSuccess:(id)response;
+- (void)sendError:(id)response;
+@end
+
 @protocol GeckoEventDispatcher <NSObject>
+- (void)dispatchToGecko:(NSString*)type
+                message:(id)message
+               callback:(id<EventCallback>)callback;
+- (BOOL)hasListener:(NSString*)type;
 @end
 
 @protocol SwiftEventDispatcher <NSObject>
-- (void)attach:(id<GeckoEventDispatcher>)geckoEventDispatcher;
+- (void)attach:(id<GeckoEventDispatcher>)gecko;
+- (void)dispatchToSwift:(NSString*)type
+                message:(id)message
+               callback:(id<EventCallback>)callback;
+- (BOOL)hasListener:(NSString*)type;
 @end
 
 @protocol GeckoViewWindow <NSObject>

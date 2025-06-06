@@ -8,39 +8,38 @@
 #define mozilla_widget_EventDispatcher_h
 
 #include <objc/objc.h>
+#include <CoreFoundation/CoreFoundation.h>
 
-#include "nsIGeckoViewBridge.h"
-#include "nsPIDOMWindow.h"
+#include "mozilla/widget/EventDispatcherBase.h"
 
-namespace mozilla {
-namespace widget {
+namespace mozilla::widget {
 
 /**
  * EventDispatcher is the Gecko counterpart to the Swift EventDispatcher class.
  * Together, they make up a unified event bus. Events dispatched from the Swift
  * side may notify event listeners on the Gecko side, and vice versa.
  */
-class EventDispatcher final : public nsIGeckoViewEventDispatcher {
+class EventDispatcher final : public EventDispatcherBase {
  public:
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIGECKOVIEWEVENTDISPATCHER
-
-  EventDispatcher() {}
-
   void Attach(id aDispatcher);
   void Detach();
 
-  bool HasListener(const char16_t* aEvent);
+  bool HasEmbedderListener(const nsAString& aEvent) override;
+  nsresult DispatchToEmbedder(JSContext* aCx, const nsAString& aEvent,
+                              JS::Handle<JS::Value> aData,
+                              nsIGeckoViewEventCallback* aCallback) override;
+
+  static nsresult UnboxBundle(JSContext* aCx, CFDictionaryRef aData,
+                              JS::MutableHandle<JS::Value> aOut);
 
  private:
-  virtual ~EventDispatcher() {}
+  virtual ~EventDispatcher();
 
   void Shutdown();
 
   id mDispatcher = nullptr;
 };
 
-}  // namespace widget
-}  // namespace mozilla
+}  // namespace mozilla::widget
 
 #endif  // mozilla_widget_EventDispatcher_h
