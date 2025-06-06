@@ -8,15 +8,15 @@
 <script type="application/javascript">
 
 try {
-  let LocalFiraSans = new FontFace(
-    "LocalFiraSans",
-    "url('chrome://pocket/content/panels/fonts/FiraSans-Regular.woff') format('woff')"
+  let Ahem = new FontFace(
+    "Ahem",
+    "url('chrome://mochitests/content/tests/dom/base/test/Ahem.ttf')"
   ).load().then(() => {
-    ok(true, "We should suuceed");
+    ok(true, "We should succeed (resolve)");
   }, () => {
     ok(false, "We shouldn't fail (reject)");
   });
-  console.log(LocalFiraSans); // avoid warning
+  console.log(Ahem); // avoid warning
 } catch (e) {
   ok(false, "We shouldn't fail (catch)" + e);
 }
