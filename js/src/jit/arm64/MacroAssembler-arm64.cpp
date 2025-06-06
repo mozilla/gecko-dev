@@ -1635,7 +1635,7 @@ uint32_t MacroAssembler::pushFakeReturnAddress(Register scratch) {
 }
 
 bool MacroAssemblerCompat::buildOOLFakeExitFrame(void* fakeReturnAddr) {
-  asMasm().Push(FrameDescriptor(FrameType::IonJS));
+  asMasm().PushFrameDescriptor(FrameType::IonJS);
   asMasm().Push(ImmPtr(fakeReturnAddr));
   asMasm().Push(FramePointer);
   return true;

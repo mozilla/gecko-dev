@@ -31,13 +31,13 @@ inline void EmitBaselineTailCallVM(TrampolinePtr target, MacroAssembler& masm,
 #endif
 
   // Push frame descriptor and perform the tail call.
-  masm.push(FrameDescriptor(FrameType::BaselineJS));
+  masm.pushFrameDescriptor(FrameType::BaselineJS);
   masm.push(ICTailCallReg);
   masm.jump(target);
 }
 
 inline void EmitBaselineCallVM(TrampolinePtr target, MacroAssembler& masm) {
-  masm.push(FrameDescriptor(FrameType::BaselineStub));
+  masm.pushFrameDescriptor(FrameType::BaselineStub);
   masm.call(target);
 }
 

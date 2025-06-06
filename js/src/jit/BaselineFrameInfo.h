@@ -181,9 +181,6 @@ class FrameInfo {
   Address addressOfThis() const {
     return Address(FramePointer, JitFrameLayout::offsetOfThis());
   }
-  Address addressOfDescriptor() const {
-    return Address(FramePointer, CommonFrameLayout::offsetOfDescriptor());
-  }
   Address addressOfCalleeToken() const {
     return Address(FramePointer, JitFrameLayout::offsetOfCalleeToken());
   }

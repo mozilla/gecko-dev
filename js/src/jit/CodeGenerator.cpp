@@ -349,7 +349,7 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
 #endif
 
   // Push an exit frame descriptor.
-  masm.Push(FrameDescriptor(FrameType::IonJS));
+  masm.PushFrameDescriptor(FrameType::IonJS);
 
   // Call the wrapper function.  The wrapper is in charge to unwind the stack
   // when returning from the call.  Failures are handled with exceptions based
@@ -6438,7 +6438,7 @@ void JitRuntime::generateIonGenericCallStub(MacroAssembler& masm,
   Label invokeFunctionVMEntry;
   bindLabelToOffset(&invokeFunctionVMEntry, invokeFunctionOffset);
 
-  masm.push(FrameDescriptor(FrameType::IonJS));
+  masm.pushFrameDescriptor(FrameType::IonJS);
 #ifndef JS_USE_LINK_REGISTER
   masm.push(returnAddrReg);
 #endif
@@ -6477,7 +6477,7 @@ void JitRuntime::generateIonGenericCallNativeFunction(MacroAssembler& masm,
 
   // Construct native exit frame. Note that unlike other cases in this
   // trampoline, this code does not use a tail call.
-  masm.push(FrameDescriptor(FrameType::IonJS));
+  masm.pushFrameDescriptor(FrameType::IonJS);
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #else
@@ -6719,7 +6719,7 @@ void CodeGenerator::visitCallKnown(LCallKnown* call) {
 
   // Construct the JitFrameLayout.
   masm.PushCalleeToken(calleereg, call->mir()->isConstructing());
-  masm.Push(FrameDescriptor(FrameType::IonJS, call->numActualArgs()));
+  masm.PushFrameDescriptorForJitCall(FrameType::IonJS, call->numActualArgs());
 
   // Finally call the function in objreg.
   ensureOsiSpace();
