@@ -60,7 +60,10 @@ add_task(async function testDocumentOpenWriteClose() {
   info("Reload the page, which should trigger a navigation");
   await loadURL(browser, url);
 
-  is(events.length, 3, "Recorded 2 navigation events");
+  info("Wait until 3 events have been received");
+  await BrowserTestUtils.waitForCondition(() => events.length >= 3);
+
+  is(events.length, 3, "Recorded 3 navigation events");
   is(
     events[1].name,
     "navigation-started",
