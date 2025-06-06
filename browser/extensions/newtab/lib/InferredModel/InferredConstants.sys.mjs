@@ -22,6 +22,7 @@ export const MODEL_TYPE = {
   CLICK_IMP_PAIR: "click_impression_pair",
   // Returns a single clicks dictionary, along with the total number of clicks
   CLICKS: "clicks",
+  CTR: "ctr",
 };
 
 export const CLICK_FEATURE = "click";
