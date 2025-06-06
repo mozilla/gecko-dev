@@ -120,6 +120,7 @@ export default [
       "browser/components/places/content/places-commands.js",
       "browser/components/places/content/places-menupopup.js",
       "browser/components/places/content/placesContextMenu.js",
+      "browser/components/pocket/content/pktUI.js",
       "browser/components/screenshots/screenshots-buttons.js",
       "browser/components/tabbrowser/content/browser-allTabsMenu.js",
       "browser/components/tabbrowser/content/browser-ctrlTab.js",

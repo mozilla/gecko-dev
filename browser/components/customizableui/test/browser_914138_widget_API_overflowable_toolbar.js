@@ -328,19 +328,11 @@ add_task(async function insertBeforeFirstItemInOverflow() {
   CustomizableUI.removeWidgetFromArea("sidebar-button");
 
   CustomizableUI.addWidgetToArea(
-    "fullscreen-button",
-    "nav-bar",
-    CustomizableUI.getWidgetIdsInArea("nav-bar").indexOf(
-      "fxa-toolbar-menu-button"
-    )
-  );
-  let fullscreenButton = document.getElementById("fullscreen-button");
-  await waitForElementShown(fullscreenButton);
-
-  CustomizableUI.addWidgetToArea(
     kLibraryButton,
     "nav-bar",
-    CustomizableUI.getWidgetIdsInArea("nav-bar").indexOf("fullscreen-button")
+    CustomizableUI.getWidgetIdsInArea("nav-bar").indexOf(
+      "save-to-pocket-button"
+    )
   );
   let libraryButton = document.getElementById(kLibraryButton);
   await waitForElementShown(libraryButton);

@@ -31,6 +31,8 @@ skip-if = ["verify"]
 
 ["browser_1484275_PanelMultiView_toggle_with_other_popup.js"]
 
+["browser_1701883_restore_defaults_pocket_pref.js"]
+
 ["browser_1702200_PanelMultiView_header_separator.js"]
 
 ["browser_1795260_searchbar_overflow_toolbar.js"]
@@ -335,7 +337,6 @@ tags = "fullscreen"
 ["browser_reload_tab.js"]
 
 ["browser_remote_attribute.js"]
-skip-if = ["true"] # Bug 1968817, test depends on the Pocket toolbar icon which no longer exists.
 
 ["browser_remote_tabs_button.js"]
 skip-if = ["(verify && debug && (os == 'linux' || os == 'mac'))"]

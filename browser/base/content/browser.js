@@ -59,6 +59,7 @@ ChromeUtils.defineESModuleGetters(this, {
   PlacesTransactions: "resource://gre/modules/PlacesTransactions.sys.mjs",
   PlacesUIUtils: "moz-src:///browser/components/places/PlacesUIUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
+  Pocket: "chrome://pocket/content/Pocket.sys.mjs",
   PopupBlockerObserver: "resource:///modules/PopupBlockerObserver.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   ProcessHangMonitor: "resource:///modules/ProcessHangMonitor.sys.mjs",
@@ -69,6 +70,7 @@ ChromeUtils.defineESModuleGetters(this, {
   ResetPBMPanel: "resource:///modules/ResetPBMPanel.sys.mjs",
   SafeBrowsing: "resource://gre/modules/SafeBrowsing.sys.mjs",
   Sanitizer: "resource:///modules/Sanitizer.sys.mjs",
+  SaveToPocket: "chrome://pocket/content/SaveToPocket.sys.mjs",
   ScreenshotsUtils: "resource:///modules/ScreenshotsUtils.sys.mjs",
   SearchUIUtils: "moz-src:///browser/components/search/SearchUIUtils.sys.mjs",
   SelectableProfileService:
@@ -257,6 +259,11 @@ XPCOMUtils.defineLazyScriptGetter(
   this,
   "gGfxUtils",
   "chrome://browser/content/browser-graphics-utils.js"
+);
+XPCOMUtils.defineLazyScriptGetter(
+  this,
+  "pktUI",
+  "chrome://pocket/content/pktUI.js"
 );
 XPCOMUtils.defineLazyScriptGetter(
   this,
@@ -2224,6 +2231,8 @@ var XULBrowserWindow = {
     gProtectionsHandler.onLocationChange();
 
     BrowserPageActions.onLocationChange();
+
+    SaveToPocket.onLocationChange(window);
 
     UrlbarProviderSearchTips.onLocationChange(
       window,
@@ -4603,6 +4612,17 @@ var gPrivateBrowsingUI = {
     );
 
     gBrowser.updateTitlebar();
+
+    // Bug 1846583 - hide pocket button in PBM
+    if (gUseFeltPrivacyUI) {
+      const saveToPocketButton = document.getElementById(
+        "save-to-pocket-button"
+      );
+      if (saveToPocketButton) {
+        saveToPocketButton.remove();
+        document.documentElement.setAttribute("pocketdisabled", "true");
+      }
+    }
 
     if (PrivateBrowsingUtils.permanentPrivateBrowsing) {
       let hideNewWindowItem = (windowItem, privateWindowItem) => {

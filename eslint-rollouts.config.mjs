@@ -254,6 +254,7 @@ export default [
   {
     name: "rollout-no-console",
     files: [
+      "browser/actors/AboutPocketParent.sys.mjs",
       "browser/actors/SpeechDispatcherParent.sys.mjs",
       "browser/base/content/browser-sync.js",
       "browser/components/BrowserContentHandler.sys.mjs",

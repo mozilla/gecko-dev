@@ -1402,6 +1402,8 @@ static nsLiteralCString sImgSrcWildcardAllowList[] = {
 //  Any https host source.
 static nsLiteralCString sImgSrcHttpsHostAllowList[] = {
     "about:logins"_ns,
+    "about:pocket-home"_ns,
+    "about:pocket-saved"_ns,
     "chrome://browser/content/aboutlogins/aboutLogins.html"_ns,
     "chrome://browser/content/spotlight.html"_ns,
 };

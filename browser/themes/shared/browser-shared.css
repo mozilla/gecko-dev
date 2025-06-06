@@ -103,6 +103,8 @@ body {
   --urlbar-searchmodeswitcher-inline-padding: 6px;
   --urlbar-searchmodeswitcher-margin-inline-end: 0.45em;
 
+  --pocket-icon-fill: #ef4056;
+
   --lwt-additional-images: none;
   --lwt-background-alignment: right top;
   --lwt-background-tiling: no-repeat;

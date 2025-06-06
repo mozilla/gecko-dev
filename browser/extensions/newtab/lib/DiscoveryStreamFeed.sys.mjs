@@ -3195,7 +3195,7 @@ getHardcodedLayout = ({
               id: "newtab-pocket-learn-more",
             },
             link_url: "",
-            icon: "chrome://global/skin/icons/help.svg",
+            icon: "chrome://global/skin/icons/pocket.svg",
           },
           properties: {
             spocMessageVariant,
