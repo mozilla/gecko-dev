@@ -1583,7 +1583,7 @@ bool StyleImage::IsOpaque() const {
     return AsGradient()->IsOpaque();
   }
 
-  if (IsElement()) {
+  if (IsElement() || IsMozSymbolicIcon()) {
     return false;
   }
 
@@ -1604,6 +1604,7 @@ bool StyleImage::IsComplete() const {
       return false;
     case Tag::Gradient:
     case Tag::Element:
+    case Tag::MozSymbolicIcon:
       return true;
     case Tag::Url: {
       if (!IsResolved()) {
@@ -1638,6 +1639,7 @@ bool StyleImage::IsSizeAvailable() const {
       return false;
     case Tag::Gradient:
     case Tag::Element:
+    case Tag::MozSymbolicIcon:
       return true;
     case Tag::Url: {
       imgRequestProxy* req = GetImageRequest();

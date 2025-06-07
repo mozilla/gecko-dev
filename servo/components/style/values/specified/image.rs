@@ -253,6 +253,7 @@ impl Image {
             })?)),
             #[cfg(feature = "gecko")]
             "-moz-element" => Self::Element(Self::parse_element(input)?),
+            "-moz-symbolic-icon" if context.chrome_rules_enabled() => Self::MozSymbolicIcon(input.expect_ident()?.as_ref().into()),
             _ => return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedFunction(function))),
         }))
     }
