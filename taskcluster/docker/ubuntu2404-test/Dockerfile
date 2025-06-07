@@ -61,6 +61,16 @@ ADD motd /etc/taskcluster-motd
 ADD taskcluster-interactive-shell /bin/taskcluster-interactive-shell
 RUN     chmod +x /bin/taskcluster-interactive-shell
 
+# Per
+# https://searchfox.org/mozilla-central/rev/0fe159e3c1a09d9cd22b0ceadbe01efc7e8fd788/uriloader/exthandler/tests/unit/test_handlerService.js#133-139
+# we need a http handler configured.
+# /usr/bin/firefox doesn't really work but that doesn't matter for this test,
+# so we can pretend.
+COPY --chown=worker firefox.desktop /builds/worker/.local/share/applications/firefox.desktop
+USER worker
+RUN update-desktop-database /builds/worker/.local/share/applications
+USER root
+
 # Ubuntu 24.04 (or any other GNOME3 based systems) needs dbus to have various
 # test function as expected. Use entrypoint to initialize dbus as root.
 COPY dbus.sh /usr/local/bin/dbus.sh

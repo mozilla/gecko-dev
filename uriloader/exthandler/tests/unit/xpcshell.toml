@@ -37,9 +37,6 @@ run-if = ["os == 'win'"] # Windows only test
 support-files = ["mailcap"]
 # Bug 676997: test consistently fails on Android
 fail-if = ["os == 'android'"]
-skip-if = [
-  "os == 'linux' && os_version == '24.04' && processor == 'x86_64' && display == 'x11'", # Bug 1968555
-]
 
 ["test_handlerService_store.js"]
 # Disabled for 1563343 -- the app should determine possible handlers in GV.
