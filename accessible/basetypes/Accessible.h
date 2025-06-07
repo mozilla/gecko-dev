@@ -51,7 +51,12 @@ enum ENameValueFlag {
   /**
    * Tooltip was used as a name.
    */
-  eNameFromTooltip
+  eNameFromTooltip,
+
+  /**
+   * Labelling relations were used for the name.
+   */
+  eNameFromRelations,
 };
 
 /**
