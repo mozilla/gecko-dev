@@ -439,6 +439,10 @@
   <string name="preferences_add_private_browsing_shortcut">Lisa privaatse lehitsemise otsetee</string>
   <!-- Preference for enabling "HTTPS-Only" mode -->
   <string name="preferences_https_only_title">Ainult HTTPS-režiim</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary" moz:removedIn="140" tools:ignore="UnusedResources">Vaata kaarte sõrmejälje, näotuvastuse või PIN-koodi abil.</string>
+  <!-- Informs the user how to access the tabs when "Use screen lock to hide tabs in private browsing" is enabled -->
+  <string name="preferences_pbm_lock_screen_summary_2">Vaata kaarte sõrmejälje, PIN-koodi või näotuvastusega.</string>
   <!-- Text for indicating cookie banner handling is off this site, this is shown as part of the protections panel with the tracking protection toggle -->
   <string name="reduce_cookie_banner_off_for_site">Sellel saidil väljas</string>
   <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
@@ -1291,8 +1295,13 @@
     Text shown in the notification that pops up to remind the user that a private browsing session is active.
   -->
   <string name="notification_pbm_delete_text_2">Sulge privaatsed kaardid</string>
+  <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
+  <string name="notification_erase_title_android_14">Kas sulgeda privaatsed kaardid?</string>
+  <string name="notification_erase_text_android_14">Privaatsete kaartide sulgemiseks puuduta või libista teavitust.</string>
   <!-- Name of the marketing notification channel. Displayed in the "App notifications" system settings for the app -->
   <string name="notification_marketing_channel_name">Turundus</string>
+  <!-- Preference for not taking the short survey. -->
+  <string name="preferences_not_take_survey">Ei soovi</string>
   <!--
     Snackbar
 
@@ -1308,9 +1317,9 @@
   <!-- Text shown in snackbar when user adds a site to shortcuts -->
   <string name="snackbar_added_to_shortcuts">Lisatud otseteedesse!</string>
   <!-- Text shown in snackbar when user closes a private tab -->
-  <string name="snackbar_private_tab_closed">Privaatne aken suleti</string>
+  <string name="snackbar_private_tab_closed">Privaatne kaart suleti</string>
   <!-- Text shown in snackbar when user closes all private tabs -->
-  <string name="snackbar_private_tabs_closed">Privaatsed aknad suleti</string>
+  <string name="snackbar_private_tabs_closed">Privaatsed kaardid suleti</string>
   <!-- Text shown in snackbar to undo deleting a tab, top site or collection -->
   <string name="snackbar_deleted_undo">VÕTA TAGASI</string>
   <!-- Text shown in snackbar when user removes a top site -->
@@ -1782,6 +1791,8 @@
   <string name="credit_cards_warning_dialog_later">Hiljem</string>
   <!-- Title of PIN verification dialog to direct users to re-enter their device credentials to access their credit cards -->
   <string name="credit_cards_biometric_prompt_message_pin">Seadme lahtilukustamine</string>
+  <!-- Message displayed in biometric prompt for authentication, before allowing users to use their stored payment method information -->
+  <string name="credit_cards_biometric_prompt_unlock_message_2">Salvestatud makseviiside kasutamiseks luku avamine</string>
   <!-- Title of the "Add address" screen -->
   <string name="addresses_add_address">Aadressi lisamine</string>
   <!-- Title of the "Edit address" screen -->
@@ -2171,6 +2182,22 @@
   <string name="protection_panel_permissions_title">Õigused</string>
   <!-- Button text on the clear site data dialog to allow users to cancel the action and not clear the site data. -->
   <string name="clear_site_data_dialog_negative_button_text">Loobu</string>
+  <!-- Label for the primary action button to unlock private tabs -->
+  <string name="pbm_authentication_unlock">Ava</string>
+  <!-- Title text instructing the user to unlock private tabs -->
+  <string name="pbm_authentication_unlock_private_tabs">Privaatsete kaartide luku avamine</string>
+  <!-- Authentication prompt title to enable the private tabs mode -->
+  <string name="pbm_authentication_enable_lock">Privaatsete kaartide ekraaniluku lubamine</string>
+  <!-- Authentication prompt title to disable the private tabs mode -->
+  <string name="pbm_authentication_disable_lock">Privaatsete kaartide ekraaniluku keelamine</string>
+  <!-- Label for a preference shown when the device supports screen lock (e.g., PIN, pattern, or password) but the user has not set one up. -->
+  <string name="pbm_authentication_lock_device_feature_disabled">Ekraaniluku seadistamine kaartide peitmiseks</string>
+  <!-- Title text for the contextual feature recommendation (CFR) suggesting the user enable a screen lock to protect private tabs -->
+  <string name="private_tab_cfr_title">Kas kasutada ekraanilukku privaatsete kaartide peitmiseks?</string>
+  <!-- Negative button text for the contextual feature recommendation (CFR) dismissing the screen lock suggestion -->
+  <string name="private_tab_cfr_negative">Ei soovi</string>
+  <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
+  <string name="private_tab_cfr_positive">Lukusta kaardid</string>
   <!--
     Review prompt
 

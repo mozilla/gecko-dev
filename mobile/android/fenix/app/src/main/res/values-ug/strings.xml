@@ -1576,6 +1576,8 @@
   <string name="download_time_period_last_30_days">ئاخىرقى 30 كۈن</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">بۇرۇنراق</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">چۈشۈرۈشكە تەييارلىنىۋاتىدۇ…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -1583,6 +1585,25 @@
     %3$s is the amount of time remaining to complete the download.
   -->
   <string name="download_item_in_progress_description" moz:removedIn="141" tools:ignore="UnusedResources">%1$s / %2$s • %3$s قالدى</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is known.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+    %3$s is the amount of time remaining to complete the download.
+  -->
+  <string name="download_item_in_progress_description_2">%1$s / %2$s • \u0020%3$s قالدى.</string>
+  <!--
+    Description of an in progress download item, displayed in the downloads list when the download time remaining is unknown.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_in_progress_description_pending">%1$s / %2$s • كۈتۈۋاتىدۇ</string>
+  <!--
+    Description of a paused download item, displayed in the downloads list.
+    %1$s is the current file size that has been downloaded.
+    %2$s is the total size of the downloaded file.
+  -->
+  <string name="download_item_paused_description">%1$s / %2$s • ۋاقىتلىق توختىتىلدى</string>
   <!-- Text to indicate that an in progress download is paused. -->
   <string name="download_item_status_paused" moz:removedIn="141" tools:ignore="UnusedResources">ۋاقىتلىق توختىدى</string>
   <!-- Text to indicate that the download speed of an in progress download is being calculated. -->
@@ -3666,4 +3687,22 @@
   <string name="private_tab_cfr_negative">ياق رەھمەت</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">بەتكۈچنى قۇلۇپلا</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">سىزنىڭچە %1$s نى قانداقراق ئويلىدىڭىز؟</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">مەسىلىگە يولۇقتۇم</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">قالتىس!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">%1$s نى ياقتۇرغىنىڭىزغا رەھمەت. ئازراق ۋاقىت سەرپ قىلىپ بىزنى باھالاپ ياقتۇرۇشىڭىزنى ئىپادىلەمسىز؟</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">Play دۇكىنىدا %1$s غا باھا بېرىڭ</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">مەسىلىگە يولۇققانلىقىڭىزدىن كەچۈرۈم سورايمىز. %1$s نى قانداق ياخشىلاش توغرىسىدا بىزگە تەكلىپ بېرىڭ.</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">قايتۇرما ئىنكاس قالدۇرۇڭ</string>
 </resources>
