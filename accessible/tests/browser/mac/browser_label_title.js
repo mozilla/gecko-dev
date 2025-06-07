@@ -26,7 +26,7 @@ addAccessibleTask(
     is(n1Label.getAttributeValue("AXTitle"), "");
 
     let n2 = getNativeInterface(accDoc, "n2");
-    is(n2.getAttributeValue("AXDescription"), "Two Labels");
+    is(n2.getAttributeValue("AXTitle"), "Two Labels");
 
     let n3 = getNativeInterface(accDoc, "n3");
     is(n3.getAttributeValue("AXDescription"), "ARIA Label");
@@ -40,7 +40,7 @@ addAccessibleTask(
   `<fieldset id="fieldset"><legend>Fields</legend><input aria-label="hello"></fieldset>`,
   (browser, accDoc) => {
     let fieldset = getNativeInterface(accDoc, "fieldset");
-    is(fieldset.getAttributeValue("AXDescription"), "Fields");
+    is(fieldset.getAttributeValue("AXTitle"), "Fields");
   }
 );
 
@@ -63,18 +63,16 @@ addAccessibleTask(
  * Test that we fire a title changed notification
  */
 addAccessibleTask(
-  `<div id="elem" aria-label="Hello world"></div>`,
+  `<button id="btn">Hello world</button>`,
   async (browser, accDoc) => {
-    let elem = getNativeInterface(accDoc, "elem");
-    is(elem.getAttributeValue("AXTitle"), "Hello world");
-    let evt = waitForMacEvent("AXTitleChanged", "elem");
+    let btn = getNativeInterface(accDoc, "btn");
+    is(btn.getAttributeValue("AXTitle"), "Hello world");
+    let evt = waitForMacEvent("AXTitleChanged", "btn");
     await SpecialPowers.spawn(browser, [], () => {
-      content.document
-        .getElementById("elem")
-        .setAttribute("aria-label", "Hello universe");
+      content.document.getElementById("btn").textContent = "Hello universe";
     });
     await evt;
-    is(elem.getAttributeValue("AXTitle"), "Hello universe");
+    is(btn.getAttributeValue("AXTitle"), "Hello universe");
   }
 );
 

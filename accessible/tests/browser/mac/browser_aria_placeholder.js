@@ -31,12 +31,8 @@ addAccessibleTask(
       "Name",
       "Correct placeholder value in presence of value"
     );
-    is(
-      input2.getAttributeValue("AXDescription"),
-      "Enter Name",
-      "Correct label"
-    );
-    is(input2.getAttributeValue("AXTitle"), "", "Correct title");
+    is(input2.getAttributeValue("AXTitle"), "Enter Name", "Correct label");
+    is(input2.getAttributeValue("AXDescription"), null, "Correct title");
     is(input2.getAttributeValue("AXValue"), "Elmer Fudd", "Correct value");
   }
 );
@@ -63,8 +59,8 @@ addAccessibleTask(
       "MM-DD-YYYY",
       "Correct placeholder value"
     );
-    is(bday.getAttributeValue("AXDescription"), "Birthday", "Correct label");
-    is(bday.getAttributeValue("AXTitle"), "", "Correct title");
+    is(bday.getAttributeValue("AXDescription"), null, "Correct label");
+    is(bday.getAttributeValue("AXTitle"), "Birthday", "Correct title");
     is(bday.getAttributeValue("AXValue"), "MM-DD-YYYY", "Correct value");
   }
 );

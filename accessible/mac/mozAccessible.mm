@@ -41,8 +41,6 @@ using namespace mozilla::a11y;
 #pragma mark -
 
 @interface mozAccessible ()
-- (BOOL)providesLabelNotTitle;
-
 - (void)maybePostA11yUtilNotification;
 @end
 
@@ -126,16 +124,6 @@ using namespace mozilla::a11y;
   if (state == states::EXPANDED) {
     [self moxPostNotification:@"AXExpandedChanged"];
   }
-}
-
-- (BOOL)providesLabelNotTitle {
-  // These accessible types are the exception to the rule of label vs. title:
-  // They may be named explicitly, but they still provide a label not a title.
-  return mRole == roles::GROUPING || mRole == roles::RADIO_GROUP ||
-         mRole == roles::FIGURE || mRole == roles::GRAPHIC ||
-         mRole == roles::DOCUMENT || mRole == roles::OUTLINE ||
-         mRole == roles::ARTICLE || mRole == roles::ENTRY ||
-         mRole == roles::SPINBUTTON;
 }
 
 - (mozilla::a11y::Accessible*)geckoAccessible {
@@ -477,6 +465,33 @@ struct RoleDescrComparator {
   return NSAccessibilityRoleDescription([self moxRole], subrole);
 }
 
+static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
+  ENameValueFlag flag = aAccessible->Name(aName);
+
+  switch (aAccessible->Role()) {
+    case roles::PAGETAB:
+    case roles::COMBOBOX_OPTION:
+    case roles::PARENT_MENUITEM:
+    case roles::MENUITEM:
+      // These roles always supply a title.
+      return true;
+    case roles::GROUPING:
+    case roles::RADIO_GROUP:
+    case roles::DOCUMENT:
+    case roles::OUTLINE:
+    case roles::ARTICLE:
+    case roles::FIGURE:
+      // These roles never supply a title.
+      return false;
+    default:
+      break;
+  }
+
+  // If the name was calculated from visible text (eg. label or subtree), we
+  // supply a title.
+  return flag != eNameOK;
+}
+
 - (NSString*)moxLabel {
   if ([self isExpired]) {
     return nil;
@@ -484,23 +499,9 @@ struct RoleDescrComparator {
 
   nsAutoString name;
 
-  /* If our accessible is:
-   * 1. Named by invisible text, or
-   * 2. Has more than one labeling relation, or
-   * 3. Is a special role defined in providesLabelNotTitle
-   *   ... return its name as a label (AXDescription).
-   */
-  ENameValueFlag flag = mGeckoAccessible->Name(name);
-  if (flag == eNameFromSubtree) {
+  if (ProvidesTitle(mGeckoAccessible, name)) {
+    // If it provides title, it is not a description.
     return nil;
-  }
-
-  if (![self providesLabelNotTitle]) {
-    Relation rel = mGeckoAccessible->RelationByType(RelationType::LABELLED_BY);
-    if (rel.Next() && !rel.Next()) {
-      // A single label relation.
-      return nil;
-    }
   }
 
   return nsCocoaUtils::ToNSString(name);
@@ -509,24 +510,16 @@ struct RoleDescrComparator {
 - (NSString*)moxTitle {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
-  // In some special cases we provide the name in the label (AXDescription).
-  if ([self providesLabelNotTitle]) {
-    return nil;
-  }
-
-  Relation rel = mGeckoAccessible->RelationByType(RelationType::LABELLED_BY);
-  if (rel.Next() && !rel.Next()) {
-    // A single label relation. Use AXUITitleElement instead of AXTitle
-    return nil;
-  }
-
-  nsAutoString title;
-  mGeckoAccessible->Name(title);
-  if (nsCoreUtils::IsWhitespaceString(title)) {
+  nsAutoString name;
+  if (!ProvidesTitle(mGeckoAccessible, name)) {
     return @"";
   }
 
-  return nsCocoaUtils::ToNSString(title);
+  if (nsCoreUtils::IsWhitespaceString(name)) {
+    return @"";
+  }
+
+  return nsCocoaUtils::ToNSString(name);
 
   NS_OBJC_END_TRY_BLOCK_RETURN(nil);
 }
@@ -1030,11 +1023,13 @@ struct RoleDescrComparator {
     case nsIAccessibleEvent::EVENT_LIVE_REGION_REMOVED:
       mIsLiveRegion = false;
       break;
-    case nsIAccessibleEvent::EVENT_NAME_CHANGE:
-      if (![self providesLabelNotTitle]) {
+    case nsIAccessibleEvent::EVENT_NAME_CHANGE: {
+      nsAutoString nameNotUsed;
+      if (ProvidesTitle(mGeckoAccessible, nameNotUsed)) {
         [self moxPostNotification:NSAccessibilityTitleChangedNotification];
       }
       break;
+    }
     case nsIAccessibleEvent::EVENT_LIVE_REGION_CHANGED:
       MOZ_ASSERT(mIsLiveRegion);
       [self moxPostNotification:@"AXLiveRegionChanged"];
