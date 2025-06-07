@@ -17,7 +17,6 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/HTMLInputElementBinding.h"
 #include "mozilla/dom/Promise.h"
-#include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/SingleLineTextInputTypes.h"
 #include "mozilla/dom/NumericInputTypes.h"
 #include "mozilla/dom/CheckableInputTypes.h"
@@ -54,6 +53,7 @@ class FileSystemEntry;
 class FormData;
 class GetFilesHelper;
 class InputType;
+class OwningFileOrDirectory;
 
 /**
  * A class we use to create a singleton object that is used to keep track of

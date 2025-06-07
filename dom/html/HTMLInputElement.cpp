@@ -23,6 +23,7 @@
 #include "mozilla/dom/NumericInputTypes.h"
 #include "mozilla/dom/WindowContext.h"
 #include "mozilla/dom/InputType.h"
+#include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/UserActivation.h"
 #include "mozilla/dom/MouseEvent.h"
 #include "mozilla/dom/MutationEventBinding.h"

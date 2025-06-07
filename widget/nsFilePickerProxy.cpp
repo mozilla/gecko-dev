@@ -14,6 +14,7 @@
 #include "mozilla/dom/BrowserChild.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/IPCBlobUtils.h"
+#include "mozilla/dom/UnionTypes.h"
 
 using namespace mozilla::dom;
 

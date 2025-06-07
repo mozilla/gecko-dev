@@ -12,6 +12,7 @@
 #include "mozilla/dom/BrowserSessionStoreBinding.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/sessionstore/SessionStoreTypes.h"
+#include "mozilla/dom/UnionTypes.h"
 
 #include "nsContentUtils.h"
 #include "js/JSON.h"

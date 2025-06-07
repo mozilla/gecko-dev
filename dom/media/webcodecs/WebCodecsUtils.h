@@ -20,7 +20,6 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/Nullable.h"
-#include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/VideoColorSpaceBinding.h"
 #include "mozilla/dom/VideoEncoderBinding.h"
 #include "mozilla/dom/VideoFrameBinding.h"

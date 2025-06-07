@@ -8,7 +8,6 @@
 #define mozilla_dom_SessionStoreFormData_h
 
 #include "mozilla/WeakPtr.h"
-#include "mozilla/dom/UnionTypes.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 
 #include "nsTArrayForwardDeclare.h"
@@ -23,8 +22,7 @@ class FormData;
 }
 
 class BrowsingContext;
-class OwningByteStringOrObjectOrNull;
-class OwningStringOrObjectOrNull;
+class OwningStringOrBooleanOrObject;
 class WindowGlobalParent;
 
 class SessionStoreFormData final : public nsISupports,
