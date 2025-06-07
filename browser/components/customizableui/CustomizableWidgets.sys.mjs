@@ -122,9 +122,6 @@ export const CustomizableWidgets = [
             PanelUI.showSubView(this.recentlyClosedWindowsPanel, target);
           } else if (target.id == "appMenuSearchHistory") {
             PlacesCommandHook.searchHistory();
-          } else if (target.id == "PanelUI-historyMore") {
-            PlacesCommandHook.showPlacesOrganizer("History");
-            lazy.CustomizableUI.hidePanelForNode(target);
           }
           break;
         }
