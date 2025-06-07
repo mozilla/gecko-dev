@@ -26,6 +26,7 @@
 #include "mozilla/dom/BrowserParent.h"
 #include "OuterDocAccessible.h"
 #include "nsChildView.h"
+#include "TextLeafRange.h"
 #include "xpcAccessibleMacInterface.h"
 
 #include "nsRect.h"
@@ -684,12 +685,39 @@ static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
 - (id)moxTitleUIElement {
   MOZ_ASSERT(mGeckoAccessible);
 
-  NSArray* relations = [self getRelationsByType:RelationType::LABELLED_BY];
-  if ([relations count] == 1) {
-    return [relations firstObject];
+  nsAutoString unused;
+  if (mGeckoAccessible->Name(unused) != eNameFromRelations) {
+    return nil;
   }
 
-  return nil;
+  Relation rel = mGeckoAccessible->RelationByType(RelationType::LABELLED_BY);
+  Accessible* label = rel.Next();
+  if (!label || rel.Next()) {
+    // Zero or more than one relation.
+    return nil;
+  }
+
+  if (label->IsAncestorOf(mGeckoAccessible)) {
+    // Don't support labelling for a relation that references an ancestor.
+    // VO walks the label's subtree and tries to construct the name for the
+    // control. It does not strip whitespace from the text leaf children, and
+    // since the calculated name of the control is stripped, it sees it as two
+    // different names and inclues both.
+    return nil;
+  }
+
+  if (RefPtr<nsAtom>(label->DisplayStyle()) == nsGkAtoms::block) {
+    TextLeafPoint endPoint =
+        TextLeafPoint(label, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT)
+            .FindBoundary(nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
+    if (endPoint.IsSpace()) {
+      // A label that is a block element with trailing space causes VO be
+      // unhappy.
+      return nil;
+    }
+  }
+
+  return GetNativeFromGeckoAccessible(label);
 }
 
 - (NSString*)moxDOMIdentifier {
