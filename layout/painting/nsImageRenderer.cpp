@@ -10,9 +10,6 @@
 
 #include "mozilla/webrender/WebRenderAPI.h"
 
-#ifdef MOZ_WIDGET_GTK
-#  include "nsIconChannel.h"
-#endif
 #include "gfxContext.h"
 #include "gfxDrawable.h"
 #include "ImageOps.h"
@@ -66,58 +63,6 @@ nsImageRenderer::nsImageRenderer(nsIFrame* aForFrame, const StyleImage* aImage,
       mFlags(aFlags),
       mExtendMode(ExtendMode::CLAMP),
       mMaskOp(StyleMaskMode::MatchSource) {}
-
-using SymbolicImageKey = std::tuple<RefPtr<nsAtom>, int, nscolor>;
-struct SymbolicImageEntry {
-  SymbolicImageKey mKey;
-  nsCOMPtr<imgIContainer> mImage;
-};
-struct SymbolicImageCache final
-    : public mozilla::MruCache<SymbolicImageKey, SymbolicImageEntry,
-                               SymbolicImageCache, 5> {
-  static HashNumber Hash(const KeyType& aKey) {
-    return AddToHash(std::get<0>(aKey)->hash(),
-                     HashGeneric(std::get<1>(aKey), std::get<2>(aKey)));
-  }
-  static bool Match(const KeyType& aKey, const ValueType& aVal) {
-    return aVal.mKey == aKey;
-  }
-};
-
-NS_DECLARE_FRAME_PROPERTY_DELETABLE(SymbolicImageCacheProp, SymbolicImageCache);
-
-static already_AddRefed<imgIContainer> GetSymbolicIconImage(nsAtom* aName,
-                                                            int aScale,
-                                                            nsIFrame* aFrame) {
-#ifdef MOZ_WIDGET_GTK
-  if (NS_WARN_IF(!XRE_IsParentProcess())) {
-    return nullptr;
-  }
-  const auto fg = aFrame->StyleText()->mColor.ToColor();
-  auto key = std::make_tuple(aName, aScale, fg);
-  auto* cache = aFrame->GetProperty(SymbolicImageCacheProp());
-  if (!cache) {
-    cache = new SymbolicImageCache();
-    aFrame->SetProperty(SymbolicImageCacheProp(), cache);
-  }
-  auto lookup = cache->Lookup(key);
-  if (lookup) {
-    return do_AddRef(lookup.Data().mImage);
-  }
-  RefPtr surface =
-      nsIconChannel::GetSymbolicIcon(nsAtomCString(aName), 16, aScale, fg);
-  if (NS_WARN_IF(!surface)) {
-    return nullptr;
-  }
-  RefPtr drawable = new gfxSurfaceDrawable(surface, surface->GetSize());
-  nsCOMPtr<imgIContainer> container = ImageOps::CreateFromDrawable(drawable);
-  MOZ_ASSERT(container);
-  lookup.Set(SymbolicImageEntry{std::move(key), std::move(container)});
-  return do_AddRef(lookup.Data().mImage);
-#else
-  return nullptr;
-#endif
-}
 
 bool nsImageRenderer::PrepareImage() {
   if (mImage->IsNone()) {
@@ -238,17 +183,6 @@ bool nsImageRenderer::PrepareImage() {
     }
 
     mPrepareResult = ImgDrawResult::SUCCESS;
-  } else if (mImage->IsMozSymbolicIcon()) {
-    auto deviceScale =
-        std::ceil(mForFrame->PresContext()->CSSToDevPixelScale().scale);
-    mImageResolution.ScaleBy(deviceScale);
-    mImageContainer = GetSymbolicIconImage(mImage->AsMozSymbolicIcon().AsAtom(),
-                                           int(deviceScale), mForFrame);
-    if (!mImageContainer) {
-      mPrepareResult = ImgDrawResult::BAD_IMAGE;
-      return false;
-    }
-    mPrepareResult = ImgDrawResult::SUCCESS;
   } else if (mImage->IsCrossFade()) {
     // See bug 546052 - cross-fade implementation still being worked
     // on.
@@ -268,7 +202,6 @@ CSSSizeOrRatio nsImageRenderer::ComputeIntrinsicSize() {
 
   CSSSizeOrRatio result;
   switch (mType) {
-    case StyleImage::Tag::MozSymbolicIcon:
     case StyleImage::Tag::Url: {
       bool haveWidth, haveHeight;
       CSSIntSize imageIntSize;
@@ -556,7 +489,6 @@ ImgDrawResult nsImageRenderer::Draw(nsPresContext* aPresContext,
   }
 
   switch (mType) {
-    case StyleImage::Tag::MozSymbolicIcon:
     case StyleImage::Tag::Url: {
       result = nsLayoutUtils::DrawBackgroundImage(
           *ctx, mForFrame, aPresContext, mImageContainer, samplingFilter, aDest,
@@ -658,7 +590,6 @@ ImgDrawResult nsImageRenderer::BuildWebRenderDisplayItems(
                                           !aItem->BackfaceIsHidden(), aOpacity);
       break;
     }
-    case StyleImage::Tag::MozSymbolicIcon:
     case StyleImage::Tag::Url: {
       ExtendMode extendMode = mExtendMode;
       if (aDest.Contains(aFill)) {
@@ -958,8 +889,10 @@ ImgDrawResult nsImageRenderer::DrawBorderImageComponent(
     return ImgDrawResult::SUCCESS;
   }
 
-  const bool hasImage = !!mImageContainer;
-  if (hasImage || mType == StyleImage::Tag::Element) {
+  const bool isRequestBacked = mType == StyleImage::Tag::Url;
+  MOZ_ASSERT(isRequestBacked == mImage->IsImageRequestType());
+
+  if (isRequestBacked || mType == StyleImage::Tag::Element) {
     nsCOMPtr<imgIContainer> subImage;
 
     // To draw one portion of an image into a border component, we stretch that
@@ -978,10 +911,10 @@ ImgDrawResult nsImageRenderer::DrawBorderImageComponent(
     }
     // Retrieve or create the subimage we'll draw.
     nsIntRect srcRect(aSrc.x, aSrc.y, aSrc.width, aSrc.height);
-    if (hasImage) {
+    if (isRequestBacked) {
       subImage = ImageOps::Clip(mImageContainer, srcRect, aSVGViewportSize);
     } else {
-      // This path, for Element, is currently slower than it
+      // This path, for eStyleImageType_Element, is currently slower than it
       // needs to be because we don't cache anything. (In particular, if we have
       // to draw to a temporary surface inside ClippedImage, we don't cache that
       // temporary surface since we immediately throw the ClippedImage we create
@@ -1094,7 +1027,7 @@ ImgDrawResult nsImageRenderer::DrawShapeImage(nsPresContext* aPresContext,
   return ImgDrawResult::BAD_IMAGE;
 }
 
-bool nsImageRenderer::IsRasterImage() const {
+bool nsImageRenderer::IsRasterImage() {
   return mImageContainer &&
          mImageContainer->GetType() == imgIContainer::TYPE_RASTER;
 }

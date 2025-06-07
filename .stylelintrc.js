@@ -52,7 +52,6 @@ module.exports = {
         ignoreFunctions: [
           "light-dark" /* Used for color-scheme dependent colors */,
           "add" /* Used in mathml.css */,
-          "-moz-symbolic-icon" /* Used for GTK icons */,
         ],
       },
     ],
