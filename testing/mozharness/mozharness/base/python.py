@@ -565,28 +565,6 @@ class VirtualenvMixin:
                 [sys.executable, "--version"],
             )
 
-            # Temporary hack to get around a bug with venv in Python 3.7.3 in CI
-            # https://bugs.python.org/issue36441
-            if self._is_windows():
-                if sys.version_info[:3] == (3, 7, 3):
-                    python_exe = Path(sys.executable)
-                    debug_exe_dir = (
-                        python_exe.parent / "lib" / "venv" / "scripts" / "nt"
-                    )
-
-                    if debug_exe_dir.exists():
-                        for executable in (
-                            "python.exe",
-                            "python_d.exe",
-                            "pythonw.exe",
-                            "pythonw_d.exe",
-                        ):
-                            expected_python_debug_exe = debug_exe_dir / executable
-                            if not expected_python_debug_exe.exists():
-                                shutil.copy(
-                                    sys.executable, str(expected_python_debug_exe)
-                                )
-
             if uv_executable := get_uv_executable():
                 self.run_command([uv_executable, "--version"])
 
