@@ -6712,6 +6712,8 @@ void nsWindow::NativeShow(bool aAction) {
       auto token = std::move(mWindowActivationTokenFromEnv);
       if (!token.IsEmpty()) {
         FocusWaylandWindow(token.get());
+      } else if (!IsPopup()) {
+        TransferFocusToWaylandWindow(this);
       }
 #endif
     }
