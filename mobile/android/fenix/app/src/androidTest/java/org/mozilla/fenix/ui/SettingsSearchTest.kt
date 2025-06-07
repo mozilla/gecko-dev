@@ -639,7 +639,6 @@ class SettingsSearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2203334
-    @Ignore("Failing, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1967956")
     @Test
     fun verifyManageSearchShortcutsSettingsItemsTest() {
         homeScreen {
@@ -654,10 +653,9 @@ class SettingsSearchTest : TestSetup() {
                 EngineShortcut(name = "Google", checkboxIndex = 1, isChecked = true),
                 EngineShortcut(name = "Bing", checkboxIndex = 4, isChecked = true),
                 EngineShortcut(name = "DuckDuckGo", checkboxIndex = 7, isChecked = true),
-                EngineShortcut(name = "eBay", checkboxIndex = 10, isChecked = true),
-                EngineShortcut(name = "Wikipedia", checkboxIndex = 13, isChecked = true),
-                EngineShortcut(name = "Reddit", checkboxIndex = 16, isChecked = false),
-                EngineShortcut(name = "YouTube", checkboxIndex = 19, isChecked = false),
+                EngineShortcut(name = "Reddit", checkboxIndex = 10, isChecked = false),
+                EngineShortcut(name = "Wikipedia (en)", checkboxIndex = 13, isChecked = true),
+                EngineShortcut(name = "YouTube", checkboxIndex = 16, isChecked = false),
             )
         }
     }
