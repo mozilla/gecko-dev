@@ -497,6 +497,7 @@
   fill-opacity: 0.6;
   fill: currentColor;
   border-radius: var(--urlbar-icon-border-radius);
+  flex-shrink: 0;
 
   @media (prefers-contrast) {
     fill-opacity: 1;
@@ -1150,6 +1151,7 @@
   border-end-end-radius: var(--urlbar-icon-border-radius);
   align-items: center;
   height: 100%;
+  max-width: 40%;
   margin-inline-end: var(--urlbar-searchmodeswitcher-margin-inline-end);
   display: none;
 
@@ -1168,6 +1170,10 @@
 #searchmode-switcher-title {
   margin: 0;
   align-items: center;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: var(--search-engine-name-max-width);
 
   &:empty {
     display: none;
@@ -1195,6 +1201,7 @@
 
 #searchmode-switcher-popup {
   --panel-padding: 4px 0;
+  max-width: var(--search-engine-name-max-width);
 
   > menuitem {
     margin-inline: 4px;
