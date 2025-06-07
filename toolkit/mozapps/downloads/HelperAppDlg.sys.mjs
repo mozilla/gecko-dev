@@ -750,7 +750,7 @@ nsUnknownContentTypeDialog.prototype = {
       );
       this.dialogElement("defaultHandler").label = defaultApp;
     } else {
-      this.dialogElement("modeDeck").setAttribute("selectedIndex", "1");
+      this.dialogElement("modeDeck").selectedIndex = 1;
       // Hide the default handler item too, in case the user picks a
       // custom handler at a later date which triggers the menulist to show.
       this.dialogElement("defaultHandler").hidden = true;
@@ -1202,7 +1202,7 @@ nsUnknownContentTypeDialog.prototype = {
     if (this.chosenApp) {
       // Show the "handler" menulist since we have a (user-specified)
       // application now.
-      this.dialogElement("modeDeck").setAttribute("selectedIndex", "0");
+      this.dialogElement("modeDeck").selectedIndex = 0;
 
       // Update dialog.
       var otherHandler = this.dialogElement("otherHandler");
