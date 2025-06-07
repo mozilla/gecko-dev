@@ -6,7 +6,6 @@ package org.mozilla.fenix.library.history
 
 import android.app.Dialog
 import android.content.DialogInterface
-import android.content.Intent
 import android.os.Bundle
 import android.text.SpannableString
 import android.view.LayoutInflater
@@ -16,7 +15,6 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.RadioGroup
-import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
@@ -69,8 +67,6 @@ import org.mozilla.fenix.library.LibraryPageFragment
 import org.mozilla.fenix.library.history.state.HistoryTelemetryMiddleware
 import org.mozilla.fenix.library.history.state.bindings.MenuBinding
 import org.mozilla.fenix.library.history.state.bindings.PendingDeletionBinding
-import org.mozilla.fenix.lifecycle.registerForVerification
-import org.mozilla.fenix.lifecycle.verifyUser
 import org.mozilla.fenix.tabstray.Page
 import org.mozilla.fenix.utils.allowUndo
 import org.mozilla.fenix.GleanMetrics.History as GleanHistory
@@ -100,9 +96,6 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
     private val pendingDeletionBinding by lazy {
         PendingDeletionBinding(requireContext().components.appStore, historyView)
     }
-
-    private var verificationResultLauncher: ActivityResultLauncher<Intent> =
-        registerForVerification(onVerified = ::openHistoryInPrivate)
 
     private val menuBinding by lazy {
         MenuBinding(
@@ -316,7 +309,18 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
             true
         }
         R.id.open_history_in_private_tabs_multi_select -> {
-            handleOpenHistoryInPrivateTabsMultiSelectMenuItem()
+            openItemsInNewTab(private = true) { selectedItem ->
+                GleanHistory.openedItemsInNewTabs.record(NoExtras())
+                (selectedItem as? History.Regular)?.url ?: (selectedItem as? History.Metadata)?.url
+            }
+
+            (activity as HomeActivity).apply {
+                browsingModeManager.mode = BrowsingMode.Private
+                supportActionBar?.hide()
+            }
+
+            showTabTray(openInPrivate = true)
+            historyStore.dispatch(HistoryFragmentAction.ExitEditMode)
             true
         }
         R.id.history_search -> {
@@ -334,34 +338,6 @@ class HistoryFragment : LibraryPageFragment<History>(), UserInteractionHandler, 
         }
         // other options are not handled by this menu provider
         else -> false
-    }
-
-    private fun handleOpenHistoryInPrivateTabsMultiSelectMenuItem() {
-        if (requireComponents.appStore.state.isPrivateScreenLocked) {
-            verifyUser(
-                fallbackVerification = verificationResultLauncher,
-                onVerified = {
-                    openHistoryInPrivate()
-                },
-            )
-        } else {
-            openHistoryInPrivate()
-        }
-    }
-
-    private fun openHistoryInPrivate() {
-        openItemsInNewTab(private = true) { selectedItem ->
-            GleanHistory.openedItemsInNewTabs.record(NoExtras())
-            (selectedItem as? History.Regular)?.url ?: (selectedItem as? History.Metadata)?.url
-        }
-
-        (activity as HomeActivity).apply {
-            browsingModeManager.mode = BrowsingMode.Private
-            supportActionBar?.hide()
-        }
-
-        showTabTray(openInPrivate = true)
-        historyStore.dispatch(HistoryFragmentAction.ExitEditMode)
     }
 
     private fun showTabTray(openInPrivate: Boolean = false) {

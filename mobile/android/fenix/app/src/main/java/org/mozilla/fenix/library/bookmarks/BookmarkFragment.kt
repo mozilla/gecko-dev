@@ -76,9 +76,6 @@ import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksSyncMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksTelemetryMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.LifecycleHolder
-import org.mozilla.fenix.library.bookmarks.ui.PrivateBrowsingLockMiddleware
-import org.mozilla.fenix.lifecycle.registerForVerification
-import org.mozilla.fenix.lifecycle.verifyUser
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
@@ -104,7 +101,6 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
     private var _binding: FragmentBookmarkBinding? = null
     private val binding get() = _binding!!
     private val snackbarBinding = ViewBoundFeatureWrapper<SnackbarBinding>()
-    private val verificationResultLauncher = registerForVerification()
 
     override val selectedItems get() = bookmarkStore.state.mode.selectedItems
 
@@ -134,14 +130,6 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                 ),
                             ),
                             middleware = listOf(
-                                // NB: Order matters — this middleware must be first to intercept actions
-                                // related to private mode and trigger verification before any other middleware runs.
-                                PrivateBrowsingLockMiddleware(
-                                    appStore = requireComponents.appStore,
-                                    requireAuth = {
-                                        verifyUser(fallbackVerification = verificationResultLauncher)
-                                    },
-                                ),
                                 BookmarksTelemetryMiddleware(),
                                 BookmarksSyncMiddleware(requireComponents.backgroundServices.syncStore, lifecycleScope),
                                 BookmarksMiddleware(

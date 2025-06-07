@@ -5,12 +5,7 @@
 package org.mozilla.fenix.lifecycle
 
 import android.app.Activity
-import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.Lifecycle.State.RESUMED
@@ -26,16 +21,10 @@ import mozilla.components.browser.state.selector.privateTabs
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.lib.state.ext.flow
 import mozilla.components.lib.state.ext.flowScoped
-import org.mozilla.fenix.GleanMetrics.PrivateBrowsingLocked
-import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.appstate.AppAction.PrivateBrowsingLockAction
 import org.mozilla.fenix.components.appstate.AppState
-import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.settings.biometric.BiometricPromptFeature
-import org.mozilla.fenix.settings.biometric.BiometricUtils
-import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 
 /**
  * An interface to access and observe the enabled/disabled state of the Private Browsing Lock feature.
@@ -247,62 +236,4 @@ fun observePrivateModeLock(
             }
         }
     }
-}
-
-/**
- * Registers an [ActivityResultLauncher] that wraps handling of unlocking access to private mode
- * using the pin, pattern or password verification. This should be used in combination with
- * [verifyUser] to authenticate the user when private browsing mode is locked.
- *
- * @param onVerified an optional callback triggered on a successful authentication.
- * @return The configured [ActivityResultLauncher] to handle the pin, pattern or password verification.
- */
-fun Fragment.registerForVerification(
-    onVerified: (() -> Unit)? = null,
-): ActivityResultLauncher<Intent> {
-    return registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            handleVerificationSuccess(requireContext(), onVerified)
-        } else {
-            handleVerificationFailure()
-        }
-    }
-}
-
-/**
- * Triggers user verification to unlock access to private mode.
- *
- * Attempts biometric authentication first; falls back to launching the pin, pattern or password
- * verification. Upon success, records the telemetry and updates [AppState.isPrivateScreenLocked]
- *
- * @param biometricUtils A [BiometricPromptFeature] feature wrapper.
- * @param fallbackVerification The [ActivityResultLauncher] to handle the fallback verification.
- * @param onVerified an optional callback triggered on a successful authentication.
- */
-fun Fragment.verifyUser(
-    biometricUtils: BiometricUtils = DefaultBiometricUtils,
-    fallbackVerification: ActivityResultLauncher<Intent>,
-    onVerified: (() -> Unit)? = null,
-) {
-    biometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
-        titleRes = R.string.pbm_authentication_unlock_private_tabs,
-        view = requireView(),
-        onShowPinVerification = { intent -> fallbackVerification.launch(intent) },
-        onAuthSuccess = { handleVerificationSuccess(requireContext(), onVerified) },
-        onAuthFailure = ::handleVerificationFailure,
-    )
-}
-
-private fun handleVerificationSuccess(
-    context: Context,
-    onVerified: (() -> Unit)? = null,
-) {
-    PrivateBrowsingLocked.authSuccess.record()
-    context.components.privateBrowsingLockFeature.onSuccessfulAuthentication()
-
-    onVerified?.invoke()
-}
-
-private fun handleVerificationFailure() {
-    PrivateBrowsingLocked.authFailure.record()
 }

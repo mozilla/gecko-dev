@@ -338,7 +338,6 @@ internal class BookmarksMiddleware(
             is SelectFolderAction.ItemClicked,
             EditFolderAction.DeleteClicked,
             is ReceivedSyncSignInUpdate,
-            PrivateBrowsingAuthorized,
             -> Unit
         }
     }
