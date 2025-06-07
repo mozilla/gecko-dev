@@ -489,6 +489,7 @@ const PanelUI = {
       return;
     }
 
+    this._ensureShortcutsShown(viewNode);
     this.ensurePanicViewInitialized(viewNode);
 
     let container = aAnchor.closest("panelmultiview");
