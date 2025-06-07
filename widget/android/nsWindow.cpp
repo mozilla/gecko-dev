@@ -1833,7 +1833,7 @@ void GeckoViewSupport::Open(
   // Prepare an nsIGeckoViewView to pass as argument to the window.
   RefPtr<AndroidView> androidView = new AndroidView();
   androidView->mEventDispatcher->Attach(
-      java::EventDispatcher::Ref::From(aDispatcher));
+      java::EventDispatcher::Ref::From(aDispatcher), nullptr);
   androidView->mInitData = java::GeckoBundle::Ref::From(aInitData);
 
   nsAutoCString chromeFlags("chrome,dialog=0,remote,resizable,scrollbars");
@@ -1900,8 +1900,6 @@ void GeckoViewSupport::Transfer(const GeckoSession::Window::LocalRef& inst,
                                 jni::Object::Param aDispatcher,
                                 jni::Object::Param aSessionAccessibility,
                                 jni::Object::Param aInitData) {
-  AssertIsOnMainThread();
-
   mWindow->mNPZCSupport.Detach();
 
   auto compositor = GeckoSession::Compositor::LocalRef(
@@ -1934,7 +1932,7 @@ void GeckoViewSupport::Transfer(const GeckoSession::Window::LocalRef& inst,
 
   MOZ_ASSERT(mWindow->mAndroidView);
   mWindow->mAndroidView->mEventDispatcher->Attach(
-      java::EventDispatcher::Ref::From(aDispatcher));
+      java::EventDispatcher::Ref::From(aDispatcher), mDOMWindow);
 
   RefPtr<jni::DetachPromise> promise = mWindow->mSessionAccessibility.Detach();
   if (aSessionAccessibility) {
@@ -1966,7 +1964,7 @@ void GeckoViewSupport::Transfer(const GeckoSession::Window::LocalRef& inst,
     mWindow->mAndroidView->mInitData = java::GeckoBundle::Ref::From(aInitData);
     OnReady(aQueue);
     mWindow->mAndroidView->mEventDispatcher->Dispatch(
-        u"GeckoView:UpdateInitData"_ns, JS::NullHandleValue);
+        u"GeckoView:UpdateInitData");
   }
 
   DispatchToUiThread("GeckoViewSupport::Transfer",
@@ -2641,17 +2639,13 @@ nsEventStatus nsWindow::DispatchEvent(WidgetGUIEvent* aEvent) {
 }
 
 nsresult nsWindow::MakeFullScreen(bool aFullScreen) {
-  AssertIsOnMainThread();
-
   if (!mAndroidView) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
   mIsFullScreen = aFullScreen;
-  mAndroidView->mEventDispatcher->Dispatch(aFullScreen
-                                               ? u"GeckoView:FullScreenEnter"_ns
-                                               : u"GeckoView:FullScreenExit"_ns,
-                                           JS::NullHandleValue);
+  mAndroidView->mEventDispatcher->Dispatch(
+      aFullScreen ? u"GeckoView:FullScreenEnter" : u"GeckoView:FullScreenExit");
 
   nsIWidgetListener* listener = GetWidgetListener();
   if (listener) {
