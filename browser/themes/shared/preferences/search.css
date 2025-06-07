@@ -5,6 +5,10 @@
 #defaultEngine,
 #defaultPrivateEngine {
   margin-inline-start: 0;
+  &,
+  & menupopup {
+    max-width: var(--search-engine-name-max-width);
+  }
 }
 
 #defaultEngine::part(icon),
