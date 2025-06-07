@@ -865,7 +865,7 @@ class LocalAccessible : public nsISupports, public Accessible {
   /**
    * Returns the accessible name specified by ARIA.
    */
-  ENameValueFlag ARIAName(nsString& aName) const;
+  void ARIAName(nsString& aName) const;
 
   /**
    * Returns the accessible description specified by ARIA.

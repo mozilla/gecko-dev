@@ -232,10 +232,7 @@ ENameValueFlag XULGroupboxAccessible::NativeName(nsString& aName) const {
   // XXX: we use the first related accessible only.
   LocalAccessible* label =
       RelationByType(RelationType::LABELLED_BY).LocalNext();
-  if (label) {
-    label->Name(aName);
-    return eNameFromRelations;
-  }
+  if (label) return label->Name(aName);
 
   return eNameOK;
 }

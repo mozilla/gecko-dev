@@ -26,7 +26,6 @@
 #include "mozilla/dom/BrowserParent.h"
 #include "OuterDocAccessible.h"
 #include "nsChildView.h"
-#include "TextLeafRange.h"
 #include "xpcAccessibleMacInterface.h"
 
 #include "nsRect.h"
@@ -42,6 +41,8 @@ using namespace mozilla::a11y;
 #pragma mark -
 
 @interface mozAccessible ()
+- (BOOL)providesLabelNotTitle;
+
 - (void)maybePostA11yUtilNotification;
 @end
 
@@ -125,6 +126,16 @@ using namespace mozilla::a11y;
   if (state == states::EXPANDED) {
     [self moxPostNotification:@"AXExpandedChanged"];
   }
+}
+
+- (BOOL)providesLabelNotTitle {
+  // These accessible types are the exception to the rule of label vs. title:
+  // They may be named explicitly, but they still provide a label not a title.
+  return mRole == roles::GROUPING || mRole == roles::RADIO_GROUP ||
+         mRole == roles::FIGURE || mRole == roles::GRAPHIC ||
+         mRole == roles::DOCUMENT || mRole == roles::OUTLINE ||
+         mRole == roles::ARTICLE || mRole == roles::ENTRY ||
+         mRole == roles::SPINBUTTON;
 }
 
 - (mozilla::a11y::Accessible*)geckoAccessible {
@@ -466,33 +477,6 @@ struct RoleDescrComparator {
   return NSAccessibilityRoleDescription([self moxRole], subrole);
 }
 
-static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
-  ENameValueFlag flag = aAccessible->Name(aName);
-
-  switch (aAccessible->Role()) {
-    case roles::PAGETAB:
-    case roles::COMBOBOX_OPTION:
-    case roles::PARENT_MENUITEM:
-    case roles::MENUITEM:
-      // These roles always supply a title.
-      return true;
-    case roles::GROUPING:
-    case roles::RADIO_GROUP:
-    case roles::DOCUMENT:
-    case roles::OUTLINE:
-    case roles::ARTICLE:
-    case roles::FIGURE:
-      // These roles never supply a title.
-      return false;
-    default:
-      break;
-  }
-
-  // If the name was calculated from visible text (eg. label or subtree), we
-  // supply a title.
-  return flag != eNameOK;
-}
-
 - (NSString*)moxLabel {
   if ([self isExpired]) {
     return nil;
@@ -500,9 +484,23 @@ static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
 
   nsAutoString name;
 
-  if (ProvidesTitle(mGeckoAccessible, name)) {
-    // If it provides title, it is not a description.
+  /* If our accessible is:
+   * 1. Named by invisible text, or
+   * 2. Has more than one labeling relation, or
+   * 3. Is a special role defined in providesLabelNotTitle
+   *   ... return its name as a label (AXDescription).
+   */
+  ENameValueFlag flag = mGeckoAccessible->Name(name);
+  if (flag == eNameFromSubtree) {
     return nil;
+  }
+
+  if (![self providesLabelNotTitle]) {
+    Relation rel = mGeckoAccessible->RelationByType(RelationType::LABELLED_BY);
+    if (rel.Next() && !rel.Next()) {
+      // A single label relation.
+      return nil;
+    }
   }
 
   return nsCocoaUtils::ToNSString(name);
@@ -511,16 +509,24 @@ static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
 - (NSString*)moxTitle {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN;
 
-  nsAutoString name;
-  if (!ProvidesTitle(mGeckoAccessible, name)) {
+  // In some special cases we provide the name in the label (AXDescription).
+  if ([self providesLabelNotTitle]) {
+    return nil;
+  }
+
+  Relation rel = mGeckoAccessible->RelationByType(RelationType::LABELLED_BY);
+  if (rel.Next() && !rel.Next()) {
+    // A single label relation. Use AXUITitleElement instead of AXTitle
+    return nil;
+  }
+
+  nsAutoString title;
+  mGeckoAccessible->Name(title);
+  if (nsCoreUtils::IsWhitespaceString(title)) {
     return @"";
   }
 
-  if (nsCoreUtils::IsWhitespaceString(name)) {
-    return @"";
-  }
-
-  return nsCocoaUtils::ToNSString(name);
+  return nsCocoaUtils::ToNSString(title);
 
   NS_OBJC_END_TRY_BLOCK_RETURN(nil);
 }
@@ -685,39 +691,12 @@ static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
 - (id)moxTitleUIElement {
   MOZ_ASSERT(mGeckoAccessible);
 
-  nsAutoString unused;
-  if (mGeckoAccessible->Name(unused) != eNameFromRelations) {
-    return nil;
+  NSArray* relations = [self getRelationsByType:RelationType::LABELLED_BY];
+  if ([relations count] == 1) {
+    return [relations firstObject];
   }
 
-  Relation rel = mGeckoAccessible->RelationByType(RelationType::LABELLED_BY);
-  Accessible* label = rel.Next();
-  if (!label || rel.Next()) {
-    // Zero or more than one relation.
-    return nil;
-  }
-
-  if (label->IsAncestorOf(mGeckoAccessible)) {
-    // Don't support labelling for a relation that references an ancestor.
-    // VO walks the label's subtree and tries to construct the name for the
-    // control. It does not strip whitespace from the text leaf children, and
-    // since the calculated name of the control is stripped, it sees it as two
-    // different names and inclues both.
-    return nil;
-  }
-
-  if (RefPtr<nsAtom>(label->DisplayStyle()) == nsGkAtoms::block) {
-    TextLeafPoint endPoint =
-        TextLeafPoint(label, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT)
-            .FindBoundary(nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
-    if (endPoint.IsSpace()) {
-      // A label that is a block element with trailing space causes VO be
-      // unhappy.
-      return nil;
-    }
-  }
-
-  return GetNativeFromGeckoAccessible(label);
+  return nil;
 }
 
 - (NSString*)moxDOMIdentifier {
@@ -1051,13 +1030,11 @@ static bool ProvidesTitle(const Accessible* aAccessible, nsString& aName) {
     case nsIAccessibleEvent::EVENT_LIVE_REGION_REMOVED:
       mIsLiveRegion = false;
       break;
-    case nsIAccessibleEvent::EVENT_NAME_CHANGE: {
-      nsAutoString nameNotUsed;
-      if (ProvidesTitle(mGeckoAccessible, nameNotUsed)) {
+    case nsIAccessibleEvent::EVENT_NAME_CHANGE:
+      if (![self providesLabelNotTitle]) {
         [self moxPostNotification:NSAccessibilityTitleChangedNotification];
       }
       break;
-    }
     case nsIAccessibleEvent::EVENT_LIVE_REGION_CHANGED:
       MOZ_ASSERT(mIsLiveRegion);
       [self moxPostNotification:@"AXLiveRegionChanged"];

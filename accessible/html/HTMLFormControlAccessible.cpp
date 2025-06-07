@@ -687,7 +687,7 @@ ENameValueFlag HTMLGroupboxAccessible::NativeName(nsString& aName) const {
   }
 
   aName.CompressWhitespace();
-  return aName.IsEmpty() ? eNameOK : eNameFromRelations;
+  return eNameOK;
 }
 
 Relation HTMLGroupboxAccessible::RelationByType(RelationType aType) const {
@@ -736,7 +736,7 @@ ENameValueFlag HTMLFigureAccessible::NativeName(nsString& aName) const {
   }
 
   aName.CompressWhitespace();
-  return aName.IsEmpty() ? eNameOK : eNameFromRelations;
+  return eNameOK;
 }
 
 Relation HTMLFigureAccessible::RelationByType(RelationType aType) const {

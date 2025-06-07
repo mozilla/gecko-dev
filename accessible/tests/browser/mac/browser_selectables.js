@@ -91,7 +91,7 @@ addAccessibleTask(
     let four = getNativeInterface(accDoc, "four");
 
     is(
-      select.getAttributeValue("AXDescription"),
+      select.getAttributeValue("AXTitle"),
       "Choose a number",
       "Select titled correctly"
     );
@@ -170,7 +170,7 @@ addAccessibleTask(
     let select = getNativeInterface(accDoc, "select");
 
     is(
-      select.getAttributeValue("AXDescription"),
+      select.getAttributeValue("AXTitle"),
       "Choose a thing",
       "Select titled correctly"
     );
@@ -302,7 +302,7 @@ addAccessibleTask(
     let one = getNativeInterface(accDoc, "one");
 
     is(
-      select.getAttributeValue("AXDescription"),
+      select.getAttributeValue("AXTitle"),
       "Choose a number",
       "Select titled correctly"
     );

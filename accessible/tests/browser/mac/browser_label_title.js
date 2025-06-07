@@ -15,7 +15,7 @@ loadScripts(
  * Test different labeling/titling schemes for text fields
  */
 addAccessibleTask(
-  `<label for="n1">Label     </label> <input id="n1">
+  `<label for="n1">Label</label> <input id="n1">
    <label for="n2">Two</label> <label for="n2">Labels</label> <input id="n2">
    <input aria-label="ARIA Label" id="n3">`,
   (browser, accDoc) => {
@@ -26,7 +26,7 @@ addAccessibleTask(
     is(n1Label.getAttributeValue("AXTitle"), "");
 
     let n2 = getNativeInterface(accDoc, "n2");
-    is(n2.getAttributeValue("AXTitle"), "Two Labels");
+    is(n2.getAttributeValue("AXDescription"), "Two Labels");
 
     let n3 = getNativeInterface(accDoc, "n3");
     is(n3.getAttributeValue("AXDescription"), "ARIA Label");
@@ -40,7 +40,7 @@ addAccessibleTask(
   `<fieldset id="fieldset"><legend>Fields</legend><input aria-label="hello"></fieldset>`,
   (browser, accDoc) => {
     let fieldset = getNativeInterface(accDoc, "fieldset");
-    is(fieldset.getAttributeValue("AXTitle"), "Fields");
+    is(fieldset.getAttributeValue("AXDescription"), "Fields");
   }
 );
 
@@ -63,16 +63,18 @@ addAccessibleTask(
  * Test that we fire a title changed notification
  */
 addAccessibleTask(
-  `<button id="btn">Hello world</button>`,
+  `<div id="elem" aria-label="Hello world"></div>`,
   async (browser, accDoc) => {
-    let btn = getNativeInterface(accDoc, "btn");
-    is(btn.getAttributeValue("AXTitle"), "Hello world");
-    let evt = waitForMacEvent("AXTitleChanged", "btn");
+    let elem = getNativeInterface(accDoc, "elem");
+    is(elem.getAttributeValue("AXTitle"), "Hello world");
+    let evt = waitForMacEvent("AXTitleChanged", "elem");
     await SpecialPowers.spawn(browser, [], () => {
-      content.document.getElementById("btn").textContent = "Hello universe";
+      content.document
+        .getElementById("elem")
+        .setAttribute("aria-label", "Hello universe");
     });
     await evt;
-    is(btn.getAttributeValue("AXTitle"), "Hello universe");
+    is(elem.getAttributeValue("AXTitle"), "Hello universe");
   }
 );
 
@@ -105,53 +107,5 @@ addAccessibleTask(
     input = getNativeInterface(accDoc, "input");
     is(input.getAttributeValue("AXDescription"), "The best number you know of");
     ok(!input.getAttributeValue("AXTitle"));
-  }
-);
-
-/**
- * Test a label with nested control
- */
-addAccessibleTask(
-  `<label>Textarea label <textarea id="textarea"></textarea></label>`,
-  async (browser, accDoc) => {
-    let textarea = getNativeInterface(accDoc, "textarea");
-    ok(!textarea.getAttributeValue("AXDescription"));
-    is(textarea.getAttributeValue("AXTitle"), "Textarea label");
-    ok(
-      !textarea.getAttributeValue("AXTitleUIElement"),
-      "label with nested control should be stripped"
-    );
-  }
-);
-
-/**
- * Test a block label with trailing whitespace
- */
-addAccessibleTask(
-  `<div id="a">Hello </div><button aria-labelledby="a" id="btn">Click Me</button>`,
-  async (browser, accDoc) => {
-    let btn = getNativeInterface(accDoc, "btn");
-    ok(!btn.getAttributeValue("AXDescription"));
-    is(btn.getAttributeValue("AXTitle"), "Hello");
-    ok(
-      !btn.getAttributeValue("AXTitleUIElement"),
-      "label with trailing whitespace should be stripped"
-    );
-  }
-);
-
-/**
- * Test no relation exposed when overridden.
- */
-addAccessibleTask(
-  `<label id="lbl" for="btn">a</label><button id="btn" aria-label="c">b</button>`,
-  async (browser, accDoc) => {
-    let btn = getNativeInterface(accDoc, "btn");
-    ok(!btn.getAttributeValue("AXTitle"));
-    is(btn.getAttributeValue("AXDescription"), "c");
-    ok(
-      !btn.getAttributeValue("AXTitleUIElement"),
-      "No relation exposed when overridden"
-    );
   }
 );
