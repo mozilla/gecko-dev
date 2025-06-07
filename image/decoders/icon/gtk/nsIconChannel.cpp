@@ -8,7 +8,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "ErrorList.h"
 #include "gdk/gdk.h"
+#include "mozilla/AlreadyAddRefed.h"
+#include "nsIIconURI.h"
+#include "mozilla/gfx/DataSurfaceHelpers.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/NullPrincipal.h"
@@ -40,24 +44,48 @@
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
 #include "prlink.h"
+#include "gfxUtils.h"
 #include "gfxPlatform.h"
 
-using mozilla::CheckedInt32;
+using namespace mozilla;
 using mozilla::ipc::ByteBuf;
 
 NS_IMPL_ISUPPORTS(nsIconChannel, nsIRequest, nsIChannel)
 
-static nsresult MozGdkPixbufToByteBuf(GdkPixbuf* aPixbuf, gint aScale,
-                                      ByteBuf* aByteBuf) {
+static bool IsValidRGBAPixbuf(GdkPixbuf* aPixbuf) {
+  return gdk_pixbuf_get_colorspace(aPixbuf) == GDK_COLORSPACE_RGB &&
+         gdk_pixbuf_get_bits_per_sample(aPixbuf) == 8 &&
+         gdk_pixbuf_get_has_alpha(aPixbuf) &&
+         gdk_pixbuf_get_n_channels(aPixbuf) == 4;
+}
+
+static already_AddRefed<gfx::DataSourceSurface> MozGdkPixbufToDataSurface(
+    GdkPixbuf* aPixbuf) {
+  if (NS_WARN_IF(!IsValidRGBAPixbuf(aPixbuf))) {
+    return nullptr;
+  }
+  int width = gdk_pixbuf_get_width(aPixbuf);
+  int height = gdk_pixbuf_get_height(aPixbuf);
+  if (!width || !height) {
+    return nullptr;
+  }
+  guchar* const pixels = gdk_pixbuf_get_pixels(aPixbuf);
+  const int stride = gdk_pixbuf_get_rowstride(aPixbuf);
+  RefPtr wrapper = gfx::Factory::CreateWrappingDataSourceSurface(
+      pixels, stride, gfx::IntSize(width, height),
+      gfx::SurfaceFormat::R8G8B8A8);
+  if (NS_WARN_IF(!wrapper)) {
+    return nullptr;
+  }
+  return gfxUtils::CreatePremultipliedDataSurface(wrapper);
+}
+
+static nsresult MozGdkPixbufToByteBuf(GdkPixbuf* aPixbuf, ByteBuf* aByteBuf) {
   int width = gdk_pixbuf_get_width(aPixbuf);
   int height = gdk_pixbuf_get_height(aPixbuf);
   NS_ENSURE_TRUE(height < 256 && width < 256 && height > 0 && width > 0 &&
-                     gdk_pixbuf_get_colorspace(aPixbuf) == GDK_COLORSPACE_RGB &&
-                     gdk_pixbuf_get_bits_per_sample(aPixbuf) == 8 &&
-                     gdk_pixbuf_get_has_alpha(aPixbuf) &&
-                     gdk_pixbuf_get_n_channels(aPixbuf) == 4,
+                     IsValidRGBAPixbuf(aPixbuf),
                  NS_ERROR_UNEXPECTED);
-
   const int n_channels = 4;
   CheckedInt32 buf_size =
       4 + n_channels * CheckedInt32(height) * CheckedInt32(width);
@@ -112,7 +140,17 @@ static nsresult ByteBufToStream(ByteBuf&& aBuf, nsIInputStream** aStream) {
   return NS_OK;
 }
 
-static GdkRGBA GetForegroundColor(nsIMozIconURI* aIconURI) {
+static GdkRGBA GeckoColorToGdk(nscolor aColor) {
+  auto ToGdk = [](uint8_t aGecko) { return aGecko / 255.0; };
+  return GdkRGBA{
+      .red = ToGdk(NS_GET_R(aColor)),
+      .green = ToGdk(NS_GET_G(aColor)),
+      .blue = ToGdk(NS_GET_B(aColor)),
+      .alpha = ToGdk(NS_GET_A(aColor)),
+  };
+}
+
+static nscolor GetForegroundColor(nsIMozIconURI* aIconURI) {
   auto scheme = [&] {
     bool dark = false;
     if (NS_FAILED(aIconURI->GetImageDark(&dark))) {
@@ -120,21 +158,12 @@ static GdkRGBA GetForegroundColor(nsIMozIconURI* aIconURI) {
     }
     return dark ? mozilla::ColorScheme::Dark : mozilla::ColorScheme::Light;
   }();
-  auto color = mozilla::LookAndFeel::Color(
-      mozilla::LookAndFeel::ColorID::Windowtext, scheme,
-      mozilla::LookAndFeel::UseStandins::No);
-  auto ToGdk = [](uint8_t aGecko) { return aGecko / 255.0; };
-  return GdkRGBA{
-      .red = ToGdk(NS_GET_R(color)),
-      .green = ToGdk(NS_GET_G(color)),
-      .blue = ToGdk(NS_GET_B(color)),
-      .alpha = ToGdk(NS_GET_A(color)),
-  };
+  return mozilla::LookAndFeel::Color(mozilla::LookAndFeel::ColorID::Windowtext,
+                                     scheme,
+                                     mozilla::LookAndFeel::UseStandins::No);
 }
 
-/* static */
-nsresult nsIconChannel::GetIconWithGIO(nsIMozIconURI* aIconURI,
-                                       ByteBuf* aDataOut) {
+static nsresult GetIconWithGIO(nsIMozIconURI* aIconURI, ByteBuf* aDataOut) {
   RefPtr<GIcon> icon;
   nsCOMPtr<nsIURL> fileURI;
 
@@ -218,14 +247,31 @@ nsresult nsIconChannel::GetIconWithGIO(nsIMozIconURI* aIconURI,
   }
 
   // Create a GdkPixbuf buffer containing icon and scale it
-  const auto fg = GetForegroundColor(aIconURI);
+  const auto fg = GeckoColorToGdk(GetForegroundColor(aIconURI));
   RefPtr<GdkPixbuf> pixbuf = dont_AddRef(gtk_icon_info_load_symbolic(
       iconInfo, &fg, nullptr, nullptr, nullptr, nullptr, nullptr));
 
   if (!pixbuf) {
     return NS_ERROR_UNEXPECTED;
   }
-  return MozGdkPixbufToByteBuf(pixbuf, scale, aDataOut);
+  return MozGdkPixbufToByteBuf(pixbuf, aDataOut);
+}
+
+static already_AddRefed<GdkPixbuf> GetSymbolicIconPixbuf(const nsCString& aName,
+                                                         int aIconSize,
+                                                         int aScale,
+                                                         nscolor aFgColor) {
+  GtkIconTheme* theme = gtk_icon_theme_get_default();
+  RefPtr<GtkIconInfo> iconInfo =
+      dont_AddRef(gtk_icon_theme_lookup_icon_for_scale(
+          theme, aName.get(), aIconSize, aScale, GtkIconLookupFlags(0)));
+  if (!iconInfo) {
+    return nullptr;
+  }
+  const auto fg = GeckoColorToGdk(aFgColor);
+  RefPtr<GdkPixbuf> pixbuf = dont_AddRef(gtk_icon_info_load_symbolic(
+      iconInfo, &fg, nullptr, nullptr, nullptr, nullptr, nullptr));
+  return pixbuf.forget();
 }
 
 /* static */
@@ -247,27 +293,23 @@ nsresult nsIconChannel::GetIcon(nsIURI* aURI, ByteBuf* aDataOut) {
     return GetIconWithGIO(iconURI, aDataOut);
   }
 
-  GtkIconTheme* theme = gtk_icon_theme_get_default();
   const gint iconSize = iconURI->GetImageSize();
   const gint scale = iconURI->GetImageScale();
-  RefPtr<GtkIconInfo> iconInfo =
-      dont_AddRef(gtk_icon_theme_lookup_icon_for_scale(
-          theme, stockIcon.get(), iconSize, scale, GtkIconLookupFlags(0)));
-  if (!iconInfo) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-  const auto fg = GetForegroundColor(iconURI);
-  RefPtr<GdkPixbuf> pixbuf = dont_AddRef(gtk_icon_info_load_symbolic(
-      iconInfo, &fg, nullptr, nullptr, nullptr, nullptr, nullptr));
-
-  // According to documentation, gtk_icon_set_render_icon() never returns
-  // nullptr, but it does return nullptr when we have the problem reported
-  // here: https://bugzilla.gnome.org/show_bug.cgi?id=629878#c13
+  const nscolor fg = GetForegroundColor(iconURI);
+  RefPtr pixbuf = GetSymbolicIconPixbuf(stockIcon, iconSize, scale, fg);
   if (!pixbuf) {
     return NS_ERROR_NOT_AVAILABLE;
   }
+  return MozGdkPixbufToByteBuf(pixbuf, aDataOut);
+}
 
-  return MozGdkPixbufToByteBuf(pixbuf, scale, aDataOut);
+already_AddRefed<gfx::DataSourceSurface> nsIconChannel::GetSymbolicIcon(
+    const nsCString& aName, int aIconSize, int aScale, nscolor aFgColor) {
+  RefPtr pixbuf = GetSymbolicIconPixbuf(aName, aIconSize, aScale, aFgColor);
+  if (!pixbuf) {
+    return nullptr;
+  }
+  return MozGdkPixbufToDataSurface(pixbuf);
 }
 
 nsresult nsIconChannel::Init(nsIURI* aURI, nsILoadInfo* aLoadInfo) {
