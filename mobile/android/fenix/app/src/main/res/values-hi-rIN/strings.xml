@@ -1262,7 +1262,7 @@
   <!-- Content description for privacy content close button -->
   <string name="privacy_content_close_button_content_description">बंद करें</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">और जानें</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">और जानें</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">अधिक जानें</string>
   <!-- Translations feature -->

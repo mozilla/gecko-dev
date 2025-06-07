@@ -213,9 +213,9 @@
   <!-- Menu option in the search selector menu to open the search settings -->
   <string name="search_settings_menu_item">వెతుకుడు అమరికలు</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">మొదలుపెట్టండి</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">మొదలుపెట్టండి</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">దాటవేయి</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">దాటవేయి</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
   <string name="onboarding_home_content_description_close_button">మూసివేయి</string>
   <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -1456,9 +1456,9 @@
   -->
   <string name="pocket_stories_header_1" tools:ignore="UnusedResources" moz:removedIn="140">ఆలోచింపజేసే కథనాలు</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">అంశంవారీగా కథనాలు</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">అంశంవారీగా కథనాలు</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">ఇంకా కనుగొనండి</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">ఇంకా కనుగొనండి</string>
   <!-- Clickable text for opening an external link for more information about Pocket. -->
   <string name="pocket_stories_feature_learn_more" moz:removedIn="140" tools:ignore="UnusedResources">ఇంకా తెలుసుకోండి</string>
   <!-- Snackbar button text to navigate to telemetry settings. -->

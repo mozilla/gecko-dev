@@ -487,19 +487,19 @@
 
     Home onboarding dialog welcome screen title text.
   -->
-  <string name="onboarding_home_welcome_title_2">Willkommen in einem persönlicheren Internet</string>
+  <string name="onboarding_home_welcome_title_2" moz:removedIn="141" tools:ignore="UnusedResources">Willkommen in einem persönlicheren Internet</string>
   <!-- Home onboarding dialog welcome screen description text. -->
-  <string name="onboarding_home_welcome_description">Mehr Farben. Bessere Privatsphäre. Gleiches Engagement für Menschen über Gewinne.</string>
+  <string name="onboarding_home_welcome_description" moz:removedIn="141" tools:ignore="UnusedResources">Mehr Farben. Bessere Privatsphäre. Gleiches Engagement für Menschen über Gewinne.</string>
   <!-- Home onboarding dialog sign into sync screen title text. -->
-  <string name="onboarding_home_sync_title_3">Das Wechseln zwischen Bildschirmen ist einfacher als je zuvor</string>
+  <string name="onboarding_home_sync_title_3" moz:removedIn="141" tools:ignore="UnusedResources">Das Wechseln zwischen Bildschirmen ist einfacher als je zuvor</string>
   <!-- Home onboarding dialog sign into sync screen description text. -->
-  <string name="onboarding_home_sync_description">Machen Sie da weiter, wo Sie aufgehört haben – ab sofort finden Sie Tabs von anderen Geräten auf Ihrer Startseite.</string>
+  <string name="onboarding_home_sync_description" moz:removedIn="141" tools:ignore="UnusedResources">Machen Sie da weiter, wo Sie aufgehört haben – ab sofort finden Sie Tabs von anderen Geräten auf Ihrer Startseite.</string>
   <!-- Text for the button to continue the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_get_started_button">Erste Schritte</string>
+  <string name="onboarding_home_get_started_button" moz:removedIn="141" tools:ignore="UnusedResources">Erste Schritte</string>
   <!-- Text for the button to navigate to the sync sign in screen on the home onboarding dialog. -->
-  <string name="onboarding_home_sign_in_button">Anmelden</string>
+  <string name="onboarding_home_sign_in_button" moz:removedIn="141" tools:ignore="UnusedResources">Anmelden</string>
   <!-- Text for the button to skip the onboarding on the home onboarding dialog. -->
-  <string name="onboarding_home_skip_button">Überspringen</string>
+  <string name="onboarding_home_skip_button" moz:removedIn="141" tools:ignore="UnusedResources">Überspringen</string>
   <!-- Onboarding home screen sync popup dialog message, shown on top of Recent Synced Tabs in the Jump back in section. -->
   <string name="sync_cfr_message">Ihre Tabs werden synchronisiert! Machen Sie dort weiter, wo Sie auf Ihrem anderen Gerät aufgehört haben.</string>
   <!-- Content description (not visible, for screen readers etc.): Close button for the home onboarding dialog -->
@@ -2968,9 +2968,9 @@
   <!-- Header text for a section on the home screen. -->
   <string name="pocket_stories_header_2">Geschichten</string>
   <!-- Header text for a section on the home screen. -->
-  <string name="pocket_stories_categories_header">Geschichten nach Thema</string>
+  <string name="pocket_stories_categories_header" moz:removedIn="141" tools:ignore="UnusedResources">Geschichten nach Thema</string>
   <!-- Text of a button allowing users to access an external url for more Pocket recommendations. -->
-  <string name="pocket_stories_placeholder_text">Mehr entdecken</string>
+  <string name="pocket_stories_placeholder_text" moz:removedIn="141" tools:ignore="UnusedResources">Mehr entdecken</string>
   <!-- Title of an app feature. Smaller than a heading. %s is "Pocket". -->
   <string name="pocket_stories_feature_title_2" moz:removedIn="140" tools:ignore="UnusedResources">Unterstützt durch %s.</string>
   <!-- Caption for describing a certain feature. %s is a link using pocket_stories_feature_learn_more as text, which will load an url in a new tab when clicked. -->
