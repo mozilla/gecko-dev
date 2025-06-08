@@ -13,6 +13,7 @@
 #include "HostWebGLContext.h"
 #include "js/PropertyAndElement.h"  // JS_DefineElement
 #include "js/ScalarType.h"          // js::Scalar::Type
+#include "mozilla/dom/BufferSourceBinding.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/TypedArray.h"
@@ -3593,6 +3594,20 @@ void ClientWebGLContext::BufferSubData(GLenum target,
     Run<RPROC(BufferSubData)>(target, dstByteOffset, *range,
                               /* unsynchronized */ false);
   });
+}
+
+void ClientWebGLContext::BufferSubData(
+    GLenum target, WebGLsizeiptr dstByteOffset,
+    const dom::AllowSharedBufferSource& src) {
+  if (src.IsArrayBufferView()) {
+    BufferSubData(target, dstByteOffset, src.GetAsArrayBufferView());
+    return;
+  } else if (src.IsArrayBuffer()) {
+    BufferSubData(target, dstByteOffset, src.GetAsArrayBuffer());
+    return;
+  }
+
+  MOZ_ASSERT_UNREACHABLE("Union is uninitialized?");
 }
 
 void ClientWebGLContext::CopyBufferSubData(GLenum readTarget,

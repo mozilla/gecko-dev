@@ -305,8 +305,7 @@ interface mixin WebGL2RenderingContextBase
     undefined bufferData(GLenum target, GLsizeiptr size, GLenum usage);
     undefined bufferData(GLenum target, [AllowShared] ArrayBuffer? srcData, GLenum usage);
     undefined bufferData(GLenum target, [AllowShared] ArrayBufferView srcData, GLenum usage);
-    undefined bufferSubData(GLenum target, GLintptr offset, [AllowShared] ArrayBuffer srcData);
-    undefined bufferSubData(GLenum target, GLintptr offset, [AllowShared] ArrayBufferView srcData);
+    undefined bufferSubData(GLenum target, GLintptr offset, AllowSharedBufferSource srcData);
     // WebGL2:
     undefined bufferData(GLenum target, [AllowShared] ArrayBufferView srcData, GLenum usage,
                          GLuint srcOffset, optional GLuint length = 0);

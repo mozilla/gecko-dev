@@ -14,6 +14,7 @@
 #include "mozilla/dom/TypedArray.h"
 #include "nsICanvasRenderingContextInternal.h"
 #include "nsWrapperCache.h"
+#include "mozilla/dom/BufferSourceBindingFwd.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "mozilla/dom/WebGL2RenderingContextBinding.h"
 #include "mozilla/layers/LayersSurfaces.h"
@@ -1522,6 +1523,8 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
                      GLuint srcElemCountOverride = 0);
   void BufferSubData(GLenum target, WebGLsizeiptr dstByteOffset,
                      const dom::ArrayBuffer& src);
+  void BufferSubData(GLenum target, WebGLsizeiptr dstByteOffset,
+                     const dom::AllowSharedBufferSource& src);
 
   void GetBufferSubData(GLenum target, GLintptr srcByteOffset,
                         const dom::ArrayBufferView& dstData,
