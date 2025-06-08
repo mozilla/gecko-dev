@@ -7,12 +7,11 @@
 #include "mozilla/dom/quota/OpenClientDirectoryInfo.h"
 
 #include "mozilla/dom/quota/AssertionsImpl.h"
+#include "mozilla/dom/quota/UniversalDirectoryLock.h"
 
 namespace mozilla::dom::quota {
 
-OpenClientDirectoryInfo::OpenClientDirectoryInfo(
-    const OriginMetadata& aOriginMetadata)
-    : mOriginMetadata(aOriginMetadata) {
+OpenClientDirectoryInfo::OpenClientDirectoryInfo() {
   MOZ_COUNT_CTOR(mozilla::dom::quota::OpenClientDirectoryInfo);
 }
 
@@ -24,10 +23,27 @@ void OpenClientDirectoryInfo::AssertIsOnOwningThread() const {
   NS_ASSERT_OWNINGTHREAD(OpenClientDirectoryInfo);
 }
 
-const OriginMetadata& OpenClientDirectoryInfo::OriginMetadataRef() const {
+void OpenClientDirectoryInfo::SetLastAccessDirectoryLock(
+    RefPtr<UniversalDirectoryLock> aLastAccessDirectoryLock) {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(aLastAccessDirectoryLock);
+  MOZ_ASSERT(!mLastAccessDirectoryLock);
+
+  mLastAccessDirectoryLock = std::move(aLastAccessDirectoryLock);
+}
+
+bool OpenClientDirectoryInfo::HasLastAccessDirectoryLock() const {
   AssertIsOnOwningThread();
 
-  return mOriginMetadata;
+  return mLastAccessDirectoryLock;
+}
+
+RefPtr<UniversalDirectoryLock>
+OpenClientDirectoryInfo::ForgetLastAccessDirectoryLock() {
+  AssertIsOnOwningThread();
+  MOZ_ASSERT(mLastAccessDirectoryLock);
+
+  return std::move(mLastAccessDirectoryLock);
 }
 
 uint64_t OpenClientDirectoryInfo::ClientDirectoryLockHandleCount() const {

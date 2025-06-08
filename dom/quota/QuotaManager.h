@@ -223,7 +223,8 @@ class QuotaManager final : public BackgroundThreadObject {
                               const OriginMetadata& aOriginMetadata,
                               Client::Type aClientType);
 
-  void UpdateOriginAccessTime(const OriginMetadata& aOriginMetadata);
+  void UpdateOriginAccessTime(const OriginMetadata& aOriginMetadata,
+                              int64_t aTimestamp);
 
   void RemoveQuota();
 
@@ -545,7 +546,11 @@ class QuotaManager final : public BackgroundThreadObject {
   RefPtr<BoolPromise> InitializeAllTemporaryOrigins();
 
   RefPtr<BoolPromise> SaveOriginAccessTime(
-      const OriginMetadata& aOriginMetadata, int64_t aTimestamp);
+      const OriginMetadata& aOriginMetadata);
+
+  RefPtr<BoolPromise> SaveOriginAccessTime(
+      const OriginMetadata& aOriginMetadata,
+      RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
   RefPtr<OriginUsageMetadataArrayPromise> GetUsage(
       bool aGetAll, RefPtr<BoolPromise> aOnCancelPromise = nullptr);
@@ -859,8 +864,6 @@ class QuotaManager final : public BackgroundThreadObject {
       (*mClients)[type]->ReleaseIOThreadObjects();
     }
   }
-
-  void ClearOpenClientDirectoryInfos();
 
   void AddTemporaryOrigin(const FullOriginMetadata& aFullOriginMetadata);
 

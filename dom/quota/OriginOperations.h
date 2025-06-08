@@ -46,9 +46,13 @@ RefPtr<OriginOperationBase> CreateFinalizeOriginEvictionOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     nsTArray<RefPtr<OriginDirectoryLock>>&& aLocks);
 
+RefPtr<UniversalDirectoryLock> CreateSaveOriginAccessTimeLock(
+    QuotaManager& aQuotaManager, const OriginMetadata& aOriginMetadata);
+
 RefPtr<ResolvableNormalOriginOp<bool>> CreateSaveOriginAccessTimeOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
-    const OriginMetadata& aOriginMetadata, int64_t aTimestamp);
+    const OriginMetadata& aOriginMetadata,
+    RefPtr<UniversalDirectoryLock> aDirectoryLock);
 
 RefPtr<ResolvableNormalOriginOp<bool>> CreateClearPrivateRepositoryOp(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager);
