@@ -264,8 +264,9 @@ static ErrorObject* CreateErrorObject(JSContext* cx, const CallArgs& args,
 
   // Don't interpret the two parameters following the message parameter as the
   // non-standard fileName and lineNumber arguments when we have an options
-  // object argument.
-  bool hasOptions = args.get(messageArg + 1).isObject();
+  // object argument and the exception type is not SuppressedError.
+  bool hasOptions =
+      args.get(messageArg + 1).isObject() && exnType != JSEXN_SUPPRESSEDERR;
 
   Rooted<mozilla::Maybe<Value>> cause(cx, mozilla::Nothing());
   if (hasOptions) {
