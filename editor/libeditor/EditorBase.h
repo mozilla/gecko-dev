@@ -1759,6 +1759,11 @@ class EditorBase : public nsIEditor,
     return aPurpose == InsertTextFor::CompositionStart ||
            aPurpose == InsertTextFor::CompositionStartAndEnd;
   }
+  [[nodiscard]] static bool InsertingTextForCommittingComposition(
+      InsertTextFor aPurpose) {
+    return aPurpose == InsertTextFor::CompositionEnd ||
+           aPurpose == InsertTextFor::CompositionStartAndEnd;
+  }
   [[nodiscard]] static bool NothingToDoIfInsertingEmptyText(
       InsertTextFor aPurpose) {
     return aPurpose == InsertTextFor::NormalText ||

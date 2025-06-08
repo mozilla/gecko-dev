@@ -3025,8 +3025,7 @@ WhiteSpaceVisibilityKeeper::InsertTextOrInsertOrUpdateCompositionString(
   }
   // If the composition is committed, we should normalize surrounding
   // white-spaces of the commit string.
-  if (aPurpose != InsertTextFor::CompositionEnd &&
-      aPurpose != InsertTextFor::CompositionStartAndEnd) {
+  if (!EditorBase::InsertingTextForCommittingComposition(aPurpose)) {
     return insertOrReplaceTextResultOrError;
   }
   InsertTextResult insertOrReplaceTextResult =

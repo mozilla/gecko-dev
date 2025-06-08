@@ -11435,6 +11435,37 @@ function runCancelCompositionAfterCollapseWhileSpace() {
   );
 }
 
+function runCompositionOnlyWhiteSpace() {
+  const selection = windowOfContenteditable.getSelection();
+  contenteditable.innerHTML = "<p>A</p>";
+  contenteditable.focus();
+  selection.collapse(
+    contenteditable.querySelector("[contenteditable] > p").firstChild,
+    "A".length
+  );
+  const description = "runCompositionOnlyWhiteSpace";
+  synthesizeCompositionChange({
+    composition: {string: " ", clauses: [{length: 1, attr: COMPOSITION_ATTR_RAW_CLAUSE}]},
+  });
+  is(
+    contenteditable.innerHTML,
+    kNewWhiteSpaceNormalizerEnabled ? "<p>A&nbsp;</p>" : "A <br>",
+    `${description}: Composing string " " should be inserted`
+  );
+  synthesizeComposition({type: "compositioncommitasis", data: " "});
+  is(
+    contenteditable.innerHTML,
+    kNewWhiteSpaceNormalizerEnabled ? "<p>A&nbsp;</p>" : "<p>A <br></p>",
+    `${description}: Committing the white-space should not change the value`
+  );
+  synthesizeKey("B");
+  is(
+    contenteditable.innerHTML,
+    "<p>A B</p>",
+    `${description}: Typing "B" should cause inserting it after the white-space`
+  );
+}
+
 async function runTest()
 {
   await SpecialPowers.pushPrefEnv({
@@ -11487,6 +11518,7 @@ async function runTest()
   runBug1675313Test();
   runCommitCompositionWithSpaceKey();
   runCancelCompositionAfterCollapseWhileSpace();
+  runCompositionOnlyWhiteSpace();
   runCompositionWithSelectionChange();
   runCompositionWithClick();
   runForceCommitTest();
