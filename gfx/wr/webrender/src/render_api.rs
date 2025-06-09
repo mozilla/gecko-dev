@@ -593,6 +593,14 @@ impl Transaction {
     pub fn is_low_priority(&self) -> bool {
         self.low_priority
     }
+
+    /// Render a pipeline offscreen immediately without waiting for vsync
+    /// and without affecting the state of the current scene.
+    ///
+    /// Snapshotted stacking contexts will be persisted in the texture cache.
+    pub fn render_offscreen(&mut self, pipeline_id: PipelineId) {
+        self.scene_ops.push(SceneMsg::RenderOffscreen(pipeline_id));
+    }
 }
 
 ///
@@ -818,6 +826,11 @@ pub enum SceneMsg {
         ///
         pipeline_id: PipelineId,
     },
+    /// Build a scene without affecting any retained state.
+    ///
+    /// Useful to render an offscreen scene in the background without affecting
+    /// what is currently displayed.
+    RenderOffscreen(PipelineId),
     ///
     SetDocumentView {
         ///
@@ -861,6 +874,7 @@ impl fmt::Debug for SceneMsg {
             SceneMsg::SetDocumentView { .. } => "SceneMsg::SetDocumentView",
             SceneMsg::SetRootPipeline(..) => "SceneMsg::SetRootPipeline",
             SceneMsg::SetQualitySettings { .. } => "SceneMsg::SetQualitySettings",
+            SceneMsg::RenderOffscreen(..) => "SceneMsg::BuildOffscreen",
         })
     }
 }
