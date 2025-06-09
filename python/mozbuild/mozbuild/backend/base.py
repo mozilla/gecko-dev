@@ -236,6 +236,7 @@ class BuildBackend(LoggingMixin):
             purgecaches_dirs.append(bundledir)
 
         for dir in purgecaches_dirs:
+            os.makedirs(dir, exist_ok=True)
             with open(mozpath.join(dir, ".purgecaches"), "w") as f:
                 f.write("\n")
 
