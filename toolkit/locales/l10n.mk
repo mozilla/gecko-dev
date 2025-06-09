@@ -24,9 +24,6 @@
 # The including makefile should provide values for the variables
 #   MOZ_APP_VERSION and MOZ_LANGPACK_EID.
 
-
-run_for_effects := $(shell if test ! -d $(DIST); then $(NSINSTALL) -D $(DIST); fi)
-
 # This makefile uses variable overrides from the l10n-% target to
 # build non-default locales to non-default dist/ locations. Be aware!
 
@@ -47,8 +44,6 @@ ACDEFINES += \
 	-DMOZ_APP_VERSION=$(MOZ_APP_VERSION) \
 	-DMOZ_APP_MAXVERSION=$(MOZ_APP_MAXVERSION) \
 	-DLOCALE_SRCDIR=$(abspath $(LOCALE_SRCDIR)) \
-	-DPKG_BASENAME='$(PKG_BASENAME)' \
-	-DPKG_INST_BASENAME='$(PKG_INST_BASENAME)' \
 	$(NULL)
 
 # export some global defines for l10n repacks

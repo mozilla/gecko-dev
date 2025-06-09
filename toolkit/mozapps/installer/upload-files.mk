@@ -223,7 +223,7 @@ ifneq (android,$(MOZ_WIDGET_TOOLKIT))
 endif
 
 ifeq ($(OS_TARGET), WINNT)
-  INSTALLER_PACKAGE = $(DIST)/$(PKG_INST_PATH)$(PKG_INST_BASENAME).exe
+  INSTALLER_PACKAGE = $(DIST)/$(PKG_PATH)$(PKG_INST_BASENAME).exe
 endif
 
 # These are necessary because some of our packages/installers contain spaces
@@ -299,7 +299,7 @@ endif
 endif
 
 ifdef MOZ_STUB_INSTALLER
-  UPLOAD_FILES += $(call QUOTED_WILDCARD,$(DIST)/$(PKG_INST_PATH)$(PKG_STUB_BASENAME).exe)
+  UPLOAD_FILES += $(call QUOTED_WILDCARD,$(DIST)/$(PKG_PATH)$(PKG_STUB_BASENAME).exe)
 endif
 
 # Upload `.xpt` artifacts for use in artifact builds.
