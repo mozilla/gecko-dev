@@ -928,6 +928,8 @@ skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"
 ["test_loadgroup_glean.js"]
 skip-if = ["os == 'android' && android_version == '24' && processor == 'x86_64'"]
 
+["test_local_network_access.js"]
+
 ["test_localhost_offline.js"]
 
 ["test_localstreams.js"]
