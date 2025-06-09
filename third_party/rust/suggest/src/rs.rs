@@ -186,6 +186,8 @@ pub(crate) enum SuggestRecord {
     Wikipedia,
     #[serde(rename = "amo-suggestions")]
     Amo,
+    #[serde(rename = "pocket-suggestions")]
+    Pocket,
     #[serde(rename = "yelp-suggestions")]
     Yelp,
     #[serde(rename = "mdn-suggestions")]
@@ -222,6 +224,7 @@ pub enum SuggestRecordType {
     Amp,
     Wikipedia,
     Amo,
+    Pocket,
     Yelp,
     Mdn,
     Weather,
@@ -240,6 +243,7 @@ impl From<&SuggestRecord> for SuggestRecordType {
             SuggestRecord::Wikipedia => Self::Wikipedia,
             SuggestRecord::Icon => Self::Icon,
             SuggestRecord::Mdn => Self::Mdn,
+            SuggestRecord::Pocket => Self::Pocket,
             SuggestRecord::Weather => Self::Weather,
             SuggestRecord::Yelp => Self::Yelp,
             SuggestRecord::GlobalConfig(_) => Self::GlobalConfig,
@@ -274,6 +278,7 @@ impl SuggestRecordType {
             Self::Amp,
             Self::Wikipedia,
             Self::Amo,
+            Self::Pocket,
             Self::Yelp,
             Self::Mdn,
             Self::Weather,
@@ -291,6 +296,7 @@ impl SuggestRecordType {
             Self::Amp => "amp",
             Self::Wikipedia => "wikipedia",
             Self::Amo => "amo-suggestions",
+            Self::Pocket => "pocket-suggestions",
             Self::Yelp => "yelp-suggestions",
             Self::Mdn => "mdn-suggestions",
             Self::Weather => "weather",
@@ -447,6 +453,17 @@ pub(crate) struct DownloadedAmoSuggestion {
     pub number_of_ratings: i64,
     pub title: String,
     pub keywords: Vec<String>,
+    pub score: f64,
+}
+/// A Pocket suggestion to ingest from a Pocket Suggestion Attachment
+#[derive(Clone, Debug, Deserialize)]
+pub(crate) struct DownloadedPocketSuggestion {
+    pub url: String,
+    pub title: String,
+    #[serde(rename = "lowConfidenceKeywords")]
+    pub low_confidence_keywords: Vec<String>,
+    #[serde(rename = "highConfidenceKeywords")]
+    pub high_confidence_keywords: Vec<String>,
     pub score: f64,
 }
 /// Yelp location sign data type

@@ -1072,7 +1072,7 @@ export class WebExtStorageBridgedEngine {
     async apply() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            91, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_apply
+            89, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_apply
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1092,7 +1092,7 @@ export class WebExtStorageBridgedEngine {
        
         FfiConverterString.checkType(newSyncId);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            92, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_ensure_current_sync_id
+            90, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_ensure_current_sync_id
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
             FfiConverterString.lower(newSyncId),
         )
@@ -1110,7 +1110,7 @@ export class WebExtStorageBridgedEngine {
     async lastSync() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            93, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_last_sync
+            91, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_last_sync
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1129,7 +1129,7 @@ export class WebExtStorageBridgedEngine {
        
         FfiConverterString.checkType(clientData);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            94, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_prepare_for_sync
+            92, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_prepare_for_sync
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
             FfiConverterString.lower(clientData),
         )
@@ -1146,7 +1146,7 @@ export class WebExtStorageBridgedEngine {
     async reset() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            95, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset
+            93, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1163,7 +1163,7 @@ export class WebExtStorageBridgedEngine {
     async resetSyncId() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            96, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset_sync_id
+            94, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_reset_sync_id
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1182,7 +1182,7 @@ export class WebExtStorageBridgedEngine {
        
         FfiConverterInt64.checkType(lastSync);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            97, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_last_sync
+            95, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_last_sync
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
             FfiConverterInt64.lower(lastSync),
         )
@@ -1205,7 +1205,7 @@ export class WebExtStorageBridgedEngine {
         FfiConverterInt64.checkType(serverModifiedMillis);
         FfiConverterSequenceTypeGuid.checkType(guids);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            98, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_uploaded
+            96, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_set_uploaded
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
             FfiConverterInt64.lower(serverModifiedMillis),
             FfiConverterSequenceTypeGuid.lower(guids),
@@ -1226,7 +1226,7 @@ export class WebExtStorageBridgedEngine {
        
         FfiConverterSequenceString.checkType(incoming);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            99, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_store_incoming
+            97, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_store_incoming
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
             FfiConverterSequenceString.lower(incoming),
         )
@@ -1243,7 +1243,7 @@ export class WebExtStorageBridgedEngine {
     async syncFinished() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            100, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_finished
+            98, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_finished
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1260,7 +1260,7 @@ export class WebExtStorageBridgedEngine {
     async syncId() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            101, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_id
+            99, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_id
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1276,7 +1276,7 @@ export class WebExtStorageBridgedEngine {
     async syncStarted() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            102, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_started
+            100, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_sync_started
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1292,7 +1292,7 @@ export class WebExtStorageBridgedEngine {
     async wipe() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            103, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_wipe
+            101, // uniffi_webext_storage_fn_method_webextstoragebridgedengine_wipe
             FfiConverterTypeWebExtStorageBridgedEngine.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1326,11 +1326,11 @@ export class FfiConverterTypeWebExtStorageBridgedEngine extends FfiConverter {
     }
 
     static read(dataStream) {
-        return this.lift(dataStream.readPointer(13));
+        return this.lift(dataStream.readPointer(12));
     }
 
     static write(dataStream, value) {
-        dataStream.writePointer(13, this.lower(value));
+        dataStream.writePointer(12, this.lower(value));
     }
 
     static computeSize(value) {
@@ -1434,7 +1434,7 @@ export class WebExtStorageStore {
        
         FfiConverterString.checkType(path);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            104, // uniffi_webext_storage_fn_constructor_webextstoragestore_new
+            102, // uniffi_webext_storage_fn_constructor_webextstoragestore_new
             FfiConverterString.lower(path),
         )
         return handleRustResult(
@@ -1451,7 +1451,7 @@ export class WebExtStorageStore {
     async bridgedEngine() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            105, // uniffi_webext_storage_fn_method_webextstoragestore_bridged_engine
+            103, // uniffi_webext_storage_fn_method_webextstoragestore_bridged_engine
             FfiConverterTypeWebExtStorageStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1471,7 +1471,7 @@ export class WebExtStorageStore {
        
         FfiConverterString.checkType(extId);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            106, // uniffi_webext_storage_fn_method_webextstoragestore_clear
+            104, // uniffi_webext_storage_fn_method_webextstoragestore_clear
             FfiConverterTypeWebExtStorageStore.lowerReceiver(this),
             FfiConverterString.lower(extId),
         )
@@ -1488,7 +1488,7 @@ export class WebExtStorageStore {
     async close() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            107, // uniffi_webext_storage_fn_method_webextstoragestore_close
+            105, // uniffi_webext_storage_fn_method_webextstoragestore_close
             FfiConverterTypeWebExtStorageStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1511,7 +1511,7 @@ export class WebExtStorageStore {
         FfiConverterString.checkType(extId);
         FfiConverterTypeJsonValue.checkType(keys);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            108, // uniffi_webext_storage_fn_method_webextstoragestore_get
+            106, // uniffi_webext_storage_fn_method_webextstoragestore_get
             FfiConverterTypeWebExtStorageStore.lowerReceiver(this),
             FfiConverterString.lower(extId),
             FfiConverterTypeJsonValue.lower(keys),
@@ -1536,7 +1536,7 @@ export class WebExtStorageStore {
         FfiConverterString.checkType(extId);
         FfiConverterTypeJsonValue.checkType(keys);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            109, // uniffi_webext_storage_fn_method_webextstoragestore_get_bytes_in_use
+            107, // uniffi_webext_storage_fn_method_webextstoragestore_get_bytes_in_use
             FfiConverterTypeWebExtStorageStore.lowerReceiver(this),
             FfiConverterString.lower(extId),
             FfiConverterTypeJsonValue.lower(keys),
@@ -1555,7 +1555,7 @@ export class WebExtStorageStore {
     async getSyncedChanges() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            110, // uniffi_webext_storage_fn_method_webextstoragestore_get_synced_changes
+            108, // uniffi_webext_storage_fn_method_webextstoragestore_get_synced_changes
             FfiConverterTypeWebExtStorageStore.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1578,7 +1578,7 @@ export class WebExtStorageStore {
         FfiConverterString.checkType(extId);
         FfiConverterTypeJsonValue.checkType(keys);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            111, // uniffi_webext_storage_fn_method_webextstoragestore_remove
+            109, // uniffi_webext_storage_fn_method_webextstoragestore_remove
             FfiConverterTypeWebExtStorageStore.lowerReceiver(this),
             FfiConverterString.lower(extId),
             FfiConverterTypeJsonValue.lower(keys),
@@ -1603,7 +1603,7 @@ export class WebExtStorageStore {
         FfiConverterString.checkType(extId);
         FfiConverterTypeJsonValue.checkType(val);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            112, // uniffi_webext_storage_fn_method_webextstoragestore_set
+            110, // uniffi_webext_storage_fn_method_webextstoragestore_set
             FfiConverterTypeWebExtStorageStore.lowerReceiver(this),
             FfiConverterString.lower(extId),
             FfiConverterTypeJsonValue.lower(val),
@@ -1639,11 +1639,11 @@ export class FfiConverterTypeWebExtStorageStore extends FfiConverter {
     }
 
     static read(dataStream) {
-        return this.lift(dataStream.readPointer(14));
+        return this.lift(dataStream.readPointer(13));
     }
 
     static write(dataStream, value) {
-        dataStream.writePointer(14, this.lower(value));
+        dataStream.writePointer(13, this.lower(value));
     }
 
     static computeSize(value) {

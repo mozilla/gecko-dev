@@ -45,6 +45,12 @@ pub enum Suggestion {
         score: f64,
         fts_match_info: Option<FtsMatchInfo>,
     },
+    Pocket {
+        title: String,
+        url: String,
+        score: f64,
+        is_top_pick: bool,
+    },
     Wikipedia {
         title: String,
         url: String,
@@ -148,7 +154,8 @@ impl Suggestion {
                 }
             }
             Self::Dynamic { dismissal_key, .. } => dismissal_key.as_deref(),
-            Self::Wikipedia { .. }
+            Self::Pocket { .. }
+            | Self::Wikipedia { .. }
             | Self::Amo { .. }
             | Self::Yelp { .. }
             | Self::Mdn { .. }
@@ -161,6 +168,7 @@ impl Suggestion {
     pub fn url(&self) -> Option<&str> {
         match self {
             Self::Amp { url, .. }
+            | Self::Pocket { url, .. }
             | Self::Wikipedia { url, .. }
             | Self::Amo { url, .. }
             | Self::Yelp { url, .. }
@@ -177,7 +185,8 @@ impl Suggestion {
     pub fn raw_url(&self) -> Option<&str> {
         match self {
             Self::Amp { raw_url, .. } => Some(raw_url),
-            Self::Wikipedia { .. }
+            Self::Pocket { .. }
+            | Self::Wikipedia { .. }
             | Self::Amo { .. }
             | Self::Yelp { .. }
             | Self::Mdn { .. }
@@ -190,6 +199,7 @@ impl Suggestion {
     pub fn title(&self) -> &str {
         match self {
             Self::Amp { title, .. }
+            | Self::Pocket { title, .. }
             | Self::Wikipedia { title, .. }
             | Self::Amo { title, .. }
             | Self::Yelp { title, .. }
@@ -212,6 +222,7 @@ impl Suggestion {
     pub fn score(&self) -> f64 {
         match self {
             Self::Amp { score, .. }
+            | Self::Pocket { score, .. }
             | Self::Amo { score, .. }
             | Self::Yelp { score, .. }
             | Self::Mdn { score, .. }

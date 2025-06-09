@@ -14,7 +14,6 @@ prefs = ["browser.contextual-services.contextId.rust-component.enabled=true"]
 ["test_E10SUtils_nested_URIs.js"]
 
 ["test_FilterAdult.js"]
-prefs = ["browser.newtabpage.activity-stream.filterAdult=true"]
 
 ["test_FirefoxBridgeExtensionUtils.js"]
 run-if = ["os == 'win'"] # Test of a Windows-specific feature

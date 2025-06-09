@@ -1909,7 +1909,7 @@ export class RemoteSettings {
        
         FfiConverterTypeRemoteSettingsConfig.checkType(remoteSettingsConfig);
         const result = UniFFIScaffolding.callSync(
-            20, // uniffi_remote_settings_fn_constructor_remotesettings_new
+            18, // uniffi_remote_settings_fn_constructor_remotesettings_new
             FfiConverterTypeRemoteSettingsConfig.lower(remoteSettingsConfig),
         )
         return handleRustResult(
@@ -1931,7 +1931,7 @@ export class RemoteSettings {
         FfiConverterString.checkType(attachmentId);
         FfiConverterString.checkType(path);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            21, // uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
+            19, // uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
             FfiConverterTypeRemoteSettings.lowerReceiver(this),
             FfiConverterString.lower(attachmentId),
             FfiConverterString.lower(path),
@@ -1950,7 +1950,7 @@ export class RemoteSettings {
     async getRecords() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            22, // uniffi_remote_settings_fn_method_remotesettings_get_records
+            20, // uniffi_remote_settings_fn_method_remotesettings_get_records
             FfiConverterTypeRemoteSettings.lowerReceiver(this),
         )
         return handleRustResult(
@@ -1971,7 +1971,7 @@ export class RemoteSettings {
        
         FfiConverterUInt64.checkType(timestamp);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            23, // uniffi_remote_settings_fn_method_remotesettings_get_records_since
+            21, // uniffi_remote_settings_fn_method_remotesettings_get_records_since
             FfiConverterTypeRemoteSettings.lowerReceiver(this),
             FfiConverterUInt64.lower(timestamp),
         )
@@ -2006,11 +2006,11 @@ export class FfiConverterTypeRemoteSettings extends FfiConverter {
     }
 
     static read(dataStream) {
-        return this.lift(dataStream.readPointer(4));
+        return this.lift(dataStream.readPointer(3));
     }
 
     static write(dataStream, value) {
-        dataStream.writePointer(4, this.lower(value));
+        dataStream.writePointer(3, this.lower(value));
     }
 
     static computeSize(value) {
@@ -2191,7 +2191,7 @@ export class RemoteSettingsClient {
     async collectionName() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            24, // uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
+            22, // uniffi_remote_settings_fn_method_remotesettingsclient_collection_name
             FfiConverterTypeRemoteSettingsClient.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2219,7 +2219,7 @@ export class RemoteSettingsClient {
        
         FfiConverterTypeRemoteSettingsRecord.checkType(record);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            25, // uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
+            23, // uniffi_remote_settings_fn_method_remotesettingsclient_get_attachment
             FfiConverterTypeRemoteSettingsClient.lowerReceiver(this),
             FfiConverterTypeRemoteSettingsRecord.lower(record),
         )
@@ -2255,7 +2255,7 @@ export class RemoteSettingsClient {
        
         FfiConverterBoolean.checkType(syncIfEmpty);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            26, // uniffi_remote_settings_fn_method_remotesettingsclient_get_records
+            24, // uniffi_remote_settings_fn_method_remotesettingsclient_get_records
             FfiConverterTypeRemoteSettingsClient.lowerReceiver(this),
             FfiConverterBoolean.lower(syncIfEmpty),
         )
@@ -2279,7 +2279,7 @@ export class RemoteSettingsClient {
        
         FfiConverterBoolean.checkType(syncIfEmpty);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            27, // uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
+            25, // uniffi_remote_settings_fn_method_remotesettingsclient_get_records_map
             FfiConverterTypeRemoteSettingsClient.lowerReceiver(this),
             FfiConverterBoolean.lower(syncIfEmpty),
         )
@@ -2296,7 +2296,7 @@ export class RemoteSettingsClient {
     async shutdown() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            28, // uniffi_remote_settings_fn_method_remotesettingsclient_shutdown
+            26, // uniffi_remote_settings_fn_method_remotesettingsclient_shutdown
             FfiConverterTypeRemoteSettingsClient.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2312,7 +2312,7 @@ export class RemoteSettingsClient {
     async sync() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            29, // uniffi_remote_settings_fn_method_remotesettingsclient_sync
+            27, // uniffi_remote_settings_fn_method_remotesettingsclient_sync
             FfiConverterTypeRemoteSettingsClient.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2346,11 +2346,11 @@ export class FfiConverterTypeRemoteSettingsClient extends FfiConverter {
     }
 
     static read(dataStream) {
-        return this.lift(dataStream.readPointer(5));
+        return this.lift(dataStream.readPointer(4));
     }
 
     static write(dataStream, value) {
-        dataStream.writePointer(5, this.lower(value));
+        dataStream.writePointer(4, this.lower(value));
     }
 
     static computeSize(value) {
@@ -2442,7 +2442,7 @@ export class RemoteSettingsService {
         FfiConverterString.checkType(storageDir);
         FfiConverterTypeRemoteSettingsConfig2.checkType(config);
         const result = UniFFIScaffolding.callSync(
-            30, // uniffi_remote_settings_fn_constructor_remotesettingsservice_new
+            28, // uniffi_remote_settings_fn_constructor_remotesettingsservice_new
             FfiConverterString.lower(storageDir),
             FfiConverterTypeRemoteSettingsConfig2.lower(config),
         )
@@ -2465,7 +2465,7 @@ export class RemoteSettingsService {
        
         FfiConverterString.checkType(collectionName);
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            31, // uniffi_remote_settings_fn_method_remotesettingsservice_make_client
+            29, // uniffi_remote_settings_fn_method_remotesettingsservice_make_client
             FfiConverterTypeRemoteSettingsService.lowerReceiver(this),
             FfiConverterString.lower(collectionName),
         )
@@ -2483,7 +2483,7 @@ export class RemoteSettingsService {
     async sync() {
        
         const result = await UniFFIScaffolding.callAsyncWrapper(
-            32, // uniffi_remote_settings_fn_method_remotesettingsservice_sync
+            30, // uniffi_remote_settings_fn_method_remotesettingsservice_sync
             FfiConverterTypeRemoteSettingsService.lowerReceiver(this),
         )
         return handleRustResult(
@@ -2508,7 +2508,7 @@ export class RemoteSettingsService {
        
         FfiConverterTypeRemoteSettingsConfig2.checkType(config);
         const result = UniFFIScaffolding.callSync(
-            33, // uniffi_remote_settings_fn_method_remotesettingsservice_update_config
+            31, // uniffi_remote_settings_fn_method_remotesettingsservice_update_config
             FfiConverterTypeRemoteSettingsService.lowerReceiver(this),
             FfiConverterTypeRemoteSettingsConfig2.lower(config),
         )
@@ -2543,11 +2543,11 @@ export class FfiConverterTypeRemoteSettingsService extends FfiConverter {
     }
 
     static read(dataStream) {
-        return this.lift(dataStream.readPointer(6));
+        return this.lift(dataStream.readPointer(5));
     }
 
     static write(dataStream, value) {
-        dataStream.writePointer(6, this.lower(value));
+        dataStream.writePointer(5, this.lower(value));
     }
 
     static computeSize(value) {

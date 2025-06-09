@@ -19,16 +19,18 @@ use crate::{
     error::RusqliteResultExt,
     fakespot,
     geoname::GeonameCache,
+    pocket::{split_keyword, KeywordConfidence},
     provider::{AmpMatchingStrategy, SuggestionProvider},
     query::{full_keywords_to_fts_content, FtsQuery},
     rs::{
         DownloadedAmoSuggestion, DownloadedAmpSuggestion, DownloadedDynamicRecord,
         DownloadedDynamicSuggestion, DownloadedFakespotSuggestion, DownloadedMdnSuggestion,
-        DownloadedWikipediaSuggestion, Record, SuggestRecordId, SuggestRecordType,
+        DownloadedPocketSuggestion, DownloadedWikipediaSuggestion, Record, SuggestRecordId,
+        SuggestRecordType,
     },
     schema::{clear_database, SuggestConnectionInitializer},
     suggestion::{cook_raw_suggestion_url, FtsMatchInfo, Suggestion},
-    util::{full_keyword, split_keyword},
+    util::full_keyword,
     weather::WeatherCache,
     Result, SuggestionQuery,
 };
@@ -684,6 +686,79 @@ impl<'a> SuggestDao<'a> {
         Ok(suggestions)
     }
 
+    /// Fetches Suggestions of type pocket provider that match the given query
+    pub fn fetch_pocket_suggestions(&self, query: &SuggestionQuery) -> Result<Vec<Suggestion>> {
+        let keyword_lowercased = &query.keyword.to_lowercase();
+        let (keyword_prefix, keyword_suffix) = split_keyword(keyword_lowercased);
+        let suggestions = self
+            .conn
+            .query_rows_and_then_cached(
+                r#"
+            SELECT
+              s.id,
+              MAX(k.rank) AS rank,
+              s.title,
+              s.url,
+              s.provider,
+              s.score,
+              k.confidence,
+              k.keyword_suffix
+            FROM
+              suggestions s
+            JOIN
+              prefix_keywords k
+              ON k.suggestion_id = s.id
+            WHERE
+              k.keyword_prefix = :keyword_prefix
+              AND (k.keyword_suffix BETWEEN :keyword_suffix AND :keyword_suffix || x'FFFF')
+              AND s.provider = :provider
+              AND NOT EXISTS (SELECT 1 FROM dismissed_suggestions WHERE url=s.url)
+            GROUP BY
+              s.id,
+              k.confidence
+            ORDER BY
+              s.score DESC,
+              rank DESC
+            "#,
+                named_params! {
+                    ":keyword_prefix": keyword_prefix,
+                    ":keyword_suffix": keyword_suffix,
+                    ":provider": SuggestionProvider::Pocket,
+                },
+                |row| -> Result<Option<Suggestion>> {
+                    let title = row.get("title")?;
+                    let raw_url = row.get::<_, String>("url")?;
+                    let score = row.get::<_, f64>("score")?;
+                    let confidence = row.get("confidence")?;
+                    let full_suffix = row.get::<_, String>("keyword_suffix")?;
+                    let suffixes_match = match confidence {
+                        KeywordConfidence::Low => full_suffix.starts_with(keyword_suffix),
+                        KeywordConfidence::High => full_suffix == keyword_suffix,
+                    };
+                    if suffixes_match {
+                        Ok(Some(Suggestion::Pocket {
+                            title,
+                            url: raw_url,
+                            score,
+                            is_top_pick: matches!(confidence, KeywordConfidence::High),
+                        }))
+                    } else {
+                        Ok(None)
+                    }
+                },
+            )?
+            .into_iter()
+            .flatten()
+            .take(
+                query
+                    .limit
+                    .and_then(|limit| usize::try_from(limit).ok())
+                    .unwrap_or(usize::MAX),
+            )
+            .collect();
+        Ok(suggestions)
+    }
+
     /// Fetches suggestions for MDN
     pub fn fetch_mdn_suggestions(&self, query: &SuggestionQuery) -> Result<Vec<Suggestion>> {
         let suggestions = self
@@ -1035,6 +1110,50 @@ impl<'a> SuggestDao<'a> {
             for keyword in suggestion.keywords() {
                 // Don't update `full_keywords`, see bug 1876217.
                 keyword_insert.execute(suggestion_id, keyword.keyword, None, keyword.rank)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Inserts all suggestions from a downloaded Pocket attachment into
+    /// the database.
+    pub fn insert_pocket_suggestions(
+        &mut self,
+        record_id: &SuggestRecordId,
+        suggestions: &[DownloadedPocketSuggestion],
+    ) -> Result<()> {
+        let mut suggestion_insert = SuggestionInsertStatement::new(self.conn)?;
+        let mut prefix_keyword_insert = PrefixKeywordInsertStatement::new(self.conn)?;
+        for suggestion in suggestions {
+            self.scope.err_if_interrupted()?;
+            let suggestion_id = suggestion_insert.execute(
+                record_id,
+                &suggestion.title,
+                &suggestion.url,
+                suggestion.score,
+                SuggestionProvider::Pocket,
+            )?;
+            for ((rank, keyword), confidence) in suggestion
+                .high_confidence_keywords
+                .iter()
+                .enumerate()
+                .zip(std::iter::repeat(KeywordConfidence::High))
+                .chain(
+                    suggestion
+                        .low_confidence_keywords
+                        .iter()
+                        .enumerate()
+                        .zip(std::iter::repeat(KeywordConfidence::Low)),
+                )
+            {
+                let (keyword_prefix, keyword_suffix) = split_keyword(keyword);
+                prefix_keyword_insert.execute(
+                    suggestion_id,
+                    Some(confidence as u8),
+                    keyword_prefix,
+                    keyword_suffix,
+                    rank,
+                )?;
             }
         }
         Ok(())
@@ -1437,7 +1556,7 @@ impl<'a> FullKeywordInserter<'a> {
 //
 // This pattern is applicable for whenever we execute the same query repeatedly in a loop.
 // The impact scales with the number of loop iterations, which is why we currently don't do this
-// for providers like Mdn and Weather, which have relatively small number of records
+// for providers like Mdn, Pocket, and Weather, which have relatively small number of records
 // compared to Amp/Wikipedia.
 
 pub(crate) struct SuggestionInsertStatement<'conn>(rusqlite::Statement<'conn>);

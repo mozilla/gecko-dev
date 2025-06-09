@@ -23,6 +23,7 @@ suggest:
       - icon
       - data
       - amo-suggestions
+      - pocket-suggestions
       - yelp-suggestions
       - mdn-suggestions
       - weather
@@ -48,6 +49,7 @@ suggest:
       - icon
       - data
       - amo-suggestions
+      - pocket-suggestions
       - yelp-suggestions
       - mdn-suggestions
       - weather
@@ -74,6 +76,7 @@ suggest:
       - ampmobile
       - wikipedia
       - amo
+      - pocket
       - yelp
       - mdn
       - weather
