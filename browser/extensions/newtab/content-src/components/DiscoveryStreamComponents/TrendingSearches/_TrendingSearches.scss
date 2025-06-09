@@ -4,12 +4,23 @@
     box-shadow: var(--box-shadow-card);
     background: var(--newtab-background-card);
 
-    h3 {
-      font-size: var(--font-size-root);
-      padding-block: var(--space-medium) var(--space-small);
-      border-block-end: 0.5px solid var(--newtab-button-static-hover-background);
+    .trending-searches-list-view-header {
       margin-block: 0;
       margin-inline: var(--space-large);
+      padding-block: var(--space-medium) var(--space-small);
+      border-block-end: 0.5px solid var(--newtab-button-static-hover-background);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .trending-searches-context-menu {
+      position: relative;
+    }
+
+    h3 {
+      font-size: var(--font-size-root);
+      margin-block: 0;
     }
 
     .trending-searches-list-items {

@@ -533,3 +533,5 @@ newtab-trending-searches-show-trending =
     .title = Show trending searches
 newtab-trending-searches-hide-trending =
     .title = Hide trending searches
+newtab-trending-searches-learn-more = Learn more
+newtab-trending-searches-dismiss = Hide trending searches

@@ -592,4 +592,21 @@ export const LinkMenuOptions = {
       }),
     };
   },
+  TrendingSearchLearnMore: site => ({
+    id: "newtab-trending-searches-learn-more",
+    action: ac.OnlyToMain({
+      type: at.OPEN_LINK,
+      data: { url: site.url },
+    }),
+  }),
+  TrendingSearchDismiss: () => ({
+    id: "newtab-trending-searches-dismiss",
+    action: ac.OnlyToMain({
+      type: at.SET_PREF,
+      data: {
+        name: "trendingSearch.enabled",
+        value: false,
+      },
+    }),
+  }),
 };

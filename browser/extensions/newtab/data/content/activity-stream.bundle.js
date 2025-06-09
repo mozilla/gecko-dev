@@ -2317,6 +2317,23 @@ const LinkMenuOptions = {
       }),
     };
   },
+  TrendingSearchLearnMore: site => ({
+    id: "newtab-trending-searches-learn-more",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_LINK,
+      data: { url: site.url },
+    }),
+  }),
+  TrendingSearchDismiss: () => ({
+    id: "newtab-trending-searches-dismiss",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SET_PREF,
+      data: {
+        name: "trendingSearch.enabled",
+        value: false,
+      },
+    }),
+  }),
 };
 
 ;// CONCATENATED MODULE: ./content-src/components/LinkMenu/LinkMenu.jsx
@@ -4936,8 +4953,13 @@ const AdBanner = ({
 
 
 
+
 const PREF_TRENDING_VARIANT = "trendingSearch.variant";
 function TrendingSearches() {
+  const [showContextMenu, setShowContextMenu] = (0,external_React_namespaceObject.useState)(false);
+  // The keyboard access parameter is passed down to LinkMenu component
+  // that uses it to focus on the first context menu option for accessibility.
+  const [isKeyboardAccess, setIsKeyboardAccess] = (0,external_React_namespaceObject.useState)(false);
   const dispatch = (0,external_ReactRedux_namespaceObject.useDispatch)();
   const {
     TrendingSearch,
@@ -4951,11 +4973,29 @@ function TrendingSearches() {
     collapsed
   } = TrendingSearch;
   const variant = prefs[PREF_TRENDING_VARIANT];
+  const TRENDING_SEARCH_CONTEXT_MENU_OPTIONS = ["TrendingSearchLearnMore", "TrendingSearchDismiss"];
   function onArrowClick() {
     dispatch(actionCreators.AlsoToMain({
       type: actionTypes.TRENDING_SEARCH_TOGGLE_COLLAPSE,
       data: !collapsed
     }));
+  }
+  const toggleContextMenu = isKeyBoard => {
+    setShowContextMenu(!showContextMenu);
+    setIsKeyboardAccess(isKeyBoard);
+  };
+  function onContextMenuClick(e) {
+    e.preventDefault();
+    toggleContextMenu(false);
+  }
+  function onContextMenuKeyDown(e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggleContextMenu(true);
+    }
+  }
+  function onUpdate() {
+    setShowContextMenu(!showContextMenu);
   }
   if (!suggestions?.length) {
     return null;
@@ -4990,9 +5030,30 @@ function TrendingSearches() {
   } else if (variant === "b") {
     return /*#__PURE__*/external_React_default().createElement("div", {
       className: "trending-searches-list-view"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "trending-searches-list-view-header"
     }, /*#__PURE__*/external_React_default().createElement("h3", {
       "data-l10n-id": "newtab-trending-searches-trending-on-google"
-    }), /*#__PURE__*/external_React_default().createElement("ul", {
+    }), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "trending-searches-context-menu-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: `trending-searches-context-menu ${showContextMenu ? "context-menu-open" : ""}`
+    }, /*#__PURE__*/external_React_default().createElement("moz-button", {
+      type: "icon ghost",
+      size: "default",
+      "data-l10n-id": "newtab-menu-section-tooltip",
+      iconsrc: "chrome://global/skin/icons/more.svg",
+      onClick: onContextMenuClick,
+      onKeyDown: onContextMenuKeyDown
+    }), showContextMenu && /*#__PURE__*/external_React_default().createElement(LinkMenu, {
+      onUpdate: onUpdate,
+      dispatch: dispatch,
+      keyboardAccess: isKeyboardAccess,
+      options: TRENDING_SEARCH_CONTEXT_MENU_OPTIONS,
+      site: {
+        url: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/trending-searches-new-tab"
+      }
+    })))), /*#__PURE__*/external_React_default().createElement("ul", {
       className: "trending-searches-list-items"
     }, suggestions.slice(0, 6).map(result => /*#__PURE__*/external_React_default().createElement("li", {
       key: result.suggestion,
