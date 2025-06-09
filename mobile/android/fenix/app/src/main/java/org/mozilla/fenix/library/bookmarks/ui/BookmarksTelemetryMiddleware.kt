@@ -156,6 +156,7 @@ internal class BookmarksTelemetryMiddleware : Middleware<BookmarksState, Bookmar
             is ReceivedSyncSignInUpdate,
             FirstSyncCompleted,
             ViewDisposed,
+            PrivateBrowsingAuthorized,
             -> Unit
         }
     }

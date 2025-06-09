@@ -84,6 +84,7 @@ class TrackingProtectionPanelInteractorTest {
 
         every { fragment.context } returns context
         every { context.components.useCases.trackingProtectionUseCases } returns trackingProtectionUseCases
+        every { context.components.appStore.state.isPrivateScreenLocked } returns true
 
         val onComplete = slot<(Boolean) -> Unit>()
         every {
