@@ -8,11 +8,18 @@ EXTRA_JS_MODULES.taskbartabs += [
     "TaskbarTabCmd.sys.mjs",
     "TaskbarTabs.sys.mjs",
     "TaskbarTabUI.sys.mjs",
+    "TaskbarTabsRegistry.sys.mjs",
     "TaskbarTabsUtils.sys.mjs",
 ]
 
+JAR_MANIFESTS += ["jar.mn"]
+
 BROWSER_CHROME_MANIFESTS += [
     "test/browser/browser.toml",
+]
+
+XPCSHELL_TESTS_MANIFESTS += [
+    "test/xpcshell/xpcshell.toml",
 ]
 
 XPCOM_MANIFESTS += [
