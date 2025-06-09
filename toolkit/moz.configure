@@ -3655,16 +3655,15 @@ set_define(
     when=depends("--enable-parental-controls")(lambda x: not x),
 )
 
-# Automation renaming
+# Package renaming
 # ==============================================================
 
-with only_when(moz_automation):
-    option(env="MOZ_SIMPLE_PACKAGE_NAME", nargs=1, help="Package name override")
-    set_config(
-        "MOZ_SIMPLE_PACKAGE_NAME", depends_if("MOZ_SIMPLE_PACKAGE_NAME")(lambda x: x[0])
-    )
-    option(env="MOZ_PKG_SPECIAL", nargs=1, help="Name of special moz flavor")
-    set_config("MOZ_PKG_SPECIAL", depends_if("MOZ_PKG_SPECIAL")(lambda x: x[0]))
+option(env="MOZ_SIMPLE_PACKAGE_NAME", nargs=1, help="Package name override")
+set_config(
+    "MOZ_SIMPLE_PACKAGE_NAME", depends_if("MOZ_SIMPLE_PACKAGE_NAME")(lambda x: x[0])
+)
+option(env="MOZ_PKG_SPECIAL", nargs=1, help="Name of special moz flavor")
+set_config("MOZ_PKG_SPECIAL", depends_if("MOZ_PKG_SPECIAL")(lambda x: x[0]))
 
 
 # OSX Packaging
