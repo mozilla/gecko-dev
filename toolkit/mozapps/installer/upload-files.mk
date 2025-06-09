@@ -240,8 +240,7 @@ ESCAPE_WILDCARD = $(subst $(space),?,$(1))
 CHECKSUM_ALGORITHM_PARAM = -d sha512 -d md5 -d sha1
 
 # This variable defines where the checksum file will be located
-CHECKSUM_FILE = '$(DIST)/$(PKG_PATH)/$(CHECKSUMS_FILE_BASENAME).checksums'
-CHECKSUM_FILES = $(CHECKSUM_FILE)
+CHECKSUM_FILE = '$(ABS_DIST)/$(PKG_PATH)/$(CHECKSUMS_FILE_BASENAME).checksums'
 
 # Upload MAR tools only if AB_CD is unset or en_US
 ifeq (,$(AB_CD:en-US=))

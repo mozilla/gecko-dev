@@ -58,7 +58,7 @@ def process_files(dirs, output_filename, digests):
     with open(output_filename, "w+") as output:
         for d in dirs:
             for root, dirs, files in os.walk(d):
-                for f in files:
+                for f in sorted(files):
                     full = os.path.join(root, f)
                     rel = os.path.relpath(full, d)
 
