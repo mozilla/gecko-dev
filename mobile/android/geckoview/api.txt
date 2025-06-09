@@ -118,6 +118,7 @@ import org.mozilla.geckoview.WebExtension;
 import org.mozilla.geckoview.WebExtensionController;
 import org.mozilla.geckoview.WebMessage;
 import org.mozilla.geckoview.WebNotification;
+import org.mozilla.geckoview.WebNotificationAction;
 import org.mozilla.geckoview.WebNotificationDelegate;
 import org.mozilla.geckoview.WebPushController;
 import org.mozilla.geckoview.WebPushDelegate;
@@ -2904,8 +2905,10 @@ package org.mozilla.geckoview {
 
   public class WebNotification implements Parcelable {
     method @UiThread public void click();
+    method @UiThread public void click(@NonNull String);
     method @UiThread public void dismiss();
     field public static final Parcelable.Creator<WebNotification> CREATOR;
+    field @NonNull public final WebNotificationAction[] actions;
     field @Nullable public final String imageUrl;
     field @Nullable public final String lang;
     field public final boolean privateBrowsing;
@@ -2917,6 +2920,13 @@ package org.mozilla.geckoview {
     field @Nullable public final String textDirection;
     field @Nullable public final String title;
     field @NonNull public final int[] vibrate;
+  }
+
+  public class WebNotificationAction implements Parcelable {
+    ctor public WebNotificationAction(@NonNull String, @NonNull String);
+    field public static final Parcelable.Creator<WebNotificationAction> CREATOR;
+    field @NonNull public final String name;
+    field @NonNull public final String title;
   }
 
   public interface WebNotificationDelegate {

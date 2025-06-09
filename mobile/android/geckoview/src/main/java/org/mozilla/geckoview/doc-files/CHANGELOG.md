@@ -21,6 +21,8 @@ exclude: true
 - Added options on [`GeckoPreferenceController`][140.1] to [`register multiple prefs`][141.3] and [`deregister multiple prefs`][141.4]
 - Added [`GeckoRuntime.notifyTelemetryPrefChanged`][141.5] to notify Gecko about telemetry preference changes.
 - Added [`GeckoRuntimeSettings.getBaselineFingerprintingProtection`][141.6], [`GeckoRuntimeSettings.getBaselineFingerprintingProtectionOverrides`][141.7], [`GeckoRuntimeSettings.setBaselineFingerprintingProtection`][141.8], and [`GeckoRuntimeSettings.setBaselineFingerprintingProtectionOverrides`][141.9] to control the baseline fingerprinting protection settings via Nimbus.
+- Added [`WebNotificationAction`][141.10] that represents action buttons of notifications.
+- Added [`WebNotification.actions`][141.11] and a new function signature with `action` to [`WebNotification.click()`][141.12] to indicate action click.
 
 [141.1]: {{javadoc_uri}}/ProfilerController.html
 [141.2]: {{javadoc_uri}}/GeckoRuntime.html#getProfilerController()
@@ -32,6 +34,9 @@ exclude: true
 [141.7]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getBaselineFingerprintingProtectionOverrides
 [141.8]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBaselineFingerprintingProtection
 [141.9]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBaselineFingerprintingProtectionOverrides
+[141.10]: {{javadoc_uri}}/WebNotificationAction.html
+[141.11]: {{javadoc_uri}}/WebNotification.html#actions
+[141.12]: {{javadoc_uri}}/WebNotification.html#click(java.lang.String)
 
 ## v140
 - Added a [`GeckoPreferenceController`][140.1] class to manage Gecko preferences.
@@ -59,6 +64,7 @@ exclude: true
 [140.13]: {{javadoc_uri}}/GeckoSession.PromptDelegate.CertificateRequest.html#<init>(java.lang.String,org.mozilla.geckoview.GeckoSession.PromptDelegate.BasePrompt.Observer,java.lang.String)
 [140.14]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setDohAutoselectEnabled
 [140.15]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setBannedPorts
+)
 
 ## v139
 - ⚠️ Removed deprecated [`GeckoSession.requestAnalysis`][118.4], [`GeckoSession.requestCreateAnalysis`][122.2], [`GeckoSession.requestAnalysisStatus`][137.1], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.pollForAnalysisCompleted`][137.2], [`GeckoSession.sendClickAttributionEvent`][121.4], [`GeckoSession.sendImpressionAttributionEvent`][121.5], [`GeckoSession.sendPlacementAttributionEvent`][123.3], [`GeckoSession.requestRecommendations`][118.5], [`GeckoSession.reportBackInStock`][122.1], `AnalysisStatusResponse`, [`ReviewAnalysis`][120.2] and [`Recommendation`][120.3].
@@ -1764,4 +1770,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 4e54a9f6716139292642eb12928dc85187b79c31
+[api-version]: e752d9c58b819a107440782aa9864b99debce9bc
