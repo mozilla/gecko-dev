@@ -209,10 +209,10 @@ input {
   background-image: url("chrome://global/skin/icons/edit.svg");
 }
 .icon.icon-pocket {
-  background-image: url("chrome://global/skin/icons/pocket.svg");
+  background-image: url("chrome://global/skin/icons/help.svg");
 }
 .icon.icon-pocket-save {
-  background-image: url("chrome://global/skin/icons/pocket.svg");
+  background-image: url("chrome://global/skin/icons/help.svg");
   fill: #FFF;
 }
 .icon.icon-pocket-delete {
@@ -4706,7 +4706,7 @@ main section {
   margin-inline-end: var(--space-small);
   height: 22px;
   width: 22px;
-  background-image: url("chrome://global/skin/icons/pocket.svg");
+  background-image: url("chrome://global/skin/icons/help.svg");
   background-size: contain;
 }
 [lwt-newtab-brighttext] .ds-onboarding-container .icon-pocket {
@@ -6682,7 +6682,7 @@ main section {
   background-image: url("chrome://newtab/content/data/content/assets/firefox.svg");
 }
 .ds-navigation.ds-navigation-new-topics .ds-navigation-family .pocket-logo {
-  background-image: url("chrome://global/skin/icons/pocket.svg");
+  background-image: url("chrome://global/skin/icons/help.svg");
   fill: #EF4056;
 }
 .ds-navigation.ds-navigation-new-topics .ds-navigation-family .ds-navigation-family-message {

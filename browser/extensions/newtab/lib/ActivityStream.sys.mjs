@@ -194,7 +194,7 @@ export const PREFS_CONFIG = new Map([
           api_key_pref: "extensions.pocket.oAuthConsumerKey",
           // Use the opposite value as what default value the feed would have used
           hidden: !PREFS_CONFIG.get("feeds.system.topstories").getValue(args),
-          provider_icon: "chrome://global/skin/icons/pocket.svg",
+          provider_icon: "chrome://global/skin/icons/help.svg",
           provider_name: "Pocket",
           read_more_endpoint:
             "https://getpocket.com/explore/trending?src=fx_new_tab",
