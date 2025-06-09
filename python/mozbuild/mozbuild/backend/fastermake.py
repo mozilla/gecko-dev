@@ -64,7 +64,7 @@ class FasterMakeBackend(MakeBackend, PartialBackend):
         elif isinstance(
             obj, (FinalTargetFiles, FinalTargetPreprocessedFiles)
         ) and obj.install_target.startswith("dist/bin"):
-            ab_cd = self.environment.substs["MOZ_UI_LOCALE"][0]
+            ab_cd = self.environment.substs["MOZ_UI_LOCALE"]
             localized = isinstance(obj, (LocalizedFiles, LocalizedPreprocessedFiles))
             defines = obj.defines or {}
             if defines:

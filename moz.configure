@@ -584,11 +584,19 @@ set_config("LINK_GTEST_DURING_COMPILE", True, when="--enable-gtest-in-build")
 # ==============================================================
 option(
     "--enable-ui-locale",
+    env="MOZ_UI_LOCALE",
     default="en-US",
     help="Select the user interface locale (default: en-US)",
 )
 
-set_config("MOZ_UI_LOCALE", depends("--enable-ui-locale")(lambda x: x))
+
+@depends("--enable-ui-locale")
+def moz_ui_locale(value):
+    return value[0]
+
+
+set_config("MOZ_UI_LOCALE", moz_ui_locale)
+
 
 # clang-plugin location
 # ==============================================================
