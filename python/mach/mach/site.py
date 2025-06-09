@@ -8,7 +8,6 @@
 import ast
 import enum
 import functools
-import json
 import os
 import platform
 import shutil
@@ -24,6 +23,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from filelock import FileLock, Timeout
+from mozfile import json
 from packaging.specifiers import SpecifierSet
 
 from mach.requirements import (

@@ -7,7 +7,6 @@
 # logging framework.
 
 import codecs
-import json
 import logging
 import os
 import sys
@@ -15,6 +14,7 @@ import time
 
 import blessed
 from mozbuild.buildversion import mozilla_build_version
+from mozfile import json
 from packaging.version import Version
 
 IS_WINDOWS = sys.platform.startswith("win")
