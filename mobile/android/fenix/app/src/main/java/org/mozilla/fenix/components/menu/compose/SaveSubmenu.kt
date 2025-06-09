@@ -29,7 +29,7 @@ internal fun SaveSubmenu(
     onSaveToCollectionMenuClick: () -> Unit,
     onSaveAsPDFMenuClick: () -> Unit,
 ) {
-    MenuFrame(
+    MenuScaffold(
         header = {
             SubmenuHeader(
                 header = stringResource(id = R.string.browser_menu_save),

@@ -171,7 +171,7 @@ fun MainMenu(
     moreSettingsSubmenu: @Composable ColumnScope.() -> Unit,
     extensionSubmenu: @Composable ColumnScope.() -> Unit,
 ) {
-    MenuFrame(
+    MenuScaffold(
         header = {
             MenuNavHeader(
                 state = if (accessPoint == MenuAccessPoint.Home) {
@@ -189,8 +189,6 @@ fun MainMenu(
                 onRefreshButtonClick = onRefreshButtonClick,
                 onStopButtonClick = onStopButtonClick,
                 onShareButtonClick = onShareButtonClick,
-                isExtensionsExpanded = isExtensionsExpanded,
-                isMoreMenuExpanded = isMoreMenuExpanded,
             )
         },
         scrollState = scrollState,

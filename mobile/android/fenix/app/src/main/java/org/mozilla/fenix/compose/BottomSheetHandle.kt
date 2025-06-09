@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.semantics.Role
@@ -32,7 +31,6 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param onRequestDismiss Invoked on clicking the handle when talkback is enabled.
  * @param contentDescription Content Description of the composable.
  * @param modifier The modifier to be applied to the Composable.
- * @param cornerRadius The corner radius of the handle.
  * @param color Color of the handle.
  */
 @Composable
@@ -40,7 +38,6 @@ fun BottomSheetHandle(
     onRequestDismiss: () -> Unit,
     contentDescription: String,
     modifier: Modifier = Modifier,
-    cornerRadius: CornerRadius = CornerRadius.Zero,
     color: Color = FirefoxTheme.colors.textSecondary,
 ) {
     Canvas(
@@ -55,7 +52,7 @@ fun BottomSheetHandle(
                 }
             },
     ) {
-        drawRoundRect(color = color, cornerRadius = cornerRadius)
+        drawRect(color = color)
     }
 }
 
