@@ -40,7 +40,7 @@ This section is a primer for engineers contributing code to the Suggest Rust com
 
 `errors.rs` contains all the errors that this component returns. We use the crate-internal `Error` type for all fallible operations within the component, and the public `SuggestApiError` type for errors that applications should handle.
 
-There are other suggestion provider-specific files, like `yelp.rs`, `pocket.rs`, and `keyword.rs`, that aren't covered in this primer. If you're new to the component, we recommend starting with the highest-level interface in `store.rs` first, and jumping to the other files and types as you encounter them in the code.
+There are other suggestion provider-specific files, like `yelp.rs` and `keyword.rs`, that aren't covered in this primer. If you're new to the component, we recommend starting with the highest-level interface in `store.rs` first, and jumping to the other files and types as you encounter them in the code.
 
 ## Documentation
 

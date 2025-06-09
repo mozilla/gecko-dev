@@ -11,7 +11,6 @@ mod error;
 mod fakespot;
 mod geoname;
 mod metrics;
-pub mod pocket;
 mod provider;
 mod query;
 mod rs;

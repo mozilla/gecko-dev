@@ -133,14 +133,6 @@ pub fn all_benchmarks() -> Vec<(&'static str, IngestBenchmark)> {
             IngestBenchmark::new(SuggestionProvider::Amo, true),
         ),
         (
-            "ingest-pocket",
-            IngestBenchmark::new(SuggestionProvider::Pocket, false),
-        ),
-        (
-            "ingest-again-pocket",
-            IngestBenchmark::new(SuggestionProvider::Pocket, true),
-        ),
-        (
             "ingest-yelp",
             IngestBenchmark::new(SuggestionProvider::Yelp, false),
         ),
