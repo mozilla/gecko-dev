@@ -468,10 +468,7 @@ class NetworkEventActor extends Actor {
   addCacheDetails({ fromCache, fromServiceWorker }) {
     this._resource.fromCache = fromCache;
     this._resource.fromServiceWorker = fromServiceWorker;
-    this._onEventUpdate(lazy.NetworkUtils.NETWORK_EVENT_TYPES.CACHE_DETAILS, {
-      fromCache,
-      fromServiceWorker,
-    });
+    this._onEventUpdate("cacheDetails", { fromCache, fromServiceWorker });
   }
 
   addRawHeaders({ channel, rawHeaders }) {
@@ -497,10 +494,7 @@ class NetworkEventActor extends Actor {
     }
 
     this._request.postData = postData;
-    this._onEventUpdate(
-      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_POSTDATA,
-      {}
-    );
+    this._onEventUpdate("requestPostData", {});
   }
 
   /**
@@ -585,7 +579,7 @@ class NetworkEventActor extends Actor {
       proxyInfo = proxyResponseRawHeaders.split("\r\n")[0].split(" ");
     }
 
-    this._onEventUpdate(lazy.NetworkUtils.NETWORK_EVENT_TYPES.RESPONSE_START, {
+    this._onEventUpdate("responseStart", {
       httpVersion: isDataOrFile
         ? null
         : lazy.NetworkUtils.getHttpVersion(channel),
@@ -617,7 +611,7 @@ class NetworkEventActor extends Actor {
 
     this._securityInfo = info;
 
-    this._onEventUpdate(lazy.NetworkUtils.NETWORK_EVENT_TYPES.SECURITY_INFO, {
+    this._onEventUpdate("securityInfo", {
       state: info.state,
       isRacing,
     });
@@ -643,16 +637,13 @@ class NetworkEventActor extends Actor {
     this.manage(content.text);
     content.text = content.text.form();
 
-    this._onEventUpdate(
-      lazy.NetworkUtils.NETWORK_EVENT_TYPES.RESPONSE_CONTENT,
-      {
-        mimeType: content.mimeType,
-        contentSize: content.size,
-        transferredSize: content.transferredSize,
-        blockedReason,
-        blockingExtension,
-      }
-    );
+    this._onEventUpdate("responseContent", {
+      mimeType: content.mimeType,
+      contentSize: content.size,
+      transferredSize: content.transferredSize,
+      blockedReason,
+      blockingExtension,
+    });
   }
 
   addResponseCache(content) {
@@ -661,10 +652,7 @@ class NetworkEventActor extends Actor {
       return;
     }
     this._response.responseCache = content.responseCache;
-    this._onEventUpdate(
-      lazy.NetworkUtils.NETWORK_EVENT_TYPES.RESPONSE_CACHE,
-      {}
-    );
+    this._onEventUpdate("responseCache", {});
   }
 
   /**
@@ -686,9 +674,7 @@ class NetworkEventActor extends Actor {
     this._timings = timings;
     this._offsets = offsets;
 
-    this._onEventUpdate(lazy.NetworkUtils.NETWORK_EVENT_TYPES.EVENT_TIMINGS, {
-      totalTime: total,
-    });
+    this._onEventUpdate("eventTimings", { totalTime: total });
   }
 
   /**

@@ -27,12 +27,6 @@ const {
 
 loader.lazyRequireGetter(
   this,
-  "throttle",
-  "resource://devtools/shared/throttle.js",
-  true
-);
-loader.lazyRequireGetter(
-  this,
   "NetworkParentActor",
   "resource://devtools/server/actors/network-monitor/network-parent.js",
   true
@@ -61,8 +55,6 @@ loader.lazyRequireGetter(
   "resource://devtools/server/actors/thread-configuration.js",
   true
 );
-
-const RESOURCES_THROTTLING_DELAY = 200;
 
 exports.WatcherActor = class WatcherActor extends Actor {
   /**
@@ -107,19 +99,6 @@ exports.WatcherActor = class WatcherActor extends Actor {
 
     this.watcherConnectionPrefix = conn.allocID("watcher");
 
-    // Lists of resources available/updated/destroyed RDP packet
-    // currently queued which will be emitted after a throttle delay.
-    this.#throttledResources = {
-      available: [],
-      updated: [],
-      destroyed: [],
-    };
-
-    this.#throttledEmitResources = throttle(
-      this.emitResources.bind(this),
-      RESOURCES_THROTTLING_DELAY
-    );
-
     // Sometimes we get iframe targets before the top-level targets
     // mostly when doing bfcache navigations, lets cache the early iframes targets and
     // flush them after the top-level target is available. See Bug 1726568 for details.
@@ -146,9 +125,6 @@ exports.WatcherActor = class WatcherActor extends Actor {
         ? "BrowserToolboxDevToolsProcess"
         : "DevToolsProcess";
   }
-
-  #throttledResources;
-  #throttledEmitResources;
 
   get sessionContext() {
     return this._sessionContext;
@@ -502,53 +478,7 @@ exports.WatcherActor = class WatcherActor extends Actor {
       return;
     }
 
-    const shouldEmitSynchronously =
-      resourceType == Resources.TYPES.DOCUMENT_EVENT &&
-      resources.some(resource => resource.name == "will-navigate");
-
-    // If the last throttled resources were of the same resource type,
-    // augment the resources array with the new resources
-    const lastResourceInThrottleCache =
-      this.#throttledResources[updateType].at(-1);
-    if (
-      lastResourceInThrottleCache &&
-      lastResourceInThrottleCache[0] === resourceType
-    ) {
-      lastResourceInThrottleCache[1].push.apply(
-        lastResourceInThrottleCache[1],
-        resources
-      );
-    } else {
-      // Otherwise, add a new item in the throttle queue with the resource type
-      this.#throttledResources[updateType].push([resourceType, resources]);
-    }
-
-    // Force firing resources immediately when the DOCUMENT_EVENT's will-navigate is received
-    // This will force clearing resources on the client side ASAP.
-    // Otherwise we might emit some other RDP event (outside of resources),
-    // which will be cleared by the throttled/delayed will-navigate.
-    if (shouldEmitSynchronously) {
-      this.emitResources();
-    } else {
-      this.#throttledEmitResources();
-    }
-  }
-
-  /**
-   * Flush resources to DevTools transport layer, actually sending all resource update packets
-   */
-  emitResources() {
-    if (this.isDestroyed()) {
-      return;
-    }
-    for (const updateType of ["available", "updated", "destroyed"]) {
-      const resources = this.#throttledResources[updateType];
-      if (!resources.length) {
-        continue;
-      }
-      this.#throttledResources[updateType] = [];
-      this.emit(`resources-${updateType}-array`, resources);
-    }
+    this.emit(`resources-${updateType}-array`, [[resourceType, resources]]);
   }
 
   /**

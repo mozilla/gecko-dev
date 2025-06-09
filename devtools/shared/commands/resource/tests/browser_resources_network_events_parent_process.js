@@ -86,10 +86,14 @@ add_task(async function testParentProcessRequests() {
   );
 
   await createParentProcessRequests();
-  info("Wait for the network events");
-  await waitFor(() => receivedNetworkEvents.length == 2);
 
+  const img2 = new Image();
+  img2.src = IMAGE_URI;
+
+  info("Wait for the network events");
+  await waitFor(() => receivedNetworkEvents.length == 3);
   info("Wait for the network events stack traces");
+  // Note that we aren't getting any stacktrace for the second cached request
   await waitFor(() => receivedStacktraces.length == 2);
 
   info("Assert the fetch request");
@@ -138,13 +142,6 @@ add_task(async function testParentProcessRequests() {
     !!firstImageStacktrace,
     "After bug 1076583, image load is async and we can't get a stack trace"
   );
-
-  // This cached image request is from the content process
-  const img2 = new Image();
-  img2.src = IMAGE_URI;
-
-  // Note that we aren't getting any stacktrace for the second cached request
-  await waitFor(() => receivedNetworkEvents.length == 3);
   /*
   is(firstImageStacktrace.filename, gTestPath);
   is(firstImageStacktrace.lineNumber, EXPECTED_REQUEST_LINE_2);
