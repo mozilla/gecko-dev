@@ -197,16 +197,23 @@ class NetworkEventContentWatcher {
       innerWindowId: resource.innerWindowId,
       resourceId: resource.resourceId,
       receivedUpdates: [],
-      resourceUpdates: {
-        // Requests already come with request cookies and headers, so those
-        // should always be considered as available. But the client still
-        // heavily relies on those `Available` flags to fetch additional data,
-        // so it is better to keep them for consistency.
-        requestCookiesAvailable: true,
-        requestHeadersAvailable: true,
-      },
+      resourceUpdates: {},
       uri: channel.URI.spec,
     };
+
+    // Requests already come with request cookies and headers, so those
+    // should always be considered as available. But the client still
+    // heavily relies on those `Available` flags to fetch additional data,
+    // so it is better to keep them for consistency.
+    lazy.NetworkUtils.setEventAsAvailable(
+      networkEvent.resourceUpdates,
+      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_HEADERS
+    );
+    lazy.NetworkUtils.setEventAsAvailable(
+      networkEvent.resourceUpdates,
+      lazy.NetworkUtils.NETWORK_EVENT_TYPES.REQUEST_COOKIES
+    );
+
     this.networkEvents.set(resource.resourceId, networkEvent);
 
     this.onAvailable([resource]);
@@ -243,14 +250,15 @@ class NetworkEventContentWatcher {
       return;
     }
 
+    const { NETWORK_EVENT_TYPES } = lazy.NetworkUtils;
     const { resourceUpdates, receivedUpdates } = networkEvent;
 
     switch (updateResource.updateType) {
-      case "cacheDetails":
+      case NETWORK_EVENT_TYPES.CACHE_DETAILS:
         resourceUpdates.fromCache = updateResource.fromCache;
         resourceUpdates.fromServiceWorker = updateResource.fromServiceWorker;
         break;
-      case "responseStart":
+      case NETWORK_EVENT_TYPES.RESPONSE_START:
         // For cached image requests channel.responseStatus is set to 200 as
         // expected. However responseStatusText is empty. In this case fallback
         // to the expected statusText "OK".
@@ -265,29 +273,38 @@ class NetworkEventContentWatcher {
         resourceUpdates.remotePort = updateResource.remotePort;
         resourceUpdates.waitingTime = updateResource.waitingTime;
 
-        resourceUpdates.responseHeadersAvailable = true;
-        resourceUpdates.responseCookiesAvailable = true;
+        lazy.NetworkUtils.setEventAsAvailable(
+          resourceUpdates,
+          NETWORK_EVENT_TYPES.RESPONSE_COOKIES
+        );
+        lazy.NetworkUtils.setEventAsAvailable(
+          resourceUpdates,
+          NETWORK_EVENT_TYPES.RESPONSE_HEADERS
+        );
         break;
-      case "responseContent":
+      case NETWORK_EVENT_TYPES.RESPONSE_CONTENT:
         resourceUpdates.contentSize = updateResource.contentSize;
         resourceUpdates.mimeType = updateResource.mimeType;
         resourceUpdates.transferredSize = updateResource.transferredSize;
         break;
-      case "eventTimings":
+      case NETWORK_EVENT_TYPES.EVENT_TIMINGS:
         resourceUpdates.totalTime = updateResource.totalTime;
         break;
     }
 
-    resourceUpdates[`${updateResource.updateType}Available`] = true;
+    lazy.NetworkUtils.setEventAsAvailable(
+      resourceUpdates,
+      updateResource.updateType
+    );
     receivedUpdates.push(updateResource.updateType);
 
     // Here we explicitly call all three `add` helpers on each network event
     // actor so in theory we could check only the last one to be called, ie
     // responseContent.
     const isComplete =
-      receivedUpdates.includes("responseStart") &&
-      receivedUpdates.includes("responseContent") &&
-      receivedUpdates.includes("eventTimings");
+      receivedUpdates.includes(NETWORK_EVENT_TYPES.RESPONSE_START) &&
+      receivedUpdates.includes(NETWORK_EVENT_TYPES.RESPONSE_CONTENT) &&
+      receivedUpdates.includes(NETWORK_EVENT_TYPES.EVENT_TIMINGS);
 
     if (isComplete) {
       this._emitUpdate(networkEvent);

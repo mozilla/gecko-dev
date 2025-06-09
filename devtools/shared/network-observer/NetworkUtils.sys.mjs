@@ -27,6 +27,24 @@ ChromeUtils.defineLazyGetter(lazy, "tpFlagsMask", () => {
         Ci.nsIClassifiedChannel.CLASSIFIED_ANY_STRICT_TRACKING;
 });
 
+// These include types indicating the availability of data e.g responseCookies
+// or the networkEventOwner action which triggered the specific update e.g responseStart.
+// These types are specific to devtools and used by BiDi.
+const NETWORK_EVENT_TYPES = {
+  CACHE_DETAILS: "cacheDetails",
+  EARLY_HINT_RESPONSE_HEADERS: "earlyHintsResponseHeaders",
+  EVENT_TIMINGS: "eventTimings",
+  REQUEST_COOKIES: "requestCookies",
+  REQUEST_HEADERS: "requestHeaders",
+  REQUEST_POSTDATA: "requestPostData",
+  RESPONSE_CACHE: "responseCache",
+  RESPONSE_CONTENT: "responseContent",
+  RESPONSE_COOKIES: "responseCookies",
+  RESPONSE_HEADERS: "responseHeaders",
+  RESPONSE_START: "responseStart",
+  SECURITY_INFO: "securityInfo",
+};
+
 /**
  * Convert a nsIContentPolicy constant to a display string
  */
@@ -798,6 +816,22 @@ function handleDataChannel(channel, networkEventActor) {
   networkEventActor.addResponseContent(response, {});
 }
 
+/**
+ * Sets a flag on the resource to specify that the data for a network event
+ * is available. The flag is used by the consumer of the resource (frontend)
+ * to determine when to lazily fetch the data.
+ *
+ * @param {Object} resourceUpdates
+ * @param {String} networkEvent
+ */
+function setEventAsAvailable(resourceUpdates, networkEvent) {
+  if (!Object.values(NETWORK_EVENT_TYPES).includes(networkEvent)) {
+    console.warn(`${networkEvent} is not a valid network event type.`);
+    return;
+  }
+  resourceUpdates[`${networkEvent}Available`] = true;
+}
+
 export const NetworkUtils = {
   causeTypeToString,
   fetchRequestHeadersAndCookies,
@@ -821,6 +855,8 @@ export const NetworkUtils = {
   isRedirectedChannel,
   isThirdPartyTrackingResource,
   matchRequest,
+  NETWORK_EVENT_TYPES,
   parseEarlyHintsResponseHeaders,
+  setEventAsAvailable,
   stringToCauseType,
 };
