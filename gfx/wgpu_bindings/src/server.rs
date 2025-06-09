@@ -415,19 +415,22 @@ pub unsafe extern "C" fn wgpu_server_adapter_request_device(
     let mut desc: wgc::device::DeviceDescriptor =
         bincode::deserialize(byte_buf.as_slice()).unwrap();
 
-    desc.trace = match desc.trace {
-        wgt::Trace::Directory(s) => {
-            let idx = TRACE_IDX.fetch_add(1, Ordering::Relaxed);
-            let path = s.join(idx.to_string());
+    if let wgt::Trace::Directory(ref path) = desc.trace {
+        log::warn!("DeviceDescriptor from child process should not request wgpu trace path, but it did request `{}`",
+                   path.display());
+    }
+    desc.trace = wgt::Trace::Off;
+    if let Some(env_dir) = std::env::var_os("WGPU_TRACE") {
+        let mut path = std::path::PathBuf::from(env_dir);
+        let idx = TRACE_IDX.fetch_add(1, Ordering::Relaxed);
+        path.push(idx.to_string());
 
-            if std::fs::create_dir_all(&path).is_err() {
-                log::warn!("Failed to create directory {:?} for wgpu recording.", path);
-            }
-
-            wgt::Trace::Directory(path)
+        if std::fs::create_dir_all(&path).is_err() {
+            log::warn!("Failed to create directory {:?} for wgpu recording.", path);
+        } else {
+            desc.trace = wgt::Trace::Directory(path);
         }
-        other => other,
-    };
+    }
 
     // TODO: in https://github.com/gfx-rs/wgpu/pull/3626/files#diff-033343814319f5a6bd781494692ea626f06f6c3acc0753a12c867b53a646c34eR97
     // which introduced the queue id parameter, the queue id is also the device id. I don't know how applicable this is to
