@@ -1240,6 +1240,52 @@ topsites:
     send_in_pings:
       - newtab
 
+  pin:
+    type: event
+    description: >
+      Recorded when a topsite tile is pinned.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968053
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968053
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - sdowne@mozilla.com
+      - achurchwell@mozilla.com
+    expires: never
+    extra_keys:
+      advertiser_name: *advertiser_name
+      tile_id: *tile_id
+      newtab_visit_id: *newtab_visit_id
+      is_sponsored: *is_sponsored
+      position: *topsite_position
+    send_in_pings:
+      - newtab
+
+  unpin:
+    type: event
+    description: >
+      Recorded when a topsite tile is unpinned.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968053
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1968053
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - sdowne@mozilla.com
+      - achurchwell@mozilla.com
+    expires: never
+    extra_keys:
+      advertiser_name: *advertiser_name
+      tile_id: *tile_id
+      newtab_visit_id: *newtab_visit_id
+      is_sponsored: *is_sponsored
+      position: *topsite_position
+    send_in_pings:
+      - newtab
+
   show_privacy_click:
     type: event
     description: >

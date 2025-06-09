@@ -640,6 +640,30 @@ export class TelemetryFeed {
   handleUserEvent(action) {
     let userEvent = this.createUserEvent(action);
     this.sendUTEvent(userEvent, this.utEvents.sendUserEvent);
+
+    const session = this.sessions.get(au.getPortIdOfSender(action));
+    if (!session) {
+      return;
+    }
+
+    switch (action.data?.event) {
+      case "PIN": {
+        Glean.topsites.pin.record({
+          newtab_visit_id: session.session_id,
+          is_sponsored: false,
+          position: action.data.action_position,
+        });
+        break;
+      }
+      case "UNPIN": {
+        Glean.topsites.unpin.record({
+          newtab_visit_id: session.session_id,
+          is_sponsored: false,
+          position: action.data.action_position,
+        });
+        break;
+      }
+    }
   }
 
   handleDiscoveryStreamUserEvent(action) {
