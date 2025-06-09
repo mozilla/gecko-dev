@@ -332,7 +332,7 @@ ENameValueFlag HTMLTableAccessible::NativeName(nsString& aName) const {
       nsTextEquivUtils::AppendTextEquivFromContent(this, captionContent,
                                                    &aName);
       if (!aName.IsEmpty()) {
-        return eNameOK;
+        return eNameFromRelations;
       }
     }
   }

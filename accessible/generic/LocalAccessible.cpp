@@ -127,10 +127,10 @@ ENameValueFlag LocalAccessible::Name(nsString& aName) const {
 
   if (!HasOwnContent()) return eNameOK;
 
-  ARIAName(aName);
-  if (!aName.IsEmpty()) return eNameOK;
+  ENameValueFlag nameFlag = ARIAName(aName);
+  if (!aName.IsEmpty()) return nameFlag;
 
-  ENameValueFlag nameFlag = NativeName(aName);
+  nameFlag = NativeName(aName);
   if (!aName.IsEmpty()) return nameFlag;
 
   // In the end get the name from tooltip.
@@ -2628,10 +2628,10 @@ void LocalAccessible::Shutdown() {
 }
 
 // LocalAccessible protected
-void LocalAccessible::ARIAName(nsString& aName) const {
+ENameValueFlag LocalAccessible::ARIAName(nsString& aName) const {
   // 'slot' elements should ignore aria-label and aria-labelledby.
   if (mContent->IsHTMLElement(nsGkAtoms::slot)) {
-    return;
+    return eNameOK;
   }
   // aria-labelledby now takes precedence over aria-label
   nsresult rv = nsTextEquivUtils::GetTextEquivFromIDRefs(
@@ -2640,11 +2640,17 @@ void LocalAccessible::ARIAName(nsString& aName) const {
     aName.CompressWhitespace();
   }
 
-  if (aName.IsEmpty() && mContent->IsElement() &&
+  if (!aName.IsEmpty()) {
+    return eNameFromRelations;
+  }
+
+  if (mContent->IsElement() &&
       nsAccUtils::GetARIAAttr(mContent->AsElement(), nsGkAtoms::aria_label,
                               aName)) {
     aName.CompressWhitespace();
   }
+
+  return eNameOK;
 }
 
 // LocalAccessible protected
@@ -2674,7 +2680,9 @@ ENameValueFlag LocalAccessible::NativeName(nsString& aName) const {
       aName.CompressWhitespace();
     }
 
-    if (!aName.IsEmpty()) return eNameOK;
+    if (!aName.IsEmpty()) {
+      return eNameFromRelations;
+    }
 
     NameFromAssociatedXULLabel(mDoc, mContent, aName);
     if (!aName.IsEmpty()) {
