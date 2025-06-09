@@ -739,7 +739,9 @@ class MDefinition : public MNode {
   static_assert(static_cast<size_t>(MIRType::Last) <
                 sizeof(MIRTypeEnumSet::serializedType) * CHAR_BIT);
 
-  // Get the wasm reference type stored on the node.
+  // Get the wasm reference type stored on the node. Do NOT use in congruentTo,
+  // as this value can change throughout the optimization process. See
+  // ReplaceAllUsesWith in ValueNumbering.cpp.
   wasm::MaybeRefType wasmRefType() const { return wasmRefType_; }
 
   // Sets the wasm reference type stored on the node. Does not check if there
