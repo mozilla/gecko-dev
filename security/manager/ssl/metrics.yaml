@@ -23,7 +23,7 @@ cert_storage:
       - technical
     notification_emails:
       - jschanck@mozilla.com
-    expires: 142
+    expires: 148
 
 data_storage:
   alternate_services:
