@@ -15,7 +15,7 @@ loadScripts(
  * Test different labeling/titling schemes for text fields
  */
 addAccessibleTask(
-  `<label for="n1">Label</label> <input id="n1">
+  `<label for="n1">Label     </label> <input id="n1">
    <label for="n2">Two</label> <label for="n2">Labels</label> <input id="n2">
    <input aria-label="ARIA Label" id="n3">`,
   (browser, accDoc) => {
@@ -105,5 +105,53 @@ addAccessibleTask(
     input = getNativeInterface(accDoc, "input");
     is(input.getAttributeValue("AXDescription"), "The best number you know of");
     ok(!input.getAttributeValue("AXTitle"));
+  }
+);
+
+/**
+ * Test a label with nested control
+ */
+addAccessibleTask(
+  `<label>Textarea label <textarea id="textarea"></textarea></label>`,
+  async (browser, accDoc) => {
+    let textarea = getNativeInterface(accDoc, "textarea");
+    ok(!textarea.getAttributeValue("AXDescription"));
+    is(textarea.getAttributeValue("AXTitle"), "Textarea label");
+    ok(
+      !textarea.getAttributeValue("AXTitleUIElement"),
+      "label with nested control should be stripped"
+    );
+  }
+);
+
+/**
+ * Test a block label with trailing whitespace
+ */
+addAccessibleTask(
+  `<div id="a">Hello </div><button aria-labelledby="a" id="btn">Click Me</button>`,
+  async (browser, accDoc) => {
+    let btn = getNativeInterface(accDoc, "btn");
+    ok(!btn.getAttributeValue("AXDescription"));
+    is(btn.getAttributeValue("AXTitle"), "Hello");
+    ok(
+      !btn.getAttributeValue("AXTitleUIElement"),
+      "label with trailing whitespace should be stripped"
+    );
+  }
+);
+
+/**
+ * Test no relation exposed when overridden.
+ */
+addAccessibleTask(
+  `<label id="lbl" for="btn">a</label><button id="btn" aria-label="c">b</button>`,
+  async (browser, accDoc) => {
+    let btn = getNativeInterface(accDoc, "btn");
+    ok(!btn.getAttributeValue("AXTitle"));
+    is(btn.getAttributeValue("AXDescription"), "c");
+    ok(
+      !btn.getAttributeValue("AXTitleUIElement"),
+      "No relation exposed when overridden"
+    );
   }
 );
