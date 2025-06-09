@@ -28,7 +28,7 @@ class AndroidAlerts : public nsIAlertsService {
   AndroidAlerts() {}
 
   static void NotifyListener(const nsAString& aName, const char* aTopic,
-                             Maybe<nsString> aAction);
+                             const char16_t* aCookie);
 
  protected:
   virtual ~AndroidAlerts() = default;

@@ -2809,10 +2809,10 @@ class GeckoEngineTest {
         val engine = GeckoEngine(context, runtime = runtime, defaultSettings = settings)
 
         // Check that having another argument doesn't cause any issues
-        engine.handleWebNotificationClick(runtime, action = null)
+        engine.handleWebNotificationClick(runtime)
 
         val notification: WebNotification = mock()
-        engine.handleWebNotificationClick(notification, action = null)
+        engine.handleWebNotificationClick(notification)
         verify(notification).click()
     }
 

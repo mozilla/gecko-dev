@@ -746,13 +746,8 @@ class GeckoEngine(
         runtime.serviceWorkerDelegate = null
     }
 
-    override fun handleWebNotificationClick(webNotification: Parcelable, action: String?) {
-        val notification = (webNotification as? WebNotification)
-        if (action != null) {
-            notification?.click(action)
-        } else {
-            notification?.click()
-        }
+    override fun handleWebNotificationClick(webNotification: Parcelable) {
+        (webNotification as? WebNotification)?.click()
     }
 
     /**

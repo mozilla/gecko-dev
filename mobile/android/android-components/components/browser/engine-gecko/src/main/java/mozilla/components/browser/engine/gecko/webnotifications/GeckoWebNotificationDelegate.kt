@@ -5,7 +5,6 @@
 package mozilla.components.browser.engine.gecko.webnotifications
 
 import mozilla.components.concept.engine.webnotifications.WebNotification
-import mozilla.components.concept.engine.webnotifications.WebNotificationAction
 import mozilla.components.concept.engine.webnotifications.WebNotificationDelegate
 import org.mozilla.geckoview.WebNotification as GeckoViewWebNotification
 import org.mozilla.geckoview.WebNotificationDelegate as GeckoViewWebNotificationDelegate
@@ -35,7 +34,6 @@ internal class GeckoWebNotificationDelegate(
             privateBrowsing = privateBrowsing,
             engineNotification = this@toWebNotification,
             silent = silent,
-            actions = actions.map { WebNotificationAction(name = it.name, title = it.title) }.toTypedArray(),
         )
     }
 }

@@ -26,7 +26,6 @@ import mozilla.components.concept.engine.Engine
  * web extension, otherwise false.
  * @property privateBrowsing indicates if the [WebNotification] belongs to a private session.
  * @property silent Whether or not the notification should be silent.
- * @property actions Additional action buttons to show.
  */
 data class WebNotification(
     val title: String?,
@@ -42,16 +41,4 @@ data class WebNotification(
     val triggeredByWebExtension: Boolean = false,
     val privateBrowsing: Boolean,
     val silent: Boolean = true,
-    val actions: Array<WebNotificationAction> = emptyArray(),
-)
-
-/**
- * A notification action, representing an action button.
- *
- * @property name The name of the action.
- * @property title The title of the action.
- */
-data class WebNotificationAction(
-    val name: String,
-    val title: String,
 )
