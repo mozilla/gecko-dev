@@ -146,6 +146,7 @@ let config = [
       // Also not available for various other scopes and tools.
       "**/*.sys.mjs",
       "**/?(*.)worker.?(m)js",
+      "**/?(*.)serviceworker.?(m)js",
       ...wrapPathsWithAllExts(testPaths.xpcshell, ["mjs", "sjs"]),
       "tools/lint/eslint/**",
     ],

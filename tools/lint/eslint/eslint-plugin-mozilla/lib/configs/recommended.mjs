@@ -260,7 +260,12 @@ const extraRules = [
     },
   },
   {
-    files: ["**/*.mjs", "**/*.jsx", "**/?(*.)worker.?(m)js"],
+    files: [
+      "**/*.mjs",
+      "**/*.jsx",
+      "**/?(*.)worker.?(m)js",
+      "**/?(*.)serviceworker.?(m)js",
+    ],
     name: "mozilla/recommended/file-scoped-globals-rules",
     rules: {
       // We enable builtinGlobals for modules and workers due to their
@@ -324,6 +329,18 @@ const extraRules = [
       "**/?(*.)worker.?(m)js",
     ],
     name: "mozilla/recommended/worker",
+  },
+  {
+    env: {
+      serviceworker: true,
+    },
+    files: [
+      // Most files should use the `.serviceworker.` format to be consistent
+      // with other items like `.sys.mjs`, but we allow simply calling the file
+      // "serviceworker" as well.
+      "**/?(*.)serviceworker.?(m)js",
+    ],
+    name: "mozilla/recommended/serviceworker",
   },
 ];
 
