@@ -27,7 +27,7 @@ task-defaults:
 try-xpcshell:
     description: Run ./mach perftest on macOs
     treeherder:
-        symbol: perftest(macos-xpcshell)
+        symbol: perftest(xpcshell)
     run:
         command: >-
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
@@ -45,7 +45,7 @@ try-xpcshell:
 try-browsertime:
     description: Run ./mach perftest on macOs
     treeherder:
-        symbol: perftest(macos-bt)
+        symbol: perftest(bt)
     run:
         command: >-
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
@@ -63,7 +63,7 @@ try-browsertime:
 service-worker:
     description: Run service worker tests
     treeherder:
-        symbol: perftest(macosx-sw)
+        symbol: perftest(sw)
         tier: 2
     attributes:
         batch: false
@@ -98,7 +98,7 @@ service-worker:
 domcount:
     description: Run DOM test on macOS
     treeherder:
-        symbol: perftest(macos-dom)
+        symbol: perftest(dom)
     attributes:
         batch: false
         cron: true
@@ -276,7 +276,7 @@ controlled:
 perfstats:
     description: Run PerfStats pageload test
     treeherder:
-        symbol: perftest(macos-perfstats)
+        symbol: perftest(perfstats)
     attributes:
         batch: false
         cron: false
@@ -328,7 +328,7 @@ ml-perf:
             - xenova-all-minilm-l6-v2
     description: Run ML Models Perf Tests
     treeherder:
-        symbol: perftest(mac-ml-perf)
+        symbol: perftest(ml-perf)
         tier: 2
     attributes:
         batch: false
@@ -353,7 +353,7 @@ ml-summarizer-perf:
             - distilbart-cnn-12-6
     description: Run ML Models Perf Tests
     treeherder:
-        symbol: perftest(mac-ml-sum-perf)
+        symbol: perftest(ml-sum-perf)
         tier: 2
     attributes:
         batch: false
@@ -377,7 +377,7 @@ ml-llama-summarizer-perf:
             - smollm2-360-instruct-gguf
     description: Run ML Summarizer Model Using Wllama
     treeherder:
-        symbol: perftest(mac-ml-llama-sum-perf)
+        symbol: perftest(ml-llama-sum-perf)
         tier: 2
     attributes:
         batch: false
@@ -403,7 +403,7 @@ ml-multi-perf:
             - mozilla-intent
     description: Run ML Models Perf Tests
     treeherder:
-        symbol: perftest(macos-ml-multi-perf)
+        symbol: perftest(ml-multi-perf)
         tier: 2
     attributes:
         batch: false
@@ -427,7 +427,7 @@ ml-perf-semantic-ft:
             - xenova-all-minilm-l6-v2
     description: Run ML Semantic Search Feature
     treeherder:
-        symbol: perftest(mac-ml-perf-semantic-ft)
+        symbol: perftest(ml-perf-semantic-ft)
         tier: 2
     run-on-projects: [autoland, mozilla-central]
     run:
@@ -450,7 +450,7 @@ ml-perf-suggest-ft:
             - mozilla-intent
     description: Run ML Suggest Feature
     treeherder:
-        symbol: perftest(mac-ml-perf-suggest-ft)
+        symbol: perftest(ml-perf-suggest-ft)
         tier: 2
     attributes:
         batch: false
@@ -475,7 +475,7 @@ ml-perf-suggest-inf:
             - mozilla-intent
     description: Run ML Suggest Inference Model
     treeherder:
-        symbol: perftest(mac-ml-perf-suggest-inf)
+        symbol: perftest(ml-perf-suggest-inf)
         tier: 2
     attributes:
         batch: false
@@ -499,7 +499,7 @@ ml-perf-autofill:
             - mozilla-autofill
     description: Run ML Autofill Model
     treeherder:
-        symbol: perftest(mac-ml-perf-autofill)
+        symbol: perftest(ml-perf-autofill)
         tier: 2
     attributes:
         batch: false
@@ -525,7 +525,7 @@ tr8ns-perf-es-en:
             - translations.esen.vocab
     description: Run Full-Page Translations with the Spanish-to-English model
     treeherder:
-        symbol: perftest(mac-tr8ns-perf-es-en)
+        symbol: perftest(tr8ns-perf-es-en)
         tier: 2
     attributes:
         batch: false
@@ -549,7 +549,7 @@ ml-perf-smart-tab:
             - mozilla-smart-tab-emb
     description: Run ML Smart Tab Model
     treeherder:
-        symbol: perftest(mac-ml-perf-smart-tab)
+        symbol: perftest(ml-perf-smart-tab)
         tier: 2
     attributes:
         batch: false
@@ -574,7 +574,7 @@ ml-perf-smart-tab-cluster:
             - mozilla-smart-tab-emb
     description: Run ML Smart Tab Clustering
     treeherder:
-        symbol: perftest(mac-ml-perf-stg-cluster)
+        symbol: perftest(ml-perf-stg-cluster)
         tier: 2
     worker:
         max-run-time: 14400

@@ -28,7 +28,7 @@ ml-perf:
             - xenova-all-minilm-l6-v2
     description: Run ML Models Perf Tests
     treeherder:
-        symbol: perftest(win-ml-perf)
+        symbol: perftest(ml-perf)
         tier: 2
     attributes:
         batch: false
@@ -53,7 +53,7 @@ ml-summarizer-perf:
             - distilbart-cnn-12-6
     description: Run ML Models Perf Tests
     treeherder:
-        symbol: perftest(win-ml-sum-perf)
+        symbol: perftest(ml-sum-perf)
         tier: 2
     attributes:
         batch: false
@@ -77,7 +77,7 @@ ml-llama-summarizer-perf:
             - smollm2-360-instruct-gguf
     description: Run ML Summarizer Model Using Wllama
     treeherder:
-        symbol: perftest(win-ref-ml-llama-sum-perf)
+        symbol: perftest(ref-ml-llama-sum-perf)
         tier: 2
     attributes:
         batch: false
@@ -103,7 +103,7 @@ ml-multi-perf:
             - mozilla-intent
     description: Run ML Models Perf Tests
     treeherder:
-        symbol: perftest(windows-ml-multi-perf)
+        symbol: perftest(ml-multi-perf)
         tier: 2
     attributes:
         batch: false
@@ -127,7 +127,7 @@ ml-perf-semantic-ft:
             - xenova-all-minilm-l6-v2
     description: Run ML Semantic Search Feature
     treeherder:
-        symbol: perftest(win-ml-perf-semantic-ft)
+        symbol: perftest(ml-perf-semantic-ft)
         tier: 2
     run-on-projects: [autoland, mozilla-central]
     run:
@@ -150,7 +150,7 @@ ml-perf-suggest-ft:
             - mozilla-intent
     description: Run ML Suggest Feature
     treeherder:
-        symbol: perftest(win-ml-perf-suggest-ft)
+        symbol: perftest(ml-perf-suggest-ft)
         tier: 2
     attributes:
         batch: false
@@ -175,7 +175,7 @@ ml-perf-suggest-inf:
             - mozilla-intent
     description: Run ML Suggest Inference Model
     treeherder:
-        symbol: perftest(win-ml-perf-suggest-inf)
+        symbol: perftest(ml-perf-suggest-inf)
         tier: 2
     attributes:
         batch: false
@@ -199,7 +199,7 @@ ml-perf-autofill:
             - mozilla-autofill
     description: Run ML Autofill Model
     treeherder:
-        symbol: perftest(win-ml-perf-autofill)
+        symbol: perftest(ml-perf-autofill)
         tier: 2
     attributes:
         batch: false
@@ -224,7 +224,7 @@ ml-perf-smart-tab:
             - mozilla-smart-tab-emb
     description: Run ML Smart Tab Model
     treeherder:
-        symbol: perftest(win-ml-perf-smart-tab)
+        symbol: perftest(ml-perf-smart-tab)
         tier: 2
     attributes:
         batch: false
@@ -251,7 +251,7 @@ ml-perf-smart-tab-cluster:
     worker:
         max-run-time: 14400
     treeherder:
-        symbol: perftest(win-ml-perf-stg-cluster)
+        symbol: perftest(ml-perf-stg-cluster)
         tier: 2
     attributes:
         batch: false
