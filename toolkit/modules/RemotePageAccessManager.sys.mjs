@@ -115,29 +115,6 @@ export let RemotePageAccessManager = {
       RPMSendAsyncMessage: ["ActivityStream:ContentToMain"],
       RPMAddMessageListener: ["ActivityStream:MainToContent"],
     },
-    "about:pocket-saved": {
-      RPMSendAsyncMessage: ["*"],
-      RPMAddMessageListener: ["*"],
-      RPMRemoveMessageListener: ["*"],
-      RPMGetStringPref: ["extensions.pocket.site"],
-    },
-    "about:pocket-signup": {
-      RPMSendAsyncMessage: ["*"],
-      RPMAddMessageListener: ["*"],
-      RPMRemoveMessageListener: ["*"],
-      RPMGetStringPref: ["extensions.pocket.site"],
-    },
-    "about:pocket-home": {
-      RPMSendAsyncMessage: ["*"],
-      RPMAddMessageListener: ["*"],
-      RPMRemoveMessageListener: ["*"],
-      RPMGetStringPref: ["extensions.pocket.site"],
-    },
-    "about:pocket-style-guide": {
-      RPMSendAsyncMessage: ["*"],
-      RPMAddMessageListener: ["*"],
-      RPMRemoveMessageListener: ["*"],
-    },
     "about:privatebrowsing": {
       RPMSendAsyncMessage: [
         "OpenPrivateWindow",
