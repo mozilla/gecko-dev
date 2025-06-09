@@ -18,6 +18,7 @@
 #include "mozilla/layers/LayersSurfaces.h"
 #include "mozilla/layers/RenderRootStateManager.h"
 #include "mozilla/layers/WebRenderCanvasRenderer.h"
+#include "mozilla/gfx/Logging.h"
 #include "mozilla/StaticPrefs_privacy.h"
 #include "mozilla/SVGObserverUtils.h"
 #include "ipc/WebGPUChild.h"
@@ -134,10 +135,20 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig,
   mConfiguration.reset(new dom::GPUCanvasConfiguration(aConfig));
   mRemoteTextureOwnerId = Some(layers::RemoteTextureOwnerId::GetNext());
   mUseExternalTextureInSwapChain =
-      aConfig.mDevice->mSupportExternalTextureInSwapChain &&
-      wgpu_client_use_external_texture_in_swapChain(
-          ConvertTextureFormat(aConfig.mFormat));
+      aConfig.mDevice->mSupportExternalTextureInSwapChain;
+  if (mUseExternalTextureInSwapChain) {
+    bool client_can_use = wgpu_client_use_external_texture_in_swapChain(
+        ConvertTextureFormat(aConfig.mFormat));
+    if (!client_can_use) {
+      gfxCriticalNote << "WebGPU: disabling ExternalTexture swapchain: \n"
+                         "canvas configuration format not supported";
+      mUseExternalTextureInSwapChain = false;
+    }
+  }
   if (!gfx::gfxVars::AllowWebGPUPresentWithoutReadback()) {
+    gfxCriticalNote
+        << "WebGPU: disabling ExternalTexture swapchain: \n"
+           "`dom.webgpu.allow-present-without-readback` pref is false";
     mUseExternalTextureInSwapChain = false;
   }
 #ifdef XP_WIN
@@ -145,12 +156,16 @@ void CanvasContext::Configure(const dom::GPUCanvasConfiguration& aConfig,
   // in swap chain. Since compositor device might not exist.
   if (gfx::gfxVars::UseSoftwareWebRender() &&
       !gfx::gfxVars::AllowSoftwareWebRenderD3D11()) {
+    gfxCriticalNote << "WebGPU: disabling ExternalTexture swapchain: \n"
+                       "WebRender is not using hardware acceleration";
     mUseExternalTextureInSwapChain = false;
   }
 #elif defined(XP_LINUX) && !defined(MOZ_WIDGET_ANDROID)
   // When DMABufDevice is not enabled, disable external texture in swap chain.
   const auto& modifiers = gfx::gfxVars::DMABufModifiersARGB();
   if (modifiers.IsEmpty()) {
+    gfxCriticalNote << "WebGPU: disabling ExternalTexture swapchain: \n"
+                       "missing GBM_FORMAT_ARGB8888 dmabuf format";
     mUseExternalTextureInSwapChain = false;
   }
 #endif
