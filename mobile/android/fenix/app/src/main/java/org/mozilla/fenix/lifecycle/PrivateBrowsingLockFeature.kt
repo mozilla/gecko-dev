@@ -35,6 +35,7 @@ import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.settings.biometric.BiometricPromptFeature
 import org.mozilla.fenix.settings.biometric.BiometricUtils
+import org.mozilla.fenix.settings.biometric.DefaultBiometricUtils
 
 /**
  * An interface to access and observe the enabled/disabled state of the Private Browsing Lock feature.
@@ -279,7 +280,7 @@ fun Fragment.registerForVerification(
  * @param onVerified triggered on a successful authentication.
  */
 fun Fragment.verifyUser(
-    biometricUtils: BiometricUtils,
+    biometricUtils: BiometricUtils = DefaultBiometricUtils,
     fallbackVerification: ActivityResultLauncher<Intent>,
     onVerified: () -> Unit,
 ) {
