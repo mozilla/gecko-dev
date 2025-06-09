@@ -128,7 +128,10 @@ async fn invoke_async_test_trait_interface_get_value(int: Arc<dyn AsyncTestTrait
 }
 
 #[uniffi::export]
-async fn invoke_async_test_trait_interface_set_value(int: Arc<dyn AsyncTestTraitInterface>, value: u32) {
+async fn invoke_async_test_trait_interface_set_value(
+    int: Arc<dyn AsyncTestTraitInterface>,
+    value: u32,
+) {
     println!("**** invoke_async_test_trait_interface_set_value {value}");
     int.set_value(value).await
 }
