@@ -193,16 +193,25 @@ class ConsoleOutput extends Component {
 
     // We need to scroll to the bottom if:
     this.shouldScrollBottom =
-      // - we are reacting to "initialize" action, and we are already scrolled to the bottom
+      // 1) This is reacting to "initialize" action
+      // 2) And it has scrolled to the bottom
       (!this.props.initialized &&
         nextProps.initialized &&
         this.scrolledToBottom) ||
-      // - the number of messages in the store changed and the new message is an evaluation
-      //   result.
+      // 1) The number of messages in the store has changed
+      // 2) And the new message is an evaluation result.
       isNewMessageEvaluationResult ||
-      // - the number of messages displayed changed and we are already scrolled to the
-      //   bottom, but not if we are reacting to a group opening.
-      (this.scrolledToBottom && visibleMessagesDelta > 0 && !isOpeningGroup());
+      // 1) It is scrolled to the bottom
+      // 2) And the number of messages displayed changed or it is reacting to a network update but there's no new messages being displayed
+      // 3) And if it is not reacting to a group opening.
+      (this.scrolledToBottom &&
+        (visibleMessagesDelta > 0 ||
+          (visibleMessagesDelta === 0 &&
+            // Note: The network updates are throttled and therefore might come in later
+            // so make sure a scroll to bottom is trggered.
+            this.props.networkMessagesUpdate !==
+              nextProps.networkMessagesUpdate)) &&
+        !isOpeningGroup());
   }
 
   componentDidUpdate(prevProps) {
