@@ -221,6 +221,7 @@ let AVAILABLE_PIP_OVERRIDES;
     kick: {
       "https://*.kick.com/*": {
         visibilityThreshold: 0.7,
+        videoWrapperScriptPath: "video-wrappers/kick.js",
       },
     },
 
