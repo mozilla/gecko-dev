@@ -1138,6 +1138,21 @@ newtabSponsoredContent:
         pref: browser.newtabpage.activity-stream.discoverystream.placements.tiles.counts
       description: CSV string of tiles placement counts on newtab tiles section. The count tells the ad server how many ads to return for this position and placement.
 
+newtabGroupedSponsoredControls:
+  description: >-
+    Adjust sponsored content controls on newtab.
+  owner: mcrawford@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      type: boolean
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.system.showSponsoredCheckboxes
+      description: >-
+        When true, checkboxes for sponsored results in top sites and recommended stories are grouped separately
+        on about:preferences#home
+
 newtabTopicSelection:
   description: the about:newtab topic selection experience.
   owner: nbarrett@mozilla.com
@@ -1816,14 +1831,6 @@ pocketNewtab:
         pref: browser.newtabpage.activity-stream.discoverystream.thumbsUpDown.searchTopsitesCompact
       description: >-
         Change the layout of the sections to be more compact to account for the added card height with the thumbs up/down enabled.
-    prefsSponsoredCheckboxes:
-      type: boolean
-      setPref:
-        branch: user
-        pref: browser.newtabpage.activity-stream.system.sponsoredCheckboxes
-      description: >-
-        When true, checkboxes for sponsored results in top sites and recommended stories are grouped separately
-        on about:preferences#home
 
 saveToPocket:
   description: The save to Pocket feature
