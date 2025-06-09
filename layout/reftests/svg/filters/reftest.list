@@ -129,7 +129,7 @@ fuzzy(0-21,0-1000000) == feGaussianBlur-alpha-01.svg feGaussianBlur-alpha-01-ref
 == feTile-large-02.svg feTile-large-02-ref.svg
 == feTile-outside-01.svg feTile-outside-01-ref.svg
 
-fuzzy(0-1,0-219) == feDiffuseLighting-1.svg feDiffuseLighting-1-ref.svg
+fuzzy(0-32,0-456) == feDiffuseLighting-1.svg feDiffuseLighting-1-ref.svg
 
 fuzzy(0-2,0-2659) skip-if(winWidget) == feSpecularLighting-1.svg feSpecularLighting-1-ref.svg
 

@@ -191,10 +191,6 @@ class SVGFELightingElement : public SVGFELightingElementBase {
   void GetSourceImageNames(nsTArray<SVGStringInfo>& aSources) override;
 
  protected:
-  bool OperatesOnSRGB(int32_t aInputIndex, bool aInputIsAlreadySRGB) override {
-    return true;
-  }
-
   NumberAttributesInfo GetNumberInfo() override;
   NumberPairAttributesInfo GetNumberPairInfo() override;
   StringAttributesInfo GetStringInfo() override;
