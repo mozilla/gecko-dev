@@ -30,7 +30,9 @@ struct IsExclusiveMozPromise<
 
 template <typename T, typename U, typename F>
 auto Map(RefPtr<U> aPromise, F&& aFunc) -> std::enable_if_t<
-    detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value, RefPtr<T>> {
+    !detail::IsExclusiveMozPromise<RemoveSmartPointer<T>>::value &&
+        detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value,
+    RefPtr<T>> {
   return aPromise->Then(
       GetCurrentSerialEventTarget(), __func__,
       [func =
@@ -47,7 +49,9 @@ auto Map(RefPtr<U> aPromise, F&& aFunc) -> std::enable_if_t<
 
 template <typename T, typename U, typename F>
 auto Map(RefPtr<U> aPromise, F&& aFunc) -> std::enable_if_t<
-    !detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value, RefPtr<T>> {
+    !detail::IsExclusiveMozPromise<RemoveSmartPointer<T>>::value &&
+        !detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value,
+    RefPtr<T>> {
   return aPromise->Then(GetCurrentSerialEventTarget(), __func__,
                         [func = std::forward<F>(aFunc)](
                             const typename U::ResolveOrRejectValue& aValue) {
@@ -60,6 +64,44 @@ auto Map(RefPtr<U> aPromise, F&& aFunc) -> std::enable_if_t<
 
                           return T::CreateAndResolve(value, __func__);
                         });
+}
+
+template <typename T, typename U, typename F>
+auto Map(RefPtr<U> aPromise, F&& aFunc) -> std::enable_if_t<
+    detail::IsExclusiveMozPromise<RemoveSmartPointer<T>>::value &&
+        detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value,
+    RefPtr<T>> {
+  return aPromise->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [func = std::forward<F>(aFunc)](
+          typename U::ResolveOrRejectValue&& aValue) mutable {
+        if (aValue.IsReject()) {
+          return T::CreateAndReject(aValue.RejectValue(), __func__);
+        }
+
+        auto value = func(std::move(aValue));
+
+        return T::CreateAndResolve(std::move(value), __func__);
+      });
+}
+
+template <typename T, typename U, typename F>
+auto Map(RefPtr<U> aPromise, F&& aFunc) -> std::enable_if_t<
+    detail::IsExclusiveMozPromise<RemoveSmartPointer<T>>::value &&
+        !detail::IsExclusiveMozPromise<RemoveSmartPointer<U>>::value,
+    RefPtr<T>> {
+  return aPromise->Then(
+      GetCurrentSerialEventTarget(), __func__,
+      [func = std::forward<F>(aFunc)](
+          const typename U::ResolveOrRejectValue& aValue) mutable {
+        if (aValue.IsReject()) {
+          return T::CreateAndReject(aValue.RejectValue(), __func__);
+        }
+
+        auto value = func(aValue);
+
+        return T::CreateAndResolve(std::move(value), __func__);
+      });
 }
 
 }  // namespace mozilla::dom::quota

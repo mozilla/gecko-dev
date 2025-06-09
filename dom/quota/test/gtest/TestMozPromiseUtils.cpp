@@ -31,4 +31,14 @@ TEST(DOM_Quota_MozPromiseUtils, ExclusiveBoolPromiseToBoolPromise)
   ASSERT_FALSE(value.ResolveValue());
 }
 
+TEST(DOM_Quota_MozPromiseUtils, BoolPromiseToExclusiveBoolPromise)
+{
+  auto value = QuotaManagerDependencyFixture::Await(Map<ExclusiveBoolPromise>(
+      BoolPromise::CreateAndResolve(true, __func__),
+      [](const BoolPromise::ResolveOrRejectValue& aValue) { return false; }));
+
+  ASSERT_TRUE(value.IsResolve());
+  ASSERT_FALSE(value.ResolveValue());
+}
+
 }  // namespace mozilla::dom::quota::test
