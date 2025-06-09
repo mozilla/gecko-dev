@@ -59,48 +59,48 @@ task-defaults:
         gradlew:
             by-build-type:
                 release:
-                    - ':{component}:assembleRelease'
-                    - ':{component}:testRelease'
-                    - ':{component}:lintRelease'
-                    - ':{component}:publish'
+                    - ':components:{component}:assembleRelease'
+                    - ':components:{component}:testRelease'
+                    - ':components:{component}:lintRelease'
+                    - ':components:{component}:publish'
                 beta:
                     # /!\ Beta builds are considered Release in gradle
-                    - ':{component}:assembleRelease'
-                    - ':{component}:testRelease'
-                    - ':{component}:lintRelease'
-                    - ':{component}:publish'
+                    - ':components:{component}:assembleRelease'
+                    - ':components:{component}:testRelease'
+                    - ':components:{component}:lintRelease'
+                    - ':components:{component}:publish'
                 nightly:
                     - '-PnightlyVersion={nightlyVersion}'
-                    - ':{component}:assembleRelease'
-                    - ':{component}:testRelease'
-                    - ':{component}:lintRelease'
-                    - ':{component}:publish'
+                    - ':components:{component}:assembleRelease'
+                    - ':components:{component}:testRelease'
+                    - ':components:{component}:lintRelease'
+                    - ':components:{component}:publish'
                 default:
                     by-component:
                         # No lintRelease on this task, gradle task isn't defined
                         tooling-lint:
-                            - ':{component}:assemble'
-                            - ':{component}:assembleAndroidTest'
-                            - ':{component}:test'
-                            - ':{component}:lint'
+                            - ':components:{component}:assemble'
+                            - ':components:{component}:assembleAndroidTest'
+                            - ':components:{component}:test'
+                            - ':components:{component}:lint'
                         # No testRelease on this task, gradle task isn't defined
                         tooling-detekt:
-                            - ':{component}:assemble'
-                            - ':{component}:assembleAndroidTest'
-                            - ':{component}:test'
-                            - ':{component}:lintRelease'
+                            - ':components:{component}:assemble'
+                            - ':components:{component}:assembleAndroidTest'
+                            - ':components:{component}:test'
+                            - ':components:{component}:lintRelease'
                         # No publish on these tasks
                         tooling-fetch-tests|samples-.*:
-                            - ':{component}:assemble'
-                            - ':{component}:assembleAndroidTest'
-                            - ':{component}:testRelease'
-                            - ':{component}:lintRelease'
+                            - ':components:{component}:assemble'
+                            - ':components:{component}:assembleAndroidTest'
+                            - ':components:{component}:testRelease'
+                            - ':components:{component}:lintRelease'
                         default:
-                            - ':{component}:assemble'
-                            - ':{component}:assembleAndroidTest'
-                            - ':{component}:testRelease'
-                            - ':{component}:lintRelease'
-                            - ':{component}:publish'
+                            - ':components:{component}:assemble'
+                            - ':components:{component}:assembleAndroidTest'
+                            - ':components:{component}:testRelease'
+                            - ':components:{component}:lintRelease'
+                            - ':components:{component}:publish'
         pre-gradlew:
             - ["cd", "mobile/android/android-components"]
         using: gradlew

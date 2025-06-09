@@ -26,11 +26,11 @@ android {
 }
 
 dependencies {
-    implementation project(':browser-state')
-    implementation project(':concept-engine')
-    implementation project(':concept-base')
-    implementation project(':support-ktx')
-    implementation project(':support-images')
+    implementation project(':components:browser-state')
+    implementation project(':components:concept-engine')
+    implementation project(':components:concept-base')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-images')
 
     implementation libs.androidx.annotation
     implementation libs.androidx.core.ktx
@@ -39,8 +39,8 @@ dependencies {
 
     implementation libs.thirdparty.disklrucache
 
-    testImplementation project(':support-test')
-    testImplementation project(':support-test-libstate')
+    testImplementation project(':components:support-test')
+    testImplementation project(':components:support-test-libstate')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

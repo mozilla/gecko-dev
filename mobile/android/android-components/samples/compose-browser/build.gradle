@@ -48,32 +48,32 @@ tasks.register("updateTestExtensionVersion", Copy) { task ->
 
 dependencies {
     implementation platform(libs.androidx.compose.bom)
-    implementation project(':compose-base')
-    implementation project(':concept-engine')
-    implementation project(':concept-awesomebar')
-    implementation project(':concept-tabstray')
+    implementation project(':components:compose-base')
+    implementation project(':components:concept-engine')
+    implementation project(':components:concept-awesomebar')
+    implementation project(':components:concept-tabstray')
 
-    implementation project(':browser-engine-gecko')
-    implementation project(':browser-state')
-    implementation project(':browser-icons')
+    implementation project(':components:browser-engine-gecko')
+    implementation project(':components:browser-state')
+    implementation project(':components:browser-icons')
 
-    implementation project(':compose-awesomebar')
-    implementation project(':compose-browser-toolbar')
-    implementation project(':compose-engine')
-    implementation project(':compose-tabstray')
+    implementation project(':components:compose-awesomebar')
+    implementation project(':components:compose-browser-toolbar')
+    implementation project(':components:compose-engine')
+    implementation project(':components:compose-tabstray')
 
-    implementation project(':feature-awesomebar')
-    implementation project(':feature-fxsuggest')
-    implementation project(':feature-search')
-    implementation project(':feature-session')
-    implementation project(':feature-tabs')
+    implementation project(':components:feature-awesomebar')
+    implementation project(':components:feature-fxsuggest')
+    implementation project(':components:feature-search')
+    implementation project(':components:feature-session')
+    implementation project(':components:feature-tabs')
 
-    implementation project(':support-appservices')
-    implementation project(':service-location')
-    implementation project(':support-ktx')
-    implementation project(':support-remotesettings')
+    implementation project(':components:service-location')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-remotesettings')
+    implementation project(':components:support-appservices')
 
-    implementation project(':ui-icons')
+    implementation project(':components:ui-icons')
 
     implementation libs.androidx.activity
     implementation libs.androidx.appcompat

@@ -30,13 +30,13 @@ dependencies {
     implementation libs.androidx.appcompat
     implementation libs.androidx.core.ktx
 
-    implementation project(':support-ktx')
-    implementation project(':support-base')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-base')
 
     implementation libs.thirdparty.zxing
     testImplementation libs.thirdparty.zxing
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric

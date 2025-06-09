@@ -23,7 +23,7 @@ android {
 }
 
 dependencies {
-    implementation project(':support-base')
+    implementation project(':components:support-base')
 
     implementation libs.kotlin.coroutines
 }

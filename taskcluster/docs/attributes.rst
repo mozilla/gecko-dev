@@ -490,6 +490,10 @@ component
 =========
 For android-components builds, the name of the component.
 
+gradle-project
+==============
+For android-components builds, the complete gradle name of the component.
+
 apks
 ====
 For android apk build tasks, the list of apk artifact names.

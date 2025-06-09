@@ -24,18 +24,18 @@ android {
 
 
 dependencies {
-    implementation project(':concept-push')
+    implementation project(':components:concept-push')
 
     implementation ComponentsDependencies.mozilla_appservices_push
 
     // Remove when the MessageBus is implemented somewhere else.
-    implementation project(':support-base')
+    implementation project(':components:support-base')
 
     implementation libs.kotlin.coroutines
     implementation libs.androidx.work.runtime
     implementation libs.androidx.lifecycle.runtime
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit

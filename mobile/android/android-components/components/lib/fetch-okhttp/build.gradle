@@ -29,13 +29,13 @@ dependencies {
     implementation libs.thirdparty.okhttp
     implementation libs.thirdparty.okhttp.urlconnection
 
-    implementation project(':concept-fetch')
+    implementation project(':components:concept-fetch')
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric
-    testImplementation project(':tooling-fetch-tests')
+    testImplementation project(':components:tooling-fetch-tests')
 }
 
 apply from: '../../../android-lint.gradle'

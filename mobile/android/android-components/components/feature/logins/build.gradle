@@ -34,9 +34,9 @@ android {
 }
 
 dependencies {
-    implementation project(':support-ktx')
-    implementation project(':support-base')
-    implementation project(':feature-prompts')
+    implementation project(':components:support-ktx')
+    implementation project(':components:support-base')
+    implementation project(':components:feature-prompts')
 
     implementation libs.kotlin.coroutines
 
@@ -46,14 +46,14 @@ dependencies {
     implementation libs.androidx.room.runtime
     ksp libs.androidx.room.compiler
 
-    testImplementation project(':support-test')
+    testImplementation project(':components:support-test')
 
     testImplementation libs.androidx.test.core
     testImplementation libs.junit.vintage
     testImplementation libs.testing.robolectric
     testImplementation libs.kotlin.coroutines
 
-    androidTestImplementation project(':support-android-test')
+    androidTestImplementation project(':components:support-android-test')
 
     androidTestImplementation libs.androidx.room.testing
     androidTestImplementation libs.androidx.arch.core.testing

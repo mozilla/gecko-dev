@@ -52,12 +52,12 @@ tasks:
     gecko:
         run:
             gradlew:
-                - ':samples-browser:assembleGecko'
-                - ':samples-browser:testGeckoDebugUnitTest'
-                - ':samples-browser:lintGeckoDebug'
+                - ':components:samples-browser:assembleGecko'
+                - ':components:samples-browser:testGeckoDebugUnitTest'
+                - ':components:samples-browser:lintGeckoDebug'
 
     system:
         run:
-            gradlew: [':samples-browser:assembleSystem']
+            gradlew: [':components:samples-browser:assembleSystem']
         treeherder:
             symbol: 'samples-browser-system(B)'

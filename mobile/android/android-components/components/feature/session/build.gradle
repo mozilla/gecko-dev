@@ -25,21 +25,21 @@ android {
 }
 
 dependencies {
-    implementation project(':browser-state')
-    implementation project(':concept-storage')
-    implementation project(':concept-toolbar')
-    implementation project(':concept-engine')
-    implementation project(':support-utils')
-    implementation project(':support-ktx')
+    implementation project(':components:browser-state')
+    implementation project(':components:concept-storage')
+    implementation project(':components:concept-toolbar')
+    implementation project(':components:concept-engine')
+    implementation project(':components:support-utils')
+    implementation project(':components:support-ktx')
 
 
     implementation libs.androidx.core.ktx
     implementation libs.androidx.swiperefreshlayout
     implementation libs.google.material
 
-    testImplementation project(':support-test')
-    testImplementation project(':support-test-fakes')
-    testImplementation project(':support-test-libstate')
+    testImplementation project(':components:support-test')
+    testImplementation project(':components:support-test-fakes')
+    testImplementation project(':components:support-test-libstate')
     testImplementation libs.androidx.test.core
     testImplementation libs.androidx.test.junit
     testImplementation libs.testing.robolectric

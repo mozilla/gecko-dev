@@ -36,12 +36,12 @@ android {
 }
 
 dependencies {
-    implementation project(':concept-storage')
-    implementation project(':service-firefox-accounts')
-    implementation project(':service-sync-logins')
-    implementation project(':support-appservices')
-    implementation project(':lib-dataprotect')
-    implementation project(':lib-fetch-httpurlconnection')
+    implementation project(':components:concept-storage')
+    implementation project(':components:service-firefox-accounts')
+    implementation project(':components:service-sync-logins')
+    implementation project(':components:support-appservices')
+    implementation project(':components:lib-dataprotect')
+    implementation project(':components:lib-fetch-httpurlconnection')
 
     implementation libs.androidx.appcompat
     implementation libs.androidx.browser

@@ -64,8 +64,10 @@ allprojects {
 
 subprojects {
     afterEvaluate {
-        kotlin {
-            jvmToolchain(config.jvmTargetCompatibility)
+        if (it.hasProperty('kotlin')) {
+            kotlin {
+                jvmToolchain(config.jvmTargetCompatibility)
+            }
         }
 
         if (it.hasProperty('android')) {
