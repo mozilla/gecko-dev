@@ -32,7 +32,6 @@ import config15 from "./browser/components/extensions/test/mochitest/.eslintrc.m
 import config16 from "./browser/components/extensions/test/xpcshell/.eslintrc.mjs";
 import config17 from "./browser/components/migration/.eslintrc.mjs";
 import config18 from "./browser/components/pagedata/.eslintrc.mjs";
-import config19 from "./browser/components/pocket/.eslintrc.mjs";
 import config20 from "./browser/components/resistfingerprinting/test/mochitest/.eslintrc.mjs";
 import config21 from "./browser/components/search/.eslintrc.mjs";
 import config22 from "./browser/components/urlbar/.eslintrc.mjs";
@@ -176,7 +175,6 @@ export default [
   ),
   ...convertConfigurationFile("browser/components/migration/", config17),
   ...convertConfigurationFile("browser/components/pagedata/", config18),
-  ...convertConfigurationFile("browser/components/pocket/", config19),
   ...convertConfigurationFile(
     "browser/components/resistfingerprinting/test/mochitest/",
     config20
