@@ -31,7 +31,7 @@ add_task(async function setup() {
 
 add_task(async function test() {
   info("Registering service worker.");
-  let swr = await navigator.serviceWorker.register("notification_openWindow_worker.js");
+  let swr = await navigator.serviceWorker.register("notification_openWindow.serviceworker.js");
   await waitForState(swr.installing, "activated");
 
   SimpleTest.registerCleanupFunction(async () => {

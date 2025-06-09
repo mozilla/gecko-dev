@@ -57,7 +57,7 @@ skip-if = [
   "http2",
 ]
 support-files = [
-  "notification_openWindow_worker.js",
+  "notification_openWindow.serviceworker.js",
   "file_notification_openWindow.html",
   "!/dom/serviceworkers/test/utils.js",
 ]
@@ -71,7 +71,7 @@ skip-if = [
   "http2",
 ]
 support-files = [
-  "openWindow_worker.js",
+  "openWindow.serviceworker.js",
   "open_window/client.sjs",
   "redirect.sjs",
   "!/dom/serviceworkers/test/utils.js",
@@ -125,7 +125,7 @@ support-files = ["notification_permission_worker.js"]
 skip-if = ["xorigin"] # Bug 1792790
 support-files = [
   "notificationclick.html",
-  "notificationclick.js",
+  "notificationclick.serviceworker.js",
   "!/dom/serviceworkers/test/utils.js",
 ]
 
@@ -133,7 +133,7 @@ support-files = [
 skip-if = ["xorigin"] # Bug 1792790
 support-files = [
   "notificationclick_focus.html",
-  "notificationclick_focus.js",
+  "notificationclick_focus.serviceworker.js",
   "!/dom/serviceworkers/test/utils.js",
 ]
 
@@ -141,7 +141,7 @@ support-files = [
 skip-if = ["xorigin"] # Bug 1792790
 support-files = [
   "notificationclick-otherwindow.html",
-  "notificationclick.js",
+  "notificationclick.serviceworker.js",
   "!/dom/serviceworkers/test/utils.js",
 ]
 
@@ -150,6 +150,6 @@ skip-if = ["xorigin"] # Bug 1792790
 support-files = [
   "blank.html",
   "notificationclose.html",
-  "notificationclose.js",
+  "notificationclose.serviceworker.js",
   "!/dom/serviceworkers/test/utils.js",
 ]

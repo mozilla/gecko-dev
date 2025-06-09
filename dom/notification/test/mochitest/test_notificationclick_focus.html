@@ -46,7 +46,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
     await MockAlertsService.register();
     await MockAlertsService.enableAutoClick();
     let registration = await navigator.serviceWorker.register(
-      "notificationclick_focus.js",
+      "notificationclick_focus.serviceworker.js",
       { scope: "notificationclick_focus.html" }
     );
     await waitForState(registration.installing, 'activated');

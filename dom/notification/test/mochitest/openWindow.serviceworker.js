@@ -1,4 +1,3 @@
-/* eslint-env serviceworker */
 // the worker won't shut down between events because we increased
 // the timeout values.
 var client;

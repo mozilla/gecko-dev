@@ -6,7 +6,7 @@ support-files = ["notification.html"]
 ["browser_userContextId_openWindow.js"]
 support-files = [
   "empty.html",
-  "file_userContextId_openWindow.js",
+  "file_userContextId_openWindow.serviceworker.js",
 ]
 
 ["browser_userContextId_tag.js"]

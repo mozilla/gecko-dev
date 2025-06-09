@@ -1,8 +1,5 @@
 // Any copyright is dedicated to the Public Domain.
 // http://creativecommons.org/publicdomain/zero/1.0/
-//
-
-/* eslint-env serviceworker */
 
 onnotificationclick = function (e) {
   const {
@@ -10,15 +7,15 @@ onnotificationclick = function (e) {
     action,
   } = e;
 
-  self.clients.matchAll().then(function (clients) {
-    if (clients.length === 0) {
+  self.clients.matchAll().then(function (matchedClients) {
+    if (matchedClients.length === 0) {
       dump(
         "********************* CLIENTS LIST EMPTY! Test will timeout! ***********************\n"
       );
       return;
     }
 
-    clients.forEach(function (client) {
+    matchedClients.forEach(function (client) {
       client.postMessage({
         notification: { data, actions },
         action,

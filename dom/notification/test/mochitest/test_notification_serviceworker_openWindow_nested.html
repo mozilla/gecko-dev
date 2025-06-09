@@ -25,7 +25,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1172870
     await MockAlertsService.register();
     await MockAlertsService.enableAutoClick();
 
-    const swr = await navigator.serviceWorker.register("openWindow_worker.js", {scope: "./"});
+    const swr = await navigator.serviceWorker.register("openWindow.serviceworker.js", {scope: "./"});
     ok(swr, "Registration successful");
     ctx.registration = swr;
     return await waitForState(swr.installing, 'activated', ctx);

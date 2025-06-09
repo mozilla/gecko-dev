@@ -21,7 +21,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=916893
 <script>
   SimpleTest.requestFlakyTimeout("Mock alert service dispatches show and click events.");
 
-  add_task(() => setupServiceWorker("notificationclick.js", "notificationclick-otherwindow.html"));
+  add_task(() => setupServiceWorker("notificationclick.serviceworker.js", "notificationclick-otherwindow.html"));
 
   add_task(async function runTest() {
     await MockAlertsService.enableAutoClick();

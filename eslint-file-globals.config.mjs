@@ -14,6 +14,7 @@
  * - ES modules should always use `.mjs` extensions.
  * - System modules (accessed from privileged scope) should use `.sys.mjs`.
  * - Workers should use `<name>.worker.js` or `<name>.worker.mjs`.
+ * - Service Workers should use `<name>.serviceworker.js` or `<name>.serviceworker.mjs`.
  *
  * Please also note the patters for tests - see the top of `.eslintrc-test-paths.js`.
  *
@@ -479,15 +480,7 @@ export default [
   },
   {
     name: "globals-serviceworker",
-    files: [
-      "dom/notification/test/browser/file_userContextId_openWindow.js",
-      "dom/notification/test/mochitest/notification_openWindow_worker.js",
-      "dom/notification/test/mochitest/notificationclick_focus.js",
-      "dom/notification/test/mochitest/notificationclick.js",
-      "dom/notification/test/mochitest/notificationclose.js",
-      "dom/notification/test/mochitest/openWindow_worker.js",
-      "dom/security/test/general/file_block_script_wrong_mime_sw.js",
-    ],
+    files: ["dom/security/test/general/file_block_script_wrong_mime_sw.js"],
     languageOptions: { globals: globals.serviceworker },
   },
   {

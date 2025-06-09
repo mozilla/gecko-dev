@@ -1,5 +1,3 @@
-/* eslint-env serviceworker */
-
 const gRoot = "https://example.com/tests/dom/notification/test/mochitest/";
 const gTestURL = gRoot + "test_notification_serviceworker_openWindow.html";
 const gClientURL = gRoot + "file_notification_openWindow.html";
