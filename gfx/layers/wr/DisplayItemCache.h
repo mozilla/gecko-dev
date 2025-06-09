@@ -188,7 +188,7 @@ class MOZ_RAII AutoDisplayItemCacheSuppressor {
  public:
   explicit AutoDisplayItemCacheSuppressor(DisplayItemCache* aCache)
       : mCache(aCache) {
-    mWasSuppressed = mCache->SetSuppressed(true);
+    mWasSuppressed = !mCache || mCache->SetSuppressed(true);
   }
 
   // Note that this restores the original state rather than unconditionally
@@ -197,7 +197,11 @@ class MOZ_RAII AutoDisplayItemCacheSuppressor {
   // decide to expand its usage to other scenarios and end up with nested
   // suppressions, in which case restoring the state back to what we found it
   // is better.
-  ~AutoDisplayItemCacheSuppressor() { mCache->SetSuppressed(mWasSuppressed); }
+  ~AutoDisplayItemCacheSuppressor() {
+    if (mCache) {
+      mCache->SetSuppressed(mWasSuppressed);
+    }
+  }
 
  private:
   DisplayItemCache* mCache;
