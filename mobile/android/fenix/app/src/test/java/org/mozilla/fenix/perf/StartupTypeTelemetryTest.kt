@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.perf
 
+import android.app.Application
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.mockk.MockKAnnotations
@@ -24,10 +25,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.GleanMetrics.PerfStartup
-import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.helpers.FenixGleanTestRule
 import org.mozilla.fenix.perf.StartupPathProvider.StartupPath
-import org.mozilla.fenix.perf.StartupStateProvider.StartupState
 
 private val validTelemetryLabels = run {
     val allStates = listOf("cold", "warm", "hot", "unknown")
@@ -35,8 +34,6 @@ private val validTelemetryLabels = run {
 
     allStates.crossProduct(allPaths) { state, path -> "${state}_$path" }.toSet()
 }
-
-private val activityClass = HomeActivity::class.java
 
 @RunWith(AndroidJUnit4::class)
 class StartupTypeTelemetryTest {
@@ -50,14 +47,20 @@ class StartupTypeTelemetryTest {
     private lateinit var telemetry: StartupTypeTelemetry
     private lateinit var callbacks: StartupTypeTelemetry.StartupTypeLifecycleObserver
 
-    @MockK private lateinit var stateProvider: StartupStateProvider
+    @MockK
+    private lateinit var pathProvider: StartupPathProvider
 
-    @MockK private lateinit var pathProvider: StartupPathProvider
+    private val startupStateDetector = FakeStartupStateDetector(expectedStartupState = StartupState.UNKNOWN)
 
     @Before
     fun setUp() {
         MockKAnnotations.init(this)
-        telemetry = spyk(StartupTypeTelemetry(stateProvider, pathProvider))
+        telemetry = spyk(
+            StartupTypeTelemetry(
+                startupStateDetector = startupStateDetector,
+                startupPathProvider = pathProvider,
+            ),
+        )
         callbacks = telemetry.getTestCallbacks()
     }
 
@@ -78,7 +81,7 @@ class StartupTypeTelemetryTest {
         }
 
         allPossibleInputArgs.forEach { (state, path) ->
-            every { stateProvider.getStartupStateForStartedActivity(activityClass) } returns state
+            startupStateDetector.expectedStartupState = state
             every { pathProvider.startupPathForActivity } returns path
 
             telemetry.record(coroutinesTestRule.testDispatcher)
@@ -97,7 +100,7 @@ class StartupTypeTelemetryTest {
 
     @Test
     fun `WHEN record is called THEN telemetry is recorded with the appropriate label`() = runTestOnMain {
-        every { stateProvider.getStartupStateForStartedActivity(activityClass) } returns StartupState.COLD
+        startupStateDetector.expectedStartupState = StartupState.COLD
         every { pathProvider.startupPathForActivity } returns StartupPath.MAIN
 
         telemetry.record(coroutinesTestRule.testDispatcher)
@@ -140,11 +143,20 @@ class StartupTypeTelemetryTest {
 
     private fun launchApp() {
         // What these return isn't important.
-        every { stateProvider.getStartupStateForStartedActivity(activityClass) } returns StartupState.COLD
+        startupStateDetector.expectedStartupState = StartupState.COLD
         every { pathProvider.startupPathForActivity } returns StartupPath.MAIN
 
         callbacks.onCreate(mockk())
         callbacks.onStart(mockk())
         callbacks.onResume(mockk())
+    }
+
+    private class FakeStartupStateDetector(
+        var expectedStartupState: StartupState,
+    ) : StartupStateDetector {
+
+        override fun registerInAppOnCreate(application: Application) = Unit
+
+        override fun getStartupState(): StartupState = expectedStartupState
     }
 }
