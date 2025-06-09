@@ -225,9 +225,6 @@ def check_prog(*args, **kwargs):
     return check_prog(*args, **kwargs)
 
 
-check_prog("WGET", ("wget",), allow_missing=True)
-
-
 include("build/moz.configure/toolchain.configure", when="--enable-compile-environment")
 
 include("build/moz.configure/pkg.configure")
