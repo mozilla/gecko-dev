@@ -674,6 +674,7 @@ struct ParamTraits<mozilla::layers::TextureFactoryIdentifier> {
     WriteParam(aWriter, aParam.mMaxTextureSize);
     WriteParam(aWriter, aParam.mCompositorUseANGLE);
     WriteParam(aWriter, aParam.mCompositorUseDComp);
+    WriteParam(aWriter, aParam.mUseLayerCompositor);
     WriteParam(aWriter, aParam.mUseCompositorWnd);
     WriteParam(aWriter, aParam.mSupportsTextureBlitting);
     WriteParam(aWriter, aParam.mSupportsPartialUploads);
@@ -690,6 +691,7 @@ struct ParamTraits<mozilla::layers::TextureFactoryIdentifier> {
                   ReadParam(aReader, &aResult->mMaxTextureSize) &&
                   ReadParam(aReader, &aResult->mCompositorUseANGLE) &&
                   ReadParam(aReader, &aResult->mCompositorUseDComp) &&
+                  ReadParam(aReader, &aResult->mUseLayerCompositor) &&
                   ReadParam(aReader, &aResult->mUseCompositorWnd) &&
                   ReadParam(aReader, &aResult->mSupportsTextureBlitting) &&
                   ReadParam(aReader, &aResult->mSupportsPartialUploads) &&

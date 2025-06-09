@@ -2918,8 +2918,8 @@ TextureFactoryIdentifier WebRenderBridgeParent::GetTextureFactoryIdentifier() {
   TextureFactoryIdentifier ident(
       mApi->GetBackendType(), mApi->GetCompositorType(), XRE_GetProcessType(),
       mApi->GetMaxTextureSize(), mApi->GetUseANGLE(), mApi->GetUseDComp(),
-      mAsyncImageManager->UseCompositorWnd(), false, false, false,
-      supportsD3D11NV12, mApi->GetSyncHandle());
+      mApi->GetUseLayerCompositor(), mAsyncImageManager->UseCompositorWnd(),
+      false, false, false, supportsD3D11NV12, mApi->GetSyncHandle());
   return ident;
 }
 

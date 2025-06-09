@@ -176,6 +176,7 @@ struct TextureFactoryIdentifier {
   int32_t mMaxTextureSize;
   bool mCompositorUseANGLE;
   bool mCompositorUseDComp;
+  bool mUseLayerCompositor;
   bool mUseCompositorWnd;
   bool mSupportsTextureBlitting;
   bool mSupportsPartialUploads;
@@ -187,8 +188,8 @@ struct TextureFactoryIdentifier {
       LayersBackend aLayersBackend = LayersBackend::LAYERS_NONE,
       GeckoProcessType aParentProcessType = GeckoProcessType_Default,
       int32_t aMaxTextureSize = 4096, bool aCompositorUseANGLE = false,
-      bool aCompositorUseDComp = false, bool aUseCompositorWnd = false,
-      bool aSupportsTextureBlitting = false,
+      bool aCompositorUseDComp = false, bool aUseLayerCompositor = false,
+      bool aUseCompositorWnd = false, bool aSupportsTextureBlitting = false,
       bool aSupportsPartialUploads = false, bool aSupportsComponentAlpha = true,
       bool aSupportsD3D11NV12 = false, SyncHandle aSyncHandle = {})
       : mParentBackend(aLayersBackend),
@@ -198,6 +199,7 @@ struct TextureFactoryIdentifier {
         mMaxTextureSize(aMaxTextureSize),
         mCompositorUseANGLE(aCompositorUseANGLE),
         mCompositorUseDComp(aCompositorUseDComp),
+        mUseLayerCompositor(aUseLayerCompositor),
         mUseCompositorWnd(aUseCompositorWnd),
         mSupportsTextureBlitting(aSupportsTextureBlitting),
         mSupportsPartialUploads(aSupportsPartialUploads),
@@ -210,8 +212,8 @@ struct TextureFactoryIdentifier {
       WebRenderCompositor aWebRenderCompositor,
       GeckoProcessType aParentProcessType = GeckoProcessType_Default,
       int32_t aMaxTextureSize = 4096, bool aCompositorUseANGLE = false,
-      bool aCompositorUseDComp = false, bool aUseCompositorWnd = false,
-      bool aSupportsTextureBlitting = false,
+      bool aCompositorUseDComp = false, bool aUseLayerCompositor = false,
+      bool aUseCompositorWnd = false, bool aSupportsTextureBlitting = false,
       bool aSupportsPartialUploads = false, bool aSupportsComponentAlpha = true,
       bool aSupportsD3D11NV12 = false, SyncHandle aSyncHandle = {})
       : mParentBackend(LayersBackend::LAYERS_WR),
@@ -221,6 +223,7 @@ struct TextureFactoryIdentifier {
         mMaxTextureSize(aMaxTextureSize),
         mCompositorUseANGLE(aCompositorUseANGLE),
         mCompositorUseDComp(aCompositorUseDComp),
+        mUseLayerCompositor(aUseLayerCompositor),
         mUseCompositorWnd(aUseCompositorWnd),
         mSupportsTextureBlitting(aSupportsTextureBlitting),
         mSupportsPartialUploads(aSupportsPartialUploads),

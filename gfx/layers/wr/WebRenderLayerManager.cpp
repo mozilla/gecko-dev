@@ -188,6 +188,8 @@ void WebRenderLayerManager::GetBackendName(nsAString& name) {
     name.AssignLiteral("WebRender (Software OpenGL)");
   } else if (WrBridge()->UsingSoftwareWebRender()) {
     name.AssignLiteral("WebRender (Software)");
+  } else if (WrBridge()->GetUseLayerCompositor()) {
+    name.AssignLiteral("WebRender Layer Compositor");
   } else {
     name.AssignLiteral("WebRender");
   }
