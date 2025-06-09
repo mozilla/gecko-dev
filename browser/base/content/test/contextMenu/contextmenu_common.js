@@ -71,7 +71,6 @@ function getVisibleMenuItems(aMenu) {
         item.id.indexOf("spell-check-dictionary-") != 0 &&
         item.id != "spell-no-suggestions" &&
         item.id != "spell-add-dictionaries-main" &&
-        item.id != "context-savelinktopocket" &&
         item.id != "fill-login-no-logins" &&
         // Inspect accessibility properties does not have an access key. See
         // bug 1630717 for more details.

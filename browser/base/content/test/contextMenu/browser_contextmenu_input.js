@@ -1,7 +1,6 @@
 "use strict";
 
 let contextMenu;
-let hasPocket = Services.prefs.getBoolPref("extensions.pocket.enabled");
 
 const NAVIGATION_ITEMS =
   AppConstants.platform == "macosx"
@@ -293,7 +292,6 @@ add_task(
           ...NAVIGATION_ITEMS,
           "context-savepage",
           true,
-          ...(hasPocket ? ["context-pocket", true] : []),
           "context-selectall",
           null,
           "---",
