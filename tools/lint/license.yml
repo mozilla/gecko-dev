@@ -9,7 +9,6 @@ license:
         # License not super clear
         - browser/branding/
         # Trademarks
-        - browser/components/pocket/content/panels/
         - browser/components/topsites/content/tippytop/images/
         - toolkit/components/pdfjs/content/web/images/
         # We probably want a specific license

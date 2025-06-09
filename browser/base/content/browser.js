@@ -260,11 +260,6 @@ XPCOMUtils.defineLazyScriptGetter(
 );
 XPCOMUtils.defineLazyScriptGetter(
   this,
-  "pktUI",
-  "chrome://pocket/content/pktUI.js"
-);
-XPCOMUtils.defineLazyScriptGetter(
-  this,
   "ToolbarKeyboardNavigator",
   "chrome://browser/content/browser-toolbarKeyNav.js"
 );

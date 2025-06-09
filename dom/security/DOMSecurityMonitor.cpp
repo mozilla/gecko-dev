@@ -51,8 +51,6 @@ void DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(
    */
   static nsLiteralCString htmlFragmentAllowlist[] = {
       "chrome://global/content/elements/marquee.js"_ns,
-      nsLiteralCString(
-          "chrome://pocket/content/panels/js/vendor/jquery-2.1.1.min.js"),
       nsLiteralCString("chrome://devtools/content/shared/sourceeditor/"
                        "codemirror/codemirror.bundle.js"),
       nsLiteralCString(
