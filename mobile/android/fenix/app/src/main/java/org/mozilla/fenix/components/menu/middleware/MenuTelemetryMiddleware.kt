@@ -276,6 +276,8 @@ class MenuTelemetryMiddleware(
             is MenuAction.Navigate.Back,
             is MenuAction.Navigate.Forward,
             is MenuAction.Navigate.Reload,
+            is MenuAction.Navigate.Stop,
+            is MenuAction.SetLoading,
             is MenuAction.Navigate.InstalledAddonDetails,
             -> Unit
         }

@@ -9,9 +9,12 @@ import android.app.PendingIntent
 import android.content.Intent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.ext.getUrl
+import mozilla.components.browser.state.selector.selectedTab
+import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.addons.Addon
@@ -26,6 +29,7 @@ import mozilla.components.feature.top.sites.TopSitesUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
+import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.base.log.logger.Logger
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import org.mozilla.fenix.R
@@ -45,6 +49,7 @@ import org.mozilla.fenix.utils.Settings
  * [Middleware] implementation for handling [MenuAction] and managing the [MenuState] for the menu
  * dialog.
  *
+ * @param browserStore The [BrowserStore] used to dispatch actions to update the browser state.
  * @param appStore The [AppStore] used to dispatch actions to update the global state.
  * @param addonManager An instance of the [AddonManager] used to provide access to [Addon]s.
  * @param settings An instance of [Settings] to read and write to the [SharedPreferences]
@@ -75,6 +80,7 @@ import org.mozilla.fenix.utils.Settings
  */
 @Suppress("LongParameterList", "CyclomaticComplexMethod")
 class MenuDialogMiddleware(
+    private val browserStore: BrowserStore,
     private val appStore: AppStore,
     private val addonManager: AddonManager,
     private val settings: Settings,
@@ -135,9 +141,21 @@ class MenuDialogMiddleware(
     private fun initialize(
         store: Store<MenuState, MenuAction>,
     ) = scope.launch {
+        setupRefreshState(store)
         setupBookmarkState(store)
         setupPinnedState(store)
         setupExtensionState(store)
+    }
+
+    private fun setupRefreshState(store: Store<MenuState, MenuAction>) {
+        scope.launch {
+            browserStore.flow()
+                .distinctUntilChangedBy { it.selectedTab?.content?.progress }
+                .collect { browserState ->
+                    val isLoading = browserState.selectedTab?.content?.progress?.let { it < LOADING_COMPLETE } ?: false
+                    store.dispatch(MenuAction.SetLoading(isLoading))
+                }
+        }
     }
 
     private suspend fun setupBookmarkState(
@@ -424,5 +442,6 @@ class MenuDialogMiddleware(
 
     companion object {
         private const val NUMBER_OF_RECOMMENDED_ADDONS_TO_SHOW = 3
+        private const val LOADING_COMPLETE = 100
     }
 }

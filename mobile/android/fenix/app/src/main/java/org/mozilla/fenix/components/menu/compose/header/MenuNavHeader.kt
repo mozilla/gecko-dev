@@ -38,9 +38,11 @@ import org.mozilla.fenix.theme.Theme
 @Composable
 internal fun MenuNavHeader(
     state: MenuItemState = MenuItemState.ENABLED,
+    isSiteLoading: Boolean,
     onBackButtonClick: (longPress: Boolean) -> Unit,
     onForwardButtonClick: (longPress: Boolean) -> Unit,
     onRefreshButtonClick: (longPress: Boolean) -> Unit,
+    onStopButtonClick: () -> Unit,
     onShareButtonClick: () -> Unit,
 ) {
     Row(
@@ -67,13 +69,22 @@ internal fun MenuNavHeader(
             onLongClick = { onForwardButtonClick(true) },
         )
 
-        MenuNavItem(
-            state = state,
-            painter = painterResource(id = R.drawable.mozac_ic_arrow_clockwise_24),
-            label = stringResource(id = R.string.browser_menu_refresh),
-            onClick = { onRefreshButtonClick(false) },
-            onLongClick = { onRefreshButtonClick(true) },
-        )
+        if (isSiteLoading) {
+            MenuNavItem(
+                state = state,
+                painter = painterResource(id = R.drawable.mozac_ic_stop),
+                label = stringResource(id = R.string.browser_menu_stop),
+                onClick = onStopButtonClick,
+            )
+        } else {
+            MenuNavItem(
+                state = state,
+                painter = painterResource(id = R.drawable.mozac_ic_arrow_clockwise_24),
+                label = stringResource(id = R.string.browser_menu_refresh),
+                onClick = { onRefreshButtonClick(false) },
+                onLongClick = { onRefreshButtonClick(true) },
+            )
+        }
 
         MenuNavItem(
             state = state,
@@ -153,9 +164,11 @@ private fun MenuHeaderPreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             MenuNavHeader(
+                isSiteLoading = false,
                 onBackButtonClick = {},
                 onForwardButtonClick = {},
                 onRefreshButtonClick = {},
+                onStopButtonClick = {},
                 onShareButtonClick = {},
             )
         }
@@ -171,9 +184,11 @@ private fun MenuHeaderPrivatePreview() {
                 .background(color = FirefoxTheme.colors.layer3),
         ) {
             MenuNavHeader(
+                isSiteLoading = false,
                 onBackButtonClick = {},
                 onForwardButtonClick = {},
                 onRefreshButtonClick = {},
+                onStopButtonClick = {},
                 onShareButtonClick = {},
             )
         }
