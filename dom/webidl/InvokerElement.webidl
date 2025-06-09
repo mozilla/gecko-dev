@@ -7,15 +7,7 @@
  * https://github.com/whatwg/html/pull/9841
  */
 
-[Pref="dom.element.invokers.enabled",
- Exposed=Window]
-interface InvokeEvent : Event {
-    constructor(DOMString type, optional InvokeEventInit eventInitDict = {});
-    readonly attribute Element? invoker;
-    readonly attribute DOMString action;
-};
-
-dictionary InvokeEventInit : EventInit {
-    Element? invoker = null;
-    DOMString action = "auto";
+interface mixin InvokerElement {
+  [Pref="dom.element.invokers.enabled", CEReactions] attribute Element? invokeTargetElement;
+  [Pref="dom.element.invokers.enabled", CEReactions] attribute DOMString invokeAction;
 };
