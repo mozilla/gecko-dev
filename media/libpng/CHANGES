@@ -6251,6 +6251,16 @@ Version 1.6.47 [February 18, 2025]
     colorspace precedence rules, due to pre-existing colorspace checks.
     (Reported by Bob Friesenhahn; fixed by John Bowler)
 
+Version 1.6.48 [April 30, 2025]
+  Fixed the floating-point version of the mDCv setter `png_set_mDCv`.
+    (Reported by Mohit Bakshi; fixed by John Bowler)
+  Added #error directives to discourage the inclusion of private
+    libpng implementation header files in PNG-supporting applications.
+  Added the CMake build option `PNG_LIBCONF_HEADER`, to be used as an
+    alternative to `DFA_XTRA`.
+  Removed the Travis CI configuration files, with heartfelt thanks for
+    their generous support of our project over the past five years!
+
 Send comments/corrections/commendations to png-mng-implement at lists.sf.net.
 Subscription is required; visit
 https://lists.sourceforge.net/lists/listinfo/png-mng-implement
