@@ -45,6 +45,7 @@ import mozilla.components.feature.customtabs.store.CustomTabsServiceStore
 import mozilla.components.feature.downloads.DateTimeProvider
 import mozilla.components.feature.downloads.DefaultDateTimeProvider
 import mozilla.components.feature.downloads.DefaultFileSizeFormatter
+import mozilla.components.feature.downloads.DownloadEstimator
 import mozilla.components.feature.downloads.DownloadMiddleware
 import mozilla.components.feature.downloads.FileSizeFormatter
 import mozilla.components.feature.fxsuggest.facts.FxSuggestFactsMiddleware
@@ -413,6 +414,11 @@ class Core(
      * [DateTimeProvider] used to provide date and time information.
      */
     val dateTimeProvider: DateTimeProvider by lazyMonitored { DefaultDateTimeProvider() }
+
+    /**
+     * [DateTimeProvider] used to provide date and time information.
+     */
+    val downloadEstimator: DownloadEstimator by lazyMonitored { DownloadEstimator(dateTimeProvider = dateTimeProvider) }
 
     /**
      * The [RelationChecker] checks Digital Asset Links relationships for Trusted Web Activities.

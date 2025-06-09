@@ -9,27 +9,23 @@ private const val NUM_MS_IN_SEC = 1000
 /**
  * Utility class for estimating the download time remaining.
  *
- * @param totalBytes The total file size in bytes.
  * @param dateTimeProvider The [DateTimeProvider] used to get the current time.
  */
 class DownloadEstimator(
-    private val totalBytes: Long,
     private val dateTimeProvider: DateTimeProvider,
 ) {
 
     /**
-     * The start time of the download in milliseconds.
-     */
-    private val startTime = dateTimeProvider.currentTimeMillis()
-
-    /**
-     * Returns estimated time remaining for download time complete in seconds.
+     * Returns estimated time remaining for download completion in seconds.
      *
+     * @param startTime The start time of the download in milliseconds.
      * @param bytesDownloaded The amount of bytes downloaded so far.
-     * @param currentTime The current time in milliseconds.
+     * @param totalBytes The total file size in bytes.
      */
     fun estimatedRemainingTime(
+        startTime: Long,
         bytesDownloaded: Long,
+        totalBytes: Long,
     ): Long? {
         if (bytesDownloaded <= 0L || totalBytes <= 0L) return null
         val timeDeltaInSecs = (dateTimeProvider.currentTimeMillis() - startTime) / NUM_MS_IN_SEC

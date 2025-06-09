@@ -87,7 +87,7 @@ internal object DownloadNotification {
         downloadState: DownloadState,
         fileSizeFormatter: FileSizeFormatter,
         notificationAccentColor: Int,
-        downloadEstimator: DownloadEstimator?,
+        downloadEstimator: DownloadEstimator,
     ): Notification {
         val channelId = ensureChannelExists(context)
         val isIndeterminate = downloadState.isIndeterminate()
@@ -101,7 +101,9 @@ internal object DownloadNotification {
                         formatDownloadTimeRemaining(
                             context = context,
                             downloadEstimator = downloadEstimator,
-                            curBytes = downloadState.currentBytesCopied,
+                            startTime = downloadState.createdTime,
+                            currentBytes = downloadState.currentBytesCopied,
+                            totalBytes = downloadState.contentLength,
                         ),
                     ),
             )
@@ -400,10 +402,16 @@ internal fun DownloadState.getStatusDescription(
 
 private fun formatDownloadTimeRemaining(
     context: Context,
-    downloadEstimator: DownloadEstimator?,
-    curBytes: Long?,
+    downloadEstimator: DownloadEstimator,
+    startTime: Long,
+    currentBytes: Long,
+    totalBytes: Long?,
 ): String {
-    val timeRemaining = downloadEstimator?.estimatedRemainingTime(curBytes ?: 0)
+    val timeRemaining = downloadEstimator.estimatedRemainingTime(
+        startTime = startTime,
+        bytesDownloaded = currentBytes,
+        totalBytes = totalBytes ?: 0,
+    )
     if (timeRemaining == null) return ""
     val formattedTimeRemaining = timeRemaining.seconds.toString()
     return context.getString(

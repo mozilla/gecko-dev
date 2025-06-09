@@ -60,6 +60,7 @@ internal object DownloadUIMiddlewareProvider {
         fileItemDescriptionProvider = DefaultFileItemDescriptionProvider(
             context = applicationContext,
             fileSizeFormatter = applicationContext.components.core.fileSizeFormatter,
+            downloadEstimator = applicationContext.components.core.downloadEstimator,
         ),
     )
 

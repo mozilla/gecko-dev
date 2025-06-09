@@ -111,7 +111,7 @@ abstract class AbstractFetchDownloadService : Service() {
     internal var downloadJobs = mutableMapOf<String, DownloadJobState>()
 
     protected abstract val fileSizeFormatter: FileSizeFormatter
-    protected abstract val dateTimeProvider: DateTimeProvider
+    protected abstract val downloadEstimator: DownloadEstimator
 
     // TODO Move this to browser store and make immutable:
     // https://github.com/mozilla-mobile/android-components/issues/7050
@@ -125,7 +125,6 @@ abstract class AbstractFetchDownloadService : Service() {
         var notifiedStopped: Boolean = false,
         var lastNotificationUpdate: Long = 0L,
         var createdTime: Long = System.currentTimeMillis(),
-        val downloadEstimator: DownloadEstimator? = null,
     ) {
         internal fun canUpdateNotification(): Boolean {
             return isUnderNotificationUpdateLimit() && !notifiedStopped
@@ -305,14 +304,6 @@ abstract class AbstractFetchDownloadService : Service() {
             state = download.copy(status = actualStatus, notificationId = foregroundServiceId),
             foregroundServiceId = foregroundServiceId,
             status = actualStatus,
-            downloadEstimator = if (download.contentLength == null) {
-                null
-            } else {
-                DownloadEstimator(
-                    totalBytes = download.contentLength!!,
-                    dateTimeProvider = dateTimeProvider,
-                )
-            },
         )
 
         store.dispatch(DownloadAction.UpdateDownloadAction(downloadJobState.state))
@@ -409,7 +400,7 @@ abstract class AbstractFetchDownloadService : Service() {
                 downloadState = download.state,
                 fileSizeFormatter = fileSizeFormatter,
                 notificationAccentColor = style.notificationAccentColor,
-                downloadEstimator = download.downloadEstimator,
+                downloadEstimator = downloadEstimator,
             )
             PAUSED -> DownloadNotification.createPausedDownloadNotification(
                 context,
@@ -640,7 +631,7 @@ abstract class AbstractFetchDownloadService : Service() {
                 downloadState = downloadJobState.state,
                 fileSizeFormatter = fileSizeFormatter,
                 notificationAccentColor = style.notificationAccentColor,
-                downloadEstimator = downloadJobState.downloadEstimator,
+                downloadEstimator = downloadEstimator,
             )
         compatForegroundNotificationId = downloadJobState.foregroundServiceId
 

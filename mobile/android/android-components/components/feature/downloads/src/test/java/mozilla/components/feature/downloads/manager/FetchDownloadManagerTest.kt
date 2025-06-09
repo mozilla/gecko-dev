@@ -20,7 +20,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.fetch.Client
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.Companion.EXTRA_DOWNLOAD_STATUS
-import mozilla.components.feature.downloads.DateTimeProvider
+import mozilla.components.feature.downloads.DownloadEstimator
 import mozilla.components.feature.downloads.FileSizeFormatter
 import mozilla.components.feature.downloads.fake.FakeDateTimeProvider
 import mozilla.components.feature.downloads.fake.FakeFileSizeFormatter
@@ -323,6 +323,8 @@ class FetchDownloadManagerTest {
         override val store: BrowserStore = mock()
         override val notificationsDelegate: NotificationsDelegate = mock()
         override val fileSizeFormatter: FileSizeFormatter = FakeFileSizeFormatter()
-        override val dateTimeProvider: DateTimeProvider = FakeDateTimeProvider(0, 0)
+        override val downloadEstimator: DownloadEstimator = DownloadEstimator(
+            FakeDateTimeProvider(),
+        )
     }
 }

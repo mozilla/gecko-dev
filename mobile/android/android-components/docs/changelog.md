@@ -11,6 +11,13 @@ permalink: /changelog/
 * **ui-widgets**
   * Updated EngineViewClippingBehavior to support top and bottom toolbars at the same time.
 
+* **feature-downloads**
+  * ⚠️ **Breaking change**: Changed constructor of `DownloadEstimator`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).
+  * ⚠️ **Breaking change**: Changed parameters of `DownloadEstimator.estimatedRemainingTime`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).
+  * ⚠️ **Breaking change**: Added new `downloadEstimator` abstract val to `AbstractFetchDownloadService`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).
+  * ⚠️ **Breaking change**: Removed `dateTimeProvider` abstract val from `AbstractFetchDownloadService`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).
+  * ⚠️ **Breaking change**: Changed function signature of `DownloadNotification.createOngoingDownloadNotification`. [Bug 1970176](https://bugzilla.mozilla.org/show_bug.cgi?id=1970176).
+
 # 140.0
 * **feature-downloads**
   * `DownloadNotification.createOngoingDownloadNotification` will now show the download time remaining instead of the percentage completed in the notification summary. [Bug 1956577](https://bugzilla.mozilla.org/show_bug.cgi?id=1956577).

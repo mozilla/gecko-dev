@@ -6,7 +6,7 @@ package org.mozilla.fenix.downloads
 
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.downloads.AbstractFetchDownloadService
-import mozilla.components.feature.downloads.DateTimeProvider
+import mozilla.components.feature.downloads.DownloadEstimator
 import mozilla.components.feature.downloads.FileSizeFormatter
 import mozilla.components.support.base.android.NotificationsDelegate
 import org.mozilla.fenix.R
@@ -18,5 +18,5 @@ class DownloadService : AbstractFetchDownloadService() {
     override val style: Style by lazy { Style(R.color.fx_mobile_text_color_accent) }
     override val notificationsDelegate: NotificationsDelegate by lazy { components.notificationsDelegate }
     override val fileSizeFormatter: FileSizeFormatter by lazy { components.core.fileSizeFormatter }
-    override val dateTimeProvider: DateTimeProvider by lazy { components.core.dateTimeProvider }
+    override val downloadEstimator: DownloadEstimator by lazy { components.core.downloadEstimator }
 }

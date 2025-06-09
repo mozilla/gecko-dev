@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import mozilla.components.browser.state.state.content.DownloadState
 import mozilla.components.feature.downloads.AbstractFetchDownloadService.DownloadJobState
+import mozilla.components.feature.downloads.fake.FakeDateTimeProvider
 import mozilla.components.feature.downloads.fake.FakeFileSizeFormatter
 import mozilla.components.support.test.robolectric.testContext
 import org.junit.Assert.assertEquals
@@ -280,7 +281,9 @@ class DownloadNotificationTest {
             downloadState = downloadJobState.state,
             fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = style.notificationAccentColor,
-            downloadEstimator = downloadJobState.downloadEstimator,
+            downloadEstimator = DownloadEstimator(
+                dateTimeProvider = FakeDateTimeProvider(),
+            ),
         )
 
         assertEquals(
@@ -295,7 +298,9 @@ class DownloadNotificationTest {
             downloadState = downloadJobState.state.copy(contentLength = null),
             fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = style.notificationAccentColor,
-            downloadEstimator = downloadJobState.downloadEstimator,
+            downloadEstimator = DownloadEstimator(
+                dateTimeProvider = FakeDateTimeProvider(),
+            ),
         )
 
         assertEquals(true, notificationNewDownload.extras.getBoolean(EXTRA_PROGRESS_INDETERMINATE))
@@ -305,7 +310,9 @@ class DownloadNotificationTest {
             downloadState = downloadJobState.state.copy(contentLength = 0),
             fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = style.notificationAccentColor,
-            downloadEstimator = downloadJobState.downloadEstimator,
+            downloadEstimator = DownloadEstimator(
+                dateTimeProvider = FakeDateTimeProvider(),
+            ),
         )
 
         assertEquals(true, notificationDownloadWithNoSize.extras.getBoolean(EXTRA_PROGRESS_INDETERMINATE))
@@ -335,7 +342,9 @@ class DownloadNotificationTest {
             downloadState = download.state,
             fileSizeFormatter = fakeFileSizeFormatter,
             notificationAccentColor = style.notificationAccentColor,
-            downloadEstimator = download.downloadEstimator,
+            downloadEstimator = DownloadEstimator(
+                dateTimeProvider = FakeDateTimeProvider(),
+            ),
         )
 
         val accentColor = ContextCompat.getColor(testContext, style.notificationAccentColor)
