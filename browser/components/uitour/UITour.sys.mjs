@@ -131,13 +131,6 @@ export var UITour = {
       },
     ],
     [
-      "pocket",
-      {
-        allowAdd: true,
-        query: "#save-to-pocket-button",
-      },
-    ],
-    [
       "privateWindow",
       {
         query: "#appMenu-new-private-window-button2",
@@ -1431,16 +1424,6 @@ export var UITour = {
     } else if (aMenuName == "bookmarks") {
       let menuBtn = aWindow.document.getElementById("bookmarks-menu-button");
       openMenuButton(menuBtn);
-    } else if (aMenuName == "pocket") {
-      let button = aWindow.document.getElementById("save-to-pocket-button");
-      if (!button) {
-        lazy.log.error("Can't open the pocket menu without a button");
-        return;
-      }
-      aWindow.document.addEventListener("ViewShown", aOpenCallback, {
-        once: true,
-      });
-      button.click();
     } else if (aMenuName == "urlbar") {
       let urlbar = aWindow.gURLBar;
       if (aOpenCallback) {

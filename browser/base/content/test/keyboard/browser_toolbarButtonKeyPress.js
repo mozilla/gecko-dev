@@ -331,37 +331,3 @@ add_task(async function testDownloadsButtonPress() {
   await hidden;
   DownloadsButton.hide();
 });
-
-// Bug 1968055 - Temporarily enabled pocket pref while we remove the pref entirely
-add_setup(async function setPref() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["extensions.pocket.enabled", true]],
-  });
-});
-
-// Test activation of the Save to Pocket button from the keyboard.
-// This is a customizable widget button which shows an popup panel
-// with a browser element to embed the pocket UI into it.
-// The Pocket panel should appear and focus should move inside it.
-add_task(async function testPocketButtonPress() {
-  await BrowserTestUtils.withNewTab("https://example.com", async function () {
-    let button = document.getElementById("save-to-pocket-button");
-    // The panel is created on the fly, so we can't simply wait for focus
-    // inside it.
-    let showing = BrowserTestUtils.waitForEvent(document, "popupshowing", true);
-    await focusAndActivateElement(button, () => EventUtils.synthesizeKey(" "));
-    let event = await showing;
-    let panel = event.target;
-    is(panel.id, "customizationui-widget-panel");
-    let focused = BrowserTestUtils.waitForEvent(panel, "focus", true);
-    await focused;
-    is(
-      document.activeElement.tagName,
-      "browser",
-      "Focus inside Pocket panel after Bookmark button pressed"
-    );
-    let hidden = BrowserTestUtils.waitForEvent(panel, "popuphidden");
-    EventUtils.synthesizeKey("KEY_Escape");
-    await hidden;
-  });
-});
