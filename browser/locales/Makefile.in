@@ -76,11 +76,3 @@ ifeq (WINNT,$(OS_ARCH))
 	@$(MAKE) package-win32-installer AB_CD=$*
 endif
 	@echo 'repackaging done'
-
-ident:
-	@printf 'fx_revision '
-	@$(PYTHON3) $(topsrcdir)/config/printconfigsetting.py \
-	    '$(STAGEDIST)'/application.ini App SourceStamp
-	@printf 'buildid '
-	@$(PYTHON3) $(topsrcdir)/config/printconfigsetting.py \
-	    '$(STAGEDIST)'/application.ini App BuildID

@@ -114,12 +114,6 @@ ifeq (Darwin, $(OS_ARCH))
 UPDATE_FRAMEWORK_ARTIFACTS_ARCHIVE_BASENAME = $(PKG_BASENAME).update_framework_artifacts
 endif # Darwin
 
-ifneq (,$(wildcard $(DIST)/bin/application.ini))
-BUILDID = $(shell $(PYTHON3) $(MOZILLA_DIR)/config/printconfigsetting.py $(DIST)/bin/application.ini App BuildID)
-else
-BUILDID = $(shell $(PYTHON3) $(MOZILLA_DIR)/config/printconfigsetting.py $(DIST)/bin/platform.ini Build BuildID)
-endif
-
 MOZ_SOURCESTAMP_FILE = $(DIST)/$(PKG_PATH)/$(MOZ_INFO_BASENAME).txt
 MOZ_BUILDINFO_FILE = $(DIST)/$(PKG_PATH)/$(MOZ_INFO_BASENAME).json
 MOZ_BUILDHUB_JSON = $(DIST)/$(PKG_PATH)/buildhub.json

@@ -49,21 +49,3 @@ chrome-%:
 	$(if $(filter en-US,$(AB_CD)),, $(MAKE) merge-$*)
 	$(MAKE) -C $(DEPTH)/mobile/locales chrome-$*
 	$(MAKE) chrome AB_CD=$*
-
-# When we unpack fennec on MacOS X the platform.ini and application.ini are in slightly
-# different locations that on all other platforms
-ifeq (Darwin, $(OS_ARCH))
-GECKO_PLATFORM_INI_PATH='$(STAGEDIST)/platform.ini'
-FENNEC_APPLICATION_INI_PATH='$(STAGEDIST)/application.ini'
-else
-GECKO_PLATFORM_INI_PATH='$(STAGEDIST)/platform.ini'
-FENNEC_APPLICATION_INI_PATH='$(STAGEDIST)/application.ini'
-endif
-
-ident:
-	@printf 'gecko_revision '
-	@$(PYTHON3) $(topsrcdir)/config/printconfigsetting.py $(GECKO_PLATFORM_INI_PATH) Build SourceStamp
-	@printf 'fennec_revision '
-	@$(PYTHON3) $(topsrcdir)/config/printconfigsetting.py $(FENNEC_APPLICATION_INI_PATH) App SourceStamp
-	@printf 'buildid '
-	@$(PYTHON3) $(topsrcdir)/config/printconfigsetting.py $(FENNEC_APPLICATION_INI_PATH) App BuildID
