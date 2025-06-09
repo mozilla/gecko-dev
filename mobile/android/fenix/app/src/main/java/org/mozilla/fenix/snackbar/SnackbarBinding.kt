@@ -294,11 +294,17 @@ class SnackbarBinding(
                             text = context.getString(R.string.download_item_status_failed),
                             subText = state.fileName,
                             duration = DOWNLOAD_SNACKBAR_DURATION_MS,
-                            action = context.getString(R.string.download_failed_snackbar_action_details),
+                            action = if (FeatureFlags.showLiveDownloads) {
+                                context.getString(R.string.download_failed_snackbar_action_details)
+                            } else {
+                                null
+                            },
                         ) {
-                            navController.navigate(
-                                BrowserFragmentDirections.actionGlobalDownloadsFragment(),
-                            )
+                            if (FeatureFlags.showLiveDownloads) {
+                                navController.navigate(
+                                    BrowserFragmentDirections.actionGlobalDownloadsFragment(),
+                                )
+                            }
                         }
                         appStore.dispatch(SnackbarAction.SnackbarShown)
                     }
