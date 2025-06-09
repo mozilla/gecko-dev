@@ -46,7 +46,7 @@ internal fun CustomTabMenu(
     onOpenInFirefoxMenuClick: () -> Unit,
     onShareMenuClick: () -> Unit,
 ) {
-    MenuScaffold(
+    MenuFrame(
         header = {},
     ) {
         MenuGroup {

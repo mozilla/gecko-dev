@@ -20,15 +20,19 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.net.toUri
@@ -285,9 +289,17 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     )
                 }
 
+                var isExtensionsExpanded by remember { mutableStateOf(false) }
+
+                var isMoreMenuExpanded by remember { mutableStateOf(false) }
+
                 MenuDialogBottomSheet(
+                    modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
                     onRequestDismiss = ::dismiss,
                     handlebarContentDescription = handlebarContentDescription,
+                    isExtensionsExpanded = isExtensionsExpanded,
+                    isMoreMenuExpanded = isMoreMenuExpanded,
+                    cornerShape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
                     menuCfrState = if (settings.shouldShowMenuCFR) {
                         MenuCFRState(
                             showCFR = settings.shouldShowMenuCFR,
@@ -436,10 +448,6 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             }
                         }
                     }
-
-                    var isExtensionsExpanded by remember { mutableStateOf(false) }
-
-                    var isMoreMenuExpanded by remember { mutableStateOf(false) }
 
                     AnimatedContent(
                         targetState = contentState,

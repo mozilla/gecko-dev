@@ -57,7 +57,7 @@ internal fun ExtensionsSubmenu(
     onDiscoverMoreExtensionsMenuClick: () -> Unit,
     webExtensionMenuItemClick: () -> Unit,
 ) {
-    MenuScaffold(
+    MenuFrame(
         header = {
             SubmenuHeader(
                 header = stringResource(id = R.string.browser_menu_extensions),
