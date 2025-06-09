@@ -89,7 +89,7 @@ def vcs_setup(command_context, update_only=False, vcs=None):
     if vcs == "jj" and no_jj_dir:
         import subprocess
 
-        from mozversioncontrol.factory import get_tool_path
+        from mozversioncontrol.repo.base import get_tool_path
 
         print("Initializing a git colocated jj repository...")
         jj_bin = get_tool_path("jj")
