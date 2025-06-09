@@ -1536,6 +1536,12 @@ nsresult nsHttpConnectionMgr::TryDispatchTransaction(
       LOG(("   dispatched step 2 (idle) trans=%p\n", trans));
       return NS_OK;
     }
+
+    if (rv == NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED) {
+      LOG(("   Local network access failure in step 2 (idle) trans=%p ",
+           trans));
+      return NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED;
+    }
   }
 
   // step 3

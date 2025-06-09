@@ -14188,6 +14188,18 @@
   value: true
   mirror: always
 
+# This preference controls Local Network Access (LNA) feature.
+- name: network.lna.enabled
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
+# This preference controls blocking requests for Local Network Access (LNA) failures.
+- name: network.lna.blocking
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # The proxy type. See nsIProtocolProxyService.idl
 #     PROXYCONFIG_DIRECT   = 0
 #     PROXYCONFIG_MANUAL   = 1

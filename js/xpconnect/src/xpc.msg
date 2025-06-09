@@ -141,6 +141,8 @@ XPC_MSG_DEF(NS_ERROR_NOT_CONNECTED                  , "The connection does not e
 XPC_MSG_DEF(NS_ERROR_CONNECTION_REFUSED             , "The connection was refused")
 XPC_MSG_DEF(NS_ERROR_SUPERFLUOS_AUTH                , "User refused navigation to potentially unsafe URL with embedded credentials/superfluos authentication")
 XPC_MSG_DEF(NS_ERROR_BASIC_HTTP_AUTH_DISABLED       , "User attempted basic HTTP authentication when it is disabled")
+XPC_MSG_DEF(NS_ERROR_LOCAL_NETWORK_ACCESS_DENIED    , "The access to local network is denied")
+
 
 /* Error codes return from the proxy */
 XPC_MSG_DEF(NS_ERROR_PROXY_CONNECTION_REFUSED           , "The connection to the proxy server was refused")

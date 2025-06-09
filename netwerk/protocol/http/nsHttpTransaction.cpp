@@ -3651,4 +3651,40 @@ void nsHttpTransaction::RemoveConnection() {
   mConnection = nullptr;
 }
 
+bool nsHttpTransaction::AllowedToConnectToIpAddressSpace(
+    nsILoadInfo::IPAddressSpace aTargetIpAddressSpace) {
+  // skip checks if LNA feature is disabled
+  if (!StaticPrefs::network_lna_enabled()) {
+    return true;
+  }
+  // Deny access to a request moving to a more private addresspsace.
+  // Specifically,
+  // 1. local host resources cannot be accessed from Private or Public
+  // network
+  // 2. private network resources cannot be accessed from Public
+  // network
+  // Refer
+  // https://wicg.github.io/private-network-access/#private-network-request-heading
+  // for private network access
+  // XXX add link to LNA spec once it is published
+
+  if (mozilla::net::IsLocalNetworkAccess(mParentIPAddressSpace,
+                                         aTargetIpAddressSpace)) {
+    // Permission is denied when transaction is created. Currently we block any
+    // LNA from a tracker script
+    if (mLnaPermissionStatus ==
+        dom::ContentPermissionRequestBase::PromptResult::Denied) {
+      return false;
+    }
+
+    if (StaticPrefs::network_lna_blocking()) {
+      // If LNA blocking is enabled, we block any LNA requests. Currently we
+      // should hit this case for tests
+      return false;
+    }
+  }
+
+  return true;
+}
+
 }  // namespace mozilla::net

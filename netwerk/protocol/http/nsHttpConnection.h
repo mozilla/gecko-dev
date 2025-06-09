@@ -23,6 +23,7 @@
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
 #include "nsIInterfaceRequestor.h"
+#include "nsILoadInfo.h"
 #include "nsISocketTransport.h"
 #include "nsISupportsPriority.h"
 #include "nsITimer.h"
