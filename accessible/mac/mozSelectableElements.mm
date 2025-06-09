@@ -241,10 +241,6 @@ using namespace mozilla::a11y;
 
 @implementation mozMenuItemAccessible
 
-- (NSString*)moxLabel {
-  return @"";
-}
-
 - (BOOL)moxIgnoreWithParent:(mozAccessible*)parent {
   // This helps us generate the correct moxChildren array for
   // a mozMenuAccessible; the returned array should contain all

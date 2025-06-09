@@ -10,9 +10,6 @@
 @interface mozTextAccessible : mozAccessible
 
 // override
-- (NSString*)moxTitle;
-
-// override
 - (id)moxValue;
 
 // override

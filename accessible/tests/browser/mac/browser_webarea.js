@@ -23,7 +23,7 @@ addAccessibleTask(``, async browser => {
     "document has AXWebArea role"
   );
   is(doc.getAttributeValue("AXValue"), "", "document has no AXValue");
-  is(doc.getAttributeValue("AXTitle"), null, "document has no AXTitle");
+  is(doc.getAttributeValue("AXTitle"), "", "document has no AXTitle");
 
   is(doc.getAttributeValue("AXLoaded"), 1, "document has finished loading");
 });
@@ -62,7 +62,7 @@ addAccessibleTask(`<title>webarea test</title>`, async browser => {
     "iframe document has AXWebArea role"
   );
   is(doc.getAttributeValue("AXValue"), "", "iframe document has no AXValue");
-  is(doc.getAttributeValue("AXTitle"), null, "iframe document has no AXTitle");
+  is(doc.getAttributeValue("AXTitle"), "", "iframe document has no AXTitle");
   is(
     doc.getAttributeValue("AXDescription"),
     "iframe document",
