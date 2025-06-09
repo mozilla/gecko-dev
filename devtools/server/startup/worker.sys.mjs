@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-"use strict";
-
-/* global global */
+/* global global, postMessage */
 
 /*
  * Worker debugger script that listens for requests to start a `DevToolsServer` for a
@@ -17,10 +15,12 @@
 // worker loader. To make sure the worker loader can access it, it needs to be
 // defined before loading the worker loader script below.
 let nextId = 0;
-this.rpc = function (method, ...params) {
+const workerGlobal = globalThis;
+
+workerGlobal.rpc = function (method, ...params) {
   return new Promise((resolve, reject) => {
     const id = nextId++;
-    this.addEventListener("message", function onMessageForRpc(event) {
+    workerGlobal.addEventListener("message", function onMessageForRpc(event) {
       const packet = JSON.parse(event.data);
       if (packet.type !== "rpc" || packet.id !== id) {
         return;
@@ -30,7 +30,7 @@ this.rpc = function (method, ...params) {
       } else {
         resolve(packet.result);
       }
-      this.removeEventListener("message", onMessageForRpc);
+      workerGlobal.removeEventListener("message", onMessageForRpc);
     });
 
     postMessage(
@@ -42,7 +42,7 @@ this.rpc = function (method, ...params) {
       })
     );
   });
-}.bind(this);
+};
 
 const { worker } = ChromeUtils.importESModule(
   "resource://devtools/shared/loader/worker-loader.sys.mjs",
@@ -65,10 +65,9 @@ DevToolsServer.createRootActor = function () {
 // that, we handle a Map of the different connections, keyed by forwarding prefix.
 const connections = new Map();
 
-this.addEventListener("message", async function (event) {
-  const packet = JSON.parse(event.data);
+export async function handleDevToolsPacket(packet) {
   switch (packet.type) {
-    case "connect":
+    case "connect": {
       const { forwardingPrefix } = packet;
 
       // Force initializing the server each time on connect
@@ -77,7 +76,10 @@ this.addEventListener("message", async function (event) {
       DevToolsServer.init();
 
       // Step 3: Create a connection to the parent.
-      const connection = DevToolsServer.connectToParent(forwardingPrefix, this);
+      const connection = DevToolsServer.connectToParent(
+        forwardingPrefix,
+        workerGlobal
+      );
 
       // Step 4: Create a WorkerTarget actor.
       const workerTargetActor = new WorkerTargetActor(
@@ -133,6 +135,7 @@ this.addEventListener("message", async function (event) {
       postMessage(JSON.stringify({ type: "session-data-processed" }));
 
       break;
+    }
 
     case "add-or-set-session-data-entry":
       await connections
@@ -162,4 +165,4 @@ this.addEventListener("message", async function (event) {
       }
       break;
   }
-});
+}

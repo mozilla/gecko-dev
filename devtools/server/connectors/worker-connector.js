@@ -33,7 +33,9 @@ function connectToWorker(connection, dbg, forwardingPrefix, options) {
 
     // Step 1: Ensure the worker debugger is initialized.
     if (!dbg.isInitialized) {
-      dbg.initialize("resource://devtools/server/startup/worker.js");
+      dbg.initialize(
+        "resource://devtools/server/startup/shared-worker-initializer.js"
+      );
 
       // Create a listener for rpc requests from the worker debugger. Only do
       // this once, when the worker debugger is first initialized, rather than
