@@ -2356,11 +2356,6 @@ pub extern "C" fn wr_transaction_invalidate_rendered_frame(txn: &mut Transaction
     txn.invalidate_rendered_frame(reasons);
 }
 
-#[no_mangle]
-pub extern "C" fn wr_transaction_render_offscreen(txn: &mut Transaction, pipeline_id: WrPipelineId) {
-    txn.render_offscreen(pipeline_id);
-}
-
 fn wr_animation_properties_into_vec<T>(
     animation_array: *const WrAnimationPropertyValue<T>,
     array_count: usize,
