@@ -5,12 +5,6 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
-const lazy = {};
-ChromeUtils.defineESModuleGetters(lazy, {
-  AboutReaderParent: "resource:///actors/AboutReaderParent.sys.mjs",
-  Pocket: "chrome://pocket/content/Pocket.sys.mjs",
-});
-
 function browserWindows() {
   return Services.wm.getEnumerator("navigator:browser");
 }
@@ -40,11 +34,6 @@ export var SaveToPocket = {
       this.updateElements(false);
       Services.obs.addObserver(this, "browser-delayed-startup-finished");
     }
-    lazy.AboutReaderParent.addMessageListener("Reader:OnSetup", this);
-    lazy.AboutReaderParent.addMessageListener(
-      "Reader:Clicked-pocket-button",
-      this
-    );
   },
 
   observe(subject, topic) {
@@ -55,24 +44,10 @@ export var SaveToPocket = {
     }
   },
 
-  _readerButtonData: {
-    id: "pocket-button",
-    l10nId: "about-reader-toolbar-savetopocket",
-    telemetryId: "save-to-pocket",
-    image: "chrome://global/skin/icons/pocket.svg",
-  },
-
   onPrefChange(pref, oldValue, newValue) {
     if (!newValue) {
-      lazy.AboutReaderParent.broadcastAsyncMessage("Reader:RemoveButton", {
-        id: "pocket-button",
-      });
       Services.obs.addObserver(this, "browser-delayed-startup-finished");
     } else {
-      lazy.AboutReaderParent.broadcastAsyncMessage(
-        "Reader:AddButton",
-        this._readerButtonData
-      );
       Services.obs.removeObserver(this, "browser-delayed-startup-finished");
     }
     this.updateElements(newValue);
@@ -90,35 +65,6 @@ export var SaveToPocket = {
       win.document.documentElement.removeAttribute("pocketdisabled");
     } else {
       win.document.documentElement.setAttribute("pocketdisabled", "true");
-    }
-  },
-
-  receiveMessage(message) {
-    if (!this.prefEnabled) {
-      return;
-    }
-    switch (message.name) {
-      case "Reader:OnSetup": {
-        // Tell the reader about our button.
-        message.target.sendMessageToActor(
-          "Reader:AddButton",
-          this._readerButtonData,
-          "AboutReader"
-        );
-        break;
-      }
-      case "Reader:Clicked-pocket-button": {
-        let pocketPanel = message.target.ownerDocument.querySelector(
-          "#customizationui-widget-panel"
-        );
-        if (pocketPanel?.getAttribute("panelopen")) {
-          pocketPanel.hidePopup();
-        } else {
-          // Saves the currently viewed page.
-          lazy.Pocket.savePage(message.target);
-        }
-        break;
-      }
     }
   },
 };
