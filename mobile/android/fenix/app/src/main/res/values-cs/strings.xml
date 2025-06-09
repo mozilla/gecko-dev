@@ -1573,6 +1573,8 @@
   <string name="download_item_download_speed_pending" moz:removedIn="141" tools:ignore="UnusedResources">čeká na</string>
   <!-- Text to indicate that a download has failed to download. -->
   <string name="download_item_status_failed">Stahování selhalo</string>
+  <!-- Text for the snackbar action button to view failed download details. -->
+  <string name="download_failed_snackbar_action_details">Podrobnosti</string>
   <!-- Placeholder text to indicate that users can use the search bar to search for a download. -->
   <string name="download_search_placeholder">Vyhledávání stažených souborů</string>
   <!-- Text to indicate that no downloads match the search query. -->
@@ -1629,6 +1631,10 @@
     Broken site reason text for site slow or not working
   -->
   <string name="webcompat_reporter_reason_slow" moz:removedIn="140" tools:ignore="UnusedResources">Stránka je pomalá nebo nefunguje</string>
+  <!-- Broken site reason text for site doesn’t load -->
+  <string name="webcompat_reporter_reason_load">Stránka se nenačítá</string>
+  <!-- Broken site reason text for can’t pay, check out or shop -->
+  <string name="webcompat_reporter_reason_checkout">Nelze zaplatit nebo nakupovat</string>
   <!-- Broken site reason text for images or videos -->
   <string name="webcompat_reporter_reason_media" moz:removedIn="140" tools:ignore="UnusedResources">Obrázky nebo videa</string>
   <!-- Broken site reason text for buttons, links, and other content -->
@@ -1645,6 +1651,8 @@
   <string name="webcompat_reporter_reason_account2">Nelze se přihlásit nebo zaregistrovat</string>
   <!-- Broken site reason text for ad blocker -->
   <string name="webcompat_reporter_reason_ad_blocker" moz:removedIn="140" tools:ignore="UnusedResources">Blokování reklam</string>
+  <!-- Broken site reason text for site asked to turn off ad blocker -->
+  <string name="webcompat_reporter_reason_turn_off_adblocker">Stránka požádala o vypnutí blokování reklam</string>
   <!-- Broken site reason text for browser isn’t supported or blocked -->
   <string name="webcompat_reporter_reason_notsupported">Prohlížeč není podporován nebo je blokován</string>
   <!-- Broken site reason text for something else -->
@@ -3642,4 +3650,16 @@
   <string name="private_tab_cfr_negative">Ne, děkuji</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">Uzamknout panely</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">Co si myslíte o aplikaci %1$s?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">Mám problémy</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">Je skvělá!</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">Zanechání zpětné vazby</string>
 </resources>

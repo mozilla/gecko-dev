@@ -1576,6 +1576,8 @@
   <string name="download_time_period_last_30_days">30 วันที่ผ่านมา</string>
   <!-- Text for the header that groups the downloads older than other groups -->
   <string name="download_time_period_older">เก่ากว่า</string>
+  <!-- Description of an in progress download item, displayed in the downloads list when the download has just started. -->
+  <string name="download_item_in_progress_description_preparing">กำลังจัดเตรียมการดาวน์โหลด…</string>
   <!--
     Description of an in progress download item, displayed in the downloads list.
     %1$s is the current file size that has been downloaded.
@@ -3666,4 +3668,22 @@
   <string name="private_tab_cfr_negative">ไม่เป็นไร ขอบคุณ</string>
   <!-- Positive button text for the contextual feature recommendation (CFR) enabling screen lock for private tabs -->
   <string name="private_tab_cfr_positive">ล็อกแท็บ</string>
+  <!--
+    Review prompt
+
+    Title for a prompt asking the user about their experience using the app. %1$s is the name of the app (for example "Firefox").
+  -->
+  <string name="review_prompt_pre_prompt_header">คุณคิดอย่างไรเกี่ยวกับ %1$s?</string>
+  <!-- Label for a button negatively rating the user's experience with the app -->
+  <string name="review_prompt_negative_button">มีบางอย่างผิดปกติ</string>
+  <!-- Label for a button positively rating the user's experience with the app -->
+  <string name="review_prompt_positive_button">ดีมาก!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">ขอบคุณที่ชื่นชอบ %1$s สละเวลาสักนิดให้คะแนนเพื่อบอกต่อความรักนี้ไหม?</string>
+  <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_button">ให้คะแนน %1$s บน Play Store</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">ขออภัยในความไม่สะดวกที่เกิดขึ้น โปรดบอกเราว่ามีสิ่งใดที่เราสามารถพัฒนา %1$s ได้บ้าง</string>
+  <!-- Label for a button opening a feedback forum -->
+  <string name="review_prompt_feedback_button">เสนอข้อคิดเห็น</string>
 </resources>
