@@ -50,6 +50,7 @@ import mozilla.components.compose.base.text.Text.Resource
 import mozilla.components.compose.base.textfield.TextField
 import mozilla.components.compose.base.textfield.TextFieldColors
 import mozilla.components.lib.state.ext.observeAsState
+import org.mozilla.fenix.Config
 import org.mozilla.fenix.R
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.webcompat.BrokenSiteReporterTestTags.BROKEN_SITE_REPORTER_CHOOSE_REASON_BUTTON
@@ -173,18 +174,20 @@ fun WebCompatReporter(
                     .padding(vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = stringResource(id = R.string.webcompat_reporter_send_more_info),
-                    modifier = Modifier
-                        .clickable {
-                            store.dispatch(WebCompatReporterAction.SendMoreInfoClicked)
-                        },
-                    style = FirefoxTheme.typography.body2,
-                    color = FirefoxTheme.colors.textAccent,
-                    textDecoration = TextDecoration.Underline,
-                )
+                if (Config.channel.isBeta || Config.channel.isNightlyOrDebug) {
+                    Text(
+                        text = stringResource(id = R.string.webcompat_reporter_send_more_info),
+                        modifier = Modifier
+                            .clickable {
+                                store.dispatch(WebCompatReporterAction.SendMoreInfoClicked)
+                            },
+                        style = FirefoxTheme.typography.body2,
+                        color = FirefoxTheme.colors.textAccent,
+                        textDecoration = TextDecoration.Underline,
+                    )
 
-                Spacer(modifier = Modifier.width(24.dp))
+                    Spacer(modifier = Modifier.width(24.dp))
+                }
 
                 Row(
                     modifier = Modifier.weight(1f),
