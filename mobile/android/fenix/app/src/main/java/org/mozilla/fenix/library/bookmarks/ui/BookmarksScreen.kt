@@ -76,6 +76,7 @@ import mozilla.components.compose.base.textfield.TextField
 import mozilla.components.compose.base.textfield.TextFieldColors
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.components
 import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.MenuItem
@@ -109,6 +110,17 @@ internal fun BookmarksScreen(
 ) {
     val navController = rememberNavController()
     val store = buildStore(navController)
+
+    val isPrivateModeLocked by components.appStore.observeAsState(
+        initialValue = components.appStore.state.isPrivateScreenLocked,
+    ) { appState ->
+        appState.isPrivateScreenLocked
+    }
+    LaunchedEffect(isPrivateModeLocked) {
+        if (!isPrivateModeLocked) {
+            store.dispatch(PrivateBrowsingAuthorized)
+        }
+    }
 
     DisposableEffect(LocalLifecycleOwner.current) {
         onDispose {

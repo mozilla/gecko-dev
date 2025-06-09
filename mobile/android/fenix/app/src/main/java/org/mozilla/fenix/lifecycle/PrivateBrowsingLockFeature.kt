@@ -254,11 +254,11 @@ fun observePrivateModeLock(
  * using the pin, pattern or password verification. This should be used in combination with
  * [verifyUser] to authenticate the user when private browsing mode is locked.
  *
- * @param onVerified triggered on a successful authentication.
+ * @param onVerified an optional callback triggered on a successful authentication.
  * @return The configured [ActivityResultLauncher] to handle the pin, pattern or password verification.
  */
 fun Fragment.registerForVerification(
-    onVerified: () -> Unit,
+    onVerified: (() -> Unit)? = null,
 ): ActivityResultLauncher<Intent> {
     return registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -277,12 +277,12 @@ fun Fragment.registerForVerification(
  *
  * @param biometricUtils A [BiometricPromptFeature] feature wrapper.
  * @param fallbackVerification The [ActivityResultLauncher] to handle the fallback verification.
- * @param onVerified triggered on a successful authentication.
+ * @param onVerified an optional callback triggered on a successful authentication.
  */
 fun Fragment.verifyUser(
     biometricUtils: BiometricUtils = DefaultBiometricUtils,
     fallbackVerification: ActivityResultLauncher<Intent>,
-    onVerified: () -> Unit,
+    onVerified: (() -> Unit)? = null,
 ) {
     biometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
         titleRes = R.string.pbm_authentication_unlock_private_tabs,
@@ -295,12 +295,12 @@ fun Fragment.verifyUser(
 
 private fun handleVerificationSuccess(
     context: Context,
-    onVerified: () -> Unit,
+    onVerified: (() -> Unit)? = null,
 ) {
     PrivateBrowsingLocked.authSuccess.record()
     context.components.privateBrowsingLockFeature.onSuccessfulAuthentication()
 
-    onVerified()
+    onVerified?.invoke()
 }
 
 private fun handleVerificationFailure() {

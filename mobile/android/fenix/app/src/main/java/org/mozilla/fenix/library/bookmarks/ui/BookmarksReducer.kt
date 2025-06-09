@@ -157,6 +157,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     SignIntoSyncClicked,
     is InitEdit,
     Init,
+    PrivateBrowsingAuthorized,
     -> state
 }
 
