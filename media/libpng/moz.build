@@ -13,7 +13,11 @@ EXPORTS += [
     'pnglibconf.h'
 ]
 
-UNIFIED_SOURCES += [
+# libpng errors out if pngpriv.h is included more than once in order to prevent
+# application that integrate libpng from including that file, unfortunately
+# that also errors out when using unified sources so we have to disable it
+# here. Similarly for all of the arch-specific sources below.
+SOURCES += [
     'png.c',
     'pngerror.c',
     'pngget.c',
@@ -38,7 +42,7 @@ SOURCES += [
 
 if CONFIG['TARGET_CPU'] == 'arm' or CONFIG['TARGET_CPU'] == 'aarch64':
     DEFINES['MOZ_PNG_USE_ARM_NEON'] = True
-    UNIFIED_SOURCES += [
+    SOURCES += [
         'arm/arm_init.c',
         'arm/filter_neon_intrinsics.c',
         'arm/palette_neon_intrinsics.c'
@@ -51,14 +55,14 @@ if CONFIG['TARGET_CPU'] == 'arm' or CONFIG['TARGET_CPU'] == 'aarch64':
 
 if CONFIG['INTEL_ARCHITECTURE']:
     DEFINES['MOZ_PNG_USE_INTEL_SSE'] = True
-    UNIFIED_SOURCES += [
+    SOURCES += [
         'intel/filter_sse2_intrinsics.c',
         'intel/intel_init.c'
     ]
 
 if CONFIG['TARGET_CPU'] in ('mips32', 'mips64'):
     DEFINES['MOZ_PNG_USE_MIPS_MSA'] = True
-    UNIFIED_SOURCES += [
+    SOURCES += [
         'mips/filter_mmi_inline_assembly.c',
         'mips/filter_msa_intrinsics.c',
         'mips/mips_init.c'
@@ -66,7 +70,7 @@ if CONFIG['TARGET_CPU'] in ('mips32', 'mips64'):
 
 if CONFIG['HAVE_ALTIVEC']:
     DEFINES['MOZ_PNG_USE_POWERPC'] = True
-    UNIFIED_SOURCES += [
+    SOURCES += [
         'powerpc/filter_vsx_intrinsics.c',
         'powerpc/powerpc_init.c'
     ]
@@ -74,7 +78,7 @@ if CONFIG['HAVE_ALTIVEC']:
 if CONFIG['TARGET_CPU'] == 'loongarch64':
     DEFINES['MOZ_PNG_USE_LOONGARCH_LSX'] = True
     CFLAGS += ['-mlsx']
-    UNIFIED_SOURCES += [
+    SOURCES += [
         'loongarch/filter_lsx_intrinsics.c',
         'loongarch/loongarch_lsx_init.c',
     ]
