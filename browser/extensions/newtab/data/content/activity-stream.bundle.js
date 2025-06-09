@@ -3732,16 +3732,16 @@ class _DSCard extends (external_React_default()).PureComponent {
     }];
     this.sectionsCardImagesSizes = {
       small: {
-        width: 100,
-        height: 120
+        width: 110,
+        height: 110
       },
       medium: {
         width: 300,
-        height: refinedCardsLayout ? 172 : 150
+        height: refinedCardsLayout ? 162 : 150
       },
       large: {
-        width: 265,
-        height: 265
+        width: 190,
+        height: 250
       }
     };
     this.sectionsColumnMediaMatcher = {
