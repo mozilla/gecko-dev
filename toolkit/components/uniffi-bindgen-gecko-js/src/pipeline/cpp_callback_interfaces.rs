@@ -203,18 +203,18 @@ fn generate_cpp_callback_interface(
         methods: vtable
             .methods
             .iter()
-            .enumerate()
-            .map(|(i, vtable_meth)| {
+            .map(|vtable_meth| {
+                let FfiType::Function(FfiFunctionTypeName(name)) = &vtable_meth.ffi_type.ty else {
+                    bail!(
+                        "Invalid FFI TYPE for VTable method {:?}",
+                        vtable_meth.ffi_type.ty
+                    );
+                };
                 let ffi_func = ffi_func_map
-                    .get(&format!("CallbackInterface{interface_name}Method{i}"))
+                    .get(name)
                     .cloned()
-                    .ok_or_else(|| {
-                        anyhow!(
-                            "Callback interface method not found: {}",
-                            vtable_meth.callable.name
-                        )
-                    })?;
-                map_method(vtable_meth, ffi_func, &module_name, interface_name)
+                    .ok_or_else(|| anyhow!("Callback interface method not found: {name}"))?;
+                map_method(vtable_meth, ffi_func, module_name, interface_name)
             })
             .collect::<Result<Vec<_>>>()?,
     })

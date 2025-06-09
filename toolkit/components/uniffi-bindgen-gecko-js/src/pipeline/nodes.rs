@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use anyhow::Result;
 use askama::Template;
 use uniffi_bindgen::backend::filters::to_askama_error;
-use uniffi_pipeline::{AsRef, Node};
+use uniffi_pipeline::Node;
 
 use crate::Config;
 
@@ -265,10 +265,9 @@ pub struct AsyncData {
     pub ffi_foreign_future_result: FfiStructName,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct Argument {
     pub name: String,
-    #[as_ref]
     pub ty: TypeNode,
     pub by_ref: bool,
     pub optional: bool,
@@ -311,21 +310,19 @@ pub enum Radix {
     Hexadecimal = 16,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct Record {
     pub name: String,
     pub remote: bool, // only used when generating scaffolding from UDL
     pub fields: Vec<Field>,
     pub docstring: Option<String>,
     pub js_docstring: String,
-    #[as_ref]
     pub self_type: TypeNode,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct Field {
     pub name: String,
-    #[as_ref]
     pub ty: TypeNode,
     pub default: Option<LiteralNode>,
     pub docstring: Option<String>,
@@ -338,33 +335,30 @@ pub enum EnumShape {
     Error { flat: bool },
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct Enum {
     pub name: String,
     pub is_flat: bool,
     pub shape: EnumShape,
     pub remote: bool,
     pub variants: Vec<Variant>,
-    pub discr_type: Option<TypeNode>,
-    pub resolved_discr_type: TypeNode,
+    pub discr_type: TypeNode,
     pub non_exhaustive: bool,
     pub js_docstring: String,
     pub docstring: Option<String>,
-    #[as_ref]
     pub self_type: TypeNode,
 }
 
 #[derive(Debug, Clone, Node)]
 pub struct Variant {
     pub name: String,
-    pub discr: Option<LiteralNode>,
-    pub resolved_discr: LiteralNode,
+    pub discr: LiteralNode,
     pub fields: Vec<Field>,
     pub docstring: Option<String>,
     pub js_docstring: String,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct Interface {
     pub name: String,
     pub object_id: u64,
@@ -376,20 +370,18 @@ pub struct Interface {
     pub imp: ObjectImpl,
     pub docstring: Option<String>,
     pub js_docstring: String,
-    #[as_ref]
     pub self_type: TypeNode,
     pub vtable: Option<VTable>,
     pub ffi_func_clone: RustFfiFunctionName,
     pub ffi_func_free: RustFfiFunctionName,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct CallbackInterface {
     pub name: String,
     pub vtable: VTable,
     pub docstring: Option<String>,
     pub js_docstring: String,
-    #[as_ref]
     pub self_type: TypeNode,
 }
 
@@ -429,51 +421,45 @@ pub struct ObjectTraitImpl {
     pub tr_module_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct CustomType {
     pub name: String,
     pub builtin: TypeNode,
     pub docstring: Option<String>,
     pub js_docstring: String,
-    #[as_ref]
     pub self_type: TypeNode,
     pub type_name: Option<String>,
     pub lift_expr: Option<String>,
     pub lower_expr: Option<String>,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct OptionalType {
     pub inner: TypeNode,
-    #[as_ref]
     pub self_type: TypeNode,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct SequenceType {
     pub inner: TypeNode,
-    #[as_ref]
     pub self_type: TypeNode,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct MapType {
     pub key: TypeNode,
     pub value: TypeNode,
-    #[as_ref]
     pub self_type: TypeNode,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
+#[derive(Debug, Clone, Node)]
 pub struct ExternalType {
     pub module_name: String,
     pub name: String,
-    #[as_ref]
     pub self_type: TypeNode,
 }
 
-#[derive(Debug, Clone, Node, AsRef)]
-#[as_ref]
+#[derive(Debug, Clone, Node)]
 pub struct TypeNode {
     pub ty: Type,
     /// Name of the JS class for this type (only set for user-defined types like
@@ -635,7 +621,6 @@ pub struct FfiArgument {
 
 #[derive(Debug, Clone, Node)]
 pub struct FfiTypeNode {
-    #[node(wraps)]
     pub ty: FfiType,
     pub type_name: String,
 }
@@ -846,12 +831,7 @@ pub mod filters {
     use super::*;
     use askama::Result;
 
-    pub fn ffi_converter(ty: impl AsRef<TypeNode>) -> Result<String> {
-        Ok(ty.as_ref().ffi_converter.to_string())
-    }
-
-    pub fn class_name(ty: impl AsRef<TypeNode>) -> Result<String> {
-        let ty = ty.as_ref();
+    pub fn class_name(ty: &TypeNode) -> Result<String> {
         match &ty.class_name {
             Some(class_name) => Ok(class_name.clone()),
             None => Err(to_askama_error(&format!(
@@ -859,30 +839,6 @@ pub mod filters {
                 ty
             ))),
         }
-    }
-
-    pub fn lift_fn(ty: impl AsRef<TypeNode>) -> Result<String> {
-        Ok(format!("{}.lift", ty.as_ref().ffi_converter))
-    }
-
-    pub fn lower_fn(ty: impl AsRef<TypeNode>) -> Result<String> {
-        Ok(format!("{}.lower", ty.as_ref().ffi_converter))
-    }
-
-    pub fn read_fn(ty: impl AsRef<TypeNode>) -> Result<String> {
-        Ok(format!("{}.read", ty.as_ref().ffi_converter))
-    }
-
-    pub fn write_fn(ty: impl AsRef<TypeNode>) -> Result<String> {
-        Ok(format!("{}.write", ty.as_ref().ffi_converter))
-    }
-
-    pub fn compute_size_fn(ty: impl AsRef<TypeNode>) -> Result<String> {
-        Ok(format!("{}.computeSize", ty.as_ref().ffi_converter))
-    }
-
-    pub fn check_type_fn(ty: impl AsRef<TypeNode>) -> Result<String> {
-        Ok(format!("{}.checkType", ty.as_ref().ffi_converter))
     }
 
     // Render an expression to check if two instances of this type are equal

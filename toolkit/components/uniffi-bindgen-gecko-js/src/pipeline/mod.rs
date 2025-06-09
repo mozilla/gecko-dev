@@ -12,7 +12,6 @@ mod cpp_ffi_types;
 mod cpp_names;
 mod cpp_scaffolding_calls;
 mod docs;
-mod enums;
 mod interfaces;
 mod js_docstrings;
 mod js_filename;
@@ -22,7 +21,7 @@ mod modules;
 mod types;
 
 use crate::Config;
-use anyhow::{bail, Result};
+use anyhow::Result;
 pub use nodes::*;
 use std::collections::HashMap;
 use uniffi_bindgen::pipeline::{general, initial};
@@ -34,7 +33,6 @@ pub fn gecko_js_pipeline(pipeline_map: HashMap<String, Config>) -> GeckoPipeline
     general::pipeline()
         .convert_ir_pass::<Root>()
         .pass(modules::pass(pipeline_map))
-        .pass(enums::pass)
         .pass(callables::pass)
         .pass(interfaces::pass)
         .pass(callback_interfaces::pass)

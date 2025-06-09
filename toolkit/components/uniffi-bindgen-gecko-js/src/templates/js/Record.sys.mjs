@@ -15,7 +15,7 @@ export class {{ record.name }} {
     ) {
         {%- for field in record.fields %}
         try {
-            {{ field|check_type_fn }}({{ field.name }})
+            {{ field.ty.ffi_converter }}.checkType({{ field.name }})
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart("{{ field.name }}");
@@ -40,24 +40,24 @@ export class {{ record.name }} {
 }
 
 // Export the FFIConverter object to make external types work.
-export class {{ record|ffi_converter }} extends FfiConverterArrayBuffer {
+export class {{ record.self_type.ffi_converter }} extends FfiConverterArrayBuffer {
     static read(dataStream) {
         return new {{record.name}}({
             {%- for field in record.fields %}
-            {{ field.name }}: {{ field|read_fn }}(dataStream),
+            {{ field.name }}: {{ field.ty.ffi_converter }}.read(dataStream),
             {%- endfor %}
         });
     }
     static write(dataStream, value) {
         {%- for field in record.fields %}
-        {{ field|write_fn }}(dataStream, value.{{field.name}});
+        {{ field.ty.ffi_converter }}.write(dataStream, value.{{field.name}});
         {%- endfor %}
     }
 
     static computeSize(value) {
         let totalSize = 0;
         {%- for field in record.fields %}
-        totalSize += {{ field|compute_size_fn }}(value.{{ field.name }});
+        totalSize += {{ field.ty.ffi_converter }}.computeSize(value.{{ field.name }});
         {%- endfor %}
         return totalSize
     }
@@ -69,7 +69,7 @@ export class {{ record|ffi_converter }} extends FfiConverterArrayBuffer {
         }
         {%- for field in record.fields %}
         try {
-            {{ field|check_type_fn }}(value.{{ field.name }});
+            {{ field.ty.ffi_converter }}.checkType(value.{{ field.name }});
         } catch (e) {
             if (e instanceof UniFFITypeError) {
                 e.addItemDescriptionPart(".{{ field.name }}");

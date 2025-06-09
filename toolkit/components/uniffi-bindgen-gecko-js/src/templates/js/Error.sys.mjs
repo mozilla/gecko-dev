@@ -34,17 +34,17 @@ export class {{ variant.name }} extends {{ error.name }} {
 {%- endfor %}
 
 // Export the FFIConverter object to make external types work.
-export class {{ error|ffi_converter }} extends FfiConverterArrayBuffer {
+export class {{ error.self_type.ffi_converter }} extends FfiConverterArrayBuffer {
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             {%- for variant in error.variants %}
             case {{ loop.index }}:
                 {%- if error.is_flat %}
-                return new {{ variant.name  }}({{ string_type_node|read_fn }}(dataStream));
+                return new {{ variant.name  }}({{ string_type_node.ffi_converter }}.read(dataStream));
                 {%- else %}
                 return new {{ variant.name  }}(
                     {%- for field in variant.fields %}
-                    {{ field|read_fn }}(dataStream){%- if loop.last %}{% else %}, {%- endif %}
+                    {{ field.ty.ffi_converter }}.read(dataStream){%- if loop.last %}{% else %}, {%- endif %}
                     {%- endfor %}
                     );
                 {%- endif %}
@@ -59,7 +59,7 @@ export class {{ error|ffi_converter }} extends FfiConverterArrayBuffer {
         {%- for variant in error.variants %}
         if (value instanceof {{ variant.name }}) {
             {%- for field in variant.fields %}
-            totalSize += {{ field|compute_size_fn }}(value.{{ field.name }});
+            totalSize += {{ field.ty.ffi_converter }}.computeSize(value.{{ field.name }});
             {%- endfor %}
             return totalSize;
         }
@@ -71,7 +71,7 @@ export class {{ error|ffi_converter }} extends FfiConverterArrayBuffer {
         if (value instanceof {{ variant.name }}) {
             dataStream.writeInt32({{ loop.index }});
             {%- for field in variant.fields %}
-            {{ field|write_fn }}(dataStream, value.{{ field.name }});
+            {{ field.ty.ffi_converter }}.write(dataStream, value.{{ field.name }});
             {%- endfor %}
             return;
         }

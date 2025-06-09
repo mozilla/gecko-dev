@@ -106,15 +106,15 @@ extern "C" {
   void ffi_context_id_rust_future_free_void(uint64_t);
   void* uniffi_context_id_fn_clone_contextidcomponent(void*, RustCallStatus*);
   void uniffi_context_id_fn_free_contextidcomponent(void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceContextIdCallbackMethod0)(uint64_t, RustBuffer, int64_t, void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceContextIdCallbackMethod1)(uint64_t, RustBuffer, void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceFreecontext_id_ContextIdCallback)(uint64_t);
-  struct VTableCallbackInterfaceContextIdCallback {
-    CallbackInterfaceContextIdCallbackMethod0 persist;
-    CallbackInterfaceContextIdCallbackMethod1 rotated;
-    CallbackInterfaceFreecontext_id_ContextIdCallback uniffi_free;
+  typedef void (*CallbackInterfaceContextIdContextIdCallbackMethod0)(uint64_t, RustBuffer, int64_t, void*, RustCallStatus*);
+  typedef void (*CallbackInterfaceContextIdContextIdCallbackMethod1)(uint64_t, RustBuffer, void*, RustCallStatus*);
+  typedef void (*CallbackInterfaceFreeContextId_ContextIdCallback)(uint64_t);
+  struct VTableCallbackInterfaceContextIdContextIdCallback {
+    CallbackInterfaceContextIdContextIdCallbackMethod0 persist;
+    CallbackInterfaceContextIdContextIdCallbackMethod1 rotated;
+    CallbackInterfaceFreeContextId_ContextIdCallback uniffi_free;
   };
-  void uniffi_context_id_fn_init_callback_vtable_contextidcallback(VTableCallbackInterfaceContextIdCallback*);
+  void uniffi_context_id_fn_init_callback_vtable_contextidcallback(VTableCallbackInterfaceContextIdContextIdCallback*);
   void* uniffi_context_id_fn_constructor_contextidcomponent_new(RustBuffer, int64_t, int8_t, uint64_t, RustCallStatus*);
   void uniffi_context_id_fn_method_contextidcomponent_force_rotation(void*, RustCallStatus*);
   RustBuffer uniffi_context_id_fn_method_contextidcomponent_request(void*, uint8_t, RustCallStatus*);
@@ -124,8 +124,6 @@ extern "C" {
   uint16_t uniffi_context_id_checksum_method_contextidcomponent_force_rotation();
   uint16_t uniffi_context_id_checksum_method_contextidcomponent_request();
   uint16_t uniffi_context_id_checksum_method_contextidcomponent_unset_callback();
-  uint16_t uniffi_context_id_checksum_method_contextidcallback_persist();
-  uint16_t uniffi_context_id_checksum_method_contextidcallback_rotated();
   RustBuffer ffi_error_support_rustbuffer_alloc(uint64_t, RustCallStatus*);
   RustBuffer ffi_error_support_rustbuffer_from_bytes(ForeignBytes, RustCallStatus*);
   void ffi_error_support_rustbuffer_free(RustBuffer, RustCallStatus*);
@@ -182,22 +180,20 @@ extern "C" {
   void ffi_error_support_rust_future_cancel_void(uint64_t);
   void ffi_error_support_rust_future_complete_void(uint64_t, RustCallStatus*);
   void ffi_error_support_rust_future_free_void(uint64_t);
-  typedef void (*CallbackInterfaceApplicationErrorReporterMethod0)(uint64_t, RustBuffer, RustBuffer, void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceApplicationErrorReporterMethod1)(uint64_t, RustBuffer, RustBuffer, uint32_t, uint32_t, void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceFreeerrorsupport_ApplicationErrorReporter)(uint64_t);
-  struct VTableCallbackInterfaceApplicationErrorReporter {
-    CallbackInterfaceApplicationErrorReporterMethod0 report_error;
-    CallbackInterfaceApplicationErrorReporterMethod1 report_breadcrumb;
-    CallbackInterfaceFreeerrorsupport_ApplicationErrorReporter uniffi_free;
+  typedef void (*CallbackInterfaceErrorsupportApplicationErrorReporterMethod0)(uint64_t, RustBuffer, RustBuffer, void*, RustCallStatus*);
+  typedef void (*CallbackInterfaceErrorsupportApplicationErrorReporterMethod1)(uint64_t, RustBuffer, RustBuffer, uint32_t, uint32_t, void*, RustCallStatus*);
+  typedef void (*CallbackInterfaceFreeErrorsupport_ApplicationErrorReporter)(uint64_t);
+  struct VTableCallbackInterfaceErrorsupportApplicationErrorReporter {
+    CallbackInterfaceErrorsupportApplicationErrorReporterMethod0 report_error;
+    CallbackInterfaceErrorsupportApplicationErrorReporterMethod1 report_breadcrumb;
+    CallbackInterfaceFreeErrorsupport_ApplicationErrorReporter uniffi_free;
   };
-  void uniffi_error_support_fn_init_callback_vtable_applicationerrorreporter(VTableCallbackInterfaceApplicationErrorReporter*);
+  void uniffi_error_support_fn_init_callback_vtable_applicationerrorreporter(VTableCallbackInterfaceErrorsupportApplicationErrorReporter*);
   void uniffi_error_support_fn_func_set_application_error_reporter(uint64_t, RustCallStatus*);
   void uniffi_error_support_fn_func_unset_application_error_reporter(RustCallStatus*);
   uint32_t ffi_error_support_uniffi_contract_version();
   uint16_t uniffi_error_support_checksum_func_set_application_error_reporter();
   uint16_t uniffi_error_support_checksum_func_unset_application_error_reporter();
-  uint16_t uniffi_error_support_checksum_method_applicationerrorreporter_report_error();
-  uint16_t uniffi_error_support_checksum_method_applicationerrorreporter_report_breadcrumb();
   RustBuffer ffi_relevancy_rustbuffer_alloc(uint64_t, RustCallStatus*);
   RustBuffer ffi_relevancy_rustbuffer_from_bytes(ForeignBytes, RustCallStatus*);
   void ffi_relevancy_rustbuffer_free(RustBuffer, RustCallStatus*);
@@ -897,72 +893,72 @@ extern "C" {
   void uniffi_uniffi_bindings_tests_fn_free_testinterface(void*, RustCallStatus*);
   void* uniffi_uniffi_bindings_tests_fn_clone_testtraitinterface(void*, RustCallStatus*);
   void uniffi_uniffi_bindings_tests_fn_free_testtraitinterface(void*, RustCallStatus*);
-  struct ForeignFutureResultvoid {
+  struct ForeignFutureResultVoid {
     RustCallStatus call_status;
   };
-  typedef void (*ForeignFutureCompletevoid)(uint64_t, ForeignFutureResultvoid);
-  typedef void (*CallbackInterfaceAsyncTestTraitInterfaceMethod0)(uint64_t, ForeignFutureCompletevoid, uint64_t, ForeignFuture*);
-  struct ForeignFutureResultu32 {
+  typedef void (*ForeignFutureCompletevoid)(uint64_t, ForeignFutureResultVoid);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterfaceMethod0)(uint64_t, ForeignFutureCompletevoid, uint64_t, ForeignFuture*);
+  struct ForeignFutureResultU32 {
     uint32_t return_value;
     RustCallStatus call_status;
   };
-  typedef void (*ForeignFutureCompleteu32)(uint64_t, ForeignFutureResultu32);
-  typedef void (*CallbackInterfaceAsyncTestTraitInterfaceMethod1)(uint64_t, ForeignFutureCompleteu32, uint64_t, ForeignFuture*);
-  typedef void (*CallbackInterfaceAsyncTestTraitInterfaceMethod2)(uint64_t, uint32_t, ForeignFutureCompletevoid, uint64_t, ForeignFuture*);
-  struct ForeignFutureResultrust_buffer {
+  typedef void (*ForeignFutureCompleteu32)(uint64_t, ForeignFutureResultU32);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterfaceMethod1)(uint64_t, ForeignFutureCompleteu32, uint64_t, ForeignFuture*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterfaceMethod2)(uint64_t, uint32_t, ForeignFutureCompletevoid, uint64_t, ForeignFuture*);
+  struct ForeignFutureResultRustBuffer {
     RustBuffer return_value;
     RustCallStatus call_status;
   };
-  typedef void (*ForeignFutureCompleterust_buffer)(uint64_t, ForeignFutureResultrust_buffer);
-  typedef void (*CallbackInterfaceAsyncTestTraitInterfaceMethod3)(uint64_t, RustBuffer, ForeignFutureCompleterust_buffer, uint64_t, ForeignFuture*);
-  typedef void (*CallbackInterfaceFreeuniffi_bindings_tests_AsyncTestTraitInterface)(uint64_t);
-  struct VTableCallbackInterfaceAsyncTestTraitInterface {
-    CallbackInterfaceAsyncTestTraitInterfaceMethod0 noop;
-    CallbackInterfaceAsyncTestTraitInterfaceMethod1 get_value;
-    CallbackInterfaceAsyncTestTraitInterfaceMethod2 set_value;
-    CallbackInterfaceAsyncTestTraitInterfaceMethod3 throw_if_equal;
-    CallbackInterfaceFreeuniffi_bindings_tests_AsyncTestTraitInterface uniffi_free;
+  typedef void (*ForeignFutureCompleterust_buffer)(uint64_t, ForeignFutureResultRustBuffer);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterfaceMethod3)(uint64_t, RustBuffer, ForeignFutureCompleterust_buffer, uint64_t, ForeignFuture*);
+  typedef void (*CallbackInterfaceFreeUniffiBindingsTests_AsyncTestTraitInterface)(uint64_t);
+  struct VTableCallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterface {
+    CallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterfaceMethod0 noop;
+    CallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterfaceMethod1 get_value;
+    CallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterfaceMethod2 set_value;
+    CallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterfaceMethod3 throw_if_equal;
+    CallbackInterfaceFreeUniffiBindingsTests_AsyncTestTraitInterface uniffi_free;
   };
-  void uniffi_uniffi_bindings_tests_fn_init_callback_vtable_asynctesttraitinterface(VTableCallbackInterfaceAsyncTestTraitInterface*);
-  typedef void (*CallbackInterfaceTestTraitInterfaceMethod0)(uint64_t, void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceTestTraitInterfaceMethod1)(uint64_t, uint32_t*, RustCallStatus*);
-  typedef void (*CallbackInterfaceTestTraitInterfaceMethod2)(uint64_t, uint32_t, void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceTestTraitInterfaceMethod3)(uint64_t, RustBuffer, RustBuffer*, RustCallStatus*);
-  typedef void (*CallbackInterfaceFreeuniffi_bindings_tests_TestTraitInterface)(uint64_t);
-  struct VTableCallbackInterfaceTestTraitInterface {
-    CallbackInterfaceTestTraitInterfaceMethod0 noop;
-    CallbackInterfaceTestTraitInterfaceMethod1 get_value;
-    CallbackInterfaceTestTraitInterfaceMethod2 set_value;
-    CallbackInterfaceTestTraitInterfaceMethod3 throw_if_equal;
-    CallbackInterfaceFreeuniffi_bindings_tests_TestTraitInterface uniffi_free;
+  void uniffi_uniffi_bindings_tests_fn_init_callback_vtable_asynctesttraitinterface(VTableCallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterface*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestTraitInterfaceMethod0)(uint64_t, void*, RustCallStatus*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestTraitInterfaceMethod1)(uint64_t, uint32_t*, RustCallStatus*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestTraitInterfaceMethod2)(uint64_t, uint32_t, void*, RustCallStatus*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestTraitInterfaceMethod3)(uint64_t, RustBuffer, RustBuffer*, RustCallStatus*);
+  typedef void (*CallbackInterfaceFreeUniffiBindingsTests_TestTraitInterface)(uint64_t);
+  struct VTableCallbackInterfaceUniffiBindingsTestsTestTraitInterface {
+    CallbackInterfaceUniffiBindingsTestsTestTraitInterfaceMethod0 noop;
+    CallbackInterfaceUniffiBindingsTestsTestTraitInterfaceMethod1 get_value;
+    CallbackInterfaceUniffiBindingsTestsTestTraitInterfaceMethod2 set_value;
+    CallbackInterfaceUniffiBindingsTestsTestTraitInterfaceMethod3 throw_if_equal;
+    CallbackInterfaceFreeUniffiBindingsTests_TestTraitInterface uniffi_free;
   };
-  void uniffi_uniffi_bindings_tests_fn_init_callback_vtable_testtraitinterface(VTableCallbackInterfaceTestTraitInterface*);
-  typedef void (*CallbackInterfaceTestAsyncCallbackInterfaceMethod0)(uint64_t, ForeignFutureCompletevoid, uint64_t, ForeignFuture*);
-  typedef void (*CallbackInterfaceTestAsyncCallbackInterfaceMethod1)(uint64_t, ForeignFutureCompleteu32, uint64_t, ForeignFuture*);
-  typedef void (*CallbackInterfaceTestAsyncCallbackInterfaceMethod2)(uint64_t, uint32_t, ForeignFutureCompletevoid, uint64_t, ForeignFuture*);
-  typedef void (*CallbackInterfaceTestAsyncCallbackInterfaceMethod3)(uint64_t, RustBuffer, ForeignFutureCompleterust_buffer, uint64_t, ForeignFuture*);
-  typedef void (*CallbackInterfaceFreeuniffi_bindings_tests_TestAsyncCallbackInterface)(uint64_t);
-  struct VTableCallbackInterfaceTestAsyncCallbackInterface {
-    CallbackInterfaceTestAsyncCallbackInterfaceMethod0 noop;
-    CallbackInterfaceTestAsyncCallbackInterfaceMethod1 get_value;
-    CallbackInterfaceTestAsyncCallbackInterfaceMethod2 set_value;
-    CallbackInterfaceTestAsyncCallbackInterfaceMethod3 throw_if_equal;
-    CallbackInterfaceFreeuniffi_bindings_tests_TestAsyncCallbackInterface uniffi_free;
+  void uniffi_uniffi_bindings_tests_fn_init_callback_vtable_testtraitinterface(VTableCallbackInterfaceUniffiBindingsTestsTestTraitInterface*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterfaceMethod0)(uint64_t, ForeignFutureCompletevoid, uint64_t, ForeignFuture*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterfaceMethod1)(uint64_t, ForeignFutureCompleteu32, uint64_t, ForeignFuture*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterfaceMethod2)(uint64_t, uint32_t, ForeignFutureCompletevoid, uint64_t, ForeignFuture*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterfaceMethod3)(uint64_t, RustBuffer, ForeignFutureCompleterust_buffer, uint64_t, ForeignFuture*);
+  typedef void (*CallbackInterfaceFreeUniffiBindingsTests_TestAsyncCallbackInterface)(uint64_t);
+  struct VTableCallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterface {
+    CallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterfaceMethod0 noop;
+    CallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterfaceMethod1 get_value;
+    CallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterfaceMethod2 set_value;
+    CallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterfaceMethod3 throw_if_equal;
+    CallbackInterfaceFreeUniffiBindingsTests_TestAsyncCallbackInterface uniffi_free;
   };
-  void uniffi_uniffi_bindings_tests_fn_init_callback_vtable_testasynccallbackinterface(VTableCallbackInterfaceTestAsyncCallbackInterface*);
-  typedef void (*CallbackInterfaceTestCallbackInterfaceMethod0)(uint64_t, void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceTestCallbackInterfaceMethod1)(uint64_t, uint32_t*, RustCallStatus*);
-  typedef void (*CallbackInterfaceTestCallbackInterfaceMethod2)(uint64_t, uint32_t, void*, RustCallStatus*);
-  typedef void (*CallbackInterfaceTestCallbackInterfaceMethod3)(uint64_t, RustBuffer, RustBuffer*, RustCallStatus*);
-  typedef void (*CallbackInterfaceFreeuniffi_bindings_tests_TestCallbackInterface)(uint64_t);
-  struct VTableCallbackInterfaceTestCallbackInterface {
-    CallbackInterfaceTestCallbackInterfaceMethod0 noop;
-    CallbackInterfaceTestCallbackInterfaceMethod1 get_value;
-    CallbackInterfaceTestCallbackInterfaceMethod2 set_value;
-    CallbackInterfaceTestCallbackInterfaceMethod3 throw_if_equal;
-    CallbackInterfaceFreeuniffi_bindings_tests_TestCallbackInterface uniffi_free;
+  void uniffi_uniffi_bindings_tests_fn_init_callback_vtable_testasynccallbackinterface(VTableCallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterface*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestCallbackInterfaceMethod0)(uint64_t, void*, RustCallStatus*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestCallbackInterfaceMethod1)(uint64_t, uint32_t*, RustCallStatus*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestCallbackInterfaceMethod2)(uint64_t, uint32_t, void*, RustCallStatus*);
+  typedef void (*CallbackInterfaceUniffiBindingsTestsTestCallbackInterfaceMethod3)(uint64_t, RustBuffer, RustBuffer*, RustCallStatus*);
+  typedef void (*CallbackInterfaceFreeUniffiBindingsTests_TestCallbackInterface)(uint64_t);
+  struct VTableCallbackInterfaceUniffiBindingsTestsTestCallbackInterface {
+    CallbackInterfaceUniffiBindingsTestsTestCallbackInterfaceMethod0 noop;
+    CallbackInterfaceUniffiBindingsTestsTestCallbackInterfaceMethod1 get_value;
+    CallbackInterfaceUniffiBindingsTestsTestCallbackInterfaceMethod2 set_value;
+    CallbackInterfaceUniffiBindingsTestsTestCallbackInterfaceMethod3 throw_if_equal;
+    CallbackInterfaceFreeUniffiBindingsTests_TestCallbackInterface uniffi_free;
   };
-  void uniffi_uniffi_bindings_tests_fn_init_callback_vtable_testcallbackinterface(VTableCallbackInterfaceTestCallbackInterface*);
+  void uniffi_uniffi_bindings_tests_fn_init_callback_vtable_testcallbackinterface(VTableCallbackInterfaceUniffiBindingsTestsTestCallbackInterface*);
   uint64_t uniffi_uniffi_bindings_tests_fn_func_async_roundtrip_f32(float);
   uint64_t uniffi_uniffi_bindings_tests_fn_func_async_roundtrip_f64(double);
   uint64_t uniffi_uniffi_bindings_tests_fn_func_async_roundtrip_i16(int16_t);
@@ -1132,14 +1128,6 @@ extern "C" {
   uint16_t uniffi_uniffi_bindings_tests_checksum_method_testtraitinterface_get_value();
   uint16_t uniffi_uniffi_bindings_tests_checksum_method_testtraitinterface_set_value();
   uint16_t uniffi_uniffi_bindings_tests_checksum_method_testtraitinterface_throw_if_equal();
-  uint16_t uniffi_uniffi_bindings_tests_checksum_method_testasynccallbackinterface_noop();
-  uint16_t uniffi_uniffi_bindings_tests_checksum_method_testasynccallbackinterface_get_value();
-  uint16_t uniffi_uniffi_bindings_tests_checksum_method_testasynccallbackinterface_set_value();
-  uint16_t uniffi_uniffi_bindings_tests_checksum_method_testasynccallbackinterface_throw_if_equal();
-  uint16_t uniffi_uniffi_bindings_tests_checksum_method_testcallbackinterface_noop();
-  uint16_t uniffi_uniffi_bindings_tests_checksum_method_testcallbackinterface_get_value();
-  uint16_t uniffi_uniffi_bindings_tests_checksum_method_testcallbackinterface_set_value();
-  uint16_t uniffi_uniffi_bindings_tests_checksum_method_testcallbackinterface_throw_if_equal();
   RustBuffer ffi_uniffi_bindings_tests_external_types_rustbuffer_alloc(uint64_t, RustCallStatus*);
   RustBuffer ffi_uniffi_bindings_tests_external_types_rustbuffer_from_bytes(ForeignBytes, RustCallStatus*);
   void ffi_uniffi_bindings_tests_external_types_rustbuffer_free(RustBuffer, RustCallStatus*);
@@ -10719,7 +10707,7 @@ public:
       return;
     }
 
-    ForeignFutureResultvoid result{};
+    ForeignFutureResultVoid result{};
     result.call_status.code = RUST_CALL_INTERNAL_ERROR;
     switch (aCallResult.mCode) {
       case UniFFIScaffoldingCallCode::Success: {
@@ -10757,7 +10745,7 @@ protected:
   ~AsyncCallbackMethodHandlerBaseVoid() {
     if (mUniffiCompleteCallback) {
       MOZ_LOG(gUniffiLogger, LogLevel::Error, ("[AsyncCallbackMethodHandlerBaseVoid] promise never completed"));
-      ForeignFutureResultvoid result{};
+      ForeignFutureResultVoid result{};
       result.call_status.code = RUST_CALL_INTERNAL_ERROR;
       mUniffiCompleteCallback(mUniffiCallbackData, result);
     }
@@ -10789,7 +10777,7 @@ public:
       return;
     }
 
-    ForeignFutureResultu32 result{};
+    ForeignFutureResultU32 result{};
     result.call_status.code = RUST_CALL_INTERNAL_ERROR;
     switch (aCallResult.mCode) {
       case UniFFIScaffoldingCallCode::Success: {
@@ -10840,7 +10828,7 @@ protected:
   ~AsyncCallbackMethodHandlerBaseUInt32() {
     if (mUniffiCompleteCallback) {
       MOZ_LOG(gUniffiLogger, LogLevel::Error, ("[AsyncCallbackMethodHandlerBaseUInt32] promise never completed"));
-      ForeignFutureResultu32 result{};
+      ForeignFutureResultU32 result{};
       result.call_status.code = RUST_CALL_INTERNAL_ERROR;
       mUniffiCompleteCallback(mUniffiCallbackData, result);
     }
@@ -10872,7 +10860,7 @@ public:
       return;
     }
 
-    ForeignFutureResultrust_buffer result{};
+    ForeignFutureResultRustBuffer result{};
     result.call_status.code = RUST_CALL_INTERNAL_ERROR;
     switch (aCallResult.mCode) {
       case UniFFIScaffoldingCallCode::Success: {
@@ -10923,7 +10911,7 @@ protected:
   ~AsyncCallbackMethodHandlerBaseRustBuffer() {
     if (mUniffiCompleteCallback) {
       MOZ_LOG(gUniffiLogger, LogLevel::Error, ("[AsyncCallbackMethodHandlerBaseRustBuffer] promise never completed"));
-      ForeignFutureResultrust_buffer result{};
+      ForeignFutureResultRustBuffer result{};
       result.call_status.code = RUST_CALL_INTERNAL_ERROR;
       mUniffiCompleteCallback(mUniffiCallbackData, result);
     }
@@ -11065,7 +11053,7 @@ extern "C" void callback_free_context_id_context_id_callback(uint64_t uniffiHand
       &gUniffiCallbackHandlerContextIdCallback);
 }
 
-static VTableCallbackInterfaceContextIdCallback kUniffiVtableContextIdCallback {
+static VTableCallbackInterfaceContextIdContextIdCallback kUniffiVtableContextIdCallback {
   callback_interface_context_id_context_id_callback_persist,
   callback_interface_context_id_context_id_callback_rotated,
   callback_free_context_id_context_id_callback
@@ -11232,7 +11220,7 @@ extern "C" void callback_free_errorsupport_application_error_reporter(uint64_t u
       &gUniffiCallbackHandlerApplicationErrorReporter);
 }
 
-static VTableCallbackInterfaceApplicationErrorReporter kUniffiVtableApplicationErrorReporter {
+static VTableCallbackInterfaceErrorsupportApplicationErrorReporter kUniffiVtableApplicationErrorReporter {
   callback_interface_errorsupport_application_error_reporter_report_error,
   callback_interface_errorsupport_application_error_reporter_report_breadcrumb,
   callback_free_errorsupport_application_error_reporter
@@ -11483,7 +11471,7 @@ extern "C" void callback_free_uniffi_bindings_tests_test_async_callback_interfac
       &gUniffiCallbackHandlerTestAsyncCallbackInterface);
 }
 
-static VTableCallbackInterfaceTestAsyncCallbackInterface kUniffiVtableTestAsyncCallbackInterface {
+static VTableCallbackInterfaceUniffiBindingsTestsTestAsyncCallbackInterface kUniffiVtableTestAsyncCallbackInterface {
   callback_interface_uniffi_bindings_tests_test_async_callback_interface_noop,
   callback_interface_uniffi_bindings_tests_test_async_callback_interface_get_value,
   callback_interface_uniffi_bindings_tests_test_async_callback_interface_set_value,
@@ -11704,7 +11692,7 @@ extern "C" void callback_free_uniffi_bindings_tests_test_callback_interface(uint
       &gUniffiCallbackHandlerTestCallbackInterface);
 }
 
-static VTableCallbackInterfaceTestCallbackInterface kUniffiVtableTestCallbackInterface {
+static VTableCallbackInterfaceUniffiBindingsTestsTestCallbackInterface kUniffiVtableTestCallbackInterface {
   callback_interface_uniffi_bindings_tests_test_callback_interface_noop,
   callback_interface_uniffi_bindings_tests_test_callback_interface_get_value,
   callback_interface_uniffi_bindings_tests_test_callback_interface_set_value,
@@ -11955,7 +11943,7 @@ extern "C" void callback_free_uniffi_bindings_tests_async_test_trait_interface(u
       &gUniffiCallbackHandlerAsyncTestTraitInterface);
 }
 
-static VTableCallbackInterfaceAsyncTestTraitInterface kUniffiVtableAsyncTestTraitInterface {
+static VTableCallbackInterfaceUniffiBindingsTestsAsyncTestTraitInterface kUniffiVtableAsyncTestTraitInterface {
   callback_interface_uniffi_bindings_tests_async_test_trait_interface_noop,
   callback_interface_uniffi_bindings_tests_async_test_trait_interface_get_value,
   callback_interface_uniffi_bindings_tests_async_test_trait_interface_set_value,
@@ -12176,7 +12164,7 @@ extern "C" void callback_free_uniffi_bindings_tests_test_trait_interface(uint64_
       &gUniffiCallbackHandlerTestTraitInterface);
 }
 
-static VTableCallbackInterfaceTestTraitInterface kUniffiVtableTestTraitInterface {
+static VTableCallbackInterfaceUniffiBindingsTestsTestTraitInterface kUniffiVtableTestTraitInterface {
   callback_interface_uniffi_bindings_tests_test_trait_interface_noop,
   callback_interface_uniffi_bindings_tests_test_trait_interface_get_value,
   callback_interface_uniffi_bindings_tests_test_trait_interface_set_value,

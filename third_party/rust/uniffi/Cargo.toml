@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "uniffi"
-version = "0.29.2"
+version = "0.29.3"
 build = false
 autolib = false
 autobins = false
@@ -29,6 +29,9 @@ keywords = [
 ]
 license = "MPL-2.0"
 repository = "https://github.com/mozilla/uniffi-rs"
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--generate-link-to-definition"]
 
 [features]
 bindgen = ["dep:uniffi_bindgen"]
@@ -91,21 +94,21 @@ optional = true
 default-features = false
 
 [dependencies.uniffi_bindgen]
-version = "=0.29.2"
+version = "=0.29.3"
 optional = true
 
 [dependencies.uniffi_build]
-version = "=0.29.2"
+version = "=0.29.3"
 optional = true
 
 [dependencies.uniffi_core]
-version = "=0.29.2"
+version = "=0.29.3"
 
 [dependencies.uniffi_macros]
-version = "=0.29.2"
+version = "=0.29.3"
 
 [dependencies.uniffi_pipeline]
-version = "=0.29.2"
+version = "=0.29.3"
 
 [dev-dependencies.trybuild]
 version = "1"

@@ -35,7 +35,7 @@ export class {{ int.name }} {
 {% match int.vtable -%}
 {% when None -%}
 // Export the FFIConverter object to make external types work.
-export class {{ int|ffi_converter }} extends FfiConverter {
+export class {{ int.self_type.ffi_converter }} extends FfiConverter {
     static lift(value) {
         const opts = {};
         opts[constructUniffiObject] = value;
@@ -72,7 +72,7 @@ export class {{ int|ffi_converter }} extends FfiConverter {
 // for callback interfaces.
 //
 // Export the FFIConverter object to make external types work.
-export class {{ int|ffi_converter }} extends FfiConverter {
+export class {{ int.self_type.ffi_converter }} extends FfiConverter {
     // lift works like a regular interface
     static lift(value) {
         const opts = {};

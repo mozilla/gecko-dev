@@ -1,5 +1,5 @@
 // Export the FFIConverter object to make external types work.
-export class {{ cbi|ffi_converter }} extends FfiConverter {
+export class {{ cbi.self_type.ffi_converter }} extends FfiConverter {
     static lower(callbackObj) {
         return {{ cbi.vtable.js_handler_var }}.storeCallbackObj(callbackObj)
     }

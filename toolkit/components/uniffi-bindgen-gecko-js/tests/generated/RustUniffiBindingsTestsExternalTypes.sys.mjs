@@ -431,30 +431,32 @@ import {
 // Export the FFIConverter object to make external types work.
 export { FfiConverterTypeSimpleRec };
 // Export the FFIConverter object to make external types work.
-export class FfiConverterUInt8 extends FfiConverter {
+export class FfiConverterString extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
-        if (!Number.isInteger(value)) {
-            throw new UniFFITypeError(`${value} is not an integer`);
-        }
-        if (value < 0 || value > 256) {
-            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
+        if (typeof value !== "string") {
+            throw new UniFFITypeError(`${value} is not a string`);
         }
     }
-    static computeSize(_value) {
-        return 1;
-    }
-    static lift(value) {
-        return value;
+
+    static lift(buf) {
+        const utf8Arr = new Uint8Array(buf);
+        return lazy.decoder.decode(utf8Arr);
     }
     static lower(value) {
-        return value;
+        return lazy.encoder.encode(value).buffer;
     }
+
     static write(dataStream, value) {
-        dataStream.writeUint8(value)
+        dataStream.writeString(value);
     }
+
     static read(dataStream) {
-        return dataStream.readUint8()
+        return dataStream.readString();
+    }
+
+    static computeSize(value) {
+        return 4 + lazy.encoder.encode(value).length
     }
 }
 // Wrapper to skip type checking for function arguments

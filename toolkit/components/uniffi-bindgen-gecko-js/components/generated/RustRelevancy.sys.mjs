@@ -1970,12 +1970,6 @@ export class FfiConverterFloat64 extends FfiConverter {
         return dataStream.readFloat64()
     }
 }
-import {
-  FfiConverterTypeRemoteSettingsService,
-} from "./RustRemoteSettings.sys.mjs";
-
-// Export the FFIConverter object to make external types work.
-export { FfiConverterTypeRemoteSettingsService };
 // Export the FFIConverter object to make external types work.
 export class FfiConverterUInt8 extends FfiConverter {
     static checkType(value) {
@@ -2003,3 +1997,9 @@ export class FfiConverterUInt8 extends FfiConverter {
         return dataStream.readUint8()
     }
 }
+import {
+  FfiConverterTypeRemoteSettingsService,
+} from "./RustRemoteSettings.sys.mjs";
+
+// Export the FFIConverter object to make external types work.
+export { FfiConverterTypeRemoteSettingsService };

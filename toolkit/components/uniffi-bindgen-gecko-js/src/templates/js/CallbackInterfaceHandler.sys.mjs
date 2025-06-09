@@ -7,12 +7,12 @@ const {{ vtable.js_handler_var }} = new UniFFICallbackHandler(
             "{{ vtable_method.callable.name }}",
             [
                 {%- for arg in vtable_method.callable.arguments %}
-                {{ arg|ffi_converter }},
+                {{ arg.ty.ffi_converter }},
                 {%- endfor %}
             ],
             {%- match vtable_method.callable.return_type.ty %}
             {%- when Some(return_type) %}
-            {{ return_type|lower_fn }}.bind({{ return_type|ffi_converter }}),
+            {{ return_type.ffi_converter }}.lower.bind({{ return_type.ffi_converter }}),
             {%- when None %}
             (result) => undefined,
             {%- endmatch %}
@@ -21,7 +21,7 @@ const {{ vtable.js_handler_var }} = new UniFFICallbackHandler(
             {%- when Some(err_type) %}
             (e) => {
               if (e instanceof {{ err_type|class_name }}) {
-                return {{ err_type|lower_fn }}(e);
+                return {{ err_type.ffi_converter }}.lower(e);
               }
               throw e;
             }
