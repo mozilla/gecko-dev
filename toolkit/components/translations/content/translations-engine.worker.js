@@ -172,6 +172,21 @@ async function handleInitializationMessage({ data }) {
         bergamot,
         translationModelPayloads
       );
+
+      // Ensure that no memory is leaked by transfering the ArrayBuffers. They should
+      // all be loaded into Wasm memory at this time. The emscripten generated code
+      // appears to retain the Wasm ArrayBuffer. The transfer creates a new JS object
+      // that gains ownership of the original buffer, allowing it to be GCed even
+      // if the original ArrayBuffer object is retained.
+      //
+      // There is no evidence the language model files are retained, but this will
+      // absolutely ensure we don't leak this large files.
+      bergamotWasmArrayBuffer.transfer();
+      for (const { languageModelFiles } of translationModelPayloads) {
+        for (const file of Object.values(languageModelFiles)) {
+          file.buffer.transfer();
+        }
+      }
     }
 
     ChromeUtils.addProfilerMarker(
