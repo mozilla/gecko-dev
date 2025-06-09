@@ -212,6 +212,7 @@ def make_task_description(config, jobs):
             task["scopes"] = [
                 add_scope_prefix(config, "signing:cert:release-apple-notarization")
             ]
+            task["retries"] = 0
         elif "macosx" in build_platform:
             # iscript overrides
             task["worker"]["mac-behavior"] = "mac_sign_and_pkg"
