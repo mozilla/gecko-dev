@@ -9,7 +9,7 @@ import { connect } from "react-redux";
 import { IS_NEWTAB } from "content-src/lib/constants";
 import { Logo } from "content-src/components/Logo/Logo";
 import React from "react";
-import { TrendingSearchesVarA } from "../DiscoveryStreamComponents/TrendingSearches/TrendingSearchesVarA";
+import { TrendingSearches } from "../DiscoveryStreamComponents/TrendingSearches/TrendingSearches";
 
 export class _Search extends React.PureComponent {
   constructor(props) {
@@ -174,7 +174,7 @@ export class _Search extends React.PureComponent {
                 onClick={this.onSearchClick}
               />
               {this.trendingSearchEnabled &&
-                this.trendingSearchVariant === "a" && <TrendingSearchesVarA />}
+                this.trendingSearchVariant === "a" && <TrendingSearches />}
             </div>
           )}
           {this.props.handoffEnabled && (
@@ -203,7 +203,7 @@ export class _Search extends React.PureComponent {
                 />
               </button>
               {this.trendingSearchEnabled &&
-                this.trendingSearchVariant === "a" && <TrendingSearchesVarA />}
+                this.trendingSearchVariant === "a" && <TrendingSearches />}
             </div>
           )}
         </div>

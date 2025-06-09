@@ -20,6 +20,7 @@ function TrendingSearches() {
     dispatch(
       ac.AlsoToMain({
         type: at.TRENDING_SEARCH_TOGGLE_COLLAPSE,
+        data: !collapsed,
       })
     );
   }
@@ -35,11 +36,11 @@ function TrendingSearches() {
           ></h2>
           <div className="close-open-trending-searches">
             <moz-button
-              iconsrc={`chrome://global/skin/icons/arrow-${!collapsed ? "up" : "down"}.svg`}
+              iconsrc={`chrome://global/skin/icons/arrow-${collapsed ? "down" : "up"}.svg`}
               onClick={onArrowClick}
               className={`icon icon-arrowhead-up`}
-              data-l10n-id={`newtab-trending-searches-${collapsed ? "hide" : "show"}-trending`}
               type="icon ghost"
+              data-l10n-id={`newtab-trending-searches-${collapsed ? "hide" : "show"}-trending`}
             ></moz-button>
           </div>
         </div>

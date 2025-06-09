@@ -1120,8 +1120,8 @@ function TrendingSearch(prevState = INITIAL_STATE.TrendingSearch, action) {
   switch (action.type) {
     case at.TRENDING_SEARCH_UPDATE:
       return { ...prevState, suggestions: action.data };
-    case at.TRENDING_SERACH_TOGGLE_COLLAPSE:
-      return { ...prevState, collapsed: !prevState.collapsed };
+    case at.TRENDING_SEARCH_TOGGLE_COLLAPSE:
+      return { ...prevState, collapsed: action.data };
     default:
       return prevState;
   }
