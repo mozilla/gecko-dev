@@ -187,6 +187,9 @@ MACH_COMMANDS = {
     "release-history": MachCommandReference("taskcluster/mach_commands.py"),
     "remote": MachCommandReference("remote/mach_commands.py"),
     "repackage": MachCommandReference("python/mozbuild/mozbuild/mach_commands.py"),
+    "repackage-single-locales": MachCommandReference(
+        "python/mozbuild/mozbuild/mach_commands.py"
+    ),
     "resource-usage": MachCommandReference(
         "python/mozbuild/mozbuild/build_commands.py",
     ),

@@ -3648,6 +3648,145 @@ def package_l10n(command_context, verbose=False, locales=[]):
     return 0
 
 
+def run_mach(command_context, cmd, **kwargs):
+    return command_context._mach_context.commands.dispatch(
+        cmd, command_context._mach_context, **kwargs
+    )
+
+
+@Command(
+    "repackage-single-locales",
+    category="post-build",
+    description="Repackage single-locale versions of the built product "
+    "for distribution as APKs, DMGs, etc.",
+)
+@CommandArgument(
+    "--locales",
+    metavar="LOCALES",
+    nargs="+",
+    required=True,
+    help="List of locales to repackage",
+)
+@CommandArgument(
+    "--verbose", action="store_true", help="Log informative status messages."
+)
+@CommandArgument(
+    "--dest",
+    default=None,
+    help="Destination directory to populate with localized artifacts; "
+    + "default: UPLOAD_PATH environment variable if set; '$topobjdir/dist/repackage-single-locales' if not set",
+)
+def repackage_single_locales(command_context, verbose=False, locales=[], dest=None):
+    if "RecursiveMake" not in command_context.substs["BUILD_BACKENDS"]:
+        print(
+            "Artifact builds do not support localization. "
+            "If you know what you are doing, you can use:\n"
+            "ac_add_options --disable-compile-environment\n"
+            "export BUILD_BACKENDS=FasterMake,RecursiveMake\n"
+            "in your mozconfig."
+        )
+        return 1
+
+    if not dest:
+        dest = os.environ.get(
+            "UPLOAD_PATH",
+            mozpath.join(command_context.topobjdir, "dist", "repackage-single-locales"),
+        )
+    dest = os.path.abspath(dest)
+
+    locales = sorted(locale for locale in locales if locale != "en-US")
+
+    append_env = {
+        # Simple as possible, please!
+        "MOZ_SIMPLE_PACKAGE_NAME": "target",
+    }
+    if not command_context.substs.get("MOZ_AUTOMATION") and sys.platform == "darwin":
+        # On macOS DMG packaging is slow to work with.
+        append_env["MOZ_PKG_FORMAT"] = "TAR"
+
+    _ensure_l10n_central(command_context)
+
+    command_context.log(
+        logging.INFO,
+        "repackage-single-locales",
+        {"locales": locales},
+        "Processing chrome Gecko resources for locales {locales}",
+    )
+
+    def line_handler(line):
+        command_context.log(
+            logging.INFO,
+            "repackage-single-locales",
+            {"line": line},
+            "export> {line}",
+        )
+
+    command_context.run_process(
+        [
+            sys.executable,
+            mozpath.join(command_context.topsrcdir, "mach"),
+            "--log-no-times",
+            "build",
+            "export",
+        ]
+        + (["-v"] if verbose else []),
+        append_env=append_env,
+        pass_thru=False,
+        ensure_exit_code=True,
+        line_handler=line_handler,
+    )
+
+    for locale in locales:
+        command_context.log(
+            logging.INFO,
+            "repackage-single-locales",
+            {"locale": locale},
+            "Repackaging locale {locale}",
+        )
+
+        def line_handler(line):
+            command_context.log(
+                logging.INFO,
+                "repackage-single-locales",
+                {"locale": locale, "line": line},
+                "{locale}> {line}",
+            )
+
+        command_context.run_process(
+            [
+                sys.executable,
+                mozpath.join(command_context.topsrcdir, "mach"),
+                "--log-no-times",
+                "build",
+            ]
+            + (["-v"] if verbose else [])
+            + [
+                f"installers-{locale}",
+            ],
+            append_env=append_env,
+            pass_thru=False,
+            ensure_exit_code=True,
+            line_handler=line_handler,
+        )
+
+        append_env["UPLOAD_PATH"] = mozpath.join(dest, locale)
+
+        command_context._run_make(
+            directory=os.path.join(command_context.topobjdir),
+            target=["upload", f"AB_CD={locale}"],
+            append_env=append_env,
+            pass_thru=False,
+            print_directory=False,
+            ensure_exit_code=True,
+            silent=not verbose,
+            # We do our own logging.
+            log=False,
+            line_handler=line_handler,
+        )
+
+    return 0
+
+
 def _prepend_debugger_args(args, debugger, debugger_args):
     """
     Given an array with program arguments, prepend arguments to run it under a
