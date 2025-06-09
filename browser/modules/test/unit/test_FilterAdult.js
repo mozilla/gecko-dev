@@ -16,7 +16,6 @@ const { sinon } = ChromeUtils.importESModule(
   "resource://testing-common/Sinon.sys.mjs"
 );
 
-let originalPrefValue;
 const FILTER_ADULT_ENABLED_PREF =
   "browser.newtabpage.activity-stream.filterAdult";
 const TEST_ADULT_SITE_URL = "https://some-adult-site.com/";
