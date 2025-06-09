@@ -3757,6 +3757,20 @@ def repackage_single_locales(command_context, verbose=False, locales=[], dest=No
                 sys.executable,
                 mozpath.join(command_context.topsrcdir, "mach"),
                 "--log-no-times",
+                "configure",
+                f"--enable-ui-locale={locale}",
+            ],
+            append_env=append_env,
+            pass_thru=False,
+            ensure_exit_code=True,
+            line_handler=line_handler,
+        )
+
+        command_context.run_process(
+            [
+                sys.executable,
+                mozpath.join(command_context.topsrcdir, "mach"),
+                "--log-no-times",
                 "build",
             ]
             + (["-v"] if verbose else [])
