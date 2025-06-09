@@ -419,7 +419,7 @@ function OnLDBLoad() {
           gDebugger.dumpFramesInCSSPixels();
           break;
         case "menu_dumpTextRuns":
-          gDebugger.dumTextRuns();
+          gDebugger.dumpTextRuns();
           break;
         case "menu_dumpViews":
           gDebugger.dumpViews();
