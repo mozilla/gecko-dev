@@ -5452,7 +5452,7 @@ public class GeckoSession {
           disabled = choice.getBoolean("disabled");
           icon = choice.getString("icon");
           id = choice.getString("id");
-          label = choice.getString("label");
+          label = choice.getString("label", "");
           selected = choice.getBoolean("selected");
           separator = choice.getBoolean("separator");
 
