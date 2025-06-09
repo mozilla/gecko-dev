@@ -128,7 +128,7 @@ SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [ ["general.smoothScroll", false],
-           ["layout.disable-pixel-alignment", false] ]
+           ["layout.disable-pixel-alignment", true] ]
   });
   await doKeyEventTest("textarea");
   await doKeyEventTest("div[contenteditable]");
