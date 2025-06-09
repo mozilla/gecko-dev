@@ -357,6 +357,30 @@ class URLRendererTest {
     }
 
     @Test
+    fun `GIVEN a blob URI WHEN getting registrable domain or host span THEN domain span is returned`() {
+        runTestOnMain {
+            val span = getRegistrableDomainOrHostSpan(
+                url = "blob:https://www.mozilla.org/69a29afb-938c-4b9e-9fca-b2f79755047a",
+                publicSuffixList = PublicSuffixList(testContext, Dispatchers.Unconfined),
+            )
+
+            assertEquals(17 to 28, span)
+        }
+    }
+
+    @Test
+    fun `GIVEN a blob URI with duplicated blob prefix WHEN getting registrable domain or host span THEN null is returned`() {
+        runTestOnMain {
+            val span = getRegistrableDomainOrHostSpan(
+                url = "blob:blob:https://www.mozilla.org/69a29afb-938c-4b9e-9fca-b2f79755047a",
+                publicSuffixList = PublicSuffixList(testContext, Dispatchers.Unconfined),
+            )
+
+            assertNull(span)
+        }
+    }
+
+    @Test
     fun `GIVEN a simple URL WHEN rendering it THEN registrable domain is colored`() {
         runTestOnMain {
             testRenderWithColoredUrl(

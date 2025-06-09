@@ -22,6 +22,8 @@ import mozilla.components.lib.publicsuffixlist.PublicSuffixList
 import mozilla.components.support.ktx.android.net.isHttpOrHttps
 import mozilla.components.support.ktx.kotlin.isIpv4OrIpv6
 
+private const val BLOB_URL_PREFIX = "blob:"
+
 /**
  * Asynchronous URL renderer.
  *
@@ -133,6 +135,7 @@ internal suspend fun getRegistrableDomainSpanInHost(
  *
  * @param url The complete URL to analyze
  * @param publicSuffixList The [PublicSuffixList] used to get the eTLD+1 for the host
+ * @param allowBlobUnwrapping Whether to allow unwrapping blob URLs
  * @return A Pair of (startIndex, endIndex) for either:
  *         - The registrable domain's position within the URL, or
  *         - The host's position within the URL if no registrable domain was found, or
@@ -143,7 +146,21 @@ internal suspend fun getRegistrableDomainSpanInHost(
 internal suspend fun getRegistrableDomainOrHostSpan(
     url: String,
     publicSuffixList: PublicSuffixList,
+    allowBlobUnwrapping: Boolean = true,
 ): Pair<Int, Int>? {
+    if (url.startsWith(BLOB_URL_PREFIX)) {
+        if (!allowBlobUnwrapping) return null
+
+        val innerUrl = url.substring(BLOB_URL_PREFIX.length)
+        return getRegistrableDomainOrHostSpan(
+            innerUrl,
+            publicSuffixList,
+            allowBlobUnwrapping = false,
+        )?.let { (start, end) ->
+            BLOB_URL_PREFIX.length + start to BLOB_URL_PREFIX.length + end
+        }
+    }
+
     val uri = url.toUri()
     if (!uri.isHttpOrHttps) return null
 
