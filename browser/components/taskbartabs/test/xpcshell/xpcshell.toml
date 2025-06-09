@@ -1,7 +1,0 @@
-[DEFAULT]
-firefox-appdir = "browser"
-
-["test_TaskbarTabsRegistry.js"]
-support-files = [
-    "test_taskbarTabs.json",
-]
