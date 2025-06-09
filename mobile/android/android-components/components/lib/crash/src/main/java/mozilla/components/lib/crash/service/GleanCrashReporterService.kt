@@ -62,7 +62,10 @@ class GleanCrashReporterService(
     val context: Context,
     @get:VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal val file: File = File(context.applicationInfo.dataDir, CRASH_FILE_NAME),
-) : CrashTelemetryService {
+    private val appChannel: String? = null,
+    private val appVersion: String? = null,
+    private val appBuildId: String? = null,
+    ) : CrashTelemetryService {
     companion object {
         // This file is stored in the application's data directory, so it should be located in the
         // same location as the application.
@@ -298,10 +301,15 @@ class GleanCrashReporterService(
             @SerialName("java_exception")
             data class JavaException(
                 val throwableJson: JsonElement,
-                val breadcrumbs: List<Breadcrumb>? = null,
+                val appChannel: String? = null,
+                val appVersion: String? = null,
+                val appBuildId: String? = null,
             ) : PingCause() {
                 override fun setMetrics() {
                     GleanCrash.cause.set("java_exception")
+                    appChannel?.let { GleanCrash.appChannel.set(it) }
+                    appBuildId?.let { GleanCrash.appBuild.set(it) }
+                    appVersion?.let { GleanCrash.appDisplayVersion.set(it) }
                     GleanCrash.javaException.set(
                         Json.decodeFromJsonElement<GleanCrash.JavaExceptionObject>(throwableJson),
                     )
@@ -512,13 +520,19 @@ class GleanCrashReporterService(
 
     override fun record(crash: Crash.UncaughtExceptionCrash) {
         recordCrashAction(GleanCrashAction.Count(UNCAUGHT_EXCEPTION_KEY))
+
         recordCrashAction(
             GleanCrashAction.Ping(
                 uptimeNanos = uptime(),
                 processType = "main",
                 timeMillis = crash.timestamp,
                 reason = Pings.crashReasonCodes.crash,
-                cause = GleanCrashAction.PingCause.JavaException(crash.throwable.toJson()),
+                cause = GleanCrashAction.PingCause.JavaException(
+                    throwableJson = crash.throwable.toJson(),
+                    appChannel = appChannel,
+                    appVersion = appVersion,
+                    appBuildId = appBuildId,
+                ),
                 breadcrumbs = crash.breadcrumbs.map { it.toBreadcrumb() },
             ),
         )

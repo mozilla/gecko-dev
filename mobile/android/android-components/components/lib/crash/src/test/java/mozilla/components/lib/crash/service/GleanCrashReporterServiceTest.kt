@@ -795,4 +795,37 @@ class GleanCrashReporterServiceTest {
             assertTrue("Expected ping to be sent", pingReceived)
         }
     }
+
+    @Test
+    fun `GleanCrashReporterService exception crash pings have crash-time app information metrics`() {
+        val service = spy(
+            GleanCrashReporterService(
+                context,
+                appChannel = "channel",
+                appVersion = "version",
+                appBuildId = "buildid",
+            ),
+        )
+
+        val crash = Crash.UncaughtExceptionCrash(
+            12340000,
+            RuntimeException("Test", java.io.IOException("IO")),
+            arrayListOf(),
+        )
+
+        service.record(crash)
+
+        run {
+            var pingReceived = false
+            GleanPings.crash.testBeforeNextSubmit { _ ->
+                assertEquals("channel", GleanCrash.appChannel.testGetValue())
+                assertEquals("version", GleanCrash.appDisplayVersion.testGetValue())
+                assertEquals("buildid", GleanCrash.appBuild.testGetValue())
+                pingReceived = true
+            }
+
+            GleanCrashReporterService(context, appChannel = "intentionally-different")
+            assertTrue("Expected ping to be sent", pingReceived)
+        }
+    }
 }

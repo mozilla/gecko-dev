@@ -348,7 +348,14 @@ private fun createCrashReporter(context: Context): CrashReporter {
     return CrashReporter(
         context = context,
         services = services,
-        telemetryServices = listOf(GleanCrashReporterService(context)),
+        telemetryServices = listOf(
+            GleanCrashReporterService(
+                context,
+                appChannel = org.mozilla.geckoview.BuildConfig.MOZ_UPDATE_CHANNEL,
+                appVersion = org.mozilla.geckoview.BuildConfig.MOZ_APP_VERSION,
+                appBuildId = org.mozilla.geckoview.BuildConfig.MOZ_APP_BUILDID,
+            ),
+        ),
         promptConfiguration = CrashReporter.PromptConfiguration(
             appName = context.resources.getString(R.string.app_name),
         ),
