@@ -646,12 +646,13 @@ nsresult TRRServiceChannel::SetupTransaction() {
 
   EnsureRequestContext();
 
-  rv = mTransaction->Init(mCaps, mConnectionInfo, &mRequestHead, mUploadStream,
-                          mReqContentLength, LoadUploadStreamHasHeaders(),
-                          mCurrentEventTarget, callbacks, this, mBrowserId,
-                          HttpTrafficCategory::eInvalid, mRequestContext,
-                          mClassOfService, mInitialRwin,
-                          LoadResponseTimeoutEnabled(), mChannelId, nullptr);
+  rv = mTransaction->Init(
+      mCaps, mConnectionInfo, &mRequestHead, mUploadStream, mReqContentLength,
+      LoadUploadStreamHasHeaders(), mCurrentEventTarget, callbacks, this,
+      mBrowserId, HttpTrafficCategory::eInvalid, mRequestContext,
+      mClassOfService, mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
+      nullptr, nsILoadInfo::IPAddressSpace::Unknown,
+      dom::ContentPermissionRequestBase::PromptResult::Pending);
 
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;

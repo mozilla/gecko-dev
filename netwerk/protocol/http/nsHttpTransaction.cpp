@@ -171,7 +171,10 @@ nsresult nsHttpTransaction::Init(
     uint64_t browserId, HttpTrafficCategory trafficCategory,
     nsIRequestContext* requestContext, ClassOfService classOfService,
     uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
-    TransactionObserverFunc&& transactionObserver) {
+    TransactionObserverFunc&& transactionObserver,
+    nsILoadInfo::IPAddressSpace aParentIpAddressSpace,
+    const dom::ContentPermissionRequestBase::PromptResult
+        aLnaPermissionStatus) {
   nsresult rv;
 
   LOG1(("nsHttpTransaction::Init [this=%p caps=%x]\n", this, caps));
@@ -213,6 +216,9 @@ nsresult nsHttpTransaction::Init(
   mCallbacks = callbacks;
   mConsumerTarget = target;
   mCaps = caps;
+
+  mParentIPAddressSpace = aParentIpAddressSpace;
+  mLnaPermissionStatus = aLnaPermissionStatus;
   // eventsink is a nsHttpChannel when we expect "103 Early Hints" responses.
   // We expect it in document requests and not e.g. in TRR requests.
   mEarlyHintObserver = do_QueryInterface(eventsink);

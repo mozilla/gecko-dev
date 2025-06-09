@@ -12,6 +12,8 @@
 #include "mozilla/UniquePtr.h"
 #include "nsIClassOfService.h"
 #include "nsIEarlyHintObserver.h"
+#include "nsContentPermissionHelper.h"
+#include "nsILoadInfo.h"
 #include "nsISupports.h"
 #include "nsITransportSecurityInfo.h"
 #include "nsInputStreamPump.h"
@@ -80,7 +82,9 @@ class HttpTransactionShell : public nsISupports {
       HttpTrafficCategory trafficCategory, nsIRequestContext* requestContext,
       ClassOfService classOfService, uint32_t initialRwin,
       bool responseTimeoutEnabled, uint64_t channelId,
-      TransactionObserverFunc&& transactionObserver) = 0;
+      TransactionObserverFunc&& transactionObserver,
+      nsILoadInfo::IPAddressSpace aParentIPAddressSpace,
+      dom::ContentPermissionRequestBase::PromptResult aLnaPermissionStatus) = 0;
 
   // @param aListener
   //        receives notifications.
@@ -178,7 +182,10 @@ class HttpTransactionShell : public nsISupports {
       HttpTrafficCategory trafficCategory, nsIRequestContext* requestContext,  \
       ClassOfService classOfService, uint32_t initialRwin,                     \
       bool responseTimeoutEnabled, uint64_t channelId,                         \
-      TransactionObserverFunc&& transactionObserver) override;                 \
+      TransactionObserverFunc&& transactionObserver,                           \
+      nsILoadInfo::IPAddressSpace aParentIPAddressSpace,                       \
+      dom::ContentPermissionRequestBase::PromptResult aLnaPermissionStatus)    \
+      override;                                                                \
   virtual nsresult AsyncRead(nsIStreamListener* listener, nsIRequest** pump)   \
       override;                                                                \
   virtual UniquePtr<nsHttpResponseHead> TakeResponseHeadAndConnInfo(           \

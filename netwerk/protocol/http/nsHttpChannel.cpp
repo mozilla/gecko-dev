@@ -1856,7 +1856,8 @@ nsresult nsHttpChannel::InitTransaction() {
       LoadUploadStreamHasHeaders(), GetCurrentSerialEventTarget(), callbacks,
       this, mBrowserId, category, mRequestContext, mClassOfService,
       mInitialRwin, LoadResponseTimeoutEnabled(), mChannelId,
-      std::move(observer));
+      std::move(observer), mLoadInfo->GetParentIpAddressSpace(),
+      dom::ContentPermissionRequestBase::PromptResult::Pending);
   if (NS_FAILED(rv)) {
     mTransaction = nullptr;
     return rv;

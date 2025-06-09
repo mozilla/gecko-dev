@@ -92,7 +92,9 @@ nsresult HttpTransactionParent::Init(
     uint64_t browserId, HttpTrafficCategory trafficCategory,
     nsIRequestContext* requestContext, ClassOfService classOfService,
     uint32_t initialRwin, bool responseTimeoutEnabled, uint64_t channelId,
-    TransactionObserverFunc&& transactionObserver) {
+    TransactionObserverFunc&& transactionObserver,
+    nsILoadInfo::IPAddressSpace aParentIpAddressSpace,
+    dom::ContentPermissionRequestBase::PromptResult aLnaPermissionStatus) {
   LOG(("HttpTransactionParent::Init [this=%p caps=%x]\n", this, caps));
 
   if (!CanSend()) {
@@ -140,7 +142,8 @@ nsresult HttpTransactionParent::Init(
                 static_cast<uint8_t>(trafficCategory), requestContextID,
                 classOfService, initialRwin, responseTimeoutEnabled, mChannelId,
                 !!mTransactionObserver, throttleQueue, mIsDocumentLoad,
-                mRedirectStart, mRedirectEnd)) {
+                aParentIpAddressSpace, aLnaPermissionStatus, mRedirectStart,
+                mRedirectEnd)) {
     return NS_ERROR_FAILURE;
   }
 

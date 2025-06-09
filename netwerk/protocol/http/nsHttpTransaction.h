@@ -16,6 +16,7 @@
 #include "nsAHttpConnection.h"
 #include "nsAHttpTransaction.h"
 #include "nsCOMPtr.h"
+#include "nsContentPermissionHelper.h"
 #include "nsHttp.h"
 #include "nsIAsyncOutputStream.h"
 #include "nsIClassOfService.h"
@@ -477,6 +478,12 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   TimeDuration mPendingDurationTime;
 
   uint64_t mBrowserId{0};
+
+  // IP address space of the browsing context that triggered this request
+  nsILoadInfo::IPAddressSpace mParentIPAddressSpace{
+      nsILoadInfo::IPAddressSpace::Unknown};
+  dom::ContentPermissionRequestBase::PromptResult mLnaPermissionStatus{
+      dom::ContentPermissionRequestBase::PromptResult::Pending};
 
   // For Rate Pacing via an EventTokenBucket
  public:
