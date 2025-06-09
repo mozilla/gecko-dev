@@ -2943,8 +2943,6 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnStateChange(
 }
 
 mozilla::ipc::IPCResult BrowserParent::RecvOnProgressChange(
-    const WebProgressData& aWebProgressData, const RequestData& aRequestData,
-    const int32_t aCurSelfProgress, const int32_t aMaxSelfProgress,
     const int32_t aCurTotalProgress, const int32_t aMaxTotalProgress) {
   // We only collect progress change notifications for the toplevel
   // BrowserParent.
@@ -2955,21 +2953,13 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnProgressChange(
     return IPC_OK();
   }
 
-  RefPtr<CanonicalBrowsingContext> browsingContext;
-  nsCOMPtr<nsIRequest> request;
-  if (!ReceiveProgressListenerData(aWebProgressData, aRequestData,
-                                   getter_AddRefs(browsingContext),
-                                   getter_AddRefs(request))) {
-    return IPC_OK();
-  }
-
-  // NOTE: We intentionally deliver the notification to the toplevel
-  // BrowsingContext rather than browsingContext, as we capture progress change
-  // notifications only on the top content in nsDocShell (and totalProgress
-  // reflects this).
+  // NOTE: We always capture progress change notifications only in the top
+  // content in nsDocShell (totalProgress reflects this).
+  // NOTE: This notification was filtered by nsBrowserStatusFilter in the
+  // content process, so other arguments are unavailable. See comments in
+  // PBrowser.ipdl for more information.
   GetBrowsingContext()->GetWebProgress()->OnProgressChange(
-      browsingContext->GetWebProgress(), request, aCurSelfProgress,
-      aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress);
+      nullptr, nullptr, 0, 0, aCurTotalProgress, aMaxTotalProgress);
 
   return IPC_OK();
 }
@@ -3034,18 +3024,14 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnLocationChange(
 }
 
 mozilla::ipc::IPCResult BrowserParent::RecvOnStatusChange(
-    const WebProgressData& aWebProgressData, const RequestData& aRequestData,
-    nsresult aStatus, const nsString& aMessage) {
-  RefPtr<CanonicalBrowsingContext> browsingContext;
-  nsCOMPtr<nsIRequest> request;
-  if (!ReceiveProgressListenerData(aWebProgressData, aRequestData,
-                                   getter_AddRefs(browsingContext),
-                                   getter_AddRefs(request))) {
-    return IPC_OK();
-  }
-
-  if (auto* listener = browsingContext->GetWebProgress()) {
-    listener->OnStatusChange(listener, request, aStatus, aMessage.get());
+    const nsString& aMessage) {
+  // NOTE: As nsBrowserStatusFilter discarded which BrowsingContext the status
+  // change was delivered to, we always deliver to the root BrowsingContext.
+  if (auto* listener = GetBrowsingContext()->Top()->GetWebProgress()) {
+    // NOTE: This notification was filtered by nsBrowserStatusFilter in the
+    // content process, so other arguments are unavailable. See comments in
+    // PBrowser.ipdl for more information.
+    listener->OnStatusChange(nullptr, nullptr, NS_OK, aMessage.get());
   }
 
   return IPC_OK();

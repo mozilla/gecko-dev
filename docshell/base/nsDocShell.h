@@ -74,6 +74,7 @@ class nsIWebBrowserFind;
 class nsIWidget;
 class nsIReferrerInfo;
 
+class nsBrowserStatusFilter;
 class nsCommandManager;
 class nsDocShellEditorData;
 class nsDOMNavigationTiming;
@@ -1187,6 +1188,7 @@ class nsDocShell final : public nsDocLoader,
   nsCOMPtr<nsIWebBrowserFind> mFind;
   RefPtr<nsCommandManager> mCommandManager;
   RefPtr<mozilla::dom::BrowsingContext> mBrowsingContext;
+  RefPtr<nsBrowserStatusFilter> mBCWebProgressStatusFilter;
 
   // Weak reference to our BrowserChild actor.
   nsWeakPtr mBrowserChild;

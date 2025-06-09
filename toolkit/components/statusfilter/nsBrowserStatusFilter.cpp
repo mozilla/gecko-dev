@@ -14,7 +14,7 @@ using namespace mozilla;
 // nsBrowserStatusFilter <public>
 //-----------------------------------------------------------------------------
 
-nsBrowserStatusFilter::nsBrowserStatusFilter()
+nsBrowserStatusFilter::nsBrowserStatusFilter(bool aDisableStateChangeFilters)
     : mTarget(GetMainThreadSerialEventTarget()),
       mCurProgress(0),
       mMaxProgress(0),
@@ -22,7 +22,8 @@ nsBrowserStatusFilter::nsBrowserStatusFilter()
       mStatusIsDirty(true),
       mIsLoadingDocument(false),
       mDelayedStatus(false),
-      mDelayedProgress(false) {}
+      mDelayedProgress(false),
+      mDisableStateChangeFilters(aDisableStateChangeFilters) {}
 
 nsBrowserStatusFilter::~nsBrowserStatusFilter() {
   if (mTimer) {
@@ -164,7 +165,8 @@ nsBrowserStatusFilter::OnStateChange(nsIWebProgress* aWebProgress,
   }
 
   // Only notify listener for STATE_IS_NETWORK or STATE_IS_REDIRECTED_DOCUMENT
-  if (aStateFlags & STATE_IS_NETWORK ||
+  // unless mDisableStateChangeFilters is set.
+  if (mDisableStateChangeFilters || aStateFlags & STATE_IS_NETWORK ||
       aStateFlags & STATE_IS_REDIRECTED_DOCUMENT) {
     return mListener->OnStateChange(aWebProgress, aRequest, aStateFlags,
                                     aStatus);

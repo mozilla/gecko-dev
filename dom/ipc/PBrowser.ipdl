@@ -532,12 +532,14 @@ parent:
                            bool aCanGoForward,
                            WebProgressLocationChangeData? aLocationChangeData);
 
-    async OnProgressChange(WebProgressData aWebProgressData, RequestData aRequestData,
-                           int32_t aCurSelfProgress, int32_t aMaxSelfProgress,
-                           int32_t aCurTotalProgress, int32_t aMaxTotalProgress);
-
-    async OnStatusChange(WebProgressData aWebProgressData, RequestData aRequestData,
-                         nsresult aStatus, nsString aMessage);
+    // NOTE: ProgressChange and StatusChange notifications here are throttled by
+    // nsBrowserStatusFilter, which passes meaningless values for all other
+    // arguments.
+    //
+    // This throttling is required to avoid sending every status and progress
+    // notification, which can lead to performance issues (bug 1970073).
+    async OnProgressChange(int32_t aCurTotalProgress, int32_t aMaxTotalProgress);
+    async OnStatusChange(nsString aMessage);
 
     async NotifyContentBlockingEvent(uint32_t aEvent, RequestData aRequestData,
                                      bool aBlocked, nsCString aTrackingOrigin,

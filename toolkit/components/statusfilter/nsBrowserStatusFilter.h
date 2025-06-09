@@ -24,7 +24,7 @@ class nsBrowserStatusFilter : public nsIWebProgress,
                               public nsIWebProgressListener2,
                               public nsSupportsWeakReference {
  public:
-  nsBrowserStatusFilter();
+  explicit nsBrowserStatusFilter(bool aDisableStateChangeFilters = false);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsBrowserStatusFilter,
@@ -64,6 +64,9 @@ class nsBrowserStatusFilter : public nsIWebProgress,
   // indicates whether a timeout is pending
   bool mDelayedStatus;
   bool mDelayedProgress;
+
+  // If set to `true`, performs no filtering on StateChange notifications.
+  bool mDisableStateChangeFilters;
 };
 
 #define NS_BROWSERSTATUSFILTER_CONTRACTID \

@@ -190,6 +190,7 @@
 
 #include "nsArray.h"
 #include "nsArrayUtils.h"
+#include "nsBrowserStatusFilter.h"
 #include "nsCExternalHandlerService.h"
 #include "nsContentDLF.h"
 #include "nsContentPolicyUtils.h"  // NS_CheckContentLoadPolicy(...)
@@ -563,7 +564,8 @@ void nsDocShell::DestroyChildren() {
 NS_IMPL_CYCLE_COLLECTION_WEAK_PTR_INHERITED(nsDocShell, nsDocLoader,
                                             mScriptGlobal, mInitialClientSource,
                                             mBrowsingContext,
-                                            mChromeEventHandler)
+                                            mChromeEventHandler,
+                                            mBCWebProgressStatusFilter)
 
 NS_IMPL_ADDREF_INHERITED(nsDocShell, nsDocLoader)
 NS_IMPL_RELEASE_INHERITED(nsDocShell, nsDocLoader)
@@ -4541,6 +4543,8 @@ nsDocShell::Destroy() {
 
   mChromeEventHandler = nullptr;
 
+  mBCWebProgressStatusFilter = nullptr;
+
   // Cancel any timers that were set for this docshell; this is needed
   // to break the cycle between us and the timers.
   CancelRefreshURITimers();
@@ -5890,11 +5894,36 @@ nsDocShell::OnContentBlockingEvent(nsIWebProgress* aWebProgress,
 }
 
 already_AddRefed<nsIWebProgressListener> nsDocShell::BCWebProgressListener() {
-  if (XRE_IsParentProcess()) {
-    return do_AddRef(mBrowsingContext->Canonical()->GetWebProgress());
+  // If this BrowsingContext has been replaced, we should discard any
+  // notifications which would otherwise be delivered in-process.
+  if (XRE_IsParentProcess() && mBrowsingContext->Canonical()->IsReplaced()) {
+    return nullptr;
   }
-  nsCOMPtr<nsIWebProgressListener> bc = do_QueryReferent(mBrowserChild);
-  return bc.forget();
+
+  // Create a nsBrowserStatusFilter to perform some throttling of
+  // OnProgressChange and OnStatusChange notifications which are delivered to
+  // our BCWebProgress listener. This reduces the amount of IPC traffic.
+  if (!mBCWebProgressStatusFilter && !mIsBeingDestroyed) {
+    nsCOMPtr<nsIWebProgressListener> innerListener;
+    if (XRE_IsParentProcess()) {
+      innerListener = mBrowsingContext->Canonical()->GetWebProgress();
+    } else {
+      innerListener = do_QueryReferent(mBrowserChild);
+    }
+    if (innerListener) {
+      // NOTE: We need to disable filtering of StateChange events here, as
+      // listeners on BrowsingContextWebProgress may depend on state change
+      // notifications are otherwise filtered.
+      // NOTE: Unlike other nsIWebProgress types, nsBrowserStatusFilter holds a
+      // strong cycle-collected reference to the inner listener.
+      mBCWebProgressStatusFilter =
+          new nsBrowserStatusFilter(/* aDisableStateChangeFilters */ true);
+      mBCWebProgressStatusFilter->AddProgressListener(
+          innerListener, nsIWebProgress::NOTIFY_ALL);
+    }
+  }
+
+  return do_AddRef(mBCWebProgressStatusFilter);
 }
 
 already_AddRefed<nsIURIFixupInfo> nsDocShell::KeywordToURI(

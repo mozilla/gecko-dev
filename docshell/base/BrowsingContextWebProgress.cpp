@@ -149,10 +149,11 @@ already_AddRefed<nsIWebProgress> BrowsingContextWebProgress::ResolveWebProgress(
   // BrowsingContextWebProgress object.
   nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aWebProgress);
   if (docShell && docShell->GetBrowsingContext()) {
-    RefPtr<BrowsingContextWebProgress> progress =
-        docShell->GetBrowsingContext()->Canonical()->GetWebProgress();
-    aWebProgress->GetLoadType(&progress->mLoadType);
-    return progress.forget();
+    if (RefPtr<BrowsingContextWebProgress> progress =
+            docShell->GetBrowsingContext()->Canonical()->GetWebProgress()) {
+      aWebProgress->GetLoadType(&progress->mLoadType);
+      return progress.forget();
+    }
   }
 
   return do_AddRef(aWebProgress);
