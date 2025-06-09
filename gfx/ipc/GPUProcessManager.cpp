@@ -1560,12 +1560,12 @@ LayersId GPUProcessManager::AllocateLayerTreeId() {
 // For now this is only used for view-transition snapshots of the old state,
 // it's probably best to avoid using this for anything else.
 wr::PipelineId GetTemporaryWebRenderPipelineId(wr::PipelineId aMainPipeline) {
-    // Sanity check that we are have the expected even number for
-    // the main pipeline handle.
-    MOZ_ASSERT(aMainPipeline.mHandle % 2 == 0);
-    auto id = aMainPipeline;
-    id.mHandle += 1;
-    return id;
+  // Sanity check that we are have the expected even number for
+  // the main pipeline handle.
+  MOZ_ASSERT(aMainPipeline.mHandle % 2 == 0);
+  auto id = aMainPipeline;
+  id.mHandle += 1;
+  return id;
 }
 
 uint32_t GPUProcessManager::AllocateNamespace() {
