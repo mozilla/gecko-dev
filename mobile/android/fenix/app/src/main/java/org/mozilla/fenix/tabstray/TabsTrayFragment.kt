@@ -63,6 +63,8 @@ import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeScreenViewModel
+import org.mozilla.fenix.lifecycle.registerForVerification
+import org.mozilla.fenix.lifecycle.verifyUser
 import org.mozilla.fenix.navigation.DefaultNavControllerProvider
 import org.mozilla.fenix.navigation.NavControllerProvider
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -96,7 +98,10 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     private lateinit var tabsTrayController: DefaultTabsTrayController
     private lateinit var navigationInteractor: DefaultNavigationInteractor
     private lateinit var enablePbmPinLauncher: ActivityResultLauncher<Intent>
-    private lateinit var unlockPrivateTabsPinLauncher: ActivityResultLauncher<Intent>
+
+    @VisibleForTesting
+    internal var verificationResultLauncher: ActivityResultLauncher<Intent> =
+        registerForVerification(onVerified = ::openPrivateTabsPage)
 
     @VisibleForTesting internal lateinit var tabsTrayStore: TabsTrayStore
 
@@ -152,11 +157,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             onFailure = {
                 PrivateBrowsingLocked.authFailure.record()
             },
-        )
-
-        unlockPrivateTabsPinLauncher = registerForActivityResult(
-            onSuccess = { onUnlockPrivateTabsSuccess() },
-            onFailure = { onUnlockPrivateTabsFailure() },
         )
 
         tabsTrayStore = StoreProvider.get(this) {
@@ -809,18 +809,6 @@ class TabsTrayFragment : AppCompatDialogFragment() {
         dismissAllowingStateLoss()
     }
 
-    private fun onUnlockPrivateTabsSuccess() {
-        PrivateBrowsingLocked.authSuccess.record()
-
-        tabsTrayInteractor.onTrayPositionSelected(Page.PrivateTabs.ordinal, false)
-
-        requireComponents.privateBrowsingLockFeature.onSuccessfulAuthentication()
-    }
-
-    private fun onUnlockPrivateTabsFailure() {
-        PrivateBrowsingLocked.authFailure.record()
-    }
-
     @VisibleForTesting
     internal fun onTabPageClick(
         biometricAuthenticationNeededInfo: BiometricAuthenticationNeededInfo =
@@ -836,12 +824,10 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             biometricAuthenticationNeededInfo.authenticationStatus =
                 AuthenticationStatus.AUTHENTICATION_IN_PROGRESS
 
-            biometricUtils.bindBiometricsCredentialsPromptOrShowWarning(
-                view = requireView(),
-                onShowPinVerification = { intent -> unlockPrivateTabsPinLauncher.launch(intent) },
-                onAuthSuccess = ::onUnlockPrivateTabsSuccess,
-                onAuthFailure = ::onUnlockPrivateTabsFailure,
-                titleRes = R.string.pbm_authentication_unlock_private_tabs,
+            verifyUser(
+                biometricUtils = biometricUtils,
+                fallbackVerification = verificationResultLauncher,
+                onVerified = ::openPrivateTabsPage,
             )
         } else {
             // Reset authentication state when leaving PBM
@@ -852,6 +838,10 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             }
             tabsTrayInteractor.onTrayPositionSelected(page.ordinal, false)
         }
+    }
+
+    private fun openPrivateTabsPage() {
+        tabsTrayInteractor.onTrayPositionSelected(Page.PrivateTabs.ordinal, false)
     }
 
     /**
