@@ -4957,7 +4957,9 @@ function TrendingSearches() {
       data: !collapsed
     }));
   }
-  if (variant === "a") {
+  if (!suggestions?.length) {
+    return null;
+  } else if (variant === "a") {
     return /*#__PURE__*/external_React_default().createElement("section", {
       className: "trending-searches-pill-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("div", {
@@ -13327,8 +13329,6 @@ class _Search extends (external_React_default()).PureComponent {
     this.onInputMount = this.onInputMount.bind(this);
     this.onInputMountHandoff = this.onInputMountHandoff.bind(this);
     this.onSearchHandoffButtonMount = this.onSearchHandoffButtonMount.bind(this);
-    this.trendingSearchEnabled = this.props.Prefs.values["trendingSearch.enabled"];
-    this.trendingSearchVariant = this.props.Prefs.values["trendingSearch.variant"];
   }
   handleEvent(event) {
     // Also track search events with our own telemetry
@@ -13441,6 +13441,8 @@ class _Search extends (external_React_default()).PureComponent {
    */
   render() {
     const wrapperClassName = ["search-wrapper", this.props.disable && "search-disabled", this.props.fakeFocus && "fake-focus"].filter(v => v).join(" ");
+    const trendingSearchEnabled = this.props.Prefs.values["trendingSearch.enabled"];
+    const trendingSearchVariant = this.props.Prefs.values["trendingSearch.variant"];
     return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("div", {
       className: wrapperClassName
     }, this.props.showLogo && /*#__PURE__*/external_React_default().createElement(Logo, null), !this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
@@ -13456,7 +13458,7 @@ class _Search extends (external_React_default()).PureComponent {
       className: "search-button",
       "data-l10n-id": "newtab-search-box-search-button",
       onClick: this.onSearchClick
-    }), this.trendingSearchEnabled && this.trendingSearchVariant === "a" && /*#__PURE__*/external_React_default().createElement(TrendingSearches, null)), this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
+    }), trendingSearchEnabled && trendingSearchVariant === "a" && /*#__PURE__*/external_React_default().createElement(TrendingSearches, null)), this.props.handoffEnabled && /*#__PURE__*/external_React_default().createElement("div", {
       className: "search-inner-wrapper"
     }, /*#__PURE__*/external_React_default().createElement("button", {
       className: "search-handoff-button",
@@ -13478,7 +13480,7 @@ class _Search extends (external_React_default()).PureComponent {
       ref: el => {
         this.fakeCaret = el;
       }
-    })), this.trendingSearchEnabled && this.trendingSearchVariant === "a" && /*#__PURE__*/external_React_default().createElement(TrendingSearches, null))));
+    })), trendingSearchEnabled && trendingSearchVariant === "a" && /*#__PURE__*/external_React_default().createElement(TrendingSearches, null))));
   }
 }
 const Search_Search = (0,external_ReactRedux_namespaceObject.connect)(state => ({

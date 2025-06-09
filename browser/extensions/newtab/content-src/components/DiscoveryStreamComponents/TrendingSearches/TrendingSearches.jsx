@@ -25,7 +25,9 @@ function TrendingSearches() {
     );
   }
 
-  if (variant === "a") {
+  if (!suggestions?.length) {
+    return null;
+  } else if (variant === "a") {
     return (
       <section className="trending-searches-pill-wrapper">
         <div className="trending-searches-title-wrapper">

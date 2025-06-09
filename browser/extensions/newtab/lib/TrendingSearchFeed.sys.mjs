@@ -79,7 +79,7 @@ export class TrendingSearchFeed {
 
   update() {
     this.store.dispatch(
-      ac.AlsoToPreloaded({
+      ac.BroadcastToContent({
         type: at.TRENDING_SEARCH_UPDATE,
         data: this.suggestions,
       })
