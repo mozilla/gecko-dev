@@ -143,10 +143,12 @@ h2 {
   max-width: var(--page-main-content-width);
 }
 
-search-addons > search-textbox {
-  margin: 0;
-  width: 20em;
-  min-height: 32px;
+search-addons {
+  display: inline-flex;
+
+  > moz-button {
+    margin-inline-start: var(--space-xsmall);
+  }
 }
 
 .search-label {

@@ -17,8 +17,7 @@ import MozInputText from "chrome://global/content/elements/moz-input-text.mjs";
  * @property {string} description - The text for the description element that helps describe the input control
  * @property {string} supportPage - Name of the SUMO support page to link to.
  * @property {string} placeholder - Text to display when the input has no value.
- * @property {string} ariaLabel
- *  The aria-label text for cases where there is no visible label.
+ * @property {string} ariaLabel - The aria-label text for cases where there is no visible label.
  */
 export default class MozInputSearch extends MozInputText {
   // The amount of milliseconds that we wait before firing the "search" event.
@@ -69,11 +68,16 @@ export default class MozInputSearch extends MozInputText {
     }
   }
 
+  #hasIcon() {
+    // If unspecified, search inputs still have a default search icon.
+    return this.iconSrc === undefined || !!this.iconSrc;
+  }
+
   inputTemplate() {
     return html`
       <input
         id="input"
-        class="with-icon"
+        class=${this.#hasIcon() ? "with-icon" : ""}
         type="search"
         name=${this.name}
         value=${this.value}

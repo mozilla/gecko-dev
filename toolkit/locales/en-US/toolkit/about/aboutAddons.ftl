@@ -540,6 +540,9 @@ shortcuts-heading = Manage Extension Shortcuts
 default-heading-search-label = Find more add-ons
 addons-heading-search-input =
     .placeholder = Search addons.mozilla.org
+addons-heading-search-button =
+    .title = Search addons.mozilla.org
+    .aria-label = Search addons.mozilla.org
 
 addon-page-options-button =
     .title = Tools for all add-ons
