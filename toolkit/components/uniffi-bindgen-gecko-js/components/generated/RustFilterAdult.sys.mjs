@@ -282,154 +282,7 @@ class FfiConverterArrayBuffer extends FfiConverter {
 const uniffiObjectPtr = Symbol("uniffiObjectPtr");
 const constructUniffiObject = Symbol("constructUniffiObject");
 UnitTestObjs.uniffiObjectPtr = uniffiObjectPtr;
-/**
- * roundtripExtCustomType
- * @param {Handle} custom
- * @returns {Handle}
- */
-export function roundtripExtCustomType(
-    custom) {
-   
-if (custom instanceof UniffiSkipJsTypeCheck) {
-    custom = custom.value;
-} else {
-    FfiConverterTypeHandle.checkType(custom);
-}
-const result = UniFFIScaffolding.callSync(
-    197, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_custom_type
-    FfiConverterTypeHandle.lower(custom),
-)
-return handleRustResult(
-    result,
-    FfiConverterTypeHandle.lift.bind(FfiConverterTypeHandle),
-    null,
-)
-}
 
-/**
- * roundtripExtEnum
- * @param {EnumWithData} en
- * @returns {EnumWithData}
- */
-export function roundtripExtEnum(
-    en) {
-   
-if (en instanceof UniffiSkipJsTypeCheck) {
-    en = en.value;
-} else {
-    FfiConverterTypeEnumWithData.checkType(en);
-}
-const result = UniFFIScaffolding.callSync(
-    198, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_enum
-    FfiConverterTypeEnumWithData.lower(en),
-)
-return handleRustResult(
-    result,
-    FfiConverterTypeEnumWithData.lift.bind(FfiConverterTypeEnumWithData),
-    null,
-)
-}
-
-/**
- * roundtripExtInterface
- * @param {TestInterface} int
- * @returns {TestInterface}
- */
-export function roundtripExtInterface(
-    int) {
-   
-if (int instanceof UniffiSkipJsTypeCheck) {
-    int = int.value;
-} else {
-    FfiConverterTypeTestInterface.checkType(int);
-}
-const result = UniFFIScaffolding.callSync(
-    199, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_interface
-    FfiConverterTypeTestInterface.lower(int),
-)
-return handleRustResult(
-    result,
-    FfiConverterTypeTestInterface.lift.bind(FfiConverterTypeTestInterface),
-    null,
-)
-}
-
-/**
- * roundtripExtRecord
- * @param {SimpleRec} rec
- * @returns {SimpleRec}
- */
-export function roundtripExtRecord(
-    rec) {
-   
-if (rec instanceof UniffiSkipJsTypeCheck) {
-    rec = rec.value;
-} else {
-    FfiConverterTypeSimpleRec.checkType(rec);
-}
-const result = UniFFIScaffolding.callSync(
-    200, // uniffi_uniffi_bindings_tests_external_types_fn_func_roundtrip_ext_record
-    FfiConverterTypeSimpleRec.lower(rec),
-)
-return handleRustResult(
-    result,
-    FfiConverterTypeSimpleRec.lift.bind(FfiConverterTypeSimpleRec),
-    null,
-)
-}
-
-
-import {
-  FfiConverterTypeHandle,
-} from "./RustUniffiBindingsTests.sys.mjs";
-
-// Export the FFIConverter object to make external types work.
-export { FfiConverterTypeHandle };
-// Export the FFIConverter object to make external types work.
-export class FfiConverterUInt64 extends FfiConverter {
-    static checkType(value) {
-        super.checkType(value);
-        if (!Number.isSafeInteger(value)) {
-            throw new UniFFITypeError(`${value} exceeds the safe integer bounds`);
-        }
-        if (value < 0) {
-            throw new UniFFITypeError(`${value} exceeds the U64 bounds`);
-        }
-    }
-    static computeSize(_value) {
-        return 8;
-    }
-    static lift(value) {
-        return value;
-    }
-    static lower(value) {
-        return value;
-    }
-    static write(dataStream, value) {
-        dataStream.writeUint64(value)
-    }
-    static read(dataStream) {
-        return dataStream.readUint64()
-    }
-}
-import {
-  FfiConverterTypeEnumWithData,
-} from "./RustUniffiBindingsTests.sys.mjs";
-
-// Export the FFIConverter object to make external types work.
-export { FfiConverterTypeEnumWithData };
-import {
-  FfiConverterTypeTestInterface,
-} from "./RustUniffiBindingsTests.sys.mjs";
-
-// Export the FFIConverter object to make external types work.
-export { FfiConverterTypeTestInterface };
-import {
-  FfiConverterTypeSimpleRec,
-} from "./RustUniffiBindingsTests.sys.mjs";
-
-// Export the FFIConverter object to make external types work.
-export { FfiConverterTypeSimpleRec };
 // Export the FFIConverter object to make external types work.
 export class FfiConverterString extends FfiConverter {
     static checkType(value) {
@@ -459,12 +312,198 @@ export class FfiConverterString extends FfiConverter {
         return 4 + lazy.encoder.encode(value).length
     }
 }
-// Wrapper to skip type checking for function arguments
-//
-// This is only defined and used on test fixtures.  The goal is to skip the JS type checking so that
-// we can test the lower-level C++ type checking.
-export class UniffiSkipJsTypeCheck {
-    constructor(value) {
-        this.value = value;
+
+/**
+ * Public error class
+ */
+export class ApiError extends Error {}
+
+
+/**
+ * Other
+ */
+export class Other extends ApiError {
+
+    constructor(
+        reason,
+        ...params
+    ) {
+        const message = `reason: ${ reason }`;
+        super(message, ...params);
+        this.reason = reason;
+    }
+    toString() {
+        return `Other: ${super.toString()}`
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeApiError extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        switch (dataStream.readInt32()) {
+            case 1:
+                return new Other(
+                    FfiConverterString.read(dataStream)
+                    );
+            default:
+                throw new UniFFITypeError("Unknown ApiError variant");
+        }
+    }
+    static computeSize(value) {
+        // Size of the Int indicating the variant
+        let totalSize = 4;
+        if (value instanceof Other) {
+            totalSize += FfiConverterString.computeSize(value.reason);
+            return totalSize;
+        }
+        throw new UniFFITypeError("Unknown ApiError variant");
+    }
+    static write(dataStream, value) {
+        if (value instanceof Other) {
+            dataStream.writeInt32(1);
+            FfiConverterString.write(dataStream, value.reason);
+            return;
+        }
+        throw new UniFFITypeError("Unknown ApiError variant");
+    }
+
+    static errorClass = ApiError;
+}
+// Export the FFIConverter object to make external types work.
+export class FfiConverterBoolean extends FfiConverter {
+    static computeSize(_value) {
+        return 1;
+    }
+    static lift(value) {
+        return value == 1;
+    }
+    static lower(value) {
+        if (value) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+    static write(dataStream, value) {
+        dataStream.writeUint8(this.lower(value))
+    }
+    static read(dataStream) {
+        return this.lift(dataStream.readUint8())
+    }
+}
+/**
+ * FilterAdultComponent
+ */
+export class FilterAdultComponent {
+    // Use `init` to instantiate this class.
+    // DO NOT USE THIS CONSTRUCTOR DIRECTLY
+    constructor(opts) {
+        if (!Object.prototype.hasOwnProperty.call(opts, constructUniffiObject)) {
+            throw new UniFFIError("Attempting to construct an int using the JavaScript constructor directly" +
+            "Please use a UDL defined constructor, or the init function for the primary constructor")
+        }
+        if (!(opts[constructUniffiObject] instanceof UniFFIPointer)) {
+            throw new UniFFIError("Attempting to create a UniFFI object with a pointer that is not an instance of UniFFIPointer")
+        }
+        this[uniffiObjectPtr] = opts[constructUniffiObject];
+    }
+    /**
+     * Construct a new FilterAdultComponent
+     * @returns {FilterAdultComponent}
+     */
+    static init() {
+       
+        const result = UniFFIScaffolding.callSync(
+            7, // uniffi_filter_adult_fn_constructor_filteradultcomponent_new
+        )
+        return handleRustResult(
+            result,
+            FfiConverterTypeFilterAdultComponent.lift.bind(FfiConverterTypeFilterAdultComponent),
+            FfiConverterTypeApiError.lift.bind(FfiConverterTypeApiError),
+        )
+    }
+
+    /**
+     * Check if a URL is in the adult domain list
+     * @param {string} baseDomainToCheck
+     * @returns {boolean}
+     */
+    contains(
+        baseDomainToCheck) {
+       
+        FfiConverterString.checkType(baseDomainToCheck);
+        const result = UniFFIScaffolding.callSync(
+            8, // uniffi_filter_adult_fn_method_filteradultcomponent_contains
+            FfiConverterTypeFilterAdultComponent.lowerReceiver(this),
+            FfiConverterString.lower(baseDomainToCheck),
+        )
+        return handleRustResult(
+            result,
+            FfiConverterBoolean.lift.bind(FfiConverterBoolean),
+            FfiConverterTypeApiError.lift.bind(FfiConverterTypeApiError),
+        )
+    }
+
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterTypeFilterAdultComponent extends FfiConverter {
+    static lift(value) {
+        const opts = {};
+        opts[constructUniffiObject] = value;
+        return new FilterAdultComponent(opts);
+    }
+
+    static lower(value) {
+        const ptr = value[uniffiObjectPtr];
+        if (!(ptr instanceof UniFFIPointer)) {
+            throw new UniFFITypeError("Object is not a 'FilterAdultComponent' instance");
+        }
+        return ptr;
+    }
+
+    static lowerReceiver(value) {
+        // This works exactly the same as lower for non-trait interfaces
+        return this.lower(value);
+    }
+
+    static read(dataStream) {
+        return this.lift(dataStream.readPointer(2));
+    }
+
+    static write(dataStream, value) {
+        dataStream.writePointer(2, this.lower(value));
+    }
+
+    static computeSize(value) {
+        return 8;
+    }
+}
+
+// Export the FFIConverter object to make external types work.
+export class FfiConverterUInt8 extends FfiConverter {
+    static checkType(value) {
+        super.checkType(value);
+        if (!Number.isInteger(value)) {
+            throw new UniFFITypeError(`${value} is not an integer`);
+        }
+        if (value < 0 || value > 256) {
+            throw new UniFFITypeError(`${value} exceeds the U8 bounds`);
+        }
+    }
+    static computeSize(_value) {
+        return 1;
+    }
+    static lift(value) {
+        return value;
+    }
+    static lower(value) {
+        return value;
+    }
+    static write(dataStream, value) {
+        dataStream.writeUint8(value)
+    }
+    static read(dataStream) {
+        return dataStream.readUint8()
     }
 }

@@ -6,6 +6,7 @@
 
 MOZ_SRC_FILES += [
     "generated/RustContextId.sys.mjs",
+    "generated/RustFilterAdult.sys.mjs",
     "generated/RustRelevancy.sys.mjs",
     "generated/RustRemoteSettings.sys.mjs",
     "generated/RustSearch.sys.mjs",
