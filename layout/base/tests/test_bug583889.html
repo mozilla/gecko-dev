@@ -27,7 +27,7 @@ function* runTest() {
   yield;
 
   SpecialPowers.pushPrefEnv({
-    set: [ ["layout.scroll.disable-pixel-alignment", true] ]
+    set: [ ["layout.disable-pixel-alignment", true] ]
   }).then(grabEventAndGo);
   // Wait for the pref change.
   yield;

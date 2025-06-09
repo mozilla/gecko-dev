@@ -74,7 +74,7 @@ if (isApzEnabled()) {
   SimpleTest.waitForExplicitFinish();
   pushPrefs([
     ["apz.displayport_expiry_ms", 0],
-    ["layout.scroll.disable-pixel-alignment", true],
+    ["layout.disable-pixel-alignment", true],
   ])
   .then(waitUntilApzStable)
   .then(test)

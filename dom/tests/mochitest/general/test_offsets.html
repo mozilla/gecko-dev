@@ -92,7 +92,7 @@ SimpleTest.waitForExplicitFinish();
 
 window.onload = async () => {
   await SpecialPowers.pushPrefEnv({
-    set: [ ["layout.scroll.disable-pixel-alignment", true] ]
+    set: [ ["layout.disable-pixel-alignment", true] ]
   });
   setTimeout(testElements, 0, 'testelements', SimpleTest.finish);
 };

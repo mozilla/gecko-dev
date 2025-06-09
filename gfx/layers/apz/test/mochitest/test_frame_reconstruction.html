@@ -208,7 +208,7 @@ async function test() {
 if (isApzEnabled()) {
   SimpleTest.waitForExplicitFinish();
   SimpleTest.expectAssertions(0, 1); // this test triggers an assertion, see bug 1247050
-  SpecialPowers.pushPrefEnv({ set: [ ["layout.scroll.disable-pixel-alignment", true] ]})
+  SpecialPowers.pushPrefEnv({ set: [ ["layout.disable-pixel-alignment", true] ]})
   .then(waitUntilApzStable)
   .then(test)
   .then(SimpleTest.finish, SimpleTest.finishWithFailure);
