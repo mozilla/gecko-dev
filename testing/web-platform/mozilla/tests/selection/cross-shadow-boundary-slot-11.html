@@ -1,0 +1,17 @@
+<head>
+<link rel="match" href="cross-shadow-boundary-slot-11-ref.html"/>
+</head>
+<span id="start">Start</span>
+<div>
+  <slot>
+    <div id="host">
+      <template shadowrootmode="open">
+        <slot></slot>
+      </template>
+      <span id="end">End</span>
+    </div>
+  </slot>
+</div>
+<script>
+  window.getSelection().setBaseAndExtent(start.firstChild, 2, end.firstChild, 2);
+</script>
