@@ -502,7 +502,9 @@ def run_cppunit_test(command_context, **params):
         )
 
         verify_android_device(command_context, install=InstallIntent.NO)
-        return run_android_test(tests, symbols_path, manifest_path, log)
+        return run_android_test(
+            command_context, tests, symbols_path, manifest_path, log
+        )
 
     return run_desktop_test(
         command_context, tests, symbols_path, manifest_path, utility_path, log
@@ -549,9 +551,9 @@ def run_android_test(command_context, tests, symbols_path, manifest_path, log):
     options.symbols_path = symbols_path
     options.manifest_path = manifest_path
     options.xre_path = command_context.bindir
-    options.local_lib = command_context.bindir.replace("bin", "fennec")
+    options.local_lib = command_context.bindir.replace("bin", "geckoview")
     for file in os.listdir(os.path.join(command_context.topobjdir, "dist")):
-        if file.endswith(".apk") and file.startswith("fennec"):
+        if file.endswith(".apk") and file.startswith("geckoview"):
             options.local_apk = os.path.join(command_context.topobjdir, "dist", file)
             log.info("using APK: " + options.local_apk)
             break
