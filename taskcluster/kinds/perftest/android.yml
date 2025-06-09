@@ -94,6 +94,7 @@ hw-a55-aarch64-shippable-startup-fenix-newssite-applink-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
@@ -131,6 +132,7 @@ hw-p6-aarch64-shippable-startup-fenix-newssite-applink-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-p6-13-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
@@ -168,6 +170,7 @@ hw-s24-aarch64-shippable-startup-fenix-newssite-applink-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-s24-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
@@ -352,6 +355,7 @@ hw-a55-aarch64-shippable-startup-fenix-shopify-applink-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
@@ -389,6 +393,7 @@ hw-p6-aarch64-shippable-startup-fenix-shopify-applink-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-p6-13-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
@@ -426,6 +431,7 @@ hw-s24-aarch64-shippable-startup-fenix-shopify-applink-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-s24-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
@@ -658,6 +664,7 @@ hw-a55-aarch64-shippable-startup-fenix-homeview-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
@@ -695,6 +702,7 @@ hw-p6-aarch64-shippable-startup-fenix-homeview-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-p6-13-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
@@ -732,6 +740,7 @@ hw-s24-aarch64-shippable-startup-fenix-homeview-startup-simpleperf:
               extract: true
         toolchain:
             - linux64-android-simpleperf-linux-repack
+            - linux64-samply
     require-build:
         android-hw-s24-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
     run:
