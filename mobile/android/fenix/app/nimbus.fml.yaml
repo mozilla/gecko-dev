@@ -102,7 +102,6 @@ features:
         type: Map<MR2022Section, Boolean>
         default:
           {
-            "home-onboarding-dialog-existing-users": true,
             "sync-cfr": true,
             "wallpapers-selection-tool": true,
             "jump-back-in-cfr": true,
@@ -113,7 +112,6 @@ features:
       - channel: developer
         value: {
           "sections-enabled": {
-            "home-onboarding-dialog-existing-users": true,
             "sync-cfr": true,
             "wallpapers-selection-tool": true,
             "jump-back-in-cfr": true,
@@ -915,8 +913,6 @@ types:
     MR2022Section:
       description: The identifiers for the sections of the MR 2022.
       variants:
-        home-onboarding-dialog-existing-users:
-          description: Home onboarding dialog for upgraded users.
         sync-cfr:
           description: CFR for the first time you see a synced tab on the home screen.
         wallpapers-selection-tool:
