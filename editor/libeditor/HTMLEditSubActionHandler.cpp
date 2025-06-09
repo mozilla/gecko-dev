@@ -12042,7 +12042,9 @@ HTMLEditor::InsertPaddingBRElementIfNeeded(
           HTMLEditUtils::IsInlineContent(
               *nextVisibleThing.ElementPtr(),
               BlockInlineCheck::UseHTMLDefaultStyle)) {
-        return EditorDOMPoint::AtEndOf(*nextVisibleThing.ElementPtr());
+        return nextVisibleThing.ReachedCurrentBlockBoundary()
+                   ? EditorDOMPoint::AtEndOf(*nextVisibleThing.ElementPtr())
+                   : EditorDOMPoint(nextVisibleThing.ElementPtr());
       }
     }
     return HTMLEditUtils::LineRequiresPaddingLineBreakToBeVisible(aPoint,
