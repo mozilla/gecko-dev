@@ -3697,8 +3697,12 @@
   <string name="review_prompt_negative_button">Sorun yaşıyorum</string>
   <!-- Label for a button positively rating the user's experience with the app -->
   <string name="review_prompt_positive_button">Harika!</string>
+  <!-- Title for a prompt asking the user to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_rate_header">%1$s uygulamasını beğenmenize sevindik. Birkaç saniyenizi ayırıp bize puan verir misiniz?</string>
   <!-- Label for a button proceeding to rate the app on Google Play Store. %1$s is the name of the app (for example "Firefox"). -->
   <string name="review_prompt_rate_button">%1$s uygulamasına Play Store’da puan ver</string>
+  <!-- Title for a prompt asking the user send us feedback. %1$s is the name of the app (for example "Firefox"). -->
+  <string name="review_prompt_feedback_header">Sorun yaşamanıza üzüldük. %1$s uygulamasını nasıl geliştirebileceğimizi bize bildirin.</string>
   <!-- Label for a button opening a feedback forum -->
   <string name="review_prompt_feedback_button">Görüş bildir</string>
 </resources>

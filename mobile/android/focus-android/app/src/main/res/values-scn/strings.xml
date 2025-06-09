@@ -319,7 +319,7 @@
   <!-- A link to SUMO at the end of the summary (preference_mozilla_telemetry_summary2) of the "Send anonymous usage data" setting. -->
   <string name="preference_mozilla_telemetry_summary">Cchiù nfurmazzioni</string>
   <!-- %1$s will be replaced with the name of the app (e.g. Firefox Focus) -->
-  <string name="preference_mozilla_telemetry_summary2">Mozilla cerca di ricògghiri sulu chiḍḍu chi ci serbi p\'ammigghiurari %1$s pi tutti.</string>
+  <string name="preference_mozilla_telemetry_summary2">Mozilla cerca di ricògghiri sulu chiḍḍu chi ci serbi pi fari megghiu %1$s pi tutti.</string>
   <!-- Preference switch for daily usage ping data collection -->
   <string name="preference_daily_usage_ping_title">Ping d\'usu nnô jornu</string>
   <string name="preference_daily_usage_ping_description">Chistu ajuta Mozilla a fari na stima di l\'utenti attivi.</string>
