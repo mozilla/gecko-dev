@@ -39,6 +39,12 @@ export class DeleteProfileCard extends MozLitElement {
 
     this.data = await RPMSendQuery("Profiles:GetDeleteProfileContent");
 
+    if (this.data.profile.hasCustomAvatar) {
+      const objURL = URL.createObjectURL(this.data.profile.avatarFiles.file16);
+      this.data.profile.avatarURLs.url16 = objURL;
+      this.data.profile.avatarURLs.url80 = objURL;
+    }
+
     let titleEl = document.querySelector("title");
     titleEl.setAttribute(
       "data-l10n-args",
@@ -64,7 +70,7 @@ export class DeleteProfileCard extends MozLitElement {
 
   setFavicon() {
     let favicon = document.getElementById("favicon");
-    favicon.href = `chrome://browser/content/profiles/assets/16_${this.data.profile.avatar}.svg`;
+    favicon.href = this.data.profile.avatarURLs.url16;
   }
 
   cancelDelete() {
@@ -95,8 +101,7 @@ export class DeleteProfileCard extends MozLitElement {
             width="80"
             height="80"
             data-l10n-id=${this.data.profile.avatarL10nId}
-            src="chrome://browser/content/profiles/assets/80_${this.data.profile
-              .avatar}.svg"
+            src=${this.data.profile.avatarURLs.url80}
           />
           <div id="profile-content">
             <div>

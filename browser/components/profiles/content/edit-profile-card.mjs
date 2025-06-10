@@ -125,7 +125,11 @@ export class EditProfileCard extends MozLitElement {
 
     window.addEventListener("beforeunload", this);
     window.addEventListener("pagehide", this);
-    document.addEventListener("click", this);
+
+    if (RPMGetBoolPref(UPDATED_AVATAR_SELECTOR_PREF, false)) {
+      document.addEventListener("click", this);
+      document.addEventListener("Profiles:CustomAvatarUpload", this);
+    }
 
     this.init().then(() => (this.initialized = true));
   }
@@ -146,7 +150,25 @@ export class EditProfileCard extends MozLitElement {
     this.profiles = profiles;
     this.themes = themes;
 
+    if (this.profile.hasCustomAvatar) {
+      this.createAvatarURL();
+    }
+
     this.setFavicon();
+  }
+
+  createAvatarURL() {
+    if (this.profile.avatarURLs.url16) {
+      URL.revokeObjectURL(this.profile.avatarURLs.url16);
+      delete this.profile.avatarURLs.url16;
+      delete this.profile.avatarURLs.url80;
+    }
+
+    if (this.profile.avatarFiles?.file16) {
+      const objURL = URL.createObjectURL(this.profile.avatarFiles.file16);
+      this.profile.avatarURLs.url16 = objURL;
+      this.profile.avatarURLs.url80 = objURL;
+    }
   }
 
   async getUpdateComplete() {
@@ -163,7 +185,7 @@ export class EditProfileCard extends MozLitElement {
 
   setFavicon() {
     let favicon = document.getElementById("favicon");
-    favicon.href = `chrome://browser/content/profiles/assets/16_${this.profile.avatar}.svg`;
+    favicon.href = this.profile.avatarURLs.url16;
   }
 
   getAvatarL10nId(value) {
@@ -206,6 +228,11 @@ export class EditProfileCard extends MozLitElement {
           return;
         }
         this.avatarSelector.hidden = true;
+        break;
+      }
+      case "Profiles:CustomAvatarUpload": {
+        let { file } = event.detail;
+        this.updateAvatar(file);
         break;
       }
     }
@@ -254,8 +281,16 @@ export class EditProfileCard extends MozLitElement {
       return;
     }
 
-    this.profile.avatar = newAvatar;
-    RPMSendAsyncMessage("Profiles:UpdateProfileAvatar", this.profile);
+    let updatedProfile = await RPMSendQuery("Profiles:UpdateProfileAvatar", {
+      avatarOrFile: newAvatar,
+    });
+
+    this.profile = updatedProfile;
+
+    if (this.profile.hasCustomAvatar) {
+      this.createAvatarURL();
+    }
+
     this.requestUpdate();
     this.setFavicon();
   }
@@ -413,8 +448,7 @@ export class EditProfileCard extends MozLitElement {
         <img
           id="header-avatar"
           data-l10n-id=${this.profile.avatarL10nId}
-          src="chrome://browser/content/profiles/assets/80_${this.profile
-            .avatar}.svg"
+          src=${this.profile.avatarURLs.url80}
         />
         <a
           id="profile-avatar-selector-link"
@@ -433,8 +467,7 @@ export class EditProfileCard extends MozLitElement {
     return html`<img
       id="header-avatar"
       data-l10n-id=${this.profile.avatarL10nId}
-      src="chrome://browser/content/profiles/assets/20_${this.profile
-        .avatar}.svg"
+      src=${this.profile.avatarURLs.url80}
     />`;
   }
 

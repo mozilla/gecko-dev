@@ -50,8 +50,8 @@ export class ProfileCard extends MozLitElement {
     this.backgroundImage.style.stroke = themeFg;
   }
 
-  setAvatarImage() {
-    this.avatarImage.style.backgroundImage = `url("chrome://browser/content/profiles/assets/80_${this.profile.avatar}.svg")`;
+  async setAvatarImage() {
+    this.avatarImage.style.backgroundImage = `url(${await this.profile.getAvatarURL(80)})`;
     let { themeFg, themeBg } = this.profile.theme;
     this.avatarImage.style.fill = themeBg;
     this.avatarImage.style.stroke = themeFg;
