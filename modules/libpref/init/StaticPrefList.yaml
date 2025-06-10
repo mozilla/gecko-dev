@@ -17209,6 +17209,11 @@
   value: true
   mirror: always
 
+- name: security.integrity_policy.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 #---------------------------------------------------------------------------
 # Prefs starting with "signon."
 #---------------------------------------------------------------------------

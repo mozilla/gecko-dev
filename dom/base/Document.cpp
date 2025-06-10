@@ -267,6 +267,7 @@
 #include "mozilla/dom/XPathExpression.h"
 #include "mozilla/dom/nsCSPContext.h"
 #include "mozilla/dom/nsCSPUtils.h"
+#include "mozilla/dom/IntegrityPolicy.h"
 #include "mozilla/extensions/WebExtensionPolicy.h"
 #include "mozilla/fallible.h"
 #include "mozilla/gfx/BaseCoord.h"
@@ -3717,6 +3718,9 @@ nsresult Document::StartDocumentLoad(const char* aCommand, nsIChannel* aChannel,
   rv = InitCSP(aChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = InitIntegrityPolicy(aChannel);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   rv = InitDocPolicy(aChannel);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -4011,6 +4015,33 @@ nsresult Document::InitCSP(nsIChannel* aChannel) {
 
   ApplySettingsFromCSP(false);
   return NS_OK;
+}
+
+nsresult Document::InitIntegrityPolicy(nsIChannel* aChannel) {
+  MOZ_ASSERT(!mScriptGlobalObject,
+             "Integrity Policy must be initialized before mScriptGlobalObject "
+             "is set!");
+
+  MOZ_ASSERT(!mIntegrityPolicy,
+             "where did mIntegrityPolicy get set if not here?");
+
+  nsAutoCString headerValue, headerROValue;
+  nsCOMPtr<nsIHttpChannel> httpChannel;
+  nsresult rv = GetHttpChannelHelper(aChannel, getter_AddRefs(httpChannel));
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  if (httpChannel) {
+    Unused << httpChannel->GetResponseHeader("integrity-policy"_ns,
+                                             headerValue);
+
+    Unused << httpChannel->GetResponseHeader("integrity-policy-report-only"_ns,
+                                             headerROValue);
+  }
+
+  return IntegrityPolicy::ParseHeaders(headerValue, headerROValue,
+                                       getter_AddRefs(mIntegrityPolicy));
 }
 
 static FeaturePolicy* GetFeaturePolicyFromElement(Element* aElement) {

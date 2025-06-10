@@ -1711,3 +1711,6 @@ void ReferrerInfo::RecordTelemetry(nsIHttpChannel* aChannel) {
 }
 
 }  // namespace mozilla::dom
+
+#undef LOG
+#undef LOG_ENABLED
