@@ -56,6 +56,14 @@ enum class InlinableNative : uint16_t;
 void LoadShapeWrapperContents(MacroAssembler& masm, Register obj, Register dst,
                               Label* failure);
 
+enum class NativeGetPropKind {
+  None,
+  Missing,
+  Slot,
+  NativeGetter,
+  ScriptedGetter,
+};
+
 class MOZ_RAII IRGenerator {
  protected:
   CacheIRWriter writer;
@@ -98,6 +106,15 @@ class MOZ_RAII IRGenerator {
 
   void emitOptimisticClassGuard(ObjOperandId objId, JSObject* obj,
                                 GuardClassKind kind);
+
+  void emitGuardGetterSetterSlot(NativeObject* holder, PropertyInfo prop,
+                                 ObjOperandId holderId,
+                                 bool holderIsConstant = false);
+  void emitCallGetterResultNoGuards(NativeGetPropKind kind, NativeObject* obj,
+                                    NativeObject* holder, PropertyInfo prop,
+                                    ValOperandId receiverId);
+  void emitCallDOMGetterResultNoGuards(NativeObject* holder, PropertyInfo prop,
+                                       ObjOperandId objId);
 
   gc::AllocSite* maybeCreateAllocSite();
 
@@ -233,6 +250,17 @@ class MOZ_RAII GetPropIRGenerator : public IRGenerator {
   // matches |id|.
   void maybeEmitIdGuard(jsid id);
 
+  void emitCallGetterResultGuards(NativeObject* obj, NativeObject* holder,
+                                  HandleId id, PropertyInfo prop,
+                                  ObjOperandId objId);
+  void emitCallGetterResult(NativeGetPropKind kind, NativeObject* obj,
+                            NativeObject* holder, HandleId id,
+                            PropertyInfo prop, ObjOperandId objId,
+                            ValOperandId receiverId);
+  void emitCallDOMGetterResult(NativeObject* obj, NativeObject* holder,
+                               HandleId id, PropertyInfo prop,
+                               ObjOperandId objId);
+
   void trackAttached(const char* name /* must be a C string literal */);
 
  public:
@@ -363,6 +391,12 @@ class MOZ_RAII SetPropIRGenerator : public IRGenerator {
                                                 ValOperandId rhsId);
 
   bool canAttachAddSlotStub(HandleObject obj, HandleId id);
+
+  void emitCallSetterNoGuards(NativeObject* obj, NativeObject* holder,
+                              PropertyInfo prop, ObjOperandId receiverId,
+                              ValOperandId rhsId);
+  void emitCallDOMSetterNoGuards(NativeObject* holder, PropertyInfo prop,
+                                 ObjOperandId objId, ValOperandId rhsId);
 
  public:
   SetPropIRGenerator(JSContext* cx, HandleScript script, jsbytecode* pc,
