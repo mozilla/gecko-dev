@@ -118,18 +118,18 @@
 
     <ruleset id="HTMLInputButton">
       <ruleset ref="HTMLControl:Head"/>
-      <rule attr="value" type="string" explict-name="false" reordered="true"/>
+      <rule attr="value" type="string" explicit-name="false" reordered="true"/>
       <rule attr="title" type="string"/>
     </ruleset>
 
     <ruleset id="HTMLInputSubmit" defaultName="Submit Query">
       <ruleset ref="HTMLControl:Head"/>
-      <rule attr="value" type="string" explict-name="false"/>
+      <rule attr="value" type="string" explicit-name="false"/>
     </ruleset>
 
     <ruleset id="HTMLInputReset" defaultName="Reset">
       <ruleset ref="HTMLControl:Head"/>
-      <rule attr="value" type="string" explict-name="false"/>
+      <rule attr="value" type="string" explicit-name="false"/>
     </ruleset>
 
     <ruleset id="HTMLInputImage">
@@ -141,8 +141,8 @@
 
     <ruleset id="HTMLInputImageNoValidSrc" defaultName="Submit Query">
       <ruleset ref="HTMLControl:Head"/>
-      <rule attr="alt" type="string" explict-name="false"/>
-      <rule attr="value" type="string" explict-name="false"/>
+      <rule attr="alt" type="string" explicit-name="false"/>
+      <rule attr="value" type="string" explicit-name="false"/>
     </ruleset>
 
     <ruleset id="HTMLOption">

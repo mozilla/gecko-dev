@@ -68,7 +68,7 @@ var gTestIterator = {
 
     this.ruleIdx++;
     if (this.ruleIdx == this.ruleElms.length) {
-      // When test is finished then name is empty and no explict-name.
+      // When test is finished then name is empty and no explicit-name.
       var defaultName = this.ruleSetElm.hasAttribute("defaultName")
         ? this.ruleSetElm.getAttribute("defaultName")
         : null;
@@ -253,7 +253,7 @@ function testNameForAttrRule(aElm, aRule) {
   var msg = "Attribute '" + attr + "' test (" + gTestIterator.testID + "). ";
   testName(aElm, name, msg);
 
-  if (aRule.getAttribute("explict-name") != "false") {
+  if (aRule.getAttribute("explicit-name") != "false") {
     testAttrs(aElm, { "explicit-name": "true" }, true);
   } else {
     testAbsentAttrs(aElm, { "explicit-name": "true" });
