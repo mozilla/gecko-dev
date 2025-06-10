@@ -847,37 +847,6 @@ fn(async (t) => {
   });
 });
 
-g.test('command,writeTimestamp').
-desc(
-  `
-Tests encoding and finishing a writeTimestamp command on destroyed device.
-  - Tests finishing encoding on destroyed device
-  - Tests submitting command on destroyed device
-  `
-).
-params((u) =>
-u.
-combine('type', kQueryTypes).
-
-combine('stage', kCommandValidationStages).
-combine('awaitLost', [true, false])
-).
-fn(async (t) => {
-  const { type, stage, awaitLost } = t.params;
-  t.skipIfDeviceDoesNotSupportQueryType('timestamp', type);
-
-  const querySet = t.createQuerySetTracked({ type, count: 2 });
-  await t.executeCommandsAfterDestroy(stage, awaitLost, 'non-pass', (maker) => {
-    try {
-
-      maker.encoder.writeTimestamp(querySet, 0);
-    } catch (ex) {
-      t.skipIf(ex instanceof TypeError, 'writeTimestamp is actually not available');
-    }
-    return maker;
-  });
-});
-
 g.test('command,resolveQuerySet').
 desc(
   `

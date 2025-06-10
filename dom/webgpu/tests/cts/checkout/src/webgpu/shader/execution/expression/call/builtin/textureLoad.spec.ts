@@ -711,6 +711,7 @@ Parameters:
   .fn(async t => {
     const { format, stage, samplePoints, C } = t.params;
 
+    t.skipIfTextureFormatNotSupported(format);
     t.skipIfTextureFormatNotUsableAsStorageTexture(format);
     skipIfStorageTexturesNotSupportedInStage(t, stage);
 

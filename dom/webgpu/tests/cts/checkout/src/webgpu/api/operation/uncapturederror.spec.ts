@@ -61,7 +61,8 @@ listener. Setting onuncapturederror to null removes the listener.
             resolve = r;
           });
         },
-        listener: () => {
+        listener: (e: Event) => {
+          e.preventDefault();
           t.debug(`listener ${id} called`);
           callOrder.push(id);
           resolve();
@@ -85,10 +86,10 @@ listener. Setting onuncapturederror to null removes the listener.
         t.device.addEventListener('uncapturederror', listenerB.listener);
 
         t.generateError('validation');
-        await raceWithRejectOnTimeout(Promise.all(promises), 5000, 'timeout1');
+        await raceWithRejectOnTimeout(Promise.all(promises), 500, 'timeout1');
 
         const order = callOrder.join(',');
-        t.expect(() => order === 'a,c,b');
+        t.expect(order === 'a,c,b', `'${order}' === 'a,c,b'`);
         callOrder.length = 0;
       }
 
@@ -102,7 +103,7 @@ listener. Setting onuncapturederror to null removes the listener.
         await raceWithRejectOnTimeout(Promise.all(promises), 500, 'timeout2');
 
         const order = callOrder.join(',');
-        t.expect(() => order === 'a,d,b');
+        t.expect(order === 'a,d,b', `'${order}' === 'a,d,b'`);
         callOrder.length = 0;
       }
 
@@ -117,7 +118,7 @@ listener. Setting onuncapturederror to null removes the listener.
         await raceWithRejectOnTimeout(Promise.all(promises), 500, 'timeout3');
 
         const order = callOrder.join(',');
-        t.expect(() => order === 'a,b,e');
+        t.expect(order === 'a,b,e', `'${order}' === 'a,b,e'`);
         callOrder.length = 0;
       }
     } finally {

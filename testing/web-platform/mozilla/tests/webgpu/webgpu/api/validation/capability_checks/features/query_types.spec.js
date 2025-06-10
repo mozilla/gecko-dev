@@ -48,8 +48,6 @@ desc(
   `
   Tests that writing a timestamp throws a type error exception if the features don't contain
   'timestamp-query'.
-
-  TODO: writeTimestamp test is disabled since it's removed from the spec for now.
   `
 ).
 params((u) => u.combine('featureContainsTimestampQuery', [false, true])).
@@ -70,23 +68,6 @@ fn((t) => {
     type: featureContainsTimestampQuery ? 'timestamp' : 'occlusion',
     count: 2
   });
-
-  {
-    let expected = featureContainsTimestampQuery ? false : 'TypeError';
-    // writeTimestamp no longer exists and this should always TypeError.
-    expected = 'TypeError';
-
-    const encoder = t.createEncoder('non-pass');
-    t.shouldThrow(
-      expected,
-      () => {
-
-        encoder.encoder.writeTimestamp(querySet, 0);
-      },
-      { message: 'writeTimestamp should throw' }
-    );
-    encoder.finish();
-  }
 
   {
     const encoder = t.createEncoder('non-pass');

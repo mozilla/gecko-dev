@@ -49,6 +49,32 @@ class F extends AllFeaturesMaxLimitsGPUTest {
     bufferOffset: number,
     boundBufferSize: number
   ): void {
+    this.TestBufferZeroInitInBindGroupInternal(
+      computeShaderModule,
+      buffer,
+      false,
+      bufferOffset,
+      boundBufferSize
+    );
+    const bindBufferResource = bufferOffset === 0 && boundBufferSize === buffer.size;
+    if (bindBufferResource) {
+      this.TestBufferZeroInitInBindGroupInternal(
+        computeShaderModule,
+        buffer,
+        true,
+        bufferOffset,
+        boundBufferSize
+      );
+    }
+  }
+
+  TestBufferZeroInitInBindGroupInternal(
+    computeShaderModule: GPUShaderModule,
+    buffer: GPUBuffer,
+    bindBufferResource: boolean,
+    bufferOffset: number,
+    boundBufferSize: number
+  ): void {
     const computePipeline = this.device.createComputePipeline({
       layout: 'auto',
       compute: {
@@ -61,16 +87,19 @@ class F extends AllFeaturesMaxLimitsGPUTest {
       size: [1, 1, 1],
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING,
     });
+    const resource = bindBufferResource
+      ? buffer
+      : {
+          buffer,
+          offset: bufferOffset,
+          size: boundBufferSize,
+        };
     const bindGroup = this.device.createBindGroup({
       layout: computePipeline.getBindGroupLayout(0),
       entries: [
         {
           binding: 0,
-          resource: {
-            buffer,
-            offset: bufferOffset,
-            size: boundBufferSize,
-          },
+          resource,
         },
         {
           binding: 1,

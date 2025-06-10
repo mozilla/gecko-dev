@@ -30,8 +30,6 @@ g.test('timestamps')
     `
 Tests that use a destroyed query set in timestamp query on {non-pass, compute, render} encoder.
 - x= {destroyed, not destroyed (control case)}
-
-  TODO: writeTimestamp is removed from the spec so it's skipped if it TypeErrors.
   `
   )
   .params(u => u.beginSubcases().combine('querySetState', ['valid', 'destroyed'] as const))
@@ -41,17 +39,6 @@ Tests that use a destroyed query set in timestamp query on {non-pass, compute, r
       type: 'timestamp',
       count: 2,
     });
-
-    {
-      const encoder = t.createEncoder('non-pass');
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (encoder.encoder as any).writeTimestamp(querySet, 0);
-      } catch (ex) {
-        t.skipIf(ex instanceof TypeError, 'writeTimestamp is actually not available');
-      }
-      encoder.validateFinishAndSubmitGivenState(t.params.querySetState);
-    }
 
     {
       const encoder = t.createEncoder('non-pass');

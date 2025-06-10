@@ -288,6 +288,34 @@ const kRegularTextureFormatInfo = formatTableWithDefaults({
 
     // plain, 16 bits per component
 
+    r16unorm: {
+      color: {
+        type: 'float',
+        copySrc: true,
+        copyDst: true,
+        storage: true,
+        readWriteStorage: false,
+        bytes: 2
+      },
+      colorRender: { blend: true, resolve: true, byteCost: 2, alignment: 2 },
+      multisample: true,
+      feature: 'texture-formats-tier1',
+      get bytesPerBlock() {return this.color.bytes;}
+    },
+    r16snorm: {
+      color: {
+        type: 'float',
+        copySrc: true,
+        copyDst: true,
+        storage: true,
+        readWriteStorage: false,
+        bytes: 2
+      },
+      colorRender: { blend: true, resolve: true, byteCost: 2, alignment: 2 },
+      multisample: true,
+      feature: 'texture-formats-tier1',
+      get bytesPerBlock() {return this.color.bytes;}
+    },
     r16uint: {
       color: {
         type: 'uint',
@@ -328,6 +356,34 @@ const kRegularTextureFormatInfo = formatTableWithDefaults({
       get bytesPerBlock() {return this.color.bytes;}
     },
 
+    rg16unorm: {
+      color: {
+        type: 'float',
+        copySrc: true,
+        copyDst: true,
+        storage: true,
+        readWriteStorage: false,
+        bytes: 4
+      },
+      colorRender: { blend: true, resolve: true, byteCost: 4, alignment: 2 },
+      multisample: true,
+      feature: 'texture-formats-tier1',
+      get bytesPerBlock() {return this.color.bytes;}
+    },
+    rg16snorm: {
+      color: {
+        type: 'float',
+        copySrc: true,
+        copyDst: true,
+        storage: true,
+        readWriteStorage: false,
+        bytes: 4
+      },
+      colorRender: { blend: true, resolve: true, byteCost: 4, alignment: 2 },
+      multisample: true,
+      feature: 'texture-formats-tier1',
+      get bytesPerBlock() {return this.color.bytes;}
+    },
     rg16uint: {
       color: {
         type: 'uint',
@@ -368,6 +424,34 @@ const kRegularTextureFormatInfo = formatTableWithDefaults({
       get bytesPerBlock() {return this.color.bytes;}
     },
 
+    rgba16unorm: {
+      color: {
+        type: 'float',
+        copySrc: true,
+        copyDst: true,
+        storage: true,
+        readWriteStorage: false,
+        bytes: 8
+      },
+      colorRender: { blend: true, resolve: true, byteCost: 8, alignment: 4 },
+      multisample: true,
+      feature: 'texture-formats-tier1',
+      get bytesPerBlock() {return this.color.bytes;}
+    },
+    rgba16snorm: {
+      color: {
+        type: 'float',
+        copySrc: true,
+        copyDst: true,
+        storage: true,
+        readWriteStorage: false,
+        bytes: 8
+      },
+      colorRender: { blend: true, resolve: true, byteCost: 8, alignment: 2 },
+      multisample: true,
+      feature: 'texture-formats-tier1',
+      get bytesPerBlock() {return this.color.bytes;}
+    },
     rgba16uint: {
       color: {
         type: 'uint',
@@ -1626,11 +1710,36 @@ export const kStencilTextureFormats = kDepthStencilFormats.filter(
   (v) => kTextureFormatInfo[v].stencil
 );
 
+const kTextureFormatTier1AllowsRenderAttachmentBlendableMultisampleResolve =
+['r8snorm', 'rg8snorm', 'rgba8snorm', 'rg11b10ufloat'];
+
+const kTextureFormatsTier1EnablesStorageReadOnlyWriteOnly = [
+'r8unorm',
+'r8snorm',
+'r8uint',
+'r8sint',
+'rg8unorm',
+'rg8snorm',
+'rg8uint',
+'rg8sint',
+'r16uint',
+'r16sint',
+'r16float',
+'rg16uint',
+'rg16sint',
+'rg16float',
+'rgb10a2uint',
+'rgb10a2unorm',
+'rg11b10ufloat'];
+
+
 // Texture formats that may possibly be used as a storage texture.
 // Some may require certain features to be enabled.
 export const kPossibleStorageTextureFormats = [
 ...kRegularTextureFormats.filter((f) => kTextureFormatInfo[f].color?.storage),
-'bgra8unorm'];
+'bgra8unorm',
+// these can be used as storage when texture-formats-tier1 is enabled
+...kTextureFormatsTier1EnablesStorageReadOnlyWriteOnly];
 
 
 // Texture formats that may possibly be used as a storage texture.
@@ -2054,6 +2163,18 @@ formats)
   return formats.filter((f) => f === undefined || kTextureFormatInfo[f].feature === feature);
 }
 
+function isTextureFormatTier1EnablesRenderAttachmentBlendableMultisampleResolve(
+format)
+{
+  return kTextureFormatTier1AllowsRenderAttachmentBlendableMultisampleResolve.includes(
+    format
+  );
+}
+
+function isTextureFormatTier1EnablesStorageReadOnlyWriteOnly(format) {
+  return kTextureFormatsTier1EnablesStorageReadOnlyWriteOnly.includes(format);
+}
+
 export function canCopyToAspectOfTextureFormat(format, aspect) {
   const info = kTextureFormatInfo[format];
   switch (aspect) {
@@ -2173,6 +2294,9 @@ format)
   if (format === 'rg11b10ufloat') {
     return device.features.has('rg11b10ufloat-renderable');
   }
+  if (isTextureFormatTier1EnablesRenderAttachmentBlendableMultisampleResolve(format)) {
+    return device.features.has('texture-formats-tier1');
+  }
   return !!kAllTextureFormatInfo[format].colorRender;
 }
 
@@ -2218,7 +2342,11 @@ export function getTextureFormatColorType(format) {
  */
 export function isTextureFormatPossiblyUsableAsRenderAttachment(format) {
   const info = kTextureFormatInfo[format];
-  return isDepthOrStencilTextureFormat(format) || !!info.colorRender;
+  return (
+    isDepthOrStencilTextureFormat(format) ||
+    !!info.colorRender ||
+    isTextureFormatTier1EnablesRenderAttachmentBlendableMultisampleResolve(format));
+
 }
 
 /**
@@ -2227,7 +2355,10 @@ export function isTextureFormatPossiblyUsableAsRenderAttachment(format) {
  */
 export function isTextureFormatPossiblyUsableAsColorRenderAttachment(format) {
   const info = kTextureFormatInfo[format];
-  return !!info.colorRender;
+  return (
+    !!info.colorRender ||
+    isTextureFormatTier1EnablesRenderAttachmentBlendableMultisampleResolve(format));
+
 }
 
 /**
@@ -2236,7 +2367,10 @@ export function isTextureFormatPossiblyUsableAsColorRenderAttachment(format) {
  */
 export function isTextureFormatPossiblyMultisampled(format) {
   const info = kTextureFormatInfo[format];
-  return info.multisample;
+  return (
+    info.multisample ||
+    isTextureFormatTier1EnablesRenderAttachmentBlendableMultisampleResolve(format));
+
 }
 
 /**
@@ -2244,7 +2378,10 @@ export function isTextureFormatPossiblyMultisampled(format) {
  * The texture may require certain features to be enabled.
  */
 export function isTextureFormatPossiblyStorageReadable(format) {
-  return !!kTextureFormatInfo[format].color?.storage;
+  return (
+    !!kTextureFormatInfo[format].color?.storage ||
+    isTextureFormatTier1EnablesStorageReadOnlyWriteOnly(format));
+
 }
 
 /**
@@ -2299,6 +2436,12 @@ format)
     }
   }
   if (format === 'bgra8unorm' && device.features.has('bgra8unorm-storage')) {
+    return true;
+  }
+  if (
+  isTextureFormatTier1EnablesStorageReadOnlyWriteOnly(format) &&
+  device.features.has('texture-formats-tier1'))
+  {
     return true;
   }
   const info = kTextureFormatInfo[format];
@@ -2388,6 +2531,9 @@ export function isTextureFormatMultisampled(device, format) {
   if (format === 'rg11b10ufloat') {
     return device.features.has('rg11b10ufloat-renderable');
   }
+  if (isTextureFormatTier1EnablesRenderAttachmentBlendableMultisampleResolve(format)) {
+    return device.features.has('texture-formats-tier1');
+  }
   return kAllTextureFormatInfo[format].multisample;
 }
 
@@ -2398,6 +2544,9 @@ export function isTextureFormatMultisampled(device, format) {
 export function isTextureFormatResolvable(device, format) {
   if (format === 'rg11b10ufloat') {
     return device.features.has('rg11b10ufloat-renderable');
+  }
+  if (isTextureFormatTier1EnablesRenderAttachmentBlendableMultisampleResolve(format)) {
+    return device.features.has('texture-formats-tier1');
   }
   // You can't resolve a non-multisampled format.
   if (!isTextureFormatMultisampled(device, format)) {

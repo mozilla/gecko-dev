@@ -212,6 +212,7 @@ beforeAllSubcases((t) => {
 fn((t) => {
   const { stage, format, access_mode, view_type } = t.params;
   skipIfNoStorageTexturesInStage(t, stage);
+  t.skipIfTextureFormatNotSupported(format);
   t.skipIfTextureFormatNotUsableAsStorageTexture(format);
   if (access_mode === 'read_write') {
     t.skipIfTextureFormatNotUsableAsReadWriteStorageTexture(format);

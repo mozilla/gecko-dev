@@ -711,6 +711,7 @@ t.skipIfLanguageFeatureNotSupported('readonly_and_readwrite_storage_textures')
 fn(async (t) => {
   const { format, stage, samplePoints, C } = t.params;
 
+  t.skipIfTextureFormatNotSupported(format);
   t.skipIfTextureFormatNotUsableAsStorageTexture(format);
   skipIfStorageTexturesNotSupportedInStage(t, stage);
 

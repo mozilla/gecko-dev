@@ -58,10 +58,7 @@ class F extends AllFeaturesMaxLimitsGPUTest {
 
 export const g = makeTestGroup(F);
 
-// MAINTENANCE_TODO: Remove writeTimestamp from here once it's (hopefully) added back to the spec.
-type EncoderCommands =
-  | keyof Omit<GPUCommandEncoder, '__brand' | 'label' | 'finish'>
-  | 'writeTimestamp';
+type EncoderCommands = keyof Omit<GPUCommandEncoder, '__brand' | 'label' | 'finish'>;
 const kEncoderCommandInfo: {
   readonly [k in EncoderCommands]: {};
 } = {
@@ -75,7 +72,6 @@ const kEncoderCommandInfo: {
   insertDebugMarker: {},
   popDebugGroup: {},
   pushDebugGroup: {},
-  writeTimestamp: {},
   resolveQuerySet: {},
 };
 const kEncoderCommands = keysOf(kEncoderCommandInfo);
@@ -156,8 +152,6 @@ g.test('non_pass_commands')
     `
   Test that functions of GPUCommandEncoder generate a validation error if the encoder is already
   finished.
-
-  TODO: writeTimestamp is removed from the spec so it's skipped if it TypeErrors.
   `
   )
   .params(u =>
@@ -168,9 +162,6 @@ g.test('non_pass_commands')
   )
   .fn(t => {
     const { command, finishBeforeCommand } = t.params;
-    if (command === 'writeTimestamp') {
-      t.skipIfDeviceDoesNotSupportQueryType('timestamp');
-    }
 
     const srcBuffer = t.createBufferTracked({
       size: 16,
@@ -195,7 +186,7 @@ g.test('non_pass_commands')
     });
 
     const querySet = t.createQuerySetTracked({
-      type: command === 'writeTimestamp' ? 'timestamp' : 'occlusion',
+      type: 'occlusion',
       count: 1,
     });
 
@@ -265,14 +256,6 @@ g.test('non_pass_commands')
         case 'popDebugGroup':
           {
             encoder.popDebugGroup();
-          }
-          break;
-        case 'writeTimestamp':
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (encoder as any).writeTimestamp(querySet, 0);
-          } catch (ex) {
-            t.skipIf(ex instanceof TypeError, 'writeTimestamp is actually not available');
           }
           break;
         case 'resolveQuerySet':

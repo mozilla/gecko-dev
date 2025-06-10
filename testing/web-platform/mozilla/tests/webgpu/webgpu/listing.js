@@ -63,6 +63,14 @@ export const listing = [
       "api",
       "operation",
       "buffers",
+      "createBindGroup"
+    ]
+  },
+  {
+    "file": [
+      "api",
+      "operation",
+      "buffers",
       "map"
     ]
   },

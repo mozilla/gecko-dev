@@ -109,6 +109,8 @@ export class ErrorTest extends Fixture {
     return this.immediateAsyncExpectation(() => {
       const promise: Promise<GPUUncapturedErrorEvent> = new Promise(resolve => {
         const eventListener = (event: GPUUncapturedErrorEvent) => {
+          // Don't emit error to console.
+          event.preventDefault();
           // Unregister before resolving so we can be certain these are cleaned
           // up before the next test.
           if (useOnuncapturederror) {
