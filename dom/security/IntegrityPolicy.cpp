@@ -55,8 +55,8 @@ Maybe<IntegrityPolicy::DestinationType> DOMRequestDestinationToDestinationType(
   }
 }
 
-Maybe<IntegrityPolicy::DestinationType> ContentTypeToDestinationType(
-    nsContentPolicyType aType) {
+Maybe<IntegrityPolicy::DestinationType>
+IntegrityPolicy::ContentTypeToDestinationType(nsContentPolicyType aType) {
   return DOMRequestDestinationToDestinationType(
       ContentTypeToDestination(aType));
 }

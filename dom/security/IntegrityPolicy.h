@@ -9,10 +9,15 @@
 
 #include "nsIIntegrityPolicy.h"
 
+#include "nsIContentPolicy.h"
+
 #include "mozilla/EnumSet.h"
 #include "mozilla/Maybe.h"
 
+#define NS_INTEGRITYPOLICY_CONTRACTID "@mozilla.org/integritypolicy;1"
+
 class nsISFVDictionary;
+class nsILoadInfo;
 
 namespace mozilla::dom {
 
@@ -20,6 +25,8 @@ class IntegrityPolicy : public nsIIntegrityPolicy {
  public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIINTEGRITYPOLICY
+
+  IntegrityPolicy() = default;
 
   static nsresult ParseHeaders(const nsACString& aHeader,
                                const nsACString& aHeaderRO,
@@ -33,15 +40,16 @@ class IntegrityPolicy : public nsIIntegrityPolicy {
   using Sources = EnumSet<SourceType>;
   using Destinations = EnumSet<DestinationType>;
 
+  void PolicyContains(DestinationType aDestination, bool* aContains,
+                      bool* aROContains) const;
+
+  static Maybe<DestinationType> ContentTypeToDestinationType(
+      nsContentPolicyType aType);
+
  protected:
   virtual ~IntegrityPolicy();
 
  private:
-  IntegrityPolicy() = default;
-
-  void PolicyContains(DestinationType aDestination, bool* aContains,
-                      bool* aROContains) const;
-
   class Entry final {
    public:
     Entry(Sources aSources, Destinations aDestinations)

@@ -791,6 +791,8 @@ class Document : public nsINode,
    */
   void ApplySettingsFromCSP(bool aSpeculative);
 
+  IntegrityPolicy* GetIntegrityPolicy() const { return mIntegrityPolicy; }
+
   already_AddRefed<nsIParser> CreatorParserOrNull() {
     nsCOMPtr<nsIParser> parser = mParser;
     return parser.forget();
