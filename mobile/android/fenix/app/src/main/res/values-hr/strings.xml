@@ -109,6 +109,16 @@
   <string name="navbar_cfr_message_2" moz:removedIn="140" tools:ignore="UnusedResources">Na web stranici se ova traka uvlači tijekom pomicanja prema dolje, čime se dobiva više prostora za pregledavanje.</string>
   <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
   <string name="navbar_navigation_buttons_cfr_message" moz:removedIn="140" tools:ignore="UnusedResources">Dodirni i drži strelice pritisnutima za kretanje po stranicama u povijesti ove kartice.</string>
+  <!--
+    Address bar swipe "contextual feature recommendation" (CFR)
+
+    Text for the title displayed in the contextual feature recommendation popup promoting swipe of address bar.
+  -->
+  <string name="address_bar_swipe_cfr_title" tools:ignore="UnusedResources" moz:removedIn="139">Za mijenjanje kartica povuci prstom po alatnoj traci</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message" tools:ignore="UnusedResources" moz:removedIn="139">Povuci prstom lijevo ili desno za mijenjanje. Povuci prstom lijevo na zadnjoj kartici za otvaranje nove kartice.</string>
+  <!-- Text for the message displayed in the contextual feature recommendation popup promoting swipe of address bar. -->
+  <string name="address_bar_swipe_cfr_message_2">Za mijenjanje kartica povuci alatnu traku prstom prema lijevo ili desno.</string>
   <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
   <string name="camera_permissions_needed_message">Potreban je pristup kameri. Otvori postavke Androida, odaberi dozvole i dopusti pristup kameri.</string>
   <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -293,7 +303,7 @@
   <!-- Browser menu button to put the current page in reader mode -->
   <string name="browser_menu_read">Prikaz za čitanje</string>
   <!-- Browser menu button content description to close reader mode and return the user to the regular browser -->
-  <string name="browser_menu_read_close">Zatvori pogled čitača</string>
+  <string name="browser_menu_read_close">Zatvori prikaz za čitanje</string>
   <!-- Browser menu button to open the current page in an external app -->
   <string name="browser_menu_open_app_link">Otvori u aplikaciji</string>
   <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
@@ -335,6 +345,14 @@
   <string name="browser_main_menu_content_description_help_button">Pomoć</string>
   <!-- Content description (not visible, for screen readers etc.) for main menu settings button. -->
   <string name="browser_main_menu_content_description_settings_button">Postavke</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_translate_with_report_site_2">Prikaz za čitanje, Prevedi, Prijavi neispravanu stranicu, Ispiši, Dijeli, Otvori aplikaciju</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_with_translate_without_report_site">Prikaz za čitanje, Prevedi, Ispiši, Dijeli, Otvori aplikaciju</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu when the "Report broken site" feature is available -->
+  <string name="browser_menu_tools_description_with_report_site_2">Prikaz za čitanje, Prijavi neispravanu stranicu, Ispiši, Dijeli, Otvori aplikaciju</string>
+  <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+  <string name="browser_menu_tools_description_without_report_site">Prikaz za čitanje, Ispiši, Dijeli, Otvori aplikaciju</string>
   <!--
     Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
     bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen
@@ -351,9 +369,9 @@
   <!-- Browser menu label that the saves the currently visited page as a PDF -->
   <string name="browser_menu_save_as_pdf">Spremi kao PDF…</string>
   <!-- Browser menu label for turning ON reader view of the current visited page -->
-  <string name="browser_menu_turn_on_reader_view">Uključi prikaz čitača</string>
+  <string name="browser_menu_turn_on_reader_view">Uključi prikaz za čitanje</string>
   <!-- Browser menu label for turning OFF reader view of the current visited page -->
-  <string name="browser_menu_turn_off_reader_view">Isključi prikaz čitača</string>
+  <string name="browser_menu_turn_off_reader_view">Isključi prikaz za čitanje</string>
   <!-- Browser menu button that reopens a private tab as a regular tab -->
   <string name="browser_menu_open_in_normal_tab">Prijeđi na karticu koja nije privatna</string>
   <!-- Browser menu label for navigating to the translation feature, which provides language translation options the current visited page -->

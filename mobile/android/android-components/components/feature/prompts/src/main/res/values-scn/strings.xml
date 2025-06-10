@@ -55,7 +55,7 @@
   <!-- Title of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
   <string name="mozac_feature_prompt_before_unload_dialog_title">Sì sicuru?</string>
   <!-- Body text of the dialog shown when a user is leaving a website and there is still data not saved yet. -->
-  <string name="mozac_feature_prompt_before_unload_dialog_body">Vo\' nèsciri di stu situ? È pussìbbili chi i dati chi mittisti nun foru sarbati</string>
+  <string name="mozac_feature_prompt_before_unload_dialog_body">Vo’ nèsciri di stu situ? È pussìbbili chi i dati chi mittisti nun foru sarbati</string>
   <!-- Stay button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to stay in the website. -->
   <string name="mozac_feature_prompts_before_unload_stay">Arresta</string>
   <!-- Leave button of the dialog shown when a user is leaving a website and there is still data not saved yet, this indicates that the user wants to leave in the website. -->
@@ -87,7 +87,7 @@
   <!-- December month of the year (short description), used on the month chooser dialog. -->
   <string name="mozac_feature_prompts_dec">dic</string>
   <!-- Title of the time picker dialog. -->
-  <string name="mozac_feature_prompts_set_time">Mposta l\'ura</string>
+  <string name="mozac_feature_prompts_set_time">Mposta l’ura</string>
   <!-- Option in expanded select password prompt that links to password settings -->
   <string name="mozac_feature_prompts_manage_logins_2">Manija i chiavi</string>
   <!-- Content description for expanding the saved passwords options in the select password prompt -->
@@ -103,9 +103,9 @@
   <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
   <string name="mozac_feature_prompts_suggest_strong_password_message">Usa na chiavi forti: %1$s</string>
   <!-- Title for using the suggest strong password confirmation dialog -->
-  <string name="mozac_feature_prompts_suggest_strong_password_title">Vo\' usari na chiavi forti?</string>
+  <string name="mozac_feature_prompts_suggest_strong_password_title">Vo’ usari na chiavi forti?</string>
   <!-- Content description for the suggest strong password confirmation dialog -->
-  <string name="mozac_feature_prompts_suggest_strong_password_description_3">Pruteggi u to cuntu usannu na chiavi forti, ginirata a muzzu. Veni sarbata nnô to cuntu p\'usalla \'n futuru.</string>
+  <string name="mozac_feature_prompts_suggest_strong_password_description_3">Pruteggi u to cuntu usannu na chiavi forti, ginirata a muzzu. Veni sarbata nnô to cuntu p’usalla ’n futuru.</string>
   <!-- Pressing this will use the suggested strong password -->
   <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usa a chiavi</string>
   <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -117,8 +117,8 @@
   <!-- Title for showing the username updated confirmation snackbar -->
   <string name="mozac_feature_prompt_login_snackbar_username_updated">Nomu utenti attualizzatu</string>
   <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
-  <string name="mozac_feature_prompt_repost_title">Vo\' mannari arrè i dati a stu situ?</string>
-  <string name="mozac_feature_prompt_repost_message">Attualizzari sta pàggina putissi rifari azzioni ricenti, comu mannari un pagamentu o pubblicari du\' voti un cummentu.</string>
+  <string name="mozac_feature_prompt_repost_title">Vo’ mannari arrè i dati a stu situ?</string>
+  <string name="mozac_feature_prompt_repost_message">Attualizzari sta pàggina putissi rifari azzioni ricenti, comu mannari un pagamentu o pubblicari du’ voti un cummentu.</string>
   <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
   <string name="mozac_feature_prompt_repost_positive_button_text">Manna arrè i dati</string>
   <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
@@ -136,9 +136,9 @@
   <!-- Option in the expanded select card prompt that links to cards settings. -->
   <string name="mozac_feature_prompts_manage_credit_cards_2">Manija i carti</string>
   <!-- Text for the title of a save credit card dialog. -->
-  <string name="mozac_feature_prompts_save_credit_card_prompt_title">Vo\' sarbari sta carta di manera sicura?</string>
+  <string name="mozac_feature_prompts_save_credit_card_prompt_title">Vo’ sarbari sta carta di manera sicura?</string>
   <!-- Text for the title of an update credit card dialog. -->
-  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Vo\' attualizzari a data di scadenza di sta carta?</string>
+  <string name="mozac_feature_prompts_update_credit_card_prompt_title">Vo’ attualizzari a data di scadenza di sta carta?</string>
   <!-- Subtitle text displayed under the title of the saved card dialog. %s is the name of the app (for example "Firefox"). -->
   <string name="mozac_feature_prompts_save_credit_card_prompt_body_2">%s cifra u nùmmaru dâ to carta. U còdici di sicurizza nun veni sarbatu.</string>
   <!--
@@ -162,11 +162,11 @@
   <!-- Title of the Identity Credential provider dialog chooser. -->
   <string name="mozac_feature_prompts_identity_credentials_choose_provider">Scarta un furnituri di cridinziali</string>
   <!-- Title of an account picker dialog for identity credentials. The %1$s will be replaced with the name of the provider -->
-  <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">Trasi c\'un cuntu %1$s</string>
+  <string name="mozac_feature_prompts_identity_credentials_choose_account_for_provider">Trasi c’un cuntu %1$s</string>
   <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
   <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Usa %1$s comu furnituri di cridinziali</string>
   <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote">Tràsiri nne %1$s c\'un cuntu %2$s è suggettu â &lt;a href="%3$s"&gt;pulìtica di risirbatizza&lt;/a&gt; e i &lt;a href="%4$s"&gt;tèrmini di sirbizzu&lt;/a&gt; d\'iḍḍi</string>
+  <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Tràsiri nne %1$s c’un cuntu %2$s è suggettu â <a href=\"%3$s\">pulìtica di risirbatizza</a> e i <a href=\"%4$s\">tèrmini di sirbizzu</a> d’iḍḍi]]></string>
   <!-- Text for the positive button of the Identity Credential dialogs. -->
   <string name="mozac_feature_prompts_identity_credentials_continue">Cuntinua</string>
   <!-- Text for the cancel button of the Identity Credential dialogs. -->

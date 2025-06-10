@@ -13,7 +13,7 @@
   -->
   <string name="mozac_feature_downloads_time_remaining">ntra %1$s</string>
   <!-- Text shown on the second row of a paused download notification. -->
-  <string name="mozac_feature_downloads_paused_notification_text">Scarricamentu \'n pausa</string>
+  <string name="mozac_feature_downloads_paused_notification_text">Scarricamentu ’n pausa</string>
   <!-- Text shown on the second row of an completed download notification. The filename is shown on the first row. -->
   <string name="mozac_feature_downloads_completed_notification_text2">Scarricamentu cumpletu</string>
   <!-- Text shown on the second row of an failed download notification. The filename is shown on the first row. -->
@@ -38,7 +38,7 @@
     Alert dialog confirmation before downloading a previously downloaded file, this is the description.
     %1$s will be replaced with the name of the file.
   -->
-  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s cc\'è già.</string>
+  <string name="mozac_feature_downloads_already_exists_dialog_title" tools:ignore="UnusedResources">%1$s cc’è già.</string>
   <!--
     Alert dialog confirmation before downloading a file without network connection, this is the description.
     %1$s will be replaced with the name of the file.
@@ -71,9 +71,9 @@
   <!-- Text for the info dialog when write to storage permissions have been denied but user tries to download a file. -->
   <string name="mozac_feature_downloads_write_external_storage_permissions_needed_message">Àju bisognu dî pirmissi pi accèdiri ê prichi e cuntinuru murtimidiali. Vai nnê mpustazzioni di Android, ammacca pirmissi e doppu auturizza.</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the title -->
-  <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Vo\' sfalliri i scarricamenti privati?</string>
+  <string name="mozac_feature_downloads_cancel_active_downloads_warning_content_title">Vo’ sfalliri i scarricamenti privati?</string>
   <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
-  <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">Si chiuji ora tutti i schedi privati, sfallirà %1$s scarricamentu. Vo\' nèsciri dâ navicazzioni privata?</string>
+  <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">Si chiuji ora tutti i schedi privati, sfallirà %1$s scarricamentu. Vo’ nèsciri dâ navicazzioni privata?</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
   <string name="mozac_feature_downloads_cancel_active_downloads_accept">Sfallisci scarricamenti</string>
   <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
