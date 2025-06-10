@@ -256,6 +256,7 @@ class LoopbackTransport : public MediaTransportHandler {
 
 struct MediaPipelineTestOptions {
   bool is_rtcp_mux = true;
+  bool activate_receive = true;
   unsigned int ms_until_filter_update = 500;
   unsigned int ms_of_traffic_after_answer = 10000;
 };
@@ -419,7 +420,9 @@ class TestAgentReceive : public TestAgent {
       return GenericPromise::CreateAndResolve(true, __func__);
     }));
 
-    control_.Update([](auto& aControl) { aControl.mReceiving = true; });
+    control_.Update([activate = aOptions.activate_receive](auto& aControl) {
+      aControl.mReceiving = activate;
+    });
     audio_pipeline->UpdateTransport_m(aTransportId, std::move(bundle_filter_),
                                       true);
     audio_pipeline_ = audio_pipeline;
@@ -738,6 +741,18 @@ TEST_F(MediaPipelineTest, TestAudioSendEmptyBundleFilter) {
   TestAudioReceiverBundle(std::move(filter), std::move(bad_answer_filter));
   // Filter is empty, so should drop everything.
   ASSERT_EQ(0, p2_.GetAudioRtpCountReceived());
+}
+
+TEST_F(MediaPipelineTest, TestAudioInactiveNoRecv) {
+  auto filter = MakeUnique<MediaPipelineFilter>();
+  TestAudioReceiverBundle(std::move(filter), nullptr,
+                          {.activate_receive = false,
+                           .ms_until_filter_update = 200,
+                           .ms_of_traffic_after_answer = 800});
+
+  // Packets should have been sent but not received.
+  ASSERT_NE(p1_.GetAudioRtpCountSent(), 0);
+  ASSERT_EQ(p2_.GetAudioRtpCountReceived(), 0);
 }
 
 }  // end namespace
