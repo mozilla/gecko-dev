@@ -1377,7 +1377,14 @@ template JSString* js::ConcatStrings<NoGC>(JSContext* cx, JSString* const& left,
                                            gc::Heap heap);
 
 bool JSLinearString::hasCharsInCollectedNurseryRegion() const {
-  auto& nursery = runtimeFromAnyThread()->gc.nursery();
+  if (isPermanentAtom()) {
+    // Nursery::inCollectedRegion(void*) should only be called on the nursery's
+    // main thread to avoid races. Permanent atoms can be shared with worker
+    // threads but atoms are never allocated in the nursery.
+    MOZ_ASSERT(isTenured());
+    return false;
+  }
+  auto& nursery = runtimeFromMainThread()->gc.nursery();
   if (isInline()) {
     return nursery.inCollectedRegion(this);
   }
