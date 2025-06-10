@@ -414,10 +414,11 @@ already_AddRefed<MediaRawData> MP4TrackDemuxer::GetNextSample() {
     if (mType == kH264 && !sample->mCrypto.IsEncrypted()) {
       H264::FrameType type = H264::GetFrameType(sample);
       switch (type) {
-        case H264::FrameType::I_FRAME:
-          [[fallthrough]];
+        case H264::FrameType::I_FRAME_IDR:
+        case H264::FrameType::I_FRAME_OTHER:
         case H264::FrameType::OTHER: {
-          bool keyframe = type == H264::FrameType::I_FRAME;
+          bool keyframe = type == H264::FrameType::I_FRAME_OTHER ||
+                          type == H264::FrameType::I_FRAME_IDR;
           if (sample->mKeyframe != keyframe) {
             NS_WARNING(nsPrintfCString("Frame incorrectly marked as %skeyframe "
                                        "@ pts:%" PRId64 " dur:%" PRId64
