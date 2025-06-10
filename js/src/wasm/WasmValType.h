@@ -997,6 +997,13 @@ class MaybeRefType {
 
   explicit operator bool() const { return isSome(); }
 
+  mozilla::Maybe<wasm::RefTypeHierarchy> hierarchy() const {
+    if (isSome()) {
+      return mozilla::Some(value().hierarchy());
+    }
+    return mozilla::Nothing();
+  }
+
   static MaybeRefType leastUpperBound(MaybeRefType a, MaybeRefType b) {
     if (a.isSome() && b.isSome()) {
       return MaybeRefType(RefType::leastUpperBound(a.value(), b.value()));
