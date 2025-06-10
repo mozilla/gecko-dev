@@ -344,6 +344,9 @@ class Trace {
     bool operator==(const ConstIterator& other) const {
       return trace_ == other.trace_;
     }
+    bool operator!=(const ConstIterator& other) const {
+      return !(*this == other);
+    }
     const Trace* operator*() const { return trace_; }
 
    private:

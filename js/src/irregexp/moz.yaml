@@ -20,6 +20,8 @@ vendoring:
   source-hosting: googlesource
   vendor-directory: js/src/irregexp/
   skip-vendoring-steps: ['fetch', 'move-contents']
+  patches:
+    - patches/trace-constiterator-operator-not-equal.patch
 
   update-actions:
     - action: run-script

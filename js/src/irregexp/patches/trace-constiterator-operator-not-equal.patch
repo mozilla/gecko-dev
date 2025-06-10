@@ -1,0 +1,14 @@
+diff --git a/js/src/irregexp/imported/regexp-compiler.h b/js/src/irregexp/imported/regexp-compiler.h
+index 88dc915ece02..65e2111cf51f 100644
+--- a/imported/regexp-compiler.h
++++ b/imported/regexp-compiler.h
+@@ -344,4 +344,7 @@ class Trace {
+     bool operator==(const ConstIterator& other) const {
+       return trace_ == other.trace_;
+     }
++    bool operator!=(const ConstIterator& other) const {
++      return !(*this == other);
++    }
+     const Trace* operator*() const { return trace_; }
+
+    private:
