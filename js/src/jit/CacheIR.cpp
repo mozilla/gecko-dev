@@ -994,7 +994,6 @@ static bool FunctionHasStableBaseScript(JSFunction* fun) {
   return true;
 }
 
-
 // See the SMDOC comment in vm/GetterSetter.h for more info on Getter/Setter
 // properties
 void IRGenerator::emitGuardGetterSetterSlot(NativeObject* holder,
@@ -1016,12 +1015,13 @@ void IRGenerator::emitGuardGetterSetterSlot(NativeObject* holder,
   // the first IC stub.
   if (!isFirstStub_) {
     bool isGetter = kind == AccessorKind::Getter;
-    JSObject* accessor = isGetter ? holder->getGetter(prop)
-                                  : holder->getSetter(prop);
+    JSObject* accessor =
+        isGetter ? holder->getGetter(prop) : holder->getSetter(prop);
     JSFunction* fun = &accessor->as<JSFunction>();
     if (FunctionHasStableBaseScript(fun)) {
       bool needsClassGuard = holder->hasNonFunctionAccessor();
-      ValOperandId getterSetterId = EmitLoadSlot(writer, holder, holderId, slot);
+      ValOperandId getterSetterId =
+          EmitLoadSlot(writer, holder, holderId, slot);
       ObjOperandId functionId = writer.loadGetterSetterFunction(
           getterSetterId, isGetter, needsClassGuard);
       writer.saveScriptedGetterSetterCallee(functionId);
@@ -1063,8 +1063,7 @@ void GetPropIRGenerator::emitCallGetterResultGuards(NativeObject* obj,
       ObjOperandId holderId = writer.loadObject(holder);
       TestMatchingHolder(writer, holder, holderId);
 
-      emitGuardGetterSetterSlot(holder, prop, holderId,
-                                AccessorKind::Getter,
+      emitGuardGetterSetterSlot(holder, prop, holderId, AccessorKind::Getter,
                                 /* holderIsConstant = */ true);
     } else {
       emitGuardGetterSetterSlot(holder, prop, objId, AccessorKind::Getter);
@@ -2013,8 +2012,7 @@ AttachDecision GetPropIRGenerator::tryAttachDOMProxyUnshadowed(
       MOZ_ASSERT(kind == NativeGetPropKind::NativeGetter ||
                  kind == NativeGetPropKind::ScriptedGetter);
       MOZ_ASSERT(!isSuper());
-      emitGuardGetterSetterSlot(holder, *prop, holderId,
-                                AccessorKind::Getter,
+      emitGuardGetterSetterSlot(holder, *prop, holderId, AccessorKind::Getter,
                                 /* holderIsConstant = */ true);
       emitCallGetterResultNoGuards(kind, nativeProtoObj, holder, *prop,
                                    receiverId);
@@ -3667,14 +3665,12 @@ AttachDecision GetNameIRGenerator::tryAttachGlobalNameGetter(ObjOperandId objId,
     // Shape guard holder.
     ObjOperandId holderId = writer.loadObject(holder);
     writer.guardShape(holderId, holder->shape());
-    emitGuardGetterSetterSlot(holder, *prop, holderId,
-                              AccessorKind::Getter,
+    emitGuardGetterSetterSlot(holder, *prop, holderId, AccessorKind::Getter,
                               /* holderIsConstant = */ true);
   } else {
     // Note: pass true for |holderIsConstant| because the holder must be the
     // current global object.
-    emitGuardGetterSetterSlot(holder, *prop, globalId,
-                              AccessorKind::Getter,
+    emitGuardGetterSetterSlot(holder, *prop, globalId, AccessorKind::Getter,
                               /* holderIsConstant = */ true);
   }
 
@@ -4920,8 +4916,7 @@ AttachDecision SetPropIRGenerator::tryAttachSetter(HandleObject obj,
       ObjOperandId holderId = writer.loadObject(holder);
       TestMatchingHolder(writer, holder, holderId);
 
-      emitGuardGetterSetterSlot(holder, *prop, holderId,
-                                AccessorKind::Setter,
+      emitGuardGetterSetterSlot(holder, *prop, holderId, AccessorKind::Setter,
                                 /* holderIsConstant = */ true);
     } else {
       emitGuardGetterSetterSlot(holder, *prop, objId, AccessorKind::Setter);

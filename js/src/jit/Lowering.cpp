@@ -7466,10 +7466,12 @@ void LIRGenerator::visitLoadWrapperTarget(MLoadWrapperTarget* ins) {
   define(lir, ins);
 }
 
-void LIRGenerator::visitLoadGetterSetterFunction(MLoadGetterSetterFunction* ins) {
+void LIRGenerator::visitLoadGetterSetterFunction(
+    MLoadGetterSetterFunction* ins) {
   MDefinition* getterSetter = ins->getterSetter();
 
-  LDefinition classGuardTemp = ins->needsClassGuard() ? temp() : LDefinition::BogusTemp();
+  LDefinition classGuardTemp =
+      ins->needsClassGuard() ? temp() : LDefinition::BogusTemp();
   auto* lir = new (alloc())
       LLoadGetterSetterFunction(useBoxAtStart(getterSetter), classGuardTemp);
   assignSnapshot(lir, ins->bailoutKind());

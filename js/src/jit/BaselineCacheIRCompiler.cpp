@@ -1750,17 +1750,16 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetter(
     bool sameRealm, uint32_t nargsAndFlagsOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   Maybe<uint32_t> icScriptOffset = mozilla::Nothing();
-  return emitCallScriptedSetterShared(receiverId, calleeId, rhsId,
-                                      sameRealm, nargsAndFlagsOffset,
-                                      icScriptOffset);
+  return emitCallScriptedSetterShared(receiverId, calleeId, rhsId, sameRealm,
+                                      nargsAndFlagsOffset, icScriptOffset);
 }
 
 bool BaselineCacheIRCompiler::emitCallInlinedSetter(
     ObjOperandId receiverId, ObjOperandId calleeId, ValOperandId rhsId,
     uint32_t icScriptOffset, bool sameRealm, uint32_t nargsAndFlagsOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
-  return emitCallScriptedSetterShared(receiverId, calleeId, rhsId,
-                                      sameRealm, nargsAndFlagsOffset,
+  return emitCallScriptedSetterShared(receiverId, calleeId, rhsId, sameRealm,
+                                      nargsAndFlagsOffset,
                                       mozilla::Some(icScriptOffset));
 }
 
