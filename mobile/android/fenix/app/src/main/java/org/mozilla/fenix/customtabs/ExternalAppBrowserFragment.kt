@@ -192,7 +192,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
     }
 
     override fun onBackPressed(): Boolean {
-        return customTabsIntegration.onBackPressed() || super.onBackPressed()
+        return super.onBackPressed() || customTabsIntegration.onBackPressed()
     }
 
     override fun getContextMenuCandidates(
