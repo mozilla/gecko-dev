@@ -1588,20 +1588,46 @@ HRESULT nsDataObj::GetText(const nsACString& aDataFlavor, FORMATETC& aFE,
 
 //-----------------------------------------------------
 HRESULT nsDataObj::GetFile(FORMATETC& aFE, STGMEDIUM& aSTG) {
-  uint32_t dfInx = 0;
   ULONG count;
   FORMATETC fe;
+
+  // We want to prefer kFileMime over kFilePromiseMime, and only
+  // fall back to kNativeImageMime if neither of those are present, since
+  // kNativeImageMime isn't really a file and we'll have to convert it to
+  // either PNG or BMP regardless of the original format.
+  enum class FlavorType : uint8_t {
+    eNone = 0,
+    eNativeImageMime = 1,
+    eFilePromiseMime = 2,
+    eFileMime = 3,
+  };
+  FlavorType flavorType = FlavorType::eNone;
   m_enumFE->Reset();
-  while (NOERROR == m_enumFE->Next(1, &fe, &count) &&
-         dfInx < mDataFlavors.Length()) {
-    if (mDataFlavors[dfInx].EqualsLiteral(kNativeImageMime))
-      return DropImage(aFE, aSTG);
-    if (mDataFlavors[dfInx].EqualsLiteral(kFileMime))
-      return DropFile(aFE, aSTG);
-    if (mDataFlavors[dfInx].EqualsLiteral(kFilePromiseMime))
-      return DropTempFile(aFE, aSTG);
-    dfInx++;
+  for (const auto& dataFlavor : mDataFlavors) {
+    if (m_enumFE->Next(1, &fe, &count) != NOERROR) {
+      break;
+    }
+
+    if (dataFlavor.EqualsLiteral(kFileMime)) {
+      flavorType = std::max(FlavorType::eFileMime, flavorType);
+    } else if (dataFlavor.EqualsLiteral(kFilePromiseMime)) {
+      flavorType = std::max(FlavorType::eFilePromiseMime, flavorType);
+    } else if (dataFlavor.EqualsLiteral(kNativeImageMime)) {
+      flavorType = std::max(FlavorType::eNativeImageMime, flavorType);
+    }
   }
+
+  switch (flavorType) {
+    case FlavorType::eFileMime:
+      return DropFile(aFE, aSTG);
+    case FlavorType::eFilePromiseMime:
+      return DropTempFile(aFE, aSTG);
+    case FlavorType::eNativeImageMime:
+      return DropImage(aFE, aSTG);
+    case FlavorType::eNone:
+      return E_FAIL;
+  }
+  MOZ_ASSERT_UNREACHABLE("Unexpected flavor type");
   return E_FAIL;
 }
 
