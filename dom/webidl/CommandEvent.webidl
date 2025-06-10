@@ -4,7 +4,11 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-[ChromeOnly, Exposed=Window]
+// https://html.spec.whatwg.org/multipage/interaction.html#the-commandevent-interface
+[Exposed=Window,Func="mozilla::dom::CommandEvent::IsCallerChromeOrCommandForEnabled"]
 interface CommandEvent : Event {
+  // TODO(keithamus): Spec is `DOMString` but internal CommandEvent is `DOMString?`
   readonly attribute DOMString? command;
+
+  // TODO(keithamus): Add remaining interface (source, constructor) from spec CommandEvent
 };

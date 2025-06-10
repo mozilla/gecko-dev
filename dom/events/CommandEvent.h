@@ -27,6 +27,8 @@ class CommandEvent : public Event {
 
   void GetCommand(nsAString& aCommand);
 
+  static bool IsCallerChromeOrCommandForEnabled(JSContext*, JSObject*);
+
  protected:
   ~CommandEvent() = default;
 };
