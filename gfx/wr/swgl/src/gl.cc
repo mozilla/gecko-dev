@@ -341,6 +341,18 @@ struct Buffer {
   }
 
   ~Buffer() { cleanup(); }
+
+  char* end_ptr() const { return buf ? buf + size : nullptr; }
+
+  void* get_data(void* data) {
+    if (buf) {
+      size_t offset = (size_t)data;
+      if (offset < size) {
+        return buf + offset;
+      }
+    }
+    return nullptr;
+  }
 };
 
 struct Framebuffer {
@@ -1696,51 +1708,53 @@ static int clip_ptrs_against_bounds(T*& dst_buf, T* dst_bound0, T* dst_bound1,
                                     const T*& src_buf, const T* src_bound0,
                                     const T* src_bound1, size_t& len) {
   if (dst_bound0) {
+    assert(dst_bound0 <= dst_bound1);
     if (dst_buf < dst_bound0) {
-      if (dst_buf + len * N <= dst_bound0) {
+      size_t offset = size_t(dst_bound0 - dst_buf) / N;
+      if (len <= offset) {
         // dst entirely before bounds
         len = 0;
         return -1;
       }
       // dst overlaps bound0
-      size_t offset = (dst_bound0 - dst_buf) / N;
       src_buf += offset;
       dst_buf += offset * N;
       len -= offset;
     }
-    if (dst_buf + len * N > dst_bound1) {
-      if (dst_buf >= dst_bound1) {
-        // dst entirely after bounds
-        len = 0;
-        return 1;
-      }
+    if (dst_buf >= dst_bound1) {
+      // dst entirely after bounds
+      len = 0;
+      return 1;
+    }
+    size_t remaining = size_t(dst_bound1 - dst_buf) / N;
+    if (len > remaining) {
       // dst overlaps bound1
-      size_t offset = (dst_buf + len * N - dst_bound1) / N;
-      len -= offset;
+      len = remaining;
     }
   }
   if (src_bound0) {
+    assert(src_bound0 <= src_bound1);
     if (src_buf < src_bound0) {
-      if (src_buf + len <= src_bound0) {
+      size_t offset = size_t(src_bound0 - src_buf);
+      if (len <= offset) {
         // src entirely before bounds
         len = 0;
         return -1;
       }
       // src overlaps bound0
-      size_t offset = src_bound0 - src_buf;
       src_buf += offset;
       dst_buf += offset * N;
       len -= offset;
     }
-    if (src_buf + len > src_bound1) {
-      if (src_buf >= src_bound1) {
-        // src entirely after bounds
-        len = 0;
-        return 1;
-      }
+    if (src_buf >= src_bound1) {
+      // src entirely after bounds
+      len = 0;
+      return 1;
+    }
+    size_t remaining = size_t(src_bound1 - src_buf);
+    if (len > remaining) {
       // src overlaps bound1
-      size_t offset = src_buf + len - src_bound1;
-      len -= offset;
+      len = remaining;
     }
   }
   return 0;
@@ -1922,24 +1936,10 @@ static Buffer* get_pixel_pack_buffer() {
              : nullptr;
 }
 
-static void* get_pixel_pack_buffer_data(void* data) {
-  if (Buffer* b = get_pixel_pack_buffer()) {
-    return b->buf ? b->buf + (size_t)data : nullptr;
-  }
-  return data;
-}
-
 static Buffer* get_pixel_unpack_buffer() {
   return ctx->pixel_unpack_buffer_binding
              ? &ctx->buffers[ctx->pixel_unpack_buffer_binding]
              : nullptr;
-}
-
-static void* get_pixel_unpack_buffer_data(void* data) {
-  if (Buffer* b = get_pixel_unpack_buffer()) {
-    return b->buf ? b->buf + (size_t)data : nullptr;
-  }
-  return data;
 }
 
 void TexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
@@ -1949,7 +1949,10 @@ void TexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
     assert(false);
     return;
   }
-  data = get_pixel_unpack_buffer_data(data);
+  Buffer* pbo = get_pixel_unpack_buffer();
+  if (pbo) {
+    data = pbo->get_data(data);
+  }
   if (!data) return;
   Texture& t = ctx->textures[ctx->get_binding(target)];
   IntRect skip = {xoffset, yoffset, xoffset + width, yoffset + height};
@@ -1967,7 +1970,8 @@ void TexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
   convert_copy(format, t.internal_format,
                (uint8_t*)t.sample_ptr(xoffset, yoffset), t.stride(),
                (uint8_t*)t.buf, (uint8_t*)t.end_ptr(), (const uint8_t*)data,
-               row_length * src_bpp, nullptr, nullptr, width, height);
+               row_length * src_bpp, pbo ? (const uint8_t*)pbo->buf : nullptr,
+               pbo ? (const uint8_t*)pbo->end_ptr() : nullptr, width, height);
 }
 
 void TexImage2D(GLenum target, GLint level, GLint internal_format,
@@ -2710,7 +2714,10 @@ void InvalidateFramebuffer(GLenum target, GLsizei num_attachments,
 
 void ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
                 GLenum type, void* data) {
-  data = get_pixel_pack_buffer_data(data);
+  Buffer* pbo = get_pixel_pack_buffer();
+  if (pbo) {
+    data = pbo->get_data(data);
+  }
   if (!data) return;
   Framebuffer* fb = get_framebuffer(GL_READ_FRAMEBUFFER);
   if (!fb) return;
@@ -2756,7 +2763,9 @@ void ReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
   if (width <= 0 || height <= 0) {
     return;
   }
-  convert_copy(format, t.internal_format, dest, destStride, nullptr, nullptr,
+  convert_copy(format, t.internal_format, dest, destStride,
+               pbo ? (uint8_t*)pbo->buf : nullptr,
+               pbo ? (uint8_t*)pbo->end_ptr() : nullptr,
                (const uint8_t*)t.sample_ptr(x, y), t.stride(),
                (const uint8_t*)t.buf, (const uint8_t*)t.end_ptr(), width,
                height);
