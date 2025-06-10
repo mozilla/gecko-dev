@@ -1053,10 +1053,9 @@ nimbus_events:
         type: quantity
         unit: enrollments
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956079
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1956080
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956079
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1956080
     notification_emails:
       - beth@mozilla.com
       - project-nimbus@mozilla.com
