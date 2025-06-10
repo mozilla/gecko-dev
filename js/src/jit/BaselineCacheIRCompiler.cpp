@@ -1649,10 +1649,9 @@ bool BaselineCacheIRCompiler::emitCallNativeSetter(
 }
 
 bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
-    ObjOperandId receiverId, uint32_t setterOffset, ValOperandId rhsId,
+    ObjOperandId receiverId, ObjOperandId calleeId, ValOperandId rhsId,
     bool sameRealm, uint32_t nargsAndFlagsOffset,
     Maybe<uint32_t> icScriptOffset) {
-  AutoScratchRegister callee(allocator, masm);
   AutoScratchRegister scratch(allocator, masm);
 #if defined(JS_CODEGEN_X86)
   Register code = scratch;
@@ -1661,13 +1660,10 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
 #endif
 
   Register receiver = allocator.useRegister(masm, receiverId);
-  Address setterAddr(stubAddress(setterOffset));
+  Register callee = allocator.useRegister(masm, calleeId);
   ValueOperand val = allocator.useValueRegister(masm, rhsId);
 
   bool isInlined = icScriptOffset.isSome();
-
-  // First, load the callee.
-  masm.loadPtr(setterAddr, callee);
 
   if (isInlined) {
     // If we are calling a trial-inlined setter, guard that the
@@ -1750,20 +1746,20 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
 }
 
 bool BaselineCacheIRCompiler::emitCallScriptedSetter(
-    ObjOperandId receiverId, uint32_t setterOffset, ValOperandId rhsId,
+    ObjOperandId receiverId, ObjOperandId calleeId, ValOperandId rhsId,
     bool sameRealm, uint32_t nargsAndFlagsOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   Maybe<uint32_t> icScriptOffset = mozilla::Nothing();
-  return emitCallScriptedSetterShared(receiverId, setterOffset, rhsId,
+  return emitCallScriptedSetterShared(receiverId, calleeId, rhsId,
                                       sameRealm, nargsAndFlagsOffset,
                                       icScriptOffset);
 }
 
 bool BaselineCacheIRCompiler::emitCallInlinedSetter(
-    ObjOperandId receiverId, uint32_t setterOffset, ValOperandId rhsId,
+    ObjOperandId receiverId, ObjOperandId calleeId, ValOperandId rhsId,
     uint32_t icScriptOffset, bool sameRealm, uint32_t nargsAndFlagsOffset) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
-  return emitCallScriptedSetterShared(receiverId, setterOffset, rhsId,
+  return emitCallScriptedSetterShared(receiverId, calleeId, rhsId,
                                       sameRealm, nargsAndFlagsOffset,
                                       mozilla::Some(icScriptOffset));
 }

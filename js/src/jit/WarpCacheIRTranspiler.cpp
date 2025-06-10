@@ -305,7 +305,7 @@ class MOZ_RAII WarpCacheIRTranspiler : public WarpBuilderShared {
                                           MDefinition* getter, bool sameRealm,
                                           uint32_t nargsAndFlagsOffset);
   [[nodiscard]] bool emitCallSetter(CallKind kind, ObjOperandId receiverId,
-                                    uint32_t setterOffset, ValOperandId rhsId,
+                                    MDefinition* setter, ValOperandId rhsId,
                                     bool sameRealm,
                                     uint32_t nargsAndFlagsOffset);
 
@@ -6688,11 +6688,10 @@ bool WarpCacheIRTranspiler::emitCallNativeGetterResult(
 
 bool WarpCacheIRTranspiler::emitCallSetter(CallKind kind,
                                            ObjOperandId receiverId,
-                                           uint32_t setterOffset,
+                                           MDefinition* setter,
                                            ValOperandId rhsId, bool sameRealm,
                                            uint32_t nargsAndFlagsOffset) {
   MDefinition* receiver = getOperand(receiverId);
-  MDefinition* setter = objectStubField(setterOffset);
   MDefinition* rhs = getOperand(rhsId);
   if (kind == CallKind::Scripted && callInfo_ && callInfo_->isInlined()) {
     // We are transpiling to generate the correct guards. We also update the
@@ -6733,16 +6732,18 @@ bool WarpCacheIRTranspiler::emitCallSetter(CallKind kind,
 }
 
 bool WarpCacheIRTranspiler::emitCallScriptedSetter(
-    ObjOperandId receiverId, uint32_t setterOffset, ValOperandId rhsId,
+    ObjOperandId receiverId, ObjOperandId calleeId, ValOperandId rhsId,
     bool sameRealm, uint32_t nargsAndFlagsOffset) {
-  return emitCallSetter(CallKind::Scripted, receiverId, setterOffset, rhsId,
+  MDefinition* setter = getOperand(calleeId);
+  return emitCallSetter(CallKind::Scripted, receiverId, setter, rhsId,
                         sameRealm, nargsAndFlagsOffset);
 }
 
 bool WarpCacheIRTranspiler::emitCallInlinedSetter(
-    ObjOperandId receiverId, uint32_t setterOffset, ValOperandId rhsId,
+    ObjOperandId receiverId, ObjOperandId calleeId, ValOperandId rhsId,
     uint32_t icScriptOffset, bool sameRealm, uint32_t nargsAndFlagsOffset) {
-  return emitCallSetter(CallKind::Scripted, receiverId, setterOffset, rhsId,
+  MDefinition* setter = getOperand(calleeId);
+  return emitCallSetter(CallKind::Scripted, receiverId, setter, rhsId,
                         sameRealm, nargsAndFlagsOffset);
 }
 
@@ -6751,7 +6752,8 @@ bool WarpCacheIRTranspiler::emitCallNativeSetter(ObjOperandId receiverId,
                                                  ValOperandId rhsId,
                                                  bool sameRealm,
                                                  uint32_t nargsAndFlagsOffset) {
-  return emitCallSetter(CallKind::Native, receiverId, setterOffset, rhsId,
+  MDefinition* setter = objectStubField(setterOffset);
+  return emitCallSetter(CallKind::Native, receiverId, setter, rhsId,
                         sameRealm, nargsAndFlagsOffset);
 }
 

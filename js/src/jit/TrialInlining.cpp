@@ -383,6 +383,9 @@ Maybe<InlinableSetterData> FindInlinableSetterData(ICCacheIRStub* stub) {
   const CacheIRStubInfo* stubInfo = stub->stubInfo();
   const uint8_t* stubData = stub->stubDataStart();
 
+  ObjOperandId maybeCalleeOperand;
+  uintptr_t maybeRawCallee = 0;
+
   CacheIRReader reader(stubInfo);
   while (reader.more()) {
     const uint8_t* opStart = reader.currentPosition();
@@ -393,40 +396,51 @@ Maybe<InlinableSetterData> FindInlinableSetterData(ICCacheIRStub* stub) {
     mozilla::DebugOnly<const uint8_t*> argStart = reader.currentPosition();
 
     switch (op) {
+      case CacheOp::LoadObject: {
+        // If we load a constant object, remember it in case it's the callee.
+        maybeCalleeOperand = reader.objOperandId();
+        uint32_t maybeCalleeOffset = reader.stubOffset();
+        maybeRawCallee = stubInfo->getStubRawWord(stubData, maybeCalleeOffset);
+        break;
+      }
       case CacheOp::CallScriptedSetter: {
-        data.emplace();
-        data->receiverOperand = reader.objOperandId();
-
-        uint32_t setterOffset = reader.stubOffset();
-        uintptr_t rawTarget = stubInfo->getStubRawWord(stubData, setterOffset);
-        data->target = reinterpret_cast<JSFunction*>(rawTarget);
-
-        data->rhsOperand = reader.valOperandId();
-        data->sameRealm = reader.readBool();
+        ObjOperandId receiverOperand = reader.objOperandId();
+        ObjOperandId calleeOperand = reader.objOperandId();
+        ValOperandId rhsOperand = reader.valOperandId();
+        bool sameRealm = reader.readBool();
         (void)reader.stubOffset();  // nargsAndFlags
 
-        data->endOfSharedPrefix = opStart;
+        if (maybeCalleeOperand == calleeOperand) {
+          data.emplace();
+          data->target = reinterpret_cast<JSFunction*>(maybeRawCallee);
+          data->receiverOperand = receiverOperand;
+          data->calleeOperand = calleeOperand;
+          data->rhsOperand = rhsOperand;
+          data->sameRealm = sameRealm;
+          data->endOfSharedPrefix = opStart;
+        }
         break;
       }
       case CacheOp::CallInlinedSetter: {
-        data.emplace();
-        data->receiverOperand = reader.objOperandId();
-
-        uint32_t setterOffset = reader.stubOffset();
-        uintptr_t rawTarget = stubInfo->getStubRawWord(stubData, setterOffset);
-        data->target = reinterpret_cast<JSFunction*>(rawTarget);
-
-        data->rhsOperand = reader.valOperandId();
-
+        ObjOperandId receiverOperand = reader.objOperandId();
+        ObjOperandId calleeOperand = reader.objOperandId();
+        ValOperandId rhsOperand = reader.valOperandId();
         uint32_t icScriptOffset = reader.stubOffset();
         uintptr_t rawICScript =
             stubInfo->getStubRawWord(stubData, icScriptOffset);
-        data->icScript = reinterpret_cast<ICScript*>(rawICScript);
-
-        data->sameRealm = reader.readBool();
+        bool sameRealm = reader.readBool();
         (void)reader.stubOffset();  // nargsAndFlags
 
-        data->endOfSharedPrefix = opStart;
+        if (maybeCalleeOperand == calleeOperand) {
+          data.emplace();
+          data->target = reinterpret_cast<JSFunction*>(maybeRawCallee);
+          data->receiverOperand = receiverOperand;
+          data->calleeOperand = calleeOperand;
+          data->rhsOperand = rhsOperand;
+          data->icScript = reinterpret_cast<ICScript*>(rawICScript);
+          data->sameRealm = sameRealm;
+          data->endOfSharedPrefix = opStart;
+        }
         break;
       }
       default:
@@ -886,8 +900,9 @@ bool TrialInliner::maybeInlineSetter(ICEntry& entry, ICFallbackStub* fallback,
   ValOperandId rhsValId(writer.setInputOperandId(1));
   cloneSharedPrefix(stub, data->endOfSharedPrefix, writer);
 
-  writer.callInlinedSetter(data->receiverOperand, data->target,
-                           data->rhsOperand, newICScript, data->sameRealm);
+  writer.callInlinedSetter(data->receiverOperand, data->calleeOperand,
+                           data->target, data->rhsOperand, newICScript,
+                           data->sameRealm);
   writer.returnFromIC();
 
   return replaceICStub(entry, fallback, writer, kind);
