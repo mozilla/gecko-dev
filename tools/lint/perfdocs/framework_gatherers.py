@@ -395,6 +395,10 @@ class RaptorGatherer(FrameworkGatherer):
             if self._task_list.get(title, []):
                 result += "   * **Test Task**:\n\n"
                 for platform in sorted(self._task_list[title]):
+                    if (suite_name == "mobile" and "android" not in platform) or (
+                        suite_name == "desktop" and "android" in platform
+                    ):
+                        continue
                     self._task_list[title][platform].sort(key=lambda x: x["test_name"])
 
                     table = TableBuilder(
