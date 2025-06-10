@@ -160,7 +160,7 @@ const AVAILABLE_BREAKPOINTS = [
       generalEvent("control", "focus"),
       generalEvent("control", "focusin"),
       generalEvent("control", "focusout"),
-      // The condition should be removed when "dom.element.commandfor.enabled" is removed
+      // The condition should be removed when "dom.element.invokers.enabled" is removed
       generalEvent(
         "control",
         "invoke",

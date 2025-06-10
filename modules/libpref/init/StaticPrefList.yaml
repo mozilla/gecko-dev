@@ -2702,8 +2702,8 @@
   value: false
   mirror: always
 
-# Whether the commandfor attribute implementation is enabled
-- name: dom.element.commandfor.enabled
+# Whether the invoketarget attribute implementation is enabled
+- name: dom.element.invokers.enabled
   type: bool
   value: false
   mirror: always

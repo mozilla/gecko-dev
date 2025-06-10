@@ -6,16 +6,9 @@
 
 #include "mozilla/dom/CommandEvent.h"
 #include "mozilla/MiscEvents.h"
-#include "nsContentUtils.h"
 #include "prtime.h"
 
 namespace mozilla::dom {
-
-bool CommandEvent::IsCallerChromeOrCommandForEnabled(JSContext* aCx,
-                                                     JSObject* aGlobal) {
-  return nsContentUtils::ThreadsafeIsSystemCaller(aCx) ||
-         StaticPrefs::dom_element_commandfor_enabled();
-}
 
 CommandEvent::CommandEvent(EventTarget* aOwner, nsPresContext* aPresContext,
                            WidgetCommandEvent* aEvent)

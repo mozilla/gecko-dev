@@ -3422,7 +3422,7 @@ Element* nsINode::GetNearestInclusiveTargetPopoverForInvoker() const {
 }
 
 nsGenericHTMLElement* nsINode::GetEffectiveInvokeTargetElement() const {
-  if (!StaticPrefs::dom_element_commandfor_enabled()) {
+  if (!StaticPrefs::dom_element_invokers_enabled()) {
     return nullptr;
   }
 
