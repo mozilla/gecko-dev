@@ -13,8 +13,10 @@
 #include <string>
 
 #include "base/win/windows_version.h"
+#include "GfxDriverInfo.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Components.h"
 #include "mozilla/ImportDir.h"
 #include "mozilla/Logging.h"
 #include "mozilla/NSPRLogModulesParser.h"
@@ -35,6 +37,7 @@
 #include "nsCOMPtr.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsIFile.h"
+#include "nsIGfxInfo.h"
 #include "nsIProperties.h"
 #include "nsIXULRuntime.h"
 #include "nsServiceManagerUtils.h"
@@ -70,6 +73,8 @@ static StaticAutoPtr<nsString> sProfileDir;
 static StaticAutoPtr<nsString> sLocalAppDataDir;
 static StaticAutoPtr<nsString> sSystemFontsDir;
 static StaticAutoPtr<nsString> sWindowsSystemDir;
+static StaticAutoPtr<nsString> sLocalAppDataLowDir;
+static StaticAutoPtr<nsString> sLocalAppDataLowParentDir;
 #ifdef ENABLE_SYSTEM_EXTENSION_DIRS
 static StaticAutoPtr<nsString> sUserExtensionsDir;
 #endif
@@ -147,6 +152,8 @@ void SandboxBroker::Initialize(sandbox::BrokerServices* aBrokerServices,
     sLocalAppDataDir = nullptr;
     sSystemFontsDir = nullptr;
     sWindowsSystemDir = nullptr;
+    sLocalAppDataLowDir = nullptr;
+    sLocalAppDataLowParentDir = nullptr;
 #ifdef ENABLE_SYSTEM_EXTENSION_DIRS
     sUserExtensionsDir = nullptr;
 #endif
@@ -195,9 +202,9 @@ static void AddCachedDirRule(sandbox::TargetPolicy* aPolicy,
   }
 }
 
-static void EnsureWindowsDirCached(GUID aFolderID,
-                                   StaticAutoPtr<nsString>& aCacheVar,
-                                   const char* aErrMsg) {
+static void EnsureWindowsDirCached(
+    GUID aFolderID, StaticAutoPtr<nsString>& aCacheVar, const char* aErrMsg,
+    StaticAutoPtr<nsString>* aParentCacheVar = nullptr) {
   if (aCacheVar) {
     return;
   }
@@ -210,7 +217,22 @@ static void EnsureWindowsDirCached(GUID aFolderID,
     return;
   }
 
-  CacheAndStandardizeDir(nsDependentString(dirPath.get()), aCacheVar);
+  nsDependentString dirString(dirPath.get());
+  CacheAndStandardizeDir(dirString, aCacheVar);
+  if (aParentCacheVar) {
+    nsCOMPtr<nsIFile> dirFile;
+    nsCOMPtr<nsIFile> parentDir;
+    if (NS_FAILED(NS_NewLocalFile(dirString, getter_AddRefs(dirFile))) ||
+        NS_FAILED(dirFile->GetParent(getter_AddRefs(parentDir)))) {
+      NS_WARNING("Failed to get parent directory to cache.");
+      LOG_E("%s parent", aErrMsg);
+      return;
+    }
+
+    nsString parentPath;
+    MOZ_ALWAYS_SUCCEEDS(parentDir->GetPath(parentPath));
+    CacheAndStandardizeDir(parentPath, *aParentCacheVar);
+  }
 }
 
 static void AddCachedWindowsDirRule(
@@ -226,6 +248,14 @@ static void AddCachedWindowsDirRule(
     EnsureWindowsDirCached(FOLDERID_System, sWindowsSystemDir,
                            "Failed to get Windows System folder");
     AddCachedDirRule(aPolicy, aAccess, sWindowsSystemDir, aRelativePath);
+    return;
+  }
+  if (aFolderID == FOLDERID_LocalAppDataLow) {
+    // For LocalAppDataLow we also require the parent dir.
+    EnsureWindowsDirCached(FOLDERID_LocalAppDataLow, sLocalAppDataLowDir,
+                           "Failed to get Windows LocalAppDataLow folder",
+                           &sLocalAppDataLowParentDir);
+    AddCachedDirRule(aPolicy, aAccess, sLocalAppDataLowDir, aRelativePath);
     return;
   }
 
@@ -889,6 +919,55 @@ static sandbox::ResultCode AddAndConfigureAppContainerProfile(
 }
 #endif
 
+void AddShaderCachesToPolicy(sandbox::TargetPolicy* aPolicy,
+                             int32_t aSandboxLevel) {
+  // The GPU process needs to write to a shader cache for performance reasons
+  if (sProfileDir) {
+    // Currently the GPU process creates the shader-cache directory if it
+    // doesn't exist, so we have to give FILES_ALLOW_ANY access.
+    // FILES_ALLOW_DIR_ANY has been seen to fail on an existing profile although
+    // the root cause hasn't been found. FILES_ALLOW_DIR_ANY has also been
+    // removed from the sandbox code upstream.
+    // It is possible that we might be able to use FILES_ALLOW_READONLY for the
+    // dir if it is already created, bug 1966157 has been filed to track.
+    AddCachedDirRule(aPolicy, sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                     sProfileDir, u"\\shader-cache"_ns);
+
+    AddCachedDirRule(aPolicy, sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                     sProfileDir, u"\\shader-cache\\*"_ns);
+  }
+
+  // Add GPU specific shader cache rules.
+  const nsCOMPtr<nsIGfxInfo> gfxInfo = components::GfxInfo::Service();
+  MOZ_ASSERT(gfxInfo);
+  nsAutoString vendorID;
+  if (NS_FAILED(gfxInfo->GetAdapterVendorID(vendorID))) {
+    NS_WARNING("Failed to get GPU Vendor ID.");
+    return;
+  }
+
+  if (aSandboxLevel >= 2 && vendorID == widget::GfxDriverInfo::GetDeviceVendor(
+                                            widget::DeviceVendor::Intel)) {
+    // Add rules to allow Intel's shader cache.
+    AddCachedWindowsDirRule(aPolicy, sandbox::TargetPolicy::FILES_ALLOW_ANY,
+                            FOLDERID_LocalAppDataLow,
+                            u"\\Intel\\ShaderCache\\*"_ns);
+    AddCachedWindowsDirRule(aPolicy, sandbox::TargetPolicy::FILES_ALLOW_QUERY,
+                            FOLDERID_LocalAppDataLow,
+                            u"\\Intel\\ShaderCache"_ns);
+    AddCachedWindowsDirRule(aPolicy, sandbox::TargetPolicy::FILES_ALLOW_QUERY,
+                            FOLDERID_LocalAppDataLow, u"\\Intel"_ns);
+    AddCachedWindowsDirRule(aPolicy, sandbox::TargetPolicy::FILES_ALLOW_QUERY,
+                            FOLDERID_LocalAppDataLow);
+
+    // The parent of LocalAppDataLow is cached by AddCachedWindowsDirRule.
+    if (sLocalAppDataLowParentDir) {
+      AddCachedDirRule(aPolicy, sandbox::TargetPolicy::FILES_ALLOW_QUERY,
+                       sLocalAppDataLowParentDir);
+    }
+  }
+}
+
 void SandboxBroker::SetSecurityLevelForContentProcess(int32_t aSandboxLevel,
                                                       bool aIsFileProcess) {
   MOZ_RELEASE_ASSERT(mPolicy, "mPolicy must be set before this call.");
@@ -1261,21 +1340,7 @@ void SandboxBroker::SetSecurityLevelForGPUProcess(int32_t aSandboxLevel) {
                      sLocalAppDataDir, u"\\Microsoft\\Windows\\Fonts\\*"_ns);
   }
 
-  // The GPU process needs to write to a shader cache for performance reasons
-  if (sProfileDir) {
-    // Currently the GPU process creates the shader-cache directory if it
-    // doesn't exist, so we have to give FILES_ALLOW_ANY access.
-    // FILES_ALLOW_DIR_ANY has been seen to fail on an existing profile although
-    // the root cause hasn't been found. FILES_ALLOW_DIR_ANY has also been
-    // removed from the sandbox code upstream.
-    // It is possible that we might be able to use FILES_ALLOW_READONLY for the
-    // dir if it is already created, bug 1966157 has been filed to track.
-    AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_ANY,
-                     sProfileDir, u"\\shader-cache"_ns);
-
-    AddCachedDirRule(mPolicy, sandbox::TargetPolicy::FILES_ALLOW_ANY,
-                     sProfileDir, u"\\shader-cache\\*"_ns);
-  }
+  AddShaderCachesToPolicy(mPolicy, aSandboxLevel);
 }
 
 #define SANDBOX_ENSURE_SUCCESS(result, message)          \
