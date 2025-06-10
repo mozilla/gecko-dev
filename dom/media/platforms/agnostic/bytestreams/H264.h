@@ -516,7 +516,14 @@ class H264 {
       const mozilla::MediaByteBuffer* aExtraData);
 
   enum class FrameType {
-    I_FRAME,
+    // IDR is a special iframe, according to the spec T-REC-H.264-202408, 3.69 :
+    // "An IDR picture causes the decoding process to mark all reference
+    // pictures as "unused for reference" immediately after the decoding of the
+    // IDR picture. All coded pictures that follow an IDR picture in decoding
+    // order can be decoded without inter prediction from any picture that
+    // precedes the IDR picture in decoding order."
+    I_FRAME_IDR,
+    I_FRAME_OTHER,
     OTHER,
     INVALID,
   };

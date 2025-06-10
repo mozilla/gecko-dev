@@ -958,18 +958,18 @@ uint32_t H264::ComputeMaxRefFrames(const mozilla::MediaByteBuffer* aExtraData) {
     int8_t nalType = AssertedCast<int8_t>(*p & 0x1f);
     if (nalType == H264_NAL_IDR_SLICE) {
       // IDR NAL.
-      return FrameType::I_FRAME;
+      return FrameType::I_FRAME_IDR;
     }
     if (nalType == H264_NAL_SEI) {
       RefPtr<mozilla::MediaByteBuffer> decodedNAL = DecodeNALUnit(p, nalLen);
       SEIRecoveryData data;
       if (DecodeRecoverySEI(decodedNAL, data)) {
-        return FrameType::I_FRAME;
+        return FrameType::I_FRAME_OTHER;
       }
     } else if (nalType == H264_NAL_SLICE) {
       RefPtr<mozilla::MediaByteBuffer> decodedNAL = DecodeNALUnit(p, nalLen);
       if (DecodeISlice(decodedNAL)) {
-        return FrameType::I_FRAME;
+        return FrameType::I_FRAME_OTHER;
       }
     }
   }
