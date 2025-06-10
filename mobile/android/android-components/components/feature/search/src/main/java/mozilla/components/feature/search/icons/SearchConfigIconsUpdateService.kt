@@ -5,6 +5,7 @@
 package mozilla.components.feature.search.icons
 
 import mozilla.appservices.remotesettings.RemoteSettingsClient
+import mozilla.appservices.remotesettings.RemoteSettingsException
 import mozilla.appservices.remotesettings.RemoteSettingsRecord
 import mozilla.components.feature.search.RemoteSettingsRepository
 import mozilla.components.support.remotesettings.RemoteSettingsService
@@ -37,7 +38,13 @@ class SearchConfigIconsUpdateService(
      *
      * @param record The [RemoteSettingsRecord] who's attachment is to be fetched.
 =     */
-    fun fetchIconAttachment(record: RemoteSettingsRecord): ByteArray? {
-        return client?.getAttachment(record)
+    fun fetchIconAttachment(record: RemoteSettingsRecord?): ByteArray? {
+        return record?.let {
+            try {
+                client?.getAttachment(it)
+            } catch (e: RemoteSettingsException) {
+                null
+            }
+        }
     }
 }

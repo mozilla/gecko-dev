@@ -105,19 +105,17 @@ class SearchEngineSelectorRepository(
         val searchEngineList = mutableListOf<SearchEngine>()
         searchConfig.engines.forEach { engine ->
             val iconAttachmentModel = findMatchingIcon(engine.identifier, iconsList)
-            iconAttachmentModel?.let {
-                val searchEngine = try {
-                    reader.loadStreamAPI(
-                        engineDefinition = engine,
-                        attachmentModel = searchConfigIconsUpdateService.fetchIconAttachment(it),
-                        mimetype = it.attachment?.mimetype ?: "",
-                        defaultIcon = defaultSearchEngineIcon,
-                    )
-                } catch (exception: IllegalArgumentException) {
-                    return@forEach
-                }
-                searchEngineList.add(searchEngine)
+            val searchEngine = try {
+                reader.loadStreamAPI(
+                    engineDefinition = engine,
+                    attachmentModel = searchConfigIconsUpdateService.fetchIconAttachment(iconAttachmentModel),
+                    mimetype = iconAttachmentModel?.attachment?.mimetype ?: "",
+                    defaultIcon = defaultSearchEngineIcon,
+                )
+            } catch (exception: IllegalArgumentException) {
+                return@forEach
             }
+            searchEngineList.add(searchEngine)
         }
         return searchEngineList
     }
