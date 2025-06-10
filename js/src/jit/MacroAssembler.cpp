@@ -5650,8 +5650,8 @@ void MacroAssembler::branchIfObjectNotExtensible(Register obj, Register scratch,
 
   // Spectre-style checks are not needed here because we do not interpret data
   // based on this check.
-  static_assert(sizeof(ObjectFlags) == sizeof(uint16_t));
-  load16ZeroExtend(Address(scratch, Shape::offsetOfObjectFlags()), scratch);
+  static_assert(sizeof(ObjectFlags) == sizeof(uint32_t));
+  load32(Address(scratch, Shape::offsetOfObjectFlags()), scratch);
   branchTest32(Assembler::NonZero, scratch,
                Imm32(uint32_t(ObjectFlag::NotExtensible)), label);
 }
@@ -5668,8 +5668,8 @@ void MacroAssembler::branchTestObjectNeedsProxyResultValidation(
   branchTest32(Assembler::Zero,
                Address(scratch, Shape::offsetOfImmutableFlags()),
                Imm32(Shape::isNativeBit()), doValidation);
-  static_assert(sizeof(ObjectFlags) == sizeof(uint16_t));
-  load16ZeroExtend(Address(scratch, Shape::offsetOfObjectFlags()), scratch);
+  static_assert(sizeof(ObjectFlags) == sizeof(uint32_t));
+  load32(Address(scratch, Shape::offsetOfObjectFlags()), scratch);
   branchTest32(Assembler::NonZero, scratch,
                Imm32(uint32_t(ObjectFlag::NeedsProxyGetSetResultValidation)),
                doValidation);
