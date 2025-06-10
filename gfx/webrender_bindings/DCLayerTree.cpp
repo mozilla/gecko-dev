@@ -547,13 +547,8 @@ bool DCLayerTree::UseNativeCompositor() const {
 }
 
 bool DCLayerTree::UseLayerCompositor() const {
-// Only allow the layer compositor in nightly builds, for now.
-#ifdef NIGHTLY_BUILD
   return UseNativeCompositor() &&
          StaticPrefs::gfx_webrender_layer_compositor_AtStartup();
-#else
-  return false;
-#endif
 }
 
 void DCLayerTree::DisableNativeCompositor() {
