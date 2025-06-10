@@ -305,6 +305,9 @@ Maybe<InlinableGetterData> FindInlinableGetterData(ICCacheIRStub* stub) {
   const CacheIRStubInfo* stubInfo = stub->stubInfo();
   const uint8_t* stubData = stub->stubDataStart();
 
+  ObjOperandId maybeCalleeOperand;
+  uintptr_t maybeRawCallee = 0;
+
   CacheIRReader reader(stubInfo);
   while (reader.more()) {
     const uint8_t* opStart = reader.currentPosition();
@@ -315,37 +318,47 @@ Maybe<InlinableGetterData> FindInlinableGetterData(ICCacheIRStub* stub) {
     mozilla::DebugOnly<const uint8_t*> argStart = reader.currentPosition();
 
     switch (op) {
+      case CacheOp::LoadObject: {
+        // If we load a constant object, remember it in case it's the callee.
+        maybeCalleeOperand = reader.objOperandId();
+        uint32_t maybeCalleeOffset = reader.stubOffset();
+        maybeRawCallee = stubInfo->getStubRawWord(stubData, maybeCalleeOffset);
+        break;
+      }
       case CacheOp::CallScriptedGetterResult: {
-        data.emplace();
-        data->receiverOperand = reader.valOperandId();
-
-        uint32_t getterOffset = reader.stubOffset();
-        uintptr_t rawTarget = stubInfo->getStubRawWord(stubData, getterOffset);
-        data->target = reinterpret_cast<JSFunction*>(rawTarget);
-
-        data->sameRealm = reader.readBool();
+        ValOperandId receiverOperand = reader.valOperandId();
+        ObjOperandId calleeOperand = reader.objOperandId();
+        bool sameRealm = reader.readBool();
         (void)reader.stubOffset();  // nargsAndFlags
 
-        data->endOfSharedPrefix = opStart;
+        if (maybeCalleeOperand == calleeOperand) {
+          data.emplace();
+          data->target = reinterpret_cast<JSFunction*>(maybeRawCallee);
+          data->receiverOperand = receiverOperand;
+          data->calleeOperand = calleeOperand;
+          data->sameRealm = sameRealm;
+          data->endOfSharedPrefix = opStart;
+        }
         break;
       }
       case CacheOp::CallInlinedGetterResult: {
-        data.emplace();
-        data->receiverOperand = reader.valOperandId();
-
-        uint32_t getterOffset = reader.stubOffset();
-        uintptr_t rawTarget = stubInfo->getStubRawWord(stubData, getterOffset);
-        data->target = reinterpret_cast<JSFunction*>(rawTarget);
-
+        ValOperandId receiverOperand = reader.valOperandId();
+        ObjOperandId calleeOperand = reader.objOperandId();
         uint32_t icScriptOffset = reader.stubOffset();
         uintptr_t rawICScript =
             stubInfo->getStubRawWord(stubData, icScriptOffset);
-        data->icScript = reinterpret_cast<ICScript*>(rawICScript);
-
-        data->sameRealm = reader.readBool();
+        bool sameRealm = reader.readBool();
         (void)reader.stubOffset();  // nargsAndFlags
 
-        data->endOfSharedPrefix = opStart;
+        if (maybeCalleeOperand == calleeOperand) {
+          data.emplace();
+          data->target = reinterpret_cast<JSFunction*>(maybeRawCallee);
+          data->receiverOperand = receiverOperand;
+          data->calleeOperand = calleeOperand;
+          data->icScript = reinterpret_cast<ICScript*>(rawICScript);
+          data->sameRealm = sameRealm;
+          data->endOfSharedPrefix = opStart;
+        }
         break;
       }
       default:
@@ -829,8 +842,8 @@ bool TrialInliner::maybeInlineGetter(ICEntry& entry, ICFallbackStub* fallback,
   }
   cloneSharedPrefix(stub, data->endOfSharedPrefix, writer);
 
-  writer.callInlinedGetterResult(data->receiverOperand, data->target,
-                                 newICScript, data->sameRealm);
+  writer.callInlinedGetterResult(data->receiverOperand, data->calleeOperand,
+                                 data->target, newICScript, data->sameRealm);
   writer.returnFromIC();
 
   return replaceICStub(entry, fallback, writer, kind);

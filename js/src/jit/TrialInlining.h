@@ -126,6 +126,7 @@ class InlinableCallData : public InlinableOpData {
 class InlinableGetterData : public InlinableOpData {
  public:
   ValOperandId receiverOperand;
+  ObjOperandId calleeOperand;
   bool sameRealm = false;
 };
 

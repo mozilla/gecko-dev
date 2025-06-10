@@ -2550,7 +2550,7 @@
   custom_writer: true
   args:
     receiver: ValId
-    getter: ObjectField
+    callee: ObjId
     sameRealm: BoolImm
     nargsAndFlags: RawInt32Field
 
@@ -2561,7 +2561,7 @@
   custom_writer: true
   args:
     receiver: ValId
-    getter: ObjectField
+    callee: ObjId
     icScript: RawPointerField
     sameRealm: BoolImm
     nargsAndFlags: RawInt32Field
