@@ -296,7 +296,7 @@ impl FrameMemory {
     /// A `FrameMemory` must not be dropped until all of the associated
     /// `FrameAllocators` as well as their allocations have been dropped,
     /// otherwise the `FrameMemory::drop` will panic.
-    pub fn new(pool: Arc<ChunkPool>) -> Self {
+    pub fn new(pool: Arc<ChunkPool>, _frame_id: FrameId) -> Self {
         let layout = Layout::from_size_align(
             std::mem::size_of::<FrameInnerAllocator>(),
             std::mem::align_of::<FrameInnerAllocator>(),
@@ -312,7 +312,7 @@ impl FrameMemory {
                 live_alloc_count: AtomicI32::new(0),
                 references_dropped: AtomicI32::new(0),
                 #[cfg(debug_assertions)]
-                frame_id: None,
+                frame_id: Some(_frame_id),
             });
 
             FrameMemory {
@@ -359,23 +359,6 @@ impl FrameMemory {
                 // from the previous frame are still alive.
                 let references_created = *self.references_created.get();
                 assert_eq!(ptr.as_ref().references_dropped.load(Ordering::Acquire), references_created);
-            }
-        }
-    }
-
-    /// Must be called at the beginning of each frame before creating any `FrameAllocator`.
-    pub fn begin_frame(&mut self, id: FrameId) {
-        self.assert_memory_reusable();
-
-        if let Some(mut ptr) = self.allocator {
-            unsafe {
-                let allocator = ptr.as_mut();
-                allocator.references_dropped.store(0, Ordering::Release);
-                self.references_created = UnsafeCell::new(0);
-
-                allocator.bump.reset_stats();
-
-                allocator.set_frame_id(id);
             }
         }
     }
@@ -449,24 +432,12 @@ struct FrameInnerAllocator {
     frame_id: Option<FrameId>,
 }
 
-impl FrameInnerAllocator {
-    #[cfg(not(debug_assertions))]
-    fn set_frame_id(&mut self, _: FrameId) {}
-
-    #[cfg(debug_assertions)]
-    fn set_frame_id(&mut self, id: FrameId) {
-        self.frame_id = Some(id);
-    }
-}
-
 #[test]
 fn frame_memory_simple() {
     use std::sync::mpsc::channel;
 
     let chunk_pool = Arc::new(ChunkPool::new());
-    let mut memory = FrameMemory::new(chunk_pool);
-
-    memory.begin_frame(FrameId::first());
+    let memory = FrameMemory::new(chunk_pool, FrameId::first());
 
     let alloc = memory.allocator();
     let a2 = memory.allocator();

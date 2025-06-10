@@ -35,7 +35,7 @@ use crate::hit_test::{HitTest, HitTester, SharedHitTester};
 use crate::intern::DataStore;
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::internal_types::DebugOutput;
-use crate::internal_types::{FastHashMap, FrameId, FrameMemory, FrameStamp, RenderedDocument, ResultMsg};
+use crate::internal_types::{FastHashMap, FrameId, FrameStamp, RenderedDocument, ResultMsg};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::picture::{PictureScratchBuffer, SliceId, TileCacheInstance, TileCacheParams, SurfaceInfo, RasterConfig};
 use crate::picture::PicturePrimitive;
@@ -517,7 +517,7 @@ impl Document {
         frame_stats: Option<FullFrameStats>,
         present: bool,
         render_reasons: RenderReasons,
-        frame_memory: FrameMemory,
+        chunk_pool: Arc<ChunkPool>,
     ) -> RenderedDocument {
         let frame_build_start_time = precise_time_ns();
 
@@ -548,7 +548,7 @@ impl Document {
                 // on the next frame, it will add new entries to the minimap
                 // data during sampling.
                 mem::take(&mut self.minimap_data),
-                frame_memory,
+                chunk_pool,
             );
 
             frame
@@ -587,7 +587,7 @@ impl Document {
         mut txn: OffscreenBuiltScene,
         resource_cache: &mut ResourceCache,
         gpu_cache: &mut GpuCache,
-        frame_memory: FrameMemory,
+        chunk_pool: Arc<ChunkPool>,
         debug_flags: DebugFlags,
     ) -> RenderedDocument {
         let mut profile = TransactionProfile::new();
@@ -628,7 +628,7 @@ impl Document {
             // on the next frame, it will add new entries to the minimap
             // data during sampling.
             mem::take(&mut self.minimap_data),
-            frame_memory,
+            chunk_pool,
         );
 
         RenderedDocument {
@@ -1014,12 +1014,11 @@ impl RenderBackend {
                         &mut doc.profile,
                     );
 
-                    let frame_memory = FrameMemory::new(self.chunk_pool.clone());
                     let rendered_document = doc.process_offscreen_scene(
                         offscreen_scene,
                         &mut self.resource_cache,
                         &mut self.gpu_cache,
-                        frame_memory,
+                        self.chunk_pool.clone(),
                         self.debug_flags,
                     );
 
@@ -1566,8 +1565,6 @@ impl RenderBackend {
 
                 let frame_stats = doc.frame_stats.take();
 
-                let frame_memory = FrameMemory::new(self.chunk_pool.clone());
-
                 let rendered_document = doc.build_frame(
                     &mut self.resource_cache,
                     &mut self.gpu_cache,
@@ -1576,7 +1573,7 @@ impl RenderBackend {
                     frame_stats,
                     present,
                     render_reasons,
-                    frame_memory,
+                    self.chunk_pool.clone(),
                 );
 
                 debug!("generated frame for document {:?} with {} passes",
@@ -1779,7 +1776,6 @@ impl RenderBackend {
             if config.bits.contains(CaptureBits::FRAME) {
                 // Temporarily force invalidation otherwise the render task graph dump is empty.
                 let force_invalidation = std::mem::replace(&mut doc.scene.config.force_invalidation, true);
-                let frame_memory = FrameMemory::new(self.chunk_pool.clone());
                 let rendered_document = doc.build_frame(
                     &mut self.resource_cache,
                     &mut self.gpu_cache,
@@ -1788,7 +1784,7 @@ impl RenderBackend {
                     None,
                     true,
                     RenderReasons::empty(),
-                    frame_memory,
+                    self.chunk_pool.clone(),
                 );
 
                 doc.scene.config.force_invalidation = force_invalidation;

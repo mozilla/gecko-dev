@@ -49,14 +49,6 @@ impl BumpAllocator {
         self.stats
     }
 
-    pub fn reset_stats(&mut self) {
-        let chunks = self.stats.chunks;
-        let reserved_bytes = self.stats.reserved_bytes;
-        self.stats = Stats::default();
-        self.stats.chunks = chunks;
-        self.stats.reserved_bytes = reserved_bytes;
-    }
-
     pub fn allocate_item(&mut self, layout: Layout) -> Result<NonNull<[u8]>, AllocError> {
         self.stats.allocations += 1;
         self.stats.allocated_bytes += layout.size();

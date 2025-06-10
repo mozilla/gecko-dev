@@ -8,7 +8,7 @@ use plane_split::BspSplitter;
 use crate::batch::{BatchBuilder, AlphaBatchBuilder, AlphaBatchContainer};
 use crate::clip::{ClipStore, ClipTree};
 use crate::command_buffer::{PrimitiveCommand, CommandBufferList, CommandBufferIndex};
-use crate::debug_colors;
+use crate::{debug_colors, ChunkPool};
 use crate::spatial_node::SpatialNodeType;
 use crate::spatial_tree::{SpatialTree, SpatialNodeIndex};
 use crate::composite::{CompositorKind, CompositeState, CompositeStatePreallocator};
@@ -36,6 +36,7 @@ use crate::scene::{BuiltScene, SceneProperties};
 use crate::space::SpaceMapper;
 use crate::segment::SegmentBuilder;
 use crate::surface::SurfaceBuilder;
+use std::sync::Arc;
 use std::{f32, mem};
 use crate::util::{MaxRect, VecHelper, Preallocator};
 use crate::visibility::{update_prim_visibility, FrameVisibilityState, FrameVisibilityContext};
@@ -650,12 +651,12 @@ impl FrameBuilder {
         dirty_rects_are_valid: bool,
         profile: &mut TransactionProfile,
         minimap_data: FastHashMap<ExternalScrollId, MinimapData>,
-        mut frame_memory: FrameMemory,
+        chunk_pool: Arc<ChunkPool>,
     ) -> Frame {
         profile_scope!("build");
         profile_marker!("BuildFrame");
 
-        frame_memory.begin_frame(stamp.frame_id());
+        let mut frame_memory = FrameMemory::new(chunk_pool, stamp.frame_id());
 
         profile.set(profiler::PRIMITIVES, scene.prim_instances.len());
         profile.set(profiler::PICTURE_CACHE_SLICES, scene.tile_cache_config.picture_cache_slice_count);
