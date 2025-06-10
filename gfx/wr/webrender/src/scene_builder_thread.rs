@@ -59,6 +59,7 @@ fn rasterize_blobs(txn: &mut TransactionMsg, is_low_priority: bool, tile_pool: &
 pub struct BuiltTransaction {
     pub document_id: DocumentId,
     pub built_scene: Option<BuiltScene>,
+    pub offscreen_scenes: Vec<OffscreenBuiltScene>,
     pub view: SceneView,
     pub resource_updates: Vec<ResourceUpdate>,
     pub rasterized_blobs: Vec<(BlobImageRequest, BlobImageResult)>,
@@ -73,6 +74,12 @@ pub struct BuiltTransaction {
     pub invalidate_rendered_frame: bool,
     pub profile: TransactionProfile,
     pub frame_stats: FullFrameStats,
+}
+
+pub struct OffscreenBuiltScene {
+    pub scene: BuiltScene,
+    pub interner_updates: InternerUpdates,
+    pub spatial_tree_updates: SpatialTreeUpdates,
 }
 
 #[cfg(feature = "replay")]
@@ -445,6 +452,7 @@ impl SceneBuilderThread {
             if item.scene.has_root_pipeline() {
                 built_scene = Some(SceneBuilder::build(
                     &item.scene,
+                    None,
                     item.fonts,
                     &item.view,
                     &self.config,
@@ -492,6 +500,7 @@ impl SceneBuilderThread {
                 spatial_tree_updates,
                 profile: TransactionProfile::new(),
                 frame_stats: FullFrameStats::default(),
+                offscreen_scenes: Vec::new(),
             })];
 
             self.forward_built_transactions(txns);
@@ -543,6 +552,7 @@ impl SceneBuilderThread {
         let mut removed_pipelines = Vec::new();
         let mut rebuild_scene = false;
         let mut frame_stats = FullFrameStats::default();
+        let mut offscreen_scenes = Vec::new();
 
         for message in txn.scene_ops.drain(..) {
             match message {
@@ -588,6 +598,29 @@ impl SceneBuilderThread {
                         display_list,
                     );
                 }
+                SceneMsg::RenderOffscreen(pipeline_id) => {
+                    let mut interners = Interners::default();
+                    let mut spatial_tree = SceneSpatialTree::new();
+                    let built = SceneBuilder::build(
+                        &scene,
+                        Some(pipeline_id),
+                        self.fonts.clone(),
+                        &doc.view,
+                        &self.config,
+                        &mut interners,
+                        &mut spatial_tree,
+                        &mut self.recycler,
+                        &doc.stats,
+                        self.debug_flags,
+                    );
+                    let interner_updates = interners.end_frame_and_get_pending_updates();
+                    let spatial_tree_updates = spatial_tree.end_frame_and_get_pending_updates();
+                    offscreen_scenes.push(OffscreenBuiltScene {
+                        scene: built,
+                        interner_updates,
+                        spatial_tree_updates,
+                    });
+                }
                 SceneMsg::SetRootPipeline(pipeline_id) => {
                     if scene.root_pipeline_id != Some(pipeline_id) {
                         rebuild_scene = true;
@@ -612,6 +645,7 @@ impl SceneBuilderThread {
 
             let built = SceneBuilder::build(
                 &scene,
+                None,
                 self.fonts.clone(),
                 &doc.view,
                 &self.config,
@@ -669,6 +703,7 @@ impl SceneBuilderThread {
             present: txn.generate_frame.present(),
             invalidate_rendered_frame: txn.invalidate_rendered_frame,
             built_scene,
+            offscreen_scenes,
             view: doc.view,
             rasterized_blobs: txn.rasterized_blobs,
             resource_updates: txn.resource_updates,

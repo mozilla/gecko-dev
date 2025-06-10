@@ -118,7 +118,7 @@ impl Eq for FrameStamp {}
 impl PartialEq for FrameStamp {
     fn eq(&self, other: &Self) -> bool {
         // We should not be checking equality unless the documents are the same
-        debug_assert!(self.document_id == other.document_id);
+        debug_assert_eq!(self.document_id, other.document_id);
         self.id == other.id
     }
 }
@@ -1362,6 +1362,11 @@ pub enum ResultMsg {
     PublishPipelineInfo(PipelineInfo),
     PublishDocument(
         FramePublishId,
+        DocumentId,
+        RenderedDocument,
+        ResourceUpdateList,
+    ),
+    RenderDocumentOffscreen(
         DocumentId,
         RenderedDocument,
         ResourceUpdateList,
