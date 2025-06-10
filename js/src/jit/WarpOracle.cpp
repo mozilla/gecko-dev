@@ -1019,8 +1019,8 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
     return false;
   }
 
-  RootedFunction targetFunction(cx_, inlineData->target);
-  if (!TrialInliner::canInline(targetFunction, script_, loc)) {
+  RootedScript targetScript(cx_, inlineData->target);
+  if (!TrialInliner::canInline(targetScript, script_, loc)) {
     return false;
   }
 
@@ -1029,7 +1029,6 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
   MOZ_ASSERT_IF(!isTrialInlined, fallbackStub->trialInliningState() ==
                                      TrialInliningState::MonomorphicInlined);
 
-  RootedScript targetScript(cx_, targetFunction->nonLazyScript());
   ICScript* icScript = nullptr;
   if (isTrialInlined) {
     icScript = inlineData->icScript;
