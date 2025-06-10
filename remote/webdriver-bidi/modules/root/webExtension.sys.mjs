@@ -140,6 +140,12 @@ class WebExtensionModule extends RootBiDiModule {
           lazy.pprint`Expected "extensionData.path" to be a string, got ${path}`
         );
 
+        if (permanent && type == ExtensionDataType.Path) {
+          throw new lazy.error.InvalidWebExtensionError(
+            "Permanent installation of unpacked extensions is not supported"
+          );
+        }
+
         extensionId = await lazy.Addon.installWithPath(path, !permanent, false);
     }
 
