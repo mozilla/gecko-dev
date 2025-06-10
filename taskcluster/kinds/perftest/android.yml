@@ -595,6 +595,120 @@ hw-s24-aarch64-shippable-startup-fenix-tab-restore-shopify:
             --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
             --output $MOZ_FETCHES_DIR/../artifacts
 
+hw-a55-aarch64-shippable-startup-fenix-tab-restore-simpleperf:
+    worker-type: t-bitbar-gw-perf-a55
+    description: Profile android tab restore startup on Fenix on a Samsung A55
+    treeherder:
+        symbol: perftest-fenix(tab-restore-profile)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    run-on-projects: []
+    dependencies:
+        android-aarch64-shippable: build-android-aarch64-shippable/opt
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+        android-aarch64-shippable:
+            - artifact: target.crashreporter-symbols.zip
+              extract: true
+        toolchain:
+            - linux64-samply
+            - linux64-android-simpleperf-linux-repack
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app fenix
+            testing/performance/mobile-startup/restore.sh
+            --perfherder
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --simpleperf
+            --simpleperf-path $MOZ_FETCHES_DIR/android-simpleperf
+
+hw-p6-aarch64-shippable-startup-fenix-tab-restore-simpleperf:
+    worker-type: t-bitbar-gw-perf-p6
+    description: Profile android tab restore startup on Fenix on a Pixel 6
+    treeherder:
+        symbol: perftest-fenix(tab-restore-profile)
+        tier: 2
+    platform: android-hw-p6-13-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    run-on-projects: []
+    dependencies:
+        android-aarch64-shippable: build-android-aarch64-shippable/opt
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+        android-aarch64-shippable:
+            - artifact: target.crashreporter-symbols.zip
+              extract: true
+        toolchain:
+            - linux64-samply
+            - linux64-android-simpleperf-linux-repack
+    require-build:
+        android-hw-p6-13-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app fenix
+            testing/performance/mobile-startup/restore.sh
+            --perfherder
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --simpleperf
+            --simpleperf-path $MOZ_FETCHES_DIR/android-simpleperf
+
+hw-s24-aarch64-shippable-startup-fenix-tab-restore-simpleperf:
+    worker-type: t-bitbar-gw-perf-s24
+    description: Profile android tab restore startup on Fenix on a Samsung S24
+    treeherder:
+        symbol: perftest-fenix(tab-restore-profile)
+        tier: 2
+    platform: android-hw-s24-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    run-on-projects: []
+    dependencies:
+        android-aarch64-shippable: build-android-aarch64-shippable/opt
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+        android-aarch64-shippable:
+            - artifact: target.crashreporter-symbols.zip
+              extract: true
+        toolchain:
+            - linux64-samply
+            - linux64-android-simpleperf-linux-repack
+    require-build:
+        android-hw-s24-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            --flavor custom-script
+            --app fenix
+            testing/performance/mobile-startup/restore.sh
+            --perfherder
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --simpleperf
+            --simpleperf-path $MOZ_FETCHES_DIR/android-simpleperf
+
 hw-a55-aarch64-shippable-startup-chrome-m-homeview-startup:
     worker-type: t-bitbar-gw-perf-a55
     description: Run android homeview startup perftest on Chrome on a Samsung A55
