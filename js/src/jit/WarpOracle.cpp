@@ -1069,8 +1069,7 @@ AbortReasonOr<bool> WarpScriptOracle::maybeInlineCall(
   jsbytecode* osrPc = nullptr;
   bool needsArgsObj = targetScript->needsArgsObj();
   CompileInfo* info = lifoAlloc->new_<CompileInfo>(
-      mirGen_.runtime, targetScript, targetFunction, osrPc, needsArgsObj,
-      inlineScriptTree);
+      mirGen_.runtime, targetScript, osrPc, needsArgsObj, inlineScriptTree);
   if (!info) {
     return abort(AbortReason::Alloc);
   }
